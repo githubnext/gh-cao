@@ -1,35 +1,7 @@
 {
   "source_sha": "8249bcefd13a0a129d1874121324f325d63d8902",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-24T04:39:54Z",
-      "worker_run_id": "40063051341",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40063087617,
-        40062283565,
-        40060697788,
-        40059981240,
-        40059296868,
-        40058322772,
-        40058304540,
-        40056639629,
-        40055917295,
-        40055829888,
-        40054501924,
-        40052532232,
-        40051897521,
-        40050519437,
-        40050211598,
-        40048891001,
-        40048322967,
-        40047130409,
-        40043057001,
-        40041469818
-      ],
-      "outcome": "incomplete: the 2026-10-23T23:45:49Z to 2026-10-24T04:37:40Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Trusted job and step metadata established only two successful build-and-deploy paths: workflow_run 40058304540 and workflow_run 40050211598, both at source SHA 1b5e3cd85fcf6f4c9b4419414839f4371b445389. Long schedule run 40058322772 freshness-checked and skipped build and deploy after a concurrency wait; every other successful run completed in 17 seconds or less and cannot contain the observed 57-62 second build jobs. This is below the required minimum of five comparable successful runs, so workflow/job median and p90 timings, repeated trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-24T06:31:03Z",
       "worker_run_id": "40070310523",
@@ -674,6 +646,34 @@
         40121471441
       ],
       "outcome": "complete no-op: the 2026-10-24T18:36:21Z to 2026-10-24T21:32:43Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable. Median execution was 95.0s (p90 104.2s), queue/concurrency time 3.0s (p90 52.6s), build 73.0s (p90 79.6s), and deploy 10.0s (p90 10.6s). Seven successful CAO Dashboard build jobs had median 16.0s (p90 22.0s). Trusted step metadata verified dashboard-cache hits in all five docs builds: restore succeeded and both artifact lookup and download fallback were skipped. Freshness checks avoided builds in 13 successful docs runs. One schedule/push collision at SHA acb345d8b1ec152e103c0570562a9e99a5431d62 produced a second 91-second execution because push bypasses freshness, but the window did not show repeated avoidable full rebuilds. No recommendation was made: 15-minute freshness runs cost only about 10-14 seconds, below the actionability threshold, and changing push gating based on one collision lacks the required repeated evidence. The next category is dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-10-24T21:51:19Z",
+      "worker_run_id": "40135812264",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        40135648060,
+        40134680631,
+        40133840183,
+        40133826166,
+        40133428226,
+        40132380373,
+        40131335329,
+        40131228440,
+        40130294936,
+        40129446894,
+        40127913019,
+        40126757278,
+        40125625633,
+        40124647241,
+        40124625205,
+        40123369506,
+        40122394170,
+        40121780130,
+        40121606358,
+        40121585605
+      ],
+      "outcome": "complete no-op: the 2026-10-24T18:37:58Z to 2026-10-24T21:45:51Z latest-20 completed docs.yml window contained 19 successful and one skipped run, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable. Median execution was 95.0s (p90 104.2s), queue/concurrency time 3.0s (p90 52.6s), build 73.0s (p90 79.6s), deploy 10.0s (p90 10.6s), dependency installation 24.0s (p90 24.0s), and Astro generation 15.0s (p90 15.0s). Seven successful CAO Dashboard producers had build median 16.0s (p90 22.0s). Trusted step metadata verified dashboard-cache hits in all five docs builds because restore succeeded and artifact lookup/download fallback was skipped. Bounded logs for two current-source runs verified exact setup-node npm-cache hits while npm ci still rebuilt 852 packages in 23-24s. This independently confirms the exact dependency-tree cache recommendation, but open issue #19689 already represents the same work and current timing/source evidence has not materially changed from fingerprint docs-exact-node-modules-cache-v1. No duplicate issue was created. The next category is Astro documentation generation."
     }
   ]
 }
