@@ -641,6 +641,114 @@ The implementation profile defined by this specification is:
 | Go server Postgres sources | Canonical model 19 | Fresh TypeSpec-defined entity and input tables with query-required native columns, compact presence bits, entity-owned relational child values, and transactional diagnostics/revision state; no stored JSON documents or duplicate scalar row formats |
 | Static SQL export | 3 | Versioned JSON interchange produced from upstream SQL tables or views |
 
+### 5.1.1 Independent statistical run projection
+
+`statistical-runs` is a separate, bounded statistical query layer over the current
+canonical snapshot. It SHALL NOT replace `runs`, change existing exact Run or
+linked-detail retention, evict evidence, or create daily aggregates. This is the
+incremental sampling and PostgreSQL bundle-persistence portion of
+[the three-tier proposal](../adr/three-tier-operational-storage.md), not an
+implementation of its hot-tier eviction, daily contributions, or online reservoir.
+
+Selection SHALL execute inside the canonical worker/storage query boundary, or
+PostgreSQL's canonical publication transaction, before consumer filters, joins,
+grouping, or pagination. All consumers of a snapshot and sampling policy SHALL use the
+same frame. UI code SHALL NOT reconstruct a sample from view rows.
+
+The frame SHALL use a recorded logical UTC watermark, never query wall-clock
+time. A recorded Run-source `as-of` takes precedence. Without it, the greatest
+valid recorded Run `startedAt`, `createdAt`, `completedAt`, or `updatedAt` MAY define a
+`canonical-run-max` watermark; the frame SHALL label that policy explicitly.
+Neither import time nor query time is a fallback. Without either recorded clock,
+the source SHALL be unavailable rather than an exact empty result.
+Eligible records are terminal canonical Runs with a valid execution
+timestamp in `[watermark - seven days, watermark)`. Pending, undated, and
+unreconciled conflicting identities SHALL NOT become completed sample members.
+Canonical Run identities, not attempts or mutable metrics, determine seeded,
+versioned SHA-256 priorities. Strata are execution UTC date and outcome.
+Selection SHALL use deterministic proportional largest-remainder allocation,
+with a bounded ten-percent failure reserve and stable identity tie-breaking.
+Statistical capacities are independent: PostgreSQL 64,000; SQLite 8,000;
+IndexedDB 16,000. Explicit hot-identity exclusions MAY narrow the frame; this
+increment leaves the exact layer unchanged and does not infer a hot census.
+
+Candidate frames are bounded to 200,000 input rows and 256 MiB of serialized
+input, including malformed identities. Bottom-k priority retention SHALL remain
+bounded by the allocated sample capacity; browser priority hashing SHALL use
+bounded batches rather than one promise per population member. Browser stores
+needed only for sampling SHALL be read in bounded batches within one readonly
+snapshot, with a shared byte budget. Exceeding sampling input limits SHALL mark
+statistical sources unavailable without suppressing independent exact queries.
+Database failures and caller cancellation SHALL NOT be disguised as empty samples.
+
+Sampling diagnostics SHALL be disabled by default and contain only fixed event
+labels, stages, counts, timings, and validity indicators, never identities,
+payloads, seeds, or arbitrary error text. Enable browser summaries with
+`?debug=data:sampling` (source-loading diagnostics use `?debug=database`).
+Go backends use `DEBUG=cao:postgresx:sampling` or `DEBUG=cao:sqlitex:sampling`;
+native CLI summaries use `DEBUG=cao:cli` and remain off JSON stdout.
+
+The source SHALL retain ordinary Run fields and expose its sampling frame,
+watermark, covered interval, candidate and selected counts, per-stratum
+populations/allocations, and weight validity. Inclusion probability is `k/N`
+and expansion weight is `N/k` only for a complete, frozen, valid frame of
+available canonical evidence. This does not attest complete upstream collection.
+The versioned frame identity SHALL cover every eligible canonical identity and
+its stratum, including unselected identities and strata allocated zero records.
+Identity ordering SHALL match canonical IndexedDB string ordering. Identical
+replays and input ordering SHALL NOT change that identity; changing the candidate
+population SHALL, even when selected identities, counts, and cutoffs stay equal.
+Selection-priority versioning SHALL remain independent of frame-format versioning.
+Each selected Run and its sampled linked observations SHALL carry
+`statistical-frame-id`, matching the frame metadata, so probabilities and weights
+remain bound to their population after row projection or filtering. This
+identifies the sampling design, not a revision of mutable Run measurements.
+Missing or conflicting evidence SHALL invalidate unsupported weights; strata
+allocated zero records SHALL preclude a full-population estimate. There is no
+expiration-without-refill probability claim: complete frames are reconstructed
+from canonical snapshots rather than maintained as an online reservoir.
+
+PostgreSQL SHALL atomically publish the frame, membership, strata, source
+quality, selected Runs, all nine admitted Run-linked collections, and their
+structural parent closure in private typed `cao_sample_*` tables. These tables
+SHALL NOT be canonical ingestion inputs or daily retention partitions.
+Statistical query dependencies SHALL read these frozen copies, including their
+parent context; exact dependencies in the same plan SHALL continue to read
+canonical tables. A manifest or membership cache joined to mutable canonical
+detail does not constitute persisted bundles.
+
+The persisted frame SHALL expose `storage-mode: persisted-bundles`,
+`source-data-revision`, and `source-revision`. It describes its recorded
+publication watermark and evidence revision, not the latest incremental state.
+Incremental writes and partition maintenance SHALL NOT mutate or independently
+expire sampled children, recompute weights, or refill membership. A subsequent
+canonical revision SHALL make the frozen source stale, without changing its
+historical weights. Only complete canonical snapshot publication SHALL replace
+the frame and bundles, rebuilding the seven-day window at that snapshot's
+recorded watermark. This is bounded snapshot persistence, not a continuously
+maintained reservoir or an extension of exact retention.
+
+Bundle admission SHALL be all-or-nothing and bounded to 200,000 records per
+collection, 500,000 evidence/context records in total, and 256 MiB of expanded
+typed values plus estimated membership bytes and a 1 MiB metadata reserve.
+The byte envelope excludes PostgreSQL page/index overhead. Budget exhaustion
+SHALL publish an unavailable statistical source with no retained bundle subset
+or valid weights, while preserving independent exact publication. Database
+errors, cancellation, or failed canonical validation SHALL roll back publication
+and preserve the previous committed frame. Snapshot readers SHALL observe either
+the previous complete publication or the next complete publication.
+
+The Models & Agents sample-composition query consumes `statistical-runs`. Its
+counts and chart shares SHALL describe the unweighted sample only, explicitly
+not population totals or model shares; failure reserves can change composition.
+Exact usage summaries, AIC/token statistics, operational totals, failure
+sequences, Run routes, and Operational Value queries SHALL retain their existing
+sources. Additional migrations require their own acceptance/weighting review.
+Only the PostgreSQL profile persists independent bundles; browser and SQLite
+projections cannot preserve detail already removed by canonical retention.
+Persistence cannot recover detail missing at admission. No profile reduces
+underlying canonical storage or shard download volume in this increment.
+
 ## 5.2 Go server profile
 
 Go SHALL be the serving runtime for local SQLite, hosted PostgreSQL, and explicit

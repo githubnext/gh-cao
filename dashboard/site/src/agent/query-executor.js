@@ -149,11 +149,12 @@ function compileBoundedQueries(queryId, queries, filters, maxRows) {
  *   queryId: string,
  *   parameters?: Record<string, unknown>,
  *   limit?: number,
- *   signal?: AbortSignal
+ *   signal?: AbortSignal,
+ *   statisticalCapacity?: number
  * }} request
  * @returns {Promise<{ query: string, rows: Record<string, unknown>[], metadata: Record<string, unknown> }>}
  */
-export async function executeNamedQuery({ indexedDB, document, queryId, parameters, limit, signal }) {
+export async function executeNamedQuery({ indexedDB, document, queryId, parameters, limit, signal, statisticalCapacity }) {
   const id = typeof queryId === 'string' ? queryId.trim() : '';
   if (!id) throw new NamedQueryError('A dashboard query identifier is required');
   const definition = describeQuery(document, id);
@@ -195,6 +196,7 @@ export async function executeNamedQuery({ indexedDB, document, queryId, paramete
   const resolved = /** @type {Array<Record<string, unknown>>} */ (resolveDashboardQueryParameters(scoped, operandValues));
   const bounded = compileBoundedQueries(id, resolved, /** @type {Array<{field:string,value:string}>} */ (filters), maxRows);
   const sources = await loadDatabaseQuerySources(indexedDB, {}, {
+    signal, statisticalCapacity,
     sourceNames: [bounded.alias],
     queries: [...resolved, ...bounded.queries]
   });
@@ -227,6 +229,8 @@ export async function executeNamedQuery({ indexedDB, document, queryId, paramete
       'as-of': metadata['as-of'] ?? '',
       'returned-rows': rows.length,
       limit: maxRows,
+      ...(metadata['statistical-frame'] ? { 'statistical-frame': metadata['statistical-frame'] } : {}),
+      ...(metadata['sample-frame'] ? { 'sample-frame': metadata['sample-frame'] } : {}),
       ...(resolvedParameters.length > 0
         ? { parameters: Object.fromEntries(resolvedParameters.map((parameter) => [parameter.name, parameter.value])) }
         : {})

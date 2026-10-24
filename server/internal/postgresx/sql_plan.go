@@ -58,7 +58,18 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 	defer cancel()
 	metadata := map[string]model.Metadata{}
 	retrievedAt := time.Now().UTC().Format(time.RFC3339Nano)
+	definitions = frozenStatisticalDefinitions(definitions)
 	resolve := func(name string) (query.SQLRelation, error) {
+		if strings.HasPrefix(name, statisticalSnapshotPrefix) {
+			relation, quality, err := r.frozenStatisticalSource(ctx, name)
+			metadata[name] = quality
+			return relation, err
+		}
+		if name == "$statisticalMembership" {
+			relation, quality, err := r.statisticalSQLSource(ctx)
+			metadata[name] = quality
+			return relation, err
+		}
 		if table, exists := entityTables[name]; exists && table.runtime {
 			if options.Runtime == nil {
 				return query.SQLRelation{}, fmt.Errorf("runtime source %q requires its authorized provider", name)
@@ -310,6 +321,10 @@ func mergeMetadata(left, right model.Metadata, optional bool) model.Metadata {
 	result := model.Metadata{}
 	for key, value := range left {
 		result[key] = value
+	}
+	if frame, exists := right["statistical-frame"]; exists {
+		result["statistical-frame"] = frame
+		result["sample-frame"] = frame
 	}
 	for _, field := range []string{"as-of", "retrieved-at"} {
 		a, _ := left[field].(string)

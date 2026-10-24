@@ -18,6 +18,25 @@ REVOKE ALL ON :"schema".cao_value_publications,
 GRANT SELECT, INSERT, UPDATE ON :"schema".cao_value_publications TO :"runtime";
 GRANT SELECT, INSERT, DELETE ON
     :"schema".operational_value_evidence, :"schema".operational_value_evidence_facts TO :"runtime";
+REVOKE ALL ON
+    :"schema".cao_sample_repositories, :"schema".cao_sample_campaigns, :"schema".cao_sample_workflows,
+    :"schema".cao_sample_runs, :"schema".cao_sample_audits, :"schema".cao_sample_domains,
+    :"schema".cao_sample_tools, :"schema".cao_sample_skills, :"schema".cao_sample_friction,
+    :"schema".cao_sample_issues, :"schema".cao_sample_experiments, :"schema".cao_sample_experiment_assignments,
+    :"schema".cao_sample_graders, :"schema".cao_sample_grader_observations,
+    :"schema".cao_sample_evals, :"schema".cao_sample_eval_observations,
+    :"schema".cao_sample_statistical_frame, :"schema".cao_sample_statistical_membership,
+    :"schema".cao_sample_statistical_strata, :"schema".cao_sample_cao_quality
+    FROM PUBLIC, :"runtime";
+GRANT SELECT, INSERT, DELETE ON
+    :"schema".cao_sample_repositories, :"schema".cao_sample_campaigns, :"schema".cao_sample_workflows,
+    :"schema".cao_sample_runs, :"schema".cao_sample_audits, :"schema".cao_sample_domains,
+    :"schema".cao_sample_tools, :"schema".cao_sample_skills, :"schema".cao_sample_friction,
+    :"schema".cao_sample_issues, :"schema".cao_sample_experiments, :"schema".cao_sample_experiment_assignments,
+    :"schema".cao_sample_graders, :"schema".cao_sample_grader_observations,
+    :"schema".cao_sample_evals, :"schema".cao_sample_eval_observations,
+    :"schema".cao_sample_statistical_frame, :"schema".cao_sample_statistical_membership,
+    :"schema".cao_sample_statistical_strata, :"schema".cao_sample_cao_quality TO :"runtime";
 REVOKE ALL ON FUNCTION :"schema".cao_analyze_native() FROM PUBLIC, :"runtime";
 GRANT EXECUTE ON FUNCTION :"schema".cao_analyze_native() TO :"runtime";
 GRANT SELECT, INSERT, UPDATE, DELETE ON

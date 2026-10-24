@@ -1,0 +1,19 @@
+{
+  "watermark": "2026-10-08T12:00:00.000Z",
+  "capacity": 3,
+  "frameVersion": "canonical-snapshot-frame-v2",
+  "frameId": "sha256:4329cd40459fac98673adec217ea332a304d9c5c86c3f1bc8145561d6bdb93b4",
+  "rows": [
+    { "id": "github:run:o/r:1", "owner": "o", "repository": "r", "githubRunId": "1", "status": "completed", "conclusion": "success", "startedAt": "2026-10-01T12:00:00.000Z" },
+    { "id": "github:run:o/r:2", "owner": "o", "repository": "r", "githubRunId": "2", "status": "completed", "conclusion": "success", "startedAt": "2026-10-01T13:00:00.000Z" },
+    { "id": "github:run:o/r:3", "owner": "o", "repository": "r", "githubRunId": "3", "status": "completed", "conclusion": "success", "startedAt": "2026-10-01T14:00:00.000Z" },
+    { "id": "github:run:o/r:4", "owner": "o", "repository": "r", "githubRunId": "4", "status": "completed", "conclusion": "success", "startedAt": "2026-10-02T12:00:00.000Z" },
+    { "id": "github:run:o/r:5", "owner": "o", "repository": "r", "githubRunId": "5", "status": "completed", "conclusion": "success", "startedAt": "2026-10-02T13:00:00.000Z" },
+    { "id": "github:run:o/r:6", "owner": "o", "repository": "r", "githubRunId": "6", "status": "completed", "conclusion": "failure", "startedAt": "2026-10-02T14:00:00.000Z" },
+    { "id": "github:run:o/r:7", "owner": "o", "repository": "r", "githubRunId": "7", "status": "completed", "conclusion": "failure", "startedAt": "2026-10-08T12:00:00.000Z" },
+    { "id": "github:run:o/r:8", "owner": "o", "repository": "r", "githubRunId": "8", "status": "completed", "conclusion": "success", "startedAt": "2026-10-01T11:59:59.999Z" },
+    { "id": "github:run:o/r:9", "owner": "o", "repository": "r", "githubRunId": "9", "status": "in-progress", "startedAt": "2026-10-07T00:00:00.000Z" }
+  ],
+  "priority": "687d720f84652eae4358293e5760b8bbc811a75a19cdb92c6d128f9c03913096",
+  "expectedIds": ["github:run:o/r:1", "github:run:o/r:6", "github:run:o/r:4"]
+}

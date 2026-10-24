@@ -1,5 +1,100 @@
 [
   {
+    "name": "statistical-runs",
+    "stores": ["runs", "workflows"],
+    "from": "runs",
+    "joins": [{
+      "source": "$statisticalMembership", "type": "inner",
+      "on": [{ "left": "id", "right": "id" }],
+      "fields": [
+        { "field": "statistical-frame-id", "as": "statistical-frame-id" },
+        { "field": "statistical-stratum", "as": "statistical-stratum" }, { "field": "statistical-priority", "as": "statistical-priority" },
+        { "field": "statistical-population", "as": "statistical-population" }, { "field": "statistical-allocation", "as": "statistical-allocation" },
+        { "field": "statistical-weight-valid", "as": "statistical-weight-valid" }, { "field": "statistical-probability", "as": "statistical-probability" },
+        { "field": "statistical-weight", "as": "statistical-weight" },
+        { "field": "statistical-stratum", "as": "sample-stratum" },
+        { "field": "statistical-probability", "as": "sample-probability" },
+        { "field": "statistical-weight", "as": "sample-weight" }
+      ]
+    }]
+  },
+  {
+    "name": "statistical-tools",
+    "stores": ["runs", "tools"],
+    "from": "tools",
+    "joins": [{
+      "source": "$statisticalMembership", "type": "inner",
+      "on": [
+        { "left": "organization", "right": "organization" },
+        { "left": "repository", "right": "repository" }, { "left": "run", "right": "run" }
+      ],
+      "fields": [
+        { "field": "statistical-frame-id", "as": "statistical-frame-id" },
+        { "field": "statistical-priority", "as": "statistical-priority" },
+        { "field": "statistical-stratum", "as": "statistical-stratum" }, { "field": "statistical-population", "as": "statistical-population" },
+        { "field": "statistical-allocation", "as": "statistical-allocation" }, { "field": "statistical-weight-valid", "as": "statistical-weight-valid" },
+        { "field": "statistical-probability", "as": "statistical-probability" }, { "field": "statistical-weight", "as": "statistical-weight" }
+      ]
+    }]
+  },
+  {
+    "name": "statistical-domains",
+    "stores": ["runs", "domains"],
+    "from": "domains",
+    "joins": [{
+      "source": "$statisticalMembership", "type": "inner",
+      "on": [
+        { "left": "organization", "right": "organization" },
+        { "left": "repository", "right": "repository" }, { "left": "run", "right": "run" }
+      ],
+      "fields": [
+        { "field": "statistical-frame-id", "as": "statistical-frame-id" },
+        { "field": "statistical-priority", "as": "statistical-priority" },
+        { "field": "statistical-stratum", "as": "statistical-stratum" }, { "field": "statistical-population", "as": "statistical-population" },
+        { "field": "statistical-allocation", "as": "statistical-allocation" }, { "field": "statistical-weight-valid", "as": "statistical-weight-valid" },
+        { "field": "statistical-probability", "as": "statistical-probability" }, { "field": "statistical-weight", "as": "statistical-weight" }
+      ]
+    }]
+  },
+  {
+    "name": "statistical-skills",
+    "stores": ["runs", "skills"],
+    "from": "skills",
+    "joins": [{
+      "source": "$statisticalMembership", "type": "inner",
+      "on": [
+        { "left": "organization", "right": "organization" },
+        { "left": "repository", "right": "repository" }, { "left": "run", "right": "run" }
+      ],
+      "fields": [
+        { "field": "statistical-frame-id", "as": "statistical-frame-id" },
+        { "field": "statistical-priority", "as": "statistical-priority" },
+        { "field": "statistical-stratum", "as": "statistical-stratum" }, { "field": "statistical-population", "as": "statistical-population" },
+        { "field": "statistical-allocation", "as": "statistical-allocation" }, { "field": "statistical-weight-valid", "as": "statistical-weight-valid" },
+        { "field": "statistical-probability", "as": "statistical-probability" }, { "field": "statistical-weight", "as": "statistical-weight" }
+      ]
+    }]
+  },
+  {
+    "name": "statistical-audits",
+    "stores": ["runs", "audits"],
+    "from": "audits",
+    "joins": [{
+      "source": "$statisticalMembership", "type": "inner",
+      "on": [
+        { "left": "organization", "right": "organization" },
+        { "left": "repository", "right": "repository" }, { "left": "run", "right": "run" }
+      ],
+      "fields": [
+        { "field": "statistical-frame-id", "as": "statistical-frame-id" },
+        { "field": "statistical-priority", "as": "statistical-priority" },
+        { "field": "statistical-stratum", "as": "statistical-stratum" }, { "field": "statistical-population", "as": "statistical-population" },
+        { "field": "statistical-allocation", "as": "statistical-allocation" }, { "field": "statistical-weight-valid", "as": "statistical-weight-valid" },
+        { "field": "statistical-probability", "as": "statistical-probability" }, { "field": "statistical-weight", "as": "statistical-weight" }
+      ]
+    }]
+  },
+  {
     "name": "daily-run-counts",
     "stores": ["dailyRunCounts"],
     "from": "$dailyRunCounts",

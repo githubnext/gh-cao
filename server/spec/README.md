@@ -24,6 +24,17 @@ absent versus explicit null. Query-required structured evidence uses entity-owne
 relational child values; no JSON, JSONB, serialized row documents, or duplicate
 generic scalar rows are stored.
 
+`@sampledBundle` declares private typed copies of canonical collections for
+PostgreSQL's independent statistical snapshot. The emitter generates
+non-partitioned `cao_sample_*` tables and a separate internal binding registry,
+not additional canonical ingestion sources. `Storage.Statistical` declares typed
+frame, membership, and stratum metadata; copied quality and structural parents
+keep statistical queries independent of mutable canonical detail. Snapshot
+publication replaces these tables atomically under the namespace writer lock,
+with whole-bundle admission limits. Incremental writes only make the publication
+stale; a complete snapshot rebuilds its seven-day frame. Exact retention, browser
+and SQLite sampling, hot-tier eviction, and daily contributions are unchanged.
+
 `operationalValueEvidence.facts` is an entity-owned typed array. The emitter
 generates its private relational child table and native scalar bindings.
 The canonical packet and all its facts publish in one transaction;

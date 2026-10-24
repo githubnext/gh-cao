@@ -12,10 +12,18 @@ const documentation = new Map();
 const dailyTables = new Map();
 const parents = new Map();
 const partitioned = new Set();
+const sampled = new Set();
+const statisticalMetadata = new Set();
 let evidenceFactFields;
 let webhookStatusFields;
 navigateProgram(program, {
   model(model) {
+    if (getNamespaceFullName(model.namespace) === 'Cao.Postgres.Storage.Statistical') {
+      statisticalMetadata.add(model.name);
+      for (const property of model.properties.values()) {
+        assert.equal(property.type.kind, 'Scalar', `${model.name}.${property.name} must use a native scalar`);
+      }
+    }
     if (getNamespaceFullName(model.namespace) === 'Cao.Postgres.Daily') {
       dailyTables.set(model.name, new Map([...model.properties].map(([name, property]) => [name, property.type.name])));
     }
@@ -32,10 +40,32 @@ navigateProgram(program, {
       tables.set(`$${model.name}`, new Set(model.properties.keys()));
       documentation.set(model.name, getDoc(program, model));
       if (program.stateSet(Symbol.for('cao-postgres.run-partition')).has(model)) partitioned.add(model.name);
+      if (program.stateSet(Symbol.for('cao-postgres.sampled-bundle')).has(model)) sampled.add(model.name);
       parents.set(model.name, [...model.properties.values()]
         .map((property) => program.stateMap(Symbol.for('cao-postgres.parent')).get(property)?.entity)
         .filter(Boolean));
     }
+  }
+});
+
+test('statistical bundles cover every Run-owned collection and its complete structural closure', () => {
+  assert.deepEqual([...sampled].sort(), [
+    'campaigns', 'repositories', 'workflows', 'runs', 'domains', 'tools', 'skills',
+    'friction', 'audits', 'issues', 'experiments', 'experimentAssignments',
+    'graders', 'graderObservations', 'evals', 'evalObservations'
+  ].sort());
+  for (const collection of partitioned) assert.ok(sampled.has(collection), `missing owned collection ${collection}`);
+  for (const collection of sampled) {
+    for (const parent of parents.get(collection)) assert.ok(sampled.has(parent), `missing structural parent ${parent}`);
+  }
+  assert.deepEqual([...statisticalMetadata].sort(), ['statisticalFrame', 'statisticalMembership', 'statisticalStrata']);
+  const sql = readFileSync(new URL('../internal/postgresx/schema.sql', import.meta.url), 'utf8');
+  for (const collection of [...sampled, ...statisticalMetadata, 'caoQuality']) {
+    const name = collection.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    const declaration = sql.split(`CREATE TABLE IF NOT EXISTS cao_sample_${name} (`)[1]?.split(';')[0];
+    assert.ok(declaration, `missing frozen table ${collection}`);
+    assert.doesNotMatch(declaration, /PARTITION BY/);
+    assert.doesNotMatch(declaration, /REFERENCES (?:runs|workflows|repositories|campaigns|experiments|graders|evals)\(/);
   }
 });
 const definitions = JSON.parse(readFileSync(new URL('../../dashboard/site/src/data/queries/database.json', import.meta.url)));

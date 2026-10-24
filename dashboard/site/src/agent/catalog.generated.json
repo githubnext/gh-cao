@@ -977,6 +977,7 @@
       "experimental": false,
       "parameters": [],
       "queries": [
+        "engines-models-sample-distribution",
         "engines-models-usage"
       ]
     },
@@ -5597,6 +5598,27 @@
         "backend": "sqlite",
         "requirements": [
           "transactions"
+        ]
+      }
+    },
+    {
+      "id": "engines-models-sample-distribution",
+      "subject": "Describe agent and model combinations in the seven-day statistical run sample.",
+      "objective": "Find sampled combinations to investigate without scanning the full retained run history.",
+      "acceptance": "Count selected canonical runs only, after the independent sampling frame is frozen. Counts and proportions describe the sample, not population usage, market share, quality, or exact totals; failure-reserve stratification can change its composition. Preserve unknown identifiers and do not mix sampled counts with the exact usage summaries.",
+      "description": "Unweighted composition of the seven-day statistical sample; not a population estimate. Failure outcomes may be oversampled.",
+      "parameters": [],
+      "sources": [
+        "statistical-runs"
+      ],
+      "used-by-pages": [
+        "engines-models"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "statistical-runs"
         ]
       }
     },

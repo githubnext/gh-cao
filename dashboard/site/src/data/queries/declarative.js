@@ -1120,6 +1120,7 @@ function enforceLimit(count, limit, subject) {
  */
 function composedMetadata(name, inputs, rowCount, optionalInputs = new Set(), preserveJoinedAggregate = false) {
   const metadata = inputs.map((input) => input.source?.metadata).filter(Boolean);
+  const statisticalFrame = metadata.find((value) => value?.['statistical-frame'])?.['statistical-frame'];
   /** @param {SourceMetadata | undefined} value */
   const aggregateFields = (value) => Object.fromEntries(Object.entries(value ?? {}).filter(([field]) =>
     field.startsWith('aggregate-') || ['excluded-runs', 'conflicted-runs', 'query-diagnostic'].includes(field)));
@@ -1144,6 +1145,7 @@ function composedMetadata(name, inputs, rowCount, optionalInputs = new Set(), pr
     !input.source || !Array.isArray(input.source.rows) || input.source.metadata?.availability === 'unavailable'
   ));
   return {
+    ...(statisticalFrame ? { 'statistical-frame': statisticalFrame, 'sample-frame': statisticalFrame } : {}),
     ...aggregateProvenance,
     'source-id': `${name}-query`,
     'source-kind': 'derived',

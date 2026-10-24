@@ -1097,8 +1097,9 @@ export async function readCanonicalBatch(indexedDB) {
  * Reads multiple stores through one connection and one readonly transaction.
  * @param {IDBFactory} indexedDB
  * @param {readonly typeof DATABASE_STORES[number][]} storeNames
+ * @param {{ bounds?: { stores: ReadonlySet<string>, rows: number, bytes: number, onLimit: () => void }, checkpoint?: () => void }} [options]
  */
-export async function readCollections(indexedDB, storeNames) {
+export async function readCollections(indexedDB, storeNames, options = {}) {
   const startedAt = monotonicNow();
   const database = await openCanonicalDatabase(indexedDB);
   try {
@@ -1107,11 +1108,54 @@ export async function readCollections(indexedDB, storeNames) {
       : await (async () => {
         const transaction = database.transaction([...storeNames]);
         const done = transactionDone(transaction);
-        const values = await Promise.all(storeNames.map((storeName) =>
-          requestResult(transaction.objectStore(storeName).getAll())
-        ));
-        await done;
-        return values;
+        let bytes = 0;
+        const encoder = new TextEncoder();
+        const values = storeNames.map((storeName) => {
+          const store = transaction.objectStore(storeName);
+          const bounds = options.bounds;
+          if (!bounds?.stores.has(storeName)) return requestResult(store.getAll());
+          /** @type {Promise<Record<string, unknown>[]>} */
+          const result = new Promise((resolve, reject) => {
+            /** @type {Record<string, unknown>[]} */
+            const rows = [];
+            /** @param {IDBKeyRange | undefined} range */
+            const read = (range) => {
+              const batchSize = Math.min(1000, bounds.rows - rows.length + 1);
+              const request = store.getAll(range, batchSize);
+              request.onerror = () => reject(request.error);
+              request.onsuccess = () => {
+                try {
+                  options.checkpoint?.();
+                  for (const record of request.result) {
+                    const row = canonicalRecord(record);
+                    bytes += encoder.encode(JSON.stringify(row)).byteLength;
+                    if (rows.length >= bounds.rows || bytes > bounds.bytes) {
+                      bounds.onLimit();
+                      resolve([]);
+                      return;
+                    }
+                    rows.push(row);
+                  }
+                  if (request.result.length === batchSize) {
+                    const last = request.result[request.result.length - 1];
+                    read(IDBKeyRange.lowerBound(last[String(store.keyPath)], true));
+                  } else resolve(rows);
+                } catch (error) {
+                  reject(error);
+                  try {
+                    transaction.abort();
+                  } catch (abortError) {
+                    debug({ event: 'bounded-read-abort-failed', ...errorSummary(abortError) });
+                  }
+                }
+              };
+            };
+            read(undefined);
+          });
+          return result;
+        });
+        const [records] = await Promise.all([Promise.all(values), done]);
+        return records;
       })();
     debug('completed multi-store collection read', {
       storeCount: storeNames.length,

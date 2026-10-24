@@ -465,7 +465,17 @@ export const TABLE_VALUES = [
   'marketplace-packages'
 ];
 
+export const STATISTICAL_FIELDS = [
+  'statistical-frame-id', 'statistical-stratum', 'statistical-priority', 'statistical-population',
+  'statistical-allocation', 'statistical-weight-valid', 'statistical-probability', 'statistical-weight'
+];
+
 export const TABLE_FIELDS = {
+  'statistical-runs': [...STATISTICAL_FIELDS],
+  'statistical-tools': [...STATISTICAL_FIELDS],
+  'statistical-domains': [...STATISTICAL_FIELDS],
+  'statistical-skills': [...STATISTICAL_FIELDS],
+  'statistical-audits': [...STATISTICAL_FIELDS],
   'daily-run-counts': ['day', 'organization', 'repository', 'workflow', 'total', 'successful', 'failed', 'approval', 'pending', 'other'],
   'routing-aggregates': [
     'routing-aggregate-version', 'organization', 'repository', 'workflow', 'run', 'run-attempt', 'run-link', 'engine',
@@ -590,6 +600,16 @@ TABLE_FIELDS.audits.push(
   'component', 'phase', 'telemetry-model', 'provider', 'effort', 'telemetry-engine',
   'duration-ms', 'exit-code', 'http-status', 'threshold', 'required'
 );
+
+for (const [name, source] of /** @type {const} */ ([
+  ['statistical-runs', 'runs'], ['statistical-tools', 'tools'], ['statistical-domains', 'domains'],
+  ['statistical-skills', 'skills'], ['statistical-audits', 'audits']
+])) {
+  TABLE_VALUES.push(name);
+  TABLE_FIELDS[name] = [...TABLE_FIELDS[source], ...STATISTICAL_FIELDS];
+}
+
+TABLE_FIELDS['statistical-runs'].push('sample-stratum', 'sample-probability', 'sample-weight');
 
 export const ROLLOUT_MODE_VALUES = ['review', 'live', 'unknown'];
 export const DETECTION_STATE_VALUES = ['clean', 'threat', 'degraded', 'tooling-failure', 'skipped', 'unknown'];

@@ -6,6 +6,10 @@ export const $lib = createTypeSpecLibrary({ name: 'cao-postgres', diagnostics: {
 export const namespace = 'Cao.Postgres';
 const parentKey = Symbol.for('cao-postgres.parent');
 const partitionKey = Symbol.for('cao-postgres.run-partition');
+const sampledKey = Symbol.for('cao-postgres.sampled-bundle');
+export function $sampledBundle(context, target) {
+  context.program.stateSet(sampledKey).add(target);
+}
 export function $parent(context, target, entity, required = true) {
   context.program.stateMap(parentKey).set(target, { entity, required });
 }
@@ -37,11 +41,12 @@ export async function $onEmit(context) {
   const systems = [];
   const extensions = [];
   const children = [];
+  const statistical = [];
   const parents = new Map();
   navigateProgram(context.program, {
     model(model) {
       const namespace = getNamespaceFullName(model.namespace);
-      if (!['Cao.Postgres', 'Cao.Postgres.Inputs', 'Cao.Postgres.Storage', 'Cao.Postgres.Runtime', 'Cao.Postgres.Daily'].includes(namespace)) return;
+      if (!['Cao.Postgres', 'Cao.Postgres.Inputs', 'Cao.Postgres.Storage', 'Cao.Postgres.Runtime', 'Cao.Postgres.Storage.Statistical', 'Cao.Postgres.Daily'].includes(namespace)) return;
       const columns = [];
       for (const property of model.properties.values()) {
         if (property.type.kind === 'Model' && property.type.name === 'Array') {
@@ -84,8 +89,10 @@ export async function $onEmit(context) {
         if (!kind) throw new Error(`Storage requires an explicit native type: ${model.name}.${property.name}`);
         columns.push({ field: property.name, name: snake(property.name), kind: kind[0], sql: kind[1], required: !property.optional });
       }
-      const table = { collection: model.name, name: snake(model.name), columns, partitioned: context.program.stateSet(partitionKey).has(model) };
-      if (namespace === 'Cao.Postgres.Daily') extensions.push(table);
+      const table = { collection: model.name, name: snake(model.name), columns, partitioned: context.program.stateSet(partitionKey).has(model),
+        sampled: context.program.stateSet(sampledKey).has(model) };
+      if (namespace === 'Cao.Postgres.Storage.Statistical') statistical.push(table);
+      else if (namespace === 'Cao.Postgres.Daily') extensions.push(table);
       else if (namespace === 'Cao.Postgres.Storage') systems.push(table);
       else {
         table.runtime = namespace === 'Cao.Postgres.Runtime' || model.name === 'marketplacePackages';
@@ -174,6 +181,41 @@ ${table.partitioned ? '  run_at TIMESTAMPTZ NOT NULL,\n' : ''}
       .map((child) => `{field: "${child.field}", source: "${child.source}"}`).join(',')}}},` : '\t}},');
   }
   go.push('}', '');
+  // Private snapshots are typed copies, not canonical inputs or TTL partitions.
+  go.push('var statisticalTables = map[string]entityTable{');
+  for (const table of [...tables.filter((t) => t.sampled), ...statistical]) {
+    const name = `cao_sample_${table.name}`;
+    const source = table.source ?? `$${table.collection}`;
+    const constraints = (parents.get(table.collection) ?? []).map(([field, parent]) => {
+      if (!tables.find((t) => t.collection === parent)?.sampled) throw new Error(`Unsampled bundle parent ${parent}`);
+      return `FOREIGN KEY (namespace, ${snake(field)}) REFERENCES cao_sample_${snake(parent)}(namespace, id) DEFERRABLE INITIALLY DEFERRED`;
+    });
+    statements.push(`CREATE TABLE IF NOT EXISTS ${name} (
+  namespace TEXT NOT NULL REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  ordinal BIGINT NOT NULL CHECK (ordinal >= 0),
+  present_fields BIT VARYING NOT NULL CHECK (bit_length(present_fields) = ${table.columns.length}),
+${table.columns.map((c) => `  ${c.name} ${c.sql}${c.field === 'id' ? " NOT NULL CHECK (id <> '')" : statistical.includes(table) && c.required ? ' NOT NULL' : ''}`).join(',\n')},
+${table.partitioned ? '  run_at TIMESTAMPTZ NOT NULL,\n' : ''}
+  PRIMARY KEY (namespace, id),
+  UNIQUE (namespace, ordinal)${constraints.length ? ',\n  ' + constraints.join(',\n  ') : ''}
+);`);
+    for (const [field] of parents.get(table.collection) ?? []) {
+      statements.push(`CREATE INDEX IF NOT EXISTS ${name}_${snake(field)} ON ${name} (namespace, ${snake(field)}, ordinal);`);
+    }
+    go.push(`\t"${source}": {name: "${name}", internal: true, partitioned: ${table.partitioned}, columns: []entityColumn{`);
+    for (const column of table.columns) {
+      go.push(`\t\t{field: "${column.field}", name: "${column.name}", kind: "${column.kind}", sql: "${column.sql}"},`);
+    }
+    go.push('\t}},');
+  }
+  go.push('}', '');
+  for (const table of systems.filter((t) => t.sampled)) {
+    statements.push(`CREATE TABLE IF NOT EXISTS cao_sample_${table.name} (
+${table.columns.map((c) => `  ${c.name} ${c.sql}${c.required ? ' NOT NULL' : ''}`).join(',\n')},
+  PRIMARY KEY (namespace, collection),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE
+);`);
+  }
   const literal = (value) => value === null ? 'nil' : JSON.stringify(value);
   go.push('var inventoryBindings = map[string][]inventoryBinding{');
   for (const [source, kind] of [['campaigns','campaign'],['repositories','repository'],['workflows','workflow']]) {

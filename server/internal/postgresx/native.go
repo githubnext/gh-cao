@@ -652,6 +652,9 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 		w.store.namespace); err != nil {
 		return State{}, err
 	}
+	if err := w.persistStatisticalSnapshot(ctx, dataRevision, query.MaxWorkingBytes); err != nil {
+		return State{}, fmt.Errorf("publish statistical bundles: %w", err)
+	}
 	if err := w.tx.QueryRow(ctx, `UPDATE cao_state SET revision=revision+1,data_revision=$1,evaluated_at=$2,schema_version=$3
 		WHERE namespace=$4 RETURNING revision`, dataRevision, w.evaluatedAt, model.SchemaVersion, w.store.namespace).Scan(&state.Revision); err != nil {
 		return State{}, err

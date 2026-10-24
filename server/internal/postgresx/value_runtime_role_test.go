@@ -72,11 +72,16 @@ func valueRuntimeRoleStore(t *testing.T, owner *Store, config *pgx.ConnConfig) *
 	if current != role || create || updateContract || deleteState || ownsPacket {
 		t.Fatal("runtime publication test requires a real non-owner role without schema or bootstrap authority")
 	}
-	for table, required := range map[string][]string{
+	requiredPrivileges := map[string][]string{
 		"cao_value_publications":           {"SELECT", "INSERT", "UPDATE"},
 		"operational_value_evidence":       {"SELECT", "INSERT", "DELETE"},
 		"operational_value_evidence_facts": {"SELECT", "INSERT", "DELETE"},
-	} {
+		"cao_sample_cao_quality":           {"SELECT", "INSERT", "DELETE"},
+	}
+	for _, table := range statisticalTables {
+		requiredPrivileges[table.name] = []string{"SELECT", "INSERT", "DELETE"}
+	}
+	for table, required := range requiredPrivileges {
 		for _, privilege := range required {
 			var allowed bool
 			if err := runtime.db.QueryRowContext(t.Context(), `SELECT has_table_privilege(current_user,$1,$2)`,
@@ -84,7 +89,11 @@ func valueRuntimeRoleStore(t *testing.T, owner *Store, config *pgx.ConnConfig) *
 				t.Fatalf("production runtime grant missing %s on %s: %v", privilege, table, err)
 			}
 		}
-		for _, privilege := range []string{"TRUNCATE", "TRIGGER", "REFERENCES"} {
+		forbidden := []string{"TRUNCATE", "TRIGGER", "REFERENCES"}
+		if strings.HasPrefix(table, "cao_sample_") {
+			forbidden = append(forbidden, "UPDATE")
+		}
+		for _, privilege := range forbidden {
 			var allowed bool
 			if err := runtime.db.QueryRowContext(t.Context(), `SELECT has_table_privilege(current_user,$1,$2)`,
 				table, privilege).Scan(&allowed); err != nil || allowed {

@@ -24,29 +24,29 @@ func TestNativePopulatedNamedQueriesMatchProduction(t *testing.T) {
 			"name": "Dependabot planner", "path": ".github/workflows/dependabot-update-planner.lock.yml", "role": "orchestrator",
 		}},
 		"runs": {
-			{"id": "run:org/repo/1", "repositoryId": "repository:org/repo", "workflowId": "workflow:org/repo/planner",
+			{"id": "github:run:org/repo:1", "repositoryId": "repository:org/repo", "workflowId": "workflow:org/repo/planner",
 				"owner": "org", "repository": "repo", "workflowPath": ".github/workflows/dependabot-update-planner.lock.yml",
 				"githubRunId": 1, "status": "completed", "conclusion": "failure", "startedAt": "2026-01-01T00:00:00.000Z",
 				"createdAt": "2026-01-01T00:00:00.000Z", "updatedAt": "2026-01-01T00:01:00.000Z",
 				"observedAt": "2026-01-02T00:00:00.000Z", "runLink": "https://github.com/org/repo/actions/runs/1",
 				"totalTokens": 1000, "totalCost": 0.4, "durationMs": 60000, "event": "schedule", "rolloutMode": "review"},
-			{"id": "run:org/repo/2", "repositoryId": "repository:org/repo", "workflowId": "workflow:org/repo/planner",
+			{"id": "github:run:org/repo:2", "repositoryId": "repository:org/repo", "workflowId": "workflow:org/repo/planner",
 				"owner": "org", "repository": "repo", "workflowPath": ".github/workflows/dependabot-update-planner.lock.yml",
 				"githubRunId": 2, "status": "completed", "conclusion": "success", "startedAt": "2026-01-02T00:00:00.000Z",
 				"createdAt": "2026-01-02T00:00:00.000Z", "updatedAt": "2026-01-02T00:02:00.000Z",
 				"observedAt": "2026-01-02T00:03:00.000Z", "runLink": "https://github.com/org/repo/actions/runs/2",
 				"totalTokens": 2000, "totalCost": 0.6, "durationMs": 120000, "event": "workflow_dispatch", "rolloutMode": "review"},
 		},
-		"tools": {{"id": "tool:1", "runId": "run:org/repo/1", "type": "mcp.tool_call", "source": "mcp",
+		"tools": {{"id": "tool:1", "runId": "github:run:org/repo:1", "type": "mcp.tool_call", "source": "mcp",
 			"mcpServer": "github", "mcpTool": "search_issues", "summary": "search_issues", "status": "success",
 			"timestamp": "2026-01-01T00:00:30.000Z", "observedAt": "2026-01-02T00:00:00.000Z"}},
-		"domains": {{"id": "domain:1", "runId": "run:org/repo/1", "domain": "example.com", "status": "blocked",
+		"domains": {{"id": "domain:1", "runId": "github:run:org/repo:1", "domain": "example.com", "status": "blocked",
 			"type": "firewall", "summary": "Blocked", "timestamp": "2026-01-01T00:00:30.000Z", "observedAt": "2026-01-02T00:00:00.000Z"}},
 		"issues": {
-			{"id": "issue:1", "runId": "run:org/repo/2", "type": "safe_output.result", "safeOutputType": "create_issue",
+			{"id": "issue:1", "runId": "github:run:org/repo:2", "type": "safe_output.result", "safeOutputType": "create_issue",
 				"isPullRequest": false, "correlationId": "https://github.com/org/target/issues/42", "status": "success",
 				"summary": "Dependency review", "timestamp": "2026-01-02T00:01:30.000Z", "observedAt": "2026-01-02T00:03:00.000Z"},
-			{"id": "issue:2", "runId": "run:org/repo/1", "type": "safe_output.result", "safeOutputType": "create_pull_request",
+			{"id": "issue:2", "runId": "github:run:org/repo:1", "type": "safe_output.result", "safeOutputType": "create_pull_request",
 				"isPullRequest": true, "correlationId": "https://github.com/org/target/pull/17", "status": "success",
 				"summary": "Dependency update", "timestamp": "2026-01-01T00:01:30.000Z", "observedAt": "2026-01-02T00:03:00.000Z"},
 		},
@@ -157,6 +157,12 @@ process.stdout.write(JSON.stringify({queries:results,gh}));
 			var normalized map[string]any
 			if err := json.Unmarshal(content, &normalized); err != nil {
 				t.Fatal(err)
+			}
+			if id == "engines-models-sample-distribution" {
+				frame, ok := normalized["metadata"].(map[string]any)["statistical-frame"].(map[string]any)
+				if !ok || frame["population-count"] != float64(2) || frame["capacity"] != float64(8000) {
+					t.Fatalf("named query lost its populated SQLite sampling frame: %v", normalized)
+				}
 			}
 			if !reflect.DeepEqual(normalized, want.Result) {
 				actual, _ := json.Marshal(normalized)

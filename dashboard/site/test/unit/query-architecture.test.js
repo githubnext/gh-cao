@@ -123,11 +123,18 @@ describe('dashboard query architecture', () => {
     ]));
     for (const query of /** @type {Array<{
       name: keyof typeof TABLE_FIELDS,
-      select: Array<{ field: string, as?: string }>
+      from: keyof typeof TABLE_FIELDS,
+      select?: Array<{ field: string, as?: string }>,
+      joins?: Array<{ fields: Array<{ field: string, as?: string }> }>
     }>} */ (databaseQueries)) {
       const expectedFields = TABLE_FIELDS[query.name];
       if (!expectedFields) continue;
-      const selectedFields = new Set(query.select.map((field) => field.as ?? field.field));
+      const selectedFields = new Set(query.select
+        ? query.select.map((field) => field.as ?? field.field)
+        : [
+            ...(TABLE_FIELDS[query.from] ?? []),
+            ...(query.joins ?? []).flatMap((join) => join.fields.map((field) => field.as ?? field.field))
+          ]);
       expect(expectedFields.filter((field) => !selectedFields.has(field)), query.name).toEqual([]);
     }
     const failedRuns = dashboard.queries.find((/** @type {{ name?: string }} */ query) => query.name === 'failed-runs');

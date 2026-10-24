@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import { webcrypto } from 'node:crypto';
 import { IDBFactory } from 'fake-indexeddb';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { loadDatabaseQuerySources } from '../../src/data/queries/database.js';
 import { DataRequestWorker } from '../data-request-worker.js';
 import { renderDashboard as renderDashboardView, disposeDashboard, enableDashboardKeyboardNavigation, enableDashboardPageNavigation, dashboardPageLazySourceNames, resolveQueryDrillPageTitle } from '../../src/presenter.js';
@@ -1828,7 +1829,7 @@ describe('presenter built-in and custom pages', () => {
   });
 
 
-  it('renders agent and model distribution before the full-view lazy table', async () => {
+  it('renders agent and model sample composition before the exact full-view lazy table', async ({ onTestFinished }) => {
     const metadata = {
       'source-id': 'usage-fixture',
       'source-kind': 'fixture',
@@ -1838,15 +1839,24 @@ describe('presenter built-in and custom pages', () => {
       freshness: /** @type {'fresh'} */ ('fresh'),
       availability: /** @type {'available'} */ ('available')
     };
-    const rendered = renderDashboard({
-      document: authoritativeDashboardDocument,
-      sources: {
+    const previousDatabase = globalThis.indexedDB;
+    const previousCrypto = globalThis.crypto;
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.parse(metadata['as-of']));
+    vi.stubGlobal('indexedDB', new IDBFactory());
+    vi.stubGlobal('crypto', webcrypto);
+    onTestFinished(() => {
+      vi.stubGlobal('indexedDB', previousDatabase);
+      vi.stubGlobal('crypto', previousCrypto);
+      clock.mockRestore();
+    });
+    /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */
+    const sources = {
         runs: {
           source: 'runs',
           rows: [
-            { organization: 'github', repository: 'gh-cao', workflow: '.github/workflows/daily.yml', run: '1001', 'run-conclusion': 'success', engine: 'copilot', 'engine-version': '0.87.6', 'requested-model': 'gpt-5.6-sol', 'resolved-model': 'gpt-5.6-sol', 'run-link': { relation: 'run', href: 'https://github.com/github/gh-cao/actions/runs/1001', label: 'View run 1001' } },
-            { organization: 'github', repository: 'gh-cao', workflow: '.github/workflows/review.yml', run: '1002', 'run-conclusion': 'failure', engine: 'copilot', 'engine-version': '0.87.9', 'requested-model': 'gpt-5.6-sol', 'resolved-model': 'gpt-5.6-sol', 'run-link': { relation: 'run', href: 'https://github.com/github/gh-cao/actions/runs/1002', label: 'View run 1002' } },
-            { organization: 'github', repository: 'gh-cao', workflow: '.github/workflows/audit.yml', run: '1003', 'run-conclusion': 'success', engine: 'pi', 'engine-version': '1.2.0', 'requested-model': 'claude-sonnet-5', 'resolved-model': 'claude-sonnet-5', 'run-link': { relation: 'run', href: 'https://github.com/github/gh-cao/actions/runs/1003', label: 'View run 1003' } }
+            { organization: 'github', repository: 'gh-cao', workflow: '.github/workflows/daily.yml', run: '1001', 'run-status': 'completed', 'started-at': '2026-09-02T09:00:00Z', 'run-conclusion': 'success', engine: 'copilot', 'engine-version': '0.87.6', 'requested-model': 'gpt-5.6-sol', 'resolved-model': 'gpt-5.6-sol', 'run-link': { relation: 'run', href: 'https://github.com/github/gh-cao/actions/runs/1001', label: 'View run 1001' } },
+            { organization: 'github', repository: 'gh-cao', workflow: '.github/workflows/review.yml', run: '1002', 'run-status': 'completed', 'started-at': '2026-09-02T10:00:00Z', 'run-conclusion': 'failure', engine: 'copilot', 'engine-version': '0.87.9', 'requested-model': 'gpt-5.6-sol', 'resolved-model': 'gpt-5.6-sol', 'run-link': { relation: 'run', href: 'https://github.com/github/gh-cao/actions/runs/1002', label: 'View run 1002' } },
+            { organization: 'github', repository: 'gh-cao', workflow: '.github/workflows/audit.yml', run: '1003', 'run-status': 'completed', 'started-at': '2026-09-02T11:00:00Z', 'run-conclusion': 'success', engine: 'pi', 'engine-version': '1.2.0', 'requested-model': 'claude-sonnet-5', 'resolved-model': 'claude-sonnet-5', 'run-link': { relation: 'run', href: 'https://github.com/github/gh-cao/actions/runs/1003', label: 'View run 1003' } }
           ],
           metadata
         },
@@ -1880,8 +1890,19 @@ describe('presenter built-in and custom pages', () => {
           metadata
         },
         outcomes: { source: 'outcomes', rows: [], metadata }
-      }
+    };
+    const sampled = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (
+      await processDataRequest({
+        operation: 'load-dashboard-query-sources', ingest: true,
+        sources, sourceNames: ['statistical-runs'], queries: authoritativeDashboardDocument.dashboard.queries
+      })
+    );
+    expect(sampled['statistical-runs'].metadata['statistical-frame']).toMatchObject({ 'selected-count': 3 });
+    const rendered = renderDashboard({
+      document: authoritativeDashboardDocument,
+      sources: { ...sources, ...sampled }
     });
+    onTestFinished(() => disposeDashboard(rendered));
 
     const page = await activatePage(rendered, 'engines-models');
     expect(page?.querySelectorAll('[data-view-layout="full-view"]')).toHaveLength(1);

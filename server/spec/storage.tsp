@@ -6,7 +6,10 @@ namespace Cao.Postgres;
 
 extern dec parent(target: ModelProperty, entity: valueof string, required?: valueof boolean);
 extern dec runPartition(target: Model);
+/** Keep typed, non-partitioned copies in an independently owned statistical snapshot. */
+extern dec sampledBundle(target: Model);
 
+@sampledBundle
 model campaigns {
   aiCreditAllowance?: decimal;
   campaignLink?: Values.Link;
@@ -32,6 +35,7 @@ model campaigns {
   workerCount?: int64;
 }
 
+@sampledBundle
 model repositories {
   id: string;
   name?: string;
@@ -46,6 +50,7 @@ model repositories {
 }
 
 /** Query-minimal workflow inventory; raw ghAwMetadata and ghAwManifest remain upstream. */
+@sampledBundle
 model workflows {
   admissionReason?: string;
   admissionStatus?: string;
@@ -77,6 +82,7 @@ model workflows {
 
 /** Run facts and scalar metrics; nested context, usage, and assessment payloads remain upstream. */
 @runPartition
+@sampledBundle
 model runs {
   routingAggregateVersion?: int64;
   routingState?: string;
@@ -175,6 +181,7 @@ model runs {
 }
 
 @runPartition
+@sampledBundle
 model domains {
   correlationId?: string;
   decision?: string;
@@ -198,6 +205,7 @@ model domains {
 
 /** Run-linked tool events, including separate call/outcome records; not configured tool definitions. */
 @runPartition
+@sampledBundle
 model tools {
   correlationId?: string;
   failedCount?: int64;
@@ -226,6 +234,7 @@ model tools {
 
 /** Separate skill activity; collection membership replaces the unused isSkill flag. */
 @runPartition
+@sampledBundle
 model skills {
   activationSource?: string;
   correlationId?: string;
@@ -247,6 +256,7 @@ model skills {
 }
 
 @runPartition
+@sampledBundle
 model friction {
   aic?: decimal;
   inputTokens?: int64;
@@ -303,6 +313,7 @@ model friction {
  * and use at most three exponent digits; larger or malformed summaries remain.
  */
 @runPartition
+@sampledBundle
 model audits {
   routingStage?: string;
   routingSchema?: string;
@@ -445,6 +456,7 @@ model audits {
 }
 
 @runPartition
+@sampledBundle
 model issues {
   closed?: boolean;
   closedAt?: utcDateTime;
@@ -560,6 +572,7 @@ model operationalValues {
   `workflow-slug`?: string;
 }
 
+@sampledBundle
 model experiments {
   campaign?: string;
   candidateVariant?: string;
@@ -582,6 +595,7 @@ model experiments {
 }
 
 @runPartition
+@sampledBundle
 model experimentAssignments {
   artifactLink?: string;
   campaign?: string;
@@ -598,6 +612,7 @@ model experimentAssignments {
   variant?: string;
 }
 
+@sampledBundle
 model graders {
   direction?: string;
   displayName?: string;
@@ -616,6 +631,7 @@ model graders {
 }
 
 @runPartition
+@sampledBundle
 model graderObservations {
   auditId?: string;
   baselineValue?: decimal;
@@ -641,6 +657,7 @@ model graderObservations {
   variant?: string;
 }
 
+@sampledBundle
 model evals {
   direction?: string;
   displayName?: string;
@@ -659,6 +676,7 @@ model evals {
 }
 
 @runPartition
+@sampledBundle
 model evalObservations {
   auditId?: string;
   direction?: string;
@@ -1003,6 +1021,7 @@ namespace Storage {
     publishedAt: utcDateTime;
   }
 
+  @sampledBundle
   model caoQuality {
     `namespace`: string;
     collection: string;
@@ -1011,6 +1030,70 @@ namespace Storage {
     freshness: string;
     asOf?: utcDateTime;
     retrievedAt?: utcDateTime;
+  }
+
+  /** Private, atomically replaced snapshot metadata; never canonical ingestion inputs. */
+  namespace Statistical {
+    model statisticalFrame {
+      id: string;
+      availability: string;
+      completeness: string;
+      freshness: string;
+      error?: string;
+      `source-data-revision`: string;
+      `source-revision`: int64;
+      `storage-mode`: string;
+      version?: string;
+      `frame-version`?: string;
+      `frame-id`?: string;
+      seed?: string;
+      `watermark-policy`?: string;
+      watermark?: string;
+      `window-start`?: string;
+      population?: string;
+      capacity?: int64;
+      `timestamp-field`?: string;
+      `identity-field`?: string;
+      `allocation-policy`?: string;
+      `failure-reserve-fraction`?: decimal;
+      `failure-reserve-allocation`?: int64;
+      `selection-stage`?: string;
+      `hot-exclusion-policy`?: string;
+      `hot-exclusion-default`?: int64;
+      `input-count`?: int64;
+      `population-count`?: int64;
+      `selected-count`?: int64;
+      `invalid-count`?: int64;
+      `incomplete-count`?: int64;
+      `duplicate-conflicts`?: int64;
+      `quarantined-count`?: int64;
+      `hot-excluded-count`?: int64;
+      `weight-valid`: boolean;
+      `full-population-estimable`?: boolean;
+      `input-row-limit`?: int64;
+      `input-byte-limit`?: int64;
+    }
+    model statisticalMembership {
+      id: string;
+      organization?: string;
+      repository?: string;
+      run?: string;
+      `statistical-frame-id`: string;
+      `statistical-stratum`: string;
+      `statistical-priority`: string;
+      `statistical-population`: int64;
+      `statistical-allocation`: int64;
+      `statistical-weight-valid`: boolean;
+      `statistical-probability`?: decimal;
+      `statistical-weight`?: decimal;
+    }
+    model statisticalStrata {
+      id: string;
+      stratum: string;
+      population: int64;
+      allocation: int64;
+      cutoff?: string;
+    }
   }
 
   /** Collector-owned state survives replacement of the derived canonical projection. */

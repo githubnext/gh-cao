@@ -15,6 +15,7 @@ import {
   listQueries
 } from '../dashboard/site/src/agent/catalog.js';
 import { executeNamedQuery, NamedQueryError } from '../dashboard/site/src/agent/query-executor.js';
+import { STATISTICAL_CAPACITIES } from '../dashboard/site/src/data/queries/statistical-sample.js';
 import { loadDashboardSource } from '../dashboard/report/bundle-dashboards.mjs';
 
 export { NamedQueryError };
@@ -156,7 +157,9 @@ export async function runNamedDashboardQuery({
 }) {
   const document = await loadAgentDashboardDocument(dashboardPath);
   try {
-    return await executeNamedQuery({ indexedDB, document, queryId, parameters, limit, signal });
+    return await executeNamedQuery({
+      indexedDB, document, queryId, parameters, limit, signal, statisticalCapacity: STATISTICAL_CAPACITIES.sqlite
+    });
   } catch (error) {
     if (unknownQueryHint && error instanceof NamedQueryError && error.message.startsWith('Unknown dashboard query')) {
       throw new NamedQueryError(`${error.message}; ${unknownQueryHint}`);

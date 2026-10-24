@@ -266,6 +266,7 @@ func (c *nativeCatalog) runQuery(ctx context.Context, db *sql.DB, id string, par
 	canonicalRead := false
 	otherCanonicalRead := false
 	evidenceClocks := map[string]any{}
+	var statisticalFrame map[string]any
 	aggregateMetadata := map[string]map[string]any{}
 	dailyRead := false
 	var dailyFailure error
@@ -288,6 +289,22 @@ func (c *nativeCatalog) runQuery(ctx context.Context, db *sql.DB, id string, par
 		var rows []map[string]any
 		var err error
 		switch {
+		case source == "$statisticalMembership":
+			canonicalRead, otherCanonicalRead = true, true
+			candidates, readErr := load("$runs")
+			if readErr != nil {
+				return nil, readErr
+			}
+			selected, frame, sampleErr := dashboardquery.SampleStatisticalRuns(candidates, dashboardquery.StatisticalOptions{
+				Context: ctx, Logf: log.Printf,
+				Watermark: dashboardquery.CanonicalStatisticalWatermark(candidates), Capacity: dashboardquery.StatisticalSQLiteCapacity,
+			})
+			if sampleErr != nil {
+				return nil, sampleErr
+			}
+			frame["watermark-policy"] = "canonical-run-max"
+			statisticalFrame = frame
+			rows = dashboardquery.StatisticalMembership(selected)
 		case source == "daily-run-counts":
 			canonicalRead, otherCanonicalRead = true, true
 			dailyRead = true
@@ -395,6 +412,10 @@ func (c *nativeCatalog) runQuery(ctx context.Context, db *sql.DB, id string, par
 	}
 	metadata := map[string]any{"availability": availability, "completeness": completeness, "freshness": freshness,
 		"as-of": "1970-01-01T00:00:00.000Z", "returned-rows": len(rows), "limit": limit}
+	if statisticalFrame != nil {
+		metadata["statistical-frame"], metadata["as-of"] = statisticalFrame, statisticalFrame["watermark"]
+		metadata["sample-frame"] = statisticalFrame
+	}
 	for _, field := range []string{"as-of", "retrieved-at"} {
 		if instant, present := evidenceClocks[field]; present && !otherCanonicalRead {
 			metadata[field] = instant

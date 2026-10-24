@@ -131,6 +131,9 @@ components:
   dashboard_data:
     path: dashboard/site/src/data/
     responsibility: normalize, persist, and declaratively query canonical browser data in a Web Worker, including separately keyed run-linked experiment assignments, grader observations, and eval observations
+  statistical_run_projection:
+    path: dashboard/site/src/data/queries/
+    responsibility: independently select deterministic seven-day date/outcome-stratified canonical snapshot samples before consumer filters with backend-specific capacities and frame/weight metadata; PostgreSQL atomically freezes bounded complete typed bundles, source quality, and structural parents at snapshot publication and serves statistical dependencies from private non-partitioned copies; incremental revisions mark snapshots stale without changing evidence or weights; SQLite/browser remain query projections; exact sources, retention, Operational Value, and canonical storage stay unchanged; hot eviction and daily aggregates remain separate work
   marketplace_registry_policy:
     path: .github/workflows/cao.json
     responsibility: define ordered campaign package registries, resolver cache policy, and secret references without secret values

@@ -772,6 +772,35 @@
       ]
     },
     {
+      "name": "engines-models-sample-distribution",
+      "subject": "Describe agent and model combinations in the seven-day statistical run sample.",
+      "objective": "Find sampled combinations to investigate without scanning the full retained run history.",
+      "acceptance": "Count selected canonical runs only, after the independent sampling frame is frozen. Counts and proportions describe the sample, not population usage, market share, quality, or exact totals; failure-reserve stratification can change its composition. Preserve unknown identifiers and do not mix sampled counts with the exact usage summaries.",
+      "description": "Unweighted composition of the seven-day statistical sample; not a population estimate. Failure outcomes may be oversampled.",
+      "from": "statistical-runs",
+      "compute": [
+        {
+          "as": "summary",
+          "function": "concat",
+          "args": [
+            { "field": "agent-id" },
+            { "value": " / " },
+            { "field": "model-id" }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": ["summary"],
+        "values": [
+          { "field": "run", "as": "sampled-runs", "reducer": "count" }
+        ]
+      },
+      "order-by": [
+        { "field": "sampled-runs", "direction": "desc" },
+        { "field": "summary", "direction": "asc" }
+      ]
+    },
+    {
       "name": "engines-models-usage",
       "subject": "Summarize run-level AIC and token usage by agent and model identifiers without treating unavailable telemetry as zero.",
       "objective": "Locate agent and model combinations whose observed per-run AIC or token usage merits checking against individual runs.",
@@ -2167,17 +2196,17 @@
       "views": [
         {
           "id": "engines-models-distribution",
-          "title": "Agent and model distribution",
-          "subject": "Compare observed run counts by agent and model combination.",
-          "objective": "Identify the combinations to examine in run-level evidence.",
-          "acceptance": "The distribution describes observed usage only, not quality or model preference.",
-          "description": "Distribution of observed workflow runs by agent and model combination.",
+          "title": "Agent and model sample composition",
+          "subject": "Compare sampled run counts by agent and model combination.",
+          "objective": "Identify sampled combinations to examine in run-level evidence.",
+          "acceptance": "Counts describe the seven-day sample only, not population usage, model preference, or quality; failure outcomes may be oversampled.",
+          "description": "Seven-day statistical sample, not population totals or shares. Failure outcomes may be oversampled. Exact retained-run usage remains below.",
           "data": {
-            "source": "engines-models-usage"
+            "source": "engines-models-sample-distribution"
           },
           "mark": "chart",
           "chart": "pie",
-          "empty-message": "No agent or model usage metadata is available.",
+          "empty-message": "No eligible completed runs are available in the seven-day statistical sample.",
           "layout": "full",
           "encoding": {
             "x": {
@@ -2186,9 +2215,9 @@
               "title": "Agent / model"
             },
             "y": {
-              "field": "runs",
+              "field": "sampled-runs",
               "type": "quantitative",
-              "title": "Runs"
+              "title": "Sampled runs"
             }
           }
         },
