@@ -1,4 +1,7 @@
+import { createDebug, diagnosticErrorName } from '../../debug.js';
 import { timestampMilliseconds } from './schema.js';
+
+const debugDailyRunCounts = createDebug('daily-run-counts');
 
 export const DAILY_RUN_COUNT_STORES = /** @type {const} */ ([
   'dailyRunCounts', 'runCountContributions', 'dailyRunCountState'
@@ -148,6 +151,7 @@ export async function evictDailyRunCounts(database, now, signal, keyRange = glob
     const states = transaction.objectStore('dailyRunCountState');
     const state = await result(states.get(DAILY_RUN_COUNT_STATE_ID));
     if (!state || state.status !== 'ready') {
+      debugDailyRunCounts({ operation: 'evict', status: 'skipped', reason: state ? 'not-ready' : 'no-state' });
       await done;
       return;
     }
@@ -195,7 +199,12 @@ export async function evictDailyRunCounts(database, now, signal, keyRange = glob
     states.put({ ...state, retentionWatermark: watermark, retentionCutoff: cutoff });
     transaction.commit?.();
     await done;
+    debugDailyRunCounts({
+      operation: 'evict', status: 'advanced', cutoff,
+      dailyBucketCount: Number(state.dailyBucketCount ?? 0), receiptCount: Number(state.receiptCount ?? 0)
+    });
   } catch (error) {
+    debugDailyRunCounts({ operation: 'evict', status: 'failed', error: diagnosticErrorName(error) });
     try { transaction.abort(); } catch { /* Already completed. */ }
     await done.catch(() => undefined);
     throw error;
