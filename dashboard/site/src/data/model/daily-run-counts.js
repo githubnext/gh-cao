@@ -1,4 +1,7 @@
+import { createDebug, diagnosticErrorName } from '../../debug.js';
 import { timestampMilliseconds } from './schema.js';
+
+const debug = createDebug('daily-run-counts');
 
 export const DAILY_RUN_COUNT_STORES = /** @type {const} */ ([
   'dailyRunCounts', 'runCountContributions', 'dailyRunCountState'
@@ -149,6 +152,7 @@ export async function evictDailyRunCounts(database, now, signal, keyRange = glob
     const state = await result(states.get(DAILY_RUN_COUNT_STATE_ID));
     if (!state || state.status !== 'ready') {
       await done;
+      debug({ operation: 'evict', status: 'skipped', reason: 'state-not-ready' });
       return;
     }
     const watermark = Math.max(Number(state.retentionWatermark ?? -Infinity), now);
@@ -195,7 +199,12 @@ export async function evictDailyRunCounts(database, now, signal, keyRange = glob
     states.put({ ...state, retentionWatermark: watermark, retentionCutoff: cutoff });
     transaction.commit?.();
     await done;
+    debug({
+      operation: 'evict', status: 'evicted', cutoff, dailyBuckets: Number(state.dailyBucketCount ?? 0),
+      receipts: Number(state.receiptCount ?? 0)
+    });
   } catch (error) {
+    debug({ operation: 'evict', status: 'failed', error: diagnosticErrorName(error) });
     try { transaction.abort(); } catch { /* Already completed. */ }
     await done.catch(() => undefined);
     throw error;
