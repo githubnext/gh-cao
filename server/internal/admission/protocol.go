@@ -102,6 +102,28 @@ func scanJSON(d *json.Decoder) error {
 	return err
 }
 
+// hexQuad decodes the four hexadecimal digits at data[start:start+4].
+func hexQuad(data []byte, start int) (uint16, bool) {
+	if start < 0 || start+4 > len(data) {
+		return 0, false
+	}
+	var n uint16
+	for _, b := range data[start : start+4] {
+		n <<= 4
+		switch {
+		case b >= '0' && b <= '9':
+			n += uint16(b - '0')
+		case b >= 'a' && b <= 'f':
+			n += uint16(b-'a') + 10
+		case b >= 'A' && b <= 'F':
+			n += uint16(b-'A') + 10
+		default:
+			return 0, false
+		}
+	}
+	return n, true
+}
+
 func scalarEscapes(data []byte) bool {
 	for i := 0; i < len(data); i++ {
 		if data[i] != '\\' {
@@ -114,27 +136,7 @@ func scalarEscapes(data []byte) bool {
 		if data[i] != 'u' {
 			continue
 		}
-		code := func(start int) (uint16, bool) {
-			if start+4 > len(data) {
-				return 0, false
-			}
-			var n uint16
-			for _, b := range data[start : start+4] {
-				n <<= 4
-				switch {
-				case b >= '0' && b <= '9':
-					n += uint16(b - '0')
-				case b >= 'a' && b <= 'f':
-					n += uint16(b-'a') + 10
-				case b >= 'A' && b <= 'F':
-					n += uint16(b-'A') + 10
-				default:
-					return 0, false
-				}
-			}
-			return n, true
-		}
-		n, ok := code(i + 1)
+		n, ok := hexQuad(data, i+1)
 		if !ok {
 			return false
 		}
@@ -148,7 +150,7 @@ func scalarEscapes(data []byte) bool {
 		if i+6 >= len(data) || data[i+1] != '\\' || data[i+2] != 'u' {
 			return false
 		}
-		n, ok = code(i + 3)
+		n, ok = hexQuad(data, i+3)
 		if !ok || n < 0xdc00 || n > 0xdfff {
 			return false
 		}
@@ -188,6 +190,7 @@ func (r Request) matches(i Identity) bool {
 func decodeRequest(data []byte) (Request, error) {
 	var fields map[string]json.RawMessage
 	if strictJSON(data, &fields) != nil || len(fields) != 10 {
+		admissionLog.Printf("admission request rejected: reason=invalid_envelope bytes=%d", len(data))
 		return Request{}, ErrDenied
 	}
 	r := Request{}
@@ -197,10 +200,12 @@ func decodeRequest(data []byte) (Request, error) {
 		"ref": &r.Ref, "event_type": &r.EventType, "actor": &r.Actor, "triggering_actor": &r.TriggeringActor,
 	} {
 		if json.Unmarshal(fields[name], target) != nil {
+			admissionLog.Printf("admission request rejected: reason=invalid_field_type")
 			return Request{}, ErrDenied
 		}
 	}
 	if !r.valid() {
+		admissionLog.Printf("admission request rejected: reason=invalid_field_value")
 		return Request{}, ErrDenied
 	}
 	return r, nil
