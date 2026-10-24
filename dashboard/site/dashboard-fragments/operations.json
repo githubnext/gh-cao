@@ -775,7 +775,7 @@
       "name": "engines-models-sample-distribution",
       "subject": "Describe agent and model combinations in the seven-day statistical run sample.",
       "objective": "Find sampled combinations to investigate without scanning the full retained run history.",
-      "acceptance": "Count selected canonical runs only, after the independent sampling frame is frozen. Counts and proportions describe the sample, not population usage, market share, quality, or exact totals; failure-reserve stratification can change its composition. Preserve unknown identifiers and do not mix sampled counts with the exact usage summaries.",
+      "acceptance": "Count unweighted selected Runs after frame selection. Keep statistical-frame-id in grouped rows and frame metadata on empty results. Zero-allocation strata are not population zeros. Preserve unknown identifiers; failure reserves can alter composition. Never mix sample counts with exact usage or infer population shares.",
       "description": "Unweighted composition of the seven-day statistical sample; not a population estimate. Failure outcomes may be oversampled.",
       "from": "statistical-runs",
       "compute": [
@@ -790,7 +790,7 @@
         }
       ],
       "aggregate": {
-        "by": ["summary"],
+        "by": ["summary", "statistical-frame-id"],
         "values": [
           { "field": "run", "as": "sampled-runs", "reducer": "count" }
         ]

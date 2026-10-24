@@ -28,6 +28,7 @@ it('routes only sample composition to the statistical layer and labels its scope
   const view = page.views.find((/** @type {{ id: string }} */ view) => view.id === contract.view);
   const query = dashboard.queries.find((/** @type {{ name: string }} */ query) => query.name === contract.query);
   expect(query.from).toBe(contract.source);
+  expect(query.aggregate.by).toEqual(['summary', contract.frameField]);
   expect(query.aggregate.values).toEqual([
     { field: 'run', as: contract.measure, reducer: 'count' }
   ]);
@@ -89,8 +90,24 @@ it('resolves sample composition through canonical ingestion and the production w
     watermark: contract.watermark, 'window-start': contract.coverageStart,
     'selected-count': 2
   });
-  expect(result[contract.query].rows).toEqual([{ summary: 'copilot / model', 'sampled-runs': 2 }]);
+  const frame = /** @type {Record<string, unknown>} */ (result[contract.query].metadata['statistical-frame']);
+  expect(result[contract.query].rows).toEqual([{
+    summary: 'copilot / model', 'sampled-runs': 2, [contract.frameField]: frame['frame-id']
+  }]);
   expect(result[contract.exactUsageQuery].rows).toEqual([
     expect.objectContaining({ summary: 'copilot / model', runs: 5, 'average-aic-per-run': 10 })
   ]);
+  const query = dashboard.queries.find((/** @type {{ name: string }} */ value) => value.name === contract.query);
+  const empty = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (
+    await processDataRequest({
+      operation: 'load-dashboard-query-sources', sourceNames: ['empty-composition'],
+      queries: [{
+        ...query, name: 'empty-composition',
+        filter: { predicates: [{ field: 'run', equals: 'not-present' }] }
+      }],
+      sources: { runs: { rows: [], metadata } }
+    })
+  );
+  expect(empty['empty-composition'].rows).toEqual([]);
+  expect(empty['empty-composition'].metadata['statistical-frame']).toEqual(frame);
 });

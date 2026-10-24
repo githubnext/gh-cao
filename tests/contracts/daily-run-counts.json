@@ -42,7 +42,7 @@
       "runner": "node",
       "files": ["tests/integration/activity-actions-runtime.test.mjs"],
       "coverage": {
-        "activity-runtime": "cao-activity collects simulator runs and publishes replay-safe daily counts through the Actions runtime"
+        "activity-runtime": "cao-activity publishes replay-safe daily counts and statistical queries through the Actions runtime"
       }
     },
     {

@@ -741,9 +741,26 @@ the previous complete publication or the next complete publication.
 The Models & Agents sample-composition query consumes `statistical-runs`. Its
 counts and chart shares SHALL describe the unweighted sample only, explicitly
 not population totals or model shares; failure reserves can change composition.
+Grouped sample-composition rows SHALL retain `statistical-frame-id`; consumer
+filters, projections and aggregation SHALL retain unchanged `statistical-frame`
+metadata even when no rows remain. A zero-allocation stratum contributes no
+sample rows, not a measured zero for its population.
 Exact usage summaries, AIC/token statistics, operational totals, failure
 sequences, Run routes, and Operational Value queries SHALL retain their existing
 sources. Additional migrations require their own acceptance/weighting review.
+
+Conformance for this increment is declared in
+[`tests/contracts/statistical-sampling.json`](../tests/contracts/statistical-sampling.json).
+`npm run test:conformance:statistical-sampling` SHALL execute all declared suites:
+Activity publication, IndexedDB worker and native Chromium, shared Go sampler
+and CLI, SQLite query and live-backfill HTTP boundaries, real PostgreSQL bundle
+lifecycle, and the bounded TLA+ model
+[`StatisticalSampling.tla`](tla/StatisticalSampling.tla). It requires an isolated
+`POSTGRES_URL` with schema-creation permission and `TLA2TOOLS_JAR`; missing tools,
+skipped backends, omitted coverage tests, and incomplete model checks do not
+constitute conformance. The model checks abstract single-stratum publication
+safety, not the statistical quality of the SHA256 or allocation implementation.
+
 Only the PostgreSQL profile persists independent bundles; browser and SQLite
 projections cannot preserve detail already removed by canonical retention.
 Persistence cannot recover detail missing at admission. No profile reduces

@@ -7,7 +7,7 @@ const siteRoot = fileURLToPath(new URL('../..', import.meta.url));
 const databaseName = 'gh-aw-cao-dashboard-data';
 
 test.beforeEach(async ({ context, page }) => {
-  await context.route('http://dashboard.test/**', async (route) => {
+  await context.route('https://dashboard.test/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname === '/' || pathname === '/index.html') {
       await route.fulfill({ contentType: 'text/html', body: '<main>IndexedDB stress test</main>' });
@@ -23,12 +23,92 @@ test.beforeEach(async ({ context, page }) => {
     }
     await route.fulfill({ status: 404, body: 'Not found' });
   });
-  await page.goto('http://dashboard.test/');
+  await page.goto('https://dashboard.test/');
   await page.evaluate((name) => new Promise((resolve, reject) => {
     const request = indexedDB.deleteDatabase(name);
     request.onsuccess = () => resolve(undefined);
     request.onerror = () => reject(request.error);
   }), databaseName);
+});
+
+test('production data worker preserves statistical frames across filtering and canonical corrections', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const storage = await import(`${location.origin}/src/data/storage/indexeddb.js`);
+    const { normalize } = await import(`${location.origin}/src/data/normalize/index.js`);
+    const fixture = await (await fetch('/test/fixtures/statistical-sampling.json')).json();
+    const rows = fixture.rows.map((/** @type {Record<string, unknown>} */ row) => ({
+      ...row, agentId: 'copilot', modelId: 'model'
+    }));
+    const operations = await (await fetch('/dashboard-fragments/operations.json')).json();
+    const composition = operations.queries.find((/** @type {{ name: string }} */ query) =>
+      query.name === 'engines-models-sample-distribution');
+    const worker = new Worker(`${location.origin}/src/data-worker.js`, { type: 'module' });
+    const metadata = { availability: 'available', completeness: 'complete', 'as-of': fixture.watermark };
+    const request = () => /** @type {Promise<Record<string, import('../../src/presenter.js').LogicalSourceInput>>} */ (new Promise((resolve, reject) => {
+      worker.onmessage = (event) => {
+        if (event.data.id !== 'statistical-conformance') return;
+        if (event.data.error) reject(new Error(event.data.error));
+        else resolve(event.data.data);
+      };
+      worker.onerror = (event) => reject(new Error(event.message));
+      worker.postMessage({
+        id: 'statistical-conformance', operation: 'load-dashboard-query-sources',
+        sources: { runs: { rows: [], metadata } },
+        queries: [composition, {
+          name: 'empty-sample', from: 'statistical-runs',
+          filter: { predicates: [{ field: 'run', equals: 'not-present' }] },
+          select: [{ field: 'run' }, { field: 'statistical-frame-id' }]
+        }],
+        sourceNames: ['runs', 'statistical-runs', 'statistical-audits', 'empty-sample', composition.name]
+      });
+    }));
+    try {
+      await storage.upsertCanonicalBatch(indexedDB, {
+        ...normalize([]), runs: rows,
+        audits: [
+          { id: 'audit:selected', runId: fixture.rows[0].id },
+          { id: 'audit:expired', runId: fixture.rows[7].id }
+        ]
+      }, { validateRelationships: false });
+      const initial = await request();
+      const replay = await request();
+      await storage.upsertCanonicalBatch(indexedDB, {
+        ...normalize([]), runs: [{ ...rows[0], conclusion: 'failure', attempt: 2 }]
+      }, { validateRelationships: false });
+      const corrected = await request();
+      return { initial, replay, corrected, composition: composition.name };
+    } finally {
+      worker.terminate();
+    }
+  });
+  expect(result.replay).toEqual(result.initial);
+  for (const sources of [result.initial, result.corrected]) {
+    const sample = sources['statistical-runs'];
+    const frame = /** @type {Record<string, unknown>} */ (sample.metadata['statistical-frame']);
+    expect(frame).toMatchObject({
+      capacity: 16000, 'population-count': 6, 'selected-count': 6,
+      'weight-valid': true, 'watermark-policy': 'recorded-run-as-of'
+    });
+    expect(sample.rows.map((row) => row.run).sort()).toEqual(['1', '2', '3', '4', '5', '6']);
+    expect(sample.rows.every((row) => row['statistical-frame-id'] === frame['frame-id'] &&
+      row['statistical-weight'] === 1)).toBe(true);
+    expect(sources.runs.rows).toHaveLength(9);
+    expect(sources['empty-sample'].rows).toEqual([]);
+    expect(sources['empty-sample'].metadata['statistical-frame']).toEqual(frame);
+    expect(sources['statistical-audits'].rows).toHaveLength(1);
+    expect(sources['statistical-audits'].rows[0]).toMatchObject({
+      run: '1', 'statistical-frame-id': frame['frame-id'], 'statistical-weight': 1
+    });
+    expect(sources[result.composition].metadata['statistical-frame']).toEqual(frame);
+    expect(sources[result.composition].rows).toEqual([{
+      summary: 'copilot / model', 'sampled-runs': 6, 'statistical-frame-id': frame['frame-id']
+    }]);
+  }
+  expect(result.corrected['statistical-runs'].metadata['statistical-frame']).not.toEqual(
+    result.initial['statistical-runs'].metadata['statistical-frame']);
+  expect(result.corrected['statistical-runs'].rows.find((row) => row.run === '1')).toMatchObject({
+    'run-attempt': 2, 'run-conclusion': 'failure'
+  });
 });
 
 test('native IndexedDB persists a large mixed reconciliation across connections', async ({ page }) => {

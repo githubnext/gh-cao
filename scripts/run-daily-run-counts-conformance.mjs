@@ -5,17 +5,18 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const contract = JSON.parse(readFileSync(resolve(root, 'tests/contracts/daily-run-counts.json'), 'utf8'));
+export const statisticalContract = JSON.parse(readFileSync(resolve(root, 'tests/contracts/statistical-sampling.json'), 'utf8'));
 
 export function validateContract(value) {
   if (value.version !== 1 || !Object.keys(value.requirements ?? {}).length) {
-    throw new Error('Expected the versioned daily run-count requirements');
+    throw new Error('Expected versioned dashboard conformance requirements');
   }
   const ids = new Set();
   const covered = new Set();
   for (const suite of value.suites) {
     if (ids.has(suite.id)) throw new Error(`Duplicate conformance suite: ${suite.id}`);
     ids.add(suite.id);
-    if (!['node', 'vitest', 'playwright', 'go'].includes(suite.runner) || !suite.files.length) {
+    if (!['node', 'vitest', 'playwright', 'go', 'tlc'].includes(suite.runner) || !suite.files.length) {
       throw new Error(`Invalid runner or empty files: ${suite.id}`);
     }
     const sources = suite.files.map((file) => readFileSync(resolve(root, file), 'utf8'));
@@ -27,6 +28,9 @@ export function validateContract(value) {
       }
       covered.add(requirement);
     }
+  }
+  for (const id of value.requiredSuites ?? []) {
+    if (!ids.has(id)) throw new Error(`Missing required conformance suite: ${id}`);
   }
   for (const requirement of Object.keys(value.requirements)) {
     if (!covered.has(requirement)) throw new Error(`Uncovered requirement: ${requirement}`);
@@ -90,6 +94,15 @@ export function verifyVitestResults(output, expected = []) {
   return tests.length;
 }
 
+export function verifyTLCResults(output) {
+  if (!output.includes('Model checking completed. No error has been found.') ||
+      !/\d+ distinct states found, 0 states left on queue/.test(output) ||
+      output.includes('Error:')) {
+    throw new Error('TLC conformance requires a complete state-space check without violations');
+  }
+  return 1;
+}
+
 export default async function* nodeConformanceReporter(events) {
   for await (const event of events) {
     if (['test:pass', 'test:fail'].includes(event.type)) {
@@ -99,17 +112,21 @@ export default async function* nodeConformanceReporter(events) {
   }
 }
 
-export function runConformance(environment = process.env) {
-  const suites = validateContract(contract);
+export function runConformance(environment = process.env, value = contract) {
+  const suites = validateContract(value);
   if (!environment.POSTGRES_URL) {
     throw new Error('POSTGRES_URL is required: use an isolated PostgreSQL database with schema-creation permission; skipped PostgreSQL tests are not conformance');
   }
+  if (suites.some((suite) => suite.runner === 'tlc') && !environment.TLA2TOOLS_JAR) {
+    throw new Error('TLA2TOOLS_JAR is required: formal conformance must execute TLC, not skip it');
+  }
+  const title = value.title ?? 'Daily run-count';
   // Chromium's Unix socket path must fit the platform's short pathname limit.
   const scratch = resolve(root, '.tmp/drc');
   mkdirSync(scratch, { recursive: true });
   const env = { ...environment, TMPDIR: scratch, TMP: scratch, TEMP: scratch };
   for (const suite of suites) {
-    console.log(`\nDaily run-count conformance: ${suite.id}`);
+    console.log(`\n${title} conformance: ${suite.id}`);
     let command = process.execPath;
     let args = ['--test', `--test-reporter=${fileURLToPath(import.meta.url)}`, ...suite.files];
     let cwd = root;
@@ -135,6 +152,12 @@ export function runConformance(environment = process.env) {
       command = 'go';
       cwd = resolve(root, suite.directory);
       args = ['test', '-json', '-count=1', ...suite.packages, '-run', suite.pattern];
+    } else if (suite.runner === 'tlc') {
+      command = 'java';
+      args = ['-XX:+UseParallelGC', '-Xmx1g', '-cp', environment.TLA2TOOLS_JAR,
+        'tlc2.TLC', '-workers', '2', '-metadir', resolve(scratch, suite.id),
+        '-config', suite.files.find((file) => file.endsWith('.cfg')),
+        suite.files.find((file) => file.endsWith('.tla'))];
     }
     const result = spawnSync(command, args, {
       cwd, env, encoding: 'utf8', stdio: 'pipe',
@@ -153,14 +176,18 @@ export function runConformance(environment = process.env) {
     if (result.status !== 0) throw new Error(`Conformance suite failed: ${suite.id}`);
     const verify = {
       node: verifyNodeResults, vitest: verifyVitestResults,
-      go: verifyGoResults, playwright: verifyBrowserResults
+      go: verifyGoResults, playwright: verifyBrowserResults, tlc: verifyTLCResults
     }[suite.runner];
     const passed = verify(reportPath ? readFileSync(reportPath, 'utf8') : result.stdout, Object.values(suite.coverage));
     console.log(`${passed} ${suite.runner} test result(s) passed; every declared coverage test executed.`);
   }
-  console.log('\nAll implemented daily run-count conformance suites passed (no Go skips).');
+  console.log(`\nAll implemented ${title.toLowerCase()} conformance suites passed (no skips).`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  runConformance();
+  const args = process.argv.slice(2);
+  if (args.length && (args.length !== 1 || args[0] !== '--statistical')) {
+    throw new Error('Expected no arguments or --statistical');
+  }
+  runConformance(process.env, args.length ? statisticalContract : contract);
 }

@@ -129,6 +129,41 @@ java -Xmx512m -cp "$TLA2TOOLS_JAR" tlc2.TLC -workers 1 \
 
 The enabled configuration explores about 600,000 distinct states.
 
+## Statistical sampling publication
+
+[`StatisticalSampling.tla`](StatisticalSampling.tla) is the bounded lifecycle
+companion to [`dashboard-data.md` §5.1.1](../dashboard-data.md#511-independent-statistical-run-projection).
+Three eligible identities, one sample slot and two canonical revisions exercise
+staged/committed/aborted publication, budget and missing-clock rejection,
+incomplete quality, consumer filtering, incremental replacement/retention, and
+one application restart. Each Run owns two abstract children and one structural
+parent. Identity-ordered priorities in a single stratum abstract the deterministic
+sampler; hash bytes, UTC eligibility, failure-reserve allocation, actual SQL,
+namespace isolation, concurrency and physical memory are covered by executable
+tests, not proved by this model. No fairness or eventual-publication claim is made.
+
+| Checked property | Implementation/test boundary |
+| --- | --- |
+| `WholeBundles`, `Bounded`, `UnavailableIsEmpty` | PostgreSQL all-or-nothing typed bundle admission and budget rejection |
+| `NoPartialPublication`, `AbortPreservesPublication` | Transactional publication, failed validation and cancellation rollback |
+| `ExactPublicationIndependent` | Sampling-only rejection preserves canonical exact publication |
+| `HonestWeights`, `FrozenSelection`, `SelectionBeforeFilter` | Complete recorded frames, deterministic membership and no consumer refill |
+| `FrozenAcrossIncremental`, `RestartPreservesEvidence` | Frozen PostgreSQL evidence survives incremental revisions, partition retention and application restart |
+
+```bash
+java -XX:+UseParallelGC -Xmx1g -cp "$TLA2TOOLS_JAR" tlc2.TLC -workers 2 \
+  -metadir /tmp/cao-statistical-tla \
+  -config specs/tla/StatisticalSampling.cfg specs/tla/StatisticalSampling.tla
+```
+
+The statistical conformance command also runs TLC and requires a complete
+state-space check without violations, alongside the declared real-backend tests:
+
+```bash
+POSTGRES_URL=... TLA2TOOLS_JAR=/path/to/tla2tools.jar \
+  npm run test:conformance:statistical-sampling
+```
+
 ## Hosted container execution
 
 [`HostedCLIExecution.tla`](HostedCLIExecution.tla) separately checks durable

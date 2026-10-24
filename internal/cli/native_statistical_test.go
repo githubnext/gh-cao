@@ -41,4 +41,22 @@ func TestNativeStatisticalNamedQuery(t *testing.T) {
 			t.Fatal("native named query lost the selected run's frame binding")
 		}
 	}
+	composition, err := catalog.runQuery(t.Context(), db, "engines-models-sample-distribution", nil, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	compositionFrame := nativeObject(nativeObject(composition["metadata"])["statistical-frame"])
+	if compositionFrame["frame-id"] != frame["frame-id"] {
+		t.Fatal("shipped composition query changed the sampling frame")
+	}
+	var count float64
+	for _, row := range composition["rows"].([]map[string]any) {
+		if row["statistical-frame-id"] != frame["frame-id"] {
+			t.Fatal("grouped sample composition lost its frame binding")
+		}
+		count += nativeNumber(row["sampled-runs"])
+	}
+	if count != 6 {
+		t.Fatalf("sample composition used exact evidence: %v", composition)
+	}
 }

@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "title": "Statistical sampling",
+  "specification": "specs/dashboard-data.md#511-independent-statistical-run-projection",
+  "scope": "Bounded snapshot sampling and PostgreSQL persisted bundles; not hot-tier eviction, daily aggregates, or an online reservoir.",
+  "requiredSuites": ["coverage-contract", "formal-publication", "activity-runtime", "indexeddb-worker", "native-browser", "shared-sampler", "native-cli", "sqlite", "sqlite-live-backfill", "postgresql"],
+  "requirements": {
+    "formal-atomicity": "Bounded publication, abort, restart, whole-bundle admission, exact-source isolation and post-selection filtering",
+    "allocation-parity": "Versioned SHA256 priorities, deterministic strata/allocation and weights agree across JS and Go",
+    "frame-binding": "Full-population frame identities survive filtering, projection and input replay",
+    "clock-validity": "Recorded canonical clocks only; pending/expired evidence and incomplete frames cannot invent weights",
+    "input-budgets": "Candidate/byte limits and cancellation fail closed without suppressing independent exact queries",
+    "owned-evidence": "Owned observations inherit selected Run membership and frame bindings",
+    "sample-composition": "Shipped query remains unweighted sample composition, not exact or population totals",
+    "activity-publication": "Real Activity workflow publication, replay, corrections and recycle preserve the statistical source",
+    "native-browser": "Native IndexedDB and a real data worker execute statistical queries, not synthesized source rows",
+    "sqlite-live-backfill": "The same local HTTP app sees a refreshed canonical SQLite overlay frame without changing snapshot bytes",
+    "persisted-bundles": "PostgreSQL preserves complete frozen bundles across restart, exact retention and incremental revisions",
+    "publication-rollback": "Invalid or cancelled PostgreSQL publication preserves the committed frame"
+  },
+  "suites": [
+    {
+      "id": "coverage-contract", "runner": "node",
+      "files": ["tests/unit/dashboard-statistical-conformance.test.mjs"],
+      "coverage": {}
+    },
+    {
+      "id": "formal-publication", "runner": "tlc",
+      "files": ["specs/tla/StatisticalSampling.tla", "specs/tla/StatisticalSampling.cfg"],
+      "coverage": { "formal-atomicity": "NoPartialPublication" }
+    },
+    {
+      "id": "activity-runtime", "runner": "node",
+      "files": ["tests/integration/activity-actions-runtime.test.mjs"],
+      "coverage": { "activity-publication": "cao-activity publishes replay-safe daily counts and statistical queries through the Actions runtime" }
+    },
+    {
+      "id": "indexeddb-worker", "runner": "vitest",
+      "files": ["dashboard/site/test/unit/statistical-sampling.test.js", "dashboard/site/test/unit/statistical-model-distribution.test.js"],
+      "coverage": {
+        "allocation-parity": "shares framed SHA256 priorities and largest-remainder/failure-reserve golden membership with Go",
+        "frame-binding": "binds weights to the entire eligible population, including unselected and zero-allocation candidates",
+        "clock-validity": "never invents weights for incomplete frames, conflicting duplicates, invalid or missing timestamps",
+        "input-budgets": "keeps exact queries available and skips oversized statistical-only stores",
+        "owned-evidence": "keeps every owned observation of selected runs without sampling children independently",
+        "sample-composition": "resolves sample composition through canonical ingestion and the production worker"
+      }
+    },
+    {
+      "id": "native-browser", "runner": "playwright",
+      "files": ["dashboard/site/test/e2e/indexeddb-stress.spec.js"],
+      "pattern": "production data worker preserves statistical frames across filtering and canonical corrections$",
+      "coverage": { "native-browser": "production data worker preserves statistical frames across filtering and canonical corrections" }
+    },
+    {
+      "id": "shared-sampler", "runner": "go", "directory": "internal/dashboardquery",
+      "packages": ["."],
+      "files": ["internal/dashboardquery/statistical_test.go"],
+      "pattern": "^TestStatistical",
+      "coverage": {
+        "allocation-parity": "TestStatisticalJSParity",
+        "frame-binding": "TestStatisticalFrameCoversUnselectedPopulation",
+        "input-budgets": "TestStatisticalMaximumCandidateFrame"
+      }
+    },
+    {
+      "id": "native-cli", "runner": "go", "directory": ".", "packages": ["./internal/cli"],
+      "files": ["internal/cli/native_statistical_test.go"],
+      "pattern": "^TestNativeStatistical",
+      "coverage": { "sample-composition": "TestNativeStatisticalNamedQuery" }
+    },
+    {
+      "id": "sqlite", "runner": "go", "directory": "server", "packages": ["./internal/sqlitex"],
+      "files": ["server/internal/sqlitex/statistical_test.go", "server/internal/sqlitex/statistical_clock_test.go"],
+      "pattern": "^Test(Statistical|MissingStatistical|OversizedStatistical)",
+      "coverage": {
+        "frame-binding": "TestStatisticalSnapshotProductionBoundary",
+        "clock-validity": "TestMissingStatisticalClockPreservesExactQueries",
+        "input-budgets": "TestOversizedStatisticalFramePreservesExactQueries"
+      }
+    },
+    {
+      "id": "sqlite-live-backfill", "runner": "go", "directory": "server", "packages": ["./internal/server"],
+      "files": ["server/internal/server/local_backfill_test.go"],
+      "pattern": "^TestLocalBackfill",
+      "coverage": { "sqlite-live-backfill": "TestLocalBackfillCollectsSnapshotScopeWithLocalToken" }
+    },
+    {
+      "id": "postgresql", "runner": "go", "directory": "server", "packages": ["./internal/postgresx"],
+      "files": ["server/internal/postgresx/statistical_test.go", "server/internal/postgresx/statistical_clock_test.go", "server/internal/postgresx/statistical_storage_test.go"],
+      "pattern": "^Test(Statistical|MissingStatistical|OversizedStatistical|PersistedStatistical|FrozenStatistical|CancelledStatistical)",
+      "coverage": {
+        "owned-evidence": "TestStatisticalNativeSQLBoundary",
+        "clock-validity": "TestMissingStatisticalClockPreservesExactQueries",
+        "input-budgets": "TestOversizedStatisticalFramePreservesExactQueries",
+        "persisted-bundles": "TestPersistedStatisticalBundles",
+        "publication-rollback": "TestCancelledStatisticalPublicationRollsBack"
+      }
+    }
+  ]
+}

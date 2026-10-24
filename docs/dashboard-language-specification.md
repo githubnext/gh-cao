@@ -399,9 +399,9 @@ does not appear late and shift the active page; subsequent results stay subscrib
 
 ### 5.1 Database Tables and Grain
 
-Version 0.1.0 sources are closed: tables below, a separate persisted projection
-(§5.1.2), and nonpersisted runtime sources (§5.4). Views bind these or declared
-queries with `data.source`.
+Sources are closed: tables below, daily projections (§5.1.2),
+[statistical snapshots](../specs/dashboard-data.md#511-independent-statistical-run-projection),
+and runtime sources (§5.4). Bind sources or declared queries with `data.source`.
 
 | Table | One row represents | Core fields |
 |---|---|---|
