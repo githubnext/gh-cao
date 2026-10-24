@@ -1,5 +1,8 @@
+import { createDebug } from '../../debug.js';
 import { repositoryCoordinateId, workflowCoordinateId } from './ids.js';
 import { timestampMilliseconds } from './schema.js';
+
+const debug = createDebug('workflow-value-collection');
 
 export const VALUE_COLLECTION_REASONS = {
   unconfigured: 'No collector is registered for this workflow in the reviewed policy.',
@@ -41,7 +44,7 @@ export function workflowValueCollectionId(repository, workflow) {
 /** Collection facts never supply an outcome measurement or grant authority.
  * @param {Record<string, any>} record */
 export function validateWorkflowValueCollection(record) {
-  const fail = () => { throw new TypeError('Invalid workflow Value collection record'); };
+  const fail = () => { debug({ operation: 'validate', status: 'rejected' }); throw new TypeError('Invalid workflow Value collection record'); };
   if (!record || record.schemaVersion !== 1
     || ['repository', 'workflow', 'observedAt', 'policyDigest'].some(field => typeof record[field] !== 'string')
     || !/^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9._-]+$/.test(record.repository)
@@ -88,12 +91,14 @@ export function mergeWorkflowValueCollection(previous, incoming) {
   const after = Date.parse(incoming.observedAt);
   const fields = ['registration', 'collector', 'state', 'reasonCode', 'policyDigest'];
   if (before === after && fields.some(field => previous?.[field] !== incoming[field])) {
+    debug({ operation: 'merge', status: 'conflict', kind: 'decision', fields: fields.filter(field => previous?.[field] !== incoming[field]).join(',') });
     throw new TypeError('Conflicting workflow Value collection decisions at the same time');
   }
   const previousAttempt = timestampMilliseconds(previous?.lastAttemptAt);
   const incomingAttempt = timestampMilliseconds(incoming.lastAttemptAt);
   if (previousAttempt !== null && previousAttempt === incomingAttempt
     && previous?.lastAttemptOutcome !== incoming.lastAttemptOutcome) {
+    debug({ operation: 'merge', status: 'conflict', kind: 'attempt' });
     throw new TypeError('Conflicting workflow Value collection outcomes for the same attempt');
   }
   const decision = before > after ? previous : incoming;
