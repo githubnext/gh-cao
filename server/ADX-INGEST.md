@@ -131,6 +131,18 @@ authority unchanged. Repository IDs are exact **canonical IDs**, not patterns
 or an invitation to discover new repositories. They must already be collected
 and published in this CAO namespace.
 
+Use [`gh cao setup adx`](../docs/cao-cli.md#optional-adx-destination-setup) to
+prepare a secret-free JSON environment object for this snapshot-only profile.
+It requires explicit destination/application identity, repeatable exact
+`--repository-id`, `--data-approved` (or `--non-personal-data`) and
+`--single-replica`. It prints settings offline; `--output PATH` additionally
+creates a new private file, and `--dry-run` writes nothing. The generated
+profile explicitly disables traces/mining and omits `CAO_ADX_CLIENT_SECRET`;
+inject that secret separately through the deployment secret manager.
+Review/apply the KQL first, then map the JSON to your deployment's environment
+settings. Setup does not provision, verify or deploy anything, and does not
+modify collection or rollout authority.
+
 | Environment variable | Value |
 | --- | --- |
 | `CAO_ADX_ENABLED` | `true`; unset or `false` disables all add-on work |

@@ -178,6 +178,56 @@ output stays plain.
 `deploymentStatus: "pending"`. Declining or cancelling publication leaves
 configuration local. Unattended/CI setup never commits or pushes.
 
+### Optional ADX destination setup
+
+`gh cao setup adx` prepares the existing hosted server's **snapshot-only** ADX
+integration. It runs offline without Node.js, Azure CLI, a checkout, or GitHub
+authentication. Supply an existing public-cloud Kusto query endpoint/database,
+Entra application identity and exact canonical repository IDs already collected
+in your CAO namespace, not repository names to resolve or wildcard scope:
+
+```bash
+gh cao setup adx \
+  --endpoint https://CLUSTER.REGION.kusto.windows.net \
+  --database CaoAnalytics \
+  --tenant-id 11111111-1111-1111-1111-111111111111 \
+  --client-id 22222222-2222-2222-2222-222222222222 \
+  --repository-id EXACT_CANONICAL_REPOSITORY_ID \
+  --data-approved --single-replica \
+  --output /secure/deployment/adx-environment.json
+```
+
+Replace the example identity and scope with reviewed values. Repeat
+`--repository-id` for up to 1,000 unique IDs. Explicit `--data-approved`
+acknowledges that the corpus/use and actual destination meet applicable service
+terms, privacy and governance; `--non-personal-data` is the alternative approval
+for non-personal, non-regulated data. `--single-replica` confirms exactly one
+exporter, durable operational state and a persistent worker lifecycle.
+These acknowledgments do not verify suitability, authority, topology or access.
+
+Stdout is always a JSON environment object with string values, including
+`CAO_ADX_ENABLED=true` and explicit trace/mining disables. `--output` additionally
+creates that object as a new mode-`0600` file, never overwriting existing files
+or symlinks; its parent directory must exist. Restrict directory ACLs as well,
+especially on Windows where POSIX modes do not enforce private access.
+`--dry-run` prints the same settings but never creates the output file.
+No ambient ADX settings or credentials are read. Optional `--interval` defaults
+to `30s` (range `1s`–`1h`) and `--max-storage-bytes` defaults to 50,000,000,000
+(range 1 MiB–1 TiB).
+
+Review and apply `cao-dashboard adx schema` to the destination separately before
+deployment. Map the JSON keys to environment settings in your existing
+single-replica hosted PostgreSQL deployment; this is not a shell script or
+`gh cao deploy azure` configuration file, and setup does not apply it.
+Inject the omitted `CAO_ADX_CLIENT_SECRET` directly from the deployment secret
+manager, never a flag, reviewed policy, or committed document. The generated
+profile intentionally disables any existing traces/mining when applied; separate
+trace enablement requires its own reviewed scope, content/rights approvals and
+durable spool configuration. No resources, schema, credentials, policy,
+collection, deployment, live traces, mining or model training are changed by
+this command. See the [ADX operator contract](https://github.com/githubnext/gh-cao/blob/main/server/ADX-INGEST.md)
+and [trace contract](https://github.com/githubnext/gh-cao/blob/main/server/ADX-TRACES.md).
+
 ### Control-plane installer
 
 Use the root installer as a fallback when SAML-restricted tokens prevent

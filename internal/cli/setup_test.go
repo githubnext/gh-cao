@@ -62,7 +62,7 @@ func TestSetupCommandHierarchy(t *testing.T) {
 	for _, tt := range []struct {
 		path, want []string
 	}{
-		{[]string{"setup"}, []string{"admission", "auth"}},
+		{[]string{"setup"}, []string{"admission", "adx", "auth"}},
 		{[]string{"setup", "auth"}, []string{"enterprise-app", "github-app", "hosted-cli", "token"}},
 	} {
 		cmd, remaining, err := root.Find(tt.path)
