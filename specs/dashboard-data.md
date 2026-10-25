@@ -892,6 +892,15 @@ responses SHALL select the `server-http` backend and SHALL NOT be cached as
 static HTML. Hosted service failures SHALL NOT fall back to browser shard
 ingestion, IndexedDB query execution, or the separate Pages deployment.
 
+When GitHub OAuth is configured, the server SHALL inject the
+`globalThis.__DASHBOARD_ADMIN__ = true` capability into a dashboard entry
+response only if the requesting session is in the configured administrator list
+and holds a current administrator step-up assurance. Dashboard navigation,
+direct routes, and lazy page loading for views that declare the `admin`
+capability, such as Governance, SHALL be available only when that capability is
+present. The capability gates visibility only; command authorization remains
+enforced server-side and is unchanged.
+
 `gh-aw-cao-dashboard-data` is the logical database name. Every implemented
 store uses `id` as its key path. The implemented secondary indexes are:
 
@@ -2120,6 +2129,34 @@ and runtime facts that are missing from the Run. Behavior and assessment copies
 remain retained because their complete comparison facts are not present in the
 query-minimal native Postgres Run representation. Implementations MUST NOT add
 duplicate Run payloads or speculative native columns merely to prune them.
+
+## 11.2 Server-mined episode and outcome evidence
+
+The optional server collector stores selected-run episode membership and
+independently observed output disposition as run-owned Audits with
+`source: "server-mining"`. These are evidence observations, not new canonical
+entities, complete episode rollups, accepted-outcome totals, or operational
+value. The Actions/Activity ingestion contract is unchanged.
+
+| Audit type | Existing typed fields and meaning |
+|---|---|
+| `episode.membership` | `runId` is the selected canonical Run; `claimRunAttempt` is its observed attempt. `correlationId` is the exact recorded gh-aw `context.episode_id`; `name` is recorded `hop_id`; `code` is recorded `parent_hop_id`. `claimRunId`, `targetRepository`, and `targetWorkflowPath` preserve recorded caller run/repository/workflow coordinates, not inferred relationships. |
+| `episode.root` | Same selected `runId` and episode `correlationId`; `claimRunId`, `targetRepository`, and `targetWorkflowPath` preserve `root_run_id`, `root_repo`, and `root_workflow_id`. Missing root fields remain unknown. |
+| `outcome.observed` | `runId` is the exact output's producing Run. `correlationId` is the retained Issue record's canonical ID; `targetRepository` is the issue/PR repository. `status` is the normalized gh-aw-style disposition (`accepted`, `rejected`, `pending`, `lifecycle`, or `unknown`); `code` is its evidence signal. `decision` preserves GitHub object state. `timestamp` is the object's authoritative `updated_at`, `observedAt` is the acquisition clock, and `summary` identifies `github-webhook` or `github-api` acquisition. |
+
+Episode rows MUST declare `scope: "selected_runs"` and outcome rows
+`scope: "selected_outputs"`; both MUST declare `evidenceState: "partial"`.
+Recorded root/caller references MUST NOT authorize discovery of additional
+repositories. Consumers MUST NOT infer edges without exact matching recorded
+episode/hop evidence, count hops as separate run cost, infer acceptance from
+runtime success, or treat missing observations as successful or rejected
+outcomes. Outcome observations MUST join only retained exact issue/PR URLs,
+including host and object category; unlinked GitHub objects are not agent work.
+Only `create_issue` and `create_pull_request` actions are evaluated by this
+lifecycle profile; other safe-output types remain unevaluated.
+Missing runs and superseded attempts MUST NOT acquire episode membership.
+Full replacement and local evidence replay MUST preserve deterministic
+identities and publish all server supplements atomically with the snapshot.
 
 ---
 

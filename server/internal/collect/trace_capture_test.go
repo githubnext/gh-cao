@@ -17,9 +17,9 @@ type traceProbe struct {
 
 func (p *traceProbe) PrepareCache(_ context.Context, _ string, _, target string) error {
 	p.target = target
-	return os.WriteFile(target+"new.jsonl", []byte("{}\n"), 0o600)
+	return os.WriteFile(target+"new.jsonl", []byte("{\"kind\":\"run\",\"run\":{\"repository\":\"octo/api\",\"run_id\":42,\"run_attempt\":1}}\n"), 0o600)
 }
-func (p *traceProbe) Capture(_ context.Context, _ string, _, prefix string) error {
+func (p *traceProbe) Capture(_ context.Context, _ string, logs, prefix string) error {
 	content, err := os.ReadFile(p.record)
 	if err != nil {
 		return err
@@ -28,6 +28,12 @@ func (p *traceProbe) Capture(_ context.Context, _ string, _, prefix string) erro
 		return errors.New("trace capture was not before lossy projection")
 	}
 	p.captured = true
+	if err := os.MkdirAll(logs, 0o700); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(logs, "aw_info.json"), []byte(`{"repository":"octo/api","run_id":42,"run_attempt":"1","context":{"episode_id":"recorded-episode","hop_id":"recorded-hop"}}`), 0o600); err != nil {
+		return err
+	}
 	if p.fail {
 		return errors.New("capture backpressure")
 	}
@@ -56,6 +62,13 @@ func TestTraceAdmissionPrecedesCachePublicationAndProjection(t *testing.T) {
 			}
 			if !fail && published != nil {
 				t.Fatal("captured metadata was not published")
+			}
+			packet, _, miningErr := readMiningPacket(runner.Lake.miningPath("octo/api"))
+			if fail && !errors.Is(miningErr, os.ErrNotExist) {
+				t.Fatal("mining published evidence before trace admission")
+			}
+			if !fail && (miningErr != nil || len(packet.Episodes) != 1 || packet.Episodes[0].Context.EpisodeID != "recorded-episode") {
+				t.Fatalf("merged runner lost identity-bound episode mining: %+v, %v", packet, miningErr)
 			}
 		})
 	}

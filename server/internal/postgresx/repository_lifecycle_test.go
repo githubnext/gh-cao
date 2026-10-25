@@ -11,6 +11,19 @@ import (
 func TestRepositoryLifecycleSurvivesProjectionAndExpires(t *testing.T) {
 	store, _ := nativeTestStore(t)
 	ctx := t.Context()
+	seed, err := store.BeginIngestion(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer seed.Abort(ctx)
+	if err := seed.Append(ctx, "$repositories", model.Row{
+		"id": "github:repository:42", "owner": "octo", "name": "api",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := seed.Publish(ctx, "initial"); err != nil {
+		t.Fatal(err)
+	}
 	if err := store.UpdateRepositoryLifecycle(ctx, 42, "octo/api", "active", time.Now()); err != nil {
 		t.Fatal(err)
 	}
@@ -63,6 +76,36 @@ func TestRepositoryLifecycleSurvivesProjectionAndExpires(t *testing.T) {
 	var count int
 	if err := store.db.QueryRowContext(ctx, `SELECT count(*) FROM cao_repository_lifecycle WHERE namespace=$1`, store.namespace).Scan(&count); err != nil || count != 0 {
 		t.Fatalf("expired lifecycle rows = %d, %v", count, err)
+	}
+}
+
+func TestRepositoryLifecycleDoesNotResurrectEvictedRepositories(t *testing.T) {
+	store, _ := nativeTestStore(t)
+	ctx := t.Context()
+	for _, state := range []string{"active", "archived", "deleted"} {
+		if err := store.UpdateRepositoryLifecycle(ctx, 42, "octo/old", state, time.Now()); err != nil {
+			t.Fatal(err)
+		}
+		writer, err := store.BeginIngestion(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer writer.Abort(ctx)
+		if _, err := writer.Publish(ctx, "evicted-"+state); err != nil {
+			t.Fatal(err)
+		}
+		var count int
+		if err := store.db.QueryRowContext(ctx, `SELECT count(*) FROM repositories WHERE namespace=$1`,
+			store.namespace).Scan(&count); err != nil || count != 0 {
+			t.Fatalf("lifecycle %s resurrected evicted repository: %d, %v", state, count, err)
+		}
+	}
+	if err := store.ClearRepositoryLifecycles(ctx, []int64{0, 42}); err != nil {
+		t.Fatal(err)
+	}
+	active, err := store.RepositoryActive(ctx, "octo/old")
+	if err != nil || !active {
+		t.Fatalf("verified rediscovery did not clear legacy lifecycle: %t, %v", active, err)
 	}
 }
 

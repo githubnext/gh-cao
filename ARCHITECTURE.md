@@ -1632,12 +1632,20 @@ not authorize cross-repository evidence access.
   `GET /api/v1/github-quota/usage` and the `github-quota-usage` runtime source
   that the Ingestion page charts. Existing collection budgets do not use this
   service yet.
-- Signed repository lifecycle deliveries are durably queued with collection
-  work; workers preserve archived/deleted repository identities in Postgres
-  without hiding retained history. Declarative discovery excludes inactive
-  repositories, while explicit installation scope withdrawal still erases
-  evidence immediately. Retention maintenance purges inactive identities only
-  after the retention window and their references have expired.
+- Signed repository lifecycle deliveries are durably queued as independent
+  discovery hints. Workers reconcile complete authenticated installation
+  coverage, exclude archived repositories, persist erasure work before removing
+  absent coordinates from enrollment, and queue collection for verified active
+  repositories. Archive, deletion, rename, and transfer evict old repository
+  evidence and retained inventory through the existing erasure/projection path.
+  Delayed deliveries cannot restore obsolete coordinates or lifecycle states;
+  legacy lifecycle metadata cannot recreate absent canonical repositories.
+  Workers also reconcile active installation lists on startup and every hour by
+  default, configurable with `CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL`,
+  coordinating replicas with an operational lease and persisted
+  admission timestamp. `cao-dashboard backfill --repositories-only` forces the
+  same repair without replaying history or scanning workflow runs; unchanged
+  repositories are not recollected by list refresh alone.
 - The ingestion reliability simulator uses strict, seeded JSON scenarios to
   generate up to 50,000 synthetic repositories and 1,000,000 workflow and
   optional issue events combined.

@@ -38,6 +38,9 @@ type Result struct {
 type Options struct {
 	DatabaseQueriesPath string
 	Force               bool
+	// Server-owned evidence is independent of the Activity snapshot contract.
+	SupplementRevision string
+	Supplement         func(context.Context, *postgresx.Writer) error
 }
 type Manifest map[string]string
 
@@ -156,6 +159,14 @@ func Run(ctx context.Context, store *postgresx.Store, directory string, options 
 		return Result{}, err
 	}
 	dataRevision := directoryRevision(manifest, inventoryHash, memory.Revision)
+	if options.SupplementRevision != "" {
+		if options.Supplement == nil {
+			return Result{}, errors.New("supplement revision requires an evidence adapter")
+		}
+		dataRevision = directoryRevision(manifest, inventoryHash, memory.Revision, options.SupplementRevision)
+	} else if options.Supplement != nil {
+		return Result{}, errors.New("supplement requires a content revision")
+	}
 	active, err := store.State(ctx)
 	if err != nil {
 		return Result{}, err
@@ -204,6 +215,11 @@ func Run(ctx context.Context, store *postgresx.Store, directory string, options 
 	}
 	if err := readInventory(ctx, writer, inventoryPath, inventoryHash); err != nil {
 		return Result{}, err
+	}
+	if options.Supplement != nil {
+		if err := options.Supplement(ctx, writer); err != nil {
+			return Result{}, fmt.Errorf("project server evidence: %w", err)
+		}
 	}
 	active, err = writer.Publish(ctx, dataRevision)
 	if err != nil {

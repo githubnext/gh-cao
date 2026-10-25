@@ -52,6 +52,9 @@ type Projector struct {
 	GitHubAPIURL        string
 	Tokens              TokenProvider
 	Budget              *githubapp.Budget
+	OutcomeClient       OutcomeClient
+	Quota               RunQuotaService
+	QuotaApp            string
 	WindowDays          int
 	DatabaseQueriesPath string
 	// PolicyPath is the reviewed deployment policy resolved for inventory.
@@ -201,10 +204,16 @@ func (p Projector) project(ctx context.Context, force bool) (ingest.Result, erro
 		if err := p.refreshCompaction(ctx); err != nil {
 			return ingest.Result{}, err
 		}
+		revision, supplement, err := p.miningSupplement(ctx)
+		if err != nil {
+			return ingest.Result{}, err
+		}
 		// An unchanged collection need not rewrite an identical canonical dataset.
 		return ingest.Run(ctx, p.Data, p.Lake.Directory, ingest.Options{
 			DatabaseQueriesPath: p.DatabaseQueriesPath,
 			Force:               force,
+			SupplementRevision:  revision,
+			Supplement:          supplement,
 		})
 	}()
 	if err != nil {

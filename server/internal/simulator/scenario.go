@@ -47,6 +47,7 @@ type Scenario struct {
 	ArchiveRepositories      bool        `json:"archive_repositories,omitempty"`
 	UnarchiveRepositories    bool        `json:"unarchive_repositories,omitempty"`
 	DeleteRepositories       bool        `json:"delete_repositories,omitempty"`
+	RenameRepositories       bool        `json:"rename_repositories,omitempty"`
 	API                      []APIWindow `json:"api"`
 	// RateLimit optionally meters GitHub API traffic with a fixed-window
 	// primary rate limit, so load tests can exhaust a deliberately low budget.
@@ -349,14 +350,24 @@ func (s Scenario) Generate() ([]Delivery, error) {
 	for _, event := range []struct {
 		enabled bool
 		action  string
-	}{{s.ArchiveRepositories, "archived"}, {s.UnarchiveRepositories, "unarchived"}, {s.DeleteRepositories, "deleted"}} {
+	}{{s.ArchiveRepositories, "archived"}, {s.UnarchiveRepositories, "unarchived"},
+		{s.RenameRepositories, "renamed"}, {s.DeleteRepositories, "deleted"}} {
 		if !event.enabled {
 			continue
 		}
-		if err := appendDelivery("repository", map[string]any{
-			"action": event.action, "repository": map[string]any{"id": 1, "full_name": repositories[0]},
+		name := repositories[0]
+		if s.RenameRepositories && (event.action == "renamed" || event.action == "deleted") {
+			name += "-renamed"
+		}
+		payload := map[string]any{
+			"action": event.action, "repository": map[string]any{"id": 1, "full_name": name},
 			"installation": map[string]int{"id": 1},
-		}, false); err != nil {
+		}
+		if event.action == "renamed" {
+			payload["changes"] = map[string]any{"repository": map[string]any{
+				"name": map[string]string{"from": "repo-00001"}}}
+		}
+		if err := appendDelivery("repository", payload, false); err != nil {
 			return nil, err
 		}
 	}

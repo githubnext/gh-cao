@@ -1120,6 +1120,9 @@ func newBackfillCommand() *cobra.Command {
 		"../dashboard/site/src/data/queries/database.json", "canonical database projection queries")
 	replayOnly := cmd.Flags().Bool("replay-only", false,
 		"reproject the evidence lake without contacting GitHub")
+	repositoriesOnly := cmd.Flags().Bool("repositories-only", false,
+		"refresh App installations and queue repository-list reconciliation without replaying history")
+	cmd.MarkFlagsMutuallyExclusive("replay-only", "repositories-only")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
@@ -1131,6 +1134,18 @@ func newBackfillCommand() *cobra.Command {
 		collector, err := server.NewCollectorFromEnv(ctx, *databaseQueries)
 		if err != nil {
 			return err
+		}
+		if *repositoriesOnly {
+			result, err := collector.RepositoryDiscovery().Refresh(ctx)
+			if err != nil {
+				return err
+			}
+			report, err := json.MarshalIndent(result, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(report))
+			return nil
 		}
 		backfill := collector.Backfill()
 		mode := resolveBackfillMode(*replayOnly)

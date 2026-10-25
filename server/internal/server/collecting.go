@@ -72,6 +72,9 @@ type CollectorConfig struct {
 	Consumer string
 	// RecoverDeliveries enables webhook delivery replay for gap recovery.
 	RecoverDeliveries bool
+	// RepositoryRefreshInterval repairs repository membership even when lifecycle
+	// webhooks are missed. Zero selects one hour.
+	RepositoryRefreshInterval time.Duration
 	// QueueMaxLength applies backpressure to the outstanding task stream.
 	QueueMaxLength int
 	// AdmitOnly runs the admission half of the profile alone: the process
@@ -88,6 +91,9 @@ func (config *CollectorConfig) Validate() error {
 	}
 	if config.AppID <= 0 {
 		return errors.New("collection requires a GitHub App identifier")
+	}
+	if config.RepositoryRefreshInterval < 0 {
+		return errors.New("repository refresh interval must not be negative")
 	}
 	if config.AdmitOnly {
 		// Admission verifies deliveries against the webhook secret and writes
@@ -214,7 +220,7 @@ func NewCollector(
 			enrollment: enrollment,
 			queue:      queue,
 			backfill:   backfill,
-			admitter:   collect.Admitter{Enrollment: enrollment, Queue: queue},
+			admitter:   collect.Admitter{Enrollment: enrollment, Queue: queue, Mining: true},
 			reporter: collect.Reporter{
 				Enrollment: enrollment, Queue: queue, Backfill: backfill, Metrics: services.IngestionMetrics, Data: data,
 			},
@@ -265,6 +271,9 @@ func NewCollector(
 		GitHubAPIURL:             config.BaseURL,
 		Tokens:                   client,
 		Budget:                   budget,
+		OutcomeClient:            client,
+		Quota:                    quota,
+		QuotaApp:                 quotaApp,
 		WindowDays:               config.WindowDays,
 		DatabaseQueriesPath:      databaseQueriesPath,
 		ControlRepository:        config.ControlRepository,
@@ -289,7 +298,7 @@ func NewCollector(
 		runner:     runner,
 		projector:  projector,
 		admitter: collect.Admitter{
-			Enrollment: enrollment, Queue: queue,
+			Enrollment: enrollment, Queue: queue, Mining: true,
 			Projection: projector,
 		},
 		backfill: backfill,
@@ -425,6 +434,7 @@ func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(rev
 			Projector:      c.projector,
 			Enrollment:     c.enrollment,
 			ScopeRefresher: c.scopeRefresher(),
+			Discovery:      c.RepositoryDiscovery(),
 			Consumer:       fmt.Sprintf("%s-%d", c.consumer(), index),
 			Project:        true,
 			OnProjection:   onProjection,
@@ -513,6 +523,7 @@ func (c *Collector) Worker(consumer string) collect.Worker {
 		Queue: c.queue, Runner: c.runner, Projector: c.projector,
 		Enrollment: c.enrollment, Consumer: consumer, Project: true,
 		ScopeRefresher: c.scopeRefresher(),
+		Discovery:      c.RepositoryDiscovery(),
 	}
 }
 
@@ -520,6 +531,12 @@ func (c *Collector) scopeRefresher() collect.ScopeRefresher {
 	return collect.ScopeRefresher{Client: c.client, Quota: c.quota,
 		QuotaApp:        "github-app-" + strconv.FormatInt(c.config.AppID, 10),
 		RepositoryLimit: c.config.InventoryLimit}
+}
+
+func (c *Collector) RepositoryDiscovery() collect.RepositoryDiscovery {
+	return collect.RepositoryDiscovery{Client: c.client, Enrollment: c.enrollment,
+		Queue: c.queue, State: c.projector.State, Leases: c.enrollment.Leases,
+		Interval: c.config.RepositoryRefreshInterval}
 }
 
 // Backfill exposes cold start for the backfill role.

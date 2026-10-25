@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/logger"
+	"github.com/githubnext/gh-cao/server/internal/mining"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
@@ -24,6 +25,7 @@ const (
 	IntentCollect IntentKind = "collect"
 	// IntentIssueStatus refreshes the enrolled repository after an issue event.
 	IntentIssueStatus     IntentKind = "issue-status"
+	IntentOutcome         IntentKind = "outcome"
 	IntentRepository      IntentKind = "repository"
 	IntentWorkflowRefresh IntentKind = "workflow-refresh"
 	// IntentEnroll adds repositories to the enrollment set.
@@ -47,6 +49,7 @@ type Intent struct {
 	Issue          operational.IssueUpdate
 	RepositoryID   int64
 	Lifecycle      string
+	Outcome        *mining.Outcome
 }
 
 type webhookEnvelope struct {
@@ -110,6 +113,8 @@ func ParseEvent(event string, payload []byte) (Intent, error) {
 		intent, err = parseWorkflowRunEvent(envelope)
 	case "issues":
 		intent = parseIssueEvent(envelope)
+	case "pull_request":
+		intent = parsePullRequestEvent(envelope)
 	case "repository":
 		intent = parseRepositoryEvent(envelope)
 	case "installation":
@@ -123,11 +128,32 @@ func ParseEvent(event string, payload []byte) (Intent, error) {
 	if err != nil {
 		return Intent{}, err
 	}
+	if intent.Kind == IntentIssueStatus || intent.Kind == IntentOutcome {
+		intent.Outcome, err = mining.ParseWebhook(trimmedEvent, payload, time.Now().UTC())
+		if err != nil {
+			return Intent{}, err
+		}
+	}
 	// One classification per delivery is a meaningful state transition worth
 	// observing, and this is never called from a polling or retry loop, so
 	// logging every delivery cannot flood the log.
 	eventsLog.Printf("classified webhook event=%s kind=%s", trimmedEvent, intent.Kind)
 	return intent, nil
+}
+
+func parsePullRequestEvent(envelope webhookEnvelope) Intent {
+	switch envelope.Action {
+	case "opened", "reopened", "closed", "edited", "synchronize", "ready_for_review",
+		"converted_to_draft", "review_requested", "review_request_removed":
+	default:
+		return Intent{Kind: IntentIgnore}
+	}
+	repository, err := NormalizeRepository(envelope.Repository.FullName)
+	if err != nil || envelope.Installation.ID <= 0 {
+		return Intent{Kind: IntentIgnore}
+	}
+	return Intent{Kind: IntentOutcome, Repository: repository, InstallationID: envelope.Installation.ID,
+		Reason: "pull-request-outcome"}
 }
 
 func parsePushEvent(envelope webhookEnvelope) Intent {
@@ -162,7 +188,7 @@ func parsePushEvent(envelope webhookEnvelope) Intent {
 func parseRepositoryEvent(envelope webhookEnvelope) Intent {
 	state := ""
 	switch envelope.Action {
-	case "created", "unarchived":
+	case "created", "unarchived", "renamed", "transferred":
 		state = "active"
 	case "archived":
 		state = "archived"
@@ -325,6 +351,9 @@ var ErrDeliveryInProgress = errors.New("webhook delivery admission is already in
 type Admitter struct {
 	Enrollment Enrollment
 	Queue      Queue
+	// Mining retains each object's payload instead of coalescing it into a
+	// repository refresh. Admission-only replicas use the same durable task.
+	Mining bool
 	// Projection requests a projection after erasure, so the canonical
 	// database stops reporting repositories that left ingestion scope.
 	Projection ProjectionRequester
@@ -376,7 +405,7 @@ func (a Admitter) AdmitDelivery(
 	if isScopeIntent(intent.Kind) {
 		return a.queueScope(ctx, intent, delivery, deliveryTTL)
 	}
-	if intent.Kind == IntentIssueStatus || intent.Kind == IntentRepository || intent.Kind == IntentWorkflowRefresh {
+	if intent.Kind == IntentIssueStatus || intent.Kind == IntentOutcome || intent.Kind == IntentRepository || intent.Kind == IntentWorkflowRefresh {
 		return a.admitIssue(ctx, intent, delivery, deliveryTTL)
 	}
 	if intent.Kind != IntentCollect {
@@ -433,18 +462,19 @@ func (a Admitter) admitIssue(ctx context.Context, intent Intent, delivery string
 		return Admission{}, err
 	}
 	if !enrolled || owner != intent.InstallationID {
-		if intent.Kind == IntentRepository && !enrolled &&
-			(intent.Reason == "repository.created" || intent.Reason == "repository.unarchived") {
-			known, err := a.Enrollment.Metadata.HasMember(ctx, installationsKey, strconv.FormatInt(intent.InstallationID, 10))
+		if intent.Kind == IntentRepository && !enrolled {
+			known, err := a.Enrollment.KnownInstallation(ctx, intent.InstallationID)
 			if err != nil {
 				return Admission{}, err
 			}
 			if known {
-				return a.queueScope(ctx, Intent{Kind: IntentEnroll, InstallationID: intent.InstallationID,
-					Reason: intent.Reason}, delivery, ttl)
+				owner = intent.InstallationID
+			} else {
+				return Admission{Kind: IntentIgnore, Reason: "not-enrolled"}, nil
 			}
+		} else {
+			return Admission{Kind: IntentIgnore, Reason: "not-enrolled"}, nil
 		}
-		return Admission{Kind: IntentIgnore, Reason: "not-enrolled"}, nil
 	}
 	task := Task{
 		Repository:       intent.Repository,
@@ -453,6 +483,9 @@ func (a Admitter) admitIssue(ctx context.Context, intent Intent, delivery string
 		RepositoryID:     intent.RepositoryID,
 		Lifecycle:        intent.Lifecycle,
 		InventoryRefresh: intent.Kind == IntentWorkflowRefresh,
+	}
+	if a.Mining {
+		task.Outcome = intent.Outcome
 	}
 	if task.Reason == "" {
 		task.Reason = "issue-status"
@@ -612,7 +645,7 @@ func (a Admitter) admitIntent(ctx context.Context, intent Intent) (Admission, er
 			return Admission{}, err
 		}
 		return Admission{Kind: IntentCollect, Enqueued: enqueued}, nil
-	case IntentIssueStatus, IntentRepository, IntentWorkflowRefresh:
+	case IntentIssueStatus, IntentOutcome, IntentRepository, IntentWorkflowRefresh:
 		return a.admitIssue(ctx, intent, "", 0)
 	default:
 		return Admission{Kind: IntentIgnore}, nil

@@ -190,6 +190,27 @@ func (l Lake) RetainedRepositories(ctx context.Context, limit int) ([]string, er
 			return nil, operational.ErrCapacity
 		}
 	}
+	mined, err := os.ReadDir(l.miningDirectory())
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
+	for _, entry := range mined {
+		if !entry.Type().IsRegular() || !strings.HasSuffix(entry.Name(), ".json") {
+			return nil, errors.New("unrecognized retained mining evidence")
+		}
+		path := filepath.Join(l.miningDirectory(), entry.Name())
+		packet, _, err := readMiningPacket(path)
+		if err != nil {
+			return nil, err
+		}
+		if path != l.miningPath(packet.Repository) {
+			return nil, errors.New("retained mining filename ownership mismatch")
+		}
+		seen[packet.Repository] = struct{}{}
+		if limit > 0 && len(seen) > limit {
+			return nil, operational.ErrCapacity
+		}
+	}
 	names := make([]string, 0, len(seen))
 	for name := range seen {
 		names = append(names, name)

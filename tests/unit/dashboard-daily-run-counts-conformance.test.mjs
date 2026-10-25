@@ -101,11 +101,17 @@ test('daily run-count browser reports require every declared test to pass, not j
   assert.throws(() => verifyBrowserResults(report('required', 'skipped'), ['required']), /Required conformance test did not pass/);
 });
 
-test('daily run-count CI runs the cross-backend command with PostgreSQL and native Chromium on pull requests', () => {
+test('daily run-count CI keeps cross-backend checks off pull requests but available on main and explicit invocation', () => {
   const workflow = parse(readFileSync(new URL('../../.github/workflows/cgo.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs['daily-run-counts-conformance'];
   assert.ok(workflow.on.pull_request.paths.includes('tests/contracts/daily-run-counts.json'));
   assert.ok(workflow.on.pull_request.paths.includes('scripts/run-daily-run-counts-conformance.mjs'));
+  assert.deepEqual(workflow.on.push.branches, ['main']);
+  for (const path of ['tests/contracts/daily-run-counts.json', 'scripts/run-daily-run-counts-conformance.mjs']) {
+    assert.ok(workflow.on.push.paths.includes(path));
+  }
+  assert.ok(Object.hasOwn(workflow.on, 'workflow_dispatch'));
+  assert.ok(Object.hasOwn(workflow.on, 'workflow_call'));
   assert.equal(job.services.postgres.image, 'postgres:16-alpine');
   assert.equal(job.env?.POSTGRES_URL, undefined);
   assert.ok(job.steps.some((step) => step.run === 'npx playwright install --with-deps chromium'));
@@ -113,5 +119,5 @@ test('daily run-count CI runs the cross-backend command with PostgreSQL and nati
   const conformance = job.steps.find((step) => step.run === 'npm run test:conformance:daily-run-counts');
   assert.ok(conformance);
   assert.match(conformance.env.POSTGRES_URL, /job\.services\.postgres\.ports/);
-  assert.equal(job.if, undefined);
+  assert.equal(job.if, "github.event_name != 'pull_request'");
 });
