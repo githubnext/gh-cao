@@ -3,35 +3,6 @@
   "next_category": "dependency installation and caching",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-24T19:40:00Z",
-      "worker_run_id": "40125573844",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40125625633,
-        40124647241,
-        40124625205,
-        40123369506,
-        40122394170,
-        40121780130,
-        40121606358,
-        40121585605,
-        40121471441,
-        40120653572,
-        40120191494,
-        40118803916,
-        40117600869,
-        40116502677,
-        40116326535,
-        40116139464,
-        40115877669,
-        40115632104,
-        40114233064,
-        40113131683
-      ],
-      "outcome": "actionable: in the 2026-10-24T16:46:48Z to 2026-10-24T19:30:53Z latest-20 completed docs.yml window, six successful build-and-deploy runs provided comparable evidence. Median execution was 96.0s (p90 120.0s), build 74.5s (p90 84.5s), deploy 10.0s (p90 17.0s), and npm ci 23.0s (p90 24.0s). Two bounded logs verified exact setup-node npm-cache hits, yet npm ci still rebuilt 852 packages in 22-25s. All six build-bearing runs restored the dashboard cache and skipped artifact fallback. Recommend an exact-key root node_modules cache with npm ci plus cache save on miss; expected saving is about 15-20s on hits, exceeding 15% of median execution. Six successful CAO Dashboard builds had build median 15.0s (p90 19.0s).",
-      "suggestion_fingerprint": "docs-exact-node-modules-cache-v1"
-    },
-    {
       "evaluated_at": "2026-10-24T19:50:43Z",
       "worker_run_id": "40126926921",
       "category": "Astro documentation generation",
@@ -716,6 +687,34 @@
       "category": "dependency installation and caching",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded latest-20 completed docs.yml workflow-run request returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T14:05:00Z",
+      "worker_run_id": "40201493334",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        40200295371,
+        40199104126,
+        40198282679,
+        40198075082,
+        40197170209,
+        40195722444,
+        40194960845,
+        40194589399,
+        40193379714,
+        40191378068,
+        40190242760,
+        40189521371,
+        40189258518,
+        40188411537,
+        40187136848,
+        40186124600,
+        40185481282,
+        40185262787,
+        40184466336,
+        40183058827
+      ],
+      "outcome": "incomplete: the 2026-10-25T10:01:34Z to 2026-10-25T14:01:46Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. All successful runs completed in 12-21 seconds at source SHA c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49. Trusted job and step metadata for latest run 40200295371 confirmed that only schedule-freshness ran (14 seconds; freshness step 12 seconds), while build and deploy were skipped. No successful full build-and-deploy path was present, below the required five comparable successful runs. Therefore full workflow and dashboard/build/deploy job median and p90 timings, repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
     }
   ]
 }
