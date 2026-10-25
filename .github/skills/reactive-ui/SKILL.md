@@ -33,8 +33,9 @@ Build dashboard experiences declaratively first. Use JavaScript only for interac
 Use `dashboard/site/src/reactive.js` for state-driven updates:
 
 - `state` owns mutable local state; use its functional setter when the next value depends on the current value.
-- `derived` computes values from reactive dependencies. Dispose it when its owner is removed.
-- `effect` performs the smallest DOM update needed from reactive state. Stop the handle when work is complete or the owner is removed.
+- `derived(compute, { signal }?)` computes values from reactive dependencies. Dispose it, or pass an `AbortSignal`, when its owner is removed.
+- `effect(fn, { signal }?)` performs the smallest DOM update needed from reactive state. Stop the handle, or pass an `AbortSignal`, when work is complete or the owner is removed.
+- `untracked` reads reactive state without subscribing the running effect, so bookkeeping reads do not widen its dependencies.
 - `render(root, update, { signal }?)` renders reactive output into an isolated shadow tree and morphs it into an owned root with the fewest mutations, preserving focus, scroll position, and control state without hand-written diffing. Prefer it over a raw `effect` plus `replaceChildren` whenever a component's entire visible output is a function of its reactive state, as in `dashboard/site/src/components/animated-number.js`, `factory-station.js`, and `factory-header.js`.
 - `onCleanup` removes listeners, observers, timers, and other resources created by an effect.
 - `batch` groups related writes so dependents observe one consistent final state.
