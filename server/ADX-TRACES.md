@@ -299,6 +299,9 @@ contain no trace bodies, credentials or raw errors.
 Tests cover full/sample fidelity, UTF-8 boundaries, redaction/missingness, seed
 determinism, zero samples, source gaps, crash/retry recovery, immutable
 corrections, resource limits, local withdrawal, datasets and actual loopback
-streaming HTTP requests. The simulator is not a Kusto engine. Before production
-acceptance, apply KQL and exercise synthetic reconstruction, helper queries,
-retention, visibility and erasure using the actual destination/principal.
+streaming HTTP requests. Protocol simulators are not Kusto engines. The separate
+[local Kusto acceptance suite](KUSTO-ACCEPTANCE.md) executes generated KQL and
+synthetic lifecycle assertions against Microsoft's real emulator, bridging only
+its unsupported streaming transport. It does not establish Azure authentication,
+streaming visibility, retention or erasure. Before production acceptance,
+exercise those properties using the actual destination/principal.
