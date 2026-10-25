@@ -32,7 +32,7 @@ test("landing page presents the product through real operational surfaces", () =
   assert.doesNotMatch(headerLinks, /label: "Dashboard"/);
   assert.match(landingPage, /title: Central Agentic Ops \(CAO\)/);
   assert.match(landingPage, /Monitor and govern GitHub Agentic Workflows at scale\./);
-  assert.match(landingPage, /Keep track of all runs, costs, and outcomes of your GitHub Agentic Workflows across repositories\. Set execution scope and rollout policy and refine workflows in review mode so you can roll out safely and confidently\./);
+  assert.match(landingPage, /Keep track of all runs, costs, and outcomes of your GitHub Agentic Workflows across repositories\. Set execution scope and rollout policy, refine workflows in review mode, and roll out with confidence\./);
   assert.match(hero, /cao-dashboard-mobile-overview\.png/);
   assert.match(hero, /cao-dashboard-mobile-overview-light\.png/);
   assert.doesNotMatch(hero, /cao-dashboard-(?:run-history|campaign-value)|runs-story/);
