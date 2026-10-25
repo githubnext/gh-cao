@@ -7,6 +7,7 @@ import { normalize } from '../../dashboard/site/src/data/normalize/index.js';
 import { ENTITY_COLLECTIONS } from '../cli-usage.mjs';
 import { UsageError } from './options.mjs';
 import { jsonlRecords, totalFileBytes } from './files.mjs';
+import { inspectShardRepositories, recordRepository } from './jsonl-identity.mjs';
 
 export const DEFAULT_COMPACTED_JSONL_SHARD_BYTES = 4 * 1024 * 1024;
 
@@ -96,9 +97,9 @@ function compactedJsonlLine(record, line, agenticRunIds, state) {
   return payload.length === record.payload.length ? line : JSON.stringify({ ...record, payload });
 }
 
-async function inspectJsonlCompaction(sourcePaths) {
+async function inspectJsonlCompaction(records) {
   const agenticRunIds = new Set();
-  for (const { value: record } of jsonlRecords(sourcePaths)) {
+  for (const { value: record } of records()) {
     if (isAgenticWorkflowRun(record)) {
       const runId = workflowRunId(record.run.run_id);
       if (runId !== null) agenticRunIds.add(runId);
@@ -108,7 +109,7 @@ async function inspectJsonlCompaction(sourcePaths) {
   let retainedRecords = 0;
   let filtered = false;
   const state = createJsonlCompactionState();
-  for (const { value, rawLine } of jsonlRecords(sourcePaths)) {
+  for (const { value, rawLine } of records()) {
     const line = rawLine.replace(/\r?\n$/, '');
     sourceRecords += 1;
     const retained = compactedJsonlLine(value, line, agenticRunIds, state);
@@ -122,11 +123,28 @@ async function inspectJsonlCompaction(sourcePaths) {
   return { agenticRunIds, sourceRecords, retainedRecords, deduplicatedRunRecords: state.deduplicatedRunRecords, filtered };
 }
 
-async function compactJsonlShardGroup(directory, prefix, names, maxBytes) {
+async function compactJsonlShardGroup(directory, prefix, names, maxBytes, repository, ownership) {
   const sourcePaths = names.map((name) => path.join(directory, name));
+  const mixed = sourcePaths.some((filePath) => ownership.get(filePath).mixed);
+  const records = function* () {
+    for (const filePath of sourcePaths) {
+      const identity = ownership.get(filePath);
+      for (const record of jsonlRecords([filePath])) {
+        if (!identity.mixed) {
+          yield record;
+        } else if (identity.repositoryFor(record.value) === repository) {
+          if (recordRepository(record.value)) yield record;
+          else {
+            const value = { ...record.value, request: { ...record.value.request, repository } };
+            yield { ...record, value, rawLine: JSON.stringify(value) };
+          }
+        }
+      }
+    }
+  };
   const sourceBytes = await totalFileBytes(sourcePaths);
-  const inspection = await inspectJsonlCompaction(sourcePaths);
-  if (sourcePaths.length <= 1 && sourceBytes <= maxBytes && !inspection.filtered) {
+  const inspection = await inspectJsonlCompaction(records);
+  if (!mixed && sourcePaths.length <= 1 && sourceBytes <= maxBytes && !inspection.filtered) {
     return {
       prefix,
       sourceFiles: sourcePaths.length,
@@ -167,7 +185,7 @@ async function compactJsonlShardGroup(directory, prefix, names, maxBytes) {
     bufferedBytes = 0;
   };
   try {
-    for (const { value, rawLine } of jsonlRecords(sourcePaths)) {
+    for (const { value, rawLine } of records()) {
       const line = rawLine.replace(/\r?\n$/, '');
       const retained = compactedJsonlLine(value, line, inspection.agenticRunIds, state);
       if (retained === null) continue;
@@ -183,7 +201,6 @@ async function compactJsonlShardGroup(directory, prefix, names, maxBytes) {
     await Promise.all([...temporaryPaths, ...outputPaths].map((filePath) => rm(filePath, { force: true })));
     throw error;
   }
-  await Promise.all(sourcePaths.filter((filePath) => !outputPaths.includes(filePath)).map((filePath) => rm(filePath)));
   const compactedBytes = await totalFileBytes(outputPaths);
   return {
     prefix,
@@ -196,31 +213,6 @@ async function compactJsonlShardGroup(directory, prefix, names, maxBytes) {
     output: outputPaths[0] ?? null,
     outputs: outputPaths
   };
-}
-
-async function shardRepository(filePath) {
-  let identity = null;
-  for (const { value: record } of jsonlRecords([filePath])) {
-    const run = record?.run;
-    const candidates = [record?.request?.repository, run?.repository_full_name];
-    if (typeof run?.repository === 'string') {
-      candidates.push(run.repository.includes('/') ? run.repository
-        : typeof run.organization === 'string' ? `${run.organization}/${run.repository}` : null);
-    }
-    for (const candidate of candidates) {
-      if (candidate === undefined || candidate === null || candidate === '') continue;
-      if (typeof candidate !== 'string'
-          || !/^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9._-]+$/.test(candidate)) {
-        throw new UsageError('Shard contains an invalid repository identity');
-      }
-      const repository = candidate.toLowerCase();
-      if (identity !== null && identity !== repository) {
-        throw new UsageError('Shard contains conflicting repository identities; compaction requires operator repair');
-      }
-      identity = repository;
-    }
-  }
-  return identity;
 }
 
 export async function compactJsonlShards(
@@ -247,22 +239,39 @@ export async function compactJsonlShards(
     groupsByRepository.set(repository, { prefix, names: [] });
   }
   const directory = path.resolve(inputDirectory);
+  const ownership = new Map();
   for (const name of (await readdir(directory)).filter((name) => name.endsWith('.jsonl')).sort()) {
-    const repository = await shardRepository(path.join(directory, name));
-    if (repository && groupsByRepository.has(repository)) {
-      groupsByRepository.get(repository).names.push(name);
+    const filePath = path.join(directory, name);
+    const identity = inspectShardRepositories(filePath);
+    ownership.set(filePath, identity);
+    if (identity.mixed && [...identity.repositories].some((repository) => !groupsByRepository.has(repository))) {
+      throw new UsageError('Mixed shard contains repositories outside the declared compaction groups; compaction requires operator repair');
+    }
+    for (const repository of identity.repositories) {
+      if (groupsByRepository.has(repository)) groupsByRepository.get(repository).names.push(name);
     }
   }
   const groups = [];
-  for (const [repository, { prefix, names }] of [...groupsByRepository].sort(([left], [right]) => left.localeCompare(right))) {
-    groups.push({
-      repository,
-      ...await compactJsonlShardGroup(directory, prefix, names, maxBytes)
-    });
+  const sourcePaths = new Set([...groupsByRepository.values()].flatMap(({ names }) =>
+    names.map((name) => path.join(directory, name))));
+  try {
+    for (const [repository, { prefix, names }] of [...groupsByRepository].sort(([left], [right]) => left.localeCompare(right))) {
+      groups.push({
+        repository,
+        ...await compactJsonlShardGroup(directory, prefix, names, maxBytes, repository, ownership)
+      });
+    }
+  } catch (error) {
+    await Promise.all(groups.flatMap((group) => group.outputs)
+      .filter((filePath) => !sourcePaths.has(filePath)).map((filePath) => rm(filePath, { force: true })));
+    throw error;
   }
+  const outputs = new Set(groups.flatMap((group) => group.outputs));
+  await Promise.all([...sourcePaths].filter((filePath) => !outputs.has(filePath)).map((filePath) => rm(filePath)));
   return {
     command: 'compact-jsonl',
     inputDirectory: directory,
+    repairedShards: [...ownership.values()].filter((identity) => identity.mixed).length,
     groups
   };
 }

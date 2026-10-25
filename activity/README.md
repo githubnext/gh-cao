@@ -93,7 +93,17 @@ repository's retained files into bounded shards, retaining only runs whose
 workflow path ends in `.lock.yml` and their associated records. This excludes
 non-agentic Actions workflows while preserving observation precedence and
 dependent-record association. The bounded files limit peak browser parsing
-memory. Failed collections never replace the published cache. Shards containing only
+memory. Compaction automatically repairs mixed-repository shards on a best-effort
+basis by splitting records with unambiguous repository identities into the declared
+repository groups. Dependent records without a repository are associated only by
+an unambiguous run ID within the original shard. Record order is preserved, and
+the verified repository is added to those dependent records' request metadata so
+bounded shards remain attributable on subsequent compactions.
+`repairedShards` reports how many mixed shards were repaired. Contradictory identities
+within a record, unattributable records, or mixed shards containing undeclared
+repositories still fail closed without replacing the originals. Original shards
+are removed only after every group's output has been written successfully.
+Failed collections never replace the published cache. Shards containing only
 out-of-range dated records are pruned by `gh aw logs --cache-before`. CAO also
 runs `cao recycle-cache` before compaction, between repository downloads, and
 before index normalization. It expires completed runs older than 30 days across

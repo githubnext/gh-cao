@@ -306,7 +306,6 @@ test('compact-jsonl deduplicates exact run records without reordering distinct o
 
 test('compact-jsonl rejects ambiguous legacy identity before mutating any group', async (t) => {
   for (const conflicting of [
-    [{ request: { repository: 'octo-a/b' } }, { run: { repository: 'octo/a-b' } }],
     [{ request: { repository: 'octo-a/b' }, run: { repository_full_name: 'octo/a-b' } }],
   ]) {
     const root = await mkdtemp(path.join(os.tmpdir(), 'activity-compact-mixed-'));
