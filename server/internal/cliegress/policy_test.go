@@ -98,3 +98,28 @@ func TestPolicyRejectsAmbiguousConfiguration(t *testing.T) {
 		}
 	}
 }
+
+func TestFirstDeniedAddress(t *testing.T) {
+	addr := netip.MustParseAddr
+	for _, tc := range []struct {
+		name      string
+		addresses []netip.Addr
+		private   []string
+		want      int
+	}{
+		{"all public", []netip.Addr{addr("140.82.114.5"), addr("2606:50c0:8000::154")}, nil, -1},
+		{"mapped public", []netip.Addr{addr("::ffff:140.82.114.5")}, nil, -1},
+		{"private in public host", []netip.Addr{addr("140.82.114.5"), addr("10.2.3.4")}, nil, 1},
+		{"metadata", []netip.Addr{addr("169.254.169.254")}, nil, 0},
+		{"exact private", []netip.Addr{addr("::ffff:10.2.3.4"), addr("fd12::1")}, []string{"10.2.3.4", "fd12::1"}, -1},
+		{"other private", []netip.Addr{addr("10.2.3.4"), addr("10.2.3.5")}, []string{"10.2.3.4"}, 1},
+		{"public on private endpoint", []netip.Addr{addr("140.82.114.5")}, []string{"10.2.3.4"}, 0},
+		{"empty", nil, nil, -1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := firstDeniedAddress(tc.addresses, tc.private); got != tc.want {
+				t.Fatalf("firstDeniedAddress = %d, want %d", got, tc.want)
+			}
+		})
+	}
+}

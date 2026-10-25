@@ -140,6 +140,26 @@ func publicAddress(ip netip.Addr) bool {
 
 type lookupFunc func(context.Context, string, string) ([]netip.Addr, error)
 
+// firstDeniedAddress returns the index of the first address that is not an
+// acceptable dial target, or -1 when all are. Endpoints with exact private
+// addresses accept only those; every other host accepts only public addresses.
+func firstDeniedAddress(addresses []netip.Addr, private []string) int {
+	for i, ip := range addresses {
+		ip = ip.Unmap()
+		valid := publicAddress(ip)
+		if private != nil {
+			valid = false
+			for _, exact := range private {
+				valid = valid || (privateAddress(ip) && ip.String() == exact)
+			}
+		}
+		if !valid {
+			return i
+		}
+	}
+	return -1
+}
+
 func (p *Policy) destination(ctx context.Context, authority string, lookup lookupFunc) ([]string, error) {
 	host, port, err := net.SplitHostPort(authority)
 	if err != nil || port != "443" {
@@ -164,20 +184,12 @@ func (p *Policy) destination(ctx context.Context, authority string, lookup looku
 	}
 	addresses, err := lookup(ctx, "ip", host)
 	if err != nil || len(addresses) == 0 || len(addresses) > 64 {
+		relayLog.Printf("destination resolution rejected: addresses=%d lookup_failed=%t", len(addresses), err != nil)
 		return nil, errors.New("destination resolution unavailable")
 	}
-	for _, ip := range addresses {
-		ip = ip.Unmap()
-		valid := publicAddress(ip)
-		if private != nil {
-			valid = false
-			for _, exact := range private {
-				valid = valid || (privateAddress(ip) && ip.String() == exact)
-			}
-		}
-		if !valid {
-			return nil, errors.New("destination address denied")
-		}
+	if index := firstDeniedAddress(addresses, private); index >= 0 {
+		relayLog.Printf("destination address rejected: addresses=%d index=%d private_endpoint=%t", len(addresses), index, private != nil)
+		return nil, errors.New("destination address denied")
 	}
 	// All candidates are vetted before any dial; preserve numeric fallback
 	// when, for example, the executor has no route for the first IPv6 answer.
