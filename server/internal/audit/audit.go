@@ -18,8 +18,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
+
+var auditLog = logger.New("cao:audit")
 
 // Outcomes recorded on every event.
 const (
@@ -116,16 +119,9 @@ func (l *Logger) record(ctx context.Context, event, outcome string,
 		defer cancel()
 		stored, storeErr = persist(writeCtx, toEvent(event, outcome, attrs))
 		if storeErr == nil {
-			// Atomic queue operations add authoritative command fields.
-			known := make(map[string]bool, len(attrs))
-			for _, attr := range attrs {
-				known[attr.Key] = true
-			}
-			for key, value := range stored.Attributes {
-				if !known[key] {
-					attrs = append(attrs, slog.String(key, value))
-				}
-			}
+			attrs = withStoredAttrs(attrs, stored.Attributes)
+		} else {
+			auditLog.Printf("audit append failed: event=%s outcome=%s", event, outcome)
 		}
 	}
 	observe(context.WithoutCancel(ctx), event, outcome, persist != nil && storeErr == nil, stored.Sequence, started, persist != nil, attrs)
@@ -146,6 +142,21 @@ func (l *Logger) record(ctx context.Context, event, outcome string,
 		storeErr = fmt.Errorf("%w: %s: %w", ErrUnavailable, event, storeErr)
 	}
 	return errors.Join(storeErr, mirrorErr)
+}
+
+// withStoredAttrs appends authoritative attributes added by the store (such as
+// atomic queue command fields) that the caller did not already supply.
+func withStoredAttrs(attrs []slog.Attr, stored map[string]string) []slog.Attr {
+	known := make(map[string]bool, len(attrs))
+	for _, attr := range attrs {
+		known[attr.Key] = true
+	}
+	for key, value := range stored {
+		if !known[key] {
+			attrs = append(attrs, slog.String(key, value))
+		}
+	}
+	return attrs
 }
 
 func toEvent(event, outcome string, attrs []slog.Attr) operational.AuditEvent {

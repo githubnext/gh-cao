@@ -181,3 +181,22 @@ func TestFromEnvAppendsWithPrivateMode(t *testing.T) {
 		t.Fatalf("mode = %v", info.Mode().Perm())
 	}
 }
+
+func TestWithStoredAttrsKeepsCallerValuesAndAddsMissing(t *testing.T) {
+	caller := []slog.Attr{slog.String("command", "caller"), slog.Int("n", 1)}
+	got := withStoredAttrs(caller, map[string]string{"command": "store", "queue": "q1"})
+	values := map[string]string{}
+	for _, attr := range got {
+		values[attr.Key] = attr.Value.String()
+	}
+	if len(got) != 3 || values["command"] != "caller" || values["queue"] != "q1" || values["n"] != "1" {
+		t.Fatalf("attrs = %v", got)
+	}
+}
+
+func TestWithStoredAttrsWithoutStoreAttributes(t *testing.T) {
+	caller := []slog.Attr{slog.String("a", "b")}
+	if got := withStoredAttrs(caller, nil); len(got) != 1 || got[0].Key != "a" {
+		t.Fatalf("attrs = %v", got)
+	}
+}
