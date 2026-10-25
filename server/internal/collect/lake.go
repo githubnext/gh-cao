@@ -171,6 +171,9 @@ func (l Lake) ForgetContext(ctx context.Context, repository string) error {
 	if err := l.forgetInventoryRepository(normalized); err != nil {
 		return fmt.Errorf("erase retained repository inventory: %w", err)
 	}
+	if err := os.Remove(l.miningPath(normalized)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("erase server mining evidence: %w", err)
+	}
 	for _, path := range paths {
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("remove retained evidence: %w", err)

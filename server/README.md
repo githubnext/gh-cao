@@ -3200,9 +3200,34 @@ such as `30m` or `2h` to override the default `1h` cadence.
 
 Configure the collection App's webhook URL as `/api/github/webhook` and subscribe
 to `push`, `repository`, `installation`, `installation_repositories`, `workflow_run`,
-and `issues` events. Existing read-only App permissions and installation coverage
+`issues`, and `pull_request` events. Existing read-only App permissions and installation coverage
 remain the scope boundary; these notifications do not authorize workflow execution
 or change CAO rollout policy.
+
+The server also mines recorded gh-aw episode identity and created issue/PR
+dispositions. Episode membership comes only from `context.episode_id` in compact
+`aw_info.json` already downloaded by collection or retained run envelopes;
+caller, root, and hop references are preserved without heuristic grouping or
+additional discovery requests. Outcome webhooks retain bounded object facts
+and join them only to exact `create_issue` / `create_pull_request` safe-output
+references. Merge/completed, rejection, bot lifecycle closure, pending, and
+unknown remain distinct from workflow success. Other safe-output action types
+are not evaluated by this lifecycle-only profile.
+
+Replicas coordinate a server-only repair pass every projection interval
+(five minutes by default): at most ten REST calls total, including quota probes,
+with a one-minute deadline and a durable output cursor. Repair reads only
+already attributed objects in currently enrolled repositories and shares the
+installation quota governor. It does not enumerate issue inventories, fetch
+comments/reviews, or expand episode scope. Missing evidence remains partial.
+
+Mined facts reuse existing canonical Audit tables (`episode.membership`,
+`episode.root`, `outcome.observed`) and participate atomically in snapshot
+publication and revision notifications. No schema migration is needed.
+Bounded packets under the evidence lake's `server-mining/` directory support
+API-free replay and are erased on scope withdrawal, including volatile restart
+repair. This feature is not installed in or run by `cao-activity`. See
+`specs/dashboard-data.md` section 11.2 for the field mapping.
 
 Rate limits are governed per installation. Each collection reserves budget
 before it starts and passes the reserve to the collection subprocess, so the

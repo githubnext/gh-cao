@@ -2132,6 +2132,34 @@ remain retained because their complete comparison facts are not present in the
 query-minimal native Postgres Run representation. Implementations MUST NOT add
 duplicate Run payloads or speculative native columns merely to prune them.
 
+## 11.2 Server-mined episode and outcome evidence
+
+The optional server collector stores selected-run episode membership and
+independently observed output disposition as run-owned Audits with
+`source: "server-mining"`. These are evidence observations, not new canonical
+entities, complete episode rollups, accepted-outcome totals, or operational
+value. The Actions/Activity ingestion contract is unchanged.
+
+| Audit type | Existing typed fields and meaning |
+|---|---|
+| `episode.membership` | `runId` is the selected canonical Run; `claimRunAttempt` is its observed attempt. `correlationId` is the exact recorded gh-aw `context.episode_id`; `name` is recorded `hop_id`; `code` is recorded `parent_hop_id`. `claimRunId`, `targetRepository`, and `targetWorkflowPath` preserve recorded caller run/repository/workflow coordinates, not inferred relationships. |
+| `episode.root` | Same selected `runId` and episode `correlationId`; `claimRunId`, `targetRepository`, and `targetWorkflowPath` preserve `root_run_id`, `root_repo`, and `root_workflow_id`. Missing root fields remain unknown. |
+| `outcome.observed` | `runId` is the exact output's producing Run. `correlationId` is the retained Issue record's canonical ID; `targetRepository` is the issue/PR repository. `status` is the normalized gh-aw-style disposition (`accepted`, `rejected`, `pending`, `lifecycle`, or `unknown`); `code` is its evidence signal. `decision` preserves GitHub object state. `timestamp` is the object's authoritative `updated_at`, `observedAt` is the acquisition clock, and `summary` identifies `github-webhook` or `github-api` acquisition. |
+
+Episode rows MUST declare `scope: "selected_runs"` and outcome rows
+`scope: "selected_outputs"`; both MUST declare `evidenceState: "partial"`.
+Recorded root/caller references MUST NOT authorize discovery of additional
+repositories. Consumers MUST NOT infer edges without exact matching recorded
+episode/hop evidence, count hops as separate run cost, infer acceptance from
+runtime success, or treat missing observations as successful or rejected
+outcomes. Outcome observations MUST join only retained exact issue/PR URLs,
+including host and object category; unlinked GitHub objects are not agent work.
+Only `create_issue` and `create_pull_request` actions are evaluated by this
+lifecycle profile; other safe-output types remain unevaluated.
+Missing runs and superseded attempts MUST NOT acquire episode membership.
+Full replacement and local evidence replay MUST preserve deterministic
+identities and publish all server supplements atomically with the snapshot.
+
 ---
 
 # 12. Run-Owned Records
