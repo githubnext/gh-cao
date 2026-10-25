@@ -5,7 +5,11 @@ import (
 	"io"
 	"net"
 	"time"
+
+	"github.com/githubnext/gh-cao/server/internal/logger"
 )
+
+var relayLog = logger.New("cao:cliegress")
 
 const (
 	RelayAddress = "127.0.0.1:18080"
@@ -23,12 +27,24 @@ func Relay(ctx context.Context, listener net.Listener, socket string) error {
 		client, err := bounded.Accept()
 		if err != nil {
 			if ctx.Err() != nil {
+				relayLog.Printf("relay stopped: reason=cancelled")
 				return nil
 			}
+			relayLog.Printf("relay stopped: reason=accept_failed")
 			return err
 		}
 		go relayConnection(ctx, client, socket)
 	}
+}
+
+// relayDeadline bounds a relayed connection by MaxLifetime from now, or by the
+// context deadline when that is sooner.
+func relayDeadline(ctx context.Context, now time.Time) time.Time {
+	deadline := now.Add(MaxLifetime)
+	if bound, ok := ctx.Deadline(); ok && bound.Before(deadline) {
+		return bound
+	}
+	return deadline
 }
 
 func relayConnection(ctx context.Context, client net.Conn, socket string) {
@@ -40,10 +56,7 @@ func relayConnection(ctx context.Context, client net.Conn, socket string) {
 	defer func() { _ = upstream.Close() }()
 	stop := context.AfterFunc(ctx, func() { _ = client.Close(); _ = upstream.Close() })
 	defer stop()
-	deadline := time.Now().Add(MaxLifetime)
-	if bound, ok := ctx.Deadline(); ok && bound.Before(deadline) {
-		deadline = bound
-	}
+	deadline := relayDeadline(ctx, time.Now())
 	left, right := &idleConn{Conn: client, deadline: deadline}, &idleConn{Conn: upstream, deadline: deadline}
 	done := make(chan struct{})
 	go func() {

@@ -101,3 +101,46 @@ func TestBoundedListenerRejectsExtraConnections(t *testing.T) {
 		}
 	}
 }
+
+func TestRelayDeadline(t *testing.T) {
+	now := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	if got := relayDeadline(t.Context(), now); !got.Equal(now.Add(MaxLifetime)) {
+		t.Fatalf("no context deadline: got %v", got)
+	}
+	sooner := now.Add(time.Minute)
+	soonCtx, cancel := context.WithDeadline(t.Context(), sooner)
+	defer cancel()
+	if got := relayDeadline(soonCtx, now); !got.Equal(sooner) {
+		t.Fatalf("sooner context deadline: got %v", got)
+	}
+	later := now.Add(2 * MaxLifetime)
+	lateCtx, cancelLate := context.WithDeadline(t.Context(), later)
+	defer cancelLate()
+	if got := relayDeadline(lateCtx, now); !got.Equal(now.Add(MaxLifetime)) {
+		t.Fatalf("later context deadline: got %v", got)
+	}
+}
+
+func TestRelayReturnsErrorWhenListenerFails(t *testing.T) {
+	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = listener.Close()
+	if err := Relay(t.Context(), listener, "unused.sock"); err == nil {
+		t.Fatal("expected accept error from closed listener")
+	}
+}
+
+func TestRelayCancellationIsClean(t *testing.T) {
+	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = listener.Close() }()
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := Relay(ctx, listener, "unused.sock"); err != nil {
+		t.Fatalf("cancelled relay should return nil, got %v", err)
+	}
+}
