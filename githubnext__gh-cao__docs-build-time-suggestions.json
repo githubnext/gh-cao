@@ -1,35 +1,7 @@
 {
-  "source_sha": "87db17c9c129564d6a016c79bd8eb3fd88855233",
+  "source_sha": "054f8c3dd2e944cb9b91cfa7a15d59f403c242a7",
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-24T08:41:04Z",
-      "worker_run_id": "40078823512",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40078135799,
-        40076460048,
-        40075511648,
-        40074719374,
-        40074066090,
-        40073935838,
-        40073194428,
-        40072229299,
-        40071750566,
-        40070732526,
-        40068634789,
-        40067642557,
-        40066824308,
-        40066756828,
-        40066027073,
-        40064618937,
-        40063867109,
-        40063407197,
-        40063087617,
-        40062283565
-      ],
-      "outcome": "incomplete: the 2026-10-24T04:25:32Z to 2026-10-24T08:28:04Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted run metadata and overlapping trusted job evidence established only one successful build-and-deploy path: workflow_run 40073935838 at source SHA 1b5e3cd85fcf6f4c9b4419414839f4371b445389, with a 73-second build job and 11-second deploy job. Every other successful run completed in 15 seconds or less and therefore cannot contain that build path; these freshness-checked and avoided build and deploy. This is below the required minimum of five comparable successful runs, so workflow/job median and p90 timings, repeated trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-24T09:53:40Z",
       "worker_run_id": "40083576223",
@@ -674,6 +646,34 @@
         40137719927
       ],
       "outcome": "complete no-op: the 2026-10-24T22:14:49Z to 2026-10-25T02:13:41Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Seven successful full build-and-deploy paths were comparable across workflow_run, schedule, and push triggers. Median execution was 97.0s (p90 105.4s), queue time 3.0s (p90 4.0s), build 75.0s (p90 82.2s), and deploy 9.0s (p90 12.0s). Eight successful CAO Dashboard producers had build median 19.5s (p90 25.9s) and full producer-path median 31.0s (p90 36.3s). Trusted step metadata verified dashboard-cache hits in all seven docs builds because restore succeeded in 0-1s and artifact lookup/download fallback was skipped. Bounded logs on two current-source runs confirmed the 3 MB dashboard cache restore and an 8.1 MB Pages artifact; Pages upload was 2.0s median (p90 3.0s), deploy-pages was 6.0s median (p90 9.4s), and the full observed dashboard-restore-through-packaging plus deploy-job segment was 14.0s median (p90 18.8s). No recommendation was made: even eliminating that entire observed segment would save only 14.4% of median execution, below 15%, and removing required packaging or deployment would weaken correctness. The next category is scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-10-25T04:41:23Z",
+      "worker_run_id": "40162618037",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40162704738,
+        40161878653,
+        40161877748,
+        40160388225,
+        40159514078,
+        40159307325,
+        40158331704,
+        40156711317,
+        40156184349,
+        40155438559,
+        40155269146,
+        40155067344,
+        40153634203,
+        40152557715,
+        40151156146,
+        40150883662,
+        40150179120,
+        40150034979,
+        40148791119,
+        40147011999
+      ],
+      "outcome": "incomplete: the 2026-10-25T00:31:12Z to 2026-10-25T04:40:07Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Trusted job and step metadata established six successful full build-and-deploy paths; all six restored the dashboard cache and skipped artifact fallback. Before the required dashboard job timings and open-issue duplicate check could be collected, the GitHub CLI hit an OS-thread resource limit (failed to create a new OS thread). Per resource-limit policy, further GitHub API work stopped. The evaluation could not complete the required dashboard/build/deploy median and p90 comparison or duplicate check, so no recommendation was made and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
