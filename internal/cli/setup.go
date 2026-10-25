@@ -32,7 +32,8 @@ built-in Actions token without an App or PAT, even for a private control reposit
 Private/internal remote targets still require separately configured credentials.
 
 Run without a subcommand for guided setup, use auth to configure credentials,
-or admission to configure the cooperative OIDC gate's non-secret variables.
+admission to configure the cooperative OIDC gate's non-secret variables,
+or adx to prepare optional snapshot export settings for an existing destination.
 Admission does not require a workflow secret. Non-interactive setup applies only the bounded public profile.
 Setup and authentication run natively in Go; help works offline.
 
@@ -110,7 +111,7 @@ execute-cli deployment's secret manager, then securely remove it. Keep this App
 separate from dashboard login and Actions read/write Apps. This command does not
 change CAO policy, Actions secrets, authentication mode, or hosted-feature gates.`
 	auth.AddCommand(app, enterprise, hosted, token)
-	setup.AddCommand(auth)
+	setup.AddCommand(auth, setupADXCommand())
 	admission := admissionCommands(gh)
 	for _, command := range admission.Commands() {
 		if command.Name() != "setup" {
