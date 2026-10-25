@@ -1,35 +1,7 @@
 {
-  "source_sha": "12d37e623aa07b22cf18375ad81d8745396c4417",
+  "source_sha": "8747c2d93542fda9c390fe1697fc3982ab616e85",
   "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-25T04:41:23Z",
-      "worker_run_id": "40162618037",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        40162704738,
-        40161878653,
-        40161877748,
-        40160388225,
-        40159514078,
-        40159307325,
-        40158331704,
-        40156711317,
-        40156184349,
-        40155438559,
-        40155269146,
-        40155067344,
-        40153634203,
-        40152557715,
-        40151156146,
-        40150883662,
-        40150179120,
-        40150034979,
-        40148791119,
-        40147011999
-      ],
-      "outcome": "incomplete: the 2026-10-25T00:31:12Z to 2026-10-25T04:40:07Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Trusted job and step metadata established six successful full build-and-deploy paths; all six restored the dashboard cache and skipped artifact fallback. Before the required dashboard job timings and open-issue duplicate check could be collected, the GitHub CLI hit an OS-thread resource limit (failed to create a new OS thread). Per resource-limit policy, further GitHub API work stopped. The evaluation could not complete the required dashboard/build/deploy median and p90 comparison or duplicate check, so no recommendation was made and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
     {
       "evaluated_at": "2026-10-25T04:56:27Z",
       "worker_run_id": "40163505177",
@@ -631,6 +603,34 @@
         40209673066
       ],
       "outcome": "incomplete: the 2026-10-25T16:01:12Z to 2026-10-25T19:31:05Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Only three successful full build-and-deploy candidates were present: push run 40220727533 and schedule/workflow_run runs 40225385067 and 40225377985 (91, 115, and 108 seconds elapsed respectively). The other successful runs completed in 10-25 seconds after freshness checking across source SHAs c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49 and 12d37e623aa07b22cf18375ad81d8745396c4417, so the window is below the required five comparable successful full runs. Therefore full workflow and dashboard/build/deploy job median and p90 timings, repeated step-cost analysis, cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T19:55:00Z",
+      "worker_run_id": "40227721766",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        40227579159,
+        40227569956,
+        40226390200,
+        40225385067,
+        40225377985,
+        40224002830,
+        40223060800,
+        40222213503,
+        40222032476,
+        40221196908,
+        40220727533,
+        40219292338,
+        40218040913,
+        40217268966,
+        40216888424,
+        40215931119,
+        40214431077,
+        40213326434,
+        40212662200,
+        40212342076
+      ],
+      "outcome": "incomplete: the 2026-10-25T16:34:39Z to 2026-10-25T19:49:03Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Only four successful full build-and-deploy paths were present: push runs 40220727533 and 40227579159, schedule run 40227569956, and workflow_run run 40225377985. The remaining successful runs freshness-checked and skipped build and deploy, including schedule run 40225385067. This is below the required five comparable successful full runs. Therefore a complete dependency installation and caching evaluation, including the required full-workflow and dashboard/build/deploy median and p90 comparison, repeated-cost analysis, and current cache-effectiveness verification, could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
     }
   ]
 }
