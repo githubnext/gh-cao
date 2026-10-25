@@ -12,6 +12,7 @@ var counterNames = map[string]bool{
 	"webhookReceived": true, "webhookDuplicate": true, "webhookAdmissionFailed": true,
 	"taskQueued": true, "taskCoalesced": true, "collectionSucceeded": true,
 	"collectionFailed": true, "collectionRetried": true, "collectionDeadLettered": true,
+	"adxExported": true, "adxFailure": true, "adxGap": true,
 }
 var loadPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,63}$`)
 

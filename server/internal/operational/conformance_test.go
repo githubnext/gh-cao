@@ -314,6 +314,14 @@ func conformance(t *testing.T, store operational.Store) {
 		if counters, _, err := services.IngestionMetrics.IngestionHealth(ctx); err != nil || counters["webhookReceived"] != 1 {
 			t.Fatalf("metrics: %v, %v", counters, err)
 		}
+		for _, name := range []string{"adxExported", "adxFailure", "adxGap"} {
+			if err := services.IngestionMetrics.IncrementIngestionCounter(ctx, name); err != nil {
+				t.Fatal(err)
+			}
+			if counters, _, err := services.IngestionMetrics.IngestionHealth(ctx); err != nil || counters[name] != 1 {
+				t.Fatalf("ADX metrics: %v, %v", counters, err)
+			}
+		}
 		if err := services.Backend.Maintain(ctx); err != nil {
 			t.Fatal(err)
 		}

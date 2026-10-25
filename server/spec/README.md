@@ -15,6 +15,20 @@ standalone DDL for downstream implementations; the Go file supplies the same
 entity names, fields, and native types to ingestion and reads. Both are generated
 artifacts. Edit TypeSpec, never the generated SQL or bindings.
 
+`adx.tsp` separately defines the optional ADX analytics export: five allowlisted
+canonical fact families and the ready-version manifest, including native types,
+nullable observations, presence metadata and contract version. Its
+`@source` annotations name canonical collections; each own fact property maps
+to the canonical field with a lowercase initial. `adx-emitter.mjs` generates
+`../internal/adxingest/schema.gen.go` (the runtime projection allowlist) and
+`schema.gen.kql` (tables, JSON mappings, streaming/retention policies and curated
+functions). The Go CLI embeds that KQL for offline operator setup; runtime
+never provisions ADX. Edit TypeSpec, not generated output. Run
+`npm run generate:adx` for ADX alone; ordinary `generate`, `test` and `check`
+include it. `adx.test.mjs` verifies canonical field/type compatibility,
+deterministic generation and fail-closed rejection of opaque evidence.
+This contract adds no PostgreSQL tables or public HTTP operations.
+
 Each canonical collection has one root table. Only fields
 consumed by `dashboard/site/src/data/queries/database.json` and its joins are
 retained, plus identity/storage keys. Counters use `BIGINT`, fractional measures
@@ -129,8 +143,8 @@ status projections for query planning, without canonical DDL or execution
 endpoints. Hosted providers report these sources as unavailable: durable
 operational queue storage alone does not grant local execution authority.
 
-Run `npm run generate:storage` for storage only, or `npm run generate` for both
-storage and HTTP contracts. `storage.test.mjs` checks one-to-one table coverage,
+Run `npm run generate:storage` for storage only, or `npm run generate` for
+storage, ADX and HTTP contracts. `storage.test.mjs` checks one-to-one table coverage,
 required query fields, absence of speculative columns, and document-free DDL.
 The follow-on removal and rebuild plan is [Postgres rebuild plan](../POSTGRES-REBUILD-PLAN.md).
 

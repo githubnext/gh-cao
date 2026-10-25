@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "generate": "rm -rf generated && tsp compile . --warn-as-error && npm run generate:storage",
+    "generate": "rm -rf generated && tsp compile . --warn-as-error && npm run generate:storage && npm run generate:adx",
     "generate:storage": "tsp compile storage.tsp --config storage.tspconfig.yaml --warn-as-error",
-    "test": "node --test contract.test.mjs storage.test.mjs",
-    "check": "npm run generate && npm test && git diff --exit-code -- generated ../internal/postgresx/schema.sql ../internal/postgresx/schema.gen.go ../internal/postgresx/daily-schema.sql && test -z \"$(git ls-files --others --exclude-standard -- generated ../internal/postgresx/daily-schema.sql)\""
+    "generate:adx": "tsp compile adx.tsp --config adx.tspconfig.yaml --warn-as-error && gofmt -w ../internal/adxingest/schema.gen.go",
+    "test": "node --test contract.test.mjs storage.test.mjs adx.test.mjs",
+    "check": "npm run generate && npm test && git diff --exit-code -- generated ../internal/postgresx/schema.sql ../internal/postgresx/schema.gen.go ../internal/postgresx/daily-schema.sql ../internal/adxingest/schema.gen.go ../internal/adxingest/schema.gen.kql && test -z \"$(git ls-files --others --exclude-standard -- generated ../internal/postgresx/daily-schema.sql ../internal/adxingest/schema.gen.go ../internal/adxingest/schema.gen.kql)\""
   },
   "devDependencies": {
     "@typespec/compiler": "1.16.0",

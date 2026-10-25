@@ -1,0 +1,5 @@
+emit:
+  - "./adx-emitter.mjs"
+options:
+  "cao-adx":
+    emitter-output-dir: "{project-root}/../internal/adxingest"

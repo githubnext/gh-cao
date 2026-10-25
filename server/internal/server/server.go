@@ -32,6 +32,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/githubnext/gh-cao/server/internal/admission"
+	"github.com/githubnext/gh-cao/server/internal/adxingest"
 	"github.com/githubnext/gh-cao/server/internal/audit"
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
@@ -93,6 +94,7 @@ type Config struct {
 	// operations; nil disables them (local mode and tests).
 	Audit     *audit.Logger
 	Admission *AdmissionConfig
+	ADX       *adxingest.Config
 	// RateLimits overrides inbound request rate limits; the zero value keeps
 	// the production defaults.
 	RateLimits RateLimitConfig
@@ -140,6 +142,7 @@ type App struct {
 	hostedCLI        *hostedCLI
 	valuePublisher   operationalValuePublisher
 	admission        *admission.Service
+	adx              *adxingest.Worker
 }
 
 func New(ctx context.Context, store operational.Store, config Config) (*App, error) {
@@ -154,6 +157,11 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	if config.Database == nil || isPostgres && postgresDatabase == nil || localSQLite && sqliteDatabase == nil {
 		return nil, errors.New("dashboard database is required")
 	}
+	adxConfig, err := resolveADXConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	config.ADX = &adxConfig
 	if localSQLite {
 		if err := validateLocalSQLiteConfig(config); err != nil {
 			return nil, err
@@ -348,6 +356,13 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 		}
 		app.mcp = handler
 	}
+	if config.ADX.Enabled {
+		worker, err := newADXWorker(config, services, capabilities)
+		if err != nil {
+			return nil, err
+		}
+		app.adx = worker
+	}
 	return app, nil
 }
 
@@ -420,6 +435,9 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 	a.stop = cancel
 	if a.localBackfill != nil {
 		a.startTask(func() { a.localBackfill.run(runCtx, a.config.Logger, a.hub.Broadcast) })
+	}
+	if a.adx != nil {
+		a.startTask(func() { a.adx.Run(runCtx) })
 	}
 	if a.services.Backend != nil {
 		a.startTask(func() { a.runRedisMaintenance(runCtx, redisMaintenanceInterval) })

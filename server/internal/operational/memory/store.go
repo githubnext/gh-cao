@@ -126,7 +126,7 @@ type Store struct {
 	quotas                        map[string]*quotaBucket
 	quotaReservations             int
 	usage                         map[usageKey]operational.GitHubQuotaUsageSample
-	counters                      [9]int64
+	counters                      [len(counterNames)]int64
 	events                        [4]string
 	healthRevision                uint64
 	loads                         [3]load
@@ -381,7 +381,7 @@ func (s *Store) Close() error {
 	s.records, s.cache, s.sessions, s.revocations, s.revocationCursor = nil, nil, nil, nil, nil
 	s.buckets, s.locks, s.states, s.queues, s.delayed = nil, nil, nil, nil, nil
 	s.markers, s.identities, s.members, s.attributes, s.quotas, s.usage = nil, nil, nil, nil, nil, nil
-	s.counters, s.events, s.loads = [9]int64{}, [4]string{}, [3]load{}
+	s.counters, s.events, s.loads = [len(counterNames)]int64{}, [4]string{}, [3]load{}
 	s.protectedBytes, s.metadataBytes, s.cacheBytes, s.taskBytes = 0, 0, 0, 0
 	s.metadataEntries, s.taskCount, s.leaseCount, s.quotaReservations = 0, 0, 0, 0
 	s.config.Clock = nil

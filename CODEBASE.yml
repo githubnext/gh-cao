@@ -34,6 +34,8 @@ structure:
   dashboard: dashboard/
   dashboard_data: dashboard/site/src/data/
   dashboard_go_server: server/
+  canonical_session_export: server/internal/sessionexport/
+  optional_adx_export: server/internal/adxingest/
   webhook_gateway_entrypoint: server/cmd/cao-webhook-gateway/
   webhook_gateway_contracts: server/internal/webhookgateway/
   webhook_gateway_host: server/internal/webhookgatewayhost/
@@ -176,6 +178,12 @@ components:
   canonical_storage_contract:
     path: server/internal/dashboardstore/
     responsibility: accept existing canonical storage readers without changing PostgreSQL SQL execution or ingestion
+  canonical_session_export:
+    path: server/internal/sessionexport/
+    responsibility: define a neutral bounded exact-repository completed-session snapshot reader; PostgreSQL selects requested canonical scalars and available run-linked observations with presence and source quality in one repeatable-read transaction closed before external I/O; not transactional change capture
+  optional_adx_export:
+    path: server/internal/adxingest/
+    responsibility: default-off single-replica Go add-on within the existing OAuth host; persist one immutable approved pending projection/cursor in protected restart-durable operational state, with 256 KiB/1024-row session and 512 KiB state limits and explicit bounded oversize/seven-day delivery gaps; send direct streaming HTTP with explicit Entra app credentials into six free-compatible typed ADX tables, exactly verify deduplicated facts before ready manifests and expose curated deduplicating KQL; no new service, collector, queue platform, Blob, paid feature or runtime DDL; require exact canonical repository scope and non-personal/non-regulated approval; capacity failures retry independently of core readiness; no every-intermediate-version, deletion propagation, physical purge or complete-session guarantee; simulator proves delivery protocol, not live Kusto execution/capacity
   local_sqlite_entity_store:
     path: server/internal/sqlitex/, server/internal/server/local_sqlite.go
     responsibility: default local serve to a cached canonical snapshot with loopback bearer authentication and read-only request transactions; acquire missing files from DASHBOARD_DATA_URL or public CAO Pages, with --sqlite selecting another cache and --download-sqlite explicitly refreshing; accept any Pages/custom-domain site, dashboard directory or manifest URL, discover the root manifest then cao/ on HTTP 404, stream bounded data and verify SHA-256 plus canonical version before atomic replacement, preserving the previous file and failing startup on error; fail closed for invalid or unreadable existing caches and dangling symlinks without repair downloads; outside the internal canvas, attach the snapshot read-only to a separate writable delta with shared internal/dashboardquery/overlay.sql, local upserts and tombstones, no historical record copy and a fail-closed canonical-content revision binding; refresh only snapshot-declared repositories with local GH_TOKEN, GITHUB_TOKEN or gh login through existing Activity collection/compaction and canonical ingestion, stage only the delta, discard and report failed repository evidence independently, atomically publish successful ingestion with stale-writer rejection and revision notification, remove private pass evidence and cancel/join work on shutdown; bound scope to 10000 repositories, collection to 10000 runs and five minutes per repository within 30 days with a one-day watermark overlap and older unfinished runs, and passes to 30 minutes; repeat five minutes after each pass with --backfill-interval override and --backfill=false for offline reuse including local data; expose ordinary HTTP, canonical API, diagnostics, revision subscriptions and optional MCP with bounded volatile request services, unknown snapshot quality and no query result caching; preserve snapshot-only canvas and never enable hosted OAuth, collection, ingestion, webhooks, hosted execution, token-driven inventory expansion, rollout changes or PostgreSQL fallback
@@ -208,7 +216,7 @@ components:
     responsibility: serve hosted dashboard HTML and assets, OAuth, APIs and revision events on one origin; require a readable non-empty built index.html and inject the server-http bootstrap; independently resolve compiled app-target and operational-backend modules from non-secret cao.json, default to durable PostgreSQL operational storage without Redis while preserving explicit Redis and bounded single-process volatile memory alternatives, ingest deployed artifacts into Postgres, execute hosted Dashboard Language plans through the PostgreSQL SQL engine with registered runtime sources, and serve bounded query results
   dashboard_http_contract:
     path: server/spec/
-    responsibility: specify public HTTP/SSE and fresh Postgres storage contracts in TypeSpec; generate checked OpenAPI, wire JSON Schemas, standalone SQL DDL, and Go entity bindings; enforce query-field coverage and column minimization
+    responsibility: specify public HTTP/SSE, fresh Postgres storage and optional ADX export contracts in TypeSpec; generate checked OpenAPI, wire JSON Schemas, standalone SQL DDL, Go entity/projection bindings and embedded ADX setup KQL; enforce query-field coverage, column minimization, canonical field/type compatibility and deterministic generation
   dashboard_external_host:
     path: server/hosting/
     responsibility: expose the complete hosted CAO handler and cancellation-aware application startup to a separately owned HTTP listener without exporting Redis or authentication internals
@@ -353,6 +361,10 @@ components:
     responsibility: embed the authoritative dashboard JSON, fragments, canonical query projections and MCP contract for standalone native command execution
 
 dependencies:
+  - dashboard_https_server -> optional_adx_export
+  - optional_adx_export -> canonical_session_export
+  - postgres_entity_store -> canonical_session_export
+  - optional_adx_export -> operational_contracts
   - go_extension_entrypoint -> go_extension_commands
   - go_extension_commands -> go_extension_github_helper
   - go_extension_commands -> go_extension_catalog
@@ -445,6 +457,16 @@ dependencies:
   - marketplace_hosted_resolver -> marketplace_ui
 
 boundaries:
+  - subject: optional_adx_export
+    may_depend_on:
+      - canonical_session_export
+      - operational_state_storage
+    must_not_depend_on:
+      - control_plane_authority
+      - computation_authority
+  - subject: canonical_session_export
+    must_not_depend_on:
+      - optional_adx_export
   - subject: webhook_gateway_local
     must_not_depend_on:
       - webhook_gateway_host
@@ -675,6 +697,11 @@ invariants:
   - "Marketplace UI access MUST cross the existing data-worker query boundary and package actions MUST be copy-only canonical CAO add commands; the dashboard MUST NOT install packages."
 
 flows:
+  optional_adx_export:
+    - postgres_entity_store
+    - canonical_session_export
+    - optional_adx_export
+    - operational_state_storage
   local_webhook_gateway:
     - webhook_gateway
     - webhook_gateway_local
@@ -812,6 +839,13 @@ generation:
       - server/internal/postgresx/schema.sql
       - server/internal/postgresx/schema.gen.go
     command: npm --prefix server/spec run generate:storage
+  dashboard_adx_schema:
+    source: server/spec/adx.tsp
+    emitter: server/spec/adx-emitter.mjs
+    outputs:
+      - server/internal/adxingest/schema.gen.go
+      - server/internal/adxingest/schema.gen.kql
+    command: npm --prefix server/spec run generate:adx
   new_operation:
     path: <operation>/aw.yml
   workflow_source:

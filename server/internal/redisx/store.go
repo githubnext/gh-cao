@@ -32,6 +32,9 @@ var ingestionCounterNames = map[string]struct{}{
 	"collectionFailed":       {},
 	"collectionRetried":      {},
 	"collectionDeadLettered": {},
+	"adxExported":            {},
+	"adxFailure":             {},
+	"adxGap":                 {},
 }
 
 var ingestionLoadNames = map[string]string{

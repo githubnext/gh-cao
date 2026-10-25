@@ -297,6 +297,16 @@ Set `CAO_FLEET_STRESS_REPORT_DIR` to retain `fleet-stress.json`. Actions uploads
 that report and the test log, including incomplete outcomes on failure.
 The smaller `TestGitHubSimulatorFleetSmoke` scenario runs in ordinary Go tests.
 
+## Optional ADX analytics
+
+The default-off [ADX session analytics add-on](ADX-INGEST.md) exports bounded
+snapshots of retained canonical metadata from the existing Go host to an ADX
+free cluster. It reuses PostgreSQL and protected operational delivery state,
+with no additional collector, paid queue, Blob account or service deployment.
+It requires explicit exact repository scope, non-personal/non-regulated data
+approval and a single persistent exporter replica. Print its offline,
+operator-applied KQL setup with `cao-dashboard adx schema`.
+
 ## Hosted activation admission
 
 The optional [cooperative activation-admission service](ADMISSION.md) exposes

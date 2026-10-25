@@ -16,6 +16,7 @@ var counterNames = [...]string{
 	"webhookReceived", "webhookDuplicate", "webhookAdmissionFailed",
 	"taskQueued", "taskCoalesced", "collectionSucceeded", "collectionFailed",
 	"collectionRetried", "collectionDeadLettered",
+	"adxExported", "adxFailure", "adxGap",
 }
 
 var loadPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,63}$`)
