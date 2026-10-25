@@ -1,14 +1,7 @@
 {
   "source_sha": "8efc30655c624544430663136751b48e9d617e18",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-24T10:36:27Z",
-      "worker_run_id": "40086377477",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded latest-completed docs.yml workflow-run request returned an API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and build/deploy job median and p90 timings, dashboard-producer comparison, step-level cost analysis, trusted cache-hit verification, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-24T11:09:00Z",
       "worker_run_id": "40089239717",
@@ -674,6 +667,34 @@
         40150883662
       ],
       "outcome": "complete no-op: the 2026-10-25T01:30:19Z to 2026-10-25T05:03:52Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Seven successful full build-and-deploy paths were comparable across schedule, workflow_run, and push triggers. Median elapsed execution was 97.0s (p90 116.4s), queue/concurrency time 3.0s (p90 21.6s), build 73.0s (p90 76.2s), deploy 11.0s (p90 25.0s), dependency installation 22.0s (p90 26.6s), and Astro generation 14.0s (p90 14.0s). Ten successful CAO Dashboard producers had build median 19.5s (p90 25.3s). Trusted step metadata verified dashboard-cache hits in all seven docs builds because restore succeeded and artifact lookup/download fallback was skipped. Bounded logs for two current cache-key runs verified exact setup-node npm-cache hits while npm ci still rebuilt 852 packages in 12s and 21s. This confirms the exact dependency-tree cache recommendation, but open issue #19689 already represents the same work; the 22s install and 97s execution medians are not materially changed from fingerprint docs-exact-node-modules-cache-v1. No duplicate issue was created. The next category is Astro documentation generation."
+    },
+    {
+      "evaluated_at": "2026-10-25T05:40:00Z",
+      "worker_run_id": "40166042616",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        40166061966,
+        40166036821,
+        40165312701,
+        40164017061,
+        40163715585,
+        40163691760,
+        40163351023,
+        40162704738,
+        40161878653,
+        40161877748,
+        40160388225,
+        40159514078,
+        40159307325,
+        40158331704,
+        40156711317,
+        40156184349,
+        40155438559,
+        40155269146,
+        40155067344,
+        40153634203
+      ],
+      "outcome": "complete no-op: the 2026-10-25T02:13:30Z to 2026-10-25T05:35:14Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Six successful full build-and-deploy paths were comparable across schedule, workflow_run, and push triggers. Median execution excluding queue/concurrency wait was 98.0s (p90 119.5s), queue/concurrency time was 3.0s (p90 26.0s), build was 73.5s (p90 76.5s), deploy was 11.0s (p90 28.5s), and Astro documentation generation was 12.5s (p90 14.0s). Ten successful CAO Dashboard producer build jobs had median 19.5s (p90 25.3s). Trusted step metadata verified dashboard-cache hits in all six docs builds because restore succeeded in 1-2s and artifact lookup/download fallback was skipped. One long freshness-only schedule run (40161878653) waited behind a concurrent publication, then skipped build and deploy; it was excluded from full-build timing samples. No Astro recommendation was made: even eliminating the entire 12.5-second median Astro step would save only 12.8% of the 98-second median execution and far less than 60 seconds, so no concrete Astro change can meet the actionability threshold without weakening correctness. The next category is reusable dashboard generation."
     }
   ]
 }
