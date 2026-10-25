@@ -202,6 +202,10 @@ A declared, bounded way for a workflow to produce an external effect, such as cr
 
 An agentic workflow that participates directly in CAO without a campaign, orchestrator, or worker. It imports shared control with the `standalone` role, declares its exact compiled workflow slug, and runs only when `control-plane.workflows.<slug>` admits it. It receives the same policy validation, bounded repository admission, and per-target mode and output routing as an orchestrator.
 
+## Statistical runs
+
+The `statistical-runs` source: a separate, bounded sampling layer over the current canonical snapshot that never replaces exact `runs`, retention, or linked detail. Selection runs inside the canonical storage query boundary or PostgreSQL publication transaction against a recorded logical UTC watermark, so every consumer of a snapshot and sampling policy shares one frame. It draws a deterministic, seeded sample of terminal Runs from the seven days before the watermark, stratified by execution UTC date and outcome, and is marked unavailable rather than exact-empty when no recorded clock or sampling input limit is exceeded. See the Dashboard Language Data Specification, Section 5.1.1.
+
 ## Target repository
 
 A repository enrolled for a campaign. A target can provide data and receive declared safe outputs, but does not run the control plane's workflows and does not declare live authority in its own files.
