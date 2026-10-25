@@ -3,11 +3,12 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const readJson = async (file) => JSON.parse(await readFile(file, 'utf8'));
-const scope = (settings, field) => {
-  if (!Array.isArray(settings[field]) || settings[field].some((entry) => typeof entry !== 'string')) {
+const scope = (settings, field, fallbackField = field) => {
+  const entries = settings[field] === undefined ? settings[fallbackField] : settings[field];
+  if (!Array.isArray(entries) || entries.some((entry) => typeof entry !== 'string')) {
     throw new Error(`Recycle-only requires a valid ${field} snapshot`);
   }
-  return JSON.stringify([...new Set(settings[field].map((entry) => entry.toLowerCase()))].sort());
+  return JSON.stringify([...new Set(entries.map((entry) => entry.toLowerCase()))].sort());
 };
 
 export async function verifyRecycleSnapshot(directory, currentSettingsPath) {
@@ -23,6 +24,12 @@ export async function verifyRecycleSnapshot(directory, currentSettingsPath) {
     if (scope(retained, field) !== scope(current, field)) {
       throw new Error('Recycle-only cannot reuse a snapshot with a different repository scope; run normal collection');
     }
+  }
+  if (scope(retained, 'activity_repositories', 'allowed_repositories')
+      !== scope(current, 'activity_repositories', 'allowed_repositories')
+      || Array.isArray(retained.activity_repositories) !== Array.isArray(current.activity_repositories)
+      || (retained.activity_public_only === true) !== (current.activity_public_only === true)) {
+    throw new Error('Recycle-only cannot reuse a snapshot with a different Activity collection scope; run normal collection');
   }
   for (const name of ['repositories', 'workflows', 'campaigns']) {
     if (!Array.isArray(inventory[name]?.rows)) throw new Error(`Recycle-only requires cached ${name} inventory`);

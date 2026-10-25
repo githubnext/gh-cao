@@ -36,6 +36,7 @@ test('recycle-only accepts the same case-insensitive scope without refreshing ev
   const settings = JSON.parse(await readFile(current, 'utf8'));
   settings.allowed_owners = ['OCTO', 'octo'];
   settings.allowed_repositories = ['OCTO/CONTROL'];
+  settings.activity_public_only = false;
   await writeFile(current, JSON.stringify(settings));
   assert.equal((await verifyRecycleSnapshot(directory, current)).shards, 1);
   await resetRecycleProjection(directory, { repository: 'octo/control' });
@@ -58,6 +59,51 @@ test('recycle-only fails closed on missing snapshots, changed scope, or unavaila
   await assert.rejects(verifyRecycleSnapshot(directory, current), /requires restored raw evidence/);
   await rm(path.join(directory, 'inventory-sources.json'));
   await assert.rejects(verifyRecycleSnapshot(directory, current), { code: 'ENOENT' });
+});
+
+test('recycle-only rejects changed Activity scope or public-only collection boundaries', async (t) => {
+  const { directory, current } = await fixture(t);
+  const existing = JSON.parse(await readFile(current, 'utf8'));
+  const retained = {
+    ...existing,
+    activity_repositories: ['octo/control', 'octo/other'],
+    activity_public_only: false
+  };
+  await writeFile(path.join(directory, 'control-settings.json'), JSON.stringify(retained));
+  for (const settings of [
+    { ...retained, activity_repositories: ['octo/control'] },
+    { ...retained, activity_repositories: [] },
+    { ...retained, activity_public_only: true },
+    existing
+  ]) {
+    await writeFile(current, JSON.stringify(settings));
+    await assert.rejects(verifyRecycleSnapshot(directory, current), /different Activity collection scope/);
+  }
+  await writeFile(current, JSON.stringify({
+    ...retained, activity_repositories: ['OCTO/OTHER', 'OCTO/CONTROL', 'octo/control']
+  }));
+  assert.equal((await verifyRecycleSnapshot(directory, current)).shards, 1);
+});
+
+test('recycle-only rejects malformed Activity scope in either snapshot', async (t) => {
+  const { directory, current } = await fixture(t);
+  const existing = JSON.parse(await readFile(current, 'utf8'));
+  for (const file of [current, path.join(directory, 'control-settings.json')]) {
+    for (const activity_repositories of [null, 'octo/control', [1]]) {
+      await writeFile(file, JSON.stringify({ ...existing, activity_repositories }));
+      await assert.rejects(verifyRecycleSnapshot(directory, current), /valid activity_repositories snapshot/);
+    }
+    await writeFile(file, JSON.stringify(existing));
+  }
+});
+
+test('recycle-only distinguishes explicit Activity scope from owner-wide legacy collection', async (t) => {
+  const { directory, current } = await fixture(t);
+  const existing = JSON.parse(await readFile(current, 'utf8'));
+  const legacy = { ...existing, allowed_repositories: [] };
+  await writeFile(path.join(directory, 'control-settings.json'), JSON.stringify(legacy));
+  await writeFile(current, JSON.stringify({ ...legacy, activity_repositories: [] }));
+  await assert.rejects(verifyRecycleSnapshot(directory, current), /different Activity collection scope/);
 });
 
 test('recycle-only resets stale projections, preserves repository memory, and rebuilds valid empty phases', async (t) => {
