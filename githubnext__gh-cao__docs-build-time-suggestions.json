@@ -3,34 +3,6 @@
   "next_category": "dependency installation and caching",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-24T20:20:39Z",
-      "worker_run_id": "40129115343",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        40127913019,
-        40126757278,
-        40125625633,
-        40124647241,
-        40124625205,
-        40123369506,
-        40122394170,
-        40121780130,
-        40121606358,
-        40121585605,
-        40121471441,
-        40120653572,
-        40120191494,
-        40118803916,
-        40117600869,
-        40116502677,
-        40116326535,
-        40116139464,
-        40115877669,
-        40115632104
-      ],
-      "outcome": "complete no-op: the 2026-10-24T17:19:58Z to 2026-10-24T20:01:29Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Six successful full build-and-deploy paths were comparable. Median execution was 96.0s (p90 120.0s), queue time 3.5s (p90 44.5s), build 74.5s (p90 84.5s), and deploy 10.0s (p90 17.0s). Six successful CAO Dashboard producers in the latest-20 dashboard window had build median 15.0s (p90 19.0s) and full-workflow median 29.5s (p90 36.5s). Trusted step metadata verified effective dashboard-cache hits in all six docs builds: restore completed in 0-2s and both run lookup and artifact-download fallback were skipped. Dashboard assembly was 1-3s and producer artifact upload 1-3s. No recommendation was made because reusable dashboard generation is already asynchronous and reused; its docs critical-path cost is at most 2s, far below 60s and 15% of the 96s median. The next category is artifact transfer and Pages packaging."
-    },
-    {
       "evaluated_at": "2026-10-24T20:36:23Z",
       "worker_run_id": "40130279546",
       "category": "artifact transfer and Pages packaging",
@@ -694,6 +666,34 @@
       "category": "dependency installation and caching",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded latest-20 completed docs.yml workflow-run request returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T15:19:55Z",
+      "worker_run_id": "40206205358",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        40204954138,
+        40203790937,
+        40202976485,
+        40202743150,
+        40201867035,
+        40200295371,
+        40199104126,
+        40198282679,
+        40198075082,
+        40197170209,
+        40195722444,
+        40194960845,
+        40194589399,
+        40193379714,
+        40191378068,
+        40190242760,
+        40189521371,
+        40189258518,
+        40188411537,
+        40187136848
+      ],
+      "outcome": "incomplete: the 2026-10-25T11:01:19Z to 2026-10-25T15:01:18Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. All successful runs completed in 15-21 seconds at source SHA c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49. Trusted job and step metadata for latest run 40204954138 confirmed that only schedule-freshness ran (17 seconds; freshness step 13 seconds), while build and deploy were skipped. No successful full build-and-deploy path was present, below the required five comparable successful runs. Therefore full workflow and dashboard/build/deploy job median and p90 timings, repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
     }
   ]
 }
