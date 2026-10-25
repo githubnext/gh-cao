@@ -693,6 +693,16 @@ func (b Backfill) seed(ctx context.Context, repositories []enrolledRepository) (
 		if ctx.Err() != nil {
 			return queued, ctx.Err()
 		}
+		if b.Lake.Directory != "" {
+			if err := b.Lake.mineCachedInfo(ctx, repository.name); err != nil {
+				return queued, fmt.Errorf("backfill recorded episodes: %w", err)
+			}
+			if b.Projector.State != nil {
+				if err := b.Projector.RequestProjection(ctx); err != nil {
+					return queued, err
+				}
+			}
+		}
 		installationID, err := b.Enrollment.InstallationFor(ctx, repository.name)
 		if err != nil || installationID == 0 {
 			// Enrollment covers the repository but no installation maps to

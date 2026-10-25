@@ -220,7 +220,7 @@ func NewCollector(
 			enrollment: enrollment,
 			queue:      queue,
 			backfill:   backfill,
-			admitter:   collect.Admitter{Enrollment: enrollment, Queue: queue},
+			admitter:   collect.Admitter{Enrollment: enrollment, Queue: queue, Mining: true},
 			reporter: collect.Reporter{
 				Enrollment: enrollment, Queue: queue, Backfill: backfill, Metrics: services.IngestionMetrics, Data: data,
 			},
@@ -271,6 +271,9 @@ func NewCollector(
 		GitHubAPIURL:             config.BaseURL,
 		Tokens:                   client,
 		Budget:                   budget,
+		OutcomeClient:            client,
+		Quota:                    quota,
+		QuotaApp:                 quotaApp,
 		WindowDays:               config.WindowDays,
 		DatabaseQueriesPath:      databaseQueriesPath,
 		ControlRepository:        config.ControlRepository,
@@ -295,7 +298,7 @@ func NewCollector(
 		runner:     runner,
 		projector:  projector,
 		admitter: collect.Admitter{
-			Enrollment: enrollment, Queue: queue,
+			Enrollment: enrollment, Queue: queue, Mining: true,
 			Projection: projector,
 		},
 		backfill: backfill,

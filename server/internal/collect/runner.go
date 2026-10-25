@@ -234,6 +234,12 @@ func (r Runner) Collect(ctx context.Context, task Task) error {
 	if err := r.downloadLogs(ctx, repository, workspace, token, reserve); err != nil {
 		return err
 	}
+	if err := r.Lake.mineDownloadedInfo(ctx, repository, filepath.Join(workspace, "logs")); err != nil {
+		return fmt.Errorf("mine recorded episode evidence: %w", err)
+	}
+	if err := r.Lake.mineCachedInfo(ctx, repository); err != nil {
+		return fmt.Errorf("backfill cached episode evidence: %w", err)
+	}
 	if err := r.execute(ctx, r.node(), []string{
 		filepath.Join(r.CatalogRoot, "activity", "session-evidence.mjs"),
 		filepath.Join(workspace, "logs"),

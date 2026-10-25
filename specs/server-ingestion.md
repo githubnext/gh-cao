@@ -163,10 +163,75 @@ The implementation MUST receive events on the existing CAO webhook endpoint.
   durations, and bounded outcomes, including deduplication and coalescing.
   Persisted trace correlation MUST contain only W3C `traceparent`, not baggage,
   raw webhook data, credentials, or per-repository metric labels.
-- Tasks MUST be keyed by repository. An implementation MUST collapse multiple
-  pending events for one repository into a single collection.
+- Run-collection tasks MUST be keyed by repository. An implementation MUST
+  collapse multiple pending run events for one repository into a single
+  collection. Issue and pull-request disposition observations MUST instead
+  retain each admitted object's bounded facts atomically with delivery
+  deduplication; repository debounce MUST NOT discard a different object or a
+  later lifecycle transition.
 - Mutual exclusion MUST be per repository. Collection of one repository MUST NOT
   block or reject collection of another.
+
+### 4.1 Server-only episode and outcome mining
+
+The server collector MUST mine episodes using gh-aw's recorded
+`context.episode_id`. It MUST NOT synthesize membership from names, time
+proximity, run success, or GitHub triggering relationships. Recorded `hop_id`,
+`parent_hop_id`, caller coordinates, and root coordinates MUST remain distinct.
+Membership is evidence about selected retained runs, never proof of complete
+episode discovery; absent context remains unavailable. Reusable-workflow hops
+sharing a run ID MUST NOT allocate or duplicate that run's cost.
+
+The collector MUST extract compact `aw_info.json` already downloaded during
+ordinary collection and backfill available context from its retained run
+envelopes, including `episode_hops` carrying recorded episode evidence, without
+additional GitHub requests. Hops MUST match their enclosing run and repository;
+missing coordinates MAY be enriched by compatible recorded contexts, never
+guessed. Compact artifacts MUST match the
+collected repository, run, and attempt. Conflicting recorded contexts for one
+run/attempt/hop MUST fail rather than select an episode by arrival order.
+Projection MUST discard memberships whose run or selected attempt is absent.
+
+Verified `issues` and `pull_request` deliveries MUST queue bounded lifecycle
+observations without acquiring logs or calling GitHub in the receiver.
+Workers MUST recheck current installation ownership. An observation MUST join
+an agent output only through an exact retained safe-output URL, including host,
+repository, object category, and number; unrelated objects MUST NOT be attributed
+to an agent. This lifecycle profile MUST evaluate only `create_issue` and
+`create_pull_request` actions; edits, comments, reviews, and close actions require
+their own evidence rules. Newer object `updated_at` observations supersede older ones.
+Contradictory same-time observations MUST fail closed.
+
+PR merge is accepted; PR closure without merge is rejected. Issue closure as
+`completed` is accepted. Issue closure as `not_planned` by a bot is lifecycle,
+not rejection; a known human close is rejected, and a missing closing actor
+remains unknown. Open objects are pending. Unknown resolution reasons remain
+unknown. Run success MUST NOT establish any of these dispositions. Comment,
+review, engagement, zero-touch, and operational-value evidence MUST NOT be
+inferred from this bounded lifecycle profile.
+
+The server MUST repair dispositions over retained exact output references, not
+GitHub searches or repository issue inventories. The default repair pass has a
+one-minute deadline and a hard cap of ten REST calls, including quota
+initialization, across the entire pass. Every object read MUST reserve and
+reconcile shared installation quota, including errors and backoff. A persisted
+namespace-wide cadence (default five minutes) and lease MUST prevent replicas
+from multiplying this budget. A durable lexicographic output cursor MUST resume
+the next bounded page; quota refusal MUST NOT advance the blocked target.
+Missing objects and failed requests MUST report partial/unavailable evidence,
+not acceptance, zero activity, or full-episode completeness.
+
+Only currently enrolled target repositories may be repaired; caller/root
+references and credential reach MUST NOT expand scope. Scope withdrawal MUST
+erase server-mined evidence, including on volatile-state reconstruction.
+Server-owned evidence packets MUST be bounded, atomically replaced, and replayable
+without GitHub calls. Their content revision and canonical projection MUST
+participate in the same ingestion transaction and revision notification as the
+snapshot. Mining MUST NOT run in `cao-activity` or change its published contract.
+
+The implementation uses existing typed Audit columns; it does not require a
+new table or a physical schema change. See `dashboard-data.md` section 11.2 for
+the field mapping.
 
 ## 5. Collection
 

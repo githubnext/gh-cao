@@ -191,6 +191,7 @@ func (w Worker) Run(ctx context.Context) error {
 // process handles one lease and reports whether evidence changed.
 func (w Worker) process(ctx context.Context, lease Lease) bool {
 	task := lease.Task
+	admittedInstallation := task.InstallationID
 	ctx = telemetry.ExtractTraceparent(ctx, task.Traceparent)
 	if !task.NotBefore.IsZero() && task.NotBefore.After(time.Now().UTC()) {
 		deferCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
@@ -258,11 +259,45 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 		if installationID == 0 {
 			return w.processEnrolledErasure(ctx, lease)
 		}
+		if task.Outcome != nil && installationID != admittedInstallation {
+			if err := w.Queue.Complete(ctx, lease); err != nil {
+				workerLog.Printf("stale mined outcome acknowledgement failed")
+			}
+			return false
+		}
 		lease.Task.InstallationID = installationID
 		task = lease.Task
 	}
 	if task.Erase {
 		return w.processErasure(ctx, lease)
+	}
+	if task.Outcome != nil {
+		if task.Outcome.Repository != task.Repository {
+			w.retryRefresh(ctx, lease, errors.New("mined outcome task scope mismatch"))
+			return false
+		}
+		if err := w.Enrollment.withMutationLock(ctx, func(ctx context.Context) error {
+			current, err := w.Enrollment.InstallationFor(ctx, task.Repository)
+			if err != nil {
+				return err
+			}
+			if current != admittedInstallation || current == 0 {
+				return errors.New("mined outcome installation ownership changed")
+			}
+			return w.Runner.Lake.recordMining(ctx, task.Repository, nil, task.Outcome)
+		}); err != nil {
+			w.retryRefresh(ctx, lease, err)
+			return false
+		}
+		// Persist projection intent before ACK: a crash cannot strand evidence.
+		if err := w.Projector.RequestProjection(ctx); err != nil {
+			w.retryRefresh(ctx, lease, err)
+			return false
+		}
+		if err := w.Queue.Complete(ctx, lease); err != nil {
+			workerLog.Printf("mined outcome acknowledgement failed")
+		}
+		return true
 	}
 	if w.Projector.Data != nil {
 		active, err := w.Projector.Data.RepositoryActive(ctx, task.Repository)
@@ -346,6 +381,9 @@ func (w Worker) projectionLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+		}
+		if err := w.Projector.CollectOutcomeEvidence(ctx); err != nil && ctx.Err() == nil {
+			workerLog.Printf("bounded outcome repair incomplete")
 		}
 		pending, err := w.Projector.PendingProjection(ctx)
 		if err != nil {
