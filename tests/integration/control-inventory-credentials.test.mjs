@@ -174,10 +174,66 @@ test("repository-local scheduled inventory avoids unrelated PAT mappings", async
   assert.deepEqual(result.precompute.candidate_repositories.map(repo => repo.full_name), ["acme/control"]);
   assert.ok(!result.calls.some(call => /\/repos\/acme\/private-/.test(call.path)));
   assert.equal(result.minted.length, 0);
+});
 
-  const fleet = await scenario({ target: "", mode: "pat", env });
-  assert.equal(fleet.precompute.activation_ready, false);
-  assert.equal(fleet.precompute.reason, "pat-fleet-unsupported");
+test("scheduled mixed-PAT fleet blocks activation before target reads with actionable diagnostics", async () => {
+  const result = await scenario({
+    target: "", eventName: "schedule", mode: "pat",
+    env: {
+      CAO_CONTROL_READ_PAT: "control-pat", CAO_INVENTORY_READ_PAT: "control-pat",
+      CAO_LEGACY_READ_TOKEN: "never-disclose-legacy", CAO_WORKFLOW_TOKEN: "workflow-token",
+      CAO_READ_PAT_REPOSITORIES: JSON.stringify({
+        "acme/control": "CONTROL_PAT", "acme/private-a": "TARGET_PAT", "acme/private-b": "TARGET_PAT",
+      }),
+    },
+  });
+  assert.equal(result.admission.authorized, true);
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.precompute.authorized, true);
+  assert.equal(result.precompute.activation_ready, false);
+  assert.equal(result.precompute.inventory_status, "incomplete");
+  assert.equal(result.precompute.reason, "pat-fleet-unsupported");
+  assert.equal(result.precompute.effective_max_repos, 0);
+  assert.deepEqual(result.precompute.candidate_repositories, []);
+  assert.match(result.output, /authorized=false/);
+  const diagnostic = result.precompute.diagnostics.find(entry => entry.code === "pat-fleet-unsupported");
+  assert.match(diagnostic.message, /acme\/control.*acme\/private-a.*GH_AW_GITHUB_READ_PAT_REPOSITORIES/);
+  assert.match(diagnostic.message, /GH_AW_GITHUB_AUTH_MODE=app/);
+  assert.match(diagnostic.message, /explicit in-scope target_repo/);
+  assert.match(diagnostic.message, /max_repos limits dispatch, not required inventory/);
+  assert.ok(result.summary.includes(diagnostic.message));
+  assert.match(result.summary, /Activation and dispatch: \*\*blocked\*\*/);
+  assert.doesNotMatch(JSON.stringify(result.precompute) + result.summary, /control-pat|never-disclose-legacy|workflow-token/);
+  assert.ok(!result.calls.some(call => /\/repos\/acme\/private-/.test(call.path)));
+  assert.equal(result.minted.length, 0);
+});
+
+test("PAT inventory supports a shared-secret fleet and an explicit target with a separate control PAT", async () => {
+  const mapping = {
+    "acme/control": "CONTROL_PAT", "acme/private-a": "TARGET_PAT", "acme/private-b": "TARGET_PAT",
+  };
+  const env = {
+    CAO_CONTROL_READ_PAT: "control-pat", CAO_INVENTORY_READ_PAT: "inventory-pat",
+    CAO_READ_PAT_REPOSITORIES: JSON.stringify(mapping),
+  };
+  const targeted = await scenario({ mode: "pat", env });
+  assert.equal(targeted.exitCode, 0);
+  assert.equal(targeted.precompute.activation_ready, true);
+  assert.deepEqual(targeted.precompute.candidate_repositories.map(repo => repo.full_name), ["acme/private-a"]);
+  assert.equal(targeted.calls.find(call => call.path === "/repos/acme/private-a").token, "inventory-pat");
+
+  const fleet = await scenario({
+    target: "", eventName: "schedule", mode: "pat",
+    env: {
+      ...env, CAO_CONTROL_READ_PAT: "inventory-pat",
+      CAO_READ_PAT_REPOSITORIES: JSON.stringify({ ...mapping, "acme/control": "TARGET_PAT" }),
+    },
+  });
+  assert.equal(fleet.exitCode, 0);
+  assert.equal(fleet.precompute.activation_ready, true);
+  assert.deepEqual(fleet.precompute.candidate_repositories.map(repo => repo.full_name), Object.keys(mapping));
+  assert.ok(!fleet.calls.some(call => /\/(?:orgs|users)\//.test(call.path)));
+  assert.equal(fleet.minted.length, 0);
 });
 
 test("explicit inventory targets take precedence over workflow defaults and remain policy checked", async () => {

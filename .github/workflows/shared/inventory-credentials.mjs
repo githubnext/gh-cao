@@ -242,10 +242,15 @@ export async function withInventoryCredentials({
       let token;
       if (profile === "pat") {
         const mapping = patMap(env);
-        const selected = patSecret(mapping, env.CAO_INVENTORY_PAT_REPOSITORY || controlRepository);
-        if (repositories.some(repository => patSecret(mapping, repository) !== selected)) {
+        const selectedRepository = env.CAO_INVENTORY_PAT_REPOSITORY || controlRepository;
+        const selected = patSecret(mapping, selectedRepository);
+        const conflictingRepository = repositories.find(repository => patSecret(mapping, repository) !== selected);
+        if (conflictingRepository) {
           throw new InventoryError("pat-fleet-unsupported",
-            "This inventory spans multiple PAT secrets. Use an explicit target or the App profile; no other credential will be substituted.");
+            `PAT inventory spans multiple PAT secrets: the read-secret mappings for ${selectedRepository} (selected credential) and ${conflictingRepository} differ in GH_AW_GITHUB_READ_PAT_REPOSITORIES. `
+            + "Precompute receives only the selected inventory PAT and cannot read the entire enrolled fleet with it. "
+            + "Configure the App profile (GH_AW_GITHUB_AUTH_MODE=app) with access to every enrolled repository, or dispatch with an explicit in-scope target_repo. "
+            + "max_repos limits dispatch, not required inventory. No credential fallback or partial inventory is allowed.");
         }
         token = env.CAO_INVENTORY_READ_PAT;
       } else {
