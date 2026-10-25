@@ -75,6 +75,7 @@ type Installation struct {
 
 // Repository is one enrolled repository.
 type Repository struct {
+	ID         int64
 	FullName   string
 	PushedAt   time.Time
 	Private    bool
@@ -174,7 +175,7 @@ func enterpriseClient(httpClient *http.Client, config Config) (*github.Client, e
 }
 
 // ListInstallations enumerates every installation of the App. It is used for
-// cold start and explicit repair, never as a routine discovery path.
+// cold start, repository-list reconciliation, and explicit repair.
 func (c *Client) ListInstallations(ctx context.Context) ([]Installation, error) {
 	options := &github.ListOptions{PerPage: 100}
 	var installations []Installation
@@ -184,8 +185,11 @@ func (c *Client) ListInstallations(ctx context.Context) ([]Installation, error) 
 			return nil, fmt.Errorf("list GitHub App installations: %w", err)
 		}
 		for _, installation := range page {
-			if installation.GetID() == 0 {
+			if !installation.GetSuspendedAt().IsZero() {
 				continue
+			}
+			if installation.GetID() <= 0 {
+				return nil, errors.New("GitHub App enumeration returned an invalid installation")
 			}
 			installations = append(installations, Installation{
 				ID:      installation.GetID(),
@@ -194,6 +198,9 @@ func (c *Client) ListInstallations(ctx context.Context) ([]Installation, error) 
 		}
 		if response == nil || response.NextPage == 0 {
 			break
+		}
+		if response.NextPage <= options.Page {
+			return nil, errors.New("GitHub App enumeration returned a non-advancing page")
 		}
 		options.Page = response.NextPage
 	}
@@ -232,10 +239,11 @@ func (c *Client) ListRepositoriesPage(ctx context.Context, installationID int64,
 	if page != nil {
 		for _, repository := range page.Repositories {
 			name := repository.GetFullName()
-			if name == "" {
-				continue
+			if name == "" || repository.GetID() <= 0 {
+				return nil, 0, quota, errors.New("installation repository is missing its identity")
 			}
 			repositories = append(repositories, Repository{
+				ID:         repository.GetID(),
 				FullName:   name,
 				PushedAt:   repository.GetPushedAt().Time,
 				Private:    repository.GetPrivate(),

@@ -73,6 +73,8 @@ concurrency:
 jobs:
   daily-run-counts-conformance:
     name: Daily run-count conformance
+    # Full cross-backend and TLC checks run after merge or on explicit invocation.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:

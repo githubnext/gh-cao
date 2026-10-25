@@ -455,6 +455,27 @@ evidence. Preparation reuses Activity normalization and the production Dashboard
 build; it does not simulate GitHub collection, Actions permissions or Pages
 infrastructure. Relative Go server paths resolve from `server/`.
 
+### Local SQLite overlay and backfill
+
+Local `dashboard:local` serving keeps the downloaded snapshot read-only. Go
+attaches it to a separate writable delta (default: the snapshot path plus
+`.local.sqlite`; choose another file with `--sqlite-overlay PATH`). Queries read
+the union, where local upserts and deletion markers take precedence. The overlay
+is bound to the snapshot's canonical content revision; after replacing the
+snapshot with different data, choose a new overlay file. A mismatched overlay
+fails closed and is preserved rather than applied to the wrong base.
+
+A background backfill starts with the server and repeats five minutes after each
+pass (`--backfill-interval` changes the delay). It authenticates with `GH_TOKEN`,
+`GITHUB_TOKEN`, or the local `gh` login, and requires Node.js and the `gh aw`
+extension. It refreshes only repositories already present in the snapshot (at
+most 10,000); credentials never add targets or change rollout policy. Each
+repository collection is capped at 10,000 runs and five minutes, and a pass at 30
+minutes. This is a recent-evidence refresh, not an exhaustive archive. Failed
+repositories are reported independently and failed ingestion leaves committed
+data unchanged. Use `--backfill=false` for offline serving; existing local data
+stays visible. The Copilot canvas profile remains snapshot-only.
+
 SQLite initialization failures stop startup rather than falling back to IndexedDB.
 The [Copilot canvas](agent-plugin.md#open-a-copilot-canvas) also uses Go/SQLite;
 it has no `dataBackend` selector. Choose the separate Pages simulation when you

@@ -11,7 +11,7 @@ import {
 import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium } from "@playwright/test";
 import { IDBFactory } from "fake-indexeddb";
 import {
@@ -52,8 +52,9 @@ const reportDirectory = resolve(
 const reportPath = join(reportDirectory, "report.json");
 const accessToken = "dashboard-query-parity-access-token";
 const serverURL = "http://127.0.0.1:18443";
+const evidenceDay = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 const metadata = {
-  "as-of": "2026-09-23T18:05:00Z",
+  "as-of": `${evidenceDay}T18:05:00Z`,
   completeness: "complete",
   freshness: "fresh",
   "artifact-generation": "synthetic-query-parity",
@@ -99,10 +100,10 @@ function representativeSources() {
     ["idle", "review", "worker"],
   ];
   const runs = [
-    ["1001", "alpha", "success", "workflow_dispatch", "2026-09-23T17:00:00Z", 4],
-    ["1002", "alpha", "failure", "schedule", "2026-09-23T17:15:00Z", 9],
-    ["1003", "beta", "success", "schedule", "2026-09-23T17:30:00Z", 6],
-    ["1004", "beta", "timed-out", "workflow_dispatch", "2026-09-23T17:45:00Z", 12],
+    ["1001", "alpha", "success", "workflow_dispatch", `${evidenceDay}T17:00:00Z`, 4],
+    ["1002", "alpha", "failure", "schedule", `${evidenceDay}T17:15:00Z`, 9],
+    ["1003", "beta", "success", "schedule", `${evidenceDay}T17:30:00Z`, 6],
+    ["1004", "beta", "timed-out", "workflow_dispatch", `${evidenceDay}T17:45:00Z`, 12],
   ];
   const workflowPath = (name) => `.github/workflows/${name}.md`;
   return {
@@ -222,7 +223,7 @@ function representativeSources() {
         workflow: workflowPath("alpha"),
         run: "1002",
         "rollout-mode": "review",
-        "published-at": "2026-09-23T17:16:00Z",
+        "published-at": `${evidenceDay}T17:16:00Z`,
         "observed-at": metadata["as-of"],
         "external-link": { href: "https://example.invalid/issues/17" },
       },
@@ -428,7 +429,7 @@ async function executeBrowserBackend(sources, queries, names) {
   });
   try {
     const context = await browser.newContext();
-    await context.route("http://dashboard.test/**", async (route) => {
+    await context.route("http://localhost/**", async (route) => {
       const pathname = new URL(route.request().url()).pathname;
       if (pathname === "/" || pathname === "/index.html") {
         await route.fulfill({ contentType: "text/html", body: "<main>Query parity</main>" });
@@ -456,7 +457,7 @@ async function executeBrowserBackend(sources, queries, names) {
       });
     });
     const page = await context.newPage();
-    await page.goto("http://dashboard.test/");
+    await page.goto("http://localhost/");
     return await page.evaluate(async ({ queries: definitions, names: requested }) => {
       const { loadCanonicalDashboardSources } = await import(
         `${location.origin}/src/data-processor.js`
@@ -678,8 +679,16 @@ function normalizedRows(rows, ordered) {
   );
 }
 
-function normalizedParityRows(query, rows, ordered) {
-  const normalized = normalizedRows(rows, ordered);
+export function normalizedParityRows(query, rows, ordered) {
+  // Frame hashes bind backend-specific capacities and source quality. Compare
+  // composition without requiring different sampling designs to share an ID.
+  const normalized = normalizedRows(rows, ordered).map((row) => {
+    if (!Object.hasOwn(row, "statistical-frame-id")) return row;
+    if (!/^sha256:[a-f0-9]{64}$/.test(row["statistical-frame-id"])) {
+      throw new Error("Statistical parity rows require a valid frame identity");
+    }
+    return { ...row, "statistical-frame-id": "backend-specific-frame" };
+  });
   if (query?.from !== "transactions") return normalized;
   return normalized.map((row) => {
     const copy = { ...row };
@@ -850,4 +859,6 @@ async function main() {
   }
 }
 
-await main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await main();
+}

@@ -92,7 +92,7 @@
       "coverage": {
         "owned-evidence": "TestStatisticalNativeSQLBoundary",
         "clock-validity": "TestMissingStatisticalClockPreservesExactQueries",
-        "input-budgets": "TestOversizedStatisticalFramePreservesExactQueries",
+        "input-budgets": "TestOversizedStatisticalInputIsCappedBeforePublication",
         "persisted-bundles": "TestPersistedStatisticalBundles",
         "publication-rollback": "TestCancelledStatisticalPublicationRollsBack"
       }

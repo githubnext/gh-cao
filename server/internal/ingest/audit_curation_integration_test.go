@@ -49,7 +49,9 @@ func TestUnchangedArtifactRevisionCuratesExistingAudits(t *testing.T) {
 func TestAuditCurationValidatesEveryTransportedRecord(t *testing.T) {
 	ctx, store := ingestTestStore(t)
 	directory := scratchDirectory(t)
-	runContent, err := os.ReadFile("../../testdata/deployed-subset/gh-aw-logs-runs/subset.jsonl")
+	recent, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
+	// #nosec G304 -- RecentSnapshot returns this test's owned fixture directory.
+	runContent, err := os.ReadFile(filepath.Join(recent, "gh-aw-logs-runs/subset.jsonl"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +112,8 @@ func TestAuditCurationValidatesEveryTransportedRecord(t *testing.T) {
 
 func TestUnsupportedAuditEvidencePreservesPublishedIngestion(t *testing.T) {
 	ctx, store := ingestTestStore(t)
-	first, err := Run(ctx, store, "../../testdata/deployed-subset", Options{DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json"})
+	directory, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
+	first, err := Run(ctx, store, directory, Options{DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,12 +136,14 @@ func TestUnsupportedAuditEvidencePreservesPublishedIngestion(t *testing.T) {
 func TestAuditCurationDoesNotHideTransportedOrphan(t *testing.T) {
 	ctx, store := ingestTestStore(t)
 	options := Options{DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json"}
-	before, err := Run(ctx, store, "../../testdata/deployed-subset", options)
+	recent, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
+	before, err := Run(ctx, store, recent, options)
 	if err != nil {
 		t.Fatal(err)
 	}
 	directory := scratchDirectory(t)
-	runContent, err := os.ReadFile("../../testdata/deployed-subset/gh-aw-logs-runs/subset.jsonl")
+	// #nosec G304 -- RecentSnapshot returns this test's owned fixture directory.
+	runContent, err := os.ReadFile(filepath.Join(recent, "gh-aw-logs-runs/subset.jsonl"))
 	if err != nil {
 		t.Fatal(err)
 	}

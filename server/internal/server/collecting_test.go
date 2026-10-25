@@ -236,6 +236,7 @@ func TestCollectorConfigFromEnvReadsTheCollectionProfile(t *testing.T) {
 	t.Setenv("CAO_COLLECT_WORKERS", "4")
 	t.Setenv("CAO_COLLECT_PROJECTION_INTERVAL", "90s")
 	t.Setenv("CAO_COLLECT_RECOVER_DELIVERIES", "true")
+	t.Setenv("CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL", "30m")
 	config, err := CollectorConfigFromEnv()
 	if err != nil {
 		t.Fatal(err)
@@ -252,12 +253,27 @@ func TestCollectorConfigFromEnvReadsTheCollectionProfile(t *testing.T) {
 	if !config.RecoverDeliveries {
 		t.Fatal("expected delivery recovery to be enabled")
 	}
+	if config.RepositoryRefreshInterval.Minutes() != 30 {
+		t.Fatalf("repository refresh interval = %s, want 30m", config.RepositoryRefreshInterval)
+	}
 	if config.PolicyPath != "/app/.github/workflows/cao.hosted.json" ||
 		config.StaticInventoryPath != "/app/catalog/control-plane-inventory.json" {
 		t.Fatalf("unexpected inventory configuration: %+v", config)
 	}
 }
 
+func TestCollectorRepositoryRefreshIntervalRejectsInvalidConfiguration(t *testing.T) {
+	for _, value := range []string{"-1m", "invalid"} {
+		t.Run(value, func(t *testing.T) {
+			t.Setenv("CAO_COLLECT_APP_ID", "1")
+			t.Setenv("CAO_COLLECT_ADMIT_ONLY", "true")
+			t.Setenv("CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL", value)
+			if _, err := CollectorConfigFromEnv(); err == nil {
+				t.Fatal("invalid repository refresh interval was accepted")
+			}
+		})
+	}
+}
 func TestCollectorPrivateKeyPrefersAFileReference(t *testing.T) {
 	directory := t.TempDir()
 	path := directory + "/key.pem"

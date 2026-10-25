@@ -76,35 +76,51 @@ func historyLink(writer http.ResponseWriter, request *http.Request, page int) {
 }
 
 func (s Scenario) historyResponse(writer http.ResponseWriter, request *http.Request) (any, bool, error) {
-	if s.History == nil {
-		return nil, false, nil
-	}
 	switch request.URL.Path {
 	case "/app/installations":
 		return []any{map[string]any{"id": 1, "account": map[string]string{"login": "simulator"}}}, true, nil
 	case "/installation/repositories":
-		start, end, page, valid := historyPage(request, s.Repositories)
+		offset := 0
+		if s.DeleteRepositories || s.RemoveRepositories {
+			offset = 1
+		}
+		total := s.Repositories - offset
+		start, end, page, valid := historyPage(request, total)
 		if !valid {
 			return nil, true, errors.New("invalid repository pagination")
 		}
-		if end < s.Repositories {
+		if end < total {
 			historyLink(writer, request, page)
 		}
 		repositories := make([]any, 0, end-start)
-		for index := start; index < end; index++ {
-			repositories = append(repositories, map[string]any{
-				"id": index + 1, "full_name": repositoryName(index), "private": false,
-				"visibility": "public", "pushed_at": s.History.AsOf,
-				"archived": index == 0 && s.ArchiveRepositories && !s.UnarchiveRepositories,
-			})
+		for index := start + offset; index < end+offset; index++ {
+			name := repositoryName(index)
+			if index == 0 && s.RenameRepositories {
+				name += "-renamed"
+			}
+			repository := map[string]any{
+				"id": index + 1, "full_name": name, "private": false,
+				"visibility": "public",
+				"archived":   index == 0 && s.ArchiveRepositories && !s.UnarchiveRepositories,
+			}
+			if s.History != nil {
+				repository["pushed_at"] = s.History.AsOf
+			}
+			repositories = append(repositories, repository)
 		}
-		return map[string]any{"total_count": s.Repositories, "repositories": repositories}, true, nil
+		return map[string]any{"total_count": total, "repositories": repositories}, true, nil
+	}
+	if s.History == nil {
+		return nil, false, nil
 	}
 	if !strings.HasPrefix(request.URL.Path, "/repos/simulator/repo-") ||
 		!strings.HasSuffix(request.URL.Path, "/actions/runs") {
 		return nil, false, nil
 	}
 	name := strings.TrimSuffix(strings.TrimPrefix(request.URL.Path, "/repos/simulator/repo-"), "/actions/runs")
+	if s.RenameRepositories && name == "00001-renamed" {
+		name = "00001"
+	}
 	index, err := strconv.Atoi(name)
 	if err != nil || index < 1 || index > s.Repositories {
 		return nil, true, errors.New("unknown synthetic repository")

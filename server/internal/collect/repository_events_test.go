@@ -9,6 +9,7 @@ func TestRepositoryLifecycleEvent(t *testing.T) {
 	}{
 		{"created", "active"}, {"archived", "archived"},
 		{"unarchived", "active"}, {"deleted", "deleted"},
+		{"renamed", "active"}, {"transferred", "active"},
 	} {
 		t.Run(test.action, func(t *testing.T) {
 			intent, err := ParseEvent("repository", []byte(`{"action":"`+test.action+`","repository":{"id":42,"full_name":"Octo/API"},"installation":{"id":7}}`))
@@ -25,7 +26,7 @@ func TestRepositoryLifecycleEvent(t *testing.T) {
 		`{"action":"deleted","repository":{"id":42,"full_name":"octo/api"}}`,
 		`{"action":"deleted","repository":{"full_name":"octo/api"},"installation":{"id":7}}`,
 		`{"action":"deleted","repository":{"id":42,"full_name":"../api"},"installation":{"id":7}}`,
-		`{"action":"renamed","repository":{"id":42,"full_name":"octo/api"},"installation":{"id":7}}`,
+		`{"action":"edited","repository":{"id":42,"full_name":"octo/api"},"installation":{"id":7}}`,
 	} {
 		intent, err := ParseEvent("repository", []byte(payload))
 		if err != nil || intent.Kind != IntentIgnore {

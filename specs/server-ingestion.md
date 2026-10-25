@@ -151,9 +151,14 @@ The implementation MUST receive events on the existing CAO webhook endpoint.
   than reuse the first event's repository list. Discovery MUST reserve shared
   installation quota for each page and publish only complete, bounded results.
   Withdrawals MUST remain independently queued and persist their erasure work
-  before acknowledgment. Repository creation/unarchive hints from a known
+  before acknowledgment. Repository lifecycle hints from a known
   installation MAY queue discovery of a not-yet-enrolled repository, but MUST
   NOT directly grant enrollment.
+  Complete enumeration MUST reconcile the previous installation membership,
+  excluding archived repositories and removing coordinates no longer returned.
+  Durable erasure work MUST precede membership removal; failed or incomplete
+  enumeration MUST NOT remove repositories. Verified active repositories MUST
+  have durable initial collection work before the refresh is acknowledged.
 - Admission and background refresh MUST export OpenTelemetry spans, counts,
   durations, and bounded outcomes, including deduplication and coalescing.
   Persisted trace correlation MUST contain only W3C `traceparent`, not baggage,
@@ -294,9 +299,23 @@ cancellation MUST persist a terminal failed state with bounded cleanup.
 
 ## 9. Gap recovery
 
-An implementation MUST NOT rely on scheduled sweeps of the enrollment set as its
-routine correctness backstop.
+Activity gap recovery MUST use webhook delivery replay rather than routinely
+enumerating workflow runs across the enrollment set. Repository-list repair is
+independent of activity replay.
 
+- Collection workers MUST reconcile the App's active installation list on startup
+  and periodically (default one hour), independently of webhook delivery.
+  `CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL` MUST allow operators to configure
+  this cadence using a positive Go duration.
+  A shared operational lease and persisted admission timestamp MUST coordinate
+  replicas and restarts. Each pass MUST queue the ordinary quota-governed scope
+  refreshes and missing-installation withdrawals. Failed App enumeration MUST
+  NOT infer withdrawals or advance the successful-admission timestamp.
+- An operator MUST be able to force the same repository-list repair without
+  replaying the evidence lake or enumerating historical workflow runs:
+  `cao-dashboard backfill --repositories-only`. The command reports admitted
+  work; collection workers apply the queued reconciliation. Unchanged active
+  repositories MUST NOT be recollected just because their list was refreshed.
 - After downtime or dead-lettered work, the implementation MUST recover missing
   events by listing App webhook deliveries from the last processed delivery and
   requesting redelivery of missing or failed deliveries.
@@ -358,23 +377,21 @@ The evidence lake is retained evidence rather than a cache, so retention is a
 governed property and not an accident of disk usage.
 
 - A signed `repository` delivery with action `created`, `deleted`, `archived`,
-  or `unarchived` and a valid repository ID and installation MUST be admitted
-  for lifecycle updates only for a repository already covered by that
-  installation. Creation/unarchive of a repository not yet enrolled MAY instead
-  queue authenticated discovery as specified in section 4. Lifecycle admission MUST
-  durably queue an independent lifecycle update (without collapsing successive
-  archive/unarchive transitions); the worker MUST serialize it with collection
-  for that repository. The database MUST preserve the repository's immutable
-  identity and lifecycle state across canonical projection replacements. A
-  newly created enrolled repository MAY be inserted before its first snapshot.
-  Deleted and archived repositories MUST be excluded from repository discovery
-  while their retained historical rows remain queryable; unarchiving restores
-  discovery. GitHub installation enumeration MUST skip archived repositories
-  when scheduling historical collection without revoking their enrollment.
-- Repository deletion or archiving is **not** withdrawal of the installation's
-  authority. Retain evidence until its normal retention boundary. Maintenance
-  MAY purge an inactive repository only after the configured retention window
-  and after all referencing evidence and inventory rows have expired. Consent
+  `unarchived`, `renamed`, or `transferred` and a valid repository ID and
+  installation MUST durably queue an independent discovery hint for a known
+  installation. A repository covered by a different installation MUST NOT be
+  admitted. The receiver MUST NOT project, call GitHub, or change enrollment
+  inline. Workers MUST reconcile current authenticated installation coverage,
+  not apply the webhook's historical state as current truth. Delayed creation,
+  archive, rename, and delete deliveries MUST NOT revive stale coordinates or
+  evict a repository that is currently active.
+- Deleted, archived, transferred-out, and renamed-away coordinates MUST be
+  evicted from enrollment and the evidence lake, including retained repository
+  and workflow inventory. Canonical projection MUST remove their evidence;
+  lifecycle metadata MUST NOT recreate absent canonical repository rows.
+  Unarchive and rename discovery MUST enroll and collect the current verified
+  coordinate. Repository deletion or archiving changes collection eligibility,
+  not rollout authority. Consent
   withdrawal (`installation.deleted`, `installation.suspend`, or
   `installation_repositories.removed`) still takes precedence and MUST erase
   evidence immediately under the rules below.
@@ -505,10 +522,12 @@ The supported scenario controls are:
   original delivery IDs; and
 - `remove_repositories` to emit a repository-removal event after workflow
   traffic; and
-- `create_repositories`, `archive_repositories`, `unarchive_repositories`, and
-  `delete_repositories` to emit signed lifecycle deliveries for the first
+- `create_repositories`, `archive_repositories`, `unarchive_repositories`,
+  `rename_repositories`, and `delete_repositories` to emit signed lifecycle deliveries for the first
   synthetic repository. Unarchiving requires archiving. The fake GitHub API
-  MUST represent the resulting archived/deleted state.
+  MUST represent the resulting renamed/archived/deleted state in paginated
+  installation enumeration and repository/run endpoints, with or without history.
+  Renames MUST preserve the immutable GitHub repository ID.
 
   An optional `history` object MAY generate 1-31 days with a positive
   `runs_per_day` and an explicit RFC3339 `as_of`. Historical generation MUST be
@@ -596,7 +615,8 @@ A conforming implementation:
 6. persists a snapshot-compatible evidence lake sufficient for cold start;
 7. projects by reusing the Actions profile's ingestion implementation, coalesced
    and atomically activated;
-8. recovers gaps by webhook delivery replay rather than routine sweeps;
+8. recovers activity gaps by webhook delivery replay and repairs repository lists
+   through periodic and operator-triggered authenticated discovery;
 9. governs GitHub budget per installation and fails closed;
 10. passes a profile equivalence test against an Actions-published directory;
 11. erases retained evidence for repositories that leave ingestion scope, and

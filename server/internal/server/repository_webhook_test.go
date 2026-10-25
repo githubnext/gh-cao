@@ -35,7 +35,8 @@ func TestSignedRepositoryLifecycleQueuesEveryTransition(t *testing.T) {
 	queue := collect.Queue{Tasks: store, Admission: store, Metadata: store, Leases: store, Deliveries: store, Metrics: store}
 	app := &App{services: store.OperationalServices(), webhookSecret: []byte("repository-webhook-test"),
 		reconciler: &Collector{admitter: collect.Admitter{Enrollment: enrollment, Queue: queue}}}
-	for i, action := range []string{"created", "archived", "unarchived", "deleted"} {
+	actions := []string{"created", "archived", "unarchived", "renamed", "transferred", "deleted"}
+	for i, action := range actions {
 		body := fmt.Sprintf(`{"action":%q,"repository":{"id":123,"full_name":"octo/api"},"installation":{"id":42}}`, action)
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/api/github/webhook", strings.NewReader(body))
 		req.Header.Set("X-GitHub-Event", "repository")
@@ -59,9 +60,9 @@ func TestSignedRepositoryLifecycleQueuesEveryTransition(t *testing.T) {
 	if err := queue.Ensure(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	messages, err := store.StreamRead(t.Context(), "collect:tasks", "collectors", "lifecycle-test", 4, 0)
-	if err != nil || len(messages) != 4 {
-		t.Fatalf("expected four independent lifecycle tasks: %d, %v", len(messages), err)
+	messages, err := store.StreamRead(t.Context(), "collect:tasks", "collectors", "lifecycle-test", len(actions), 0)
+	if err != nil || len(messages) != len(actions) {
+		t.Fatalf("expected %d independent lifecycle tasks: %d, %v", len(actions), len(messages), err)
 	}
 	for i, message := range messages {
 		var task collect.Task
@@ -69,7 +70,7 @@ func TestSignedRepositoryLifecycleQueuesEveryTransition(t *testing.T) {
 			t.Fatal(err)
 		}
 		if task.RepositoryID != 123 || task.InstallationID != 42 || task.Repository != "octo/api" ||
-			task.Reason != "repository."+[]string{"created", "archived", "unarchived", "deleted"}[i] {
+			task.Reason != "repository."+actions[i] {
 			t.Fatalf("unexpected lifecycle task: %+v", task)
 		}
 	}

@@ -56,14 +56,14 @@ test('formal conformance rejects parse failures, violations and incomplete state
   }
 });
 
-test('statistical conformance runs on pull requests with real PostgreSQL, Chromium and checksum-pinned TLC', () => {
+test('statistical conformance runs outside pull requests with real PostgreSQL, Chromium and checksum-pinned TLC', () => {
   const workflow = parse(readFileSync(new URL('../../.github/workflows/cgo.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs['daily-run-counts-conformance'];
   for (const trigger of [workflow.on.pull_request, workflow.on.push]) {
     assert.ok(trigger.paths.includes('tests/contracts/statistical-sampling.json'));
     assert.ok(trigger.paths.includes('specs/tla/StatisticalSampling.*'));
   }
-  assert.equal(job.if, undefined);
+  assert.equal(job.if, "github.event_name != 'pull_request'");
   assert.equal(job.services.postgres.image, 'postgres:16-alpine');
   assert.ok(job.steps.some((step) => step.run === 'npx playwright install --with-deps chromium'));
   const checker = job.steps.find((step) => step.name === 'Fetch pinned TLC model checker');

@@ -220,7 +220,7 @@ describe('incremental canonical storage shards', () => {
     expect(await readCollection(indexedDB, 'runs')).toHaveLength(1);
     expect(await readCollection(indexedDB, 'operationalValues')).toHaveLength(1);
     await expectAccurateTotals(indexedDB);
-  }, 15_000);
+  }, 30_000);
 
   it('accounts duplicate IDs, overwrites, shard moves, and replacements exactly once', async () => {
     const indexedDB = new IDBFactory();

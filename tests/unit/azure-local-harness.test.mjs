@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { access, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -28,6 +28,10 @@ for (const [stage, label, logName] of failures) {
     try {
       await mkdir(dirname(script), { recursive: true });
       await copyFile(resolve("scripts/azure-local/azure-local.sh"), script);
+      await mkdir(join(directory, "tests/e2e"), { recursive: true });
+      await copyFile(resolve("tests/e2e/dashboard-server-fixture.mjs"), join(directory, "tests/e2e/dashboard-server-fixture.mjs"));
+      await mkdir(join(directory, "server/testdata"), { recursive: true });
+      await cp(resolve("server/testdata/deployed-subset"), join(directory, "server/testdata/deployed-subset"), { recursive: true });
       await mkdir(tools);
       await mkdir(join(directory, ".github/workflows"), { recursive: true });
       await writeFile(join(directory, ".github/workflows/cao.json"), '{"control-plane":{"web":{}}}\n');

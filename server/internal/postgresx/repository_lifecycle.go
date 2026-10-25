@@ -135,21 +135,25 @@ func repositoryLifecyclePresence() string {
 }
 
 func overlayRepositoryLifecycle(ctx context.Context, namespace string, exec func(context.Context, string, ...any) error) error {
-	err := exec(ctx, `INSERT INTO repositories(namespace,ordinal,present_fields,id,owner,name,lifecycle)
-		SELECT l.namespace, (SELECT coalesce(max(ordinal),-1) FROM repositories WHERE namespace=$1)
-			+ row_number() OVER (ORDER BY l.id),
-			$2::bit varying,l.id,l.owner,l.name,l.lifecycle
-		FROM cao_repository_lifecycle l
-		WHERE l.namespace=$1 AND NOT EXISTS
-			(SELECT 1 FROM repositories r WHERE r.namespace=l.namespace AND r.id=l.id)
-		ON CONFLICT(namespace,id) DO NOTHING`, namespace, repositoryLifecyclePresence())
-	if err != nil {
-		return err
-	}
-	err = exec(ctx, `UPDATE repositories r SET lifecycle=l.lifecycle,
+	return exec(ctx, `UPDATE repositories r SET lifecycle=l.lifecycle,
 		present_fields=set_bit(r.present_fields, $2, 1)
 		FROM cao_repository_lifecycle l WHERE r.namespace=$1 AND l.namespace=r.namespace AND l.id=r.id`,
 		namespace, repositoryLifecycleIndex())
+}
+
+// ClearRepositoryLifecycles removes legacy lifecycle overrides only after a
+// complete GitHub enumeration verifies that these immutable IDs are active.
+func (s *Store) ClearRepositoryLifecycles(ctx context.Context, identifiers []int64) error {
+	ids := make([]string, 0, len(identifiers))
+	for _, id := range identifiers {
+		if id > 0 {
+			ids = append(ids, "github:repository:"+strconv.FormatInt(id, 10))
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := s.db.ExecContext(ctx, `DELETE FROM cao_repository_lifecycle WHERE namespace=$1 AND id=ANY($2)`, s.namespace, ids)
 	return err
 }
 

@@ -143,6 +143,22 @@ func NewAPIHandler(scenario Scenario, timeScale float64) (*API, error) {
 	}
 	mux := http.NewServeMux()
 	success := func(writer http.ResponseWriter, request *http.Request, rate rateHeaders) {
+		if strings.HasPrefix(request.URL.Path, "/repos/") {
+			parts := strings.Split(strings.TrimPrefix(request.URL.Path, "/repos/"), "/")
+			if len(parts) >= 2 {
+				name := parts[0] + "/" + parts[1]
+				first := repositoryName(0)
+				if scenario.RenameRepositories {
+					first += "-renamed"
+				}
+				if (scenario.RenameRepositories && name == repositoryName(0)) ||
+					(scenario.DeleteRepositories && name == first) {
+					setRateHeaders(writer, rate)
+					writeNotFound(writer)
+					return
+				}
+			}
+		}
 		payload, handled, err := scenario.historyResponse(writer, request)
 		if handled {
 			setRateHeaders(writer, rate)
@@ -395,15 +411,15 @@ func writeGitHubSuccess(writer http.ResponseWriter, request *http.Request, rate 
 	case strings.HasPrefix(request.URL.Path, "/repos/"):
 		parts := strings.Split(strings.Trim(request.URL.Path, "/"), "/")
 		if len(parts) >= 3 {
-			if scenario.DeleteRepositories && parts[1]+"/"+parts[2] == repositoryName(0) {
-				writeNotFound(writer)
-				return
+			first := repositoryName(0)
+			if scenario.RenameRepositories {
+				first += "-renamed"
 			}
 			_ = json.NewEncoder(writer).Encode(map[string]any{
 				"id":        1,
 				"full_name": parts[1] + "/" + parts[2],
 				"private":   false,
-				"archived":  scenario.ArchiveRepositories && !scenario.UnarchiveRepositories && parts[1]+"/"+parts[2] == repositoryName(0),
+				"archived":  scenario.ArchiveRepositories && !scenario.UnarchiveRepositories && parts[1]+"/"+parts[2] == first,
 				"owner":     map[string]string{"login": parts[1]},
 			})
 			return

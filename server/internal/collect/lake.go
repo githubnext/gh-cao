@@ -168,6 +168,9 @@ func (l Lake) ForgetContext(ctx context.Context, repository string) error {
 	}); err != nil {
 		return fmt.Errorf("erase shared operational values: %w", err)
 	}
+	if err := l.forgetInventoryRepository(normalized); err != nil {
+		return fmt.Errorf("erase retained repository inventory: %w", err)
+	}
 	for _, path := range paths {
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("remove retained evidence: %w", err)

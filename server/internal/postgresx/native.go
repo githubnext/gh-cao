@@ -555,8 +555,7 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 		return State{}, err
 	}
 	// Autovacuum cannot analyze uncommitted replacement rows or partitioned parents.
-	// Refresh estimates before reconciliation and integrity joins can choose
-	// quadratic cold-start plans.
+	// Refresh estimates before reconciliation and integrity joins choose cold-start plans.
 	if _, err := w.tx.Exec(ctx, "SELECT cao_analyze_native()"); err != nil {
 		return State{}, fmt.Errorf("refresh native statistics: %w", err)
 	}

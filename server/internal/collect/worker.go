@@ -22,6 +22,7 @@ type Worker struct {
 	Projector      Projector
 	Enrollment     Enrollment
 	ScopeRefresher ScopeRefresher
+	Discovery      RepositoryDiscovery
 	// Consumer identifies this worker within the consumer group.
 	Consumer string
 	// BatchSize bounds how many tasks are leased at once.
@@ -117,6 +118,18 @@ func (w Worker) Run(ctx context.Context) error {
 	}
 	consumer := w.consumer()
 	workerLog.Printf("worker started projection_role=%t", w.Project)
+	if w.Discovery.Client != nil {
+		discoveryCtx, cancelDiscovery := context.WithCancel(ctx)
+		discoveryDone := make(chan struct{})
+		go func() {
+			defer close(discoveryDone)
+			w.Discovery.Run(discoveryCtx)
+		}()
+		defer func() {
+			cancelDiscovery()
+			<-discoveryDone
+		}()
+	}
 	if w.Project {
 		projectionCtx, cancelProjection := context.WithCancel(ctx)
 		projectionDone := make(chan struct{})
@@ -214,7 +227,7 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 		workerLog.Printf("debounce clear failed")
 		return false
 	}
-	if task.Scope != nil || task.InventoryRefresh {
+	if task.Scope != nil || task.InventoryRefresh || task.Lifecycle != "" {
 		if err := w.processRefresh(ctx, lease); err != nil {
 			workerLog.Printf("background inventory refresh failed")
 			w.retryRefresh(ctx, lease, err)
@@ -222,45 +235,34 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 		return false
 	}
 	if w.Enrollment.Metadata != nil {
-		installationID, err := w.Enrollment.InstallationFor(ctx, task.Repository)
+		if task.Erase {
+			return w.processEnrolledErasure(ctx, lease)
+		}
+		var installationID int64
+		lookup := func(ctx context.Context) error {
+			var err error
+			installationID, err = w.Enrollment.InstallationFor(ctx, task.Repository)
+			return err
+		}
+		var err error
+		if task.Reason == "repository-discovery" {
+			err = w.Enrollment.withMutationLock(ctx, lookup)
+		} else {
+			err = lookup(ctx)
+		}
 		if err != nil {
 			workerLog.Printf("repository enrollment check failed")
-			if retryErr := w.Queue.Retry(ctx, lease, err); retryErr != nil {
-				workerLog.Printf("task retry failed")
-			}
+			w.retryRefresh(ctx, lease, err)
 			return false
 		}
-		switch {
-		case task.Erase:
-			if installationID > 0 {
-				if task.InstallationID > 0 && installationID != task.InstallationID {
-					if err := w.Queue.Complete(ctx, lease); err != nil {
-						workerLog.Printf("stale erasure acknowledgement failed")
-					}
-					return false
-				}
-				lease.Task.NotBefore = time.Now().UTC().Add(backoff(max(task.Attempt, 1)))
-				if err := w.Queue.Defer(ctx, lease); err != nil {
-					workerLog.Printf("pending erasure defer failed")
-				}
-				return false
-			}
-		case installationID == 0:
-			return w.processErasure(ctx, lease)
-		default:
-			lease.Task.InstallationID = installationID
-			task = lease.Task
+		if installationID == 0 {
+			return w.processEnrolledErasure(ctx, lease)
 		}
+		lease.Task.InstallationID = installationID
+		task = lease.Task
 	}
 	if task.Erase {
 		return w.processErasure(ctx, lease)
-	}
-	if task.Lifecycle != "" {
-		if err := w.processRepositoryLifecycle(ctx, lease); err != nil {
-			workerLog.Printf("repository lifecycle update failed")
-			w.retryRefresh(ctx, lease, err)
-		}
-		return false
 	}
 	if w.Projector.Data != nil {
 		active, err := w.Projector.Data.RepositoryActive(ctx, task.Repository)
@@ -290,6 +292,26 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 	}
 	workerLog.Printf("collection completed repository=%s completed_at=%s", task.Repository, time.Now().UTC().Format(time.RFC3339Nano))
 	return true
+}
+
+func (w Worker) processEnrolledErasure(ctx context.Context, lease Lease) bool {
+	changed := false
+	err := w.Enrollment.withMutationLock(ctx, func(ctx context.Context) error {
+		installationID, err := w.Enrollment.InstallationFor(ctx, lease.Task.Repository)
+		if err != nil {
+			return err
+		}
+		if installationID > 0 {
+			return w.Queue.Complete(ctx, lease)
+		}
+		changed = w.processErasure(ctx, lease)
+		return nil
+	})
+	if err != nil {
+		workerLog.Printf("erasure enrollment check failed")
+		w.retryRefresh(ctx, lease, err)
+	}
+	return changed
 }
 
 func (w Worker) processErasure(ctx context.Context, lease Lease) bool {
