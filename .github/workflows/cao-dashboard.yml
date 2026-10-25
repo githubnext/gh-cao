@@ -126,6 +126,7 @@ jobs:
               return
             }
             let run
+            let collectedSnapshot = false
             for (let page = 1; !run; page += 1) {
               const { data } = await github.rest.actions.listWorkflowRuns({
                 ...context.repo,
@@ -142,12 +143,22 @@ jobs:
                   per_page: 100,
                 })
                 if (!jobs.some((job) => job.name === 'index' && job.conclusion === 'success')) continue
+                collectedSnapshot = true
+                const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                  ...context.repo,
+                  run_id: candidate.id,
+                  per_page: 100,
+                })
+                if (!artifacts.some((artifact) => artifact.name === 'cao-activity-index' && !artifact.expired)) continue
                 run = candidate
                 break
               }
               if (data.workflow_runs.length < 100) break
             }
             if (!run) {
+              if (collectedSnapshot) {
+                throw new Error('No retained CAO Activity index artifact is available; run CAO Activity to collect a fresh snapshot')
+              }
               core.notice('No successful CAO Activity collection run is available yet; building with local inventory and empty activity')
               await core.summary
                 .addHeading('Dashboard bootstrapping before its first Activity snapshot')

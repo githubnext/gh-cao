@@ -8,11 +8,12 @@ const { jobs } = parse(workflow("cao-dashboard.yml"));
 const step = (name) => jobs.build.steps.find((candidate) => candidate.name === name);
 const resolver = step("Resolve fallback activity run");
 
-async function resolveActivity({ runs = [], jobSets = {}, eventRun, matchedKey = "", error, jobError } = {}) {
+async function resolveActivity({ runs = [], jobSets = {}, artifactSets = {}, eventRun, matchedKey = "", error, jobError, artifactError } = {}) {
   const outputs = {};
   const notices = [];
   const summaries = [];
   const requests = [];
+  const artifactRequests = [];
   const summary = {
     addHeading(text) { summaries.push(text); return this; },
     addRaw(text) { summaries.push(text); return this; },
@@ -26,13 +27,20 @@ async function resolveActivity({ runs = [], jobSets = {}, eventRun, matchedKey =
       payload: { repository: { default_branch: "production" }, workflow_run: eventRun },
     },
     github: {
-      async paginate(_method, { run_id }) {
+      async paginate(method, request) {
+        const { run_id } = request;
+        if (method === this.rest.actions.listWorkflowRunArtifacts) {
+          artifactRequests.push(request);
+          if (artifactError) throw artifactError;
+          return artifactSets[run_id] ?? [{ name: "cao-activity-index", expired: false }];
+        }
         if (jobError) throw jobError;
         return jobSets[run_id] ?? [{ name: "index", conclusion: "success" }];
       },
       rest: {
         actions: {
           listJobsForWorkflowRun() {},
+          listWorkflowRunArtifacts() {},
           async listWorkflowRuns(request) {
             requests.push(request);
             if (error) throw error;
@@ -48,7 +56,7 @@ async function resolveActivity({ runs = [], jobSets = {}, eventRun, matchedKey =
       summary,
     },
   });
-  return { outputs, notices, summaries, requests };
+  return { outputs, notices, summaries, requests, artifactRequests };
 }
 
 test("dashboard reports inventory-only bootstrap when no Activity snapshot has been collected", async () => {
@@ -73,6 +81,28 @@ test("dashboard still resolves a successful Activity run after a cache miss", as
   assert.equal(outputs["run-id"], "12345");
   assert.deepEqual(notices, []);
   assert.deepEqual(summaries, []);
+});
+
+test("manual dashboard fallback skips missing and expired Activity artifacts", async () => {
+  const { outputs, artifactRequests } = await resolveActivity({
+    runs: [{ id: 10 }, { id: 11 }, { id: 12 }],
+    artifactSets: {
+      10: [{ name: "cao-activity-owner", expired: false }],
+      11: [{ name: "cao-activity-index", expired: true }],
+    },
+  });
+  assert.equal(outputs["run-id"], "12");
+  assert.deepEqual(artifactRequests.map(({ run_id }) => run_id), [10, 11, 12]);
+  assert.ok(artifactRequests.every(({ per_page }) => per_page === 100));
+});
+
+test("manual dashboard builds do not bootstrap over unavailable collected snapshots", async () => {
+  for (const artifacts of [[], [{ name: "cao-activity-index", expired: true }]]) {
+    await assert.rejects(resolveActivity({
+      runs: [{ id: 10 }],
+      artifactSets: { 10: artifacts },
+    }), /No retained CAO Activity index artifact.*run CAO Activity/);
+  }
 });
 
 const skippedJobs = [
@@ -169,6 +199,7 @@ test("dashboard does not disguise Activity lookup errors as an empty deployment"
     const error = Object.assign(new Error(`GitHub request failed: ${status}`), { status });
     await assert.rejects(resolveActivity({ error }), (actual) => actual === error);
     await assert.rejects(resolveActivity({ runs: [{ id: 12345 }], jobError: error }), (actual) => actual === error);
+    await assert.rejects(resolveActivity({ runs: [{ id: 12345 }], artifactError: error }), (actual) => actual === error);
     await assert.rejects(resolveActivity({ eventRun: { id: 12345 }, jobError: error }), (actual) => actual === error);
   }
 });
