@@ -245,9 +245,13 @@ Additional enterprise-admin uses remain:
    explainable configuration findings and tool-efficiency candidates with counterexamples.
    Review precision/coverage and evaluate quality, cost and latency on held-out
    tasks before claiming improvements. Start enterprise extensions with showback
-   and observed change exposure. The default-off integration and local
-   PostgreSQL/protocol acceptance are implemented; empirical utility and actual
-   Kusto execution remain independent acceptance evidence, not inferred successes.
+   and observed change exposure. The default-off integration, local PostgreSQL
+   acceptance and real Kusto-emulator functional scenarios are implemented.
+   Emulator scenarios use production projection/spool/worker/client code with a
+   test-only Azure simulator bridge from streaming requests to ingestion commands.
+   This exercises actual generated KQL, not Azure streaming, authentication or
+   honored retention. Empirical utility and actual destination acceptance remain
+   independent evidence, not inferred successes.
 3. **Datasets and measured expansion:** produce validated lineage-linked SLM
    exports; adjust volume, retention and transport from observed sizes/backlog.
    Approve missing audit/scheduler/configuration sources separately. No automatic
@@ -303,9 +307,11 @@ The design reuses acquisition and hosting while introducing a distinct
 private trace lifecycle and its associated storage, content-governance and
 withdrawal obligations. ADX remains derived analytical evidence, not enrollment,
 rollout, billing, execution or training authority. `server/spec/trace.tsp` owns the trace table contract; runtime and
-operator behavior are documented separately. Empirical utility, actual Kusto
-execution/capacity and destination-specific erasure remain acceptance gates,
-not claims established by the local protocol simulator.
+operator behavior are documented separately. The official Kusto emulator
+provides functional query-engine evidence; it cannot establish production
+capacity, service authentication, streaming ingestion, honored retention or
+destination-specific erasure. Empirical utility and these deployment gates
+remain open. Emulator scenarios are functional tests only, never benchmarks.
 
 ## Evidence
 
@@ -333,6 +339,7 @@ not claims established by the local protocol simulator.
   [tool/message events](https://github.com/github/gh-aw/blob/0a87def68d78763d96f24e903363376ba3a0db96/actions/setup/js/types/unified_session.d.ts#L674-L731).
   Producer capability is not guaranteed historical field coverage.
 - Microsoft references:
+  [Kusto emulator capabilities and limitations](https://learn.microsoft.com/en-us/azure/data-explorer/kusto-emulator-overview),
   [service specifications/terms](https://learn.microsoft.com/en-us/azure/data-explorer/start-for-free),
   [streaming limits](https://learn.microsoft.com/en-us/azure/data-explorer/ingest-data-streaming),
   [retention](https://learn.microsoft.com/en-us/kusto/management/retention-policy?view=azure-data-explorer),
