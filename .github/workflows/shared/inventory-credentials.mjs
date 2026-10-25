@@ -250,6 +250,8 @@ export async function withInventoryCredentials({
             `PAT inventory spans multiple PAT secrets: the read-secret mappings for ${selectedRepository} (selected credential) and ${conflictingRepository} differ in GH_AW_GITHUB_READ_PAT_REPOSITORIES. `
             + "Precompute receives only the selected inventory PAT and cannot read the entire enrolled fleet with it. "
             + "Configure the App profile (GH_AW_GITHUB_AUTH_MODE=app) with access to every enrolled repository, or dispatch with an explicit in-scope target_repo. "
+            + `Run 'gh cao setup --repo ${controlRepository}' to configure approved Apps, then 'gh workflow run cao-validate.yml --repo ${controlRepository} -f verify-credentials=true' and inspect the credential-verification job before retrying. `
+            + "For immediate targeted-run commands and cross-owner setup steps, see https://github.com/githubnext/gh-cao/blob/main/docs/authentication.md#recover-from-pat-fleet-unsupported. "
             + "max_repos limits dispatch, not required inventory. No credential fallback or partial inventory is allowed.");
         }
         token = env.CAO_INVENTORY_READ_PAT;

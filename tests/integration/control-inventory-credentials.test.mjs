@@ -200,6 +200,9 @@ test("scheduled mixed-PAT fleet blocks activation before target reads with actio
   assert.match(diagnostic.message, /acme\/control.*acme\/private-a.*GH_AW_GITHUB_READ_PAT_REPOSITORIES/);
   assert.match(diagnostic.message, /GH_AW_GITHUB_AUTH_MODE=app/);
   assert.match(diagnostic.message, /explicit in-scope target_repo/);
+  assert.ok(diagnostic.message.includes("gh cao setup --repo acme/control"));
+  assert.ok(diagnostic.message.includes("gh workflow run cao-validate.yml --repo acme/control -f verify-credentials=true"));
+  assert.match(diagnostic.message, /docs\/authentication\.md#recover-from-pat-fleet-unsupported/);
   assert.match(diagnostic.message, /max_repos limits dispatch, not required inventory/);
   assert.ok(result.summary.includes(diagnostic.message));
   assert.match(result.summary, /Activation and dispatch: \*\*blocked\*\*/);

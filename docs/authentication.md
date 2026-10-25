@@ -107,6 +107,65 @@ capacity and service failures where the API permits. A 404 can mean repository
 identity, token scope, installation access or organization restrictions; it
 does not alone prove absent installation membership.
 
+### Recover from `pat-fleet-unsupported`
+
+This is a credential-configuration failure, not a policy denial. Retrying the
+same scheduled run, reducing `max_repos`, or changing only
+`GH_AW_GITHUB_AUTH_MODE` will not fix it.
+
+**Unblock one run without changing authentication:** dispatch the failed
+orchestrator with one explicitly enrolled target. For the ESLint Factory failure
+in `githubnext/gh-cao`, run:
+
+```bash
+gh workflow run eslint-rules.lock.yml --repo githubnext/gh-cao \
+  -f target_repo=github/gh-aw -f safe_output_mode=review -f max_repos=1
+gh run list --repo githubnext/gh-cao --workflow eslint-rules.lock.yml --limit 5
+```
+
+Inspect the new run's precompute summary before relying on its results. This uses
+the target's existing PAT mapping and the separate control PAT; both secrets must
+still be valid and have the required read access. Repeat the dispatch with
+`target_repo=githubnext/gh-cao` to handle that repository separately. These
+commands do not repair subsequent scheduled fleet runs or widen policy.
+
+**Restore scheduled fleet inventory:** configure approved Apps covering the
+whole enrolled scope:
+
+```bash
+gh cao setup --repo githubnext/gh-cao
+```
+
+Choose the approved private GitHub App authentication path. Because this scope
+spans `github` and `githubnext`, a private organization-owned App for just one
+owner is insufficient. Use approved enterprise-owned Apps installed in both
+organizations, if available, following
+[enterprise-owned App setup](control-plane-authentication.md#enterprise-owned-apps).
+An authorized App administrator must supply the credentials and approve the
+installations; do not simply change the mode variable before provisioning them.
+If no approved cross-owner App is available, keep using explicit targeted runs;
+the current scheduled mixed-PAT fleet cannot run as configured.
+
+After setup, verify runtime access without starting campaign work:
+
+```bash
+gh workflow run cao-validate.yml --repo githubnext/gh-cao -f verify-credentials=true
+gh run list --repo githubnext/gh-cao --workflow cao-validate.yml --limit 5
+```
+
+Open the resulting validation run and inspect the credential-verification job,
+summary, and `cao-credential-verification` artifact; a successful dispatch of the
+validation workflow alone is not proof of credential access. Only after all
+required checks pass, start a fresh fleet run in review mode:
+
+```bash
+gh workflow run eslint-rules.lock.yml --repo githubnext/gh-cao -f safe_output_mode=review
+```
+
+For another control repository or campaign, replace the repository and workflow
+names above with its exact coordinates. Do not remap different owners to one
+fine-grained PAT secret or remove enrolled repositories just to bypass the gate.
+
 ### Explicit runtime credential verification
 
 `gh cao doctor` checks local tools, policy/compiler configuration and the
