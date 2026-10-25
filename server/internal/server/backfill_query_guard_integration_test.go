@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/query"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
 )
 
-func TestPostgresBackfillLargeQueriesPreserveResourceGuards(t *testing.T) {
+func TestPostgresBackfillLargeQueriesRetainFreshRunsWithinResourceGuards(t *testing.T) {
 	backfillServices(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
@@ -19,7 +20,7 @@ func TestPostgresBackfillLargeQueriesPreserveResourceGuards(t *testing.T) {
 		History: &simulator.History{Days: 14, RunsPerDay: 1, AsOf: time.Now().Add(-time.Minute).UTC().Format(time.RFC3339)},
 	}
 	h := newSyntheticBackfill(t, ctx, scenario)
-	if result, err := h.backfill.Replay(ctx); err != nil || result.Counts["$runs"] != 210_000 {
+	if result, err := h.backfill.Replay(ctx); err != nil || result.Counts["$runs"] != query.MaxInputRows {
 		t.Fatalf("large synthetic replay = %+v, %v", result, err)
 	}
 	app, err := New(ctx, h.ops, Config{

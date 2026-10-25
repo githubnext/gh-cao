@@ -12,6 +12,66 @@ permissions:
   contents: read
 
 jobs:
+  monthly-budget-stress:
+    name: 30 days, 10000 repositories, $25000/day synthetic agent budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/cao_monthly?sslmode=disable
+      CAO_MONTHLY_BUDGET_REPORT_DIR: ${{ github.workspace }}/test-results/monthly-budget-stress
+      GH_TOKEN: ""
+      GITHUB_TOKEN: ""
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cao_monthly
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cao_monthly"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: server/go.mod
+          cache: false
+      - name: Run inference-free monthly storage and query scenario
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$CAO_MONTHLY_BUDGET_REPORT_DIR"
+          npm run test:stress:monthly-budget 2>&1 | tee "$CAO_MONTHLY_BUDGET_REPORT_DIR/go-test.txt"
+      - name: Publish monthly budget evidence
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## Monthly synthetic agent budget stress'
+            echo '30 days, 10,000 repositories, $25,000/day; $1-$5 half-normal run costs favoring $1.'
+            echo 'No agents or inference run; USD fixture costs are not canonical AIC.'
+            if [ -f "$CAO_MONTHLY_BUDGET_REPORT_DIR/monthly-budget.json" ]; then
+              echo '```json'
+              cat "$CAO_MONTHLY_BUDGET_REPORT_DIR/monthly-budget.json"
+              echo '```'
+            else
+              echo 'FAILED / INCOMPLETE: no completed monthly report; inspect the test log.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload monthly scenario evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: postgres-monthly-budget-stress
+          path: test-results/monthly-budget-stress/
+          if-no-files-found: error
+          retention-days: 14
+
   backfill-stress:
     name: Backfill 7 days across ${{ matrix.repositories }} synthetic repos
     runs-on: ubuntu-latest

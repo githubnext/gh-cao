@@ -30,7 +30,7 @@ function casePassed(entry) {
     report.horizonDays === 7 &&
     report.expectedRuns === expected &&
     report.queuedRuns === expected &&
-    report.counts?.$runs === expected &&
+    report.counts?.$runs === Math.min(expected, 200_000) &&
     report.counts?.$repositories === entry.repositories &&
     report.counts?.$workflows === entry.repositories &&
     report.webhooksDuringBackfill > 0 &&
@@ -62,6 +62,6 @@ export function buildBackfillStressReport({ repository, serverUrl, runId, runAtt
   }
   lines.push("", "All traffic uses isolated synthetic numeric-loopback endpoints; no live GitHub APIs are used.",
     "Artifacts include per-case JSON, test output, local OTEL traces/logs/counters, service logs, and container exit/OOM state.",
-    "Missing reports are incomplete evidence, not successful tests. The native 200,000-input-row query guard remains enforced.");
+    "Missing reports are incomplete evidence, not successful tests. Retained Run subtrees are capped at the native 200,000-input-row boundary; durable discovery remains complete.");
   return lines.join("\n");
 }

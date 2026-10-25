@@ -294,13 +294,9 @@ func (w *Writer) copyStatisticalBundles(ctx context.Context, maxBytes int64) err
 		}
 		relation := query.SQLIdentifier(table.name) + " t WHERE t.namespace=$1 AND (" + predicate + ")"
 		var rows, size int64
-		sizes := []string{strconv.Itoa(64 + len(table.columns))}
-		for _, column := range table.columns {
-			sizes = append(sizes, "coalesce(octet_length(t."+query.SQLIdentifier(column.name)+"::text),0)")
-		}
 		// Measure expanded typed values; compressed TOAST pointers cannot hide an oversized bundle.
 		bounded := "(SELECT t.* FROM " + relation + fmt.Sprintf(" LIMIT %d) t", query.MaxInputRows+1)
-		if err := w.tx.QueryRow(ctx, "SELECT count(*),coalesce(sum("+strings.Join(sizes, "+")+"),0)::bigint FROM "+bounded, w.store.namespace).Scan(&rows, &size); err != nil {
+		if err := w.tx.QueryRow(ctx, "SELECT count(*),coalesce(sum("+entityBytesSQL(table, "t")+"),0)::bigint FROM "+bounded, w.store.namespace).Scan(&rows, &size); err != nil {
 			return err
 		}
 		count, bytes = count+rows, bytes+size

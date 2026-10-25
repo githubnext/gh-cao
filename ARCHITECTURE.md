@@ -348,6 +348,19 @@ complete days at each configured retention cutoff. Weekly layouts require a
 fresh canonical schema rebuilt from authoritative inputs without removing
 operational audit/queue state. A fixed schema-qualified
 ANALYZE capability preserves ingestion statistics without runtime ownership.
+Publication refreshes native estimates before daily reconciliation and integrity
+checks. Counts, evidence clocks, and capacity accounting use source-local plans
+to avoid planner amplification across the daily partition horizon.
+Canonical snapshot, admission, and conclusion writes enforce the same
+namespace-local Run-subtree capacity boundary: 200,000 rows per Run-owned source
+and 256 MiB of combined logical typed-row bytes. After daily-count reconciliation,
+oldest complete subtrees are removed atomically, preserving newest evidence,
+structural inventory, independent Operational Value, and operational state.
+Execution status does not pin canonical detail; durable operational state
+remains independent. An oversized newest subtree fails the write without
+changing the published revision.
+Eviction marks source coverage partial and invalidates full-population sampling
+weights. This is not a physical disk/RSS cap or the full three-tier proposal.
 Bootstrap performs no legacy conversion or
 backward-compatible import. There are no persistent Postgres generations.
 The additive daily run-count projection, compact contribution receipts, and

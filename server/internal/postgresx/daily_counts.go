@@ -198,6 +198,29 @@ func reconcileDailyCounts(ctx context.Context, namespace, runID string, now time
 		}
 		panic("daily receipt field missing from native Run contract")
 	}
+	changed := []string{"p.id IS NULL"}
+	for index, column := range columns {
+		changed = append(changed, fmt.Sprintf("(%s AND ((p.known_fields & %d)=0 OR r.%s IS DISTINCT FROM p.%s))",
+			fieldPresence(column), 1<<index, column, column))
+	}
+	// Freeze only changed identities before updating receipts. Replayed snapshots
+	// otherwise pay every batch's joins and temporary-table writes again.
+	if err := exec(ctx, `CREATE TEMP TABLE daily_reconcile_keys ON COMMIT DROP AS
+		SELECT r.id FROM runs r LEFT JOIN run_count_contributions p ON p.namespace=r.namespace AND p.id=r.id
+		JOIN daily_run_count_state s ON s.namespace=r.namespace AND s.id='daily-run-counts'
+		WHERE r.namespace=$1 AND ($2='' OR r.id=$2)
+		AND (p.id IS NOT NULL OR r.started_at IS NULL
+			OR (r.started_at>=s.cutoff_at AND r.started_at<s.cutoff_at+interval '504 hours'))
+		AND (`+strings.Join(changed, " OR ")+`)`, namespace, runID); err != nil {
+		return err
+	}
+	defer func() { _ = exec(ctx, "DROP TABLE IF EXISTS daily_reconcile_keys") }()
+	if err := exec(ctx, "CREATE UNIQUE INDEX ON daily_reconcile_keys(id)"); err != nil {
+		return err
+	}
+	if err := exec(ctx, "ANALYZE daily_reconcile_keys"); err != nil {
+		return err
+	}
 	mergedField := func(name string) string {
 		return "CASE WHEN " + fieldPresence(name) + " THEN r." + name + " ELSE p." + name + " END"
 	}
@@ -241,22 +264,23 @@ func reconcileDailyCounts(ctx context.Context, namespace, runID string, now time
 					AND m.updated_at IS NOT DISTINCT FROM o.updated_at AND m.completed_at IS NOT DISTINCT FROM o.completed_at),false) AS conflict,
 			` + strings.NewReplacer("conclusion", "m.conclusion", "status", "m.status").Replace(dailyOutcomeSQL) + ` AS outcome FROM (
 			SELECT ` + strings.Join(merged, ",") + ` FROM runs r JOIN daily_run_keys k ON k.id=r.id
-			JOIN daily_run_count_state s ON s.namespace=r.namespace AND s.id='daily-run-counts' LEFT JOIN run_count_contributions p
+			JOIN daily_run_count_state s ON s.namespace=r.namespace AND s.id='daily-run-counts' LEFT JOIN daily_previous p
 			ON p.namespace=r.namespace AND p.id=r.id WHERE r.namespace=$1
+			AND (` + strings.Join(changed, " OR ") + `)
 			AND (p.id IS NULL OR ` + attempt + `>=coalesce(p.attempt,1))
 			AND NOT (p.id IS NOT NULL AND ` + attempt + `=coalesce(p.attempt,1)
 				AND greatest(r.updated_at,r.completed_at) IS NOT NULL
 				AND greatest(p.updated_at,p.completed_at) IS NOT NULL
 				AND greatest(p.updated_at,p.completed_at)>greatest(r.updated_at,r.completed_at))) m
 			JOIN daily_run_count_state s ON s.namespace=m.namespace AND s.id='daily-run-counts'
-			LEFT JOIN run_count_contributions o ON o.namespace=m.namespace AND o.id=m.id
+			LEFT JOIN daily_previous o ON o.namespace=m.namespace AND o.id=m.id
 			WHERE ((m.started_at IS NULL AND (m.had_previous OR greatest(m.updated_at,m.completed_at) IS NULL
 					OR greatest(m.updated_at,m.completed_at)>=s.cutoff_at))
 				OR (m.started_at>=s.cutoff_at AND m.started_at<s.cutoff_at+interval '504 hours')
 				OR (m.had_previous AND (coalesce(m.attempt,1)>coalesce(m.previous_attempt,1)
 					OR greatest(m.updated_at,m.completed_at)>m.previous_revision)))`,
 		`CREATE TEMP TABLE daily_changes ON COMMIT DROP AS SELECT m.* FROM daily_candidates m
-			LEFT JOIN run_count_contributions o ON o.namespace=m.namespace AND o.id=m.id
+			LEFT JOIN daily_previous o ON o.namespace=m.namespace AND o.id=m.id
 			WHERE NOT (m.had_previous AND coalesce(m.attempt,1)=coalesce(m.previous_attempt,1)
 				AND m.previous_revision IS NOT NULL AND m.incoming_revision IS NOT NULL AND m.incoming_revision=m.previous_revision
 				AND (` + rank("o") + `,` + key("o") + `)>(` + rank("m") + `,` + key("m") + `))`,
@@ -266,7 +290,7 @@ func reconcileDailyCounts(ctx context.Context, namespace, runID string, now time
 			SELECT p.namespace,to_char(p.started_at AT TIME ZONE 'UTC','YYYY-MM-DD') AS day,
 				p.repository_id,p.workflow_id,coalesce(p.owner,'') AS owner,coalesce(p.repository,'') AS repository,
 				coalesce(p.workflow_path,'') AS workflow_path,` + strings.NewReplacer("conclusion", "p.conclusion", "status", "p.status").Replace(dailyOutcomeSQL) + ` AS outcome,-1::bigint AS delta
-			FROM run_count_contributions p JOIN daily_changes n ON n.namespace=p.namespace AND n.id=p.id
+			FROM daily_previous p JOIN daily_changes n ON n.namespace=p.namespace AND n.id=p.id
 			JOIN daily_run_count_state s ON s.namespace=p.namespace AND s.id='daily-run-counts'
 			WHERE p.started_at>=s.cutoff_at AND p.started_at<s.cutoff_at+interval '504 hours'
 				AND coalesce(p.owner,'')<>'' AND coalesce(p.repository,'')<>'' AND coalesce(p.workflow_path,'')<>''
@@ -303,7 +327,7 @@ func reconcileDailyCounts(ctx context.Context, namespace, runID string, now time
 				CASE WHEN n.started_at>=s.cutoff_at AND n.started_at<s.cutoff_at+interval '504 hours' THEN n.started_at
 					ELSE coalesce(o.retention_at,o.started_at) END
 			FROM daily_changes n JOIN daily_run_count_state s ON s.namespace=n.namespace AND s.id='daily-run-counts'
-			LEFT JOIN run_count_contributions o ON o.namespace=n.namespace AND o.id=n.id
+			LEFT JOIN daily_previous o ON o.namespace=n.namespace AND o.id=n.id
 			ON CONFLICT(namespace,id) DO UPDATE SET ` + dailyReceiptUpdates(columns) + `,
 				retention_at=excluded.retention_at,known_fields=excluded.known_fields,conflict=excluded.conflict`,
 		`DELETE FROM daily_run_counts WHERE namespace=$1 AND total=0`,
@@ -313,7 +337,7 @@ func reconcileDailyCounts(ctx context.Context, namespace, runID string, now time
 	after := ""
 	for {
 		if err := exec(ctx, `CREATE TEMP TABLE daily_run_keys ON COMMIT DROP AS
-			SELECT id FROM runs WHERE namespace=$1 AND ($2='' OR id=$2) AND id>$3 ORDER BY id LIMIT 512`, namespace, runID, after); err != nil {
+			SELECT id FROM daily_reconcile_keys WHERE id>$1 ORDER BY id LIMIT 512`, after); err != nil {
 			return err
 		}
 		last, err := batchEnd(ctx)
@@ -326,6 +350,24 @@ func reconcileDailyCounts(ctx context.Context, namespace, runID string, now time
 			}
 			return maintainDailyCounts(ctx, namespace, now, exec)
 		}
+		// Receipts grow inside this transaction, where autovacuum cannot
+		// refresh their estimates. Bound every comparison to this batch so a
+		// cold-start nested loop cannot repeatedly scan the full receipt set.
+		for _, statement := range []string{
+			"CREATE UNIQUE INDEX ON daily_run_keys(id)",
+			"ANALYZE daily_run_keys",
+			`CREATE TEMP TABLE daily_previous ON COMMIT DROP AS SELECT p.* FROM run_count_contributions p
+				JOIN daily_run_keys k ON k.id=p.id WHERE p.namespace=$1`,
+			"ANALYZE daily_previous",
+		} {
+			var args []any
+			if strings.Contains(statement, "$1") {
+				args = []any{namespace}
+			}
+			if err := exec(ctx, statement, args...); err != nil {
+				return err
+			}
+		}
 		for index, statement := range statements {
 			var args []any
 			if strings.Contains(statement, "$1") {
@@ -336,6 +378,9 @@ func reconcileDailyCounts(ctx context.Context, namespace, runID string, now time
 			}
 		}
 		if err := exec(ctx, `DROP TABLE daily_run_keys`); err != nil {
+			return err
+		}
+		if err := exec(ctx, `DROP TABLE daily_previous`); err != nil {
 			return err
 		}
 		after = last

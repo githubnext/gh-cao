@@ -554,13 +554,14 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 	if err := w.restoreValuePublications(ctx); err != nil {
 		return State{}, err
 	}
-	if err := w.reconcileDaily(ctx); err != nil {
-		return State{}, err
-	}
 	// Autovacuum cannot analyze uncommitted replacement rows or partitioned parents.
-	// Refresh estimates before integrity joins can choose quadratic cold-start plans.
+	// Refresh estimates before reconciliation and integrity joins can choose
+	// quadratic cold-start plans.
 	if _, err := w.tx.Exec(ctx, "SELECT cao_analyze_native()"); err != nil {
 		return State{}, fmt.Errorf("refresh native statistics: %w", err)
+	}
+	if err := w.reconcileDaily(ctx); err != nil {
+		return State{}, err
 	}
 	if err := w.reconcileCollectionDecisions(ctx); err != nil {
 		return State{}, err
@@ -615,12 +616,27 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 		}
 	}
 	clockSources = append(clockSources, "SELECT max(greatest(as_of,retrieved_at)) AS instant FROM cao_quality WHERE namespace=$1")
-	if err := w.tx.QueryRow(ctx, "SELECT coalesce(max(instant),'epoch'::timestamptz) FROM ("+strings.Join(clockSources, " UNION ALL ")+") AS clocks", w.store.namespace).Scan(&w.evaluatedAt); err != nil {
-		return State{}, err
+	var latest *time.Time
+	// Keep partitioned-source plans independent as the daily horizon grows.
+	for _, statement := range clockSources {
+		var instant *time.Time
+		if err := w.tx.QueryRow(ctx, statement, w.store.namespace).Scan(&instant); err != nil {
+			return State{}, err
+		}
+		if instant != nil && (latest == nil || instant.After(*latest)) {
+			latest = instant
+		}
+	}
+	w.evaluatedAt = time.Unix(0, 0).UTC()
+	if latest != nil {
+		w.evaluatedAt = latest.UTC()
 	}
 	// Keep the source clock even when its latest event is a discarded copy.
 	if _, err := w.tx.Exec(ctx, auditCurationStatement(), w.store.namespace); err != nil {
 		return State{}, fmt.Errorf("curate native audits before publication: %w", err)
+	}
+	if err := w.capRuns(ctx); err != nil {
+		return State{}, err
 	}
 	state := State{Ready: true, DataRevision: dataRevision, EvaluatedAt: w.evaluatedAt.UTC(), Counts: map[string]int{}}
 	for _, source := range tableNames() {

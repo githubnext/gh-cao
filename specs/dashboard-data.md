@@ -648,7 +648,9 @@ canonical snapshot. It SHALL NOT replace `runs`, change existing exact Run or
 linked-detail retention, evict evidence, or create daily aggregates. This is the
 incremental sampling and PostgreSQL bundle-persistence portion of
 [the three-tier proposal](../adr/three-tier-operational-storage.md), not an
-implementation of its hot-tier eviction, daily contributions, or online reservoir.
+implementation of the entire proposed three-tier architecture or online reservoir.
+PostgreSQL's independently enforced capacity boundary is specified in §37;
+additive daily contributions are specified in §72.2.
 
 Selection SHALL execute inside the canonical worker/storage query boundary, or
 PostgreSQL's canonical publication transaction, before consumer filters, joins,
@@ -3412,6 +3414,31 @@ await navigator.storage.persist();
 
 Correctness MUST NOT depend on persistent storage being granted.
 
+Native PostgreSQL canonical publication SHALL cap the namespace's retained
+Run subtrees at 200,000 rows per Run-owned source and 256 MiB of combined
+logical typed-row bytes. Byte accounting uses 64 bytes plus the column count
+per row and the UTF-8 text byte lengths of its typed column values; it is a
+logical resource envelope, not a physical disk, transaction-peak, or RSS limit.
+Query resource guards SHALL NOT be raised to accommodate larger history.
+
+After reconciling additive daily contributions, a write SHALL evict the oldest
+complete Run subtrees atomically until the newest retained prefix fits every
+source and byte boundary. Run time, followed by bytewise Run identity, SHALL
+determine deterministic newest-first ordering regardless of execution status.
+Complete means relationship-complete, not necessarily execution-completed.
+A write that cannot fit the newest subtree SHALL fail and roll back instead of
+silently discarding it; durable execution/admission/queue state is not canonical
+Run detail and SHALL remain protected independently.
+Snapshot ingestion, sparse admission, and conclusion publication SHALL enforce
+the same boundary under the namespace writer lock.
+
+Capacity eviction SHALL preserve structural inventory, independent Operational
+Value evidence, durable operational state, and daily contribution receipts and
+counters. Evicted source coverage SHALL be partial; statistical publication
+SHALL sample the retained population without claiming valid full-population
+weights. Subsequent authoritative replay SHALL not displace newer Runs with
+older subtrees or count surviving daily contributions twice.
+
 ---
 
 # 38. Quota Failure
@@ -4743,10 +4770,10 @@ observation evidence only for cleanup, never as an execution-start date.
 Backfill SHALL checkpoint bounded batches atomically with their receipts and
 resume without double counting. Existing databases cannot reconstruct
 already-evicted history: backfill coverage SHALL remain partial and describe
-available evidence rather than claim historical completeness. Sampling,
-hot-tier limits, and full scope-level evidence reconciliation from the
-[three-tier proposal](../adr/three-tier-operational-storage.md) remain separate
-work.
+available evidence rather than claim historical completeness. Sampling (§5.1.1)
+and native capacity limits (§37) remain independently enforced contracts, not
+new aggregate metrics. Full scope-level evidence reconciliation from the
+[three-tier proposal](../adr/three-tier-operational-storage.md) remains separate work.
 
 ### Daily run-count conformance
 

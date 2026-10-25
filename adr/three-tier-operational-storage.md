@@ -10,8 +10,10 @@ pass. The separately specified [daily run-count layer](../specs/dashboard-data.m
 implements an initial additive slice, migrates `workflow-runtime-health-summary`
 the Runs daily chart, and the repository run-volume chart, and applies three-week logical aggregate eviction with
 replay fencing across browser IndexedDB, Activity SQLite, and hosted PostgreSQL.
-It does not implement the remaining metrics, sampling, hot-tier limits, or
-native weekly aggregate partitions.
+It does not implement the remaining metrics or native weekly aggregate
+partitions. Independently implemented [statistical sampling](../specs/dashboard-data.md#511-independent-statistical-run-projection)
+and [native Run-subtree capacity](../specs/dashboard-data.md#37-storage-quota)
+do not make this full proposal implemented or relax its remaining gates.
 
 In particular, this proposal conflicts with the current
 [dashboard data specification](../specs/dashboard-data.md): Section 5 retains
@@ -43,7 +45,7 @@ The current architecture offers reusable seams, but not this three-tier model:
 | `dashboard/site/src/data/storage/sqlite-indexeddb.js` | SQLite implementation of the canonical IndexedDB storage subset. |
 | `dashboard/site/src/data/storage/retention.js` | Browser Run summaries have no time expiry; linked detail defaults to seven days; byte capping removes whole run subtrees. No statistical tier. |
 | `activity/sqlite-retention.mjs` | SQLite defaults to 30-day Run summaries and seven-day detail, independently of browser defaults. |
-| `server/internal/ingest/`, `dashboardstore/`, and `postgresx/` | Go ingestion and native relational PostgreSQL query/storage boundaries; atomic publication and revision state. |
+| `server/internal/ingest/`, `dashboardstore/`, and `postgresx/` | Go ingestion and native relational PostgreSQL query/storage boundaries; atomic publication and revision state; oldest-first complete-subtree capacity eviction preserves fresh Runs and independent daily counts. |
 | `server/spec/storage.tsp` and its emitter | Source of generated PostgreSQL schema, not hand-edited SQL. |
 | `dashboard/site/dashboard.json` and `dashboard-fragments/` | Composed Dashboard Language queries, including Subject, Objective, and Acceptance contracts. |
 | `dashboard/site/src/data/queries/` and `internal/dashboardquery/` | Existing declarative query execution boundaries; no component-side query replacement. |

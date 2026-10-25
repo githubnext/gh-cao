@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -100,7 +99,7 @@ func TestPostgresBackfillStress(t *testing.T) {
 	expected := repositories * horizon * runsPerDay
 	state := backfillState(t, ctx, h.data)
 	if !state.Ready || state.Counts["$repositories"] != repositories ||
-		state.Counts["$workflows"] != repositories || state.Counts["$runs"] != expected ||
+		state.Counts["$workflows"] != repositories || state.Counts["$runs"] != min(expected, query.MaxInputRows) ||
 		result.state.QueuedRunTasks != expected {
 		t.Fatalf("incorrect seven-day projection/admissions: counts=%v backfill=%+v expectedRuns=%d",
 			state.Counts, result.state, expected)
@@ -168,7 +167,7 @@ func backfillStressSamples(t *testing.T, ctx context.Context, local *httptest.Se
 	input := queryRequest{}
 	for index, run := range []simulator.HistoricalRun{
 		scenario.History.Run(0, 0),
-		scenario.History.Run(scenario.Repositories-1, horizon*scenario.History.RunsPerDay-1),
+		scenario.History.Run(scenario.Repositories-1, 0),
 	} {
 		name := fmt.Sprintf("stress-sample-%d", index)
 		input.Queries = append(input.Queries, query.Definition{
@@ -182,27 +181,25 @@ func backfillStressSamples(t *testing.T, ctx context.Context, local *httptest.Se
 		t.Fatal(err)
 	}
 	var result queryResponse
-	if scenario.Repositories*horizon*scenario.History.RunsPerDay > query.MaxInputRows {
-		var rejected map[string]string
-		backfillRequest(t, ctx, local, http.MethodPost, "/api/v1/query", body, http.StatusBadRequest, &rejected)
-		if !strings.Contains(rejected["error"], "max input rows") {
-			t.Fatalf("large native query did not fail at the declared resource boundary: %v", rejected)
-		}
-		// The source-size guard intentionally rejects even highly selective
-		// run queries. Keep it intact and verify the bounded repository source.
-		input.Queries = []query.Definition{{Name: "stress-repositories", From: "$repositories",
-			Filter: &query.Filter{Predicates: []query.Predicate{{Field: "id", Equals: "repository:simulator/repo-00001"}}}}}
-		input.SourceNames = []string{"stress-repositories"}
-		body, err = json.Marshal(input)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
 	traceID := backfillRequest(t, ctx, local, http.MethodPost, "/api/v1/query", body, http.StatusOK, &result)
 	for _, name := range input.SourceNames {
 		if len(result.Sources[name].Rows) != 1 {
 			t.Fatalf("native SQL lost boundary run %s", name)
 		}
+	}
+	expected := min(scenario.Repositories*horizon*scenario.History.RunsPerDay, query.MaxInputRows)
+	input = queryRequest{
+		Queries: []query.Definition{{Name: "retained-runs", From: "$runs",
+			Aggregate: &query.Aggregate{Values: []query.AggregateValue{{Field: "id", As: "runs", Reducer: "count"}}}}},
+		SourceNames: []string{"retained-runs"},
+	}
+	body, err = json.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	backfillRequest(t, ctx, local, http.MethodPost, "/api/v1/query", body, http.StatusOK, &result)
+	if rows := result.Sources["retained-runs"].Rows; len(rows) != 1 || fmt.Sprint(rows[0]["runs"]) != fmt.Sprint(expected) {
+		t.Fatalf("bounded retained-run query lost fresh evidence: %+v want=%d", result, expected)
 	}
 	return traceID
 }

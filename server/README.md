@@ -4092,11 +4092,11 @@ compares actual native rows and quality metadata, not only counts.
 
 ### Synthetic enterprise backfill stress
 
-The daily-only `backfill-stress.yml` workflow runs at 04:23 UTC with separate jobs for
+The daily `ci-daily.yml` workflow invokes `backfill-stress.yml` at 06:37 UTC with separate jobs for
 1,000, 10,000, and 50,000 repositories. Every repository has at least
 one synthetic run per day in 14 days of API history; the real backfill admits
-only the configured seven-day window. There are no PR, push, or manual-dispatch
-triggers for the full matrix. Scheduled runs append a combined report and
+only the configured seven-day window. The reusable workflow also supports manual
+dispatch, but has no PR or push trigger. Scheduled runs append a combined report and
 artifact links to the tracking issue; the test jobs remain read-only, and a
 separate reporting job owns issue-write permission. Local runs can select
 more daily runs within the five-million-history-run safety bound.
@@ -4113,14 +4113,85 @@ webhooks through the live Go HTTP handler. It checks every durable run identity,
 rejects out-of-window or duplicate admissions, verifies native row counts and
 bounded native HTTP queries, and requires webhook/backfill overlap and an
 idempotent rerun. At one run per day, the expected totals are 7,000, 70,000,
-and 350,000 runs. This measures lake recovery and historical discovery/
+and 350,000 durable run tasks. Retained canonical detail is capped independently
+at 200,000 Runs (or less under linked-source/byte pressure). This measures lake recovery and historical discovery/
 admission, not `gh aw logs` artifact downloads or run-task worker execution.
 
-The 50,000 case exceeds the native query engine's 200,000-input-row
-guard for runs. The harness asserts that run queries fail at that boundary
-rather than weakening it, then verifies a bounded repository query. Durable
-run-task identities and Postgres ingestion counts still must match the complete
-seven-day dataset.
+The 50,000 case crosses the native query engine's 200,000-input-row boundary.
+Publication evicts oldest complete Run subtrees instead of disabling fresh
+Run queries or raising query guards. The harness verifies recent Runs across
+the fleet and an exact retained-detail count. Durable run-task identities still
+match the complete seven-day discovery dataset; canonical counts describe only
+retained evidence.
+
+#### Monthly agent budget scenario
+
+The same reusable workflow also runs a separate monthly PostgreSQL scenario
+as part of `ci-daily.yml` (daily at 06:37 UTC), or on manual dispatch:
+
+```bash
+# Disposable local PostgreSQL; the test creates and removes a private schema.
+POSTGRES_URL=postgres://postgres@127.0.0.1:5432/cao_test?sslmode=disable \
+  npm run test:stress:monthly-budget
+```
+
+It simulates **30 complete UTC days across 10,000 repositories**, spending at
+most **$25,000 per day**. Run costs are reproducible integer cents drawn from a
+half-normal bell: `$1 + abs(N(0, $1.25))`, rejecting values above $5 rather than
+clipping the tail. The mode is $1; each day stops before its next run would
+exceed the budget, with less than $5 left unused. Every repository runs at least
+once per day. The fixed seed is 42. No agents, inference, or live spending occur.
+USD is fixture accounting used to determine volume, **not a conversion to AIC**;
+canonical AIC and token values are independently synthetic.
+
+The ingestion clock advances through 30 daily snapshots without waiting for
+wall-clock days. Each snapshot streams the observed workload through the
+production native PostgreSQL writer, with a run-owned Audit record per Run
+and the ordinary **30-day Run / seven-day linked-detail retention**.
+The real partition-maintenance path runs at every simulated rollover.
+Independent SQL verifies exact retained identities, daily fleet/run totals and
+decimal AIC sums, structural parents, complete recent audit bundles, no expired
+audit bundles, and no orphan records. Age-expired detail is not replayed into
+later snapshots; capacity-evicted Runs are replayed to prove that old history
+does not displace newer evidence or duplicate daily counts.
+
+After the month, the clock walks one second before and exactly onto the oldest
+retained Run's expiration boundary, repeats maintenance, then advances beyond the last
+Run's retention window. It checks that cutoff days survive until expiration,
+whole expired subtrees disappear, and the database still serves bounded fleet
+queries after all Runs expire. Daily snapshot queries check the native
+Dashboard Language boundary rather than a test-only query implementation.
+
+Production PostgreSQL writes enforce **200,000 rows per Run-owned source and
+256 MiB of combined logical typed-row bytes**. Oldest complete subtrees leave
+atomically while fresh Runs keep arriving. Structural inventory, independent
+Operational Value, operational state, and daily contribution receipts/counters
+are not capacity-evicted. Execution status does not pin disposable canonical
+detail; writes that cannot fit the newest bundle fail and roll back.
+Coverage becomes partial and population sampling weights become invalid rather
+than presenting retained detail as complete history.
+
+Exact retained-Run queries, statistical queries, fleet inventory, and additive
+daily health must remain usable throughout the month. The test never accepts
+query unavailability as a successful pressure response. Unchanged daily
+contribution receipts are skipped during reconciliation instead of repeatedly
+rewriting their counters; expired, unreceipted execution days are excluded before
+contribution updates. Receipt comparisons use indexed, analyzed 512-key snapshots
+to avoid quadratic cold-start joins as receipts grow within a transaction.
+Fresh statistics precede reconciliation, and counts,
+clocks, and capacity measurements use separate source-local plans to avoid
+partition-horizon planner amplification. This is not proof of full-month detail retention,
+browser ingestion, agent concurrency, or GitHub API throughput; the logical
+byte boundary is not a physical disk, transaction-peak, or RSS guarantee.
+
+The gate has a 35-minute deadline and a 512 MiB post-ingestion Go heap cap
+(not an RSS or ingestion-peak guarantee). `monthly-budget.json` includes each
+day's budget ledger, cost histogram, retained counts, revision, boundary state,
+heap measurement, and duration. Actions retains it and the Go log in
+`postgres-monthly-budget-stress`; local output defaults to
+`test-results/monthly-budget-stress/` (override with
+`CAO_MONTHLY_BUDGET_REPORT_DIR`). A failed run without a completed report is
+explicitly incomplete, never passing evidence.
 
 All simulated GitHub traffic is pinned to the exact numeric-loopback
 origin/proxy, and inherited GitHub credentials are removed. A default live
