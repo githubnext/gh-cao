@@ -128,6 +128,13 @@ func (w *Worker) Step(ctx context.Context) (more bool, err error) {
 			if r.Mining != nil && r.Mining.Delivered == "" {
 				w.status.Pending++
 			}
+			if w.mining != nil && r.State == "eligible" && r.Delivered != "" && w.selected(state, r) && r.Mining == nil {
+				if r.MiningCheckedAt.IsZero() {
+					w.status.Pending++
+				} else {
+					w.status.Gaps++
+				}
+			}
 		}
 		w.mu.Unlock()
 		if w.mining != nil && !state.MiningTurn {

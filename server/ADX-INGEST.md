@@ -103,7 +103,7 @@ guarantees are required, do not enable this free-compatible add-on for that data
    go -C server run ./cmd/cao-dashboard adx schema
    ```
 
-   It creates/merges six snapshot and six trace tables, JSON mappings, streaming policies,
+   It creates/merges six snapshot and nine trace tables, JSON mappings, streaming policies,
    seven-day soft-delete retention and deduplicating KQL functions.
    Schema, mappings and projection metadata are generated from `spec/adx.tsp`.
    This command is offline; the runtime never runs DDL. Wait for streaming

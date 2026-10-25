@@ -83,6 +83,9 @@ func Inspect(ctx context.Context, config Config, namespace string) (Status, erro
 			if r.Mining != nil && (r.Mining.State != "ready" || !time.Now().Before(r.Mining.FreshUntil)) {
 				status.Gaps++
 			}
+			if config.MiningEnabled && r.Mining == nil && !r.MiningCheckedAt.IsZero() {
+				status.Gaps++
+			}
 		}
 		status.Degraded = status.Gaps > 0
 		return nil

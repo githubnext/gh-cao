@@ -347,23 +347,26 @@ func (w *Worker) stepMining(ctx context.Context, root *os.Root, state *ledger) (
 		err = checkOutcomeProgress(old, e)
 	}
 	if err == nil {
-		content, marshalErr := json.Marshal(e.Tables)
+		content, marshalErr := json.Marshal(e)
 		if marshalErr != nil {
 			return false, marshalErr
 		}
-		for _, pattern := range builtInSecrets {
-			if pattern.Match(content) {
-				err = errors.New("mining metadata contains unapproved sensitive identifiers")
-			}
+		var fields any
+		if err := decode(content, &fields); err != nil {
+			return false, err
 		}
+		patterns := slices.Clone(builtInSecrets)
 		for _, pattern := range w.spool.config.Policy.RedactPatterns {
-			matched, matchErr := regexp.Match(pattern, content)
+			compiled, matchErr := regexp.Compile(pattern)
 			if matchErr != nil {
 				return false, matchErr
 			}
-			if matched {
-				err = errors.New("mining metadata requires incompatible identifier redaction")
-			}
+			patterns = append(patterns, compiled)
+		}
+		changed := false
+		approvedValue(fields, patterns, &changed)
+		if changed {
+			err = errors.New("mining metadata requires incompatible identifier redaction")
 		}
 	}
 	if err != nil {
