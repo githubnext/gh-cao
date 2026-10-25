@@ -532,6 +532,7 @@ export function verifyCaoRuntime(bundle, repositoryRoot = process.cwd()) {
       'activity/cli/files.mjs',
       'activity/cli/ingestion.mjs',
       'activity/cli/issue-status.mjs',
+      'activity/cli/jsonl-identity.mjs',
       'activity/cli/jsonl.mjs',
       'activity/cli/options.mjs',
       'activity/cli/payloads.mjs',

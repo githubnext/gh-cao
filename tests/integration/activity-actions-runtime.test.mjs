@@ -12,6 +12,7 @@ const repository = "simulator/repo-00001";
 const workflow = ".github/workflows/cao-activity.yml";
 
 function activityFixture(workspace) {
+  const version = JSON.parse(readFileSync(join(root, ".github/workflows/cao.json"), "utf8"))["gh-aw-version"];
   for (const name of ["activity", "dashboard/report", "dashboard/site/src", "dashboard/site/dashboard-fragments",
     "dashboard/site/package.json", "dashboard/site/dashboard.json",
     ".github/workflows/shared", ".github/actions/setup-cao-runtime", workflow, "package.json"]) {
@@ -20,7 +21,7 @@ function activityFixture(workspace) {
     cpSync(join(root, name), destination, { recursive: true });
   }
   cpSync(join(root, "tests/fixtures/actions-runtime/sample.md"), join(workspace, ".github/workflows/sample.md"));
-  writeFileSync(join(workspace, ".github/workflows/sample.lock.yml"), `# gh-aw-metadata: {"compiler_version":"v0.93.1"}
+  writeFileSync(join(workspace, ".github/workflows/sample.lock.yml"), `# gh-aw-metadata: {"compiler_version":"${version}"}
 name: Sample
 on: workflow_dispatch
 jobs:
@@ -30,6 +31,7 @@ jobs:
       - run: echo "Synthetic deterministic agent log"
 `);
   const policy = JSON.parse(readFileSync(join(root, "tests/fixtures/actions-runtime/cao.json"), "utf8"));
+  policy["gh-aw-version"] = version;
   policy["control-plane"].activity = { repositories: [repository] };
   writeFileSync(join(workspace, ".github/workflows/cao.json"), JSON.stringify(policy));
   run("git", ["init", "--quiet", "--initial-branch=main"], { cwd: workspace });
