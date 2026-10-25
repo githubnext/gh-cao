@@ -3,34 +3,6 @@
   "next_category": "dependency installation and caching",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-24T21:51:19Z",
-      "worker_run_id": "40135812264",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40135648060,
-        40134680631,
-        40133840183,
-        40133826166,
-        40133428226,
-        40132380373,
-        40131335329,
-        40131228440,
-        40130294936,
-        40129446894,
-        40127913019,
-        40126757278,
-        40125625633,
-        40124647241,
-        40124625205,
-        40123369506,
-        40122394170,
-        40121780130,
-        40121606358,
-        40121585605
-      ],
-      "outcome": "complete no-op: the 2026-10-24T18:37:58Z to 2026-10-24T21:45:51Z latest-20 completed docs.yml window contained 19 successful and one skipped run, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable. Median execution was 95.0s (p90 104.2s), queue/concurrency time 3.0s (p90 52.6s), build 73.0s (p90 79.6s), deploy 10.0s (p90 10.6s), dependency installation 24.0s (p90 24.0s), and Astro generation 15.0s (p90 15.0s). Seven successful CAO Dashboard producers had build median 16.0s (p90 22.0s). Trusted step metadata verified dashboard-cache hits in all five docs builds because restore succeeded and artifact lookup/download fallback was skipped. Bounded logs for two current-source runs verified exact setup-node npm-cache hits while npm ci still rebuilt 852 packages in 23-24s. This independently confirms the exact dependency-tree cache recommendation, but open issue #19689 already represents the same work and current timing/source evidence has not materially changed from fingerprint docs-exact-node-modules-cache-v1. No duplicate issue was created. The next category is Astro documentation generation."
-    },
-    {
       "evaluated_at": "2026-10-24T22:19:34Z",
       "worker_run_id": "40137862871",
       "category": "Astro documentation generation",
@@ -673,6 +645,13 @@
         40191378068
       ],
       "outcome": "incomplete: the 2026-10-25T12:02:20Z to 2026-10-25T16:01:33Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. All successful runs completed in 15-22 seconds at source SHA c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49. Trusted job and step metadata for latest run 40209673066 confirmed that only schedule-freshness ran (17 seconds; freshness step 14 seconds), while build and deploy were skipped. No successful full build-and-deploy path was present, below the required five comparable successful runs. Therefore full workflow and dashboard/build/deploy median and p90 timings, repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T16:37:25Z",
+      "worker_run_id": "40212369203",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
     }
   ]
 }
