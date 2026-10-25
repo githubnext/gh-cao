@@ -3165,7 +3165,7 @@ no GitHub access: a retained lake is replayed directly.
 
 Enrollment is derived from GitHub App installations. A delivery for a
 repository outside the enrollment set is acknowledged and dropped rather than
-collected. Signed repository creation/unarchive events for a known installation
+collected. Signed repository lifecycle events for a known installation
 may instead queue discovery; they never infer enrollment from payload contents.
 Installation additions and repository discovery are grouped by installation,
 with a two-second coalescing window. Background workers enumerate all pages of
@@ -3176,12 +3176,27 @@ installation when unset).
 
 Installation removals and repository access withdrawals are independently queued,
 then applied by workers with durable erasure work persisted before acknowledgment.
-Repository deletion/archive transitions retain their independent lifecycle updates
-and trigger coalesced inventory projection; deletion alone does not erase retained
-history. No webhook performs GitHub calls, enrollment mutations, or projection
+Repository creation, unarchive, rename, transfer, archive, and deletion events queue
+independent hints that reconcile current authenticated installation coverage.
+Complete discovery removes archived or absent coordinates, persists erasure work
+before withdrawing enrollment, and queues collection of verified active repositories.
+Renamed-away coordinates and archived/deleted repositories are evicted from the
+evidence lake and retained inventory, then removed by canonical projection.
+Delayed or reordered webhooks cannot restore stale names or historical lifecycle
+states. No webhook performs GitHub calls, enrollment mutations, or projection
 inline. Refresh workers persist projection requests before acknowledging work;
 transient inventory failures keep the previous inventory and retain a pending
 refresh for the next projection interval.
+
+Workers also refresh the App's active installation list on startup and every
+hour, then queue the same quota-governed repository reconciliation used
+by webhooks. A shared lease and persisted timestamp coordinate replicas and
+restarts. This repairs missing create/archive/delete/rename or installation
+webhooks without scanning historical runs or recollecting unchanged repositories.
+Force a repository-list repair with `cao-dashboard backfill --repositories-only`;
+the command reports queued refreshes and withdrawals, which collection workers
+then apply. Set `CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL` to a positive Go duration
+such as `30m` or `2h` to override the default `1h` cadence.
 
 Configure the collection App's webhook URL as `/api/github/webhook` and subscribe
 to `push`, `repository`, `installation`, `installation_repositories`, `workflow_run`,
@@ -3227,6 +3242,7 @@ The same binary runs every role:
 | `cao-dashboard serve-hosted` | serve the dashboard and admit webhook deliveries |
 | `cao-dashboard collect` | lease tasks, collect repositories, and project |
 | `cao-dashboard backfill` | cold start: replay the lake, enumerate installations, seed tasks |
+| `cao-dashboard backfill --repositories-only` | force repository-list repair without replaying history; workers apply queued reconciliation |
 | `cao-dashboard backfill --replay-only` | repopulate the database from retained evidence with no GitHub requests |
 | `cao-dashboard doctor` | run a read-only, systematic check-up of Redis, canonical data, queries, and collection |
 | `cao-dashboard otel-smoke` | verify that one live CAO request and, when configured or required, the stable Go runtime metrics are indexed by OpenObserve without reporting credentials or identifiers |
@@ -3354,6 +3370,7 @@ span ID.
 | `CAO_COLLECT_WORKERS` | in-process workers; zero when workers scale separately |
 | `CAO_COLLECT_RATE_LIMIT_FLOOR` | requests reserved per installation |
 | `CAO_COLLECT_PROJECTION_INTERVAL` | minimum interval between projections (default 5 minutes) |
+| `CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL` | repository-list reconciliation cadence as a Go duration (default `1h`); runs on collection workers |
 | `CAO_COLLECT_INVENTORY_LIMIT` | optional cap on enrolled repositories; exceeding it fails the projection |
 | `CAO_COLLECT_RECOVER_DELIVERIES` | replay failed webhook deliveries to close gaps |
 | `CAO_COLLECT_QUEUE_MAX_LENGTH` | admission backpressure limit for outstanding collection tasks (default 200 000); tasks are never trimmed |

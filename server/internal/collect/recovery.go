@@ -22,10 +22,8 @@ const deliveryProgressKey = "collect:delivery-progress"
 // DeliveryReplayer recovers missed events by asking GitHub to redeliver App
 // webhook deliveries.
 //
-// This is the gap-recovery path. Scheduled sweeps of the enrollment set are
-// not used as a routine backstop: polling 100 000 repositories to find the
-// events already recorded in a delivery list costs orders of magnitude more
-// requests.
+// This recovers missing activity events without polling every repository's
+// runs. Periodic repository-list reconciliation independently repairs scope.
 type DeliveryReplayer struct {
 	State    operational.StateStore
 	Metadata operational.CollectionMetadata

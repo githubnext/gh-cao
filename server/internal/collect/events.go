@@ -162,7 +162,7 @@ func parsePushEvent(envelope webhookEnvelope) Intent {
 func parseRepositoryEvent(envelope webhookEnvelope) Intent {
 	state := ""
 	switch envelope.Action {
-	case "created", "unarchived":
+	case "created", "unarchived", "renamed", "transferred":
 		state = "active"
 	case "archived":
 		state = "archived"
@@ -433,18 +433,19 @@ func (a Admitter) admitIssue(ctx context.Context, intent Intent, delivery string
 		return Admission{}, err
 	}
 	if !enrolled || owner != intent.InstallationID {
-		if intent.Kind == IntentRepository && !enrolled &&
-			(intent.Reason == "repository.created" || intent.Reason == "repository.unarchived") {
-			known, err := a.Enrollment.Metadata.HasMember(ctx, installationsKey, strconv.FormatInt(intent.InstallationID, 10))
+		if intent.Kind == IntentRepository && !enrolled {
+			known, err := a.Enrollment.KnownInstallation(ctx, intent.InstallationID)
 			if err != nil {
 				return Admission{}, err
 			}
 			if known {
-				return a.queueScope(ctx, Intent{Kind: IntentEnroll, InstallationID: intent.InstallationID,
-					Reason: intent.Reason}, delivery, ttl)
+				owner = intent.InstallationID
+			} else {
+				return Admission{Kind: IntentIgnore, Reason: "not-enrolled"}, nil
 			}
+		} else {
+			return Admission{Kind: IntentIgnore, Reason: "not-enrolled"}, nil
 		}
-		return Admission{Kind: IntentIgnore, Reason: "not-enrolled"}, nil
 	}
 	task := Task{
 		Repository:       intent.Repository,

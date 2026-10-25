@@ -442,6 +442,13 @@ func (e Enrollment) Installations(ctx context.Context) ([]int64, error) {
 	}
 }
 
+func (e Enrollment) KnownInstallation(ctx context.Context, installation int64) (bool, error) {
+	if installation <= 0 {
+		return false, errors.New("invalid installation identifier")
+	}
+	return e.Metadata.HasMember(ctx, installationsKey, strconv.FormatInt(installation, 10))
+}
+
 // ScanRepositories walks enrolled repositories by cursor so cold start over a
 // very large enrollment set is resumable and never blocks Redis.
 func (e Enrollment) ScanRepositories(ctx context.Context, cursor string, count int) ([]string, string, error) {

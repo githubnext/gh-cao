@@ -8,6 +8,7 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
+	"github.com/githubnext/gh-cao/server/internal/postgresx"
 )
 
 // RepositoryEnumerator keeps installation discovery paginated and quota-governed.
@@ -23,7 +24,7 @@ type ScopeRefresher struct {
 	RepositoryLimit int
 }
 
-func (r ScopeRefresher) discover(ctx context.Context, enrollment Enrollment, installationID int64) error {
+func (r ScopeRefresher) discover(ctx context.Context, enrollment Enrollment, queue Queue, data *postgresx.Store, installationID int64) error {
 	if r.Client == nil {
 		return errors.New("scope refresh requires a GitHub repository enumerator")
 	}
@@ -33,6 +34,7 @@ func (r ScopeRefresher) discover(ctx context.Context, enrollment Enrollment, ins
 	}
 	return enrollment.withMutationLock(ctx, func(ctx context.Context) error {
 		var repositories []string
+		var identifiers []int64
 		count := 0
 		for page := 1; page != 0; {
 			reservation, err := reserveCollectionQuota(ctx, r.Quota, r.QuotaApp, installationID, r.Client)
@@ -62,12 +64,55 @@ func (r ScopeRefresher) discover(ctx context.Context, enrollment Enrollment, ins
 					return fmt.Errorf("normalize discovered repository: %w", err)
 				}
 				repositories = append(repositories, name)
+				identifiers = append(identifiers, item.ID)
 			}
 			page = next
 		}
 		// Publish only a complete successful enumeration. A partial page set
 		// must never enroll repositories or be interpreted as deletion.
-		return enrollment.addRepositories(ctx, installationID, repositories)
+		previous, err := enrollment.RepositoriesForInstallation(ctx, installationID)
+		if err != nil {
+			return err
+		}
+		current := make(map[string]bool, len(repositories))
+		for _, name := range repositories {
+			current[name] = true
+		}
+		var removed []string
+		previousSet := make(map[string]bool, len(previous))
+		for _, name := range previous {
+			previousSet[name] = true
+			if !current[name] {
+				removed = append(removed, name)
+			}
+		}
+		admitter := Admitter{Queue: queue}
+		if err := admitter.queueErasures(ctx, installationID, removed); err != nil {
+			return err
+		}
+		// Admission precedes publication. Discovery collection tasks check
+		// membership under the same mutation lease before running.
+		for _, name := range repositories {
+			if previousSet[name] {
+				continue
+			}
+			if _, err := queue.Enqueue(ctx, Task{Repository: name, InstallationID: installationID,
+				Reason: "repository-discovery"}); err != nil {
+				return err
+			}
+		}
+		if _, err := enrollment.removeRepositories(ctx, installationID, removed); err != nil {
+			return err
+		}
+		if data != nil {
+			if err := data.ClearRepositoryLifecycles(ctx, identifiers); err != nil {
+				return err
+			}
+		}
+		if err := enrollment.addRepositories(ctx, installationID, repositories); err != nil {
+			return err
+		}
+		return nil
 	})
 }
 
@@ -76,7 +121,10 @@ func (w Worker) processRefresh(ctx context.Context, lease Lease) (err error) {
 	defer cancel()
 	task := lease.Task
 	kind := "workflows"
-	if task.Scope != nil {
+	switch {
+	case task.Lifecycle != "":
+		kind = "repository"
+	case task.Scope != nil:
 		kind = string(task.Scope.Kind)
 	}
 	ctx, finish := startRefreshTelemetry(ctx, "worker", kind)
@@ -88,15 +136,46 @@ func (w Worker) processRefresh(ctx context.Context, lease Lease) (err error) {
 		}
 		finish(outcome, err)
 	}()
-	if task.Scope != nil {
+	switch {
+	case task.Lifecycle != "":
+		known, err := w.Enrollment.KnownInstallation(ctx, task.InstallationID)
+		if err != nil {
+			return err
+		}
+		owner, err := w.Enrollment.InstallationFor(ctx, task.Repository)
+		if err != nil {
+			return err
+		}
+		if !known || (owner != 0 && owner != task.InstallationID) {
+			return w.Queue.Complete(ctx, lease)
+		}
+		if err := w.ScopeRefresher.discover(ctx, w.Enrollment, w.Queue, w.Projector.Data, task.InstallationID); err != nil {
+			return err
+		}
+	case task.Scope != nil:
 		if !isScopeIntent(task.Scope.Kind) {
 			return errors.New("unsupported scope refresh kind")
 		}
 		if task.Scope.Kind == IntentEnroll {
-			if err := w.ScopeRefresher.discover(ctx, w.Enrollment, task.InstallationID); err != nil {
+			if err := w.ScopeRefresher.discover(ctx, w.Enrollment, w.Queue, w.Projector.Data, task.InstallationID); err != nil {
 				return err
 			}
 		} else {
+			if task.Reason == "repository-list-refresh" {
+				client, ok := w.ScopeRefresher.Client.(InstallationEnumerator)
+				if !ok {
+					return errors.New("installation withdrawal requires current App enumeration")
+				}
+				current, err := client.ListInstallations(ctx)
+				if err != nil {
+					return err
+				}
+				for _, installation := range current {
+					if installation.ID == task.InstallationID {
+						return w.Queue.Complete(ctx, lease)
+					}
+				}
+			}
 			admitter := Admitter{Enrollment: w.Enrollment, Queue: w.Queue}
 			if _, err := admitter.admitIntent(ctx, Intent{
 				Kind: task.Scope.Kind, InstallationID: task.InstallationID,
@@ -105,7 +184,7 @@ func (w Worker) processRefresh(ctx context.Context, lease Lease) (err error) {
 				return err
 			}
 		}
-	} else {
+	default:
 		owner, err := w.Enrollment.InstallationFor(ctx, task.Repository)
 		if err != nil {
 			return err
@@ -122,44 +201,14 @@ func (w Worker) processRefresh(ctx context.Context, lease Lease) (err error) {
 	return w.Queue.Complete(ctx, lease)
 }
 
-func (w Worker) processRepositoryLifecycle(ctx context.Context, lease Lease) (err error) {
-	ctx, finish := startRefreshTelemetry(ctx, "worker", "repository")
-	recordRefreshQueueAge(ctx, lease.Task, "repository")
-	defer func() {
-		outcome := "completed"
-		if err != nil {
-			outcome = "failed"
-		}
-		finish(outcome, err)
-	}()
-	if w.Projector.Data == nil {
-		return errors.New("repository lifecycle update requires Postgres")
-	}
-	task := lease.Task
-	if err := w.Projector.Data.UpdateRepositoryLifecycle(ctx, task.RepositoryID, task.Repository, task.Lifecycle, task.EnqueuedAt); err != nil {
-		return err
-	}
-	if err := w.Projector.RequestProjection(ctx); err != nil {
-		return err
-	}
-	var revision int64
-	if w.OnProjection != nil {
-		state, err := w.Projector.Data.State(ctx)
-		if err != nil {
-			return err
-		}
-		revision = state.Revision
-	}
-	if err := w.Queue.Complete(ctx, lease); err != nil {
-		return err
-	}
-	if w.OnProjection != nil {
-		w.OnProjection(revision)
-	}
-	return nil
-}
-
 func (w Worker) retryRefresh(ctx context.Context, lease Lease, cause error) {
+	if errors.Is(cause, ErrEnrollmentMutationBusy) {
+		lease.Task.NotBefore = time.Now().UTC().Add(backoff(max(lease.Task.Attempt, 1)))
+		if err := w.Queue.RequeueBlocked(ctx, lease); err != nil {
+			workerLog.Printf("blocked refresh requeue failed")
+		}
+		return
+	}
 	var unavailable *githubquota.UnavailableError
 	if errors.As(cause, &unavailable) {
 		lease.Task.NotBefore = unavailable.RetryAt

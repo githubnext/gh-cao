@@ -119,9 +119,14 @@ func TestPushRefreshIsIndependentOfRunCollectionAndRechecksScope(t *testing.T) {
 }
 
 type refreshEnumerator struct {
-	pages    map[int][]githubapp.Repository
-	failPage int
-	calls    int
+	pages         map[int][]githubapp.Repository
+	installations []githubapp.Installation
+	failPage      int
+	calls         int
+}
+
+func (e *refreshEnumerator) ListInstallations(context.Context) ([]githubapp.Installation, error) {
+	return e.installations, nil
 }
 
 func (e *refreshEnumerator) QuotaRateLimit(context.Context, int64) (githubquota.ResponseQuota, error) {
@@ -156,8 +161,8 @@ func TestScopeDiscoveryIsQueuedCoalescedPaginatedAndVerified(t *testing.T) {
 	w.ScopeRefresher = ScopeRefresher{Client: client, Quota: quota, QuotaApp: "test-app"}
 	admitter := Admitter{Queue: w.Queue, Enrollment: w.Enrollment}
 	for i, repo := range []string{"octo/first", "octo/second"} {
-		payload := []byte(fmt.Sprintf(`{"action":"created","installation":{"id":7},"repository":{"id":%d,"full_name":%q}}`, i+1, repo))
-		result, err := admitter.AdmitDelivery(ctx, "repository", payload, fmt.Sprintf("create-%d", i), time.Hour)
+		payload := []byte(fmt.Sprintf(`{"action":"added","installation":{"id":7},"repositories_added":[{"full_name":%q}]}`, repo))
+		result, err := admitter.AdmitDelivery(ctx, "installation_repositories", payload, fmt.Sprintf("create-%d", i), time.Hour)
 		if err != nil || result.Enqueued != (i == 0) {
 			t.Fatalf("repository discovery admission: %+v, %v", result, err)
 		}
@@ -195,7 +200,7 @@ func TestScopeDiscoveryDoesNotPublishPartialEnumeration(t *testing.T) {
 				1: {{FullName: "octo/first"}, {FullName: "octo/second"}}, 2: {},
 			}, failPage: 2}
 			r := ScopeRefresher{Client: client, Quota: &fakeRunQuota{known: true}, QuotaApp: "test", RepositoryLimit: limit}
-			if err := r.discover(t.Context(), w.Enrollment, 7); err == nil {
+			if err := r.discover(t.Context(), w.Enrollment, w.Queue, nil, 7); err == nil {
 				t.Fatal("failed or oversized discovery reported success")
 			}
 			if enrolled, _ := w.Enrollment.Enrolled(t.Context(), "octo/first"); enrolled {
