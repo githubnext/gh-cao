@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 // TestWorkerCollectsAndProjects exercises the whole collection loop against
@@ -25,7 +27,8 @@ func TestWorkerCollectsAndProjects(t *testing.T) {
 	}
 	// Seed the lake with a published snapshot so projection has real evidence
 	// to activate; the fake CLI stands in for acquiring it.
-	copyTree(t, publishedSnapshot, lake.Directory)
+	snapshot, _ := testutil.RecentSnapshot(t, publishedSnapshot)
+	copyTree(t, snapshot, lake.Directory)
 
 	enrollment := Enrollment{Metadata: store, Leases: store}
 	if err := enrollment.AddRepositories(ctx, 7, []string{"octo/api"}); err != nil {

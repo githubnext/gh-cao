@@ -12,6 +12,7 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 func ingestTestStore(t *testing.T) (context.Context, *postgresx.Store) {
@@ -58,16 +59,17 @@ func ingestTestStoreConfig(t *testing.T) (context.Context, *postgresx.Store, *pg
 func TestFreshNativeIngestionReuseForceAndQueries(t *testing.T) {
 	ctx, store := ingestTestStore(t)
 	options := Options{DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json"}
-	first, err := Run(ctx, store, "../../testdata/deployed-subset", options)
+	directory, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
+	first, err := Run(ctx, store, directory, options)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := Run(ctx, store, "../../testdata/deployed-subset", options)
+	second, err := Run(ctx, store, directory, options)
 	if err != nil || second.Revision != first.Revision || second.DataRevision != first.DataRevision {
 		t.Fatalf("unchanged revision advanced: %+v %v", second, err)
 	}
 	options.Force = true
-	third, err := Run(ctx, store, "../../testdata/deployed-subset", options)
+	third, err := Run(ctx, store, directory, options)
 	if err != nil || third.Revision != first.Revision+1 || third.DataRevision != first.DataRevision {
 		t.Fatalf("force semantics changed: %+v %v", third, err)
 	}

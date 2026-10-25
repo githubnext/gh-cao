@@ -14,6 +14,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 func TestMergeBenchmarkDefinitionsDeclaresDashboardNames(t *testing.T) {
@@ -275,7 +276,7 @@ func TestBenchmarkQueriesWithDeployedSubset(t *testing.T) {
 	}()
 	databasePath := "../../../dashboard/site/src/data/queries/database.json"
 	dashboardPath := "../../../dashboard/site/src/agent/queries.generated.json"
-	source := "../../testdata/deployed-subset"
+	source, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
 	report, err := benchmarkQueries(ctx, store, source, databasePath, dashboardPath, []string{"repository-activity"})
 	if err != nil {
 		t.Fatal(err)

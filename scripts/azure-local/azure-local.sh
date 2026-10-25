@@ -361,8 +361,9 @@ start() {
   CAO_DATABASE_ADMIN_URL="$CAO_POSTGRES_URL" run_logged "operational database bootstrap" operational-database-bootstrap.log \
     "$APP_DIR/cao-dashboard" database bootstrap --store operational --namespace "${namespace}-operational"
 
+  node "$ROOT/tests/e2e/dashboard-server-fixture.mjs" "$STATE_DIR/fixture"
   run_logged "fixture ingestion" ingest.log "$APP_DIR/cao-dashboard" ingest \
-    --source "$ROOT/server/testdata/deployed-subset" \
+    --source "$STATE_DIR/fixture" \
     --redis-namespace "$namespace" \
     --database-queries "$ROOT/dashboard/site/src/data/queries/database.json"
 

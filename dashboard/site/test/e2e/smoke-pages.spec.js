@@ -118,7 +118,7 @@ test('mobile shell keeps Overview navigation in the hamburger menu', async ({ pa
 
 
 
-test('Ingestion shows shard activity dates and retained transactions', async ({ page }) => {
+test('Ingestion shows daily run counts, shard activity dates and retained transactions', async ({ page }) => {
   const documentModel = authoritativeDashboard;
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.setContent(`
@@ -162,6 +162,14 @@ test('Ingestion shows shard activity dates and retained transactions', async ({ 
       }));
       const sources = {
         transactions: { source: 'transactions', rows, metadata },
+        'indexing-daily-run-counts': {
+          source: 'indexing-daily-run-counts',
+          rows: [
+            { date: '2026-09-11', runs: 6050 },
+            { date: '2026-09-12', runs: 6950 }
+          ],
+          metadata
+        },
         'indexing-ingestion-runs': {
           source: 'indexing-ingestion-runs',
           rows: [
@@ -206,14 +214,16 @@ test('Ingestion shows shard activity dates and retained transactions', async ({ 
   const root = page.locator('.dashboard-root');
   const transactionsPage = page.locator('[data-page-id="indexing"]');
   const view = transactionsPage.locator('[data-view-id="transaction-entries"]');
-  await expect(transactionsPage.locator('[data-view-id]')).toHaveCount(5);
+  await expect(transactionsPage.locator('[data-view-id]')).toHaveCount(6);
   await expect(transactionsPage.getByRole('heading', { name: 'Local database' })).toHaveCount(0);
-  await transactionsPage.locator('[data-view-id="indexing-workflow-runs"]').scrollIntoViewIfNeeded();
+  const dailyRuns = transactionsPage.locator('[data-view-id="indexing-daily-run-counts"]');
+  await dailyRuns.scrollIntoViewIfNeeded();
   await expect(transactionsPage.locator('[data-chart-widget="bar"]')).toHaveCount(0);
+  await expect(dailyRuns.locator('[data-chart-widget="line"] .line-chart-point')).toHaveCount(2);
   await expect(transactionsPage.locator('[data-chart-widget="scatter"] .scatter-chart-point')).toHaveCount(2);
   await expect(transactionsPage.locator('[data-chart-widget="horizontal-bar"]')).toHaveCount(1);
   await expect(transactionsPage.locator('[data-view-id="ingestion-queue-sizes"]')).toHaveCount(0);
-  await transactionsPage.getByRole('button', { name: 'Cards' }).click();
+  await transactionsPage.getByRole('button', { name: 'Cards', exact: true }).click();
   await expect(view).toBeVisible();
   await expect(view.locator('.entity-card-list-card')).toHaveCount(100);
   await expect(view.locator('.entity-card-list-card').getByText('Committed records').first()).toBeVisible();
@@ -250,8 +260,8 @@ test('Runs renders a last-week stacked area graph above its responsive table and
           source: 'runs-daily-conclusions',
           metadata,
           rows: [
-            { day: '2026-09-10', 'run-conclusion': 'failure', runs: 50 },
-            { day: '2026-09-10', 'run-conclusion': 'success', runs: 50 }
+            { day: '2026-09-10', 'runtime-health': 'Failed', runs: 50 },
+            { day: '2026-09-10', 'runtime-health': 'Successful', runs: 50 }
           ]
         },
         'runs-table': {
@@ -332,8 +342,8 @@ test('Runs renders a last-week stacked area graph above its responsive table and
   await expect(view).toHaveCount(1);
   await expect(areaGraph.locator('[data-chart-widget="area"]')).toBeVisible();
   await expect(areaGraph.locator('.area-chart-area')).toHaveCount(2);
-  await expect(areaGraph.locator('.chart-legend-area')).toContainText('failure');
-  await expect(areaGraph.locator('.chart-legend-area')).toContainText('success');
+  await expect(areaGraph.locator('.chart-legend-area')).toContainText('Failed');
+  await expect(areaGraph.locator('.chart-legend-area')).toContainText('Successful');
   await expect(areaGraph.locator('.line-chart-y-labels span')).toHaveText(['100', '50', '0']);
   await expect(areaGraph.locator('[data-chart-widget="area"]')).toHaveAttribute('style', '--line-chart-left: 7%;');
   const areaGraphHeadingBox = await areaGraph.getByRole('heading', { name: 'Runs in the last week' }).boundingBox();

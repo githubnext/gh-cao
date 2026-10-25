@@ -35,7 +35,8 @@ const databaseQueries = "../../../dashboard/site/src/data/queries/database.json"
 func TestProfilesProduceIdenticalCanonicalRecords(t *testing.T) {
 	_, ctx := integrationStore(t)
 	actionsData := integrationPostgres(t, ctx)
-	actions, err := ingest.Run(ctx, actionsData, publishedSnapshot, ingest.Options{
+	snapshot, _ := testutil.RecentSnapshot(t, publishedSnapshot)
+	actions, err := ingest.Run(ctx, actionsData, snapshot, ingest.Options{
 		DatabaseQueriesPath: databaseQueries, Force: true,
 	})
 	if err != nil {
@@ -51,7 +52,7 @@ func TestProfilesProduceIdenticalCanonicalRecords(t *testing.T) {
 	if err := lake.Prepare(); err != nil {
 		t.Fatal(err)
 	}
-	copyTree(t, publishedSnapshot, lake.Directory)
+	copyTree(t, snapshot, lake.Directory)
 	populated, err := lake.Populated()
 	if err != nil {
 		t.Fatal(err)

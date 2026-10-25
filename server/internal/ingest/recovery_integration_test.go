@@ -8,20 +8,14 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 func TestEmptyPostgresRebuildAndFailedIngestionPreservesCurrentData(t *testing.T) {
 	ctx, store := ingestTestStore(t)
-	directory := scratchDirectory(t)
+	directory, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
 	options := Options{DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json"}
-	for _, name := range []string{"inventory-sources.json", "payload-hashes.json", "gh-aw-logs-runs/subset.jsonl", "gh-aw-logs-records/subset.jsonl"} {
-		// #nosec G304 -- the fixture root and filenames are fixed test inputs.
-		content, err := os.ReadFile(filepath.Join("../../testdata/deployed-subset", name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		writeTestFile(t, filepath.Join(directory, name), content)
-	}
 	before, err := Run(ctx, store, directory, options)
 	if err != nil {
 		t.Fatal(err)
