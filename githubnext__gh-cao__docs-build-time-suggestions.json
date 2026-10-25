@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-25T05:53:37Z",
-      "worker_run_id": "40167001504",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        40166830209,
-        40166061966,
-        40166036821,
-        40165312701,
-        40164017061,
-        40163715585,
-        40163691760,
-        40163351023,
-        40162704738,
-        40161878653,
-        40161877748,
-        40160388225,
-        40159514078,
-        40159307325,
-        40158331704,
-        40156711317,
-        40156184349,
-        40155438559,
-        40155269146,
-        40155067344
-      ],
-      "outcome": "incomplete: the 2026-10-25T02:36:06Z to 2026-10-25T05:49:31Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. At least six successful full build-and-deploy paths were identified, and partial trusted job metadata verified dashboard-cache hits on the sampled full builds because restore succeeded in 1-2 seconds and artifact lookup/download fallback was skipped. However, GitHub CLI requests hit an OS-thread resource limit (failed to create a new OS thread) before the newest docs run, complete dashboard producer job/step timings, median and p90 comparison, and open-issue duplicate check could be collected. Per resource-limit policy, further GitHub API work stopped. The reusable dashboard generation evaluation is incomplete, no recommendation was made, and the category remains next."
-    },
-    {
       "evaluated_at": "2026-10-25T06:20:00Z",
       "worker_run_id": "40169154636",
       "category": "reusable dashboard generation",
@@ -631,6 +603,34 @@
         40219292338
       ],
       "outcome": "complete no-op: the 2026-10-25T18:01:54Z to 2026-10-25T21:01:41Z latest-20 completed docs.yml window contained 17 successful, two skipped, and one action-required run, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable across workflow_run, push, and schedule triggers and source SHAs 8747c2d93542fda9c390fe1697fc3982ab616e85 and 12d37e623aa07b22cf18375ad81d8745396c4417. Median execution excluding queue/concurrency wait was 96.0s (p90 104.2s); full elapsed workflow time was 107.0s (p90 152.4s), build was 73.0s (p90 79.2s), deploy was 11.0s (p90 11.6s), and Astro documentation generation was 12.0s (p90 14.6s). The five successful CAO Dashboard producers in its latest-20 window had build median 21.0s (p90 23.8s). Trusted step metadata verified dashboard-cache hits in all five docs builds because restore succeeded and artifact fallback was skipped; a bounded log for current-source run 40230378711 confirmed exact npm and dashboard cache hits while npm ci rebuilt 852 packages in 18s. Push run 40227579159 was disclosed as a concurrency outlier with about 101s of pre-build wait. No Astro recommendation was made: even eliminating the entire 12.0s median Astro step would save only 12.5% of the 96.0s median execution and far less than 60 seconds, so no concrete Astro-only change meets the actionability threshold without weakening correctness. The next category is reusable dashboard generation."
+    },
+    {
+      "evaluated_at": "2026-10-25T21:34:32Z",
+      "worker_run_id": "40235930088",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        40235958621,
+        40235023929,
+        40233502936,
+        40232332298,
+        40231334641,
+        40230422626,
+        40230378711,
+        40229313680,
+        40228780624,
+        40228522454,
+        40227579159,
+        40227569956,
+        40226390200,
+        40225385067,
+        40225377985,
+        40224002830,
+        40223060800,
+        40222213503,
+        40222032476,
+        40221196908
+      ],
+      "outcome": "incomplete: the 2026-10-25T18:25:43Z to 2026-10-25T21:32:30Z latest-20 completed docs.yml window contained 17 successful, two skipped, and one action-required run, with no failed or cancelled runs. Trusted job and step metadata identified only four successful full build-and-deploy paths: workflow_run runs 40230378711 and 40225377985, push run 40227579159, and schedule run 40227569956. Other successful runs freshness-checked and skipped build/deploy; run 40230422626 also disclosed 65 seconds of concurrency wait before its freshness-only execution. This is below the required five comparable successful full runs, so current full-workflow and dashboard/build/deploy median and p90 timings, repeated-cost analysis, cache-effectiveness verification, dashboard-producer comparison, and a complete reusable dashboard generation evaluation could not be produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
