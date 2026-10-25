@@ -1,35 +1,7 @@
 {
   "source_sha": "c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-24T13:19:29Z",
-      "worker_run_id": "40097460702",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40096377060,
-        40095336707,
-        40095180182,
-        40094172501,
-        40092270738,
-        40091197228,
-        40090698437,
-        40090314243,
-        40089485174,
-        40088202008,
-        40087201749,
-        40086650991,
-        40086356094,
-        40085620594,
-        40085544587,
-        40084262204,
-        40083295947,
-        40082492096,
-        40081734662,
-        40081732363
-      ],
-      "outcome": "incomplete: the 2026-10-24T09:23:02Z to 2026-10-24T13:01:49Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted run metadata plus trusted job and step evidence from the overlapping prior evaluation established only three successful build-and-deploy paths: schedule 40085620594 at source SHA 22a3655f4893cfa0c2ea0b846c5a04a693c39f46, push 40085544587 at source SHA a31193495a7499e7f79752280964f86092f6ba9a, and schedule 40081732363 at source SHA 1b5e3cd85fcf6f4c9b4419414839f4371b445389. Workflow_run 40081734662 waited behind the concurrent publication, then freshness-checked and skipped build and deploy; every other successful run completed in 15 seconds or less and cannot contain the observed 75-99 second build paths. This is below the required minimum of five comparable successful runs, so workflow/job median and p90 timings, repeated trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-24T13:35:38Z",
       "worker_run_id": "40098589577",
@@ -716,6 +688,34 @@
       "category": "scheduling, concurrency, and avoidable rebuilds",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded latest-20 completed docs.yml workflow-run request returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T08:55:39Z",
+      "worker_run_id": "40178330980",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40178289984,
+        40177775204,
+        40177718968,
+        40176738389,
+        40175042922,
+        40174161065,
+        40173709137,
+        40172904090,
+        40172659121,
+        40171981469,
+        40171806024,
+        40170970851,
+        40170958871,
+        40169581954,
+        40167689596,
+        40167572854,
+        40166830209,
+        40166061966,
+        40166036821,
+        40165312701
+      ],
+      "outcome": "complete no-op: the 2026-10-25T05:22:38Z to 2026-10-25T08:51:44Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable across workflow_run, push, and schedule triggers. Median execution excluding queue/startup wait was 100.0s (p90 107.6s); full elapsed workflow time was 104.0s (p90 111.2s), queue/startup time 3.0s (p90 4.0s), build 63.0s (p90 80.6s), and deploy 11.0s (p90 31.2s). Ten successful CAO Dashboard producers had build median 20.5s (p90 25.3s). Trusted step metadata verified dashboard-cache hits in all five docs builds because restore succeeded and artifact lookup/download fallback was skipped; bounded logs on two current-source runs also confirmed exact npm and dashboard cache hits. Twelve successful freshness-only runs avoided build and deploy. Same-SHA full builds followed distinct push and dashboard-publication events, so the window showed no repeated avoidable rebuild. No recommendation was made: freshness checks cost about 8-11s and no repeated scheduling or concurrency waste could save at least 60s or 15% of median execution without risking freshness. The next category is dependency installation and caching."
     }
   ]
 }
