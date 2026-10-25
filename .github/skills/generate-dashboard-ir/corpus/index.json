@@ -7,6 +7,11 @@
       "dashboard": "examples/failed-run-investigation.dashboard.yml"
     },
     {
+      "id": "secret-leak-review-attainment",
+      "metadata": "examples/secret-leak-review-attainment.json",
+      "dashboard": "examples/secret-leak-review-attainment.dashboard.yml"
+    },
+    {
       "id": "triage-review-readiness",
       "metadata": "examples/triage-review-readiness.json",
       "dashboard": "examples/triage-review-readiness.dashboard.yml"
