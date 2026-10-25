@@ -1,14 +1,7 @@
 {
-  "source_sha": "56ba8746ff35a7475d8154ed5145a38ff7f142a1",
-  "next_category": "reusable dashboard generation",
+  "source_sha": "572db6c15c028154d1ca107540e1e0d29441fb25",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-24T11:34:34Z",
-      "worker_run_id": "40090269811",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded latest-completed docs.yml workflow-run request returned an API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and build/deploy job median and p90 timings, dashboard-producer comparison, step-level cost analysis, trusted cache-hit verification, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-24T12:26:39Z",
       "worker_run_id": "40093753676",
@@ -695,6 +688,34 @@
         40155067344
       ],
       "outcome": "incomplete: the 2026-10-25T02:36:06Z to 2026-10-25T05:49:31Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. At least six successful full build-and-deploy paths were identified, and partial trusted job metadata verified dashboard-cache hits on the sampled full builds because restore succeeded in 1-2 seconds and artifact lookup/download fallback was skipped. However, GitHub CLI requests hit an OS-thread resource limit (failed to create a new OS thread) before the newest docs run, complete dashboard producer job/step timings, median and p90 comparison, and open-issue duplicate check could be collected. Per resource-limit policy, further GitHub API work stopped. The reusable dashboard generation evaluation is incomplete, no recommendation was made, and the category remains next."
+    },
+    {
+      "evaluated_at": "2026-10-25T06:20:00Z",
+      "worker_run_id": "40169154636",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        40167689596,
+        40167572854,
+        40166830209,
+        40166061966,
+        40166036821,
+        40165312701,
+        40164017061,
+        40163715585,
+        40163691760,
+        40163351023,
+        40162704738,
+        40161878653,
+        40161877748,
+        40160388225,
+        40159514078,
+        40159307325,
+        40158331704,
+        40156711317,
+        40156184349,
+        40155438559
+      ],
+      "outcome": "complete no-op: the 2026-10-25T02:41:51Z to 2026-10-25T06:02:35Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Seven successful full build-and-deploy paths were comparable across push, schedule, and workflow_run triggers. Median execution excluding queue/concurrency wait was 97.0s (p90 116.4s), queue/concurrency time was 3.0s (p90 21.0s), build was 74.0s (p90 80.0s), and deploy was 11.0s (p90 25.6s). Ten successful CAO Dashboard producers in the latest-20 dashboard window had build median 19.5s (p90 25.3s); dashboard assembly was 2.0s median (p90 2.1s). Trusted step metadata verified dashboard-cache hits in all seven docs builds because restore succeeded in 1-2s and artifact lookup/download fallback was skipped. All ten dashboard producers restored their activity cache and skipped fallback download; dashboard cache publication ran outside the docs critical path. No recommendation was made: reusable dashboard generation is already asynchronous and reused, with only a 1.0s median (p90 1.4s) dashboard restore on the docs critical path, far below 60s and 15% of median execution. The next category is artifact transfer and Pages packaging."
     }
   ]
 }
