@@ -3,34 +3,6 @@
   "next_category": "dependency installation and caching",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-25T04:56:27Z",
-      "worker_run_id": "40163505177",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        40163351023,
-        40162704738,
-        40161878653,
-        40161877748,
-        40160388225,
-        40159514078,
-        40159307325,
-        40158331704,
-        40156711317,
-        40156184349,
-        40155438559,
-        40155269146,
-        40155067344,
-        40153634203,
-        40152557715,
-        40151156146,
-        40150883662,
-        40150179120,
-        40150034979,
-        40148791119
-      ],
-      "outcome": "complete no-op: the 2026-10-25T00:58:44Z to 2026-10-25T04:50:46Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Six successful full build-and-deploy paths were comparable across workflow_run and schedule triggers. Median elapsed execution was 101.5s (p90 107.0s), queue/startup time 3.5s (p90 4.0s), build 73.5s (p90 77.5s), and deploy 10.0s (p90 11.0s). Ten successful CAO Dashboard producers had build median 19.5s (p90 25.3s). Trusted step metadata verified dashboard-cache hits in all six docs builds because restore succeeded and artifact lookup/download fallback was skipped; a bounded current-source log also confirmed exact npm and dashboard cache hits, while npm ci still rebuilt 852 packages in 29s. Eleven successful freshness-only runs avoided build and deploy; one waited behind an active publication before checking freshness. Same-SHA full builds followed distinct dashboard publications or a changed freshness state, so the window showed no repeated avoidable full rebuild. No recommendation was made: freshness checks cost about 10-13s and no repeated scheduling or concurrency waste could save at least 60s or 15% of median execution without risking freshness. The next category is dependency installation and caching."
-    },
-    {
       "evaluated_at": "2026-10-25T05:21:03Z",
       "worker_run_id": "40165011107",
       "category": "dependency installation and caching",
@@ -631,6 +603,34 @@
         40212342076
       ],
       "outcome": "incomplete: the 2026-10-25T16:34:39Z to 2026-10-25T19:49:03Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Only four successful full build-and-deploy paths were present: push runs 40220727533 and 40227579159, schedule run 40227569956, and workflow_run run 40225377985. The remaining successful runs freshness-checked and skipped build and deploy, including schedule run 40225385067. This is below the required five comparable successful full runs. Therefore a complete dependency installation and caching evaluation, including the required full-workflow and dashboard/build/deploy median and p90 comparison, repeated-cost analysis, and current cache-effectiveness verification, could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T20:36:38Z",
+      "worker_run_id": "40231355346",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        40231334641,
+        40230422626,
+        40230378711,
+        40229313680,
+        40228780624,
+        40228522454,
+        40227579159,
+        40227569956,
+        40226390200,
+        40225385067,
+        40225377985,
+        40224002830,
+        40223060800,
+        40222213503,
+        40222032476,
+        40221196908,
+        40220727533,
+        40219292338,
+        40218040913,
+        40217268966
+      ],
+      "outcome": "incomplete: the 2026-10-25T17:36:18Z to 2026-10-25T20:33:43Z latest-20 completed docs.yml window contained 16 successful, three skipped, and one action-required run, with no cancelled runs. Trusted job and step metadata identified five successful full build-and-deploy paths across workflow_run, push, and schedule triggers: 40230378711, 40227579159, 40227569956, 40225377985, and 40220727533. All five restored the CAO Dashboard cache and skipped artifact fallback; dependency installation took 18, 21, 20, 22, and 22 seconds (21s median, 22s p90), while Astro generation took 11, 12, 11, 14, and 15 seconds (12s median, 15s p90). A bounded log for run 40227579159 verified an exact setup-node npm cache hit even though npm ci rebuilt 852 packages in 21 seconds, and open issue #19689 already represents the exact dependency-tree cache recommendation. However, subsequent bounded CAO Dashboard run and log requests hit an OS-thread resource limit (failed to create a new OS thread). Per resource-limit policy, further GitHub API work stopped before current dashboard producer median/p90 timings and the complete required workflow/dashboard/build/deploy comparison could be collected. No recommendation was made, and dependency installation and caching remains the next category."
     }
   ]
 }
