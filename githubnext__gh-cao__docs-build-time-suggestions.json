@@ -3,34 +3,6 @@
   "next_category": "dependency installation and caching",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-24T22:19:34Z",
-      "worker_run_id": "40137862871",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        40137719927,
-        40136765890,
-        40136132048,
-        40135648060,
-        40134680631,
-        40133840183,
-        40133826166,
-        40133428226,
-        40132380373,
-        40131335329,
-        40131228440,
-        40130294936,
-        40129446894,
-        40127913019,
-        40126757278,
-        40125625633,
-        40124647241,
-        40124625205,
-        40123369506,
-        40122394170
-      ],
-      "outcome": "incomplete: the 2026-10-24T18:48:28Z to 2026-10-24T22:16:28Z latest-20 completed docs.yml window contained 18 successful, one skipped, and one action-required workflow_run, with no failed or cancelled runs. Trusted job and step metadata established only four successful full build-and-deploy paths: push 40137719927 at source SHA 9efb230fb79bb5eef884a750ae2dd221e5104474, workflow_run 40133826166 and 40133428226 at source SHA 8249bcefd13a0a129d1874121324f325d63d8902, and workflow_run 40124625205 at source SHA acb345d8b1ec152e103c0570562a9e99a5431d62. Their Astro steps were 14-15 seconds and all restored the dashboard cache while skipping artifact fallback. Long elapsed schedule runs 40133840183 and 40124647241 waited behind concurrent publications, then freshness-checked and skipped build and deploy; the action-required run 40136132048 is disclosed and excluded. This is below the required five comparable successful full runs, so current-window workflow and dashboard/build/deploy median and p90 timings and a complete Astro documentation generation evaluation could not be produced. No recommendation was made, and Astro documentation generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-24T22:34:35Z",
       "worker_run_id": "40138942964",
       "category": "Astro documentation generation",
@@ -652,6 +624,34 @@
       "category": "dependency installation and caching",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T17:05:00Z",
+      "worker_run_id": "40215648212",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        40214431077,
+        40213326434,
+        40212662200,
+        40212342076,
+        40211439771,
+        40209673066,
+        40208489140,
+        40207593397,
+        40207467334,
+        40206514307,
+        40204954138,
+        40203790937,
+        40202976485,
+        40202743150,
+        40201867035,
+        40200295371,
+        40199104126,
+        40198282679,
+        40198075082,
+        40197170209
+      ],
+      "outcome": "incomplete: the 2026-10-25T13:20:37Z to 2026-10-25T17:01:35Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. All successful runs completed in 17-25 seconds at source SHA c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49. Trusted job and step metadata for latest run 40214431077 confirmed that only schedule-freshness ran (21 seconds; freshness step 17 seconds), while build and deploy were skipped. No successful full build-and-deploy path was present, below the required five comparable successful runs. Therefore full workflow and dashboard/build/deploy job median and p90 timings, repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
     }
   ]
 }
