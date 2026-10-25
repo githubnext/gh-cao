@@ -5,7 +5,8 @@ export const $lib = createTypeSpecLibrary({ name: 'cao-trace', diagnostics: {} }
 const namespace = 'Cao.Trace';
 const tableNames = [
   'TraceEvents', 'TraceContentParts', 'TraceManifest',
-  'TraceSampleFrames', 'TraceSampleMembership', 'TraceDatasets'
+  'TraceSampleFrames', 'TraceSampleMembership', 'TraceDatasets',
+  'TraceEpisodes', 'TraceOutcomes', 'TraceMiningManifest'
 ];
 const kinds = new Map([
   ['string', 'string'], ['int64', 'long'], ['float64', 'real'], ['utcDateTime', 'datetime']
@@ -40,7 +41,7 @@ export async function $onEmit(context) {
   if (models.size !== tableNames.length + 1 || !identity || identity.baseModel || identity.indexer
     || identity.properties.get('ContractVersion')?.type.kind !== 'Number'
     || identity.properties.get('ContractVersion')?.type.value !== 1) {
-    throw new Error('Trace contract requires six tables, Identity, and literal ContractVersion 1');
+    throw new Error('Trace contract requires nine tables, Identity, and literal ContractVersion 1');
   }
   const tables = tableNames.map((name) => {
     const model = models.get(name);
@@ -120,10 +121,82 @@ export async function $onEmit(context) {
     | join kind=inner (cao_TraceSampleFrames() | project Namespace, FrameId = RunId) on Namespace, FrameId
     | join kind=inner (cao_ReadyTraces() | project Namespace, TraceId = RunId, TraceVersion = ProjectionId) on Namespace, TraceId, TraceVersion
 };`);
+  kql.push(`// Historical reads cannot resurrect currently invalidated evidence or withdrawn traces.
+.create-or-alter function cao_TraceMiningAt(namespace:string, asOf:datetime) {
+    let current = TraceMiningManifest
+        | summarize arg_max(SourceRevision, *) by Namespace, RunId
+        | where State == "ready"
+        | project Namespace, RunId;
+    let traces = cao_ReadyTraces() | project Namespace, RunId, TraceVersion = ProjectionId;
+    let episodes = TraceEpisodes
+        | summarize by Namespace, RunId, ProjectionId, RowDigest
+        | summarize ActualEpisodes = count() by Namespace, RunId, ProjectionId;
+    let outcomes = TraceOutcomes
+        | summarize by Namespace, RunId, ProjectionId, RowDigest
+        | summarize ActualOutcomes = count() by Namespace, RunId, ProjectionId;
+    TraceMiningManifest
+    | where (isempty(namespace) or Namespace == namespace) and CapturedAt <= asOf
+    | summarize arg_max(SourceRevision, *) by Namespace, RunId
+    | where State == "ready" and FreshUntil > asOf
+    | join kind=inner (current) on Namespace, RunId
+    | join kind=inner (traces) on Namespace, RunId, TraceVersion
+    | join kind=leftouter (episodes) on Namespace, RunId, ProjectionId
+    | join kind=leftouter (outcomes) on Namespace, RunId, ProjectionId
+    | where EpisodeCount == coalesce(ActualEpisodes, 0) and OutcomeCount == coalesce(ActualOutcomes, 0)
+    | project Namespace, RunId, RunAttempt, ProjectionId, CanonicalNamespace, CanonicalRunId,
+        CanonicalRevision, Repository, TraceVersion, EpisodeCount, OutcomeCount, State, Gaps, CapturedAt, FreshUntil
+};`);
+  kql.push(`.create-or-alter function cao_TraceMining() {
+    cao_TraceMiningAt("", now())
+};`);
+  for (const name of ['TraceEpisodes', 'TraceOutcomes']) {
+    kql.push(`.create-or-alter function cao_${name}() {
+    ${name}
+    | summarize take_any(*) by Namespace, RunId, RunAttempt, ProjectionId, RowDigest
+    | join kind=inner (cao_TraceMining() | project Namespace, RunId, ProjectionId, CanonicalRevision, TraceVersion) on Namespace, RunId, ProjectionId
+};`);
+  }
+  kql.push(`.create-or-alter function cao_TraceOutcomesAt(namespace:string, asOf:datetime) {
+    TraceOutcomes
+    | where Namespace == namespace
+    | summarize take_any(*) by Namespace, RunId, RunAttempt, ProjectionId, RowDigest
+    | join kind=inner (cao_TraceMiningAt(namespace, asOf)
+        | project Namespace, RunId, ProjectionId, CanonicalRevision, TraceVersion) on Namespace, RunId, ProjectionId
+    | extend AvailableAsOf = isnotempty(AuditId) and todatetime(ObservedAt) <= asOf and todatetime(ObjectUpdatedAt) <= asOf
+};`);
+  kql.push(`// This is a selected-output denominator, never a probability-weighted population or correctness rate.
+.create-or-alter function cao_TraceOutcomeSummary(namespace:string, asOf:datetime) {
+    cao_TraceOutcomesAt(namespace, asOf)
+    | summarize arg_max(CanonicalRevision, *) by Namespace, CanonicalNamespace, OutputId
+    | extend Status = iff(AvailableAsOf, Status, "unknown")
+    | summarize EligibleOutputs = count(), Accepted = countif(Status == "accepted"),
+        Rejected = countif(Status == "rejected"), Pending = countif(Status == "pending"),
+        Lifecycle = countif(Status == "lifecycle"), Unknown = countif(Status == "unknown"),
+        UnknownAttempts = countif(ProducingAttempt == 0), ObservedAt = max(todatetime(ObservedAt))
+        by Namespace, CanonicalNamespace
+    | extend AsOf = asOf, Scope = "selected_outputs", EvidenceState = "partial"
+};`);
+  kql.push(`// Exactly one row per producing run attempt; do not multiply run usage by ObservedHops.
+.create-or-alter function cao_TraceEpisodeRuns(namespace:string, episodeId:string) {
+    let nodes = cao_TraceEpisodes()
+        | where Namespace == namespace and EpisodeId == episodeId and Kind == "episode.membership";
+    let parents = nodes | where isnotempty(HopId)
+        | summarize by Namespace, EpisodeId, ParentHopId = HopId
+        | extend ParentObserved = true;
+    nodes
+    | join kind=leftouter (parents) on Namespace, EpisodeId, ParentHopId
+    | summarize ObservedHops = count(), MissingParents = countif(isnotempty(ParentHopId) and isnull(ParentObserved)),
+        TraceIds = make_set(RunId, 100000)
+        by Namespace, CanonicalNamespace, EpisodeId, Repository, CanonicalRunId, RunAttempt
+    | extend Scope = "selected_runs", EvidenceState = "partial"
+};`);
   kql.push(`.create-or-alter function cao_TraceDatasets() {
-    let latest = TraceDatasets | summarize arg_max(SourceRevision, *) by Namespace, DatasetId, RunId;
+    let datasetLatest = TraceDatasets | summarize arg_max(SourceRevision, *) by Namespace, DatasetId, RunId;
     let sources = cao_ReadyTraces() | project Namespace, RunId, ProjectionId, SourceReady = true;
-    let members = latest | join kind=leftouter (sources) on Namespace, RunId, ProjectionId;
+    let mining = cao_TraceMining() | project Namespace, RunId, MiningVersion = ProjectionId, MiningReady = true;
+    let members = datasetLatest | join kind=leftouter (sources) on Namespace, RunId, ProjectionId
+        | join kind=leftouter (mining) on Namespace, RunId, MiningVersion
+        | extend SourceReady = iff(isnotempty(MiningVersion) and isnull(MiningReady), bool(null), SourceReady);
     let complete = members
         | summarize ActualMemberCount = count(), ExpectedMemberCount = min(MemberCount),
             MaximumMemberCount = max(MemberCount), DigestValues = make_set(DatasetDigest, 2),
@@ -137,7 +210,8 @@ export async function $onEmit(context) {
     members
     | join kind=inner (complete) on Namespace, DatasetId
     | project Namespace, RunId, RunAttempt, ProjectionId, RowDigest, ContractVersion,
-        SourceRevision, DatasetId, MemberCount, DatasetDigest, Transform, Split, TaskGroup, Evaluator, QualityLabel, State
+        SourceRevision, DatasetId, MemberCount, DatasetDigest, Transform, Split, TaskGroup, Evaluator, QualityLabel, State,
+        MiningVersion, OutcomeId, Disposition, LabelRuleVersion, LabelCutoff
 };`);
   kql.push(`// maxEvents bounds a zero-based sequence prefix, not a whole-trace completeness claim.
 .create-or-alter function cao_TraceDocuments(namespace:string, traceId:string, maxEvents:long = 1024) {

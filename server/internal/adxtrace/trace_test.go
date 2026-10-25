@@ -56,7 +56,7 @@ func (s *simulator) VerifyEvidence(_ context.Context, namespace, id, version str
 		var actual []model.Row
 		for _, row := range s.rows[table] {
 			if row["Namespace"] == namespace && row["RunId"] == id && row["ProjectionId"] == version {
-				if table == "TraceDatasets" && scalarNumber(row["SourceRevision"]) != scalarNumber(expected[0]["SourceRevision"]) {
+				if (table == "TraceDatasets" || table == "TraceMiningManifest") && scalarNumber(row["SourceRevision"]) != scalarNumber(expected[0]["SourceRevision"]) {
 					continue
 				}
 				actual = append(actual, row)

@@ -23,6 +23,9 @@ type record struct {
 	ArtifactDigest, PolicyDigest                                        string
 	Attempt, Revision                                                   int64
 	CapturedAt                                                          time.Time
+	Mining                                                              *miningProjection
+	MiningCheckedAt                                                     time.Time
+	MiningSourceRevision                                                int64
 }
 
 type frame struct {
@@ -34,13 +37,15 @@ type frame struct {
 }
 
 type ledger struct {
-	Version     int
-	Fingerprint string
-	Revision    int64
-	Records     map[string]*record
-	Frames      map[string]*frame
-	Withdrawn   map[string]bool
-	Datasets    map[string]*dataset
+	Version         int
+	Fingerprint     string
+	Revision        int64
+	Records         map[string]*record
+	Frames          map[string]*frame
+	Withdrawn       map[string]bool
+	Datasets        map[string]*dataset
+	MiningNamespace string
+	MiningTurn      bool
 }
 
 type spool struct {
@@ -131,8 +136,9 @@ func newSpool(ctx context.Context, config Config, namespace string) (*spool, err
 		Repositories                  []string
 		MaxTrace                      int64
 		Delay                         time.Duration
+		Mining                        bool `json:",omitempty"`
 	}{namespace, policyDigest(config.Policy), config.Mode, config.Seed, config.SampleCount,
-		config.Repositories, config.MaxTraceBytes, config.FrameDelay})
+		config.Repositories, config.MaxTraceBytes, config.FrameDelay, config.MiningEnabled})
 	s := &spool{config: config, namespace: namespace, fingerprint: digest(identity)}
 	if err := s.locked(ctx, func(root *os.Root, state *ledger) error { return s.save(root, state) }); err != nil {
 		return nil, err
@@ -174,6 +180,19 @@ func (s *spool) locked(ctx context.Context, action func(*os.Root, *ledger) error
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
+	for _, d := range state.Datasets {
+		for _, row := range d.Rows {
+			if _, current := row["MiningVersion"]; current {
+				continue
+			}
+			for _, field := range []string{"MiningVersion", "OutcomeId", "Disposition", "LabelRuleVersion", "LabelCutoff"} {
+				row[field] = ""
+			}
+			state.Revision++
+			row["SourceRevision"] = state.Revision
+			d.Delivered = ""
+		}
+	}
 	// Only this process can own the file lock. Temporary/orphan files are
 	// uncommitted writes, never an alternative source of authority.
 	entries, err := fs.ReadDir(root.FS(), ".")
@@ -185,6 +204,9 @@ func (s *spool) locked(ctx context.Context, action func(*os.Root, *ledger) error
 		if item.File != "" {
 			referenced[item.File] = true
 		}
+		if item.Mining != nil && item.Mining.File != "" {
+			referenced[item.Mining.File] = true
+		}
 	}
 	for _, item := range state.Datasets {
 		if item.File != "" {
@@ -193,7 +215,7 @@ func (s *spool) locked(ctx context.Context, action func(*os.Root, *ledger) error
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if strings.HasSuffix(name, ".tmp") || (strings.HasSuffix(name, ".trace") || strings.HasSuffix(name, ".dataset")) && !referenced[name] {
+		if strings.HasSuffix(name, ".tmp") || (strings.HasSuffix(name, ".trace") || strings.HasSuffix(name, ".dataset") || strings.HasSuffix(name, ".mining")) && !referenced[name] {
 			if err := root.Remove(name); err != nil {
 				return err
 			}
@@ -288,6 +310,9 @@ func (s *spool) admit(ctx context.Context, e Evidence, reason string, now time.T
 		var invalidatedFiles []string
 		if old != nil && old.Version != r.Version {
 			invalidatedFiles = invalidateDatasets(state, r.ID)
+			if old.Mining != nil && old.Mining.File != "" {
+				invalidatedFiles = append(invalidatedFiles, old.Mining.File)
+			}
 		}
 		if r.State == "eligible" {
 			for table, rows := range e.Tables {
@@ -372,6 +397,7 @@ func (s *spool) withdraw(ctx context.Context, repository string) error {
 			}
 			r.State, r.Delivered = "withdrawn", ""
 			remove = append(remove, invalidateDatasets(state, r.ID)...)
+			remove = append(remove, invalidateMining(state, r)...)
 			state.Revision++
 			r.Revision = state.Revision
 			if r.File != "" {

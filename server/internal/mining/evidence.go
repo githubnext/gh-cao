@@ -14,6 +14,7 @@ import (
 )
 
 const Source = "server-mining"
+const OutcomeRuleVersion = "github-disposition-v1"
 
 type Context struct {
 	EpisodeID      string `json:"episode_id"`
@@ -197,6 +198,7 @@ func (o Outcome) Audit(issueID, runID string) model.Row {
 		"id":    "audit:server-mining:outcome:" + model.EncodeCoordinate(issueID),
 		"runId": runID, "source": Source, "type": "outcome.observed",
 		"correlationId": issueID, "targetRepository": o.Repository,
+		"payloadRef": o.URL, "name": OutcomeRuleVersion,
 		"status": status, "code": signal, "decision": o.State,
 		"scope": "selected_outputs", "evidenceState": "partial",
 		"observedAt": o.ObservedAt, "timestamp": o.UpdatedAt,

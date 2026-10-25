@@ -2146,6 +2146,12 @@ value. The Actions/Activity ingestion contract is unchanged.
 
 Episode rows MUST declare `scope: "selected_runs"` and outcome rows
 `scope: "selected_outputs"`; both MUST declare `evidenceState: "partial"`.
+New outcome observations MUST retain their exact observed output URL in
+`payloadRef`, separately from the Issue identity in `correlationId`, and record
+the disposition rule version (`github-disposition-v1`) in `name`. Consumers
+joining exported evidence MUST require equality with the retained URL, including
+host and category and a supported rule version; legacy observations lacking this binding remain unavailable
+for that join until existing acquisition/repair supplies it.
 Recorded root/caller references MUST NOT authorize discovery of additional
 repositories. Consumers MUST NOT infer edges without exact matching recorded
 episode/hop evidence, count hops as separate run cost, infer acceptance from

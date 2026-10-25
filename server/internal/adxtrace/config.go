@@ -17,6 +17,7 @@ type Policy struct {
 	Version         string `json:"version"`
 	ContentApproved bool   `json:"contentApproved"`
 	RightsApproved  bool   `json:"rightsApproved"`
+	MiningApproved  bool   `json:"miningApproved,omitempty"`
 	// Each field admits its entire JSON subtree, not unspecified sibling fields.
 	Events         map[string][]string `json:"events"`
 	RedactPatterns []string            `json:"redactPatterns"`
@@ -36,6 +37,8 @@ type Config struct {
 	MaxEntries     int
 	Retention      time.Duration
 	Policy         Policy
+	MiningEnabled  bool
+	MiningInterval time.Duration
 }
 
 func FromEnv(get func(string) string) (Config, error) {
@@ -46,6 +49,12 @@ func FromEnv(get func(string) string) (Config, error) {
 		return c, errors.New("CAO_ADX_TRACES_ENABLED must be true or false")
 	}
 	c.Enabled, c.Directory = true, get("CAO_ADX_TRACE_DIRECTORY")
+	if value := get("CAO_ADX_TRACE_MINING_ENABLED"); value != "" && value != "false" {
+		if value != "true" {
+			return Config{}, errors.New("CAO_ADX_TRACE_MINING_ENABLED must be true or false")
+		}
+		c.MiningEnabled = true
+	}
 	c.DurableStorage = get("CAO_ADX_TRACE_DURABLE_STORAGE") == "true"
 	c.Repositories = strings.Split(get("CAO_ADX_TRACE_REPOSITORIES"), ",")
 	c.Mode, c.Seed = get("CAO_ADX_TRACE_MODE"), get("CAO_ADX_TRACE_SEED")
@@ -79,7 +88,8 @@ func FromEnv(get func(string) string) (Config, error) {
 	for _, item := range []struct {
 		name string
 		to   *time.Duration
-	}{{"CAO_ADX_TRACE_RETENTION", &c.Retention}, {"CAO_ADX_TRACE_FRAME_DELAY", &c.FrameDelay}} {
+	}{{"CAO_ADX_TRACE_RETENTION", &c.Retention}, {"CAO_ADX_TRACE_FRAME_DELAY", &c.FrameDelay},
+		{"CAO_ADX_TRACE_MINING_INTERVAL", &c.MiningInterval}} {
 		if value := get(item.name); value != "" {
 			d, err := time.ParseDuration(value)
 			if err != nil {
@@ -146,6 +156,12 @@ func (c *Config) Validate() error {
 	}
 	if c.FrameDelay == 0 {
 		c.FrameDelay = 24 * time.Hour
+	}
+	if c.MiningInterval == 0 {
+		c.MiningInterval = 5 * time.Minute
+	}
+	if c.MiningEnabled && (!c.Policy.MiningApproved || c.MiningInterval < time.Minute || c.MiningInterval > 24*time.Hour) {
+		return errors.New("mining requires explicit evidence approval and a 1m-24h refresh interval")
 	}
 	if c.MaxTraceBytes < 1024 || c.MaxTraceBytes > 32<<20 ||
 		c.MaxSpoolBytes < 2*c.MaxTraceBytes || c.MaxSpoolBytes > 1<<40 ||

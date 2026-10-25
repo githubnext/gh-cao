@@ -8,9 +8,10 @@ live writes are enabled by this implementation.
 
 ## Model and lifecycle
 
-`spec/trace.tsp` owns six additional tables, generated Go column contracts and
+`spec/trace.tsp` owns nine additional tables, generated Go column contracts and
 operator-applied KQL: `TraceEvents`, `TraceContentParts`, `TraceManifest`,
-`TraceSampleFrames`, `TraceSampleMembership` and `TraceDatasets`.
+`TraceSampleFrames`, `TraceSampleMembership`, `TraceDatasets`, `TraceEpisodes`,
+`TraceOutcomes` and `TraceMiningManifest`.
 Run-attempt trace IDs are hashes of exact repository/run/attempt coordinates;
 immutable projection IDs bind the source artifact, content policy and approved
 events. They are not anonymization. Native IDs, ordering, parent references,
@@ -86,6 +87,8 @@ Set these in the existing host's private deployment environment:
 | `CAO_ADX_TRACE_SPOOL_BYTES` | Peak private directory budget, default 256 MiB, at least twice the trace ceiling, at most 1 TiB |
 | `CAO_ADX_TRACE_MAX_ENTRIES` | Total retained record/frame/dataset entries, default 10,000, maximum 100,000; includes no-replay tombstones |
 | `CAO_ADX_TRACE_RETENTION` | Local evidence lifetime, default `168h`, range `24h` to `8760h`, greater than frame delay |
+| `CAO_ADX_TRACE_MINING_ENABLED` | Separate explicit `true` for existing canonical episode/outcome evidence; also requires policy `miningApproved: true` |
+| `CAO_ADX_TRACE_MINING_INTERVAL` | Per-selected-trace refresh interval, default `5m`, range `1m` to `24h`; no additional GitHub acquisition |
 
 Ledger JSON is capped at 64 MiB, one projection at four times the
 trace ceiling, each trace at 32,768 events, staged cache files at 64 MiB and
@@ -119,6 +122,66 @@ extension. Changing policy, sampling seed/mode/count, scope or eligibility ceili
 in an existing ledger is rejected: withdraw/reconcile the old corpus and use a
 reviewed fresh destination identity/spool rather than rewriting frozen evidence.
 Programmatic `Config.ADXTraces` can explicitly disable ambient trace settings.
+Mining approval and activation are part of the frozen spool identity too.
+
+## Independently observed episodes and outcomes
+
+Mining is separately default-off. With both approvals, the host attaches a
+bounded `sessionexport.MiningReader` over existing canonical PostgreSQL, not a
+second GitHub collector. One repeatable-read transaction reads the exact
+repository/run/selected attempt and its retained server-mining Audits and
+create-output references (at most 1,024 facts and 256 KiB). It closes before ADX
+I/O. Only delivered selected traces are polled; sampling never expands to
+unsampled traces or episode relatives. Refreshes alternate with ordinary delivery
+and use a persisted fair per-record clock. Measure database and replay overhead
+when choosing volume and cadence.
+
+Destination and canonical namespaces are distinct, explicit fields. The ledger
+binds its first canonical namespace and rejects drift and revision regression.
+Recorded membership/root facts preserve Audit identities, original observation
+clocks and caller/root coordinates. Membership requires an exact selected
+attempt; root facts require its matching membership. Conflicting native/mined
+episodes fail closed. Neither missing edges nor referenced repositories grant
+collection authority.
+
+The output denominator includes every retained `create_issue` and
+`create_pull_request`, including unknown dispositions. The source Audit's
+`payloadRef` must match the exact retained URL (host, repository, category and
+number), with a supported disposition rule version in `name`; legacy Audits without that evidence remain unknown until the existing
+repair/acquisition path supplies it. Object `updated_at` and acquisition clocks
+remain separate, neither claiming an acceptance instant. Rules are
+`github-disposition-v1`; pending, bot lifecycle and unknown are not rejections.
+A Run-level link alone does not attest an output's producing attempt. Zero
+means unknown. This version can attest it only from an approved correlated,
+successful `create_issue`/`create_pull_request` tool execution with an exact
+structured result `url`/`html_url`. Other producer shapes remain unattested,
+not guessed or fetched.
+
+Small immutable `.mining` payloads (maximum 2 MiB each) have independent
+projection versions. Facts are verified before their manifest; polling never
+rewrites trace versions. Unrelated canonical revisions refresh a heartbeat
+without changing semantic version or invalidating datasets. A semantic correction,
+reopen, source loss, contradictory observation or withdrawal invalidates affected
+datasets. Older or contradictory same-time dispositions fail closed.
+`CapturedAt`, `FreshUntil` and canonical revision identify the read snapshot:
+ready functions expire mining evidence after three refresh intervals. Failed
+polling cannot claim freshness indefinitely. Current invalidation/withdrawal also
+blocks historical ready queries. The source retains latest observations, not a
+complete history; only snapshots actually exported can be queried as of a cutoff.
+
+```kusto
+cao_TraceMining()
+cao_TraceEpisodeRuns("NAMESPACE", "EPISODE_ID")
+cao_TraceOutcomesAt("NAMESPACE", datetime(2026-10-25T00:00:00Z))
+cao_TraceOutcomeSummary("NAMESPACE", datetime(2026-10-25T00:00:00Z))
+```
+
+Use the declared selected-output denominator and pending/lifecycle/unknown counts.
+`AvailableAsOf` requires both source clocks at or before the cutoff.
+Episode run accounting returns one row per run attempt with observed-hop and
+missing-parent counts, never duplicated run cost. The selected partial scopes
+do not establish complete episodes or unbiased episode/output population rates.
+Trace `N/k` weights must not be repurposed for those units.
 
 ## Sampling and readiness
 
@@ -198,6 +261,18 @@ content blocks are rejected, rather than silently converted; this initial
 dataset transform is text-only. Native tool correlations must be unique and
 complete, and the trajectory must end in an assistant response.
 Operational runtime success is not acceptance.
+
+When mining is enabled, every entry additionally pins `MiningVersion` from a
+current verified mining manifest. The dataset freezes canonical namespace/run,
+source revision, observed episode bindings and gaps. Those episodes participate
+in the same persistent split/group checks as native episode/run-attempt keys.
+An optional `Outcome` object supplies `OutputID`, `AuditID`, `Disposition`
+(`accepted` or `rejected` only), `RuleVersion` (`github-disposition-v1`) and an
+RFC3339 `Cutoff`. Its exact output attempt must be attested, the read snapshot
+and both source clocks must precede the nonfuture cutoff, and independent
+`QualityLabel`/`LabelEvidence` remain mandatory. Lifecycle acceptance is not a
+correctness or security label. Stale mining, source changes and withdrawal block
+reuse and invalidate destination dataset readiness, without rewriting traces.
 
 ## Withdrawal, retention and operations
 

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/model"
+	"github.com/githubnext/gh-cao/server/internal/sessionexport"
 )
 
 type Sink interface {
@@ -38,18 +39,26 @@ type Worker struct {
 	now    func() time.Time
 	mu     sync.Mutex
 	status Status
+	mining sessionexport.MiningReader
 }
 
-func New(ctx context.Context, config Config, namespace string, sink Sink) (*Worker, error) {
+func New(ctx context.Context, config Config, namespace string, sink Sink, readers ...sessionexport.MiningReader) (*Worker, error) {
 	if sink == nil {
 		return nil, errors.New("trace sink is required")
+	}
+	if len(readers) > 1 || (config.MiningEnabled && (len(readers) != 1 || readers[0] == nil)) || (!config.MiningEnabled && len(readers) != 0) {
+		return nil, errors.New("enabled trace mining requires exactly one canonical reader")
 	}
 	s, err := newSpool(ctx, config, namespace)
 	if err != nil {
 		return nil, err
 	}
-	return &Worker{spool: s, sink: sink, now: func() time.Time { return time.Now().UTC() },
-		status: Status{Stage: "waiting"}}, nil
+	w := &Worker{spool: s, sink: sink, now: func() time.Time { return time.Now().UTC() },
+		status: Status{Stage: "waiting"}}
+	if len(readers) == 1 {
+		w.mining = readers[0]
+	}
+	return w, nil
 }
 
 func (w *Worker) Status() Status {
@@ -113,8 +122,26 @@ func (w *Worker) Step(ctx context.Context) (more bool, err error) {
 			if r.Delivered == "" {
 				w.status.Pending++
 			}
+			if r.Mining != nil && (r.Mining.State != "ready" || !w.now().Before(r.Mining.FreshUntil)) {
+				w.status.Gaps++
+			}
+			if r.Mining != nil && r.Mining.Delivered == "" {
+				w.status.Pending++
+			}
 		}
 		w.mu.Unlock()
+		if w.mining != nil && !state.MiningTurn {
+			did, err := w.stepMining(ctx, root, state)
+			if err != nil {
+				return err
+			}
+			if did {
+				state.MiningTurn = true
+				more = true
+				return w.spool.save(root, state)
+			}
+		}
+		state.MiningTurn = false
 		ids := make([]string, 0, len(state.Records))
 		for id := range state.Records {
 			ids = append(ids, id)
@@ -206,6 +233,17 @@ func (w *Worker) Step(ctx context.Context) (more bool, err error) {
 			more = true
 			return w.spool.save(root, state)
 		}
+		if w.mining != nil {
+			did, err := w.stepMining(ctx, root, state)
+			if err != nil {
+				return err
+			}
+			if did {
+				state.MiningTurn = true
+				more = true
+				return w.spool.save(root, state)
+			}
+		}
 		return nil
 	})
 	return more, err
@@ -232,6 +270,7 @@ func (w *Worker) freeze(root *os.Root, state *ledger) error {
 		file := r.File
 		r.State, r.Reason, r.File, r.Delivered = "expired", "local-retention", "", ""
 		derived := invalidateDatasets(state, r.ID)
+		derived = append(derived, invalidateMining(state, r)...)
 		state.Revision++
 		r.Revision = state.Revision
 		if f := state.Frames[w.spool.frameID(r.Repository, r.Day)]; f != nil {

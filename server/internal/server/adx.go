@@ -91,7 +91,15 @@ func newTraceWorker(ctx context.Context, config Config, collector *Collector) (*
 	if err != nil {
 		return nil, err
 	}
-	return adxtrace.New(ctx, *config.ADXTraces, adxtrace.Namespace(config.ADX.Endpoint, config.ADX.Database), client)
+	namespace := adxtrace.Namespace(config.ADX.Endpoint, config.ADX.Database)
+	if config.ADXTraces.MiningEnabled {
+		database, ok := config.Database.(*postgresx.Store)
+		if !ok || database == nil {
+			return nil, errors.New("trace mining requires canonical PostgreSQL")
+		}
+		return adxtrace.New(ctx, *config.ADXTraces, namespace, client, database)
+	}
+	return adxtrace.New(ctx, *config.ADXTraces, namespace, client)
 }
 
 func (a *App) ADXTraceStatus() adxtrace.Status {

@@ -44,7 +44,25 @@ const tables = {
   },
   TraceDatasets: {
     SourceRevision: 'long', DatasetId: 'string', MemberCount: 'long', DatasetDigest: 'string', Transform: 'string', Split: 'string',
-    TaskGroup: 'string', Evaluator: 'string', QualityLabel: 'string', State: 'string'
+    TaskGroup: 'string', Evaluator: 'string', QualityLabel: 'string', State: 'string',
+    MiningVersion: 'string', OutcomeId: 'string', Disposition: 'string', LabelRuleVersion: 'string', LabelCutoff: 'string'
+  },
+  TraceEpisodes: {
+    SourceRevision: 'long', CanonicalNamespace: 'string', CanonicalRunId: 'string', Repository: 'string',
+    AuditId: 'string', Kind: 'string', EpisodeId: 'string', HopId: 'string', ParentHopId: 'string',
+    ReferencedRunId: 'string', ReferencedRepository: 'string', ReferencedWorkflow: 'string',
+    ObservedAt: 'string', Scope: 'string', EvidenceState: 'string', BindingVersion: 'string'
+  },
+  TraceOutcomes: {
+    SourceRevision: 'long', CanonicalNamespace: 'string', CanonicalRunId: 'string', Repository: 'string',
+    OutputId: 'string', OutputUrl: 'string', OutputType: 'string', AuditId: 'string', ProducingAttempt: 'long',
+    Status: 'string', Signal: 'string', ObjectState: 'string', ObjectUpdatedAt: 'string', ObservedAt: 'string',
+    AcquisitionSource: 'string', Scope: 'string', EvidenceState: 'string', LabelRuleVersion: 'string'
+  },
+  TraceMiningManifest: {
+    SourceRevision: 'long', CanonicalNamespace: 'string', CanonicalRunId: 'string', CanonicalRevision: 'long',
+    Repository: 'string', TraceVersion: 'string', EpisodeCount: 'long', OutcomeCount: 'long',
+    State: 'string', Gaps: 'dynamic', CapturedAt: 'datetime', FreshUntil: 'datetime'
   }
 };
 const typeNames = new Map([
@@ -53,7 +71,7 @@ const typeNames = new Map([
 const kql = readFileSync(new URL('../internal/adxtrace/schema.gen.kql', import.meta.url), 'utf8');
 const go = readFileSync(new URL('../internal/adxtrace/schema.gen.go', import.meta.url), 'utf8');
 
-test('trace TypeSpec declares exactly six independent tables with required, capacity-invariant fields', () => {
+test('trace TypeSpec declares exactly nine independent tables with required, capacity-invariant fields', () => {
   assert.deepEqual([...models.keys()].sort(), ['Identity', ...Object.keys(tables)].sort());
   assert.equal(models.get('Identity').properties.get('ContractVersion').type.value, 1);
   for (const [name, fields] of [['Identity', identity], ...Object.entries(tables)]) {
@@ -104,6 +122,29 @@ function curated(name) {
   return kql.split(`.create-or-alter function ${name}(`)[1]?.split('};')[0];
 }
 
+test('mining readiness binds independent versions, exact counts, source scope and bounded freshness', () => {
+  const ready = curated('cao_TraceMiningAt');
+  assert.match(ready, /arg_max\(SourceRevision, \*\) by Namespace, RunId\s*\| where State == "ready"/);
+  assert.match(ready, /CapturedAt <= asOf/);
+  assert.match(ready, /FreshUntil > asOf/);
+  assert.match(ready, /join kind=inner \(current\) on Namespace, RunId/);
+  assert.match(ready, /join kind=inner \(traces\) on Namespace, RunId, TraceVersion/);
+  for (const table of ['Episodes', 'Outcomes']) {
+    assert.match(ready, new RegExp(`Trace${table}\\s*\\| summarize by Namespace, RunId, ProjectionId, RowDigest`));
+    assert.match(ready, new RegExp(`${table === 'Episodes' ? 'Episode' : 'Outcome'}Count == coalesce\\(Actual${table}, 0\\)`));
+  }
+  assert.doesNotMatch(ready, /\bdcount\b|TraceDatasets|TraceSampleMembership/);
+  assert.match(curated('cao_TraceDatasets'), /join kind=leftouter \(mining\) on Namespace, RunId, MiningVersion/);
+  assert.match(curated('cao_TraceDatasets'), /isnotempty\(MiningVersion\) and isnull\(MiningReady\), bool\(null\)/);
+  assert.match(curated('cao_TraceOutcomeSummary'), /EligibleOutputs = count\(\)/);
+  for (const status of ['accepted', 'rejected', 'pending', 'lifecycle', 'unknown']) {
+    assert.ok(curated('cao_TraceOutcomeSummary').includes(`Status == "${status}"`));
+  }
+  assert.doesNotMatch(curated('cao_TraceOutcomeSummary'), /Weight|Probability|\bdcount\b/);
+  assert.match(curated('cao_TraceEpisodeRuns'), /by Namespace, CanonicalNamespace, EpisodeId, Repository, CanonicalRunId, RunAttempt/);
+  assert.match(curated('cao_TraceEpisodeRuns'), /MissingParents = countif/);
+});
+
 test('curated trace functions apply withdrawal after latest-version resolution and invalidate entire datasets', () => {
   assert.match(curated('cao_ReadyTraces'),
     /TraceManifest\s*\| summarize arg_max\(SourceRevision, \*\) by Namespace, RunId\s*\| where State == "ready"/);
@@ -122,11 +163,11 @@ test('curated trace functions apply withdrawal after latest-version resolution a
   assert.match(curated('cao_TraceSampleMembership'),
     /cao_ReadyTraces\(\) \| project Namespace, TraceId = RunId, TraceVersion = ProjectionId\) on Namespace, TraceId, TraceVersion/);
   assert.match(curated('cao_TraceDatasets'),
-    /let latest = TraceDatasets \| summarize arg_max\(SourceRevision, \*\) by Namespace, DatasetId, RunId;/);
+    /let datasetLatest = TraceDatasets \| summarize arg_max\(SourceRevision, \*\) by Namespace, DatasetId, RunId;/);
   assert.match(curated('cao_TraceDatasets'),
     /let sources = cao_ReadyTraces\(\) \| project Namespace, RunId, ProjectionId, SourceReady = true/);
   assert.match(curated('cao_TraceDatasets'),
-    /latest \| join kind=leftouter \(sources\) on Namespace, RunId, ProjectionId/);
+    /datasetLatest \| join kind=leftouter \(sources\) on Namespace, RunId, ProjectionId/);
   assert.match(curated('cao_TraceDatasets'),
     /InvalidMembers = countif\(State != "ready" or isnull\(SourceReady\) or isnull\(MemberCount\) or MemberCount <= 0\)/);
   assert.match(curated('cao_TraceDatasets'), /join kind=inner \(complete\) on Namespace, DatasetId/);

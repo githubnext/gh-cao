@@ -19,10 +19,22 @@
 .create-or-alter table TraceSampleMembership ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"SourceRevision","Properties":{"Path":"$.SourceRevision"}},{"column":"FrameId","Properties":{"Path":"$.FrameId"}},{"column":"TraceId","Properties":{"Path":"$.TraceId"}},{"column":"TraceVersion","Properties":{"Path":"$.TraceVersion"}},{"column":"Probability","Properties":{"Path":"$.Probability"}},{"column":"Weight","Properties":{"Path":"$.Weight"}},{"column":"State","Properties":{"Path":"$.State"}}]';
 .alter table TraceSampleMembership policy streamingingestion enable;
 .alter-merge table TraceSampleMembership policy retention softdelete = 7d recoverability = enabled;
-.create-merge table TraceDatasets (Namespace:string, RunId:string, RunAttempt:long, ProjectionId:string, RowDigest:string, ContractVersion:long, SourceRevision:long, DatasetId:string, MemberCount:long, DatasetDigest:string, Transform:string, Split:string, TaskGroup:string, Evaluator:string, QualityLabel:string, State:string);
-.create-or-alter table TraceDatasets ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"SourceRevision","Properties":{"Path":"$.SourceRevision"}},{"column":"DatasetId","Properties":{"Path":"$.DatasetId"}},{"column":"MemberCount","Properties":{"Path":"$.MemberCount"}},{"column":"DatasetDigest","Properties":{"Path":"$.DatasetDigest"}},{"column":"Transform","Properties":{"Path":"$.Transform"}},{"column":"Split","Properties":{"Path":"$.Split"}},{"column":"TaskGroup","Properties":{"Path":"$.TaskGroup"}},{"column":"Evaluator","Properties":{"Path":"$.Evaluator"}},{"column":"QualityLabel","Properties":{"Path":"$.QualityLabel"}},{"column":"State","Properties":{"Path":"$.State"}}]';
+.create-merge table TraceDatasets (Namespace:string, RunId:string, RunAttempt:long, ProjectionId:string, RowDigest:string, ContractVersion:long, SourceRevision:long, DatasetId:string, MemberCount:long, DatasetDigest:string, Transform:string, Split:string, TaskGroup:string, Evaluator:string, QualityLabel:string, State:string, MiningVersion:string, OutcomeId:string, Disposition:string, LabelRuleVersion:string, LabelCutoff:string);
+.create-or-alter table TraceDatasets ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"SourceRevision","Properties":{"Path":"$.SourceRevision"}},{"column":"DatasetId","Properties":{"Path":"$.DatasetId"}},{"column":"MemberCount","Properties":{"Path":"$.MemberCount"}},{"column":"DatasetDigest","Properties":{"Path":"$.DatasetDigest"}},{"column":"Transform","Properties":{"Path":"$.Transform"}},{"column":"Split","Properties":{"Path":"$.Split"}},{"column":"TaskGroup","Properties":{"Path":"$.TaskGroup"}},{"column":"Evaluator","Properties":{"Path":"$.Evaluator"}},{"column":"QualityLabel","Properties":{"Path":"$.QualityLabel"}},{"column":"State","Properties":{"Path":"$.State"}},{"column":"MiningVersion","Properties":{"Path":"$.MiningVersion"}},{"column":"OutcomeId","Properties":{"Path":"$.OutcomeId"}},{"column":"Disposition","Properties":{"Path":"$.Disposition"}},{"column":"LabelRuleVersion","Properties":{"Path":"$.LabelRuleVersion"}},{"column":"LabelCutoff","Properties":{"Path":"$.LabelCutoff"}}]';
 .alter table TraceDatasets policy streamingingestion enable;
 .alter-merge table TraceDatasets policy retention softdelete = 7d recoverability = enabled;
+.create-merge table TraceEpisodes (Namespace:string, RunId:string, RunAttempt:long, ProjectionId:string, RowDigest:string, ContractVersion:long, SourceRevision:long, CanonicalNamespace:string, CanonicalRunId:string, Repository:string, AuditId:string, Kind:string, EpisodeId:string, HopId:string, ParentHopId:string, ReferencedRunId:string, ReferencedRepository:string, ReferencedWorkflow:string, ObservedAt:string, Scope:string, EvidenceState:string, BindingVersion:string);
+.create-or-alter table TraceEpisodes ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"SourceRevision","Properties":{"Path":"$.SourceRevision"}},{"column":"CanonicalNamespace","Properties":{"Path":"$.CanonicalNamespace"}},{"column":"CanonicalRunId","Properties":{"Path":"$.CanonicalRunId"}},{"column":"Repository","Properties":{"Path":"$.Repository"}},{"column":"AuditId","Properties":{"Path":"$.AuditId"}},{"column":"Kind","Properties":{"Path":"$.Kind"}},{"column":"EpisodeId","Properties":{"Path":"$.EpisodeId"}},{"column":"HopId","Properties":{"Path":"$.HopId"}},{"column":"ParentHopId","Properties":{"Path":"$.ParentHopId"}},{"column":"ReferencedRunId","Properties":{"Path":"$.ReferencedRunId"}},{"column":"ReferencedRepository","Properties":{"Path":"$.ReferencedRepository"}},{"column":"ReferencedWorkflow","Properties":{"Path":"$.ReferencedWorkflow"}},{"column":"ObservedAt","Properties":{"Path":"$.ObservedAt"}},{"column":"Scope","Properties":{"Path":"$.Scope"}},{"column":"EvidenceState","Properties":{"Path":"$.EvidenceState"}},{"column":"BindingVersion","Properties":{"Path":"$.BindingVersion"}}]';
+.alter table TraceEpisodes policy streamingingestion enable;
+.alter-merge table TraceEpisodes policy retention softdelete = 7d recoverability = enabled;
+.create-merge table TraceOutcomes (Namespace:string, RunId:string, RunAttempt:long, ProjectionId:string, RowDigest:string, ContractVersion:long, SourceRevision:long, CanonicalNamespace:string, CanonicalRunId:string, Repository:string, OutputId:string, OutputUrl:string, OutputType:string, AuditId:string, ProducingAttempt:long, Status:string, Signal:string, ObjectState:string, ObjectUpdatedAt:string, ObservedAt:string, AcquisitionSource:string, Scope:string, EvidenceState:string, LabelRuleVersion:string);
+.create-or-alter table TraceOutcomes ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"SourceRevision","Properties":{"Path":"$.SourceRevision"}},{"column":"CanonicalNamespace","Properties":{"Path":"$.CanonicalNamespace"}},{"column":"CanonicalRunId","Properties":{"Path":"$.CanonicalRunId"}},{"column":"Repository","Properties":{"Path":"$.Repository"}},{"column":"OutputId","Properties":{"Path":"$.OutputId"}},{"column":"OutputUrl","Properties":{"Path":"$.OutputUrl"}},{"column":"OutputType","Properties":{"Path":"$.OutputType"}},{"column":"AuditId","Properties":{"Path":"$.AuditId"}},{"column":"ProducingAttempt","Properties":{"Path":"$.ProducingAttempt"}},{"column":"Status","Properties":{"Path":"$.Status"}},{"column":"Signal","Properties":{"Path":"$.Signal"}},{"column":"ObjectState","Properties":{"Path":"$.ObjectState"}},{"column":"ObjectUpdatedAt","Properties":{"Path":"$.ObjectUpdatedAt"}},{"column":"ObservedAt","Properties":{"Path":"$.ObservedAt"}},{"column":"AcquisitionSource","Properties":{"Path":"$.AcquisitionSource"}},{"column":"Scope","Properties":{"Path":"$.Scope"}},{"column":"EvidenceState","Properties":{"Path":"$.EvidenceState"}},{"column":"LabelRuleVersion","Properties":{"Path":"$.LabelRuleVersion"}}]';
+.alter table TraceOutcomes policy streamingingestion enable;
+.alter-merge table TraceOutcomes policy retention softdelete = 7d recoverability = enabled;
+.create-merge table TraceMiningManifest (Namespace:string, RunId:string, RunAttempt:long, ProjectionId:string, RowDigest:string, ContractVersion:long, SourceRevision:long, CanonicalNamespace:string, CanonicalRunId:string, CanonicalRevision:long, Repository:string, TraceVersion:string, EpisodeCount:long, OutcomeCount:long, State:string, Gaps:dynamic, CapturedAt:datetime, FreshUntil:datetime);
+.create-or-alter table TraceMiningManifest ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"SourceRevision","Properties":{"Path":"$.SourceRevision"}},{"column":"CanonicalNamespace","Properties":{"Path":"$.CanonicalNamespace"}},{"column":"CanonicalRunId","Properties":{"Path":"$.CanonicalRunId"}},{"column":"CanonicalRevision","Properties":{"Path":"$.CanonicalRevision"}},{"column":"Repository","Properties":{"Path":"$.Repository"}},{"column":"TraceVersion","Properties":{"Path":"$.TraceVersion"}},{"column":"EpisodeCount","Properties":{"Path":"$.EpisodeCount"}},{"column":"OutcomeCount","Properties":{"Path":"$.OutcomeCount"}},{"column":"State","Properties":{"Path":"$.State"}},{"column":"Gaps","Properties":{"Path":"$.Gaps"}},{"column":"CapturedAt","Properties":{"Path":"$.CapturedAt"}},{"column":"FreshUntil","Properties":{"Path":"$.FreshUntil"}}]';
+.alter table TraceMiningManifest policy streamingingestion enable;
+.alter-merge table TraceMiningManifest policy retention softdelete = 7d recoverability = enabled;
 .create-or-alter function cao_ReadyTraces() {
     let events = TraceEvents
         | summarize by Namespace, RunId, ProjectionId, RowDigest
@@ -73,10 +85,85 @@
     | join kind=inner (cao_TraceSampleFrames() | project Namespace, FrameId = RunId) on Namespace, FrameId
     | join kind=inner (cao_ReadyTraces() | project Namespace, TraceId = RunId, TraceVersion = ProjectionId) on Namespace, TraceId, TraceVersion
 };
+// Historical reads cannot resurrect currently invalidated evidence or withdrawn traces.
+.create-or-alter function cao_TraceMiningAt(namespace:string, asOf:datetime) {
+    let current = TraceMiningManifest
+        | summarize arg_max(SourceRevision, *) by Namespace, RunId
+        | where State == "ready"
+        | project Namespace, RunId;
+    let traces = cao_ReadyTraces() | project Namespace, RunId, TraceVersion = ProjectionId;
+    let episodes = TraceEpisodes
+        | summarize by Namespace, RunId, ProjectionId, RowDigest
+        | summarize ActualEpisodes = count() by Namespace, RunId, ProjectionId;
+    let outcomes = TraceOutcomes
+        | summarize by Namespace, RunId, ProjectionId, RowDigest
+        | summarize ActualOutcomes = count() by Namespace, RunId, ProjectionId;
+    TraceMiningManifest
+    | where (isempty(namespace) or Namespace == namespace) and CapturedAt <= asOf
+    | summarize arg_max(SourceRevision, *) by Namespace, RunId
+    | where State == "ready" and FreshUntil > asOf
+    | join kind=inner (current) on Namespace, RunId
+    | join kind=inner (traces) on Namespace, RunId, TraceVersion
+    | join kind=leftouter (episodes) on Namespace, RunId, ProjectionId
+    | join kind=leftouter (outcomes) on Namespace, RunId, ProjectionId
+    | where EpisodeCount == coalesce(ActualEpisodes, 0) and OutcomeCount == coalesce(ActualOutcomes, 0)
+    | project Namespace, RunId, RunAttempt, ProjectionId, CanonicalNamespace, CanonicalRunId,
+        CanonicalRevision, Repository, TraceVersion, EpisodeCount, OutcomeCount, State, Gaps, CapturedAt, FreshUntil
+};
+.create-or-alter function cao_TraceMining() {
+    cao_TraceMiningAt("", now())
+};
+.create-or-alter function cao_TraceEpisodes() {
+    TraceEpisodes
+    | summarize take_any(*) by Namespace, RunId, RunAttempt, ProjectionId, RowDigest
+    | join kind=inner (cao_TraceMining() | project Namespace, RunId, ProjectionId, CanonicalRevision, TraceVersion) on Namespace, RunId, ProjectionId
+};
+.create-or-alter function cao_TraceOutcomes() {
+    TraceOutcomes
+    | summarize take_any(*) by Namespace, RunId, RunAttempt, ProjectionId, RowDigest
+    | join kind=inner (cao_TraceMining() | project Namespace, RunId, ProjectionId, CanonicalRevision, TraceVersion) on Namespace, RunId, ProjectionId
+};
+.create-or-alter function cao_TraceOutcomesAt(namespace:string, asOf:datetime) {
+    TraceOutcomes
+    | where Namespace == namespace
+    | summarize take_any(*) by Namespace, RunId, RunAttempt, ProjectionId, RowDigest
+    | join kind=inner (cao_TraceMiningAt(namespace, asOf)
+        | project Namespace, RunId, ProjectionId, CanonicalRevision, TraceVersion) on Namespace, RunId, ProjectionId
+    | extend AvailableAsOf = isnotempty(AuditId) and todatetime(ObservedAt) <= asOf and todatetime(ObjectUpdatedAt) <= asOf
+};
+// This is a selected-output denominator, never a probability-weighted population or correctness rate.
+.create-or-alter function cao_TraceOutcomeSummary(namespace:string, asOf:datetime) {
+    cao_TraceOutcomesAt(namespace, asOf)
+    | summarize arg_max(CanonicalRevision, *) by Namespace, CanonicalNamespace, OutputId
+    | extend Status = iff(AvailableAsOf, Status, "unknown")
+    | summarize EligibleOutputs = count(), Accepted = countif(Status == "accepted"),
+        Rejected = countif(Status == "rejected"), Pending = countif(Status == "pending"),
+        Lifecycle = countif(Status == "lifecycle"), Unknown = countif(Status == "unknown"),
+        UnknownAttempts = countif(ProducingAttempt == 0), ObservedAt = max(todatetime(ObservedAt))
+        by Namespace, CanonicalNamespace
+    | extend AsOf = asOf, Scope = "selected_outputs", EvidenceState = "partial"
+};
+// Exactly one row per producing run attempt; do not multiply run usage by ObservedHops.
+.create-or-alter function cao_TraceEpisodeRuns(namespace:string, episodeId:string) {
+    let nodes = cao_TraceEpisodes()
+        | where Namespace == namespace and EpisodeId == episodeId and Kind == "episode.membership";
+    let parents = nodes | where isnotempty(HopId)
+        | summarize by Namespace, EpisodeId, ParentHopId = HopId
+        | extend ParentObserved = true;
+    nodes
+    | join kind=leftouter (parents) on Namespace, EpisodeId, ParentHopId
+    | summarize ObservedHops = count(), MissingParents = countif(isnotempty(ParentHopId) and isnull(ParentObserved)),
+        TraceIds = make_set(RunId, 100000)
+        by Namespace, CanonicalNamespace, EpisodeId, Repository, CanonicalRunId, RunAttempt
+    | extend Scope = "selected_runs", EvidenceState = "partial"
+};
 .create-or-alter function cao_TraceDatasets() {
-    let latest = TraceDatasets | summarize arg_max(SourceRevision, *) by Namespace, DatasetId, RunId;
+    let datasetLatest = TraceDatasets | summarize arg_max(SourceRevision, *) by Namespace, DatasetId, RunId;
     let sources = cao_ReadyTraces() | project Namespace, RunId, ProjectionId, SourceReady = true;
-    let members = latest | join kind=leftouter (sources) on Namespace, RunId, ProjectionId;
+    let mining = cao_TraceMining() | project Namespace, RunId, MiningVersion = ProjectionId, MiningReady = true;
+    let members = datasetLatest | join kind=leftouter (sources) on Namespace, RunId, ProjectionId
+        | join kind=leftouter (mining) on Namespace, RunId, MiningVersion
+        | extend SourceReady = iff(isnotempty(MiningVersion) and isnull(MiningReady), bool(null), SourceReady);
     let complete = members
         | summarize ActualMemberCount = count(), ExpectedMemberCount = min(MemberCount),
             MaximumMemberCount = max(MemberCount), DigestValues = make_set(DatasetDigest, 2),
@@ -90,7 +177,8 @@
     members
     | join kind=inner (complete) on Namespace, DatasetId
     | project Namespace, RunId, RunAttempt, ProjectionId, RowDigest, ContractVersion,
-        SourceRevision, DatasetId, MemberCount, DatasetDigest, Transform, Split, TaskGroup, Evaluator, QualityLabel, State
+        SourceRevision, DatasetId, MemberCount, DatasetDigest, Transform, Split, TaskGroup, Evaluator, QualityLabel, State,
+        MiningVersion, OutcomeId, Disposition, LabelRuleVersion, LabelCutoff
 };
 // maxEvents bounds a zero-based sequence prefix, not a whole-trace completeness claim.
 .create-or-alter function cao_TraceDocuments(namespace:string, traceId:string, maxEvents:long = 1024) {

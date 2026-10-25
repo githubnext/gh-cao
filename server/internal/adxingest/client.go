@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"slices"
 	"strings"
@@ -102,7 +103,7 @@ func (c *Client) Write(ctx context.Context, table string, rows []model.Row) erro
 }
 
 func (c *Client) Capacity(ctx context.Context) error {
-	// Extent OriginalSize is uncompressed data; account for all six owned
+	// Extent OriginalSize is a real-valued byte count; account for all owned
 	// tables, including duplicate deliveries and superseded projections.
 	query := ".show database ['" + c.database + "'] extents | where TableName in (" + tableNamesKQL() +
 		") | summarize Bytes=sum(OriginalSize)"
@@ -117,8 +118,8 @@ func (c *Client) Capacity(ctx context.Context) error {
 	if !ok {
 		return ErrStorage
 	}
-	bytes, err := number.Int64()
-	if err != nil || bytes < 0 || bytes >= c.storageBudget {
+	bytes, err := number.Float64()
+	if err != nil || math.IsNaN(bytes) || math.IsInf(bytes, 0) || math.Trunc(bytes) != bytes || bytes < 0 || bytes >= float64(c.storageBudget) {
 		return ErrStorage
 	}
 	return nil
@@ -188,55 +189,7 @@ func (c *Client) query(ctx context.Context, path, query string) ([][]any, error)
 	if err != nil {
 		return nil, err
 	}
-	var response struct {
-		Tables []struct {
-			TableName string
-			Rows      [][]any
-			Columns   []struct{ ColumnName string }
-		}
-		Error json.RawMessage `json:"error"`
-	}
-	decoder := json.NewDecoder(bytes.NewReader(content))
-	decoder.UseNumber()
-	if err := decoder.Decode(&response); err != nil || len(response.Error) > 0 {
-		return nil, errors.New("invalid ADX query response")
-	}
-	var result [][]any
-	found := false
-	for _, table := range response.Tables {
-		if table.TableName == "QueryStatus" {
-			severity := -1
-			for i, column := range table.Columns {
-				if column.ColumnName == "Severity" {
-					severity = i
-				}
-			}
-			for _, row := range table.Rows {
-				if severity < 0 || severity >= len(row) {
-					return nil, errors.New("invalid ADX query status")
-				}
-				value, ok := row[severity].(json.Number)
-				if !ok {
-					return nil, errors.New("invalid ADX query severity")
-				}
-				number, err := value.Int64()
-				if err != nil || number <= 2 {
-					return nil, errors.New("ADX query reported partial execution")
-				}
-			}
-			continue
-		}
-		if table.TableName == "PrimaryResult" || table.TableName == "Table_0" {
-			if found {
-				return nil, errors.New("ambiguous ADX query result")
-			}
-			result, found = table.Rows, true
-		}
-	}
-	if !found || len(result) > 2048 {
-		return nil, errors.New("missing or oversized ADX query result")
-	}
-	return result, nil
+	return decodeQueryResponse(content)
 }
 
 func (c *Client) request(ctx context.Context, path string, body []byte) ([]byte, error) {
@@ -316,10 +269,10 @@ func (c *Client) VerifyEvidence(ctx context.Context, namespace, runID, version s
 		digests = slices.Compact(digests)
 		expected[table] = fmt.Sprintf("%d:%s", len(digests), hash([]byte(strings.Join(digests, ""))))
 		condition := ""
-		if table == "TraceDatasets" {
+		if table == "TraceDatasets" || table == "TraceMiningManifest" {
 			revision, err := json.Marshal(rows[0]["SourceRevision"])
 			if err != nil || rows[0]["SourceRevision"] == nil {
-				return errors.New("dataset verification requires a revision")
+				return errors.New("mutable evidence verification requires a revision")
 			}
 			condition = " and SourceRevision==" + string(revision)
 		}

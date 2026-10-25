@@ -9,6 +9,7 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/model"
 )
@@ -36,6 +37,12 @@ func ExportDatasetFile(ctx context.Context, config Config, namespace, path strin
 
 type DatasetEntry struct {
 	TraceID, TraceVersion, TaskGroup, Split, QualityLabel, LabelEvidence string
+	MiningVersion                                                        string          `json:",omitempty"`
+	Outcome                                                              *DatasetOutcome `json:",omitempty"`
+}
+
+type DatasetOutcome struct {
+	OutputID, AuditID, Disposition, RuleVersion, Cutoff string
 }
 
 type DatasetSpec struct {
@@ -70,6 +77,12 @@ func Inspect(ctx context.Context, config Config, namespace string) (Status, erro
 			if r.Delivered == "" {
 				status.Pending++
 			}
+			if r.Mining != nil && r.Mining.Delivered == "" {
+				status.Pending++
+			}
+			if r.Mining != nil && (r.Mining.State != "ready" || !time.Now().Before(r.Mining.FreshUntil)) {
+				status.Gaps++
+			}
 		}
 		status.Degraded = status.Gaps > 0
 		return nil
@@ -80,6 +93,10 @@ func Inspect(ctx context.Context, config Config, namespace string) (Status, erro
 // ExportDataset creates a private immutable native-trajectory dataset. It does
 // not train or replay anything and requires separately supplied quality evidence.
 func ExportDataset(ctx context.Context, config Config, namespace string, specification []byte) (string, error) {
+	return exportDatasetAt(ctx, config, namespace, specification, time.Now().UTC())
+}
+
+func exportDatasetAt(ctx context.Context, config Config, namespace string, specification []byte, now time.Time) (string, error) {
 	if len(specification) > 1<<20 {
 		return "", errors.New("dataset specification exceeds budget")
 	}
@@ -112,6 +129,12 @@ func ExportDataset(ctx context.Context, config Config, namespace string, specifi
 		if old := state.Datasets[id]; old != nil {
 			if old.State != "ready" {
 				return errors.New("dataset has been invalidated")
+			}
+			for traceID := range old.References {
+				r := state.Records[traceID]
+				if config.MiningEnabled && (r == nil || r.Mining == nil || r.Mining.State != "ready" || r.Mining.Delivered == "" || !now.Before(r.Mining.FreshUntil)) {
+					return errors.New("dataset mining evidence is no longer current")
+				}
 			}
 			path = config.Directory + string(os.PathSeparator) + old.File
 			return nil
@@ -156,6 +179,30 @@ func ExportDataset(ctx context.Context, config Config, namespace string, specifi
 				if episode := scalar(row["EpisodeId"]); episode != "" {
 					keys = append(keys, "episode:"+episode)
 				}
+			}
+			var mined *miningEvidence
+			var outcome model.Row
+			if config.MiningEnabled {
+				if r.Mining == nil || r.Mining.State != "ready" || r.Mining.Delivered == "" || entry.MiningVersion != r.Mining.Version || !now.Before(r.Mining.FreshUntil) {
+					return errors.New("dataset requires an explicit current verified mining version")
+				}
+				mining, err := readMining(root, r.Mining)
+				if err != nil {
+					return err
+				}
+				mined = &mining
+				for _, episode := range mining.Tables["TraceEpisodes"] {
+					keys = append(keys, "episode:"+scalar(episode["EpisodeId"]))
+				}
+				if entry.Outcome != nil {
+					outcome, err = datasetOutcome(entry.Outcome, mining, r, now)
+					if err != nil {
+						return err
+					}
+					keys = append(keys, "output:"+mining.CanonicalNamespace+":"+scalar(outcome["OutputUrl"]))
+				}
+			} else if entry.MiningVersion != "" || entry.Outcome != nil {
+				return errors.New("dataset outcome/mining lineage requires explicitly enabled mining")
 			}
 			for _, key := range keys {
 				if group := bindings[key]; group != "" && group != entry.TaskGroup {
@@ -243,6 +290,15 @@ func ExportDataset(ctx context.Context, config Config, namespace string, specifi
 				"labelEvidence": entry.LabelEvidence, "taskGroup": entry.TaskGroup, "split": entry.Split,
 				"tools": spec.ToolSchemas, "toolSchemaDigest": digest(schemaJSON), "toolSchemaEvidence": spec.ToolSchemaEvidence,
 				"messages": messages, "gaps": e.Gaps}
+			if mined != nil {
+				row["mining"] = map[string]any{"version": entry.MiningVersion, "canonicalNamespace": mined.CanonicalNamespace,
+					"canonicalRunId": mined.CanonicalRunID, "canonicalRevision": mined.CanonicalRevision,
+					"capturedAt": mined.CapturedAt, "episodes": mined.Tables["TraceEpisodes"], "gaps": mined.Gaps}
+			}
+			if outcome != nil {
+				row["outcome"] = outcome
+				row["outcomeCutoff"] = entry.Outcome.Cutoff
+			}
 			line, err := json.Marshal(row)
 			if err != nil {
 				return err
@@ -255,7 +311,12 @@ func ExportDataset(ctx context.Context, config Config, namespace string, specifi
 			d.References[r.ID] = r.Version
 			metadata := []model.Row{{"DatasetId": id, "Transform": spec.Transform, "Split": entry.Split,
 				"TaskGroup": entry.TaskGroup, "Evaluator": spec.Evaluator, "QualityLabel": entry.QualityLabel,
-				"State": "ready", "MemberCount": len(spec.Entries), "DatasetDigest": ""}}
+				"State": "ready", "MemberCount": len(spec.Entries), "DatasetDigest": "",
+				"MiningVersion": entry.MiningVersion, "OutcomeId": "", "Disposition": "", "LabelRuleVersion": "", "LabelCutoff": ""}}
+			if outcome != nil {
+				metadata[0]["OutcomeId"], metadata[0]["Disposition"] = scalar(outcome["OutputId"]), scalar(outcome["Status"])
+				metadata[0]["LabelRuleVersion"], metadata[0]["LabelCutoff"] = entry.Outcome.RuleVersion, entry.Outcome.Cutoff
+			}
 			state.Revision++
 			if err := seal(namespace, r.ID, r.Version, r.Attempt, state.Revision, "TraceDatasets", metadata); err != nil {
 				return err
@@ -284,6 +345,28 @@ func ExportDataset(ctx context.Context, config Config, namespace string, specifi
 		return nil
 	})
 	return path, err
+}
+
+func datasetOutcome(binding *DatasetOutcome, e miningEvidence, r *record, now time.Time) (model.Row, error) {
+	cutoff, err := time.Parse(time.RFC3339Nano, binding.Cutoff)
+	if err != nil || cutoff.After(now) || cutoff.Before(e.CapturedAt) || binding.RuleVersion != outcomeLabelVersion ||
+		!slices.Contains([]string{"accepted", "rejected"}, binding.Disposition) {
+		return nil, errors.New("outcome label requires an observed as-of cutoff and a supported reviewed disposition rule")
+	}
+	for _, row := range e.Tables["TraceOutcomes"] {
+		if scalar(row["OutputId"]) != binding.OutputID {
+			continue
+		}
+		observed, observedErr := time.Parse(time.RFC3339Nano, scalar(row["ObservedAt"]))
+		updated, updatedErr := time.Parse(time.RFC3339Nano, scalar(row["ObjectUpdatedAt"]))
+		if binding.AuditID == "" || scalar(row["AuditId"]) != binding.AuditID || scalar(row["Status"]) != binding.Disposition ||
+			integer(row["ProducingAttempt"]) != int(r.Attempt) || observedErr != nil || updatedErr != nil ||
+			observed.After(cutoff) || updated.After(cutoff) {
+			return nil, errors.New("outcome label lacks exact attempt, independent disposition or cutoff evidence")
+		}
+		return row, nil
+	}
+	return nil, errors.New("outcome label has no retained output")
 }
 
 func reconstruct(e Evidence) ([]map[string]any, error) {

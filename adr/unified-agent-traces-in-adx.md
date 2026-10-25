@@ -12,9 +12,9 @@ The snapshot implementation remains described by
 [ADX ingestion](../server/ADX-INGEST.md); the separate trace option and its
 operator acceptance gates are in [unified traces](../server/ADX-TRACES.md).
 
-The episode/outcome ADX extension below remains **proposed**. Merging the
-server-mining implementation does not add its Audits to the existing ADX
-contracts, enable additional export or authorize training.
+The episode/outcome ADX extension is implemented as a separately default-off
+option. Its reviewed mining approval, source/destination bindings and operational
+acceptance gates remain required; this does not enable export or authorize training.
 
 ## Context
 
@@ -89,14 +89,19 @@ number, linked to its producing Run. This profile covers only `create_issue`
 and `create_pull_request`; comments, reviews, edits and unrelated objects remain
 unevaluated. Root/caller references never authorize wider collection.
 
-Propose a separately reviewed TypeSpec projection of these small typed facts.
+Use a separately approved TypeSpec projection of these small typed facts:
+`TraceEpisodes`, `TraceOutcomes` and `TraceMiningManifest`.
 Keep canonical namespace, repository, run and exact attempt, deterministic Audit
 identity, source revision, source clocks and quality alongside the destination's
 trace identity. An outcome attaches through its exact retained output and
 producing Run; an unknown producing attempt must remain unknown, not be borrowed
 from the currently selected trace. Do not equate a hashed trace ID with a
-canonical Run ID or silently join across namespaces. The current six trace
-tables and scalar allowlist do not implement this extension.
+canonical Run ID or silently join across namespaces. The scalar snapshot
+allowlist remains unchanged; the trace contract now has nine tables.
+The existing outcome Audit preserves the exact observed URL in `payloadRef`;
+legacy observations without that binding remain unknown. A producing attempt
+is attested only when the approved trace contains a correlated successful creation
+tool result with that exact structured URL, not merely a Run-level output link.
 
 Outcome updates must flow independently of new trace acquisition. Preserve the
 original immutable trace version while versioning the available disposition,
@@ -105,6 +110,14 @@ latest observation per output, not a complete GitHub transition history; an ADX
 projection cannot reconstruct missed prior transitions. `timestamp` is the
 object's `updated_at`, while `observedAt` is acquisition time. Neither is
 necessarily the merge/close/acceptance instant.
+
+One bounded exact-run PostgreSQL reader and the existing spool/worker implement
+this path. Semantic mining versions are separate from trace versions; unrelated
+database revisions only refresh the manifest heartbeat. Readiness requires
+verified declared fact counts and expires after three configured refresh
+intervals. Namespace drift, contradictory bindings and regressed observations
+fail closed. Missing selected attempts or retained source facts invalidate
+derived datasets; destination outages still delay remote tombstones.
 
 Apply the server's existing disposition rules: merged PRs and issues completed
 by closure are accepted; PRs closed without merge and known-human
@@ -223,7 +236,7 @@ Additional enterprise-admin uses remain:
    episode/context bindings, one-worker delivery and optional frozen sampling.
    Verify content fidelity, crash/retry recovery, bounded resources, exact
    readiness, correction/withdrawal and full-versus-sampled schema parity.
-2. **Mining integration and utility pilot (proposed):** specify and validate the
+2. **Mining integration and utility pilot:** implement and validate the
    typed episode/outcome projection against the existing server-mining contract,
    including independent outcome revisions and source/trace bindings. Exercise
    wrong-host/category attribution, missing or superseded attempts, conflicting
@@ -232,7 +245,9 @@ Additional enterprise-admin uses remain:
    explainable configuration findings and tool-efficiency candidates with counterexamples.
    Review precision/coverage and evaluate quality, cost and latency on held-out
    tasks before claiming improvements. Start enterprise extensions with showback
-   and observed change exposure.
+   and observed change exposure. The default-off integration and local
+   PostgreSQL/protocol acceptance are implemented; empirical utility and actual
+   Kusto execution remain independent acceptance evidence, not inferred successes.
 3. **Datasets and measured expansion:** produce validated lineage-linked SLM
    exports; adjust volume, retention and transport from observed sizes/backlog.
    Approve missing audit/scheduler/configuration sources separately. No automatic

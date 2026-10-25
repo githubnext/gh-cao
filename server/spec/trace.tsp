@@ -91,4 +91,66 @@ model TraceDatasets extends Identity {
   Evaluator: string;
   QualityLabel: string;
   State: string;
+  MiningVersion: string;
+  OutcomeId: string;
+  Disposition: string;
+  LabelRuleVersion: string;
+  LabelCutoff: string;
+}
+
+/** ProjectionId is the independent mining version, not the trace version. */
+model TraceEpisodes extends Identity {
+  SourceRevision: int64;
+  CanonicalNamespace: string;
+  CanonicalRunId: string;
+  Repository: string;
+  AuditId: string;
+  Kind: string;
+  EpisodeId: string;
+  HopId: string;
+  ParentHopId: string;
+  ReferencedRunId: string;
+  ReferencedRepository: string;
+  ReferencedWorkflow: string;
+  ObservedAt: string;
+  Scope: string;
+  EvidenceState: string;
+  BindingVersion: string;
+}
+
+model TraceOutcomes extends Identity {
+  SourceRevision: int64;
+  CanonicalNamespace: string;
+  CanonicalRunId: string;
+  Repository: string;
+  OutputId: string;
+  OutputUrl: string;
+  OutputType: string;
+  AuditId: string;
+  /** Zero means unknown; the enclosing RunAttempt is not proof of output production. */
+  ProducingAttempt: int64;
+  Status: string;
+  Signal: string;
+  ObjectState: string;
+  ObjectUpdatedAt: string;
+  ObservedAt: string;
+  AcquisitionSource: string;
+  Scope: string;
+  EvidenceState: string;
+  LabelRuleVersion: string;
+}
+
+model TraceMiningManifest extends Identity {
+  SourceRevision: int64;
+  CanonicalNamespace: string;
+  CanonicalRunId: string;
+  CanonicalRevision: int64;
+  Repository: string;
+  TraceVersion: string;
+  EpisodeCount: int64;
+  OutcomeCount: int64;
+  State: string;
+  Gaps: string[];
+  CapturedAt: utcDateTime;
+  FreshUntil: utcDateTime;
 }

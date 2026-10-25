@@ -379,7 +379,7 @@ content policy, universal rights/content approval and redaction precede private
 durable capture. One file-locked worker uses an operator-verified owner-only
 durable spool, atomic fsync-backed ledger, immutable multipart trace versions,
 bounded 1 MiB streaming batches and exact deduplicated digest verification before
-ready manifests. `server/spec/trace.tsp` owns the additional six-table contract
+ready manifests. `server/spec/trace.tsp` owns the additional nine-table contract
 and generated Go/KQL. Direct streaming and credentials reuse the existing client;
 capacity is configurable without different content models by destination tier.
 
@@ -397,6 +397,20 @@ source/transform lineage and grouped splits; excludes reasoning by default and
 never trains or replays tools. Withdrawal blocks replay, removes private local
 content and queues newer destination tombstones and dataset invalidations;
 physical purge/backups/external copies require operator reconciliation.
+Separately approved, default-off episode/outcome export reads bounded exact-run
+canonical PostgreSQL snapshots through `sessionexport.MiningReader`, without new
+GitHub acquisition. A source namespace is frozen in the ledger; selected-attempt
+membership, exact Audit/output URL provenance and original clocks remain explicit.
+Unknown output attempts are not inferred from a selected trace: only approved
+correlated successful creation-tool results can attest the same exact URL.
+One fair bounded polling/delivery loop persists independent mining versions and
+freshness heartbeats, verifies declared fact counts and invalidates mining/dataset
+readiness on correction, source loss, expiry or withdrawal. Unrelated canonical
+revisions do not rewrite traces or invalidate semantic dataset lineage.
+Outcome datasets pin the mining version, cutoff and rule, independently reviewed
+quality, exact attempt and mined episode/output split bindings. Lifecycle
+disposition is not correctness; partial scopes and run-attempt sampling do not
+establish complete episodes or unbiased episode/output rates.
 Static, snapshot-only, admission-only, standalone collect/backfill and
 per-request hosts cannot capture traces. Destination failures cannot authorize
 collection, widen policy or replace ordinary dashboard readiness.
