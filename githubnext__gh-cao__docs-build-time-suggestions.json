@@ -3,13 +3,6 @@
   "next_category": "dependency installation and caching",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-24T18:39:59Z",
-      "worker_run_id": "40121559934",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded latest-20 completed docs.yml workflow-run request returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-24T19:40:00Z",
       "worker_run_id": "40125573844",
       "category": "dependency installation and caching",
@@ -716,6 +709,13 @@
         40178953536
       ],
       "outcome": "incomplete: the 2026-10-25T09:01:36Z to 2026-10-25T13:01:41Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. All successful runs completed in 12-19 seconds at source SHA c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49. Trusted job and step metadata for representative latest run 40195722444 confirmed that only schedule-freshness ran (12 seconds; freshness step 9 seconds), while build and deploy were skipped. No successful full build-and-deploy path was present, below the required five comparable successful runs. Therefore full workflow and dashboard/build/deploy median and p90 timings, repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T13:34:50Z",
+      "worker_run_id": "40198059038",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded latest-20 completed docs.yml workflow-run request returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
     }
   ]
 }
