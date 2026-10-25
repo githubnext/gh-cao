@@ -53,7 +53,7 @@ jobs:
         run: |
           {
             echo '## Monthly synthetic agent budget stress'
-            echo '30 days, 10,000 repositories, $25,000/day; $1-$5 half-normal run costs favoring $1.'
+            echo "30 days, 10,000 repositories, \$25,000/day; \$1-\$5 half-normal run costs favoring \$1."
             echo 'No agents or inference run; USD fixture costs are not canonical AIC.'
             if [ -f "$CAO_MONTHLY_BUDGET_REPORT_DIR/monthly-budget.json" ]; then
               echo '```json'
