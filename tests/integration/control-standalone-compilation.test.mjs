@@ -28,6 +28,8 @@ test("the pinned compiler integrates standalone admission without a campaign or 
   };
   try {
     mkdirSync(workflows, { recursive: true });
+    mkdirSync(join(directory, ".github", "aw"), { recursive: true });
+    cpSync(join(root, ".github", "aw", "actions-lock.json"), join(directory, ".github", "aw", "actions-lock.json"));
     cpSync(join(root, ".github", "workflows", "shared"), join(workflows, "shared"), { recursive: true });
     cpSync(join(root, "tests", "fixtures", "workflows", "fleet-audit.md"), join(workflows, "fleet-audit.md"));
     cpSync(join(root, "tests", "fixtures", "workflows", "direct-audit.md"), join(workflows, "direct-audit.md"));
