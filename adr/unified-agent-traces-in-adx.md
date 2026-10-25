@@ -12,6 +12,10 @@ The snapshot implementation remains described by
 [ADX ingestion](../server/ADX-INGEST.md); the separate trace option and its
 operator acceptance gates are in [unified traces](../server/ADX-TRACES.md).
 
+The episode/outcome ADX extension below remains **proposed**. Merging the
+server-mining implementation does not add its Audits to the existing ADX
+contracts, enable additional export or authorize training.
+
 ## Context
 
 The existing add-on exports bounded retained canonical session snapshots.
@@ -25,6 +29,12 @@ SLM dataset construction need approved unified traces captured before that loss.
 The desired evidence does not vary by destination pricing tier. Volume,
 sampling, retention and buffering should be capacity choices within one design.
 Start at moderate scale rather than requiring hyperscale infrastructure.
+
+Main now includes server-only episode and output-outcome mining
+([PR #19712](https://github.com/githubnext/gh-cao/pull/19712)). This supplies a
+bounded independent evidence source for connecting trajectories to recorded
+execution lineage and later GitHub dispositions. It does not establish complete
+episodes, task correctness or business value.
 
 ## Decision
 
@@ -61,6 +71,58 @@ references. Do not infer harness from engine ID or compiled configuration from
 head SHA. A configuration digest identifies a version but does not explain its
 contents.
 
+### Reuse server-mined episodes and independent outcomes
+
+Use the existing `server-mining` Audits, not another collector or an inferred
+episode graph. The server reads recorded snake-case `aw_info.json` context and
+retained run envelopes, including evidenced `episode_hops`. Its
+`episode.membership` and optional `episode.root` observations preserve selected
+run/attempt, episode/hop/parent-hop and caller/root coordinates. Bind these to
+trace-native context through an explicit versioned mapping; preserve source
+provenance and fail on contradictory bindings rather than choosing an arrival
+order. Missing or superseded attempts must not acquire membership.
+
+The same server records `outcome.observed` from verified GitHub deliveries and
+bounded repair of retained output references. Attribution requires the exact
+retained safe-output URL, including host, repository, issue/PR category and
+number, linked to its producing Run. This profile covers only `create_issue`
+and `create_pull_request`; comments, reviews, edits and unrelated objects remain
+unevaluated. Root/caller references never authorize wider collection.
+
+Propose a separately reviewed TypeSpec projection of these small typed facts.
+Keep canonical namespace, repository, run and exact attempt, deterministic Audit
+identity, source revision, source clocks and quality alongside the destination's
+trace identity. An outcome attaches through its exact retained output and
+producing Run; an unknown producing attempt must remain unknown, not be borrowed
+from the currently selected trace. Do not equate a hashed trace ID with a
+canonical Run ID or silently join across namespaces. The current six trace
+tables and scalar allowlist do not implement this extension.
+
+Outcome updates must flow independently of new trace acquisition. Preserve the
+original immutable trace version while versioning the available disposition,
+classification rule and provenance. The current mining packet retains the
+latest observation per output, not a complete GitHub transition history; an ADX
+projection cannot reconstruct missed prior transitions. `timestamp` is the
+object's `updated_at`, while `observedAt` is acquisition time. Neither is
+necessarily the merge/close/acceptance instant.
+
+Apply the server's existing disposition rules: merged PRs and issues completed
+by closure are accepted; PRs closed without merge and known-human
+`not_planned` issue closures are rejected. Bot `not_planned` closures are
+lifecycle and open objects are pending. Unclassified resolutions and
+`not_planned` issue closures without closing-actor evidence remain unknown.
+Accepted is a lifecycle disposition, not a gold training label,
+security/correctness verdict or operational-value claim. Keep partial
+`selected_runs` and `selected_outputs` scopes explicit.
+
+Episode views may reconstruct recorded edges and relate them to independently
+observed outputs. Count each producing run attempt once when accounting across
+reusable-workflow hops; do not duplicate run cost per hop. Report missing
+ancestors, descendants, outputs and dispositions. Outcome rates need a declared
+eligible-output denominator, as-of cutoff and pending/unknown counts, not only
+accepted rows. Exact time-to-acceptance requires separate authoritative
+transition timestamps.
+
 ### Simple, bounded delivery
 
 Start with one Go worker reusing existing lifecycle, credentials and operational
@@ -96,6 +158,13 @@ work. Existing episode relationships do not establish that a sample contains
 every ancestor or descendant. This is not reuse of canonical `statistical-runs`
 membership.
 
+Run-attempt sampling is not uniform episode or output sampling. Keep those
+analysis units separate: `N/k` trace weights cannot establish complete episode
+coverage or unbiased episode-success rates. Outcome availability and observation
+lag must remain visible in sampled cohorts. An episode-level probability sample
+requires its own frozen frame and inclusion design before population estimates;
+do not infer its weights from the number of observed hops.
+
 ### Universal safeguards
 
 Apply content approval, redaction, access protection and bounded storage before
@@ -123,7 +192,15 @@ Statistical uncertainty cannot repair missing-source bias.
 | Harness evolution | Compare runtime/harness/configuration cohorts on held-out tasks; turn regressions into evaluation cases before proposing rollout. |
 | Misconfiguration detection | Explain tool/server incompatibilities, initialization failures and skill collisions against observed requirements. Expected denials and automatic model resolution are not inherently defects. |
 | Tool efficiency | Rank avoidable retry/read loops, oversized responses and batching candidates. Distinguish required polling, changed state and verification; never automatically deduplicate writes. |
+| Episode/outcome mining | Reconstruct recorded execution paths and link exact retained outputs to independently observed dispositions. Compare outcome-labelled harness/task cohorts with declared denominators, observation lag and partial coverage; no inferred causal attribution. |
 | SLM datasets | Reconstruct approved role/tool trajectories with schema binding, quality labels and immutable lineage. Group related tasks/episodes/retries across splits and freeze held-out evaluation. Actual training remains separately authorized. |
+
+For outcome-labelled datasets, freeze the disposition as of a declared cutoff
+with its source revision and label-rule version. Independent quality review is
+still required. Keep related episode hops, retries and derived outputs in one
+task-group split; a later reopen, correction or withdrawal must invalidate or
+explicitly supersede affected labels/datasets without rewriting source traces.
+Do not promote pending, lifecycle or unknown outcomes into negative examples.
 
 The corpus can also support skill/context design, delegation analysis,
 dependency reliability, guardrail calibration and producer-conformance checks.
@@ -146,8 +223,13 @@ Additional enterprise-admin uses remain:
    episode/context bindings, one-worker delivery and optional frozen sampling.
    Verify content fidelity, crash/retry recovery, bounded resources, exact
    readiness, correction/withdrawal and full-versus-sampled schema parity.
-2. **Utility pilot:** demonstrate RCA, harness-version comparison, explainable
-   configuration findings and tool-efficiency candidates with counterexamples.
+2. **Mining integration and utility pilot (proposed):** specify and validate the
+   typed episode/outcome projection against the existing server-mining contract,
+   including independent outcome revisions and source/trace bindings. Exercise
+   wrong-host/category attribution, missing or superseded attempts, conflicting
+   contexts, repeated hops sharing one run, out-of-order updates, reopen,
+   bot closure and withdrawal. Then demonstrate RCA, harness-version comparison,
+   explainable configuration findings and tool-efficiency candidates with counterexamples.
    Review precision/coverage and evaluate quality, cost and latency on held-out
    tasks before claiming improvements. Start enterprise extensions with showback
    and observed change exposure.
@@ -171,6 +253,10 @@ These are arithmetic assumptions, not production measurements or selected
 settings. Additional scalar harness/configuration binding is estimated at
 0.5-2 KB per trace, excluding large inventories. Measure actual median/p95 sizes,
 coverage, backlog and CAO CPU/DB/network impact before choosing budgets.
+
+The estimates exclude mined membership/outcome projections. Measure their row
+counts, update/replay amplification and retention separately; reuse of existing
+acquisition does not make destination storage or query cost zero.
 
 Verify service suitability before activation. The Free offer's approximate
 100 GB uncompressed capacity, personal/regulated-data restrictions and missing
@@ -218,6 +304,14 @@ not claims established by the local protocol simulator.
   `specs/dashboard-data.md:23-76,644-767,2024-2058`; persisted source fields:
   `server/spec/storage.tsp:88-455`; metadata projection:
   `dashboard/site/src/data/adapters/unified-session-telemetry.js:53-175`.
+- Merged server-mining baseline: `56ba8746f`
+  ([PR #19712](https://github.com/githubnext/gh-cao/pull/19712)),
+  `specs/server-ingestion.md` section 4.1 and `specs/dashboard-data.md`
+  section 11.2; recorded context and disposition rules:
+  `server/internal/mining/evidence.go`; acquisition/replay:
+  `server/internal/collect/mining.go`, `mining_cached.go`,
+  `mining_backfill.go`; exact retained-output attribution and selected-attempt
+  filtering: `server/internal/postgresx/mining.go`.
 - Pinned upstream gh-aw `0a87def68d78763d96f24e903363376ba3a0db96`:
   [unified artifact content/omissions](https://github.com/github/gh-aw/blob/0a87def68d78763d96f24e903363376ba3a0db96/docs/src/content/docs/specs/unified-agent-session-specification.md#L215-L260),
   [episode/harness/workflow/skill context](https://github.com/github/gh-aw/blob/0a87def68d78763d96f24e903363376ba3a0db96/actions/setup/js/types/unified_session.d.ts#L475-L611),
