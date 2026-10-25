@@ -1,14 +1,7 @@
 {
   "source_sha": "c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-24T12:45:35Z",
-      "worker_run_id": "40095064250",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: both bounded latest-completed workflow-run requests for docs.yml and cao-dashboard.yml returned GitHub API rate-limit errors before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and dashboard/build/deploy job median and p90 timings, step-level cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-24T12:57:49Z",
       "worker_run_id": "40095908618",
@@ -716,6 +709,34 @@
         40162704738
       ],
       "outcome": "incomplete: the 2026-10-25T04:39:55Z to 2026-10-25T07:48:18Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Run elapsed times identified at least eight successful full build-and-deploy candidates, satisfying the initial comparable-run count. However, bounded job-metadata and dashboard-run requests hit an OS-thread resource limit (failed to create a new OS thread) before trusted job and step timings, cache-hit verification, CAO Dashboard producer timings, workflow/build/deploy median and p90 measurements, and a complete duplicate-issue check could be collected. Per resource-limit policy, further GitHub API work stopped. The artifact transfer and Pages packaging evaluation is incomplete, no recommendation was made, and the category remains next."
+    },
+    {
+      "evaluated_at": "2026-10-25T08:10:00Z",
+      "worker_run_id": "40176365163",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        40175042922,
+        40174161065,
+        40173709137,
+        40172904090,
+        40172659121,
+        40171981469,
+        40171806024,
+        40170970851,
+        40170958871,
+        40169581954,
+        40167689596,
+        40167572854,
+        40166830209,
+        40166061966,
+        40166036821,
+        40165312701,
+        40164017061,
+        40163715585,
+        40163691760,
+        40163351023
+      ],
+      "outcome": "complete no-op: the 2026-10-25T04:50:33Z to 2026-10-25T08:02:21Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Eight successful full build-and-deploy paths were comparable across workflow_run, push, and schedule triggers. Median execution excluding queue/concurrency wait was 93.0s (p90 118.2s); full elapsed workflow time was 104.0s (p90 124.3s), queue/concurrency wait 3.5s (p90 17.2s), build 63.0s (p90 78.8s), and deploy 11.0s (p90 44.6s). Ten successful CAO Dashboard producers had build median 20.5s (p90 25.3s). Trusted step metadata verified dashboard-cache hits in all eight docs builds because restore succeeded in 0-2s and artifact lookup/download fallback was skipped. Pages artifact upload was 2.0s median (p90 3.0s); deploy-pages was 7.0s median (p90 42.6s), with two disclosed 42-44s deployment-step outliers. No recommendation was made: required artifact transfer and packaging cost only 3s median, while the larger deployment tail is GitHub Pages service time and no concrete workflow change is evidenced to save at least 60s or 15% of median execution without weakening deployment correctness. The next category is scheduling, concurrency, and avoidable rebuilds."
     }
   ]
 }
