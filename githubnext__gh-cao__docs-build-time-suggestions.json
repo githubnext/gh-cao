@@ -3,34 +3,6 @@
   "next_category": "dependency installation and caching",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-24T15:18:38Z",
-      "worker_run_id": "40106189483",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40105066853,
-        40103950322,
-        40103253861,
-        40102981686,
-        40102106060,
-        40100650316,
-        40099564701,
-        40098931165,
-        40098569754,
-        40097760513,
-        40096377060,
-        40095336707,
-        40095180182,
-        40094172501,
-        40092270738,
-        40091197228,
-        40090698437,
-        40090314243,
-        40089485174,
-        40088202008
-      ],
-      "outcome": "incomplete: the 2026-10-24T11:01:11Z to 2026-10-24T15:01:28Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. All successful runs completed in 11-17 seconds at source SHA 22a3655f4893cfa0c2ea0b846c5a04a693c39f46, so none could contain the recently observed 75-99 second build-and-deploy path; they freshness-checked and avoided build and deploy. This is below the required minimum of five comparable successful build-and-deploy runs, so workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-24T15:35:01Z",
       "worker_run_id": "40107434314",
       "category": "dependency installation and caching",
@@ -737,6 +709,13 @@
         40169581954
       ],
       "outcome": "incomplete: the 2026-10-25T06:34:43Z to 2026-10-25T10:01:34Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Only three successful full build-and-deploy paths were present (workflow_run 40172659121, push 40171806024, and schedule 40169581954); the other successful runs freshness-checked and skipped build and deploy. This is below the required five comparable successful full runs, so current workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T10:36:06Z",
+      "worker_run_id": "40185253251",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded latest-20 completed docs.yml workflow-run request returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
     }
   ]
 }
