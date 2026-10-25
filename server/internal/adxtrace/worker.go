@@ -277,7 +277,7 @@ func (w *Worker) freeze(root *os.Root, state *ledger) error {
 		file := r.File
 		r.State, r.Reason, r.File, r.Delivered = "expired", "local-retention", "", ""
 		derived := invalidateDatasets(state, r.ID)
-		derived = append(derived, invalidateMining(state, r)...)
+		derived = append(derived, invalidateMining(state, r, w.now())...)
 		state.Revision++
 		r.Revision = state.Revision
 		if f := state.Frames[w.spool.frameID(r.Repository, r.Day)]; f != nil {

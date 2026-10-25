@@ -250,6 +250,8 @@ configuration/schema evidence, bound `ToolSchemas` (`name` and object
 `Split` (`train`, `validation`, `test`), `QualityLabel` and `LabelEvidence`.
 The exporter requires current ready retained source evidence and rejects
 duplicate traces, unbound tools and related episode/run-attempt split leakage.
+Offline creation and reuse enforce source retention even when the delivery
+worker is stopped; an existing dataset file does not bypass expiry.
 It writes a bounded immutable native-trajectory JSONL file **inside the spool**,
 including source/policy/transform/evaluator/schema/split/label lineage, and queues
 ADX `TraceDatasets` metadata. This is not an OpenAI-format claim, an inferred
@@ -282,6 +284,8 @@ Explicit offline withdrawal persists the same intent. The running worker then
 publishes a newer manifest/tombstones; generated queries resolve latest revision
 **before** readiness filtering. Destination outages delay remote invalidation;
 stop consumer access when immediate withdrawal is required.
+Mining tombstone clocks are persisted so ambiguous-write retries and restarts
+replay the identical invalidation row.
 
 Local evidence expiry also invalidates readiness and derived local datasets.
 Downloaded/exported copies, backups and physical ADX erasure require the

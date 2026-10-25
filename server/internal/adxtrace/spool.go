@@ -397,7 +397,7 @@ func (s *spool) withdraw(ctx context.Context, repository string) error {
 			}
 			r.State, r.Delivered = "withdrawn", ""
 			remove = append(remove, invalidateDatasets(state, r.ID)...)
-			remove = append(remove, invalidateMining(state, r)...)
+			remove = append(remove, invalidateMining(state, r, time.Now())...)
 			state.Revision++
 			r.Revision = state.Revision
 			if r.File != "" {

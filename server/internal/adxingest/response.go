@@ -133,11 +133,11 @@ func decodeQueryResponse(content []byte) ([][]any, error) {
 
 func checkQueryStatus(table responseTable) error {
 	severity, code := table.column("Severity"), table.column("StatusCode")
-	if severity < 0 {
+	if severity < 0 || len(table.Rows) == 0 {
 		return errors.New("invalid ADX query status")
 	}
 	for _, row := range table.Rows {
-		if severity >= len(row) || code >= len(row) {
+		if len(row) != len(table.Columns) || severity >= len(row) || code >= len(row) {
 			return errors.New("invalid ADX query status row")
 		}
 		value, ok := row[severity].(json.Number)

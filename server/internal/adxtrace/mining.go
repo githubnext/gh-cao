@@ -228,24 +228,32 @@ func traceOutputProofs(trace Evidence) map[string]int {
 	}
 	calls := map[string]string{}
 	seen := map[string]bool{}
+	completed := map[string]bool{}
 	for _, event := range events {
 		data, _ := event["data"].(map[string]any)
 		call := scalar(data["toolCallId"])
 		switch scalar(event["type"]) {
 		case "tool.execution_start":
 			if call != "" && slices.Contains([]string{"create_issue", "create_pull_request"}, scalar(data["toolName"])) {
-				if seen[call] {
+				if seen[call] || completed[call] {
 					return map[string]int{}
 				}
 				seen[call] = true
 				calls[call] = scalar(data["toolName"])
 			}
 		case "tool.execution_complete":
-			kind := calls[call]
-			if call == "" || kind == "" || data["success"] != true || data["error"] != nil {
+			if call == "" {
 				continue
 			}
+			if completed[call] {
+				return map[string]int{}
+			}
+			completed[call] = true
+			kind := calls[call]
 			delete(calls, call)
+			if kind == "" || data["success"] != true || data["error"] != nil {
+				continue
+			}
 			urls := map[string]bool{}
 			for _, key := range []string{"output", "result"} {
 				result, ok := data[key].(map[string]any)
@@ -282,7 +290,7 @@ func readMining(root *os.Root, m *miningProjection) (miningEvidence, error) {
 	return e, nil
 }
 
-func invalidateMining(state *ledger, r *record) []string {
+func invalidateMining(state *ledger, r *record, now time.Time) []string {
 	m := r.Mining
 	if m == nil || m.State == "invalidated" {
 		return nil
@@ -295,6 +303,7 @@ func invalidateMining(state *ledger, r *record) []string {
 	m.Version = digest([]byte(m.Version + ":invalidated:" + strconv.FormatInt(state.Revision, 10)))
 	m.File, m.State, m.Delivered = "", "invalidated", ""
 	m.Revision, m.FactsRevision = state.Revision, state.Revision
+	m.FreshUntil = now.UTC()
 	return files
 }
 
@@ -371,7 +380,7 @@ func (w *Worker) stepMining(ctx context.Context, root *os.Root, state *ledger) (
 	}
 	if err != nil {
 		files := invalidateDatasets(state, next.ID)
-		files = append(files, invalidateMining(state, next)...)
+		files = append(files, invalidateMining(state, next, w.now())...)
 		next.MiningCheckedAt = w.now()
 		if saveErr := w.spool.save(root, state); saveErr != nil {
 			return false, saveErr
@@ -458,7 +467,7 @@ func (w *Worker) deliverMining(ctx context.Context, root *os.Root, state *ledger
 	m := r.Mining
 	e := miningEvidence{CanonicalNamespace: state.MiningNamespace, CanonicalRunID: canonicalRun(r),
 		CanonicalRevision: r.MiningSourceRevision, TraceVersion: r.Version, State: m.State,
-		CapturedAt: w.now(), FreshUntil: w.now(), Gaps: []string{"source-invalidated"}, Tables: map[string][]model.Row{}}
+		CapturedAt: m.FreshUntil, FreshUntil: m.FreshUntil, Gaps: []string{"source-invalidated"}, Tables: map[string][]model.Row{}}
 	if m.File != "" {
 		var err error
 		e, err = readMining(root, m)

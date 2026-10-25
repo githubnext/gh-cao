@@ -27,7 +27,7 @@ type Config struct {
 	SingleReplica   bool
 	Interval        time.Duration
 	// MaxStorageBytes is a conservative total OriginalSize budget across
-	// the six destination tables, not a compression estimate or Azure quota.
+	// all owned destination tables, not a compression estimate or Azure quota.
 	MaxStorageBytes int64
 }
 

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/sessionexport"
 )
@@ -74,7 +75,7 @@ func TestDatasetMetadataUpgradeKeepsNonMiningCorpusIdentity(t *testing.T) {
 	if bytes.Contains(content, []byte(`"MiningVersion"`)) || bytes.Contains(content, []byte(`"Outcome"`)) {
 		t.Fatal("additive mining fields changed non-mining dataset specification identity")
 	}
-	if _, err := ExportDataset(t.Context(), w.spool.config, "destination", content); err != nil {
+	if _, err := exportDatasetAt(t.Context(), w.spool.config, "destination", content, clock); err != nil {
 		t.Fatal(err)
 	}
 	drain(t, w)
@@ -127,4 +128,69 @@ func TestMiningRedactionChecksUnescapedIdentifiersBeforeDurableWrite(t *testing.
 	if w.Status().Gaps == 0 {
 		t.Fatal("failed first projection lost degraded status")
 	}
+}
+
+func TestOfflineDatasetRejectsExpiredSourcesWithoutWorkerStep(t *testing.T) {
+	for _, cached := range []bool{false, true} {
+		t.Run(map[bool]string{false: "new", true: "cached"}[cached], func(t *testing.T) {
+			w, _ := workerFor(t, configFor(t, "full"))
+			e := admit(t, w, "42", "reviewed")
+			drain(t, w)
+			spec := outcomeSpec(e, "")
+			spec.Entries[0].Outcome = nil
+			spec.ToolSchemas[0]["name"] = "read"
+			content, err := json.Marshal(spec)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cached {
+				if _, err := exportDatasetAt(t.Context(), w.spool.config, "destination", content, clock); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if _, err := exportDatasetAt(t.Context(), w.spool.config, "destination", content, clock.Add(w.spool.config.Retention)); err == nil {
+				t.Fatal("offline export bypassed retention without a running worker")
+			}
+		})
+	}
+}
+
+func TestDatasetUsesValidatedDefaultBudgets(t *testing.T) {
+	w, _ := workerFor(t, configFor(t, "full"))
+	e := admit(t, w, "42", "reviewed")
+	drain(t, w)
+	spec := outcomeSpec(e, "")
+	spec.Entries[0].Outcome = nil
+	spec.ToolSchemas[0]["name"] = "read"
+	content, err := json.Marshal(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := w.spool.config
+	config.MaxSpoolBytes = 0
+	if _, err := exportDatasetAt(t.Context(), config, "destination", content, clock); err != nil {
+		t.Fatalf("validated default spool budget was ignored: %v", err)
+	}
+}
+
+func TestMiningWithdrawalRetryKeepsImmutableTombstone(t *testing.T) {
+	w, sink, _ := miningWorkerFor(t, "full")
+	admitCreated(t, w, "42")
+	drain(t, w)
+	if err := w.WithdrawRepository(t.Context(), "octo/api"); err != nil {
+		t.Fatal(err)
+	}
+	sink.fail = "TraceMiningManifest"
+	var err error
+	for i := 0; i < 10; i++ {
+		_, err = w.Step(t.Context())
+		if err != nil {
+			break
+		}
+	}
+	if err == nil {
+		t.Fatal("ambiguous invalidation was not exercised")
+	}
+	w.now = func() time.Time { return clock.Add(time.Minute) }
+	drain(t, w)
 }

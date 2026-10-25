@@ -442,3 +442,30 @@ func TestMiningCreationProofKeepsNativeRunCoordinates(t *testing.T) {
 		t.Fatal("native creation result lost exact run/attempt coordinates")
 	}
 }
+
+func TestMiningCreationProofRejectsAmbiguousCompletions(t *testing.T) {
+	start := model.Row{"type": "tool.execution_start", "data": model.Row{"toolCallId": "call", "toolName": "create_pull_request", "input": model.Row{}}}
+	success := model.Row{"type": "tool.execution_complete", "data": model.Row{"toolCallId": "call", "success": true, "output": model.Row{"url": "https://github.com/octo/target/pull/12"}}}
+	failure := model.Row{"type": "tool.execution_complete", "data": model.Row{"toolCallId": "call", "success": false, "error": "failed"}}
+	conflict := model.Row{"type": "tool.execution_complete", "data": model.Row{"toolCallId": "call", "success": true, "output": model.Row{"url": "https://github.com/octo/target/pull/13"}}}
+	for name, events := range map[string][]model.Row{
+		"duplicate": {start, success, success}, "conflicting": {start, success, conflict},
+		"failed-then-successful": {start, failure, success}, "completion-before-start": {success, start, success},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var raw bytes.Buffer
+			for _, event := range events {
+				if err := json.NewEncoder(&raw).Encode(event); err != nil {
+					t.Fatal(err)
+				}
+			}
+			trace, err := Project(configFor(t, "full"), "octo/api", "42", "2026-01-01", 1, raw.Bytes(), clock)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(traceOutputProofs(trace)) != 0 {
+				t.Fatal("ambiguous creation completion attested a producing attempt")
+			}
+		})
+	}
+}

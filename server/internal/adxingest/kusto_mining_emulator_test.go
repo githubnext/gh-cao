@@ -198,6 +198,21 @@ func TestKustoEmulatorMiningLifecycle(t *testing.T) {
 	if err := worker.WithdrawRepository(t.Context(), "octo/api"); err != nil {
 		t.Fatal(err)
 	}
+	k.loseAcknowledgement("TraceMiningManifest")
+	err = nil
+	for range 10 {
+		_, err = worker.Step(t.Context())
+		if err != nil {
+			break
+		}
+	}
+	if err == nil {
+		t.Fatal("ambiguous mining withdrawal was not exercised")
+	}
+	worker, err = adxtrace.New(t.Context(), config, namespace, k.client, source)
+	if err != nil {
+		t.Fatal(err)
+	}
 	drainKustoTraces(t, worker)
 	for _, query := range []string{"cao_TraceMining()", "cao_TraceEpisodes()", "cao_TraceOutcomes()", "cao_TraceDatasets()",
 		`cao_TraceOutcomesAt("mining-lifecycle",datetime(` + cutoff + `))`} {

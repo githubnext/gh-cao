@@ -335,7 +335,7 @@ func TestDatasetLineageReasoningExclusionAndInvalidation(t *testing.T) {
 		ToolSchemas: []map[string]any{{"name": "read", "parameters": map[string]any{"type": "object"}}},
 		Entries:     []DatasetEntry{{TraceID: e.ID, TraceVersion: e.Version, TaskGroup: "episode", Split: "train", QualityLabel: "accepted", LabelEvidence: "review:123"}}}
 	content, _ := json.Marshal(spec)
-	path, err := ExportDataset(t.Context(), c, "destination", content)
+	path, err := exportDatasetAt(t.Context(), c, "destination", content, clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -352,7 +352,7 @@ func TestDatasetLineageReasoningExclusionAndInvalidation(t *testing.T) {
 	if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("stale derived dataset retained")
 	}
-	if _, err := ExportDataset(t.Context(), c, "destination", content); err == nil {
+	if _, err := exportDatasetAt(t.Context(), c, "destination", content, clock); err == nil {
 		t.Fatal("stale dataset replay allowed")
 	}
 }

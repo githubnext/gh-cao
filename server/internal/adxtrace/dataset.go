@@ -122,6 +122,7 @@ func exportDatasetAt(ctx context.Context, config Config, namespace string, speci
 	if err != nil {
 		return "", err
 	}
+	config = s.config
 	var path string
 	err = s.locked(ctx, func(root *os.Root, state *ledger) error {
 		specContent, err := json.Marshal(spec)
@@ -133,9 +134,12 @@ func exportDatasetAt(ctx context.Context, config Config, namespace string, speci
 			if old.State != "ready" {
 				return errors.New("dataset has been invalidated")
 			}
-			for traceID := range old.References {
+			for traceID, version := range old.References {
 				r := state.Records[traceID]
-				if config.MiningEnabled && (r == nil || r.Mining == nil || r.Mining.State != "ready" || r.Mining.Delivered == "" || !now.Before(r.Mining.FreshUntil)) {
+				if r == nil || r.State != "eligible" || r.Delivered == "" || r.Version != version || now.Sub(r.CapturedAt) >= config.Retention {
+					return errors.New("dataset source evidence is no longer current")
+				}
+				if config.MiningEnabled && (r.Mining == nil || r.Mining.State != "ready" || r.Mining.Delivered == "" || !now.Before(r.Mining.FreshUntil)) {
 					return errors.New("dataset mining evidence is no longer current")
 				}
 			}
@@ -159,6 +163,7 @@ func exportDatasetAt(ctx context.Context, config Config, namespace string, speci
 		for _, entry := range spec.Entries {
 			r := state.Records[entry.TraceID]
 			if r == nil || r.State != "eligible" || r.Delivered == "" || r.Version != entry.TraceVersion ||
+				now.Sub(r.CapturedAt) >= config.Retention ||
 				entry.TaskGroup == "" || entry.QualityLabel == "" || entry.LabelEvidence == "" || seen[entry.TraceID] ||
 				!slices.Contains([]string{"train", "validation", "test"}, entry.Split) {
 				return errors.New("dataset entry lacks current ready evidence, labels, grouping or an explicit split")

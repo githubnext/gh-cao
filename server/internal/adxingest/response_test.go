@@ -27,6 +27,8 @@ func TestV1QueryResolvesStatusByTableOfContents(t *testing.T) {
 		strings.Replace(v1Response, `[2,"QueryStatus"`, `[0,"QueryStatus"`, 1),
 		strings.Replace(v1Response, `"Severity"`, `"Unexpected"`, 1),
 		strings.Replace(v1Response, `[2,"QueryStatus","QueryStatus"]`, `[2,"QueryProperties","@Unknown"]`, 1),
+		strings.Replace(v1Response, `[[4,0,"completed"],[6,0,"stats"]]`, `[]`, 1),
+		strings.Replace(v1Response, `[4,0,"completed"]`, `[4,0,"completed","unexpected"]`, 1),
 		v1Response + `{"Tables":[]}`,
 	} {
 		if _, err := decodeQueryResponse([]byte(response)); err == nil || strings.Contains(err.Error(), "SECRET") {

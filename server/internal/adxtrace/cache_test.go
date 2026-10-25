@@ -50,17 +50,17 @@ func TestDatasetGroupFreezeSurvivesLaterExports(t *testing.T) {
 		ToolSchemas: []map[string]any{{"name": "read", "parameters": map[string]any{"type": "object"}}},
 		Entries:     []DatasetEntry{{TraceID: one.ID, TraceVersion: one.Version, TaskGroup: "episode", Split: "test", QualityLabel: "accepted", LabelEvidence: "review:1"}}}
 	content, _ := json.Marshal(spec)
-	if _, err := ExportDataset(t.Context(), c, "destination", content); err != nil {
+	if _, err := exportDatasetAt(t.Context(), c, "destination", content, clock); err != nil {
 		t.Fatal(err)
 	}
 	spec.Entries = []DatasetEntry{{TraceID: two.ID, TraceVersion: two.Version, TaskGroup: "different-group", Split: "train", QualityLabel: "accepted", LabelEvidence: "review:2"}}
 	content, _ = json.Marshal(spec)
-	if _, err := ExportDataset(t.Context(), c, "destination", content); err == nil {
+	if _, err := exportDatasetAt(t.Context(), c, "destination", content, clock); err == nil {
 		t.Fatal("same episode escaped held-out grouping across exports")
 	}
 	spec.Entries[0].TaskGroup = "episode"
 	content, _ = json.Marshal(spec)
-	if _, err := ExportDataset(t.Context(), c, "destination", content); err == nil {
+	if _, err := exportDatasetAt(t.Context(), c, "destination", content, clock); err == nil {
 		t.Fatal("held-out group moved into training in a later export")
 	}
 }
@@ -144,7 +144,7 @@ func TestDatasetRejectsIncompleteAndAmbiguousTrajectories(t *testing.T) {
 				spec.ToolSchemas[0]["parameters"] = "not-a-schema"
 			}
 			content, _ := json.Marshal(spec)
-			if _, err := ExportDataset(t.Context(), c, "destination", content); err == nil {
+			if _, err := exportDatasetAt(t.Context(), c, "destination", content, clock); err == nil {
 				t.Fatal("invalid dataset accepted")
 			}
 		})
