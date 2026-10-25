@@ -1,7 +1,7 @@
 name: CAO Activity
 icon: ":pulse:"
 description: Root-package component that maintains a shared, bounded snapshot of GitHub Agentic Workflow activity; not a standalone installation entry point.
-min-version: v0.93.1
+min-version: v0.93.5
 experimental: true
 includes:
   - .github/workflows/cao-activity.yml

@@ -1,7 +1,7 @@
 name: Dependabot
 icon: ":dependabot:"
 description: Durable repository-scoped Dependabot update planning with human-consumption evidence.
-min-version: v0.93.1
+min-version: v0.93.5
 experimental: true
 includes:
   - operational-value.mjs

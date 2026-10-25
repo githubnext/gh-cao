@@ -584,7 +584,7 @@ main() {
   local materializer=".github/workflows/shared/materialize-cao.mjs"
   local runtime_action=".github/actions/setup-cao-runtime/action.yml"
   local required_gh="v2.68.0"
-  local required_gh_aw="v0.93.1"
+  local required_gh_aw="v0.93.5"
   local catalog_source="githubnext/gh-cao"
   local package_source
   local explicit_source=false

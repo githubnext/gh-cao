@@ -1,7 +1,7 @@
 name: Dreaming
 icon: ":beaker:"
 description: Evidence-bounded curation of AGENTS.md and other ambient agentic context, and future skill extraction and refinement.
-min-version: v0.93.1
+min-version: v0.93.5
 experimental: true
 includes:
   - .github/workflows/dreaming-agents-md-curator.md
