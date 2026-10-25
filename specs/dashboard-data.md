@@ -892,6 +892,15 @@ responses SHALL select the `server-http` backend and SHALL NOT be cached as
 static HTML. Hosted service failures SHALL NOT fall back to browser shard
 ingestion, IndexedDB query execution, or the separate Pages deployment.
 
+When GitHub OAuth is configured, the server SHALL inject the
+`globalThis.__DASHBOARD_ADMIN__ = true` capability into a dashboard entry
+response only if the requesting session is in the configured administrator list
+and holds a current administrator step-up assurance. Dashboard navigation,
+direct routes, and lazy page loading for views that declare the `admin`
+capability, such as Governance, SHALL be available only when that capability is
+present. The capability gates visibility only; command authorization remains
+enforced server-side and is unchanged.
+
 `gh-aw-cao-dashboard-data` is the logical database name. Every implemented
 store uses `id` as its key path. The implemented secondary indexes are:
 
