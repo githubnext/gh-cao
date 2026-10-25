@@ -3,34 +3,6 @@
   "next_category": "dependency installation and caching",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-24T19:50:43Z",
-      "worker_run_id": "40126926921",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        40126757278,
-        40125625633,
-        40124647241,
-        40124625205,
-        40123369506,
-        40122394170,
-        40121780130,
-        40121606358,
-        40121585605,
-        40121471441,
-        40120653572,
-        40120191494,
-        40118803916,
-        40117600869,
-        40116502677,
-        40116326535,
-        40116139464,
-        40115877669,
-        40115632104,
-        40114233064
-      ],
-      "outcome": "complete no-op: the 2026-10-24T17:01:31Z to 2026-10-24T19:45:53Z latest-20 completed docs.yml window contained 17 successful, two skipped, and one failed run. Six successful full build-and-deploy paths were comparable across schedule, workflow_run, and push triggers. Median execution was 96.0s (p90 120.0s), queue time 3.5s (p90 44.5s), build 74.5s (p90 84.5s), deploy 10.0s (p90 17.0s), and Astro documentation generation 13.0s (p90 15.0s). Six successful CAO Dashboard build jobs had median 15.0s (p90 19.0s). Trusted step metadata showed all six docs builds restored the dashboard cache and skipped artifact fallback. The failed schedule run 40114233064 was disclosed and excluded. No Astro recommendation was made: even eliminating the entire 13-second median Astro step would save less than 15% of the 96-second median execution and far less than 60 seconds, so no concrete change can meet the actionability threshold without weakening correctness. The next category is reusable dashboard generation."
-    },
-    {
       "evaluated_at": "2026-10-24T20:20:39Z",
       "worker_run_id": "40129115343",
       "category": "reusable dashboard generation",
@@ -715,6 +687,13 @@
         40183058827
       ],
       "outcome": "incomplete: the 2026-10-25T10:01:34Z to 2026-10-25T14:01:46Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. All successful runs completed in 12-21 seconds at source SHA c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49. Trusted job and step metadata for latest run 40200295371 confirmed that only schedule-freshness ran (14 seconds; freshness step 12 seconds), while build and deploy were skipped. No successful full build-and-deploy path was present, below the required five comparable successful runs. Therefore full workflow and dashboard/build/deploy job median and p90 timings, repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T14:35:21Z",
+      "worker_run_id": "40202740431",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded latest-20 completed docs.yml workflow-run request returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
     }
   ]
 }
