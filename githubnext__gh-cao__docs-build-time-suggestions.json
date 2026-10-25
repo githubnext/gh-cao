@@ -1,35 +1,7 @@
 {
-  "source_sha": "c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49",
+  "source_sha": "12d37e623aa07b22cf18375ad81d8745396c4417",
   "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-24T23:55:00Z",
-      "worker_run_id": "40144171059",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        40144047588,
-        40143048981,
-        40142249996,
-        40142246154,
-        40141007943,
-        40139974269,
-        40139927083,
-        40139670015,
-        40138962452,
-        40138156117,
-        40137719927,
-        40136765890,
-        40136132048,
-        40135648060,
-        40134680631,
-        40133840183,
-        40133826166,
-        40133428226,
-        40132380373,
-        40131335329
-      ],
-      "outcome": "complete no-op: the 2026-10-24T20:47:04Z to 2026-10-24T23:45:58Z latest-20 completed docs.yml window contained 16 successful, three skipped, and one action-required run, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable across schedule, push, and workflow_run triggers. Median execution was 104.0s (p90 115.2s), queue time was 3.0s (p90 4.0s), build was 77.0s (p90 86.8s), and deploy was 9.0s (p90 13.4s). Seven successful CAO Dashboard producers had build median 18.0s (p90 26.8s) and full-workflow median 35.0s (p90 40.4s); dashboard assembly was 2.0s median (p90 2.4s). Trusted step metadata verified dashboard-cache hits in all five docs builds because restore succeeded in 1-2s and artifact lookup/download fallback was skipped. All seven dashboard producers restored their activity snapshot and skipped fallback download; dashboard artifact upload was 2.0s median and cache publication ran outside the docs critical path. The action-required docs run 40136132048 was disclosed and excluded. No recommendation was made: reusable dashboard generation is already asynchronous and reused, with only 1-2s on the docs critical path, far below 60s and 15% of median execution. The next category is artifact transfer and Pages packaging."
-    },
     {
       "evaluated_at": "2026-10-25T02:29:10Z",
       "worker_run_id": "40154402634",
@@ -631,6 +603,34 @@
       "category": "dependency installation and caching",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T18:23:02Z",
+      "worker_run_id": "40220775348",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        40220727533,
+        40219292338,
+        40218040913,
+        40217268966,
+        40216888424,
+        40215931119,
+        40214431077,
+        40213326434,
+        40212662200,
+        40212342076,
+        40211439771,
+        40209673066,
+        40208489140,
+        40207593397,
+        40207467334,
+        40206514307,
+        40204954138,
+        40203790937,
+        40202976485,
+        40202743150
+      ],
+      "outcome": "incomplete: the 2026-10-25T14:32:46Z to 2026-10-25T18:21:25Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Only the newest push run 40220727533 was a successful full build-and-deploy candidate (91 seconds elapsed); the other successful runs completed in 17-25 seconds at the prior source SHA after freshness checking, consistent with the trusted job evidence recorded for this same run series in recent evaluations. This is below the required five comparable successful full runs. Therefore current full-workflow and dashboard/build/deploy job median and p90 timings, repeated step-cost analysis, cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
     }
   ]
 }
