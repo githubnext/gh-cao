@@ -36,6 +36,7 @@ structure:
   dashboard_go_server: server/
   canonical_session_export: server/internal/sessionexport/
   optional_adx_export: server/internal/adxingest/
+  optional_adx_traces: server/internal/adxtrace/
   webhook_gateway_entrypoint: server/cmd/cao-webhook-gateway/
   webhook_gateway_contracts: server/internal/webhookgateway/
   webhook_gateway_host: server/internal/webhookgatewayhost/
@@ -183,7 +184,10 @@ components:
     responsibility: define a neutral bounded exact-repository completed-session snapshot reader; PostgreSQL selects requested canonical scalars and available run-linked observations with presence and source quality in one repeatable-read transaction closed before external I/O; not transactional change capture
   optional_adx_export:
     path: server/internal/adxingest/
-    responsibility: default-off single-replica Go add-on within the existing OAuth host; persist one immutable approved pending projection/cursor in protected restart-durable operational state, with 256 KiB/1024-row session and 512 KiB state limits and explicit bounded oversize/seven-day delivery gaps; send direct streaming HTTP with explicit Entra app credentials into six free-compatible typed ADX tables, exactly verify deduplicated facts before ready manifests and expose curated deduplicating KQL; no new service, collector, queue platform, Blob, paid feature or runtime DDL; require exact canonical repository scope and non-personal/non-regulated approval; capacity failures retry independently of core readiness; no every-intermediate-version, deletion propagation, physical purge or complete-session guarantee; simulator proves delivery protocol, not live Kusto execution/capacity
+    responsibility: default-off single-replica Go add-on within the existing OAuth host; persist one immutable approved pending projection/cursor in protected restart-durable operational state, with 256 KiB/1024-row session and 512 KiB state limits and explicit bounded oversize/seven-day delivery gaps; send direct streaming HTTP with explicit Entra app credentials into six typed ADX snapshot tables, exactly verify deduplicated facts before ready manifests and expose curated deduplicating KQL; no new service, collector, queue platform, Blob or runtime DDL; require exact canonical repository scope and destination/data suitability approval; capacity failures retry independently of core readiness; snapshot path has no every-intermediate-version, deletion propagation, physical purge or complete-session guarantee; simulator proves delivery protocol, not live Kusto execution/capacity
+  optional_adx_traces:
+    path: server/internal/adxtrace/
+    responsibility: separately default-off co-resident collection-time capture before lossy normalization; stage metadata cache until private durable approved admission, allowing exact-scope reacquisition after failed capture without replacing canonical records with filtered copies; require versioned closed content policy, rights/content approval and redaction before owner-only durable spool; one file-locked worker with atomic fsync-backed bounded ledger and immutable UTF-8 multipart trace versions, direct 1 MiB streaming and exact digest verification before readiness; shared TypeSpec model at any destination capacity; preserve native episode/hop lineage and observed harness/configuration context without inference; full capture or frozen repository/completion-day whole-trace probability sampling records acquired-frame population, cutoff, source gaps, exclusions, probabilities, weights and completeness without claiming complete upstream coverage; corrections/late arrivals/withdrawal/expiry invalidate frames without refill; bounded offline labelled schema-bound dataset export excludes reasoning, groups splits and preserves source/transform/evaluator lineage without training or replay; withdrawal blocks replay, removes local content and queues destination tombstones and derived invalidations, never promises physical purge or external-copy erasure; no static, snapshot-only, admission-only, standalone or per-request capture; capacity and authority remain separate
   local_sqlite_entity_store:
     path: server/internal/sqlitex/, server/internal/server/local_sqlite.go
     responsibility: default local serve to a cached canonical snapshot with loopback bearer authentication and read-only request transactions; acquire missing files from DASHBOARD_DATA_URL or public CAO Pages, with --sqlite selecting another cache and --download-sqlite explicitly refreshing; accept any Pages/custom-domain site, dashboard directory or manifest URL, discover the root manifest then cao/ on HTTP 404, stream bounded data and verify SHA-256 plus canonical version before atomic replacement, preserving the previous file and failing startup on error; fail closed for invalid or unreadable existing caches and dangling symlinks without repair downloads; outside the internal canvas, attach the snapshot read-only to a separate writable delta with shared internal/dashboardquery/overlay.sql, local upserts and tombstones, no historical record copy and a fail-closed canonical-content revision binding; refresh only snapshot-declared repositories with local GH_TOKEN, GITHUB_TOKEN or gh login through existing Activity collection/compaction and canonical ingestion, stage only the delta, discard and report failed repository evidence independently, atomically publish successful ingestion with stale-writer rejection and revision notification, remove private pass evidence and cancel/join work on shutdown; bound scope to 10000 repositories, collection to 10000 runs and five minutes per repository within 30 days with a one-day watermark overlap and older unfinished runs, and passes to 30 minutes; repeat five minutes after each pass with --backfill-interval override and --backfill=false for offline reuse including local data; expose ordinary HTTP, canonical API, diagnostics, revision subscriptions and optional MCP with bounded volatile request services, unknown snapshot quality and no query result caching; preserve snapshot-only canvas and never enable hosted OAuth, collection, ingestion, webhooks, hosted execution, token-driven inventory expansion, rollout changes or PostgreSQL fallback
@@ -365,6 +369,9 @@ dependencies:
   - optional_adx_export -> canonical_session_export
   - postgres_entity_store -> canonical_session_export
   - optional_adx_export -> operational_contracts
+  - dashboard_https_server -> optional_adx_traces
+  - optional_adx_export -> optional_adx_traces
+  - optional_adx_traces -> gh_aw_logs
   - go_extension_entrypoint -> go_extension_commands
   - go_extension_commands -> go_extension_github_helper
   - go_extension_commands -> go_extension_catalog
@@ -457,6 +464,11 @@ dependencies:
   - marketplace_hosted_resolver -> marketplace_ui
 
 boundaries:
+  - subject: optional_adx_traces
+    must_not_depend_on:
+      - control_plane_authority
+      - computation_authority
+      - dashboard_entity_storage
   - subject: optional_adx_export
     may_depend_on:
       - canonical_session_export
@@ -846,6 +858,13 @@ generation:
       - server/internal/adxingest/schema.gen.go
       - server/internal/adxingest/schema.gen.kql
     command: npm --prefix server/spec run generate:adx
+  dashboard_adx_trace_schema:
+    source: server/spec/trace.tsp
+    emitter: server/spec/trace-emitter.mjs
+    outputs:
+      - server/internal/adxtrace/schema.gen.go
+      - server/internal/adxtrace/schema.gen.kql
+    command: npm --prefix server/spec run generate:trace
   new_operation:
     path: <operation>/aw.yml
   workflow_source:

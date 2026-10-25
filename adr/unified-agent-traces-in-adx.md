@@ -2,14 +2,15 @@
 
 ## Status
 
-Proposed - 2026-10-25.
+Accepted for implementation - 2026-10-25. Operational acceptance remains gated.
 
-This record proposes extending the optional Go ADX add-on implemented at
+This record extends the optional Go ADX add-on implemented at
 `7ea765d4c` in [PR #19702](https://github.com/githubnext/gh-cao/pull/19702).
-It does not implement or enable trace capture, broaden collection authority,
-provision infrastructure, authorize training, or change existing normative
-contracts. The current implementation remains described by
-[ADX ingestion](../server/ADX-INGEST.md).
+The subsequent implementation request authorizes default-off code, not live
+capture, broader collection authority, infrastructure provisioning or training.
+The snapshot implementation remains described by
+[ADX ingestion](../server/ADX-INGEST.md); the separate trace option and its
+operator acceptance gates are in [unified traces](../server/ADX-TRACES.md).
 
 ## Context
 
@@ -25,7 +26,7 @@ The desired evidence does not vary by destination pricing tier. Volume,
 sampling, retention and buffering should be capacity choices within one design.
 Start at moderate scale rather than requiring hyperscale infrastructure.
 
-## Proposed decision
+## Decision
 
 ### Capture once through the existing acquisition boundary
 
@@ -197,11 +198,13 @@ reviewed.
 - **Immediate hyperscale pipeline:** deferred; adds operational resources before
   moderate-scale behavior is measured.
 
-The proposed design reuses acquisition and hosting while introducing a distinct
+The design reuses acquisition and hosting while introducing a distinct
 private trace lifecycle and its associated storage, content-governance and
 withdrawal obligations. ADX remains derived analytical evidence, not enrollment,
-rollout, billing, execution or training authority. Normative schemas and behavior
-must be specified and validated separately if this proposal is accepted.
+rollout, billing, execution or training authority. `server/spec/trace.tsp` owns the trace table contract; runtime and
+operator behavior are documented separately. Empirical utility, actual Kusto
+execution/capacity and destination-specific erasure remain acceptance gates,
+not claims established by the local protocol simulator.
 
 ## Evidence
 

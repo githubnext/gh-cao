@@ -293,6 +293,15 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 }
 
 func (w Worker) processErasure(ctx context.Context, lease Lease) bool {
+	if w.Runner.Traces != nil {
+		if err := w.Runner.Traces.WithdrawRepository(ctx, lease.Task.Repository); err != nil {
+			workerLog.Printf("trace withdrawal failed")
+			if retryErr := w.Queue.Retry(ctx, lease, err); retryErr != nil {
+				workerLog.Printf("trace withdrawal retry failed")
+			}
+			return false
+		}
+	}
 	if err := w.Runner.Lake.ForgetContext(ctx, lease.Task.Repository); err != nil {
 		workerLog.Printf("evidence erasure failed repository=%s", lease.Task.Repository)
 		if retryErr := w.Queue.Retry(ctx, lease, err); retryErr != nil {

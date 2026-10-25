@@ -1,0 +1,5 @@
+emit:
+  - "./trace-emitter.mjs"
+options:
+  "cao-trace":
+    emitter-output-dir: "{project-root}/../internal/adxtrace"

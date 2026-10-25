@@ -52,7 +52,7 @@ func TestConfigRequiresScopeClassificationAndSingleReplica(t *testing.T) {
 		func(c *Config) { c.RepositoryIDs = []string{"repo", "repo"} },
 		func(c *Config) { c.Database = "CAO']; .drop database X" },
 		func(c *Config) { c.ClientSecret = "" },
-		func(c *Config) { c.MaxStorageBytes = 100_000_000_000 },
+		func(c *Config) { c.MaxStorageBytes = 1<<40 + 1 },
 		func(c *Config) { c.Interval = -1 },
 	} {
 		config := testConfig()

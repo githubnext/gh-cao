@@ -360,7 +360,7 @@ Blob, Event Hubs, ARM provisioning, materialized views or paid ADX features.
 the repository-owned emitter generates Go projection metadata and embedded
 operator KQL together. Server-spec checks verify reproducibility and canonical
 field/type compatibility. No new PostgreSQL schema or HTTP operation is added.
-Enablement requires exact repository scope and non-personal/non-regulated data
+Enablement requires exact repository scope and destination/data suitability
 approval. Independent bounded retries, capacity checks, gaps and degraded status
 never make dashboard/collection readiness depend on ADX. Static Pages, local
 SQLite, volatile state and per-request workers do not export; v1 does not
@@ -368,6 +368,38 @@ propagate deletion/withdrawal or promise physical purge or full-session coverage
 ADX is derived analytics, never enrollment, rollout, billing or query authority.
 The local HTTP simulator validates delivery, not Kusto execution or real free
 capacity/permissions.
+
+The separately default-off unified trace option (`server/internal/adxtrace/`,
+`server/ADX-TRACES.md`) reuses co-resident collection's existing usage-artifact
+visit before lossy normalization. A staged metadata cache is committed only
+after durable approved trace admission; uncaptured attempts remain eligible
+for reacquisition within the same authorized scope. No raw trace content enters
+canonical PostgreSQL, public shards or dashboard IndexedDB. A closed versioned
+content policy, universal rights/content approval and redaction precede private
+durable capture. One file-locked worker uses an operator-verified owner-only
+durable spool, atomic fsync-backed ledger, immutable multipart trace versions,
+bounded 1 MiB streaming batches and exact deduplicated digest verification before
+ready manifests. `server/spec/trace.tsp` owns the additional six-table contract
+and generated Go/KQL. Direct streaming and credentials reuse the existing client;
+capacity is configurable without different content models by destination tier.
+
+Full capture or frozen closed-day whole-trace probability sampling retains the
+same approved evidence. Frames describe observed acquired repository/run-attempt
+cohorts, not complete upstream populations; preserve cutoff, eligibility/source
+gaps, N/k, probabilities, weights and delivery readiness. Corrections, late
+arrivals, withdrawal and local evidence expiry invalidate frames without refill.
+Recorded episode/hop lineage is preserved, never inferred from time; harness
+and historical compiled configuration are not inferred from engine IDs or head
+SHAs. Curated KQL reconstructs verified ordered JSON and produces evidence-backed
+investigation candidates, not causal/savings claims. Offline dataset export
+requires separate training-use approval, labelled evidence, tool-schema binding,
+source/transform lineage and grouped splits; excludes reasoning by default and
+never trains or replays tools. Withdrawal blocks replay, removes private local
+content and queues newer destination tombstones and dataset invalidations;
+physical purge/backups/external copies require operator reconciliation.
+Static, snapshot-only, admission-only, standalone collect/backfill and
+per-request hosts cannot capture traces. Destination failures cannot authorize
+collection, widen policy or replace ordinary dashboard readiness.
 
 Owner-run bootstrap initializes this schema and its UTC daily partitions; runtime
 opens and validates provisioned state without DDL. Daily owner-run maintenance

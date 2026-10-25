@@ -15,7 +15,7 @@ func TestADXSchemaCommandIsOffline(t *testing.T) {
 	if err := command.Execute(); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Count(output.String(), ".create-merge table ") != 6 ||
+	if strings.Count(output.String(), ".create-merge table ") != 12 ||
 		!strings.Contains(output.String(), "cao_ReadySessions()") {
 		t.Fatal("ADX setup schema is incomplete")
 	}

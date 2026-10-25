@@ -1,4 +1,4 @@
-// Package adxingest implements CAO's optional ADX Free-compatible exporter.
+// Package adxingest implements CAO's optional ADX exporter.
 package adxingest
 
 import (
@@ -23,6 +23,7 @@ type Config struct {
 	ClientSecret    string
 	RepositoryIDs   []string
 	NonPersonalData bool
+	DataApproved    bool
 	SingleReplica   bool
 	Interval        time.Duration
 	// MaxStorageBytes is a conservative total OriginalSize budget across
@@ -44,6 +45,7 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		TenantID: getenv("CAO_ADX_TENANT_ID"), ClientID: getenv("CAO_ADX_CLIENT_ID"),
 		ClientSecret: getenv("CAO_ADX_CLIENT_SECRET"), NonPersonalData: getenv("CAO_ADX_NON_PERSONAL_DATA") == "true",
 		SingleReplica: getenv("CAO_ADX_SINGLE_REPLICA") == "true",
+		DataApproved:  getenv("CAO_ADX_DATA_APPROVED") == "true",
 	}
 	config.RepositoryIDs = strings.Split(getenv("CAO_ADX_REPOSITORY_IDS"), ",")
 	for i := range config.RepositoryIDs {
@@ -86,8 +88,8 @@ func (c *Config) Validate() error {
 		!tenantID.MatchString(c.ClientID) || strings.TrimSpace(c.ClientSecret) == "" {
 		return errors.New("ADX requires a database identifier and explicit Entra application credentials")
 	}
-	if !c.NonPersonalData {
-		return errors.New("ADX Free requires explicit approval of non-personal, non-regulated data")
+	if !c.NonPersonalData && !c.DataApproved {
+		return errors.New("ADX requires explicit approval that the data and destination meet applicable service terms and governance")
 	}
 	if !c.SingleReplica {
 		return errors.New("ADX v1 requires CAO_ADX_SINGLE_REPLICA=true and exactly one exporter replica")
@@ -111,8 +113,8 @@ func (c *Config) Validate() error {
 	if c.MaxStorageBytes == 0 {
 		c.MaxStorageBytes = 50_000_000_000
 	}
-	if c.MaxStorageBytes < 1<<20 || c.MaxStorageBytes > 50_000_000_000 {
-		return errors.New("ADX storage budget must be between 1 MiB and 50 GB")
+	if c.MaxStorageBytes < 1<<20 || c.MaxStorageBytes > 1<<40 {
+		return errors.New("ADX storage budget must be between 1 MiB and 1 TiB")
 	}
 	return nil
 }

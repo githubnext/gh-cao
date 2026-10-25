@@ -33,6 +33,7 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/admission"
 	"github.com/githubnext/gh-cao/server/internal/adxingest"
+	"github.com/githubnext/gh-cao/server/internal/adxtrace"
 	"github.com/githubnext/gh-cao/server/internal/audit"
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
@@ -95,6 +96,7 @@ type Config struct {
 	Audit     *audit.Logger
 	Admission *AdmissionConfig
 	ADX       *adxingest.Config
+	ADXTraces *adxtrace.Config
 	// RateLimits overrides inbound request rate limits; the zero value keeps
 	// the production defaults.
 	RateLimits RateLimitConfig
@@ -143,6 +145,7 @@ type App struct {
 	valuePublisher   operationalValuePublisher
 	admission        *admission.Service
 	adx              *adxingest.Worker
+	adxTraces        *adxtrace.Worker
 }
 
 func New(ctx context.Context, store operational.Store, config Config) (*App, error) {
@@ -162,6 +165,11 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 		return nil, err
 	}
 	config.ADX = &adxConfig
+	traceConfig, err := resolveTraceConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	config.ADXTraces = &traceConfig
 	if localSQLite {
 		if err := validateLocalSQLiteConfig(config); err != nil {
 			return nil, err
@@ -363,6 +371,14 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 		}
 		app.adx = worker
 	}
+	if config.ADXTraces.Enabled {
+		worker, err := newTraceWorker(ctx, config, app.Collector())
+		if err != nil {
+			return nil, err
+		}
+		app.adxTraces = worker
+		app.Collector().runner.Traces = worker
+	}
 	return app, nil
 }
 
@@ -438,6 +454,9 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 	}
 	if a.adx != nil {
 		a.startTask(func() { a.adx.Run(runCtx) })
+	}
+	if a.adxTraces != nil {
+		a.startTask(func() { a.adxTraces.Run(runCtx) })
 	}
 	if a.services.Backend != nil {
 		a.startTask(func() { a.runRedisMaintenance(runCtx, redisMaintenanceInterval) })

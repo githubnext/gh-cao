@@ -1,0 +1,178 @@
+// Generated from server/spec/trace.tsp. Do not edit.
+.create-merge table TraceEvents (Namespace:string, RunId:string, RunAttempt:long, ProjectionId:string, RowDigest:string, ContractVersion:long, Sequence:long, Type:string, EventId:string, ParentId:string, EpisodeId:string, HopId:string, ParentHopId:string, ToolCallId:string, SessionId:string, Timestamp:string, PartCount:long, ContentDigest:string);
+.create-or-alter table TraceEvents ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"Sequence","Properties":{"Path":"$.Sequence"}},{"column":"Type","Properties":{"Path":"$.Type"}},{"column":"EventId","Properties":{"Path":"$.EventId"}},{"column":"ParentId","Properties":{"Path":"$.ParentId"}},{"column":"EpisodeId","Properties":{"Path":"$.EpisodeId"}},{"column":"HopId","Properties":{"Path":"$.HopId"}},{"column":"ParentHopId","Properties":{"Path":"$.ParentHopId"}},{"column":"ToolCallId","Properties":{"Path":"$.ToolCallId"}},{"column":"SessionId","Properties":{"Path":"$.SessionId"}},{"column":"Timestamp","Properties":{"Path":"$.Timestamp"}},{"column":"PartCount","Properties":{"Path":"$.PartCount"}},{"column":"ContentDigest","Properties":{"Path":"$.ContentDigest"}}]';
+.alter table TraceEvents policy streamingingestion enable;
+.alter-merge table TraceEvents policy retention softdelete = 7d recoverability = enabled;
+.create-merge table TraceContentParts (Namespace:string, RunId:string, RunAttempt:long, ProjectionId:string, RowDigest:string, ContractVersion:long, Sequence:long, Part:long, Content:string);
+.create-or-alter table TraceContentParts ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"Sequence","Properties":{"Path":"$.Sequence"}},{"column":"Part","Properties":{"Path":"$.Part"}},{"column":"Content","Properties":{"Path":"$.Content"}}]';
+.alter table TraceContentParts policy streamingingestion enable;
+.alter-merge table TraceContentParts policy retention softdelete = 7d recoverability = enabled;
+.create-merge table TraceManifest (Namespace:string, RunId:string, RunAttempt:long, ProjectionId:string, RowDigest:string, ContractVersion:long, SourceRevision:long, Repository:string, ArtifactDigest:string, PolicyDigest:string, EventCount:long, PartCount:long, ContentDigest:string, State:string, Gaps:dynamic, CapturedAt:datetime);
+.create-or-alter table TraceManifest ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"SourceRevision","Properties":{"Path":"$.SourceRevision"}},{"column":"Repository","Properties":{"Path":"$.Repository"}},{"column":"ArtifactDigest","Properties":{"Path":"$.ArtifactDigest"}},{"column":"PolicyDigest","Properties":{"Path":"$.PolicyDigest"}},{"column":"EventCount","Properties":{"Path":"$.EventCount"}},{"column":"PartCount","Properties":{"Path":"$.PartCount"}},{"column":"ContentDigest","Properties":{"Path":"$.ContentDigest"}},{"column":"State","Properties":{"Path":"$.State"}},{"column":"Gaps","Properties":{"Path":"$.Gaps"}},{"column":"CapturedAt","Properties":{"Path":"$.CapturedAt"}}]';
+.alter table TraceManifest policy streamingingestion enable;
+.alter-merge table TraceManifest policy retention softdelete = 7d recoverability = enabled;
+.create-merge table TraceSampleFrames (Namespace:string, RunId:string, RunAttempt:long, ProjectionId:string, RowDigest:string, ContractVersion:long, SourceRevision:long, Repository:string, Day:string, Cutoff:datetime, Mode:string, SeedDigest:string, Algorithm:string, Population:long, Selected:long, SourceGaps:long, Excluded:long, MembershipDigest:string, State:string);
+.create-or-alter table TraceSampleFrames ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"SourceRevision","Properties":{"Path":"$.SourceRevision"}},{"column":"Repository","Properties":{"Path":"$.Repository"}},{"column":"Day","Properties":{"Path":"$.Day"}},{"column":"Cutoff","Properties":{"Path":"$.Cutoff"}},{"column":"Mode","Properties":{"Path":"$.Mode"}},{"column":"SeedDigest","Properties":{"Path":"$.SeedDigest"}},{"column":"Algorithm","Properties":{"Path":"$.Algorithm"}},{"column":"Population","Properties":{"Path":"$.Population"}},{"column":"Selected","Properties":{"Path":"$.Selected"}},{"column":"SourceGaps","Properties":{"Path":"$.SourceGaps"}},{"column":"Excluded","Properties":{"Path":"$.Excluded"}},{"column":"MembershipDigest","Properties":{"Path":"$.MembershipDigest"}},{"column":"State","Properties":{"Path":"$.State"}}]';
+.alter table TraceSampleFrames policy streamingingestion enable;
+.alter-merge table TraceSampleFrames policy retention softdelete = 7d recoverability = enabled;
+.create-merge table TraceSampleMembership (Namespace:string, RunId:string, RunAttempt:long, ProjectionId:string, RowDigest:string, ContractVersion:long, SourceRevision:long, FrameId:string, TraceId:string, TraceVersion:string, Probability:real, Weight:real, State:string);
+.create-or-alter table TraceSampleMembership ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"SourceRevision","Properties":{"Path":"$.SourceRevision"}},{"column":"FrameId","Properties":{"Path":"$.FrameId"}},{"column":"TraceId","Properties":{"Path":"$.TraceId"}},{"column":"TraceVersion","Properties":{"Path":"$.TraceVersion"}},{"column":"Probability","Properties":{"Path":"$.Probability"}},{"column":"Weight","Properties":{"Path":"$.Weight"}},{"column":"State","Properties":{"Path":"$.State"}}]';
+.alter table TraceSampleMembership policy streamingingestion enable;
+.alter-merge table TraceSampleMembership policy retention softdelete = 7d recoverability = enabled;
+.create-merge table TraceDatasets (Namespace:string, RunId:string, RunAttempt:long, ProjectionId:string, RowDigest:string, ContractVersion:long, SourceRevision:long, DatasetId:string, MemberCount:long, DatasetDigest:string, Transform:string, Split:string, TaskGroup:string, Evaluator:string, QualityLabel:string, State:string);
+.create-or-alter table TraceDatasets ingestion json mapping 'cao_v1' '[{"column":"Namespace","Properties":{"Path":"$.Namespace"}},{"column":"RunId","Properties":{"Path":"$.RunId"}},{"column":"RunAttempt","Properties":{"Path":"$.RunAttempt"}},{"column":"ProjectionId","Properties":{"Path":"$.ProjectionId"}},{"column":"RowDigest","Properties":{"Path":"$.RowDigest"}},{"column":"ContractVersion","Properties":{"Path":"$.ContractVersion"}},{"column":"SourceRevision","Properties":{"Path":"$.SourceRevision"}},{"column":"DatasetId","Properties":{"Path":"$.DatasetId"}},{"column":"MemberCount","Properties":{"Path":"$.MemberCount"}},{"column":"DatasetDigest","Properties":{"Path":"$.DatasetDigest"}},{"column":"Transform","Properties":{"Path":"$.Transform"}},{"column":"Split","Properties":{"Path":"$.Split"}},{"column":"TaskGroup","Properties":{"Path":"$.TaskGroup"}},{"column":"Evaluator","Properties":{"Path":"$.Evaluator"}},{"column":"QualityLabel","Properties":{"Path":"$.QualityLabel"}},{"column":"State","Properties":{"Path":"$.State"}}]';
+.alter table TraceDatasets policy streamingingestion enable;
+.alter-merge table TraceDatasets policy retention softdelete = 7d recoverability = enabled;
+.create-or-alter function cao_ReadyTraces() {
+    let events = TraceEvents
+        | summarize by Namespace, RunId, ProjectionId, RowDigest
+        | summarize ActualEventCount = count() by Namespace, RunId, ProjectionId;
+    let parts = TraceContentParts
+        | summarize by Namespace, RunId, ProjectionId, RowDigest
+        | summarize ActualPartCount = count() by Namespace, RunId, ProjectionId;
+    TraceManifest
+    | summarize arg_max(SourceRevision, *) by Namespace, RunId
+    | where State == "ready"
+    | join kind=leftouter (events) on Namespace, RunId, ProjectionId
+    | join kind=leftouter (parts) on Namespace, RunId, ProjectionId
+    | where EventCount == coalesce(ActualEventCount, 0) and PartCount == coalesce(ActualPartCount, 0)
+    | project Namespace, RunId, RunAttempt, ProjectionId, RowDigest, ContractVersion,
+        SourceRevision, Repository, ArtifactDigest, PolicyDigest, EventCount, PartCount,
+        ContentDigest, State, Gaps, CapturedAt
+};
+.create-or-alter function cao_TraceEvents() {
+    TraceEvents
+    | summarize take_any(*) by Namespace, RunId, RunAttempt, ProjectionId, RowDigest
+    | join kind=inner (cao_ReadyTraces() | project Namespace, RunId, ProjectionId) on Namespace, RunId, ProjectionId
+};
+.create-or-alter function cao_TraceContentParts() {
+    TraceContentParts
+    | summarize take_any(*) by Namespace, RunId, RunAttempt, ProjectionId, RowDigest
+    | join kind=inner (cao_ReadyTraces() | project Namespace, RunId, ProjectionId) on Namespace, RunId, ProjectionId
+};
+.create-or-alter function cao_TraceSampleFrames() {
+    let sources = cao_ReadyTraces() | project Namespace, TraceId = RunId, TraceVersion = ProjectionId, SourceReady = true;
+    let membership = TraceSampleMembership
+        | summarize arg_max(SourceRevision, *) by Namespace, FrameId, TraceId
+        | join kind=leftouter (sources) on Namespace, TraceId, TraceVersion
+        | summarize ActualMembers = count(), ReadyMembers = countif(State == "ready" and isnotnull(SourceReady)),
+            Versions = make_set(ProjectionId, 2) by Namespace, FrameId;
+    TraceSampleFrames
+    | summarize arg_max(SourceRevision, *) by Namespace, RunId
+    | where State == "ready" and SourceGaps == 0 and Population >= Selected and Selected >= 0
+    | join kind=leftouter (membership) on Namespace, $left.RunId == $right.FrameId
+    | where Selected == coalesce(ActualMembers, 0) and Selected == coalesce(ReadyMembers, 0)
+        and (Selected == 0 or (array_length(Versions) == 1 and tostring(Versions[0]) == ProjectionId))
+    | project Namespace, RunId, RunAttempt, ProjectionId, RowDigest, ContractVersion, SourceRevision,
+        Repository, Day, Cutoff, Mode, SeedDigest, Algorithm, Population, Selected, SourceGaps, Excluded, MembershipDigest, State
+};
+.create-or-alter function cao_TraceSampleMembership() {
+    TraceSampleMembership
+    | summarize arg_max(SourceRevision, *) by Namespace, FrameId, TraceId
+    | where State == "ready"
+    | join kind=inner (cao_TraceSampleFrames() | project Namespace, FrameId = RunId) on Namespace, FrameId
+    | join kind=inner (cao_ReadyTraces() | project Namespace, TraceId = RunId, TraceVersion = ProjectionId) on Namespace, TraceId, TraceVersion
+};
+.create-or-alter function cao_TraceDatasets() {
+    let latest = TraceDatasets | summarize arg_max(SourceRevision, *) by Namespace, DatasetId, RunId;
+    let sources = cao_ReadyTraces() | project Namespace, RunId, ProjectionId, SourceReady = true;
+    let members = latest | join kind=leftouter (sources) on Namespace, RunId, ProjectionId;
+    let complete = members
+        | summarize ActualMemberCount = count(), ExpectedMemberCount = min(MemberCount),
+            MaximumMemberCount = max(MemberCount), DigestValues = make_set(DatasetDigest, 2),
+            EmptyDigests = countif(isempty(DatasetDigest)),
+            InvalidMembers = countif(State != "ready" or isnull(SourceReady) or isnull(MemberCount) or MemberCount <= 0)
+            by Namespace, DatasetId
+        | where ExpectedMemberCount > 0 and ExpectedMemberCount == MaximumMemberCount
+            and ActualMemberCount == ExpectedMemberCount and array_length(DigestValues) == 1
+            and EmptyDigests == 0 and InvalidMembers == 0
+        | project Namespace, DatasetId;
+    members
+    | join kind=inner (complete) on Namespace, DatasetId
+    | project Namespace, RunId, RunAttempt, ProjectionId, RowDigest, ContractVersion,
+        SourceRevision, DatasetId, MemberCount, DatasetDigest, Transform, Split, TaskGroup, Evaluator, QualityLabel, State
+};
+// maxEvents bounds a zero-based sequence prefix, not a whole-trace completeness claim.
+.create-or-alter function cao_TraceDocuments(namespace:string, traceId:string, maxEvents:long = 1024) {
+    let eventLimit = min_of(max_of(maxEvents, 1), 32768);
+    let parts = cao_TraceContentParts()
+        | where Namespace == namespace and RunId == traceId and Sequence >= 0 and Sequence < eventLimit
+        | summarize Variants = count(), Content = take_any(Content) by Namespace, RunId, RunAttempt, ProjectionId, Sequence, Part
+        | summarize ActualPartCount = count(), AmbiguousParts = countif(Variants != 1),
+            FirstPart = min(Part), LastPart = max(Part),
+            PartNumbers = make_list(Part, 65536), Chunks = make_list(Content, 65536)
+            by Namespace, RunId, RunAttempt, ProjectionId, Sequence
+        | where AmbiguousParts == 0 and FirstPart == 0 and LastPart == ActualPartCount - 1
+            and array_length(PartNumbers) == ActualPartCount and array_length(Chunks) == ActualPartCount
+        | extend (OrderedParts, OrderedChunks) = array_sort_asc(PartNumbers, Chunks)
+        | extend Content = strcat_array(OrderedChunks, "")
+        | project Namespace, RunId, RunAttempt, ProjectionId, Sequence, ActualPartCount, Content;
+    cao_TraceEvents()
+    | where Namespace == namespace and RunId == traceId and Sequence >= 0 and Sequence < eventLimit
+    | summarize EventVariants = count(), take_any(*) by Namespace, RunId, RunAttempt, ProjectionId, Sequence
+    | where EventVariants == 1
+    | join kind=inner (parts) on Namespace, RunId, RunAttempt, ProjectionId, Sequence
+    | where PartCount > 0 and PartCount == ActualPartCount and hash_sha256(Content) == ContentDigest
+    | extend Event = parse_json(Content)
+    | where gettype(Event) == "dictionary"
+    | project Namespace, RunId, RunAttempt, ProjectionId, RowDigest, ContractVersion,
+        Sequence, Type, EventId, ParentId, EpisodeId, HopId, ParentHopId, ToolCallId,
+        SessionId, Timestamp, PartCount, ContentDigest, Content, Event
+    | order by Sequence asc
+};
+.create-or-alter function cao_TraceTimeline(namespace:string, traceId:string, maxEvents:long = 1024) {
+    cao_TraceDocuments(namespace, traceId, maxEvents)
+    | project Namespace, RunId, RunAttempt, ProjectionId, Sequence, EventId, ParentId,
+        EpisodeId, HopId, ParentHopId, ToolCallId, SessionId, Timestamp, Type, Event
+    | order by Sequence asc
+};
+// Context contains only supplied workflow.info fields; engine ID never identifies a harness.
+.create-or-alter function cao_TraceContext(namespace:string, traceId:string, maxEvents:long = 1024) {
+    cao_TraceDocuments(namespace, traceId, maxEvents)
+    | where Type == "workflow.info"
+    | project Namespace, RunId, RunAttempt, ProjectionId, Sequence, EventId,
+        EpisodeId, HopId, ParentHopId, EngineId = tostring(Event.data.engineId),
+        EngineHarness = Event.data.engineHarness,
+        AgentVersion = tostring(Event.data.agentVersion), CliVersion = tostring(Event.data.cliVersion),
+        AwfVersion = tostring(Event.data.awfVersion), Context = Event.data
+    | order by Sequence asc
+};
+// Observed candidates are investigation inputs, not diagnoses or causal findings.
+.create-or-alter function cao_TraceConfigurationCandidates(namespace:string, traceId:string, maxEvents:long = 1024) {
+    cao_TraceDocuments(namespace, traceId, maxEvents)
+    | where Type contains "mismatch" or Type contains "configuration" or Type endswith ".error"
+        or tostring(Event.data.status) in ("error", "failed", "failure") or Event.data.success == false
+    | extend Candidate = iff(Type contains "mismatch" or Type contains "configuration",
+        "configuration-candidate", "observed-error-candidate")
+    | project Namespace, RunId, RunAttempt, ProjectionId, Sequence, EventId,
+        EpisodeId, HopId, ParentHopId, ToolCallId, SessionId, Timestamp, Type, Candidate, Event
+    | order by Sequence asc
+};
+// Sizes distinguish approved event bytes, approved output text and producer-reported bytes.
+.create-or-alter function cao_TraceToolResponseCandidates(namespace:string, traceId:string, minimumBytes:long = 65536, maxEvents:long = 1024) {
+    cao_TraceDocuments(namespace, traceId, maxEvents)
+    | where Type in ("tool.execution_complete", "mcp.rpc.response")
+    | extend ApprovedEventBytes = string_size(Content),
+        ApprovedOutputTextBytes = iff(isnull(Event.data.output), long(null), string_size(tostring(Event.data.output))),
+        ReportedOutputBytes = tolong(Event.data.outputSize)
+    | where max_of(ApprovedEventBytes, ApprovedOutputTextBytes, ReportedOutputBytes) >= max_of(minimumBytes, 0)
+    | project Namespace, RunId, RunAttempt, ProjectionId, Sequence, EventId,
+        ToolCallId, SessionId, Type, ToolName = tostring(Event.data.toolName),
+        Candidate = "large-tool-response-candidate", ApprovedEventBytes, ApprovedOutputTextBytes,
+        ReportedOutputBytes, Event
+    | order by Sequence asc
+};
+// Repeated starts do not prove duplicate work, avoidable retries, or achievable savings.
+.create-or-alter function cao_TraceRepeatedToolCandidates(namespace:string, traceId:string, minimumStarts:long = 2, maxEvents:long = 1024) {
+    cao_TraceDocuments(namespace, traceId, maxEvents)
+    | where Type == "tool.execution_start"
+    | extend ToolName = tostring(Event.data.toolName), ServerName = tostring(Event.data.mcpServerName)
+    | where isnotempty(ToolName)
+    | summarize ObservedStarts = count(), Sequences = make_list(Sequence, 32768),
+        ToolCallIds = make_list(ToolCallId, 32768)
+        by Namespace, RunId, RunAttempt, ProjectionId, SessionId, ServerName, ToolName
+    | where ObservedStarts >= max_of(minimumStarts, 2)
+    | extend (Sequences, ToolCallIds) = array_sort_asc(Sequences, ToolCallIds)
+    | extend Candidate = "repeated-tool-candidate"
+    | order by ObservedStarts desc, ToolName asc
+};

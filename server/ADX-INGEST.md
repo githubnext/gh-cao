@@ -1,11 +1,18 @@
 # Optional ADX session analytics
 
 CAO can export retained canonical session metadata to an existing
-[Azure Data Explorer free cluster](https://learn.microsoft.com/en-us/azure/data-explorer/start-for-free).
+Azure Data Explorer destination, including a suitable
+[free cluster](https://learn.microsoft.com/en-us/azure/data-explorer/start-for-free).
 The add-on is Go code in the existing server, **disabled by default**. It reuses
 canonical PostgreSQL, protected operational state, host lifecycle and metrics.
 It introduces no webhook, GitHub acquisition, Node process, database schema
 migration, queue platform, Blob account, Event Hub, or separate service.
+
+[Unified trace capture](ADX-TRACES.md) is a separate default-off option using the
+existing collection visit and private durable storage, not canonical snapshot
+rows. It supports the same approved evidence at any destination capacity.
+The snapshot-only scope and deletion limitations below do not describe that
+option's separate trace/tombstone lifecycle.
 
 ## Scope and guarantees
 
@@ -96,7 +103,7 @@ guarantees are required, do not enable this free-compatible add-on for that data
    go -C server run ./cmd/cao-dashboard adx schema
    ```
 
-   It creates/merges six typed tables, JSON mappings, streaming policies,
+   It creates/merges six snapshot and six trace tables, JSON mappings, streaming policies,
    seven-day soft-delete retention and deduplicating KQL functions.
    Schema, mappings and projection metadata are generated from `spec/adx.tsp`.
    This command is offline; the runtime never runs DDL. Wait for streaming
@@ -134,9 +141,10 @@ and published in this CAO namespace.
 | `CAO_ADX_CLIENT_SECRET` | Secret-store-injected application secret |
 | `CAO_ADX_REPOSITORY_IDS` | Comma-separated unique canonical repository IDs, at most 1,000 |
 | `CAO_ADX_NON_PERSONAL_DATA` | `true` only after dataset suitability approval |
+| `CAO_ADX_DATA_APPROVED` | Alternative universal approval that corpus/use and actual destination satisfy applicable terms, privacy and governance; required if the legacy non-personal-data acknowledgment is not used |
 | `CAO_ADX_SINGLE_REPLICA` | `true` only with exactly one exporter replica |
 | `CAO_ADX_INTERVAL` | Retry/poll interval, default `30s`, range `1s` to `1h` |
-| `CAO_ADX_MAX_STORAGE_BYTES` | Uncompressed extent-data budget, default 50,000,000,000; lower it for shared/small destinations |
+| `CAO_ADX_MAX_STORAGE_BYTES` | Uncompressed extent-data budget across all owned snapshot/trace tables, default 50,000,000,000, range 1 MiB to 1 TiB; size it for the actual destination |
 
 Configuration is validated before starting the worker. Invalid enabled
 configuration fails startup, with no alternate credential/destination fallback.

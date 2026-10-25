@@ -16,6 +16,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 
+	"github.com/githubnext/gh-cao/server/internal/adxtrace"
 	"github.com/githubnext/gh-cao/server/internal/model"
 )
 
@@ -267,6 +268,9 @@ func literal(value string) string {
 }
 
 func validTable(table string) bool {
+	if _, ok := adxtrace.Tables[table]; ok {
+		return true
+	}
 	if table == "SessionVersions" {
 		return true
 	}
@@ -284,5 +288,72 @@ func tableNamesKQL() string {
 	for _, family := range families {
 		names = append(names, "'"+family.table+"'")
 	}
+	for table := range adxtrace.Tables {
+		names = append(names, "'"+table+"'")
+	}
+	slices.Sort(names)
 	return strings.Join(names, ",")
+}
+
+// VerifyEvidence compares bounded count/hash summaries of every logical row,
+// including unexpected rows. Physical retry duplicates do not change the set.
+func (c *Client) VerifyEvidence(ctx context.Context, namespace, runID, version string, tables map[string][]model.Row) error {
+	var queries []string
+	expected := map[string]string{}
+	for table, rows := range tables {
+		if _, ok := adxtrace.Tables[table]; !ok || len(rows) == 0 {
+			return errors.New("invalid trace verification table")
+		}
+		digests := make([]string, 0, len(rows))
+		for _, row := range rows {
+			digest, ok := row["RowDigest"].(string)
+			if !ok || len(digest) != 64 {
+				return errors.New("missing trace row digest")
+			}
+			digests = append(digests, digest)
+		}
+		slices.Sort(digests)
+		digests = slices.Compact(digests)
+		expected[table] = fmt.Sprintf("%d:%s", len(digests), hash([]byte(strings.Join(digests, ""))))
+		condition := ""
+		if table == "TraceDatasets" {
+			revision, err := json.Marshal(rows[0]["SourceRevision"])
+			if err != nil || rows[0]["SourceRevision"] == nil {
+				return errors.New("dataset verification requires a revision")
+			}
+			condition = " and SourceRevision==" + string(revision)
+		}
+		queries = append(queries, "("+table+" | where Namespace=="+literal(namespace)+
+			" and RunId=="+literal(runID)+" and ProjectionId=="+literal(version)+
+			condition+
+			" | summarize by RowDigest | summarize Digests=make_list(RowDigest, 131072), N=count()"+
+			" | project Table="+literal(table)+", N, Digest=hash_sha256(strcat_array(array_sort_asc(Digests), \"\")))")
+	}
+	if len(queries) == 0 {
+		return errors.New("empty trace verification")
+	}
+	slices.Sort(queries)
+	rows, err := c.query(ctx, "/v1/rest/query", "union "+strings.Join(queries, ","))
+	if err != nil {
+		return err
+	}
+	if len(rows) != len(expected) {
+		return ErrVisibility
+	}
+	for _, row := range rows {
+		if len(row) != 3 {
+			return ErrVisibility
+		}
+		table, tableOK := row[0].(string)
+		n, nOK := row[1].(json.Number)
+		digest, digestOK := row[2].(string)
+		if !tableOK || !nOK || !digestOK || expected[table] != string(n)+":"+digest {
+			return ErrVisibility
+		}
+		delete(expected, table)
+	}
+	if len(expected) != 0 {
+		return ErrVisibility
+	}
+	return nil
 }
