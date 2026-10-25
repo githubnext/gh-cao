@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
-import { portableSkill, root, stepBlock, workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
+import { escapedTargetReadCredential, portableSkill, root, stepBlock, workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
 
 // Safe-output reporting, issue, and pull request contracts.
 
@@ -237,13 +237,13 @@ test("Dependabot worker maintains a durable parent and one-PR child tasks withou
   assert.match(lock, /permission-vulnerability-alerts: "?read"?/);
   assert.match(
     lock,
-    /GITHUB_MCP_SERVER_TOKEN: \$\{\{ steps\.cao_target_read_credential\.outputs\.token \}\}/,
+    new RegExp(`GITHUB_MCP_SERVER_TOKEN: ${escapedTargetReadCredential}`),
   );
   const credential = lock.indexOf("name: Resolve CAO target read credential");
   const handoff = lock.indexOf("name: Download CAO control precompute artifact");
   const alertFetch = lock.indexOf("name: Fetch target Dependabot alert evidence");
   assert.ok(credential >= 0 && handoff > credential && alertFetch > handoff);
-  assert.match(lock.slice(alertFetch), /github-token: \$\{\{ steps\.cao_target_read_credential\.outputs\.token \}\}/);
+  assert.match(lock.slice(alertFetch), new RegExp(`github-token: ${escapedTargetReadCredential}`));
   assert.match(lock.slice(alertFetch), /GITHUB_ACTION_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(lock.slice(alertFetch), /getOctokit\(process\.env\.GITHUB_ACTION_TOKEN\)/);
   assert.doesNotMatch(lock.slice(alertFetch), /require\('@actions\/github'\)/);

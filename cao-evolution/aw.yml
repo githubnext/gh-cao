@@ -1,7 +1,7 @@
 name: CAO Evolution
 icon: ":gear:"
 description: Control-plane and agentic-workflow health, security maintenance, and evidence-backed operation discovery.
-min-version: v0.93.1
+min-version: v0.93.4
 experimental: true
 includes:
   - .github/workflows/cao-evolution-catalog-advisor.md

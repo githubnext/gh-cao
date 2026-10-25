@@ -164,7 +164,7 @@ jobs:
           CONTROL_REPO: ${{ github.repository }}
           GITHUB_ACTION_TOKEN: ${{ github.token }}
         with:
-          github-token: ${{ steps.cao_target_read_credential.outputs.token }}
+          github-token: ${{ steps.cao_target_read_app_token.outputs.token || vars.GH_AW_GITHUB_AUTH_MODE == 'pat' && secrets[fromJSON(vars.GH_AW_GITHUB_READ_PAT_REPOSITORIES || '{}')[steps.cao_target_read_scope.outputs.full_name]] || vars.GH_AW_GITHUB_AUTH_MODE == '' && secrets.GH_AW_GITHUB_READ_PAT || vars.GH_AW_GITHUB_AUTH_MODE == '' && secrets.GH_AW_GITHUB_TOKEN || (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('node:fs');
             const precompute = JSON.parse(fs.readFileSync('/tmp/gh-aw/agent/control-precompute.json', 'utf8'));

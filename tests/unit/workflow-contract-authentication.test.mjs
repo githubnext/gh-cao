@@ -9,6 +9,7 @@ import {
 } from "../../activity/authentication.mjs";
 import {
   controlPrecompute,
+  escapedTargetReadCredential,
   root,
   workflow,
   workflowsDirectory,
@@ -225,12 +226,12 @@ test("Repo Assist uses configured CAO GitHub authentication and organization-bil
     );
     assert.match(
       lock,
-      /Start CLI Proxy[\s\S]*?GH_TOKEN: \$\{\{ steps\.cao_target_read_credential\.outputs\.token \}\}/,
+      new RegExp(`Start CLI Proxy[\\s\\S]*?GH_TOKEN: ${escapedTargetReadCredential}`),
       `${workflowId}.lock.yml CLI discovery must use the shared target read credential`,
     );
     assert.match(
       lock,
-      /GITHUB_MCP_SERVER_TOKEN: \$\{\{ steps\.cao_target_read_credential\.outputs\.token \}\}/,
+      new RegExp(`GITHUB_MCP_SERVER_TOKEN: ${escapedTargetReadCredential}`),
       `${workflowId}.lock.yml GitHub tools must use the shared target read credential`,
     );
 
@@ -296,7 +297,7 @@ test("authentication preserves explicit credential boundaries and informed PAT c
   assert.match(control, /name: Generate CAO target-scoped read App token[\s\S]*?owner: \$\{\{ steps\.cao_target_read_scope\.outputs\.owner \}\}/);
   assert.match(control, /permission-vulnerability-alerts: "\$\{\{ github\.aw\.import-inputs\.read_vulnerability_alerts \}\}"/);
   assert.match(control, /name: Resolve CAO target read credential[\s\S]*?GH_AW_GITHUB_READ_PAT_REPOSITORIES[\s\S]*?cao_target_read_scope\.outputs\.full_name/);
-  assert.match(control, /tools:\n\s+github:[\s\S]*?github-token: \$\{\{ steps\.cao_target_read_credential\.outputs\.token \}\}/);
+  assert.match(control, new RegExp(`tools:\\n\\s+github:[\\s\\S]*?github-token: ${escapedTargetReadCredential}`));
   assert.match(authentication, /Select a profile explicitly rather than relying on legacy precedence/);
   assert.match(authentication, /In `pat` mode,[\s\S]*?do not fall through to App credentials or legacy PAT\s+secrets/);
   assert.match(authentication, /Missing cross-repository map entries and mapped secrets fail closed/);
@@ -357,7 +358,7 @@ test("CAO workflows bind GitHub tools to exact declared read permissions", () =>
     }
     assert.match(
       lock,
-      /(?:GH_TOKEN|GITHUB_MCP_SERVER_TOKEN): \$\{\{ steps\.cao_target_read_credential\.outputs\.token \}\}/,
+      new RegExp(`(?:GH_TOKEN|GITHUB_MCP_SERVER_TOKEN): ${escapedTargetReadCredential}`),
       `${name} GitHub tools must use shared target authentication`,
     );
     assert.doesNotMatch(lock, /permission-[a-z-]+: null/, `${name} App permissions must be valid action inputs`);
@@ -619,7 +620,7 @@ test("Dependabot planner scopes its read token to the dispatched target", () => 
     credentialStep,
     /GH_AW_GITHUB_AUTH_MODE == 'pat' && secrets\[fromJSON\(vars\.GH_AW_GITHUB_READ_PAT_REPOSITORIES \|\| '\{\}'\)\[steps\.cao_target_read_scope\.outputs\.full_name\]\]/,
   );
-  assert.match(generated, /GITHUB_MCP_SERVER_TOKEN: \$\{\{ steps\.cao_target_read_credential\.outputs\.token \}\}/);
+  assert.match(generated, new RegExp(`GITHUB_MCP_SERVER_TOKEN: ${escapedTargetReadCredential}`));
 });
 
 test("safe-output write App token scopes to the admitted safe-output repository", () => {

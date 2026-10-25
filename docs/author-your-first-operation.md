@@ -31,7 +31,7 @@ This guide creates a review-ready campaign. Production rollout comes later.
 
 Complete [Set Up CAO](setup-quickstarts.md) so you have a validated control repository. Use a private control repository when the target or required evidence is non-public.
 
-You also need GitHub Agentic Workflows `v0.93.1` or newer:
+You also need GitHub Agentic Workflows `v0.93.4` or newer:
 
 ```bash
 gh aw version

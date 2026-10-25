@@ -1,16 +1,17 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import test from "node:test";
 import { parse } from "yaml";
 import { FINE_GRAINED_PAT_PROFILES } from "../../activity/authentication.mjs";
 import { APP_PROFILES } from "../../.github/workflows/shared/github-apps.mjs";
-import { workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
+import { targetReadCredential, workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
 
 // Control-plane contract: every worker reads its dispatched target's metadata
 // (Dependabot alerts, code scanning, secret scanning, checks, statuses, ...)
 // through the shared target-scoped read credential minted from the read App.
 
-const TARGET_READ_CREDENTIAL = "${{ steps.cao_target_read_credential.outputs.token }}";
+const TARGET_READ_CREDENTIAL = targetReadCredential;
 const SECURITY_ALERT_ROUTE = /\/(?:dependabot|code-scanning|secret-scanning)\/alerts\b/;
 const TOOLSET_PERMISSIONS = new Map([
   ["dependabot", "read_vulnerability_alerts"],
@@ -44,6 +45,30 @@ const controlledWorkflows = readdirSync(workflowsDirectory)
   })
   .filter(Boolean);
 const workers = controlledWorkflows.filter(({ controlImport }) => controlImport.with.role === "worker");
+
+test("target read credentials go directly to authentication inputs, never step outputs", () => {
+  assert.equal(control.tools.github["github-token"], TARGET_READ_CREDENTIAL);
+  const credential = control.jobs.agent["pre-steps"].find((step) => step.id === "cao_target_read_credential");
+  assert.equal(credential.env.CAO_TARGET_READ_TOKEN, TARGET_READ_CREDENTIAL);
+  assert.doesNotMatch(credential.run, /GITHUB_OUTPUT|GITHUB_ENV/);
+  assert.match(credential.run, /echo "::add-mask::\$CAO_TARGET_READ_TOKEN"/);
+  for (const token of ["", "fixture-target-read-token"]) {
+    const result = spawnSync("bash", ["-c", credential.run], {
+      encoding: "utf8",
+      env: { ...process.env, CAO_AUTH_MODE: "app", CAO_TARGET_READ_TOKEN: token, TARGET_REPO: "acme/target" },
+    });
+    assert.equal(result.status, token ? 0 : 1);
+    assert.equal(result.stdout, token ? `::add-mask::${token}\n` : "");
+    if (token) {
+      assert.equal(result.stderr, "");
+    } else {
+      assert.match(result.stderr, /No app read credential is configured for acme\/target/);
+    }
+  }
+  for (const { name, lock } of controlledWorkflows) {
+    assert.doesNotMatch(JSON.stringify(lock), /cao_target_read_credential\.outputs/, name);
+  }
+});
 
 function agentStep(lock, id) {
   return lock.jobs.agent.steps.find((step) => step.id === id);

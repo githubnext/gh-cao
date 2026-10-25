@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/githubnext/gh-cao/main/.github/workflows/shared/cao.schema.json",
   "version": 1,
-  "gh-aw-version": "v0.93.1",
+  "gh-aw-version": "v0.93.4",
   "control-plane": {
     "scope": {
       "allowed-owners": [

@@ -1,7 +1,7 @@
 name: Optimization
 icon: ":meter:"
 description: Evidence-bounded audits and recommendations for GitHub Agentic Workflow AI Credit and token efficiency.
-min-version: v0.93.1
+min-version: v0.93.4
 experimental: true
 includes:
   - README.md

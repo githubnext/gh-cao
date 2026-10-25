@@ -5,7 +5,7 @@ import test from "node:test";
 import { runInNewContext } from "node:vm";
 import { parse } from "yaml";
 import { effectivePolicy } from "../../.github/workflows/shared/policy.mjs";
-import { controlPolicy, root, workflow } from "./workflow-contract.helpers.mjs";
+import { controlPolicy, root, targetReadCredential, workflow } from "./workflow-contract.helpers.mjs";
 
 const source = workflow("daily-repo-status.md");
 const config = (source) => parse(/^---\n([\s\S]*?)\n---/.exec(source)[1]);
@@ -220,7 +220,7 @@ test("report lookups are destination-bound, include closed duplicates and fail c
   }
   const lookup = report.steps.find(step => step.name === "Read existing owned reports");
   assert.equal(lookup.if, "${{ steps.repo_status_target.outputs.eligible == 'true' }}");
-  assert.match(lookup.with["github-token"], /== github\.repository && github\.token \|\| steps\.cao_target_read_credential\.outputs\.token/);
+  assert.equal(lookup.with["github-token"], `\${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) == github.repository && github.token || ${targetReadCredential.slice(4)}`);
 });
 
 test("Daily Repo Status quickstart is discoverable, review-first and honest about operational value", () => {

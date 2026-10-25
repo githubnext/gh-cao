@@ -1,7 +1,7 @@
 name: UK AI Advisory
 icon: ":eye:"
 description: UK AI Advisory, a non-binding UK AI open-code operational resilience review across centrally selected repositories.
-min-version: v0.93.1
+min-version: v0.93.4
 private: true
 experimental: true
 includes:

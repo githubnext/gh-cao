@@ -1,7 +1,7 @@
 name: ESLint Factory
 icon: ":codescan:"
 description: Evidence-backed central ESLint rule library for enrolled JavaScript and TypeScript repositories, mined from real defects and adopted only by maintainer review.
-min-version: v0.93.1
+min-version: v0.93.4
 experimental: true
 includes:
   - .github/workflows/eslint-rules-applier.md

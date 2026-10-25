@@ -1,7 +1,7 @@
 name: Repo Assist
 icon: ":gear:"
 description: Review-first issue triage, issue fixes, repository maintenance, and owned pull request upkeep.
-min-version: v0.93.1
+min-version: v0.93.4
 experimental: true
 includes:
   - README.md

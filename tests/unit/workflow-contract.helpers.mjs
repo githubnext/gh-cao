@@ -11,6 +11,8 @@ export const modes = ["review", "live"];
 export const controlPolicy = JSON.parse(readFileSync(join(workflowsDirectory, "cao.json"), "utf8"));
 export const ghAwVersion = controlPolicy["gh-aw-version"];
 export const escapedGhAwVersion = ghAwVersion.replaceAll(".", "\\.");
+export const targetReadCredential = "${{ steps.cao_target_read_app_token.outputs.token || vars.GH_AW_GITHUB_AUTH_MODE == 'pat' && secrets[fromJSON(vars.GH_AW_GITHUB_READ_PAT_REPOSITORIES || '{}')[steps.cao_target_read_scope.outputs.full_name]] || vars.GH_AW_GITHUB_AUTH_MODE == '' && secrets.GH_AW_GITHUB_READ_PAT || vars.GH_AW_GITHUB_AUTH_MODE == '' && secrets.GH_AW_GITHUB_TOKEN || (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && secrets.GITHUB_TOKEN }}";
+export const escapedTargetReadCredential = targetReadCredential.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export function workflow(name, directory = workflowsDirectory) {
   return readFileSync(join(directory, name), "utf8").replaceAll("\r\n", "\n");

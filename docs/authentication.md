@@ -55,6 +55,11 @@ The sections below explain runtime behavior, not provisioning.
 
 Target-repository authentication is defined once in `.github/workflows/shared/control.md` and inherited by Orchestrator and worker workflows. Before GitHub MCP or CLI proxy startup, shared control resolves the exact read scope, mints a repository-scoped App token with only the importing workflow's declared read permissions or selects the exact owner-scoped PAT, and binds the GitHub tools to that credential. Checkout authentication alone is not evidence that the agent's GitHub tools use the same token. A separate write-capable App serves safe outputs. Safe-output tokens are narrowed to the selected handler's permissions. Copilot inference permission remains explicit in every Copilot-backed workflow. Workflow-local GitHub App blocks should not be added unless a future Agentic Workflow has a documented isolation requirement that shared control cannot satisfy.
 
+The selected read credential is passed directly to authentication inputs, not
+republished through a CAO step output. The shared credential-validation step
+still fails before tool startup when no credential is available. Workflow-local
+evidence-fetching steps must use the same target-scoped selection expression.
+
 The shared control import resolves each `read_*` permission directly into the
 App-token action's `permission-*` inputs at compile time. Undeclared permissions
 remain empty strings. Do not route these values through runtime step outputs:

@@ -167,7 +167,7 @@ tools:
   github:
     mode: remote
     toolsets: [repos, actions]
-    github-token: ${{ steps.cao_target_read_credential.outputs.token }}
+    github-token: ${{ steps.cao_target_read_app_token.outputs.token || vars.GH_AW_GITHUB_AUTH_MODE == 'pat' && secrets[fromJSON(vars.GH_AW_GITHUB_READ_PAT_REPOSITORIES || '{}')[steps.cao_target_read_scope.outputs.full_name]] || vars.GH_AW_GITHUB_AUTH_MODE == '' && secrets.GH_AW_GITHUB_READ_PAT || vars.GH_AW_GITHUB_AUTH_MODE == '' && secrets.GH_AW_GITHUB_TOKEN || (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && secrets.GITHUB_TOKEN }}
 
 jobs:
   pre-activation:
@@ -591,7 +591,6 @@ jobs:
             exit 1
           fi
           echo "::add-mask::$CAO_TARGET_READ_TOKEN"
-          echo "token=$CAO_TARGET_READ_TOKEN" >> "$GITHUB_OUTPUT"
 
       - name: Download CAO control precompute artifact
         id: cao_precompute_download
