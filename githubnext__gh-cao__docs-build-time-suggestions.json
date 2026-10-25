@@ -1,14 +1,7 @@
 {
-  "source_sha": "ccb1052d7fcf6a1f8f1f6bbba319dc3e74df615e",
+  "source_sha": "3c67098487e2e1bb6cc4b1a5119b46935205805e",
   "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-25T08:42:11Z",
-      "worker_run_id": "40177503792",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded latest-20 completed docs.yml workflow-run request returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
     {
       "evaluated_at": "2026-10-25T08:55:39Z",
       "worker_run_id": "40178330980",
@@ -631,6 +624,13 @@
         40227569956
       ],
       "outcome": "incomplete: the 2026-10-25T19:45:53Z to 2026-10-25T22:46:02Z latest-20 completed docs.yml window contained 16 successful, three skipped, and one action-required run, with no cancelled runs. Based on elapsed times and previously collected trusted job metadata, only four successful full build-and-deploy candidates were present: push runs 40240745726 and 40227579159, workflow_run 40230378711, and schedule run 40227569956; schedule run 40230422626 was a disclosed concurrency-delayed freshness-only run. This is below the required five comparable successful full runs. A bounded job-metadata request also hit an OS-thread resource limit, so per resource-limit policy further GitHub API work stopped. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, repeated-cost analysis, cache-effectiveness verification, dashboard-producer comparison, and a complete reusable dashboard generation evaluation could not be produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-25T23:18:51Z",
+      "worker_run_id": "40244008574",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
