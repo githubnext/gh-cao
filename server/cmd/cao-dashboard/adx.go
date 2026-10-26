@@ -9,7 +9,32 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/adxingest"
 	"github.com/githubnext/gh-cao/server/internal/adxtrace"
+	debuglogger "github.com/githubnext/gh-cao/server/internal/logger"
 )
+
+var adxLog = debuglogger.New("cao:dashboard:adx")
+
+// traceSettings resolves trace configuration and the destination namespace
+// from the environment accessor, failing closed unless both are present.
+func traceSettings(get func(string) string) (adxtrace.Config, string, error) {
+	config, err := adxtrace.FromEnv(get)
+	if err != nil {
+		adxLog.Printf("trace configuration rejected")
+		return config, "", err
+	}
+	namespace, err := traceNamespace(config, get("CAO_ADX_ENDPOINT"), get("CAO_ADX_DATABASE"))
+	return config, namespace, err
+}
+
+// traceNamespace requires enabled traces and a complete destination identity.
+func traceNamespace(config adxtrace.Config, endpoint, database string) (string, error) {
+	if !config.Enabled || endpoint == "" || database == "" {
+		adxLog.Printf("trace settings incomplete: enabled=%t endpoint=%t database=%t", config.Enabled, endpoint != "", database != "")
+		return "", errors.New("trace configuration and destination identity are required")
+	}
+	adxLog.Printf("trace settings resolved: mining=%t durable=%t", config.MiningEnabled, config.DurableStorage)
+	return adxtrace.Namespace(endpoint, database), nil
+}
 
 func newADXCommand() *cobra.Command {
 	command := &cobra.Command{Use: "adx", Short: "Optional ADX destination setup"}
@@ -27,16 +52,7 @@ func newADXCommand() *cobra.Command {
 
 func newTracesCommand() *cobra.Command {
 	command := &cobra.Command{Use: "traces", Short: "Inspect private trace state; no destination calls or training"}
-	settings := func() (adxtrace.Config, string, error) {
-		config, err := adxtrace.FromEnv(os.Getenv)
-		if err != nil {
-			return config, "", err
-		}
-		if !config.Enabled || os.Getenv("CAO_ADX_ENDPOINT") == "" || os.Getenv("CAO_ADX_DATABASE") == "" {
-			return config, "", errors.New("trace configuration and destination identity are required")
-		}
-		return config, adxtrace.Namespace(os.Getenv("CAO_ADX_ENDPOINT"), os.Getenv("CAO_ADX_DATABASE")), nil
-	}
+	settings := func() (adxtrace.Config, string, error) { return traceSettings(os.Getenv) }
 	command.AddCommand(&cobra.Command{Use: "status", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		config, namespace, err := settings()
 		if err != nil {
