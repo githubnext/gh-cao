@@ -3,6 +3,7 @@ package adxingest
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func testConfig() Config {
@@ -64,5 +65,67 @@ func TestConfigRequiresScopeClassificationAndSingleReplica(t *testing.T) {
 	config := testConfig()
 	if err := config.Validate(); err != nil || config.MaxStorageBytes != 50_000_000_000 {
 		t.Fatalf("valid config rejected: %v", err)
+	}
+}
+
+func TestConfigValidateAppliesDefaultsAndNormalizes(t *testing.T) {
+	config := testConfig()
+	config.Endpoint += "/"
+	given := []string{"b", "a"}
+	config.RepositoryIDs = given
+	if err := config.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if config.Endpoint != "https://synthetic.northcentralus.kusto.windows.net" {
+		t.Fatalf("endpoint not trimmed: %q", config.Endpoint)
+	}
+	if config.Interval != 30*time.Second || config.MaxStorageBytes != 50_000_000_000 {
+		t.Fatalf("defaults: %v %d", config.Interval, config.MaxStorageBytes)
+	}
+	if config.RepositoryIDs[0] != "a" || given[0] != "b" {
+		t.Fatalf("scope not sorted on a copy: %v %v", config.RepositoryIDs, given)
+	}
+}
+
+func TestConfigValidateBoundaries(t *testing.T) {
+	for name, tc := range map[string]struct {
+		mutate func(*Config)
+		ok     bool
+	}{
+		"min interval":   {func(c *Config) { c.Interval = time.Second }, true},
+		"max interval":   {func(c *Config) { c.Interval = time.Hour }, true},
+		"over interval":  {func(c *Config) { c.Interval = time.Hour + 1 }, false},
+		"min storage":    {func(c *Config) { c.MaxStorageBytes = 1 << 20 }, true},
+		"under storage":  {func(c *Config) { c.MaxStorageBytes = 1<<20 - 1 }, false},
+		"approved data":  {func(c *Config) { c.NonPersonalData, c.DataApproved = false, true }, true},
+		"long repo id":   {func(c *Config) { c.RepositoryIDs = []string{strings.Repeat("r", 513)} }, false},
+		"too many repos": {func(c *Config) { c.RepositoryIDs = make([]string, 1001) }, false},
+	} {
+		config := testConfig()
+		tc.mutate(&config)
+		if err := config.Validate(); (err == nil) != tc.ok {
+			t.Errorf("%s: ok=%v err=%v", name, tc.ok, err)
+		}
+	}
+}
+
+func TestFromEnvParsesEnabledConfiguration(t *testing.T) {
+	env := map[string]string{
+		"CAO_ADX_ENABLED": "true", "CAO_ADX_ENDPOINT": "https://synthetic.northcentralus.kusto.windows.net",
+		"CAO_ADX_DATABASE": "CAO", "CAO_ADX_TENANT_ID": "11111111-1111-1111-1111-111111111111",
+		"CAO_ADX_CLIENT_ID": "22222222-2222-2222-2222-222222222222", "CAO_ADX_CLIENT_SECRET": "test-only",
+		"CAO_ADX_NON_PERSONAL_DATA": "true", "CAO_ADX_SINGLE_REPLICA": "true",
+		"CAO_ADX_REPOSITORY_IDS": " b , a ", "CAO_ADX_INTERVAL": "5s", "CAO_ADX_MAX_STORAGE_BYTES": "2097152",
+	}
+	config, err := FromEnv(func(name string) string { return env[name] })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.Interval != 5*time.Second || config.MaxStorageBytes != 2097152 || config.RepositoryIDs[0] != "a" {
+		t.Fatalf("unexpected config: %+v", config)
+	}
+	env["CAO_ADX_INTERVAL"] = "soon"
+	if _, err := FromEnv(func(name string) string { return env[name] }); err == nil {
+		t.Fatal("invalid interval accepted")
 	}
 }

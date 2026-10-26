@@ -66,8 +66,10 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		config.MaxStorageBytes = bytes
 	}
 	if err := config.Validate(); err != nil {
+		exportLog.Print("event=adx-config status=rejected")
 		return Config{}, err
 	}
+	exportLog.Printf("event=adx-config status=enabled repositories=%d interval_seconds=%d", len(config.RepositoryIDs), int(config.Interval.Seconds()))
 	return config, nil
 }
 
@@ -75,15 +77,9 @@ func (c *Config) Validate() error {
 	if !c.Enabled {
 		return nil
 	}
-	endpoint, err := url.Parse(c.Endpoint)
-	if err != nil || endpoint.Scheme != "https" || endpoint.User != nil ||
-		endpoint.Port() != "" || endpoint.RawQuery != "" || endpoint.Fragment != "" ||
-		(endpoint.Path != "" && endpoint.Path != "/") ||
-		!strings.HasSuffix(endpoint.Hostname(), ".kusto.windows.net") ||
-		strings.HasPrefix(endpoint.Hostname(), "ingest-") {
-		return errors.New("ADX requires a public-cloud HTTPS Kusto query endpoint without credentials, port or path")
+	if err := c.validateEndpoint(); err != nil {
+		return err
 	}
-	c.Endpoint = strings.TrimRight(c.Endpoint, "/")
 	if !identifier.MatchString(c.Database) || !tenantID.MatchString(c.TenantID) ||
 		!tenantID.MatchString(c.ClientID) || strings.TrimSpace(c.ClientSecret) == "" {
 		return errors.New("ADX requires a database identifier and explicit Entra application credentials")
@@ -94,6 +90,30 @@ func (c *Config) Validate() error {
 	if !c.SingleReplica {
 		return errors.New("ADX v1 requires CAO_ADX_SINGLE_REPLICA=true and exactly one exporter replica")
 	}
+	if err := c.normalizeRepositoryScope(); err != nil {
+		return err
+	}
+	return c.applyLimitDefaults()
+}
+
+// validateEndpoint requires a public-cloud HTTPS Kusto query endpoint and
+// trims any trailing slash.
+func (c *Config) validateEndpoint() error {
+	endpoint, err := url.Parse(c.Endpoint)
+	if err != nil || endpoint.Scheme != "https" || endpoint.User != nil ||
+		endpoint.Port() != "" || endpoint.RawQuery != "" || endpoint.Fragment != "" ||
+		(endpoint.Path != "" && endpoint.Path != "/") ||
+		!strings.HasSuffix(endpoint.Hostname(), ".kusto.windows.net") ||
+		strings.HasPrefix(endpoint.Hostname(), "ingest-") {
+		return errors.New("ADX requires a public-cloud HTTPS Kusto query endpoint without credentials, port or path")
+	}
+	c.Endpoint = strings.TrimRight(c.Endpoint, "/")
+	return nil
+}
+
+// normalizeRepositoryScope validates the repository scope and stores a sorted
+// copy so callers' slices are never reordered.
+func (c *Config) normalizeRepositoryScope() error {
 	if len(c.RepositoryIDs) == 0 || len(c.RepositoryIDs) > 1000 {
 		return errors.New("ADX requires 1-1000 exact canonical repository IDs")
 	}
@@ -104,6 +124,12 @@ func (c *Config) Validate() error {
 			return errors.New("ADX repository scope must be nonempty, bounded and unique")
 		}
 	}
+	return nil
+}
+
+// applyLimitDefaults fills unset interval and storage budget, then enforces
+// their bounds.
+func (c *Config) applyLimitDefaults() error {
 	if c.Interval == 0 {
 		c.Interval = 30 * time.Second
 	}
