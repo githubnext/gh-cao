@@ -306,7 +306,12 @@ func (a *Archive) verifyFile(ctx context.Context, file sessionarchive.File) erro
 }
 
 func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repository, runID string, attempt int64) (context.Context, uint64, []sessionarchive.File, []sessionarchive.Member, func() error, error) {
-	a.mu.Lock()
+	if err := ctx.Err(); err != nil {
+		return nil, 0, nil, nil, nil, err
+	}
+	if !a.mu.TryLock() {
+		return nil, 0, nil, nil, nil, ErrCapacity
+	}
 	defer a.mu.Unlock()
 	if err := a.ready(); err != nil {
 		return nil, 0, nil, nil, nil, err
@@ -319,7 +324,7 @@ func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repositor
 		return nil, 0, nil, nil, nil, ErrWithdrawn
 	}
 	// Exactly one in-flight query keeps the supported initial profile bounded.
-	if len(a.readers) > 0 {
+	if a.reader.Load() != nil {
 		return nil, 0, nil, nil, nil, ErrCapacity
 	}
 	var members []sessionarchive.Member
@@ -352,15 +357,18 @@ func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repositor
 	if err := a.save(ctx, a.state, horizon); err != nil {
 		return nil, 0, nil, nil, nil, err
 	}
-	id := uuid.NewString()
 	queryCtx, cancel := context.WithTimeout(ctx, a.config.QueryTimeout)
-	a.readers[id] = reader{members: members, cancel: cancel}
+	pinned := &reader{members: members, cancel: cancel}
+	a.reader.Store(pinned)
 	generation := a.active.Generation
 	finish := func() error {
-		a.mu.Lock()
-		defer a.mu.Unlock()
+		queryErr := queryCtx.Err()
 		cancel()
-		delete(a.readers, id)
+		a.reader.CompareAndSwap(pinned, nil)
+		if !a.mu.TryLock() {
+			return ErrCapacity
+		}
+		defer a.mu.Unlock()
 		if err := a.ready(); err != nil {
 			return err
 		}
@@ -371,7 +379,7 @@ func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repositor
 				}
 			}
 		}
-		return nil
+		return queryErr
 	}
 	return queryCtx, generation, files, members, finish, nil
 }

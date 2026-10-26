@@ -110,6 +110,7 @@ func TestDuckDBArchiveIntegration(t *testing.T) {
 type recordingPublisher struct {
 	fail      bool
 	manifests []Manifest
+	published Manifest
 }
 
 func (p *recordingPublisher) Publish(_ context.Context, manifest Manifest) error {
@@ -117,7 +118,21 @@ func (p *recordingPublisher) Publish(_ context.Context, manifest Manifest) error
 	if p.fail {
 		return errors.New("destination unavailable")
 	}
+	p.published = cloneManifest(manifest)
 	return nil
+}
+
+func (p *recordingPublisher) ResolvePending(_ context.Context, manifest Manifest) (bool, error) {
+	if p.fail {
+		return false, errors.New("destination unavailable")
+	}
+	if p.published.Generation < manifest.Generation {
+		return false, nil
+	}
+	if reflect.DeepEqual(p.published, manifest) {
+		return true, nil
+	}
+	return false, ErrIntegrity
 }
 
 func TestDuckDBPublisherRecoveryIntegration(t *testing.T) {
@@ -299,6 +314,13 @@ func TestDuckDBArchivePendingWithdrawalIntegration(t *testing.T) {
 	}
 	publisher.fail = false
 	a = openTestArchive(t, c, publisher)
+	pending := cloneManifest(*a.state.Pending)
+	write := a.writeState
+	a.writeState = func([]byte) error { return errors.New("synthetic state write failure") }
+	if err := a.Flush(t.Context()); err == nil || a.state.Pending == nil || !reflect.DeepEqual(*a.state.Pending, pending) {
+		t.Fatal("failed pending replacement did not preserve its durable candidate")
+	}
+	a.writeState = write
 	if err := a.Flush(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -423,6 +445,22 @@ func TestDuckDBArchiveCaptureCacheIntegration(t *testing.T) {
 	}
 	if string(filtered) != string(shard) {
 		t.Fatal("durably captured attempt remained acquisition-blocking")
+	}
+	key := memberKey(Member{Namespace: c.Namespace, Repository: "octo/api", RunID: "123", Attempt: 1})
+	receipt := a.state.Records[key]
+	for _, published := range []bool{false, true} {
+		if published {
+			if err := a.Flush(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := a.Capture(t.Context(), "octo/api", t.TempDir(), filepath.Join(cache, "octo-api")); err != nil {
+			t.Fatalf("cache-only revisit lost durable admission (published=%t): %v", published, err)
+		}
+		current := a.state.Records[key]
+		if current.Gap != "" || current.Member != receipt.Member || current.CapturedAt != receipt.CapturedAt {
+			t.Fatal("cache-only revisit changed the successful receipt")
+		}
 	}
 	if err := a.WithdrawRepository(t.Context(), "octo/api"); err != nil {
 		t.Fatal(err)

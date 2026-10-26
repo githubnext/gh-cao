@@ -128,6 +128,16 @@ backups, obsolete generations, Blob versions, or already delivered results.
 Review those recovery/deletion horizons separately. Source-cache deletion does
 not delete archive history.
 
+When withdrawal invalidates a pending hosted publication, recovery checks the
+leased durable Blob generation before acknowledging or replacing that candidate.
+An unresolved destination receipt retains pending evidence for retry. Expired
+or withdrawn staging bodies remain protected while durable state references
+them; cleanup releases them only after those references are durably cleared.
+
+Hosted queries fail explicitly when publication owns the snapshot lock rather
+than waiting beyond the query deadline. A failed or canceled query releases its
+single-reader slot without waiting for publication.
+
 ## Evidence and rollout
 
 The dedicated `Parquet and Session Archive CI` workflow

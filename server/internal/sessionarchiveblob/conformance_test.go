@@ -54,6 +54,114 @@ func approvedProjection(t *testing.T, namespace, repository, runID, body string)
 	return p
 }
 
+type interruptedPublisher struct {
+	*Archive
+	interrupt, committed bool
+	protocol             *blobProtocol
+}
+
+func (p *interruptedPublisher) Publish(ctx context.Context, manifest sessionarchive.Manifest) error {
+	if p.interrupt && !p.committed {
+		for _, file := range manifest.Files {
+			if file.Members[0].Repository == "octo/api" {
+				p.protocol.mu.Lock()
+				p.protocol.loseKey = objectKey(file)
+				p.protocol.mu.Unlock()
+			}
+		}
+	}
+	if err := p.Archive.Publish(ctx, manifest); err != nil {
+		return err
+	}
+	if p.interrupt {
+		return errors.New("synthetic lost publication acknowledgement")
+	}
+	return nil
+}
+
+func TestDuckDBBlobPendingWithdrawalIntegration(t *testing.T) {
+	for _, committed := range []bool{false, true} {
+		t.Run(fmt.Sprintf("committed=%t", committed), func(t *testing.T) {
+			converter := realConverter(t)
+			b, protocol, _ := newProtocol(t)
+			b.converter = converter
+			b.config.RepositoryIDs = []string{"octo/api", "octo/other"}
+			c := sessionarchive.Config{Enabled: true, DurableStorage: true, Directory: t.TempDir(),
+				Namespace: "private", Repositories: b.config.RepositoryIDs, DuckDBPath: os.Getenv("DUCKDB_PATH"),
+				Policy: adxtrace.Policy{Version: "synthetic-approved-v1", ContentApproved: true, RightsApproved: true,
+					Events: map[string][]string{"session.format": {"version"}, "session.collection": {"complete"}, "user.message": {"content"}}}}
+			if err := os.Chmod(c.Directory, 0o700); err != nil { // #nosec G302 -- Private archive directories require owner traversal.
+				t.Fatal(err)
+			}
+			publisher := &interruptedPublisher{Archive: b, interrupt: true, committed: committed, protocol: protocol}
+			open := func() *sessionarchive.Archive {
+				a, err := sessionarchive.OpenWithPublisher(c, publisher)
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = a.Close() })
+				return a
+			}
+			a := open()
+			first := approvedProjection(t, "private", "octo/api", "123", "withdraw this trace")
+			other := approvedProjection(t, "private", "octo/other", "456", "retain this trace")
+			for _, p := range []sessionarchive.Projection{first, other} {
+				if err := a.Admit(t.Context(), p); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := a.Flush(t.Context()); err == nil || a.Status().StagedTraces != 2 {
+				t.Fatal("interrupted publication did not retain local staging")
+			}
+			if !committed && len(b.state.Pending) != 2 {
+				t.Fatal("interrupted upload did not retain remote object inventory")
+			}
+			if err := b.WithdrawRepository(t.Context(), "octo/api"); err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithCancel(t.Context())
+			cancel()
+			if err := a.WithdrawRepository(ctx, "octo/api"); !errors.Is(err, context.Canceled) {
+				t.Fatalf("canceled local withdrawal lost its durable intent: %v", err)
+			}
+			if err := a.Close(); err != nil {
+				t.Fatal(err)
+			}
+			publisher.interrupt = false
+			a = open()
+			protocol.mu.Lock()
+			protocol.corruptKey = "active.json"
+			protocol.mu.Unlock()
+			if err := a.Flush(t.Context()); err == nil || a.Status().StagedTraces != 2 {
+				t.Fatal("unresolved durable receipt discarded pending evidence")
+			}
+			protocol.mu.Lock()
+			protocol.corruptKey = ""
+			protocol.mu.Unlock()
+			if err := a.Flush(t.Context()); err != nil {
+				t.Fatalf("withdrawal wedged the recovered pending publication: %v", err)
+			}
+			if a.Status().StagedTraces != 0 || a.Status().ActiveTraces != 1 ||
+				!reflect.DeepEqual(b.state.Manifest.Members, []sessionarchive.Member{other.Member()}) {
+				t.Fatal("pending reconciliation lost surviving evidence or resurrected withdrawal")
+			}
+			if err := a.Admit(t.Context(), first); !errors.Is(err, sessionarchive.ErrWithdrawn) {
+				t.Fatalf("recovery lost repository replay fencing: %v", err)
+			}
+			following := approvedProjection(t, "private", "octo/other", "789", "new admission after withdrawal")
+			if err := a.Admit(t.Context(), following); err != nil {
+				t.Fatalf("withdrawn pending publication blocked another repository: %v", err)
+			}
+			if err := a.Flush(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			if len(b.state.Manifest.Members) != 2 {
+				t.Fatal("surviving repository could not continue publication")
+			}
+		})
+	}
+}
+
 func TestDuckDBBlobPublicationIntegration(t *testing.T) {
 	converter := realConverter(t)
 	a, s, _ := newProtocol(t)

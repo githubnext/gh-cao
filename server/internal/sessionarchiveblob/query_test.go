@@ -1,15 +1,97 @@
 package sessionarchiveblob
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 )
+
+func TestHostedQueryContentionDoesNotWaitForPublication(t *testing.T) {
+	for _, kind := range []string{"timeline", "summary", "finish"} {
+		t.Run(kind, func(t *testing.T) {
+			a, _, _ := newProtocol(t)
+			if err := a.Publish(t.Context(), fixture(t, 1, "first")); err != nil {
+				t.Fatal(err)
+			}
+			scope := sessionarchive.Scope{Namespace: "private", Repositories: []string{"octo/api"}}
+			finish := func() error { return nil }
+			if kind == "finish" {
+				_, _, _, _, release, err := a.pin(t.Context(), scope, "octo/api", "123", 1)
+				if err != nil {
+					t.Fatal(err)
+				}
+				finish = release
+			}
+			ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+			defer cancel()
+			a.mu.Lock()
+			done := make(chan error, 1)
+			go func() {
+				var err error
+				switch kind {
+				case "timeline":
+					_, _, err = a.Timeline(ctx, scope, sessionarchive.TimelineRequest{Repository: "octo/api", RunID: "123", Attempt: 1, Limit: 10})
+				case "summary":
+					_, _, err = a.Summaries(ctx, scope, "octo/api", 10)
+				case "finish":
+					err = finish()
+				}
+				done <- err
+			}()
+			select {
+			case err := <-done:
+				if !errors.Is(err, ErrCapacity) && !errors.Is(err, context.DeadlineExceeded) {
+					t.Errorf("contention did not return an explicit bounded failure: %v", err)
+				}
+				a.mu.Unlock()
+			case <-time.After(time.Second):
+				a.mu.Unlock()
+				<-done
+				t.Fatal("query waited behind publication beyond its deadline")
+			}
+			if kind == "finish" {
+				_, _, _, _, release, err := a.pin(t.Context(), scope, "octo/api", "123", 1)
+				if err != nil {
+					t.Fatalf("failed finalization leaked its reader slot: %v", err)
+				}
+				_ = finish()
+				if _, _, _, _, _, err := a.pin(t.Context(), scope, "octo/api", "123", 1); !errors.Is(err, ErrCapacity) {
+					t.Fatal("repeated finalization released a newer reader")
+				}
+				if err := release(); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func TestHostedCanceledQueryCannotFinalizeSuccessfully(t *testing.T) {
+	a, _, _ := newProtocol(t)
+	if err := a.Publish(t.Context(), fixture(t, 1, "first")); err != nil {
+		t.Fatal(err)
+	}
+	scope := sessionarchive.Scope{Namespace: "private", Repositories: []string{"octo/api"}}
+	ctx, cancel := context.WithCancel(t.Context())
+	_, _, _, _, finish, err := a.pin(ctx, scope, "octo/api", "123", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancel()
+	if err := finish(); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled query finalization claimed success: %v", err)
+	}
+	if _, _, _, _, _, err := a.pin(ctx, scope, "octo/api", "123", 1); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled query was admitted: %v", err)
+	}
+}
 
 func fixtureEvents(member sessionarchive.Member) []sessionarchive.Event {
 	var events []sessionarchive.Event

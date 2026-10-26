@@ -17,9 +17,13 @@ import (
 )
 
 // Publisher acknowledges only after its durable active-generation pointer is
-// published. The same pending manifest is retried verbatim after ambiguous I/O.
+// published. Pending manifests are retried verbatim after ambiguous I/O unless
+// withdrawal requires resolving their durable publication before replacement.
 type Publisher interface {
 	Publish(context.Context, Manifest) error
+	// ResolvePending proves whether a withdrawal-invalidated candidate committed.
+	// An error leaves the pending candidate and its staged evidence unchanged.
+	ResolvePending(context.Context, Manifest) (bool, error)
 }
 
 type admission struct {
@@ -235,8 +239,17 @@ func (a *Archive) Capture(ctx context.Context, repository, logs, shardPrefix str
 			if a.closed {
 				return ErrClosed
 			}
+			if err := a.reconcile(); err != nil {
+				return err
+			}
 			m := Member{Namespace: a.config.Namespace, Repository: e.Repository, RunID: e.RunID, Attempt: e.Attempt, ID: e.ID}
 			key := memberKey(m)
+			if !a.allowed(m) {
+				return ErrWithdrawn
+			}
+			if r, ok := a.state.Records[key]; ok && r.Member.Version != "" && r.Gap == "" {
+				return nil
+			}
 			if r, ok := a.state.Records[key]; !ok || r.Stage == "" {
 				previous := r
 				if !ok {

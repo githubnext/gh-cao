@@ -66,7 +66,7 @@ type Archive struct {
 	lease     string
 	lost      atomic.Bool
 	closed    bool
-	readers   map[string]reader
+	reader    atomic.Pointer[reader]
 	stop      context.CancelFunc
 	done      chan struct{}
 	now       func() time.Time
@@ -90,7 +90,7 @@ func New(ctx context.Context, config Config, converter *sessionarchive.Converter
 	a := &Archive{config: config, converter: converter,
 		blob:      &blobClient{root: config.blobRoot(), http: newHTTP(config, "https://storage.azure.com/.default")},
 		queryHTTP: newHTTP(config, "https://kusto.kusto.windows.net/.default"),
-		verifyADX: true, readers: map[string]reader{}, now: time.Now}
+		verifyADX: true, now: time.Now}
 	if err := a.open(ctx); err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func (a *Archive) renew(ctx context.Context) {
 
 func (a *Archive) failLease() {
 	a.lost.Store(true)
-	for _, r := range a.readers {
+	if r := a.reader.Load(); r != nil {
 		r.cancel()
 	}
 }
@@ -511,7 +511,7 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 		withdrawing = withdrawing || !replaced
 		next.Fences = mergeFence(next.Fences, sessionarchive.Fence{Namespace: old.Namespace, Repository: old.Repository,
 			RunID: old.RunID, Attempt: old.Attempt, Versions: []string{old.Version}, Withdrawn: !replaced})
-		for _, r := range a.readers {
+		if r := a.reader.Load(); r != nil {
 			for _, m := range r.members {
 				if memberKey(m) == memberKey(old) && !replaced {
 					r.cancel()
@@ -521,7 +521,7 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 	}
 	for _, fence := range next.Fences {
 		if fence.Withdrawn {
-			for _, r := range a.readers {
+			if r := a.reader.Load(); r != nil {
 				for _, m := range r.members {
 					if m.Namespace == fence.Namespace && m.Repository == fence.Repository && m.RunID == fence.RunID && m.Attempt == fence.Attempt {
 						r.cancel()
@@ -608,6 +608,38 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 	return err
 }
 
+// ResolvePending reads the leased durable pointer before a withdrawn candidate
+// can be replaced. Repository withdrawal may remove members, but cannot change
+// that candidate's generation, files, or surviving projection identities.
+func (a *Archive) ResolvePending(ctx context.Context, candidate sessionarchive.Manifest) (bool, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if err := a.ready(); err != nil {
+		return false, err
+	}
+	normalized, err := a.normalize(candidate, true)
+	if err != nil {
+		return false, err
+	}
+	if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+		a.failLease()
+		return false, err
+	}
+	if err := a.load(ctx); err != nil {
+		return false, err
+	}
+	if normalized.Generation == a.state.Manifest.Generation+1 {
+		return false, nil
+	}
+	normalized.Members = slices.DeleteFunc(normalized.Members, func(m sessionarchive.Member) bool {
+		return slices.Contains(a.state.WithdrawnRepositories, m.Repository)
+	})
+	if normalized.Generation != a.state.Manifest.Generation || !reflect.DeepEqual(normalized, a.state.Manifest) {
+		return false, ErrConflict
+	}
+	return true, nil
+}
+
 // Maintain deletes only explicitly retired, unreferenced objects after the
 // persisted remote-execution horizon and conservative recovery grace.
 func (a *Archive) Maintain(ctx context.Context) error {
@@ -654,7 +686,7 @@ func (a *Archive) WithdrawRepository(ctx context.Context, repository string) err
 	if !a.config.authorized(a.config.Namespace, repository) {
 		return ErrScope
 	}
-	for _, r := range a.readers {
+	if r := a.reader.Load(); r != nil {
 		if slices.ContainsFunc(r.members, func(m sessionarchive.Member) bool { return m.Repository == repository }) {
 			r.cancel()
 		}
@@ -710,7 +742,7 @@ func (a *Archive) Close() error {
 		return nil
 	}
 	a.closed = true
-	for _, r := range a.readers {
+	if r := a.reader.Load(); r != nil {
 		r.cancel()
 	}
 	a.stop()
