@@ -67,3 +67,8 @@ curl --noproxy '*' --fail --silent --show-error --max-time 10 \
 printf '\nReal engine queries; simulated streaming transport; no authentication/retention acceptance.\n'
 CAO_KUSTO_EMULATOR_URL="$endpoint" go -C "$root/server" test -race ./internal/adxingest \
   -run '^TestKustoEmulator' -count=1 -timeout=15m -v
+go -C "$root/server" test ./internal/sessionarchiveblob -list '^TestKustoArchiveMembership$' \
+  | grep -Fx TestKustoArchiveMembership
+CAO_KUSTO_EMULATOR_URL="$endpoint" CAO_SESSION_ARCHIVE_REQUIRE_KUSTO=1 \
+  go -C "$root/server" test -race ./internal/sessionarchiveblob \
+  -run '^TestKustoArchiveMembership$' -count=1 -timeout=5m -v

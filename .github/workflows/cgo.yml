@@ -61,6 +61,11 @@ on:
       - "!server/**/*.md"
 
   workflow_dispatch:
+    inputs:
+      accept_kusto_emulator_eula:
+        description: "I have reviewed and accept https://aka.ms/adx.emulator.license; run functional Kusto conformance"
+        type: boolean
+        default: false
   workflow_call:
 
 permissions:
@@ -71,6 +76,103 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  session-archive-kusto:
+    name: Opt-in real Kusto archive membership
+    if: github.event_name == 'workflow_dispatch' && inputs.accept_kusto_emulator_eula
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version: 1.27.3
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
+      - name: Required functional membership conformance against the official engine
+        shell: bash
+        env:
+          ACCEPT_EULA: "Y"
+        run: |
+          set -euo pipefail
+          scripts/test-kusto-emulator.sh 2>&1 | tee "$RUNNER_TEMP/session-archive-kusto.log"
+      - name: Retain real-engine conformance results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: session-archive-kusto-conformance
+          path: ${{ runner.temp }}/session-archive-kusto.log
+          if-no-files-found: error
+          retention-days: 14
+  session-archive:
+    name: Real DuckDB session archive
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DUCKDB_PATH: ${{ runner.temp }}/cao-duckdb/duckdb
+      CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version: 1.27.3
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install checksum-verified DuckDB v1.4.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$DUCKDB_PATH")"
+          curl --fail --silent --show-error --location --proto '=https' \
+            https://github.com/duckdb/duckdb/releases/download/v1.4.3/duckdb_cli-linux-amd64.zip \
+            --output "$RUNNER_TEMP/cao-duckdb.zip"
+          echo "7a9e36141a71a353f54dfbeed607a5218c3425ce2d417610da08443259a12f7c  $RUNNER_TEMP/cao-duckdb.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/cao-duckdb.zip" -d "$(dirname "$DUCKDB_PATH")"
+          "$DUCKDB_PATH" --version
+      - name: Verify production capture, Parquet, publication, and authenticated queries
+        shell: bash
+        run: |
+          set -euo pipefail
+          go -C server test ./internal/sessionarchive -list '^TestDuckDBArchiveIntegration$' | grep -Fx TestDuckDBArchiveIntegration
+          go -C server test -race -json -count=1 -timeout=8m \
+            ./internal/sessionarchive ./internal/sessionarchiveblob ./internal/collect ./internal/server \
+            -run '^(TestDuckDB.*Integration|TestSessionArchive.*|TestTraceAdmission.*|TestTraceCaptures.*)$' \
+            | tee "$RUNNER_TEMP/session-archive-tests.jsonl"
+          if grep -q '"Action":"skip"' "$RUNNER_TEMP/session-archive-tests.jsonl"; then
+            echo "Archive conformance must not skip required production checks" >&2
+            exit 1
+          fi
+      - name: Measure and verify 1048576 approved events with real DuckDB
+        shell: bash
+        env:
+          CAO_SESSION_ARCHIVE_BENCHMARK: "1"
+        run: |
+          set -euo pipefail
+          go -C server test ./internal/sessionarchive -list '^TestDuckDBArchiveMillionEventBenchmark$' | grep -Fx TestDuckDBArchiveMillionEventBenchmark
+          go -C server test -json -count=1 -timeout=20m ./internal/sessionarchive \
+            -run '^TestDuckDBArchiveMillionEventBenchmark$' \
+            | tee -a "$RUNNER_TEMP/session-archive-tests.jsonl"
+          if grep -q '"Action":"skip"' "$RUNNER_TEMP/session-archive-tests.jsonl"; then
+            echo "The fixed-cardinality archive benchmark must not skip" >&2
+            exit 1
+          fi
+      - name: Retain archive conformance results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: session-archive-conformance
+          path: ${{ runner.temp }}/session-archive-tests.jsonl
+          if-no-files-found: error
+          retention-days: 14
+
   daily-run-counts-conformance:
     name: Daily run-count conformance
     # Full cross-backend and TLC checks run after merge or on explicit invocation.

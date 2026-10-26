@@ -51,7 +51,7 @@ test('agent discovery describes public GET and body-free HEAD responses', () => 
 
 test('the generated contract describes the implemented security and wire formats', () => {
   assert.equal(openapi.openapi, '3.1.0')
-  assert.equal(openapi.info.version, '2.10.0')
+  assert.equal(openapi.info.version, '2.11.0')
   for (const path of ['/api/runs/{id}/jobs', '/api/runs/{id}/sessions', '/api/sessions/{id}/events']) {
     assert.equal(openapi.paths[path], undefined)
   }
@@ -109,6 +109,30 @@ test('the generated contract describes the implemented security and wire formats
     },
     { type: 'string', format: 'date-time' }
   )
+})
+
+test('private archive queries preserve explicit full-content authority and the shared event contract', () => {
+  const status = openapi.paths['/api/v1/session-archive/status'].get
+  const query = openapi.paths['/api/v1/session-archive/query'].post
+  for (const operation of [status, query]) {
+    assert.ok(operation.security.some(entry => 'BearerAuth' in entry))
+    assert.ok(operation.security.some(entry => 'ApiKeyAuth' in entry))
+    for (const code of ['401', '403', '429', '503']) assert.ok(operation.responses[code])
+    assert.match(operation.description, /full-trace-read/)
+  }
+  assert.ok(query.parameters.some(parameter => parameter.name === 'X-CSRF-Token'))
+  for (const code of ['400', '404', '422']) assert.ok(query.responses[code])
+  assert.match(query.description, /generation-bound live Azure conformance/)
+  const input = openapi.components.schemas.SessionArchiveQuery
+  assert.deepEqual(input.properties.kind.enum, ['timeline', 'summary'])
+  for (const name of ['sql', 'kql', 'path', 'files', 'objects', 'namespace']) {
+    assert.equal(input.properties[name], undefined)
+  }
+  assert.equal(input.properties.limit.maximum, 10000)
+  assert.equal(input.properties.limit.minimum, 1)
+  const result = openapi.components.schemas.SessionArchiveResult
+  assert.equal(result.properties.events.items.$ref, '#/components/schemas/Trace.Archive.Event')
+  assert.equal(openapi.components.schemas['Trace.Archive.Event'].properties.PayloadJSON.type, 'string')
 })
 
 test('webhook status is an authenticated process-local no-store snapshot', () => {
@@ -379,14 +403,14 @@ test('the server-only MCP logs tool matches the HTTP snapshot contract', () => {
 })
 
 test('selected JSON Schemas and nullable responses are emitted', () => {
-  for (const schema of ['AdmissionRequest', 'AdmissionAllowances', 'ConclusionRequest', 'SessionCompaction', 'QueryRequest', 'QueryResponse', 'QueryDefinition', 'RevisionEvent', 'WebhookAcknowledgement']) {
+  for (const schema of ['AdmissionRequest', 'AdmissionAllowances', 'ConclusionRequest', 'SessionCompaction', 'QueryRequest', 'QueryResponse', 'QueryDefinition', 'RevisionEvent', 'SessionArchiveQuery', 'SessionArchiveResult', 'SessionArchiveStatus', 'WebhookAcknowledgement']) {
     const document = JSON.parse(readFileSync(join(directory, 'generated/schemas', `${schema}.json`), 'utf8'))
     assert.equal(document.$schema, 'https://json-schema.org/draft/2020-12/schema')
     assert.ok(document.properties)
   }
   assert.deepEqual(
     readdirSync(join(directory, 'generated/schemas')).sort(),
-    ['AdmissionAllowances.json', 'AdmissionRequest.json', 'ConclusionRequest.json', 'QueryDefinition.json', 'QueryRequest.json', 'QueryResponse.json', 'RevisionEvent.json', 'SessionCompaction.json', 'WebhookAcknowledgement.json']
+    ['AdmissionAllowances.json', 'AdmissionRequest.json', 'ConclusionRequest.json', 'QueryDefinition.json', 'QueryRequest.json', 'QueryResponse.json', 'RevisionEvent.json', 'SessionArchiveQuery.json', 'SessionArchiveResult.json', 'SessionArchiveStatus.json', 'SessionCompaction.json', 'WebhookAcknowledgement.json']
   )
   const campaign = openapi.paths['/api/v1/memory/{campaign}'].get.responses['200'].content['application/json'].schema
   assert.ok(campaign.anyOf.some(branch => branch.type === 'null'))

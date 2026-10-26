@@ -174,6 +174,11 @@ func envBool(name string) bool {
 // NewCollectorFromEnv assembles the collection profile for the worker roles,
 // which run the same binary without serving the dashboard.
 func NewCollectorFromEnv(ctx context.Context, databaseQueriesPath string) (*Collector, error) {
+	for _, name := range []string{"CAO_SESSION_ARCHIVE_ENABLED", "CAO_SESSION_ARCHIVE_BLOB_ENABLED"} {
+		if value := os.Getenv(name); value != "" && value != "false" {
+			return nil, errors.New("session archive requires an owning persistent server, not standalone collect/backfill roles")
+		}
+	}
 	if value := os.Getenv("CAO_ADX_TRACES_ENABLED"); value != "" && value != "false" {
 		return nil, errors.New("unified traces require the OAuth server with co-resident collection workers, not standalone collect/backfill roles")
 	}

@@ -21,6 +21,7 @@ type localSQLiteBackfill struct {
 	overlay  string
 	catalog  string
 	interval time.Duration
+	traces   collect.TraceCapture
 }
 
 type localGitHubToken string
@@ -90,6 +91,7 @@ func (b *localSQLiteBackfill) refresh(ctx context.Context, logger *log.Logger, p
 	runner := collect.Runner{
 		Lake: collect.Lake{Directory: workspace}, CatalogRoot: catalog, Tokens: token,
 		RunLimit: 10000, RequestTimeoutMinutes: 2, Timeout: 5 * time.Minute,
+		Traces: b.traces,
 	}
 	if err := runner.Validate(); err != nil {
 		return err

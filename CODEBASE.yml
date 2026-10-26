@@ -37,6 +37,8 @@ structure:
   canonical_session_export: server/internal/sessionexport/
   optional_adx_export: server/internal/adxingest/
   optional_adx_traces: server/internal/adxtrace/
+  optional_session_archive: server/internal/sessionarchive/
+  optional_blob_archive: server/internal/sessionarchiveblob/
   webhook_gateway_entrypoint: server/cmd/cao-webhook-gateway/
   webhook_gateway_contracts: server/internal/webhookgateway/
   webhook_gateway_host: server/internal/webhookgatewayhost/
@@ -192,6 +194,12 @@ components:
   local_sqlite_entity_store:
     path: server/internal/sqlitex/, server/internal/server/local_sqlite.go
     responsibility: default local serve to a cached canonical snapshot with loopback bearer authentication and read-only request transactions; acquire missing files from DASHBOARD_DATA_URL or public CAO Pages, with --sqlite selecting another cache and --download-sqlite explicitly refreshing; accept any Pages/custom-domain site, dashboard directory or manifest URL, discover the root manifest then cao/ on HTTP 404, stream bounded data and verify SHA-256 plus canonical version before atomic replacement, preserving the previous file and failing startup on error; fail closed for invalid or unreadable existing caches and dangling symlinks without repair downloads; outside the internal canvas, attach the snapshot read-only to a separate writable delta with shared internal/dashboardquery/overlay.sql, local upserts and tombstones, no historical record copy and a fail-closed canonical-content revision binding; refresh only snapshot-declared repositories with local GH_TOKEN, GITHUB_TOKEN or gh login through existing Activity collection/compaction and canonical ingestion, stage only the delta, discard and report failed repository evidence independently, atomically publish successful ingestion with stale-writer rejection and revision notification, remove private pass evidence and cancel/join work on shutdown; bound scope to 10000 repositories, collection to 10000 runs and five minutes per repository within 30 days with a one-day watermark overlap and older unfinished runs, and passes to 30 minutes; repeat five minutes after each pass with --backfill-interval override and --backfill=false for offline reuse including local data; expose ordinary HTTP, canonical API, diagnostics, revision subscriptions and optional MCP with bounded volatile request services, unknown snapshot quality and no query result caching; preserve snapshot-only canvas and never enable hosted OAuth, collection, ingestion, webhooks, hosted execution, token-driven inventory expansion, rollout changes or PostgreSQL fallback
+  optional_session_archive:
+    path: server/internal/sessionarchive/
+    responsibility: independently default-off private full approved analytics using the existing adxtrace approval and authorized pre-normalization acquisition from snapshot-scoped local backfill or enrolled co-resident collectors; intersect acquisition-cache admission across independently enabled destinations and fan out capture/withdrawal without another collector; one private durable owner stages complete approved traces, uses generated explicit logical rows and checksum-pinned DuckDB v1.4.3 to pack immutable Zstandard Parquet, verifies identity/count/order/integrity and publishes fenced generation membership before staging acknowledgement; local trusted queries read Parquet directly without persistent DuckDB event copies; pin readers, supersede corrections and deny withdrawal/revoked access with bounded replay fences; independent retention and recovery grace, bounded retries/maintenance and tracked server shutdown; no PostgreSQL schema/query/ingestion/retention/operational state changes, browser changes, ADX prerequisite, new acquisition or inference of full upstream coverage; separate full-trace-read approval plus hosted exact-reader allowlist/fresh strong-authentication assurance, post-query reauthorization and 8 MiB/10000-row/30-second bounds; no arbitrary SQL/KQL, paths or selected historical generations; unsupported sampling fails closed, compaction/distributed ownership/training deferred; proposed ADR requires independent acceptance/capacity evidence
+  optional_blob_archive:
+    path: server/internal/sessionarchiveblob/
+    responsibility: additional persistent single-owner Blob Parquet and ADX scenario sharing approved capture/conversion/staging without native ADX or PostgreSQL archive coupling; Blob lease, immutable objects/manifests and conditional active pointer own publication state and remote acknowledgement; trusted queries require verified external-table layout, exact pinned object hashes and active projection membership before operations plus real Azure conformance bound to the destination; simulators/upload alone do not activate analytical publication; private durable staging, reader-safe retirement and recovery required, no ephemeral/per-request/canvas or multi-replica profile and no runtime provisioning
   local_go_query_engine:
     path: internal/dashboardquery/
     responsibility: share the bounded native Dashboard Language evaluator and canonical SQLite reader through a small independent Go module, without coupling the extension and server dependency graphs; local server snapshots explicitly admit 500000 input/intermediate rows and 50 million operations with 1 GiB working-source and 2 GiB / 2 million live retained-row budgets, release inputs after their final consumer, prune unused pure row-local computations and push live root fields into SQLite while preserving full-record byte checks, JSON types, missing fields, UTF-16 key ordering, complete requested raw sources and unknown shapes; cap readonly mmap at 1 GiB, execute remaining operators in Go, use a local-only default 300-unit/minute weighted query-admission bucket with explicit overrides preserved, and preserve 100000-row wire limits plus existing CLI/hosted defaults
@@ -374,6 +382,10 @@ dependencies:
   - optional_adx_export -> optional_adx_traces
   - optional_adx_traces -> gh_aw_logs
   - optional_adx_traces -> canonical_session_export
+  - dashboard_https_server -> optional_session_archive
+  - optional_session_archive -> optional_adx_traces
+  - optional_session_archive -> gh_aw_logs
+  - optional_blob_archive -> optional_session_archive
   - go_extension_entrypoint -> go_extension_commands
   - go_extension_commands -> go_extension_github_helper
   - go_extension_commands -> go_extension_catalog
@@ -466,6 +478,17 @@ dependencies:
   - marketplace_hosted_resolver -> marketplace_ui
 
 boundaries:
+  - subject: optional_session_archive
+    must_not_depend_on:
+      - postgres_entity_store
+      - operational_state_storage
+      - dashboard_query_execution
+      - control_plane_authority
+  - subject: optional_blob_archive
+    must_not_depend_on:
+      - postgres_entity_store
+      - operational_state_storage
+      - optional_adx_export
   - subject: optional_adx_traces
     must_not_depend_on:
       - control_plane_authority
@@ -712,6 +735,13 @@ invariants:
   - "Marketplace UI access MUST cross the existing data-worker query boundary and package actions MUST be copy-only canonical CAO add commands; the dashboard MUST NOT install packages."
 
 flows:
+  private_session_archive:
+    - gh_aw_logs
+    - optional_adx_traces
+    - optional_session_archive
+  private_hosted_archive:
+    - optional_session_archive
+    - optional_blob_archive
   optional_adx_export:
     - postgres_entity_store
     - canonical_session_export
@@ -867,6 +897,7 @@ generation:
     outputs:
       - server/internal/adxtrace/schema.gen.go
       - server/internal/adxtrace/schema.gen.kql
+      - server/internal/sessionarchive/schema.gen.go
     command: npm --prefix server/spec run generate:trace
   new_operation:
     path: <operation>/aw.yml
@@ -969,6 +1000,7 @@ validation:
   documentation_command_refs:
     - commands.repository_root.entries.docs_build
   architecture:
+    - "Verify private archive default-off capture, approved payload reconstruction, exact scope/reader access, restart/retry, correction/withdrawal, generation concurrency and budgets with the real checksum-verified DuckDB CI gate; require independent live Azure and representative capacity evidence before accepting the proposed archive ADR."
     - "Verify non-authoritative local gateway isolation, read-only polling and durable SQLite conformance against specs/rfc-034-local-webhook-gateway.md and its bounded TLA+ model."
     - "Verify optional gateway isolation, fresh policy and grants, monotonic revisions, fenced atomic bounds and terminal ambiguity against specs/rfc-033-webhook-gateway.md; do not infer production readiness from fixtures."
     - "Verify campaign contents against root and campaign aw.yml manifests."

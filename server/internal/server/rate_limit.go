@@ -253,7 +253,7 @@ func ratePolicy(request *http.Request, limits RateLimitConfig) (requestRatePolic
 		return requestRatePolicy{}, false
 	case request.URL.Path == "/auth/login", request.URL.Path == "/auth/callback":
 		return limits.policy("auth"), true
-	case request.URL.Path == "/api/v1/query", request.URL.Path == "/mcp":
+	case request.URL.Path == "/api/v1/query", request.URL.Path == "/api/v1/session-archive/query", request.URL.Path == "/mcp":
 		return limits.policy("query"), true
 	case strings.HasPrefix(request.URL.Path, "/api/"), strings.HasPrefix(request.URL.Path, "/auth/"):
 		return limits.policy("general"), true

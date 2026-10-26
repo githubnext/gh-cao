@@ -1,0 +1,78 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "SessionArchiveStatus.json",
+    "type": "object",
+    "properties": {
+        "enabled": {
+            "type": "boolean"
+        },
+        "stage": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "const": "disabled"
+                },
+                {
+                    "type": "string",
+                    "const": "active"
+                },
+                {
+                    "type": "string",
+                    "const": "retrying"
+                }
+            ],
+            "description": "Active is a running lifecycle, not proof that pending evidence is published or that Azure acceptance gates passed."
+        },
+        "archive": {
+            "$ref": "#/$defs/SessionArchiveCounters"
+        }
+    },
+    "required": [
+        "enabled",
+        "stage"
+    ],
+    "$defs": {
+        "SessionArchiveCounters": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "generation": {
+                    "type": "string"
+                },
+                "activeTraces": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647
+                },
+                "stagedTraces": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647
+                },
+                "gaps": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647,
+                    "description": "Durable source/admission gaps remain visible and reacquirable; zero does not imply complete upstream logs."
+                },
+                "archiveBytes": {
+                    "type": "string"
+                },
+                "stagingBytes": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "enabled",
+                "generation",
+                "activeTraces",
+                "stagedTraces",
+                "gaps",
+                "archiveBytes",
+                "stagingBytes"
+            ]
+        }
+    }
+}

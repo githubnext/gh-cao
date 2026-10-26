@@ -415,6 +415,49 @@ Static, snapshot-only, admission-only, standalone collect/backfill and
 per-request hosts cannot capture traces. Destination failures cannot authorize
 collection, widen policy or replace ordinary dashboard readiness.
 
+The independently default-off Parquet session archive
+(`server/internal/sessionarchive/`, `server/internal/sessionarchiveblob/`,
+`specs/session-archive.md`, and `server/SESSION-ARCHIVE.md`) adds private full
+approved analytics without changing PostgreSQL schemas, queries, ingestion,
+retention, or operational state. It reuses the existing approved `adxtrace`
+projection and the authorized pre-normalization acquisition visit. Local
+SQLite backfill supplies only snapshot-declared repositories; co-resident
+hosted workers supply only enrolled authorized repositories. Archive scope
+further narrows those visits. Multiple enabled destinations intersect admitted
+metadata-cache membership and fan out capture/withdrawal without another
+collector. Failed admission cannot commit an acquisition-cache skip.
+
+One private durable owner stages approved complete traces, converts explicit
+TypeSpec-generated logical rows through the checksum-pinned DuckDB v1.4.3 CLI
+into packed immutable Zstandard Parquet, verifies counts/order/integrity, and
+publishes exact projection membership through fenced generations. Local
+filesystem generations use locking and durability barriers; hosted generations
+use a Blob lease, immutable objects/manifests and conditional active publication.
+Staging acknowledgement follows durable publication, never merely conversion
+or upload. Query readers pin generations; corrections replace active
+membership, while withdrawal/authorization loss overrides pinned access and
+preserves bounded replay fences. Retention and recovery grace are independent
+of disposable source caches and dashboard detail; logical exclusion is not
+physical erasure. Publisher retries, maintenance and shutdown belong to the
+existing server's tracked lifecycle, not PostgreSQL archive state.
+
+Local trusted queries read authorized Parquet directly without persistent
+DuckDB event tables. Hosted trusted ADX queries require verified external-table
+layout, exact pinned object hashes and active membership before operations,
+and real Azure conformance bound to the destination; simulated protocol success
+does not authorize query activation. Existing HTTP authentication is necessary
+but insufficient: explicit full-trace-read approval and an exact hosted-reader
+allowlist with fresh existing strong-authentication assurance gate the private
+timeline/summary endpoints. Responses recheck authorization, are bounded to
+8 MiB/10000 rows and 30 seconds, and never expose arbitrary SQL/KQL, paths,
+credentials, or caller-selected generations. Existing dashboard query backends,
+frontend and native ADX profiles are unchanged. Persistent single-owner hosts
+are required; canvas, ephemeral/per-request hosts and distributed ownership
+are unsupported. Sampling without existing frozen membership, compaction,
+arbitrary queries, training and new acquisition remain deferred or fail closed.
+The ADR remains proposed pending its independent local/hosted acceptance gates
+and representative capacity evidence.
+
 Owner-run bootstrap initializes this schema and its UTC daily partitions; runtime
 opens and validates provisioned state without DDL. Daily owner-run maintenance
 keeps historical, current, and 28 upcoming days provisioned, expiring only

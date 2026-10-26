@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CAO dashboard server",
-    "version": "2.10.0",
+    "version": "2.11.0",
     "description": "The Go dashboard server HTTP contract. Local mode uses a loopback bearer capability; hosted mode uses an authorized GitHub OAuth session and X-CSRF-Token on protected mutations. The optional MCP HTTP transport is covered, but its protocol messages and tool schemas are owned by the MCP contract; dashboard static assets are outside this contract."
   },
   "tags": [
@@ -38,6 +38,9 @@
     },
     {
       "name": "Activation admission"
+    },
+    {
+      "name": "Private session archive"
     }
   ],
   "paths": {
@@ -2808,6 +2811,294 @@
         },
         "tags": [
           "Queries"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/session-archive/query": {
+      "post": {
+        "operationId": "SessionArchive_query",
+        "description": "Execute only timeline or summary for one exact authorized repository, with an additional full-trace-read grant and (hosted) CSRF token. Maximum request 4096 bytes, result 8 MiB/10000 rows, and execution 30 seconds; backend budgets may be tighter. Authorization is rechecked before delivering any result. Corrections use active projection membership; withdrawal overrides historical/pinned readers. A budget failure is an error, not a complete-looking truncated trace. Existing SQLite/PostgreSQL dashboard queries remain on their existing backends. Hosted Blob/ADX query activation additionally requires generation-bound live Azure conformance; upload success or a local simulator does not establish that evidence.",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionArchiveResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Private session archive"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionArchiveQuery"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/session-archive/status": {
+      "get": {
+        "operationId": "SessionArchive_status",
+        "description": "Default-off additional analytics, independent of operational dashboard readiness. Disabled returns only enabled=false and stage=disabled. Enabled status requires separately approved full-trace-read access: the local bearer with explicit content-read approval, or a fresh hosted OAuth session for an explicitly listed archive reader. Dashboard membership, administrator status, Actions identities, and storage credentials alone never grant trace content access. No filenames or destination credentials are returned.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionArchiveStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Private session archive"
         ],
         "security": [
           {
@@ -5599,6 +5890,171 @@
           }
         ]
       },
+      "SessionArchiveCounters": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "generation",
+          "activeTraces",
+          "stagedTraces",
+          "gaps",
+          "archiveBytes",
+          "stagingBytes"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "generation": {
+            "type": "integer",
+            "format": "uint64"
+          },
+          "activeTraces": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stagedTraces": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gaps": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Durable source/admission gaps remain visible and reacquirable; zero does not imply complete upstream logs."
+          },
+          "archiveBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stagingBytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SessionArchiveQuery": {
+        "type": "object",
+        "required": [
+          "kind",
+          "repository"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "timeline",
+              "summary"
+            ]
+          },
+          "repository": {
+            "type": "string",
+            "description": "Exact lowercase owner/repository in the reviewed archive and collection scope."
+          },
+          "runId": {
+            "type": "string",
+            "description": "Required positive GitHub run ID for timeline; forbidden for summary. Not a canonical Run ID or trace digest."
+          },
+          "attempt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Required positive exact attempt for timeline; forbidden for summary."
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 10000,
+            "description": "Maximum complete output rows, 1-10000 (default 10000). Exceeding a limit fails, never truncates a full approved trace."
+          }
+        },
+        "description": "A trusted archive query template. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted."
+      },
+      "SessionArchiveResult": {
+        "type": "object",
+        "required": [
+          "generation",
+          "kind"
+        ],
+        "properties": {
+          "generation": {
+            "type": "integer",
+            "format": "uint64"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "timeline",
+              "summary"
+            ]
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Trace.Archive.Event"
+            }
+          },
+          "summary": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionArchiveSummary"
+            }
+          }
+        },
+        "description": "One authorized pinned generation. Approved payload JSON, explicit nulls, sequence, identity, omissions and provenance follow the shared trace contract, not another HTTP-only evidence model."
+      },
+      "SessionArchiveStatus": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "stage"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "active",
+              "retrying"
+            ],
+            "description": "Active is a running lifecycle, not proof that pending evidence is published or that Azure acceptance gates passed."
+          },
+          "archive": {
+            "$ref": "#/components/schemas/SessionArchiveCounters"
+          }
+        }
+      },
+      "SessionArchiveSummary": {
+        "type": "object",
+        "required": [
+          "repository",
+          "runId",
+          "attempt",
+          "projectionId",
+          "events"
+        ],
+        "properties": {
+          "repository": {
+            "type": "string"
+          },
+          "runId": {
+            "type": "string"
+          },
+          "attempt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "projectionId": {
+            "type": "string"
+          },
+          "events": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "SessionCompaction": {
         "type": "object",
         "required": [
@@ -5728,6 +6184,735 @@
             "type": "string"
           }
         }
+      },
+      "Trace.Archive.Event": {
+        "type": "object",
+        "required": [
+          "Sequence",
+          "Type",
+          "EventId",
+          "ParentId",
+          "EpisodeId",
+          "HopId",
+          "ParentHopId",
+          "ToolCallId",
+          "SessionId",
+          "Timestamp",
+          "ContentDigest",
+          "Namespace",
+          "RunId",
+          "RunAttempt",
+          "ProjectionId",
+          "ContractVersion",
+          "Repository",
+          "TraceId",
+          "CompletionDay",
+          "ArtifactDigest",
+          "PolicyDigest",
+          "Gaps",
+          "CapturedAt",
+          "PayloadJSON"
+        ],
+        "properties": {
+          "Sequence": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Zero-based contiguous event ordering within the approved trace."
+          },
+          "Type": {
+            "type": "string"
+          },
+          "EventId": {
+            "type": "string"
+          },
+          "ParentId": {
+            "type": "string"
+          },
+          "EpisodeId": {
+            "type": "string"
+          },
+          "HopId": {
+            "type": "string"
+          },
+          "ParentHopId": {
+            "type": "string"
+          },
+          "ToolCallId": {
+            "type": "string"
+          },
+          "SessionId": {
+            "type": "string"
+          },
+          "Timestamp": {
+            "type": "string"
+          },
+          "ContentDigest": {
+            "type": "string",
+            "description": "SHA-256 of the concatenated UTF-8 JSON content, in Part order."
+          },
+          "Namespace": {
+            "type": "string"
+          },
+          "RunId": {
+            "type": "string",
+            "description": "Trace identity, not necessarily a GitHub workflow run ID."
+          },
+          "RunAttempt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ProjectionId": {
+            "type": "string",
+            "description": "Immutable approved trace digest."
+          },
+          "ContractVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "Repository": {
+            "type": "string"
+          },
+          "TraceId": {
+            "type": "string",
+            "description": "Canonical RunId above is distinct from this hashed native trace identity."
+          },
+          "CompletionDay": {
+            "type": "string",
+            "description": "Empty means undated, never a fabricated source clock."
+          },
+          "ArtifactDigest": {
+            "type": "string"
+          },
+          "PolicyDigest": {
+            "type": "string"
+          },
+          "Gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "CapturedAt": {
+            "type": "string"
+          },
+          "PayloadJSON": {
+            "type": "string",
+            "description": "Full approved event as UTF-8 JSON; absent and explicit null remain distinct."
+          }
+        }
+      },
+      "Trace.Identity": {
+        "type": "object",
+        "required": [
+          "Namespace",
+          "RunId",
+          "RunAttempt",
+          "ProjectionId",
+          "RowDigest",
+          "ContractVersion"
+        ],
+        "properties": {
+          "Namespace": {
+            "type": "string"
+          },
+          "RunId": {
+            "type": "string",
+            "description": "Trace identity, not necessarily a GitHub workflow run ID."
+          },
+          "RunAttempt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ProjectionId": {
+            "type": "string",
+            "description": "Immutable approved trace digest."
+          },
+          "RowDigest": {
+            "type": "string"
+          },
+          "ContractVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          }
+        }
+      },
+      "Trace.TraceContentParts": {
+        "type": "object",
+        "required": [
+          "Sequence",
+          "Part",
+          "Content"
+        ],
+        "properties": {
+          "Sequence": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "Part": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Zero-based contiguous chunk ordering within Sequence."
+          },
+          "Content": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Trace.Identity"
+          }
+        ],
+        "description": "UTF-8 JSON text chunks split on rune boundaries, never base64 or source bytes."
+      },
+      "Trace.TraceDatasets": {
+        "type": "object",
+        "required": [
+          "SourceRevision",
+          "DatasetId",
+          "MemberCount",
+          "DatasetDigest",
+          "Transform",
+          "Split",
+          "TaskGroup",
+          "Evaluator",
+          "QualityLabel",
+          "State",
+          "MiningVersion",
+          "OutcomeId",
+          "Disposition",
+          "LabelRuleVersion",
+          "LabelCutoff"
+        ],
+        "properties": {
+          "SourceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "DatasetId": {
+            "type": "string"
+          },
+          "MemberCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "DatasetDigest": {
+            "type": "string"
+          },
+          "Transform": {
+            "type": "string"
+          },
+          "Split": {
+            "type": "string"
+          },
+          "TaskGroup": {
+            "type": "string"
+          },
+          "Evaluator": {
+            "type": "string"
+          },
+          "QualityLabel": {
+            "type": "string"
+          },
+          "State": {
+            "type": "string"
+          },
+          "MiningVersion": {
+            "type": "string"
+          },
+          "OutcomeId": {
+            "type": "string"
+          },
+          "Disposition": {
+            "type": "string"
+          },
+          "LabelRuleVersion": {
+            "type": "string"
+          },
+          "LabelCutoff": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Trace.Identity"
+          }
+        ],
+        "description": "DatasetId identifies the immutable dataset; ProjectionId binds its source trace version."
+      },
+      "Trace.TraceEpisodes": {
+        "type": "object",
+        "required": [
+          "SourceRevision",
+          "CanonicalNamespace",
+          "CanonicalRunId",
+          "Repository",
+          "AuditId",
+          "Kind",
+          "EpisodeId",
+          "HopId",
+          "ParentHopId",
+          "ReferencedRunId",
+          "ReferencedRepository",
+          "ReferencedWorkflow",
+          "ObservedAt",
+          "Scope",
+          "EvidenceState",
+          "BindingVersion"
+        ],
+        "properties": {
+          "SourceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "CanonicalNamespace": {
+            "type": "string"
+          },
+          "CanonicalRunId": {
+            "type": "string"
+          },
+          "Repository": {
+            "type": "string"
+          },
+          "AuditId": {
+            "type": "string"
+          },
+          "Kind": {
+            "type": "string"
+          },
+          "EpisodeId": {
+            "type": "string"
+          },
+          "HopId": {
+            "type": "string"
+          },
+          "ParentHopId": {
+            "type": "string"
+          },
+          "ReferencedRunId": {
+            "type": "string"
+          },
+          "ReferencedRepository": {
+            "type": "string"
+          },
+          "ReferencedWorkflow": {
+            "type": "string"
+          },
+          "ObservedAt": {
+            "type": "string"
+          },
+          "Scope": {
+            "type": "string"
+          },
+          "EvidenceState": {
+            "type": "string"
+          },
+          "BindingVersion": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Trace.Identity"
+          }
+        ],
+        "description": "ProjectionId is the independent mining version, not the trace version."
+      },
+      "Trace.TraceEvents": {
+        "type": "object",
+        "required": [
+          "Sequence",
+          "Type",
+          "EventId",
+          "ParentId",
+          "EpisodeId",
+          "HopId",
+          "ParentHopId",
+          "ToolCallId",
+          "SessionId",
+          "Timestamp",
+          "PartCount",
+          "ContentDigest"
+        ],
+        "properties": {
+          "Sequence": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Zero-based contiguous event ordering within the approved trace."
+          },
+          "Type": {
+            "type": "string"
+          },
+          "EventId": {
+            "type": "string"
+          },
+          "ParentId": {
+            "type": "string"
+          },
+          "EpisodeId": {
+            "type": "string"
+          },
+          "HopId": {
+            "type": "string"
+          },
+          "ParentHopId": {
+            "type": "string"
+          },
+          "ToolCallId": {
+            "type": "string"
+          },
+          "SessionId": {
+            "type": "string"
+          },
+          "Timestamp": {
+            "type": "string"
+          },
+          "PartCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ContentDigest": {
+            "type": "string",
+            "description": "SHA-256 of the concatenated UTF-8 JSON content, in Part order."
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Trace.Identity"
+          }
+        ]
+      },
+      "Trace.TraceManifest": {
+        "type": "object",
+        "required": [
+          "SourceRevision",
+          "Repository",
+          "ArtifactDigest",
+          "PolicyDigest",
+          "EventCount",
+          "PartCount",
+          "ContentDigest",
+          "State",
+          "Gaps",
+          "CapturedAt"
+        ],
+        "properties": {
+          "SourceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "Repository": {
+            "type": "string"
+          },
+          "ArtifactDigest": {
+            "type": "string"
+          },
+          "PolicyDigest": {
+            "type": "string"
+          },
+          "EventCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "PartCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ContentDigest": {
+            "type": "string"
+          },
+          "State": {
+            "type": "string"
+          },
+          "Gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "CapturedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Trace.Identity"
+          }
+        ]
+      },
+      "Trace.TraceMiningManifest": {
+        "type": "object",
+        "required": [
+          "SourceRevision",
+          "CanonicalNamespace",
+          "CanonicalRunId",
+          "CanonicalRevision",
+          "Repository",
+          "TraceVersion",
+          "EpisodeCount",
+          "OutcomeCount",
+          "State",
+          "Gaps",
+          "CapturedAt",
+          "FreshUntil"
+        ],
+        "properties": {
+          "SourceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "CanonicalNamespace": {
+            "type": "string"
+          },
+          "CanonicalRunId": {
+            "type": "string"
+          },
+          "CanonicalRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "Repository": {
+            "type": "string"
+          },
+          "TraceVersion": {
+            "type": "string"
+          },
+          "EpisodeCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "OutcomeCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "State": {
+            "type": "string"
+          },
+          "Gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "CapturedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "FreshUntil": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Trace.Identity"
+          }
+        ]
+      },
+      "Trace.TraceOutcomes": {
+        "type": "object",
+        "required": [
+          "SourceRevision",
+          "CanonicalNamespace",
+          "CanonicalRunId",
+          "Repository",
+          "OutputId",
+          "OutputUrl",
+          "OutputType",
+          "AuditId",
+          "ProducingAttempt",
+          "Status",
+          "Signal",
+          "ObjectState",
+          "ObjectUpdatedAt",
+          "ObservedAt",
+          "AcquisitionSource",
+          "Scope",
+          "EvidenceState",
+          "LabelRuleVersion"
+        ],
+        "properties": {
+          "SourceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "CanonicalNamespace": {
+            "type": "string"
+          },
+          "CanonicalRunId": {
+            "type": "string"
+          },
+          "Repository": {
+            "type": "string"
+          },
+          "OutputId": {
+            "type": "string"
+          },
+          "OutputUrl": {
+            "type": "string"
+          },
+          "OutputType": {
+            "type": "string"
+          },
+          "AuditId": {
+            "type": "string"
+          },
+          "ProducingAttempt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Zero means unknown; the enclosing RunAttempt is not proof of output production."
+          },
+          "Status": {
+            "type": "string"
+          },
+          "Signal": {
+            "type": "string"
+          },
+          "ObjectState": {
+            "type": "string"
+          },
+          "ObjectUpdatedAt": {
+            "type": "string"
+          },
+          "ObservedAt": {
+            "type": "string"
+          },
+          "AcquisitionSource": {
+            "type": "string"
+          },
+          "Scope": {
+            "type": "string"
+          },
+          "EvidenceState": {
+            "type": "string"
+          },
+          "LabelRuleVersion": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Trace.Identity"
+          }
+        ]
+      },
+      "Trace.TraceSampleFrames": {
+        "type": "object",
+        "required": [
+          "SourceRevision",
+          "Repository",
+          "Day",
+          "Cutoff",
+          "Mode",
+          "SeedDigest",
+          "Algorithm",
+          "Population",
+          "Selected",
+          "SourceGaps",
+          "Excluded",
+          "MembershipDigest",
+          "State"
+        ],
+        "properties": {
+          "SourceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "Repository": {
+            "type": "string"
+          },
+          "Day": {
+            "type": "string"
+          },
+          "Cutoff": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "Mode": {
+            "type": "string"
+          },
+          "SeedDigest": {
+            "type": "string"
+          },
+          "Algorithm": {
+            "type": "string"
+          },
+          "Population": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "Selected": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "SourceGaps": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "Excluded": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "MembershipDigest": {
+            "type": "string"
+          },
+          "State": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Trace.Identity"
+          }
+        ],
+        "description": "RunId identifies a frozen sample frame."
+      },
+      "Trace.TraceSampleMembership": {
+        "type": "object",
+        "required": [
+          "SourceRevision",
+          "FrameId",
+          "TraceId",
+          "TraceVersion",
+          "Probability",
+          "Weight",
+          "State"
+        ],
+        "properties": {
+          "SourceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "FrameId": {
+            "type": "string"
+          },
+          "TraceId": {
+            "type": "string"
+          },
+          "TraceVersion": {
+            "type": "string"
+          },
+          "Probability": {
+            "type": "number",
+            "format": "double"
+          },
+          "Weight": {
+            "type": "number",
+            "format": "double"
+          },
+          "State": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Trace.Identity"
+          }
+        ]
       },
       "UsageArtifactID": {
         "type": "string",

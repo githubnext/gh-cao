@@ -46,6 +46,8 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
 	"github.com/githubnext/gh-cao/server/internal/repositorymemory"
+	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
+	"github.com/githubnext/gh-cao/server/internal/sessionarchiveblob"
 	"github.com/githubnext/gh-cao/server/internal/sqlitex"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
@@ -93,10 +95,13 @@ type Config struct {
 	Logger               *log.Logger
 	// Audit records security audit events for administrator and hosted CLI
 	// operations; nil disables them (local mode and tests).
-	Audit     *audit.Logger
-	Admission *AdmissionConfig
-	ADX       *adxingest.Config
-	ADXTraces *adxtrace.Config
+	Audit              *audit.Logger
+	Admission          *AdmissionConfig
+	ADX                *adxingest.Config
+	ADXTraces          *adxtrace.Config
+	SessionArchive     *sessionarchive.Config
+	SessionArchiveBlob *sessionarchiveblob.Config
+	SessionArchiveRead *SessionArchiveReadAccess
 	// RateLimits overrides inbound request rate limits; the zero value keeps
 	// the production defaults.
 	RateLimits RateLimitConfig
@@ -146,6 +151,7 @@ type App struct {
 	admission        *admission.Service
 	adx              *adxingest.Worker
 	adxTraces        *adxtrace.Worker
+	sessionArchive   *sessionArchiveService
 }
 
 func New(ctx context.Context, store operational.Store, config Config) (*App, error) {
@@ -379,6 +385,9 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 		app.adxTraces = worker
 		app.Collector().runner.Traces = worker
 	}
+	if err := app.configureSessionArchive(ctx); err != nil {
+		return nil, fmt.Errorf("configure session archive: %w", err)
+	}
 	return app, nil
 }
 
@@ -457,6 +466,9 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 	}
 	if a.adxTraces != nil {
 		a.startTask(func() { a.adxTraces.Run(runCtx) })
+	}
+	if a.sessionArchive != nil {
+		a.startTask(func() { a.sessionArchive.run(runCtx) })
 	}
 	if a.services.Backend != nil {
 		a.startTask(func() { a.runRedisMaintenance(runCtx, redisMaintenanceInterval) })
@@ -560,10 +572,13 @@ func (a *App) Stop(ctx context.Context) error {
 			return err
 		}
 	}
-	if a.ownedDatabase != nil || a.ownedOperational != nil {
+	if a.ownedDatabase != nil || a.ownedOperational != nil || a.sessionArchive != nil {
 		a.closeDatabase.Do(func() {
+			if a.sessionArchive != nil {
+				a.closeError = a.sessionArchive.backend.Close()
+			}
 			if a.ownedDatabase != nil {
-				a.closeError = a.ownedDatabase.Close()
+				a.closeError = errors.Join(a.closeError, a.ownedDatabase.Close())
 			}
 			if a.ownedOperational != nil {
 				a.closeError = errors.Join(a.closeError, a.ownedOperational.Close())
@@ -733,6 +748,8 @@ func (a *App) Handler() http.Handler {
 	register("GET /llms.txt", a.llms)
 	register("GET /api/v1/events", a.events)
 	register("POST /api/v1/query", a.query)
+	register("GET /api/v1/session-archive/status", a.sessionArchiveStatus)
+	register("POST /api/v1/session-archive/query", a.sessionArchiveQuery)
 	register("POST /api/v1/value", a.publishValue)
 	register("POST /api/admission", a.activationAdmission)
 	register("POST /api/conclusion", a.conclusionAdmission)

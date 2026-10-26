@@ -1,0 +1,182 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "SessionArchiveResult.json",
+    "type": "object",
+    "properties": {
+        "generation": {
+            "type": "string"
+        },
+        "kind": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "const": "timeline"
+                },
+                {
+                    "type": "string",
+                    "const": "summary"
+                }
+            ]
+        },
+        "events": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/Event"
+            }
+        },
+        "summary": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/SessionArchiveSummary"
+            }
+        }
+    },
+    "required": [
+        "generation",
+        "kind"
+    ],
+    "description": "One authorized pinned generation. Approved payload JSON, explicit nulls, sequence, identity, omissions and provenance follow the shared trace contract, not another HTTP-only evidence model.",
+    "$defs": {
+        "Event": {
+            "type": "object",
+            "properties": {
+                "Sequence": {
+                    "type": "string",
+                    "description": "Zero-based contiguous event ordering within the approved trace."
+                },
+                "Type": {
+                    "type": "string"
+                },
+                "EventId": {
+                    "type": "string"
+                },
+                "ParentId": {
+                    "type": "string"
+                },
+                "EpisodeId": {
+                    "type": "string"
+                },
+                "HopId": {
+                    "type": "string"
+                },
+                "ParentHopId": {
+                    "type": "string"
+                },
+                "ToolCallId": {
+                    "type": "string"
+                },
+                "SessionId": {
+                    "type": "string"
+                },
+                "Timestamp": {
+                    "type": "string"
+                },
+                "ContentDigest": {
+                    "type": "string",
+                    "description": "SHA-256 of the concatenated UTF-8 JSON content, in Part order."
+                },
+                "Namespace": {
+                    "type": "string"
+                },
+                "RunId": {
+                    "type": "string",
+                    "description": "Trace identity, not necessarily a GitHub workflow run ID."
+                },
+                "RunAttempt": {
+                    "type": "string"
+                },
+                "ProjectionId": {
+                    "type": "string",
+                    "description": "Immutable approved trace digest."
+                },
+                "ContractVersion": {
+                    "type": "number",
+                    "const": 1
+                },
+                "Repository": {
+                    "type": "string"
+                },
+                "TraceId": {
+                    "type": "string",
+                    "description": "Canonical RunId above is distinct from this hashed native trace identity."
+                },
+                "CompletionDay": {
+                    "type": "string",
+                    "description": "Empty means undated, never a fabricated source clock."
+                },
+                "ArtifactDigest": {
+                    "type": "string"
+                },
+                "PolicyDigest": {
+                    "type": "string"
+                },
+                "Gaps": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "CapturedAt": {
+                    "type": "string"
+                },
+                "PayloadJSON": {
+                    "type": "string",
+                    "description": "Full approved event as UTF-8 JSON; absent and explicit null remain distinct."
+                }
+            },
+            "required": [
+                "Sequence",
+                "Type",
+                "EventId",
+                "ParentId",
+                "EpisodeId",
+                "HopId",
+                "ParentHopId",
+                "ToolCallId",
+                "SessionId",
+                "Timestamp",
+                "ContentDigest",
+                "Namespace",
+                "RunId",
+                "RunAttempt",
+                "ProjectionId",
+                "ContractVersion",
+                "Repository",
+                "TraceId",
+                "CompletionDay",
+                "ArtifactDigest",
+                "PolicyDigest",
+                "Gaps",
+                "CapturedAt",
+                "PayloadJSON"
+            ]
+        },
+        "SessionArchiveSummary": {
+            "type": "object",
+            "properties": {
+                "repository": {
+                    "type": "string"
+                },
+                "runId": {
+                    "type": "string"
+                },
+                "attempt": {
+                    "type": "string"
+                },
+                "projectionId": {
+                    "type": "string"
+                },
+                "events": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "repository",
+                "runId",
+                "attempt",
+                "projectionId",
+                "events"
+            ]
+        }
+    }
+}

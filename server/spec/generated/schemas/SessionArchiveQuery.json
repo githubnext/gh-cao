@@ -1,0 +1,42 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "SessionArchiveQuery.json",
+    "type": "object",
+    "properties": {
+        "kind": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "const": "timeline"
+                },
+                {
+                    "type": "string",
+                    "const": "summary"
+                }
+            ]
+        },
+        "repository": {
+            "type": "string",
+            "description": "Exact lowercase owner/repository in the reviewed archive and collection scope."
+        },
+        "runId": {
+            "type": "string",
+            "description": "Required positive GitHub run ID for timeline; forbidden for summary. Not a canonical Run ID or trace digest."
+        },
+        "attempt": {
+            "type": "string",
+            "description": "Required positive exact attempt for timeline; forbidden for summary."
+        },
+        "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000,
+            "description": "Maximum complete output rows, 1-10000 (default 10000). Exceeding a limit fails, never truncates a full approved trace."
+        }
+    },
+    "required": [
+        "kind",
+        "repository"
+    ],
+    "description": "A trusted archive query template. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted."
+}

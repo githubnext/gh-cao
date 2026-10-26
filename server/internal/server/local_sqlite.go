@@ -92,6 +92,9 @@ func newLocalSQLiteApp(ctx context.Context, path, overlay string, interval time.
 			database: database, snapshot: path, overlay: overlay, interval: interval,
 			catalog: filepath.Clean(filepath.Join(filepath.Dir(config.DatabaseQueriesPath), "../../../../..")),
 		}
+		if app.sessionArchive != nil {
+			app.localBackfill.traces = app.sessionArchive
+		}
 	}
 	return app, nil
 }
