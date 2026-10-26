@@ -224,7 +224,7 @@ func (c *Converter) Write(ctx context.Context, path string, projections []Projec
 	if err != nil || len(content) > 256<<20 {
 		return File{}, ErrCapacity
 	}
-	result.Path, result.Digest, result.Bytes = path, hash(content), int64(len(content))
+	result.Path, result.Digest, result.Bytes, result.Day = path, hash(content), int64(len(content)), projections[0].Day
 	if err := c.Verify(ctx, path, result); err != nil {
 		return File{}, err
 	}
@@ -265,15 +265,15 @@ func (c *Converter) Verify(ctx context.Context, path string, expected File) erro
 		}
 	}
 	var members []struct {
-		Namespace, Repository, RunID, TraceID, ProjectionID string
-		RunAttempt, Events, First, Last, Unique             int64
-		Valid                                               bool
+		Namespace, Repository, RunID, TraceID, ProjectionID, CompletionDay string
+		RunAttempt, Events, First, Last, Unique                            int64
+		Valid                                                              bool
 	}
-	sql := `SELECT Namespace,Repository,RunId AS RunID,RunAttempt,TraceId AS TraceID,ProjectionId AS ProjectionID,
+	sql := `SELECT Namespace,Repository,RunId AS RunID,RunAttempt,TraceId AS TraceID,ProjectionId AS ProjectionID,CompletionDay,
 count(*) AS Events,min(Sequence) AS First,max(Sequence) AS Last,count(DISTINCT Sequence) AS Unique,
 bool_and(ContractVersion=1 AND sha256(PayloadJSON)=ContentDigest AND json_valid(PayloadJSON)) AS Valid
 FROM read_parquet(` + literal(path) + `, hive_partitioning=false)
-GROUP BY Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId ORDER BY RunId,RunAttempt`
+GROUP BY Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId,CompletionDay ORDER BY RunId,RunAttempt`
 	if err := c.query(ctx, sql, &members); err != nil {
 		return err
 	}
@@ -283,7 +283,7 @@ GROUP BY Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId ORDER BY Run
 	var rows int64
 	for _, actual := range members {
 		m := Member{actual.Namespace, actual.Repository, actual.RunID, actual.RunAttempt, actual.TraceID, actual.ProjectionID, actual.Events}
-		if !slices.Contains(expected.Members, m) || !actual.Valid || actual.First != 0 || actual.Last != actual.Events-1 || actual.Unique != actual.Events {
+		if !slices.Contains(expected.Members, m) || actual.CompletionDay != expected.Day || !actual.Valid || actual.First != 0 || actual.Last != actual.Events-1 || actual.Unique != actual.Events {
 			return ErrIntegrity
 		}
 		rows += actual.Events

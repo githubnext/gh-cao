@@ -36,6 +36,7 @@ type Projection struct {
 
 type File struct {
 	Path, Digest string
+	Day          string
 	Bytes, Rows  int64
 	Members      []Member
 }
@@ -76,8 +77,10 @@ type Summary struct {
 }
 
 type Status struct {
-	Enabled                    bool
-	Generation                 uint64
-	ActiveTraces, StagedTraces int
-	ArchiveBytes, StagingBytes int64
+	Enabled      bool   `json:"enabled"`
+	Generation   uint64 `json:"generation"`
+	ActiveTraces int    `json:"activeTraces"`
+	StagedTraces int    `json:"stagedTraces"`
+	ArchiveBytes int64  `json:"archiveBytes"`
+	StagingBytes int64  `json:"stagingBytes"`
 }
