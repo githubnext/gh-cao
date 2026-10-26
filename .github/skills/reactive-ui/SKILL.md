@@ -15,7 +15,7 @@ Build dashboard experiences declaratively first. Use JavaScript only for interac
 2. Express data shaping under `dashboard.queries`; keep joins, projections, aggregates, filters, ordering, and computed fields out of view-specific JavaScript.
 3. Prefer an existing Dashboard Language mark, encoding, layout, section, route, control, or named UI element.
 4. Extend a shared declarative renderer when the missing behavior applies to an existing mark.
-5. Add a named UI element only when the experience requires reusable interaction or presentation that the declarative vocabulary cannot represent. Record a concise `intent` and declare every source it consumes.
+5. Add a named UI element only when the experience requires reusable interaction or presentation that the declarative vocabulary cannot represent. Declare every source it consumes in `data.sources` (an interaction-only element uses `data.sources: []`), and describe the view with concise `subject`, `objective`, and `acceptance` annotations; views have no `intent` field.
 6. Do not infer specialized behavior from page IDs, view IDs, source names, or source contents.
 
 ## Named UI elements
