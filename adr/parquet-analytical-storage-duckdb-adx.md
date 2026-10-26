@@ -4,7 +4,8 @@
 
 Proposed — 2026-10-25.
 
-**Project:** GitHub Central Agentic Ops (CAO)  
+**Project:** GitHub Central Agentic Ops (CAO)
+
 **Scope:** Activity ingestion, analytical storage, local server, ADX integration,
 dashboard query language.
 
