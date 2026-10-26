@@ -37,12 +37,14 @@ func TestNativeMeasurementRepositoryProjection(t *testing.T) {
 	nativeSeed(t.Context(), t, store, map[string][]model.Row{
 		"$repositories": {
 			{"id": "other-repository", "owner": "octo", "name": "other"},
+			{"id": "mixed-case-repository", "owner": "Example", "name": "Service"},
 			{"id": "unknown-repository"},
 		},
 		"$operationalValues": {
 			measurement("zero", "repository", "incident-response", 0), missing, mismatch,
 			measurement("other-workflow", "repository", "another-workflow", 5),
 			measurement("other-repository", "other-repository", "incident-response", 6),
+			measurement("mixed-case", "mixed-case-repository", "incident-response", 8),
 			measurement("unknown-repository", "unknown-repository", "incident-response", 7),
 		},
 	})
@@ -53,6 +55,7 @@ func TestNativeMeasurementRepositoryProjection(t *testing.T) {
 	}{
 		{"workflow-route", "octo/api:.github/workflows/incident-response.md", 2},
 		{"workflow-route", "octo/other:.github/workflows/incident-response.md", 1},
+		{"workflow-route", "Example/Service:.github/workflows/incident-response.md", 1},
 		{"id", "zero", 1},
 		{"id", "unknown-repository", 1},
 	} {
@@ -82,6 +85,11 @@ func TestNativeMeasurementRepositoryProjection(t *testing.T) {
 			case "unknown-repository":
 				if row["repository"] != nil || row["workflow-route"] != nil {
 					t.Fatalf("unknown repository coordinates became a route: %+v", row)
+				}
+			case "mixed-case":
+				if row["repository"] != "Example/Service" ||
+					row["workflow-route"] != "Example/Service:.github/workflows/incident-response.md" {
+					t.Fatalf("repository parent casing changed: %+v", row)
 				}
 			}
 		}

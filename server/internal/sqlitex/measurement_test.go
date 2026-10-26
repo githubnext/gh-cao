@@ -16,6 +16,15 @@ import (
 )
 
 func TestNativeBatchMeasurementProductionPath(t *testing.T) {
+	for _, repository := range []string{"example/service", "Example/Service"} {
+		t.Run(repository, func(t *testing.T) {
+			nativeBatchMeasurementProductionPath(t, repository)
+		})
+	}
+}
+
+func nativeBatchMeasurementProductionPath(t *testing.T, repository string) {
+	t.Helper()
 	root, err := filepath.Abs("../../..")
 	if err != nil {
 		t.Fatal(err)
@@ -30,7 +39,7 @@ func TestNativeBatchMeasurementProductionPath(t *testing.T) {
 	}
 	run(".github/skills/add-operational-value/scripts/evaluate.mjs", "--native",
 		"--function", "tests/fixtures/operational-value/native-workflow.mjs",
-		"--output-dir", output, "--end", "2026-10-15T00:00:00Z", "example/service", "incident-response")
+		"--output-dir", output, "--end", "2026-10-15T00:00:00Z", repository, "incident-response")
 	database := filepath.Join(output, "native.sqlite")
 	run("activity/cao.mjs", "ingest-jsonl", "--database", database,
 		"--input", filepath.Join(output, "example-service", "incident-response-measurements.jsonl"), "--retention-days", "all")
@@ -50,7 +59,7 @@ func TestNativeBatchMeasurementProductionPath(t *testing.T) {
 	encoder := json.NewEncoder(&unrelated)
 	for index := range 2000 {
 		slug := fmt.Sprintf("other-%d", index)
-		value["repository"] = "example/service"
+		value["repository"] = repository
 		if index < 1000 {
 			value["repository"] = fmt.Sprintf("load/service-%d", index)
 		}
@@ -85,7 +94,7 @@ func TestNativeBatchMeasurementProductionPath(t *testing.T) {
 	definitions = append(definitions, query.Definition{
 		Name: "selected-measurements", From: "workflow-value-measurements",
 		Filter: &query.Filter{Predicates: []query.Predicate{
-			{Field: "workflow-route", Equals: "example/service:.github/workflows/incident-response.md"},
+			{Field: "workflow-route", Equals: repository + ":.github/workflows/incident-response.md"},
 		}},
 	})
 	err = store.WithReadTransaction(t.Context(), func(ctx context.Context, reader dashboardstore.Reader) error {
@@ -95,7 +104,8 @@ func TestNativeBatchMeasurementProductionPath(t *testing.T) {
 			return err
 		}
 		rows := sources["selected-measurements"].Rows
-		if len(rows) != 2 || rows[0]["value"] != float64(0) || rows[1]["value"] != nil ||
+		if len(rows) != 2 || rows[0]["repository"] != repository || rows[1]["repository"] != repository ||
+			rows[0]["value"] != float64(0) || rows[1]["value"] != nil ||
 			rows[1]["measurement-kind"] != "interval" || rows[1]["maturity-status"] != "unavailable" {
 			t.Fatalf("native ordinary measurement semantics lost: %+v", rows)
 		}

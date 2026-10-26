@@ -71,7 +71,7 @@ func (r *readTransaction) entitySQLSource(name string) (query.SQLRelation, error
 		Order:   "t.ordinal",
 	}
 	if name == "$operationalValues" {
-		relation.SQL = "(SELECT v.*, lower(NULLIF(repo.owner,'')||'/'||NULLIF(repo.name,'')) AS __repository FROM " +
+		relation.SQL = "(SELECT v.*, NULLIF(repo.owner,'')||'/'||NULLIF(repo.name,'') AS __repository FROM " +
 			query.SQLIdentifier(table.name) + " v LEFT JOIN repositories repo ON repo.namespace=v.namespace AND repo.id=v.repository_id WHERE v.namespace={}) AS t"
 		columns["repository"] = query.SQLColumn{Expression: "t.__repository", Presence: "t.__repository IS NOT NULL", Kind: query.SQLText}
 		route := "CASE WHEN t.workflow_slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND starts_with(t.value_id,t.workflow_slug||'.') THEN t.__repository||':.github/workflows/'||t.workflow_slug||'.md' END"
