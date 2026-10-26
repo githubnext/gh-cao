@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.48.1.52935",
-      "templateHash": "6326039050629376410"
+      "templateHash": "10401505667316468141"
     }
   },
   "parameters": {
@@ -446,7 +446,7 @@
     },
     "adxSkuName": {
       "type": "string",
-      "defaultValue": "Dev(No SLA)_Standard_D11_v2",
+      "defaultValue": "Dev(No SLA)_Standard_E2a_v4",
       "metadata": {
         "description": "Reviewed paid ADX SKU. The default is development-only without an SLA, not the free offering."
       }
@@ -1059,7 +1059,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.48.1.52935",
-              "templateHash": "2500825601730792809"
+              "templateHash": "15737866968243541603"
             }
           },
           "parameters": {
@@ -1084,7 +1084,7 @@
             },
             "skuName": {
               "type": "string",
-              "defaultValue": "Dev(No SLA)_Standard_D11_v2",
+              "defaultValue": "Dev(No SLA)_Standard_E2a_v4",
               "metadata": {
                 "description": "Reviewed paid ADX SKU. The default is a development SKU without an SLA, not a free cluster."
               }

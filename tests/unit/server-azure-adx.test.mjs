@@ -23,7 +23,7 @@ test('ADX provisioning is opt-in and passes reviewed destination and capacity pa
   assert.equal(template.parameters.adxClusterName.maxLength, 22);
   assert.equal(template.parameters.adxDatabaseName.maxLength, 100);
   assert.equal(template.parameters.adxDatabaseName.defaultValue, 'CAO');
-  assert.equal(template.parameters.adxSkuName.defaultValue, 'Dev(No SLA)_Standard_D11_v2');
+  assert.equal(template.parameters.adxSkuName.defaultValue, 'Dev(No SLA)_Standard_E2a_v4');
   assert.equal(template.parameters.adxSkuTier.defaultValue, 'Basic');
   assert.equal(template.parameters.adxCapacity.defaultValue, 1);
   assert.equal(template.parameters.adxCapacity.minValue, 1);

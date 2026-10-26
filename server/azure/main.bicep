@@ -256,7 +256,7 @@ param adxClusterName string = 'adx${uniqueString(resourceGroup().id, functionApp
 param adxDatabaseName string = 'CAO'
 
 @description('Reviewed paid ADX SKU. The default is development-only without an SLA, not the free offering.')
-param adxSkuName string = 'Dev(No SLA)_Standard_D11_v2'
+param adxSkuName string = 'Dev(No SLA)_Standard_E2a_v4'
 
 @allowed([
   'Basic'

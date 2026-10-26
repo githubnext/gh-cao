@@ -191,7 +191,7 @@ expose ADX parameters):
 | `adxEnabled` | `false`; explicitly set `true` to provision a **paid** destination |
 | `adxClusterName` | Stable generated name; a custom name must be globally unique, 4–22 lowercase letters/digits |
 | `adxDatabaseName` | `CAO`; use an ASCII letter followed by letters, digits or underscores, at most 100 characters |
-| `adxSkuName`, `adxSkuTier`, `adxCapacity` | `Dev(No SLA)_Standard_D11_v2`, `Basic`, `1`; development only, **not** the free offering. Review regional SKU availability, compatible tier/capacity, cost and production requirements before deployment |
+| `adxSkuName`, `adxSkuTier`, `adxCapacity` | `Dev(No SLA)_Standard_E2a_v4`, `Basic`, `1`; development only, **not** the free offering. Review regional SKU availability, compatible tier/capacity, cost and production requirements before deployment. Disk encryption is enabled: do not select legacy Dv2 SKUs, which do not support it |
 
 Register `Microsoft.Kusto` before opting in. Run `bicep build` on
 `server/azure/main.bicep`, then review an `az deployment group what-if` using

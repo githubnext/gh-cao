@@ -6,7 +6,7 @@ param privateEndpointSubnetId string
 param tags object = {}
 
 @description('Reviewed paid ADX SKU. The default is a development SKU without an SLA, not a free cluster.')
-param skuName string = 'Dev(No SLA)_Standard_D11_v2'
+param skuName string = 'Dev(No SLA)_Standard_E2a_v4'
 
 @allowed([
   'Basic'
