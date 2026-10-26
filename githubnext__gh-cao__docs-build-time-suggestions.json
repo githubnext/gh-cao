@@ -1,35 +1,7 @@
 {
-  "source_sha": "d62bb5d626b543cc4990834343c4ef19c2ad1aa9",
+  "source_sha": "a07c678b304fd6251fba800582683c33164e47d9",
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-25T17:05:00Z",
-      "worker_run_id": "40215648212",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40214431077,
-        40213326434,
-        40212662200,
-        40212342076,
-        40211439771,
-        40209673066,
-        40208489140,
-        40207593397,
-        40207467334,
-        40206514307,
-        40204954138,
-        40203790937,
-        40202976485,
-        40202743150,
-        40201867035,
-        40200295371,
-        40199104126,
-        40198282679,
-        40198075082,
-        40197170209
-      ],
-      "outcome": "incomplete: the 2026-10-25T13:20:37Z to 2026-10-25T17:01:35Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. All successful runs completed in 17-25 seconds at source SHA c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49. Trusted job and step metadata for latest run 40214431077 confirmed that only schedule-freshness ran (21 seconds; freshness step 17 seconds), while build and deploy were skipped. No successful full build-and-deploy path was present, below the required five comparable successful runs. Therefore full workflow and dashboard/build/deploy job median and p90 timings, repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-25T17:34:14Z",
       "worker_run_id": "40216887737",
@@ -715,6 +687,13 @@
       "category": "scheduling, concurrency, and avoidable rebuilds",
       "evidence_run_ids": [],
       "outcome": "incomplete: the bounded requests for the latest 20 completed docs.yml runs and open duplicate issues failed because the runtime could not create a new OS thread. The parallel CAO Dashboard request returned its latest-20 window, but per resource-limit policy all further GitHub API and model work stopped immediately. A current docs evidence window, the required five comparable successful full runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, complete CAO Dashboard producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-26T15:11:24Z",
+      "worker_run_id": "40346360811",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the initial bounded GitHub requests for the latest 20 completed docs.yml runs, latest 20 completed cao-dashboard.yml runs, and open duplicate issues failed because the runtime could not create a new OS thread. Per resource-limit policy, all further GitHub API and model work stopped. A current evidence window, the required five comparable successful full runs, workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, dashboard-producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
