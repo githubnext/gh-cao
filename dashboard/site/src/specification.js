@@ -530,11 +530,11 @@ export const TABLE_FIELDS = {
   findings: ['organization', 'repository', 'workflow', 'run', 'safe-output', 'code', 'finding-kind', 'finding-severity', 'finding-status', 'finding-summary', 'observed-at', 'engine', 'engine-version', 'requested-model', 'resolved-model', 'issue-link', 'pull-request-link', 'run-link', 'external-link', 'organization-link', 'repository-link', 'workflow-link'],
   'operational-values': ['id', 'organization', 'repository', 'repository-name', 'workflow', 'campaign', 'campaign-name', 'campaign-icon', 'evaluator-digest', 'cadence-days', 'window-start', 'window-end', 'measurement-kind', 'coverage-status', 'missing-reason', 'eligible-count', 'population-digest', 'evidence-digest', 'operational-value', 'operational-value-definition', 'operational-value-role', 'operational-value-name', 'operational-value-unit', 'operational-value-direction', 'rollup-numerator', 'rollup-denominator', 'maturity-status', 'adoption-at', 'evaluation-mode', 'workflow-slug', 'workflow-name', 'observed-at', 'organization-link', 'repository-link', 'campaign-link', 'run-link'],
   'workflow-value-collections': [
-    'id', 'organization', 'repository', 'workflow', 'workflow-path', 'registration', 'collector',
+    'id', 'organization', 'repository', 'workflow', 'workflow-path', 'workflow-route', 'registration', 'collector',
     'collection-state', 'reason-code', 'reason', 'checked-at', 'policy-digest', 'last-attempt-at', 'last-attempt-outcome'
   ],
   'operational-value-evidence': [
-    'report-id', 'organization', 'repository', 'workflow', 'workflow-path', 'observed-at', 'window-start', 'window-end', 'contract-digest',
+    'report-id', 'workflow-route', 'organization', 'repository', 'workflow', 'workflow-path', 'observed-at', 'window-start', 'window-end', 'contract-digest',
     'fact-kind', 'fact-id', 'parent-id', 'related-id', 'label', 'title', 'url', 'at', 'accepted-at', 'end-at',
     'value', 'ref', 'state', 'origin', 'scope', 'coverage-status', 'status', 'detail', 'goal', 'acceptance',
     'metric-id', 'metric-name', 'metric-unit', 'metric-direction', 'metric-version', 'metric-formula', 'result-label',

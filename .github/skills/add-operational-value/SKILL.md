@@ -361,6 +361,22 @@ discovery completeness or causal impact from tracking and structural facts.
 
 ### Replay the preserved example
 
+For native dashboard integration rather than standalone HTML, use
+`examples/native-file-diet.mjs --proof PROOF_DIRECTORY --output .tmp/file-diet-native`.
+It recomputes retained inventory measurements, writes original facts through
+normal SQLite ingestion and executes the shipped Value query. It does not
+remeasure Git blobs, collect GitHub data or enable a campaign. Its manifest
+separates source/capture identity from processing costs. An optional already
+approved `--archive-server ORIGIN` uses `scripts/session-archive.mjs` to bind
+exact retained producer runs to generation-pinned session evidence; raw trace
+content never becomes a public shard or acceptance proof. See
+`docs/operational-value-how-to.md#native-reports-from-retained-evidence`.
+For any other verified workflow, use the shared
+`scripts/prepare-native-value.mjs --input REPORT-evidence.jsonl --sha256 DIGEST --output .tmp/workflow-native-value`.
+This imports original evidence, not arbitrary intent or executable scoring.
+It preserves reviewed registration, disables, collection health and source
+clocks; hosted publication remains the authenticated `gh cao value publish` path.
+
 Use the preserved `github/gh-aw` evidence from source revision
 `0782148c0af21f4f1d10b7cb5e81b571ed58c463` on
 `mnkiefer-workflow-operational-value`. Only the evidence directory is needed

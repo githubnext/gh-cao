@@ -3121,7 +3121,8 @@ is required for continued measurement. The health-first admission and deferral
 contract in section 31.3 governs automatic acquisition.
 
 The single logical source `operational-value-evidence` SHALL purely normalize
-these originals. Every row SHALL expose `report-id`, `organization`,
+these originals. Every row SHALL expose `report-id`, `workflow-route` (the
+observed `OWNER/REPOSITORY:.github/workflows/SLUG.md` identity), `organization`,
 `repository`, `workflow` (filename stem), `workflow-path` (the validated original
 Markdown source path), `observed-at` (capture), `window-start`, `window-end`
 (evidence cutoff) and `contract-digest`. Original capture/cutoff boundaries
@@ -3152,6 +3153,26 @@ All selection, grouping, totals, comparisons, movement, attention and report
 presentation SHALL be Dashboard Language queries over these factual rows,
 re-executed within the active abort-scoped worker subscription. No navigation
 handler SHALL fetch saved reports or acquire missing evidence.
+
+Exact workflow/report predicates SHALL reach the packet read before fact
+expansion. SQLite SHALL use the existing record-key primary index (exact packet
+or workflow identity prefix); browser storage SHALL use the primary key or
+`byWorkflow` index. Shared-source selection SHALL union every reachable
+consumer's necessary equality, and SHALL NOT narrow an unscoped consumer.
+The authored query still evaluates the complete predicate afterward. Version
+ranking SHALL occur after independent report computation so an exact report
+does not require unrelated versions. Snapshot links SHALL carry their report
+identity as well as their snapshot identity.
+
+Local/browser packet reads SHALL admit at most 32 packets, 16 MiB of packet
+data and 20,000 facts before expansion, without raising ordinary query limits.
+Reads SHALL observe cancellation and reject over-budget populations explicitly;
+an unscoped fleet list may require a narrower workflow/report. This gate is not
+a complete fleet-summary index or a claim that all-repository lists are constant
+cost. PostgreSQL SHALL bind the same scoped parent identities before typed fact
+joins and SQL resource statistics, including scoped capture/cutoff metadata; it
+retains its ordinary transaction/query admission limits. Neither navigation nor archive inspection
+may acquire missing GitHub evidence.
 
 ## 31.3 Workflow Value collection health
 

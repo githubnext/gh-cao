@@ -73,7 +73,7 @@ func (r *readTransaction) entitySQLSource(name string) (query.SQLRelation, error
 }
 
 // The logical input is a projection of typed child facts, not a saved report.
-func (r *readTransaction) operationalValueEvidenceSQLSource() query.SQLRelation {
+func (r *readTransaction) operationalValueEvidenceSQLSource(selections ...query.SourceEquality) query.SQLRelation {
 	facts := entityTables["$operationalValueEvidence.facts"]
 	columns := relationColumns(facts, func(index int) string {
 		return "get_bit(t.present_fields, " + strconv.Itoa(index) + ") = 1"
@@ -97,10 +97,33 @@ func (r *readTransaction) operationalValueEvidenceSQLSource() query.SQLRelation 
 	projections = append(projections, "split_part(p.repository, '/', 1) AS __organization", "split_part(p.repository, '/', 2) AS __repository")
 	columns["organization"] = query.SQLColumn{Expression: "t.__organization", Presence: "TRUE", Kind: query.SQLText}
 	columns["repository"] = query.SQLColumn{Expression: "t.__repository", Presence: "TRUE", Kind: query.SQLText}
+	projections = append(projections, "p.repository || ':' || p.source_path AS __workflow_route")
+	columns["workflow-route"] = query.SQLColumn{Expression: "t.__workflow_route", Presence: "TRUE", Kind: query.SQLText}
+	predicate, params := r.operationalValueEvidencePredicate(selections)
 	return query.SQLRelation{
-		SQL:    "(SELECT " + strings.Join(projections, ",") + " FROM operational_value_evidence_facts f JOIN operational_value_evidence p ON p.namespace=f.namespace AND p.id=f.packet_id WHERE f.namespace={}) AS t",
-		Params: []any{r.store.namespace}, Columns: columns, Order: "t.ordinal",
+		SQL:    "(SELECT " + strings.Join(projections, ",") + " FROM operational_value_evidence_facts f JOIN operational_value_evidence p ON p.namespace=f.namespace AND p.id=f.packet_id WHERE " + predicate + ") AS t",
+		Params: params, Columns: columns, Order: "t.ordinal",
 	}
+}
+
+func (r *readTransaction) operationalValueEvidencePredicate(selections []query.SourceEquality) (string, []any) {
+	predicate := "p.namespace={}"
+	params := []any{r.store.namespace}
+	var scopes []string
+	for _, selection := range selections {
+		switch selection.Field {
+		case "report-id":
+			scopes = append(scopes, "p.id={}")
+			params = append(params, selection.Value)
+		case "workflow-route":
+			scopes = append(scopes, "p.workflow_id={}")
+			params = append(params, "workflow:"+model.EncodeCoordinate(strings.ToLower(selection.Value)))
+		}
+	}
+	if len(scopes) > 0 {
+		predicate += " AND (" + strings.Join(scopes, " OR ") + ")"
+	}
+	return predicate, params
 }
 
 func runtimeSQLSource(name string, source model.Source) (query.SQLRelation, error) {

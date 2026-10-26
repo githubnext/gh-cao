@@ -49,6 +49,11 @@ func (r *reader) ExecuteSQLPlanWithOptions(ctx context.Context, definitions []qu
 		return nil, metrics, errors.New("local query exceeds max plan queries")
 	}
 	executionDefinitions, fields := projectSnapshotPlan(definitions, requested, order)
+	var valueSelections []dashboardquery.EvidenceSelection
+	for _, selection := range query.SourceEqualities(definitions, requested, "operational-value-evidence",
+		"$operationalValueEvidence", "report-id", "workflow-route") {
+		valueSelections = append(valueSelections, dashboardquery.EvidenceSelection{Field: selection.Field, Value: selection.Value})
+	}
 	state, err := r.State(ctx)
 	if err != nil {
 		return nil, metrics, err
@@ -104,7 +109,7 @@ func (r *reader) ExecuteSQLPlanWithOptions(ctx context.Context, definitions []qu
 		if _, exists := cache[name]; exists {
 			return nil
 		}
-		source, err := r.source(ctx, name, state, options, fields[name])
+		source, err := r.source(ctx, name, state, options, fields[name], valueSelections)
 		if err != nil {
 			return err
 		}
@@ -207,7 +212,7 @@ func snapshotInputs(definition query.Definition) []string {
 	return inputs
 }
 
-func (r *reader) source(ctx context.Context, name string, state dashboardstore.State, options dashboardstore.ExecutionOptions, fields snapshotFields) (model.Source, error) {
+func (r *reader) source(ctx context.Context, name string, state dashboardstore.State, options dashboardstore.ExecutionOptions, fields snapshotFields, valueSelections []dashboardquery.EvidenceSelection) (model.Source, error) {
 	if name == "$statisticalMembership" {
 		rows, err := dashboardquery.ReadCollectionFields(ctx, r.tx, "runs",
 			[]string{"id", "owner", "repository", "githubRunId", "startedAt", "createdAt", "completedAt", "updatedAt", "status", "conclusion"},
@@ -346,7 +351,13 @@ func (r *reader) source(ctx context.Context, name string, state dashboardstore.S
 			}
 			sort.Strings(projected)
 		}
-		rows, err := dashboardquery.ReadCollectionFields(ctx, r.tx, collection, projected, maxSnapshotInputRows, maxSnapshotWorkingBytes)
+		var rows []map[string]any
+		var err error
+		if collection == "operationalValueEvidence" {
+			rows, err = dashboardquery.ReadEvidencePackets(ctx, r.tx, valueSelections)
+		} else {
+			rows, err = dashboardquery.ReadCollectionFields(ctx, r.tx, collection, projected, maxSnapshotInputRows, maxSnapshotWorkingBytes)
+		}
 		if err != nil {
 			return model.Source{}, err
 		}
@@ -358,6 +369,8 @@ func (r *reader) source(ctx context.Context, name string, state dashboardstore.S
 			metadata[key] = value
 		}
 		if collection == "operationalValueEvidence" {
+			metadata["evidence-packets-read"] = len(rows)
+			metadata["evidence-scoped-read"] = len(valueSelections) > 0
 			clocks, err := dashboardquery.OperationalValueEvidenceMetadata(rows)
 			if err != nil {
 				return model.Source{}, err
@@ -369,6 +382,7 @@ func (r *reader) source(ctx context.Context, name string, state dashboardstore.S
 			if err != nil {
 				return model.Source{}, err
 			}
+			metadata["evidence-facts-materialized"] = len(rows)
 		}
 		result := make([]model.Row, len(rows))
 		for index, row := range rows {

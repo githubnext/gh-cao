@@ -143,6 +143,7 @@ export function operationalValueEvidenceRows(packets) {
     const [organization, repository] = packet.repository.split('/');
     return /** @type {Record<string, any>[]} */ (packet.facts).map((fact) => ({
       'report-id': packet.id, organization, repository, workflow: packet.workflow, 'workflow-path': packet.sourcePath,
+      'workflow-route': `${packet.repository}:${packet.sourcePath}`,
       'observed-at': packet.observedAt, 'window-start': packet.windowStart,
       'window-end': packet.windowEnd, 'contract-digest': packet.contractDigest, ...fact
     }));

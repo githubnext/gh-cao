@@ -172,7 +172,9 @@
       "on": [{ "left": "repositoryId", "right": "id" }],
       "fields": [{ "field": "owner", "as": "organization" }, { "field": "name", "as": "repository-name" }]
     }],
+    "compute": [{ "as": "workflow-route", "function": "concat", "args": [{ "field": "repository" }, { "value": ":" }, { "field": "sourcePath" }] }],
     "select": [
+      { "field": "workflow-route" },
       { "field": "id" }, { "field": "organization" }, { "field": "repository-name", "as": "repository" },
       { "field": "workflow" }, { "field": "sourcePath", "as": "workflow-path" },
       { "field": "registration" }, { "field": "collector" }, { "field": "state", "as": "collection-state" },
@@ -188,6 +190,7 @@
     "from": "$operationalValueEvidence",
     "select": [
       { "field": "report-id" },
+      { "field": "workflow-route" },
       { "field": "organization" },
       { "field": "repository" },
       { "field": "workflow" },

@@ -31,6 +31,7 @@ import { createDebug } from '../../debug.js';
 import { operationalValueEvidenceMetadata, operationalValueEvidenceRows } from '../model/operational-value-evidence.js';
 import { DAILY_RUN_COUNT_STATE_ID } from '../model/daily-run-counts.js';
 import { incrementalAggregate } from './incremental-aggregate.js';
+import { evidencePacketSelection, readEvidencePackets } from './evidence-selection.js';
 import { canonicalStatisticalWatermark, sampleStatisticalRuns, STATISTICAL_INPUT_LIMITS } from './statistical-sample.js';
 
 const debugDatabase = createDebug('database');
@@ -1223,7 +1224,7 @@ function queryStores(name) {
  * @param {IDBFactory} indexedDB
  * @param {Record<string, unknown>} logicalSources
  * @param {string[]} sourceNames
- * @param {{ onMetrics?: (metrics: { databaseMs: number, projectionMs: number, totalMs: number, recordsRead: number, stores: string[] }) => void, checkpoint?: () => void, statisticalCapacity?: number }} [options]
+ * @param {{ onMetrics?: (metrics: { databaseMs: number, projectionMs: number, totalMs: number, recordsRead: number, stores: string[] }) => void, checkpoint?: () => void, statisticalCapacity?: number, evidenceSelection?: ReturnType<typeof import('./evidence-selection.js').evidencePacketSelection> }} [options]
  */
 export async function queryDatabaseSources(indexedDB, logicalSources, sourceNames, options = {}) {
   const startedAt = monotonicNow();
@@ -1254,7 +1255,7 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
   const stores = [...new Set(activeQueries.flatMap(queryStores))];
   const transactionRequested = stores.includes('transactions');
   const collectionStores = /** @type {Array<typeof import('../storage/indexeddb.js').DATABASE_STORES[number]>} */ (
-    stores.filter((name) => name !== 'transactions')
+    stores.filter((name) => name !== 'transactions' && name !== 'operationalValueEvidence')
   );
   if (stores.includes('dailyRunCounts')) collectionStores.push('dailyRunCountState');
   const databaseStartedAt = monotonicNow();
@@ -1274,6 +1275,9 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
     }) : {},
     transactionRequested ? readTransactions(indexedDB) : []
   ]);
+  if (stores.includes('operationalValueEvidence')) {
+    collections.operationalValueEvidence = await readEvidencePackets(indexedDB, options.evidenceSelection ?? null, options.checkpoint);
+  }
   const databaseMs = monotonicNow() - databaseStartedAt;
   const sources = namedSources(logicalSources);
   /** @type {import('../../presenter.js').LogicalSourceInput | undefined} */
@@ -1362,7 +1366,11 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
         rows: store === 'transactions' ? transactions
           : store === 'operationalValueEvidence' ? operationalValueEvidenceRows(collections[store]) : collections[store],
         metadata: store === 'operationalValueEvidence'
-          ? { ...queryMetadata(sources, store, store, true), ...operationalValueEvidenceMetadata(collections[store]) }
+          ? { ...queryMetadata(sources, store, store, true), ...operationalValueEvidenceMetadata(collections[store]),
+              'evidence-packets-read': collections[store].length,
+              'evidence-scoped-read': Boolean(options.evidenceSelection?.length),
+              'evidence-facts-materialized': collections[store].reduce((count, packet) => count
+                + (Array.isArray(packet.facts) ? packet.facts.length : 0), 0) }
           : queryMetadata(sources, store, store, true)
       }];
     }));
@@ -1413,7 +1421,8 @@ export async function loadDatabaseQuerySources(indexedDB, sources, options = {})
   const required = resolveDashboardQuerySources(queries, remaining, nativeNames)
     .filter((name) => !nativeNames.has(name) && !declared.has(name));
   const database = await queryDatabaseSources(indexedDB, sources, required, {
-    checkpoint: () => budget.checkpoint(), statisticalCapacity: options.statisticalCapacity
+    checkpoint: () => budget.checkpoint(), statisticalCapacity: options.statisticalCapacity,
+    evidenceSelection: evidencePacketSelection(queries, remaining)
   });
   return {
     ...Object.fromEntries(sourceNames.filter((name) => nativeNames.has(name) || !declared.has(name)).map((name) => [

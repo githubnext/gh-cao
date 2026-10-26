@@ -10,6 +10,7 @@ import { compileDashboardViewPayloadQueries } from '../../src/data/queries/view-
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
 import ledgerFixture from '../fixtures/operational-value-ledger.json' with { type: 'json' };
 import contract from '../fixtures/workflow-value-view-contract.json' with { type: 'json' };
+import { evidencePacketSelection, readEvidencePackets } from '../../src/data/queries/evidence-selection.js';
 
 const dashboard = authoritativeDashboard.dashboard;
 const repository = resolve('../..');
@@ -78,6 +79,41 @@ function fileLedger(direction = 'decrease') {
 }
 
 describe('native workflow value production contract', () => {
+  it('bounds exact native report reads while 1000 unrelated workflows remain stored', async () => {
+    const packet = await publish(fileLedger());
+    for (let batch = 0; batch < 40; batch++) {
+      const lines = Array.from({ length: 25 }, (_, offset) => {
+        const other = structuredClone(packet);
+        other.repository = `load/repo-${batch * 25 + offset}`;
+        other.id = packet.id.replace('octo%2Fexample', encodeURIComponent(other.repository));
+        return JSON.stringify({ schema_version: 2, kind: 'operational_value_evidence', operational_value_evidence: other });
+      }).join('\n');
+      await ingestCachedGhAwJsonl(indexedDB, lines, { now: Date.parse(packet.observedAt), payloadScope: `load-${batch}` });
+    }
+    for (const [pageId, parameters] of [
+      [contract.reportPage, { report: packet.id }],
+      [contract.page, { workflow: contract.route }],
+    ]) {
+      const page = dashboard.pages.find((/** @type {{id: string}} */ page) => page.id === pageId);
+      const compiled = compileDashboardViewPayloadQueries(page, String(pageId), {
+        queries: dashboard.queries, routeParameters: /** @type {Record<string, string>} */ (parameters)
+      });
+      const selection = evidencePacketSelection(compiled.queries, compiled.aliases);
+      expect(selection).toHaveLength(1);
+      const selected = await readEvidencePackets(indexedDB, selection);
+      expect(selected).toHaveLength(1);
+      expect(selected[0].facts).toHaveLength(packet.facts.length);
+      const sources = await processDataRequest({ operation: 'query-canonical-dashboard',
+        sourceNames: compiled.aliases, context: { queries: compiled.queries, pages: dashboard.pages } });
+      for (const source of Object.values(/** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (sources))) {
+        expect(source.metadata.availability).not.toBe('unavailable');
+      }
+    }
+    await expect(readEvidencePackets(indexedDB, null)).rejects.toThrow(/max-input-rows/);
+    await expect(readEvidencePackets(indexedDB, [{ field: 'id', value: packet.id }],
+      () => { throw new Error('cancelled before read'); })).rejects.toThrow('cancelled before read');
+  }, 30000);
+
   it('declares a shared card, native report, complete source contract and exact-item route', () => {
     const value = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'value');
     expect(value).toMatchObject({ title: 'Value', icon: 'trophy' });
@@ -109,7 +145,7 @@ describe('native workflow value production contract', () => {
     });
     const snapshot = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === contract.snapshotPage);
     expect(snapshot.views[0]).toMatchObject({
-      element: contract.snapshotElement, data: { arguments: [{ name: 'snapshot', field: 'snapshot-route' }] }
+      element: contract.snapshotElement, data: { arguments: contract.snapshotArguments }
     });
   });
 
@@ -123,7 +159,7 @@ describe('native workflow value production contract', () => {
       'native-result': 1, 'complete-report': false, 'recent-result': null, 'previous-result': null
     });
     const sources = await execute(contract.reportPage, { report: packet.id });
-    expect(sources[0].rows).toEqual(cards.rows);
+    expect(sources[0].rows).toEqual(cards.rows.map(({ 'older-report': _order, ...row }) => row));
     expect(sources[1].rows[0].url).toContain('/blob/abc123/.github/workflows/verify-bugs.md');
     expect(sources[4].rows).toHaveLength(1);
     expect(sources[5].rows[0]['implementation-url']).toBe('https://github.com/octo/example/pull/2');

@@ -6,24 +6,16 @@
       "objective": "Keep report identity, target repository, workflow and capture together.",
       "acceptance": "Read canonical evidence only. No GitHub acquisition, HTML loading or fabricated evidence on navigation.",
       "from": "operational-value-evidence",
-      "time": { "range": "all" },
-      "compute": [
-        { "as": "workflow-route", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }, { "value": ":" }, { "field": "workflow-path" }] }
-      ]
+      "time": { "range": "all" }
     },
     {
       "name": "value-contracts",
-      "subject": "Latest retained report contract per repository, workflow and native measure.",
-      "objective": "Prevent old reports or versions from masking newer evidence.",
-      "acceptance": "Select the latest cutoff then capture before evaluating missing or incomplete evidence. Preserve separate measures.",
+      "subject": "One retained contract per repository, workflow and versioned native measure.",
+      "objective": "Compute each report independently before selecting current workflow results.",
+      "acceptance": "Preserve separate versions and exact report identity. Latest-version selection belongs to the workflow result query.",
       "from": "value-evidence-facts",
       "filter": { "predicates": [{ "field": "fact-kind", "equals": "contract" }] },
-      "compute": [{ "as": "report-marker", "function": "literal", "args": [{ "value": 1 }] }],
-      "window": [{
-        "operation": "change", "field": "report-marker", "as": "older-report", "mode": "absolute",
-        "groupby": ["organization", "repository", "workflow", "metric-id"],
-        "order-by": [{ "field": "window-end", "direction": "desc" }, { "field": "observed-at", "direction": "desc" }, { "field": "report-id", "direction": "desc" }]
-      }]
+      "compute": [{ "as": "report-marker", "function": "literal", "args": [{ "value": 1 }] }]
     },
     {
       "name": "value-capture-order",
@@ -33,7 +25,7 @@
       "from": "value-contracts",
       "window": [{
         "operation": "change", "field": "report-marker", "as": "later-capture", "mode": "absolute",
-        "groupby": ["organization", "repository", "workflow"],
+        "groupby": ["organization", "repository", "workflow", "workflow-route"],
         "order-by": [{ "field": "observed-at", "direction": "desc" }, { "field": "report-id", "direction": "desc" }]
       }]
     },
@@ -54,11 +46,10 @@
       "time": { "range": "all" },
       "joins": [{
         "source": "value-latest-capture", "type": "left",
-        "on": [{ "left": "organization", "right": "organization" }, { "left": "repository", "right": "repository" }, { "left": "workflow", "right": "workflow" }],
+        "on": [{ "left": "organization", "right": "organization" }, { "left": "repository", "right": "repository" }, { "left": "workflow", "right": "workflow" }, { "left": "workflow-route", "right": "workflow-route" }],
         "fields": [{ "field": "observed-at", "as": "captured-at" }, { "field": "window-end", "as": "evidence-cutoff" }]
       }],
       "compute": [
-        { "as": "workflow-route", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }, { "value": ":" }, { "field": "workflow-path" }] },
         { "as": "workflow-context", "function": "concat", "args": [{ "field": "workflow" }, { "value": " · " }, { "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
         { "as": "capture-missing", "function": "equals-any", "args": [{ "field": "captured-at" }, { "value": null }] },
         { "as": "evidence-state", "function": "if", "args": [{ "field": "capture-missing" }, { "value": "No retained capture" }, { "value": "Retained evidence available" }] }
@@ -85,7 +76,8 @@
         { "as": "snapshot-marker", "function": "literal", "args": [{ "value": 1 }] },
         { "as": "snapshot-route", "function": "concat", "args": [{ "field": "report-id" }, { "value": "|" }, { "field": "fact-id" }] },
         { "as": "encoded-snapshot", "function": "url-encode", "args": [{ "field": "snapshot-route" }] },
-        { "as": "snapshot-href", "function": "concat", "args": [{ "value": "#page-value-snapshot?snapshot=" }, { "field": "encoded-snapshot" }] }
+        { "as": "encoded-report", "function": "url-encode", "args": [{ "field": "report-id" }] },
+        { "as": "snapshot-href", "function": "concat", "args": [{ "value": "#page-value-snapshot?snapshot=" }, { "field": "encoded-snapshot" }, { "value": "&report=" }, { "field": "encoded-report" }] }
       ],
       "order-by": [{ "field": "at", "direction": "asc" }, { "field": "fact-id", "direction": "asc" }]
     },
@@ -96,7 +88,7 @@
       "acceptance": "Strictly use retained snapshot time. A post-adoption snapshot is not a pre-adoption baseline.",
       "from": "value-snapshots",
       "window": [{ "operation": "change", "field": "snapshot-marker", "as": "earlier-snapshot", "mode": "absolute",
-        "groupby": ["report-id"], "order-by": [{ "field": "at", "direction": "asc" }] }]
+        "groupby": ["report-id", "workflow-route"], "order-by": [{ "field": "at", "direction": "asc" }] }]
     },
     {
       "name": "value-first-snapshot",
@@ -113,7 +105,7 @@
       "acceptance": "Preserve the latest retained snapshot even if unchanged.",
       "from": "value-snapshots",
       "window": [{ "operation": "change", "field": "snapshot-marker", "as": "later-snapshot", "mode": "absolute",
-        "groupby": ["report-id"], "order-by": [{ "field": "at", "direction": "desc" }] }]
+        "groupby": ["report-id", "workflow-route"], "order-by": [{ "field": "at", "direction": "desc" }] }]
     },
     {
       "name": "value-last-snapshot",
@@ -130,7 +122,7 @@
       "acceptance": "Count distinct validated output facts. Tracking corroboration is not an applied receipt.",
       "from": "value-evidence-facts",
       "filter": { "predicates": [{ "field": "fact-kind", "equals": "output" }] },
-      "aggregate": { "by": ["report-id"], "values": [
+      "aggregate": { "by": ["report-id", "workflow-route"], "values": [
         { "field": "fact-id", "as": "retained-outputs", "reducer": "count" },
         { "field": "fact-id", "as": "receipt-outputs", "reducer": "count", "filter": { "predicates": [{ "field": "origin", "equals": "receipt-verified" }] } }
       ] }
@@ -153,7 +145,7 @@
         { "as": "previous-candidate", "function": "if", "args": [{ "field": "before-previous" }, { "value": 0 }, { "field": "value" }] },
         { "as": "previous-effect", "function": "if", "args": [{ "field": "before-current" }, { "field": "previous-candidate" }, { "value": 0 }] }
       ],
-      "aggregate": { "by": ["report-id"], "values": [
+      "aggregate": { "by": ["report-id", "workflow-route"], "values": [
         { "field": "fact-id", "as": "accepted-implementations", "reducer": "count" },
         { "field": "value", "as": "known-result", "reducer": "sum" },
         { "field": "current-effect", "as": "known-recent", "reducer": "sum" },
@@ -187,7 +179,7 @@
         { "as": "covered-current", "function": "if", "args": [{ "field": "positive-current" }, { "field": "current-duration" }, { "value": 0 }] },
         { "as": "covered-previous", "function": "if", "args": [{ "field": "positive-previous" }, { "field": "previous-duration" }, { "value": 0 }] }
       ],
-      "aggregate": { "by": ["report-id"], "values": [
+      "aggregate": { "by": ["report-id", "workflow-route"], "values": [
         { "field": "duration", "as": "covered-duration", "reducer": "sum" },
         { "field": "covered-current", "as": "covered-current", "reducer": "sum" },
         { "field": "covered-previous", "as": "covered-previous", "reducer": "sum" }
@@ -200,9 +192,9 @@
       "acceptance": "Absent output context is unknown. Missing coverage withholds complete totals and recent zero, retaining labelled known subtotals.",
       "from": "value-contracts",
       "joins": [
-        { "source": "value-output-counts", "type": "left", "on": [{ "left": "report-id", "right": "report-id" }], "fields": [{ "field": "retained-outputs", "as": "retained-outputs" }, { "field": "receipt-outputs", "as": "retained-receipts" }] },
-        { "source": "value-implementation-counts", "type": "left", "on": [{ "left": "report-id", "right": "report-id" }], "fields": [{ "field": "accepted-implementations", "as": "retained-implementations" }, { "field": "known-result", "as": "known-result" }, { "field": "known-recent", "as": "known-recent" }, { "field": "known-previous", "as": "known-previous" }] },
-        { "source": "value-covered-durations", "type": "left", "on": [{ "left": "report-id", "right": "report-id" }], "fields": [{ "field": "covered-duration", "as": "covered-duration" }, { "field": "covered-current", "as": "covered-current" }, { "field": "covered-previous", "as": "covered-previous" }] }
+        { "source": "value-output-counts", "type": "left", "on": [{ "left": "report-id", "right": "report-id" }, { "left": "workflow-route", "right": "workflow-route" }], "fields": [{ "field": "retained-outputs", "as": "retained-outputs" }, { "field": "receipt-outputs", "as": "retained-receipts" }] },
+        { "source": "value-implementation-counts", "type": "left", "on": [{ "left": "report-id", "right": "report-id" }, { "left": "workflow-route", "right": "workflow-route" }], "fields": [{ "field": "accepted-implementations", "as": "retained-implementations" }, { "field": "known-result", "as": "known-result" }, { "field": "known-recent", "as": "known-recent" }, { "field": "known-previous", "as": "known-previous" }] },
+        { "source": "value-covered-durations", "type": "left", "on": [{ "left": "report-id", "right": "report-id" }, { "left": "workflow-route", "right": "workflow-route" }], "fields": [{ "field": "covered-duration", "as": "covered-duration" }, { "field": "covered-current", "as": "covered-current" }, { "field": "covered-previous", "as": "covered-previous" }] }
       ],
       "compute": [
         { "as": "start-ms", "function": "timestamp", "args": [{ "field": "window-start" }] },
@@ -231,8 +223,8 @@
       "acceptance": "This first/last snapshot comparison is not the adjacent-period alert policy, a pre-adoption baseline or causal workflow credit. One snapshot is not zero change.",
       "from": "value-report-delivery",
       "joins": [
-        { "source": "value-first-snapshot", "type": "left", "on": [{ "left": "report-id", "right": "report-id" }], "fields": [{ "field": "value", "as": "reference-value" }, { "field": "at", "as": "reference-at" }] },
-        { "source": "value-last-snapshot", "type": "left", "on": [{ "left": "report-id", "right": "report-id" }], "fields": [{ "field": "value", "as": "current-value" }, { "field": "at", "as": "current-at" }, { "field": "snapshot-href", "as": "current-snapshot-href" }] }
+        { "source": "value-first-snapshot", "type": "left", "on": [{ "left": "report-id", "right": "report-id" }, { "left": "workflow-route", "right": "workflow-route" }], "fields": [{ "field": "value", "as": "reference-value" }, { "field": "at", "as": "reference-at" }] },
+        { "source": "value-last-snapshot", "type": "left", "on": [{ "left": "report-id", "right": "report-id" }, { "left": "workflow-route", "right": "workflow-route" }], "fields": [{ "field": "value", "as": "current-value" }, { "field": "at", "as": "current-at" }, { "field": "snapshot-href", "as": "current-snapshot-href" }] }
       ],
       "compute": [
         { "as": "same-snapshot", "function": "equals-any", "args": [{ "field": "reference-at" }, { "field": "current-at" }] },
@@ -271,11 +263,23 @@
       ]
     },
     {
+      "name": "value-workflow-result-order",
+      "subject": "Version ordering after independently computing each report.",
+      "objective": "Keep exact report queries partition-local without changing latest-version selection.",
+      "acceptance": "Rank cutoffs then captures within each workflow and measure. Explicit report links do not need other report facts.",
+      "from": "value-report-summary",
+      "window": [{
+        "operation": "change", "field": "report-marker", "as": "older-report", "mode": "absolute",
+        "groupby": ["organization", "repository", "workflow", "workflow-route", "metric-id"],
+        "order-by": [{ "field": "window-end", "direction": "desc" }, { "field": "observed-at", "direction": "desc" }, { "field": "report-id", "direction": "desc" }]
+      }]
+    },
+    {
       "name": "value-workflow-results",
       "subject": "Current published report results per native measure.",
       "objective": "Expose the latest coherent packet on the workflow Value tab.",
       "acceptance": "Never replace missing facts with an older measured version. Explicit report links retain their own version.",
-      "from": "value-report-summary",
+      "from": "value-workflow-result-order",
       "filter": { "predicates": [{ "field": "older-report", "equals": "unknown" }] }
     },
     {
@@ -423,7 +427,7 @@
       "route": { "hash-query-parameter": "snapshot", "navigation-page": "value", "breadcrumbs": [{ "page": "value" }] },
       "views": [{
         "id": "native-value-snapshot", "title": "Counted items", "show-title": false,
-        "data": { "sources": ["value-snapshots", "value-snapshot-items"], "arguments": [{ "name": "snapshot", "field": "snapshot-route" }], "query-context": false, "time": { "range": "all" } },
+        "data": { "sources": ["value-snapshots", "value-snapshot-items"], "arguments": [{ "name": "snapshot", "field": "snapshot-route" }, { "name": "report", "field": "report-id" }], "query-context": false, "time": { "range": "all" } },
         "mark": "element", "element": "workflow-value-snapshot", "layout": "full"
       }]
     },

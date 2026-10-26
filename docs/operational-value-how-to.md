@@ -121,3 +121,121 @@ See [publication and recurring collection](operational-value.md#recurring-collec
 
 For research, limitations and exact replay commands, read the
 [long-form blog article](/gh-cao/blog/measuring-agent-work-value/).
+
+## Native reports from retained evidence
+
+The native path is **retained originals → frozen evaluator → original evidence
+envelope → canonical storage → Dashboard Language → Value**. It does not load
+the standalone HTML. From a CAO source checkout, recompute the saved File Diet
+proof without contacting GitHub:
+
+```sh
+node .github/skills/add-operational-value/examples/native-file-diet.mjs \
+  --proof PATH_TO_RETAINED_PROOF --output .tmp/file-diet-native
+npm --prefix dashboard/site run build
+cd server
+go run ./cmd/cao-dashboard serve --backfill=false \
+  --sqlite ../.tmp/file-diet-native/dashboard.sqlite
+```
+
+Open the server's private local launch URL, then the `reportRoute` or
+`workflowRoute` in `.tmp/file-diet-native/manifest.json`. The manifest records
+input digests and sizes, original capture/cutoff, stage timings, parent-process
+peak RSS and the canonical packet identity. It does not claim child-process
+RSS, cold-disk performance, new capture, or deployment. `--evidence FILE
+--sha256 DIGEST` instead reuses an already verified original envelope in a new
+output directory; it does not recompute inventory measurements.
+
+For another workflow, freeze the repository-native primary measure separately
+from any output-linked diagnostic before implementing this same boundary:
+
+Use `/add-operational-value OWNER/REPO WORKFLOW` to recover immutable Markdown,
+imports and precompute intent, probe the pre-adoption outcome, and review the
+frozen contract. Verify the evaluator and bounded collector before the skill
+stages the exact opt-in registration. Keep explicit disables and Activity
+scope unchanged. Arbitrary intent text is not executable scoring logic and
+does not by itself establish a measurable outcome.
+
+Any verified contract's original envelope can use the shared native importer;
+File Diet's recomputation example calls this same implementation:
+
+```sh
+node .github/skills/add-operational-value/scripts/prepare-native-value.mjs \
+  --input REPORT-evidence.jsonl --sha256 VERIFIED_SHA256 \
+  --output .tmp/workflow-native-value
+```
+
+The required contract includes exact repository/workflow identity, metric
+ID/version, role, native unit, direction, formula, cadence, maturation, coverage
+and missingness. Retain independent snapshots, optional accepted contributions
+and unverified quality separately. Both the generic importer and hosted
+publication reject invalid originals without enrolling or executing a
+workflow; collection health remains separately published policy/attempt evidence.
+
+| Input | Retained location and join | What it proves |
+| --- | --- | --- |
+| Intent and measurement rule | Immutable workflow/import revisions and versioned evaluator | Population, threshold, cadence and acceptance requirements |
+| Independent repository inventories | Revision, file path, Git blob ID, captured newline/byte measurements | State at each retained snapshot, including everyone's changes |
+| Origin and lifecycle evidence | Output node ID; exact producer repository/run/attempt; receipt digests | Applied creation only when an actual receipt verifies it |
+| Accepted implementation | Distinct PR node ID, merge time/revision and actual integration parent | Accepted code delivery, not every quality check |
+| Session history | Private archive generation and projection, exact repository/run/attempt, ordered events | Approved retained session context, not a Git baseline or acceptance proof |
+
+File Diet keeps `oversized-files` / `observed-800-line-snapshot-v1` as the
+primary: regular non-test Go files recursively under `pkg/` with at least 800
+newline characters, lower is better. The separate
+`oversized-files-reduced` / `observed-800-line-net-reductions-v1` diagnostic
+subtracts the accepted revision's count from its actual parent's count,
+including replacement files. Deduplicate implementations before crediting
+many-to-many output links, and retain zero and negative effects. Replaying
+archived counts and hashes is not remeasuring Git blob contents.
+
+### Parquet is retained session evidence, not the outcome database
+
+With an already approved populated archive, add `--archive-server ORIGIN` to
+the proof command. The shared `scripts/session-archive.mjs` reader uses only
+authenticated status and exact trusted timeline routes. It joins retained
+producer references by exact repository/run/attempt, reuses each requested
+timeline within the batch, and verifies generation, projection, ordering and
+response bounds before accepting a link. It never enumerates the repository's
+session summary to resolve already known producers, so unrelated workflows
+cannot exhaust a summary limit before an exact read. Unknown attempts and absent traces
+remain explicit; changed generations, denial, withdrawal, malformed responses
+and exhausted budgets fail without fallback or GitHub recollection.
+
+The same API reads local Parquet with pinned DuckDB or private Azure Blob
+Parquet with generation-bound ADX. It accepts no SQL/KQL, paths or historical
+generation overrides. `CAO_VALUE_ARCHIVE_TOKEN` is a local bearer capability,
+not permission to enable full-content capture. Hosted readers provide their
+existing OAuth/CSRF headers through the shared reader's header callback and
+remain subject to the separate full-trace reader approval.
+
+Private `archive-links.json` retains only linkage/digest metadata, not raw
+payloads, and is **not** a public dashboard shard. It does not modify the
+frozen canonical value packet or turn a trace into an applied receipt.
+An absent/disabled archive can still support an explicitly historical report
+from preserved Git/lifecycle evidence, but cannot establish Parquet coverage.
+The October 18 proof was not acquired from this archive. Its first snapshot is
+at adoption, not a pre-adoption baseline; its sparse snapshots are not daily
+coverage. Captured relationships are not independently delivered webhooks,
+and behavior preservation remains unverified.
+
+### Resource isolation and publication
+
+Recomputation is an explicit bounded offline action, never a navigation side
+effect or work under the core projection lease. The reader limits individual
+responses to 4,096 rows, 8 MiB and 30 seconds, and the proof linkage batch to
+130 calls, 16 MiB and two minutes. These are admission limits, not capacity
+estimates; separate processes alone do not isolate CPU, disk or API quota.
+Native exact workflow/report reads use packet indexes before expanding facts.
+Unscoped local/browser populations over 32 packets, 16 MiB or 20,000 facts fail
+explicitly and require narrower scope, rather than expanding the entire fleet.
+Global fleet summary pagination remains a distinct limitation of that gate.
+
+Keep opportunity, acceptance/maturation, snapshot, capture, recomputation and
+publication clocks distinct. Pending is not failure; missing, partial, stale
+and zero are not interchangeable. Reuse never advances capture or cutoff.
+An explicit hosted `gh cao value publish` sends the original envelope to the
+authorized PostgreSQL publication API; static publication uses normal Activity
+normalization and the reviewed Dashboard/Documentation deployment. Local
+verification, a commit, or an uploaded archive object proves neither hosted
+availability nor recurring collection. Shared-budget deferral remains in force.

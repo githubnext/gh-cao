@@ -14,6 +14,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/inputlimits"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/query"
+	"github.com/githubnext/gh-cao/server/internal/sqlbuilder"
 )
 
 type SQLPage struct{ Offset, Limit int }
@@ -59,6 +60,8 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 	metadata := map[string]model.Metadata{}
 	retrievedAt := time.Now().UTC().Format(time.RFC3339Nano)
 	definitions = frozenStatisticalDefinitions(definitions)
+	valueSelections := query.SourceEqualities(definitions, requested, "operational-value-evidence",
+		"$operationalValueEvidence", "report-id", "workflow-route")
 	resolve := func(name string) (query.SQLRelation, error) {
 		if strings.HasPrefix(name, statisticalSnapshotPrefix) {
 			relation, quality, err := r.frozenStatisticalSource(ctx, name)
@@ -98,7 +101,10 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 		if err != nil {
 			return query.SQLRelation{}, err
 		}
-		value, err := r.rootMetadata(ctx, name)
+		if name == "$operationalValueEvidence" {
+			relation = r.operationalValueEvidenceSQLSource(valueSelections...)
+		}
+		value, err := r.rootMetadata(ctx, name, valueSelections...)
 		if err != nil {
 			return query.SQLRelation{}, err
 		}
@@ -275,7 +281,7 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 	return output, metrics, nil
 }
 
-func (r *readTransaction) rootMetadata(ctx context.Context, name string) (model.Metadata, error) {
+func (r *readTransaction) rootMetadata(ctx context.Context, name string, valueSelections ...query.SourceEquality) (model.Metadata, error) {
 	if name == dailySource || name == "$dailyRunCounts" {
 		return r.dailyMetadata(ctx)
 	}
@@ -290,8 +296,13 @@ func (r *readTransaction) rootMetadata(ctx context.Context, name string) (model.
 		return nil, err
 	}
 	if name == "$operationalValueEvidence" {
-		if err := r.tx.QueryRowContext(ctx, `SELECT min(window_end),min(observed_at)
-			FROM operational_value_evidence WHERE namespace=$1`, r.store.namespace).Scan(&asOf, &retrieved); err != nil {
+		predicate, params := r.operationalValueEvidencePredicate(valueSelections)
+		statement, args, err := sqlbuilder.Build(`SELECT min(p.window_end),min(p.observed_at)
+			FROM operational_value_evidence p WHERE `+predicate, params...)
+		if err != nil {
+			return nil, err
+		}
+		if err := r.tx.QueryRowContext(ctx, statement, args...).Scan(&asOf, &retrieved); err != nil {
 			return nil, err
 		}
 		completeness, freshness = "unknown", "unknown"

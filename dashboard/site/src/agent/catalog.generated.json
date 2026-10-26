@@ -3394,9 +3394,9 @@
     },
     {
       "id": "value-contracts",
-      "subject": "Latest retained report contract per repository, workflow and native measure.",
-      "objective": "Prevent old reports or versions from masking newer evidence.",
-      "acceptance": "Select the latest cutoff then capture before evaluating missing or incomplete evidence. Preserve separate measures.",
+      "subject": "One retained contract per repository, workflow and versioned native measure.",
+      "objective": "Compute each report independently before selecting current workflow results.",
+      "acceptance": "Preserve separate versions and exact report identity. Latest-version selection belongs to the workflow result query.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -3721,6 +3721,25 @@
       }
     },
     {
+      "id": "value-workflow-result-order",
+      "subject": "Version ordering after independently computing each report.",
+      "objective": "Keep exact report queries partition-local without changing latest-version selection.",
+      "acceptance": "Rank cutoffs then captures within each workflow and measure. Explicit report links do not need other report facts.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-report-summary"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence"
+        ]
+      }
+    },
+    {
       "id": "value-workflow-results",
       "subject": "Current published report results per native measure.",
       "objective": "Expose the latest coherent packet on the workflow Value tab.",
@@ -3733,7 +3752,7 @@
         }
       ],
       "sources": [
-        "value-report-summary"
+        "value-workflow-result-order"
       ],
       "used-by-pages": [
         "value",
@@ -3985,6 +4004,10 @@
       "acceptance": "Only retained items are shown. Missing item evidence must not look like an empty measured population.",
       "description": "",
       "parameters": [
+        {
+          "name": "report",
+          "field": "report-id"
+        },
         {
           "name": "snapshot",
           "field": "snapshot-route"
