@@ -1,0 +1,205 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "SessionArchiveDefinition.json",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+        },
+        "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+        },
+        "objective": {
+            "type": "string"
+        },
+        "acceptance": {
+            "type": "string"
+        },
+        "from": {
+            "type": "string",
+            "const": "archive-events"
+        },
+        "filter": {
+            "type": "object",
+            "properties": {
+                "predicates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/SessionArchivePredicate"
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                }
+            },
+            "required": [
+                "predicates"
+            ]
+        },
+        "aggregate": {
+            "type": "object",
+            "properties": {
+                "by": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "maxItems": 16
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "field": {
+                                "type": "string"
+                            },
+                            "as": {
+                                "type": "string"
+                            },
+                            "reducer": {
+                                "anyOf": [
+                                    {
+                                        "type": "string",
+                                        "const": "count"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "const": "distinct-count"
+                                    }
+                                ]
+                            }
+                        },
+                        "required": [
+                            "field",
+                            "as",
+                            "reducer"
+                        ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 16
+                }
+            },
+            "required": [
+                "values"
+            ]
+        },
+        "select": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/SelectedField"
+            },
+            "minItems": 1,
+            "maxItems": 32,
+            "description": "Required for non-aggregate queries. Only generated scalar event columns are allowed; PayloadJSON and Gaps are not query fields."
+        },
+        "orderBy": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/OrderField"
+            },
+            "maxItems": 16
+        },
+        "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000,
+            "description": "Intentional top-N selection after aggregation, projection and deterministic ordering. Omitted means the complete result must fit the independent response budget."
+        }
+    },
+    "required": [
+        "name",
+        "subject",
+        "from"
+    ],
+    "description": "Local DuckDB analytical profile of Dashboard Language, not a full dashboard document. Unknown keys and fields fail before execution. Predicates are conjunctive, with exactly one of equals, in, or a gte/lt range. String comparisons are exact and case-sensitive; ordering is typed, with UTF-8 lexical string order and empty strings last.",
+    "$defs": {
+        "SessionArchivePredicate": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "equals": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "in": {
+                    "type": "array",
+                    "items": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 32
+                },
+                "gte": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "lt": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "field"
+            ]
+        },
+        "SelectedField": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "as": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "field"
+            ]
+        },
+        "OrderField": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "direction": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "field"
+            ]
+        }
+    }
+}

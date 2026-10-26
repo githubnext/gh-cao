@@ -12,6 +12,10 @@
                 {
                     "type": "string",
                     "const": "summary"
+                },
+                {
+                    "type": "string",
+                    "const": "session-query"
                 }
             ]
         },
@@ -32,11 +36,20 @@
             "minimum": 1,
             "maximum": 10000,
             "description": "Maximum complete output rows, 1-10000 (default 10000). Exceeding a limit fails, never truncates a full approved trace."
+        },
+        "language-version": {
+            "type": "string",
+            "const": "0.1.0",
+            "description": "Required only for kind=session-query. Hosted ADX does not support this analytical profile."
+        },
+        "query": {
+            "$ref": "SessionArchiveDefinition.json",
+            "description": "Required only for kind=session-query; runId, attempt and envelope limit are forbidden."
         }
     },
     "required": [
         "kind",
         "repository"
     ],
-    "description": "A trusted archive query template. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted."
+    "description": "Trusted archive queries. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted. Query-only fields are forbidden on legacy templates and vice versa. Optional fields must be omitted rather than null."
 }

@@ -109,6 +109,34 @@ Send a trusted query to `POST /api/v1/session-archive/query`:
 {"kind":"summary","repository":"octo/api","limit":10000}
 ```
 
+For local analytical session queries, use the explicit `session-query` kind:
+
+```json
+{
+  "kind": "session-query",
+  "language-version": "0.1.0",
+  "repository": "octo/api",
+  "query": {
+    "name": "session-event-counts",
+    "subject": "Count retained approved session events by native type.",
+    "from": "archive-events",
+    "aggregate": {
+      "by": ["Type"],
+      "values": [{ "field": "Sequence", "as": "events", "reducer": "count" }]
+    },
+    "order-by": [{ "field": "events", "direction": "desc" }],
+    "limit": 100
+  }
+}
+```
+
+Status advertises supported `queryKinds`. `session-query` currently runs only
+on DuckDB; hosted ADX rejects it explicitly without fallback. Results include
+typed columns, rows, and metadata separating intentional top-N selection from
+known evidence gaps and unknown upstream coverage. These counts are event
+records, not tool calls or sessions. Full approved payloads remain available
+through `timeline`, not the analytical projection.
+
 Results bind one pinned generation. Timeline events use the shared trace
 contract and carry approved payload JSON; full approved content is not
 necessarily a complete native log. Requests cannot supply SQL/KQL, paths,

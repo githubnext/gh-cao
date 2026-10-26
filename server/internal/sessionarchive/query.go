@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
-	"strings"
 	"time"
 )
 
 type Snapshot struct {
-	archive  *Archive
-	manifest Manifest
-	scope    Scope
-	ctx      context.Context
-	cancel   context.CancelFunc
-	expires  time.Time
-	revoked  bool
+	archive       *Archive
+	manifest      Manifest
+	scope         Scope
+	ctx           context.Context
+	cancel        context.CancelFunc
+	expires       time.Time
+	revoked       bool
+	admissionGaps int
 }
 
 func (a *Archive) Pin(ctx context.Context, scope Scope) (*Snapshot, error) {
@@ -59,6 +59,11 @@ func (a *Archive) Pin(ctx context.Context, scope Scope) (*Snapshot, error) {
 	s := &Snapshot{archive: a, manifest: cloneManifest(a.state.Manifest), scope: Scope{scope.Namespace, slices.Clone(scope.Repositories)},
 		ctx: scoped, cancel: cancel, expires: a.now().Add(a.config.QueryTimeout)}
 	s.manifest.Members = slices.DeleteFunc(s.manifest.Members, func(m Member) bool { return !a.allowed(m) })
+	for _, record := range a.state.Records {
+		if record.Gap != "" && slices.Contains(scope.Repositories, record.Member.Repository) {
+			s.admissionGaps++
+		}
+	}
 	a.readers[s] = true
 	return s, nil
 }
@@ -200,24 +205,17 @@ func (s *Snapshot) Summary(ctx context.Context) ([]Summary, error) {
 	if len(members) > 10000 {
 		return nil, ErrLimit
 	}
-	var values, paths []string
-	for _, m := range members {
-		values = append(values, fmt.Sprintf("(%s,%s,%s,%d,%s,%s)", literal(m.Namespace), literal(m.Repository), literal(m.RunID), m.Attempt, literal(m.ID), literal(m.Version)))
-	}
-	for _, f := range s.manifest.Files {
-		if slices.ContainsFunc(f.Members, func(m Member) bool { return slices.Contains(members, m) }) {
-			paths = append(paths, literal(filepath.Join(s.archive.config.Directory, f.Path)))
-		}
-	}
-	sql := `WITH active(Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId) AS (VALUES ` + strings.Join(values, ",") + `)
-SELECT e.Repository AS repository,e.RunId AS runId,e.RunAttempt AS attempt,e.ProjectionId AS projectionId,count(*) AS events
-FROM read_parquet([` + strings.Join(paths, ",") + `],hive_partitioning=false) e
-INNER JOIN active a USING(Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId)
-GROUP BY e.Repository,e.RunId,e.RunAttempt,e.ProjectionId ORDER BY e.Repository,e.RunId,e.RunAttempt LIMIT 10001`
 	combined, cancel := context.WithCancel(ctx)
 	//nolint:contextcheck // Independent snapshot revocation must cancel the caller-scoped subprocess.
 	stop := context.AfterFunc(s.ctx, cancel)
 	defer func() { stop(); cancel() }()
+	source, err := s.sourceSQL(combined, []string{"Repository", "RunId", "RunAttempt", "ProjectionId"})
+	if err != nil {
+		return nil, err
+	}
+	sql := `SELECT Repository AS repository,RunId AS runId,RunAttempt AS attempt,ProjectionId AS projectionId,count(*) AS events
+FROM (` + source + `)
+GROUP BY Repository,RunId,RunAttempt,ProjectionId ORDER BY Repository,RunId,RunAttempt LIMIT 10001`
 	var rows []Summary
 	if err := s.archive.converter.query(combined, sql, &rows); err != nil {
 		if accessErr := s.check(); accessErr != nil {

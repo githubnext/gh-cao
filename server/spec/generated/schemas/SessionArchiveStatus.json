@@ -25,6 +25,13 @@
         },
         "archive": {
             "$ref": "#/$defs/SessionArchiveCounters"
+        },
+        "queryKinds": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Enabled local archives advertise timeline, summary, session-query; hosted archives advertise timeline and summary only."
         }
     },
     "required": [

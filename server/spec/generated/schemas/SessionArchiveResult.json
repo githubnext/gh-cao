@@ -15,6 +15,10 @@
                 {
                     "type": "string",
                     "const": "summary"
+                },
+                {
+                    "type": "string",
+                    "const": "session-query"
                 }
             ]
         },
@@ -29,6 +33,22 @@
             "items": {
                 "$ref": "#/$defs/SessionArchiveSummary"
             }
+        },
+        "columns": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/SessionArchiveColumn"
+            }
+        },
+        "rows": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/RecordUnknown"
+            },
+            "description": "Present even for an empty analytical result. Integer values are serialized without float conversion."
+        },
+        "metadata": {
+            "$ref": "#/$defs/SessionArchiveQueryMetadata"
         }
     },
     "required": [
@@ -176,6 +196,67 @@
                 "attempt",
                 "projectionId",
                 "events"
+            ]
+        },
+        "SessionArchiveColumn": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "const": "string"
+                        },
+                        {
+                            "type": "string",
+                            "const": "integer"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "name",
+                "type"
+            ]
+        },
+        "RecordUnknown": {
+            "type": "object",
+            "properties": {},
+            "unevaluatedProperties": {}
+        },
+        "SessionArchiveQueryMetadata": {
+            "type": "object",
+            "properties": {
+                "limited": {
+                    "type": "boolean",
+                    "description": "Whether the explicit analytical limit omitted matching output rows. Never indicates a silently exceeded resource budget."
+                },
+                "upstreamCoverage": {
+                    "type": "string",
+                    "const": "unknown",
+                    "description": "Always unknown: archive coverage is not proof of complete upstream history."
+                },
+                "admissionGaps": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647,
+                    "description": "Repository-scoped durable acquisition/admission gaps at the pinned generation's assessment."
+                },
+                "tracesWithGaps": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647,
+                    "description": "Retained active traces with recorded omissions, before user filtering; distinct from admission gaps."
+                }
+            },
+            "required": [
+                "limited",
+                "upstreamCoverage",
+                "admissionGaps",
+                "tracesWithGaps"
             ]
         }
     }

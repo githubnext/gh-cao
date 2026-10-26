@@ -19,6 +19,7 @@ type sessionArchiveProbe struct {
 	called    int
 	closed    int
 	withdrawn int
+	kinds     []string
 }
 
 type sessionArchiveReadProbe struct {
@@ -50,6 +51,12 @@ func (p *sessionArchiveProbe) Flush(ctx context.Context) error {
 func (*sessionArchiveProbe) Maintain(context.Context) error { return nil }
 func (*sessionArchiveProbe) Status() sessionarchive.Status {
 	return sessionarchive.Status{Enabled: true}
+}
+func (p *sessionArchiveProbe) QueryKinds() []string {
+	if p.kinds != nil {
+		return p.kinds
+	}
+	return []string{"timeline", "summary", "session-query"}
 }
 func (p *sessionArchiveProbe) Close() error { p.closed++; return nil }
 func (p *sessionArchiveProbe) Query(ctx context.Context, query sessionArchiveQuery) (sessionArchiveResult, error) {

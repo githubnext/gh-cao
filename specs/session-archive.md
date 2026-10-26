@@ -179,7 +179,7 @@ CSRF protection.
 | Endpoint | Contract |
 | --- | --- |
 | `GET /api/v1/session-archive/status` | Disabled availability or authorized bounded archive counters; no paths, credentials, or content |
-| `POST /api/v1/session-archive/query` | Trusted `timeline` or `summary` template for one exact approved repository |
+| `POST /api/v1/session-archive/query` | Trusted `timeline` or `summary` template, or local-only analytical `session-query`, for one exact approved repository |
 
 Timeline requires a positive GitHub run ID and exact positive attempt.
 Summary rejects run/attempt selectors. Neither accepts SQL/KQL, directories,
@@ -188,6 +188,19 @@ Requests are at most 4096 bytes. Responses are at most 8 MiB and 10000 rows.
 Execution is at most 30 seconds, with tighter backend budgets preserved.
 Exceeding a complete-result budget returns an error, not partial success.
 An unknown trace is distinct from a complete empty trace.
+
+The analytical operation is explicitly named `session-query`, not the generic
+`query`. It accepts `language-version: "0.1.0"` and one Dashboard Language
+`query` definition over `archive-events`, with generated scalar event columns,
+typed conjunctive predicates, explicit projection, grouping, exact `count` and
+`distinct-count`, deterministic ordering, and optional top-N selection.
+`PayloadJSON`, arbitrary JSON paths, joins, scripts, and caller-selected storage
+are not supported. An explicit `query.limit` reports omitted matching rows with
+`metadata.limited`; it MUST NOT hide a resource-budget failure. Source coverage
+remains unknown, with repository admission gaps and retained traces with recorded
+omissions reported independently of selection. Local status advertises
+`session-query` in `queryKinds`; the hosted ADX adapter does not yet advertise
+or execute it.
 
 Archive queries MUST NOT route through, replace, or fall back to ordinary
 SQLite/PostgreSQL dashboard queries. Query failures return explicit unavailable

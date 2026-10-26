@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CAO dashboard server",
-    "version": "2.11.0",
+    "version": "2.12.0",
     "description": "The Go dashboard server HTTP contract. Local mode uses a loopback bearer capability; hosted mode uses an authorized GitHub OAuth session and X-CSRF-Token on protected mutations. The optional MCP HTTP transport is covered, but its protocol messages and tool schemas are owned by the MCP contract; dashboard static assets are outside this contract."
   },
   "tags": [
@@ -2825,7 +2825,7 @@
     "/api/v1/session-archive/query": {
       "post": {
         "operationId": "SessionArchive_query",
-        "description": "Execute only timeline or summary for one exact authorized repository, with an additional full-trace-read grant and (hosted) CSRF token. Maximum request 4096 bytes, result 8 MiB/10000 rows, and execution 30 seconds; backend budgets may be tighter. Authorization is rechecked before delivering any result. Corrections use active projection membership; withdrawal overrides historical/pinned readers. A budget failure is an error, not a complete-looking truncated trace. Existing SQLite/PostgreSQL dashboard queries remain on their existing backends. Hosted Blob/ADX query activation additionally requires generation-bound live Azure conformance; upload success or a local simulator does not establish that evidence.",
+        "description": "Execute timeline, summary, or the local-only session-query Dashboard Language profile for one exact authorized repository, with an additional full-trace-read grant and (hosted) CSRF token. Maximum request 4096 bytes, result 8 MiB/10000 rows, and execution 30 seconds; backend budgets may be tighter. Hosted session-query requests fail explicitly with 422, never fall back. Authorization is rechecked inside withdrawal-aware result delivery through the final response write. Corrections use active projection membership before any analytical operation; withdrawal overrides historical/pinned readers. A budget failure is an error, not a complete-looking truncated trace. An explicit query.limit is intentional selection, reported separately from evidence coverage. Existing SQLite/PostgreSQL dashboard queries remain on their existing backends. Hosted Blob/ADX query activation additionally requires generation-bound live Azure conformance; upload success or a local simulator does not establish that evidence.",
         "parameters": [
           {
             "name": "X-CSRF-Token",
@@ -5890,6 +5890,25 @@
           }
         ]
       },
+      "SessionArchiveColumn": {
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "integer"
+            ]
+          }
+        }
+      },
       "SessionArchiveCounters": {
         "type": "object",
         "required": [
@@ -5932,6 +5951,181 @@
           }
         }
       },
+      "SessionArchiveDefinition": {
+        "type": "object",
+        "required": [
+          "name",
+          "subject",
+          "from"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "objective": {
+            "type": "string"
+          },
+          "acceptance": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string",
+            "enum": [
+              "archive-events"
+            ]
+          },
+          "filter": {
+            "type": "object",
+            "properties": {
+              "predicates": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SessionArchivePredicate"
+                },
+                "minItems": 1,
+                "maxItems": 64
+              }
+            },
+            "required": [
+              "predicates"
+            ]
+          },
+          "aggregate": {
+            "type": "object",
+            "properties": {
+              "by": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 16
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "field": {
+                      "type": "string"
+                    },
+                    "as": {
+                      "type": "string"
+                    },
+                    "reducer": {
+                      "type": "string",
+                      "enum": [
+                        "count",
+                        "distinct-count"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "field",
+                    "as",
+                    "reducer"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 16
+              }
+            },
+            "required": [
+              "values"
+            ]
+          },
+          "select": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SelectedField"
+            },
+            "minItems": 1,
+            "maxItems": 32,
+            "description": "Required for non-aggregate queries. Only generated scalar event columns are allowed; PayloadJSON and Gaps are not query fields."
+          },
+          "order-by": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderField"
+            },
+            "maxItems": 16
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 10000,
+            "description": "Intentional top-N selection after aggregation, projection and deterministic ordering. Omitted means the complete result must fit the independent response budget."
+          }
+        },
+        "description": "Local DuckDB analytical profile of Dashboard Language, not a full dashboard document. Unknown keys and fields fail before execution. Predicates are conjunctive, with exactly one of equals, in, or a gte/lt range. String comparisons are exact and case-sensitive; ordering is typed, with UTF-8 lexical string order and empty strings last."
+      },
+      "SessionArchivePredicate": {
+        "type": "object",
+        "required": [
+          "field"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "equals": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "format": "int64"
+              }
+            ]
+          },
+          "in": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 32
+          },
+          "gte": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "format": "int64"
+              }
+            ]
+          },
+          "lt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "format": "int64"
+              }
+            ]
+          }
+        }
+      },
       "SessionArchiveQuery": {
         "type": "object",
         "required": [
@@ -5943,7 +6137,8 @@
             "type": "string",
             "enum": [
               "timeline",
-              "summary"
+              "summary",
+              "session-query"
             ]
           },
           "repository": {
@@ -5965,9 +6160,52 @@
             "minimum": 1,
             "maximum": 10000,
             "description": "Maximum complete output rows, 1-10000 (default 10000). Exceeding a limit fails, never truncates a full approved trace."
+          },
+          "language-version": {
+            "type": "string",
+            "enum": [
+              "0.1.0"
+            ],
+            "description": "Required only for kind=session-query. Hosted ADX does not support this analytical profile."
+          },
+          "query": {
+            "$ref": "#/components/schemas/SessionArchiveDefinition",
+            "description": "Required only for kind=session-query; runId, attempt and envelope limit are forbidden."
           }
         },
-        "description": "A trusted archive query template. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted."
+        "description": "Trusted archive queries. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted. Query-only fields are forbidden on legacy templates and vice versa. Optional fields must be omitted rather than null."
+      },
+      "SessionArchiveQueryMetadata": {
+        "type": "object",
+        "required": [
+          "limited",
+          "upstreamCoverage",
+          "admissionGaps",
+          "tracesWithGaps"
+        ],
+        "properties": {
+          "limited": {
+            "type": "boolean",
+            "description": "Whether the explicit analytical limit omitted matching output rows. Never indicates a silently exceeded resource budget."
+          },
+          "upstreamCoverage": {
+            "type": "string",
+            "enum": [
+              "unknown"
+            ],
+            "description": "Always unknown: archive coverage is not proof of complete upstream history."
+          },
+          "admissionGaps": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Repository-scoped durable acquisition/admission gaps at the pinned generation's assessment."
+          },
+          "tracesWithGaps": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Retained active traces with recorded omissions, before user filtering; distinct from admission gaps."
+          }
+        }
       },
       "SessionArchiveResult": {
         "type": "object",
@@ -5984,7 +6222,8 @@
             "type": "string",
             "enum": [
               "timeline",
-              "summary"
+              "summary",
+              "session-query"
             ]
           },
           "events": {
@@ -5998,6 +6237,23 @@
             "items": {
               "$ref": "#/components/schemas/SessionArchiveSummary"
             }
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionArchiveColumn"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "unevaluatedProperties": {}
+            },
+            "description": "Present even for an empty analytical result. Integer values are serialized without float conversion."
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/SessionArchiveQueryMetadata"
           }
         },
         "description": "One authorized pinned generation. Approved payload JSON, explicit nulls, sequence, identity, omissions and provenance follow the shared trace contract, not another HTTP-only evidence model."
@@ -6023,6 +6279,13 @@
           },
           "archive": {
             "$ref": "#/components/schemas/SessionArchiveCounters"
+          },
+          "queryKinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Enabled local archives advertise timeline, summary, session-query; hosted archives advertise timeline and summary only."
           }
         }
       },

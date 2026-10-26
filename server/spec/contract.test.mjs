@@ -51,7 +51,7 @@ test('agent discovery describes public GET and body-free HEAD responses', () => 
 
 test('the generated contract describes the implemented security and wire formats', () => {
   assert.equal(openapi.openapi, '3.1.0')
-  assert.equal(openapi.info.version, '2.11.0')
+  assert.equal(openapi.info.version, '2.12.0')
   for (const path of ['/api/runs/{id}/jobs', '/api/runs/{id}/sessions', '/api/sessions/{id}/events']) {
     assert.equal(openapi.paths[path], undefined)
   }
@@ -124,15 +124,36 @@ test('private archive queries preserve explicit full-content authority and the s
   for (const code of ['400', '404', '422']) assert.ok(query.responses[code])
   assert.match(query.description, /generation-bound live Azure conformance/)
   const input = openapi.components.schemas.SessionArchiveQuery
-  assert.deepEqual(input.properties.kind.enum, ['timeline', 'summary'])
+  assert.deepEqual(input.properties.kind.enum, ['timeline', 'summary', 'session-query'])
   for (const name of ['sql', 'kql', 'path', 'files', 'objects', 'namespace']) {
     assert.equal(input.properties[name], undefined)
   }
   assert.equal(input.properties.limit.maximum, 10000)
   assert.equal(input.properties.limit.minimum, 1)
+  assert.deepEqual(input.properties['language-version'].enum, ['0.1.0'])
+  assert.equal(input.properties.query.$ref, '#/components/schemas/SessionArchiveDefinition')
+  const definition = openapi.components.schemas.SessionArchiveDefinition
+  assert.deepEqual(definition.required, ['name', 'subject', 'from'])
+  assert.deepEqual(definition.properties.from.enum, ['archive-events'])
+  assert.equal(definition.properties.limit.maximum, 10000)
+  for (const key of ['joins', 'union', 'compute', 'window', 'sql', 'stores', 'parameters']) {
+    assert.equal(definition.properties[key], undefined)
+  }
+  assert.deepEqual(Object.keys(definition.properties).sort(), [
+    'acceptance', 'aggregate', 'filter', 'from', 'limit', 'name', 'objective', 'order-by', 'select', 'subject'
+  ])
+  assert.match(definition.description, /UTF-8 lexical string order/)
+  assert.match(query.description, /local-only/)
+  assert.match(query.description, /session-query/)
+  assert.match(query.description, /final response write/)
+  assert.ok(openapi.components.schemas.SessionArchiveStatus.properties.queryKinds)
   const result = openapi.components.schemas.SessionArchiveResult
   assert.equal(result.properties.events.items.$ref, '#/components/schemas/Trace.Archive.Event')
   assert.equal(openapi.components.schemas['Trace.Archive.Event'].properties.PayloadJSON.type, 'string')
+  for (const field of ['rows', 'columns', 'metadata']) assert.ok(result.properties[field])
+  const metadata = openapi.components.schemas.SessionArchiveQueryMetadata
+  assert.deepEqual(metadata.properties.upstreamCoverage.enum, ['unknown'])
+  assert.deepEqual(metadata.required, ['limited', 'upstreamCoverage', 'admissionGaps', 'tracesWithGaps'])
 })
 
 test('webhook status is an authenticated process-local no-store snapshot', () => {
@@ -410,7 +431,7 @@ test('selected JSON Schemas and nullable responses are emitted', () => {
   }
   assert.deepEqual(
     readdirSync(join(directory, 'generated/schemas')).sort(),
-    ['AdmissionAllowances.json', 'AdmissionRequest.json', 'ConclusionRequest.json', 'QueryDefinition.json', 'QueryRequest.json', 'QueryResponse.json', 'RevisionEvent.json', 'SessionArchiveQuery.json', 'SessionArchiveResult.json', 'SessionArchiveStatus.json', 'SessionCompaction.json', 'WebhookAcknowledgement.json']
+    ['AdmissionAllowances.json', 'AdmissionRequest.json', 'ConclusionRequest.json', 'QueryDefinition.json', 'QueryRequest.json', 'QueryResponse.json', 'RevisionEvent.json', 'SessionArchiveDefinition.json', 'SessionArchiveQuery.json', 'SessionArchiveResult.json', 'SessionArchiveStatus.json', 'SessionCompaction.json', 'WebhookAcknowledgement.json']
   )
   const campaign = openapi.paths['/api/v1/memory/{campaign}'].get.responses['200'].content['application/json'].schema
   assert.ok(campaign.anyOf.some(branch => branch.type === 'null'))

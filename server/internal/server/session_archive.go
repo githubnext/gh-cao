@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -36,18 +37,23 @@ type SessionArchiveReadAccess struct {
 }
 
 type sessionArchiveQuery struct {
-	Kind       string `json:"kind"`
-	Repository string `json:"repository"`
-	RunID      string `json:"runId,omitempty"`
-	Attempt    int64  `json:"attempt,omitempty"`
-	Limit      int    `json:"limit,omitempty"`
+	Kind            string                     `json:"kind"`
+	Repository      string                     `json:"repository"`
+	RunID           *string                    `json:"runId,omitempty"`
+	Attempt         *int64                     `json:"attempt,omitempty"`
+	Limit           *int                       `json:"limit,omitempty"`
+	LanguageVersion string                     `json:"language-version,omitempty"`
+	Query           *sessionarchive.Definition `json:"query,omitempty"`
 }
 
 type sessionArchiveResult struct {
-	Generation uint64                   `json:"generation"`
-	Kind       string                   `json:"kind"`
-	Events     []sessionarchive.Event   `json:"events,omitempty"`
-	Summary    []sessionarchive.Summary `json:"summary,omitempty"`
+	Generation uint64                        `json:"generation"`
+	Kind       string                        `json:"kind"`
+	Events     []sessionarchive.Event        `json:"events,omitempty"`
+	Summary    []sessionarchive.Summary      `json:"summary,omitempty"`
+	Columns    []sessionarchive.Column       `json:"columns,omitempty"`
+	Rows       *[]map[string]any             `json:"rows,omitempty"`
+	Metadata   *sessionarchive.QueryMetadata `json:"metadata,omitempty"`
 	reader     sessionArchiveReader
 }
 
@@ -62,8 +68,14 @@ type sessionArchiveBackend interface {
 	Maintain(context.Context) error
 	Close() error
 	Status() sessionarchive.Status
+	QueryKinds() []string
 	Query(context.Context, sessionArchiveQuery) (sessionArchiveResult, error)
 }
+
+func (*localSessionArchive) QueryKinds() []string {
+	return []string{"timeline", "summary", "session-query"}
+}
+func (*hostedSessionArchive) QueryKinds() []string { return []string{"timeline", "summary"} }
 
 type localSessionArchive struct {
 	*sessionarchive.Archive
@@ -77,6 +89,9 @@ type hostedSessionArchive struct {
 }
 
 func (archive *hostedSessionArchive) Query(ctx context.Context, input sessionArchiveQuery) (sessionArchiveResult, error) {
+	if err := input.validate(); err != nil {
+		return sessionArchiveResult{}, err
+	}
 	scope := sessionarchive.Scope{Namespace: archive.namespace, Repositories: []string{input.Repository}}
 	result := sessionArchiveResult{Kind: input.Kind}
 	var reader *sessionarchiveblob.Reader
@@ -84,10 +99,12 @@ func (archive *hostedSessionArchive) Query(ctx context.Context, input sessionArc
 	switch input.Kind {
 	case "timeline":
 		result.Generation, result.Events, reader, err = archive.publisher.ReadTimeline(ctx, scope, sessionarchive.TimelineRequest{
-			Repository: input.Repository, RunID: input.RunID, Attempt: input.Attempt, Limit: min(input.Limit, 4096),
+			Repository: input.Repository, RunID: *input.RunID, Attempt: *input.Attempt, Limit: min(input.rowLimit(), 4096),
 		})
 	case "summary":
-		result.Generation, result.Summary, reader, err = archive.publisher.ReadSummaries(ctx, scope, input.Repository, min(input.Limit, 4096))
+		result.Generation, result.Summary, reader, err = archive.publisher.ReadSummaries(ctx, scope, input.Repository, min(input.rowLimit(), 4096))
+	default:
+		return sessionArchiveResult{}, sessionarchive.ErrQuery
 	}
 	if reader != nil {
 		result.reader = reader
@@ -109,6 +126,9 @@ func (archive *hostedSessionArchive) Close() error {
 }
 
 func (archive *localSessionArchive) Query(ctx context.Context, input sessionArchiveQuery) (sessionArchiveResult, error) {
+	if err := input.validate(); err != nil {
+		return sessionArchiveResult{}, err
+	}
 	snapshot, err := archive.Pin(ctx, sessionarchive.Scope{
 		Namespace: archive.namespace, Repositories: []string{input.Repository},
 	})
@@ -119,10 +139,16 @@ func (archive *localSessionArchive) Query(ctx context.Context, input sessionArch
 	switch input.Kind {
 	case "timeline":
 		result.Events, err = snapshot.Timeline(ctx, sessionarchive.TimelineRequest{
-			Repository: input.Repository, RunID: input.RunID, Attempt: input.Attempt, Limit: input.Limit,
+			Repository: input.Repository, RunID: *input.RunID, Attempt: *input.Attempt, Limit: input.rowLimit(),
 		})
 	case "summary":
 		result.Summary, err = snapshot.Summary(ctx)
+	case "session-query":
+		var analytical sessionarchive.AnalyticalResult
+		analytical, err = snapshot.Analytical(ctx, *input.Query)
+		result.Columns, result.Rows, result.Metadata = analytical.Columns, &analytical.Rows, &analytical.Metadata
+	default:
+		err = sessionarchive.ErrQuery
 	}
 	if err != nil {
 		_ = snapshot.Close()
@@ -374,6 +400,7 @@ func (a *App) sessionArchiveStatus(response http.ResponseWriter, request *http.R
 	}
 	writeJSON(response, http.StatusOK, map[string]any{
 		"enabled": true, "stage": stage, "archive": a.sessionArchive.backend.Status(),
+		"queryKinds": a.sessionArchive.backend.QueryKinds(),
 	})
 }
 
@@ -407,15 +434,12 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 		writeError(response, http.StatusForbidden, "repository is outside the approved archive scope")
 		return
 	}
-	if input.Limit == 0 {
-		input.Limit = 10000
-	}
-	run, runErr := strconv.ParseUint(input.RunID, 10, 64)
-	if input.Limit < 1 || input.Limit > 10000 ||
-		(input.Kind != "timeline" && input.Kind != "summary") ||
-		(input.Kind == "timeline" && (runErr != nil || run == 0 || strconv.FormatUint(run, 10) != input.RunID || input.Attempt < 1)) ||
-		(input.Kind == "summary" && (input.RunID != "" || input.Attempt != 0)) {
+	if err := input.validate(); err != nil {
 		writeError(response, http.StatusBadRequest, "archive query requires a trusted template and bounded exact identity")
+		return
+	}
+	if !slices.Contains(a.sessionArchive.backend.QueryKinds(), input.Kind) {
+		writeError(response, http.StatusUnprocessableEntity, "analytical query profile is unavailable on this archive backend")
 		return
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), 30*time.Second)
@@ -429,6 +453,8 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 		serverLog.Printf("session archive query failed")
 		status := http.StatusServiceUnavailable
 		switch {
+		case errors.Is(err, sessionarchive.ErrQuery):
+			status = http.StatusBadRequest
 		case errors.Is(err, sessionarchive.ErrCapacity), errors.Is(err, sessionarchiveblob.ErrCapacity), errors.Is(err, sessionarchive.ErrLimit):
 			status = http.StatusUnprocessableEntity
 		case errors.Is(err, sessionarchive.ErrNotFound):
@@ -447,7 +473,8 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 		return
 	}
 	content, err := json.Marshal(result)
-	if err != nil || len(content) > 8<<20 || len(result.Summary) > input.Limit || len(result.Events) > input.Limit {
+	if err != nil || len(content) > 8<<20 || len(result.Summary) > input.rowLimit() || len(result.Events) > input.rowLimit() ||
+		(result.Rows != nil && len(*result.Rows) > 10000) {
 		writeError(response, http.StatusUnprocessableEntity, "complete archive result exceeds the response budget")
 		return
 	}
@@ -479,4 +506,65 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 			serverLog.Printf("session archive response delivery failed")
 		}
 	}
+}
+
+// Pointer fields track omitted selectors, but JSON null is not an omission.
+func (input *sessionArchiveQuery) UnmarshalJSON(content []byte) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(content, &fields); err != nil {
+		return err
+	}
+	for _, value := range fields {
+		if bytes.Equal(value, []byte("null")) {
+			return sessionarchive.ErrQuery
+		}
+	}
+	type archiveQuery sessionArchiveQuery
+	var decoded archiveQuery
+	decoder := json.NewDecoder(bytes.NewReader(content))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&decoded); err != nil {
+		return err
+	}
+	*input = sessionArchiveQuery(decoded)
+	return nil
+}
+
+func (input sessionArchiveQuery) rowLimit() int {
+	if input.Limit != nil {
+		return *input.Limit
+	}
+	return 10000
+}
+
+func (input sessionArchiveQuery) validate() error {
+	if input.rowLimit() < 1 || input.rowLimit() > 10000 {
+		return sessionarchive.ErrQuery
+	}
+	if input.Kind == "session-query" {
+		if input.LanguageVersion != "0.1.0" || input.Query == nil || input.RunID != nil || input.Attempt != nil || input.Limit != nil {
+			return sessionarchive.ErrQuery
+		}
+		return input.Query.Validate()
+	}
+	if input.Query != nil || input.LanguageVersion != "" {
+		return sessionarchive.ErrQuery
+	}
+	switch input.Kind {
+	case "summary":
+		if input.RunID != nil || input.Attempt != nil {
+			return sessionarchive.ErrQuery
+		}
+	case "timeline":
+		if input.RunID == nil || input.Attempt == nil || *input.Attempt < 1 {
+			return sessionarchive.ErrQuery
+		}
+		run, err := strconv.ParseUint(*input.RunID, 10, 64)
+		if err != nil || run == 0 || strconv.FormatUint(run, 10) != *input.RunID {
+			return sessionarchive.ErrQuery
+		}
+	default:
+		return sessionarchive.ErrQuery
+	}
+	return nil
 }

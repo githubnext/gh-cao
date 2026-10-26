@@ -253,7 +253,12 @@ func (c *Converter) Write(ctx context.Context, path string, projections []Projec
 	return result, nil
 }
 
-func (c *Converter) Verify(ctx context.Context, path string, expected File) error {
+// Published files already passed schema, membership and payload verification.
+// Rechecking their immutable digest avoids decoding payloads for metadata queries.
+func verifyPublishedFile(ctx context.Context, path string, expected File) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	info, err := os.Lstat(path)
 	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() != expected.Bytes || info.Size() > 128<<20 {
 		return ErrIntegrity
@@ -269,8 +274,18 @@ func (c *Converter) Verify(ctx context.Context, path string, expected File) erro
 	}
 	defer func() { _ = file.Close() }()
 	digest, _, err := fileDigest(file, expected.Bytes)
+	if contextErr := ctx.Err(); contextErr != nil {
+		return contextErr
+	}
 	if err != nil || digest != expected.Digest {
 		return ErrIntegrity
+	}
+	return nil
+}
+
+func (c *Converter) Verify(ctx context.Context, path string, expected File) error {
+	if err := verifyPublishedFile(ctx, path, expected); err != nil {
+		return err
 	}
 	var columns []struct {
 		Name    string `json:"column_name"`
