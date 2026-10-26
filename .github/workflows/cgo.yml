@@ -111,7 +111,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      DUCKDB_PATH: ${{ runner.temp }}/cao-duckdb/duckdb
       CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -130,6 +129,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          DUCKDB_PATH="$RUNNER_TEMP/cao-duckdb/duckdb"
+          echo "DUCKDB_PATH=$DUCKDB_PATH" >> "$GITHUB_ENV"
           mkdir -p "$(dirname "$DUCKDB_PATH")"
           curl --fail --silent --show-error --location --proto '=https' \
             https://github.com/duckdb/duckdb/releases/download/v1.4.3/duckdb_cli-linux-amd64.zip \
