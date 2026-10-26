@@ -107,6 +107,40 @@ func TestDuckDBArchiveIntegration(t *testing.T) {
 	}
 }
 
+func TestDuckDBArchiveDeliveryIntegration(t *testing.T) {
+	c := testConfig(t)
+	a := openTestArchive(t, c, nil)
+	if err := a.Admit(t.Context(), testProjection(t, c, "123", "approved")); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := pinTestArchive(t, a)
+	if _, err := snapshot.Timeline(t.Context(), TimelineRequest{"octo/api", "123", 1, 100}); err != nil {
+		t.Fatal(err)
+	}
+	expected := errors.New("synthetic delivery failure")
+	if err := snapshot.Deliver(func() error {
+		if a.mu.TryLock() {
+			a.mu.Unlock()
+			t.Error("delivery was not serialized with withdrawal")
+		}
+		return expected
+	}); !errors.Is(err, expected) {
+		t.Fatal("delivery failure was not propagated")
+	}
+	if err := a.Withdraw(t.Context(), "octo/api", "123", 1); err != nil {
+		t.Fatal(err)
+	}
+	if err := snapshot.Deliver(func() error {
+		t.Error("withdrawn result reached delivery")
+		return nil
+	}); !errors.Is(err, ErrWithdrawn) {
+		t.Fatalf("withdrawn result was not denied: %v", err)
+	}
+}
+
 type recordingPublisher struct {
 	fail      bool
 	manifests []Manifest

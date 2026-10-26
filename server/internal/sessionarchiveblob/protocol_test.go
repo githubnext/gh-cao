@@ -333,7 +333,7 @@ func TestBlobCorrectionWithdrawalAndRetirement(t *testing.T) {
 		t.Fatal(err)
 	}
 	scope := sessionarchive.Scope{Namespace: "private", Repositories: []string{"octo/api"}}
-	queryCtx, _, _, _, finish, err := a.pin(t.Context(), scope, "octo/api", "123", 1)
+	queryCtx, _, _, _, reader, err := a.pin(t.Context(), scope, "octo/api", "123", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +347,10 @@ func TestBlobCorrectionWithdrawalAndRetirement(t *testing.T) {
 	if err := a.Maintain(t.Context()); err != nil || s.objects[objectKey(first.Files[0])] == nil {
 		t.Fatal("retirement deleted pinned data")
 	}
-	if err := finish(); err != nil {
+	if err := reader.Deliver(func() error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if err := reader.Close(); err != nil {
 		t.Fatal(err)
 	}
 	stale := first
@@ -387,14 +390,15 @@ func TestBlobWithdrawalCancelsAndDeniesInflightResults(t *testing.T) {
 		t.Fatal(err)
 	}
 	scope := sessionarchive.Scope{Namespace: "private", Repositories: []string{"octo/api"}}
-	ctx, _, _, _, finish, err := a.pin(t.Context(), scope, "octo/api", "123", 1)
+	ctx, _, _, _, reader, err := a.pin(t.Context(), scope, "octo/api", "123", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { _ = reader.Close() })
 	if err := a.WithdrawRepository(t.Context(), "octo/api"); err != nil {
 		t.Fatal(err)
 	}
-	if ctx.Err() == nil || !errors.Is(finish(), ErrWithdrawn) {
+	if ctx.Err() == nil || !errors.Is(reader.Deliver(func() error { return nil }), ErrWithdrawn) {
 		t.Fatal("withdrawal did not cancel and deny pinned result")
 	}
 	// Failed withdrawal persistence cannot permit subsequent reads.

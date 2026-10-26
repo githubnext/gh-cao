@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
@@ -213,5 +214,87 @@ func TestSessionArchiveScopeRejectsBeforeRuntimeOrAcquisition(t *testing.T) {
 	files, err := os.ReadDir(config.SessionArchive.Directory)
 	if err != nil || len(files) != 0 {
 		t.Fatal("rejected scope touched archive files")
+	}
+}
+
+type sessionArchiveResponseHook struct {
+	sessionArchiveBackend
+	afterQuery func()
+}
+
+func (backend *sessionArchiveResponseHook) Query(ctx context.Context, query sessionArchiveQuery) (sessionArchiveResult, error) {
+	result, err := backend.sessionArchiveBackend.Query(ctx, query)
+	if err == nil {
+		backend.afterQuery()
+	}
+	return result, err
+}
+
+func TestSessionArchiveWithdrawalBeforeResponseIntegration(t *testing.T) {
+	duckdb := archiveRuntime(t)
+	for _, kind := range []string{"timeline", "summary"} {
+		for _, withdrawal := range []string{"trace", "repository"} {
+			t.Run(kind+"/"+withdrawal, func(t *testing.T) {
+				app, _ := newSQLiteTestApp(t, false)
+				config := sessionarchive.Config{
+					Enabled: true, DurableStorage: true, Directory: t.TempDir(), Namespace: "response",
+					Repositories: []string{"octo/one"}, DuckDBPath: duckdb,
+					Policy: adxtrace.Policy{Version: "approved-v1", ContentApproved: true, RightsApproved: true,
+						Events: map[string][]string{"session.format": {"version"}, "session.collection": {"complete"},
+							"user.message": {"content"}}},
+				}
+				// #nosec G302 -- the private archive directory requires owner traversal.
+				if err := os.Chmod(config.Directory, 0o700); err != nil {
+					t.Fatal(err)
+				}
+				archive, err := sessionarchive.Open(config)
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = archive.Close() })
+				raw := []byte("{\"type\":\"session.format\",\"data\":{\"version\":1}}\n" +
+					"{\"type\":\"session.collection\",\"data\":{\"complete\":true}}\n" +
+					"{\"type\":\"user.message\",\"data\":{\"content\":\"withdrawn synthetic content\"}}\n")
+				projection, err := sessionarchive.Project(adxtrace.Config{
+					Enabled: true, DurableStorage: true, Directory: config.Directory,
+					Repositories: config.Repositories, Policy: config.Policy, Mode: "full",
+				}, config.Namespace, "octo/one", "123", time.Now().UTC().Format(time.DateOnly), 1, raw, time.Now())
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := archive.Admit(t.Context(), projection); err != nil {
+					t.Fatal(err)
+				}
+				if err := archive.Flush(t.Context()); err != nil {
+					t.Fatal(err)
+				}
+				backend := &sessionArchiveResponseHook{
+					sessionArchiveBackend: &localSessionArchive{Archive: archive, namespace: config.Namespace},
+					afterQuery: func() {
+						var err error
+						if withdrawal == "trace" {
+							err = archive.Withdraw(t.Context(), "octo/one", "123", 1)
+						} else {
+							err = archive.WithdrawRepository(t.Context(), "octo/one")
+						}
+						if err != nil {
+							t.Fatal(err)
+						}
+					},
+				}
+				app.sessionArchive = &sessionArchiveService{
+					backend: backend, repositories: config.Repositories, read: SessionArchiveReadAccess{Approved: true},
+				}
+				body := `{"kind":"summary","repository":"octo/one"}`
+				if kind == "timeline" {
+					body = `{"kind":"timeline","repository":"octo/one","runId":"123","attempt":1}`
+				}
+				response := archiveRequest(t, app, body, true)
+				if response.Code != http.StatusForbidden || strings.Contains(response.Body.String(), "withdrawn synthetic content") ||
+					strings.Contains(response.Body.String(), `"events"`) || strings.Contains(response.Body.String(), `"summary"`) {
+					t.Fatalf("completed query released withdrawn evidence: status %d", response.Code)
+				}
+			})
+		}
 	}
 }

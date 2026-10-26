@@ -125,6 +125,9 @@ the archive lock. Failed pending publication is retried after restart.
 
 Logical withdrawal blocks access and replay; it is not immediate deletion from
 backups, obsolete generations, Blob versions, or already delivered results.
+Completed queries retain withdrawal-aware readers until the HTTP handler exits.
+The final content check and bounded response write share the withdrawal lock:
+withdrawal that wins this response-commit boundary denies the buffered result.
 Review those recovery/deletion horizons separately. Source-cache deletion does
 not delete archive history.
 

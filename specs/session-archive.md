@@ -144,6 +144,11 @@ pin a generation; ordinary replacement may allow existing readers to finish.
 Withdrawal and authorization revocation override that convenience: affected
 queries MUST be canceled or denied before results are delivered.
 
+The withdrawal-aware reader MUST remain registered through result serialization
+and caller reauthorization. The final content-access check and bounded HTTP
+response write MUST be serialized with withdrawal; completing the backend query
+alone MUST NOT release that protection. Every response exit MUST close its reader.
+
 Withdrawn identities MUST remain replay-fenced for the supported replay horizon.
 If required fences cannot fit, admission MUST stop or reject older inputs.
 Old input MUST NOT silently become current because a content file or cache was

@@ -21,6 +21,20 @@ type sessionArchiveProbe struct {
 	withdrawn int
 }
 
+type sessionArchiveReadProbe struct {
+	deliver func(func() error) error
+	closed  int
+}
+
+func (p *sessionArchiveReadProbe) Deliver(deliver func() error) error {
+	if p.deliver != nil {
+		return p.deliver(deliver)
+	}
+	return deliver()
+}
+
+func (p *sessionArchiveReadProbe) Close() error { p.closed++; return nil }
+
 func (*sessionArchiveProbe) PrepareCache(context.Context, string, string, string) error { return nil }
 func (*sessionArchiveProbe) Capture(context.Context, string, string, string) error      { return nil }
 func (p *sessionArchiveProbe) WithdrawRepository(context.Context, string) error {
@@ -40,10 +54,15 @@ func (*sessionArchiveProbe) Status() sessionarchive.Status {
 func (p *sessionArchiveProbe) Close() error { p.closed++; return nil }
 func (p *sessionArchiveProbe) Query(ctx context.Context, query sessionArchiveQuery) (sessionArchiveResult, error) {
 	p.called++
+	result := sessionArchiveResult{Generation: 7, Kind: query.Kind}
+	var err error
 	if p.query != nil {
-		return p.query(ctx, query)
+		result, err = p.query(ctx, query)
 	}
-	return sessionArchiveResult{Generation: 7, Kind: query.Kind}, nil
+	if err == nil && result.reader == nil {
+		result.reader = &sessionArchiveReadProbe{}
+	}
+	return result, err
 }
 
 func archiveRequest(t *testing.T, app *App, body string, authenticated bool) *httptest.ResponseRecorder {
@@ -175,6 +194,57 @@ func TestSessionArchiveResultBudgetsErrorsAndRevocation(t *testing.T) {
 	}
 	if response := archiveRequest(t, app, body, true); response.Code != http.StatusForbidden {
 		t.Fatalf("revoked capability received a completed result: %d", response.Code)
+	}
+}
+
+func TestSessionArchiveResponseClosesReader(t *testing.T) {
+	for _, outcome := range []string{"success", "withdrawn", "oversize", "authorization-revoked", "authorization-revoked-at-delivery", "query-error"} {
+		t.Run(outcome, func(t *testing.T) {
+			app, _ := newSQLiteTestApp(t, false)
+			reader := &sessionArchiveReadProbe{}
+			delivered := false
+			reader.deliver = func(deliver func() error) error {
+				if reader.closed != 0 {
+					t.Error("response reader was closed before delivery")
+				}
+				if outcome == "withdrawn" {
+					return sessionarchive.ErrWithdrawn
+				}
+				if outcome == "authorization-revoked-at-delivery" {
+					app.accessToken = strings.Repeat("new", 16)
+				}
+				delivered = true
+				return deliver()
+			}
+			expected := http.StatusOK
+			probe := &sessionArchiveProbe{query: func(context.Context, sessionArchiveQuery) (sessionArchiveResult, error) {
+				result := sessionArchiveResult{Generation: 1, Kind: "timeline", reader: reader}
+				switch outcome {
+				case "oversize":
+					result.Events = []sessionarchive.Event{{}, {}}
+					expected = http.StatusUnprocessableEntity
+				case "authorization-revoked":
+					app.accessToken = strings.Repeat("new", 16)
+					expected = http.StatusForbidden
+				case "withdrawn":
+					expected = http.StatusForbidden
+				case "authorization-revoked-at-delivery":
+					expected = http.StatusForbidden
+				case "query-error":
+					expected = http.StatusServiceUnavailable
+					return result, errors.New("synthetic query failure")
+				}
+				return result, nil
+			}}
+			app.sessionArchive = &sessionArchiveService{
+				backend: probe, repositories: []string{"octo/one"}, read: SessionArchiveReadAccess{Approved: true},
+			}
+			response := archiveRequest(t, app, `{"kind":"timeline","repository":"octo/one","runId":"123","attempt":1,"limit":1}`, true)
+			if response.Code != expected || reader.closed != 1 ||
+				delivered != (outcome == "success" || outcome == "authorization-revoked" || outcome == "authorization-revoked-at-delivery") {
+				t.Fatalf("unexpected reader lifecycle: status=%d closed=%d delivered=%t", response.Code, reader.closed, delivered)
+			}
+		})
 	}
 }
 

@@ -76,6 +76,21 @@ func (s *Snapshot) Close() error {
 func (s *Snapshot) check() error {
 	s.archive.mu.Lock()
 	defer s.archive.mu.Unlock()
+	return s.checkLocked()
+}
+
+// Deliver serializes the final access check and result delivery with withdrawal.
+// The callback must not call back into the archive.
+func (s *Snapshot) Deliver(deliver func() error) error {
+	s.archive.mu.Lock()
+	defer s.archive.mu.Unlock()
+	if err := s.checkLocked(); err != nil {
+		return err
+	}
+	return deliver()
+}
+
+func (s *Snapshot) checkLocked() error {
 	if s.archive.closed {
 		return ErrClosed
 	}

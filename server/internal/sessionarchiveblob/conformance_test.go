@@ -312,15 +312,18 @@ func TestAzureArchiveConformance(t *testing.T) {
 	corrected := write(correction)
 	second := sessionarchive.Manifest{Version: 1, Generation: 2, CreatedAt: time.Now().UTC(),
 		Files: []sessionarchive.File{original, corrected}, Members: []sessionarchive.Member{correction.Member(), q.Member()}}
-	oldCtx, _, _, _, oldFinish, err := a.pin(t.Context(), scope, repository, "123", 1)
+	oldCtx, _, _, _, oldReader, err := a.pin(t.Context(), scope, repository, "123", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := a.Publish(t.Context(), second); err != nil {
 		t.Fatal(err)
 	}
-	if oldCtx.Err() != nil || oldFinish() != nil {
+	if oldCtx.Err() != nil || oldReader.Deliver(func() error { return nil }) != nil {
 		t.Fatal("live ordinary correction invalidated a pinned reader")
+	}
+	if err := oldReader.Close(); err != nil {
+		t.Fatal(err)
 	}
 	generation, summaries, err := a.Summaries(t.Context(), scope, repository, 100)
 	if err != nil || generation != 2 || len(summaries) != 2 {
@@ -338,15 +341,18 @@ func TestAzureArchiveConformance(t *testing.T) {
 	}
 	third := sessionarchive.Manifest{Version: 1, Generation: 3, CreatedAt: time.Now().UTC(),
 		Files: []sessionarchive.File{original}, Members: []sessionarchive.Member{q.Member()}}
-	withdrawCtx, _, _, _, withdrawFinish, err := a.pin(t.Context(), scope, repository, "123", 1)
+	withdrawCtx, _, _, _, withdrawReader, err := a.pin(t.Context(), scope, repository, "123", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := a.Publish(t.Context(), third); err != nil {
 		t.Fatal(err)
 	}
-	if withdrawCtx.Err() == nil || !errors.Is(withdrawFinish(), ErrWithdrawn) {
+	if withdrawCtx.Err() == nil || !errors.Is(withdrawReader.Deliver(func() error { return nil }), ErrWithdrawn) {
 		t.Fatal("live withdrawal did not cancel and deny pinned results")
+	}
+	if err := withdrawReader.Close(); err != nil {
+		t.Fatal(err)
 	}
 	if _, _, err := a.Timeline(t.Context(), scope, sessionarchive.TimelineRequest{Repository: repository, RunID: "123", Attempt: 1, Limit: 100}); !errors.Is(err, sessionarchive.ErrNotFound) {
 		t.Fatal("live withdrawn projection still queryable")

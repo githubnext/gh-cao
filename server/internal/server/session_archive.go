@@ -48,6 +48,12 @@ type sessionArchiveResult struct {
 	Kind       string                   `json:"kind"`
 	Events     []sessionarchive.Event   `json:"events,omitempty"`
 	Summary    []sessionarchive.Summary `json:"summary,omitempty"`
+	reader     sessionArchiveReader
+}
+
+type sessionArchiveReader interface {
+	Deliver(func() error) error
+	Close() error
 }
 
 type sessionArchiveBackend interface {
@@ -73,14 +79,18 @@ type hostedSessionArchive struct {
 func (archive *hostedSessionArchive) Query(ctx context.Context, input sessionArchiveQuery) (sessionArchiveResult, error) {
 	scope := sessionarchive.Scope{Namespace: archive.namespace, Repositories: []string{input.Repository}}
 	result := sessionArchiveResult{Kind: input.Kind}
+	var reader *sessionarchiveblob.Reader
 	var err error
 	switch input.Kind {
 	case "timeline":
-		result.Generation, result.Events, err = archive.publisher.Timeline(ctx, scope, sessionarchive.TimelineRequest{
+		result.Generation, result.Events, reader, err = archive.publisher.ReadTimeline(ctx, scope, sessionarchive.TimelineRequest{
 			Repository: input.Repository, RunID: input.RunID, Attempt: input.Attempt, Limit: min(input.Limit, 4096),
 		})
 	case "summary":
-		result.Generation, result.Summary, err = archive.publisher.Summaries(ctx, scope, input.Repository, min(input.Limit, 4096))
+		result.Generation, result.Summary, reader, err = archive.publisher.ReadSummaries(ctx, scope, input.Repository, min(input.Limit, 4096))
+	}
+	if reader != nil {
+		result.reader = reader
 	}
 	return result, err
 }
@@ -105,8 +115,7 @@ func (archive *localSessionArchive) Query(ctx context.Context, input sessionArch
 	if err != nil {
 		return sessionArchiveResult{}, err
 	}
-	defer func() { _ = snapshot.Close() }()
-	result := sessionArchiveResult{Kind: input.Kind, Generation: snapshot.Generation()}
+	result := sessionArchiveResult{Kind: input.Kind, Generation: snapshot.Generation(), reader: snapshot}
 	switch input.Kind {
 	case "timeline":
 		result.Events, err = snapshot.Timeline(ctx, sessionarchive.TimelineRequest{
@@ -114,6 +123,10 @@ func (archive *localSessionArchive) Query(ctx context.Context, input sessionArch
 		})
 	case "summary":
 		result.Summary, err = snapshot.Summary(ctx)
+	}
+	if err != nil {
+		_ = snapshot.Close()
+		result.reader = nil
 	}
 	return result, err
 }
@@ -407,8 +420,12 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), 30*time.Second)
 	defer cancel()
+	request = request.WithContext(ctx)
 	result, err := a.sessionArchive.backend.Query(ctx, input)
-	if err != nil {
+	if result.reader != nil {
+		defer func() { _ = result.reader.Close() }()
+	}
+	writeQueryError := func(err error) {
 		serverLog.Printf("session archive query failed")
 		status := http.StatusServiceUnavailable
 		switch {
@@ -420,6 +437,13 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 			status = http.StatusForbidden
 		}
 		writeError(response, status, "session archive query is unavailable or exceeds its approved budget")
+	}
+	if err != nil {
+		writeQueryError(err)
+		return
+	}
+	if result.reader == nil {
+		writeQueryError(errors.New("session archive result has no active reader"))
 		return
 	}
 	content, err := json.Marshal(result)
@@ -427,11 +451,32 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 		writeError(response, http.StatusUnprocessableEntity, "complete archive result exceeds the response budget")
 		return
 	}
-	if !a.sessionArchiveAuthorized(request) {
-		writeError(response, http.StatusForbidden, "full-trace-read authorization is no longer available")
+	deadline, _ := ctx.Deadline()
+	if err := http.NewResponseController(response).SetWriteDeadline(deadline); err != nil &&
+		!errors.Is(err, http.ErrNotSupported) {
+		writeQueryError(err)
 		return
 	}
-	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(http.StatusOK)
-	_, _ = response.Write(content)
+	started := false
+	err = result.reader.Deliver(func() error {
+		if !a.sessionArchiveAuthorized(request) {
+			writeError(response, http.StatusForbidden, "full-trace-read authorization is no longer available")
+			return nil
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		started = true
+		response.Header().Set("Content-Type", "application/json")
+		response.WriteHeader(http.StatusOK)
+		_, err := response.Write(content)
+		return err
+	})
+	if err != nil {
+		if !started {
+			writeQueryError(err)
+		} else {
+			serverLog.Printf("session archive response delivery failed")
+		}
+	}
 }
