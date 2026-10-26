@@ -10,9 +10,11 @@ import {
 } from "./common.mjs";
 import { eventPulse } from "./pulse-model.mjs";
 import { writePulse } from "./render-pulse.mjs";
+import { timelineMeasurementsJsonl } from "./export-measurements.mjs";
+import { operationalValueEvidenceJsonl } from "./export-evidence.mjs";
 
 function usage() {
-  return "usage: evaluate.mjs [--end ISO-8601] [--output-dir DIR] [--function PATH] [--campaign SLUG] [--no-runs] [--report] [--refresh] OWNER/REPO WORKFLOW-NAME-OR-PATH";
+  return "usage: evaluate.mjs [--end ISO-8601] [--output-dir DIR] [--function PATH] [--campaign SLUG] [--no-runs] [--report] [--native] [--refresh] OWNER/REPO WORKFLOW-NAME-OR-PATH";
 }
 
 const args = process.argv.slice(2);
@@ -23,6 +25,7 @@ let campaign;
 let collectRuns = true;
 let refresh = false;
 let report = false;
+let native = false;
 while (args[0]?.startsWith("-")) {
   const option = args.shift();
   if (option === "--end") endAt = args.shift() ?? fail("--end requires an ISO-8601 timestamp");
@@ -32,6 +35,7 @@ while (args[0]?.startsWith("-")) {
   else if (option === "--no-runs") collectRuns = false;
   else if (option === "--refresh") refresh = true;
   else if (option === "--report") report = true;
+  else if (option === "--native") { native = true; collectRuns = false; }
   else if (["-h", "--help"].includes(option)) {
     console.log(usage());
     process.exit(0);
@@ -222,7 +226,7 @@ try {
   run(path.join(scriptDir, "validate-report-artifacts.mjs"), [timeline, definitions]);
   const reportFiles = [];
   let eventLedger;
-  if (report) {
+  if (report || native) {
     if (valueModule.collectEvents !== undefined) {
       if (typeof valueModule.collectEvents !== "function") throw new Error("collectEvents must be a function");
       const cached = archive.functions?.[initialSha]?.eventLedger;
@@ -267,12 +271,26 @@ try {
       writeFileSync(events, writeJson(eventLedger));
       reportFiles.push([events, path.join(reportDir, path.basename(events))]);
     }
-    const pulse = path.join(work, `${workflowSlug}-pulse.html`);
-    writePulse(eventLedger ?? readJson(timeline), pulse);
-    reportFiles.push([pulse, path.join(reportDir, path.basename(pulse))]);
-    reportFiles.push([pulse.replace(/\.html$/, ".json"), path.join(reportDir, `${workflowSlug}-pulse.json`)]);
-    if (eventLedger) reportFiles.push([pulse.replace(/\.html$/, "-evidence.jsonl"),
-      path.join(reportDir, `${workflowSlug}-pulse-evidence.jsonl`)]);
+    if (report) {
+      const pulse = path.join(work, `${workflowSlug}-pulse.html`);
+      writePulse(eventLedger ?? readJson(timeline), pulse);
+      reportFiles.push([pulse, path.join(reportDir, path.basename(pulse))]);
+      reportFiles.push([pulse.replace(/\.html$/, ".json"), path.join(reportDir, `${workflowSlug}-pulse.json`)]);
+    }
+    if (eventLedger) {
+      const evidence = path.join(work, `${workflowSlug}-pulse-evidence.jsonl`);
+      writeFileSync(evidence, operationalValueEvidenceJsonl(eventLedger));
+      reportFiles.push([evidence, path.join(reportDir, path.basename(evidence))]);
+    }
+    if (["interval", "snapshot"].includes(definition.evidence.measurementKind)) {
+      const measurements = path.join(work, `${workflowSlug}-measurements.jsonl`);
+      writeFileSync(measurements, timelineMeasurementsJsonl(readJson(timeline), { campaign }));
+      reportFiles.push([measurements, path.join(reportDir, path.basename(measurements))]);
+    } else if (native) {
+      throw new Error("Native publication requires an explicit frozen measurement kind");
+    } else {
+      console.error("warning: native measurements unavailable: the legacy contract has no explicit measurement kind");
+    }
   }
   if (sha256File(valueFunction) !== initialSha) throw new Error("value function changed during deterministic evaluation");
 

@@ -61,6 +61,8 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 	retrievedAt := time.Now().UTC().Format(time.RFC3339Nano)
 	definitions = frozenStatisticalDefinitions(definitions)
 	valueSelections := query.OperationalValueEvidenceSelections(definitions, requested)
+	measurementSelections := query.SourceEqualities(definitions, requested, "workflow-value-measurements",
+		"$operationalValues", "id", "workflow-route")
 	resolve := func(name string) (query.SQLRelation, error) {
 		if strings.HasPrefix(name, statisticalSnapshotPrefix) {
 			relation, quality, err := r.frozenStatisticalSource(ctx, name)
@@ -102,6 +104,19 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 		}
 		if name == "$operationalValueEvidence" {
 			relation = r.operationalValueEvidenceSQLSource(valueSelections...)
+		}
+		if name == "$operationalValues" && len(measurementSelections) > 0 {
+			var predicates []string
+			for _, selection := range measurementSelections {
+				if selection.Field == "id" {
+					predicates = append(predicates, "t.id={}")
+					relation.Params = append(relation.Params, selection.Value)
+				} else {
+					predicates = append(predicates, "("+relation.Columns["workflow-route"].Expression+")={}")
+					relation.Params = append(relation.Params, selection.Value)
+				}
+			}
+			relation.SQL = "(SELECT * FROM " + relation.SQL + " WHERE " + strings.Join(predicates, " OR ") + ") AS t"
 		}
 		value, err := r.rootMetadata(ctx, name, valueSelections...)
 		if err != nil {

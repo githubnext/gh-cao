@@ -1,6 +1,41 @@
 {
   "queries": [
     {
+      "name": "value-measurement-facts",
+      "subject": "Original native primary and diagnostic observations from reviewed batch evaluators.",
+      "objective": "Keep periods, native units, evaluator identity and missingness inspectable without inventing delivery events.",
+      "acceptance": "Null is unavailable, not zero. Interval measurements are not snapshots or cumulative accepted contributions.",
+      "from": "workflow-value-measurements",
+      "time": { "range": "all" },
+      "compute": [
+        { "as": "measurement-marker", "function": "literal", "args": [{ "value": 1 }] },
+        { "as": "measurement-missing", "function": "equals-any", "args": [{ "field": "value" }, { "value": null }] },
+        { "as": "known-measurement", "function": "concat", "args": [{ "field": "value" }, { "value": " " }, { "field": "metric-unit" }] },
+        { "as": "measurement-label", "function": "if", "args": [{ "field": "measurement-missing" }, { "value": "Not measured" }, { "field": "known-measurement" }] },
+        { "as": "measurement-context", "function": "concat", "args": [{ "field": "repository" }, { "value": " · " }, { "field": "workflow-name" }] }
+      ]
+    },
+    {
+      "name": "value-measurement-order",
+      "subject": "Latest assessment of each workflow measure, including unavailable assessments.",
+      "objective": "Do not let an older numeric value hide a newer incomplete period.",
+      "acceptance": "Choose latest cutoff and assessment before considering value or coverage; preserve evaluator digest.",
+      "from": "value-measurement-facts",
+      "window": [{
+        "operation": "change", "field": "measurement-marker", "as": "older-measurement", "mode": "absolute",
+        "groupby": ["repository", "workflow-route", "workflow-slug", "campaign", "value-id"],
+        "order-by": [{ "field": "window-end", "direction": "desc" }, { "field": "observed-at", "direction": "desc" }]
+      }]
+    },
+    {
+      "name": "value-current-measurements",
+      "subject": "Latest native primary measurements, separately from event-ledger reports.",
+      "objective": "Expose ordinary reviewed batch results on the same Value surface.",
+      "acceptance": "Do not infer healthy outcomes, accepted implementations or complete coverage from a non-null value.",
+      "from": "value-measurement-order",
+      "filter": { "predicates": [{ "field": "older-measurement", "equals": "unknown" }, { "field": "metric-role", "equals": "primary" }] }
+    },
+    {
       "name": "value-evidence-facts",
       "subject": "Published original evidence for frozen workflow value contracts.",
       "objective": "Keep report identity, target repository, workflow and capture together.",
@@ -18,15 +53,43 @@
       "compute": [{ "as": "report-marker", "function": "literal", "args": [{ "value": 1 }] }]
     },
     {
+      "name": "value-measurement-captures",
+      "subject": "Accepted complete native batch assessments, separately from collection decisions.",
+      "objective": "Expose actual retained capture clocks without advancing them on failure or partial data.",
+      "acceptance": "Only mature complete non-null primary assessments establish an accepted capture; zero remains valid.",
+      "from": "value-measurement-facts",
+      "filter": { "predicates": [
+        { "field": "metric-role", "equals": "primary" }, { "field": "measurement-missing", "equals": false },
+        { "field": "coverage-status", "equals": "complete" }, { "field": "maturity-status", "equals": "matured" }
+      ] },
+      "compute": [{ "as": "report-marker", "function": "literal", "args": [{ "value": 1 }] }],
+      "select": [
+        { "field": "workflow-route" }, { "field": "observed-at" }, { "field": "window-end" },
+        { "field": "id", "as": "capture-id" }, { "field": "report-marker" }
+      ]
+    },
+    {
+      "name": "value-contract-captures",
+      "subject": "Original capture clocks from accepted rich evidence packets.",
+      "objective": "Align capture metadata without merging measured populations.",
+      "acceptance": "This union is capture metadata only, never combined metric totals.",
+      "from": "value-contracts",
+      "select": [
+        { "field": "workflow-route" }, { "field": "observed-at" }, { "field": "window-end" },
+        { "field": "report-id", "as": "capture-id" }, { "field": "report-marker" }
+      ]
+    },
+    {
       "name": "value-capture-order",
       "subject": "Actual captures across the retained measures of each workflow.",
       "objective": "Expose the last accepted capture independently of collection decisions.",
       "acceptance": "Select by original capture time. A deferred or failed check cannot advance evidence clocks.",
-      "from": "value-contracts",
+      "from": "value-contract-captures",
+      "union": ["value-measurement-captures"],
       "window": [{
         "operation": "change", "field": "report-marker", "as": "later-capture", "mode": "absolute",
-        "groupby": ["organization", "repository", "workflow", "workflow-route"],
-        "order-by": [{ "field": "observed-at", "direction": "desc" }, { "field": "report-id", "direction": "desc" }]
+        "groupby": ["workflow-route"],
+        "order-by": [{ "field": "observed-at", "direction": "desc" }, { "field": "capture-id", "direction": "desc" }]
       }]
     },
     {
@@ -46,7 +109,7 @@
       "time": { "range": "all" },
       "joins": [{
         "source": "value-latest-capture", "type": "left",
-        "on": [{ "left": "organization", "right": "organization" }, { "left": "repository", "right": "repository" }, { "left": "workflow", "right": "workflow" }, { "left": "workflow-route", "right": "workflow-route" }],
+        "on": [{ "left": "workflow-route", "right": "workflow-route" }],
         "fields": [{ "field": "observed-at", "as": "captured-at" }, { "field": "window-end", "as": "evidence-cutoff" }]
       }],
       "compute": [
@@ -366,6 +429,35 @@
   ],
   "pages": [
     {
+      "id": "value-measurement", "kind": "custom", "title": "Native measurement", "icon": "graph",
+      "description": "Inspect an original batch assessment and its exact evidence period without inferring accepted changes or verified quality.",
+      "intent": "Inspect a native outcome measurement under its frozen evaluator.",
+      "subject": "One original canonical operational-value observation.",
+      "objective": "Keep missingness, coverage, maturity and immutable fingerprints visible.",
+      "acceptance": "Never replace null with zero or reinterpret interval results as repository snapshots.",
+      "route": { "hash-query-parameter": "measurement", "navigation-page": "value", "breadcrumbs": [{ "page": "value" }] },
+      "views": [{
+        "id": "native-measurement", "title": "Measured outcome",
+        "data": { "source": "value-measurement-facts", "arguments": [{ "name": "measurement", "field": "id" }], "time": { "range": "all" }, "query-context": false },
+        "mark": "list", "list": { "style": "entity-cards", "card": "workflow-measurement", "icon": "graph" },
+        "encoding": { "columns": [{ "field": "measurement-label", "type": "nominal", "title": "Value" }] }, "layout": "full"
+      }, {
+        "id": "native-measurement-evidence", "title": "Period and evidence identity",
+        "data": { "source": "value-measurement-facts", "arguments": [{ "name": "measurement", "field": "id" }], "time": { "range": "all" }, "query-context": false },
+        "mark": "table", "layout": "full",
+        "encoding": { "columns": [
+          { "field": "window-start", "type": "temporal", "title": "Window start", "format": "human-friendly-timestamp" },
+          { "field": "window-end", "type": "temporal", "title": "Window end", "format": "human-friendly-timestamp" },
+          { "field": "observed-at", "type": "temporal", "title": "Assessed at", "format": "human-friendly-timestamp" },
+          { "field": "metric-role", "type": "nominal", "title": "Role" },
+          { "field": "evaluator-digest", "type": "nominal", "title": "Frozen evaluator" },
+          { "field": "evidence-digest", "type": "nominal", "title": "Original evidence digest" },
+          { "field": "eligible-count", "type": "quantitative", "title": "Eligible population" },
+          { "field": "population-digest", "type": "nominal", "title": "Population identity" }
+        ] }
+      }]
+    },
+    {
       "id": "workflow-value", "kind": "custom", "title": "Workflow value", "icon": "trophy",
       "description": "Inspect measured repository movement and open the evidence behind a workflow's result.",
       "intent": "Judge the selected workflow's repository outcome and open its evidence report.",
@@ -399,6 +491,13 @@
           "drill": { "type": "query", "page": "value-report", "query": "value-report-summary", "title-field": "snapshot-name", "arguments": [{ "name": "report", "field": "report-id" }] } },
         "encoding": { "columns": [{ "field": "change-label", "type": "nominal", "title": "Observed change" }] },
         "layout": "full", "empty-message": "No accepted Value evidence is retained for this workflow. See collection health above; missing evidence is not zero value."
+      }, {
+        "id": "workflow-native-measurements", "title": "Native measurements",
+        "data": { "source": "value-current-measurements", "route-field": "workflow-route", "query-context": false, "time": { "range": "all" } },
+        "mark": "list", "list": { "style": "entity-cards", "card": "workflow-measurement", "icon": "graph",
+          "drill": { "type": "query", "page": "value-measurement", "query": "value-measurement-facts", "title-field": "metric-name", "arguments": [{ "name": "measurement", "field": "id" }] } },
+        "encoding": { "columns": [{ "field": "measurement-label", "type": "nominal", "title": "Value" }] },
+        "layout": "full", "empty-message": "No native batch measurements are retained for this workflow."
       }]
     },
     {
@@ -461,6 +560,13 @@
         "encoding": { "columns": [{ "field": "change-label", "type": "nominal", "title": "Observed change" }] },
         "layout": "full",
         "empty-message": "No accepted workflow Value reports are retained. See collection health above; a registered collector may be deferred before its first capture."
+      }, {
+        "id": "value-native-measurements", "title": "Native measurements",
+        "data": { "source": "value-current-measurements", "query-context": false, "time": { "range": "all" } },
+        "mark": "list", "list": { "style": "entity-cards", "card": "workflow-measurement", "icon": "graph",
+          "drill": { "type": "query", "page": "value-measurement", "query": "value-measurement-facts", "title-field": "metric-name", "arguments": [{ "name": "measurement", "field": "id" }] } },
+        "encoding": { "columns": [{ "field": "measurement-label", "type": "nominal", "title": "Value" }] },
+        "layout": "full", "empty-message": "No native batch measurements have been published."
       }]
     }
   ]

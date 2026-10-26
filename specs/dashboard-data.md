@@ -3060,6 +3060,32 @@ for atomic source-data updates.
 
 ## 31.2 Native Operational Value report evidence
 
+Reviewed ordinary batch/timeline evaluation SHALL publish existing schema-v2
+`operational_value` envelopes, without inventing accepted events or changing
+canonical observation identity. Snapshot and interval grain, original period
+boundaries, numeric zero, null/unavailable, partial/interim states and evaluator,
+population and evidence fingerprints SHALL survive publication and ingestion.
+An explicit `workflow_path`, when supplied, SHALL match the workflow filename
+stem and establish only an observed unknown-state Workflow, not registration.
+
+The `workflow-value-measurements` logical source SHALL project those original
+assessments. Its workflow route is available only when retained workflow metadata
+agrees with the namespaced metric ID. Native cards SHALL select the latest period
+and assessment before considering value or coverage; missing latest results
+SHALL NOT fall back to older numeric results. Native detail views SHALL expose
+the original assessment, window and provenance fingerprints, not an inferred
+contribution or quality verdict. Scalar observations and rich event-ledger
+packets remain separate populations. Complete mature primary observations may
+supply actual accepted-capture metadata to collection health; partial/interim/
+unavailable observations SHALL NOT advance that clock.
+
+Exact observation reads SHALL use canonical identity before materialization.
+Workflow reads SHALL narrow by repository and namespaced metric keys before
+loading observation bodies, with a 20,000-record/key and 16 MiB input bound for
+local/browser reads. Key scanning is bounded, not a claim of constant physical
+I/O at arbitrary fleet size. Hosted SQL SHALL scope typed observations before
+resource statistics under its existing query/transaction budgets.
+
 Canonical schema 33 SHALL retain `operationalValueEvidence`: one bounded current
 packet per exact target repository, workflow filename stem and frozen
 contribution metric ID/version. Capture time is not part of identity. A newer

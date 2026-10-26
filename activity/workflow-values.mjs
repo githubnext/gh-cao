@@ -10,6 +10,7 @@ import { pathToFileURL } from 'node:url';
 import { loadPolicyFile } from '../.github/workflows/shared/policy.mjs';
 import { validateOperationalValueEvidence } from '../dashboard/site/src/data/model/operational-value-evidence.js';
 import { assertValueHistory } from './workflow-value-history.mjs';
+import { createValueArchiveProvider, valueArchiveAccessFromEnvironment } from './value-session-archive.mjs';
 import {
   readValueEnvelopes, saveValueCollectionDecisions, valueCollectionDecision, VALUE_DEFERRALS,
   workflowValueSelections, workflowValueStatusContext, writeValueEnvelopes,
@@ -46,7 +47,7 @@ export function workflowValueRegistrations(document, repositories) {
   return workflowValueSelections(document, repositories).filter(entry => entry.enabled !== false);
 }
 
-export async function collectWorkflowValue(request) {
+export async function collectWorkflowValue(request, { archiveAccess, archiveReader, signal } = {}) {
   const filename = await confinedCollector(request.root, request.entry.collector);
   const { definition, collectValueEvidence } = await import(pathToFileURL(filename).href);
   const { repository, workflow } = request.entry;
@@ -62,6 +63,10 @@ export async function collectWorkflowValue(request) {
     throw new Error('Collector must export an exact frozen definition and collectValueEvidence');
   }
   const previous = request.previous;
+  const archive = createValueArchiveProvider({
+    repository: repository.toLowerCase(), access: archiveAccess ?? valueArchiveAccessFromEnvironment(),
+    reader: archiveReader, signal,
+  });
   if (previous) {
     validateOperationalValueEvidence(previous);
     const header = previous.facts.find((fact) => fact['fact-kind'] === 'contract');
@@ -78,7 +83,7 @@ export async function collectWorkflowValue(request) {
   try {
     const envelope = await collectValueEvidence({
       repository, workflow, observedAt: request.observedAt, database: request.database,
-      previous, workspace: { directory: request.workspace, scratch },
+      previous, workspace: { directory: request.workspace, scratch }, archive,
     });
     if (Buffer.byteLength(JSON.stringify(envelope)) > MAX_BYTES || envelope?.schema_version !== 2
       || envelope?.kind !== 'operational_value_evidence'

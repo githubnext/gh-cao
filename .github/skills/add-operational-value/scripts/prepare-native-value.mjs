@@ -7,6 +7,8 @@ import { lstatSync, mkdirSync, readFileSync, statSync, writeFileSync } from "nod
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { validateOperationalValueEvidence } from "../../../../dashboard/site/src/data/model/operational-value-evidence.js";
+import { adaptCachedGhAwJsonl } from "../../../../dashboard/site/src/data/adapters/gh-aw-logs.js";
+import { normalize } from "../../../../dashboard/site/src/data/normalize/index.js";
 
 const root = path.resolve(import.meta.dirname, "../../../..");
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -26,7 +28,7 @@ export function createNativeValueOutput(directory) {
 
 export function readNativeValueEvidence(file, sha256) {
   assert.match(sha256, /^[a-f0-9]{64}$/, "An exact retained evidence digest is required");
-  assert.ok(lstatSync(file).isFile() && statSync(file).size <= 8 * 1024 * 1024,
+  assert.ok(lstatSync(file).isFile() && statSync(file).size <= 16 * 1024 * 1024,
     "Bounded regular evidence file required");
   const envelope = readFileSync(file, "utf8");
   assert.equal(hash(envelope), sha256, "Retained evidence digest mismatch");
@@ -35,11 +37,31 @@ export function readNativeValueEvidence(file, sha256) {
 
 /** Accept originals from any verified frozen workflow contract, never a report model or executable code. */
 export function importNativeValueEvidence(envelope, output) {
-  assert.ok(Buffer.byteLength(envelope) <= 8 * 1024 * 1024, "Evidence envelope exceeds publication budget");
-  const transport = JSON.parse(envelope);
-  assert.equal(transport.schema_version, 2);
-  assert.equal(transport.kind, "operational_value_evidence");
-  const packet = validateOperationalValueEvidence(transport.operational_value_evidence);
+  assert.ok(Buffer.byteLength(envelope) <= 16 * 1024 * 1024, "Evidence envelope exceeds publication budget");
+  const transports = envelope.trim().split(/\r?\n/).map(line => JSON.parse(line));
+  assert.ok(transports.length > 0 && transports.length <= 20000
+    && transports.every(item => item.schema_version === 2), "Bounded original envelopes required");
+  let packet;
+  let latest;
+  if (transports.length === 1 && transports[0].kind === "operational_value_evidence") {
+    assert.ok(Buffer.byteLength(envelope) <= 8 * 1024 * 1024, "Evidence packet exceeds publication budget");
+    packet = validateOperationalValueEvidence(transports[0].operational_value_evidence);
+  } else {
+    assert.ok(transports.every(item => item.kind === "operational_value"), "Do not mix native publication contracts");
+    const values = normalize(adaptCachedGhAwJsonl(envelope).observations).operationalValues;
+    assert.ok(values.length > 0, "Native measurements required");
+    latest = values.filter(value => value['operational-value-role'] === 'primary')
+      .sort((a, b) => Date.parse(b['window-end']) - Date.parse(a['window-end'])
+        || Date.parse(b.timestamp) - Date.parse(a.timestamp))[0];
+    assert.ok(latest && typeof latest.repository === "string"
+      && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(latest['workflow-slug']),
+    "A primary measurement with a workflow identity is required");
+    assert.ok(values.every(value => value.repository === latest.repository
+      && value['workflow-slug'] === latest['workflow-slug']), "Native preparation requires one exact repository/workflow");
+  }
+  const repository = packet?.repository ?? latest.repository;
+  const workflow = packet?.workflow ?? latest['workflow-slug'];
+  const workflowRoute = `#page-workflow-value?workflow=${encodeURIComponent(`${repository}:.github/workflows/${workflow}.md`)}`;
   const evidence = path.join(output, "evidence.jsonl");
   writeFileSync(evidence, envelope, { flag: "wx", mode: 0o600 });
   const database = path.join(output, "dashboard.sqlite");
@@ -53,16 +75,20 @@ export function importNativeValueEvidence(envelope, output) {
   const ingestion = cao("ingest-jsonl", "--database", database, "--input", evidence, "--retention-days", "all");
   const ingestMs = performance.now() - ingestStart;
   const queryStart = performance.now();
-  const result = cao("query", "value-report-summary", "--database", database,
+  const result = cao("query", packet ? "value-report-summary" : "value-current-measurements", "--database", database,
     "--dashboard", path.join(root, "dashboard/site/dashboard.json"));
   const queryMs = performance.now() - queryStart;
   writeFileSync(path.join(output, "native-query.json"), `${JSON.stringify(result, null, 2)}\n`, { flag: "wx", mode: 0o600 });
   return {
-    reportId: packet.id, contractDigest: packet.contractDigest,
-    evidenceSha256: hash(envelope), evidenceBytes: Buffer.byteLength(envelope), facts: packet.facts.length,
-    observedAt: packet.observedAt, windowStart: packet.windowStart, windowEnd: packet.windowEnd,
-    workflowRoute: `#page-workflow-value?workflow=${encodeURIComponent(`${packet.repository}:${packet.sourcePath}`)}`,
-    reportRoute: `#page-value-report?report=${encodeURIComponent(packet.id)}`,
+    kind: packet ? "operational-value-evidence" : "operational-values",
+    ...(packet ? { reportId: packet.id, contractDigest: packet.contractDigest, facts: packet.facts.length }
+      : { observationId: latest.id, evaluatorDigest: latest['evaluator-digest'], observations: transports.length }),
+    evidenceSha256: hash(envelope), evidenceBytes: Buffer.byteLength(envelope),
+    observedAt: packet?.observedAt ?? latest.timestamp,
+    windowStart: packet?.windowStart ?? latest['window-start'], windowEnd: packet?.windowEnd ?? latest['window-end'],
+    workflowRoute,
+    reportRoute: packet ? `#page-value-report?report=${encodeURIComponent(packet.id)}`
+      : `#page-value-measurement?measurement=${encodeURIComponent(latest.id)}`,
     databaseBytes: statSync(database).size, ingestion, ingestMs, queryMs,
   };
 }

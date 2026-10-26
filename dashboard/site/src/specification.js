@@ -416,6 +416,7 @@ export const TABLE_VALUES = [
   'findings',
   'operational-values',
   'operational-value-evidence',
+  'workflow-value-measurements',
   'workflow-value-collections',
   'github-api-rate-limits',
   'github-api-collector-health',
@@ -541,6 +542,12 @@ export const TABLE_FIELDS = {
     'measurement-basis', 'snapshot-name', 'snapshot-unit', 'snapshot-direction', 'snapshot-id', 'snapshot-version',
     'snapshot-formula', 'outputs-available', 'repository-state-available', 'checks-available', 'items-available',
     'output-unit', 'implementation-unit', 'output-scope', 'output-coverage', 'workflow-name', 'cadence-days', 'maturation-days'
+  ],
+  'workflow-value-measurements': [
+    'id', 'repository', 'workflow-route', 'campaign', 'workflow-slug', 'workflow-name', 'value-id', 'value',
+    'metric-role', 'metric-name', 'metric-unit', 'metric-direction', 'evaluator-digest', 'observed-at',
+    'window-start', 'window-end', 'measurement-kind', 'maturity-status', 'coverage-status', 'missing-reason',
+    'evidence-digest', 'eligible-count', 'population-digest', 'cadence-days', 'evaluation-mode', 'adoption-at'
   ],
   'github-api-rate-limits': ['observation-id', 'operation-execution-id', 'observed-at', 'phase', 'operation', 'outcome', 'credential', 'credential-type', 'resource', 'bucket', 'maximum-lane', 'history-series', 'has-history', 'limit', 'used', 'remaining', 'remaining-percent', 'reset-at', 'minutes-to-reset', 'consumed-since-previous', 'burn-rate-per-minute', 'projected-remaining-at-reset', 'projected-exhaustion-at', 'runway-ratio', 'risk-status', 'risk-order', 'is-unhealthy', 'is-current', 'attribution-status', 'operation-consumed', 'run-link'],
   'github-api-collector-health': ['observed-at', 'operation-execution-id', 'phase', 'operation', 'outcome', 'credential', 'cache-hydrated', 'cache-bytes', 'cache-entries', 'cache-folders', 'rate-limit-error'],

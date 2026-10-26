@@ -12,6 +12,8 @@ import ledgerFixture from '../fixtures/operational-value-ledger.json' with { typ
 import contract from '../fixtures/workflow-value-view-contract.json' with { type: 'json' };
 import { evidencePacketSelection, readEvidencePackets } from '../../src/data/queries/evidence-selection.js';
 import { operationalValueEvidenceId, operationalValueEvidenceRows } from '../../src/data/model/operational-value-evidence.js';
+import { workflowValueCollectionId } from '../../src/data/model/workflow-value-collection.js';
+import { measurementSelection, readMeasurements } from '../../src/data/queries/measurement-selection.js';
 
 const dashboard = authoritativeDashboard.dashboard;
 const repository = resolve('../..');
@@ -122,6 +124,76 @@ describe('native workflow value production contract', () => {
       ], ['selected'])).toBeNull();
     }
   });
+
+  it('publishes a reviewed batch workflow natively without an event ledger or HTML, with scoped cards and health', async () => {
+    const module = join(repository, 'tests/fixtures/operational-value/native-workflow.mjs');
+    execFileSync(process.execPath, [
+      '.github/skills/add-operational-value/scripts/evaluate.mjs', '--native', '--function', module,
+      '--output-dir', directory, '--end', '2026-10-15T00:00:00Z', 'example/service', 'incident-response'
+    ], { cwd: repository, stdio: 'pipe' });
+    const emitted = readFileSync(join(directory, 'example-service/incident-response-measurements.jsonl'), 'utf8');
+    await ingestCachedGhAwJsonl(indexedDB, emitted, { now: Date.parse('2026-10-20T00:00:00Z') });
+    const health = JSON.parse(readFileSync(join(repository, 'dashboard/site/test/fixtures/workflow-value-collection.jsonl'), 'utf8'));
+    health.workflow_value_collection.repository = 'example/service';
+    health.workflow_value_collection.workflow = 'incident-response';
+    health.workflow_value_collection.id = workflowValueCollectionId('example/service', 'incident-response');
+    health.workflow_value_collection.sourcePath = '.github/workflows/incident-response.md';
+    health.workflow_value_collection.observedAt = '2026-10-20T00:00:00.000Z';
+    health.workflow_value_collection.lastAttemptAt = '2026-10-19T00:00:00.000Z';
+    await ingestCachedGhAwJsonl(indexedDB, JSON.stringify(health), { now: Date.parse('2026-10-20T00:00:00Z') });
+    const original = emitted.trim().split('\n').map(line => JSON.parse(line));
+    for (let batch = 0; batch < 20; batch++) {
+      const other = Array.from({ length: 50 }, (_, index) => ({
+        ...original[0], operational_value: { ...original[0].operational_value,
+          repository: `load/service-${batch * 50 + index}`, workflow_slug: 'another-workflow',
+          workflow_path: '.github/workflows/another-workflow.md',
+          value_id: 'another-workflow.response-hours' }
+      }));
+      await ingestCachedGhAwJsonl(indexedDB, other.map(item => JSON.stringify(item)).join('\n'),
+        { now: Date.parse('2026-10-20T00:00:00Z'), payloadScope: `measurements-${batch}` });
+    }
+    const route = 'example/service:.github/workflows/incident-response.md';
+    /** @type {Array<{keysScanned: number, recordsRead: number, bytes: number}>} */
+    const measured = [];
+    const selected = await readMeasurements(indexedDB, [{ field: 'workflow-route', value: route }],
+      undefined, metrics => measured.push(metrics));
+    expect(selected).toHaveLength(2);
+    expect(measured[0]).toMatchObject({ keysScanned: 2, recordsRead: 2 });
+    for (let batch = 0; batch < 20; batch++) {
+      const other = Array.from({ length: 50 }, (_, index) => {
+        const slug = `other-${batch * 50 + index}`;
+        return { ...original[0], operational_value: { ...original[0].operational_value,
+          workflow_slug: slug, workflow_path: `.github/workflows/${slug}.md`, value_id: `${slug}.response-hours` } };
+      });
+      await ingestCachedGhAwJsonl(indexedDB, other.map(item => JSON.stringify(item)).join('\n'),
+        { now: Date.parse('2026-10-20T00:00:00Z'), payloadScope: `same-repository-${batch}` });
+    }
+    const page = dashboard.pages.find((/** @type {{id: string}} */ page) => page.id === 'workflow-value');
+    const compiled = compileDashboardViewPayloadQueries(page, page.id, {
+      queries: dashboard.queries, routeParameters: { workflow: route }
+    });
+    const scope = measurementSelection(compiled.queries, compiled.aliases);
+    expect(scope).toEqual([{ field: 'workflow-route', value: route }]);
+    expect(await readMeasurements(indexedDB, scope, undefined, metrics => measured.push(metrics))).toHaveLength(2);
+    expect(measured[1]).toMatchObject({ keysScanned: 1002, recordsRead: 2, bytes: measured[0].bytes });
+    const workflow = await execute('workflow-value', { workflow: route });
+    expect(workflow[0].rows[0]['captured-at']).toBe('2026-10-08T00:00:00.000Z');
+    expect(workflow[0].rows[0]['evidence-cutoff']).toBe('2026-10-08T00:00:00.000Z');
+    const cards = workflow[workflow.length - 1].rows;
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toMatchObject({
+      repository: 'example/service', value: null, 'measurement-label': 'Not measured',
+      'measurement-kind': 'interval', 'coverage-status': 'partial', 'maturity-status': 'unavailable'
+    });
+    const detail = await execute('value-measurement', { measurement: String(cards[0].id) });
+    expect(detail[0].rows).toHaveLength(1);
+    expect(detail[0].rows[0]).toMatchObject({
+      'missing-reason': 'Incomplete retained deliveries', 'evidence-digest': expect.any(String),
+      'evaluator-digest': expect.any(String), 'window-start': '2026-10-08T00:00:00.000Z'
+    });
+    const outside = await execute('workflow-value', { workflow: 'outside/service:.github/workflows/incident-response.md' });
+    expect(outside[outside.length - 1].rows).toEqual([]);
+  }, 30000);
 
   it('bounds exact native report reads while 1000 unrelated workflows remain stored', async () => {
     const packet = await publish(fileLedger());

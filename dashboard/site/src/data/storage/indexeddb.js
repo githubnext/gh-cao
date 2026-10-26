@@ -1226,7 +1226,7 @@ export async function readCollection(indexedDB, storeName) {
  * @param {IDBFactory} indexedDB
  * @param {typeof ENTITY_STORES[number]} storeName
  * @param {import('../../data-operations.js').DataOperator[]} operators
- * @param {{ maxRows?: number, maxBytes?: number, checkpoint?: () => void, onMetrics?: (metrics: { durationMs: number, requestCount: number, recordsScanned: number, recordsReturned: number, index: string | null }) => void }} [options]
+ * @param {{ maxRows?: number, maxBytes?: number, keyFilter?: (key: IDBValidKey) => boolean, checkpoint?: () => void, onMetrics?: (metrics: { durationMs: number, requestCount: number, recordsScanned: number, recordsReturned: number, index: string | null }) => void }} [options]
  */
 export async function queryCollection(indexedDB, storeName, operators, options = {}) {
   const startedAt = monotonicNow();
@@ -1253,6 +1253,7 @@ export async function queryCollection(indexedDB, storeName, operators, options =
         const keys = await requestResult((plan?.index ?? store).getAllKeys(range));
         for (const key of keys) {
           options.checkpoint?.();
+          if (options.keyFilter && !options.keyFilter(key)) continue;
           if (selected.has(key)) continue;
           const row = await requestResult(store.get(key));
           bytes += new TextEncoder().encode(JSON.stringify(row)).length;

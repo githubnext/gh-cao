@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -53,6 +54,12 @@ func (r *reader) ExecuteSQLPlanWithOptions(ctx context.Context, definitions []qu
 	for _, selection := range query.OperationalValueEvidenceSelections(definitions, requested) {
 		valueSelections = append(valueSelections, dashboardquery.EvidenceSelection{Field: selection.Field, Value: selection.Value})
 	}
+	var measurementSelections []dashboardquery.EvidenceSelection
+	for _, selection := range query.SourceEqualities(definitions, requested, "workflow-value-measurements",
+		"$operationalValues", "id", "workflow-route") {
+		measurementSelections = append(measurementSelections, dashboardquery.EvidenceSelection{Field: selection.Field, Value: selection.Value})
+	}
+	usesMeasurements := slices.Contains(order, "workflow-value-measurements")
 	state, err := r.State(ctx)
 	if err != nil {
 		return nil, metrics, err
@@ -108,7 +115,7 @@ func (r *reader) ExecuteSQLPlanWithOptions(ctx context.Context, definitions []qu
 		if _, exists := cache[name]; exists {
 			return nil
 		}
-		source, err := r.source(ctx, name, state, options, fields[name], valueSelections)
+		source, err := r.source(ctx, name, state, options, fields[name], valueSelections, measurementSelections, usesMeasurements)
 		if err != nil {
 			return err
 		}
@@ -211,7 +218,7 @@ func snapshotInputs(definition query.Definition) []string {
 	return inputs
 }
 
-func (r *reader) source(ctx context.Context, name string, state dashboardstore.State, options dashboardstore.ExecutionOptions, fields snapshotFields, valueSelections []dashboardquery.EvidenceSelection) (model.Source, error) {
+func (r *reader) source(ctx context.Context, name string, state dashboardstore.State, options dashboardstore.ExecutionOptions, fields snapshotFields, valueSelections, measurementSelections []dashboardquery.EvidenceSelection, usesMeasurements bool) (model.Source, error) {
 	if name == "$statisticalMembership" {
 		rows, err := dashboardquery.ReadCollectionFields(ctx, r.tx, "runs",
 			[]string{"id", "owner", "repository", "githubRunId", "startedAt", "createdAt", "completedAt", "updatedAt", "status", "conclusion"},
@@ -354,11 +361,16 @@ func (r *reader) source(ctx context.Context, name string, state dashboardstore.S
 		var err error
 		if collection == "operationalValueEvidence" {
 			rows, err = dashboardquery.ReadEvidencePackets(ctx, r.tx, valueSelections)
+		} else if collection == "operationalValues" && usesMeasurements {
+			rows, err = dashboardquery.ReadMeasurements(ctx, r.tx, measurementSelections)
 		} else {
 			rows, err = dashboardquery.ReadCollectionFields(ctx, r.tx, collection, projected, maxSnapshotInputRows, maxSnapshotWorkingBytes)
 		}
 		if err != nil {
 			return model.Source{}, err
+		}
+		if collection == "operationalValues" {
+			dashboardquery.MeasurementRows(rows)
 		}
 		metadata := model.Metadata{
 			"source-id": name, "completeness": "unknown", "freshness": "unknown",

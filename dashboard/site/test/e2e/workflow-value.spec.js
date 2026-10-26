@@ -11,8 +11,8 @@ import ledgerFixture from '../fixtures/operational-value-ledger.json' with { typ
 
 registerSmokeRoutes();
 
-/** @param {typeof ledgerFixture} ledger @param {{includeEvidence?: boolean, defer?: string | null, previousHealth?: string}} [options] */
-function publishedShards(ledger, { includeEvidence = true, defer = 'shared-budget-unavailable', previousHealth = '' } = {}) {
+/** @param {typeof ledgerFixture} ledger @param {{includeEvidence?: boolean, defer?: string | null, previousHealth?: string, measurements?: string}} [options] */
+function publishedShards(ledger, { includeEvidence = true, defer = 'shared-budget-unavailable', previousHealth = '', measurements = '' } = {}) {
   const root = resolve('../..');
   mkdirSync(join(root, '.tmp'), { recursive: true });
   const directory = mkdtempSync(join(root, '.tmp', 'workflow-value-browser-'));
@@ -39,7 +39,7 @@ function publishedShards(ledger, { includeEvidence = true, defer = 'shared-budge
       '--healthOutput', health, '--workspace', join(directory, 'proofs'),
       ...(defer ? ['--defer', defer] : [])
     ], { cwd: root, stdio: 'pipe' });
-    const original = readFileSync(health, 'utf8') + (includeEvidence ? readFileSync(join(directory, 'pulse-evidence.jsonl'), 'utf8') : '');
+    const original = readFileSync(health, 'utf8') + (includeEvidence ? readFileSync(join(directory, 'pulse-evidence.jsonl'), 'utf8') : '') + measurements;
     const batch = normalize(adaptCachedGhAwJsonl(original).observations);
     const records = Object.entries(batch).flatMap(([collection, rows]) =>
       Array.isArray(rows) ? rows.map(record => ({ kind: 'record', collection, record })) : []);
@@ -60,7 +60,23 @@ function publishedShards(ledger, { includeEvidence = true, defer = 'shared-budge
       manifest[name] = hash;
       contents[`/${name}`] = content;
     }
+
     return { manifest, contents, health: readFileSync(health, 'utf8') };
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+function nativeMeasurements() {
+  const root = resolve('../..');
+  const directory = mkdtempSync(join(root, '.tmp', 'batch-value-browser-'));
+  try {
+    execFileSync(process.execPath, [
+      '.github/skills/add-operational-value/scripts/evaluate.mjs', '--native',
+      '--function', 'tests/fixtures/operational-value/native-workflow.mjs',
+      '--output-dir', directory, '--end', '2026-10-15T00:00:00Z', 'example/service', 'incident-response'
+    ], { cwd: root, stdio: 'pipe' });
+    return readFileSync(join(directory, 'example-service/incident-response-measurements.jsonl'), 'utf8');
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -178,5 +194,21 @@ for (const width of [1440, 390]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
     await page.emulateMedia({ colorScheme: 'dark' });
     await expect(page.locator('.value-report-movement')).toBeVisible();
+
+    publication = publishedShards(newer, { previousHealth: publication.health, measurements: nativeMeasurements() });
+    await page.evaluate(async ({ dashboard }) => {
+      const { loadCanonicalDashboardSources } = await import(`${location.origin}/src/data-processor.js`);
+      await loadCanonicalDashboardSources(`${location.origin}/payload-hashes.json`, [], {
+        pages: dashboard.dashboard.pages, queries: dashboard.dashboard.queries, views: dashboard.dashboard.views
+      });
+      location.hash = '#page-workflow-value?workflow=example%2Fservice%3A.github%2Fworkflows%2Fincident-response.md';
+    }, { dashboard: authoritativeDashboard });
+    await expect(page.getByRole('link', { name: 'Not measured', exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'Not measured', exact: true }).click();
+    await expect(page).toHaveURL(/#page-value-measurement\?/);
+    await expect(page.getByText('Incomplete retained deliveries', { exact: true })).toBeVisible();
+    await expect(page.getByText('interval', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Period and evidence identity', { exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
   });
 }

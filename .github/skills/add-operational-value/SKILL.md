@@ -213,6 +213,15 @@ Use `/add-operational-value OWNER/REPO` to list repository workflows or `/add-op
   `collectEvents`, it also validates and archives the accepted-event ledger
   against the same frozen metric, intent, repository and evaluation endpoint.
   Otherwise it reports the existing timeline without inventing event deliveries.
+  `--native` instead emits canonical publication artifacts without HTML or
+  Actions-run acquisition. Ordinary `collectBatch` evaluations emit
+  `WORKFLOW-measurements.jsonl` using the existing schema-v2
+  `operational_value` transport; `--report` emits this artifact too when the
+  frozen contract declares snapshot or interval grain. The original timeline
+  and definition remain alongside it. Preserve every assessed period, including
+  null/unavailable, partial and interim observations; never manufacture accepted
+  events from batch results. Existing event-ledger exports keep their original
+  schema-v1 packet identity and add no invented contribution.
   A complete matching archived ledger is reused; `--refresh` is explicit.
   When the user requests a report **as of today** or a fresh refresh, acquire
   evidence through the requested UTC endpoint first. Reuse verified immutable
@@ -471,6 +480,46 @@ proof, not a target for fresh collections.
   a diagnostic, never replace the primary repository outcome. An accepted
   event is counted once at delivery after required maturation; pending and
   rejected outputs remain lifecycle evidence, not successful deliveries.
+
+### Shared native publication and archive context
+
+Use `evaluate.mjs --native --function MODULE --end END OWNER/REPO WORKFLOW`
+for a reviewed ordinary batch module. This runs its frozen `collectBatch` and
+`scoreMetric`, preserves original periods and provenance, and emits canonical
+`WORKFLOW-measurements.jsonl` without manufacturing an event ledger. The same
+exporter, `scripts/export-measurements.mjs`, accepts an already verified
+schema-v3 timeline. Import these originals with the shared
+`scripts/prepare-native-value.mjs` for local native verification or through
+normal Activity publication. The original timeline and frozen definition remain
+the reproducible proof; the native measurement drilldown exposes the assessment,
+period, coverage, maturity, population and evaluator/evidence fingerprints.
+Neither publication nor a missing report grants collection authority.
+
+Registered `collectValueEvidence` functions receive `request.archive.link(producers)`.
+Each producer names an `outputId` and an exact known `runId`/`attempt`; missing
+attempts stay unknown. The capability is fixed to the registration's repository,
+cannot enumerate repositories or accept SQL/KQL, and returns linkage metadata
+only, never raw session payloads. No File Diet import is needed. Reuse is scoped
+to this invocation, with one generation, cancellation, 130 request / 16 MiB /
+two-minute batch limits and the service's per-response limits.
+
+It is disabled unless the operator separately sets
+`CAO_VALUE_ARCHIVE_READ_APPROVED=true`, `CAO_VALUE_ARCHIVE_SERVER`, an exact
+comma-separated `CAO_VALUE_ARCHIVE_REPOSITORIES` allowlist, and either
+`CAO_VALUE_ARCHIVE_TOKEN` for local bearer access or
+`CAO_VALUE_ARCHIVE_HEADERS_FILE` for existing OAuth/CSRF headers. Header files
+must be owner-only regular files, outside published artifacts. These credentials
+are runtime configuration, never policy, inputs, reports or generated collector
+code. The server still enforces its separate full-trace-read approval.
+None of these options activates an archive destination or collection schedule.
+
+Treat `disabled`, `unavailable`, `partial` and `available` as linkage availability
+for the requested producers, not historical completeness or outcome acceptance.
+Captured webhook receipts, retained GitHub relationships, approved session-event
+projections, immutable Git measurements and independent quality evidence are
+different sources. Read admitted webhook/canonical facts through the supplied
+database; use the archive capability for retained producer linkage. Do not infer
+a webhook delivery, merge, Git baseline or passing quality gate from a session.
 
 ### CAO Adapter Interface
 

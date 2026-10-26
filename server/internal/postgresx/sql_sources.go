@@ -64,6 +64,10 @@ func (r *readTransaction) entitySQLSource(name string) (query.SQLRelation, error
 	}
 
 	columns := relationColumns(table, func(index int) string { return "get_bit(t.present_fields, " + strconv.Itoa(index) + ") = 1" })
+	if name == "$operationalValues" {
+		route := "CASE WHEN t.workflow_slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND starts_with(t.value_id,t.workflow_slug||'.') THEN t.repository||':.github/workflows/'||t.workflow_slug||'.md' END"
+		columns["workflow-route"] = query.SQLColumn{Expression: route, Presence: "(" + route + ") IS NOT NULL", Kind: query.SQLText}
+	}
 	return query.SQLRelation{
 		SQL:     "(SELECT * FROM " + query.SQLIdentifier(table.name) + " WHERE namespace = {}) AS t",
 		Params:  []any{r.store.namespace},

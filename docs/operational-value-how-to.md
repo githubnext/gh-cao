@@ -165,6 +165,23 @@ node .github/skills/add-operational-value/scripts/prepare-native-value.mjs \
   --output .tmp/workflow-native-value
 ```
 
+Ordinary batch evaluators do not need `collectEvents` or an artificial accepted
+change ledger. Run the same verified module with `evaluate.mjs --native`; its
+`WORKFLOW-measurements.jsonl` is normal canonical `operational_value` data.
+`--native` omits standalone HTML and Actions-run acquisition. The existing
+`--report` option also emits native measurements for contracts with explicit
+snapshot/interval grain. Keep the original timeline and frozen definition as
+the reproducible evidence; `export-measurements.mjs` can export that retained
+timeline without rescoring or acquiring anything.
+
+Value and workflow Value pages show these native assessments separately from
+event-ledger contribution reports. A newer unavailable assessment stays visible
+instead of revealing an older number. Drilldowns expose exact periods, maturity,
+coverage, missing reasons and evaluator/evidence fingerprints. Complete mature
+primary assessments contribute their actual capture clocks to collection health;
+partial, interim and unavailable assessments do not advance accepted-capture
+health. Publishing measurements never registers or activates collection.
+
 The required contract includes exact repository/workflow identity, metric
 ID/version, role, native unit, direction, formula, cadence, maturation, coverage
 and missingness. Retain independent snapshots, optional accepted contributions
@@ -218,6 +235,24 @@ The October 18 proof was not acquired from this archive. Its first snapshot is
 at adoption, not a pre-adoption baseline; its sparse snapshots are not daily
 coverage. Captured relationships are not independently delivered webhooks,
 and behavior preservation remains unverified.
+
+The standard registered-collector context now supplies
+`archive.link([{outputId, runId, attempt}])` for any exact approved repository,
+without File Diet-specific imports. The host opts in separately with
+`CAO_VALUE_ARCHIVE_READ_APPROVED=true`, an exact
+`CAO_VALUE_ARCHIVE_REPOSITORIES` allowlist and `CAO_VALUE_ARCHIVE_SERVER`.
+Authentication comes from `CAO_VALUE_ARCHIVE_TOKEN` or a private owner-only
+`CAO_VALUE_ARCHIVE_HEADERS_FILE` containing existing Authorization or OAuth/CSRF
+headers. Do not put these in policy or publication artifacts. Existing server
+read approvals still apply. The default returns explicit disabled availability
+without making a request; source unavailability and incomplete linkage remain
+distinct from absence and zero.
+
+Canonical admitted webhook facts can support lifecycle measurements through the
+supplied database. Archive linkage is a different capability: local DuckDB and
+hosted Blob/ADX execute the same trusted selectors, and raw payloads never leave
+the collector provider. Neither source establishes independent Git measurements
+or quality checks that were not retained.
 
 ### Resource isolation and publication
 
