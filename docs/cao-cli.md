@@ -178,6 +178,105 @@ output stays plain.
 `deploymentStatus: "pending"`. Declining or cancelling publication leaves
 configuration local. Unattended/CI setup never commits or pushes.
 
+### Linear, Jira, and Azure DevOps webhook setup
+
+`gh cao setup linear`, `gh cao setup jira`, and `gh cao setup ado`
+(`azure-devops` is an alias) prepare an existing webhook gateway to receive
+issue-service events. These native commands work offline and print service
+configuration instructions and a secret-free gateway enrollment fragment.
+They do not provision a gateway, register a webhook with the provider, modify
+policy, upload credentials, or activate workflows.
+
+Supply your existing public HTTPS gateway URL, a unique source route, the
+provider's canonical resource prefix and native scope, exact destination
+**GitHub numeric repository IDs**, and an explicit future expiry:
+
+```bash
+gh cao setup linear \
+  --gateway-url https://hooks.example.com \
+  --source-id linear-acme \
+  --resource-url-prefix https://linear.app/acme/issue/ \
+  --scope LINEAR_ORGANIZATION_ID \
+  --destination-repository-id 123456789 \
+  --expires-at 2030-01-01T00:00:00Z
+
+gh cao setup jira \
+  --gateway-url https://hooks.example.com \
+  --source-id jira-app \
+  --resource-url-prefix https://example.atlassian.net/rest/api/3/issue/ \
+  --scope APP \
+  --destination-repository-id 123456789 \
+  --expires-at 2030-01-01T00:00:00Z
+
+gh cao setup ado \
+  --gateway-url https://hooks.example.com \
+  --source-id ado-app \
+  --resource-url-prefix https://dev.azure.com/acme/_apis/wit/workItems/ \
+  --scope AZURE_PROJECT_ID \
+  --collection-id AZURE_COLLECTION_ID \
+  --destination-repository-id 123456789 \
+  --expires-at 2030-01-01T00:00:00Z \
+  --json --output /secure/deployment/ado-webhook-setup.json
+```
+
+Replace all example identities and choose a suitably bounded expiry. Repeat
+`--destination-repository-id` for multiple explicitly approved destinations.
+`--json` emits the preparation report for automation; `--output` saves it to
+a new mode-`0600` file without overwriting files or symlinks. Its parent directory
+must exist; restrict directory ACLs too, especially on Windows.
+`--dry-run` never creates that file. No provider API token or webhook secret is
+accepted as a flag or included in the report.
+
+Complete the printed instructions in the provider's administration interface:
+
+| Service | Webhook configuration | gh-aw trigger | Matching safe outputs |
+| --- | --- | --- | --- |
+| Linear | Workspace settings → API → Webhooks; select Issue events and the intended workspace/team scope. Use the generated receiver URL. Preserve `Linear-Signature`, `Linear-Delivery` and the signed `webhookTimestamp`; the receiver requires timestamp freshness within one minute. | `linear_issue`, scoped by `organization-id` | `linear-create-issue`, `linear-update-issue`, `linear-add-comment` |
+| Jira | Jira administration → System → WebHooks; select issue created/updated/deleted events and restrict the project. Configure a webhook secret and ensure signed deliveries include `X-Hub-Signature: sha256=…` and `X-Atlassian-Webhook-Identifier`. Unsigned webhook configurations are unsupported. | `jira_issue`, scoped by `project` | `jira-create-issue`, `jira-update-issue`, `jira-add-comment`, `jira-add-label` |
+| Azure DevOps | Project settings → Service hooks → Web Hooks; create subscriptions for `workitem.created`, `workitem.updated`, and `workitem.deleted` in the intended project. Configure HTTPS Basic authentication with username `cao` and a dedicated receive-only password. | `azure_devops_issue`, scoped by `project_id` | `ado-create-work-item`, `ado-update-work-item`, `ado-comment-on-work-item`, `ado-assign-work-item`, `ado-link-work-items`, `ado-upload-workitem-attachment` |
+
+Store the provider signing secret (or Azure hook password), 32–512 bytes, only
+in the **receive deployment's secret manager** under the generated
+`CAO_GATEWAY_SOURCE_…` name. `--secret-env` selects another valid receive-only
+name. Optional rotation uses the corresponding `_PREVIOUS` environment name.
+Never reuse outbound API credentials or place secret values in policy, generated
+reports, command arguments, workflow inputs, or committed files.
+
+Review and merge the generated source entry into the gateway policy's
+`externalSources`, preserving existing entries, choosing unique source IDs and
+secret names, and advancing the reviewed policy revision. This is gateway
+enrollment, **not** a replacement for `.github/workflows/cao.json`. Enroll each
+destination independently in managed discovery; the gateway requires fresh,
+approved compiled workflow inventory and private destinations. Restart the
+receiver after adding a source. Deploy the receiver and dispatch roles with
+their separately scoped credentials and durable operational storage before
+testing delivery. GitHub Pages is not a webhook receiver.
+
+In the destination workflow, declare the matching scoped gh-aw trigger and
+only the safe outputs required by its mission. Configure outbound credentials
+separately in GitHub Actions secrets:
+
+- **Linear:** `LINEAR_API_KEY`; issue creation also needs a trusted `team-id`
+  or `LINEAR_TEAM_ID` secret. An optional project can be fixed by `project-id`
+  or the `LINEAR_PROJECT_ID` variable.
+- **Jira:** `JIRA_USER_EMAIL` and `JIRA_API_TOKEN`. Explicitly set your own
+  trusted `JIRA_BASE_URL` through `safe-outputs.env`; never rely on an upstream
+  example tenant.
+- **Azure DevOps:** `AZURE_DEVOPS_EXT_PAT` by default, or an explicitly configured
+  supported `SYSTEM_ACCESSTOKEN`. Fix the intended organization/project and
+  output targets in reviewed workflow configuration.
+
+These names map to gh-aw v0.92.0; consult your installed compiler's
+[safe-output reference](https://github.github.com/gh-aw/reference/safe-outputs/)
+for destination options and limits. Compile changed workflows, review the
+generated locks, and keep rollout in review mode unless separately authorized.
+Neither receiving a webhook nor possessing a provider token grants CAO authority.
+Test a real scoped event, check provider delivery status and gateway admission,
+then verify the intended workflow and declared output. Setup reports preparation
+only, never successful delivery or live provider access. See the
+[external-source gateway contract](https://github.com/githubnext/gh-cao/blob/main/specs/rfc-033-webhook-gateway.md#622-independently-enrolled-external-sources)
+for authentication, normalization, expiry and dispatch requirements.
+
 ### Optional ADX destination setup
 
 `gh cao setup adx` prepares the existing hosted server's **snapshot-only** ADX
@@ -279,6 +378,7 @@ to invoke it as `gh cao`.
 | Standalone workflow installation | `add WORKFLOW [--force] [--engine ENGINE]` | gh-aw installs and compiles; CAO registers the standalone workflow in policy. Interactive publication and first run require separate default-No approvals. |
 | Campaign installation | `add CAMPAIGN [GH_AW_ADD_OPTIONS...]` | Native Go; gh-aw owns installation records and workflow generation, Go materializes campaign resources and merges policy. No Node runtime required. |
 | Onboarding and authentication | `setup`, `setup auth github-app\|enterprise-app\|hosted-cli\|token` | Native Go; setup prepares missing monitoring runtime and policy, Pages, scope, and authentication, preserving separate read/write and hosted-executor credentials. |
+| Issue-service webhook setup | `setup linear`, `setup jira`, `setup ado` (alias `setup azure-devops`) | Native Go; offline enrollment preparation and provider instructions, with separate receive secrets and outbound safe-output credentials. |
 | Cooperative admission | `admission setup`, `admission status`, `admission disable`, `setup admission` | Native Go; `setup admission` is equivalent to `admission setup`. Configures or inspects non-secret Actions variables, not server deployment or enrollment authority. |
 | Cloud deployment | `deploy azure` | Native Go; read-only preflight and planning, or explicit application of a reviewed development deployment plan. |
 | Lifecycle | `repos add OWNER/REPO`, `update`, `upgrade-gh-aw` | Native Go; gh-aw still owns workflow generation and campaign installation records. |
@@ -640,6 +740,7 @@ gh aw run dependabot --ref main \
 | Command | Use it to |
 | --- | --- |
 | `gh cao setup` | Prepare missing bare runtime and baseline policy, then guide scope, authentication, and Pages. No prior `init` is required. |
+| `gh cao setup linear\|jira\|ado ... [--json] [--dry-run]` | Prepare secret-free external-source enrollment and service-specific webhook instructions; does not deploy or activate the receiver. |
 | `gh cao init` | Optionally create only a local minimal review-safe policy for scripting. No runtime installation or remote configuration; refuses existing policy. |
 | `gh cao setup admission --repo OWNER/REPO --url HTTPS_URL [--dry-run]` | Configure non-secret admission variables (OIDC requires no workflow secret); `--dry-run` previews changes. |
 | `gh cao admission setup --repo OWNER/REPO --url HTTPS_URL [--dry-run]` | Configure repository admission variables for an already deployed authority; default audience is the URL and outage policy is `block`. |
