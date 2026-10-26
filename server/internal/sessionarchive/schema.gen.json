@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "columns": [
+    {
+      "name": "Sequence",
+      "type": "BIGINT"
+    },
+    {
+      "name": "Type",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "EventId",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "ParentId",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "EpisodeId",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "HopId",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "ParentHopId",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "ToolCallId",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "SessionId",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "Timestamp",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "ContentDigest",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "Namespace",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "RunId",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "RunAttempt",
+      "type": "BIGINT"
+    },
+    {
+      "name": "ProjectionId",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "ContractVersion",
+      "type": "BIGINT"
+    },
+    {
+      "name": "Repository",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "TraceId",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "CompletionDay",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "ArtifactDigest",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "PolicyDigest",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "Gaps",
+      "type": "VARCHAR[]"
+    },
+    {
+      "name": "CapturedAt",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "PayloadJSON",
+      "type": "VARCHAR"
+    }
+  ]
+}

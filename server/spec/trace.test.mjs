@@ -91,11 +91,11 @@ test('trace TypeSpec declares exactly nine independent tables with required, cap
 
 test('trace generated Go, native KQL columns, mappings, streaming and retention match TypeSpec', async () => {
   const directory = fileURLToPath(new URL(`.trace-spec-test-${randomUUID()}`, import.meta.url));
-  mkdirSync(directory);
+  mkdirSync(`${directory}/adxtrace`, { recursive: true });
   try {
-    await $onEmit({ program, emitterOutputDir: directory, options: {} });
-    assert.equal(execFileSync('gofmt', [`${directory}/schema.gen.go`], { encoding: 'utf8' }), go);
-    assert.equal(readFileSync(`${directory}/schema.gen.kql`, 'utf8'), kql);
+    await $onEmit({ program, emitterOutputDir: `${directory}/adxtrace`, options: {} });
+    assert.equal(execFileSync('gofmt', [`${directory}/adxtrace/schema.gen.go`], { encoding: 'utf8' }), go);
+    assert.equal(readFileSync(`${directory}/adxtrace/schema.gen.kql`, 'utf8'), kql);
     assert.match(go, /package adxtrace/);
     assert.match(go, /const ContractVersion = 1/);
     assert.match(go, /var Tables = map\[string\]\[\]string\{/);
@@ -113,6 +113,36 @@ test('trace generated Go, native KQL columns, mappings, streaming and retention 
       assert.ok(kql.includes(`.alter-merge table ${name} policy retention softdelete = 7d recoverability = enabled;`));
     }
     assert.doesNotMatch(kql, /skipvalidation|external table|materialized-view|purge/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('archive projection derives explicit Parquet/Go columns from the shared TypeSpec event contract', async () => {
+  const directory = fileURLToPath(new URL(`.archive-spec-test-${randomUUID()}`, import.meta.url));
+  mkdirSync(`${directory}/adxtrace`, { recursive: true });
+  try {
+    await $onEmit({ program, emitterOutputDir: `${directory}/adxtrace`, options: {} });
+    const generated = readFileSync(`${directory}/sessionarchive/schema.gen.json`, 'utf8');
+    assert.equal(generated, readFileSync(new URL('../internal/sessionarchive/schema.gen.json', import.meta.url), 'utf8'));
+    const go = execFileSync('gofmt', [`${directory}/sessionarchive/schema.gen.go`], { encoding: 'utf8' });
+    assert.equal(go, readFileSync(new URL('../internal/sessionarchive/schema.gen.go', import.meta.url), 'utf8'));
+    const schema = JSON.parse(generated);
+    assert.equal(schema.version, 1);
+    const columns = Object.fromEntries(schema.columns.map(({ name, type }) => [name, type]));
+    assert.equal(columns.PayloadJSON, 'VARCHAR');
+    assert.equal(columns.Gaps, 'VARCHAR[]');
+    assert.equal(columns.Sequence, 'BIGINT');
+    assert.equal(columns.RunAttempt, 'BIGINT');
+    assert.equal(columns.RunId, 'VARCHAR');
+    assert.equal(columns.TraceId, 'VARCHAR');
+    assert.equal(columns.PartCount, undefined);
+    assert.equal(columns.RowDigest, undefined);
+    for (const key of ['ArtifactDigest', 'PolicyDigest', 'CompletionDay', 'CapturedAt', 'ContentDigest']) {
+      assert.equal(columns[key], 'VARCHAR');
+    }
+    assert.match(go, /PayloadJSON\s+string/);
+    assert.match(go, /RunID\s+string\s+`json:"RunId"`/);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

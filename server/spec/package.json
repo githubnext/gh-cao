@@ -6,7 +6,7 @@
     "generate": "rm -rf generated && tsp compile . --warn-as-error && npm run generate:storage && npm run generate:adx && npm run generate:trace",
     "generate:storage": "tsp compile storage.tsp --config storage.tspconfig.yaml --warn-as-error",
     "generate:adx": "tsp compile adx.tsp --config adx.tspconfig.yaml --warn-as-error && gofmt -w ../internal/adxingest/schema.gen.go",
-    "generate:trace": "tsp compile trace.tsp --config trace.tspconfig.yaml --warn-as-error && gofmt -w ../internal/adxtrace/schema.gen.go",
+    "generate:trace": "tsp compile trace.tsp --config trace.tspconfig.yaml --warn-as-error && gofmt -w ../internal/adxtrace/schema.gen.go ../internal/sessionarchive/schema.gen.go",
     "test": "node --test contract.test.mjs storage.test.mjs adx.test.mjs trace.test.mjs",
     "check": "npm run generate && npm test && git diff --exit-code -- generated ../internal/postgresx/schema.sql ../internal/postgresx/schema.gen.go ../internal/postgresx/daily-schema.sql ../internal/adxingest/schema.gen.go ../internal/adxingest/schema.gen.kql ../internal/adxtrace/schema.gen.go ../internal/adxtrace/schema.gen.kql && test -z \"$(git ls-files --others --exclude-standard -- generated ../internal/postgresx/daily-schema.sql ../internal/adxingest/schema.gen.go ../internal/adxingest/schema.gen.kql ../internal/adxtrace/schema.gen.go ../internal/adxtrace/schema.gen.kql)\""
   },

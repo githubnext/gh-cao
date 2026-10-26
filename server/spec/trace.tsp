@@ -154,3 +154,21 @@ model TraceMiningManifest extends Identity {
   CapturedAt: utcDateTime;
   FreshUntil: utcDateTime;
 }
+
+/** Archive rows retain logical events, not native ADX transport fragments. */
+namespace Archive {
+  model Event {
+    ...OmitProperties<Cao.Trace.TraceEvents, "PartCount" | "RowDigest">;
+    Repository: string;
+    /** Canonical RunId above is distinct from this hashed native trace identity. */
+    TraceId: string;
+    /** Empty means undated, never a fabricated source clock. */
+    CompletionDay: string;
+    ArtifactDigest: string;
+    PolicyDigest: string;
+    Gaps: string[];
+    CapturedAt: string;
+    /** Full approved event as UTF-8 JSON; absent and explicit null remain distinct. */
+    PayloadJSON: string;
+  }
+}

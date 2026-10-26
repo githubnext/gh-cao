@@ -32,9 +32,11 @@ function properties(model) {
 
 export async function $onEmit(context) {
   const models = new Map();
+  let archive;
   navigateProgram(context.program, {
     model(model) {
       if (getNamespaceFullName(model.namespace) === namespace) models.set(model.name, model);
+      if (getNamespaceFullName(model.namespace) === `${namespace}.Archive` && model.name === 'Event') archive = model;
     }
   });
   const identity = models.get('Identity');
@@ -299,4 +301,24 @@ export async function $onEmit(context) {
 };`);
   await emitFile(context.program, { path: `${context.emitterOutputDir}/schema.gen.go`, content: go.join('\n') });
   await emitFile(context.program, { path: `${context.emitterOutputDir}/schema.gen.kql`, content: kql.join('\n') + '\n' });
+  if (!archive || archive.baseModel || archive.indexer) throw new Error('Archive requires a closed Event model');
+  const archiveColumns = properties(archive).map((property) => ({ name: property.name, kind: kind(property) }));
+  const sqlTypes = { string: 'VARCHAR', long: 'BIGINT', real: 'DOUBLE', datetime: 'TIMESTAMPTZ', dynamic: 'VARCHAR[]' };
+  const goTypes = { string: 'string', long: 'int64', real: 'float64', datetime: 'string', dynamic: '[]string' };
+  const archiveGo = [
+    '// Code generated from server/spec/trace.tsp. DO NOT EDIT.', '', 'package sessionarchive', '',
+    'const ContractVersion = 1', '', 'type Event struct {',
+    ...archiveColumns.map(({ name, kind }) => `\t${name.replace(/Id$/g, 'ID')} ${goTypes[kind]} \`json:"${name}"\``),
+    '}', '', 'var eventColumns = []string{',
+    ...archiveColumns.map(({ name }) => `\t${JSON.stringify(name)},`), '}', '',
+    `const eventJSONColumns = ${JSON.stringify('{' + archiveColumns.map(({ name, kind }) => `'${name}': '${sqlTypes[kind]}'`).join(', ') + '}')}`,
+    '', `const eventSelect = ${JSON.stringify(archiveColumns.map(({ name }) => `"${name}"`).join(', '))}`,
+    '', 'var eventSQLTypes = []string{',
+    ...archiveColumns.map(({ kind }) => `\t${JSON.stringify(sqlTypes[kind])},`), '}', ''
+  ].join('\n');
+  await emitFile(context.program, { path: `${context.emitterOutputDir}/../sessionarchive/schema.gen.go`, content: archiveGo });
+  await emitFile(context.program, {
+    path: `${context.emitterOutputDir}/../sessionarchive/schema.gen.json`,
+    content: JSON.stringify({ version: 1, columns: archiveColumns.map(({ name, kind }) => ({ name, type: sqlTypes[kind] })) }, null, 2) + '\n'
+  });
 }

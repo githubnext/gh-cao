@@ -27,6 +27,12 @@ func (w *Worker) PrepareCache(ctx context.Context, repository, sourcePrefix, tar
 	}); err != nil {
 		return err
 	}
+	return PrepareCaptureCache(ctx, slices.Contains(w.spool.config.Repositories, repository), sourcePrefix, targetPrefix, known)
+}
+
+// PrepareCaptureCache prevents cached metadata from suppressing unadmitted
+// evidence acquisition; known keys use the exact "run:attempt" binding.
+func PrepareCaptureCache(ctx context.Context, scoped bool, sourcePrefix, targetPrefix string, known map[string]bool) error {
 	root, err := os.OpenRoot(filepath.Dir(sourcePrefix))
 	if err != nil {
 		return err
@@ -71,7 +77,7 @@ func (w *Worker) PrepareCache(ctx context.Context, repository, sourcePrefix, tar
 			if id == "" {
 				id = scalar(item.Run["database_id"])
 			}
-			if slices.Contains(w.spool.config.Repositories, repository) && item.Kind == "run" && !known[id+":"+scalar(item.Run["run_attempt"])] {
+			if scoped && item.Kind == "run" && !known[id+":"+scalar(item.Run["run_attempt"])] {
 				continue
 			}
 			if len(content)+len(scanner.Bytes())+1 > 64<<20 {

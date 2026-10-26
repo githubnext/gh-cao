@@ -46,7 +46,15 @@ func sourceFile(root *os.Root, name string, limit int64) ([]byte, error) {
 var errSourceSize = errors.New("trace source exceeds eligibility size")
 
 func (w *Worker) Capture(ctx context.Context, repository, logs, shardPrefix string) error {
-	if !slices.Contains(w.spool.config.Repositories, repository) {
+	return CaptureEvidence(ctx, w.spool.config, repository, logs, shardPrefix, w.now, func(e Evidence, reason string) error {
+		return w.spool.admit(ctx, e, reason, e.CapturedAt)
+	})
+}
+
+// CaptureEvidence shares the authorized acquisition and artifact identity checks
+// with independently configured destinations. The callback must durably admit.
+func CaptureEvidence(ctx context.Context, config Config, repository, logs, shardPrefix string, now func() time.Time, admit func(Evidence, string) error) error {
+	if !slices.Contains(config.Repositories, repository) {
 		return nil // An explicitly narrower export scope does not widen collection.
 	}
 	shards, err := os.OpenRoot(filepath.Dir(shardPrefix))
@@ -67,7 +75,7 @@ func (w *Worker) Capture(ctx context.Context, repository, logs, shardPrefix stri
 		if err != nil {
 			return err
 		}
-		err = readCandidates(ctx, file, repository, logs, candidates, w.spool.config.MaxEntries)
+		err = readCandidates(ctx, file, repository, logs, candidates, config.MaxEntries)
 		_ = file.Close()
 		if err != nil {
 			return err
@@ -88,10 +96,10 @@ func (w *Worker) Capture(ctx context.Context, repository, logs, shardPrefix stri
 			return err
 		}
 		c := candidates[key]
-		now := w.now()
+		at := now()
 		e := Evidence{ID: digest([]byte(repository + "\x00" + c.run + "\x00" + strconv.FormatInt(c.attempt, 10))),
-			Repository: repository, RunID: c.run, Attempt: c.attempt, Day: c.day, CapturedAt: now,
-			PolicyDigest: policyDigest(w.spool.config.Policy)}
+			Repository: repository, RunID: c.run, Attempt: c.attempt, Day: c.day, CapturedAt: at,
+			PolicyDigest: policyDigest(config.Policy)}
 		path, info, reason, err := artifactPath(root, c.directory)
 		if err != nil {
 			return err
@@ -102,23 +110,23 @@ func (w *Worker) Capture(ctx context.Context, repository, logs, shardPrefix stri
 			reason = "artifact-identity-gap"
 		}
 		if reason == "" {
-			content, err := sourceFile(root, path, w.spool.config.MaxTraceBytes)
+			content, err := sourceFile(root, path, config.MaxTraceBytes)
 			switch {
 			case errors.Is(err, errSourceSize):
 				reason = "size-exclusion"
 			case err != nil:
 				return err
 			default:
-				e, err = Project(w.spool.config, repository, c.run, c.day, c.attempt, content, now)
+				e, err = Project(config, repository, c.run, c.day, c.attempt, content, at)
 				if err != nil {
 					reason = "invalid-source"
 					e = Evidence{ID: digest([]byte(repository + "\x00" + c.run + "\x00" + strconv.FormatInt(c.attempt, 10))),
-						Repository: repository, RunID: c.run, Attempt: c.attempt, Day: c.day, CapturedAt: now,
-						PolicyDigest: policyDigest(w.spool.config.Policy)}
+						Repository: repository, RunID: c.run, Attempt: c.attempt, Day: c.day, CapturedAt: at,
+						PolicyDigest: policyDigest(config.Policy)}
 				}
 			}
 		}
-		if err := w.spool.admit(ctx, e, reason, now); err != nil {
+		if err := admit(e, reason); err != nil {
 			return err
 		}
 	}
