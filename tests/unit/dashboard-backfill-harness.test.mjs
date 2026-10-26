@@ -32,6 +32,7 @@ fi
       await writeFile(join(directory, "curl"), "#!/usr/bin/env bash\nexit 0\n", { mode: 0o700 });
       await writeFile(join(directory, "go"), `#!/usr/bin/env bash
 set -eu
+echo "go $*" >> "$HARNESS_TRACE"
 echo "go skip=\${CAO_BACKFILL_SKIP_OPENOBSERVE:-0} endpoint=\${CAO_BACKFILL_OPENOBSERVE_URL:+configured} traces=\${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:+configured} headers=\${OTEL_EXPORTER_OTLP_HEADERS:+configured}" >> "$HARNESS_TRACE"
 test -n "$CAO_POSTGRES_URL"
 test -n "$REDIS_URL"
@@ -60,7 +61,9 @@ test -n "$REDIS_URL"
         assert.doesNotMatch(commands, /^go /m);
       } else {
         assert.equal(result.code, 0, result.stderr);
-        assert.equal(commands.split("\n").filter((line) => line.startsWith("go ")).length, 2);
+        assert.equal(commands.split("\n").filter((line) => line.startsWith("go skip=")).length, 2);
+        assert.match(commands, /go -C server test \.\/internal\/server \.\/internal\/simulator .* -timeout=10m -v/);
+        assert.match(commands, /go -C server test \.\/internal\/collect -count=1 -timeout=5m -v/);
         if (outcome === "rate-limit") {
           assert.match(result.stderr, /rate-limited; running backfill tests without telemetry verification/);
           assert.doesNotMatch(commands, /up .*openobserve/);

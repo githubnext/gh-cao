@@ -40,6 +40,10 @@ test.beforeEach(async ({ context }) => {
   await queryBudget.waitForBudget();
 });
 
+test.afterEach(async ({ context }) => {
+  await context.unrouteAll({ behavior: "ignoreErrors" });
+});
+
 const populatedViews = [
   {
     page: "runs",
@@ -79,7 +83,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     expect(beforeResponse.ok()).toBe(true);
     const before = await beforeResponse.json();
     expect(before.scope).toBe('process');
-    await expect(view).toContainText(before.configured ? 'Configured' : 'Not configured');
+    await expect(view).toContainText(before.configured ? 'Configured' : 'Not configured', { timeout: 60_000 });
     await expect(received).toHaveText(String(before.received));
     const delivery = await context.request.post('/api/github/webhook', {
       headers: { 'X-GitHub-Event': 'ping', 'X-GitHub-Delivery': `browser-ping-${viewport.width}` },

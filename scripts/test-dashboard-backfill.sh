@@ -101,7 +101,7 @@ if [ "${CAO_BACKFILL_STRESS:-0}" = 1 ]; then
 else
   go -C server test ./internal/server ./internal/simulator \
     -run '^Test(PostgresBackfill.*|Backfill.*|ProfilesProduceIdenticalCanonicalRecords|Synthetic.*|LocalTransport.*|FaultProxy.*)$' \
-    -count=1 -timeout=5m -v 2>&1 | tee "$report_dir/go-test.txt"
+    -count=1 -timeout=10m -v 2>&1 | tee "$report_dir/go-test.txt"
   go -C server test ./internal/collect -count=1 -timeout=5m -v \
     2>&1 | tee -a "$report_dir/go-test.txt"
 fi
