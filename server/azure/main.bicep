@@ -242,6 +242,32 @@ param collectorWorkerReplicas int = 1
 ])
 param collectorLakeStorageSku string = 'Premium_LRS'
 
+@description('Provision an optional paid ADX destination only. Does not enable export, traces, or mining; Azure Functions is not a supported exporter host.')
+param adxEnabled bool = false
+
+@minLength(4)
+@maxLength(22)
+@description('Globally unique ADX cluster name: lowercase letters and digits only.')
+param adxClusterName string = 'adx${uniqueString(resourceGroup().id, functionAppName)}'
+
+@minLength(1)
+@maxLength(100)
+@description('ADX database identifier: ASCII letter followed by letters, digits, or underscores.')
+param adxDatabaseName string = 'CAO'
+
+@description('Reviewed paid ADX SKU. The default is development-only without an SLA, not the free offering.')
+param adxSkuName string = 'Dev(No SLA)_Standard_D11_v2'
+
+@allowed([
+  'Basic'
+  'Standard'
+])
+param adxSkuTier string = 'Basic'
+
+@minValue(1)
+@description('Reviewed ADX instance count compatible with the selected SKU and tier.')
+param adxCapacity int = 1
+
 var collectionEnabled = !empty(collectorImage)
 
 var tags = {
@@ -262,6 +288,22 @@ module network 'network.bicep' = {
     postgresSkuTier: postgresSkuTier
     subnetNetworkSecurityGroupId: subnetNetworkSecurityGroupId
     postgresDatabaseName: postgresDatabaseName
+    adxEnabled: adxEnabled
+  }
+}
+
+module adx 'adx.bicep' = if (adxEnabled) {
+  name: 'adx-destination'
+  params: {
+    location: location
+    clusterName: adxClusterName
+    databaseName: adxDatabaseName
+    skuName: adxSkuName
+    skuTier: adxSkuTier
+    capacity: adxCapacity
+    virtualNetworkId: network.outputs.virtualNetworkId
+    privateEndpointSubnetId: network.outputs.adxSubnetId
+    tags: tags
   }
 }
 
@@ -767,3 +809,6 @@ output provisioningJobName string = provisioning.outputs.jobName
 output logAnalyticsWorkspaceId string = workspace.id
 output applicationInsightsId string = insights.id
 output postgresHostName string = network.outputs.postgresHostName
+output adxClusterId string = adxEnabled ? adx!.outputs.clusterId : ''
+output adxQueryEndpoint string = adxEnabled ? adx!.outputs.queryEndpoint : ''
+output adxDatabaseName string = adxEnabled ? adx!.outputs.databaseName : ''

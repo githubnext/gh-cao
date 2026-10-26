@@ -172,6 +172,79 @@ The `server/azure/main.bicep` template creates the following resources in one re
 | Virtual network and private DNS | Separate Functions, PostgreSQL, and Container Apps subnets | Provides private database access for all roles |
 | Container Apps environment and manual provisioning/ingestion jobs | Internal environment, separate identities, secret-scoped Key Vault access, managed-identity ACR pulls | Provisions database authority separately from runtime-only snapshot ingestion |
 | Application Insights and Log Analytics | Exactly one workspace-backed component and one shared workspace | Receives container logs and configured application telemetry |
+| Azure Data Explorer (optional) | Paid cluster, streaming ingestion, seven-day database soft-delete retention, private endpoint and VNet-linked private DNS; public access disabled | Provisions an analytics destination only when `adxEnabled=true`; does not enable an exporter |
+
+### Optional Azure Data Explorer destination
+
+ADX is **not required** for the dashboard. `server/azure/adx.bicep` covers the
+optional destination; `main.bicep` includes it only with `adxEnabled=true`.
+The default remains false: no Kusto resources, private endpoint, ADX DNS zone,
+or additional subnet are created. Existing free or operator-managed destinations
+do not need this module; leave it disabled and use their reviewed endpoint.
+
+For a new destination, use the manual Bicep deployment below with these additional
+reviewed parameters (the native `gh cao deploy azure` configuration does not yet
+expose ADX parameters):
+
+| Parameter | Default / review requirement |
+| --- | --- |
+| `adxEnabled` | `false`; explicitly set `true` to provision a **paid** destination |
+| `adxClusterName` | Stable generated name; a custom name must be globally unique, 4–22 lowercase letters/digits |
+| `adxDatabaseName` | `CAO`; use an ASCII letter followed by letters, digits or underscores, at most 100 characters |
+| `adxSkuName`, `adxSkuTier`, `adxCapacity` | `Dev(No SLA)_Standard_D11_v2`, `Basic`, `1`; development only, **not** the free offering. Review regional SKU availability, compatible tier/capacity, cost and production requirements before deployment |
+
+Register `Microsoft.Kusto` before opting in. Run `bicep build` on
+`server/azure/main.bicep`, then review an `az deployment group what-if` using
+the same complete parameter set and secret-manager references as the deployment.
+This module does not create a free cluster or silently upgrade one.
+
+The destination uses a non-delegated `adx` subnet (`10.42.4.0/24`) in the
+deployment VNet, preserving `subnetNetworkSecurityGroupId` when supplied.
+Its private endpoint uses the Kusto `cluster` subresource and a
+`privatelink.REGION.kusto.windows.net` DNS zone linked to that VNet.
+Public network access is disabled. Place the setup client and eventual exporter
+on that VNet or an explicitly connected network with private DNS resolution;
+verify DNS, private endpoint approval, HTTPS reachability and Entra token access.
+Reuse of an existing regional private DNS zone requires a separately reviewed
+network adaptation rather than creating a conflicting zone/link.
+Keep `adxEnabled=true` on subsequent deployments while the private endpoint is
+in use. Setting it false is not a teardown: incremental ARM deployments retain
+omitted resources, and removing an occupied subnet can fail. Review data
+retention, explicit resource deletion and DNS cleanup separately.
+
+Provisioning is **not activation**. The outputs `adxClusterId`,
+`adxQueryEndpoint` and `adxDatabaseName` identify the destination (empty when
+disabled); they contain no credentials. Before exporting:
+
+1. Assign a separate setup principal the required Kusto database-admin
+   permissions through reviewed ADX principal assignments. Print
+   `cao-dashboard adx schema`, review and apply its generated KQL from the
+   private network, then wait for streaming mappings/policies to propagate.
+   The module creates no tables, mappings, functions or runtime DDL.
+2. Register a dedicated Entra runtime application. Grant database ingestion,
+   read and extent/size-inspection permissions, verify them using that exact
+   principal, and keep setup/admin privileges separate. The module grants no
+   runtime data access. Managed-identity Key Vault access does not authenticate
+   the ADX exporter: it currently requires explicit application credentials.
+3. Use `gh cao setup adx` with the **query** endpoint output (not an `ingest-`
+   endpoint), database, application identity, exact canonical repository IDs,
+   explicit data/destination approval and single-replica acknowledgment.
+   Inject `CAO_ADX_CLIENT_SECRET` through the supported host's secret manager,
+   never policy, checked-in parameters or command-line arguments.
+4. Apply those settings only to an approved, persistent, single-replica OAuth
+   server with canonical PostgreSQL and restart-durable operational state.
+   **The Azure Functions platform-listener profile and the separate collection
+   jobs are not supported exporter hosts.** This template deliberately injects
+   no `CAO_ADX_*` settings and does not assert single-replica safety.
+
+The [ADX snapshot guide](https://github.com/githubnext/gh-cao/blob/main/server/ADX-INGEST.md)
+defines scope, approval, storage budgets, retry/gap behavior and verification.
+Confirm real ingestion and deduplicated query results before claiming readiness;
+Bicep compilation is not live Azure evidence. ADX is separate from Application
+Insights/Log Analytics and does not replace PostgreSQL. Traces, mining and
+Blob/session archives remain independently disabled and require their own
+approved topology, durable private storage and acceptance evidence; provisioning
+an ADX cluster does not provide them.
 
 ### Other requirements
 

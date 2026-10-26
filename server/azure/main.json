@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.44.1.10279",
-      "templateHash": "14868058980569990819"
+      "version": "0.48.1.52935",
+      "templateHash": "6326039050629376410"
     }
   },
   "parameters": {
@@ -418,6 +418,54 @@
       "metadata": {
         "description": "Evidence lake file share tier. Premium is provisioned SSD; Standard is IOPS-throttled by share size."
       }
+    },
+    "adxEnabled": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Provision an optional paid ADX destination only. Does not enable export, traces, or mining; Azure Functions is not a supported exporter host."
+      }
+    },
+    "adxClusterName": {
+      "type": "string",
+      "defaultValue": "[format('adx{0}', uniqueString(resourceGroup().id, parameters('functionAppName')))]",
+      "minLength": 4,
+      "maxLength": 22,
+      "metadata": {
+        "description": "Globally unique ADX cluster name: lowercase letters and digits only."
+      }
+    },
+    "adxDatabaseName": {
+      "type": "string",
+      "defaultValue": "CAO",
+      "minLength": 1,
+      "maxLength": 100,
+      "metadata": {
+        "description": "ADX database identifier: ASCII letter followed by letters, digits, or underscores."
+      }
+    },
+    "adxSkuName": {
+      "type": "string",
+      "defaultValue": "Dev(No SLA)_Standard_D11_v2",
+      "metadata": {
+        "description": "Reviewed paid ADX SKU. The default is development-only without an SLA, not the free offering."
+      }
+    },
+    "adxSkuTier": {
+      "type": "string",
+      "defaultValue": "Basic",
+      "allowedValues": [
+        "Basic",
+        "Standard"
+      ]
+    },
+    "adxCapacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1,
+      "metadata": {
+        "description": "Reviewed ADX instance count compatible with the selected SKU and tier."
+      }
     }
   },
   "variables": {
@@ -787,6 +835,9 @@
           },
           "postgresDatabaseName": {
             "value": "[parameters('postgresDatabaseName')]"
+          },
+          "adxEnabled": {
+            "value": "[parameters('adxEnabled')]"
           }
         },
         "template": {
@@ -795,8 +846,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "11221428996242454354"
+              "version": "0.48.1.52935",
+              "templateHash": "10800549044802487649"
             }
           },
           "parameters": {
@@ -838,6 +889,10 @@
               "metadata": {
                 "description": "PostgreSQL database that holds the canonical and operational stores. Changing it creates a new, empty database; the previous database is not deleted."
               }
+            },
+            "adxEnabled": {
+              "type": "bool",
+              "defaultValue": false
             }
           },
           "variables": {
@@ -855,20 +910,7 @@
                     "10.42.0.0/16"
                   ]
                 },
-                "subnets": [
-                  {
-                    "name": "functions",
-                    "properties": "[union(variables('subnetNetworkSecurityGroup'), createObject('addressPrefix', '10.42.0.0/24', 'delegations', createArray(createObject('name', 'functions', 'properties', createObject('serviceName', 'Microsoft.Web/serverFarms')))))]"
-                  },
-                  {
-                    "name": "postgres",
-                    "properties": "[union(variables('subnetNetworkSecurityGroup'), createObject('addressPrefix', '10.42.1.0/24', 'delegations', createArray(createObject('name', 'postgres', 'properties', createObject('serviceName', 'Microsoft.DBforPostgreSQL/flexibleServers')))))]"
-                  },
-                  {
-                    "name": "containers",
-                    "properties": "[union(variables('subnetNetworkSecurityGroup'), createObject('addressPrefix', '10.42.2.0/23'))]"
-                  }
-                ]
+                "subnets": "[concat(createArray(createObject('name', 'functions', 'properties', union(variables('subnetNetworkSecurityGroup'), createObject('addressPrefix', '10.42.0.0/24', 'delegations', createArray(createObject('name', 'functions', 'properties', createObject('serviceName', 'Microsoft.Web/serverFarms')))))), createObject('name', 'postgres', 'properties', union(variables('subnetNetworkSecurityGroup'), createObject('addressPrefix', '10.42.1.0/24', 'delegations', createArray(createObject('name', 'postgres', 'properties', createObject('serviceName', 'Microsoft.DBforPostgreSQL/flexibleServers')))))), createObject('name', 'containers', 'properties', union(variables('subnetNetworkSecurityGroup'), createObject('addressPrefix', '10.42.2.0/23')))), if(parameters('adxEnabled'), createArray(createObject('name', 'adx', 'properties', union(variables('subnetNetworkSecurityGroup'), createObject('addressPrefix', '10.42.4.0/24', 'privateEndpointNetworkPolicies', 'Disabled')))), createArray()))]"
               }
             },
             {
@@ -958,10 +1000,227 @@
             "containerSubnetId": {
               "type": "string",
               "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', format('{0}-vnet', parameters('namePrefix')), 'containers')]"
+            },
+            "virtualNetworkId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', format('{0}-vnet', parameters('namePrefix')))]"
+            },
+            "adxSubnetId": {
+              "type": "string",
+              "value": "[if(parameters('adxEnabled'), resourceId('Microsoft.Network/virtualNetworks/subnets', format('{0}-vnet', parameters('namePrefix')), 'adx'), '')]"
             }
           }
         }
       }
+    },
+    {
+      "condition": "[parameters('adxEnabled')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "adx-destination",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "clusterName": {
+            "value": "[parameters('adxClusterName')]"
+          },
+          "databaseName": {
+            "value": "[parameters('adxDatabaseName')]"
+          },
+          "skuName": {
+            "value": "[parameters('adxSkuName')]"
+          },
+          "skuTier": {
+            "value": "[parameters('adxSkuTier')]"
+          },
+          "capacity": {
+            "value": "[parameters('adxCapacity')]"
+          },
+          "virtualNetworkId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'private-network-postgres'), '2025-04-01').outputs.virtualNetworkId.value]"
+          },
+          "privateEndpointSubnetId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'private-network-postgres'), '2025-04-01').outputs.adxSubnetId.value]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.48.1.52935",
+              "templateHash": "2500825601730792809"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "clusterName": {
+              "type": "string"
+            },
+            "databaseName": {
+              "type": "string"
+            },
+            "virtualNetworkId": {
+              "type": "string"
+            },
+            "privateEndpointSubnetId": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            },
+            "skuName": {
+              "type": "string",
+              "defaultValue": "Dev(No SLA)_Standard_D11_v2",
+              "metadata": {
+                "description": "Reviewed paid ADX SKU. The default is a development SKU without an SLA, not a free cluster."
+              }
+            },
+            "skuTier": {
+              "type": "string",
+              "defaultValue": "Basic",
+              "allowedValues": [
+                "Basic",
+                "Standard"
+              ]
+            },
+            "capacity": {
+              "type": "int",
+              "defaultValue": 1,
+              "minValue": 1
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Kusto/clusters",
+              "apiVersion": "2024-04-13",
+              "name": "[parameters('clusterName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "[parameters('skuTier')]",
+                "capacity": "[parameters('capacity')]"
+              },
+              "properties": {
+                "publicNetworkAccess": "Disabled",
+                "enableDiskEncryption": true,
+                "enableStreamingIngest": true
+              }
+            },
+            {
+              "type": "Microsoft.Kusto/clusters/databases",
+              "apiVersion": "2024-04-13",
+              "name": "[format('{0}/{1}', parameters('clusterName'), parameters('databaseName'))]",
+              "location": "[parameters('location')]",
+              "kind": "ReadWrite",
+              "properties": {
+                "softDeletePeriod": "P7D",
+                "hotCachePeriod": "P1D"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Kusto/clusters', parameters('clusterName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "[format('privatelink.{0}.kusto.windows.net', parameters('location'))]",
+              "location": "global"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.{0}.kusto.windows.net', parameters('location')), format('{0}-adx', parameters('clusterName')))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[parameters('virtualNetworkId')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}.kusto.windows.net', parameters('location')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}-adx', parameters('clusterName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('privateEndpointSubnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "adx",
+                    "properties": {
+                      "privateLinkServiceId": "[resourceId('Microsoft.Kusto/clusters', parameters('clusterName'))]",
+                      "groupIds": [
+                        "cluster"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Kusto/clusters', parameters('clusterName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}/{1}', format('{0}-adx', parameters('clusterName')), 'adx')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "adx",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}.kusto.windows.net', parameters('location')))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}.kusto.windows.net', parameters('location')))]",
+                "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-adx', parameters('clusterName')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "clusterId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Kusto/clusters', parameters('clusterName'))]"
+            },
+            "queryEndpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Kusto/clusters', parameters('clusterName')), '2024-04-13').uri]"
+            },
+            "databaseName": {
+              "type": "string",
+              "value": "[parameters('databaseName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'private-network-postgres')]"
+      ]
     },
     {
       "type": "Microsoft.Resources/deployments",
@@ -995,8 +1254,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "156870331572479945"
+              "version": "0.48.1.52935",
+              "templateHash": "11163691175506270168"
             }
           },
           "parameters": {
@@ -1180,8 +1439,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "16475622901774758531"
+              "version": "0.48.1.52935",
+              "templateHash": "6349869892450546943"
             }
           },
           "parameters": {
@@ -1706,8 +1965,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "12464338349180525026"
+                      "version": "0.48.1.52935",
+                      "templateHash": "12213718997281109477"
                     }
                   },
                   "parameters": {
@@ -1829,8 +2088,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "12356995503207599452"
+              "version": "0.48.1.52935",
+              "templateHash": "9245532112067501862"
             }
           },
           "parameters": {
@@ -1988,8 +2247,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "12464338349180525026"
+                      "version": "0.48.1.52935",
+                      "templateHash": "12213718997281109477"
                     }
                   },
                   "parameters": {
@@ -2118,8 +2377,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "1382375296449266175"
+              "version": "0.48.1.52935",
+              "templateHash": "6625495926426680658"
             }
           },
           "parameters": {
@@ -2331,8 +2590,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "12464338349180525026"
+                      "version": "0.48.1.52935",
+                      "templateHash": "12213718997281109477"
                     }
                   },
                   "parameters": {
@@ -2447,6 +2706,18 @@
     "postgresHostName": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Resources/deployments', 'private-network-postgres'), '2025-04-01').outputs.postgresHostName.value]"
+    },
+    "adxClusterId": {
+      "type": "string",
+      "value": "[if(parameters('adxEnabled'), reference(resourceId('Microsoft.Resources/deployments', 'adx-destination'), '2025-04-01').outputs.clusterId.value, '')]"
+    },
+    "adxQueryEndpoint": {
+      "type": "string",
+      "value": "[if(parameters('adxEnabled'), reference(resourceId('Microsoft.Resources/deployments', 'adx-destination'), '2025-04-01').outputs.queryEndpoint.value, '')]"
+    },
+    "adxDatabaseName": {
+      "type": "string",
+      "value": "[if(parameters('adxEnabled'), reference(resourceId('Microsoft.Resources/deployments', 'adx-destination'), '2025-04-01').outputs.databaseName.value, '')]"
     }
   }
 }
