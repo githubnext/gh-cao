@@ -59,8 +59,22 @@ func (f FilePolicy) load() (Snapshot, error) {
 		return Snapshot{}, ErrUnavailable
 	}
 	var snapshot Snapshot
-	if strictJSON(data, &snapshot) != nil || snapshot.Version != 1 || len(snapshot.Repositories) > 1000 {
+	if strictJSON(data, &snapshot) != nil {
+		admissionLog.Printf("policy snapshot rejected: reason=invalid_json")
 		return Snapshot{}, ErrUnavailable
+	}
+	if err := validateSnapshot(snapshot); err != nil {
+		return Snapshot{}, err
+	}
+	return snapshot, nil
+}
+
+// validateSnapshot enforces the trusted snapshot invariants: version, bounds,
+// unique enrollments, well-formed identifiers, and valid workflow policies.
+func validateSnapshot(snapshot Snapshot) error {
+	if snapshot.Version != 1 || len(snapshot.Repositories) > 1000 {
+		admissionLog.Printf("policy snapshot rejected: reason=version_or_size repositories=%d", len(snapshot.Repositories))
+		return ErrUnavailable
 	}
 	seen := map[string]bool{}
 	for _, entry := range snapshot.Repositories {
@@ -69,7 +83,8 @@ func (f FilePolicy) load() (Snapshot, error) {
 			len(entry.Subjects) == 0 || len(entry.Workflows) > 100 ||
 			entry.Usage.Unit != "ai-credits" || entry.Usage.Used == nil ||
 			*entry.Usage.Used < 0 || entry.Usage.Limit <= 0 {
-			return Snapshot{}, ErrUnavailable
+			admissionLog.Printf("policy snapshot rejected: reason=invalid_enrollment")
+			return ErrUnavailable
 		}
 		seen[entry.RepositoryID] = true
 		workflows := map[string]bool{}
@@ -78,17 +93,19 @@ func (f FilePolicy) load() (Snapshot, error) {
 			if !clean(policy.WorkflowRef, 1024) || !revision.MatchString(policy.WorkflowSHA) ||
 				len(policy.Events) == 0 || len(policy.ActorIDs) == 0 ||
 				!policy.Allowances.valid() || workflows[key] {
-				return Snapshot{}, ErrUnavailable
+				admissionLog.Printf("policy snapshot rejected: reason=invalid_workflow")
+				return ErrUnavailable
 			}
 			workflows[key] = true
 			for _, actor := range policy.ActorIDs {
 				if !decimal.MatchString(actor) {
-					return Snapshot{}, ErrUnavailable
+					admissionLog.Printf("policy snapshot rejected: reason=invalid_actor")
+					return ErrUnavailable
 				}
 			}
 		}
 	}
-	return snapshot, nil
+	return nil
 }
 
 func (f FilePolicy) Validate() error {
