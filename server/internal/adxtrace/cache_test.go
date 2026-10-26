@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -181,7 +182,7 @@ func TestFilterCaptureCacheRejectsInvalidAndCancelled(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	if _, _, err := filterCaptureCache(ctx, strings.NewReader("{\"kind\":\"record\"}\n"), false, nil); err != context.Canceled {
+	if _, _, err := filterCaptureCache(ctx, strings.NewReader("{\"kind\":\"record\"}\n"), false, nil); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled error = %v", err)
 	}
 }
