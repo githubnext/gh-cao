@@ -1,14 +1,7 @@
 {
-  "source_sha": "a07c678b304fd6251fba800582683c33164e47d9",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "source_sha": "45e0a728974a506146a673e8bd7f1659ed4482d4",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-25T17:34:14Z",
-      "worker_run_id": "40216887737",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-25T18:23:02Z",
       "worker_run_id": "40220775348",
@@ -694,6 +687,35 @@
       "category": "scheduling, concurrency, and avoidable rebuilds",
       "evidence_run_ids": [],
       "outcome": "incomplete: the initial bounded GitHub requests for the latest 20 completed docs.yml runs, latest 20 completed cao-dashboard.yml runs, and open duplicate issues failed because the runtime could not create a new OS thread. Per resource-limit policy, all further GitHub API and model work stopped. A current evidence window, the required five comparable successful full runs, workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, dashboard-producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-26T15:54:13Z",
+      "worker_run_id": "40353101086",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40352947602,
+        40349456527,
+        40348629363,
+        40342138445,
+        40338370928,
+        40336108582,
+        40326459197,
+        40317557260,
+        40317245181,
+        40315379307,
+        40312011777,
+        40310564079,
+        40310002791,
+        40308887049,
+        40306246220,
+        40303651592,
+        40302933297,
+        40300124351,
+        40296174400,
+        40295606551
+      ],
+      "outcome": "complete recommendation: the 2026-10-26T08:54:58Z to 2026-10-26T15:50:11Z latest-20 completed docs.yml window contained 14 successful and six skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable: four schedule runs (40352947602, 40342138445, 40317557260, 40315379307) and one push run (40336108582), all at distinct source SHAs. Full elapsed workflow time was 102.0s median (135.4s p90); execution excluding initial queue was 98.0s (131.4s p90), queue was 3.0s (4.0s p90), build was 74.0s (80.6s p90), deploy was 13.0s (42.0s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (22.4s p90). Repeated docs costs were checkout 26.0s median, npm ci 20.0s, Astro generation 12.0s, dashboard restore 2.0s, Pages upload 3.0s, and deploy-pages 8.0s. Bounded logs verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits in all five builds; dashboard artifact fallback steps were skipped. Four of the five full publications were schedule-triggered at SHAs that had no docs push run in the bounded window, while nine successful schedule runs freshness-skipped and six ineligible workflow callbacks were skipped. Because docs freshness equates current documentation with exact default-branch HEAD even though push paths already enumerate documentation inputs and dashboard freshness is checked separately, path-excluded commits can force a full cached rebuild and deployment. Recommend persisting/comparing a versioned digest of declared docs inputs (plus the separately tracked dashboard producer) rather than requiring deployedDocsRun.head_sha to equal branch HEAD. This is expected to avoid a 98s median execution cycle for each irrelevant tip change, above both actionability thresholds, while preserving force-deploy and fail-closed fallback behavior.",
+      "suggestion_fingerprint": "docs-relevant-input-freshness-digest-v1"
     }
   ]
 }
