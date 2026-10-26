@@ -3,13 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-25T23:18:51Z",
-      "worker_run_id": "40244008574",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-25T23:49:50Z",
       "worker_run_id": "40246293870",
       "category": "reusable dashboard generation",
@@ -674,6 +667,34 @@
         40354712554
       ],
       "outcome": "complete no-op: the 2026-10-26T15:59:21Z to 2026-10-26T20:02:02Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. The five successful full build-and-deploy paths were comparable across two push, two schedule, and one workflow_run trigger at four source SHAs. Full elapsed workflow time was 101.0s median (112.6s p90); execution excluding initial queue was 96.0s (108.0s p90), initial queue was 3.0s (4.0s p90), build was 69.0s (72.4s p90), deploy was 17.0s (23.2s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (21.6s p90). Repeated docs costs were checkout 23.0s median, npm ci 18.0s, Astro generation 14.0s, dashboard restore 1.0s, Pages artifact upload 2.0s, and deploy-pages 14.0s. Trusted step metadata verified dashboard-cache hits in all five docs builds because Restore cached CAO Dashboard succeeded while artifact lookup and download fallback were skipped. For artifact transfer and Pages packaging, dashboard restore plus Pages upload plus deployment totaled 17.0s median (23.0s p90), about 17.7% of median execution, but 14.0s of that median is the safety-critical GitHub Pages deployment service rather than avoidable workflow packaging. The directly controllable transfer/package steps were only 3.0s median; dashboard producer upload, cache download, and cache save were each 1-2s. Schedule run 40368195259 is disclosed as a deployment outlier with a 22-second Deploy Pages step, while the other four were 5-15 seconds. No concrete workflow change is expected to save 60 seconds or 15% without weakening deployment safety, so no recommendation was made. The next category is scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-10-26T20:41:06Z",
+      "worker_run_id": "40397370434",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40397385580,
+        40395512740,
+        40391993955,
+        40389962003,
+        40388066136,
+        40386710985,
+        40385430574,
+        40382738853,
+        40382670586,
+        40379392120,
+        40374236100,
+        40371977534,
+        40369937735,
+        40368546029,
+        40368195259,
+        40364730602,
+        40363276542,
+        40362663067,
+        40362277394,
+        40359644140
+      ],
+      "outcome": "incomplete: the 2026-10-26T16:29:36Z to 2026-10-26T20:38:17Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job and step metadata identified only four successful full build-and-deploy paths: workflow_run 40386710985, schedule runs 40368195259 and 40359644140, and push run 40362663067. The only other run exceeding 20 seconds, schedule run 40371977534, executed schedule-freshness for nine seconds while build and deploy were skipped; the remaining successful runs completed in 12-15 seconds and were freshness-only executions. Dashboard cache restoration succeeded and artifact fallback was skipped in all four confirmed full builds. This is below the required five comparable successful full runs. Therefore a complete scheduling/concurrency evaluation, including current full-workflow and dashboard/build/deploy median and p90 timings, CAO Dashboard producer comparison, repeated-cost analysis, and actionable duplicate-rebuild determination, could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
