@@ -4005,10 +4005,6 @@
       "description": "",
       "parameters": [
         {
-          "name": "report",
-          "field": "report-id"
-        },
-        {
           "name": "snapshot",
           "field": "snapshot-route"
         }

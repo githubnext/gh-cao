@@ -74,10 +74,8 @@
       "filter": { "predicates": [{ "field": "fact-kind", "equals": "snapshot" }] },
       "compute": [
         { "as": "snapshot-marker", "function": "literal", "args": [{ "value": 1 }] },
-        { "as": "snapshot-route", "function": "concat", "args": [{ "field": "report-id" }, { "value": "|" }, { "field": "fact-id" }] },
         { "as": "encoded-snapshot", "function": "url-encode", "args": [{ "field": "snapshot-route" }] },
-        { "as": "encoded-report", "function": "url-encode", "args": [{ "field": "report-id" }] },
-        { "as": "snapshot-href", "function": "concat", "args": [{ "value": "#page-value-snapshot?snapshot=" }, { "field": "encoded-snapshot" }, { "value": "&report=" }, { "field": "encoded-report" }] }
+        { "as": "snapshot-href", "function": "concat", "args": [{ "value": "#page-value-snapshot?snapshot=" }, { "field": "encoded-snapshot" }] }
       ],
       "order-by": [{ "field": "at", "direction": "asc" }, { "field": "fact-id", "direction": "asc" }]
     },
@@ -363,7 +361,7 @@
       "acceptance": "Only retained items are shown. Missing item evidence must not look like an empty measured population.",
       "from": "value-evidence-facts",
       "filter": { "predicates": [{ "field": "fact-kind", "equals": "snapshot-item" }] },
-      "joins": [{ "source": "value-snapshots", "type": "inner", "on": [{ "left": "report-id", "right": "report-id" }, { "left": "parent-id", "right": "fact-id" }], "fields": [{ "field": "snapshot-route", "as": "snapshot-route" }, { "field": "at", "as": "snapshot-at" }] }]
+      "joins": [{ "source": "value-snapshots", "type": "inner", "on": [{ "left": "report-id", "right": "report-id" }, { "left": "parent-id", "right": "fact-id" }, { "left": "snapshot-route", "right": "snapshot-route" }], "fields": [{ "field": "at", "as": "snapshot-at" }] }]
     }
   ],
   "pages": [
@@ -427,7 +425,7 @@
       "route": { "hash-query-parameter": "snapshot", "navigation-page": "value", "breadcrumbs": [{ "page": "value" }] },
       "views": [{
         "id": "native-value-snapshot", "title": "Counted items", "show-title": false,
-        "data": { "sources": ["value-snapshots", "value-snapshot-items"], "arguments": [{ "name": "snapshot", "field": "snapshot-route" }, { "name": "report", "field": "report-id" }], "query-context": false, "time": { "range": "all" } },
+        "data": { "sources": ["value-snapshots", "value-snapshot-items"], "arguments": [{ "name": "snapshot", "field": "snapshot-route" }], "query-context": false, "time": { "range": "all" } },
         "mark": "element", "element": "workflow-value-snapshot", "layout": "full"
       }]
     },

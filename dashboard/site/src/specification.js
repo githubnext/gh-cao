@@ -534,7 +534,7 @@ export const TABLE_FIELDS = {
     'collection-state', 'reason-code', 'reason', 'checked-at', 'policy-digest', 'last-attempt-at', 'last-attempt-outcome'
   ],
   'operational-value-evidence': [
-    'report-id', 'workflow-route', 'organization', 'repository', 'workflow', 'workflow-path', 'observed-at', 'window-start', 'window-end', 'contract-digest',
+    'report-id', 'workflow-route', 'snapshot-route', 'organization', 'repository', 'workflow', 'workflow-path', 'observed-at', 'window-start', 'window-end', 'contract-digest',
     'fact-kind', 'fact-id', 'parent-id', 'related-id', 'label', 'title', 'url', 'at', 'accepted-at', 'end-at',
     'value', 'ref', 'state', 'origin', 'scope', 'coverage-status', 'status', 'detail', 'goal', 'acceptance',
     'metric-id', 'metric-name', 'metric-unit', 'metric-direction', 'metric-version', 'metric-formula', 'result-label',

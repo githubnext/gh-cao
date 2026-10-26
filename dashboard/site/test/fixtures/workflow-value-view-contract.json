@@ -11,7 +11,7 @@
   "reportElement": "workflow-value-report",
   "snapshotPage": "value-snapshot",
   "snapshotElement": "workflow-value-snapshot",
-  "snapshotArguments": [{ "name": "snapshot", "field": "snapshot-route" }, { "name": "report", "field": "report-id" }],
+  "snapshotArguments": [{ "name": "snapshot", "field": "snapshot-route" }],
   "route": "octo/example:.github/workflows/verify-bugs.md",
   "headline": "↑ +38 files · Worse",
   "reportSources": [

@@ -2,6 +2,7 @@ import { createDebug } from '../../debug.js';
 import { repositoryCoordinateId, workflowCoordinateId } from './ids.js';
 
 const debugEvidence = createDebug('operational-value-evidence');
+export const EVIDENCE_READ_LIMITS = Object.freeze({ packets: 32, bytes: 16 * 1024 * 1024, facts: 20000 });
 const kinds = new Set(['contract', 'intent-source', 'requirement', 'output', 'output-implementation',
   'output-evidence', 'implementation', 'implementation-evidence', 'implementation-lineage',
   'snapshot', 'snapshot-item', 'quality-check', 'coverage', 'limitation']);
@@ -138,12 +139,30 @@ export function validateOperationalValueEvidence(packet) {
 /** Pure source normalization; all selection, aggregation and comparison remain declarative.
  * @param {Record<string, any>[]} packets */
 export function operationalValueEvidenceRows(packets) {
+  let snapshotRouteBytes = 0;
   return packets.flatMap((packet) => {
     validateOperationalValueEvidence(packet);
     const [organization, repository] = packet.repository.split('/');
+    /** @type {Map<string, string>} */
+    const snapshotRoutes = new Map();
+    /** @param {string} id */
+    const snapshotRoute = (id) => {
+      const cached = snapshotRoutes.get(id);
+      if (cached !== undefined) return cached;
+      snapshotRouteBytes += packet.id.length + 1 + new TextEncoder().encode(id).length;
+      if (snapshotRouteBytes > EVIDENCE_READ_LIMITS.bytes) {
+        throw new Error('Value snapshot identities exceed the bounded read budget');
+      }
+      const route = `${packet.id}|${id}`;
+      snapshotRoutes.set(id, route);
+      return route;
+    };
     return /** @type {Record<string, any>[]} */ (packet.facts).map((fact) => ({
       'report-id': packet.id, organization, repository, workflow: packet.workflow, 'workflow-path': packet.sourcePath,
       'workflow-route': `${packet.repository}:${packet.sourcePath}`,
+      ...(['snapshot', 'snapshot-item'].includes(String(fact['fact-kind'])) ? {
+        'snapshot-route': snapshotRoute(fact[fact['fact-kind'] === 'snapshot' ? 'fact-id' : 'parent-id'])
+      } : {}),
       'observed-at': packet.observedAt, 'window-start': packet.windowStart,
       'window-end': packet.windowEnd, 'contract-digest': packet.contractDigest, ...fact
     }));

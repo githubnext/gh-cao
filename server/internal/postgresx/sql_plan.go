@@ -60,8 +60,7 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 	metadata := map[string]model.Metadata{}
 	retrievedAt := time.Now().UTC().Format(time.RFC3339Nano)
 	definitions = frozenStatisticalDefinitions(definitions)
-	valueSelections := query.SourceEqualities(definitions, requested, "operational-value-evidence",
-		"$operationalValueEvidence", "report-id", "workflow-route")
+	valueSelections := query.OperationalValueEvidenceSelections(definitions, requested)
 	resolve := func(name string) (query.SQLRelation, error) {
 		if strings.HasPrefix(name, statisticalSnapshotPrefix) {
 			relation, quality, err := r.frozenStatisticalSource(ctx, name)

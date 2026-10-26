@@ -15,6 +15,7 @@ func TestValueScopePrecedesSQLResourceStatistics(t *testing.T) {
 		{Name: "one", From: "operational-value-evidence", Filter: &query.Filter{Predicates: []query.Predicate{{Field: "report-id", Equals: "retained-one"}}}},
 		{Name: "two", From: "operational-value-evidence", Filter: &query.Filter{Predicates: []query.Predicate{{Field: "workflow-route", Equals: "octo/example:.github/workflows/verify-bugs.md"}}}},
 	}
+
 	selections := query.SourceEqualities(definitions, []string{"one", "two"}, "operational-value-evidence", "$operationalValueEvidence", "report-id", "workflow-route")
 	plan, err := query.CompileSQL(definitions, []string{"one", "two"}, func(string) (query.SQLRelation, error) {
 		return reader.operationalValueEvidenceSQLSource(selections...), nil
@@ -34,5 +35,29 @@ func TestValueScopePrecedesSQLResourceStatistics(t *testing.T) {
 	definitions[2].Filter = nil
 	if query.SourceEqualities(definitions, []string{"one", "two"}, "operational-value-evidence", "$operationalValueEvidence", "report-id", "workflow-route") != nil {
 		t.Fatal("an unscoped sibling must not be narrowed")
+	}
+}
+
+func TestSnapshotOnlyScopePrecedesSQLResourceStatistics(t *testing.T) {
+	reader := &readTransaction{store: &Store{namespace: "isolated-snapshot-scope"}}
+	definitions := []query.Definition{
+		{Name: "operational-value-evidence", From: "$operationalValueEvidence"},
+		{Name: "snapshot-only", From: "operational-value-evidence",
+			Filter: &query.Filter{Predicates: []query.Predicate{{Field: "snapshot-route", Equals: "packet|snapshot"}}}},
+	}
+	selections := query.OperationalValueEvidenceSelections(definitions, []string{"snapshot-only"})
+	plan, err := query.CompileSQL(definitions, []string{"snapshot-only"}, func(string) (query.SQLRelation, error) {
+		return reader.operationalValueEvidenceSQLSource(selections...), nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	statement, args, err := plan.StatisticsStatement()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(statement, "p.id=") || !slices.Contains(args, any("packet")) ||
+		!strings.Contains(statement, "f.parent_id") {
+		t.Fatal("snapshot-only queries must bind the parent packet before evaluating snapshot/item identities")
 	}
 }

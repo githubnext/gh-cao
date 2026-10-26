@@ -153,6 +153,7 @@ for (const width of [1440, 390]) {
     await page.locator('details.value-report-evidence > summary').click();
     await page.locator('.value-report-plot svg a').first().locator('circle').click();
     await expect(page).toHaveURL(/#page-value-snapshot\?snapshot=/);
+    expect(new URLSearchParams(page.url().split('?')[1]).has('report')).toBe(false);
     await expect(page.locator('.value-report-items a')).toHaveAttribute('href', 'https://github.com/octo/example/issues/1');
     await page.getByRole('link', { name: '← Value report' }).click();
     await expect(page.locator('.value-report-movement')).toHaveText('↓ -1 defects · Better');

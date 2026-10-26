@@ -88,6 +88,7 @@ func OperationalValueEvidenceMetadata(packets []map[string]any) (map[string]any,
 // belongs to the declarative query plan, never the storage adapter.
 func OperationalValueEvidenceRows(packets []map[string]any) ([]map[string]any, error) {
 	result := []map[string]any{}
+	snapshotRouteBytes := 0
 	for _, packet := range packets {
 		repository, ok := packet["repository"].(string)
 		parts := strings.Split(repository, "/")
@@ -95,6 +96,7 @@ func OperationalValueEvidenceRows(packets []map[string]any) ([]map[string]any, e
 		if !ok || len(parts) != 2 || !valid || len(facts) == 0 || len(facts) > 20000 {
 			return nil, errors.New("invalid operational value evidence packet")
 		}
+		snapshotRoutes := map[string]string{}
 		for _, item := range facts {
 			fact, ok := item.(map[string]any)
 			if !ok {
@@ -110,6 +112,27 @@ func OperationalValueEvidenceRows(packets []map[string]any) ([]map[string]any, e
 			}
 			for key, value := range fact {
 				row[key] = value
+			}
+			if fact["fact-kind"] == "snapshot" || fact["fact-kind"] == "snapshot-item" {
+				key := fact["fact-id"]
+				if fact["fact-kind"] == "snapshot-item" {
+					key = fact["parent-id"]
+				}
+				snapshotID, validSnapshot := key.(string)
+				reportID, validReport := packet["id"].(string)
+				if !validSnapshot || !validReport || snapshotID == "" || reportID == "" {
+					return nil, errors.New("invalid operational value snapshot identity")
+				}
+				route, exists := snapshotRoutes[snapshotID]
+				if !exists {
+					snapshotRouteBytes += len(reportID) + 1 + len(snapshotID)
+					if snapshotRouteBytes > MaxEvidenceBytes {
+						return nil, errors.New("value snapshot identities exceed bounded read budget")
+					}
+					route = reportID + "|" + snapshotID
+					snapshotRoutes[snapshotID] = route
+				}
+				row["snapshot-route"] = route
 			}
 			result = append(result, row)
 		}

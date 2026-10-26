@@ -99,6 +99,9 @@ func (r *readTransaction) operationalValueEvidenceSQLSource(selections ...query.
 	columns["repository"] = query.SQLColumn{Expression: "t.__repository", Presence: "TRUE", Kind: query.SQLText}
 	projections = append(projections, "p.repository || ':' || p.source_path AS __workflow_route")
 	columns["workflow-route"] = query.SQLColumn{Expression: "t.__workflow_route", Presence: "TRUE", Kind: query.SQLText}
+	projections = append(projections, `CASE f.fact_kind WHEN 'snapshot' THEN p.id || '|' || f.fact_id
+		WHEN 'snapshot-item' THEN p.id || '|' || f.parent_id END AS __snapshot_route`)
+	columns["snapshot-route"] = query.SQLColumn{Expression: "t.__snapshot_route", Presence: "t.__snapshot_route IS NOT NULL", Kind: query.SQLText}
 	predicate, params := r.operationalValueEvidencePredicate(selections)
 	return query.SQLRelation{
 		SQL:    "(SELECT " + strings.Join(projections, ",") + " FROM operational_value_evidence_facts f JOIN operational_value_evidence p ON p.namespace=f.namespace AND p.id=f.packet_id WHERE " + predicate + ") AS t",

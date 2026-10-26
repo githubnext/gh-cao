@@ -3128,6 +3128,14 @@ Markdown source path), `observed-at` (capture), `window-start`, `window-end`
 (evidence cutoff) and `contract-digest`. Original capture/cutoff boundaries
 SHALL NOT advance on replay. `fact-kind` and `fact-id` identify each fact;
 IDs SHALL be stable and unique within kind and optional parent.
+Snapshot and snapshot-item rows SHALL also expose `snapshot-route`, the
+composite `report-id|snapshot-id`; an item's snapshot ID is its original
+`parent-id`. The URI-encoded canonical report ID contains no literal `|`, so
+the first separator identifies its packet without inferring a relationship.
+Other fact kinds SHALL leave this optional identity absent.
+Local/browser normalization SHALL reuse each snapshot's compound identity for
+its items and bound newly constructed identity bytes by the existing 16 MiB
+read budget, before allocating an over-budget expansion.
 Base-source metadata SHALL retain the oldest included packet cutoff as `as-of`
 and its oldest capture as `retrieved-at`; these clocks alone SHALL NOT promote
 completeness or freshness to known states.
@@ -3161,8 +3169,11 @@ or workflow identity prefix); browser storage SHALL use the primary key or
 consumer's necessary equality, and SHALL NOT narrow an unscoped consumer.
 The authored query still evaluates the complete predicate afterward. Version
 ranking SHALL occur after independent report computation so an exact report
-does not require unrelated versions. Snapshot links SHALL carry their report
-identity as well as their snapshot identity.
+does not require unrelated versions. The public snapshot route SHALL require
+only its composite `snapshot` parameter. Packet selection SHALL derive the
+report ID from that canonical identity before expansion; generated links and
+agent calls SHALL NOT require a second `report` argument. Queries still match
+the complete snapshot identity after the bounded packet read.
 
 Local/browser packet reads SHALL admit at most 32 packets, 16 MiB of packet
 data and 20,000 facts before expansion, without raising ordinary query limits.

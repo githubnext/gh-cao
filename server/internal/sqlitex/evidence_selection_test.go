@@ -86,6 +86,39 @@ func TestValueEvidenceIndexedScopeAndBudgets(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
+			var snapshotID string
+			for _, fact := range target["facts"].([]any) {
+				row := fact.(map[string]any)
+				if row["fact-kind"] == "snapshot" {
+					snapshotID = row["fact-id"].(string)
+					break
+				}
+			}
+			route := target["id"].(string) + "|" + snapshotID
+			want := 1
+			for _, fact := range target["facts"].([]any) {
+				row := fact.(map[string]any)
+				if row["fact-kind"] == "snapshot-item" && row["parent-id"] == snapshotID {
+					want++
+				}
+			}
+			plan := append(append([]query.Definition{}, definitions...), query.Definition{
+				Name: "snapshot-only", From: "operational-value-evidence",
+				Filter: &query.Filter{Predicates: []query.Predicate{{Field: "snapshot-route", Equals: route}}},
+			})
+			err = store.WithReadTransaction(t.Context(), func(ctx context.Context, reader dashboardstore.Reader) error {
+				sources, metrics, err := reader.ExecuteSQLPlan(ctx, plan, []string{"snapshot-only"})
+				if err != nil {
+					return err
+				}
+				if len(sources["snapshot-only"].Rows) != want || metrics.PeakWorkingRows > len(target["facts"].([]any)) {
+					t.Fatal("snapshot-only selection lost items or expanded unrelated packets")
+				}
+				return nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
 			if population > 32 {
 				err = store.WithReadTransaction(t.Context(), func(ctx context.Context, reader dashboardstore.Reader) error {
 					_, _, err := reader.ExecuteSQLPlan(ctx, definitions, []string{"operational-value-evidence"})

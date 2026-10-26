@@ -50,8 +50,7 @@ func (r *reader) ExecuteSQLPlanWithOptions(ctx context.Context, definitions []qu
 	}
 	executionDefinitions, fields := projectSnapshotPlan(definitions, requested, order)
 	var valueSelections []dashboardquery.EvidenceSelection
-	for _, selection := range query.SourceEqualities(definitions, requested, "operational-value-evidence",
-		"$operationalValueEvidence", "report-id", "workflow-route") {
+	for _, selection := range query.OperationalValueEvidenceSelections(definitions, requested) {
 		valueSelections = append(valueSelections, dashboardquery.EvidenceSelection{Field: selection.Field, Value: selection.Value})
 	}
 	state, err := r.State(ctx)

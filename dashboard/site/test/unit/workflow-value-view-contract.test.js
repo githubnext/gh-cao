@@ -11,6 +11,7 @@ import { authoritativeDashboard } from '../authoritative-dashboard.js';
 import ledgerFixture from '../fixtures/operational-value-ledger.json' with { type: 'json' };
 import contract from '../fixtures/workflow-value-view-contract.json' with { type: 'json' };
 import { evidencePacketSelection, readEvidencePackets } from '../../src/data/queries/evidence-selection.js';
+import { operationalValueEvidenceId, operationalValueEvidenceRows } from '../../src/data/model/operational-value-evidence.js';
 
 const dashboard = authoritativeDashboard.dashboard;
 const repository = resolve('../..');
@@ -79,6 +80,35 @@ function fileLedger(direction = 'decrease') {
 }
 
 describe('native workflow value production contract', () => {
+  it('bounds compound identity allocation before expanding oversized snapshot histories', async () => {
+    const packet = await publish(fileLedger());
+    const header = packet.facts.find((/** @type {Record<string, unknown>} */ fact) => fact['fact-kind'] === 'contract');
+    const snapshot = packet.facts.find((/** @type {Record<string, unknown>} */ fact) => fact['fact-kind'] === 'snapshot');
+    header['metric-id'] = 'm'.repeat(10000);
+    packet.id = operationalValueEvidenceId(packet.repository, packet.workflow, header['metric-id'], header['metric-version']);
+    packet.facts = packet.facts.filter((/** @type {Record<string, unknown>} */ fact) =>
+      !['snapshot', 'snapshot-item'].includes(String(fact['fact-kind'])));
+    packet.facts.push(...Array.from({ length: 2000 }, (_, index) => ({
+      ...snapshot, 'fact-id': String(index), 'items-available': false
+    })));
+    expect(() => operationalValueEvidenceRows([packet])).toThrow(/snapshot identities exceed the bounded read budget/);
+  });
+
+  it('resolves and scopes a snapshot using only its declared public route parameter', async () => {
+    const packet = await publish(fileLedger());
+    const snapshot = packet.facts.find((/** @type {Record<string, unknown>} */ fact) => fact['fact-kind'] === 'snapshot');
+    const page = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === contract.snapshotPage);
+    const parameters = { [page.route['hash-query-parameter']]: `${packet.id}|${snapshot['fact-id']}` };
+    const compiled = compileDashboardViewPayloadQueries(page, page.id, {
+      queries: dashboard.queries, routeParameters: parameters
+    });
+    expect(evidencePacketSelection(compiled.queries, compiled.aliases)).toEqual([{ field: 'id', value: packet.id }]);
+    const [snapshots, items] = await execute(contract.snapshotPage, parameters);
+    expect(snapshots.rows).toHaveLength(1);
+    expect(items.rows).toHaveLength(16);
+    expect(items.rows.every(row => row['report-id'] === packet.id)).toBe(true);
+  });
+
   it('does not narrow an overridden or limited canonical identity projection', () => {
     for (const projection of [
       { limit: 1 },
@@ -107,6 +137,8 @@ describe('native workflow value production contract', () => {
     for (const [pageId, parameters] of [
       [contract.reportPage, { report: packet.id }],
       [contract.page, { workflow: contract.route }],
+      [contract.snapshotPage, { snapshot: `${packet.id}|${packet.facts.find(
+        (/** @type {Record<string, unknown>} */ fact) => fact['fact-kind'] === 'snapshot')['fact-id']}` }],
     ]) {
       const page = dashboard.pages.find((/** @type {{id: string}} */ page) => page.id === pageId);
       const compiled = compileDashboardViewPayloadQueries(page, String(pageId), {

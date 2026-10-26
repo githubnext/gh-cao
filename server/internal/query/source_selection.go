@@ -1,8 +1,29 @@
 package query
 
-import "slices"
+import (
+	"slices"
+	"strings"
+)
 
 type SourceEquality struct{ Field, Value string }
+
+// OperationalValueEvidenceSelections maps canonical compound snapshot identities
+// to their report packet without adding a second public route parameter.
+func OperationalValueEvidenceSelections(definitions []Definition, requested []string) []SourceEquality {
+	selections := SourceEqualities(definitions, requested, "operational-value-evidence",
+		"$operationalValueEvidence", "report-id", "workflow-route", "snapshot-route")
+	for index, selection := range selections {
+		if selection.Field != "snapshot-route" {
+			continue
+		}
+		report, _, found := strings.Cut(selection.Value, "|")
+		if !found || report == "" {
+			return nil
+		}
+		selections[index] = SourceEquality{Field: "report-id", Value: report}
+	}
+	return selections
+}
 
 // SourceEqualities unions necessary pre-compute equalities across every
 // reachable consumer. A shared unscoped consumer disables narrowing.
@@ -22,6 +43,7 @@ func SourceEqualities(definitions []Definition, requested []string, source, raw 
 		return result
 	}
 	var selections []SourceEquality
+	var projection []SelectedField
 	for _, definition := range definitions {
 		if !slices.Contains(order, definition.Name) {
 			continue
@@ -32,13 +54,7 @@ func SourceEqualities(definitions []Definition, requested []string, source, raw 
 				definition.TemporalSeries != nil || definition.Facet != nil || len(definition.Predict) > 0 || definition.Limit != nil {
 				return nil
 			}
-			for _, field := range fields {
-				if len(definition.Select) > 0 && !slices.ContainsFunc(definition.Select, func(selected SelectedField) bool {
-					return selected.Field == field && (selected.As == "" || selected.As == field)
-				}) {
-					return nil
-				}
-			}
+			projection = definition.Select
 		}
 		if definition.Name != source && slices.Contains(inputs(definition), raw) {
 			return nil
@@ -68,6 +84,13 @@ func SourceEqualities(definitions []Definition, requested []string, source, raw 
 	}
 	if len(selections) > MaxPredicateAlternatives {
 		return nil
+	}
+	for _, selection := range selections {
+		if len(projection) > 0 && !slices.ContainsFunc(projection, func(selected SelectedField) bool {
+			return selected.Field == selection.Field && (selected.As == "" || selected.As == selection.Field)
+		}) {
+			return nil
+		}
 	}
 	return selections
 }

@@ -1,7 +1,8 @@
 import { dashboardQueryIndex, queryInputNames, resolveDashboardQuerySources } from './declarative.js';
 import { queryCollection } from '../storage/indexeddb.js';
+import { EVIDENCE_READ_LIMITS } from '../model/operational-value-evidence.js';
 
-export const EVIDENCE_READ_LIMITS = Object.freeze({ packets: 32, bytes: 16 * 1024 * 1024, facts: 20000 });
+export { EVIDENCE_READ_LIMITS };
 const source = 'operational-value-evidence';
 
 /**
@@ -17,9 +18,7 @@ export function evidencePacketSelection(queries, requested) {
   const projection = index.get(source);
   if (projection && (projection.from !== '$operationalValueEvidence' || projection.compute?.length
       || projection.union?.length || projection.joins?.length || projection.aggregate || projection.window?.length
-      || projection['temporal-series'] || projection.facet || projection.predict?.length || projection.limit !== undefined
-      || (projection.select && ['report-id', 'workflow-route'].some(field =>
-        !projection.select?.some(selected => selected.field === field && (selected.as ?? selected.field) === field))))) return null;
+      || projection['temporal-series'] || projection.facet || projection.predict?.length || projection.limit !== undefined)) return null;
   /** @type {Array<{ field: 'id' | 'workflowId', value: string }>} */
   const selections = [];
   for (const name of reachable) {
@@ -28,12 +27,21 @@ export function evidencePacketSelection(queries, requested) {
     if (!query || !queryInputNames(query).includes(source)) continue;
     if (query.from !== source || query.union?.length || query.joins?.length || query.compute?.length) return null;
     const predicate = query.filter?.predicates?.find(item => !item.optional
-      && ['report-id', 'workflow-route'].includes(item.field) && typeof item.equals === 'string');
+      && ['report-id', 'workflow-route', 'snapshot-route'].includes(item.field) && typeof item.equals === 'string');
     if (!predicate) return null;
+    if (projection?.select?.length && !projection.select.some(selected =>
+      selected.field === predicate.field && (selected.as ?? selected.field) === predicate.field)) return null;
     const value = /** @type {string} */ (predicate.equals);
-    selections.push(predicate.field === 'report-id'
-      ? { field: 'id', value }
-      : { field: 'workflowId', value: `workflow:${encodeURIComponent(value.toLowerCase())}` });
+    if (predicate.field === 'snapshot-route') {
+      // Canonical report IDs are URI-encoded and cannot contain this separator.
+      const separator = value.indexOf('|');
+      if (separator <= 0) return null;
+      selections.push({ field: 'id', value: value.slice(0, separator) });
+    } else {
+      selections.push(predicate.field === 'report-id'
+        ? { field: 'id', value }
+        : { field: 'workflowId', value: `workflow:${encodeURIComponent(value.toLowerCase())}` });
+    }
   }
   const distinct = [...new Map(selections.map(selection => [JSON.stringify(selection), selection])).values()];
   return distinct.length > 0 && distinct.length <= 32 ? distinct : null;

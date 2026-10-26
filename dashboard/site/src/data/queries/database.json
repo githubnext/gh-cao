@@ -191,6 +191,7 @@
     "select": [
       { "field": "report-id" },
       { "field": "workflow-route" },
+      { "field": "snapshot-route" },
       { "field": "organization" },
       { "field": "repository" },
       { "field": "workflow" },
