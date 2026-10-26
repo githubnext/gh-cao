@@ -2,6 +2,7 @@ package adxingest
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -97,5 +98,37 @@ func TestCapacityFailsClosedForMissingSizeEvidence(t *testing.T) {
 	sim.bytes = -1
 	if err := client.Capacity(t.Context()); !errors.Is(err, ErrStorage) {
 		t.Fatalf("unknown capacity accepted: %v", err)
+	}
+}
+
+func TestCheckStorageUsage(t *testing.T) {
+	cases := []struct {
+		name   string
+		rows   [][]any
+		budget int64
+		ok     bool
+	}{
+		{"below budget", [][]any{{json.Number("99")}}, 100, true},
+		{"zero usage", [][]any{{json.Number("0")}}, 1, true},
+		{"at budget", [][]any{{json.Number("100")}}, 100, false},
+		{"above budget", [][]any{{json.Number("1e3")}}, 100, false},
+		{"fractional", [][]any{{json.Number("1.5")}}, 100, false},
+		{"negative", [][]any{{json.Number("-1")}}, 100, false},
+		{"no rows", nil, 100, false},
+		{"extra row", [][]any{{json.Number("1")}, {json.Number("2")}}, 100, false},
+		{"extra column", [][]any{{json.Number("1"), json.Number("2")}}, 100, false},
+		{"string value", [][]any{{"1"}}, 100, false},
+		{"unparseable number", [][]any{{json.Number("abc")}}, 100, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := checkStorageUsage(tc.rows, tc.budget)
+			if tc.ok && err != nil {
+				t.Fatalf("usage rejected: %v", err)
+			}
+			if !tc.ok && !errors.Is(err, ErrStorage) {
+				t.Fatalf("usage accepted or wrong error: %v", err)
+			}
+		})
 	}
 }

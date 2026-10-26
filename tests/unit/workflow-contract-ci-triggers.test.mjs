@@ -111,7 +111,7 @@ test("Go dashboard integration bootstraps both stores in the runtime namespace",
 
 test("Go dashboard integration shards complete test coverage across isolated services", () => {
   const job = parse(workflow("cgo.yml")).jobs["redis-dashboard-integration"];
-  assert.deepEqual(job.strategy.matrix, { shard: [0, 1, 2, 3] });
+  assert.deepEqual(job.strategy.matrix, { shard: [0, 1, 2, 3, 4, 5, 6, 7] });
   assert.equal(job.strategy["fail-fast"], false);
   assert.ok(job.services.postgres);
   assert.ok(job.services.redis);
@@ -135,7 +135,10 @@ test("Go dashboard integration shards complete test coverage across isolated ser
   assert.equal(job.steps.find((step) => step.name === "Upload integration traces").if,
     "always() && matrix.shard == 0");
 
-  const names = ["TestOne", "TestTwo", "ExampleQuery", "FuzzParser", "TestThree", "TestFour"];
+  const names = [
+    "TestOne", "TestTwo", "ExampleQuery", "FuzzParser", "TestThree", "TestFour",
+    "TestFive", "TestSix", "TestSeven", "TestEight",
+  ];
   const output = [...names.slice(0, 2), "ok example/first", ...names, "ok example/second"].join("\n");
   const selected = new Map(names.map((name) => [name, 0]));
   const mock = [
@@ -147,7 +150,10 @@ test("Go dashboard integration shards complete test coverage across isolated ser
   for (const shard of job.strategy.matrix.shard) {
     const result = spawnSync("bash", ["-c", `${mock}\n${tests.run}`], {
       encoding: "utf8",
-      env: { ...process.env, MOCK_LIST: output, TEST_SHARD: String(shard), TEST_SHARD_COUNT: "4" },
+      env: {
+        ...process.env, MOCK_LIST: output, TEST_SHARD: String(shard),
+        TEST_SHARD_COUNT: String(job.strategy.matrix.shard.length),
+      },
     });
     assert.equal(result.status, 0, result.stderr);
     const pattern = new RegExp(result.stdout.trim());
@@ -159,12 +165,18 @@ test("Go dashboard integration shards complete test coverage across isolated ser
   assert.deepEqual([...selected.values()], names.map(() => 1));
   const empty = spawnSync("bash", ["-c", `${mock}\n${tests.run}`], {
     encoding: "utf8",
-    env: { ...process.env, MOCK_LIST: "ok example/empty", TEST_SHARD: "0", TEST_SHARD_COUNT: "4" },
+    env: {
+      ...process.env, MOCK_LIST: "ok example/empty", TEST_SHARD: "0",
+      TEST_SHARD_COUNT: String(job.strategy.matrix.shard.length),
+    },
   });
   assert.notEqual(empty.status, 0);
   const failed = spawnSync("bash", ["-c", `go() { return 23; }\n${tests.run}`], {
     encoding: "utf8",
-    env: { ...process.env, TEST_SHARD: "0", TEST_SHARD_COUNT: "4" },
+    env: {
+      ...process.env, TEST_SHARD: "0",
+      TEST_SHARD_COUNT: String(job.strategy.matrix.shard.length),
+    },
   });
   assert.equal(failed.status, 23);
 });

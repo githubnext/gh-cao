@@ -58,3 +58,52 @@ func TestCapacityAcceptsRealIntegralBytesButFailsClosedAtBudget(t *testing.T) {
 		})
 	}
 }
+
+func TestClassifyTablesAssignsRolesByNameWithoutTableOfContents(t *testing.T) {
+	tables := []responseTable{
+		{TableName: "PrimaryResult"},
+		{TableName: "QueryStatus"},
+		{TableName: "Other"},
+	}
+	roles, toc, err := classifyTables(tables)
+	if err != nil || toc != nil {
+		t.Fatalf("unexpected classification: toc=%v err=%v", toc, err)
+	}
+	if roles[0] != "result" || roles[1] != "status" || len(roles) != 2 {
+		t.Fatalf("unexpected roles: %v", roles)
+	}
+}
+
+func TestClassifyTablesRejectsAmbiguousAndUnmappedTables(t *testing.T) {
+	severity := []struct{ ColumnName string }{{"Severity"}}
+	for name, tables := range map[string][]responseTable{
+		"duplicate table":  {{TableName: "A"}, {TableName: "A"}},
+		"unnamed table":    {{}},
+		"unmapped status":  {{TableName: "Mystery", Columns: severity}},
+		"duplicate column": {{TableName: "A", Columns: []struct{ ColumnName string }{{"X"}, {"X"}}}},
+	} {
+		if _, _, err := classifyTables(tables); err == nil {
+			t.Fatalf("%s accepted", name)
+		}
+	}
+}
+
+func TestSelectQueryResultEnforcesRowCapAndSingleResult(t *testing.T) {
+	rows := make([][]any, maxQueryResultRows, maxQueryResultRows+1)
+	roles := map[int]string{0: "result"}
+	got, err := selectQueryResult([]responseTable{{TableName: "PrimaryResult", Rows: rows}}, roles, nil)
+	if err != nil || len(got) != maxQueryResultRows {
+		t.Fatalf("result at cap rejected: %v", err)
+	}
+	over := []responseTable{{TableName: "PrimaryResult", Rows: append(rows, nil)}}
+	if _, err := selectQueryResult(over, roles, nil); err == nil {
+		t.Fatal("oversized result accepted")
+	}
+	two := []responseTable{{TableName: "PrimaryResult"}, {TableName: "Table_0"}}
+	if _, err := selectQueryResult(two, map[int]string{0: "result", 1: "result"}, nil); err == nil {
+		t.Fatal("ambiguous result accepted")
+	}
+	if _, err := selectQueryResult(nil, nil, nil); err == nil {
+		t.Fatal("missing result accepted")
+	}
+}
