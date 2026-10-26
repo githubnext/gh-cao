@@ -63,7 +63,7 @@ test -n "$REDIS_URL"
         assert.equal(result.code, 0, result.stderr);
         assert.equal(commands.split("\n").filter((line) => line.startsWith("go skip=")).length, 2);
         assert.match(commands, /go -C server test \.\/internal\/server \.\/internal\/simulator .* -timeout=10m -v/);
-        assert.match(commands, /go -C server test \.\/internal\/collect -count=1 -timeout=5m -v/);
+        assert.match(commands, /go -C server test \.\/internal\/collect -count=1 -timeout=10m -v/);
         if (outcome === "rate-limit") {
           assert.match(result.stderr, /rate-limited; running backfill tests without telemetry verification/);
           assert.doesNotMatch(commands, /up .*openobserve/);
