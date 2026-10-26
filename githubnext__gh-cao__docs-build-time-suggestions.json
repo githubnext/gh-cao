@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-25T21:51:16Z",
-      "worker_run_id": "40237213414",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        40236995035,
-        40236834402,
-        40235958621,
-        40235023929,
-        40233502936,
-        40232332298,
-        40231334641,
-        40230422626,
-        40230378711,
-        40229313680,
-        40228780624,
-        40228522454,
-        40227579159,
-        40227569956,
-        40226390200,
-        40225385067,
-        40225377985,
-        40224002830,
-        40223060800,
-        40222213503
-      ],
-      "outcome": "incomplete: the 2026-10-25T18:38:36Z to 2026-10-25T21:45:54Z latest-20 completed docs.yml window contained 17 successful, two skipped, and one action-required run, with no failed or cancelled runs. Only four successful full build-and-deploy paths were present: workflow_run runs 40230378711 and 40225377985, push run 40227579159, and schedule run 40227569956. The remaining successful runs freshness-checked and skipped build and deploy; trusted current job metadata confirmed this for newest schedule run 40236995035 and concurrency-delayed run 40230422626. This is below the required five comparable successful full runs. Therefore full-workflow and dashboard/build/deploy job median and p90 timings, repeated-cost analysis, current cache-effectiveness verification, dashboard-producer comparison, and a complete reusable dashboard generation evaluation could not be produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-25T22:18:37Z",
       "worker_run_id": "40239367662",
       "category": "reusable dashboard generation",
@@ -695,6 +667,13 @@
         40338370928
       ],
       "outcome": "complete no-op: the 2026-10-26T14:18:06Z to 2026-10-26T19:00:11Z latest-20 completed docs.yml window contained 15 successful and five skipped runs, with no failed or cancelled runs. Six successful full build-and-deploy paths were comparable across four schedule and two push triggers and six source SHAs. Full elapsed workflow time was 106.5s median (131.0s p90); execution excluding initial queue was 102.5s (126.5s p90), queue was 3.5s (4.0s p90), build was 70.5s (78.5s p90), deploy was 18.0s (37.0s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (22.4s p90). Repeated docs costs were checkout 23.5s median, setup-node 4.5s, npm ci 20.5s, Astro documentation generation 15.0s (15.0s p90), dashboard restore 1.0s, Pages upload 2.5s, and deploy-pages 14.5s. Bounded logs for the five latest full builds verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits; trusted step metadata showed dashboard artifact fallback skipped in all six builds. Run 40342138445 was disclosed as a deployment outlier with a 45-second Deploy Pages step. No Astro recommendation was made: even eliminating the entire 15.0s median documentation-generation step would save only 14.6% of median execution and 14.1% of full elapsed time, below the 15% and 60-second actionability thresholds; no narrower Astro change can exceed the total step cost without weakening correctness or freshness. The next category is reusable dashboard generation."
+    },
+    {
+      "evaluated_at": "2026-10-26T19:25:38Z",
+      "worker_run_id": "40386196544",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
