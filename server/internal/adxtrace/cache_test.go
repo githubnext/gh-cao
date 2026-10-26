@@ -2,9 +2,11 @@ package adxtrace
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -148,5 +150,38 @@ func TestDatasetRejectsIncompleteAndAmbiguousTrajectories(t *testing.T) {
 				t.Fatal("invalid dataset accepted")
 			}
 		})
+	}
+}
+
+func TestFilterCaptureCache(t *testing.T) {
+	cache := "{\"kind\":\"run\",\"run\":{\"run_id\":42,\"run_attempt\":1}}\n" +
+		"{\"kind\":\"run\",\"run\":{\"database_id\":\"7\",\"run_attempt\":2}}\n" +
+		"{\"kind\":\"run\",\"run\":{\"run_id\":43,\"run_attempt\":1}}\n" +
+		"{\"kind\":\"record\",\"record\":{\"id\":\"structural\"}}\n"
+	known := map[string]bool{"42:1": true, "7:2": true}
+
+	got, dropped, err := filterCaptureCache(t.Context(), strings.NewReader(cache), true, known)
+	if err != nil || dropped != 1 {
+		t.Fatalf("scoped filter = dropped %d, err %v", dropped, err)
+	}
+	if strings.Contains(string(got), `"run_id":43`) || !strings.Contains(string(got), `"run_id":42`) ||
+		!strings.Contains(string(got), `"database_id":"7"`) || !strings.Contains(string(got), "structural") {
+		t.Fatalf("unexpected filtered content %q", got)
+	}
+
+	got, dropped, err = filterCaptureCache(t.Context(), strings.NewReader(cache), false, nil)
+	if err != nil || dropped != 0 || string(got) != cache {
+		t.Fatalf("unscoped filter changed content: dropped %d, err %v", dropped, err)
+	}
+}
+
+func TestFilterCaptureCacheRejectsInvalidAndCancelled(t *testing.T) {
+	if _, _, err := filterCaptureCache(t.Context(), strings.NewReader("not json\n"), true, nil); err == nil {
+		t.Fatal("invalid cache line was accepted")
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if _, _, err := filterCaptureCache(ctx, strings.NewReader("{\"kind\":\"record\"}\n"), false, nil); err != context.Canceled {
+		t.Fatalf("cancelled error = %v", err)
 	}
 }
