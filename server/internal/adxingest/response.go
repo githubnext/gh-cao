@@ -7,9 +7,6 @@ import (
 	"io"
 )
 
-// maxQueryResultRows bounds the rows accepted from one ADX query result.
-const maxQueryResultRows = 2048
-
 type responseTable struct {
 	TableName string
 	Rows      [][]any
