@@ -89,7 +89,7 @@ func TestClassifyTablesRejectsAmbiguousAndUnmappedTables(t *testing.T) {
 }
 
 func TestSelectQueryResultEnforcesRowCapAndSingleResult(t *testing.T) {
-	rows := make([][]any, maxQueryResultRows)
+	rows := make([][]any, maxQueryResultRows, maxQueryResultRows+1)
 	roles := map[int]string{0: "result"}
 	got, err := selectQueryResult([]responseTable{{TableName: "PrimaryResult", Rows: rows}}, roles, nil)
 	if err != nil || len(got) != maxQueryResultRows {
