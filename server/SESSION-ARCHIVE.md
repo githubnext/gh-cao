@@ -130,8 +130,11 @@ not delete archive history.
 
 ## Evidence and rollout
 
-The focused `Real DuckDB session archive` CI job runs real production paths with
-a checksum-verified runtime and rejects skipped conformance. To require the same
+The dedicated `Parquet and Session Archive CI` workflow
+(`.github/workflows/session-archive.yml`) runs real production paths with a
+checksum-verified runtime and rejects skipped conformance. Its
+`Real DuckDB session archive` job runs on relevant pull requests, main pushes,
+and the daily full suite. To require the same
 runtime locally, set `DUCKDB_PATH` and
 `CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1` when running archive integration tests.
 Run the fixed 1,048,576-event test with
@@ -141,7 +144,7 @@ not RSS guarantees.
 
 Functional Kusto evidence is opt-in: review the emulator license, then explicitly
 set `ACCEPT_EULA=Y` for `scripts/test-kusto-emulator.sh`, or select the default-false
-acceptance input when manually dispatching Go Dashboard Server CI. This runs the
+acceptance input when manually dispatching Parquet and Session Archive CI. This runs the
 production membership query template against the pinned official engine, not
 live Azure storage. The script does not benchmark the emulator.
 

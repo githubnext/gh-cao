@@ -214,7 +214,8 @@ and multi-replica archives are unsupported.
 
 ## 7. Required evidence
 
-The focused Actions job in `.github/workflows/cgo.yml` installs a pinned,
+The dedicated `.github/workflows/session-archive.yml` Actions workflow runs on
+relevant pull requests, main pushes, and the daily full suite. It installs a pinned,
 checksum-verified native DuckDB and executes production capture, conversion,
 publication, and authenticated query tests. Required tests MUST fail when the
 runtime is missing; mocks or skipped tests are not conformance.

@@ -45,6 +45,9 @@ jobs:
       contents: read
       actions: read
       pull-requests: write
+  session-archive:
+    needs: revision
+    uses: ./.github/workflows/session-archive.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
   extension:
     needs: revision
     uses: ./.github/workflows/go-extension.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
@@ -147,6 +150,7 @@ jobs:
       - contracts
       - dashboard
       - server
+      - session-archive
       - extension
       - bootstrap
       - actions-runtime

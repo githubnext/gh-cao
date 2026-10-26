@@ -44,7 +44,7 @@ test("daily calls every suite at the same revision and reports even on failure",
   assert.equal(daily.on.schedule.length, 1);
   assert.equal(daily.concurrency["cancel-in-progress"], false);
   const suites = Object.entries(daily.jobs).filter(([, job]) => job.uses);
-  assert.equal(suites.length, 15);
+  assert.equal(suites.length, 16);
   for (const [id, job] of suites) {
     assert.match(job.uses, /^\.\/\.github\/workflows\/[^/]+\.yml$/);
     assert.equal(job.needs, "revision");
