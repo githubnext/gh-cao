@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TestSetupAdmissionSharesConfiguration(t *testing.T) {
+func TestSetupAdmissionConfiguration(t *testing.T) {
 	for _, dryRun := range []bool{false, true} {
 		calls := 0
 		root, stdout, _ := testCommand(t, func(_ context.Context, args ...string) (string, string, error) {
@@ -57,47 +57,18 @@ func TestSetupAdmissionSharesConfiguration(t *testing.T) {
 	}
 }
 
-func TestAdmissionSetupCompatibilityAlias(t *testing.T) {
-	for _, dryRun := range []bool{false, true} {
-		var canonicalOutput string
-		var canonicalCalls [][]string
-		for _, legacy := range []bool{false, true} {
-			var calls [][]string
-			root, stdout, stderr := testCommand(t, func(_ context.Context, args ...string) (string, string, error) {
-				calls = append(calls, args)
-				if len(calls) == 1 {
-					return "[]", "", nil
-				}
-				return "", "", nil
-			}, nil)
-			path := []string{"setup", "admission"}
-			if legacy {
-				path = []string{"admission", "setup"}
-			}
-			args := append(path, "--repo", "acme/project", "--url", "https://cao.example/api/admission", "--json")
-			if dryRun {
-				args = append(args, "--dry-run")
-			}
-			root.SetArgs(args)
-			if err := root.ExecuteContext(t.Context()); err != nil {
-				t.Fatal(err)
-			}
-			if !json.Valid(stdout.Bytes()) {
-				t.Fatalf("command polluted JSON output: %s", stdout)
-			}
-			if !legacy {
-				canonicalOutput, canonicalCalls = stdout.String(), calls
-				if stderr.Len() != 0 {
-					t.Fatalf("canonical command warned: %s", stderr)
-				}
-				continue
-			}
-			if stdout.String() != canonicalOutput || !reflect.DeepEqual(calls, canonicalCalls) {
-				t.Fatalf("legacy alias diverged: %s calls=%v", stdout, calls)
-			}
-			if !strings.Contains(stderr.String(), "deprecated; use gh cao setup admission instead") {
-				t.Fatalf("missing migration warning: %s", stderr)
-			}
+func TestAdmissionSetupRemoved(t *testing.T) {
+	for _, flags := range [][]string{
+		{},
+		{"--repo", "acme/project", "--url", "https://cao.example/api/admission", "--json"},
+	} {
+		root, _, _ := testCommand(t, func(context.Context, ...string) (string, string, error) {
+			t.Fatal("removed admission setup command invoked GitHub")
+			return "", "", nil
+		}, nil)
+		root.SetArgs(append([]string{"admission", "setup"}, flags...))
+		if err := root.ExecuteContext(t.Context()); err == nil {
+			t.Fatal("removed admission setup command accepted")
 		}
 	}
 	root, stdout, _ := testCommand(t, nil, nil)
@@ -117,6 +88,7 @@ func TestSetupCommandHierarchy(t *testing.T) {
 	}{
 		{[]string{"setup"}, []string{"admission", "adx", "auth"}},
 		{[]string{"setup", "auth"}, []string{"enterprise-app", "github-app", "hosted-cli", "token"}},
+		{[]string{"admission"}, []string{"disable", "status"}},
 	} {
 		cmd, remaining, err := root.Find(tt.path)
 		if err != nil || len(remaining) != 0 {

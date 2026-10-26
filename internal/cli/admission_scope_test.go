@@ -92,7 +92,7 @@ func TestAdmissionCAOPolicyScope(t *testing.T) {
 				return "[]", "", nil
 			}
 			root, output, _ := testCommand(t, gh, nil)
-			root.SetArgs([]string{"admission", "setup", "--all-repos", "--url", "https://cao.example/api/admission", "--dry-run", "--json"})
+			root.SetArgs([]string{"setup", "admission", "--all-repos", "--url", "https://cao.example/api/admission", "--dry-run", "--json"})
 			if err := root.ExecuteContext(t.Context()); err != nil {
 				t.Fatal(err)
 			}
@@ -121,7 +121,7 @@ func TestAdmissionFleetPreflightAndPartialFailure(t *testing.T) {
 			return "", "", nil
 		}
 		root, output, _ := testCommand(t, gh, nil)
-		root.SetArgs([]string{"admission", "setup", "--org", "alpha", "--org", "beta", "--url", "https://cao.example/api/admission", "--json"})
+		root.SetArgs([]string{"setup", "admission", "--org", "alpha", "--org", "beta", "--url", "https://cao.example/api/admission", "--json"})
 		err := root.ExecuteContext(t.Context())
 		if err == nil || strings.Contains(err.Error()+output.String(), "sensitive diagnostic") {
 			t.Fatalf("failure not safely surfaced: %v %s", err, output)

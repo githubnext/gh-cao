@@ -16,10 +16,7 @@ func executeAdmissionTest(t *testing.T, gh ghExecutor, args ...string) (admissio
 	var output bytes.Buffer
 	root.SetOut(&output)
 	root.SetErr(&output)
-	root.SetArgs(append([]string{"admission"}, args...))
-	if len(args) > 0 && args[0] == "setup" {
-		root.SetArgs(append([]string{"setup", "admission"}, args[1:]...))
-	}
+	root.SetArgs(args)
 	err := root.ExecuteContext(t.Context())
 	var report admissionCLIReport
 	if output.Len() != 0 && !strings.Contains(strings.Join(args, " "), "--help") {
@@ -40,7 +37,7 @@ func TestAdmissionCommandsPreviewAndApply(t *testing.T) {
 			}
 			return "", "", nil
 		}
-		args := []string{"setup", "--repo", "acme/project", "--url", "https://cao.example/api/admission", "--json"}
+		args := []string{"setup", "admission", "--repo", "acme/project", "--url", "https://cao.example/api/admission", "--json"}
 		if !apply {
 			args = append(args, "--dry-run")
 		}
@@ -80,7 +77,7 @@ func TestAdmissionStatusPrecedenceAndDisable(t *testing.T) {
 			}
 			return `[]`, "", nil
 		}
-		report, _, err := executeAdmissionTest(t, gh, "status", "--repo", "acme/project", "--json")
+		report, _, err := executeAdmissionTest(t, gh, "admission", "status", "--repo", "acme/project", "--json")
 		if err != nil || report.Enabled == emptyOverride {
 			t.Fatalf("precedence: %+v %v", report, err)
 		}
@@ -104,7 +101,7 @@ func TestAdmissionStatusPrecedenceAndDisable(t *testing.T) {
 			mutation = args
 			return "", "", nil
 		}
-		report, _, err := executeAdmissionTest(t, gh, "disable", "--repo", "acme/project", "--json")
+		report, _, err := executeAdmissionTest(t, gh, "admission", "disable", "--repo", "acme/project", "--json")
 		if err != nil || !report.Applied || report.Enabled || mutation[len(mutation)-1] != "value=" {
 			t.Fatalf("disable: %+v %v %v", report, err, mutation)
 		}
@@ -128,7 +125,7 @@ func TestAdmissionRejectsInvalidSettingsWithoutGitHub(t *testing.T) {
 		{"--audience", "bad\nvalue"},
 		{"--on-outage", "allow"},
 	} {
-		args := append([]string{"setup", "--repo", "acme/project", "--url", "https://cao.example/api/admission", "--json"}, flags...)
+		args := append([]string{"setup", "admission", "--repo", "acme/project", "--url", "https://cao.example/api/admission", "--json"}, flags...)
 		_, _, err := executeAdmissionTest(t, func(context.Context, ...string) (string, string, error) {
 			t.Fatal("invalid configuration reached GitHub")
 			return "", "", nil
@@ -151,7 +148,7 @@ func TestAdmissionFailureRedactionAndPartialApply(t *testing.T) {
 		}
 		return "", "", nil
 	}
-	_, out, err := executeAdmissionTest(t, gh, "setup", "--repo", "acme/project", "--url", "https://cao.example/api/admission", "--json")
+	_, out, err := executeAdmissionTest(t, gh, "setup", "admission", "--repo", "acme/project", "--url", "https://cao.example/api/admission", "--json")
 	if err == nil || calls != 3 || !strings.Contains(err.Error(), "earlier settings may have changed") ||
 		strings.Contains(out+err.Error(), "synthetic-sensitive") {
 		t.Fatalf("unsafe partial failure: %v %s calls=%d", err, out, calls)
@@ -171,12 +168,12 @@ func TestAdmissionFailureRedactionAndPartialApply(t *testing.T) {
 }
 
 func TestAdmissionHelpOffline(t *testing.T) {
-	for _, args := range [][]string{{"--help"}, {"setup", "--help"}, {"status", "--help"}, {"disable", "--help"}} {
+	for _, args := range [][]string{{"admission", "--help"}, {"setup", "admission", "--help"}, {"admission", "status", "--help"}, {"admission", "disable", "--help"}} {
 		_, output, err := executeAdmissionTest(t, func(context.Context, ...string) (string, string, error) {
 			t.Fatal("help invoked GitHub")
 			return "", "", nil
 		}, args...)
-		if err != nil || !strings.Contains(output, "gh cao admission") {
+		if err != nil || !strings.Contains(output, "gh cao "+strings.Join(args[:len(args)-1], " ")) {
 			t.Fatalf("help: %v %s", err, output)
 		}
 	}
@@ -192,15 +189,15 @@ func TestAdmissionDisableDryRunDoesNotMutate(t *testing.T) {
 			}
 		}
 		return "[]", "", nil
-	}, "disable", "--repo", "acme/project", "--dry-run", "--json")
+	}, "admission", "disable", "--repo", "acme/project", "--dry-run", "--json")
 	if err != nil || report.Applied || calls != 1 {
 		t.Fatalf("disable dry-run: %+v %v calls=%d", report, err, calls)
 	}
-	for _, operation := range []string{"setup", "disable"} {
+	for _, args := range [][]string{{"setup", "admission", "--apply"}, {"admission", "disable", "--apply"}} {
 		_, _, err := executeAdmissionTest(t, func(context.Context, ...string) (string, string, error) {
 			t.Fatal("removed --apply reached GitHub")
 			return "", "", nil
-		}, operation, "--apply")
+		}, args...)
 		if err == nil {
 			t.Fatal("obsolete --apply accepted")
 		}

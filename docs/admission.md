@@ -23,8 +23,7 @@ gh cao admission disable --repo OWNER/REPO --dry-run
 ```
 
 `gh cao setup admission` configures non-secret variables; no workflow secret is
-needed for OIDC authentication. `gh cao admission setup` is a deprecated
-compatibility alias; use `gh cao setup admission` for all new invocations.
+needed for OIDC authentication.
 Setup and disable apply changes unless `--dry-run` is supplied.
 Setup uses the URL as the default audience and defaults outages to `block`.
 After initial setup, omit `--url` to reuse the target's configured server or

@@ -61,15 +61,6 @@ Only GitHub.com is supported by the current server identity profile.`,
 	for _, operation := range []string{"status", "disable"} {
 		group.AddCommand(admissionOperationCommand(gh, operation))
 	}
-	legacySetup := setupAdmissionCommand(gh)
-	legacySetup.Use = "setup"
-	legacySetup.Hidden = true
-	legacySetup.Long = "Deprecated: use gh cao setup admission instead.\n\n" + legacySetup.Long
-	legacySetup.PreRunE = func(cmd *cobra.Command, _ []string) error {
-		_, err := fmt.Fprintln(cmd.ErrOrStderr(), "gh cao admission setup is deprecated; use gh cao setup admission instead.")
-		return err
-	}
-	group.AddCommand(legacySetup)
 	return group
 }
 
