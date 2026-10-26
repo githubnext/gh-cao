@@ -208,7 +208,7 @@ test("command inventory covers registered Node APIs and process boundaries", () 
   }
   assert.match(inventory, /Actions-only JavaScript runtime/);
   assert.match(inventory, /Workflow-agent evidence APIs[\s\S]*not deprecated duplicates/);
-  assert.match(inventory, /`setup admission` is equivalent to `admission setup`/);
+  assert.match(inventory, /`admission setup` is a deprecated compatibility alias for `setup admission`/);
   assert.match(inventory, /`init` is optional local policy-only/);
   for (const binary of ["cao-dashboard", "cao-webhook-gateway", "cao-cli-quota", "cao-cli-relay"]) {
     assert.ok(inventory.includes(`\`${binary}\``), binary);

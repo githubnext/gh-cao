@@ -17,6 +17,9 @@ func executeAdmissionTest(t *testing.T, gh ghExecutor, args ...string) (admissio
 	root.SetOut(&output)
 	root.SetErr(&output)
 	root.SetArgs(append([]string{"admission"}, args...))
+	if len(args) > 0 && args[0] == "setup" {
+		root.SetArgs(append([]string{"setup", "admission"}, args[1:]...))
+	}
 	err := root.ExecuteContext(t.Context())
 	var report admissionCLIReport
 	if output.Len() != 0 && !strings.Contains(strings.Join(args, " "), "--help") {

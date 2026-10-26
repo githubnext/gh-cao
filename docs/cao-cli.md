@@ -279,7 +279,7 @@ to invoke it as `gh cao`.
 | Standalone workflow installation | `add WORKFLOW [--force] [--engine ENGINE]` | gh-aw installs and compiles; CAO registers the standalone workflow in policy. Interactive publication and first run require separate default-No approvals. |
 | Campaign installation | `add CAMPAIGN [GH_AW_ADD_OPTIONS...]` | Native Go; gh-aw owns installation records and workflow generation, Go materializes campaign resources and merges policy. No Node runtime required. |
 | Onboarding and authentication | `setup`, `setup auth github-app\|enterprise-app\|hosted-cli\|token` | Native Go; setup prepares missing monitoring runtime and policy, Pages, scope, and authentication, preserving separate read/write and hosted-executor credentials. |
-| Cooperative admission | `admission setup`, `admission status`, `admission disable`, `setup admission` | Native Go; `setup admission` is equivalent to `admission setup`. Configures or inspects non-secret Actions variables, not server deployment or enrollment authority. |
+| Cooperative admission | `setup admission`, `admission status`, `admission disable` | Native Go; `admission setup` is a deprecated compatibility alias for `setup admission`. Configures or inspects non-secret Actions variables, not server deployment or enrollment authority. |
 | Cloud deployment | `deploy azure` | Native Go; read-only preflight and planning, or explicit application of a reviewed development deployment plan. |
 | Lifecycle | `repos add OWNER/REPO`, `update`, `upgrade-gh-aw` | Native Go; gh-aw still owns workflow generation and campaign installation records. |
 | Read-only analysis | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `mcp` | Native Go with pure-Go SQLite access and declarative Dashboard Language evaluation. |
@@ -642,7 +642,6 @@ gh aw run dependabot --ref main \
 | `gh cao setup` | Prepare missing bare runtime and baseline policy, then guide scope, authentication, and Pages. No prior `init` is required. |
 | `gh cao init` | Optionally create only a local minimal review-safe policy for scripting. No runtime installation or remote configuration; refuses existing policy. |
 | `gh cao setup admission --repo OWNER/REPO --url HTTPS_URL [--dry-run]` | Configure non-secret admission variables (OIDC requires no workflow secret); `--dry-run` previews changes. |
-| `gh cao admission setup --repo OWNER/REPO --url HTTPS_URL [--dry-run]` | Configure repository admission variables for an already deployed authority; default audience is the URL and outage policy is `block`. |
 | `gh cao admission status --repo OWNER/REPO [--json]` | Read effective admission settings, including repository overrides of inherited organization variables. |
 | `gh cao admission disable --repo OWNER/REPO [--dry-run]` | Disable the cooperative gate by setting an empty repository URL, without deleting the override and reactivating organization defaults; `--dry-run` previews changes. |
 | `gh cao setup admission --all-repos --url HTTPS_URL [--dry-run]` | Configure all repositories selected by the current control repository's validated global CAO scope. |

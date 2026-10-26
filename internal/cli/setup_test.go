@@ -43,7 +43,7 @@ func TestSetupAdmissionSharesConfiguration(t *testing.T) {
 		if dryRun {
 			expectedCalls = 1
 		}
-		if report.Applied == dryRun || report.Settings.OnOutage != "block" || calls != expectedCalls {
+		if report.Command != "setup admission" || report.Applied == dryRun || report.Settings.OnOutage != "block" || calls != expectedCalls {
 			t.Fatalf("setup admission diverged: %+v calls=%d", report, calls)
 		}
 	}
@@ -54,6 +54,59 @@ func TestSetupAdmissionSharesConfiguration(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "No PAT") || !strings.Contains(stdout.String(), "--dry-run") {
 		t.Fatal("setup admission help omits secret boundary or preview flag")
+	}
+}
+
+func TestAdmissionSetupCompatibilityAlias(t *testing.T) {
+	for _, dryRun := range []bool{false, true} {
+		var canonicalOutput string
+		var canonicalCalls [][]string
+		for _, legacy := range []bool{false, true} {
+			var calls [][]string
+			root, stdout, stderr := testCommand(t, func(_ context.Context, args ...string) (string, string, error) {
+				calls = append(calls, args)
+				if len(calls) == 1 {
+					return "[]", "", nil
+				}
+				return "", "", nil
+			}, nil)
+			path := []string{"setup", "admission"}
+			if legacy {
+				path = []string{"admission", "setup"}
+			}
+			args := append(path, "--repo", "acme/project", "--url", "https://cao.example/api/admission", "--json")
+			if dryRun {
+				args = append(args, "--dry-run")
+			}
+			root.SetArgs(args)
+			if err := root.ExecuteContext(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			if !json.Valid(stdout.Bytes()) {
+				t.Fatalf("command polluted JSON output: %s", stdout)
+			}
+			if !legacy {
+				canonicalOutput, canonicalCalls = stdout.String(), calls
+				if stderr.Len() != 0 {
+					t.Fatalf("canonical command warned: %s", stderr)
+				}
+				continue
+			}
+			if stdout.String() != canonicalOutput || !reflect.DeepEqual(calls, canonicalCalls) {
+				t.Fatalf("legacy alias diverged: %s calls=%v", stdout, calls)
+			}
+			if !strings.Contains(stderr.String(), "deprecated; use gh cao setup admission instead") {
+				t.Fatalf("missing migration warning: %s", stderr)
+			}
+		}
+	}
+	root, stdout, _ := testCommand(t, nil, nil)
+	root.SetArgs([]string{"admission", "--help"})
+	if err := root.ExecuteContext(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(stdout.String(), "\n  setup ") || !strings.Contains(stdout.String(), "gh cao setup admission") {
+		t.Fatalf("admission help should direct setup to the canonical command: %s", stdout)
 	}
 }
 

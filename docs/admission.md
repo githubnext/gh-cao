@@ -17,13 +17,14 @@ configure the participating workflow's repository variables with the native CLI:
 ```sh
 # Preview without changing variables.
 gh cao setup admission --repo OWNER/REPO --url https://cao.example.org/api/admission --dry-run
-gh cao admission setup --repo OWNER/REPO --url https://cao.example.org/api/admission
+gh cao setup admission --repo OWNER/REPO --url https://cao.example.org/api/admission
 gh cao admission status --repo OWNER/REPO --json
 gh cao admission disable --repo OWNER/REPO --dry-run
 ```
 
-`gh cao setup admission` and `gh cao admission setup` configure the same
-non-secret variables; no workflow secret is needed for OIDC authentication.
+`gh cao setup admission` configures non-secret variables; no workflow secret is
+needed for OIDC authentication. `gh cao admission setup` is a deprecated
+compatibility alias; use `gh cao setup admission` for all new invocations.
 Setup and disable apply changes unless `--dry-run` is supplied.
 Setup uses the URL as the default audience and defaults outages to `block`.
 After initial setup, omit `--url` to reuse the target's configured server or

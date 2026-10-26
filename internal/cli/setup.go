@@ -111,17 +111,16 @@ execute-cli deployment's secret manager, then securely remove it. Keep this App
 separate from dashboard login and Actions read/write Apps. This command does not
 change CAO policy, Actions secrets, authentication mode, or hosted-feature gates.`
 	auth.AddCommand(app, enterprise, hosted, token)
-	setup.AddCommand(auth, setupADXCommand())
-	admission := admissionCommands(gh)
-	for _, command := range admission.Commands() {
-		if command.Name() != "setup" {
-			continue
-		}
-		admission.RemoveCommand(command)
-		command.Use = "admission"
-		command.Long = `Configure the cooperative OIDC admission gate for an explicit scope.
+	setup.AddCommand(auth, setupADXCommand(), setupAdmissionCommand(gh))
+	return setup
+}
 
-Equivalent to gh cao admission setup; --dry-run previews without changing settings.
+func setupAdmissionCommand(gh ghExecutor) *cobra.Command {
+	command := admissionOperationCommand(gh, "setup")
+	command.Use = "admission"
+	command.Long = `Configure the cooperative OIDC admission gate for an explicit scope.
+
+Use --dry-run to preview without changing settings.
 Writes only GH_AW_DEFAULT_ADMISSION_URL, GH_AW_DEFAULT_ADMISSION_AUDIENCE and
 GH_AW_DEFAULT_ADMISSION_ON_OUTAGE as non-secret Actions variables.
 Select --repo OWNER/REPO, --all-repos from local CAO policy, repeatable --org,
@@ -142,8 +141,5 @@ configured server for bulk rollout/recovery. Setup defaults outages to block
 and the audience to the endpoint URL. It does not deploy the server,
 grant enrollment, modify CAO policy, or compile workflows. Use gh cao admission
 status --repo OWNER/REPO to inspect effective settings after configuration.`
-		setup.AddCommand(command)
-		break
-	}
-	return setup
+	return command
 }
