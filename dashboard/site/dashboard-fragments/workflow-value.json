@@ -446,6 +446,12 @@
         "data": { "source": "value-measurement-facts", "arguments": [{ "name": "measurement", "field": "id" }], "time": { "range": "all" }, "query-context": false },
         "mark": "table", "layout": "full",
         "encoding": { "columns": [
+          { "field": "metric-name", "type": "nominal", "title": "Measure" },
+          { "field": "measurement-label", "type": "nominal", "title": "Value" },
+          { "field": "metric-direction", "type": "nominal", "title": "Direction" },
+          { "field": "maturity-status", "type": "nominal", "title": "Maturity" },
+          { "field": "coverage-status", "type": "nominal", "title": "Coverage" },
+          { "field": "missing-reason", "type": "nominal", "title": "Evidence gap" },
           { "field": "window-start", "type": "temporal", "title": "Window start", "format": "human-friendly-timestamp" },
           { "field": "window-end", "type": "temporal", "title": "Window end", "format": "human-friendly-timestamp" },
           { "field": "observed-at", "type": "temporal", "title": "Assessed at", "format": "human-friendly-timestamp" },

@@ -126,6 +126,11 @@ describe('native workflow value production contract', () => {
   });
 
   it('publishes a reviewed batch workflow natively without an event ledger or HTML, with scoped cards and health', async () => {
+    const detailPage = dashboard.pages.find((/** @type {{id: string}} */ page) => page.id === 'value-measurement');
+    const table = detailPage.views.find((/** @type {{mark: string}} */ view) => view.mark === 'table');
+    expect(table.encoding.columns.map((/** @type {{field: string}} */ column) => column.field)).toEqual(
+      expect.arrayContaining(['measurement-label', 'metric-direction', 'maturity-status', 'coverage-status', 'missing-reason'])
+    );
     const module = join(repository, 'tests/fixtures/operational-value/native-workflow.mjs');
     execFileSync(process.execPath, [
       '.github/skills/add-operational-value/scripts/evaluate.mjs', '--native', '--function', module,
