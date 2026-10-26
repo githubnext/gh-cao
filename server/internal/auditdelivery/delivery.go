@@ -12,8 +12,11 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
+
+var deliveryLog = logger.New("cao:auditdelivery")
 
 var streamPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$`)
 
@@ -90,6 +93,10 @@ func (o Options) Validate() error {
 // from the destination checkpoint; partial deliveries replay create-only keys.
 func Run(ctx context.Context, source Reader, destination Destination, options Options) (result Result, err error) {
 	result.Status, result.Stage = "failure", "configuration"
+	defer func() {
+		deliveryLog.Printf("delivery finished: status=%s stage=%s delivered=%d last_sequence=%d remaining=%d",
+			result.Status, result.Stage, result.Delivered, result.LastSequence, result.Remaining)
+	}()
 	if err := options.Validate(); err != nil {
 		return result, err
 	}
@@ -135,13 +142,7 @@ func Run(ctx context.Context, source Reader, destination Destination, options Op
 	if end.Sequence == 0 {
 		return result, errors.New("audit delivery enrollment requires committed history beginning at sequence 1")
 	}
-	anchors := []operational.AuditAnchor{head}
-	if checkpoint.Delivered.Sequence > 0 {
-		anchors = append(anchors, checkpoint.Delivered)
-	}
-	if end.Sequence > checkpoint.Delivered.Sequence {
-		anchors = append(anchors, end)
-	}
+	anchors := verificationAnchors(head, checkpoint.Delivered, end)
 	result.Stage = "verification"
 	verified, err := source.VerifyAudit(ctx, anchors...)
 	if err != nil {
@@ -151,8 +152,7 @@ func Run(ctx context.Context, source Reader, destination Destination, options Op
 		return result, err
 	}
 	// VerifyAudit permits expired anchors for diagnostic use. Delivery must not.
-	if verified.AnchorsExpired != 0 || verified.AnchorsChecked == 0 ||
-		verified.FirstSequence > checkpoint.Delivered.Sequence+1 || verified.LastSequence < end.Sequence {
+	if !coversPage(verified, checkpoint.Delivered, end) {
 		return result, errors.New("audit delivery retention gap or expired anchor")
 	}
 	result.VerifiedHead = verified.LastSequence
@@ -196,6 +196,26 @@ func Run(ctx context.Context, source Reader, destination Destination, options Op
 	result.LastSequence = end.Sequence
 	result.Stage, result.Status = "complete", "success"
 	return result, nil
+}
+
+// verificationAnchors lists the independent head plus the delivered and page-end
+// anchors that actually advance past genesis or the previous delivery.
+func verificationAnchors(head, delivered, end operational.AuditAnchor) []operational.AuditAnchor {
+	anchors := []operational.AuditAnchor{head}
+	if delivered.Sequence > 0 {
+		anchors = append(anchors, delivered)
+	}
+	if end.Sequence > delivered.Sequence {
+		anchors = append(anchors, end)
+	}
+	return anchors
+}
+
+// coversPage reports whether a verification used live anchors and retained
+// history spanning from the first undelivered event through the page end.
+func coversPage(verified operational.AuditVerification, delivered, end operational.AuditAnchor) bool {
+	return verified.AnchorsExpired == 0 && verified.AnchorsChecked != 0 &&
+		verified.FirstSequence <= delivered.Sequence+1 && verified.LastSequence >= end.Sequence
 }
 
 func validAnchor(anchor operational.AuditAnchor) bool {
