@@ -7,6 +7,9 @@ import (
 	"io"
 )
 
+// maxQueryResultRows bounds the rows accepted from one ADX query result.
+const maxQueryResultRows = 2048
+
 type responseTable struct {
 	TableName string
 	Rows      [][]any
@@ -36,75 +39,19 @@ func decodeQueryResponse(content []byte) ([][]any, error) {
 	if err := decoder.Decode(new(any)); err != io.EOF {
 		return nil, errors.New("trailing ADX query response")
 	}
-	roles := map[int]string{}
-	var toc *responseTable
-	names := map[string]bool{}
-	for i, table := range response.Tables {
-		if table.TableName == "" || names[table.TableName] {
-			return nil, errors.New("ambiguous ADX response table")
-		}
-		names[table.TableName] = true
-		columns := map[string]bool{}
-		for _, column := range table.Columns {
-			if columns[column.ColumnName] {
-				return nil, errors.New("ambiguous ADX response column")
-			}
-			columns[column.ColumnName] = true
-		}
-		if table.column("Ordinal") >= 0 && table.column("Kind") >= 0 && table.column("Name") >= 0 {
-			if toc != nil {
-				return nil, errors.New("ambiguous ADX table of contents")
-			}
-			toc = &response.Tables[i]
-		}
+	roles, toc, err := classifyTables(response.Tables)
+	if err != nil {
+		return nil, err
 	}
-	if toc != nil {
-		seen := map[int64]bool{}
-		for _, row := range toc.Rows {
-			if len(row) != len(toc.Columns) {
-				return nil, errors.New("invalid ADX table of contents row")
-			}
-			number, ok := row[toc.column("Ordinal")].(json.Number)
-			if !ok {
-				return nil, errors.New("invalid ADX table ordinal")
-			}
-			ordinal, err := number.Int64()
-			if err != nil || ordinal < 0 || ordinal >= int64(len(response.Tables)) || seen[ordinal] {
-				return nil, errors.New("invalid or duplicate ADX table ordinal")
-			}
-			seen[ordinal] = true
-			kind, _ := row[toc.column("Kind")].(string)
-			name, _ := row[toc.column("Name")].(string)
-			switch kind {
-			case "QueryResult":
-				if name != "PrimaryResult" {
-					return nil, errors.New("unexpected ADX result table")
-				}
-				roles[int(ordinal)] = "result"
-			case "QueryStatus":
-				if name != "QueryStatus" {
-					return nil, errors.New("invalid ADX status mapping")
-				}
-				roles[int(ordinal)] = "status"
-			}
-		}
-	} else {
-		for i, table := range response.Tables {
-			switch table.TableName {
-			case "QueryStatus":
-				roles[i] = "status"
-			case "PrimaryResult", "Table_0":
-				roles[i] = "result"
-			default:
-				if table.column("Severity") >= 0 {
-					return nil, errors.New("unmapped ADX query status")
-				}
-			}
-		}
-	}
+	return selectQueryResult(response.Tables, roles, toc)
+}
+
+// selectQueryResult picks the single primary result table, validating its
+// status table when one is present, and enforces the row cap.
+func selectQueryResult(tables []responseTable, roles map[int]string, toc *responseTable) ([][]any, error) {
 	found, status := false, false
 	var result [][]any
-	for i, table := range response.Tables {
+	for i, table := range tables {
 		switch roles[i] {
 		case "status":
 			if status {
@@ -125,10 +72,84 @@ func decodeQueryResponse(content []byte) ([][]any, error) {
 			}
 		}
 	}
-	if !found || len(result) > 2048 || toc != nil && !status {
+	if !found || len(result) > maxQueryResultRows || toc != nil && !status {
+		exportLog.Printf("ADX query result rejected: tables=%d found=%t status=%t rows=%d", len(tables), found, status, len(result))
 		return nil, errors.New("missing or oversized ADX query result/status")
 	}
+	exportLog.Printf("ADX query result selected: tables=%d rows=%d", len(tables), len(result))
 	return result, nil
+}
+
+// classifyTables maps each response table to a "result" or "status" role,
+// using the table of contents when present and table names otherwise.
+func classifyTables(tables []responseTable) (map[int]string, *responseTable, error) {
+	roles := map[int]string{}
+	var toc *responseTable
+	names := map[string]bool{}
+	for i, table := range tables {
+		if table.TableName == "" || names[table.TableName] {
+			return nil, nil, errors.New("ambiguous ADX response table")
+		}
+		names[table.TableName] = true
+		columns := map[string]bool{}
+		for _, column := range table.Columns {
+			if columns[column.ColumnName] {
+				return nil, nil, errors.New("ambiguous ADX response column")
+			}
+			columns[column.ColumnName] = true
+		}
+		if table.column("Ordinal") >= 0 && table.column("Kind") >= 0 && table.column("Name") >= 0 {
+			if toc != nil {
+				return nil, nil, errors.New("ambiguous ADX table of contents")
+			}
+			toc = &tables[i]
+		}
+	}
+	if toc != nil {
+		seen := map[int64]bool{}
+		for _, row := range toc.Rows {
+			if len(row) != len(toc.Columns) {
+				return nil, nil, errors.New("invalid ADX table of contents row")
+			}
+			number, ok := row[toc.column("Ordinal")].(json.Number)
+			if !ok {
+				return nil, nil, errors.New("invalid ADX table ordinal")
+			}
+			ordinal, err := number.Int64()
+			if err != nil || ordinal < 0 || ordinal >= int64(len(tables)) || seen[ordinal] {
+				return nil, nil, errors.New("invalid or duplicate ADX table ordinal")
+			}
+			seen[ordinal] = true
+			kind, _ := row[toc.column("Kind")].(string)
+			name, _ := row[toc.column("Name")].(string)
+			switch kind {
+			case "QueryResult":
+				if name != "PrimaryResult" {
+					return nil, nil, errors.New("unexpected ADX result table")
+				}
+				roles[int(ordinal)] = "result"
+			case "QueryStatus":
+				if name != "QueryStatus" {
+					return nil, nil, errors.New("invalid ADX status mapping")
+				}
+				roles[int(ordinal)] = "status"
+			}
+		}
+	} else {
+		for i, table := range tables {
+			switch table.TableName {
+			case "QueryStatus":
+				roles[i] = "status"
+			case "PrimaryResult", "Table_0":
+				roles[i] = "result"
+			default:
+				if table.column("Severity") >= 0 {
+					return nil, nil, errors.New("unmapped ADX query status")
+				}
+			}
+		}
+	}
+	return roles, toc, nil
 }
 
 func checkQueryStatus(table responseTable) error {
