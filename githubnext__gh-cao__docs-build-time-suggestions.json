@@ -1,35 +1,7 @@
 {
   "source_sha": "18a6ca5885ca686153432c75286be5806f1bab34",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-25T21:19:42Z",
-      "worker_run_id": "40234699154",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        40233502936,
-        40232332298,
-        40231334641,
-        40230422626,
-        40230378711,
-        40229313680,
-        40228780624,
-        40228522454,
-        40227579159,
-        40227569956,
-        40226390200,
-        40225385067,
-        40225377985,
-        40224002830,
-        40223060800,
-        40222213503,
-        40222032476,
-        40221196908,
-        40220727533,
-        40219292338
-      ],
-      "outcome": "complete no-op: the 2026-10-25T18:01:54Z to 2026-10-25T21:01:41Z latest-20 completed docs.yml window contained 17 successful, two skipped, and one action-required run, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable across workflow_run, push, and schedule triggers and source SHAs 8747c2d93542fda9c390fe1697fc3982ab616e85 and 12d37e623aa07b22cf18375ad81d8745396c4417. Median execution excluding queue/concurrency wait was 96.0s (p90 104.2s); full elapsed workflow time was 107.0s (p90 152.4s), build was 73.0s (p90 79.2s), deploy was 11.0s (p90 11.6s), and Astro documentation generation was 12.0s (p90 14.6s). The five successful CAO Dashboard producers in its latest-20 window had build median 21.0s (p90 23.8s). Trusted step metadata verified dashboard-cache hits in all five docs builds because restore succeeded and artifact fallback was skipped; a bounded log for current-source run 40230378711 confirmed exact npm and dashboard cache hits while npm ci rebuilt 852 packages in 18s. Push run 40227579159 was disclosed as a concurrency outlier with about 101s of pre-build wait. No Astro recommendation was made: even eliminating the entire 12.0s median Astro step would save only 12.5% of the 96.0s median execution and far less than 60 seconds, so no concrete Astro-only change meets the actionability threshold without weakening correctness. The next category is reusable dashboard generation."
-    },
     {
       "evaluated_at": "2026-10-25T21:34:32Z",
       "worker_run_id": "40235930088",
@@ -695,6 +667,34 @@
       "category": "dependency installation and caching",
       "evidence_run_ids": [],
       "outcome": "incomplete: the initial bounded GitHub requests for the latest 20 completed docs.yml runs, latest 20 completed cao-dashboard.yml runs, and open duplicate issues failed because the runtime could not create a new OS thread. Per resource-limit policy, all further GitHub API and model work stopped. A current evidence window, the required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, dashboard-producer comparison, duplicate open-issue check, and actionable dependency installation and caching determination could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-26T18:31:37Z",
+      "worker_run_id": "40378101979",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        40374236100,
+        40371977534,
+        40369937735,
+        40368546029,
+        40368195259,
+        40364730602,
+        40363276542,
+        40362663067,
+        40362277394,
+        40359644140,
+        40355585317,
+        40354712554,
+        40352947602,
+        40349456527,
+        40348629363,
+        40342138445,
+        40338370928,
+        40336108582,
+        40326459197,
+        40317557260
+      ],
+      "outcome": "complete no-op: the 2026-10-26T11:46:28Z to 2026-10-26T18:03:05Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Eight successful full build-and-deploy paths were comparable across schedule and push triggers and eight source SHAs. Full elapsed workflow time was 101.5s median (123.8s p90); execution excluding initial queue was 97.5s (119.1s p90), queue was 3.5s (4.0s p90), build was 72.5s (78.8s p90), deploy was 15.0s (32.6s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (22.4s p90). Repeated docs costs were checkout 25.0s median, setup-node 4.5s, npm ci 20.5s, Astro generation 14.5s, dashboard restore 1.5s, Pages upload 2.5s, and deploy-pages 11.5s. Trusted step metadata verified dashboard-cache hits in all eight builds because restore succeeded while artifact lookup/download fallback was skipped. Bounded logs for the five latest full builds verified exact setup-node npm-cache hits; npm ci nevertheless rebuilt 852 packages in 13-24 seconds. Run 40342138445 was disclosed as a deployment outlier with a 45-second Deploy Pages step. The installed-dependency-tree cache remains actionable in current evidence because the 20.5s median install is 21% of median execution, but open issue #19689 already represents the same exact-key root node_modules cache change and its source/timing evidence has not materially changed. No duplicate issue was created. The next category is Astro documentation generation."
     }
   ]
 }
