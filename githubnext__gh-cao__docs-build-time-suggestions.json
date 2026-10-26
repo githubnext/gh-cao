@@ -1,35 +1,7 @@
 {
-  "source_sha": "74ef461cdbde5dc625818d11872a7149cc7bb0d0",
+  "source_sha": "58dc2527ea3fcc78bbb40cc45083bffdbaf5bc41",
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-25T16:21:12Z",
-      "worker_run_id": "40211060253",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40209673066,
-        40208489140,
-        40207593397,
-        40207467334,
-        40206514307,
-        40204954138,
-        40203790937,
-        40202976485,
-        40202743150,
-        40201867035,
-        40200295371,
-        40199104126,
-        40198282679,
-        40198075082,
-        40197170209,
-        40195722444,
-        40194960845,
-        40194589399,
-        40193379714,
-        40191378068
-      ],
-      "outcome": "incomplete: the 2026-10-25T12:02:20Z to 2026-10-25T16:01:33Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. All successful runs completed in 15-22 seconds at source SHA c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49. Trusted job and step metadata for latest run 40209673066 confirmed that only schedule-freshness ran (17 seconds; freshness step 14 seconds), while build and deploy were skipped. No successful full build-and-deploy path was present, below the required five comparable successful runs. Therefore full workflow and dashboard/build/deploy median and p90 timings, repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-25T16:37:25Z",
       "worker_run_id": "40212369203",
@@ -736,6 +708,13 @@
         40275320260
       ],
       "outcome": "incomplete: the 2026-10-26T05:38:36Z to 2026-10-26T11:02:31Z latest-20 completed docs.yml window contained 14 successful and six skipped runs, with no failed or cancelled runs. Trusted job metadata for every successful run showed that only schedule-freshness executed (7-12 seconds per job), while build and deploy were skipped; therefore the window contained zero successful full build-and-deploy paths, below the required five comparable successful runs. Full workflow and dashboard/build/deploy median and p90 timings, repeated step-cost analysis, current cache-effectiveness verification, CAO Dashboard producer comparison, and an actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-26T11:44:02Z",
+      "worker_run_id": "40316963470",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful full runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
