@@ -3,13 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-26T03:28:32Z",
-      "worker_run_id": "40264030310",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the initial bounded GitHub requests for the latest 20 completed docs.yml runs, latest 20 completed cao-dashboard.yml runs, and open duplicate issues failed because the runtime could not create a new OS thread. Per resource-limit policy, all further GitHub API and model work stopped. A current evidence window, the required five comparable successful runs, workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, dashboard-producer comparison, and duplicate determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-26T05:05:27Z",
       "worker_run_id": "40272106633",
       "category": "scheduling, concurrency, and avoidable rebuilds",
@@ -674,6 +667,13 @@
         40371977534
       ],
       "outcome": "incomplete: the 2026-10-26T17:47:53Z to 2026-10-26T22:01:58Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Elapsed metadata showed only a small number of possible full build-and-deploy paths, but the bounded trusted job/step requests needed to verify them all failed because the runtime could not create a new OS thread. Per resource-limit policy, all further GitHub API work stopped. The required five comparable successful full runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, CAO Dashboard producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-26T22:40:01Z",
+      "worker_run_id": "40413806890",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
