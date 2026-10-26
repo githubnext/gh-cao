@@ -3,34 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-26T03:03:50Z",
-      "worker_run_id": "40261952852",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        40261803933,
-        40261689559,
-        40260039989,
-        40257711997,
-        40256545459,
-        40255164825,
-        40254402263,
-        40252606068,
-        40251852885,
-        40247545191,
-        40246226400,
-        40245129766,
-        40244439608,
-        40244271878,
-        40244262370,
-        40242859973,
-        40241706579,
-        40240745726,
-        40240601493,
-        40239782511
-      ],
-      "outcome": "incomplete: the 2026-10-25T22:21:09Z to 2026-10-26T02:59:24Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were identified across workflow_run, schedule, and push triggers. Their full elapsed workflow time was 102.0s median (120.0s p90), execution excluding queue wait was 98.0s (116.0s p90), queue time was 3.0s (3.0s p90), build was 70.0s (90.0s p90), and deploy was 13.0s (22.6s p90). Trusted step metadata verified dashboard-cache hits in all five builds because restore succeeded and artifact lookup/download fallback was skipped. The window included an apparent same-source near-overlap between schedule run 40244262370 and workflow_run 40244439608, each performing a full build and deployment. However, while collecting the required current CAO Dashboard producer job/step comparison, the runtime repeatedly failed to create a new OS thread. Per resource-limit policy, further GitHub API work stopped. The current dashboard job median/p90 comparison and final duplicate/actionability determination could not be completed, so no recommendation was made and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-26T03:28:32Z",
       "worker_run_id": "40264030310",
       "category": "scheduling, concurrency, and avoidable rebuilds",
@@ -674,6 +646,34 @@
         40369937735
       ],
       "outcome": "incomplete: the 2026-10-26T17:34:48Z to 2026-10-26T21:47:42Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job and step metadata showed only two successful full build-and-deploy paths: schedule run 40403910625 and workflow_run 40386710985. The other 15 successful runs executed only schedule-freshness and skipped build and deploy; three ineligible workflow_run callbacks were skipped. Both full builds restored the CAO Dashboard cache successfully and skipped artifact fallback, but two comparable full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, a sufficient repeated-cost comparison, the CAO Dashboard producer comparison, and a complete scheduling/concurrency evaluation could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-26T22:23:40Z",
+      "worker_run_id": "40411711517",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40409202717,
+        40407295709,
+        40405972149,
+        40405659232,
+        40403910625,
+        40400761754,
+        40399070746,
+        40397799744,
+        40397385580,
+        40395512740,
+        40391993955,
+        40389962003,
+        40388066136,
+        40386710985,
+        40385430574,
+        40382738853,
+        40382670586,
+        40379392120,
+        40374236100,
+        40371977534
+      ],
+      "outcome": "incomplete: the 2026-10-26T17:47:53Z to 2026-10-26T22:01:58Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Elapsed metadata showed only a small number of possible full build-and-deploy paths, but the bounded trusted job/step requests needed to verify them all failed because the runtime could not create a new OS thread. Per resource-limit policy, all further GitHub API work stopped. The required five comparable successful full runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, CAO Dashboard producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
