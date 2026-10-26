@@ -18,8 +18,11 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 
 	"github.com/githubnext/gh-cao/server/internal/adxtrace"
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/model"
 )
+
+var adxLog = logger.New("cao:adx:client")
 
 var ErrVisibility = errors.New("ADX projected rows are not yet exactly query-visible")
 var ErrStorage = errors.New("ADX storage budget reached or unavailable")
@@ -111,15 +114,28 @@ func (c *Client) Capacity(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	return checkStorageUsage(rows, c.storageBudget)
+}
+
+// checkStorageUsage fails closed unless the extent query returned exactly one
+// finite, non-negative, whole byte count below the storage budget.
+func checkStorageUsage(rows [][]any, budget int64) error {
 	if len(rows) != 1 || len(rows[0]) != 1 {
+		adxLog.Printf("storage usage unavailable: reason=unexpected_shape rows=%d", len(rows))
 		return ErrStorage
 	}
 	number, ok := rows[0][0].(json.Number)
 	if !ok {
+		adxLog.Printf("storage usage unavailable: reason=non_numeric")
 		return ErrStorage
 	}
 	bytes, err := number.Float64()
-	if err != nil || math.IsNaN(bytes) || math.IsInf(bytes, 0) || math.Trunc(bytes) != bytes || bytes < 0 || bytes >= float64(c.storageBudget) {
+	if err != nil || math.IsNaN(bytes) || math.IsInf(bytes, 0) || math.Trunc(bytes) != bytes || bytes < 0 {
+		adxLog.Printf("storage usage unavailable: reason=invalid_size")
+		return ErrStorage
+	}
+	if bytes >= float64(budget) {
+		adxLog.Printf("storage budget reached: budget_bytes=%d", budget)
 		return ErrStorage
 	}
 	return nil
