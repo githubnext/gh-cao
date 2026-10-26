@@ -22,7 +22,7 @@ func TestValueEvidenceIndexedScopeAndBudgets(t *testing.T) {
 		file = retained
 		populations = []int{1, 100, 200}
 	}
-	content, err := os.ReadFile(file)
+	content, err := os.ReadFile(file) // #nosec G703 -- fixed fixture or explicit operator-selected benchmark evidence, never request input.
 	if err != nil {
 		t.Fatal(err)
 	}

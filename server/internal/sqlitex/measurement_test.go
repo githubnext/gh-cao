@@ -22,7 +22,7 @@ func TestNativeBatchMeasurementProductionPath(t *testing.T) {
 	}
 	output := t.TempDir()
 	run := func(args ...string) {
-		command := exec.CommandContext(t.Context(), "node", args...)
+		command := exec.CommandContext(t.Context(), "node", args...) // #nosec G204 -- fixed Node executable, checked-in producers and test-owned arguments.
 		command.Dir = root
 		if content, err := command.CombinedOutput(); err != nil {
 			t.Fatalf("native producer failed: %v\n%s", err, content)
@@ -34,7 +34,7 @@ func TestNativeBatchMeasurementProductionPath(t *testing.T) {
 	database := filepath.Join(output, "native.sqlite")
 	run("activity/cao.mjs", "ingest-jsonl", "--database", database,
 		"--input", filepath.Join(output, "example-service", "incident-response-measurements.jsonl"), "--retention-days", "all")
-	original, err := os.ReadFile(filepath.Join(output, "example-service", "incident-response-measurements.jsonl"))
+	original, err := os.ReadFile(filepath.Join(output, "example-service", "incident-response-measurements.jsonl")) // #nosec G304 -- fixed producer output within t.TempDir.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,14 +72,16 @@ func TestNativeBatchMeasurementProductionPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
-	content, err := os.ReadFile(filepath.Join(root, "dashboard/site/src/data/queries/database.json"))
+	content, err := os.ReadFile("../../../dashboard/site/src/data/queries/database.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	var definitions []query.Definition
-	if err := json.Unmarshal(content, &definitions); err != nil {
+	var sources []query.Definition
+	if err := json.Unmarshal(content, &sources); err != nil {
 		t.Fatal(err)
 	}
+	definitions := make([]query.Definition, 0, len(sources)+1)
+	definitions = append(definitions, sources...)
 	definitions = append(definitions, query.Definition{
 		Name: "selected-measurements", From: "workflow-value-measurements",
 		Filter: &query.Filter{Predicates: []query.Predicate{

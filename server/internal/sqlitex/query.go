@@ -359,11 +359,12 @@ func (r *reader) source(ctx context.Context, name string, state dashboardstore.S
 		}
 		var rows []map[string]any
 		var err error
-		if collection == "operationalValueEvidence" {
+		switch {
+		case collection == "operationalValueEvidence":
 			rows, err = dashboardquery.ReadEvidencePackets(ctx, r.tx, valueSelections)
-		} else if collection == "operationalValues" && usesMeasurements {
+		case collection == "operationalValues" && usesMeasurements:
 			rows, err = dashboardquery.ReadMeasurements(ctx, r.tx, measurementSelections)
-		} else {
+		default:
 			rows, err = dashboardquery.ReadCollectionFields(ctx, r.tx, collection, projected, maxSnapshotInputRows, maxSnapshotWorkingBytes)
 		}
 		if err != nil {

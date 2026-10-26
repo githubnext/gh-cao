@@ -64,16 +64,20 @@ func (r *readTransaction) entitySQLSource(name string) (query.SQLRelation, error
 	}
 
 	columns := relationColumns(table, func(index int) string { return "get_bit(t.present_fields, " + strconv.Itoa(index) + ") = 1" })
-	if name == "$operationalValues" {
-		route := "CASE WHEN t.workflow_slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND starts_with(t.value_id,t.workflow_slug||'.') THEN t.repository||':.github/workflows/'||t.workflow_slug||'.md' END"
-		columns["workflow-route"] = query.SQLColumn{Expression: route, Presence: "(" + route + ") IS NOT NULL", Kind: query.SQLText}
-	}
-	return query.SQLRelation{
+	relation := query.SQLRelation{
 		SQL:     "(SELECT * FROM " + query.SQLIdentifier(table.name) + " WHERE namespace = {}) AS t",
 		Params:  []any{r.store.namespace},
 		Columns: columns,
 		Order:   "t.ordinal",
-	}, nil
+	}
+	if name == "$operationalValues" {
+		relation.SQL = "(SELECT v.*, lower(NULLIF(repo.owner,'')||'/'||NULLIF(repo.name,'')) AS __repository FROM " +
+			query.SQLIdentifier(table.name) + " v LEFT JOIN repositories repo ON repo.namespace=v.namespace AND repo.id=v.repository_id WHERE v.namespace={}) AS t"
+		columns["repository"] = query.SQLColumn{Expression: "t.__repository", Presence: "t.__repository IS NOT NULL", Kind: query.SQLText}
+		route := "CASE WHEN t.workflow_slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND starts_with(t.value_id,t.workflow_slug||'.') THEN t.__repository||':.github/workflows/'||t.workflow_slug||'.md' END"
+		columns["workflow-route"] = query.SQLColumn{Expression: route, Presence: "(" + route + ") IS NOT NULL", Kind: query.SQLText}
+	}
+	return relation, nil
 }
 
 // The logical input is a projection of typed child facts, not a saved report.
