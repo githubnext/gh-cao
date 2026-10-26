@@ -42,7 +42,7 @@ func FromEvidence(namespace string, e adxtrace.Evidence) (Projection, error) {
 		ID: e.ID, Version: e.Version, Day: e.Day, ArtifactDigest: e.ArtifactDigest, PolicyDigest: e.PolicyDigest,
 		CapturedAt: e.CapturedAt, Gaps: slices.Clone(e.Gaps)}
 	parts := e.Tables["TraceContentParts"]
-	partIndex := 0
+	partIndex, projectedBytes := 0, 0
 	for i, row := range e.Tables["TraceEvents"] {
 		integer := func(name string) int64 {
 			n, _ := strconv.ParseInt(fmt.Sprint(row[name]), 10, 64)
@@ -81,6 +81,14 @@ func FromEvidence(namespace string, e adxtrace.Evidence) (Projection, error) {
 		event.CapturedAt, event.Gaps, event.PayloadJSON = e.CapturedAt.UTC().Format(time.RFC3339Nano), slices.Clone(e.Gaps), content.String()
 		if event.Gaps == nil {
 			event.Gaps = []string{}
+		}
+		encoded, err = json.Marshal(event)
+		if err != nil {
+			return Projection{}, err
+		}
+		projectedBytes += len(encoded)
+		if projectedBytes > 128<<20 {
+			return Projection{}, ErrCapacity
 		}
 		p.Events = append(p.Events, event)
 	}

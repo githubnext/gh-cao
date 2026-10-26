@@ -23,6 +23,7 @@ func testConfig(t *testing.T) Config {
 			Events: map[string][]string{"session.format": {"version"}, "session.collection": {"complete"},
 				"workflow.info": {"episode"}, "tool.execution_complete": {"output", "error", "success", "toolCallId"},
 				"user.message": {"content"}, "assistant.reasoning": {"content"}}}}
+	// #nosec G302 -- owner traversal is required, with no group or other access.
 	if err := os.Chmod(c.Directory, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -113,11 +114,17 @@ func TestDuckDBConverterIntegration(t *testing.T) {
 	if err := converter.Verify(ctx, path, file); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancellation ignored: %v", err)
 	}
-	content, err := os.ReadFile(path)
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = root.Close() }()
+	content, err := privateRead(root, filepath.Base(path), 128<<20)
 	if err != nil {
 		t.Fatal(err)
 	}
 	content[len(content)/2] ^= 1
+	// #nosec G703 -- test-owned private fixture path; intentionally corrupt the verified file.
 	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -126,6 +133,28 @@ func TestDuckDBConverterIntegration(t *testing.T) {
 	}
 }
 
+func TestDuckDBQueryResourceLimitsIntegration(t *testing.T) {
+	converter := testConverter(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
+	defer cancel()
+	var rows []struct{ Total json.Number }
+	if err := converter.query(ctx, "SELECT sum(i) AS Total FROM range(1000000000000) t(i)", &rows); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("execution deadline was not enforced: %v", err)
+	}
+	var large []struct{ Content string }
+	if err := converter.query(t.Context(), "SELECT repeat('x', 1024) AS Content FROM range(40000)", &large); !errors.Is(err, ErrLimit) {
+		t.Fatalf("32 MiB result budget did not fail explicitly: %v", err)
+	}
+	converter.slot <- struct{}{}
+	if err := converter.query(t.Context(), "SELECT 1", &large); !errors.Is(err, ErrBusy) {
+		t.Fatalf("query concurrency budget not enforced: %v", err)
+	}
+	<-converter.slot
+	var small []struct{ Count int }
+	if err := converter.query(t.Context(), "SELECT 1 AS Count", &small); err != nil || len(small) != 1 || small[0].Count != 1 {
+		t.Fatalf("canceled/limited query poisoned later trusted queries: %v", err)
+	}
+}
 func TestArchiveApprovalAndConfiguration(t *testing.T) {
 	c := testConfig(t)
 	p := testProjection(t, c, "123", "approved")

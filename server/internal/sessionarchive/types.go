@@ -15,6 +15,7 @@ var (
 	ErrIntegrity = errors.New("session archive integrity check failed")
 	ErrLimit     = errors.New("session archive result exceeds limit")
 	ErrNotFound  = errors.New("session archive trace not found")
+	ErrUncertain = errors.New("session archive durability is uncertain; retry or recover before acknowledgement")
 )
 
 type Member struct {
@@ -81,6 +82,7 @@ type Status struct {
 	Generation   uint64 `json:"generation"`
 	ActiveTraces int    `json:"activeTraces"`
 	StagedTraces int    `json:"stagedTraces"`
+	Gaps         int    `json:"gaps"`
 	ArchiveBytes int64  `json:"archiveBytes"`
 	StagingBytes int64  `json:"stagingBytes"`
 }

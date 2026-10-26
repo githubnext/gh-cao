@@ -26,6 +26,9 @@ func (a *Archive) Pin(ctx context.Context, scope Scope) (*Snapshot, error) {
 	if a.closed {
 		return nil, ErrClosed
 	}
+	if err := a.reconcile(); err != nil {
+		return nil, err
+	}
 	if a.publisher != nil {
 		return nil, errors.New("hosted archive queries require the generation-bound destination adapter")
 	}
@@ -40,6 +43,12 @@ func (a *Archive) Pin(ctx context.Context, scope Scope) (*Snapshot, error) {
 			return nil, ErrWithdrawn
 		}
 	}
+	for reader := range a.readers {
+		if reader.ctx.Err() != nil || a.now().After(reader.expires) {
+			reader.cancel()
+			delete(a.readers, reader)
+		}
+	}
 	if len(a.readers) >= 64 {
 		return nil, ErrBusy
 	}
@@ -49,6 +58,7 @@ func (a *Archive) Pin(ctx context.Context, scope Scope) (*Snapshot, error) {
 	scoped, cancel := context.WithCancel(ctx)
 	s := &Snapshot{archive: a, manifest: cloneManifest(a.state.Manifest), scope: Scope{scope.Namespace, slices.Clone(scope.Repositories)},
 		ctx: scoped, cancel: cancel, expires: a.now().Add(a.config.QueryTimeout)}
+	s.manifest.Members = slices.DeleteFunc(s.manifest.Members, func(m Member) bool { return !a.allowed(m) })
 	a.readers[s] = true
 	return s, nil
 }
@@ -68,6 +78,14 @@ func (s *Snapshot) check() error {
 	defer s.archive.mu.Unlock()
 	if s.archive.closed {
 		return ErrClosed
+	}
+	if err := s.archive.reconcile(); err != nil {
+		return err
+	}
+	for _, member := range s.manifest.Members {
+		if slices.Contains(s.scope.Repositories, member.Repository) && !s.archive.allowed(member) {
+			return ErrWithdrawn
+		}
 	}
 	if s.ctx.Err() != nil {
 		if s.revoked {
@@ -130,6 +148,7 @@ func (s *Snapshot) Timeline(ctx context.Context, request TimelineRequest) ([]Eve
 		eventSelect, literal(filepath.Join(s.archive.config.Directory, file.Path)), literal(selected.Namespace), literal(selected.Repository),
 		literal(selected.RunID), selected.Attempt, literal(selected.ID), literal(selected.Version), request.Limit+1)
 	combined, cancel := context.WithCancel(ctx)
+	//nolint:contextcheck // Independent snapshot revocation must cancel the caller-scoped subprocess.
 	stop := context.AfterFunc(s.ctx, cancel)
 	defer func() { stop(); cancel() }()
 	var rows []Event
@@ -181,6 +200,7 @@ FROM read_parquet([` + strings.Join(paths, ",") + `],hive_partitioning=false) e
 INNER JOIN active a USING(Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId)
 GROUP BY e.Repository,e.RunId,e.RunAttempt,e.ProjectionId ORDER BY e.Repository,e.RunId,e.RunAttempt LIMIT 10001`
 	combined, cancel := context.WithCancel(ctx)
+	//nolint:contextcheck // Independent snapshot revocation must cancel the caller-scoped subprocess.
 	stop := context.AfterFunc(s.ctx, cancel)
 	defer func() { stop(); cancel() }()
 	var rows []Summary

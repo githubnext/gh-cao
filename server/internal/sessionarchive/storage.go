@@ -34,6 +34,9 @@ func durableWrite(root *os.Root, name string, content []byte, immutable bool) (e
 		old, err := privateRead(root, name, int64(len(content))+1)
 		if err == nil {
 			if string(old) == string(content) {
+				if err := syncParents(root, filepath.Dir(name)); err != nil {
+					return errors.Join(ErrUncertain, err)
+				}
 				return nil
 			}
 			return ErrIntegrity
@@ -67,7 +70,10 @@ func durableWrite(root *os.Root, name string, content []byte, immutable bool) (e
 	if err = root.Rename(name+".tmp", name); err != nil {
 		return err
 	}
-	return syncParents(root, filepath.Dir(name))
+	if err := syncParents(root, filepath.Dir(name)); err != nil {
+		return errors.Join(ErrUncertain, err)
+	}
+	return nil
 }
 
 func syncParents(root *os.Root, path string) error {

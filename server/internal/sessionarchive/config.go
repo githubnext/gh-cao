@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -42,7 +43,12 @@ func FromEnv(get func(string) string) (Config, error) {
 	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() > 1<<20 {
 		return Config{}, errors.New("session archive policy must be a private bounded regular file")
 	}
-	content, err := os.ReadFile(path)
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err != nil {
+		return Config{}, err
+	}
+	defer func() { _ = root.Close() }()
+	content, err := privateRead(root, filepath.Base(path), 1<<20)
 	if err != nil {
 		return Config{}, err
 	}

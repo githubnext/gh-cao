@@ -21,11 +21,17 @@ func (a *Archive) Flush(ctx context.Context) error {
 	if a.closed {
 		return ErrClosed
 	}
+	if err := a.flush(ctx); err != nil {
+		return err
+	}
 	return a.flush(ctx)
 }
 
 func (a *Archive) flush(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := a.reconcile(); err != nil {
 		return err
 	}
 	if a.state.Pending == nil {
@@ -35,7 +41,9 @@ func (a *Archive) flush(ctx context.Context) error {
 		}
 		a.state.Pending = &next
 		if err := a.save(); err != nil {
-			a.state.Pending = nil
+			if !errors.Is(err, ErrUncertain) {
+				a.state.Pending = nil
+			}
 			return err
 		}
 	}
@@ -68,7 +76,9 @@ func (a *Archive) flush(ctx context.Context) error {
 	}
 	a.state.Records = records
 	if err := a.save(); err != nil {
-		a.state = oldState
+		if !errors.Is(err, ErrUncertain) {
+			a.state = oldState
+		}
 		return err
 	}
 	// Staging is released only after both destination and local receipt commit.
@@ -100,7 +110,15 @@ func (a *Archive) allowed(m Member) bool {
 	return !a.state.WithdrawnRepositories[m.Repository] && !a.state.Fences[memberKey(m)].Withdrawn
 }
 
-func (a *Archive) prepare(ctx context.Context) (Manifest, bool, error) {
+func (a *Archive) prepare(ctx context.Context) (_ Manifest, _ bool, err error) {
+	var created []string
+	defer func() {
+		if err != nil {
+			for _, path := range created {
+				_ = a.root.Remove(path)
+			}
+		}
+	}()
 	now := a.now().UTC()
 	next := Manifest{Version: ContractVersion, Generation: a.state.Manifest.Generation + 1, CreatedAt: now}
 	members := map[string]Member{}
@@ -167,6 +185,7 @@ func (a *Archive) prepare(ctx context.Context) (Manifest, bool, error) {
 			if err := a.root.Rename(tmp, dest); err != nil {
 				return Manifest{}, false, err
 			}
+			created = append(created, dest)
 		} else {
 			return Manifest{}, false, err
 		}
@@ -221,18 +240,15 @@ func (a *Archive) Withdraw(ctx context.Context, repository, runID string, attemp
 	if !validIdentity(a.config.Namespace, repository, runID, attempt) || !slices.Contains(a.config.Repositories, repository) {
 		return ErrIntegrity
 	}
-	// Resolve any ambiguous publication before preparing a different generation.
-	if a.state.Pending != nil {
-		if err := a.flush(ctx); err != nil {
-			return err
-		}
-	}
 	key := memberKey(Member{Namespace: a.config.Namespace, Repository: repository, RunID: runID, Attempt: attempt})
 	f := a.state.Fences[key]
 	f.Namespace, f.Repository, f.RunID, f.Attempt, f.Withdrawn = a.config.Namespace, repository, runID, attempt, true
 	a.state.Fences[key] = f
 	a.cancelReaders(repository)
 	if err := a.save(); err != nil {
+		return err
+	}
+	if err := a.flush(ctx); err != nil {
 		return err
 	}
 	return a.flush(ctx)
@@ -247,11 +263,6 @@ func (a *Archive) WithdrawRepository(ctx context.Context, repository string) err
 	if !slices.Contains(a.config.Repositories, repository) {
 		return ErrIntegrity
 	}
-	if a.state.Pending != nil {
-		if err := a.flush(ctx); err != nil {
-			return err
-		}
-	}
 	a.state.WithdrawnRepositories[repository] = true
 	for key, fence := range a.state.Fences {
 		if fence.Repository == repository {
@@ -261,6 +272,9 @@ func (a *Archive) WithdrawRepository(ctx context.Context, repository string) err
 	}
 	a.cancelReaders(repository)
 	if err := a.save(); err != nil {
+		return err
+	}
+	if err := a.flush(ctx); err != nil {
 		return err
 	}
 	return a.flush(ctx)
@@ -280,6 +294,12 @@ func (a *Archive) Maintain(ctx context.Context) error {
 	defer a.mu.Unlock()
 	if a.closed {
 		return ErrClosed
+	}
+	if err := a.collectGarbage(false); err != nil {
+		return err
+	}
+	if err := a.flush(ctx); err != nil {
+		return err
 	}
 	if err := a.flush(ctx); err != nil {
 		return err

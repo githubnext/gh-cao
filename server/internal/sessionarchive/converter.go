@@ -3,6 +3,8 @@ package sessionarchive
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -68,15 +70,20 @@ func NewConverter(c ConverterConfig) (*Converter, error) {
 }
 
 type boundedOutput struct {
-	bytes.Buffer
-	limit int
+	buffer   bytes.Buffer
+	limit    int
+	exceeded bool
 }
+
+func (b *boundedOutput) Len() int      { return b.buffer.Len() }
+func (b *boundedOutput) Bytes() []byte { return b.buffer.Bytes() }
 
 func (b *boundedOutput) Write(p []byte) (int, error) {
 	if b.Len()+len(p) > b.limit {
+		b.exceeded = true
 		return 0, ErrLimit
 	}
-	return b.Buffer.Write(p)
+	return b.buffer.Write(p)
 }
 
 func literal(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + "'" }
@@ -101,6 +108,7 @@ func (c *Converter) query(ctx context.Context, sql string, target any) error {
 		sql = "COPY (" + sql + ") TO '/dev/stdout' (FORMAT JSON, ARRAY true)"
 	}
 	// Only package-owned plans reach this subprocess. This is not an SQL sandbox.
+	// #nosec G204 -- operator-configured executable, pinned version checked by NewConverter; no caller arguments.
 	cmd := exec.CommandContext(ctx, c.config.DuckDBPath, "-batch", "-bail", "-init", os.DevNull, "-json", ":memory:")
 	cmd.Stdin = strings.NewReader(settings + sql + ";\n")
 	stdout, stderr := &boundedOutput{limit: 32 << 20}, &boundedOutput{limit: 16 << 10}
@@ -109,7 +117,7 @@ func (c *Converter) query(ctx context.Context, sql string, target any) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		if stdout.Len() >= stdout.limit {
+		if stdout.exceeded || errors.Is(err, ErrLimit) {
 			return ErrLimit
 		}
 		// CLI diagnostics may contain approved payloads and paths.
@@ -136,7 +144,8 @@ func decode(content []byte, target any) error {
 
 func validateProjection(p Projection) error {
 	if !validIdentity(p.Namespace, p.Repository, p.RunID, p.Attempt) || len(p.Events) == 0 || len(p.Events) > 32768 ||
-		len(p.ID) != 64 || len(p.Version) != 64 {
+		p.ID != hash([]byte(fmt.Sprintf("%s\x00%s\x00%d", p.Repository, p.RunID, p.Attempt))) ||
+		!validDigest(p.Version) || !validDigest(p.PolicyDigest) || !validDigest(p.ArtifactDigest) {
 		return ErrIntegrity
 	}
 	for i, e := range p.Events {
@@ -151,6 +160,14 @@ func validateProjection(p Projection) error {
 	return nil
 }
 
+func validDigest(digest string) bool {
+	if len(digest) != 64 || strings.ToLower(digest) != digest {
+		return false
+	}
+	_, err := hex.DecodeString(digest)
+	return err == nil
+}
+
 // Write creates an immutable, repository/day-homogeneous packed file using the
 // TypeSpec-generated explicit column types. Existing destinations are refused.
 func (c *Converter) Write(ctx context.Context, path string, projections []Projection) (result File, err error) {
@@ -158,7 +175,7 @@ func (c *Converter) Write(ctx context.Context, path string, projections []Projec
 		return File{}, ErrIntegrity
 	}
 	if _, err := os.Lstat(path); !errors.Is(err, os.ErrNotExist) {
-		return File{}, errors.New("Parquet destination already exists or is unreadable")
+		return File{}, errors.New("parquet destination already exists or is unreadable")
 	}
 	path, err = filepath.Abs(path)
 	if err != nil {
@@ -212,7 +229,12 @@ func (c *Converter) Write(ctx context.Context, path string, projections []Projec
 	if err := os.Chmod(path, 0o600); err != nil {
 		return File{}, err
 	}
-	file, err := os.Open(path)
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err != nil {
+		return File{}, err
+	}
+	defer func() { _ = root.Close() }()
+	file, err := root.Open(filepath.Base(path))
 	if err != nil {
 		return File{}, err
 	}
@@ -220,11 +242,11 @@ func (c *Converter) Write(ctx context.Context, path string, projections []Projec
 	if err := file.Sync(); err != nil {
 		return File{}, err
 	}
-	content, err := io.ReadAll(io.LimitReader(file, 256<<20+1))
-	if err != nil || len(content) > 256<<20 {
+	digest, size, err := fileDigest(file, 128<<20)
+	if err != nil {
 		return File{}, ErrCapacity
 	}
-	result.Path, result.Digest, result.Bytes, result.Day = path, hash(content), int64(len(content)), projections[0].Day
+	result.Path, result.Digest, result.Bytes, result.Day = path, digest, size, projections[0].Day
 	if err := c.Verify(ctx, path, result); err != nil {
 		return File{}, err
 	}
@@ -233,16 +255,21 @@ func (c *Converter) Write(ctx context.Context, path string, projections []Projec
 
 func (c *Converter) Verify(ctx context.Context, path string, expected File) error {
 	info, err := os.Lstat(path)
-	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() != expected.Bytes || info.Size() > 256<<20 {
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() != expected.Bytes || info.Size() > 128<<20 {
 		return ErrIntegrity
 	}
-	file, err := os.Open(path)
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = root.Close() }()
+	file, err := root.Open(filepath.Base(path))
 	if err != nil {
 		return err
 	}
 	defer func() { _ = file.Close() }()
-	content, err := io.ReadAll(io.LimitReader(file, expected.Bytes+1))
-	if err != nil || hash(content) != expected.Digest {
+	digest, _, err := fileDigest(file, expected.Bytes)
+	if err != nil || digest != expected.Digest {
 		return ErrIntegrity
 	}
 	var columns []struct {
@@ -292,6 +319,18 @@ GROUP BY Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId,CompletionDa
 		return ErrIntegrity
 	}
 	return nil
+}
+
+func fileDigest(file io.Reader, limit int64) (string, int64, error) {
+	sum := sha256.New()
+	size, err := io.Copy(sum, io.LimitReader(file, limit+1))
+	if err != nil {
+		return "", 0, err
+	}
+	if size > limit {
+		return "", 0, ErrCapacity
+	}
+	return hex.EncodeToString(sum.Sum(nil)), size, nil
 }
 
 func memberKey(m Member) string {

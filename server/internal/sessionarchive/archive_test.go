@@ -213,6 +213,151 @@ func TestDuckDBArchiveRecoveryAndRetentionIntegration(t *testing.T) {
 	_ = openTestArchive(t, c, nil)
 }
 
+func TestDuckDBArchiveCapacityAndIntegrityIntegration(t *testing.T) {
+	c := testConfig(t)
+	c.MaxEntries = 2
+	a := openTestArchive(t, c, nil)
+	p := testProjection(t, c, "123", "first")
+	second := testProjection(t, c, "123", "second")
+	third := testProjection(t, c, "123", "third")
+	for _, p := range []Projection{p, second} {
+		if err := a.Admit(t.Context(), p); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Flush(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := a.Admit(t.Context(), third); !errors.Is(err, ErrCapacity) {
+		t.Fatalf("fence budget silently discarded supersession history: %v", err)
+	}
+	if err := a.Admit(t.Context(), p); !errors.Is(err, ErrReplay) {
+		t.Fatalf("capacity failure destroyed old-version replay fence: %v", err)
+	}
+	if a.Status().StagedTraces != 0 || a.Status().ActiveTraces != 1 {
+		t.Fatal("failed capacity admission changed published evidence")
+	}
+	active := a.state.Manifest.Files[len(a.state.Manifest.Files)-1]
+	if err := a.Close(); err != nil {
+		t.Fatal(err)
+	}
+	root, err := os.OpenRoot(c.Directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = root.Close() }()
+	content, err := privateRead(root, active.Path, 128<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content[len(content)/2] ^= 1
+	file, err := root.OpenFile(active.Path, os.O_WRONLY|os.O_TRUNC, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.Write(content); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(c); !errors.Is(err, ErrIntegrity) {
+		t.Fatalf("corrupt published file recovered as ready: %v", err)
+	}
+}
+
+func TestDuckDBArchivePendingWithdrawalIntegration(t *testing.T) {
+	c := testConfig(t)
+	publisher := &recordingPublisher{}
+	a := openTestArchive(t, c, publisher)
+	p := testProjection(t, c, "123", "first")
+	if err := a.Admit(t.Context(), p); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	publisher.fail = true
+	p = testProjection(t, c, "123", "corrected")
+	if err := a.Admit(t.Context(), p); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Flush(t.Context()); err == nil {
+		t.Fatal("outage did not retain pending publication")
+	}
+	if err := a.Withdraw(t.Context(), "octo/api", "123", 1); err == nil {
+		t.Fatal("outage falsely acknowledged destination withdrawal")
+	}
+	if err := a.Admit(t.Context(), p); !errors.Is(err, ErrBusy) && !errors.Is(err, ErrWithdrawn) {
+		t.Fatalf("pending withdrawal failed to fence admission: %v", err)
+	}
+	if !a.state.Fences[memberKey(p.Member())].Withdrawn {
+		t.Fatal("pending destination outage prevented durable local revocation")
+	}
+	if err := a.Close(); err != nil {
+		t.Fatal(err)
+	}
+	publisher.fail = false
+	a = openTestArchive(t, c, publisher)
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	last := publisher.manifests[len(publisher.manifests)-1]
+	if len(last.Members) != 0 || !last.Fences[0].Withdrawn {
+		t.Fatal("recovery did not finish generation-bound withdrawal after ambiguous publication")
+	}
+	if err := a.Admit(t.Context(), p); !errors.Is(err, ErrWithdrawn) {
+		t.Fatal("restart lost permanent withdrawal")
+	}
+}
+
+func TestDuckDBArchiveRecoveryOrphansAndGapsIntegration(t *testing.T) {
+	c := testConfig(t)
+	a := openTestArchive(t, c, nil)
+	p := testProjection(t, c, "123", "approved")
+	if err := a.Admit(t.Context(), p); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := durableWrite(a.root, "staging/interrupted.json", []byte("{}"), true); err != nil {
+		t.Fatal(err)
+	}
+	if err := durableWrite(a.root, "generations/interrupted.json", []byte("{}"), true); err != nil {
+		t.Fatal(err)
+	}
+	file, err := a.root.OpenFile("state.json.tmp", os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Close(); err != nil {
+		t.Fatal(err)
+	}
+	a = openTestArchive(t, c, nil)
+	for _, path := range []string{"staging/interrupted.json", "generations/interrupted.json", "state.json.tmp"} {
+		if _, err := a.root.Stat(path); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("uncommitted orphan survived owner recovery: %s %v", path, err)
+		}
+	}
+	if err := a.Close(); err != nil {
+		t.Fatal(err)
+	}
+	root, err := os.OpenRoot(c.Directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = root.Close() }()
+	if err := root.Remove("state.json"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(c); err == nil {
+		t.Fatal("missing authority/replay state silently rebuilt from historical files")
+	}
+}
 func TestDuckDBArchiveCaptureCacheIntegration(t *testing.T) {
 	c := testConfig(t)
 	a := openTestArchive(t, c, nil)
@@ -242,20 +387,40 @@ func TestDuckDBArchiveCaptureCacheIntegration(t *testing.T) {
 	if err := a.PrepareCache(t.Context(), "octo/api", filepath.Join(cache, "octo-api"), filepath.Join(target, "octo-api")); err != nil {
 		t.Fatal(err)
 	}
-	filtered, _ := os.ReadFile(filepath.Join(target, "octo-api.jsonl"))
+	targetRoot, err := os.OpenRoot(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = targetRoot.Close() }()
+	filtered, err := privateRead(targetRoot, "octo-api.jsonl", 1<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(filtered) != 0 {
 		t.Fatal("uncaptured cached attempt suppressed authorized reacquisition")
+	}
+	if err := os.Remove(filepath.Join(run, "aw_info.json")); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Capture(t.Context(), "octo/api", logs, filepath.Join(cache, "octo-api")); err == nil || a.Status().Gaps != 1 || a.Status().StagedTraces != 0 {
+		t.Fatalf("artifact identity gap was not durable, explicit and excluded: %v %#v", err, a.Status())
+	}
+	if err := os.WriteFile(filepath.Join(run, "aw_info.json"), []byte(`{"repository":"octo/api","run_id":123,"run_attempt":1}`), 0o600); err != nil {
+		t.Fatal(err)
 	}
 	if err := a.Capture(t.Context(), "octo/api", logs, filepath.Join(cache, "octo-api")); err != nil {
 		t.Fatal(err)
 	}
-	if a.Status().StagedTraces != 1 {
+	if a.Status().StagedTraces != 1 || a.Status().Gaps != 0 {
 		t.Fatal("acquisition did not durably stage complete approved session")
 	}
 	if err := a.PrepareCache(t.Context(), "octo/api", filepath.Join(cache, "octo-api"), filepath.Join(target, "octo-api")); err != nil {
 		t.Fatal(err)
 	}
-	filtered, _ = os.ReadFile(filepath.Join(target, "octo-api.jsonl"))
+	filtered, err = privateRead(targetRoot, "octo-api.jsonl", 1<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if string(filtered) != string(shard) {
 		t.Fatal("durably captured attempt remained acquisition-blocking")
 	}

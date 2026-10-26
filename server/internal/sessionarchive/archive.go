@@ -42,16 +42,18 @@ type archiveState struct {
 }
 
 type Archive struct {
-	mu        sync.Mutex
-	config    Config
-	root      *os.Root
-	lock      *os.File
-	converter *Converter
-	publisher Publisher
-	state     archiveState
-	readers   map[*Snapshot]bool
-	closed    bool
-	now       func() time.Time
+	mu         sync.Mutex
+	config     Config
+	root       *os.Root
+	lock       *os.File
+	converter  *Converter
+	publisher  Publisher
+	state      archiveState
+	readers    map[*Snapshot]bool
+	closed     bool
+	uncertain  bool
+	now        func() time.Time
+	writeState func([]byte) error
 }
 
 func Open(c Config) (*Archive, error) { return OpenWithPublisher(c, nil) }
@@ -76,6 +78,7 @@ func OpenWithPublisher(c Config, publisher Publisher) (_ *Archive, err error) {
 		return nil, err
 	}
 	a := &Archive{config: c, root: root, publisher: publisher, readers: map[*Snapshot]bool{}, now: time.Now}
+	a.writeState = func(content []byte) error { return durableWrite(root, "state.json", content, false) }
 	defer func() {
 		if err != nil {
 			_ = a.Close()
@@ -102,7 +105,8 @@ func OpenWithPublisher(c Config, publisher Publisher) (_ *Archive, err error) {
 		Fences: map[string]Fence{}, WithdrawnRepositories: map[string]bool{},
 		Manifest: Manifest{Version: ContractVersion}}
 	content, err := privateRead(root, "state.json", 16<<20)
-	if err == nil {
+	switch {
+	case err == nil:
 		fingerprint := a.state.Fingerprint
 		if err := decode(content, &a.state); err != nil || a.state.Version != ContractVersion ||
 			a.state.Fingerprint != fingerprint || a.state.Records == nil || a.state.Fences == nil || a.state.WithdrawnRepositories == nil {
@@ -121,9 +125,9 @@ func OpenWithPublisher(c Config, publisher Publisher) (_ *Archive, err error) {
 				return nil, ErrIntegrity
 			}
 		}
-	} else if !errors.Is(err, os.ErrNotExist) {
+	case !errors.Is(err, os.ErrNotExist):
 		return nil, err
-	} else {
+	default:
 		files, err := diskFiles(root, 4*c.MaxEntries+10)
 		if err != nil {
 			return nil, err
@@ -188,7 +192,7 @@ func (a *Archive) validateState() error {
 			}
 		}
 		for _, f := range manifest.Files {
-			if !archivePath(f.Path) || !strings.HasSuffix(f.Path, f.Digest+".parquet") || f.Bytes < 1 || f.Bytes > 256<<20 {
+			if !archivePath(f.Path) || !strings.HasSuffix(f.Path, f.Digest+".parquet") || f.Bytes < 1 || f.Bytes > 128<<20 {
 				return ErrIntegrity
 			}
 		}
@@ -207,7 +211,20 @@ func (a *Archive) save() error {
 	if len(content) > 16<<20 {
 		return ErrCapacity
 	}
-	return durableWrite(a.root, "state.json", content, false)
+	err = a.writeState(content)
+	if err == nil {
+		a.uncertain = false
+	} else if errors.Is(err, ErrUncertain) {
+		a.uncertain = true
+	}
+	return err
+}
+
+func (a *Archive) reconcile() error {
+	if a.uncertain {
+		return a.save()
+	}
+	return nil
 }
 
 func (a *Archive) Capture(ctx context.Context, repository, logs, shardPrefix string) error {
@@ -228,6 +245,9 @@ func (a *Archive) Capture(ctx context.Context, repository, logs, shardPrefix str
 				r.Gap = reason
 				a.state.Records[key] = r
 				if err := a.save(); err != nil {
+					if errors.Is(err, ErrUncertain) {
+						return err
+					}
 					if ok {
 						a.state.Records[key] = previous
 					} else {
@@ -255,6 +275,9 @@ func (a *Archive) Admit(ctx context.Context, p Projection) error {
 		return ErrClosed
 	}
 	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := a.reconcile(); err != nil {
 		return err
 	}
 	if a.state.Pending != nil {
@@ -287,7 +310,7 @@ func (a *Archive) Admit(ctx context.Context, p Projection) error {
 			a.state.Records[key] = old
 			return a.save()
 		}
-		return nil
+		return a.save()
 	}
 	if slices.Contains(fence.Versions, p.Version) {
 		return ErrReplay
@@ -310,6 +333,9 @@ func (a *Archive) Admit(ctx context.Context, p Projection) error {
 	a.state.Fences[key] = fence
 	a.state.Records[key] = admission{Member: m, Stage: stage, Bytes: int64(len(content)), Day: p.Day, CapturedAt: p.CapturedAt}
 	if err := a.save(); err != nil {
+		if errors.Is(err, ErrUncertain) {
+			return err
+		}
 		if existed {
 			a.state.Records[key] = previous
 		} else {
@@ -334,6 +360,10 @@ func (a *Archive) PrepareCache(ctx context.Context, repository, sourcePrefix, ta
 	if a.closed {
 		a.mu.Unlock()
 		return ErrClosed
+	}
+	if err := a.reconcile(); err != nil {
+		a.mu.Unlock()
+		return err
 	}
 	known := map[string]bool{}
 	for _, r := range a.state.Records {
@@ -363,6 +393,9 @@ func (a *Archive) Status() Status {
 	for _, r := range a.state.Records {
 		if r.Stage != "" {
 			status.StagedTraces++
+		}
+		if r.Gap != "" {
+			status.Gaps++
 		}
 	}
 	for _, f := range a.state.Manifest.Files {
