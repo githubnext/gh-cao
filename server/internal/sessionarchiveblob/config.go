@@ -24,7 +24,7 @@ var (
 	uuidPattern       = regexp.MustCompile(`^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$`)
 )
 
-const planVersion = "cao-archive-object-membership-v1"
+const planVersion = "cao-archive-partition-membership-v1"
 
 var (
 	ErrDisabled    = errors.New("hosted session archive is disabled")
@@ -190,7 +190,7 @@ func (c Config) blobRoot() string {
 // scope, plan and resource policy. It intentionally contains no credentials.
 func (c Config) AcceptanceBinding() string {
 	_ = c.Validate()
-	data, _ := json.Marshal([]any{planVersion, c.Account, c.Container, c.Prefix,
+	data, _ := json.Marshal([]any{planVersion, EventSchema(), c.Account, c.Container, c.Prefix,
 		c.Endpoint, c.Database, c.Table, c.Namespace, c.RepositoryIDs,
 		c.ExternalPropertiesDigest, c.MaxFileBytes, c.MaxQueryBytes, c.MaxFiles, c.MaxMembers, c.MaxStateBytes, c.QueryTimeout, c.RetirementGrace})
 	sum := sha256.Sum256(data)
@@ -200,3 +200,12 @@ func (c Config) AcceptanceBinding() string {
 func (c Config) authorized(namespace, repository string) bool {
 	return namespace == c.Namespace && slices.Contains(c.RepositoryIDs, repository)
 }
+
+func (c Config) String() string {
+	if c.Enabled {
+		return "sessionarchiveblob.Config(enabled=true)"
+	}
+	return "sessionarchiveblob.Config(enabled=false)"
+}
+
+func (c Config) GoString() string { return c.String() }

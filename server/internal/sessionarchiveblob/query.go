@@ -136,12 +136,19 @@ func EventSchema() string {
 		if name == "" {
 			name = field.Name
 		}
-		kind := "string"
+		var kind string
 		switch field.Type.Kind() {
+		case reflect.String:
+			kind = "string"
 		case reflect.Int, reflect.Int64:
 			kind = "long"
 		case reflect.Slice:
+			if field.Type.Elem().Kind() != reflect.String {
+				return ""
+			}
 			kind = "dynamic"
+		default:
+			return ""
 		}
 		columns = append(columns, name+":"+kind)
 	}
@@ -154,9 +161,13 @@ func ExternalTableDDL(c Config) (string, error) {
 	if err := c.Validate(); err != nil || !c.Enabled {
 		return "", ErrScope
 	}
-	return ".create external table " + c.Table + " (" + EventSchema() + ")\n" +
-		"kind=storage partition by (ArchiveObject:string)\n" +
-		`pathformat=("objects/" ArchiveObject "/") dataformat=parquet` + "\n(" +
+	schema := EventSchema()
+	if schema == "" {
+		return "", ErrConformance
+	}
+	return ".create external table " + c.Table + " (" + schema + ")\n" +
+		"kind=storage partition by (ArchiveNamespace:string,ArchiveRepository:string,ArchiveDay:string,ArchiveObject:string)\n" +
+		`pathformat=("objects/" ArchiveNamespace "/" ArchiveRepository "/" ArchiveDay "/" ArchiveObject "/") dataformat=parquet` + "\n(" +
 		literal(c.blobRoot()+";managed_identity=system") + ")\n" +
 		`with (fileExtension="parquet", namePrefix="events", docString="` + planVersion + `")`, nil
 }
@@ -177,6 +188,9 @@ func (a *Archive) verifyTable(ctx context.Context) error {
 		digest([]byte(properties)) != a.config.ExternalPropertiesDigest {
 		return ErrConformance
 	}
+	if !a.exactStorageProperties(properties) {
+		return ErrConformance
+	}
 	table, err = a.query(ctx, "/v1/rest/mgmt", ".show external table "+a.config.Table+" schema as csl")
 	if err != nil || len(table.Rows) != 1 || len(table.Rows[0]) < 2 {
 		return ErrConformance
@@ -188,16 +202,55 @@ func (a *Archive) verifyTable(ctx context.Context) error {
 	schema = strings.ReplaceAll(strings.ReplaceAll(schema, " ", ""), "\n", "")
 	// Virtual columns may be included by the engine's schema presentation.
 	expected := EventSchema()
-	if schema != expected && schema != expected+",ArchiveObject:string" {
+	if expected == "" || (schema != expected && schema != expected+",ArchiveNamespace:string,ArchiveRepository:string,ArchiveDay:string,ArchiveObject:string") {
 		return ErrConformance
 	}
 	return nil
 }
 
+func (a *Archive) exactStorageProperties(properties string) bool {
+	var document any
+	if json.Unmarshal([]byte(properties), &document) != nil {
+		return false
+	}
+	expected := a.config.blobRoot() + ";managed_identity=system"
+	paths, valid := 0, true
+	var visit func(any)
+	visit = func(value any) {
+		switch value := value.(type) {
+		case map[string]any:
+			for _, item := range value {
+				visit(item)
+			}
+		case []any:
+			for _, item := range value {
+				visit(item)
+			}
+		case string:
+			if strings.Contains(value, "://") {
+				paths++
+				if value != expected {
+					valid = false
+				}
+			}
+		}
+	}
+	visit(document)
+	// Unknown/redacted URI encodings fail closed. Destination conformance
+	// must establish the actual Properties representation before activation.
+	return valid && paths == 1
+}
+
 func membershipKQL(table string, files []sessionarchive.File, members []sessionarchive.Member) string {
-	var objects, rows []string
+	objects := make([]string, 0, len(files))
+	days := make([]string, 0, len(files))
+	rows := make([]string, 0, len(members))
 	for _, f := range files {
 		objects = append(objects, literal(f.Digest))
+		day := literal(fileDay(f))
+		if !slices.Contains(days, day) {
+			days = append(days, day)
+		}
 	}
 	for _, m := range members {
 		rows = append(rows, strings.Join([]string{literal(m.Namespace), literal(m.Repository),
@@ -208,8 +261,48 @@ func membershipKQL(table string, files []sessionarchive.File, members []sessiona
 	// applied before any summary/order/limit; no global DISTINCT is needed.
 	return "let selected=datatable(Namespace:string,Repository:string,RunId:string,RunAttempt:long,ProjectionId:string,TraceId:string)[" +
 		strings.Join(rows, ",") + "];\nexternal_table(" + literal(table) + ")\n" +
+		"| where ArchiveNamespace==" + literal(digest([]byte(members[0].Namespace))) +
+		" and ArchiveRepository==" + literal(digest([]byte(members[0].Repository))) +
+		" and ArchiveDay in (" + strings.Join(days, ",") + ")\n" +
 		"| where ArchiveObject in (" + strings.Join(objects, ",") + ")\n" +
 		"| join kind=inner (selected) on Namespace,Repository,RunId,RunAttempt,ProjectionId,TraceId\n"
+}
+
+func fileVerificationKQL(table string, file sessionarchive.File) string {
+	return membershipKQL(table, []sessionarchive.File{file}, file.Members) +
+		"| summarize Copies=count(),Invalid=countif(ContractVersion!=1 or hash_sha256(PayloadJSON)!=ContentDigest or CompletionDay!=" + literal(file.Day) + ")\n" +
+		"  by Namespace,Repository,RunId,RunAttempt,ProjectionId,TraceId,Sequence\n" +
+		"| summarize Events=sum(Copies),Unique=count(),First=min(Sequence),Last=max(Sequence),Invalid=sum(Invalid)\n" +
+		"  by Namespace,Repository,RunId,RunAttempt,ProjectionId,TraceId\n" +
+		"| project Namespace,Repository,RunId,RunAttempt,ProjectionId,TraceId,Events,Unique,First,Last,Invalid"
+}
+
+func (a *Archive) verifyFile(ctx context.Context, file sessionarchive.File) error {
+	table, err := a.query(ctx, "/v1/rest/query", fileVerificationKQL(a.config.Table, file))
+	if err != nil {
+		return err
+	}
+	if len(table.Columns) != 11 || len(table.Rows) != len(file.Members) {
+		return ErrIntegrity
+	}
+	seen := map[sessionarchive.Member]bool{}
+	for _, row := range table.Rows {
+		var m sessionarchive.Member
+		var unique, first, last, invalid int64
+		targets := []any{&m.Namespace, &m.Repository, &m.RunID, &m.Attempt, &m.Version, &m.ID,
+			&m.Events, &unique, &first, &last, &invalid}
+		for i, target := range targets {
+			if json.Unmarshal(row[i], target) != nil {
+				return ErrIntegrity
+			}
+		}
+		if !slices.Contains(file.Members, m) || seen[m] || unique != m.Events ||
+			first != 0 || last != m.Events-1 || invalid != 0 {
+			return ErrIntegrity
+		}
+		seen[m] = true
+	}
+	return nil
 }
 
 func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repository, runID string, attempt int64) (context.Context, uint64, []sessionarchive.File, []sessionarchive.Member, func() error, error) {
@@ -221,6 +314,9 @@ func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repositor
 	if scope.Namespace != a.config.Namespace || !slices.Contains(scope.Repositories, repository) ||
 		!a.config.authorized(scope.Namespace, repository) {
 		return nil, 0, nil, nil, nil, ErrScope
+	}
+	if slices.Contains(a.state.WithdrawnRepositories, repository) {
+		return nil, 0, nil, nil, nil, ErrWithdrawn
 	}
 	// Exactly one in-flight query keeps the supported initial profile bounded.
 	if len(a.readers) > 0 {
@@ -246,6 +342,9 @@ func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repositor
 	}
 	if len(members) == 0 {
 		return nil, a.active.Generation, nil, nil, nil, sessionarchive.ErrNotFound
+	}
+	if err := a.blob.private(ctx); err != nil {
+		return nil, 0, nil, nil, nil, err
 	}
 	// Persist the worst-case server execution horizon before issuing KQL.
 	// HTTP cancellation is not proof that remote execution has terminated.
@@ -308,7 +407,15 @@ func (a *Archive) Timeline(ctx context.Context, scope sessionarchive.Scope, requ
 	}
 	for i, row := range table.Rows {
 		var event sessionarchive.Event
-		if json.Unmarshal(row[0], &event) != nil || event.Namespace != scope.Namespace ||
+		raw := row[0]
+		if len(raw) > 0 && raw[0] == '"' {
+			var text string
+			if json.Unmarshal(raw, &text) != nil {
+				return generation, nil, ErrIntegrity
+			}
+			raw = json.RawMessage(text)
+		}
+		if json.Unmarshal(raw, &event) != nil || event.Namespace != scope.Namespace ||
 			event.Repository != request.Repository || event.RunID != request.RunID || event.RunAttempt != request.Attempt ||
 			event.ProjectionID != members[0].Version || event.TraceID != members[0].ID ||
 			event.Sequence != int64(i) || event.ContractVersion != sessionarchive.ContractVersion ||

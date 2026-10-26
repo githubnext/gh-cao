@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -37,24 +38,27 @@ type blobProtocol struct {
 	query      func(http.ResponseWriter, *http.Request, string)
 }
 
+const protocolProperties = `{"StorageConnectionStrings":["https://privatearchive.blob.core.windows.net/container/archive;managed_identity=system"],"reviewed":"synthetic"}`
+
 func (s *blobProtocol) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		var body struct {
 			CSL string `json:"csl"`
 		}
 		if json.NewDecoder(r.Body).Decode(&body) != nil {
-			http.Error(w, "invalid query request", 400)
+			http.Error(w, "invalid query request", http.StatusBadRequest)
 			return
 		}
-		if strings.HasPrefix(body.CSL, ".show external table Events schema") {
+		switch {
+		case strings.HasPrefix(body.CSL, ".show external table Events schema"):
 			respond(w, []string{"TableName", "Schema", "DatabaseName", "Folder", "DocString"},
 				[][]any{{"Events", EventSchema(), "Archive", "", ""}}, false)
-		} else if strings.HasPrefix(body.CSL, ".show external table Events") {
-			respond(w, []string{"TableName", "TableType", "Properties"}, [][]any{{"Events", "Blob", `{"reviewed":"synthetic"}`}}, false)
-		} else if s.query != nil {
+		case strings.HasPrefix(body.CSL, ".show external table Events"):
+			respond(w, []string{"TableName", "TableType", "Properties"}, [][]any{{"Events", "Blob", protocolProperties}}, false)
+		case s.query != nil:
 			s.query(w, r, body.CSL)
-		} else {
-			http.Error(w, "no synthetic query response configured", 500)
+		default:
+			http.Error(w, "no synthetic query response configured", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -69,28 +73,28 @@ func (s *blobProtocol) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	key := strings.TrimPrefix(r.URL.Path, "/container/archive/")
 	if r.Header.Get("x-ms-version") != "2023-11-03" || r.Header.Get("x-ms-date") == "" {
-		http.Error(w, "missing Azure protocol version/date", 400)
+		http.Error(w, "missing Azure protocol version/date", http.StatusBadRequest)
 		return
 	}
 	if s.failKey == key {
-		http.Error(w, "synthetic unavailable", 503)
+		http.Error(w, "synthetic unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	activeLease := s.lease != "" && s.now.Before(s.expires)
 	if r.URL.Query().Get("comp") == "lease" {
 		if key != "active.json" || s.objects[key] == nil || r.Method != http.MethodPut {
-			http.Error(w, "unsupported lease", 400)
+			http.Error(w, "unsupported lease", http.StatusBadRequest)
 			return
 		}
 		id := r.Header.Get("x-ms-lease-id")
 		switch r.Header.Get("x-ms-lease-action") {
 		case "acquire":
 			if activeLease {
-				http.Error(w, "lease held", 409)
+				http.Error(w, "lease held", http.StatusConflict)
 				return
 			}
 			if r.Header.Get("x-ms-lease-duration") != "60" || !uuidPattern.MatchString(r.Header.Get("x-ms-proposed-lease-id")) {
-				http.Error(w, "invalid lease duration/id", 400)
+				http.Error(w, "invalid lease duration/id", http.StatusBadRequest)
 				return
 			}
 			s.lease, s.expires = r.Header.Get("x-ms-proposed-lease-id"), s.now.Add(time.Minute)
@@ -98,19 +102,19 @@ func (s *blobProtocol) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusCreated)
 		case "renew":
 			if id != s.lease || !activeLease {
-				http.Error(w, "lease lost", 412)
+				http.Error(w, "lease lost", http.StatusPreconditionFailed)
 				return
 			}
 			s.expires = s.now.Add(time.Minute)
 			w.Header().Set("x-ms-lease-id", s.lease)
 		case "release":
 			if id != s.lease {
-				http.Error(w, "lease mismatch", 412)
+				http.Error(w, "lease mismatch", http.StatusPreconditionFailed)
 				return
 			}
 			s.lease = ""
 		default:
-			http.Error(w, "unsupported lease operation", 400)
+			http.Error(w, "unsupported lease operation", http.StatusBadRequest)
 		}
 		return
 	}
@@ -118,7 +122,7 @@ func (s *blobProtocol) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		body, exists := s.objects[key]
 		if !exists {
-			http.Error(w, "missing", 404)
+			http.Error(w, "missing", http.StatusNotFound)
 			return
 		}
 		w.Header().Set("ETag", s.etags[key])
@@ -128,29 +132,29 @@ func (s *blobProtocol) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(body)
 	case http.MethodPut:
 		if r.Header.Get("x-ms-blob-type") != "BlockBlob" {
-			http.Error(w, "missing Blob type", 400)
+			http.Error(w, "missing Blob type", http.StatusBadRequest)
 			return
 		}
 		if r.Header.Get("If-None-Match") == "*" && s.objects[key] != nil {
-			http.Error(w, "exists", 412)
+			http.Error(w, "exists", http.StatusPreconditionFailed)
 			return
 		}
 		if key == "active.json" && s.objects[key] != nil {
 			if !activeLease || r.Header.Get("x-ms-lease-id") != s.lease {
-				http.Error(w, "lease mismatch", 412)
+				http.Error(w, "lease mismatch", http.StatusPreconditionFailed)
 				return
 			}
 			if r.Header.Get("If-Match") != s.etags[key] {
-				http.Error(w, "stale ETag", 412)
+				http.Error(w, "stale ETag", http.StatusPreconditionFailed)
 				return
 			}
 		} else if r.Header.Get("If-None-Match") != "*" {
-			http.Error(w, "immutable object requires create-only", 400)
+			http.Error(w, "immutable object requires create-only", http.StatusBadRequest)
 			return
 		}
 		body, err := io.ReadAll(io.LimitReader(r.Body, 128<<20+1))
 		if err != nil || int64(len(body)) != r.ContentLength {
-			http.Error(w, "bad body", 400)
+			http.Error(w, "bad body", http.StatusBadRequest)
 			return
 		}
 		s.counter++
@@ -159,20 +163,20 @@ func (s *blobProtocol) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("ETag", s.etags[key])
 		if s.loseKey == key {
 			s.loseKey = ""
-			http.Error(w, "synthetic lost response after commit", 503)
+			http.Error(w, "synthetic lost response after commit", http.StatusServiceUnavailable)
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
 	case http.MethodDelete:
 		if s.objects[key] == nil {
-			http.Error(w, "missing", 404)
+			http.Error(w, "missing", http.StatusNotFound)
 			return
 		}
 		delete(s.objects, key)
 		delete(s.etags, key)
 		w.WriteHeader(http.StatusAccepted)
 	default:
-		http.Error(w, "unsupported method", 405)
+		http.Error(w, "unsupported method", http.StatusMethodNotAllowed)
 	}
 }
 
@@ -199,7 +203,7 @@ func respond(w http.ResponseWriter, columns []string, rows [][]any, complete boo
 type protocolVerifier struct{}
 
 func (protocolVerifier) Verify(_ context.Context, path string, file sessionarchive.File) error {
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) // #nosec G304 -- Test verifier reads generated private staging fixtures.
 	if err != nil || digest(content) != file.Digest || int64(len(content)) != file.Bytes {
 		return ErrIntegrity
 	}
@@ -212,7 +216,7 @@ func validConfig() Config {
 		Namespace: "private", RepositoryIDs: []string{"octo/api"},
 		TenantID: "11111111-1111-1111-1111-111111111111", ClientID: "22222222-2222-2222-2222-222222222222",
 		ClientSecret: "synthetic-credential-not-logged", DataApproved: true, SingleReplica: true,
-		ExternalPropertiesDigest: digest([]byte(`{"reviewed":"synthetic"}`))}
+		ExternalPropertiesDigest: digest([]byte(protocolProperties))}
 	_ = c.Validate()
 	c.Acceptance = c.AcceptanceBinding()
 	return c
@@ -253,14 +257,14 @@ func fixture(t *testing.T, generation uint64, version string) sessionarchive.Man
 	m := sessionarchive.Member{Namespace: "private", Repository: "octo/api", RunID: "123", Attempt: 1,
 		ID: digest([]byte("stable trace")), Version: digest([]byte(version)), Events: 2}
 	f := sessionarchive.File{Path: path, Digest: digest(content), Bytes: int64(len(content)), Rows: 2, Members: []sessionarchive.Member{m}}
-	return sessionarchive.Manifest{Version: 1, Generation: generation, CreatedAt: time.Unix(1_790_000_000+int64(generation), 0).UTC(),
+	return sessionarchive.Manifest{Version: 1, Generation: generation, CreatedAt: time.Date(2026, 10, 25, 0, 0, 0, 0, time.UTC),
 		Files: []sessionarchive.File{f}, Members: []sessionarchive.Member{m}}
 }
 
 func TestBlobImmutablePublicationRestartAndOverlap(t *testing.T) {
 	a, s, endpoint := newProtocol(t)
 	m := fixture(t, 1, "first")
-	key := objectKey(m.Files[0].Digest)
+	key := objectKey(m.Files[0])
 	s.loseKey = key
 	if err := a.Publish(t.Context(), m); err == nil {
 		t.Fatal("ambiguous object upload must retain durable staging")
@@ -311,7 +315,7 @@ func TestBlobPointerLostAcknowledgementAndStaleWriter(t *testing.T) {
 func TestBlobIntegrityFailuresNeverPublish(t *testing.T) {
 	a, s, _ := newProtocol(t)
 	m := fixture(t, 1, "first")
-	s.corruptKey = objectKey(m.Files[0].Digest)
+	s.corruptKey = objectKey(m.Files[0])
 	if err := a.Publish(t.Context(), m); !errors.Is(err, ErrIntegrity) || a.active.Generation != 0 {
 		t.Fatal("corrupt destination became ready")
 	}
@@ -340,7 +344,7 @@ func TestBlobCorrectionWithdrawalAndRetirement(t *testing.T) {
 	if queryCtx.Err() != nil {
 		t.Fatal("ordinary correction cancelled a pinned reader")
 	}
-	if err := a.Maintain(t.Context()); err != nil || s.objects[objectKey(first.Files[0].Digest)] == nil {
+	if err := a.Maintain(t.Context()); err != nil || s.objects[objectKey(first.Files[0])] == nil {
 		t.Fatal("retirement deleted pinned data")
 	}
 	if err := finish(); err != nil {
@@ -371,7 +375,7 @@ func TestBlobCorrectionWithdrawalAndRetirement(t *testing.T) {
 	if err := restarted.Maintain(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if s.objects[objectKey(first.Files[0].Digest)] != nil || s.objects[objectKey(second.Files[0].Digest)] != nil {
+	if s.objects[objectKey(first.Files[0])] != nil || s.objects[objectKey(second.Files[0])] != nil {
 		t.Fatal("eligible unreferenced objects were not retired")
 	}
 }
@@ -469,5 +473,41 @@ func TestBlobPublicContainerAndRedirectRejected(t *testing.T) {
 	b := blobClient{root: source.URL, http: &http.Client{CheckRedirect: rejectRedirect}}
 	if _, _, err := b.get(t.Context(), "object", 4096); err == nil || redirected {
 		t.Fatal("credential-bearing redirect followed")
+	}
+}
+
+func TestBlobRepositoryWithdrawalFencesUnpublishedAndFutureAttempts(t *testing.T) {
+	a, s, endpoint := newProtocol(t)
+	m := fixture(t, 1, "pending")
+	s.loseKey = objectKey(m.Files[0])
+	if err := a.Publish(t.Context(), m); err == nil || len(a.state.Pending) != 1 {
+		t.Fatal("test did not establish durable unpublished inventory")
+	}
+	if err := a.WithdrawRepository(t.Context(), "octo/api"); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Publish(t.Context(), m); !errors.Is(err, ErrWithdrawn) {
+		t.Fatal("repository withdrawal permitted an unpublished retry")
+	}
+	if err := a.Close(); err != nil {
+		t.Fatal(err)
+	}
+	restarted := protocolArchive(t, s, endpoint)
+	m.Files[0].Members[0].RunID = "999"
+	m.Files[0].Members[0].Attempt = 2
+	m.Members = slices.Clone(m.Files[0].Members)
+	if err := restarted.Publish(t.Context(), m); !errors.Is(err, ErrWithdrawn) {
+		t.Fatal("repository withdrawal did not survive for unseen future attempts")
+	}
+	empty, emptyProtocol, emptyEndpoint := newProtocol(t)
+	if err := empty.WithdrawRepository(t.Context(), "octo/api"); err != nil {
+		t.Fatal(err)
+	}
+	if err := empty.Close(); err != nil {
+		t.Fatal(err)
+	}
+	empty = protocolArchive(t, emptyProtocol, emptyEndpoint)
+	if err := empty.Publish(t.Context(), fixture(t, 1, "never-admitted")); !errors.Is(err, ErrWithdrawn) {
+		t.Fatal("empty-repository withdrawal did not persist")
 	}
 }

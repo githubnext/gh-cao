@@ -11,6 +11,7 @@ import (
 	"os"
 	"reflect"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,15 +23,17 @@ import (
 
 type retirement struct {
 	Digest string
+	Key    string
 	Bytes  int64
 	After  time.Time
 }
 
 type archiveState struct {
-	Manifest sessionarchive.Manifest
-	Fences   []sessionarchive.Fence
-	Pending  []sessionarchive.File
-	Retired  []retirement
+	Manifest              sessionarchive.Manifest
+	Fences                []sessionarchive.Fence
+	WithdrawnRepositories []string
+	Pending               []sessionarchive.File
+	Retired               []retirement
 }
 
 type pointer struct {
@@ -55,6 +58,7 @@ type Archive struct {
 	converter fileVerifier
 	blob      *blobClient
 	queryHTTP *http.Client
+	verifyADX bool
 	mu        sync.Mutex
 	state     archiveState
 	active    pointer
@@ -86,7 +90,7 @@ func New(ctx context.Context, config Config, converter *sessionarchive.Converter
 	a := &Archive{config: config, converter: converter,
 		blob:      &blobClient{root: config.blobRoot(), http: newHTTP(config, "https://storage.azure.com/.default")},
 		queryHTTP: newHTTP(config, "https://kusto.kusto.windows.net/.default"),
-		readers:   map[string]reader{}, now: time.Now}
+		verifyADX: true, readers: map[string]reader{}, now: time.Now}
 	if err := a.open(ctx); err != nil {
 		return nil, err
 	}
@@ -110,17 +114,17 @@ func (a *Archive) open(ctx context.Context) error {
 		}
 	}
 	a.lease = uuid.NewString()
-	if _, err := a.blob.lease(ctx, "acquire", a.lease); err != nil {
+	if err := a.blob.lease(ctx, "acquire", a.lease); err != nil {
 		return err
 	}
 	if err := a.load(ctx); err != nil {
-		_, _ = a.blob.lease(ctx, "release", a.lease)
+		_ = a.blob.lease(ctx, "release", a.lease)
 		return err
 	}
 	// No runtime DDL: prove the preprovisioned external table is the approved
 	// immutable-object partitioned destination before accepting any data.
 	if err := a.verifyTable(ctx); err != nil {
-		_, _ = a.blob.lease(ctx, "release", a.lease)
+		_ = a.blob.lease(ctx, "release", a.lease)
 		return err
 	}
 	lifetime, cancel := context.WithCancel(context.WithoutCancel(ctx))
@@ -161,12 +165,8 @@ func (a *Archive) load(ctx context.Context) error {
 			state.Manifest.Generation != active.Generation {
 			return ErrIntegrity
 		}
-		if _, err := a.normalize(state.Manifest, false); err != nil {
+		if err := a.validateState(state); err != nil {
 			return err
-		}
-		if len(state.Fences)+len(state.Manifest.Members) > a.config.MaxMembers ||
-			len(state.Pending)+len(state.Manifest.Files)+len(state.Retired) > a.config.MaxFiles*3 {
-			return ErrCapacity
 		}
 	}
 	a.active, a.etag, a.state = active, etag, state
@@ -183,7 +183,7 @@ func (a *Archive) renew(ctx context.Context) {
 			return
 		case <-ticker.C:
 			step, cancel := context.WithTimeout(ctx, 10*time.Second)
-			_, err := a.blob.lease(step, "renew", a.lease)
+			err := a.blob.lease(step, "renew", a.lease)
 			cancel()
 			if err != nil {
 				// Renewal must not wait behind a long conversion or upload.
@@ -224,7 +224,10 @@ func (a *Archive) save(ctx context.Context, state archiveState, horizon time.Tim
 	if a.active.Revisions >= 1024 {
 		return ErrCapacity
 	}
-	if _, err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+	if err := a.validateState(state); err != nil {
+		return err
+	}
+	if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
 		a.failLease()
 		return err
 	}
@@ -286,7 +289,89 @@ func sameMember(a, b sessionarchive.Member) bool {
 	return a == b
 }
 
-func objectKey(hash string) string { return "objects/" + hash + "/events.parquet" }
+func mergeFence(fences []sessionarchive.Fence, incoming sessionarchive.Fence) []sessionarchive.Fence {
+	for i, f := range fences {
+		if f.Namespace == incoming.Namespace && f.Repository == incoming.Repository && f.RunID == incoming.RunID && f.Attempt == incoming.Attempt {
+			f.Versions = slices.Clone(f.Versions)
+			for _, version := range incoming.Versions {
+				if !slices.Contains(f.Versions, version) {
+					f.Versions = append(f.Versions, version)
+				}
+			}
+			f.Withdrawn = f.Withdrawn || incoming.Withdrawn
+			fences[i] = f
+			return fences
+		}
+	}
+	incoming.Versions = slices.Clone(incoming.Versions)
+	return append(fences, incoming)
+}
+
+func (a *Archive) validateState(state archiveState) error {
+	if _, err := a.normalize(state.Manifest, false); err != nil {
+		return err
+	}
+	if len(state.Pending)+len(state.Manifest.Files)+len(state.Retired) > a.config.MaxFiles*3 {
+		return ErrCapacity
+	}
+	entries := len(state.Manifest.Members) + len(state.WithdrawnRepositories)
+	for _, repository := range state.WithdrawnRepositories {
+		if !a.config.authorized(a.config.Namespace, repository) {
+			return ErrScope
+		}
+	}
+	for _, fence := range state.Fences {
+		if !a.config.authorized(fence.Namespace, fence.Repository) || fence.RunID == "" || fence.Attempt < 1 {
+			return ErrScope
+		}
+		entries += 1 + len(fence.Versions)
+		for _, version := range fence.Versions {
+			if !digestPattern.MatchString(version) {
+				return ErrIntegrity
+			}
+		}
+	}
+	if entries > a.config.MaxMembers {
+		return ErrCapacity
+	}
+	if len(state.Pending) > 0 {
+		pending := sessionarchive.Manifest{Version: 1, CreatedAt: state.Manifest.CreatedAt, Files: state.Pending}
+		if _, err := a.normalize(pending, false); err != nil {
+			return err
+		}
+	}
+	for _, retired := range state.Retired {
+		parts := strings.Split(retired.Key, "/")
+		if len(parts) != 6 || parts[0] != "objects" || !digestPattern.MatchString(parts[1]) ||
+			!digestPattern.MatchString(parts[2]) || !digestPattern.MatchString(parts[4]) ||
+			parts[4] != retired.Digest || parts[5] != "events.parquet" || retired.Bytes < 1 ||
+			retired.Bytes > a.config.MaxFileBytes || retired.After.IsZero() {
+			return ErrIntegrity
+		}
+		if parts[3] != "undated" {
+			if _, err := time.Parse(time.DateOnly, parts[3]); err != nil {
+				return ErrIntegrity
+			}
+		}
+		if slices.ContainsFunc(state.Manifest.Files, func(f sessionarchive.File) bool { return f.Digest == retired.Digest }) {
+			return ErrIntegrity
+		}
+	}
+	return nil
+}
+
+func fileDay(file sessionarchive.File) string {
+	if file.Day == "" {
+		return "undated"
+	}
+	return file.Day
+}
+
+func objectKey(file sessionarchive.File) string {
+	return "objects/" + digest([]byte(file.Members[0].Namespace)) + "/" +
+		digest([]byte(file.Members[0].Repository)) + "/" + fileDay(file) + "/" +
+		file.Digest + "/events.parquet"
+}
 
 func (a *Archive) normalize(candidate sessionarchive.Manifest, local bool) (sessionarchive.Manifest, error) {
 	if candidate.Version != 1 || candidate.CreatedAt.IsZero() ||
@@ -303,11 +388,18 @@ func (a *Archive) normalize(candidate sessionarchive.Manifest, local bool) (sess
 			len(file.Members) == 0 || len(file.Members) > a.config.MaxMembers {
 			return sessionarchive.Manifest{}, ErrIntegrity
 		}
+		if file.Day != "" {
+			day, err := time.Parse(time.DateOnly, file.Day)
+			if err != nil || day.Format(time.DateOnly) != file.Day {
+				return sessionarchive.Manifest{}, ErrIntegrity
+			}
+		}
 		files[file.Digest] = true
 		var rows int64
 		for _, m := range file.Members {
 			if !a.config.authorized(m.Namespace, m.Repository) || m.RunID == "" || m.Attempt < 1 ||
-				!digestPattern.MatchString(m.ID) || !digestPattern.MatchString(m.Version) || m.Events < 1 || m.Events > 32768 || physical[m] {
+				!digestPattern.MatchString(m.ID) || !digestPattern.MatchString(m.Version) || m.Events < 1 || m.Events > 32768 || physical[m] ||
+				m.Namespace != file.Members[0].Namespace || m.Repository != file.Members[0].Repository {
 				return sessionarchive.Manifest{}, ErrScope
 			}
 			physical[m] = true
@@ -316,10 +408,10 @@ func (a *Archive) normalize(candidate sessionarchive.Manifest, local bool) (sess
 		if rows != file.Rows {
 			return sessionarchive.Manifest{}, ErrIntegrity
 		}
-		if !local && file.Path != objectKey(file.Digest) {
+		if !local && file.Path != objectKey(file) {
 			return sessionarchive.Manifest{}, ErrScope
 		}
-		candidate.Files[i].Path = objectKey(file.Digest)
+		candidate.Files[i].Path = objectKey(file)
 	}
 	if len(physical) > a.config.MaxMembers {
 		return sessionarchive.Manifest{}, ErrCapacity
@@ -338,6 +430,8 @@ func (a *Archive) normalize(candidate sessionarchive.Manifest, local bool) (sess
 // selected generation, not a delta. Durable staging remains owned by the
 // shared archive until this returns success.
 func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if err := a.ready(); err != nil {
@@ -353,6 +447,14 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 	if normalized.Generation != a.state.Manifest.Generation+1 {
 		return ErrConflict
 	}
+	if err := a.blob.private(ctx); err != nil {
+		return err
+	}
+	if a.verifyADX {
+		if err := a.verifyTable(ctx); err != nil {
+			return err
+		}
+	}
 	next := a.state
 	next.Manifest = normalized
 	next.Fences = slices.Clone(a.state.Fences)
@@ -367,11 +469,26 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 			(!fence.Withdrawn && len(fence.Versions) == 0) {
 			return ErrScope
 		}
-		if !slices.ContainsFunc(next.Fences, func(f sessionarchive.Fence) bool { return reflect.DeepEqual(f, fence) }) {
-			next.Fences = append(next.Fences, fence)
+		// Shared fences enumerate all observed versions, including the current
+		// admitted version. Only superseded observations are replay-denied;
+		// permanent withdrawal denies the complete canonical attempt.
+		if !fence.Withdrawn {
+			fence.Versions = slices.Clone(fence.Versions)
+			fence.Versions = slices.DeleteFunc(fence.Versions, func(version string) bool {
+				return slices.ContainsFunc(normalized.Members, func(m sessionarchive.Member) bool {
+					return m.Namespace == fence.Namespace && m.Repository == fence.Repository && m.RunID == fence.RunID &&
+						m.Attempt == fence.Attempt && m.Version == version
+				})
+			})
+		}
+		if fence.Withdrawn || len(fence.Versions) > 0 {
+			next.Fences = mergeFence(next.Fences, fence)
 		}
 	}
 	for _, m := range normalized.Members {
+		if slices.Contains(next.WithdrawnRepositories, m.Repository) {
+			return ErrWithdrawn
+		}
 		for _, f := range next.Fences {
 			if f.Namespace == m.Namespace && f.Repository == m.Repository && f.RunID == m.RunID && f.Attempt == m.Attempt &&
 				(f.Withdrawn || slices.Contains(f.Versions, m.Version)) {
@@ -392,7 +509,7 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 			continue
 		}
 		withdrawing = withdrawing || !replaced
-		next.Fences = append(next.Fences, sessionarchive.Fence{Namespace: old.Namespace, Repository: old.Repository,
+		next.Fences = mergeFence(next.Fences, sessionarchive.Fence{Namespace: old.Namespace, Repository: old.Repository,
 			RunID: old.RunID, Attempt: old.Attempt, Versions: []string{old.Version}, Withdrawn: !replaced})
 		for _, r := range a.readers {
 			for _, m := range r.members {
@@ -442,9 +559,12 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 			if !reflect.DeepEqual(previous, proposed) {
 				return ErrIntegrity
 			}
+			if err := a.blob.verify(ctx, previous.Path, previous.Digest, previous.Bytes); err != nil {
+				return err
+			}
 			continue
 		}
-		if _, err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+		if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
 			a.failLease()
 			return err
 		}
@@ -460,10 +580,15 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 			_ = handle.Close()
 			return ErrIntegrity
 		}
-		err = a.blob.immutable(ctx, objectKey(file.Digest), handle, file.Bytes, file.Digest)
+		err = a.blob.immutable(ctx, objectKey(file), handle, file.Bytes, file.Digest)
 		_ = handle.Close()
 		if err != nil {
 			return err
+		}
+		if a.verifyADX {
+			if err := a.verifyFile(ctx, file); err != nil {
+				return err
+			}
 		}
 	}
 	next.Pending = nil
@@ -472,7 +597,7 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 	for _, file := range append(slices.Clone(a.state.Manifest.Files), a.state.Pending...) {
 		if !slices.ContainsFunc(normalized.Files, func(f sessionarchive.File) bool { return f.Digest == file.Digest }) &&
 			!slices.ContainsFunc(next.Retired, func(r retirement) bool { return r.Digest == file.Digest }) {
-			next.Retired = append(next.Retired, retirement{Digest: file.Digest, Bytes: file.Bytes, After: after})
+			next.Retired = append(next.Retired, retirement{Digest: file.Digest, Key: objectKey(file), Bytes: file.Bytes, After: after})
 		}
 	}
 	next.Retired = slices.DeleteFunc(next.Retired, func(r retirement) bool {
@@ -496,11 +621,11 @@ func (a *Archive) Maintain(ctx context.Context) error {
 		if a.now().Before(r.After) || a.now().Before(a.active.ReadersUntil.Add(a.config.RetirementGrace)) {
 			continue
 		}
-		if _, err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+		if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
 			a.failLease()
 			return err
 		}
-		response, err := a.blob.request(ctx, http.MethodDelete, objectKey(r.Digest), "", nil, 0, http.Header{})
+		response, err := a.blob.request(ctx, http.MethodDelete, r.Key, "", nil, 0, http.Header{})
 		if response != nil {
 			_ = response.Body.Close()
 		}
@@ -536,10 +661,14 @@ func (a *Archive) WithdrawRepository(ctx context.Context, repository string) err
 	}
 	next := a.state
 	next.Fences = slices.Clone(next.Fences)
+	next.WithdrawnRepositories = slices.Clone(next.WithdrawnRepositories)
+	if !slices.Contains(next.WithdrawnRepositories, repository) {
+		next.WithdrawnRepositories = append(next.WithdrawnRepositories, repository)
+	}
 	next.Manifest.Members = slices.Clone(next.Manifest.Members)
 	for _, m := range next.Manifest.Members {
 		if m.Repository == repository {
-			next.Fences = append(next.Fences, sessionarchive.Fence{Namespace: m.Namespace, Repository: m.Repository,
+			next.Fences = mergeFence(next.Fences, sessionarchive.Fence{Namespace: m.Namespace, Repository: m.Repository,
 				RunID: m.RunID, Attempt: m.Attempt, Versions: []string{m.Version}, Withdrawn: true})
 		}
 	}
@@ -589,8 +718,7 @@ func (a *Archive) Close() error {
 	<-a.done
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_, err := a.blob.lease(ctx, "release", a.lease)
-	return err
+	return a.blob.lease(ctx, "release", a.lease)
 }
 
 func (a *Archive) String() string {

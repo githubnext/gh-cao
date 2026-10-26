@@ -1,11 +1,9 @@
 package sessionarchiveblob
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -175,15 +173,7 @@ func (b *blobClient) immutable(ctx context.Context, key string, body io.Reader, 
 	return b.verify(ctx, key, expected, size)
 }
 
-func (b *blobClient) immutableJSON(ctx context.Context, key string, value any) error {
-	data, err := json.Marshal(value)
-	if err != nil {
-		return ErrIntegrity
-	}
-	return b.immutable(ctx, key, bytes.NewReader(data), int64(len(data)), digest(data))
-}
-
-func (b *blobClient) lease(ctx context.Context, action, id string) (string, error) {
+func (b *blobClient) lease(ctx context.Context, action, id string) error {
 	headers := http.Header{"x-ms-lease-action": {action}}
 	if action == "acquire" {
 		headers.Set("x-ms-lease-duration", "60")
@@ -193,12 +183,12 @@ func (b *blobClient) lease(ctx context.Context, action, id string) (string, erro
 	}
 	response, err := b.request(ctx, http.MethodPut, "active.json", "comp=lease", nil, 0, headers)
 	if err != nil {
-		return "", ErrLease
+		return ErrLease
 	}
 	defer func() { _ = response.Body.Close() }()
 	lease := response.Header.Get("x-ms-lease-id")
 	if action != "release" && lease != id {
-		return "", ErrLease
+		return ErrLease
 	}
-	return lease, nil
+	return nil
 }
