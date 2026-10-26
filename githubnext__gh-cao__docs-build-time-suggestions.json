@@ -1,35 +1,7 @@
 {
   "source_sha": "3c67098487e2e1bb6cc4b1a5119b46935205805e",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-25T10:20:03Z",
-      "worker_run_id": "40184154490",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40183058827,
-        40182044105,
-        40181455100,
-        40181212427,
-        40180421714,
-        40178953536,
-        40178289984,
-        40177775204,
-        40177718968,
-        40176738389,
-        40175042922,
-        40174161065,
-        40173709137,
-        40172904090,
-        40172659121,
-        40171981469,
-        40171806024,
-        40170970851,
-        40170958871,
-        40169581954
-      ],
-      "outcome": "incomplete: the 2026-10-25T06:34:43Z to 2026-10-25T10:01:34Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Only three successful full build-and-deploy paths were present (workflow_run 40172659121, push 40171806024, and schedule 40169581954); the other successful runs freshness-checked and skipped build and deploy. This is below the required five comparable successful full runs, so current workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-25T10:36:06Z",
       "worker_run_id": "40185253251",
@@ -652,6 +624,34 @@
         40235958621
       ],
       "outcome": "complete no-op: the 2026-10-25T21:32:17Z to 2026-10-26T01:39:39Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable across workflow_run, schedule, and push triggers and source SHAs 3c67098487e2e1bb6cc4b1a5119b46935205805e, d7a8adb8187230d0ebceccb5e4a659589353dbc1, and ccb1052d7fcf6a1f8f1f6bbba319dc3e74df615e. Full elapsed workflow time was 102.0s median (120.0s p90); execution excluding queue wait was 98.0s (116.0s p90), queue was 3.0s (3.0s p90), build was 67.0s (90.0s p90), deploy was 9.0s (19.2s p90), and the five latest successful CAO Dashboard producer build jobs were 20.0s (21.6s p90). Repeated docs costs were checkout 24.0s median, npm ci 20.0s, Astro generation 14.0s, dashboard restore 1.0s, Pages artifact upload 2.0s, and deploy-pages 6.0s. Trusted step metadata verified dashboard cache hits in all five docs builds: Restore cached CAO Dashboard succeeded while both artifact lookup and download fallback steps were skipped. The reusable-dashboard design is already effective: producer assembly is decoupled, producer builds take only 20.0s median, and consuming the cached dashboard costs 1.0s median. Eliminating that restore entirely would save about 1% of median execution, below both actionability thresholds; changing it would risk freshness without a qualifying gain. The deploy-pages 23s outlier in run 40244262370 was disclosed but belongs to a later category. No recommendation was made. The next category is artifact transfer and Pages packaging."
+    },
+    {
+      "evaluated_at": "2026-10-26T02:33:49Z",
+      "worker_run_id": "40259390735",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        40257711997,
+        40256545459,
+        40255164825,
+        40254402263,
+        40252606068,
+        40251852885,
+        40247545191,
+        40246226400,
+        40245129766,
+        40244439608,
+        40244271878,
+        40244262370,
+        40242859973,
+        40241706579,
+        40240745726,
+        40240601493,
+        40239782511,
+        40239686847,
+        40238208005,
+        40236995035
+      ],
+      "outcome": "complete no-op: the 2026-10-25T21:45:40Z to 2026-10-26T02:09:56Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable across workflow_run, schedule, and push triggers and source SHAs 3c67098487e2e1bb6cc4b1a5119b46935205805e, d7a8adb8187230d0ebceccb5e4a659589353dbc1, and ccb1052d7fcf6a1f8f1f6bbba319dc3e74df615e. Full elapsed workflow time was 102.0s median (120.0s p90); execution excluding queue wait was 98.0s (116.0s p90), queue was 3.0s (3.0s p90), build was 67.0s (90.0s p90), deploy was 9.0s (19.2s p90), and the five latest successful CAO Dashboard producer build jobs were 20.0s (21.6s p90). Trusted step metadata verified dashboard cache hits in all five docs builds: Restore cached CAO Dashboard succeeded while artifact lookup and download fallback were skipped. For the evaluated category, docs dashboard-cache restore was 1.0s median (2.0s p90), Pages artifact upload was 2.0s (3.0s p90), and deploy-pages was 6.0s (16.6s p90); the combined median transfer/package/deploy step cost was 9.0s, about 9.2% of median execution. Dashboard producer artifact upload was 2.0s median and its cache artifact download/save path remained 1-2s per step. Schedule run 40244262370 was disclosed as a deploy-pages outlier at 23s, but the other four deploy steps were 5-7s. No recommendation was made: even eliminating the entire 9.0s median category cost would save less than 15% and far less than 60s, while bypassing Pages packaging or deployment would weaken deployment safety. The next category is scheduling, concurrency, and avoidable rebuilds."
     }
   ]
 }
