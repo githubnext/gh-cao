@@ -3,34 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-25T14:05:00Z",
-      "worker_run_id": "40201493334",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40200295371,
-        40199104126,
-        40198282679,
-        40198075082,
-        40197170209,
-        40195722444,
-        40194960845,
-        40194589399,
-        40193379714,
-        40191378068,
-        40190242760,
-        40189521371,
-        40189258518,
-        40188411537,
-        40187136848,
-        40186124600,
-        40185481282,
-        40185262787,
-        40184466336,
-        40183058827
-      ],
-      "outcome": "incomplete: the 2026-10-25T10:01:34Z to 2026-10-25T14:01:46Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. All successful runs completed in 12-21 seconds at source SHA c58a3e5842ac6f520fe6d155bfc9c1d669d7bf49. Trusted job and step metadata for latest run 40200295371 confirmed that only schedule-freshness ran (14 seconds; freshness step 12 seconds), while build and deploy were skipped. No successful full build-and-deploy path was present, below the required five comparable successful runs. Therefore full workflow and dashboard/build/deploy job median and p90 timings, repeated-cost analysis, trusted cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-25T14:35:21Z",
       "worker_run_id": "40202740431",
       "category": "dependency installation and caching",
@@ -694,6 +666,34 @@
         40261803933
       ],
       "outcome": "incomplete: the 2026-10-26T02:59:22Z to 2026-10-26T07:14:15Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were identified: push runs 40275215980, 40275177761, and 40266177342 plus workflow_run runs 40269469161 and 40264968392. Full elapsed times were 139, 72, 137, 133, and 92 seconds respectively; trusted job metadata separated queue/concurrency delay from execution and verified dashboard-cache hits in all five builds because restore succeeded while artifact lookup and download fallback were skipped. Repeated costs included checkout 19-49 seconds, npm ci 12-24 seconds, Astro generation 9-16 seconds, dashboard restore 1-2 seconds, Pages upload 2-4 seconds, and deployment 9-12 seconds. Push run 40275215980 waited about 50 seconds for the prior push run under the shared concurrency group. While collecting the required current CAO Dashboard producer timing comparison and duplicate open-issue check, the runtime failed to create new OS threads. Per resource-limit policy all further GitHub API work stopped. The complete dashboard/build/deploy median and p90 comparison and final duplicate/actionability determination could not be completed, so no recommendation was made and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-26T08:33:35Z",
+      "worker_run_id": "40292789785",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40290150733,
+        40288574033,
+        40287630568,
+        40285236877,
+        40284552724,
+        40282131435,
+        40277614405,
+        40276551094,
+        40275320260,
+        40275215980,
+        40275177761,
+        40274685314,
+        40273080889,
+        40271685323,
+        40270443435,
+        40269469161,
+        40268819291,
+        40267911663,
+        40266682889,
+        40266177342
+      ],
+      "outcome": "incomplete: the 2026-10-26T03:52:21Z to 2026-10-26T08:08:06Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Only four successful full build-and-deploy paths were present: push runs 40275215980, 40275177761, and 40266177342 plus workflow_run run 40269469161. The other successful runs completed in 11-15 seconds after freshness checking; skipped workflow_run runs were excluded. This is below the required five comparable successful full runs. Therefore a complete scheduling/concurrency evaluation, including current full-workflow and dashboard/build/deploy median and p90 timings, repeated-cost analysis, trusted cache verification, CAO Dashboard producer comparison, duplicate open-issue check, and actionable duplicate-rebuild determination, could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
