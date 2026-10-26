@@ -1,14 +1,7 @@
 {
   "source_sha": "3c67098487e2e1bb6cc4b1a5119b46935205805e",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-25T09:37:21Z",
-      "worker_run_id": "40181236527",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded latest-20 completed docs.yml workflow-run request returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-25T10:20:03Z",
       "worker_run_id": "40184154490",
@@ -631,6 +624,34 @@
         40231334641
       ],
       "outcome": "incomplete: the 2026-10-25T20:33:31Z to 2026-10-26T00:04:19Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Only four successful full build-and-deploy paths were present: workflow_run 40244439608, schedule runs 40244262370 and 40242859973, and push run 40240745726. The other successful runs completed in 10-14 seconds after freshness checking; skipped workflow_run 40244271878 was not eligible as a successful comparison. This is below the required five comparable successful full runs. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, repeated-cost analysis, trusted cache-effectiveness verification, dashboard-producer comparison, and a complete reusable dashboard generation evaluation could not be produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-26T01:51:31Z",
+      "worker_run_id": "40255975174",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        40255164825,
+        40254402263,
+        40252606068,
+        40251852885,
+        40247545191,
+        40246226400,
+        40245129766,
+        40244439608,
+        40244271878,
+        40244262370,
+        40242859973,
+        40241706579,
+        40240745726,
+        40240601493,
+        40239782511,
+        40239686847,
+        40238208005,
+        40236995035,
+        40236834402,
+        40235958621
+      ],
+      "outcome": "complete no-op: the 2026-10-25T21:32:17Z to 2026-10-26T01:39:39Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable across workflow_run, schedule, and push triggers and source SHAs 3c67098487e2e1bb6cc4b1a5119b46935205805e, d7a8adb8187230d0ebceccb5e4a659589353dbc1, and ccb1052d7fcf6a1f8f1f6bbba319dc3e74df615e. Full elapsed workflow time was 102.0s median (120.0s p90); execution excluding queue wait was 98.0s (116.0s p90), queue was 3.0s (3.0s p90), build was 67.0s (90.0s p90), deploy was 9.0s (19.2s p90), and the five latest successful CAO Dashboard producer build jobs were 20.0s (21.6s p90). Repeated docs costs were checkout 24.0s median, npm ci 20.0s, Astro generation 14.0s, dashboard restore 1.0s, Pages artifact upload 2.0s, and deploy-pages 6.0s. Trusted step metadata verified dashboard cache hits in all five docs builds: Restore cached CAO Dashboard succeeded while both artifact lookup and download fallback steps were skipped. The reusable-dashboard design is already effective: producer assembly is decoupled, producer builds take only 20.0s median, and consuming the cached dashboard costs 1.0s median. Eliminating that restore entirely would save about 1% of median execution, below both actionability thresholds; changing it would risk freshness without a qualifying gain. The deploy-pages 23s outlier in run 40244262370 was disclosed but belongs to a later category. No recommendation was made. The next category is artifact transfer and Pages packaging."
     }
   ]
 }
