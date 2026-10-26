@@ -1,14 +1,7 @@
 {
-  "source_sha": "81701a24fe5f1452a693901495a80bfb0f28c7dc",
+  "source_sha": "74ef461cdbde5dc625818d11872a7149cc7bb0d0",
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-25T12:45:36Z",
-      "worker_run_id": "40194360415",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded latest-20 completed docs.yml workflow-run request returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-25T13:19:04Z",
       "worker_run_id": "40196827486",
@@ -673,6 +666,13 @@
         40251852885
       ],
       "outcome": "incomplete: the 2026-10-26T00:57:43Z to 2026-10-26T05:13:50Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Only four successful full build-and-deploy paths were present: workflow_run runs 40269469161, 40264968392, and 40255164825, plus push run 40266177342. The other successful runs completed in 11-19 seconds and were freshness-only executions; skipped workflow_run runs were excluded. Trusted job metadata for current-source run 40269469161 confirmed schedule-freshness, build, and deploy all succeeded, with the dashboard cache restored and artifact fallback skipped. This is below the required five comparable successful full runs. While verifying the remaining full candidates, the runtime failed to create new OS threads; per resource-limit policy all further GitHub API work stopped. Therefore a complete scheduling/concurrency evaluation, including current workflow and CAO Dashboard producer median and p90 timings, repeated-cost analysis, and an actionable duplicate-rebuild determination, could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-26T05:41:29Z",
+      "worker_run_id": "40275334591",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful full runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable duplicate-rebuild determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
