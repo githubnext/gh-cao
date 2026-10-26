@@ -14,6 +14,12 @@ export function evidencePacketSelection(queries, requested) {
   const index = dashboardQueryIndex(queries);
   const reachable = resolveDashboardQuerySources(queries, requested);
   if ([...requested].some(name => name === source || name === '$operationalValueEvidence')) return null;
+  const projection = index.get(source);
+  if (projection && (projection.from !== '$operationalValueEvidence' || projection.compute?.length
+      || projection.union?.length || projection.joins?.length || projection.aggregate || projection.window?.length
+      || projection['temporal-series'] || projection.facet || projection.predict?.length || projection.limit !== undefined
+      || (projection.select && ['report-id', 'workflow-route'].some(field =>
+        !projection.select?.some(selected => selected.field === field && (selected.as ?? selected.field) === field))))) return null;
   /** @type {Array<{ field: 'id' | 'workflowId', value: string }>} */
   const selections = [];
   for (const name of reachable) {

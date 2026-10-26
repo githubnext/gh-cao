@@ -79,6 +79,20 @@ function fileLedger(direction = 'decrease') {
 }
 
 describe('native workflow value production contract', () => {
+  it('does not narrow an overridden or limited canonical identity projection', () => {
+    for (const projection of [
+      { limit: 1 },
+      { compute: [{ as: 'report-id', function: 'literal', args: [{ value: 'changed' }] }] },
+      { select: [{ field: 'other', as: 'report-id' }] }
+    ]) {
+      expect(evidencePacketSelection([
+        { name: 'operational-value-evidence', from: '$operationalValueEvidence', ...projection },
+        { name: 'selected', from: 'operational-value-evidence',
+          filter: { predicates: [{ field: 'report-id', equals: 'changed' }] } }
+      ], ['selected'])).toBeNull();
+    }
+  });
+
   it('bounds exact native report reads while 1000 unrelated workflows remain stored', async () => {
     const packet = await publish(fileLedger());
     for (let batch = 0; batch < 40; batch++) {
