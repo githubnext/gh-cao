@@ -1,35 +1,7 @@
 {
-  "source_sha": "45e0a728974a506146a673e8bd7f1659ed4482d4",
-  "next_category": "dependency installation and caching",
+  "source_sha": "63de73843c7409b63c11b03c8c6c4344cc0668d2",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-25T18:23:02Z",
-      "worker_run_id": "40220775348",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40220727533,
-        40219292338,
-        40218040913,
-        40217268966,
-        40216888424,
-        40215931119,
-        40214431077,
-        40213326434,
-        40212662200,
-        40212342076,
-        40211439771,
-        40209673066,
-        40208489140,
-        40207593397,
-        40207467334,
-        40206514307,
-        40204954138,
-        40203790937,
-        40202976485,
-        40202743150
-      ],
-      "outcome": "incomplete: the 2026-10-25T14:32:46Z to 2026-10-25T18:21:25Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Only the newest push run 40220727533 was a successful full build-and-deploy candidate (91 seconds elapsed); the other successful runs completed in 17-25 seconds at the prior source SHA after freshness checking, consistent with the trusted job evidence recorded for this same run series in recent evaluations. This is below the required five comparable successful full runs. Therefore current full-workflow and dashboard/build/deploy job median and p90 timings, repeated step-cost analysis, cache-hit verification, dashboard-producer comparison, and a complete dependency installation and caching evaluation could not be produced. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-25T19:33:14Z",
       "worker_run_id": "40226362208",
@@ -716,6 +688,34 @@
       ],
       "outcome": "complete recommendation: the 2026-10-26T08:54:58Z to 2026-10-26T15:50:11Z latest-20 completed docs.yml window contained 14 successful and six skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable: four schedule runs (40352947602, 40342138445, 40317557260, 40315379307) and one push run (40336108582), all at distinct source SHAs. Full elapsed workflow time was 102.0s median (135.4s p90); execution excluding initial queue was 98.0s (131.4s p90), queue was 3.0s (4.0s p90), build was 74.0s (80.6s p90), deploy was 13.0s (42.0s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (22.4s p90). Repeated docs costs were checkout 26.0s median, npm ci 20.0s, Astro generation 12.0s, dashboard restore 2.0s, Pages upload 3.0s, and deploy-pages 8.0s. Bounded logs verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits in all five builds; dashboard artifact fallback steps were skipped. Four of the five full publications were schedule-triggered at SHAs that had no docs push run in the bounded window, while nine successful schedule runs freshness-skipped and six ineligible workflow callbacks were skipped. Because docs freshness equates current documentation with exact default-branch HEAD even though push paths already enumerate documentation inputs and dashboard freshness is checked separately, path-excluded commits can force a full cached rebuild and deployment. Recommend persisting/comparing a versioned digest of declared docs inputs (plus the separately tracked dashboard producer) rather than requiring deployedDocsRun.head_sha to equal branch HEAD. This is expected to avoid a 98s median execution cycle for each irrelevant tip change, above both actionability thresholds, while preserving force-deploy and fail-closed fallback behavior.",
       "suggestion_fingerprint": "docs-relevant-input-freshness-digest-v1"
+    },
+    {
+      "evaluated_at": "2026-10-26T16:27:22Z",
+      "worker_run_id": "40358773628",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40355585317,
+        40354712554,
+        40352947602,
+        40349456527,
+        40348629363,
+        40342138445,
+        40338370928,
+        40336108582,
+        40326459197,
+        40317557260,
+        40317245181,
+        40315379307,
+        40312011777,
+        40310564079,
+        40310002791,
+        40308887049,
+        40306246220,
+        40303651592,
+        40302933297,
+        40300124351
+      ],
+      "outcome": "incomplete: the 2026-10-26T09:30:46Z to 2026-10-26T16:04:52Z latest-20 completed docs.yml window contained 15 successful and five skipped runs, with no failed or cancelled runs. Elapsed run metadata identified at least six likely full build-and-deploy paths, and trusted job/step metadata for schedule run 40352947602 confirmed a successful 74-second build, 14-second deploy, 21-second npm install, 15-second Astro generation, one-second dashboard cache restore, skipped dashboard artifact fallback, three-second Pages upload, and seven-second Pages deployment. However, parallel bounded requests for the remaining docs jobs, the latest CAO Dashboard producer runs, and open duplicate issues failed when the runtime could not create new OS threads. Per resource-limit policy, all further GitHub API work stopped. The required five-run current workflow/dashboard/build/deploy median and p90 comparison, complete repeated-cost analysis, and duplicate/actionability determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
