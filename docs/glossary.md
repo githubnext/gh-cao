@@ -134,6 +134,10 @@ An experimental hosted-server mode, enabled with `serve-hosted --experimental --
 
 The control repository's exclusive right to admit a `live` worker for a campaign and target, decided solely from `.github/workflows/cao.json` at the exact workflow SHA. A target repository's files cannot widen, narrow, or veto this decision.
 
+## Local SQLite overlay
+
+The separate, writable SQLite delta that `dashboard:local` attaches to the read-only deployed snapshot. Queries read the union of both, with local upserts and deletion markers taking precedence. The overlay is bound to the snapshot's canonical content revision; a mismatched overlay fails closed and is preserved rather than applied to a different base. A background backfill writes recent evidence for repositories already in the snapshot into the overlay.
+
 ## Maintenance Governance
 
 The dashboard page for gh-aw compiler defaults at organization, enterprise, or repository scope. It is visible only to an authorized hosted administrator with a current, assured session. Editing stays disabled because hosted repository installation tokens cannot administer organization or enterprise variables; use `gh aw env` with suitable administrative credentials outside the dashboard. It does not change CAO rollout policy or control-plane authority.
