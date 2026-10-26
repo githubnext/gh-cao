@@ -34,6 +34,25 @@ func (a *Archive) flush(ctx context.Context) error {
 	if err := a.reconcile(); err != nil {
 		return err
 	}
+	committed := false
+	if a.publisher != nil && a.state.Pending != nil &&
+		slices.ContainsFunc(a.state.Pending.Members, func(m Member) bool { return !a.allowed(m) }) {
+		var err error
+		committed, err = a.publisher.ResolvePending(ctx, a.remoteManifest(*a.state.Pending))
+		if err != nil {
+			return err
+		}
+		if !committed {
+			previous := a.state.Pending
+			a.state.Pending = nil
+			if err := a.save(); err != nil {
+				if !errors.Is(err, ErrUncertain) {
+					a.state.Pending = previous
+				}
+				return err
+			}
+		}
+	}
 	if a.state.Pending == nil {
 		next, changed, err := a.prepare(ctx)
 		if err != nil || !changed {
@@ -56,12 +75,8 @@ func (a *Archive) flush(ctx context.Context) error {
 	if err := durableWrite(a.root, path, content, true); err != nil {
 		return err
 	}
-	if a.publisher != nil {
-		remote := cloneManifest(next)
-		for i := range remote.Files {
-			remote.Files[i].Path = filepath.Join(a.config.Directory, remote.Files[i].Path)
-		}
-		if err := a.publisher.Publish(ctx, remote); err != nil {
+	if a.publisher != nil && !committed {
+		if err := a.publisher.Publish(ctx, a.remoteManifest(next)); err != nil {
 			return err
 		}
 	}
@@ -97,6 +112,14 @@ func (a *Archive) flush(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func (a *Archive) remoteManifest(m Manifest) Manifest {
+	remote := cloneManifest(m)
+	for i := range remote.Files {
+		remote.Files[i].Path = filepath.Join(a.config.Directory, remote.Files[i].Path)
+	}
+	return remote
 }
 
 func cloneManifest(m Manifest) Manifest {
@@ -313,7 +336,7 @@ func (a *Archive) referenced() map[string]bool {
 		references[a.state.Active] = true
 	}
 	for _, r := range a.state.Records {
-		if r.Stage != "" && a.allowed(r.Member) && !r.CapturedAt.Before(a.now().Add(-a.config.Retention)) {
+		if r.Stage != "" {
 			references[r.Stage] = true
 		}
 	}

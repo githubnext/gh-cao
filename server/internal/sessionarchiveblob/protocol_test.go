@@ -238,8 +238,8 @@ func protocolArchive(t *testing.T, s *blobProtocol, endpoint string) *Archive {
 	c.Endpoint = endpoint // Only test construction permits numeric-loopback HTTP.
 	a := &Archive{config: c, converter: protocolVerifier{}, blob: &blobClient{root: endpoint + "/container/archive",
 		http: &http.Client{CheckRedirect: rejectRedirect}},
-		queryHTTP: &http.Client{CheckRedirect: rejectRedirect}, readers: map[string]reader{},
-		now: func() time.Time { s.mu.Lock(); defer s.mu.Unlock(); return s.now }}
+		queryHTTP: &http.Client{CheckRedirect: rejectRedirect},
+		now:       func() time.Time { s.mu.Lock(); defer s.mu.Unlock(); return s.now }}
 	if err := a.open(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -281,7 +281,7 @@ func TestBlobImmutablePublicationRestartAndOverlap(t *testing.T) {
 	if bytes.Contains(s.objects["manifests/"+a.active.State+".json"], []byte(m.Files[0].Path)) {
 		t.Fatal("private staging path leaked into remote manifest")
 	}
-	competing := &Archive{config: a.config, blob: a.blob, queryHTTP: a.queryHTTP, readers: map[string]reader{}, now: a.now}
+	competing := &Archive{config: a.config, blob: a.blob, queryHTTP: a.queryHTTP, now: a.now}
 	if err := competing.open(t.Context()); !errors.Is(err, ErrLease) {
 		t.Fatalf("restart overlap was not rejected: %v", err)
 	}
@@ -513,5 +513,40 @@ func TestBlobRepositoryWithdrawalFencesUnpublishedAndFutureAttempts(t *testing.T
 	empty = protocolArchive(t, emptyProtocol, emptyEndpoint)
 	if err := empty.Publish(t.Context(), fixture(t, 1, "never-admitted")); !errors.Is(err, ErrWithdrawn) {
 		t.Fatal("empty-repository withdrawal did not persist")
+	}
+}
+
+func TestBlobPendingResolutionRequiresDurableGenerationIdentity(t *testing.T) {
+	a, s, _ := newProtocol(t)
+	m := fixture(t, 1, "pending")
+	if committed, err := a.ResolvePending(t.Context(), m); err != nil || committed {
+		t.Fatalf("unpublished candidate could not be safely replaced: %t %v", committed, err)
+	}
+	if err := a.Publish(t.Context(), m); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.WithdrawRepository(t.Context(), "octo/api"); err != nil {
+		t.Fatal(err)
+	}
+	if committed, err := a.ResolvePending(t.Context(), m); err != nil || !committed {
+		t.Fatalf("withdrawal obscured the committed candidate's receipt: %t %v", committed, err)
+	}
+	different := m
+	different.CreatedAt = different.CreatedAt.Add(time.Second)
+	if committed, err := a.ResolvePending(t.Context(), different); !errors.Is(err, ErrConflict) || committed {
+		t.Fatalf("different candidate accepted as the durable generation: %t %v", committed, err)
+	}
+	s.mu.Lock()
+	s.failKey = "active.json"
+	s.mu.Unlock()
+	if committed, err := a.ResolvePending(t.Context(), m); err == nil || committed {
+		t.Fatal("unreadable durable pointer was treated as a publication receipt")
+	}
+	s.mu.Lock()
+	s.failKey = ""
+	s.now = s.now.Add(61 * time.Second)
+	s.mu.Unlock()
+	if committed, err := a.ResolvePending(t.Context(), m); !errors.Is(err, ErrLease) || committed {
+		t.Fatal("pending publication resolved without current single-owner authority")
 	}
 }

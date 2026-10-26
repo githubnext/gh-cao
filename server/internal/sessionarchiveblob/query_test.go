@@ -8,9 +8,98 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 )
+
+func TestHostedQueryContentionDoesNotWaitForPublication(t *testing.T) {
+	for _, kind := range []string{"timeline", "summary", "finish"} {
+		t.Run(kind, func(t *testing.T) {
+			a, _, _ := newProtocol(t)
+			if err := a.Publish(t.Context(), fixture(t, 1, "first")); err != nil {
+				t.Fatal(err)
+			}
+			scope := sessionarchive.Scope{Namespace: "private", Repositories: []string{"octo/api"}}
+			finish := func() error { return nil }
+			if kind == "finish" {
+				_, _, _, _, release, err := a.pin(t.Context(), scope, "octo/api", "123", 1)
+				if err != nil {
+					t.Fatal(err)
+				}
+				finish = func() error {
+					defer func() { _ = release.Close() }()
+					return release.Deliver(func() error { return nil })
+				}
+			}
+			ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+			defer cancel()
+			a.mu.Lock()
+			done := make(chan error, 1)
+			go func() {
+				var err error
+				switch kind {
+				case "timeline":
+					_, _, err = a.Timeline(ctx, scope, sessionarchive.TimelineRequest{Repository: "octo/api", RunID: "123", Attempt: 1, Limit: 10})
+				case "summary":
+					_, _, err = a.Summaries(ctx, scope, "octo/api", 10)
+				case "finish":
+					err = finish()
+				}
+				done <- err
+			}()
+			select {
+			case err := <-done:
+				if !errors.Is(err, ErrCapacity) && !errors.Is(err, context.DeadlineExceeded) {
+					t.Errorf("contention did not return an explicit bounded failure: %v", err)
+				}
+				a.mu.Unlock()
+			case <-time.After(time.Second):
+				a.mu.Unlock()
+				<-done
+				t.Fatal("query waited behind publication beyond its deadline")
+			}
+			if kind == "finish" {
+				_, _, _, _, release, err := a.pin(t.Context(), scope, "octo/api", "123", 1)
+				if err != nil {
+					t.Fatalf("failed finalization leaked its reader slot: %v", err)
+				}
+				t.Cleanup(func() { _ = release.Close() })
+				_ = finish()
+				if _, _, _, _, _, err := a.pin(t.Context(), scope, "octo/api", "123", 1); !errors.Is(err, ErrCapacity) {
+					t.Fatal("repeated finalization released a newer reader")
+				}
+				if err := release.Deliver(func() error { return nil }); err != nil {
+					t.Fatal(err)
+				}
+				if err := release.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func TestHostedCanceledQueryCannotFinalizeSuccessfully(t *testing.T) {
+	a, _, _ := newProtocol(t)
+	if err := a.Publish(t.Context(), fixture(t, 1, "first")); err != nil {
+		t.Fatal(err)
+	}
+	scope := sessionarchive.Scope{Namespace: "private", Repositories: []string{"octo/api"}}
+	ctx, cancel := context.WithCancel(t.Context())
+	_, _, _, _, reader, err := a.pin(ctx, scope, "octo/api", "123", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = reader.Close() })
+	cancel()
+	if err := reader.Deliver(func() error { return nil }); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled query finalization claimed success: %v", err)
+	}
+	if _, _, _, _, _, err := a.pin(ctx, scope, "octo/api", "123", 1); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled query was admitted: %v", err)
+	}
+}
 
 func fixtureEvents(member sessionarchive.Member) []sessionarchive.Event {
 	var events []sessionarchive.Event
@@ -106,7 +195,7 @@ func TestHostedResultReaderLifetime(t *testing.T) {
 					t.Fatal(err)
 				}
 				t.Cleanup(func() { _ = reader.Close() })
-				if len(a.readers) != 1 {
+				if a.reader.Load() != reader.pinned {
 					t.Fatal("completed query released its withdrawal-aware reader")
 				}
 				var expected error
@@ -147,7 +236,7 @@ func TestHostedResultReaderLifetime(t *testing.T) {
 				if !errors.Is(err, expected) || delivered != (expected == nil) {
 					t.Fatalf("unexpected delivery: called=%t err=%v expected=%v", delivered, err, expected)
 				}
-				if err := reader.Close(); err != nil || len(a.readers) != 0 {
+				if err := reader.Close(); err != nil || a.reader.Load() != nil {
 					t.Fatal("response cleanup leaked its reader")
 				}
 			})
@@ -205,7 +294,7 @@ func TestHostedIncompleteAndUnexpectedEvidenceRejected(t *testing.T) {
 			if err == nil {
 				t.Fatal("incomplete or unselected evidence accepted")
 			}
-			if len(a.readers) != 0 {
+			if a.reader.Load() != nil {
 				t.Fatal("failed query leaked its withdrawal-aware reader")
 			}
 		})

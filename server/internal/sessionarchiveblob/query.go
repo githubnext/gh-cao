@@ -307,17 +307,13 @@ func (a *Archive) verifyFile(ctx context.Context, file sessionarchive.File) erro
 
 type Reader struct {
 	archive *Archive
-	id      string
+	pinned  *reader
 	ctx     context.Context
 }
 
 func (r *Reader) Close() error {
-	r.archive.mu.Lock()
-	defer r.archive.mu.Unlock()
-	if active, ok := r.archive.readers[r.id]; ok {
-		active.cancel()
-		delete(r.archive.readers, r.id)
-	}
+	r.pinned.cancel()
+	r.archive.reader.CompareAndSwap(r.pinned, nil)
 	return nil
 }
 
@@ -325,16 +321,20 @@ func (r *Reader) Close() error {
 // The callback must not call back into the archive.
 func (r *Reader) Deliver(deliver func() error) error {
 	a := r.archive
-	a.mu.Lock()
+	if !a.mu.TryLock() {
+		if err := r.ctx.Err(); err != nil {
+			return err
+		}
+		return ErrCapacity
+	}
 	defer a.mu.Unlock()
 	if err := a.ready(); err != nil {
 		return err
 	}
-	active, ok := a.readers[r.id]
-	if !ok {
+	if a.reader.Load() != r.pinned {
 		return context.Canceled
 	}
-	for _, m := range active.members {
+	for _, m := range r.pinned.members {
 		if slices.Contains(a.state.WithdrawnRepositories, m.Repository) {
 			return ErrWithdrawn
 		}
@@ -351,7 +351,12 @@ func (r *Reader) Deliver(deliver func() error) error {
 }
 
 func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repository, runID string, attempt int64) (context.Context, uint64, []sessionarchive.File, []sessionarchive.Member, *Reader, error) {
-	a.mu.Lock()
+	if err := ctx.Err(); err != nil {
+		return nil, 0, nil, nil, nil, err
+	}
+	if !a.mu.TryLock() {
+		return nil, 0, nil, nil, nil, ErrCapacity
+	}
 	defer a.mu.Unlock()
 	if err := a.ready(); err != nil {
 		return nil, 0, nil, nil, nil, err
@@ -364,7 +369,7 @@ func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repositor
 		return nil, 0, nil, nil, nil, ErrWithdrawn
 	}
 	// Exactly one in-flight query keeps the supported initial profile bounded.
-	if len(a.readers) > 0 {
+	if a.reader.Load() != nil {
 		return nil, 0, nil, nil, nil, ErrCapacity
 	}
 	var members []sessionarchive.Member
@@ -397,11 +402,11 @@ func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repositor
 	if err := a.save(ctx, a.state, horizon); err != nil {
 		return nil, 0, nil, nil, nil, err
 	}
-	id := uuid.NewString()
 	queryCtx, cancel := context.WithTimeout(ctx, a.config.QueryTimeout)
-	a.readers[id] = reader{members: members, cancel: cancel}
+	pinned := &reader{members: members, cancel: cancel}
+	a.reader.Store(pinned)
 	generation := a.active.Generation
-	return queryCtx, generation, files, members, &Reader{archive: a, id: id, ctx: queryCtx}, nil
+	return queryCtx, generation, files, members, &Reader{archive: a, pinned: pinned, ctx: queryCtx}, nil
 }
 
 func (a *Archive) Timeline(ctx context.Context, scope sessionarchive.Scope, request sessionarchive.TimelineRequest) (uint64, []sessionarchive.Event, error) {

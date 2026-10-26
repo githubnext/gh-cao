@@ -6,7 +6,64 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestDuckDBArchiveRetiredStagingRecoveryIntegration(t *testing.T) {
+	for _, reason := range []string{"expired", "withdrawn"} {
+		t.Run(reason, func(t *testing.T) {
+			c := testConfig(t)
+			c.Retention = 24 * time.Hour
+			publisher := &recordingPublisher{fail: true}
+			a := openTestArchive(t, c, publisher)
+			p := testProjection(t, c, "123", "unpublished approved evidence")
+			if reason == "expired" {
+				p.CapturedAt = time.Now().Add(-25 * time.Hour)
+				for i := range p.Events {
+					p.Events[i].CapturedAt = p.CapturedAt.UTC().Format(time.RFC3339Nano)
+				}
+			}
+			if err := a.Admit(t.Context(), p); err != nil {
+				t.Fatal(err)
+			}
+			stage := a.state.Records[memberKey(p.Member())].Stage
+			if reason == "withdrawn" {
+				ctx, cancel := context.WithCancel(t.Context())
+				cancel()
+				if err := a.Withdraw(ctx, p.Repository, p.RunID, p.Attempt); !errors.Is(err, context.Canceled) {
+					t.Fatalf("withdrawal did not persist before canceled publication: %v", err)
+				}
+			}
+			for range 2 {
+				if err := a.Close(); err != nil {
+					t.Fatal(err)
+				}
+				a = openTestArchive(t, c, publisher)
+				if _, err := a.root.Stat(stage); err != nil {
+					t.Fatalf("recovery deleted a persisted staging reference: %v", err)
+				}
+				if err := a.Maintain(t.Context()); err == nil {
+					t.Fatal("unavailable destination was falsely acknowledged")
+				}
+			}
+			publisher.fail = false
+			if err := a.Flush(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			if a.Status().StagedTraces != 0 || a.Status().ActiveTraces != 0 {
+				t.Fatal("retired staging was published or retained after acknowledgement")
+			}
+			if _, err := a.root.Stat(stage); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("acknowledged retired staging was not released: %v", err)
+			}
+			if reason == "withdrawn" {
+				if err := a.Admit(t.Context(), p); !errors.Is(err, ErrWithdrawn) {
+					t.Fatal("recovery discarded the withdrawal fence")
+				}
+			}
+		})
+	}
+}
 
 func TestDuckDBArchiveAmbiguousAdmissionIntegration(t *testing.T) {
 	c := testConfig(t)
