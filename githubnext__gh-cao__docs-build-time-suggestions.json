@@ -3,34 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-26T02:33:49Z",
-      "worker_run_id": "40259390735",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        40257711997,
-        40256545459,
-        40255164825,
-        40254402263,
-        40252606068,
-        40251852885,
-        40247545191,
-        40246226400,
-        40245129766,
-        40244439608,
-        40244271878,
-        40244262370,
-        40242859973,
-        40241706579,
-        40240745726,
-        40240601493,
-        40239782511,
-        40239686847,
-        40238208005,
-        40236995035
-      ],
-      "outcome": "complete no-op: the 2026-10-25T21:45:40Z to 2026-10-26T02:09:56Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable across workflow_run, schedule, and push triggers and source SHAs 3c67098487e2e1bb6cc4b1a5119b46935205805e, d7a8adb8187230d0ebceccb5e4a659589353dbc1, and ccb1052d7fcf6a1f8f1f6bbba319dc3e74df615e. Full elapsed workflow time was 102.0s median (120.0s p90); execution excluding queue wait was 98.0s (116.0s p90), queue was 3.0s (3.0s p90), build was 67.0s (90.0s p90), deploy was 9.0s (19.2s p90), and the five latest successful CAO Dashboard producer build jobs were 20.0s (21.6s p90). Trusted step metadata verified dashboard cache hits in all five docs builds: Restore cached CAO Dashboard succeeded while artifact lookup and download fallback were skipped. For the evaluated category, docs dashboard-cache restore was 1.0s median (2.0s p90), Pages artifact upload was 2.0s (3.0s p90), and deploy-pages was 6.0s (16.6s p90); the combined median transfer/package/deploy step cost was 9.0s, about 9.2% of median execution. Dashboard producer artifact upload was 2.0s median and its cache artifact download/save path remained 1-2s per step. Schedule run 40244262370 was disclosed as a deploy-pages outlier at 23s, but the other four deploy steps were 5-7s. No recommendation was made: even eliminating the entire 9.0s median category cost would save less than 15% and far less than 60s, while bypassing Pages packaging or deployment would weaken deployment safety. The next category is scheduling, concurrency, and avoidable rebuilds."
-    },
-    {
       "evaluated_at": "2026-10-26T03:03:50Z",
       "worker_run_id": "40261952852",
       "category": "scheduling, concurrency, and avoidable rebuilds",
@@ -674,6 +646,34 @@
       "category": "scheduling, concurrency, and avoidable rebuilds",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-26T21:53:50Z",
+      "worker_run_id": "40407742881",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40407295709,
+        40405972149,
+        40405659232,
+        40403910625,
+        40400761754,
+        40399070746,
+        40397799744,
+        40397385580,
+        40395512740,
+        40391993955,
+        40389962003,
+        40388066136,
+        40386710985,
+        40385430574,
+        40382738853,
+        40382670586,
+        40379392120,
+        40374236100,
+        40371977534,
+        40369937735
+      ],
+      "outcome": "incomplete: the 2026-10-26T17:34:48Z to 2026-10-26T21:47:42Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job and step metadata showed only two successful full build-and-deploy paths: schedule run 40403910625 and workflow_run 40386710985. The other 15 successful runs executed only schedule-freshness and skipped build and deploy; three ineligible workflow_run callbacks were skipped. Both full builds restored the CAO Dashboard cache successfully and skipped artifact fallback, but two comparable full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, a sufficient repeated-cost comparison, the CAO Dashboard producer comparison, and a complete scheduling/concurrency evaluation could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
