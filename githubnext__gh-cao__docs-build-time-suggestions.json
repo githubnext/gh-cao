@@ -3,13 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-25T13:34:50Z",
-      "worker_run_id": "40198059038",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded latest-20 completed docs.yml workflow-run request returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, workflow and dashboard/build/deploy job median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, and duplicate open-issue check could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-25T14:05:00Z",
       "worker_run_id": "40201493334",
       "category": "dependency installation and caching",
@@ -673,6 +666,34 @@
         40260039989
       ],
       "outcome": "incomplete: the 2026-10-26T02:37:45Z to 2026-10-26T06:03:35Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were identified: push runs 40275215980, 40275177761, and 40266177342 plus workflow_run runs 40269469161 and 40264968392. Their full elapsed workflow time was 133.0s median (138.2s p90), execution excluding queue/concurrency wait was 88.0s (127.4s p90), queue time was 5.0s (37.0s p90), build was 71.0s (103.6s p90), and deploy was 9.0s (11.2s p90). Repeated step costs were checkout 23.0s median, npm ci 22.0s, Astro generation 14.0s, dashboard restore 1.0s, Pages artifact upload 2.0s, and deploy-pages 6.0s. Trusted step metadata verified dashboard-cache hits in all five builds because restore succeeded and artifact lookup/download fallback was skipped. Back-to-back push runs 40275177761 and 40275215980 both built and deployed distinct consecutive revisions; the latter waited about 50 seconds for concurrency, making it relevant scheduling evidence. The five latest successful CAO Dashboard runs had total elapsed median 36.0s (44.2s p90), but while collecting the required producer job/step comparison and open-issue duplicate check, the runtime failed to create a new OS thread. Per resource-limit policy further GitHub API work stopped. The current dashboard job median/p90 comparison and duplicate/actionability determination could not be completed, so no recommendation was made and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-26T07:20:00Z",
+      "worker_run_id": "40284854134",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40284552724,
+        40282131435,
+        40277614405,
+        40276551094,
+        40275320260,
+        40275215980,
+        40275177761,
+        40274685314,
+        40273080889,
+        40271685323,
+        40270443435,
+        40269469161,
+        40268819291,
+        40267911663,
+        40266682889,
+        40266177342,
+        40265546098,
+        40264968392,
+        40263676061,
+        40261803933
+      ],
+      "outcome": "incomplete: the 2026-10-26T02:59:22Z to 2026-10-26T07:14:15Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were identified: push runs 40275215980, 40275177761, and 40266177342 plus workflow_run runs 40269469161 and 40264968392. Full elapsed times were 139, 72, 137, 133, and 92 seconds respectively; trusted job metadata separated queue/concurrency delay from execution and verified dashboard-cache hits in all five builds because restore succeeded while artifact lookup and download fallback were skipped. Repeated costs included checkout 19-49 seconds, npm ci 12-24 seconds, Astro generation 9-16 seconds, dashboard restore 1-2 seconds, Pages upload 2-4 seconds, and deployment 9-12 seconds. Push run 40275215980 waited about 50 seconds for the prior push run under the shared concurrency group. While collecting the required current CAO Dashboard producer timing comparison and duplicate open-issue check, the runtime failed to create new OS threads. Per resource-limit policy all further GitHub API work stopped. The complete dashboard/build/deploy median and p90 comparison and final duplicate/actionability determination could not be completed, so no recommendation was made and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
