@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -40,8 +41,10 @@ func TestValueEvidenceIndexedScopeAndBudgets(t *testing.T) {
 				for key, value := range target {
 					other[key] = value
 				}
-				other["id"] = fmt.Sprintf("operational-value-evidence:load%%2Frepo-%d%%3Aworker%%3Am%%3Av1", i)
 				other["repository"] = fmt.Sprintf("load/repo-%d", i)
+				other["id"] = strings.Replace(target["id"].(string),
+					model.EncodeCoordinate(strings.ToLower(target["repository"].(string))),
+					model.EncodeCoordinate(other["repository"].(string)), 1)
 				packets = append(packets, other)
 			}
 			snapshot := testutil.SQLiteSnapshot(t, map[string][]model.Row{"operationalValueEvidence": packets})
