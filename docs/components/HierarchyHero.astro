@@ -59,27 +59,13 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
   </figure>
 </section>
 
-<section class="product-story terminal-story" aria-labelledby="terminal-title" data-reveal data-slideshow-slide>
-  <div class="product-story-copy">
-    <p class="section-eyebrow">Setup, authentication, and rollout</p>
-    <h2 id="terminal-title">Roll out with confidence.</h2>
-    <p>
-      Start with monitoring. Describe the outcome, target scope, and execution requirements; derive the simplest structure.
-      The example adds the Dependabot campaign, pairing a central orchestrator with one-target workers.
-      Keep repository scope, read/write credentials and review/live policy explicit.{" "}
-      <a href="/gh-cao/operation-patterns/">From outcome to execution.</a>
-    </p>
-  </div>
-  <TerminalDemo />
-</section>
-
 <section class="product-story maintenance-story" aria-labelledby="maintenance-title" data-reveal data-slideshow-slide>
   <div class="product-story-copy">
-    <p class="section-eyebrow">Maintenance</p>
-    <h2 id="maintenance-title">Less upkeep. Current workflows.</h2>
+    <p class="section-eyebrow">One reviewed place</p>
+    <h2 id="maintenance-title">Distributed reach. Central upkeep.</h2>
     <p>
-      Offload automation upkeep. Keep gh-aw versions and workflows from their original sources current
-      across repositories, with reviewed updates instead of repeated manual maintenance.{" "}
+      Shared workflows reach many repositories; upkeep stays in one reviewed control repository.
+      Review updates and upgrades once, reduce repeated maintenance, and keep the fleet current.{" "}
       <a href="/gh-cao/operations/#update-cao">Maintain your control plane.</a>
     </p>
     <dl class="maintenance-steps">
@@ -93,14 +79,17 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
       <div>
         <dt><span aria-hidden="true">02</span> Workflow source updates</dt>
         <dd>
-          Update one workflow or all source-tracked workflows with{" "}
+          Update one or all source-tracked workflows with{" "}
           <a href="https://github.github.com/gh-aw/setup/cli/#update"><code>gh aw update</code></a>.
-          Upstream changes merge with local edits by default.
+          Version pins keep installs reproducible; 3-way merges preserve local customizations.
         </dd>
       </div>
       <div>
-        <dt><span aria-hidden="true">03</span> Reviewed changes</dt>
-        <dd>Prepare update pull requests for selected repositories. Validate before rollout, without widening rollout policy.</dd>
+        <dt><span aria-hidden="true">03</span> CAO campaign updates</dt>
+        <dd>
+          Review <code>gh cao update</code> proposals in the control repository, commit one atomic runtime revision,
+          and validate a bounded target before rollout.
+        </dd>
       </div>
     </dl>
   </div>
@@ -129,6 +118,21 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
     <figcaption>Example snapshot. Dashboard maintenance: Upgrade one repository or Upgrade all. Unknown version evidence stays explicit.</figcaption>
   </figure>
 </section>
+
+<section class="product-story terminal-story" aria-labelledby="terminal-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">Setup, authentication, and rollout</p>
+    <h2 id="terminal-title">Roll out with confidence.</h2>
+    <p>
+      Start with monitoring. Describe the outcome, target scope, and execution requirements; derive the simplest structure.
+      The example adds the Dependabot campaign, pairing a central orchestrator with one-target workers.
+      Keep repository scope, read/write credentials and review/live policy explicit.{" "}
+      <a href="/gh-cao/operation-patterns/">From outcome to execution.</a>
+    </p>
+  </div>
+  <TerminalDemo />
+</section>
+
 <section class="product-story decision-story" aria-labelledby="decision-title" data-reveal data-slideshow-slide>
   <div class="product-story-copy">
     <span id="evidence-title"></span><span id="operational-value-title"></span>

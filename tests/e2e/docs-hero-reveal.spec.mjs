@@ -6,8 +6,8 @@ for (const { name, viewport } of [
 ]) {
   for (const { selector, heading } of [
     { selector: ".dispatch-story", heading: "Shared workflows. Clear ownership." },
+    { selector: ".maintenance-story", heading: "Distributed reach. Central upkeep." },
     { selector: ".decision-story", heading: "Use evidence to decide what scales." },
-    { selector: ".maintenance-story", heading: "Less upkeep. Current workflows." },
   ]) {
     for (const colorScheme of ["light", "dark"]) {
       test(`${selector} resets after repeated scrolls on ${name} in ${colorScheme} mode`, async ({ page }, testInfo) => {

@@ -68,25 +68,27 @@ test("landing page presents the product through real operational surfaces", () =
   assert.doesNotMatch(terminalText, /(?<![\w-])cao\.sh|gh cao validate|gh aw run|--raw-field|integrate-cao-workflow/);
   assert.deepEqual(
     [...hero.matchAll(/<section class="product-story ([^"]+)"/g)].map(([, classes]) => classes),
-    ["dispatch-story", "terminal-story", "maintenance-story", "decision-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
+    ["dispatch-story", "maintenance-story", "terminal-story", "decision-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
   );
   assert.match(hero, /aria-labelledby="maintenance-title" data-reveal data-slideshow-slide/);
-  assert.match(hero, /Less upkeep\. Current workflows\./);
-  assert.match(hero, /Offload automation upkeep/);
-  assert.match(hero, /gh-aw versions and workflows from their original sources/);
+  assert.match(hero, /Distributed reach\. Central upkeep\./);
+  assert.match(hero, /upkeep stays in one reviewed control repository/);
+  assert.match(hero, /Review updates and upgrades once, reduce repeated maintenance, and keep the fleet current/);
   assert.match(hero, /href="\/gh-cao\/operations\/#update-cao"/);
   assert.match(hero, /data-slideshow-snippet="Dashboard maintenance"/);
-  for (const label of ["gh-aw upgrades", "Workflow source updates", "Reviewed changes"]) assert.ok(hero.includes(label));
+  for (const label of ["gh-aw upgrades", "Workflow source updates", "CAO campaign updates"]) assert.ok(hero.includes(label));
   const maintenance = hero.match(/<section class="product-story maintenance-story"[\s\S]*?<\/section>/)?.[0];
   assert.ok(maintenance);
-  assert.doesNotMatch(maintenance, /campaign/i);
   assert.match(maintenance, /gh aw upgrade/);
   assert.match(maintenance, /gh aw update/);
-  assert.match(maintenance, /Upstream changes merge with local edits by default/);
+  assert.match(maintenance, /Version pins keep installs reproducible/);
+  assert.match(maintenance, /3-way merges preserve local customizations/);
+  assert.match(maintenance, /gh cao update/);
+  assert.match(maintenance, /one atomic runtime revision/);
+  assert.match(maintenance, /validate a bounded target before rollout/);
   assert.match(maintenance, /https:\/\/github\.com\/user-attachments\/assets\//);
   assert.match(maintenance, /individual Upgrade buttons and Upgrade all/);
   assert.match(maintenance, /Unknown version evidence stays explicit/);
-  assert.match(hero, /without widening rollout policy/);
   assert.doesNotMatch(hero, /https:\/\/github\.github\.com\/gh-aw\/practices\//);
   assert.doesNotMatch(hero, /One operating picture|phone-caption/);
   assert.doesNotMatch(
