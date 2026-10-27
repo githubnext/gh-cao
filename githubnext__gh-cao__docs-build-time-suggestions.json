@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-26T17:10:00Z",
-      "worker_run_id": "40367489484",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40364730602,
-        40363276542,
-        40362663067,
-        40362277394,
-        40359644140,
-        40355585317,
-        40354712554,
-        40352947602,
-        40349456527,
-        40348629363,
-        40342138445,
-        40338370928,
-        40336108582,
-        40326459197,
-        40317557260,
-        40317245181,
-        40315379307,
-        40312011777,
-        40310564079,
-        40310002791
-      ],
-      "outcome": "incomplete: the 2026-10-26T10:46:22Z to 2026-10-26T17:01:49Z latest-20 completed docs.yml window contained 15 successful and five skipped runs, with no failed or cancelled runs. Trusted job and step metadata identified at least six successful full build-and-deploy paths across schedule and push triggers. The inspected full paths showed build jobs of 68-83 seconds, dependency installation of 18-25 seconds, Astro generation of 12-15 seconds, dashboard cache restoration of 0-2 seconds with artifact fallback skipped, and deploy jobs of 9-48 seconds. However, the first docs job request and the bounded requests for the latest CAO Dashboard producer runs and open duplicate issues hit the runtime OS-thread resource limit. Per resource-limit policy, all further GitHub API work stopped. The required current full-workflow and dashboard/build/deploy median and p90 comparison, bounded producer-step analysis, trusted log-level npm cache verification, and duplicate/actionability determination could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-26T17:54:17Z",
       "worker_run_id": "40372417565",
       "category": "dependency installation and caching",
@@ -694,6 +666,13 @@
         40457915601
       ],
       "outcome": "complete no-op: the 2026-10-27T05:53:50Z to 2026-10-27T08:08:46Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Thirteen successful full build-and-deploy paths were comparable across seven push, five workflow_run, and one schedule trigger at ten source SHAs. Full elapsed workflow time was 103.0s median (126.6s p90); execution excluding initial queue was 99.0s (118.0s p90), initial queue was 4.0s (5.6s p90), build was 74.0s (82.0s p90), deploy was 12.0s (41.0s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (20.0s p90). Repeated docs costs were checkout 23.0s median, npm ci 22.0s, Astro documentation generation 14.0s (15.0s p90), dashboard restore 1.0s, Pages upload 3.0s, and deploy-pages 8.0s. Bounded logs for the five latest full builds verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits; trusted step metadata showed dashboard artifact fallback skipped in all thirteen builds. Push run 40460603115 was disclosed as an 88-second concurrency queue outlier, and runs 40460916259 and 40460533230 had 41-42-second Deploy Pages service-time outliers. No Astro recommendation was made: even eliminating the entire 14.0s median documentation-generation step would save only 14.1% of median execution and 13.6% of full elapsed time, below the 15% and 60-second actionability thresholds; no narrower Astro change can exceed the total step cost without weakening correctness or freshness. The next category is reusable dashboard generation."
+    },
+    {
+      "evaluated_at": "2026-10-27T08:49:03Z",
+      "worker_run_id": "40475851398",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
