@@ -1,35 +1,7 @@
 {
-  "source_sha": "159a575d4722d61839eee3c755e6927914f3d3b7",
-  "next_category": "dependency installation and caching",
+  "source_sha": "f06e1edc851386f7e8e6fe09397f62c5f365f642",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-26T16:27:22Z",
-      "worker_run_id": "40358773628",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        40355585317,
-        40354712554,
-        40352947602,
-        40349456527,
-        40348629363,
-        40342138445,
-        40338370928,
-        40336108582,
-        40326459197,
-        40317557260,
-        40317245181,
-        40315379307,
-        40312011777,
-        40310564079,
-        40310002791,
-        40308887049,
-        40306246220,
-        40303651592,
-        40302933297,
-        40300124351
-      ],
-      "outcome": "incomplete: the 2026-10-26T09:30:46Z to 2026-10-26T16:04:52Z latest-20 completed docs.yml window contained 15 successful and five skipped runs, with no failed or cancelled runs. Elapsed run metadata identified at least six likely full build-and-deploy paths, and trusted job/step metadata for schedule run 40352947602 confirmed a successful 74-second build, 14-second deploy, 21-second npm install, 15-second Astro generation, one-second dashboard cache restore, skipped dashboard artifact fallback, three-second Pages upload, and seven-second Pages deployment. However, parallel bounded requests for the remaining docs jobs, the latest CAO Dashboard producer runs, and open duplicate issues failed when the runtime could not create new OS threads. Per resource-limit policy, all further GitHub API work stopped. The required five-run current workflow/dashboard/build/deploy median and p90 comparison, complete repeated-cost analysis, and duplicate/actionability determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
     {
       "evaluated_at": "2026-10-26T16:45:34Z",
       "worker_run_id": "40361725724",
@@ -715,6 +687,34 @@
         40441998113
       ],
       "outcome": "complete no-op: the 2026-10-27T03:03:23Z to 2026-10-27T06:26:34Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Six successful full build-and-deploy paths were comparable across four push and two workflow_run triggers at five source SHAs. Full elapsed workflow time was 119.0s median (159.0s p90); execution excluding initial queue was 105.5s (121.0s p90), initial queue was 4.5s (47.0s p90), build was 74.0s (76.5s p90), deploy was 16.0s (44.5s p90), and the five latest successful CAO Dashboard producer build jobs were 18.0s (21.0s p90). Repeated docs costs were checkout 25.0s median, npm ci 22.0s, Astro generation 12.0s, dashboard restore 1.0s, Pages upload 3.0s, and deploy-pages 12.0s. Bounded logs verified setup-node npm-cache hits in four of the five latest full builds; run 40460916259 missed after its dependency key changed and saved the new key. The central-agentic-ops-dashboard cache hit in all six builds and artifact fallback was skipped. Three adjacent push runs demonstrated serialization: run 40460603115 queued for 88s, but it was current when execution began and completed before the next push was admitted. Deploy Pages was variable (6-42s), with runs 40460533230 and 40460916259 disclosed as service-time outliers. No scheduling/concurrency recommendation was made: the sole queue outlier did not establish a repeated avoidable cost, and cancel-in-progress could interrupt a Pages deployment and weaken deployment safety. The existing open issue #19765 already covers the stable path-excluded rebuild opportunity. The next category is dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-10-27T07:10:43Z",
+      "worker_run_id": "40465142683",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        40464857997,
+        40463838959,
+        40463588892,
+        40463316258,
+        40462853075,
+        40462601300,
+        40462393764,
+        40460916259,
+        40460603115,
+        40460533230,
+        40458778511,
+        40457915601,
+        40457670016,
+        40457629964,
+        40456477734,
+        40456279686,
+        40455253590,
+        40452955442,
+        40452318960,
+        40451330692
+      ],
+      "outcome": "complete no-op: the 2026-10-27T04:43:49Z to 2026-10-27T07:04:14Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Nine successful full build-and-deploy paths were comparable across five push and four workflow_run triggers at six source SHAs. Full elapsed workflow time was 99.0s median (139.8s p90); execution excluding initial queue was 97.0s (120.0s p90), queue was 4.0s (22.4s p90), build was 74.0s (78.0s p90), deploy was 10.0s (44.2s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (19.4s p90). Repeated docs costs were checkout 23.0s median, setup-node 3.0s, npm ci 22.0s (25.2s p90), Astro generation 14.0s, dashboard restore 1.0s, Pages upload 2.0s, and deploy-pages 7.0s. Bounded logs for the five latest full builds verified exact setup-node npm-cache hits in three runs; two lockfile-key changes missed. Every run still rebuilt 845-852 packages in 15-31s. The dashboard cache hit in all nine builds and artifact fallback was skipped. Run 40460603115 was disclosed as an 88-second concurrency queue outlier, while runs 40460916259 and 40460533230 had 41-42-second Deploy Pages service-time outliers. An exact-key installed-dependency-tree cache remains actionable because the 22.0s median install is 22.7% of median execution, but open issue #19689 already represents the same change and the current timing evidence has not materially changed from its 23.0s baseline. No duplicate issue was created. The next category is Astro documentation generation."
     }
   ]
 }
