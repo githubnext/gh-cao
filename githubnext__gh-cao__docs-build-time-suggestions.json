@@ -3,34 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-26T20:24:58Z",
-      "worker_run_id": "40394938852",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        40391993955,
-        40389962003,
-        40388066136,
-        40386710985,
-        40385430574,
-        40382738853,
-        40382670586,
-        40379392120,
-        40374236100,
-        40371977534,
-        40369937735,
-        40368546029,
-        40368195259,
-        40364730602,
-        40363276542,
-        40362663067,
-        40362277394,
-        40359644140,
-        40355585317,
-        40354712554
-      ],
-      "outcome": "complete no-op: the 2026-10-26T15:59:21Z to 2026-10-26T20:02:02Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. The five successful full build-and-deploy paths were comparable across two push, two schedule, and one workflow_run trigger at four source SHAs. Full elapsed workflow time was 101.0s median (112.6s p90); execution excluding initial queue was 96.0s (108.0s p90), initial queue was 3.0s (4.0s p90), build was 69.0s (72.4s p90), deploy was 17.0s (23.2s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (21.6s p90). Repeated docs costs were checkout 23.0s median, npm ci 18.0s, Astro generation 14.0s, dashboard restore 1.0s, Pages artifact upload 2.0s, and deploy-pages 14.0s. Trusted step metadata verified dashboard-cache hits in all five docs builds because Restore cached CAO Dashboard succeeded while artifact lookup and download fallback were skipped. For artifact transfer and Pages packaging, dashboard restore plus Pages upload plus deployment totaled 17.0s median (23.0s p90), about 17.7% of median execution, but 14.0s of that median is the safety-critical GitHub Pages deployment service rather than avoidable workflow packaging. The directly controllable transfer/package steps were only 3.0s median; dashboard producer upload, cache download, and cache save were each 1-2s. Schedule run 40368195259 is disclosed as a deployment outlier with a 22-second Deploy Pages step, while the other four were 5-15 seconds. No concrete workflow change is expected to save 60 seconds or 15% without weakening deployment safety, so no recommendation was made. The next category is scheduling, concurrency, and avoidable rebuilds."
-    },
-    {
       "evaluated_at": "2026-10-26T20:41:06Z",
       "worker_run_id": "40397370434",
       "category": "scheduling, concurrency, and avoidable rebuilds",
@@ -673,6 +645,34 @@
       "category": "scheduling, concurrency, and avoidable rebuilds",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-27T12:35:15Z",
+      "worker_run_id": "40504150796",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40500732374,
+        40499054804,
+        40497941165,
+        40497434695,
+        40496876950,
+        40495923326,
+        40493003006,
+        40491623282,
+        40490069183,
+        40488761507,
+        40488405066,
+        40488190573,
+        40486203969,
+        40486166691,
+        40485318491,
+        40484042652,
+        40483719667,
+        40483353694,
+        40483052690,
+        40481216407
+      ],
+      "outcome": "incomplete: the 2026-10-27T09:29:52Z to 2026-10-27T12:03:11Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Trusted job and step metadata identified seven successful full build-and-deploy paths across five push, one schedule, and one workflow_run trigger at six source SHAs. Their full elapsed workflow time was 103.0s median (158.4s p90); execution excluding initial queue was 97.0s (114.8s p90), initial queue was 4.0s (43.2s p90), build was 76.0s (89.2s p90), deploy was 12.0s (26.4s p90), and the five latest successful CAO Dashboard producer build jobs were 16.0s (20.0s p90). Repeated docs costs were checkout 24.0s median, npm ci 20.0s, Astro generation 13.0s, dashboard restore 1.0s, Pages upload 3.0s, and deploy-pages 9.0s. Trusted step metadata showed successful dashboard restores and skipped artifact fallback in all seven full builds; bounded logs additionally verified exact npm and dashboard cache hits in four recent builds. Push run 40486203969 was a concurrency queue outlier at 87 seconds, and run 40481216407 had a 29-second Deploy Pages service-time outlier. Open issue search showed #19765 already represents the stable path-excluded rebuild opportunity. While collecting the final bounded issue detail and cache-log evidence, the runtime failed to create a new OS thread. Per resource-limit policy, all further GitHub API work stopped, so the scheduling/concurrency evaluation is reported incomplete and no recommendation was made. Scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
