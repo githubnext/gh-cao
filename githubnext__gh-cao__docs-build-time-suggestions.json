@@ -3,34 +3,6 @@
   "next_category": "Astro documentation generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-27T01:50:00Z",
-      "worker_run_id": "40434714060",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        40434621085,
-        40433684472,
-        40432238157,
-        40431314481,
-        40429501482,
-        40423934092,
-        40422030497,
-        40420548567,
-        40420137066,
-        40419126820,
-        40416790881,
-        40415340448,
-        40414254268,
-        40413690470,
-        40412247562,
-        40409202717,
-        40407295709,
-        40405972149,
-        40405659232,
-        40403910625
-      ],
-      "outcome": "incomplete: the 2026-10-26T21:23:15Z to 2026-10-27T01:47:12Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Trusted job and step metadata identified only two successful full build-and-deploy paths: workflow_run 40433684472 (77-second build, 10-second deploy) and schedule run 40403910625 (69-second build, 11-second deploy). The newest schedule runs 40434621085, 40432238157, and 40429501482 executed only schedule-freshness and skipped build and deploy; the remaining overlapping runs were already verified in the immediately preceding bounded evaluations as freshness-only or skipped. Both confirmed full builds restored the CAO Dashboard cache successfully and skipped artifact fallback. Two comparable full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, a sufficient repeated-cost comparison, the CAO Dashboard producer comparison, and a complete scheduling/concurrency evaluation could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-27T02:30:12Z",
       "worker_run_id": "40438495475",
       "category": "scheduling, concurrency, and avoidable rebuilds",
@@ -673,6 +645,34 @@
         40531081926
       ],
       "outcome": "incomplete: the 2026-10-27T15:27:00Z to 2026-10-27T18:46:20Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job metadata confirmed the two newly entered schedule runs 40562998324 and 40560818500 executed only 8-11 second schedule-freshness jobs while build and deploy were skipped; workflow_run 40560287814 skipped all jobs. Combined with the immediately preceding bounded evaluation and trusted metadata for run 40531150100, only three successful full build-and-deploy paths remain in the current window: push run 40553265606, schedule run 40551395238, and workflow_run 40531081926. The other successful runs were freshness-only executions and three ineligible workflow_run callbacks were skipped. Three comparable successful full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost analysis, current cache-effectiveness verification across five comparable builds, the CAO Dashboard producer comparison, and a complete Astro documentation-generation evaluation could not be produced. No recommendation was made, and Astro documentation generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-27T19:19:11Z",
+      "worker_run_id": "40567515620",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        40567672647,
+        40565290447,
+        40562998324,
+        40560818500,
+        40560287814,
+        40559055852,
+        40556099766,
+        40553679630,
+        40553265606,
+        40551788853,
+        40551395238,
+        40549280048,
+        40546606324,
+        40544090495,
+        40541885482,
+        40541797860,
+        40540182585,
+        40536817575,
+        40535119161,
+        40533523862
+      ],
+      "outcome": "incomplete: the 2026-10-27T15:41:45Z to 2026-10-27T19:17:11Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job and step metadata confirmed the two newly entered schedule runs 40567672647 and 40565290447 executed only nine-second schedule-freshness jobs while build and deploy were skipped. Combined with the immediately preceding overlapping bounded evaluation, only two successful full build-and-deploy paths remain in the current window: push run 40553265606 and schedule run 40551395238. The other successful runs were freshness-only executions and three ineligible workflow_run callbacks were skipped. Two comparable successful full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost analysis, current cache-effectiveness verification across five comparable builds, the CAO Dashboard producer comparison, and a complete Astro documentation-generation evaluation could not be produced. No recommendation was made, and Astro documentation generation remains the next category."
     }
   ]
 }
