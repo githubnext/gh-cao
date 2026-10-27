@@ -1,35 +1,7 @@
 {
-  "source_sha": "7bb31a43897f04f2d6effe174ed2f2b3ab4c9659",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "source_sha": "b693dc9e954aacc6b962d2162319ea109d6845cf",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-26T20:41:06Z",
-      "worker_run_id": "40397370434",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        40397385580,
-        40395512740,
-        40391993955,
-        40389962003,
-        40388066136,
-        40386710985,
-        40385430574,
-        40382738853,
-        40382670586,
-        40379392120,
-        40374236100,
-        40371977534,
-        40369937735,
-        40368546029,
-        40368195259,
-        40364730602,
-        40363276542,
-        40362663067,
-        40362277394,
-        40359644140
-      ],
-      "outcome": "incomplete: the 2026-10-26T16:29:36Z to 2026-10-26T20:38:17Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job and step metadata identified only four successful full build-and-deploy paths: workflow_run 40386710985, schedule runs 40368195259 and 40359644140, and push run 40362663067. The only other run exceeding 20 seconds, schedule run 40371977534, executed schedule-freshness for nine seconds while build and deploy were skipped; the remaining successful runs completed in 12-15 seconds and were freshness-only executions. Dashboard cache restoration succeeded and artifact fallback was skipped in all four confirmed full builds. This is below the required five comparable successful full runs. Therefore a complete scheduling/concurrency evaluation, including current full-workflow and dashboard/build/deploy median and p90 timings, CAO Dashboard producer comparison, repeated-cost analysis, and actionable duplicate-rebuild determination, could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
     {
       "evaluated_at": "2026-10-26T20:55:55Z",
       "worker_run_id": "40399605822",
@@ -673,6 +645,34 @@
         40481216407
       ],
       "outcome": "incomplete: the 2026-10-27T09:29:52Z to 2026-10-27T12:03:11Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Trusted job and step metadata identified seven successful full build-and-deploy paths across five push, one schedule, and one workflow_run trigger at six source SHAs. Their full elapsed workflow time was 103.0s median (158.4s p90); execution excluding initial queue was 97.0s (114.8s p90), initial queue was 4.0s (43.2s p90), build was 76.0s (89.2s p90), deploy was 12.0s (26.4s p90), and the five latest successful CAO Dashboard producer build jobs were 16.0s (20.0s p90). Repeated docs costs were checkout 24.0s median, npm ci 20.0s, Astro generation 13.0s, dashboard restore 1.0s, Pages upload 3.0s, and deploy-pages 9.0s. Trusted step metadata showed successful dashboard restores and skipped artifact fallback in all seven full builds; bounded logs additionally verified exact npm and dashboard cache hits in four recent builds. Push run 40486203969 was a concurrency queue outlier at 87 seconds, and run 40481216407 had a 29-second Deploy Pages service-time outlier. Open issue search showed #19765 already represents the stable path-excluded rebuild opportunity. While collecting the final bounded issue detail and cache-log evidence, the runtime failed to create a new OS thread. Per resource-limit policy, all further GitHub API work stopped, so the scheduling/concurrency evaluation is reported incomplete and no recommendation was made. Scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-27T13:32:44Z",
+      "worker_run_id": "40512449371",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40508323254,
+        40507718470,
+        40507316939,
+        40507164615,
+        40506023539,
+        40505055373,
+        40500732374,
+        40499054804,
+        40497941165,
+        40497434695,
+        40496876950,
+        40495923326,
+        40493003006,
+        40491623282,
+        40490069183,
+        40488761507,
+        40488405066,
+        40488190573,
+        40486203969,
+        40486166691
+      ],
+      "outcome": "complete no-op: the 2026-10-27T10:08:24Z to 2026-10-27T13:00:46Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Seven successful full build-and-deploy paths were comparable across five push, one workflow_run, and one schedule trigger at five source SHAs. Full elapsed workflow time was 97.0s median (174.6s p90); execution excluding initial queue was 93.0s (120.8s p90), initial queue was 3.0s (53.8s p90), build was 74.0s (89.2s p90), deploy was 18.0s (20.2s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (20.8s p90). Repeated docs costs were checkout 23.0s median, setup-node 5.0s, npm ci 20.0s, Astro generation 13.0s, dashboard restore 1.0s, Pages upload 2.0s, and deploy-pages 14.0s. Bounded logs for the five latest full builds verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits; trusted step metadata showed dashboard artifact fallback skipped in all seven. Push run 40486203969 was disclosed as an 87-second concurrency queue outlier caused by serialization behind adjacent push run 40486166691; no repeated queue pattern or safely avoidable rebuild established a new recommendation. Open issue #19765 already represents the stable path-excluded scheduled rebuild opportunity, and current evidence does not materially change its approximately one-full-cycle saving. No duplicate issue was created. The next category is dependency installation and caching."
     }
   ]
 }
