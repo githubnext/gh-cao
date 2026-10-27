@@ -44,8 +44,7 @@ func TestValidateSnapshot(t *testing.T) {
 		{"no events", func(s *Snapshot) { s.Repositories[0].Workflows[0].Events = nil }, false},
 		{"invalid allowance", func(s *Snapshot) { s.Repositories[0].Workflows[0].Allowances.Evals = &zero }, false},
 		{"duplicate workflow", func(s *Snapshot) {
-			w := s.Repositories[0].Workflows
-			s.Repositories[0].Workflows = append(w, w[0])
+			s.Repositories[0].Workflows = append(s.Repositories[0].Workflows, s.Repositories[0].Workflows[0])
 		}, false},
 		{"bad actor", func(s *Snapshot) { s.Repositories[0].Workflows[0].ActorIDs = []string{"x"} }, false},
 	}
