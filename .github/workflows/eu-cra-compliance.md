@@ -43,6 +43,7 @@ on:
     actions: read
 
 env:
+  CAO_DEFAULT_TARGET_REPOSITORY: github/gh-aw
   GH_AW_SAFE_OUTPUT_MODE: ${{ inputs.safe_output_mode || 'review' }}
   REVIEW_OUTPUT_REPO: ${{ inputs.safe_output_repo || github.repository }}
   SAFE_OUTPUT_REPO: ${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || '' }}

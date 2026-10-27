@@ -47,7 +47,7 @@ async function scenario({
   writeFileSync(summary, "");
   const context = {
     status: "success",
-    env: { CAO_ROLE: role },
+    env: { CAO_ROLE: role, CAO_DEFAULT_TARGET_REPOSITORY: defaultTarget },
     vars: { GH_AW_GITHUB_AUTH_MODE: mode, GH_AW_GITHUB_READ_APP_ID: "read-app" },
     secrets: { GH_AW_GITHUB_READ_APP_PRIVATE_KEY: api.privatePem },
     inputs: {
@@ -174,6 +174,24 @@ test("repository-local scheduled inventory avoids unrelated PAT mappings", async
   assert.deepEqual(result.precompute.candidate_repositories.map(repo => repo.full_name), ["acme/control"]);
   assert.ok(!result.calls.some(call => /\/repos\/acme\/private-/.test(call.path)));
   assert.equal(result.minted.length, 0);
+});
+
+test("scheduled campaign defaults select the matching inventory PAT", async () => {
+  const source = parse(readFileSync(join(root, ".github/workflows/eu-cra-compliance.md"), "utf8").split("---")[1]);
+  assert.equal(source.env.CAO_DEFAULT_TARGET_REPOSITORY, "github/gh-aw");
+  const result = await scenario({
+    target: "", defaultTarget: "acme/private-a", eventName: "schedule", mode: "pat",
+    env: {
+      CAO_CONTROL_READ_PAT: "control-pat", CAO_INVENTORY_READ_PAT: "inventory-pat",
+      CAO_READ_PAT_REPOSITORIES: JSON.stringify({
+        "acme/control": "CONTROL_PAT", "acme/private-a": "TARGET_PAT", "acme/private-b": "OTHER_PAT",
+      }),
+    },
+  });
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.precompute.activation_ready, true);
+  assert.deepEqual(result.precompute.candidate_repositories.map(repo => repo.full_name), ["acme/private-a"]);
+  assert.equal(result.calls.find(call => call.path === "/repos/acme/private-a").token, "inventory-pat");
 });
 
 test("scheduled mixed-PAT fleet blocks activation before target reads with actionable diagnostics", async () => {

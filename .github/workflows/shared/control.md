@@ -303,8 +303,8 @@ jobs:
           CAO_READ_APP_PRIVATE_KEY: ${{ (vars.GH_AW_GITHUB_AUTH_MODE == 'app' || vars.GH_AW_GITHUB_AUTH_MODE == '') && secrets.GH_AW_GITHUB_READ_APP_PRIVATE_KEY || '' }}
           CAO_READ_PAT_REPOSITORIES: ${{ vars.GH_AW_GITHUB_READ_PAT_REPOSITORIES }}
           CAO_CONTROL_READ_PAT: ${{ vars.GH_AW_GITHUB_AUTH_MODE == 'pat' && secrets[fromJSON(vars.GH_AW_GITHUB_READ_PAT_REPOSITORIES || '{}')[github.repository]] || '' }}
-          CAO_INVENTORY_PAT_REPOSITORY: ${{ inputs.target_repo || github.repository }}
-          CAO_INVENTORY_READ_PAT: ${{ vars.GH_AW_GITHUB_AUTH_MODE == 'pat' && secrets[fromJSON(vars.GH_AW_GITHUB_READ_PAT_REPOSITORIES || '{}')[inputs.target_repo || github.repository]] || '' }}
+          CAO_INVENTORY_PAT_REPOSITORY: ${{ inputs.target_repo || env.CAO_DEFAULT_TARGET_REPOSITORY || github.repository }}
+          CAO_INVENTORY_READ_PAT: ${{ vars.GH_AW_GITHUB_AUTH_MODE == 'pat' && secrets[fromJSON(vars.GH_AW_GITHUB_READ_PAT_REPOSITORIES || '{}')[inputs.target_repo || env.CAO_DEFAULT_TARGET_REPOSITORY || github.repository]] || '' }}
           CAO_LEGACY_READ_TOKEN: ${{ vars.GH_AW_GITHUB_AUTH_MODE == '' && (secrets.GH_AW_GITHUB_READ_PAT || secrets.GH_AW_GITHUB_TOKEN) || '' }}
           CAO_WORKFLOW_TOKEN: ${{ github.token }}
           CAO_INVENTORY_EXCLUDE_CONTROL: "${{ github.aw.import-inputs.inventory_exclude_control }}"
