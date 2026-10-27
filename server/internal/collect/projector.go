@@ -114,13 +114,6 @@ func (p Projector) node() string {
 	return "node"
 }
 
-func (p Projector) windowDays() int {
-	if p.WindowDays <= 0 {
-		return 30
-	}
-	return p.WindowDays
-}
-
 // RequestProjection records a unique generation. A burst still coalesces into
 // one projection, without confusing a concurrent request with completed work.
 func (p Projector) RequestProjection(ctx context.Context) error {

@@ -178,13 +178,13 @@ func TestHostedQueryBridgeRejectsOversizedRequests(t *testing.T) {
 	bridge, err := startHostedQueryBridge(t.Context(),
 		func(context.Context, []query.Definition, []string) (map[string]model.Source, error) {
 			queries++
-			return nil, nil
+			return map[string]model.Source{}, nil
 		})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer bridge.Close()
-	connection, err := net.Dial("unix", bridge.path)
+	connection, err := (&net.Dialer{}).DialContext(t.Context(), "unix", bridge.path)
 	if err != nil {
 		t.Fatal(err)
 	}

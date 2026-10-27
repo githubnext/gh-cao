@@ -1,27 +1,10 @@
 package collect
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/githubnext/gh-cao/server/internal/operational"
 )
-
-type localValueAttemptState struct {
-	operational.StateStore
-	values map[string][]byte
-}
-
-func (s *localValueAttemptState) OperationalState(_ context.Context, key string) ([]byte, error) {
-	return s.values[key], nil
-}
-
-func (s *localValueAttemptState) SetOperationalState(_ context.Context, key string, value []byte) error {
-	s.values[key] = value
-	return nil
-}
 
 func TestLocalValueRevisionTracksReviewedHostedInputs(t *testing.T) {
 	directory := t.TempDir()

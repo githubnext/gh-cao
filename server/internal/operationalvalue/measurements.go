@@ -27,7 +27,7 @@ type measurementEnvelope struct {
 }
 
 func ReadMeasurements(path string) ([]model.Row, error) {
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) // #nosec G304 -- private output path created by the hosted local Value runtime.
 	if err != nil {
 		return nil, err
 	}

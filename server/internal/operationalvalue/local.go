@@ -183,7 +183,7 @@ func startHostedQueryBridge(ctx context.Context, execute QueryExecutor) (*hosted
 		return nil, err
 	}
 	path := filepath.Join(directory, "query.sock")
-	listener, err := net.Listen("unix", path)
+	listener, err := (&net.ListenConfig{}).Listen(ctx, "unix", path)
 	if err != nil {
 		_ = os.RemoveAll(directory)
 		return nil, err
