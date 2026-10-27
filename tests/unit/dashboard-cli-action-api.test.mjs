@@ -28,21 +28,34 @@ test("queue admission resolves only declared actions and validated arguments", (
 test("built-in update and upgrade actions carry CAO attribution as one PR message argument", () => {
   const document = JSON.parse(readFileSync(new URL("../../dashboard/site/dashboard.json", import.meta.url), "utf8"));
   const context = cliActionTemplateContext({ repository: "acme/control", caoUrl: "https://ops.example.com/central/" });
-  for (const id of ["update-repository", "update-campaign", "upgrade-repository", "upgrade-target-repository"]) {
-    const update = id.startsWith("update");
-    const values = update ? { campaign: "activity" } : { repository: "octo/example" };
-    const message = update
-      ? "This pull request was requested through [Central Agentic Ops (CAO)](https://github.com/acme/control) to update the activity campaign from its upstream source, keeping installed workflows current with published fixes and improvements. Return to the [CAO dashboard](https://ops.example.com/central/#page-maintenance-campaigns)."
-      : "This pull request was requested through [Central Agentic Ops (CAO)](https://github.com/acme/control) to upgrade GitHub Agentic Workflows in octo/example, refreshing workflow tooling, action versions, and generated lock files. Return to the [CAO dashboard](https://ops.example.com/central/#page-maintenance).";
+  const cases = [
+    ...["update-repository", "update-campaign"].map((id) => ({
+      id,
+      values: { "campaign-name": "Activity", "campaign-source": "githubnext/gh-cao/activity" },
+      prefix: ["gh", "aw", "update", "https://github.com/githubnext/gh-cao/activity", "--repo", "acme/control"],
+      message: "This pull request was requested through [Central Agentic Ops (CAO)](https://github.com/acme/control) to update the Activity campaign package from its retained upstream source. Return to the [CAO dashboard](https://ops.example.com/central/#page-maintenance-campaigns).",
+    })),
+    {
+      id: "update-workflow-source",
+      values: { "workflow-name": "Review", "workflow-source": "acme/workflows/review" },
+      prefix: ["gh", "aw", "update", "https://github.com/acme/workflows/review", "--repo", "acme/control"],
+      message: "This pull request was requested through [Central Agentic Ops (CAO)](https://github.com/acme/control) to update the Review standalone workflow from its retained upstream source. Return to the [CAO dashboard](https://ops.example.com/central/#page-maintenance-campaigns).",
+    },
+    ...["upgrade-repository", "upgrade-target-repository"].map((id) => ({
+      id,
+      values: { repository: "octo/example" },
+      prefix: ["gh", "aw", "upgrade", "--repo", "octo/example"],
+      message: "This pull request was requested through [Central Agentic Ops (CAO)](https://github.com/acme/control) to upgrade GitHub Agentic Workflows in octo/example, refreshing workflow tooling, action versions, and generated lock files. Return to the [CAO dashboard](https://ops.example.com/central/#page-maintenance).",
+    })),
+  ];
+  for (const { id, values, prefix, message } of cases) {
     for (const createPr of [true, false]) {
       const invocation = resolveQueuedCliAction(document, {
         id, values, arguments: { "create-pull-request": createPr },
       }, context);
       const tokens = parseDashboardCommand(invocation.command);
       assert.deepEqual(tokens, [
-        ...(update
-          ? ["gh", "aw", "update", "https://github.com/githubnext/gh-cao/activity", "--repo", "acme/control"]
-          : ["gh", "aw", "upgrade", "--repo", "octo/example"]),
+        ...prefix,
         "--pr-message", message, ...(createPr ? ["--create-pull-request"] : []),
       ]);
     }

@@ -2200,8 +2200,9 @@ an operator must explicitly acknowledge recovery before queue processing
 resumes. This provides at-most-once dispatch, not exactly-once external effects.
 
 The executor plans commands in Go and runs only `gh` or the native Go `gh-aw`
-CLI inside the digest-pinned `ghcr.io/github/gh-aw` container. The campaign
-update action is translated to `gh-aw update`; the server never invokes
+CLI inside the digest-pinned `ghcr.io/github/gh-aw` container. Campaign-package
+and standalone-workflow source update actions are translated to `gh-aw update`;
+the server never invokes
 repository shell scripts or checks out and executes control-repository code. The executor
 requires a local Docker daemon using its `default` context. Each container has a
 read-only root filesystem, no added capabilities, and only its per-command

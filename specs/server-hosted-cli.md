@@ -378,9 +378,12 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    target. The bootstrap MUST disable Git templates and pass the planned
    program and arguments as positional parameters to the fixed entrypoint, never interpolate
    them into shell source. This bootstrap grants no host execution or
-   repository-discovery authority. A CAO campaign update MUST be translated to a native `gh-aw update`
-   command scoped to the configured control repository and the catalog-selected
-   CAO package. The container image reference MUST be recorded in the audit
+   repository-discovery authority. A campaign-package or standalone-workflow
+   source update MUST be translated to a native `gh-aw update` command scoped to
+   the configured control repository and the exact retained GitHub source
+   coordinate selected from canonical maintenance evidence. The executor MUST
+   NOT discover, substitute, or widen that source coordinate. The container
+   image reference MUST be recorded in the audit
    event for command start.
 8. Linux-image profiles MUST use a read-only root filesystem, drop all Linux
    capabilities, enable `no-new-privileges`, and apply process and memory

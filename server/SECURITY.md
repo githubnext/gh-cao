@@ -972,8 +972,9 @@ contract is [`specs/server-hosted-cli.md`](../specs/server-hosted-cli.md).
   This fails closed instead of guessing where an unbounded or overlapping
   credential ends. Queue output limits still apply.
 - **Native command planning**: Go re-plans every command against the catalog
-  allowlist. CAO campaign updates become native `gh-aw update` invocations
-  constrained to the configured control repository and selected CAO package.
+  allowlist. Campaign-package and standalone-workflow source updates become
+  native `gh-aw update` invocations constrained to the configured control
+  repository and exact retained GitHub source coordinate.
   The backend does not run repository shell scripts, check out the control repository, or
   execute scripts from it. The image reference is pinned by digest and included
   in command-start audit records. An operator-selected mirror must also use a

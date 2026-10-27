@@ -24,7 +24,7 @@ var (
 	workflowInput    = regexp.MustCompile(`(?s)^[A-Za-z_][A-Za-z0-9_-]*=.*$`)
 	workflowName     = regexp.MustCompile(`^[A-Za-z0-9_.][A-Za-z0-9_./-]*$`)
 	gitRef           = regexp.MustCompile(`^[A-Za-z0-9_.][A-Za-z0-9_./-]*$`)
-	campaignPackage  = regexp.MustCompile(`^https://github\.com/githubnext/gh-cao/[a-z0-9]+(?:-[a-z0-9]+)*$`)
+	githubSourceURL  = regexp.MustCompile(`^https://github\.com/[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$`)
 )
 
 // Plan is a validated hosted execution: the argv to run, the single
@@ -189,8 +189,8 @@ func planUpdate(args []string, controlRepository string) (Plan, error) {
 	if !targetRepository.MatchString(controlRepository) {
 		return Plan{}, errors.New("hosted gh aw update requires a configured control repository")
 	}
-	if len(args) == 0 || !campaignPackage.MatchString(args[0]) {
-		return Plan{}, errors.New("hosted gh aw update requires a CAO campaign package URL")
+	if len(args) == 0 || !validGitHubSourceURL(args[0]) {
+		return Plan{}, errors.New("hosted gh aw update requires a GitHub workflow source URL")
 	}
 	values, err := publishingOptions(args[1:],
 		map[string]bool{"--create-pull-request": true, "--auto-merge": true, "--pre-releases": true},
@@ -219,6 +219,18 @@ func planUpdate(args []string, controlRepository string) (Plan, error) {
 		Kind: KindGhAwUpdate, Program: "gh-aw", Args: normalized,
 		Repository: controlRepository, Permissions: clonePermissions(publishingPermissions),
 	}, nil
+}
+
+func validGitHubSourceURL(value string) bool {
+	if !githubSourceURL.MatchString(value) {
+		return false
+	}
+	for _, segment := range strings.Split(strings.TrimPrefix(value, "https://github.com/"), "/") {
+		if segment == "." || segment == ".." {
+			return false
+		}
+	}
+	return true
 }
 
 func planWorkflowRun(args []string, controlRepository string) (Plan, error) {

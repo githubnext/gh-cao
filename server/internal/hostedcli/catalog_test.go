@@ -81,25 +81,36 @@ func TestResolveRejectsInvalidRequests(t *testing.T) {
 	}
 }
 
-func TestResolveDeclaredCampaignUpdateUsesNativeGhAwCommand(t *testing.T) {
+func TestResolveDeclaredSourceUpdatesUseNativeGhAwCommand(t *testing.T) {
 	catalog := loadTestCatalog(t)
-	invocation, err := catalog.Resolve(Request{
-		ID: "update-campaign", Values: map[string]string{"campaign": "security"},
-		Arguments: map[string]bool{"create-pull-request": true},
-	}, testContext(t))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(invocation.Command, "cao.sh") ||
-		!strings.HasPrefix(invocation.Command, "gh aw update https://github.com/githubnext/gh-cao/security --repo octo/cao") {
-		t.Fatalf("campaign update must use the native gh-aw command: %s", invocation.Command)
-	}
-	plan, err := PlanCommand(invocation.Command, "octo/cao")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if plan.Kind != KindGhAwUpdate || plan.Program != "gh-aw" || plan.Repository != "octo/cao" {
-		t.Fatalf("unexpected hosted package update plan %+v", plan)
+	for _, test := range []struct {
+		name, id, prefix string
+		values           map[string]string
+	}{
+		{"campaign", "update-campaign", "gh aw update https://github.com/githubnext/gh-cao/security --repo octo/cao",
+			map[string]string{"campaign-name": "Security", "campaign-source": "githubnext/gh-cao/security"}},
+		{"standalone workflow", "update-workflow-source", "gh aw update https://github.com/octo/workflows/review --repo octo/cao",
+			map[string]string{"workflow-name": "Review", "workflow-source": "octo/workflows/review"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			invocation, err := catalog.Resolve(Request{
+				ID: test.id, Values: test.values,
+				Arguments: map[string]bool{"create-pull-request": true},
+			}, testContext(t))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(invocation.Command, "cao.sh") || !strings.HasPrefix(invocation.Command, test.prefix) {
+				t.Fatalf("source update must use the native gh-aw command: %s", invocation.Command)
+			}
+			plan, err := PlanCommand(invocation.Command, "octo/cao")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if plan.Kind != KindGhAwUpdate || plan.Program != "gh-aw" || plan.Repository != "octo/cao" {
+				t.Fatalf("unexpected hosted source update plan %+v", plan)
+			}
+		})
 	}
 }
 
@@ -142,6 +153,9 @@ func TestPlanCommandAllowlist(t *testing.T) {
 	if strings.Join(update.Args, " ") != "update https://github.com/githubnext/gh-cao/security --repo octo/cao --pr-message msg --create-pull-request --auto-merge" {
 		t.Fatalf("unexpected update args %v", update.Args)
 	}
+	if _, err := PlanCommand("gh aw update https://github.com/github/.github/workflows/review --repo octo/cao --create-pull-request", "octo/cao"); err != nil {
+		t.Fatalf("dot-prefixed GitHub repository source was rejected: %v", err)
+	}
 	run, err := PlanCommand("gh workflow run cao-evolution.lock.yml -f mode=review", "octo/cao")
 	if err != nil {
 		t.Fatal(err)
@@ -156,7 +170,8 @@ func TestPlanCommandAllowlist(t *testing.T) {
 	for _, command := range []string{
 		"./cao.sh update --campaign security",
 		"./cao.sh mode live security",
-		"gh aw update https://github.com/attacker/repo/security --repo octo/cao --create-pull-request",
+		"gh aw update https://attacker.example/repo/security --repo octo/cao --create-pull-request",
+		"gh aw update https://github.com/attacker/repo/../security --repo octo/cao --create-pull-request",
 		"gh aw update https://github.com/githubnext/gh-cao/security --repo octo/other --create-pull-request",
 		"gh agent-task create --from-file -",
 		"gh aw upgrade --repo octo/app",
