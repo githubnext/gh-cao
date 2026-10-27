@@ -1,35 +1,7 @@
 {
-  "source_sha": "b4a7cb28bde94f8974b4a4799ab5d72b5fe030b3",
-  "next_category": "artifact transfer and Pages packaging",
+  "source_sha": "75043b034a17a8add5ba1875ad02bcd2788d2f8c",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-26T19:06:11Z",
-      "worker_run_id": "40383184992",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        40382738853,
-        40382670586,
-        40379392120,
-        40374236100,
-        40371977534,
-        40369937735,
-        40368546029,
-        40368195259,
-        40364730602,
-        40363276542,
-        40362663067,
-        40362277394,
-        40359644140,
-        40355585317,
-        40354712554,
-        40352947602,
-        40349456527,
-        40348629363,
-        40342138445,
-        40338370928
-      ],
-      "outcome": "complete no-op: the 2026-10-26T14:18:06Z to 2026-10-26T19:00:11Z latest-20 completed docs.yml window contained 15 successful and five skipped runs, with no failed or cancelled runs. Six successful full build-and-deploy paths were comparable across four schedule and two push triggers and six source SHAs. Full elapsed workflow time was 106.5s median (131.0s p90); execution excluding initial queue was 102.5s (126.5s p90), queue was 3.5s (4.0s p90), build was 70.5s (78.5s p90), deploy was 18.0s (37.0s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (22.4s p90). Repeated docs costs were checkout 23.5s median, setup-node 4.5s, npm ci 20.5s, Astro documentation generation 15.0s (15.0s p90), dashboard restore 1.0s, Pages upload 2.5s, and deploy-pages 14.5s. Bounded logs for the five latest full builds verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits; trusted step metadata showed dashboard artifact fallback skipped in all six builds. Run 40342138445 was disclosed as a deployment outlier with a 45-second Deploy Pages step. No Astro recommendation was made: even eliminating the entire 15.0s median documentation-generation step would save only 14.6% of median execution and 14.1% of full elapsed time, below the 15% and 60-second actionability thresholds; no narrower Astro change can exceed the total step cost without weakening correctness or freshness. The next category is reusable dashboard generation."
-    },
     {
       "evaluated_at": "2026-10-26T19:25:38Z",
       "worker_run_id": "40386196544",
@@ -673,6 +645,34 @@
       "category": "artifact transfer and Pages packaging",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable artifact-transfer and Pages-packaging determination could not be completed. No recommendation was made, and artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-27T10:24:45Z",
+      "worker_run_id": "40487600738",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        40486203969,
+        40486166691,
+        40485318491,
+        40484042652,
+        40483719667,
+        40483353694,
+        40483052690,
+        40481216407,
+        40481105749,
+        40478115694,
+        40476932831,
+        40476332306,
+        40474284793,
+        40471302568,
+        40470811272,
+        40469903205,
+        40469572816,
+        40469287123,
+        40468928991,
+        40467795991
+      ],
+      "outcome": "complete no-op: the 2026-10-27T07:33:05Z to 2026-10-27T10:12:09Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Nine successful full build-and-deploy paths were comparable across six push, two workflow_run, and one schedule trigger at six source SHAs. Full elapsed workflow time was 103.0s median (129.4s p90); execution excluding initial queue was 98.0s (107.8s p90), initial queue was 4.0s (20.6s p90), build was 83.0s (88.2s p90), deploy was 12.0s (22.6s p90), and the five latest successful CAO Dashboard producer build jobs were 16.0s (20.0s p90). Repeated docs costs were checkout 24.0s median, setup-node 6.0s, npm ci 22.0s, Astro generation 13.0s, dashboard restore 1.0s, Pages artifact upload 3.0s, and deploy-pages 9.0s. Bounded logs for the five latest full builds verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits; trusted step metadata showed dashboard artifact fallback skipped in all nine builds. For artifact transfer and Pages packaging, dashboard restore plus Pages upload plus deployment totaled 13.0s median, 13.3% of median execution, and only 4.0s was directly controllable transfer/packaging; producer upload, cache download, and cache save were each 1-2s. Push run 40486203969 was disclosed as an 87-second concurrency queue outlier, and run 40481216407 as a 29-second Deploy Pages service-time outlier. No concrete workflow change is expected to save 60 seconds or 15% without weakening deployment safety, so no recommendation was made. The next category is scheduling, concurrency, and avoidable rebuilds."
     }
   ]
 }
