@@ -51,7 +51,7 @@ test('fast collection preserves Value history and publishes a deferred decision 
     env: {
       ...process.env, REPORT_FAST_MODE: 'true', ACTIVITY_ARTIFACT: 'example',
       RUNNER_TEMP: directory, REPORT_PUBLIC_ONLY: 'false', REPORT_RATE_LIMITED: 'false',
-      ACTIVITY_OWNER: 'github', REPORT_TARGET_REPOSITORIES_JSON: '["gh-aw"]',
+      REPORT_TARGET_REPOSITORIES_JSON: '["github/gh-aw"]',
       ACTIVITY_DATABASE: path.join(directory, 'unused.sqlite'), REPORT_INVENTORY_SOURCES: inventory,
       GITHUB_RUN_ID: '1', GITHUB_RUN_ATTEMPT: '1', GH_TOKEN: '', GITHUB_TOKEN: '',
       REPORT_VALUE_SEED_SHARDS: seed, REPORT_GH_AW_LOGS_SHARDS: shards,
@@ -60,6 +60,10 @@ test('fast collection preserves Value history and publishes a deferred decision 
   assert.equal(JSON.parse(output).deferred, 1);
   assert.equal(readFileSync(path.join(shards, 'operational-values-example.jsonl'), 'utf8'), 'retained evidence\n');
   const health = JSON.parse(readFileSync(path.join(shards, 'workflow-values-example-collections.jsonl'), 'utf8'));
+  assert.equal(health.workflow_value_collection.repository, 'github/gh-aw');
+  assert.equal(health.workflow_value_collection.workflow, 'daily-file-diet');
+  assert.equal(health.workflow_value_collection.registration, 'enabled');
+  assert.equal(health.workflow_value_collection.state, 'deferred');
   assert.equal(health.workflow_value_collection.reasonCode, 'fast-mode');
   assert.equal(health.workflow_value_collection.lastAttemptAt, undefined);
   assert.equal(JSON.parse(readFileSync(path.join(shards, 'workflow-value-local.json'), 'utf8'))[0].eligible, false);
