@@ -1,35 +1,7 @@
 {
-  "source_sha": "f06e1edc851386f7e8e6fe09397f62c5f365f642",
+  "source_sha": "cee7297dddb66cc9e66519e56e511501fed056ed",
   "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-26T16:45:34Z",
-      "worker_run_id": "40361725724",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        40359644140,
-        40355585317,
-        40354712554,
-        40352947602,
-        40349456527,
-        40348629363,
-        40342138445,
-        40338370928,
-        40336108582,
-        40326459197,
-        40317557260,
-        40317245181,
-        40315379307,
-        40312011777,
-        40310564079,
-        40310002791,
-        40308887049,
-        40306246220,
-        40303651592,
-        40302933297
-      ],
-      "outcome": "incomplete: the 2026-10-26T09:52:25Z to 2026-10-26T16:31:28Z latest-20 completed docs.yml window contained 15 successful and five skipped runs, with no failed or cancelled runs. Trusted job and step metadata identified seven successful full build-and-deploy paths across schedule and push triggers, including current-source schedule run 40359644140. The sampled full paths showed build jobs of 58-83 seconds and deploy jobs of 9-48 seconds; dashboard cache restoration succeeded in every inspected build and artifact fallback was skipped. However, the bounded requests for the latest CAO Dashboard producer runs and open duplicate issues failed because the runtime could not create a new OS thread. Per resource-limit policy, all further GitHub API and model work stopped. The required current dashboard job median/p90 comparison, bounded producer-step analysis, and duplicate/actionability determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
     {
       "evaluated_at": "2026-10-26T16:59:51Z",
       "worker_run_id": "40363825558",
@@ -715,6 +687,13 @@
         40451330692
       ],
       "outcome": "complete no-op: the 2026-10-27T04:43:49Z to 2026-10-27T07:04:14Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Nine successful full build-and-deploy paths were comparable across five push and four workflow_run triggers at six source SHAs. Full elapsed workflow time was 99.0s median (139.8s p90); execution excluding initial queue was 97.0s (120.0s p90), queue was 4.0s (22.4s p90), build was 74.0s (78.0s p90), deploy was 10.0s (44.2s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (19.4s p90). Repeated docs costs were checkout 23.0s median, setup-node 3.0s, npm ci 22.0s (25.2s p90), Astro generation 14.0s, dashboard restore 1.0s, Pages upload 2.0s, and deploy-pages 7.0s. Bounded logs for the five latest full builds verified exact setup-node npm-cache hits in three runs; two lockfile-key changes missed. Every run still rebuilt 845-852 packages in 15-31s. The dashboard cache hit in all nine builds and artifact fallback was skipped. Run 40460603115 was disclosed as an 88-second concurrency queue outlier, while runs 40460916259 and 40460533230 had 41-42-second Deploy Pages service-time outliers. An exact-key installed-dependency-tree cache remains actionable because the 22.0s median install is 22.7% of median execution, but open issue #19689 already represents the same change and the current timing evidence has not materially changed from its 23.0s baseline. No duplicate issue was created. The next category is Astro documentation generation."
+    },
+    {
+      "evaluated_at": "2026-10-27T07:46:56Z",
+      "worker_run_id": "40468868849",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable Astro documentation generation determination could not be completed. No recommendation was made, and Astro documentation generation remains the next category."
     }
   ]
 }
