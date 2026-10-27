@@ -202,6 +202,10 @@ The effective mode in which a campaign runs for an admitted target: `review`, `l
 
 A declared, bounded way for a workflow to produce an external effect, such as creating an issue or dispatching a worker. See the canonical gh-aw definition of [Safe Outputs](https://github.github.com/gh-aw/reference/glossary/#safe-outputs).
 
+## Session archive
+
+An independently default-off, private analytics store of approved complete unified-session traces, kept as immutable Parquet files (local DuckDB queries) or Blob objects (hosted ADX queries). It adds analytics without changing PostgreSQL schemas, canonical queries, ingestion, retention, or operational state, and cannot authorize collection or widen policy. See the [session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md).
+
 ## Standalone workflow
 
 An agentic workflow that participates directly in CAO without a campaign, orchestrator, or worker. It imports shared control with the `standalone` role, declares its exact compiled workflow slug, and runs only when `control-plane.workflows.<slug>` admits it. It receives the same policy validation, bounded repository admission, and per-target mode and output routing as an orchestrator.
