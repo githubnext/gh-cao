@@ -63,9 +63,9 @@ imports:
       campaign: self-care
       role: orchestrator
       read_repository: ${{ github.repository }}
-      dispatch_max: 20
+      dispatch_max: 21
       orchestrator_credits: 200
-      worker_credits_per_target: 4600
+      worker_credits_per_target: 5100
       read_actions: read
       read_contents: read
 
@@ -91,8 +91,8 @@ network:
 
 safe-outputs:
   dispatch-workflow:
-    workflows: [self-care-accessibility-checker, self-care-agent-discoverability, self-care-code-improvement, self-care-dashboard-data-schema, self-care-dashboard-debug-logging, self-care-dashboard-performance, self-care-data-acquisition-audit, self-care-dashboard-language-refactor, self-care-dashboard-review, self-care-docs-build-time-investigator, self-care-docs-maintainer, self-care-documentation-discoverability, self-care-glossary, self-care-open-source-failures, self-care-pages-health, self-care-primer-brand-checker, self-care-reactive-ui-expert, self-care-server-go-logging, self-care-server-soc2, self-care-specs-maintainer]
-    max: 20
+    workflows: [self-care-accessibility-checker, self-care-agent-discoverability, self-care-cli-consistency, self-care-code-improvement, self-care-dashboard-data-schema, self-care-dashboard-debug-logging, self-care-dashboard-performance, self-care-data-acquisition-audit, self-care-dashboard-language-refactor, self-care-dashboard-review, self-care-docs-build-time-investigator, self-care-docs-maintainer, self-care-documentation-discoverability, self-care-glossary, self-care-open-source-failures, self-care-pages-health, self-care-primer-brand-checker, self-care-reactive-ui-expert, self-care-server-go-logging, self-care-server-soc2, self-care-specs-maintainer]
+    max: 21
   threat-detection: false
 
 source: githubnext/gh-cao@a4b937e2ee4e540d3ccce1377f8943315670f33d
@@ -110,6 +110,7 @@ The single eligible repository contains the documentation site and dashboard mai
 
 - `self-care-accessibility-checker`: audits the rendered documentation site with axe-core, keyboard traversal, and browser evidence, then publishes one prioritized accessibility issue.
 - `self-care-agent-discoverability`: starts from the published `/cao/` route and verifies that procedural, bounded metric, targeted query, and bulk-analysis tasks choose skills, Activity artifacts, MCP, and SQLite without UI scraping.
+- `self-care-cli-consistency`: inventories every CLI command and continuously removes one evidenced duplication or ownership violation per draft PR across the Actions runtime, native operator CLI, server starter, and microservices, without legacy support.
 - `self-care-code-improvement`: extracts one evidenced duplicated dashboard UI construct into a tested reusable component and opens one focused draft pull request.
 - `self-care-dashboard-performance`: rotates through trace-backed CFO, CTO, and CSO Lighthouse bottlenecks and opens one focused draft pull request.
 - `self-care-dashboard-debug-logging`: instruments one evidenced dashboard JavaScript subsystem with category-filtered, privacy-preserving debug logging and opens one focused draft pull request.

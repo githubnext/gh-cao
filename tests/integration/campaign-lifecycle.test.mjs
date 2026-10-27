@@ -145,6 +145,7 @@ const optimizationExpectedFiles = [
 const selfCareExpectedFiles = [
   ".github/workflows/self-care-accessibility-checker.md",
   ".github/workflows/self-care-agent-discoverability.md",
+  ".github/workflows/self-care-cli-consistency.md",
   ".github/workflows/self-care-code-improvement.md",
   ".github/workflows/self-care-dashboard-data-schema.md",
   ".github/workflows/self-care-dashboard-debug-logging.md",

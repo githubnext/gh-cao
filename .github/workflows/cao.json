@@ -251,6 +251,9 @@
           "agent-discoverability": {
             "workflow": "self-care-agent-discoverability"
           },
+          "cli-consistency": {
+            "workflow": "self-care-cli-consistency"
+          },
           "code-improvement": {
             "workflow": "self-care-code-improvement"
           },

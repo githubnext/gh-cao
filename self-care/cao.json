@@ -4,6 +4,7 @@
   "workers": {
     "accessibility-checker": "self-care-accessibility-checker",
     "agent-discoverability": "self-care-agent-discoverability",
+    "cli-consistency": "self-care-cli-consistency",
     "code-improvement": "self-care-code-improvement",
     "dashboard-performance": "self-care-dashboard-performance",
     "dashboard-debug-logging": "self-care-dashboard-debug-logging",
