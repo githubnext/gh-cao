@@ -481,4 +481,29 @@ The [Copilot canvas](agent-plugin.md#open-a-copilot-canvas) also uses Go/SQLite;
 it has no `dataBackend` selector. Choose the separate Pages simulation when you
 need to exercise browser IndexedDB.
 
+### Query the private session archive
+
+> [!WARNING]
+> **Experimental:** The session archive is a proposed, default-off analytics store. Passing its interface does not mean either deployment scenario has met its acceptance gates.
+
+The Go server can optionally archive unified agent sessions as private, immutable Parquet evidence. It is separate from the dashboard SQLite/PostgreSQL data, has no frontend, and never joins automatically with dashboard queries. Existing dashboard queries, overlays, and IndexedDB behavior don't change.
+
+| Scenario | Storage | Query engine |
+| --- | --- | --- |
+| Local persistent server | Private Parquet files on the filesystem | Pinned DuckDB CLI |
+| Hosted persistent server | Private Blob objects | Approved Azure Data Explorer (ADX) external-table queries, only after destination conformance evidence exists |
+
+Enable the local archive with `CAO_SESSION_ARCHIVE_ENABLED=true`. Also set `CAO_SESSION_ARCHIVE_DURABLE_STORAGE`, `CAO_SESSION_ARCHIVE_DIRECTORY`, `CAO_SESSION_ARCHIVE_NAMESPACE`, `CAO_SESSION_ARCHIVE_DUCKDB`, an exact comma-separated `CAO_SESSION_ARCHIVE_REPOSITORIES` list, and a private (no group or world permissions) `CAO_SESSION_ARCHIVE_POLICY` file. Only full capture is supported. Enabling the archive doesn't grant collection authority; it narrows the repositories that existing collection already permits. Unenrolling a repository withdraws its archived sessions.
+
+Authenticated callers use two endpoints. Reading full traces requires an explicit grant beyond normal dashboard membership.
+
+| Endpoint | Use |
+| --- | --- |
+| `GET /api/v1/session-archive/status` | Reports whether the archive is available, with bounded counters |
+| `POST /api/v1/session-archive/query` | Runs a trusted `timeline` or `summary` template, or a local-only `session-query`, for one approved repository |
+
+`timeline` needs a positive GitHub run ID and attempt; `summary` rejects them. Requests are limited to 4096 bytes, and responses to 8 MiB and 10,000 rows. A `session-query` takes a Dashboard Language `query` over `archive-events` and doesn't accept SQL, joins, or `PayloadJSON`. Exceeding a budget returns an error rather than partial results, and archive queries never fall back to dashboard queries. The hosted ADX adapter doesn't yet run `session-query`.
+
+For the full contract, see the [Private unified-session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md).
+
 For normative requirements and failure behavior, see the [Dashboard Data Architecture Specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md).
