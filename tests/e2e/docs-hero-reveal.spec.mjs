@@ -6,7 +6,7 @@ for (const { name, viewport } of [
 ]) {
   for (const { selector, heading } of [
     { selector: ".dispatch-story", heading: "Shared workflows. Clear ownership." },
-    { selector: ".maintenance-story", heading: "Easy agentic workflow upkeep." },
+    { selector: ".maintenance-story", heading: "Easy upkeep" },
     { selector: ".decision-story", heading: "Use evidence to decide what scales." },
   ]) {
     for (const colorScheme of ["light", "dark"]) {
