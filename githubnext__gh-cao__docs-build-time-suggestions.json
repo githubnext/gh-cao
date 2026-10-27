@@ -1,35 +1,7 @@
 {
-  "source_sha": "86afc13f3a5ebb236a7e49252e42ec8317aa096d",
+  "source_sha": "25c62bb426b027b5f7e5642416aed34df3ad9865",
   "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-26T22:55:39Z",
-      "worker_run_id": "40415678454",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        40415340448,
-        40414254268,
-        40413690470,
-        40412247562,
-        40409202717,
-        40407295709,
-        40405972149,
-        40405659232,
-        40403910625,
-        40400761754,
-        40399070746,
-        40397799744,
-        40397385580,
-        40395512740,
-        40391993955,
-        40389962003,
-        40388066136,
-        40386710985,
-        40385430574,
-        40382738853
-      ],
-      "outcome": "incomplete: the 2026-10-26T18:59:59Z to 2026-10-26T22:49:37Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job metadata identified only two successful full build-and-deploy paths: schedule run 40403910625 and workflow_run 40386710985, each with a 69-second build and a 9-11-second deploy. The other 15 successful runs were freshness-only executions; the three newest successful runs explicitly skipped build and deploy, and the remaining overlapping runs were already verified in the immediately preceding bounded evaluations. This is below the required five comparable successful full runs. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, repeated step-cost analysis, current cache-effectiveness verification across a sufficient sample, the CAO Dashboard producer comparison, and a complete scheduling/concurrency evaluation could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
     {
       "evaluated_at": "2026-10-26T23:18:57Z",
       "worker_run_id": "40418623363",
@@ -694,6 +666,13 @@
         40515979657
       ],
       "outcome": "complete no-op: the 2026-10-27T13:52:50Z to 2026-10-27T17:18:28Z latest-20 completed docs.yml window contained 17 successful, two skipped, and one cancelled run, with no failed runs. Five successful full build-and-deploy paths were comparable across one push, two workflow_run, and two schedule triggers at three source SHAs. Full elapsed workflow time was 161.0s median (1020.2s p90); execution excluding initial queue was 116.0s (735.2s p90), initial queue was 5.0s (464.8s p90), build was 76.0s (118.8s p90), deploy was 13.0s (47.0s p90), and the five latest successful CAO Dashboard producer build jobs were 19.0s (20.8s p90). Repeated docs costs were checkout 24.0s median, npm ci 22.0s, Astro generation 15.0s, dashboard restore 1.0s, Pages upload 2.0s, and deploy-pages 9.0s. Bounded logs verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits in all five builds; dashboard artifact fallback was skipped throughout. Schedule run 40521683326 had a 734-second initial queue and duplicated the source SHA of push run 40521173089 while that earlier run remained unconcluded; the push also waited 744 seconds between build and deploy. Schedule run 40525463266 queued 61 seconds, while workflow_run 40525295917 and push 40521173089 had 42-45-second Deploy Pages service-time outliers. The single current same-SHA overlap does not establish a repeated safely avoidable concurrency change, and cancel-in-progress could interrupt Pages deployment. Open issue #19765 already represents the stable path-excluded rebuild opportunity; current evidence does not materially change it. No duplicate issue was created. The next category is dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-10-27T17:34:30Z",
+      "worker_run_id": "40551385990",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable dependency-installation and caching determination could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
     }
   ]
 }
