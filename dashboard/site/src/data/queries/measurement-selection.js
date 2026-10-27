@@ -1,5 +1,8 @@
 import { dashboardQueryIndex, queryInputNames, resolveDashboardQuerySources } from './declarative.js';
 import { queryCollection } from '../storage/indexeddb.js';
+import { createDebug } from '../../debug.js';
+
+const debug = createDebug('measurement-selection');
 
 const source = 'workflow-value-measurements';
 /** @param {unknown[]} definitions @param {Iterable<string>} requested */
@@ -70,10 +73,14 @@ export async function readMeasurements(indexedDB, selections, checkpoint, onMetr
     for (const row of rows) {
       if (result.has(row.id)) continue;
       bytes += new TextEncoder().encode(JSON.stringify(row)).length;
-      if (result.size >= 20000 || bytes > 16 * 1024 * 1024) throw new Error('Native measurement read budget exceeded');
+      if (result.size >= 20000 || bytes > 16 * 1024 * 1024) {
+        debug({ event: 'budget-exceeded', selectionCount: selections?.length ?? 0, keysScanned, recordsRead, bytes });
+        throw new Error('Native measurement read budget exceeded');
+      }
       result.set(row.id, row);
     }
   }
+  debug({ event: 'read', mode: selections ? 'targeted' : 'full', selectionCount: selections?.length ?? 0, keysScanned, recordsRead, rowCount: result.size, bytes });
   onMetrics?.({ keysScanned, recordsRead, bytes });
   return [...result.values()];
 }
