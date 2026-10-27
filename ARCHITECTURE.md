@@ -346,12 +346,19 @@ workflow under `control-plane.campaigns.activity.workflow-values`. After the
 frozen function and bounded collector pass verification, the skill stages that
 registration automatically with `value enable --if-absent`, preserving existing
 registrations and explicit `enabled: false` disables. Mere function presence
-never grants execution authority. Reviewed local
-collectors and policy deploy together. Existing Activity and hosted collection
-cycles invoke due collectors only within effective collection scope, using the
-frozen cadence and ordinary scoped read credentials. They preserve immutable
-proof and original evidence clocks; failed refreshes retain the previous capture
-without reporting a fresh success or zero. Disabling collection retains history.
+never grants execution authority. Reviewed local collectors and policy deploy
+together. Remote collectors also declare a reviewed request ceiling. Actions
+Activity finishes ordinary owner-scoped collection first, admits the full
+ceiling only above the selected credential's protected reserve, and persists a
+secret-free grant that is consumed before every uncached REST, search, artifact
+or GraphQL request. Missing enforcement, insufficient capacity and exhaustion
+fail closed without replacing accepted evidence. Hosted cycles keep remote
+collection deferred until they provide equivalent admission. Due collectors run
+only within effective collection scope and frozen cadence. They continue from
+the retained proof/cutoff, reuse immutable receipts, merged implementations,
+snapshots and Git measurements, and refresh only the new discovery/source
+interval plus required mutable lifecycle evidence. Failed refreshes retain the
+previous capture without reporting a fresh success or zero. Disabling collection retains history.
 No dashboard navigation, report upload or workflow discovery creates an opt-in,
 and no per-workflow schedule or model call is introduced.
 The optional Go ADX add-on (`server/internal/adxingest/`, documented in
@@ -931,11 +938,14 @@ operational-grader measurements, and efficiency evidence separate; they do not
 turn runtime success or output creation into accepted value.
 Package-level `operational-value.mjs` programs compute repository-scoped metric
 records through `cao operational-value`. Automatic remote acquisition remains
-deferred until shared per-request API admission can protect ordinary Activity
-against concurrent credential consumers; separate workers are not separate quota.
-Activity publishes health and retains accepted packets/proof without remote
-Value acquisition. Health reconciles the latest decision and actual attempt
-independently of arrival order; unknown attempts never erase known history.
+deferred without shared per-request API admission; separate workers are not
+separate quota. Actions Activity may admit a reviewed collector only after
+ordinary collection and only when its complete request ceiling fits above the
+protected reserve. It durably counts each uncached GitHub request before
+execution and retains accepted packets/proof on missing capacity or exhaustion.
+Hosted cycles remain deferred pending equivalent admission. Health reconciles
+the latest decision and actual attempt independently of arrival order; unknown
+attempts never erase known history.
 Bounded cache-only/local computation remains independent:
 Actions runs it only after a successful eligible Activity snapshot, while the
 hosted worker uses its own single-owner lease and verified private snapshot.

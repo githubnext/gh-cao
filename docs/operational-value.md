@@ -68,6 +68,8 @@ the selection under
 `control-plane.campaigns.activity.workflow-values` in the control repository's
 reviewed policy. The collector and policy must be committed and deployed
 together; the repository must also be in the effective Activity collection scope.
+For a remote collector, the skill includes its verified maximum as
+`--api-requests N`; local-only collectors omit that option.
 `gh cao value disable ...` persists `enabled: false` without deleting
 measurements. Automatic registration preserves existing selections and explicit
 disables; use `value enable` without `--if-absent` to deliberately re-enable.
@@ -82,15 +84,22 @@ measurement uses the same fixed rules, never a new model-generated assessment.
 Keep immutable measurements and receipts in the supplied per-workflow workspace
 for reuse. Uploaded report packets cannot register or execute collector code.
 
-**Recurring remote acquisition remains deferred pending enforceable shared-budget
-admission.** Existing subprocess collectors do not participate in shared
-per-request REST, search and GraphQL accounting. A separate worker is not
-separate API quota, and a remaining-quota probe cannot reserve capacity against
-concurrent consumers. Activity therefore publishes the enabled registration
-with an explicit deferral reason, retaining accepted packets and immutable proof.
-Observed API exhaustion, fast mode and public-only mode retain their actual
-reasons; otherwise the reason identifies unavailable shared-budget enforcement.
-This is health visibility and core isolation, not guaranteed fresh collection.
+Remote acquisition requires a reviewed `api-requests` ceiling on the exact
+registration. Activity completes ordinary collection first, reads the selected
+credential's live capacity, preserves its existing reserve and admits a
+collector only when the entire reviewed ceiling fits above that reserve. The
+collector receives a secret-free durable grant; every uncached REST, search,
+artifact or GraphQL request consumes one unit atomically before execution.
+Cached reads consume no new unit. Exhaustion can overcount a failed request but
+cannot undercount or issue another request. Missing enforcement or insufficient
+capacity defers before invocation and leaves accepted packets, immutable proof
+and freshness clocks unchanged. Fast mode, public-only mode and observed API
+exhaustion keep their more precise deferral reasons. A separate worker alone
+still does not isolate shared quota.
+
+Collectors without remote requests need no ceiling. Git transport and immutable
+blob measurement remain under their separate existing bounds rather than being
+misrepresented as GitHub REST requests.
 
 Bounded cache-only/local computation remains available separately.
 `CAO Local Value` runs only after successful default-branch Activity publication,
@@ -132,17 +141,32 @@ On a cold start it retrieves only the skill's historical evidence archives at
 immutable source revision `0782148c0af21f4f1d10b7cb5e81b571ed58c463`, validates
 their digests, then acquires fresh discovery and lifecycle evidence. This
 preserves verified receipts after upstream artifact expiry without treating the
-historical capture as fresh. Subsequent collections reuse their own retained proof.
+historical capture as fresh. Subsequent collections continue from their retained
+proof and cutoff: discovery and workflow-source history cover only the new
+interval, immutable merged pulls, receipts, snapshots, Git inventories and blob
+measurements are reused, and only mutable lifecycle evidence is refreshed.
 Rich evidence acquisition has a ten-minute per-collector runtime ceiling
 (the hosted wrapper allows ten additional seconds for shutdown), independent
 of the shorter compact-measurement budget.
+
+The same reviewed registration pins
+`.github/value-evidence/daily-file-diet.jsonl.gz` to decoded envelope SHA-256
+`9afaf3b49a02c1eda0c634016bae98bf0be0a5c1b63f1ae6c6353b151301d19e`.
+That compact retained original reproduces the October 18 schema-v2 packet
+without another checkout or network request. Activity validates and merges it
+through the shared acceptance boundary while publishing the current recurring
+collector deferral independently. Its `2026-10-18T12:05:52.580Z` capture and
+`2026-10-18T11:54:09Z` cutoff remain historical; a later Activity run does not
+retime either clock.
 
 The control policy explicitly lists the same six repositories previously
 collected from `scope.allowed-repositories`; this pins Activity enrollment
 without adding targets or activating Daily File Diet itself. Only the exact
 File Diet pair is registered for recurring Value acquisition.
 Registration is visible after the collector and policy are reviewed and
-deployed together; remote acquisition remains deferred as described above.
+deployed together. Its reviewed `api-requests: 700` ceiling allows Activity to
+refresh it automatically only when that full grant fits above ordinary
+collection's protected reserve.
 It does not override `campaigns.dashboard.deploy: false`:
 this repository intentionally disables standalone Pages deployment because
 Documentation Pages owns the combined site. The existing publication chain is

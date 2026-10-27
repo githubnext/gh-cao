@@ -94,13 +94,23 @@ test("the real reviewed File Diet collector loads in the isolated worker and reu
   const directory = temporary(t);
   const ledger = JSON.parse(readFileSync(path.join(root, "tests/fixtures/operational-value/file-diet-events.json"), "utf8"));
   const output = path.join(directory, "evidence.jsonl");
+  const policy = JSON.parse(readFileSync(path.join(root, ".github/workflows/cao.json"), "utf8"));
+  const registration = policy["control-plane"].campaigns.activity["workflow-values"]
+    .find((entry) => entry.repository === definition.repository && entry.workflow === definition.slug);
+  delete registration.evidence;
+  const policyPath = path.join(directory, "cao.json");
+  writeFileSync(policyPath, JSON.stringify(policy));
   writeFileSync(output, operationalValueEvidenceJsonl(ledger));
   const result = await runWorkflowValues({
-    root, policy: path.join(root, ".github/workflows/cao.json"),
+    root, policy: policyPath,
     repositories: [definition.repository], output, workspace: path.join(directory, "proofs"),
     observedAt: ledger.window.endAt,
+    apiBudget: path.join(directory, "api-budget.json"), apiReserve: 100,
+    apiExecute: () => ({ status: 0, stdout: JSON.stringify({ resources: { core: {
+      limit: 5000, remaining: 4000, used: 1000, reset: 1790000000,
+    } } }), stderr: "" }),
   });
-  assert.deepEqual(result, { collected: 0, skipped: 1, deferred: 0, failed: 0, warnings: [] });
+  assert.deepEqual(result, { imported: 0, collected: 0, skipped: 1, deferred: 0, failed: 0, warnings: [] });
 });
 
 test("cold-start proof is pinned, evidence-only, bounded and validated before reuse", async t => {

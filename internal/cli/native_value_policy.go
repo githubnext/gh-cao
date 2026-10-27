@@ -8,13 +8,18 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 )
 
-var nativeCollectorPath = regexp.MustCompile(`^[A-Za-z0-9._/-]+\.mjs$`)
+var (
+	nativeCollectorPath = regexp.MustCompile(`^[A-Za-z0-9._/-]+\.mjs$`)
+	nativeEvidencePath  = regexp.MustCompile(`^\.github/value-evidence/[A-Za-z0-9._/-]+\.jsonl(?:\.gz)?$`)
+	nativeSHA256        = regexp.MustCompile(`^[a-f0-9]{64}$`)
+)
 
 func nativeWorkflowValuesRule(value any, at string) error {
 	entries, ok := value.([]any)
@@ -28,7 +33,7 @@ func nativeWorkflowValuesRule(value any, at string) error {
 			return errors.New("workflow-values entries must be objects")
 		}
 		for key := range entry {
-			if key != "repository" && key != "workflow" && key != "collector" && key != "enabled" {
+			if key != "repository" && key != "workflow" && key != "collector" && key != "evidence" && key != "api-requests" && key != "enabled" {
 				return errors.New("unknown workflow-values entry field")
 			}
 		}
@@ -50,9 +55,30 @@ func nativeWorkflowValuesRule(value any, at string) error {
 		if (enabled || hasCollector) && !nativeCollectorPath.MatchString(collector) {
 			return errors.New("invalid workflow-values identity or collector")
 		}
+		if value, exists := entry["api-requests"]; exists {
+			if nativeInteger(1, 1000)(value, "workflow-values api-requests") != nil || !hasCollector {
+				return errors.New("workflow-values api-requests must be an integer from 1 through 1000 with a collector")
+			}
+		}
 		for _, part := range strings.Split(collector, "/") {
 			if hasCollector && (part == "" || part == "." || part == "..") {
 				return errors.New("collector must be a confined repository-relative .mjs path")
+			}
+		}
+		if value, exists := entry["evidence"]; exists {
+			evidence, ok := value.(map[string]any)
+			if !ok || len(evidence) != 2 {
+				return errors.New("workflow-values evidence must contain path and sha256")
+			}
+			evidencePath, pathOK := evidence["path"].(string)
+			digest, digestOK := evidence["sha256"].(string)
+			if !pathOK || !digestOK || !nativeEvidencePath.MatchString(evidencePath) || !nativeSHA256.MatchString(digest) {
+				return errors.New("invalid workflow-values evidence reference")
+			}
+			for _, part := range strings.Split(evidencePath, "/") {
+				if part == "" || part == "." || part == ".." {
+					return errors.New("evidence must be a confined reviewed repository-relative path")
+				}
 			}
 		}
 		key := strings.ToLower(repository) + ":" + workflow
@@ -106,6 +132,19 @@ func nativeValueConfigure(cmd *cobra.Command, args []string, enable bool) error 
 	if enable {
 		collector := nativeString(cmd, "collector")
 		entry := map[string]any{"repository": args[0], "workflow": args[1], "collector": collector}
+		if existing != nil && existing["evidence"] != nil {
+			entry["evidence"] = existing["evidence"]
+		}
+		requests := nativeString(cmd, "api-requests")
+		if requests != "" {
+			value, err := strconv.Atoi(requests)
+			if err != nil || value < 1 || value > 1000 {
+				return errors.New("--api-requests must be an integer from 1 through 1000")
+			}
+			entry["api-requests"] = value
+		} else if existing != nil && existing["api-requests"] != nil {
+			entry["api-requests"] = existing["api-requests"]
+		}
 		if err := nativeWorkflowValuesRule([]any{entry}, "workflow-values"); err != nil {
 			return err
 		}

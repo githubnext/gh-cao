@@ -159,6 +159,9 @@ Use `/add-operational-value OWNER/REPO` to list repository workflows or `/add-op
     definition and acquired originals. Once both function and collector pass
     verification, automatically stage registration for the selected pair with
     `gh cao value enable OWNER/REPO WORKFLOW --collector PATH --if-absent`.
+    If the collector issues GitHub API requests, freeze its verified worst-case
+    request ceiling and include `--api-requests N`; never guess or omit that
+    authority for a remote collector.
     This is part of implementing the confirmed design, not a separate enable
     question. Use it only in a control repository with an existing reviewed
     policy and that repository already enrolled in Activity. Otherwise state
@@ -241,10 +244,12 @@ Use `/add-operational-value OWNER/REPO` to list repository workflows or `/add-op
   and validation. The automatic registration in step 6 records only the selected
   pair; function files alone are not runtime authority. Have the policy
   and collector reviewed, committed and deployed together. Do not widen Activity
-  scope or enable the measured workflow. Recurring remote acquisition remains
-  deferred until enforceable shared API budgets protect ordinary Activity.
-  Registration is visible as enabled-but-deferred, not a promise of fresh
-  measurements. Bounded local-only computations run independently on eligible
+  scope or enable the measured workflow. A remote collector also needs a reviewed
+  `api-requests` ceiling. Activity completes ordinary collection first, admits
+  the full ceiling only above its protected API reserve, and durably consumes
+  one unit before each uncached REST, search, artifact or GraphQL request.
+  Missing enforcement or insufficient capacity defers without invoking the
+  collector. Bounded local-only computations run independently on eligible
   published snapshots; they do not bypass fast, public-only or API-limit gates.
   An admitted collector must honor the frozen cadence; a failed refresh must retain
   the prior accepted evidence and timestamps. `value disable` revokes future

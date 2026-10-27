@@ -18,7 +18,7 @@ const entry = { repository: 'org/repo', workflow: 'daily-review', collector: 'co
 function policy() {
   return { version: 1, 'gh-aw-version': 'v0.92.5', 'control-plane': {
     scope: { 'allowed-owners': ['org'], 'allowed-repositories': ['org/repo'] },
-    activity: { repositories: ['org/repo'] }, campaigns: { activity: { 'workflow-values': [entry] } },
+    activity: { repositories: ['org/repo'] }, campaigns: { activity: { 'workflow-values': [{ ...entry }] } },
   } };
 }
 function packet(observedAt = '2026-10-20T12:00:00.000Z') {
@@ -72,6 +72,25 @@ test('reviewed opt-ins intersect both effective Activity enrollment and explicit
     invalid['control-plane'].campaigns.activity['workflow-values'][0] = { ...entry, collector };
     assert.throws(() => parsePolicy(JSON.stringify(invalid)));
   }
+  for (const evidence of [
+    { path: '../evidence.jsonl', sha256: 'a'.repeat(64) },
+    { path: '.github/value-evidence/evidence.jsonl', sha256: 'invalid' },
+    { path: 'https://host/evidence.jsonl', sha256: 'a'.repeat(64) },
+  ]) {
+    const invalid = policy();
+    invalid['control-plane'].campaigns.activity['workflow-values'][0] = { ...entry, evidence };
+    assert.throws(() => parsePolicy(JSON.stringify(invalid)));
+  }
+  for (const requests of [0, 1001, 1.5]) {
+    const invalid = policy();
+    invalid['control-plane'].campaigns.activity['workflow-values'][0] = { ...entry, 'api-requests': requests };
+    assert.throws(() => parsePolicy(JSON.stringify(invalid)));
+  }
+  const withoutCollector = policy();
+  withoutCollector['control-plane'].campaigns.activity['workflow-values'][0] = {
+    repository: entry.repository, workflow: entry.workflow, 'api-requests': 1,
+  };
+  assert.throws(() => parsePolicy(JSON.stringify(withoutCollector)));
   const duplicate = policy();
   duplicate['control-plane'].campaigns.activity['workflow-values'] = [entry, { ...entry, repository: 'ORG/REPO' }];
   assert.throws(() => parsePolicy(JSON.stringify(duplicate)), /duplicate/);
@@ -89,9 +108,60 @@ test('dogfood File Diet registration pins existing effective Activity scope with
   assert.deepEqual(activityCollectionPlan(controlSettings(document, auth.controlRepository), auth),
     activityCollectionPlan(controlSettings(before, auth.controlRepository), auth));
   assert.deepEqual(workflowValueRegistrations(document, ['github/gh-aw']), [{
+    'api-requests': 700,
     repository: 'github/gh-aw', workflow: 'daily-file-diet', collector: '.github/value-collectors/daily-file-diet.mjs',
+    evidence: {
+      path: '.github/value-evidence/daily-file-diet.jsonl.gz',
+      sha256: '9afaf3b49a02c1eda0c634016bae98bf0be0a5c1b63f1ae6c6353b151301d19e',
+    },
   }]);
   assert.equal(control.campaigns.dashboard.deploy, false);
+});
+
+test('reviewed remote collection requires full post-Activity capacity before invocation', async t => {
+  const options = await fixture(t);
+  const remote = policy();
+  remote['control-plane'].campaigns.activity['workflow-values'][0]['api-requests'] = 3;
+  await writeFile(options.policy, JSON.stringify(remote));
+  options.apiBudget = path.join(options.root, 'api-budget.json');
+  options.apiReserve = 1000;
+  options.apiExecute = () => ({ status: 0, stdout: JSON.stringify({ resources: { core: {
+    limit: 5000, remaining: 1002, used: 3998, reset: 1790000000,
+  } } }), stderr: '' });
+  let result = await runWorkflowValues(options);
+  assert.equal(result.deferred, 1);
+  assert.equal(result.collected, 0);
+  assert.equal((await collection(options)).reasonCode, 'api-budget');
+  assert.equal((await collection(options)).lastAttemptAt, undefined);
+  options.apiExecute = () => ({ status: 0, stdout: JSON.stringify({ resources: { core: {
+    limit: 5000, remaining: 1003, used: 3997, reset: 1790000000,
+  } } }), stderr: '' });
+  result = await runWorkflowValues(options);
+  assert.equal(result.collected, 1);
+  assert.equal(JSON.parse(await readFile(options.apiBudget, 'utf8')).granted, 3);
+});
+
+test('collector request exhaustion is counted before execution and reported explicitly', async t => {
+  const budgetModule = new URL('../../activity/github-api-budget.mjs', import.meta.url).href;
+  const options = await fixture(t, `
+ const {consumeGithubApiBudget}=await import(${JSON.stringify(budgetModule)});
+ consumeGithubApiBudget(process.env.CAO_GITHUB_API_BUDGET_FILE);
+ consumeGithubApiBudget(process.env.CAO_GITHUB_API_BUDGET_FILE);
+ return ${JSON.stringify(packet())};
+`);
+  const remote = policy();
+  remote['control-plane'].campaigns.activity['workflow-values'][0]['api-requests'] = 1;
+  await writeFile(options.policy, JSON.stringify(remote));
+  options.apiBudget = path.join(options.root, 'api-budget.json');
+  options.apiReserve = 1000;
+  options.apiExecute = () => ({ status: 0, stdout: JSON.stringify({ resources: { core: {
+    limit: 5000, remaining: 4000, used: 1000, reset: 1790000000,
+  } } }), stderr: '' });
+  const result = await runWorkflowValues(options);
+  assert.equal(result.failed, 1);
+  assert.equal((await collection(options)).reasonCode, 'api-budget');
+  assert.equal(JSON.parse(await readFile(options.apiBudget, 'utf8')).consumed, 1);
+  await assert.rejects(readFile(options.output, 'utf8'), /ENOENT/);
 });
 
 test('recurring producer emits original typed facts, retains proof, skips satisfied cadence and preserves disabled history', async (t) => {

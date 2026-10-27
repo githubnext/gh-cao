@@ -519,7 +519,9 @@ export function verifyCaoRuntime(bundle, repositoryRoot = process.cwd()) {
   const required = {
     activity: [
       'activity/cao.mjs',
+      'activity/github-api-budget.mjs',
       'activity/workflow-values.mjs',
+      'activity/workflow-value-evidence.mjs',
       'activity/workflow-value-history.mjs',
       'activity/workflow-value-status.mjs',
       'activity/canonical-query.mjs',

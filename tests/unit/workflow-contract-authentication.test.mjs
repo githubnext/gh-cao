@@ -489,9 +489,13 @@ test("CAO Activity workflow-token API reserves fit its standard 1000-request quo
         + appPatReserve + "' }}",
     );
   }
-  assert.equal(value.env.GH_TOKEN, "");
-  assert.equal(value.env.CAO_OPERATIONAL_VALUE_GH_TOKEN, "");
-  assert.match(value.run, /reason=shared-budget-unavailable/);
+  assert.equal(value.env.GH_TOKEN, undefined);
+  assert.equal(value.env.CAO_GITHUB_CREDENTIAL_ID, "${{ matrix.credentialRepository || matrix.owner }}");
+  assert.equal(value.env.REPORT_VALUE_API_RESERVE,
+    "${{ (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && '100' || '2000' }}");
+  assert.match(value.run, /reason=/);
+  assert.match(value.run, /--apiBudget/);
+  assert.match(value.run, /--apiReserve "\$REPORT_VALUE_API_RESERVE"/);
   assert.match(value.run, /REPORT_RATE_LIMITED" == "true" \]\]; then reason=api-budget/);
   assert.doesNotMatch(value.run, /gh api|--max-github-api-rate-limit|cao\.mjs operational-value/);
   assert.ok(inventory.run.indexOf('github-telemetry.mjs capacity "$REPORT_MAX_GITHUB_API_RATE_LIMIT"')

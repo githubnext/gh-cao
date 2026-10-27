@@ -3126,6 +3126,20 @@ the same metric version SHALL fail. Original accepted-event dates, native values
 and immutable references SHALL remain evidence, not recalculated report state.
 Existing `operationalValues` semantics and retention SHALL remain unchanged.
 
+Static Activity publication MAY accept an original packet only through a
+reviewed workflow-Value registration that names a confined regular file under
+the trusted checkout's `.github/value-evidence/` directory and pins the SHA-256
+of the decoded schema-v2 envelope. Runtime URLs and network retrieval SHALL NOT
+be accepted. Before replacing retained evidence, Activity SHALL validate the
+envelope schema and bounds, digest, repository/workflow/source identity, current
+reviewed Activity scope, frozen contract and accepted history. An exact retry is
+idempotent; conflicting content at the same packet/capture identity, a changed
+contract under the same metric version and an older replacement SHALL fail
+without changing retained evidence or clocks. This import SHALL remain
+independent of recurring collector health, so a historical accepted capture and
+a newer shared-budget deferral MAY be published together without representing
+the historical capture as fresh.
+
 The skill's validated event ledger SHALL export a schema-v2
 `operational_value_evidence` JSONL envelope. Normal Activity ingestion,
 normalization, phase publication and browser/SQLite/PostgreSQL storage SHALL
@@ -3162,7 +3176,9 @@ cache lifetime and isolation SHALL remain unchanged.
 Recurring acquisition SHALL require reviewed registration for an exact
 repository/workflow under `control-plane.campaigns.activity.workflow-values`,
 with a confined repository-local deterministic collector deployed together
-with policy. The skill SHALL stage registration automatically only after the
+with policy. A collector that issues GitHub API requests SHALL also declare a
+reviewed integer `api-requests` ceiling from 1 through 1,000. The skill SHALL
+stage registration automatically only after the
 frozen function and bounded collector pass verification, preserving existing
 registrations and explicit `enabled: false` disables. Function presence alone
 SHALL NOT grant execution authority or enroll a repository.
@@ -3292,14 +3308,32 @@ historical conflict quarantine, or the proposed three-tier storage policy.
 
 Optional Value acquisition MUST NOT delay ordinary Activity publication, consume
 its protected API headroom, or hold the hosted projection lease. A separate job
-or process alone does not isolate GitHub quota. The existing recurring
-subprocess collectors do not participate in shared, per-request REST, search and
-GraphQL admission; automatic Activity and hosted cycles SHALL therefore publish
-health and retain evidence without invoking remote acquisition. Observed API exhaustion,
-fast mode and public-only mode retain their precise deferral reasons; otherwise
-the decision SHALL name unavailable shared-budget enforcement. No quota probe,
-token mint, historical seed, retry loop or backfill is needed to publish that
-decision. Explicit operator evaluation and evidence publication remain separate.
+or process alone does not isolate GitHub quota. Actions Activity SHALL finish its
+ordinary owner-scoped collection first and MAY then invoke an exact reviewed
+remote collector only when its full `api-requests` ceiling fits above the
+selected credential's protected core reserve. It SHALL persist a bounded,
+secret-free grant and durably consume one unit before each uncached REST,
+search, artifact or GraphQL request. Cached responses consume no new unit.
+Consumption SHALL be fail-closed: a failed or interrupted request MAY remain
+counted but no request may execute before its count is persisted. Exhaustion,
+invalid state, missing enforcement or insufficient admission SHALL retain prior
+evidence and publish a deferral without collector invocation where possible.
+Observed API exhaustion, fast mode and public-only mode retain their precise
+deferral reasons. Git transport SHALL remain under its separate immutable
+inventory/blob bounds and SHALL NOT consume GitHub API request units.
+
+Hosted automatic cycles SHALL continue to defer remote collectors until they
+provide equivalent shared admission; explicit operator evaluation and evidence
+publication remain separate.
+
+A collector continuing an accepted proof SHALL start discovery and mutable
+source-history acquisition at the retained cutoff, with exact timestamp
+filtering for date-granularity search overlap. It SHALL preserve frozen adoption
+identity and reuse immutable accepted receipts, merged implementations,
+snapshots, Git inventories and blob measurements. It MAY refresh prior mutable
+lifecycle graphs and timelines needed to advance evidence, and SHALL append only
+new cadence/final snapshots. Prior accepted delivery facts and original clocks
+MUST NOT be rewritten or dropped.
 
 This deferral SHALL NOT disable bounded cache-only or deterministic local
 computations. An independent optional lane MAY compute against an already

@@ -246,7 +246,9 @@ is uploaded. Static Pages still requires the Activity transport above.
 Publication alone does not arrange future acquisition. Once the frozen function
 and repository-local recurring collector pass verification, the skill
 automatically stages the exact registration with
-`gh cao value enable OWNER/REPO WORKFLOW --collector PATH --if-absent`. Commit/deploy
+`gh cao value enable OWNER/REPO WORKFLOW --collector PATH --api-requests N --if-absent`
+for a collector that issues GitHub API requests (omit the request option for a
+local-only collector). Commit/deploy
 collector and policy together. Only that registered, in-scope pair becomes
 eligible for collection at its existing cadence on the ordinary Activity or
 hosted collection cycle. Failed refreshes keep the old capture, not a fake new

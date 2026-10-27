@@ -45,7 +45,7 @@ test('fast collection preserves Value history and publishes a deferred decision 
   writeFileSync(inventory, JSON.stringify({ repositories: { rows: [] }, workflows: { rows: [] } }));
   assert.match(computation.run, /cp "\$retained_values" "\$value_output"[\s\S]*?REPORT_FAST_MODE" == "true" \]\]; then reason=fast-mode/);
   assert.equal(computation['continue-on-error'], true);
-  assert.equal(computation['timeout-minutes'], 1);
+  assert.equal(computation['timeout-minutes'], 20);
   const output = execFileSync('bash', ['-euc', computation.run], {
     cwd: root, encoding: 'utf8',
     env: {
@@ -54,11 +54,17 @@ test('fast collection preserves Value history and publishes a deferred decision 
       REPORT_TARGET_REPOSITORIES_JSON: '["github/gh-aw"]',
       ACTIVITY_DATABASE: path.join(directory, 'unused.sqlite'), REPORT_INVENTORY_SOURCES: inventory,
       GITHUB_RUN_ID: '1', GITHUB_RUN_ATTEMPT: '1', GH_TOKEN: '', GITHUB_TOKEN: '',
+      REPORT_VALUE_API_RESERVE: '100',
       REPORT_VALUE_SEED_SHARDS: seed, REPORT_GH_AW_LOGS_SHARDS: shards,
     }
   });
-  assert.equal(JSON.parse(output).deferred, 1);
+  const result = JSON.parse(output);
+  assert.equal(result.imported, 1);
+  assert.equal(result.deferred, 1);
   assert.equal(readFileSync(path.join(shards, 'operational-values-example.jsonl'), 'utf8'), 'retained evidence\n');
+  const evidence = JSON.parse(readFileSync(path.join(shards, 'workflow-values-example.jsonl'), 'utf8'));
+  assert.equal(evidence.operational_value_evidence.observedAt, '2026-10-18T12:05:52.580Z');
+  assert.equal(evidence.operational_value_evidence.windowEnd, '2026-10-18T11:54:09Z');
   const health = JSON.parse(readFileSync(path.join(shards, 'workflow-values-example-collections.jsonl'), 'utf8'));
   assert.equal(health.workflow_value_collection.repository, 'github/gh-aw');
   assert.equal(health.workflow_value_collection.workflow, 'daily-file-diet');

@@ -313,7 +313,12 @@
       "activity": {
         "workflow-values": [
           {
+            "api-requests": 700,
             "collector": ".github/value-collectors/daily-file-diet.mjs",
+            "evidence": {
+              "path": ".github/value-evidence/daily-file-diet.jsonl.gz",
+              "sha256": "9afaf3b49a02c1eda0c634016bae98bf0be0a5c1b63f1ae6c6353b151301d19e"
+            },
             "repository": "github/gh-aw",
             "workflow": "daily-file-diet"
           }

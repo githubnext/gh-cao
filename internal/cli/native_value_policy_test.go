@@ -15,6 +15,7 @@ func TestNativeValueOptInOnlyStagesExactLocalPolicy(t *testing.T) {
 	writeTestFile(t, "collectors/value.mjs", nativeCollectorFixture)
 	cmd, output := nativeManagementCommand()
 	cmd.Flags().String("collector", "collectors/value.mjs", "")
+	cmd.Flags().String("api-requests", "25", "")
 	if err := nativeValueConfigure(cmd, []string{"owner/repo", "daily-review"}, true); err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +27,8 @@ func TestNativeValueOptInOnlyStagesExactLocalPolicy(t *testing.T) {
 	_ = json.Unmarshal([]byte(nativeManagementPolicy), &before)
 	control := policy["control-plane"].(map[string]any)
 	entries := control["campaigns"].(map[string]any)["activity"].(map[string]any)["workflow-values"].([]any)
-	if len(entries) != 1 || entries[0].(map[string]any)["collector"] != "collectors/value.mjs" {
+	if len(entries) != 1 || entries[0].(map[string]any)["collector"] != "collectors/value.mjs" ||
+		entries[0].(map[string]any)["api-requests"] != json.Number("25") {
 		t.Fatalf("unexpected opt-in: %+v", entries)
 	}
 	delete(control["campaigns"].(map[string]any), "activity")
@@ -67,6 +69,7 @@ func TestNativeValueAutomaticRegistrationPreservesExistingPolicy(t *testing.T) {
 	if err := nativeValueConfigure(cmd, []string{"owner/repo", "daily-review"}, true); err != nil {
 		t.Fatal(err)
 	}
+
 	before, _ := os.ReadFile(policyPath)
 	if err := nativeValueConfigure(cmd, []string{"owner/repo", "daily-review"}, true); err != nil {
 		t.Fatal(err)
@@ -88,6 +91,44 @@ func TestNativeValueAutomaticRegistrationPreservesExistingPolicy(t *testing.T) {
 	entries := policy["control-plane"].(map[string]any)["campaigns"].(map[string]any)["activity"].(map[string]any)["workflow-values"].([]any)
 	if len(entries) != 2 || entries[1].(map[string]any)["enabled"] != false {
 		t.Fatal("automatic registration ignored an advance explicit disable")
+	}
+}
+
+func TestNativeValuePolicyAcceptsAndPreservesReviewedEvidence(t *testing.T) {
+	nativeManagementDirectory(t)
+	var policy map[string]any
+	if err := json.Unmarshal([]byte(nativeManagementPolicy), &policy); err != nil {
+		t.Fatal(err)
+	}
+	control := policy["control-plane"].(map[string]any)
+	control["campaigns"] = map[string]any{"activity": map[string]any{"workflow-values": []any{
+		map[string]any{
+			"repository": "owner/repo", "workflow": "daily-review", "collector": "collectors/value.mjs",
+			"api-requests": float64(25),
+			"evidence": map[string]any{
+				"path":   ".github/value-evidence/daily-review.jsonl.gz",
+				"sha256": strings.Repeat("a", 64),
+			},
+		},
+	}}}
+	content, _ := json.Marshal(policy)
+	writeTestFile(t, policyPath, string(content))
+	writeTestFile(t, "collectors/value.mjs", nativeCollectorFixture)
+	cmd, _ := nativeManagementCommand()
+	cmd.Flags().String("collector", "collectors/value.mjs", "")
+	if err := nativeValueConfigure(cmd, []string{"owner/repo", "daily-review"}, true); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := nativeReadValidatedPolicy()
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := updated["control-plane"].(map[string]any)["campaigns"].(map[string]any)["activity"].(map[string]any)["workflow-values"].([]any)[0].(map[string]any)
+	if entry["evidence"].(map[string]any)["sha256"] != strings.Repeat("a", 64) {
+		t.Fatal("value enable discarded reviewed evidence")
+	}
+	if entry["api-requests"] != json.Number("25") {
+		t.Fatal("value enable discarded reviewed API request authority")
 	}
 }
 
@@ -114,6 +155,20 @@ func TestNativeValueOptInFailsClosedWithoutEnrollmentIdentityOrConfinedModule(t 
 		content, _ := os.ReadFile(policyPath)
 		if string(content) != nativeManagementPolicy {
 			t.Fatal("rejected opt-in rewrote policy")
+		}
+	}
+}
+
+func TestNativeValueOptInRejectsInvalidAPIRequestCeiling(t *testing.T) {
+	nativeManagementDirectory(t)
+	writeTestFile(t, policyPath, nativeManagementPolicy)
+	writeTestFile(t, "collectors/value.mjs", nativeCollectorFixture)
+	for _, value := range []string{"0", "1001", "1.5", "many"} {
+		cmd, _ := nativeManagementCommand()
+		cmd.Flags().String("collector", "collectors/value.mjs", "")
+		cmd.Flags().String("api-requests", value, "")
+		if err := nativeValueConfigure(cmd, []string{"owner/repo", "daily-review"}, true); err == nil {
+			t.Fatalf("accepted invalid API request ceiling %q", value)
 		}
 	}
 }

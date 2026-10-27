@@ -787,10 +787,24 @@ function validateOperationPolicies(campaigns, collection = "campaigns") {
       const identities = new Set();
       for (const entry of campaignPolicy["workflow-values"]) {
         assertMapping(entry, `${path}.workflow-values`);
-        assertKeys(entry, ["repository", "workflow", "collector", "enabled"], `${path}.workflow-values`);
+        assertKeys(entry, ["repository", "workflow", "collector", "evidence", "api-requests", "enabled"], `${path}.workflow-values`);
         assertString(entry.repository, `${path}.repository`, REPOSITORY_PATTERN);
         assertString(entry.workflow, `${path}.workflow`, SLUG_PATTERN);
         if ("enabled" in entry) assertBoolean(entry.enabled, `${path}.enabled`);
+        if ("api-requests" in entry) {
+          assertInteger(entry["api-requests"], `${path}.api-requests`, 1, 1000);
+          if (!("collector" in entry)) throw new PolicyError(`${path}.api-requests requires a collector`);
+        }
+        if ("evidence" in entry) {
+          assertMapping(entry.evidence, `${path}.evidence`);
+          assertKeys(entry.evidence, ["path", "sha256"], `${path}.evidence`);
+          assertString(entry.evidence.path, `${path}.evidence.path`,
+            /^\.github\/value-evidence\/(?!.*(?:^|\/)\.\.?\/)[A-Za-z0-9._/-]+\.jsonl(?:\.gz)?$/);
+          if (entry.evidence.path.split("/").some((part) => !part || part === "." || part === "..")) {
+            throw new PolicyError(`${path}.evidence.path must be a confined reviewed evidence path`);
+          }
+          assertString(entry.evidence.sha256, `${path}.evidence.sha256`, /^[a-f0-9]{64}$/);
+        }
         if (entry.enabled !== false || "collector" in entry) {
           assertString(entry.collector, `${path}.collector`, /^(?!\/)(?!.*(?:^|\/)\.\.?\/)[A-Za-z0-9._/-]+\.mjs$/);
           if (entry.collector.split("/").some((part) => !part || part === "." || part === "..")) {

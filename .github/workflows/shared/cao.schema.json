@@ -106,7 +106,17 @@
               "enabled": { "type": "boolean" },
               "repository": { "$ref": "#/$defs/repository" },
               "workflow": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-              "collector": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))[A-Za-z0-9._/-]+\\.mjs$" }
+              "collector": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))[A-Za-z0-9._/-]+\\.mjs$" },
+              "api-requests": { "type": "integer", "minimum": 1, "maximum": 1000 },
+              "evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "sha256"],
+                "properties": {
+                  "path": { "type": "string", "pattern": "^\\.github/value-evidence/(?!.*(?:^|/)\\.{1,2}(?:/|$))[A-Za-z0-9._/-]+\\.jsonl(?:\\.gz)?$" },
+                  "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+                }
+              }
             }
           }
         },

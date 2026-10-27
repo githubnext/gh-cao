@@ -116,6 +116,7 @@ Success is JSON; stale or conflicting captures fail without retrying.`
 	_ = publish.MarkFlagRequired("input")
 	enable := operatorCommand("enable OWNER/REPO WORKFLOW", "Stage an exact recurring Value collector opt-in in local policy", cobra.ExactArgs(2), []operatorFlag{
 		textFlag("collector", "Existing reviewed repository-relative .mjs collector (no symlinks)"),
+		textFlag("api-requests", "Reviewed maximum uncached GitHub API requests per remote collection (1-1000)"),
 		boolFlag("if-absent", "Register only when absent; preserve existing registrations and explicit disables"),
 	}, execute)
 	enable.Long = "Stage local reviewed policy only. The repository must already be explicitly enrolled in Activity. Review and commit the collector and cao.json, then deploy/push to enable scheduled collection. Never pushes, enrolls repositories, activates target workflows, or uploads executable code."

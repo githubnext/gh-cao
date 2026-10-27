@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
+import { githubApiBudgetConsumerFromEnvironment } from "../../../../activity/github-api-budget.mjs";
 import { readJsonArchive } from "./json-archive.mjs";
 
 export const digest = value => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -18,14 +19,19 @@ export function writeEvidence(file, value) {
   writeFileSync(file, gzipSync(bytes));
 }
 
-export function githubReader(directory, execute = execFileSync) {
+export function githubReader(directory, execute = execFileSync, options = {}) {
   mkdirSync(directory, { recursive: true });
   let requests = 0;
+  const consume = options.consume ?? githubApiBudgetConsumerFromEnvironment();
+  const maxRequests = options.maxRequests ?? 1000;
+  assert.ok(Number.isSafeInteger(maxRequests) && maxRequests > 0 && maxRequests <= 1000,
+    "Evidence API request budget is invalid");
   return (endpoint, query, binary = false) => {
-    assert.ok(++requests <= 1000, "Evidence API request budget exceeded");
     const key = binary ? [endpoint, query ?? null, "binary"] : [endpoint, query ?? null];
     const cache = path.join(directory, `${digest(key)}${binary ? ".zip" : ".json.gz"}`);
     if (existsSync(cache)) return binary ? readFileSync(cache) : readJsonArchive(cache);
+    assert.ok(++requests <= maxRequests, "Evidence API request budget exceeded");
+    consume?.();
     let value;
     try {
       const bytes = execute("gh", query ? ["api", "graphql", "-f", `query=${query}`] : ["api", endpoint],

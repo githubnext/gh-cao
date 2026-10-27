@@ -8,7 +8,10 @@ import {
   bytesDigest, githubReader, graphQuery, normalizeGraph, readTimeline, validateProducer, workflowReference,
 } from "../../.github/skills/add-operational-value/scripts/github-evidence.mjs";
 import { collectGitInventories } from "../../.github/skills/add-operational-value/scripts/git-evidence.mjs";
-import { acquireFileDietHistory, appliedReceipt, preserveReceipt, refreshFileDiet, verifyPreservedDeliveries } from "../../.github/skills/add-operational-value/examples/acquire-file-diet.mjs";
+import {
+  acquireFileDietHistory, appliedReceipt, collectReceipts, preserveReceipt, refreshFileDiet,
+  verifyPreservedDeliveries,
+} from "../../.github/skills/add-operational-value/examples/acquire-file-diet.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const repository = "github/gh-aw";
@@ -115,6 +118,21 @@ test("expired source artifacts do not erase preserved applied-output receipt ide
   assert.throws(() => preserveReceipt(issue, { ...prior, receipt: { ...prior.receipt, content: "changed" } }), /digest changed/);
 });
 
+test("retained issues without an artifact inventory remain explicit missing evidence", () => {
+  const issue = {
+    id: "I_missing", number: 7, retainedArtifacts: null,
+    run: { unavailable: { reason: "Producer run is no longer available" } },
+  };
+  const proof = { issues: [issue] };
+  collectReceipts(proof, null, () => {
+    throw new Error("GitHub must not be queried without a retained artifact");
+  }, ".");
+  assert.deepEqual(issue.receipt, {
+    status: "missing",
+    reason: "Producer run is no longer available",
+  });
+});
+
 test("fresh discovery cannot rewrite or discard previously accepted native delivery facts", () => {
   const previous = { metric: { id: "fixed", version: "v1" },
     events: [{ id: "PR_1", at: createdAt, value: 1, acceptance: { ref: sha("a") } }] };
@@ -190,6 +208,28 @@ test("bounded fresh history keeps tracked outputs, native snapshots and explicit
     { total_count: 2, incomplete_results: false, items: [] },
   ]) assert.throws(() => acquireFileDietHistory((endpoint, query) =>
     endpoint.startsWith("search/issues?") ? bad : fakeHistory()(endpoint, query), until), /coverage|truncated/);
+});
+
+test("incremental history starts discovery at the retained cutoff and reuses immutable identities", () => {
+  const initial = acquireFileDietHistory(fakeHistory(), until);
+  const next = "2026-10-21T00:00:00Z";
+  const calls = [];
+  const source = fakeHistory();
+  const proof = acquireFileDietHistory((endpoint, query) => {
+    calls.push(endpoint);
+    return source(endpoint, query);
+  }, next, initial);
+  assert.deepEqual(proof.adoption, initial.adoption);
+  assert.equal(proof.issues.length, initial.issues.length);
+  assert.equal(proof.issues[0].reference.runId, initial.issues[0].reference.runId);
+  assert.ok(calls.some(endpoint => endpoint.includes(`since=${until}`)));
+  assert.ok(calls.filter(endpoint => endpoint.startsWith("search/issues?"))
+    .every(endpoint => decodeURIComponent(endpoint).includes(`updated:${until.slice(0, 10)}..${next.slice(0, 10)}`)));
+  assert.ok(!calls.includes(`repos/${repository}/commits/${sha("a")}`));
+  assert.ok(!calls.some(endpoint => endpoint.endsWith("/actions/runs/42")));
+  assert.ok(!calls.some(endpoint => endpoint.includes("/artifacts?")));
+  assert.equal(proof.snapshots.length, 1);
+  assert.equal(proof.snapshots[0].at, next);
 });
 
 test("Git evidence reuses immutable facts and resolves new deliveries from actual parent headers", t => {

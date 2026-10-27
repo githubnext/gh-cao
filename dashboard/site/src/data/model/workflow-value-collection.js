@@ -25,7 +25,7 @@ const STATE_REASONS = {
   unconfigured: ['unconfigured'], disabled: ['disabled', 'activity-disabled'],
   'never-captured': ['never-captured'],
   deferred: ['api-budget', 'budget-unavailable', 'shared-budget-unavailable', 'fast-mode', 'public-only', 'batch-budget'],
-  failed: ['timeout', 'collector-failed', 'invalid-evidence', 'batch-budget'],
+  failed: ['api-budget', 'timeout', 'collector-failed', 'invalid-evidence', 'batch-budget'],
   available: ['captured', 'not-due']
 };
 

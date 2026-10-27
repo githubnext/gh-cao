@@ -27,7 +27,8 @@ var nativeRuntimeResources = []string{
 }
 
 var nativeRuntimeRequiredFiles = []string{
-	"activity/workflow-values.mjs", "dashboard/site/src/data/model/operational-value-evidence.js",
+	"activity/workflow-values.mjs", "activity/workflow-value-evidence.mjs", "activity/github-api-budget.mjs",
+	"dashboard/site/src/data/model/operational-value-evidence.js",
 	"activity/cao.mjs", "activity/cli/activity-stats.mjs",
 	"activity/cli/cache.mjs", "activity/cli/dashboard.mjs",
 	"activity/cli/download.mjs", "activity/cli/files.mjs",

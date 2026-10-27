@@ -15,6 +15,8 @@ describe('canonical workflow Value collection facts', () => {
   it('fails closed on contradictory states, clocks, identities and measurements disguised as health', () => {
     const record = fixture.workflow_value_collection;
     expect(validateWorkflowValueCollection(record)).toEqual(record);
+    expect(validateWorkflowValueCollection({ ...record, state: 'failed' }))
+      .toEqual({ ...record, state: 'failed' });
     for (const changes of [
       { registration: 'disabled' }, { state: 'available' }, { reason: 'invented' },
       { lastAttemptAt: '2026-10-24T12:00:00Z' }, { lastAttemptOutcome: 'deferred' },

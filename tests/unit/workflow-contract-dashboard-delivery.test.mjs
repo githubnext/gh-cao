@@ -541,13 +541,14 @@ test("Activity campaign owns the shared collected-data cache contract", () => {
   assert.match(workflow, /Download owner-scoped agentic workflow logs[\s\S]*?REPORT_DEFER_ISSUE_STATUS: "1"[\s\S]*?Enrich owner-scoped issue statuses[\s\S]*?cao\.mjs issue-status[\s\S]*?Generate phased activity shards/);
   assert.match(workflow, /Ingest activity database[\s\S]*?gh-aw-logs\.sqlite[\s\S]*?ingest-jsonl/);
   assert.doesNotMatch(workflow, /cao\.mjs operational-value/);
-  assert.match(workflow, /Retain Value evidence and publish collection health[\s\S]*?--defer "\$reason"/);
+  assert.match(workflow, /Retain Value evidence and publish collection health[\s\S]*?defer_args\+=\(--defer "\$reason"\)/);
   assert.doesNotMatch(workflow, /--history-campaign/);
   assert.match(workflow, /Retain Value evidence and publish collection health[\s\S]*?REPORT_VALUE_SEED_SHARDS:[\s\S]*?cp "\$retained_values" "\$value_output"/);
   assert.match(workflow, /paths:[\s\S]*?- "activity\/\*\*"/);
   assert.match(workflow, /paths:[\s\S]*?- "\*\/operational-value\/\*\*"/);
   assert.match(workflow, /Select independent activity credential[\s\S]*?id: activity-credential[\s\S]*?echo "token=\$token" >> "\$GITHUB_OUTPUT"/);
-  assert.match(workflow, /Retain Value evidence and publish collection health[\s\S]*?CAO_OPERATIONAL_VALUE_GH_TOKEN: ""/);
+  assert.match(workflow, /Retain Value evidence and publish collection health[\s\S]*?CAO_GITHUB_CREDENTIAL_ID:/);
+  assert.match(workflow, /Retain Value evidence and publish collection health[\s\S]*?--apiBudget/);
   assert.match(workflow, /Report collection-health publication failure/);
   const optionalImport = parse(workflow).jobs.index.steps.find(step => step.id === "local-value-import");
   assert.equal(optionalImport["continue-on-error"], true);

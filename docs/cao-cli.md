@@ -674,7 +674,8 @@ with that collector's actual path; an evidence file or renderer is not a
 collector:
 
 ```bash
-gh cao value enable github/gh-aw daily-file-diet --collector COLLECTOR_PATH.mjs
+gh cao value enable github/gh-aw daily-file-diet \
+  --collector COLLECTOR_PATH.mjs --api-requests 700
 gh cao value disable github/gh-aw daily-file-diet
 ```
 
@@ -683,9 +684,11 @@ that policy and collector together. They do not enable the measured workflow,
 enroll repositories, upload executable code or immediately start a collection.
 In particular, a standalone workflow's existence does not cause CAO to discover
 or schedule its evaluator; recurring collection requires this exact opt-in.
-Recurring remote acquisition remains deferred pending enforceable shared API
-budgets. Activity publishes the enabled registration and actual deferral reason,
-while bounded local-only computations run outside its publication path.
+`--api-requests` is required by the reviewed design for a collector that issues
+GitHub API requests and is omitted for a local-only collector. Activity admits
+the full ceiling only after ordinary collection and above its protected reserve;
+missing or insufficient admission publishes the actual deferral reason.
+Bounded local-only computations run outside its publication path.
 A failed refresh retains the last accepted capture without changing
 its timestamp or inventing a zero. Disable stops future collection, not history.
 An explicit disable persists even if the skill is used again.

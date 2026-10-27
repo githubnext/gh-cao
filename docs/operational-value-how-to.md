@@ -36,7 +36,8 @@ That split neither moves the workflow source nor requires campaign membership.
 `gh cao value publish` sends already collected evidence to a hosted dashboard;
 it does not enroll recurring collection. `gh cao value enable` records the exact
 repository, workflow and collector opt-in for recurring collection in the
-control repository's reviewed policy. A standalone workflow is displayable once
+control repository's reviewed policy. A remote collector also records its
+reviewed `--api-requests` ceiling; a local-only collector omits it. A standalone workflow is displayable once
 its evidence is published, but its evaluator is not discovered or scheduled
 merely because the workflow exists.
 
@@ -135,11 +136,13 @@ revisions. Reuse that fixed definition for subsequent evaluations.
 To keep it current, the skill automatically stages its exact registration after the frozen function
 and bounded collector pass verification; no separate enable step is needed.
 Review, commit and deploy the policy and collector together. Activity shows its
-real collection health even before a first capture. Recurring remote acquisition
-remains deferred until shared API budgets can be enforced; registration alone
-does not guarantee fresh measurements. Bounded local-only computations run
-separately without holding up ordinary publication. Failures and deferrals
-keep the last capture; disabling collection keeps history. For a one-time
+real collection health even before a first capture. Remote acquisition also
+requires a reviewed `api-requests` ceiling. Activity runs it only after ordinary
+collection and only when the entire ceiling fits above protected capacity;
+each uncached GitHub request consumes the durable grant before execution.
+Registration alone therefore does not guarantee a fresh measurement. Bounded
+local-only computations run separately without holding up ordinary publication.
+Failures and deferrals keep the last capture; disabling collection keeps history. For a one-time
 hosted upload, use `gh cao value publish ... --server URL --input REPORT-evidence.jsonl`;
 uploading alone does not enable collection.
 See [publication and recurring collection](operational-value.md#recurring-collection-after-opt-in).
@@ -300,4 +303,15 @@ An explicit hosted `gh cao value publish` sends the original envelope to the
 authorized PostgreSQL publication API; static publication uses normal Activity
 normalization and the reviewed Dashboard/Documentation deployment. Local
 verification, a commit, or an uploaded archive object proves neither hosted
-availability nor recurring collection. Shared-budget deferral remains in force.
+availability nor recurring collection. Remote collection without a reviewed,
+enforced request grant remains deferred.
+
+A source-managed control repository may associate a retained original with the
+same reviewed `workflow-values` registration using
+`evidence: { path, sha256 }`. The path is confined to the trusted checkout's
+`.github/value-evidence/` directory; `.jsonl.gz` stores are decoded before the
+declared envelope SHA-256 is checked. Activity validates identity, contract and
+history before atomically updating its normal workflow Value JSONL. This is a
+static publication lane, not URL import or collection authority: current
+collector deferral remains a separate health record, and the retained packet
+keeps its original capture and cutoff.

@@ -32,6 +32,7 @@ on:
       - .github/workflows/cao-value-local.yml
       - .github/workflows/cao-dashboard.yml
       - ".github/value-collectors/**"
+      - ".github/value-evidence/**"
       - ".github/skills/add-operational-value/**"
       - "activity/**"
       - "dashboard/**"
@@ -353,14 +354,14 @@ jobs:
 
       - name: Retain Value evidence and publish collection health
         id: value-health
-        timeout-minutes: 1
+        timeout-minutes: 20
         continue-on-error: true
         env:
           REPORT_PUBLIC_ONLY: ${{ matrix.publicOnly == true }}
           ACTIVITY_ARTIFACT: ${{ matrix.artifact }}
           ACTIVITY_DATABASE: ${{ runner.temp }}/cao-activity/collection.sqlite
-          CAO_OPERATIONAL_VALUE_GH_TOKEN: ""
-          GH_TOKEN: ""
+          CAO_GITHUB_CREDENTIAL_ID: ${{ matrix.credentialRepository || matrix.owner }}
+          REPORT_VALUE_API_RESERVE: ${{ (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && '100' || '2000' }}
           REPORT_TARGET_REPOSITORIES_JSON: ${{ toJSON(matrix.repositories) }}
           REPORT_GH_AW_LOGS_SHARDS: ${{ runner.temp }}/cao-activity-partial/${{ matrix.artifact }}/gh-aw-logs-shards
           REPORT_INVENTORY_SOURCES: ${{ runner.temp }}/cao-activity-partial/${{ matrix.artifact }}/inventory-sources.json
@@ -387,10 +388,12 @@ jobs:
           if [[ -f "$retained_values" ]]; then
             cp "$retained_values" "$value_output"
           fi
-          reason=shared-budget-unavailable
+          reason=
           if [[ "$REPORT_FAST_MODE" == "true" ]]; then reason=fast-mode; fi
           if [[ "$REPORT_PUBLIC_ONLY" == "true" ]]; then reason=public-only; fi
           if [[ "$REPORT_RATE_LIMITED" == "true" ]]; then reason=api-budget; fi
+          defer_args=()
+          if [[ -n "$reason" ]]; then defer_args+=(--defer "$reason"); fi
           repository_args=()
           while IFS= read -r target_repository; do
             repository_args+=(--repository "$target_repository")
@@ -399,7 +402,9 @@ jobs:
               --root . --policy .github/workflows/cao.json \
               --database "$ACTIVITY_DATABASE" --output "$rich_output" \
               --healthOutput "$health_output" --inventory "$REPORT_INVENTORY_SOURCES" \
-              --defer "$reason" --workspace "$proof_output" "${repository_args[@]}" \
+              --workspace "$proof_output" "${repository_args[@]}" "${defer_args[@]}" \
+              --apiBudget "$RUNNER_TEMP/cao-activity-partial/$ACTIVITY_ARTIFACT/value-api-budget.json" \
+              --apiReserve "$REPORT_VALUE_API_RESERVE" \
               --localRequest "$REPORT_GH_AW_LOGS_SHARDS/workflow-value-local.json" \
               --snapshot "$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
 
