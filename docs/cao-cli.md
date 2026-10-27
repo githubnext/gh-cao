@@ -628,6 +628,17 @@ Dashboard Actions is switched to the Go executable.
 Run the [operational-value skill](operational-value-how-to.md) first. It defines
 the measurement contract and produces validated `*-evidence.jsonl`; publishing
 does not collect evidence, run an evaluator or enable recurring work.
+Campaign membership is not required: campaign workers and standalone workflows
+use the same canonical Value display path. Their source stays in the owning
+repository, while the evaluator, collector and publication machinery may live
+in the CAO control repository. Daily File Diet, for example, is sourced from
+`github/gh-aw` and measured by tooling in `githubnext/gh-cao`.
+
+Native schema-v2 `operational_value` envelopes carry compact measurements;
+richer schema-v2 `operational_value_evidence` envelopes carry report facts and
+drilldowns. After either form enters canonical storage through its supported
+publication path, Dashboard Language selects the latest primary result without
+workflow-specific dashboard JSON or code.
 
 ```bash
 gh cao value publish github/gh-aw daily-file-diet \
@@ -670,6 +681,8 @@ gh cao value disable github/gh-aw daily-file-diet
 These commands edit local `.github/workflows/cao.json`; review, commit and deploy
 that policy and collector together. They do not enable the measured workflow,
 enroll repositories, upload executable code or immediately start a collection.
+In particular, a standalone workflow's existence does not cause CAO to discover
+or schedule its evaluator; recurring collection requires this exact opt-in.
 Recurring remote acquisition remains deferred pending enforceable shared API
 budgets. Activity publishes the enabled registration and actual deferral reason,
 while bounded local-only computations run outside its publication path.

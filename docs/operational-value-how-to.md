@@ -10,6 +10,36 @@ This guide assumes you know workflow Markdown, precomputes and safe outputs.
 **Intent defines what we measure. A fixed cadence tracks the repository;
 acceptance anchors each linked contribution.**
 
+## How any workflow gets Value
+
+Campaign membership is optional. A campaign worker and a standalone workflow use
+the same canonical display path once evidence is published. The workflow source
+stays in its owning repository; the reviewed evaluator, collector and CAO
+publication machinery may live in the CAO control repository.
+
+1. **Define and review the measurement.** Freeze the repository outcome,
+   population, primary metric, cadence, evidence rules and missing-data behavior.
+2. **Collect or evaluate, then publish canonical evidence.** Native schema-v2
+   `operational_value` records carry compact repository measurements. Richer
+   schema-v2 `operational_value_evidence` packets retain report facts such as
+   snapshots, accepted-change lineage and drilldowns.
+3. **Let dashboard ingestion display it.** Activity publication or hosted
+   publication ingests the original evidence into canonical storage. Dashboard
+   Language selects the latest primary result for **Value** automatically. No
+   workflow-specific dashboard JSON or JavaScript is required.
+
+Daily File Diet is the cross-repository example: its workflow source,
+`.github/workflows/daily-file-diet.md`, belongs to `github/gh-aw`, while its
+measurement tooling and source-managed collector live in `githubnext/gh-cao`.
+That split neither moves the workflow source nor requires campaign membership.
+
+`gh cao value publish` sends already collected evidence to a hosted dashboard;
+it does not enroll recurring collection. `gh cao value enable` records the exact
+repository, workflow and collector opt-in for recurring collection in the
+control repository's reviewed policy. A standalone workflow is displayable once
+its evidence is published, but its evaluator is not discovered or scheduled
+merely because the workflow exists.
+
 ## Define the value function
 
 Read the workflow's Markdown, imports and precomputes for its goal, selection
