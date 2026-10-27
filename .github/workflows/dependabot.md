@@ -43,6 +43,7 @@ on:
     actions: read
 
 env:
+  CAO_DEFAULT_TARGET_REPOSITORY: ${{ github.event_name == 'schedule' && github.repository || '' }}
   GH_AW_SAFE_OUTPUT_MODE: ${{ inputs.safe_output_mode || 'review' }}
   REVIEW_OUTPUT_REPO: ${{ inputs.safe_output_repo || github.repository }}
   SAFE_OUTPUT_REPO: ${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || '' }}
@@ -108,6 +109,7 @@ Campaign orchestrator for organization-wide Dependabot plan maintenance. Use the
 
 ## Inputs and scope
 
+- Scheduled runs target the control repository only, avoiding mixed-PAT fleet inventory. Dispatch with an explicit `target_repo` to service another enrolled repository; manual discovery without a target still requires fleet-capable credentials.
 - Keep `target_repo`, `safe_output_repo`, `max_repos`, and `safe_output_mode` as the control-plane contract. `target_repo` narrows a run to one allowlisted repository, `safe_output_repo` optionally overrides the control repository in `review`, `max_repos` caps repository selections and therefore worker dispatches, and `safe_output_mode` controls where safe outputs are routed.
 - Read `/tmp/gh-aw/agent/control-precompute.json` before making selection decisions. Treat `candidate_repositories`, `max_repos`, `safe_output_mode`, `safe_output_repo`, and worker eligibility from that file as authoritative.
 - Exclude archived or inactive repositories, repositories without a resolvable default branch, and repositories whose dependency surfaces cannot be read safely enough to make a scoped dispatch decision.

@@ -176,6 +176,30 @@ test("repository-local scheduled inventory avoids unrelated PAT mappings", async
   assert.equal(result.minted.length, 0);
 });
 
+test("Dependabot scheduled inventory stays repository-local without changing manual discovery", async () => {
+  const source = parse(readFileSync(join(root, ".github/workflows/dependabot.md"), "utf8").split("---")[1]);
+  const defaultTarget = eventName => interpolate(source.env.CAO_DEFAULT_TARGET_REPOSITORY, {
+    github: { repository: "acme/control", event_name: eventName },
+  });
+  assert.equal(defaultTarget("schedule"), "acme/control");
+  assert.equal(defaultTarget("workflow_dispatch"), "");
+  const env = {
+    CAO_CONTROL_READ_PAT: "control-pat", CAO_INVENTORY_READ_PAT: "control-pat",
+    CAO_READ_PAT_REPOSITORIES: JSON.stringify({
+      "acme/control": "CONTROL_PAT", "acme/private-a": "TARGET_PAT", "acme/private-b": "OTHER_PAT",
+    }),
+  };
+  const result = await scenario({
+    target: "", defaultTarget: defaultTarget("schedule"), eventName: "schedule", mode: "pat", env,
+  });
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.admission.authorized, true);
+  assert.equal(result.precompute.activation_ready, true);
+  assert.deepEqual(result.precompute.candidate_repositories.map(repo => repo.full_name), ["acme/control"]);
+  assert.ok(!result.calls.some(call => /\/repos\/acme\/private-/.test(call.path)));
+  assert.equal(result.minted.length, 0);
+});
+
 test("scheduled mixed-PAT fleet blocks activation before target reads with actionable diagnostics", async () => {
   const result = await scenario({
     target: "", eventName: "schedule", mode: "pat",
