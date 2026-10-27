@@ -1,35 +1,7 @@
 {
-  "source_sha": "75043b034a17a8add5ba1875ad02bcd2788d2f8c",
+  "source_sha": "7bb31a43897f04f2d6effe174ed2f2b3ab4c9659",
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-26T19:55:24Z",
-      "worker_run_id": "40390589063",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        40389962003,
-        40388066136,
-        40386710985,
-        40385430574,
-        40382738853,
-        40382670586,
-        40379392120,
-        40374236100,
-        40371977534,
-        40369937735,
-        40368546029,
-        40368195259,
-        40364730602,
-        40363276542,
-        40362663067,
-        40362277394,
-        40359644140,
-        40355585317,
-        40354712554,
-        40352947602
-      ],
-      "outcome": "complete no-op: the 2026-10-26T15:48:30Z to 2026-10-26T19:48:16Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. The five latest successful full build-and-deploy paths were comparable across two push, two schedule, and one workflow_run trigger at four source SHAs. Full elapsed workflow time was 101.0s median (112.6s p90); execution excluding initial queue was 96.0s (108.0s p90), queue was 4.0s (4.0s p90), build was 69.0s (72.4s p90), deploy was 17.0s (23.2s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (21.6s p90). Repeated docs costs were checkout 23.0s median, npm ci 18.0s, Astro generation 14.0s, dashboard restore 1.0s, Pages upload 2.0s, and deploy-pages 14.0s. Trusted step metadata verified dashboard-cache hits in all five docs builds because Restore cached CAO Dashboard succeeded while both artifact lookup and download fallback were skipped. The current reusable-dashboard design remains effective: producer assembly is decoupled, producer builds take 17.0s median, and consuming the cached dashboard costs 1.0s median. Eliminating that restore would save about 1% of median execution, below both actionability thresholds, while bypassing freshness or producer publication would weaken correctness. Deploy Pages reached 22 seconds in run 40368195259, but that belongs to artifact transfer and Pages packaging. No recommendation was made. The next category is artifact transfer and Pages packaging."
-    },
     {
       "evaluated_at": "2026-10-26T20:24:58Z",
       "worker_run_id": "40394938852",
@@ -694,6 +666,13 @@
         40471302568
       ],
       "outcome": "incomplete: the 2026-10-27T08:06:56Z to 2026-10-27T11:01:43Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Trusted job and step metadata identified seven successful full build-and-deploy paths across four push, two workflow_run, and one schedule trigger. Dashboard cache restoration succeeded and artifact fallback was skipped in all seven. While collecting the remaining required evidence, the runtime failed to create a new OS thread. Per resource-limit policy, all further GitHub API work stopped. Current CAO Dashboard producer timings, bounded cache logs, the complete open-issue duplicate search, and therefore a complete scheduling/concurrency determination could not be finished. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-27T11:39:25Z",
+      "worker_run_id": "40497439631",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
