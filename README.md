@@ -19,19 +19,21 @@ Install the extension:
 gh extension install githubnext/gh-cao
 ```
 
-Git and authenticated GitHub CLI 2.68+ are required. Need a control repository?
-Create one with `gh repo create OWNER/CONTROL --private --clone`, then `cd CONTROL`.
+Git and authenticated GitHub CLI 2.68+ are required. Need a repository?
+Create one with `gh repo create OWNER/REPOSITORY --private --clone`, then
+`cd REPOSITORY`.
 
-From the control repository's root:
+From the repository root:
 
 ```bash
 gh cao setup
 ```
 
-Setup prepares the monitoring runtime, policy, and gh-aw. It does **not** install
-or run a campaign, and it keeps changes local unless you separately approve
-commit and push. A published setup reports **deployment pending**; an empty
-dashboard is normal until Agentic Workflow evidence exists.
+Setup makes this the control repository by preparing the monitoring runtime,
+policy, and gh-aw. It does **not** install or run a campaign, and it keeps
+changes local unless you separately approve commit and push. A published setup
+reports **deployment pending**; an empty dashboard is normal until Agentic
+Workflow evidence exists.
 
 Use a private control repository for non-public evidence, but verify dashboard
 visibility before publishing: a private repository does not guarantee private
