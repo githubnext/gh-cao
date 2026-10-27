@@ -6,7 +6,7 @@ const slideTitles = [
   "Central Agentic Ops",
   "Monitor and govern GitHub Agentic Workflows at scale.",
   "Shared workflows. Clear ownership.",
-  "EASY UPDATES, ALL IN ONE PLACE.",
+  "Easy agentic workflow upkeep.",
   "Roll out with confidence.",
   "Use evidence to decide what scales.",
   "Webhook Gateway",
@@ -154,7 +154,7 @@ test("expands and edits code locally without changing the original commands or n
   await expect(editor).toHaveText("gh cao setup");
   await page.getByRole("button", { name: "Close expanded snippet", exact: true }).click();
   await page.keyboard.press("ArrowLeft");
-  await expectSlide(page, slideTitles.indexOf("EASY UPDATES, ALL IN ONE PLACE."));
+  await expectSlide(page, slideTitles.indexOf("Easy agentic workflow upkeep."));
   await page.getByRole("button", { name: "Expand Dashboard maintenance", exact: true }).click();
   const maintenance = page.getByRole("dialog", { name: "Dashboard maintenance", exact: true });
   await expect(maintenance).toBeVisible();

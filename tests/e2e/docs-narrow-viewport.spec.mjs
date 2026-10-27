@@ -1038,7 +1038,7 @@ for (const { name, viewport } of [
       await expect(tagline).toBeVisible();
       await expect(tagline).toHaveText("Keep track of all runs, costs, and outcomes of your GitHub Agentic Workflows across repositories. Set execution scope and rollout policy, refine workflows in review mode, and roll out with confidence.");
       await expect(page.getByRole("heading", { name: "Shared workflows. Clear ownership.", exact: true })).toBeAttached();
-      await expect(page.getByRole("heading", { name: "EASY UPDATES, ALL IN ONE PLACE.", exact: true })).toBeAttached();
+      await expect(page.getByRole("heading", { name: "Easy agentic workflow upkeep.", exact: true })).toBeAttached();
       await expect(page.locator(".runs-story, .value-story")).toHaveCount(0);
       await expect(page.getByRole("heading", { name: "Roll out with confidence.", exact: true })).toBeAttached();
       await expect(page.locator(".terminal-story .section-eyebrow")).toHaveText("Setup, authentication, and rollout");
@@ -1087,9 +1087,9 @@ for (const { name, viewport } of [
       await expect(page.locator(".phone-image")).toHaveCount(1);
       await expect(page.locator(".product-shot-mobile")).toHaveCount(0);
       const maintenance = page.locator(".maintenance-story");
-      await expect(maintenance.locator(".section-eyebrow")).toHaveText("One reviewed place");
+      await expect(maintenance.locator(".section-eyebrow")).toHaveText("One control plane");
       await expect(maintenance.locator("dt")).toHaveText(["01 gh-aw upgrades", "02 Workflow source updates"]);
-      await expect(maintenance).toContainText("Keep workflows across all enrolled repositories up to date and secure.");
+      await expect(maintenance).toContainText("Centralize agentic workflow maintenance to keep every enrolled repository up to date and secure.");
       await expect(maintenance).toContainText("Version pins keep installs reproducible");
       await expect(maintenance).toContainText("3-way merges preserve local customizations");
       await expect(maintenance).not.toContainText("campaign");

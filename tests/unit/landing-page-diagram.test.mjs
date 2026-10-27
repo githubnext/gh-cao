@@ -71,8 +71,9 @@ test("landing page presents the product through real operational surfaces", () =
     ["dispatch-story", "maintenance-story", "terminal-story", "decision-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
   );
   assert.match(hero, /aria-labelledby="maintenance-title" data-reveal data-slideshow-slide/);
-  assert.match(hero, /EASY UPDATES, ALL IN ONE PLACE\./);
-  assert.match(hero, /Keep workflows across all enrolled repositories up to date and secure\./);
+  assert.match(hero, /One control plane/);
+  assert.match(hero, /Easy agentic workflow upkeep\./);
+  assert.match(hero, /Centralize agentic workflow maintenance to keep every enrolled repository up to date and secure\./);
   assert.match(hero, /data-slideshow-snippet="Dashboard maintenance"/);
   for (const label of ["gh-aw upgrades", "Workflow source updates"]) assert.ok(hero.includes(label));
   const maintenance = hero.match(/<section class="product-story maintenance-story"[\s\S]*?<\/section>/)?.[0];
