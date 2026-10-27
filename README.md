@@ -30,8 +30,12 @@ dashboard is normal until Agentic Workflow evidence exists.
 
 Use a private control repository for non-public evidence, but verify dashboard
 visibility before publishing: a private repository does not guarantee private
-GitHub Pages. If SAML authorization blocks extension installation, use the
-[documented installer fallback](docs/cao-cli.md#control-plane-installer).
+GitHub Pages.
+
+> [!TIP]
+> **SAML-token installation failure:** Use the
+> [curl installer](docs/cao-cli.md#control-plane-installer):
+> `curl -fsSL https://raw.githubusercontent.com/githubnext/gh-cao/main/install-gh-cao.sh | bash -s -- --setup`.
 
 Follow [Set Up CAO](docs/setup-quickstarts.md) for authentication, scope,
 publication, and your first dashboard visit.
@@ -57,7 +61,8 @@ For agents, install the [CAO plugin](docs/agent-plugin.md) and use the task skil
 
 - [What CAO is and its safety boundaries](docs/architecture-at-a-glance.md)
 - [CLI commands](docs/cao-cli.md), [authentication](docs/authentication.md), and
-  [deployment](docs/deployment.md)
+  [deployment](docs/deployment.md), including
+  [GitHub Actions and Pages](docs/deployment-actions.md)
 - [Dashboard evidence](docs/dashboard.md) and [agent analysis](docs/agent-analysis.md)
 - [Operations, updates, and recovery](docs/operations.md)
 - [Documentation site](https://githubnext.github.io/gh-cao/) and
