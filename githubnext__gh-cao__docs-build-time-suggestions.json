@@ -1,14 +1,7 @@
 {
   "source_sha": "e614d9b21217818ced9b2021fd8f7adb004ce5a4",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-26T17:54:17Z",
-      "worker_run_id": "40372417565",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the initial bounded GitHub requests for the latest 20 completed docs.yml runs, latest 20 completed cao-dashboard.yml runs, and open duplicate issues failed because the runtime could not create a new OS thread. Per resource-limit policy, all further GitHub API and model work stopped. A current evidence window, the required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, dashboard-producer comparison, duplicate open-issue check, and actionable dependency installation and caching determination could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
-    },
     {
       "evaluated_at": "2026-10-26T18:31:37Z",
       "worker_run_id": "40378101979",
@@ -673,6 +666,34 @@
       "category": "reusable dashboard generation",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-27T09:25:46Z",
+      "worker_run_id": "40480271824",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        40478115694,
+        40476932831,
+        40476332306,
+        40474284793,
+        40471302568,
+        40470811272,
+        40469903205,
+        40469572816,
+        40469287123,
+        40468928991,
+        40467795991,
+        40466599219,
+        40464857997,
+        40463838959,
+        40463588892,
+        40463316258,
+        40462853075,
+        40462601300,
+        40462393764,
+        40460916259
+      ],
+      "outcome": "complete no-op: the 2026-10-27T06:24:27Z to 2026-10-27T09:05:21Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Ten successful full build-and-deploy paths were comparable across five push, four workflow_run, and one schedule trigger at seven source SHAs. Full elapsed workflow time was 99.5s median (115.3s p90); execution excluding initial queue was 96.5s (111.0s p90), queue was 4.0s (4.2s p90), build was 72.5s (83.3s p90), deploy was 12.0s (30.5s p90), and the five latest successful CAO Dashboard producer build jobs were 17.0s (20.0s p90). Repeated docs costs were checkout 23.5s median, npm ci 22.0s, Astro generation 14.0s, dashboard restore 1.0s, Pages upload 3.0s, and deploy-pages 7.5s. Trusted step metadata verified central-agentic-ops-dashboard cache hits in all ten full builds: restore succeeded while both artifact lookup and download fallback were skipped. Producer-side activity restore was 1.0s median, dependency installation 2.0s, Dashboard Language assembly 2.0s, artifact upload 2.0s, and the cache publication job 8.0s. The current reusable-dashboard design is effective: generation remains decoupled at 17.0s median and docs consumption costs only 1.0s median. Eliminating reuse overhead would save about 1% of median execution, below both actionability thresholds, while rebuilding the dashboard in docs or bypassing freshness would weaken performance or correctness. Run 40460916259 is disclosed as a deployment-service outlier with a 42-second Deploy Pages step; it does not indicate a reusable-dashboard bottleneck. No recommendation was made. The next category is artifact transfer and Pages packaging."
     }
   ]
 }
