@@ -103,6 +103,14 @@ safe-outputs:
     close-older-key: self-care-dashboard-review
     max: 1
     expires: 14d
+steps:
+  - name: Configure Ubuntu package mirrors
+    run: |
+      for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
+        if [ -f "$source" ]; then
+          sudo sed -i 's|http://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$source"
+        fi
+      done
 pre-agent-steps:
   - name: Configure Playwright CLI launch options
     if: ${{ inputs.target_repo == 'githubnext/gh-cao' && (inputs.safe_output_mode || 'review') == 'live' }}

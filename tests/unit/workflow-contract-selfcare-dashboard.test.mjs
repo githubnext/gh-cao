@@ -250,6 +250,32 @@ test("SelfCare dashboard reviewer checks deployments through stakeholder persona
   assert.doesNotMatch(source, /^\s+(create-pull-request|add-comment|create-discussion|push-to-pull-request-branch):/m);
 });
 
+test("SelfCare dashboard reviewer avoids the slow Azure Ubuntu mirror before installing browsers", () => {
+  const source = workflow("self-care-dashboard-review.md");
+  const compiled = workflow("self-care-dashboard-review.lock.yml");
+  const setup = stepBlock(source, "Configure Ubuntu package mirrors");
+  const compiledSetup = stepBlock(compiled, "Configure Ubuntu package mirrors");
+
+  assert.match(source, /^steps:\n  - name: Configure Ubuntu package mirrors/m);
+  for (const path of ["/etc/apt/apt-mirrors.txt", "/etc/apt/sources.list", "/etc/apt/sources.list.d/ubuntu.sources"]) {
+    assert.ok(setup.includes(path));
+  }
+  assert.match(setup, /if \[ -f "\$source" \]; then/);
+  assert.match(compiledSetup, /sudo sed -i/);
+  assert.ok(compiled.indexOf("name: Configure Ubuntu package mirrors") < compiled.indexOf("name: Install Playwright browsers"));
+  const expression = /sudo sed -i '([^']+)'/.exec(setup)?.[1];
+  assert.ok(expression);
+  for (const [input, expected] of [
+    ["http://azure.archive.ubuntu.com/ubuntu/\tpriority:1\n", "https://archive.ubuntu.com/ubuntu/\tpriority:1\n"],
+    ["deb http://azure.archive.ubuntu.com/ubuntu noble main\n", "deb https://archive.ubuntu.com/ubuntu noble main\n"],
+    ["URIs: http://azure.archive.ubuntu.com/ubuntu/\nSuites: noble-updates\n", "URIs: https://archive.ubuntu.com/ubuntu/\nSuites: noble-updates\n"],
+    ["https://security.ubuntu.com/ubuntu/\tpriority:3\n", "https://security.ubuntu.com/ubuntu/\tpriority:3\n"],
+  ]) {
+    assert.equal(execFileSync("sed", ["-e", expression], { input, encoding: "utf8" }), expected);
+    assert.equal(execFileSync("sed", ["-e", expression], { input: expected, encoding: "utf8" }), expected);
+  }
+});
+
 test("SelfCare dashboard performance worker selects one highest-ROI small win", () => {
   const source = workflow("self-care-dashboard-performance.md");
   const liveGuard = "if: ${{ inputs.target_repo == 'githubnext/gh-cao' && (inputs.safe_output_mode || 'review') == 'live' }}";
