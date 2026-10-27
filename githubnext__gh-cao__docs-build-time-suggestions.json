@@ -1,35 +1,7 @@
 {
-  "source_sha": "b2a623b4764a084e96dcf9d0c56c9f10d0917306",
+  "source_sha": "fc0f5b1c3526ba0e4623ccc8a0dfc553f1fa5992",
   "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-27T04:23:42Z",
-      "worker_run_id": "40449256084",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        40447464622,
-        40446617827,
-        40444504675,
-        40444453160,
-        40441998113,
-        40441305290,
-        40441195137,
-        40439220260,
-        40436542296,
-        40434621085,
-        40433684472,
-        40432238157,
-        40431314481,
-        40429501482,
-        40423934092,
-        40422030497,
-        40420548567,
-        40420137066,
-        40419126820,
-        40416790881
-      ],
-      "outcome": "incomplete: the 2026-10-26T23:01:21Z to 2026-10-27T04:01:59Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job metadata for the newest run 40447464622 showed a seven-second schedule-freshness job while build and deploy were skipped. The other 19 runs overlap the immediately preceding bounded evaluation, whose trusted job and step metadata identified only two successful full build-and-deploy paths: workflow_run 40444453160 and workflow_run 40433684472; the remaining successful runs were freshness-only executions and three workflow_run callbacks were skipped. Two comparable full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, a sufficient repeated-cost comparison, current cache-effectiveness verification across five comparable builds, the CAO Dashboard producer comparison, and a complete scheduling/concurrency evaluation could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
     {
       "evaluated_at": "2026-10-27T04:42:47Z",
       "worker_run_id": "40450993342",
@@ -652,6 +624,13 @@
         40541885482
       ],
       "outcome": "incomplete: the 2026-10-27T16:32:18Z to 2026-10-27T20:19:03Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job metadata confirmed the two newly entered schedule runs 40576905444 and 40574311140 executed only 7-8 second freshness checks within 10-13 second schedule-freshness jobs while build and deploy were skipped. Combined with the immediately preceding overlapping bounded evaluation, only two successful full build-and-deploy paths remain in the current window: push run 40553265606 and schedule run 40551395238. The other successful runs were freshness-only executions and three ineligible workflow_run callbacks were skipped. Two comparable successful full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost analysis, current cache-effectiveness verification across five comparable builds, the CAO Dashboard producer comparison, and a complete Astro documentation-generation evaluation could not be produced. No recommendation was made, and Astro documentation generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-27T20:33:21Z",
+      "worker_run_id": "40578546859",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable Astro documentation-generation determination could not be completed. No recommendation was made, and Astro documentation generation remains the next category."
     }
   ]
 }
