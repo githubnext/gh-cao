@@ -13,15 +13,20 @@ or human review.
 
 ## Start safely
 
-From the root of a private control-repository checkout:
+Install the extension:
 
 ```bash
 gh extension install githubnext/gh-cao
-gh cao setup
 ```
 
 Git and authenticated GitHub CLI 2.68+ are required. Need a control repository?
 Create one with `gh repo create OWNER/CONTROL --private --clone`, then `cd CONTROL`.
+
+From the control repository's root:
+
+```bash
+gh cao setup
+```
 
 Setup prepares the monitoring runtime, policy, and gh-aw. It does **not** install
 or run a campaign, and it keeps changes local unless you separately approve
