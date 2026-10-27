@@ -254,6 +254,13 @@ describe('native workflow value production contract', () => {
     expect(dashboard.queries.some((/** @type {{ name: string }} */ query) =>
       query.name.startsWith('operational-value-'))).toBe(false);
     const page = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === contract.page);
+    expect(page.route).toMatchObject({
+      'hash-query-parameter': 'workflow',
+      'navigation-page': 'value',
+      breadcrumbs: [{ page: 'value' }]
+    });
+    expect(page.route.tab).toBeUndefined();
+    expect(page.route.tabs).toBeUndefined();
     expect(page.views[0]).toMatchObject({
       id: contract.collectionView, data: { source: contract.collectionQuery, arguments: [{ name: 'workflow', field: 'workflow-route' }] },
       mark: 'list', list: { card: contract.collectionCard }

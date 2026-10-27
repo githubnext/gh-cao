@@ -470,13 +470,7 @@
       "subject": "Frozen workflow value measurements and their published evidence.",
       "objective": "See native outcome movement at a glance without confusing it with workflow activity.",
       "acceptance": "Cards and reports use the same evidence packet. Show comparison dates, direction and unavailable evidence; never imply causal credit or acquire evidence on navigation.",
-      "route": { "hash-query-parameter": "workflow", "navigation-page": "value", "tab": "value", "breadcrumbs": [{ "page": "value" }],
-        "tabs": [
-          { "id": "insights", "label": "Insights", "icon": "graph", "page": "workflow-runtime" },
-          { "id": "reports", "label": "Reports", "icon": "issue-opened", "page": "workflow-detail" },
-          { "id": "value", "label": "Value", "icon": "trophy", "page": "workflow-value" },
-          { "id": "runs", "label": "Runs", "icon": "play", "page": "workflow-runs" }
-        ] },
+      "route": { "hash-query-parameter": "workflow", "navigation-page": "value", "breadcrumbs": [{ "page": "value" }] },
       "views": [{
         "id": "workflow-value-collection-health", "title": "Collection health",
         "subject": "The selected workflow's published registration and collection decision.",

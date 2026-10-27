@@ -13,8 +13,11 @@ Research and replay details are in the
 [blog article](/gh-cao/blog/measuring-agent-work-value/).
 
 Open **Value** in the sidebar (the trophy icon) to see reviewed registrations,
-collection health and evidence-backed workflow result cards. A workflow's
-**Value** tab shows its collection decision and retained reports.
+collection health, native measurements and evidence-backed workflow result cards.
+This top-level destination is the single discovery surface for workflow Value;
+it is not repeated as a permanent workflow tab. Collection-health cards may open
+a workflow-scoped detail page, while result and measurement cards open their
+retained evidence directly.
 The legacy **Operational Value** page and its **Repository measurements** tab
 have been removed. Existing native observations remain in the canonical data
 model; missing measurements are not zero value.

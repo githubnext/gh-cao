@@ -115,7 +115,8 @@ describe('workflow detail route', () => {
     }));
 
     expect(rendered.dataset.workflow).toBe('githubnext/gh-cao:.github/workflows/ambient-context.md');
-    expect(rendered.querySelector('.workflow-tabs')?.textContent).toBe('InsightsReportsValueRuns');
+    expect(rendered.querySelector('.workflow-tabs')?.textContent).toBe('InsightsReportsRuns');
+    expect(rendered.querySelector('.workflow-tabs a[href^="#page-workflow-value"]')).toBeNull();
     expect(rendered.querySelector('.workflow-tabs [aria-current="page"]')?.textContent).toBe('Reports');
     expect(rendered.querySelector('.workflow-tabs a:first-child')?.getAttribute('href')).toBe(
       '#page-workflow-runtime?workflow=githubnext%2Fgh-cao%3A.github%2Fworkflows%2Fambient-context.md'

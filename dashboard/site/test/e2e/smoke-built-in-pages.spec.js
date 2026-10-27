@@ -1633,7 +1633,9 @@ test('workflow runtime route renders JSON-declared workflow insights', async ({ 
   `);
 
   await expect(page.getByRole('heading', { name: 'Multi-Device Docs Tester', level: 1 })).toBeVisible();
-  await expect(page.getByRole('navigation', { name: 'Multi-Device Docs Tester views' })).toContainText('InsightsReportsValueRuns');
+  await expect(page.getByRole('navigation', { name: 'Multi-Device Docs Tester views' })).toContainText('InsightsReportsRuns');
+  await expect(page.getByRole('navigation', { name: 'Multi-Device Docs Tester views' })
+    .getByRole('link', { name: 'Value', exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Reports' })).toHaveAttribute('href', /#page-workflow-detail\?workflow=/);
   await expect(page.locator('.workflow-badges .workflow-badge')).toHaveText([
     'Standalone',

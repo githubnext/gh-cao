@@ -24,7 +24,7 @@ These are the default product destinations. They are custom pages composed from 
 | `governance` | Governance | `environment-defaults` | Visible only to authorized hosted administrators; loads, previews, and explicitly approves gh-aw compiler default variables through authorized CLI actions. |
 | `wizard` | Workflow wizard | `prompt-wizard` | Designs reviewed generation prompts for an Agentic Workflow or Campaign from pinned upstream patterns, without installing or activating work. |
 | `value` | Value | Shared entity cards | Trophy-marked entry point for workflow results and their native evidence reports. |
-| `workflow-value` | Workflow Value tab | Shared entity cards | Shows direction-aware native repository movement and opens its evidence report. |
+| `workflow-value` | Workflow value detail | Shared entity cards | Internal detail opened from top-level Value collection cards; it is not a standard workflow tab. |
 | `value-report` | Workflow value report | `workflow-value-report` | Connects consolidated intent, safe outputs, distinct accepted implementations and independent repository snapshots. |
 | `value-snapshot` | Measured snapshot | `workflow-value-snapshot` | Opens the exact retained items counted at one observation. |
 

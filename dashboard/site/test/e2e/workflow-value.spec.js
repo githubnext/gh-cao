@@ -133,7 +133,7 @@ for (const width of [1440, 390]) {
     }, { dashboard: authoritativeDashboard });
 
     await expect(page.locator('.workflow-tabs').getByRole('link', { name: 'Value', exact: true }))
-      .toHaveAttribute('href', /#page-workflow-value\?workflow=/);
+      .toHaveCount(0);
     if (width < 600) {
       await page.locator('.mobile-nav-menu > summary').click();
       await page.locator('.mobile-nav-menu a[href="#page-value"]').click();
@@ -203,6 +203,7 @@ for (const width of [1440, 390]) {
       });
       location.hash = '#page-workflow-value?workflow=example%2Fservice%3A.github%2Fworkflows%2Fincident-response.md';
     }, { dashboard: authoritativeDashboard });
+    await expect(page.locator('[data-page-id="workflow-value"] .route-tab-navigation')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Not measured', exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Not measured', exact: true }).click();
     await expect(page).toHaveURL(/#page-value-measurement\?/);
