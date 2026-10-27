@@ -1,35 +1,7 @@
 {
   "source_sha": "86afc13f3a5ebb236a7e49252e42ec8317aa096d",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-26T22:23:40Z",
-      "worker_run_id": "40411711517",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        40409202717,
-        40407295709,
-        40405972149,
-        40405659232,
-        40403910625,
-        40400761754,
-        40399070746,
-        40397799744,
-        40397385580,
-        40395512740,
-        40391993955,
-        40389962003,
-        40388066136,
-        40386710985,
-        40385430574,
-        40382738853,
-        40382670586,
-        40379392120,
-        40374236100,
-        40371977534
-      ],
-      "outcome": "incomplete: the 2026-10-26T17:47:53Z to 2026-10-26T22:01:58Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Elapsed metadata showed only a small number of possible full build-and-deploy paths, but the bounded trusted job/step requests needed to verify them all failed because the runtime could not create a new OS thread. Per resource-limit policy, all further GitHub API work stopped. The required five comparable successful full runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, CAO Dashboard producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
     {
       "evaluated_at": "2026-10-26T22:40:01Z",
       "worker_run_id": "40413806890",
@@ -673,6 +645,34 @@
         40507164615
       ],
       "outcome": "complete no-op: the 2026-10-27T12:52:01Z to 2026-10-27T16:01:50Z latest-20 completed docs.yml window contained 16 successful, three skipped, and one cancelled run, with no failed runs. Seven successful full build-and-deploy paths were comparable across two push, three workflow_run, and two schedule triggers at four source SHAs. Full elapsed workflow time was 135.0s median (958.8s p90); execution excluding initial queue was 101.0s (447.0s p90), initial queue was 4.0s (330.2s p90), build was 72.0s (114.2s p90), deploy was 13.0s (46.0s p90), and the five latest successful CAO Dashboard producer build jobs were 19.0s (20.8s p90). Repeated docs costs were checkout 24.0s median, npm ci 22.0s, Astro generation 15.0s, dashboard restore 1.0s, Pages upload 2.0s, and deploy-pages 9.0s in the five non-service-outlier runs. Bounded logs for the five latest full builds verified exact central-agentic-ops-dashboard cache hits; trusted step metadata showed dashboard artifact fallback skipped in all seven builds. Producer-side activity restore was 1.0s median, dependency installation 2.0s, Dashboard Language assembly 2.0s, and artifact upload 2.0s. Schedule run 40521683326 was disclosed as a 734-second initial concurrency-queue outlier, push run 40521173089 as a 744-second wait between build and deploy plus a 45-second Deploy Pages service-time outlier, workflow_run 40525295917 as a 42-second Deploy Pages service-time outlier, and push run 40525313767 as cancelled and excluded. No reusable-dashboard recommendation was made: the dashboard is generated independently in 19.0s median and consumed from cache in 1.0s median; removing the entire docs-side reuse cost would save about 1% of median execution, below both actionability thresholds, while rebuilding or bypassing freshness would weaken performance or correctness. The next category is artifact transfer and Pages packaging."
+    },
+    {
+      "evaluated_at": "2026-10-27T16:55:05Z",
+      "worker_run_id": "40544644910",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        40544090495,
+        40541885482,
+        40541797860,
+        40540182585,
+        40536817575,
+        40535119161,
+        40533523862,
+        40531150100,
+        40531081926,
+        40527098544,
+        40525463266,
+        40525313767,
+        40525295917,
+        40524803093,
+        40521683326,
+        40521173089,
+        40517410838,
+        40515979657,
+        40514774034,
+        40512623935
+      ],
+      "outcome": "complete no-op: the 2026-10-27T13:30:29Z to 2026-10-27T16:46:01Z latest-20 completed docs.yml window contained 16 successful, three skipped, and one cancelled run, with no failed runs. Five successful full build-and-deploy paths were comparable across one push, two workflow_run, and two schedule triggers at three source SHAs. Full elapsed workflow time was 161.0s median (1020.2s p90); execution excluding initial queue was 116.0s (735.2s p90), initial queue was 5.0s (464.8s p90), build was 76.0s (118.8s p90), deploy was 13.0s (47.0s p90), and the five latest successful CAO Dashboard producer build jobs were 19.0s (20.8s p90). Repeated docs costs were checkout 24.0s median, npm ci 22.0s, Astro generation 15.0s, dashboard restore 1.0s, Pages upload 2.0s, and deploy-pages 9.0s. Trusted step metadata confirmed central-agentic-ops-dashboard cache hits in all five builds because restore succeeded while artifact lookup and download fallback were skipped; prior bounded logs for this overlapping sample verified exact npm and dashboard cache hits. Direct artifact transfer and Pages packaging (dashboard restore plus Pages upload) cost 4.0s median (5.2s p90), only 3.4% of median execution; including deployment raised the median to 12.0s (49.0s p90), but the tail came from external Deploy Pages service time. Schedule run 40521683326 was disclosed as a 734-second initial concurrency-queue outlier, push run 40521173089 as a 744-second wait between build and deploy plus a 45-second Deploy Pages outlier, workflow_run 40525295917 as a 42-second Deploy Pages outlier, and push run 40525313767 as cancelled and excluded. No concrete transfer or packaging workflow change can save 60 seconds or 15% of median execution without weakening deployment safety, so no recommendation was made. The next category is scheduling, concurrency, and avoidable rebuilds."
     }
   ]
 }
