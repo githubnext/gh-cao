@@ -1,9 +1,11 @@
 import { dashboardQueryIndex, queryInputNames, resolveDashboardQuerySources } from './declarative.js';
 import { queryCollection } from '../storage/indexeddb.js';
 import { EVIDENCE_READ_LIMITS } from '../model/operational-value-evidence.js';
+import { createDebug } from '../../debug.js';
 
 export { EVIDENCE_READ_LIMITS };
 const source = 'operational-value-evidence';
+const debugEvidenceSelection = createDebug('evidence-selection');
 
 /**
  * Union necessary equality predicates across every reachable source consumer.
@@ -59,6 +61,7 @@ export async function readEvidencePackets(indexedDB, selections, checkpoint) {
   const packets = new Map();
   let bytes = 0;
   let facts = 0;
+  debugEvidenceSelection({ event: 'read-started', scoped: Boolean(selections), selections: selections?.length ?? 0 });
   for (const selection of selections ?? [null]) {
     checkpoint?.();
     const rows = await queryCollection(indexedDB, 'operationalValueEvidence', selection
@@ -71,10 +74,12 @@ export async function readEvidencePackets(indexedDB, selections, checkpoint) {
       facts += Array.isArray(packet.facts) ? packet.facts.length : 0;
       if (packets.size >= EVIDENCE_READ_LIMITS.packets || bytes > EVIDENCE_READ_LIMITS.bytes
           || facts > EVIDENCE_READ_LIMITS.facts) {
+        debugEvidenceSelection({ event: 'budget-exceeded', packets: packets.size, bytes, facts });
         throw new Error('Value evidence exceeds the bounded read budget; select an exact workflow or report.');
       }
       packets.set(packet.id, packet);
     }
   }
+  debugEvidenceSelection({ event: 'read-completed', packets: packets.size, bytes, facts });
   return [...packets.values()];
 }
