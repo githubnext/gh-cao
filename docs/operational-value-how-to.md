@@ -149,9 +149,6 @@ See [publication and recurring collection](operational-value.md#recurring-collec
 > The skill includes File Diet acquisition and offline replay commands.
 > The linked October 18 example remains a saved historical report.
 
-For research, limitations and exact replay commands, read the
-[long-form blog article](/gh-cao/blog/measuring-agent-work-value/).
-
 ## Native reports from retained evidence
 
 The native path is **retained originals → frozen evaluator → original evidence

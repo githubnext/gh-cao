@@ -7,7 +7,6 @@ const diagramPages = [
   "deployment-upstash/",
   "intelligence/",
   "operational-value-how-to/",
-  "blog/measuring-agent-work-value/",
 ];
 
 for (const colorScheme of ["light", "dark"]) {

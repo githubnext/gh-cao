@@ -23,7 +23,7 @@ test("the docs plugin's matcher replacement implements its entire micromatch API
     ["index", "index", true],
     ["setup-quickstarts", ["index", "setup-quickstarts"], true],
     ["architecture", ["index", "setup-quickstarts"], false],
-    ["blog/2026/nested", "blog/**", true],
+    ["guides/2026/nested", "guides/**", true],
     ["operational-value/reports/weekly", "operational-value/reports/**", true],
     ["dashboard-overview-components", "dashboard-overview-*", true],
     ["dashboard", "dashboard*", true],
@@ -31,8 +31,8 @@ test("the docs plugin's matcher replacement implements its entire micromatch API
     ["architecture-at-a-glance", "architecture", false],
     ["guide", "{guide,reference}", true],
     ["reference", "{guide,reference}", true],
-    ["guide", "!blog/**", true],
-    ["blog/post", "!blog/**", false],
+    ["guide", "!guides/**", true],
+    ["guides/post", "!guides/**", false],
   ]) {
     assert.equal(matcher.isMatch(id, patterns), expected, `${id}: ${JSON.stringify(patterns)}`);
   }
@@ -45,7 +45,7 @@ test("deep brace patterns below the vulnerable parser's character limit do not e
     for (const depth of [2000, 4000, 4990]) {
       const pattern = "{".repeat(depth) + "a,b" + "}".repeat(depth);
       assert.ok(pattern.length < 10000);
-      for (const patterns of [pattern, [pattern], ["blog/**", pattern]]) {
+      for (const patterns of [pattern, [pattern], ["guides/**", pattern]]) {
         assert.equal(typeof matcher.isMatch("a", patterns), "boolean");
       }
     }

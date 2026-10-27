@@ -2,21 +2,10 @@ import { defineConfig } from "astro/config";
 import { unified } from "@astrojs/markdown-remark";
 import starlight from "@astrojs/starlight";
 import mermaid from "astro-mermaid";
-import starlightBlog from "starlight-blog";
 import starlightGitHubAlerts from "starlight-github-alerts";
 import starlightLlmsTxt from "starlight-llms-txt";
 import starlightAgent from "./docs/plugins/starlight-agent/index.mjs";
 import rewriteDocsLinks from "./docs/rewrite-docs-links.mjs";
-
-/**
- * Builds blog author entries, defaulting each picture to the author's GitHub avatar.
- * @param {Record<string, {name: string, url: string, picture?: string}>} authors
- */
-function createAuthors(authors) {
-  return Object.fromEntries(
-    Object.entries(authors).map(([key, author]) => [key, { ...author, picture: author.picture ?? `https://github.com/${key}.png?size=200` }]),
-  );
-}
 
 export default defineConfig({
   site: "https://githubnext.github.io",
@@ -47,26 +36,6 @@ export default defineConfig({
       favicon: "/favicon.svg",
       customCss: ["./docs/styles/branding.css"],
       plugins: [
-        starlightBlog({
-          title: "Central Agentic Ops Blog",
-          recentPostCount: 12,
-          navigation: "none",
-          authors: createAuthors({
-            mnkiefer: {
-              name: "Mara Kiefer",
-              url: "https://github.com/mnkiefer",
-            },
-            pelikhan: {
-              name: "Peli de Halleux",
-              url: "https://github.com/pelikhan",
-            },
-            copilot: {
-              name: "Copilot",
-              url: "https://github.com/features/copilot",
-              picture: "https://avatars.githubusercontent.com/in/1143301?s=200&v=4",
-            },
-          }),
-        }),
         starlightGitHubAlerts(),
         starlightAgent({
           projectName: "Central Agentic Ops",
@@ -83,7 +52,6 @@ export default defineConfig({
             "setup-quickstarts",
           ],
           demote: [
-            "blog/**",
             "operational-value/reports/**",
             "activity-cache-compression-analysis",
             "dashboard-overview-*",
@@ -101,7 +69,6 @@ export default defineConfig({
             "authentication",
             "authority-envelopes",
             "author-*",
-            "blog/**",
             "cao-cli",
             "configuration",
             "control-*",

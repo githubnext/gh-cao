@@ -9,8 +9,6 @@ It measures repository outcomes rather than workflow runs, generated output, or 
 
 For the short intent → output → Git evidence flow, see
 [Define and measure workflow value](operational-value-how-to.md).
-Research and replay details are in the
-[blog article](/gh-cao/blog/measuring-agent-work-value/).
 
 Open **Value** in the sidebar (the trophy icon) to see reviewed registrations,
 collection health, native measurements and evidence-backed workflow result cards.

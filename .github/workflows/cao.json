@@ -296,9 +296,6 @@
           "reactive-ui-expert": {
             "workflow": "self-care-reactive-ui-expert"
           },
-          "release-blogger": {
-            "workflow": "self-care-release-blogger"
-          },
           "server-go-logging": {
             "workflow": "self-care-server-go-logging"
           },

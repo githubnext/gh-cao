@@ -1,6 +1,6 @@
 name: SelfCare
 icon: ":check-circle:"
-description: Repository-local live checks for dashboard quality, documentation freshness and discoverability, data schemas, accessibility, experimental-view correctness, production Pages health, Lighthouse performance, build performance, component reuse, declarative view reuse, canonical view-source queries, reactive UI patterns, Go server quality, glossary freshness, release blog posts, acquisition efficiency, public-project run failures, and Primer brand alignment in Central Agentic Ops.
+description: Repository-local live checks for dashboard quality, documentation freshness and discoverability, data schemas, accessibility, experimental-view correctness, production Pages health, Lighthouse performance, build performance, component reuse, declarative view reuse, canonical view-source queries, reactive UI patterns, Go server quality, glossary freshness, acquisition efficiency, public-project run failures, and Primer brand alignment in Central Agentic Ops.
 min-version: v0.93.5
 private: true
 experimental: true
@@ -17,7 +17,6 @@ includes:
   - .github/workflows/self-care-glossary.md
   - .github/workflows/self-care-pages-health.md
   - .github/workflows/self-care-reactive-ui-expert.md
-  - .github/workflows/self-care-release-blogger.md
   - .github/workflows/self-care-server-go-logging.md
   - .github/workflows/self-care-server-soc2.md
   - .github/workflows/self-care-specs-maintainer.md

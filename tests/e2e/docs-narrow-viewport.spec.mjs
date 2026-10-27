@@ -19,10 +19,8 @@ const paths = [
   "dashboard/",
   "catalog/",
   "catalog/dependabot/",
-  "blog/",
   "operational-observability-visualization-specification/",
   "operational-value-how-to/",
-  "blog/measuring-agent-work-value/",
 ];
 
 for (const width of [320, 1280]) {
@@ -93,14 +91,6 @@ for (const colorScheme of ["light", "dark"]) {
         }
       }
 
-      expect((await page.goto("blog/measuring-agent-work-value/"))?.ok()).toBe(true);
-      const diagram = page.locator(".sl-markdown-content .mermaid svg");
-      await expect(diagram).toBeVisible();
-      await expect(diagram).not.toContainText("Syntax error");
-      expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
-      expect((await page.goto("blog/"))?.ok()).toBe(true);
-      await expect(page.locator("main").getByRole("link", { name: "What counts as value from agent work?", exact: true }))
-        .toBeVisible();
     });
   }
 }
@@ -912,7 +902,7 @@ for (const width of [320, 390, 768, 1024]) {
     await menu.locator("summary").click();
     await expect(menu).toHaveAttribute("open", "");
     await expect(menu.getByRole("navigation", { name: "Global links menu" })).toBeVisible();
-    await expect(menu.getByRole("link")).toHaveText(["Docs", "Blog"]);
+    await expect(menu.getByRole("link")).toHaveText(["Docs"]);
     await expect(menu.getByRole("link", { name: "Docs", exact: true }))
       .toHaveAttribute("href", "/gh-cao/architecture-at-a-glance/");
     expect(await page.locator("html").evaluate((element) => element.scrollWidth))
@@ -920,24 +910,15 @@ for (const width of [320, 390, 768, 1024]) {
   });
 }
 
-test("desktop documentation navigation links to the introduction and published blog posts", async ({ page }) => {
+test("desktop documentation navigation links to the introduction", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   expect((await page.goto("setup-quickstarts/"))?.ok()).toBe(true);
 
   const navigation = page.getByRole("navigation", { name: "Global links", exact: true });
-  await expect(navigation.getByRole("link")).toHaveText(["Docs", "Blog"]);
+  await expect(navigation.getByRole("link")).toHaveText(["Docs"]);
   await navigation.getByRole("link", { name: "Docs", exact: true }).click();
   await expect(page).toHaveURL(/\/architecture-at-a-glance\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("What is Central Agentic Ops?");
-
-  await navigation.getByRole("link", { name: "Blog", exact: true }).click();
-  await expect(page).toHaveURL(/\/blog\/$/);
-  await expect(page).toHaveTitle(/Central Agentic Ops Blog/);
-  const blogNavigation = page.getByRole("navigation", { name: "Main", exact: true });
-  await expect(blogNavigation.getByRole("link", { name: "All posts", exact: true })).toBeVisible();
-  await expect(blogNavigation.getByRole("link", { name: "RSS", exact: true })).toBeVisible();
-  await expect(page.locator("main").getByRole("link", { name: "What counts as value from agent work?", exact: true }))
-    .toBeVisible();
 });
 
 for (const colorScheme of ["light", "dark"]) {

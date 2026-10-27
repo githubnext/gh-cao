@@ -1,6 +1,6 @@
 # SelfCare
 
-SelfCare runs repository-local maintenance for `githubnext/gh-cao`. Its orchestrator dispatches up to twenty-one live-only workers, including:
+SelfCare runs repository-local maintenance for `githubnext/gh-cao`. Its orchestrator dispatches up to twenty live-only workers, including:
 
 - **Accessibility Checker** audits the rendered documentation site and publishes one prioritized accessibility issue.
 - **Code Improvement** extracts one evidenced duplicated dashboard UI construct into a tested reusable component and opens one focused draft pull request.
@@ -17,13 +17,12 @@ SelfCare runs repository-local maintenance for `githubnext/gh-cao`. Its orchestr
 - **Pages Health** runs at most once per rolling six hours, scrolls every deployed dashboard view under desktop, mobile, and low-bandwidth profiles, and opens a focused draft PR with the highest-confidence JavaScript quick wins it can validate.
 - **Primer Brand Checker** audits the dashboard against current Primer brand guidance and opens one focused draft pull request when an evidenced fix is available.
 - **Reactive UI Expert** maintains the reactive UI skill, migrates JavaScript-produced view sources to request-scoped dashboard queries, reviews recent dashboard JavaScript changes for reactive patterns, and extracts direct HTML mutations into reactive elements, data binding, and effects.
-- **Release Blogger** describes the release or pre-release published in the preceding 24 hours in a GitHub Blog-style post under the documentation site's blog directory and opens one focused draft pull request. The orchestrator dispatches this worker at most once per rolling 24 hours.
 - **Server Go Logging** refactors one server Go subsystem with privacy-preserving internal logging and focused unit tests that exercise real code without mocks.
 - **Server SOC2** reassesses bounded Go server readiness at most once per rolling 24 hours and proposes up to three compatible, verified code fixes in one focused draft PR. The existing every-20-minute orchestrator checks at most ten recent runs and defers on unavailable/ambiguous history, including failed and cancelled runs. The worker also checks recent history for manual dispatches; it has no independent schedule.
 
 The checked-in control policy admits only `githubnext/gh-cao` as a live target, and the target-authority declaration grants this repository's control plane authority for the campaign. The orchestrator rejects every other repository and every non-live candidate; all workers repeat those checks before performing their mission. Open Source Failures selects public project records only from the dashboard's validated activity snapshot; it does not discover or access repositories independently.
 
-The campaign uses `shared/control.md` for policy resolution, target authority, dispatch envelopes, safe-output routing, and correlation. It dispatches at most twenty-one workflows for its single target.
+The campaign uses `shared/control.md` for policy resolution, target authority, dispatch envelopes, safe-output routing, and correlation. It dispatches at most twenty workflows for its single target.
 
 The SOC2 worker follows the [readiness specification](../specs/server-soc2-compliance.md)
 and [assessment skill](../.github/skills/soc2-server-assessment/SKILL.md).

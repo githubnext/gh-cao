@@ -169,7 +169,6 @@ test("repository-local SelfCare uses organization-billed Copilot authentication"
     "self-care-pages-health",
     "self-care-primer-brand-checker",
     "self-care-reactive-ui-expert",
-    "self-care-release-blogger",
     "self-care-server-go-logging",
     "self-care-specs-maintainer",
     "self-care",
