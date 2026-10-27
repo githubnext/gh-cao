@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 describe('CLI actions', () => {
-  it.each(['update-repository', 'update-campaign', 'upgrade-repository', 'upgrade-target-repository'])(
+  it.each(['update-repository', 'update-campaign', 'update-workflow-source', 'upgrade-repository', 'upgrade-target-repository'])(
     'keeps auto merge opt-in and previews and submits its supported flag for %s',
     async (id) => {
       const action = dashboardDocument.dashboard['cli-actions'].find((candidate) => candidate.id === id);
@@ -55,7 +55,13 @@ describe('CLI actions', () => {
         id: action.id, label: action.label, icon: action.icon, command: action.command,
         arguments: action.arguments?.map((argument) => ({ ...argument, type: /** @type {const} */ ('boolean') }))
       }], {
-        templateValues: { repository: 'octo/example', campaign: 'activity' },
+        templateValues: {
+          repository: 'octo/example',
+          'campaign-source': 'acme/catalog/activity',
+          'campaign-name': 'Activity',
+          'workflow-source': 'acme/workflows/review',
+          'workflow-name': 'Review'
+        },
         context: {
           'cao-url': 'https://ops.example.com/central/', 'cao-repository': 'acme/control',
           'cao-repository-url': 'https://github.com/acme/control'
@@ -71,9 +77,11 @@ describe('CLI actions', () => {
       trigger.click();
       expect(autoMerge.checked).toBe(false);
       expect(root.querySelector('.cli-action-command')?.textContent).not.toContain('--auto-merge');
-      const expectedPrefix = id.startsWith('update')
-        ? 'gh aw update https://github.com/githubnext/gh-cao/activity --repo acme/control'
-        : 'gh aw upgrade --repo octo/example';
+      const expectedPrefix = id === 'update-workflow-source'
+        ? 'gh aw update https://github.com/acme/workflows/review --repo acme/control'
+        : id.startsWith('update')
+          ? 'gh aw update https://github.com/acme/catalog/activity --repo acme/control'
+          : 'gh aw upgrade --repo octo/example';
       expect(root.querySelector('.cli-action-command')?.textContent?.startsWith(`${expectedPrefix} --pr-message `)).toBe(true);
       expect(root.querySelector('.cli-action-command')?.textContent).toContain(
         "--pr-message 'This pull request was requested through [Central Agentic Ops (CAO)]"
@@ -113,7 +121,7 @@ describe('CLI actions', () => {
     expect(queue.enqueue).not.toHaveBeenCalled();
   });
 
-  it.each(['update-repository', 'update-campaign'])(
+  it.each(['update-repository', 'update-campaign', 'update-workflow-source'])(
     'fails closed for %s without control-repository context instead of targeting the row repository',
     (id) => {
       const action = dashboardDocument.dashboard['cli-actions'].find((candidate) => candidate.id === id);
@@ -121,7 +129,13 @@ describe('CLI actions', () => {
       const root = renderCliActions([{
         id: action.id, label: action.label, icon: action.icon, command: action.command
       }], {
-        templateValues: { repository: 'octo/example', campaign: 'activity' },
+        templateValues: {
+          repository: 'octo/example',
+          'campaign-source': 'acme/catalog/activity',
+          'campaign-name': 'Activity',
+          'workflow-source': 'acme/workflows/review',
+          'workflow-name': 'Review'
+        },
         context: { 'cao-url': 'https://ops.example.com/central/', 'cao-repository-url': 'https://github.com/acme/control' }
       });
       expect(root?.querySelector('.cli-action-command')?.textContent).toContain('"cao-repository" is unavailable');

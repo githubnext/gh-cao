@@ -129,13 +129,18 @@ test("discovers public workflow registry metadata and disabled state", async () 
     assert.equal(version, "v0.90.2");
   });
 
-  test("retains successful campaign revisions when another repository lookup fails", async () => {
+  test("retains successful campaign and workflow source revisions when another repository lookup fails", async () => {
     const currentRevision = "a".repeat(40);
+    const workflowRevision = "b".repeat(40);
     const resolution = await discoverLatestCampaignCommits({
       campaigns: [
         { campaign: "acme/catalog/operations" },
         { campaign: "acme/broken/operations" },
       ],
+      workflows: [{
+        sourcePath: ".github/workflows/review.md",
+        source: `acme/workflows/review@${"c".repeat(40)}`,
+      }],
     }, {
       token: "test-token",
       fetchImplementation: async (url) => {
@@ -147,13 +152,22 @@ test("discovers public workflow registry metadata and disabled state", async () 
         if (request.endsWith("/repos/acme/catalog/commits/main")) {
           return new Response(JSON.stringify({ sha: currentRevision }));
         }
+        if (request.endsWith("/repos/acme/workflows")) {
+          return new Response(JSON.stringify({ default_branch: "main" }));
+        }
+        if (request.endsWith("/repos/acme/workflows/commits/main")) {
+          return new Response(JSON.stringify({ sha: workflowRevision }));
+        }
         throw new Error(`Unexpected request: ${request}`);
       },
     });
 
-    assert.deepEqual(resolution.commits, { "acme/catalog": currentRevision });
-    assert.equal(resolution.expected, 2);
-    assert.equal(resolution.observed, 1);
+    assert.deepEqual(resolution.commits, {
+      "acme/catalog": currentRevision,
+      "acme/workflows": workflowRevision,
+    });
+    assert.equal(resolution.expected, 3);
+    assert.equal(resolution.observed, 2);
     assert.equal(resolution.failures[0].repository, "acme/broken");
   });
 
@@ -213,6 +227,8 @@ test("discovers public workflow registry metadata and disabled state", async () 
   test("emits campaign and workflow version update state for control and enrolled repositories", () => {
     const installedCampaignRevision = "1".repeat(40);
     const latestCampaignRevision = "2".repeat(40);
+    const installedWorkflowRevision = "3".repeat(40);
+    const latestWorkflowRevision = "4".repeat(40);
     const generatedAt = "2026-09-17T00:00:00Z";
     const intelligenceDeclaration = {
       contractVersion: "1.0.0",
@@ -230,7 +246,8 @@ test("discovers public workflow registry metadata and disabled state", async () 
         campaigns: [{
           id: "operations",
           name: "Operations",
-          campaign: "acme/catalog/operations",
+          campaign: "operations",
+          source: `acme/catalog/operations@${installedCampaignRevision}`,
           resolvedCommit: installedCampaignRevision,
           intelligenceDeclaration,
         }],
@@ -238,6 +255,8 @@ test("discovers public workflow registry metadata and disabled state", async () 
           id: "control-agent",
           name: "Control agent",
           sourcePath: ".github/workflows/control-agent.md",
+          source: `acme/workflows/control-agent@${installedWorkflowRevision}`,
+          version: installedWorkflowRevision,
           compiled: true,
           ghAwVersion: "v0.88.0",
         }],
@@ -270,7 +289,10 @@ test("discovers public workflow registry metadata and disabled state", async () 
         }],
       }],
       latestCampaignResolution: {
-        commits: { "acme/catalog": latestCampaignRevision },
+        commits: {
+          "acme/catalog": latestCampaignRevision,
+          "acme/workflows": latestWorkflowRevision,
+        },
         failures: [],
         expected: 1,
         observed: 1,
@@ -287,6 +309,7 @@ test("discovers public workflow registry metadata and disabled state", async () 
       latest: latestCampaignRevision.slice(0, 12),
       state: "update-available",
     });
+    assert.equal(sources.campaigns.rows[0]["campaign-source"], "acme/catalog/operations");
     assert.deepEqual(
       sources.campaigns.rows[0]["campaign-intelligence-declaration"],
       intelligenceDeclaration,
@@ -298,6 +321,39 @@ test("discovers public workflow registry metadata and disabled state", async () 
       canonical.campaigns[0].intelligenceDeclaration,
       intelligenceDeclaration,
     );
+    assert.equal(canonical.campaigns[0].sourceCoordinate, "acme/catalog/operations");
+    const localWorkflow = sources.workflows.rows.find(
+      (row) => row.workflow === ".github/workflows/control-agent.md",
+    );
+    assert.deepEqual({
+      kind: localWorkflow["workflow-source-kind"],
+      source: localWorkflow["workflow-source"],
+      installed: localWorkflow["workflow-source-version"],
+      latest: localWorkflow["workflow-source-current-version"],
+      state: localWorkflow["workflow-source-update-state"],
+    }, {
+      kind: "source-managed",
+      source: "acme/workflows/control-agent",
+      installed: installedWorkflowRevision.slice(0, 12),
+      latest: latestWorkflowRevision.slice(0, 12),
+      state: "update-available",
+    });
+    const canonicalLocalWorkflow = canonical.workflows.find(
+      (row) => row.path === ".github/workflows/control-agent.md",
+    );
+    assert.deepEqual({
+      kind: canonicalLocalWorkflow.sourceKind,
+      source: canonicalLocalWorkflow.sourceCoordinate,
+      installed: canonicalLocalWorkflow.sourceVersion,
+      latest: canonicalLocalWorkflow.sourceCurrentVersion,
+      state: canonicalLocalWorkflow.sourceUpdateState,
+    }, {
+      kind: "source-managed",
+      source: "acme/workflows/control-agent",
+      installed: installedWorkflowRevision.slice(0, 12),
+      latest: latestWorkflowRevision.slice(0, 12),
+      state: "update-available",
+    });
     assert.deepEqual(sources.workflows.rows.map((row) => ({
       repository: `${row.organization}/${row.repository}`,
       workflow: row.workflow,
@@ -572,6 +628,11 @@ test("merges control registry metadata without replacing campaign ownership", ()
     workflow: ".github/workflows/worker.md",
     "workflow-name": "Registered Worker",
     "workflow-role": "worker",
+    "workflow-source-kind": "local",
+    "workflow-source": "",
+    "workflow-source-version": "unknown",
+    "workflow-source-current-version": "unknown",
+    "workflow-source-update-state": "unknown",
     "workflow-active": "false",
     "gh-aw-version": "unknown",
     "gh-aw-current-version": "unknown",

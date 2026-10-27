@@ -40,9 +40,10 @@ Audit retains typed routing identifiers,
 classifier labels, request identities, sub-agent ownership, token classes,
 per-response AIC and collection receipts. It MUST NOT retain prompts, bodies,
 free-form errors/reasons, raw tool payloads or content-derived hashes.
-The canonical model remains version 35. IndexedDB version 46 SHALL preserve
-version 44 and 45 databases with a `runs` store through the additive upgrade in
-§5.1; incompatible older browser projections SHALL be rebuilt.
+The canonical model is version 36. IndexedDB version 47 SHALL preserve versions
+44, 45, and 46 with a `runs` store through the additive upgrade in §5.1;
+incompatible older browser projections SHALL be rebuilt. The new Campaign and
+Workflow source-maintenance fields are optional enrichment.
 Hosted PostgreSQL deployments require a fresh schema with the generated Audit
 and Run aggregate columns. Inventory (`model.inventory`) and generic proxy
 (`firewall.event`) rows SHALL NOT be retained, including replayed cached
@@ -635,8 +636,8 @@ The implementation profile defined by this specification is:
 
 | Layer | Version | Physical structure |
 | --- | ---: | --- |
-| Canonical model | 35 | Campaign, Repository, Workflow, Run, Domain, Tool, Skill, Friction, Audit, Issue, Operational Value, Operational Value Evidence, Workflow Value Collection, Marketplace Package, Experiment, Experiment Assignment, Grader, Grader Observation, Eval, and Eval Observation records |
-| Browser IndexedDB | 46 | Twenty canonical entity stores, `transactions`, disposable `storageShards` accounting, and three separate daily run-count projection stores |
+| Canonical model | 36 | Campaign, Repository, Workflow, Run, Domain, Tool, Skill, Friction, Audit, Issue, Operational Value, Operational Value Evidence, Workflow Value Collection, Marketplace Package, Experiment, Experiment Assignment, Grader, Grader Observation, Eval, and Eval Observation records |
+| Browser IndexedDB | 47 | Twenty canonical entity stores, `transactions`, disposable `storageShards` accounting, and three separate daily run-count projection stores |
 | Local SQLite projection | IndexedDB 46 | `__idb_databases`, `__idb_stores`, `__idb_indexes`, and `__idb_records` for the same logical stores, plus a `campaigns` table and six transactional relational evidence mirrors without duplicate record documents |
 | Go server Postgres sources | Canonical model 19 | Fresh TypeSpec-defined entity and input tables with query-required native columns, compact presence bits, entity-owned relational child values, and transactional diagnostics/revision state; no stored JSON documents or duplicate scalar row formats |
 | Static SQL export | 3 | Versioned JSON interchange produced from upstream SQL tables or views |
@@ -1079,13 +1080,15 @@ as fully enriched runs.
 
 ## 5.3 Maintenance inventory
 
-Campaign inventory inputs MAY report `campaign-version`,
+Campaign inventory inputs MAY report `campaign-source`, `campaign-version`,
 `campaign-current-version`, and `campaign-update-state` for an installed gh-aw
-starter campaign. `campaign-update-state` MUST be `update-available`,
-`up-to-date`, or `unknown`; missing or incomparable version evidence MUST
-normalize to `unknown`. The campaign slug remains the stable identity, and a
-refresh MUST enrich the existing Campaign record rather than create a
-version-specific Campaign.
+starter campaign. `campaign-source` MUST preserve the unpinned package coordinate
+used to install the campaign, such as `owner/repository/path`; it MUST NOT be
+derived from the campaign slug. `campaign-update-state` MUST be
+`update-available`, `up-to-date`, or `unknown`; missing or incomparable source or
+version evidence MUST normalize to `unknown`. The campaign slug remains the
+stable identity, and a refresh MUST enrich the existing Campaign record rather
+than create a version-specific Campaign.
 
 Campaign inventory inputs MAY also report a normalized
 `campaign-intelligence-declaration` object from the Campaign-owned
@@ -1105,13 +1108,26 @@ Repository identity. A repository requires an upgrade when at least one
 workflow reports `update-available`; mixed workflow versions MUST remain
 visible and MUST NOT be collapsed to a fabricated single version.
 
-The SQLite Campaign projection and the IndexedDB `campaigns` object store MUST
-preserve the same three campaign-maintenance fields with identical missing-data
-semantics. Both projections remain disposable and reconstructable from campaign
-inventory inputs. Incompatible canonical schema migrations MUST rebuild these
-derived records; compatible additive upgrades SHALL follow §5.1. A failed
-refresh MUST NOT publish a complete maintenance query payload. Campaign
-and repository maintenance actions MUST use these canonical query results and
+Standalone workflow inventory MAY additionally report
+`workflow-source-kind`, `workflow-source`, `workflow-source-version`,
+`workflow-source-current-version`, and `workflow-source-update-state`.
+`workflow-source-kind` MUST distinguish `source-managed`, `local`, and
+`registry` evidence. A source-managed standalone workflow MUST preserve the
+exact unpinned source coordinate and installed revision extracted from its
+declaration; the latest revision MAY be resolved from that source repository.
+A local workflow without source provenance MUST remain visible as local,
+MUST NOT be assigned synthetic Campaign membership, and MUST NOT expose an
+executable update action. Missing or incomparable source evidence MUST remain
+`unknown`.
+
+The SQLite Campaign projection, hosted PostgreSQL tables, and IndexedDB
+`campaigns` and `workflows` object stores MUST preserve these maintenance fields
+with identical missing-data semantics. All projections remain disposable and
+reconstructable from inventory inputs. Incompatible canonical schema migrations
+MUST rebuild these derived records; compatible additive upgrades SHALL follow
+§5.1. A failed refresh MUST NOT publish a complete maintenance query payload.
+Campaign, standalone workflow, and repository maintenance actions MUST use
+canonical query results and exact retained source/repository coordinates; they
 MUST NOT inspect upstream manifests or browser storage directly.
 
 ## 5.4 Activity acquisition and source roles
@@ -1700,6 +1716,7 @@ observation time are mutable evidence, not identity.
   name: "Dependabot",
   mode: "review",
   enabled: true,
+  sourceCoordinate: "githubnext/gh-cao/dependabot",
   version: "v1",
   currentVersion: "v2",
   updateState: "update-available",
@@ -1771,6 +1788,11 @@ Example:
   path: ".github/workflows/cao-dashboard.yml",
 
   state: "active",
+  sourceKind: "source-managed",
+  sourceCoordinate: "githubnext/agentics/standalone-review",
+  sourceVersion: "0123456789ab",
+  sourceCurrentVersion: "abcdef012345",
+  sourceUpdateState: "update-available",
 
   observedAt: "...",
   updatedAt: "...",
@@ -1786,6 +1808,14 @@ Example:
 **WF-002** — GitHub workflow ID SHOULD be preferred for identity.
 
 **WF-003** — Workflow filename MUST NOT be treated as immutable identity.
+
+**WF-004** — Optional source-maintenance provenance MUST describe the Workflow
+itself. Campaign membership remains optional and MUST NOT be synthesized for a
+standalone Workflow.
+
+**WF-005** — An executable source-update action requires a retained source
+coordinate plus known `update-available` evidence. Local, registry-only, or
+incomplete provenance MUST remain non-actionable.
 
 ---
 
@@ -2832,19 +2862,19 @@ The canonical browser database SHALL use:
 
 ```js
 const DATABASE_NAME = "gh-aw-cao-dashboard-data";
-const DATABASE_VERSION = 46;
+const DATABASE_VERSION = 47;
 ```
 
 The name MAY be scoped by deployment path to prevent unrelated dashboard
 deployments on the same origin from sharing derived state. Version upgrades
-SHALL follow Section 5.1: versions 44 and 45 with a `runs` store receive an
+SHALL follow Section 5.1: versions 44, 45, and 46 with a `runs` store receive an
 additive upgrade; incompatible older projections are recreated from inputs.
 
 ---
 
 # 27. Object Stores
 
-IndexedDB version 46 SHALL define:
+IndexedDB version 47 SHALL define:
 
 ```text
 campaigns
@@ -3213,7 +3243,7 @@ may acquire missing GitHub evidence.
 
 ## 31.3 Workflow Value collection health
 
-Canonical schema 35 SHALL retain `workflowValueCollections`, independently of
+Canonical schema 36 SHALL retain `workflowValueCollections`, independently of
 `operationalValueEvidence`: one current bounded record per exact repository and
 workflow filename stem. A schema-v2 `workflow_value_collection` JSONL envelope
 SHALL carry the record through the ordinary Activity adapter, normalized

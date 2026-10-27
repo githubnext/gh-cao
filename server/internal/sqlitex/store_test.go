@@ -289,6 +289,32 @@ func TestSnapshotFailsClosed(t *testing.T) {
 	}
 }
 
+func TestSnapshotAcceptsAdditiveDatabaseVersions(t *testing.T) {
+	for version := 44; version <= dashboardquery.DatabaseVersion; version++ {
+		t.Run(fmt.Sprint(version), func(t *testing.T) {
+			path := testutil.SQLiteSnapshot(t, nil)
+			writer, err := sql.Open("sqlite", path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := writer.ExecContext(t.Context(), `UPDATE __idb_databases SET version=?`, version); err != nil {
+				_ = writer.Close()
+				t.Fatal(err)
+			}
+			if err := writer.Close(); err != nil {
+				t.Fatal(err)
+			}
+			store, err := Open(t.Context(), path)
+			if err != nil {
+				t.Fatalf("additive database version %d was rejected: %v", version, err)
+			}
+			if err := store.Close(); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 func TestSnapshotDiagnostics(t *testing.T) {
 	store, path := localSnapshot(t)
 	diagnostics, err := store.Diagnostics(t.Context())

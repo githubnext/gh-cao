@@ -725,7 +725,8 @@ describe('declarative dashboard queries', () => {
         'gh-aw-current-version': 'v0.89.0',
         'upgrade-required': 0,
         'upgrade-action-visible': false,
-        'upgrade-state': 'Current'
+        'upgrade-state': 'Current',
+        'upgrade-status-reason': 'All retained workflow compiler versions match the latest stable gh-aw release.'
       },
       {
         repository: 'acme/service',
@@ -734,16 +735,18 @@ describe('declarative dashboard queries', () => {
         'gh-aw-current-version': 'v0.89.0',
         'upgrade-required': 1,
         'upgrade-action-visible': true,
-        'upgrade-state': 'Upgrade recommended'
+        'upgrade-state': 'Upgrade recommended',
+        'upgrade-status-reason': 'Mixed installed gh-aw compiler versions were retained; at least one upgrade is recommended.'
       },
       {
         repository: 'acme/unknown',
         'repository-url': 'https://github.com/acme/unknown',
-        'gh-aw-version': '',
-        'gh-aw-current-version': '',
+        'gh-aw-version': 'unknown',
+        'gh-aw-current-version': 'unknown',
         'upgrade-required': 0,
-        'upgrade-action-visible': true,
-        'upgrade-state': 'Upgrade status unavailable'
+        'upgrade-action-visible': false,
+        'upgrade-state': 'Upgrade status unavailable',
+        'upgrade-status-reason': 'Installed compiler version and latest stable gh-aw release are unavailable.'
       }
     ]);
   });

@@ -1140,10 +1140,209 @@
       ]
     },
     {
+      "name": "maintenance-campaign-packages",
+      "subject": "Installed campaign packages with retained source coordinates and update evidence.",
+      "objective": "Show installed/current source revisions and gate update actions on exact retained provenance.",
+      "acceptance": "Return every package. Set campaign-update-action-visible only for update-available rows with a non-empty source; missing provenance stays visible and non-actionable.",
+      "from": "campaigns",
+      "compute": [
+        {
+          "as": "campaign-source-unavailable",
+          "function": "equals-any",
+          "args": [
+            { "field": "campaign-source" },
+            { "value": "" },
+            { "value": "unknown" },
+            { "value": null }
+          ]
+        },
+        {
+          "as": "campaign-action-state",
+          "function": "if",
+          "args": [
+            { "field": "campaign-source-unavailable" },
+            { "value": "unknown" },
+            { "field": "campaign-update-state" }
+          ]
+        },
+        {
+          "as": "campaign-update-action-visible",
+          "function": "equals-any",
+          "args": [
+            { "field": "campaign-action-state" },
+            { "value": "update-available" }
+          ]
+        }
+      ],
+      "select": [
+        { "field": "campaign" },
+        { "field": "campaign-name" },
+        { "field": "campaign-description" },
+        { "field": "campaign-icon" },
+        { "field": "campaign-source" },
+        { "field": "campaign-version" },
+        { "field": "campaign-current-version" },
+        { "field": "campaign-update-state" },
+        { "field": "campaign-registration" },
+        { "field": "campaign-update-action-visible" }
+      ],
+      "order-by": [
+        { "field": "campaign-name", "direction": "asc" }
+      ]
+    },
+    {
+      "name": "maintenance-standalone-workflows",
+      "subject": "Standalone workflows with retained upstream provenance and update evidence.",
+      "objective": "Represent source-managed and local workflows without synthetic campaign membership.",
+      "acceptance": "Retain exact coordinates and revisions for source-managed rows; keep local or incomplete rows visible and non-actionable with an explicit reason.",
+      "from": "workflows",
+      "filter": {
+        "predicates": [
+          { "field": "workflow-role", "equals": "standalone" },
+          { "field": "workflow-source-kind", "in": ["source-managed", "local"] }
+        ]
+      },
+      "compute": [
+        {
+          "as": "workflow-source-installed-unavailable",
+          "function": "equals-any",
+          "args": [
+            { "field": "workflow-source-version" },
+            { "value": "" },
+            { "value": "unknown" },
+            { "value": null }
+          ]
+        },
+        {
+          "as": "workflow-source-latest-unavailable",
+          "function": "equals-any",
+          "args": [
+            { "field": "workflow-source-current-version" },
+            { "value": "" },
+            { "value": "unknown" },
+            { "value": null }
+          ]
+        },
+        {
+          "as": "workflow-is-local",
+          "function": "equals-any",
+          "args": [
+            { "field": "workflow-source-kind" },
+            { "value": "local" }
+          ]
+        },
+        {
+          "as": "workflow-source-state",
+          "function": "if",
+          "args": [
+            { "field": "workflow-is-local" },
+            { "value": "local" },
+            { "field": "workflow-source-update-state" }
+          ]
+        },
+        {
+          "as": "workflow-source-update-available",
+          "function": "equals-any",
+          "args": [
+            { "field": "workflow-source-state" },
+            { "value": "update-available" }
+          ]
+        },
+        {
+          "as": "workflow-source-update-unknown",
+          "function": "equals-any",
+          "args": [
+            { "field": "workflow-source-state" },
+            { "value": "unknown" }
+          ]
+        },
+        {
+          "as": "workflow-update-state-known",
+          "function": "if",
+          "args": [
+            { "field": "workflow-source-update-available" },
+            { "value": "Update available" },
+            { "value": "Current" }
+          ]
+        },
+        {
+          "as": "workflow-update-state-with-unknown",
+          "function": "if",
+          "args": [
+            { "field": "workflow-source-update-unknown" },
+            { "value": "Update status unavailable" },
+            { "field": "workflow-update-state-known" }
+          ]
+        },
+        {
+          "as": "workflow-update-state",
+          "function": "if",
+          "args": [
+            { "field": "workflow-is-local" },
+            { "value": "Local workflow" },
+            { "field": "workflow-update-state-with-unknown" }
+          ]
+        },
+        {
+          "as": "workflow-update-reason-installed",
+          "function": "if",
+          "args": [
+            { "field": "workflow-source-installed-unavailable" },
+            { "value": "Installed source revision unavailable." },
+            { "value": "Installed and upstream source revisions are available." }
+          ]
+        },
+        {
+          "as": "workflow-update-reason-latest",
+          "function": "if",
+          "args": [
+            { "field": "workflow-source-latest-unavailable" },
+            { "value": "Latest upstream source revision unavailable." },
+            { "field": "workflow-update-reason-installed" }
+          ]
+        },
+        {
+          "as": "workflow-update-status-reason",
+          "function": "if",
+          "args": [
+            { "field": "workflow-is-local" },
+            { "value": "No upstream source coordinate was retained; update manually." },
+            { "field": "workflow-update-reason-latest" }
+          ]
+        },
+        {
+          "as": "workflow-update-action-visible",
+          "function": "equals-any",
+          "args": [
+            { "field": "workflow-source-state" },
+            { "value": "update-available" }
+          ]
+        }
+      ],
+      "select": [
+        { "field": "organization" },
+        { "field": "repository" },
+        { "field": "workflow" },
+        { "field": "workflow-name" },
+        { "field": "workflow-source-kind" },
+        { "field": "workflow-source" },
+        { "field": "workflow-source-version" },
+        { "field": "workflow-source-current-version" },
+        { "field": "workflow-source-update-state" },
+        { "field": "workflow-update-state" },
+        { "field": "workflow-update-status-reason" },
+        { "field": "workflow-update-action-visible" }
+      ],
+      "order-by": [
+        { "field": "workflow-update-action-visible", "direction": "desc" },
+        { "field": "workflow-name", "direction": "asc" }
+      ]
+    },
+    {
       "name": "maintenance-repository-versions",
       "subject": "Group installed and current gh-aw compiler versions and upgrade evidence by repository.",
       "objective": "Identify repositories with declared Markdown workflows whose retained compiler-version evidence warrants upgrade review.",
-      "acceptance": "Group Markdown workflow declarations by repository coordinate and return distinct recorded installed/current version lists plus upgrade-required and unknown flags; inspect absent or mixed version evidence rather than inferring a repository-wide installed version.",
+      "acceptance": "Group Markdown workflow declarations by repository coordinate and return distinct known installed/current version lists, distinct counts, upgrade-required evidence, and separate missing-installed/missing-latest flags. Never infer unavailable versions.",
       "from": "workflows",
       "filter": {
         "predicates": [
@@ -1170,57 +1369,94 @@
           ]
         },
         {
-          "as": "update-available",
+          "as": "installed-version-unavailable",
           "function": "equals-any",
           "args": [
-            {
-              "field": "gh-aw-update-state"
-            },
-            {
-              "value": "update-available"
-            }
+            { "field": "gh-aw-version" },
+            { "value": "" },
+            { "value": "unknown" },
+            { "value": null }
           ]
         },
         {
-          "as": "upgrade-state-unknown",
+          "as": "current-version-unavailable",
           "function": "equals-any",
           "args": [
-            {
-              "field": "gh-aw-update-state"
-            },
-            {
-              "value": "unknown"
-            }
+            { "field": "gh-aw-current-version" },
+            { "value": "" },
+            { "value": "unknown" },
+            { "value": null }
           ]
         },
         {
-          "as": "upgrade-state-unknown-value",
+          "as": "known-installed-version",
           "function": "if",
           "args": [
-            {
-              "field": "upgrade-state-unknown"
-            },
-            {
-              "value": 1
-            },
-            {
-              "value": 0
-            }
+            { "field": "installed-version-unavailable" },
+            { "value": null },
+            { "field": "gh-aw-version" }
+          ]
+        },
+        {
+          "as": "known-current-version",
+          "function": "if",
+          "args": [
+            { "field": "current-version-unavailable" },
+            { "value": null },
+            { "field": "gh-aw-current-version" }
+          ]
+        },
+        {
+          "as": "installed-version-unavailable-value",
+          "function": "if",
+          "args": [
+            { "field": "installed-version-unavailable" },
+            { "value": 1 },
+            { "value": 0 }
+          ]
+        },
+        {
+          "as": "current-version-unavailable-value",
+          "function": "if",
+          "args": [
+            { "field": "current-version-unavailable" },
+            { "value": 1 },
+            { "value": 0 }
+          ]
+        },
+        {
+          "as": "compiler-versions-match",
+          "function": "equals-any",
+          "args": [
+            { "field": "gh-aw-version" },
+            { "field": "gh-aw-current-version" }
+          ]
+        },
+        {
+          "as": "upgrade-candidate-value",
+          "function": "if",
+          "args": [
+            { "field": "compiler-versions-match" },
+            { "value": 0 },
+            { "value": 1 }
+          ]
+        },
+        {
+          "as": "upgrade-with-current-evidence",
+          "function": "if",
+          "args": [
+            { "field": "current-version-unavailable" },
+            { "value": 0 },
+            { "field": "upgrade-candidate-value" }
           ]
         },
         {
           "as": "upgrade-required-value",
           "function": "if",
           "args": [
-            {
-              "field": "update-available"
-            },
-            {
-              "value": 1
-            },
-            {
-              "value": 0
-            }
+            { "field": "installed-version-unavailable" },
+            { "value": 0 },
+            { "field": "upgrade-with-current-evidence" }
           ]
         }
       ],
@@ -1230,14 +1466,24 @@
         ],
         "values": [
           {
-            "field": "gh-aw-version",
+            "field": "known-installed-version",
             "as": "gh-aw-version",
             "reducer": "distinct-list"
           },
           {
-            "field": "gh-aw-current-version",
+            "field": "known-current-version",
             "as": "gh-aw-current-version",
             "reducer": "distinct-list"
+          },
+          {
+            "field": "known-installed-version",
+            "as": "installed-version-count",
+            "reducer": "distinct-count"
+          },
+          {
+            "field": "known-current-version",
+            "as": "current-version-count",
+            "reducer": "distinct-count"
           },
           {
             "field": "upgrade-required-value",
@@ -1245,8 +1491,13 @@
             "reducer": "max"
           },
           {
-            "field": "upgrade-state-unknown-value",
-            "as": "upgrade-state-unknown",
+            "field": "installed-version-unavailable-value",
+            "as": "installed-version-unavailable",
+            "reducer": "max"
+          },
+          {
+            "field": "current-version-unavailable-value",
+            "as": "current-version-unavailable",
             "reducer": "max"
           }
         ]
@@ -1255,8 +1506,8 @@
     {
       "name": "maintenance-repositories",
       "subject": "List each repository with recorded compiler versions and computed upgrade state.",
-      "objective": "Expose recorded compiler versions and computed upgrade state per repository, with its GitHub home URL for inspection.",
-      "acceptance": "Return repository, repository-url, version lists, upgrade-required, upgrade-state, and upgrade-action-visible. Show Upgrade for outdated or unknown evidence; hide it for known-current repositories. Visibility grants no rollout authority.",
+      "objective": "Expose recorded compiler versions, computed upgrade state, and a concise evidence diagnostic per repository, with its GitHub home URL for inspection.",
+      "acceptance": "Return repository, repository-url, known version lists, upgrade-required, upgrade-state, upgrade-status-reason, and upgrade-action-visible. Show Upgrade only when known evidence establishes an outdated compiler; missing or conflicting evidence stays visible and non-actionable.",
       "from": "maintenance-repository-versions",
       "compute": [
         {
@@ -1280,57 +1531,57 @@
           ]
         },
         {
-          "as": "installed-version-unavailable",
-          "function": "equals-any",
+          "as": "installed-version-mixed",
+          "function": "greater-than",
           "args": [
-            { "field": "gh-aw-version" },
-            { "value": "" },
-            { "value": "unknown" }
+            { "field": "installed-version-count" },
+            { "value": 1 }
           ]
         },
         {
-          "as": "compiler-versions-match",
-          "function": "equals-any",
+          "as": "current-version-conflicting",
+          "function": "greater-than",
           "args": [
-            { "field": "gh-aw-version" },
-            { "field": "gh-aw-current-version" }
+            { "field": "current-version-count" },
+            { "value": 1 }
           ]
         },
         {
-          "as": "known-current-versions",
-          "function": "if",
+          "as": "installed-version-missing",
+          "function": "equals-any",
           "args": [
             { "field": "installed-version-unavailable" },
-            { "value": false },
-            { "field": "compiler-versions-match" }
+            { "value": 1 }
+          ]
+        },
+        {
+          "as": "current-version-missing",
+          "function": "equals-any",
+          "args": [
+            { "field": "current-version-unavailable" },
+            { "value": 1 }
+          ]
+        },
+        {
+          "as": "latest-version-evidence-unavailable",
+          "function": "if",
+          "args": [
+            { "field": "current-version-missing" },
+            { "value": true },
+            { "field": "current-version-conflicting" }
           ]
         },
         {
           "as": "upgrade-status-unavailable",
           "function": "if",
           "args": [
-            { "field": "known-current-versions" },
-            { "value": false },
-            { "value": true }
+            { "field": "installed-version-missing" },
+            { "value": true },
+            { "field": "latest-version-evidence-unavailable" }
           ]
         },
         {
           "as": "current-or-unavailable",
-          "function": "if",
-          "args": [
-            {
-              "field": "upgrade-status-unavailable"
-            },
-            {
-              "value": "Upgrade status unavailable"
-            },
-            {
-              "value": "Current"
-            }
-          ]
-        },
-        {
-          "as": "upgrade-action-visible",
           "function": "if",
           "args": [
             { "field": "should-upgrade" },
@@ -1339,18 +1590,127 @@
           ]
         },
         {
+          "as": "upgrade-state-known",
+          "function": "if",
+          "args": [
+            { "field": "should-upgrade" },
+            { "value": "Upgrade recommended" },
+            { "value": "Current" }
+          ]
+        },
+        {
           "as": "upgrade-state",
           "function": "if",
           "args": [
-            {
-              "field": "should-upgrade"
-            },
-            {
-              "value": "Upgrade recommended"
-            },
-            {
-              "field": "current-or-unavailable"
-            }
+            { "field": "upgrade-status-unavailable" },
+            { "value": "Upgrade status unavailable" },
+            { "field": "upgrade-state-known" }
+          ]
+        },
+        {
+          "as": "upgrade-reason-known",
+          "function": "if",
+          "args": [
+            { "field": "should-upgrade" },
+            { "value": "At least one retained workflow uses an older gh-aw compiler version." },
+            { "value": "All retained workflow compiler versions match the latest stable gh-aw release." }
+          ]
+        },
+        {
+          "as": "upgrade-reason-mixed",
+          "function": "if",
+          "args": [
+            { "field": "installed-version-mixed" },
+            { "value": "Mixed installed gh-aw compiler versions were retained; at least one upgrade is recommended." },
+            { "field": "upgrade-reason-known" }
+          ]
+        },
+        {
+          "as": "upgrade-reason-installed",
+          "function": "if",
+          "args": [
+            { "field": "installed-version-missing" },
+            { "value": "Installed gh-aw compiler version unavailable for one or more workflows." },
+            { "field": "upgrade-reason-mixed" }
+          ]
+        },
+        {
+          "as": "upgrade-reason-current",
+          "function": "if",
+          "args": [
+            { "field": "current-version-missing" },
+            { "value": "Latest stable gh-aw release unavailable." },
+            { "field": "upgrade-reason-installed" }
+          ]
+        },
+        {
+          "as": "both-compiler-versions-missing",
+          "function": "if",
+          "args": [
+            { "field": "installed-version-missing" },
+            { "field": "current-version-missing" },
+            { "value": false }
+          ]
+        },
+        {
+          "as": "upgrade-reason-both",
+          "function": "if",
+          "args": [
+            { "field": "both-compiler-versions-missing" },
+            { "value": "Installed compiler version and latest stable gh-aw release are unavailable." },
+            { "field": "upgrade-reason-current" }
+          ]
+        },
+        {
+          "as": "upgrade-status-reason",
+          "function": "if",
+          "args": [
+            { "field": "current-version-conflicting" },
+            { "value": "Conflicting latest gh-aw release evidence was retained." },
+            { "field": "upgrade-reason-both" }
+          ]
+        },
+        {
+          "as": "upgrade-action-visible",
+          "function": "if",
+          "args": [
+            { "field": "upgrade-status-unavailable" },
+            { "value": false },
+            { "field": "should-upgrade" }
+          ]
+        },
+        {
+          "as": "installed-version-available",
+          "function": "greater-than",
+          "args": [
+            { "field": "installed-version-count" },
+            { "value": 0 }
+          ]
+        },
+        {
+          "as": "current-version-available",
+          "function": "greater-than",
+          "args": [
+            { "field": "current-version-count" },
+            { "value": 0 }
+          ]
+        },
+        {
+          "as": "gh-aw-version-label",
+          "function": "if",
+          "args": [
+            { "field": "installed-version-available" },
+            { "field": "gh-aw-version" },
+            { "value": "unknown" }
+          ]
+        },
+        {
+          "as": "gh-aw-current-version-label",
+          "function": "if",
+          "args": [
+            { "field": "current-version-available" },
+            { "field": "gh-aw-current-version" },
+            { "value": "unknown" }
           ]
         }
       ],
@@ -1363,10 +1723,12 @@
           "field": "repository-url"
         },
         {
-          "field": "gh-aw-version"
+          "field": "gh-aw-version-label",
+          "as": "gh-aw-version"
         },
         {
-          "field": "gh-aw-current-version"
+          "field": "gh-aw-current-version-label",
+          "as": "gh-aw-current-version"
         },
         {
           "field": "upgrade-required"
@@ -1376,6 +1738,9 @@
         },
         {
           "field": "upgrade-state"
+        },
+        {
+          "field": "upgrade-status-reason"
         }
       ],
       "order-by": [
@@ -1390,18 +1755,39 @@
       "subject": "Expose at most one CAO package update row for the Updates navigation indicator.",
       "objective": "Determine whether retained campaign metadata contains an update-available signal for the Updates indicator.",
       "acceptance": "Return zero or one campaign-update-state row only when it equals update-available; an empty result means no matching retained signal, not that every campaign is current.",
-      "from": "campaigns",
+      "from": "maintenance-campaign-packages",
       "filter": {
         "predicates": [
           {
-            "field": "campaign-update-state",
-            "equals": "update-available"
+            "field": "campaign-update-action-visible",
+            "equals": true
           }
         ]
       },
       "select": [
         {
-          "field": "campaign-update-state"
+          "field": "campaign-update-action-visible"
+        }
+      ],
+      "limit": 1
+    },
+    {
+      "name": "maintenance-standalone-updates",
+      "subject": "Expose at most one standalone workflow source update row for the Updates navigation indicator.",
+      "objective": "Determine whether retained source-managed standalone workflow metadata contains an actionable update signal for the Updates indicator.",
+      "acceptance": "Return zero or one workflow-update-action-visible row only when it is true; unmanaged local workflows and incomplete source evidence do not activate the indicator.",
+      "from": "maintenance-standalone-workflows",
+      "filter": {
+        "predicates": [
+          {
+            "field": "workflow-update-action-visible",
+            "equals": true
+          }
+        ]
+      },
+      "select": [
+        {
+          "field": "workflow-update-action-visible"
         }
       ],
       "limit": 1
@@ -1410,19 +1796,19 @@
       "name": "maintenance-repository-upgrades",
       "subject": "Expose at most one gh-aw compiler upgrade row for the Updates navigation indicator.",
       "objective": "Determine whether repository compiler metadata contains an upgrade-required signal for the Updates indicator.",
-      "acceptance": "Return zero or one upgrade-required row only when the retained value is 1; no row does not establish that all repositories are current when version data is missing.",
+      "acceptance": "Return zero or one upgrade-action-visible row only when known retained evidence establishes an outdated compiler; missing evidence remains non-actionable and does not activate the indicator.",
       "from": "maintenance-repositories",
       "filter": {
         "predicates": [
           {
-            "field": "upgrade-required",
-            "equals": 1
+            "field": "upgrade-action-visible",
+            "equals": true
           }
         ]
       },
       "select": [
         {
-          "field": "upgrade-required"
+          "field": "upgrade-action-visible"
         }
       ],
       "limit": 1

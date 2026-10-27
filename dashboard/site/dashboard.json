@@ -838,6 +838,10 @@
         "detail-labels": "visible",
         "details": [
           {
+            "field": "campaign-source",
+            "title": "Source"
+          },
+          {
             "field": "campaign-version",
             "title": "Installed"
           },
@@ -865,11 +869,12 @@
           {
             "action": "update-campaign",
             "context": [
-              "campaign"
+              "campaign-source",
+              "campaign-name"
             ],
             "when": {
-              "field": "campaign-update-state",
-              "equals": "update-available"
+              "field": "campaign-update-action-visible",
+              "equals": true
             }
           },
           {
@@ -888,6 +893,53 @@
             "field": "campaign-registration",
             "title": "Registration",
             "display": "active-state"
+          }
+        ]
+      },
+      {
+        "id": "maintenance-standalone-workflow",
+        "icon": "workflow",
+        "title": {
+          "field": "workflow-name",
+          "title": "Workflow"
+        },
+        "detail-labels": "visible",
+        "details": [
+          {
+            "field": "workflow-source",
+            "title": "Source"
+          },
+          {
+            "field": "workflow-source-version",
+            "title": "Installed"
+          },
+          {
+            "field": "workflow-source-current-version",
+            "title": "Latest"
+          },
+          {
+            "field": "workflow-update-status-reason",
+            "title": "Evidence"
+          }
+        ],
+        "actions": [
+          {
+            "action": "update-workflow-source",
+            "context": [
+              "workflow-source",
+              "workflow-name"
+            ],
+            "when": {
+              "field": "workflow-update-action-visible",
+              "equals": true
+            }
+          }
+        ],
+        "labels": [
+          {
+            "field": "workflow-update-state",
+            "title": "Update",
+            "display": "status"
           }
         ]
       },
@@ -911,6 +963,10 @@
           {
             "field": "gh-aw-current-version",
             "title": "Latest"
+          },
+          {
+            "field": "upgrade-status-reason",
+            "title": "Evidence"
           }
         ],
         "actions": [
@@ -938,17 +994,17 @@
       {
         "id": "update-repository",
         "level": "operate",
-        "label": "Update all",
-        "description": "Queue an individual update for every listed campaign, then open Commands.",
+        "label": "Update selected sources",
+        "description": "Queue an individual update from each row's retained source coordinate, then open Commands.",
         "icon": "sync",
-        "command": "gh aw update https://github.com/githubnext/gh-cao/{{campaign}} --repo {{cao-repository}} --pr-message 'This pull request was requested through [Central Agentic Ops (CAO)]({{cao-repository-url}}) to update the {{campaign}} campaign from its upstream source, keeping installed workflows current with published fixes and improvements. Return to the [CAO dashboard]({{cao-url}}#page-maintenance-campaigns).'",
-        "preview-command": "gh aw update https://github.com/githubnext/gh-cao/{{campaign}} --repo {{cao-repository}}",
+        "command": "gh aw update https://github.com/{{campaign-source}} --repo {{cao-repository}} --pr-message 'This pull request was requested through [Central Agentic Ops (CAO)]({{cao-repository-url}}) to update the {{campaign-name}} campaign package from its retained upstream source. Return to the [CAO dashboard]({{cao-url}}#page-maintenance-campaigns).'",
+        "preview-command": "gh aw update https://github.com/{{campaign-source}} --repo {{cao-repository}}",
         "placement": "view",
         "arguments": [
           {
             "id": "create-pull-request",
             "label": "Create pull request",
-            "description": "Create a pull request with the workflow campaign updates.",
+            "description": "Create a pull request with the workflow source update.",
             "type": "boolean",
             "flag": "--create-pull-request",
             "default": true
@@ -966,8 +1022,8 @@
       {
         "id": "upgrade-repository",
         "level": "operate",
-        "label": "Upgrade all",
-        "description": "Queue an individual Agentic Workflows upgrade for every listed repository, then open Commands.",
+        "label": "Upgrade selected repositories",
+        "description": "Queue an individual Agentic Workflows upgrade for each selected repository, then open Commands.",
         "icon": "download",
         "command": "gh aw upgrade --repo {{repository}} --pr-message 'This pull request was requested through [Central Agentic Ops (CAO)]({{cao-repository-url}}) to upgrade GitHub Agentic Workflows in {{repository}}, refreshing workflow tooling, action versions, and generated lock files. Return to the [CAO dashboard]({{cao-url}}#page-maintenance).'",
         "preview-command": "gh aw upgrade --repo {{repository}}",
@@ -1038,15 +1094,42 @@
         "id": "update-campaign",
         "level": "operate",
         "label": "Update",
-        "description": "Update this campaign's agentic workflow.",
+        "description": "Update this campaign package from its retained source coordinate.",
         "icon": "sync",
-        "command": "gh aw update https://github.com/githubnext/gh-cao/{{campaign}} --repo {{cao-repository}} --pr-message 'This pull request was requested through [Central Agentic Ops (CAO)]({{cao-repository-url}}) to update the {{campaign}} campaign from its upstream source, keeping installed workflows current with published fixes and improvements. Return to the [CAO dashboard]({{cao-url}}#page-maintenance-campaigns).'",
+        "command": "gh aw update https://github.com/{{campaign-source}} --repo {{cao-repository}} --pr-message 'This pull request was requested through [Central Agentic Ops (CAO)]({{cao-repository-url}}) to update the {{campaign-name}} campaign package from its retained upstream source. Return to the [CAO dashboard]({{cao-url}}#page-maintenance-campaigns).'",
         "placement": "row",
         "arguments": [
           {
             "id": "create-pull-request",
             "label": "Create pull request",
             "description": "Create a pull request with the workflow campaign updates.",
+            "type": "boolean",
+            "flag": "--create-pull-request",
+            "default": false
+          },
+          {
+            "id": "auto-merge",
+            "label": "Auto merge",
+            "description": "Enable auto-merge on the created pull request. Requires Create pull request.",
+            "type": "boolean",
+            "flag": "--auto-merge",
+            "default": false
+          }
+        ]
+      },
+      {
+        "id": "update-workflow-source",
+        "level": "operate",
+        "label": "Update",
+        "description": "Update this standalone workflow from its retained source coordinate.",
+        "icon": "sync",
+        "command": "gh aw update https://github.com/{{workflow-source}} --repo {{cao-repository}} --pr-message 'This pull request was requested through [Central Agentic Ops (CAO)]({{cao-repository-url}}) to update the {{workflow-name}} standalone workflow from its retained upstream source. Return to the [CAO dashboard]({{cao-url}}#page-maintenance-campaigns).'",
+        "placement": "row",
+        "arguments": [
+          {
+            "id": "create-pull-request",
+            "label": "Create pull request",
+            "description": "Create a pull request with the standalone workflow update.",
             "type": "boolean",
             "flag": "--create-pull-request",
             "default": false

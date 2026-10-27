@@ -30,6 +30,7 @@ model campaigns {
   readmePath?: string;
   rolloutPercent?: decimal;
   slug?: string;
+  sourceCoordinate?: string;
   updateState?: string;
   version?: string;
   workerCount?: int64;
@@ -75,6 +76,11 @@ model workflows {
   repositoryLink?: Values.Link;
   role?: string;
   rolloutMode?: string;
+  sourceCoordinate?: string;
+  sourceCurrentVersion?: string;
+  sourceKind?: string;
+  sourceUpdateState?: string;
+  sourceVersion?: string;
   state?: string;
   updatedAt?: utcDateTime;
   workflowLink?: Values.Link;

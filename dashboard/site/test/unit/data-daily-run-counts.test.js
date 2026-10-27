@@ -118,8 +118,8 @@ describe('additive daily run outcome counts', () => {
     const receipt = (await readCollections(indexedDB, ['runCountContributions'])).runCountContributions[0];
     expect(receipt.run.inputTokens).toBeUndefined();
     expect(receipt.run.status).toBe('completed');
-    expect(CANONICAL_SCHEMA_VERSION).toBe(35);
-    expect(DATABASE_VERSION).toBe(46);
+    expect(CANONICAL_SCHEMA_VERSION).toBe(36);
+    expect(DATABASE_VERSION).toBe(47);
     expect(ENTITY_STORES).not.toContain('dailyRunCounts');
     expect(ENTITY_STORES).not.toContain('runCountContributions');
   });
@@ -393,16 +393,15 @@ describe('additive daily run outcome counts', () => {
       expect(await readCollections(indexedDB, ['dailyRunCounts', 'runCountContributions', 'dailyRunCountState'])).toEqual(before);
     });
 
-  it('preserves v45 aggregate receipts after detail eviction while adding the workflow-value collection store', async () => {
+  it('preserves v46 aggregate receipts while adding optional source-maintenance fields', async () => {
     await writeRuns([fixture]);
     await maintainCanonicalDatabase(indexedDB, { now, maxDatabaseBytes: 0 });
     const before = await readCollections(indexedDB, ['dailyRunCounts', 'runCountContributions', 'dailyRunCountState']);
     await deleteCanonicalDatabase(indexedDB);
     await new Promise((resolve, reject) => {
-      const request = indexedDB.open(DATABASE_NAME, 45);
+      const request = indexedDB.open(DATABASE_NAME, 46);
       request.onupgradeneeded = () => {
         for (const [name, definition] of Object.entries(CANONICAL_DATABASE_SCHEMA)) {
-          if (name === 'workflowValueCollections') continue;
           const store = request.result.createObjectStore(name, { keyPath: definition.keyPath });
           for (const [index, keyPath] of Object.entries(definition.indexes)) store.createIndex(index, keyPath);
           for (const record of before[name] ?? []) store.put(record);
@@ -412,7 +411,7 @@ describe('additive daily run outcome counts', () => {
       request.onerror = () => reject(request.error);
     });
     const database = await openCanonicalDatabase(indexedDB);
-    expect(database.version).toBe(46);
+    expect(database.version).toBe(DATABASE_VERSION);
     expect(database.objectStoreNames.contains('workflowValueCollections')).toBe(true);
     database.close();
     expect(await readCollection(indexedDB, 'runs')).toEqual([]);
@@ -421,7 +420,7 @@ describe('additive daily run outcome counts', () => {
     expect(await counts()).toEqual(before.dailyRunCounts);
   });
 
-  it.each([44, 45])('resumes an interrupted v%s backfill with bounded cursors and byte-identical retained detail', async (version) => {
+  it.each([44, 45, 46])('resumes an interrupted v%s backfill with bounded cursors and byte-identical retained detail', async (version) => {
     const runs = Array.from({ length: 502 }, (_, index) => ({ ...fixture, id: `run:${index}` }));
     await new Promise((resolve, reject) => {
       const request = indexedDB.open(DATABASE_NAME, version);

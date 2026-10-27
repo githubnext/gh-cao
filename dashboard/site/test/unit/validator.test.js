@@ -133,6 +133,8 @@ describe('dashboard document validation', () => {
   it('rejects a batch action against an incrementally loaded list', () => {
     const document = JSON.parse(authoritativeDashboardSource);
     const page = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance');
+    page.views[0].list.action = 'upgrade-repository';
+    page.views[0].list['action-context'] = ['repository'];
     page.views[0]['lazy-list'] = true;
     expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({ ok: false });
   });

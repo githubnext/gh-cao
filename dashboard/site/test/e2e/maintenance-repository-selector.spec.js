@@ -48,7 +48,7 @@ for (const { width, height = 900, empty = false, crowded = false } of [
             rows: empty ? [] : [{
               campaign: 'demo', 'campaign-name': 'Demo campaign', 'campaign-version': 'v1',
               'campaign-current-version': 'v2', 'campaign-update-state': 'update-available',
-              'campaign-registration': 'true'
+              'campaign-registration': 'true', 'campaign-source': 'acme/catalog/demo'
             }]
           },
           repositories: {
@@ -57,8 +57,18 @@ for (const { width, height = 900, empty = false, crowded = false } of [
           },
           workflows: {
             metadata: { 'as-of': new Date().toISOString(), availability: 'available', completeness: 'complete', freshness: 'fresh' },
-            rows: empty ? [] : [{ organization: 'acme', repository: 'control', workflow: 'demo.md', 'workflow-name': 'Demo',
-              'gh-aw-version': 'v0.91.5', 'gh-aw-current-version': 'v0.91.5' }]
+            rows: empty ? [] : [
+              { organization: 'acme', repository: 'control', workflow: 'demo.md', 'workflow-name': 'Demo',
+                'workflow-role': 'standalone', 'workflow-source-kind': 'source-managed',
+                'workflow-source': 'acme/workflows/demo', 'workflow-source-version': 'v1',
+                'workflow-source-current-version': 'v2', 'workflow-source-update-state': 'update-available',
+                'gh-aw-version': 'v0.91.5', 'gh-aw-current-version': 'v0.91.5' },
+              { organization: 'acme', repository: 'control', workflow: 'local.md', 'workflow-name': 'Local',
+                'workflow-role': 'standalone', 'workflow-source-kind': 'local',
+                'workflow-source': '', 'workflow-source-version': 'unknown',
+                'workflow-source-current-version': 'unknown', 'workflow-source-update-state': 'unknown',
+                'gh-aw-version': 'v0.91.5', 'gh-aw-current-version': 'v0.91.5' }
+            ]
           }
         } });
       }
@@ -84,9 +94,9 @@ for (const { width, height = 900, empty = false, crowded = false } of [
       const headers = page.locator('#page-maintenance .document-list-header');
       await expect(headers).toHaveCount(1);
       const tabs = page.locator('#page-maintenance [data-route-tabs]');
-      await expect(tabs.getByRole('link', { name: 'Repositories', exact: true })).toHaveAttribute('aria-current', 'page');
-      await expect(tabs.getByRole('link', { name: 'Campaigns', exact: true })).toHaveAttribute('href', '#page-maintenance-campaigns');
-      await expect(page.locator('#page-maintenance').getByRole('region', { name: 'CAO packages', exact: true })).toHaveCount(0);
+      await expect(tabs.getByRole('link', { name: 'Compiler upgrades', exact: true })).toHaveAttribute('aria-current', 'page');
+      await expect(tabs.getByRole('link', { name: 'Workflow updates', exact: true })).toHaveAttribute('href', '#page-maintenance-campaigns');
+      await expect(page.locator('#page-maintenance').getByRole('region', { name: 'Campaign packages', exact: true })).toHaveCount(0);
       await expect(page.locator('#page-maintenance .view-description-tooltip')).toHaveCount(0);
       for (const header of await headers.all()) {
         const geometry = await header.evaluate((element) => {
@@ -128,16 +138,16 @@ for (const { width, height = 900, empty = false, crowded = false } of [
           } else expect(button.labelDisplay).not.toBe('none');
         }
       }
-      const repositories = page.getByRole('region', { name: 'Repositories', exact: true });
+      const repositories = page.getByRole('region', { name: 'Repository compiler status', exact: true });
       if (empty) await expect(repositories.getByText('No Agentic Workflow compiler versions were observed.')).toBeVisible();
       else await expect(repositories.getByText('acme/control', { exact: true }).first()).toBeVisible();
       if (!empty && !crowded && [1440, 390].includes(width)) {
         await page.screenshot({ path: testInfo.outputPath(`updates-repositories-${width}.png`), fullPage: true });
         await testInfo.attach(`updates-repositories-${width}`, { path: testInfo.outputPath(`updates-repositories-${width}.png`), contentType: 'image/png' });
       }
-      await tabs.getByRole('link', { name: 'Repositories', exact: true }).focus();
+      await tabs.getByRole('link', { name: 'Compiler upgrades', exact: true }).focus();
       await page.keyboard.press('ArrowRight');
-      const campaignsTab = tabs.getByRole('link', { name: 'Campaigns', exact: true });
+      const campaignsTab = tabs.getByRole('link', { name: 'Workflow updates', exact: true });
       await expect(campaignsTab).toBeFocused();
       await campaignsTab.press('Enter');
       const campaignPage = page.locator('#page-maintenance-campaigns');
@@ -147,13 +157,23 @@ for (const { width, height = 900, empty = false, crowded = false } of [
       await expect(documentRoot).toHaveAttribute('data-last-transition-direction', '');
       await expect(documentRoot).toHaveAttribute('data-last-transition-root-name', 'none');
       await expect(documentRoot).toHaveAttribute('data-last-transition-body-name', 'dashboard-tab-content');
-      await expect(campaignPage.locator('[data-route-tabs]').getByRole('link', { name: 'Campaigns', exact: true }))
+      await expect(campaignPage.locator('[data-route-tabs]').getByRole('link', { name: 'Workflow updates', exact: true }))
         .toHaveAttribute('aria-current', 'page');
-      await expect(campaignPage.getByRole('region', { name: 'CAO packages', exact: true })).toBeVisible();
-      if (empty) await expect(campaignPage.getByText('No CAO campaign packages were observed.')).toBeVisible();
+      const campaignPackages = campaignPage.getByRole('region', { name: 'Campaign packages', exact: true });
+      const standaloneWorkflows = campaignPage.getByRole('region', { name: 'Standalone workflows', exact: true });
+      await expect(campaignPackages).toBeVisible();
+      await expect(standaloneWorkflows).toBeVisible();
+      if (empty) {
+        await expect(campaignPage.getByText('No campaign packages were observed.')).toBeVisible();
+        await expect(campaignPage.getByText('No standalone workflow sources were observed.')).toBeVisible();
+      }
       else {
-        await expect(campaignPage.getByText('Demo campaign', { exact: true }).first()).toBeVisible();
-        await expect(campaignPage.getByRole('button', { name: 'Update', exact: true })).toBeVisible();
+        await expect(campaignPackages.getByText('Demo campaign', { exact: true }).first()).toBeVisible();
+        await expect(campaignPackages.getByRole('button', { name: 'Update', exact: true })).toBeVisible();
+        await expect(standaloneWorkflows.getByText('Demo', { exact: true }).first()).toBeVisible();
+        await expect(standaloneWorkflows.getByRole('button', { name: 'Update', exact: true })).toBeVisible();
+        await expect(standaloneWorkflows.getByText('Local workflow', { exact: true })).toBeVisible();
+        await expect(standaloneWorkflows.getByText('No upstream source coordinate was retained; update manually.', { exact: true })).toBeVisible();
       }
       await expect(campaignPage.getByRole('button', { name: 'Add repository', exact: true })).toHaveCount(0);
       if (!empty && !crowded && [1440, 390].includes(width)) {
@@ -162,7 +182,7 @@ for (const { width, height = 900, empty = false, crowded = false } of [
       }
       await page.reload();
       await expect(campaignPage.locator('[data-route-tabs]')).toHaveAttribute('data-route-tabs-current', 'campaigns');
-      await campaignPage.getByRole('link', { name: 'Repositories', exact: true }).click();
+      await campaignPage.getByRole('link', { name: 'Compiler upgrades', exact: true }).click();
       await expect(add).toBeVisible();
       await expect(documentRoot).toHaveAttribute('data-last-transition-kind', 'tab');
       await page.goBack();

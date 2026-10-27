@@ -2,7 +2,7 @@
 
 -- Fresh database only. Opaque artifacts remain external.
 
--- Inventory normalization contract: 4bac781c5f40c973c3765bdc44498a95647e58a7b83dd597b7c7db8b5263daa7
+-- Inventory normalization contract: 406ed2701b5a31c492406aacfc7b9eeb42c6a2e625981050341a5ade0916f456
 
 CREATE TABLE IF NOT EXISTS cao_github_resources (
   namespace TEXT NOT NULL,
@@ -138,13 +138,14 @@ CREATE TABLE IF NOT EXISTS campaigns (
   readme_path TEXT,
   rollout_percent NUMERIC,
   slug TEXT,
+  source_coordinate TEXT,
   update_state TEXT,
   version TEXT,
   worker_count BIGINT,
 
   PRIMARY KEY (namespace, id),
   UNIQUE (namespace, ordinal),
-  CHECK (bit_length(present_fields) = 25),
+  CHECK (bit_length(present_fields) = 26),
   FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE
 );
 
@@ -182,6 +183,11 @@ CREATE TABLE IF NOT EXISTS workflows (
   repository_link_label TEXT,
   role TEXT,
   rollout_mode TEXT,
+  source_coordinate TEXT,
+  source_current_version TEXT,
+  source_kind TEXT,
+  source_update_state TEXT,
+  source_version TEXT,
   state TEXT,
   updated_at TIMESTAMPTZ,
   workflow_link_object BOOLEAN,
@@ -191,7 +197,7 @@ CREATE TABLE IF NOT EXISTS workflows (
 
   PRIMARY KEY (namespace, id),
   UNIQUE (namespace, ordinal),
-  CHECK (bit_length(present_fields) = 36),
+  CHECK (bit_length(present_fields) = 41),
   FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
   FOREIGN KEY (namespace, campaign_id) REFERENCES campaigns(namespace, id) DEFERRABLE INITIALLY DEFERRED,
   CHECK (repository_id IS NOT NULL AND repository_id <> ''),
@@ -1266,7 +1272,7 @@ CREATE TABLE IF NOT EXISTS cao_sample_repositories (
 CREATE TABLE IF NOT EXISTS cao_sample_campaigns (
   namespace TEXT NOT NULL REFERENCES cao_state(namespace) ON DELETE CASCADE,
   ordinal BIGINT NOT NULL CHECK (ordinal >= 0),
-  present_fields BIT VARYING NOT NULL CHECK (bit_length(present_fields) = 25),
+  present_fields BIT VARYING NOT NULL CHECK (bit_length(present_fields) = 26),
   ai_credit_allowance NUMERIC,
   campaign_link_object BOOLEAN,
   campaign_link_relation TEXT,
@@ -1289,6 +1295,7 @@ CREATE TABLE IF NOT EXISTS cao_sample_campaigns (
   readme_path TEXT,
   rollout_percent NUMERIC,
   slug TEXT,
+  source_coordinate TEXT,
   update_state TEXT,
   version TEXT,
   worker_count BIGINT,
@@ -1300,7 +1307,7 @@ CREATE TABLE IF NOT EXISTS cao_sample_campaigns (
 CREATE TABLE IF NOT EXISTS cao_sample_workflows (
   namespace TEXT NOT NULL REFERENCES cao_state(namespace) ON DELETE CASCADE,
   ordinal BIGINT NOT NULL CHECK (ordinal >= 0),
-  present_fields BIT VARYING NOT NULL CHECK (bit_length(present_fields) = 36),
+  present_fields BIT VARYING NOT NULL CHECK (bit_length(present_fields) = 41),
   admission_reason TEXT,
   admission_status TEXT,
   campaign_id TEXT,
@@ -1331,6 +1338,11 @@ CREATE TABLE IF NOT EXISTS cao_sample_workflows (
   repository_link_label TEXT,
   role TEXT,
   rollout_mode TEXT,
+  source_coordinate TEXT,
+  source_current_version TEXT,
+  source_kind TEXT,
+  source_update_state TEXT,
+  source_version TEXT,
   state TEXT,
   updated_at TIMESTAMPTZ,
   workflow_link_object BOOLEAN,

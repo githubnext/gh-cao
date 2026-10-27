@@ -43,6 +43,7 @@ export const SQLITE_RELATIONAL_STORES = Object.freeze({
     slug: 'TEXT', name: 'TEXT', description: 'TEXT', icon: 'TEXT',
     mode: 'TEXT', enabled: 'INTEGER', experimental: 'INTEGER',
     version: 'TEXT', currentVersion: 'TEXT', minVersion: 'TEXT', updateState: 'TEXT',
+    sourceCoordinate: 'TEXT',
     readmePath: 'TEXT', readme: 'TEXT', workerCount: 'INTEGER', inventoryWarnings: 'INTEGER',
     maxRepositories: 'INTEGER', rolloutPercent: 'REAL', aiCreditAllowance: 'REAL',
     monthlyAiCreditBudget: 'REAL', campaignLink: 'TEXT', intelligenceDeclaration: 'TEXT'

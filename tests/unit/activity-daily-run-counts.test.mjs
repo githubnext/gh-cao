@@ -142,8 +142,8 @@ test('Activity SQLite v44 upgrade backfills multiple cursor pages without rewrit
   assert.equal(values(database, 'runCountContributions').length, 251);
   runCao(['query', '--database', database, '--collection', 'runs']);
   assert.equal(values(database, 'dailyRunCounts')[0].total, 251);
-  assert.equal(DATABASE_VERSION, 46);
-  assert.equal(CANONICAL_SCHEMA_VERSION, 35);
+  assert.equal(DATABASE_VERSION, 47);
+  assert.equal(CANONICAL_SCHEMA_VERSION, 36);
 });
 
 test('Activity doctor publishes UTC rollover eviction independently of detail TTL and fences changed-shard replay', async (t) => {

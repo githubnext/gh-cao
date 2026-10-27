@@ -89,6 +89,11 @@ const WORKFLOW_INVENTORY_FIELDS = /** @type {const} */ ([
   'campaignId',
   'githubId',
   'registryState',
+  'sourceKind',
+  'sourceCoordinate',
+  'sourceVersion',
+  'sourceCurrentVersion',
+  'sourceUpdateState',
   'createdAt',
   'updatedAt'
 ]);

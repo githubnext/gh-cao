@@ -64,19 +64,29 @@ The current dashboard publication does not include immutable GitHub repository o
 
 ## Maintenance inventory
 
-The Updates page under Maintenance separates inventory into **Repositories**
-(the default tab) and **Campaigns**. Both tabs retain the Updates navigation
-indicator, and each has a directly addressable route:
+The Updates page under Maintenance separates operations into **Compiler
+upgrades** (the default tab) and **Workflow updates**. Both tabs retain the
+Updates navigation indicator, and each has a directly addressable route:
 
-- **Agentic campaigns** use Campaign records and compare `campaign-version` with
-  `campaign-current-version`. These are installed campaign revisions resolved
-  from the control repository's catalog sources.
+- **Campaign packages** use Campaign records and compare `campaign-version`
+  with `campaign-current-version`. Update commands use the exact retained
+  `campaign-source` package coordinate rather than deriving a source from the
+  campaign slug.
+- **Standalone workflows** remain Workflow records with no synthetic Campaign
+  membership. Source-managed rows compare retained installed/current source
+  revisions and may expose an update action. Local rows without source
+  provenance remain visible and non-actionable.
 - **Agentic Workflow compilers** use workflow inventory and compare
   `gh-aw-version` with `gh-aw-current-version` for each repository.
 
-Repositories opens at `#page-maintenance`; Campaigns opens at
-`#page-maintenance-campaigns`. Repository enrollment and compiler upgrade actions
-remain in Repositories, while campaign package update actions remain in Campaigns.
+Compiler upgrades opens at `#page-maintenance`; Workflow updates opens at
+`#page-maintenance-campaigns` for deep-link compatibility. Repository enrollment
+and compiler upgrade actions remain in Compiler upgrades, while campaign package
+and standalone source-update actions remain in Workflow updates.
+Compiler rows explain unavailable evidence by distinguishing missing installed
+compiler metadata, missing latest stable release evidence, and conflicting or
+mixed retained evidence. Upgrade actions remain hidden unless known evidence
+establishes that a repository is outdated.
 Switching sibling tabs, including browser back and forward, cross-fades only the
 tab content. The shared navigation and tab bar stay outside the full-page
 transition used when opening a different dashboard view.
@@ -97,9 +107,9 @@ Run-scoped Audit facts remain for request, attribution and resolution drill-down
 inventory and generic proxy events are discarded. Complete paired main-request
 costs can be compared to a named, explicitly estimated baseline, separately from
 total accounting. Missing costs remain unknown; partial runs do not
-enter cost quantiles. The canonical model remains version 35; IndexedDB version
-46 preserves version 44 and 45 databases with a `runs` store through an additive
-upgrade, while incompatible older projections are rebuilt. Hosted PostgreSQL
+enter cost quantiles. The canonical model is version 36; IndexedDB version 47
+preserves versions 44, 45, and 46 through an additive upgrade because Campaign
+and Workflow source-maintenance provenance is optional enrichment. Hosted PostgreSQL
 requires a fresh generated schema.
 
 A Run owns ordered Domain, Tool, Skill, Friction, Audit, and Issue records combining observations
@@ -123,8 +133,8 @@ The activity shard manifest is the dashboard's published operational input. Norm
 
 The complete normative [cached gh-aw JSONL mapping](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-gh-aw-jsonl-mapping.md) describes source fields, canonical entities, identity, ownership, and accounting.
 
-The canonical model is version 35. The browser database is
-`gh-aw-cao-dashboard-data`, IndexedDB version 46. Its canonical stores are
+The canonical model is version 36. The browser database is
+`gh-aw-cao-dashboard-data`, IndexedDB version 47. Its canonical stores are
 `campaigns`, `repositories`, `workflows`, `runs`, `domains`, `tools`, `skills`,
 `friction`, `audits`, `issues`, `operationalValues`, `operationalValueEvidence`, `workflowValueCollections`, `marketplacePackages`,
 `experiments`, `experimentAssignments`, `graders`, `graderObservations`,

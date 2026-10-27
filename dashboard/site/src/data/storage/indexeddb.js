@@ -19,7 +19,7 @@ import {
 const debug = createDebug('data:indexeddb');
 
 export const DATABASE_NAME = 'gh-aw-cao-dashboard-data';
-export const DATABASE_VERSION = 46;
+export const DATABASE_VERSION = 47;
 /** @type {Set<(versions: { oldVersion: number, newVersion: number }) => void>} */
 const upgradeListeners = new Set();
 
@@ -541,7 +541,7 @@ export function openCanonicalDatabase(indexedDB, keyRange = globalThis.IDBKeyRan
           event: 'open-upgrade-completed', openId, elapsedMs: elapsed()
         }));
       }
-      if ((event.oldVersion === 44 || event.oldVersion === 45) && database.objectStoreNames.contains('runs')) {
+      if ([44, 45, 46].includes(event.oldVersion) && database.objectStoreNames.contains('runs')) {
         createSchema(database, true, `retained-v${event.oldVersion}`);
       } else if (event.oldVersion < DATABASE_VERSION) {
         // Canonical data is a derived cache. Rebuild incompatible identities and

@@ -95,9 +95,24 @@ function repositoryFullName(candidate) {
 }
 
 function campaignRepository(candidate) {
-  const campaignName = String(candidate?.campaign || candidate?.source || "").split("@", 1)[0];
-  const [owner, repository] = campaignName.split("/");
-  return owner && repository ? `${owner}/${repository}` : "";
+  return campaignSource(candidate).repository;
+}
+
+function sourceProvenance(value) {
+  const source = String(value || "").trim();
+  const match = source.match(/^([A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._/-]+)?)(?:@(\S+))?$/i);
+  if (!match) return { coordinate: "", repository: "", revision: "" };
+  const [owner, repository] = match[1].split("/");
+  return {
+    coordinate: match[1],
+    repository: `${owner}/${repository}`,
+    revision: /^[0-9a-f]{40}$/i.test(match[2] || "") ? match[2] : "",
+  };
+}
+
+function campaignSource(candidate) {
+  const campaign = sourceProvenance(candidate?.campaign);
+  return campaign.coordinate ? campaign : sourceProvenance(candidate?.source);
 }
 
 function shortRevision(value) {
@@ -360,38 +375,39 @@ export function markInventoryCollectionPartial(sources, repositories, reason, na
   return sources;
 }
 
-export async function discoverLatestCampaignCommits(inventory = {}, {
+export async function discoverLatestSourceCommits(inventory = {}, {
   fetchImplementation = fetch,
   token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || "",
   apiUrl = process.env.GITHUB_API_URL || "https://api.github.com",
 } = {}) {
-  if (!token) throw new Error("GH_TOKEN or GITHUB_TOKEN is required to discover campaign versions");
+  if (!token) throw new Error("GH_TOKEN or GITHUB_TOKEN is required to discover source versions");
   const repositories = [...new Set([
-    ...(inventory.campaigns || []),
-    ...(inventory.bundles || []),
-  ].map(campaignRepository).filter(Boolean))];
+    ...(inventory.campaigns || []).map(campaignRepository),
+    ...(inventory.bundles || []).map(campaignRepository),
+    ...(inventory.workflows || []).map((workflow) => sourceProvenance(workflow.source).repository),
+  ].filter(Boolean))];
   const commits = {};
   const failures = [];
   for (const repository of repositories) {
     try {
       const repositoryResponse = await githubResponse(fetchImplementation, apiUrl, token, `repos/${repository}`);
-      const repositoryRecord = await responseJson(repositoryResponse, `Unable to inspect campaign repository ${repository}`);
+      const repositoryRecord = await responseJson(repositoryResponse, `Unable to inspect source repository ${repository}`);
       const defaultBranch = String(repositoryRecord?.default_branch || "").trim();
-      if (!defaultBranch) throw new Error(`Campaign repository ${repository} did not report a default branch`);
+      if (!defaultBranch) throw new Error(`Source repository ${repository} did not report a default branch`);
       const commitResponse = await githubResponse(
         fetchImplementation,
         apiUrl,
         token,
         `repos/${repository}/commits/${contentPath(defaultBranch)}`,
       );
-      const commit = await responseJson(commitResponse, `Unable to resolve campaign repository ${repository}`);
+      const commit = await responseJson(commitResponse, `Unable to resolve source repository ${repository}`);
       const sha = String(commit?.sha || "").trim();
-      if (!/^[0-9a-f]{40}$/i.test(sha)) throw new Error(`Campaign repository ${repository} did not report a commit SHA`);
+      if (!/^[0-9a-f]{40}$/i.test(sha)) throw new Error(`Source repository ${repository} did not report a commit SHA`);
       commits[repository] = sha;
     } catch (error) {
       failures.push(versionFailure(
         repository,
-        "campaign-version-discovery",
+        "source-version-discovery",
         error?.status,
         error?.message || String(error),
       ));
@@ -403,6 +419,10 @@ export async function discoverLatestCampaignCommits(inventory = {}, {
     expected: repositories.length,
     observed: Object.keys(commits).length,
   };
+}
+
+export async function discoverLatestCampaignCommits(inventory = {}, options = {}) {
+  return discoverLatestSourceCommits(inventory, options);
 }
 
 export async function discoverLatestGhAwVersion({
@@ -640,24 +660,25 @@ function workflowRegistryHealth(registries, rows) {
 }
 
 function campaignVersionHealth(resolution, rows) {
-  const failures = resolution?.failures || [];
-  const expected = Number.isFinite(resolution?.expected) ? resolution.expected : undefined;
-  const observed = Number.isFinite(resolution?.observed) ? resolution.observed : undefined;
+  const repositories = new Set(rows.map((row) => sourceProvenance(row["campaign-source"]).repository).filter(Boolean));
+  const failures = (resolution?.failures || []).filter((failure) => repositories.has(failure.repository));
+  const expected = repositories.size;
+  const observed = [...repositories].filter((repository) => resolution?.commits?.[repository]).length;
   return {
     available: rows.length > 0 || expected === 0 || expected === undefined,
     complete: failures.length === 0,
     expected,
     observed,
-    operation: "campaign-version-discovery",
+    operation: "source-version-discovery",
     state: failures.length === 0 ? "complete" : observed > 0 ? "partial" : "failed",
     failureClass: failures.some((failure) => failure["failure-class"] === "permission") ? "permission"
       : failures.length > 0 ? "request" : "",
-    reason: failures.length > 0 ? `${failures.length} campaign repositories could not be resolved` : "",
+    reason: failures.length > 0 ? `${failures.length} campaign source repositories could not be resolved` : "",
     failures,
   };
 }
 
-function campaignRows(inventory, controlSettings, generatedAt, latestCampaignCommits = {}) {
+function campaignRows(inventory, controlSettings, generatedAt, latestSourceCommits = {}) {
   const bundles = new Map((inventory.bundles || []).map((bundle) => [
     String(bundle.controlCampaign || bundle.id || "").trim(),
     bundle,
@@ -678,9 +699,12 @@ function campaignRows(inventory, controlSettings, generatedAt, latestCampaignCom
     const intelligenceDeclaration = bundle.intelligenceDeclaration
       || installed.intelligenceDeclaration
       || null;
-    const repository = campaignRepository(installed) || campaignRepository(bundle);
+    const source = campaignSource(installed).coordinate
+      ? campaignSource(installed)
+      : campaignSource(bundle);
+    const repository = source.repository;
     const installedRevision = String(installed.resolvedCommit || bundle.version || "").trim();
-    const latestRevision = String(latestCampaignCommits[repository] || "").trim();
+    const latestRevision = String(latestSourceCommits[repository] || "").trim();
     const policy = controlSettings.campaigns?.[id] || {};
     const workers = Object.entries(policy.worker_policies || {}).map(([workflow, worker]) => ({
       id: worker.worker || workflow,
@@ -714,6 +738,7 @@ function campaignRows(inventory, controlSettings, generatedAt, latestCampaignCom
       "campaign-targets": targets,
       "campaign-intelligence-declaration": intelligenceDeclaration,
       "campaign-min-version": bundle.minVersion || "",
+      "campaign-source": source.coordinate,
       "campaign-version": shortRevision(installedRevision) || "unknown",
       "campaign-current-version": shortRevision(latestRevision) || "unknown",
       "campaign-update-state": revisionUpdateState(installedRevision, latestRevision),
@@ -834,6 +859,7 @@ function remoteWorkflowRow(workflow, generatedAt, latestGhAwVersion) {
     workflow: canonicalWorkflowPath(workflow.path),
     "workflow-name": workflow.name,
     "workflow-role": "standalone",
+    "workflow-source-kind": "registry",
     "workflow-active": active,
     "workflow-registry-state": workflow.state,
     "gh-aw-version": workflow.ghAwVersion || "unknown",
@@ -848,7 +874,15 @@ function remoteWorkflowRow(workflow, generatedAt, latestGhAwVersion) {
   };
 }
 
-function workflowRows(inventory, controlSettings, repository, generatedAt, workflowRegistries = [], latestGhAwVersion = null) {
+function workflowRows(
+  inventory,
+  controlSettings,
+  repository,
+  generatedAt,
+  workflowRegistries = [],
+  latestGhAwVersion = null,
+  latestSourceCommits = {},
+) {
   const [organization, repositoryName] = repository.split("/");
   const campaignDetails = workflowCampaignDetails(inventory, controlSettings);
   const rows = new Map();
@@ -861,6 +895,9 @@ function workflowRows(inventory, controlSettings, repository, generatedAt, workf
   }
   for (const workflow of inventory.workflows || []) {
     const details = campaignDetails.get(workflow.sourcePath);
+    const source = sourceProvenance(workflow.source);
+    const installedSourceRevision = String(workflow.version || source.revision || "").trim();
+    const latestSourceRevision = String(latestSourceCommits[source.repository] || "").trim();
     const repositoryKey = repository.toLowerCase();
     const targets = (details?.campaignTargets || [])
       .filter((target) => target.explicit || target.repository.toLowerCase() !== repositoryKey)
@@ -888,6 +925,11 @@ function workflowRows(inventory, controlSettings, repository, generatedAt, workf
       workflow: workflow.sourcePath,
       "workflow-name": workflow.name,
       "workflow-role": details?.role || workflow.role || "standalone",
+      "workflow-source-kind": source.coordinate ? "source-managed" : "local",
+      "workflow-source": source.coordinate,
+      "workflow-source-version": shortRevision(installedSourceRevision) || "unknown",
+      "workflow-source-current-version": shortRevision(latestSourceRevision) || "unknown",
+      "workflow-source-update-state": revisionUpdateState(installedSourceRevision, latestSourceRevision),
       "workflow-active": workflow.compiled === true ? "true" : "unknown",
       "gh-aw-version": details?.ghAwVersion || normalizeVersion(workflow.ghAwVersion) || "unknown",
       "gh-aw-current-version": latestGhAwVersion || "unknown",
@@ -994,6 +1036,7 @@ export function buildInventoryDashboardSources({
     generatedAt,
     workflowRegistries,
     latestGhAwVersion,
+    latestCampaignResolution.commits,
   );
   const campaignInventory = campaignRows(inventory, settings, generatedAt, latestCampaignResolution.commits);
   const workflowHealth = workflowRegistryHealth(workflowRegistries, workflows);
@@ -1003,6 +1046,20 @@ export function buildInventoryDashboardSources({
     workflowHealth.failureClass = latestGhAwFailure["failure-class"];
     workflowHealth.reason = "The latest stable gh-aw release could not be resolved";
     workflowHealth.failures = [...(workflowHealth.failures || []), latestGhAwFailure];
+  }
+  const workflowSourceRepositories = new Set((inventory.workflows || [])
+    .map((workflow) => sourceProvenance(workflow.source).repository)
+    .filter(Boolean));
+  const workflowSourceFailures = (latestCampaignResolution.failures || [])
+    .filter((failure) => workflowSourceRepositories.has(failure.repository));
+  if (workflowSourceFailures.length > 0) {
+    workflowHealth.complete = false;
+    workflowHealth.state = workflowHealth.available ? "partial" : "failed";
+    workflowHealth.failureClass = workflowSourceFailures.some(
+      (failure) => failure["failure-class"] === "permission",
+    ) ? "permission" : "request";
+    workflowHealth.reason = `${workflowSourceFailures.length} workflow source repositories could not be resolved`;
+    workflowHealth.failures = [...(workflowHealth.failures || []), ...workflowSourceFailures];
   }
   return {
     campaigns: source(
@@ -1058,10 +1115,10 @@ export async function discoverInventoryDashboardSources({
 } = {}) {
   const discoveredRepositories = await discoverRepositories(controlSettings, { controlRepository: repository });
   log.info`Repository discovery selected ${discoveredRepositories.length} repositories`;
-  log.info`Starting workflow registry, campaign version, and gh-aw release discovery`;
+  log.info`Starting workflow registry, source version, and gh-aw release discovery`;
   const [rawWorkflowRegistries, latestCampaignResolution, latestGhAwResolution, marketplace] = await Promise.all([
     discoverWorkflowRegistries(discoveredRepositories, { controlRepository: repository }),
-    discoverLatestCampaignCommits(inventory),
+    discoverLatestSourceCommits(inventory),
     discoverLatestGhAwVersion().then((version) => ({ version, failure: null })).catch((error) => ({
       version: null,
       failure: versionFailure(

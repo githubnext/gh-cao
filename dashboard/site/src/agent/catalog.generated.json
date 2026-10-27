@@ -1026,12 +1026,12 @@
     },
     {
       "id": "maintenance",
-      "title": "Updates",
-      "description": "Identify repositories whose compiler provenance justifies a CAO maintenance proposal.",
-      "intent": "Identify repositories whose compiler provenance warrants maintenance review.",
-      "subject": "Repository workflow compiler versions and retained update-confidence evidence.",
-      "objective": "Prioritize safe maintenance proposals using known version provenance.",
-      "acceptance": "Distinguish registration, observed version and update confidence; preserve unknown provenance and refresh guidance. Do not infer outdatedness from missing data or execute updates without approval.",
+      "title": "Compiler upgrades",
+      "description": "Review retained gh-aw compiler evidence by repository before applying upgrades.",
+      "intent": "Identify repositories whose gh-aw compiler provenance warrants maintenance review.",
+      "subject": "Repository workflow compiler versions and retained upgrade-confidence evidence.",
+      "objective": "Prioritize safe compiler upgrades using known version provenance and explain incomplete evidence.",
+      "acceptance": "Distinguish observed installed and latest-stable versions, preserve unknown provenance with a diagnostic reason, and expose upgrade actions only for known outdated evidence. Do not infer outdatedness from missing data or execute upgrades without approval.",
       "experimental": false,
       "parameters": [],
       "queries": [
@@ -2222,10 +2222,48 @@
       }
     },
     {
+      "id": "maintenance-campaign-packages",
+      "subject": "Installed campaign packages with retained source coordinates and update evidence.",
+      "objective": "Show installed/current source revisions and gate update actions on exact retained provenance.",
+      "acceptance": "Return every package. Set campaign-update-action-visible only for update-available rows with a non-empty source; missing provenance stays visible and non-actionable.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "campaigns"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "campaigns"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-standalone-workflows",
+      "subject": "Standalone workflows with retained upstream provenance and update evidence.",
+      "objective": "Represent source-managed and local workflows without synthetic campaign membership.",
+      "acceptance": "Retain exact coordinates and revisions for source-managed rows; keep local or incomplete rows visible and non-actionable with an explicit reason.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
       "id": "maintenance-repository-versions",
       "subject": "Group installed and current gh-aw compiler versions and upgrade evidence by repository.",
       "objective": "Identify repositories with declared Markdown workflows whose retained compiler-version evidence warrants upgrade review.",
-      "acceptance": "Group Markdown workflow declarations by repository coordinate and return distinct recorded installed/current version lists plus upgrade-required and unknown flags; inspect absent or mixed version evidence rather than inferring a repository-wide installed version.",
+      "acceptance": "Group Markdown workflow declarations by repository coordinate and return distinct known installed/current version lists, distinct counts, upgrade-required evidence, and separate missing-installed/missing-latest flags. Never infer unavailable versions.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -2243,8 +2281,8 @@
     {
       "id": "maintenance-repositories",
       "subject": "List each repository with recorded compiler versions and computed upgrade state.",
-      "objective": "Expose recorded compiler versions and computed upgrade state per repository, with its GitHub home URL for inspection.",
-      "acceptance": "Return repository, repository-url, version lists, upgrade-required, upgrade-state, and upgrade-action-visible. Show Upgrade for outdated or unknown evidence; hide it for known-current repositories. Visibility grants no rollout authority.",
+      "objective": "Expose recorded compiler versions, computed upgrade state, and a concise evidence diagnostic per repository, with its GitHub home URL for inspection.",
+      "acceptance": "Return repository, repository-url, known version lists, upgrade-required, upgrade-state, upgrade-status-reason, and upgrade-action-visible. Show Upgrade only when known evidence establishes an outdated compiler; missing or conflicting evidence stays visible and non-actionable.",
       "description": "",
       "parameters": [
         {
@@ -2275,7 +2313,7 @@
       "description": "",
       "parameters": [],
       "sources": [
-        "campaigns"
+        "maintenance-campaign-packages"
       ],
       "used-by-pages": [],
       "execution": {
@@ -2287,10 +2325,29 @@
       }
     },
     {
+      "id": "maintenance-standalone-updates",
+      "subject": "Expose at most one standalone workflow source update row for the Updates navigation indicator.",
+      "objective": "Determine whether retained source-managed standalone workflow metadata contains an actionable update signal for the Updates indicator.",
+      "acceptance": "Return zero or one workflow-update-action-visible row only when it is true; unmanaged local workflows and incomplete source evidence do not activate the indicator.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-standalone-workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
       "id": "maintenance-repository-upgrades",
       "subject": "Expose at most one gh-aw compiler upgrade row for the Updates navigation indicator.",
       "objective": "Determine whether repository compiler metadata contains an upgrade-required signal for the Updates indicator.",
-      "acceptance": "Return zero or one upgrade-required row only when the retained value is 1; no row does not establish that all repositories are current when version data is missing.",
+      "acceptance": "Return zero or one upgrade-action-visible row only when known retained evidence establishes an outdated compiler; missing evidence remains non-actionable and does not activate the indicator.",
       "description": "",
       "parameters": [],
       "sources": [

@@ -98,7 +98,7 @@ func storeVersion(ctx context.Context, tx *sql.Tx) error {
 	if err := tx.QueryRowContext(ctx, `SELECT version FROM __idb_databases WHERE name=?`, dashboardquery.DatabaseName).Scan(&version); err != nil {
 		return err
 	}
-	if version != dashboardquery.DatabaseVersion && version != 44 {
+	if version < 44 || version > dashboardquery.DatabaseVersion {
 		return fmt.Errorf("unsupported canonical SQLite database version %d; expected %d", version, dashboardquery.DatabaseVersion)
 	}
 	return nil

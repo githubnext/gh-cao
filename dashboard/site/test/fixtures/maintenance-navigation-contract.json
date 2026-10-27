@@ -1,35 +1,37 @@
 {
   "tabs": [
-    { "id": "repositories", "label": "Repositories", "icon": "repo", "page": "maintenance" },
-    { "id": "campaigns", "label": "Campaigns", "icon": "workflow", "page": "maintenance-campaigns" }
+    { "id": "repositories", "label": "Compiler upgrades", "icon": "repo", "page": "maintenance" },
+    { "id": "campaigns", "label": "Workflow updates", "icon": "workflow", "page": "maintenance-campaigns" }
   ],
-  "sources": ["maintenance-repositories", "campaigns"],
-  "repository-upgrade": {
-    "action": "upgrade-repository",
-    "action-context": ["repository"]
-  },
+  "sources": ["maintenance-repositories", "maintenance-campaign-packages", "maintenance-standalone-workflows"],
   "repository-drill": { "type": "external", "field": "repository-url" },
   "repository-upgrade-action": {
     "action": "upgrade-target-repository",
     "context": ["repository"],
     "when": { "field": "upgrade-action-visible", "equals": true }
   },
-  "campaign-update": {
-    "action": "update-repository",
-    "action-context": ["campaign"]
-  },
   "repository-workflows": [
     { "organization": "octo", "repository": "first", "workflow": "a.md", "gh-aw-version": "v0.92.0", "gh-aw-current-version": "v0.92.0", "gh-aw-update-state": "current" },
     { "organization": "octo", "repository": "first", "workflow": "b.md", "gh-aw-version": "v0.92.0", "gh-aw-current-version": "v0.92.0", "gh-aw-update-state": "current" },
     { "organization": "octo", "repository": "first", "workflow": "historical.md", "gh-aw-update-state": "unknown" },
     { "organization": "other", "repository": "second", "workflow": "c.md", "gh-aw-version": "v0.91.5", "gh-aw-current-version": "v0.92.0", "gh-aw-update-state": "update-available" },
+    { "organization": "other", "repository": "second", "workflow": "c2.md", "gh-aw-version": "v0.92.0", "gh-aw-current-version": "v0.92.0", "gh-aw-update-state": "up-to-date" },
     { "organization": "octo", "repository": "unknown", "workflow": "d.md", "gh-aw-update-state": "unknown" },
     { "organization": "octo", "repository": "unreleased", "workflow": "e.md", "gh-aw-version": "v0.92.0", "gh-aw-update-state": "unknown" }
   ],
   "repository-homes": [
-    { "repository": "octo/first", "repository-url": "https://github.com/octo/first", "upgrade-required": 0, "upgrade-action-visible": false },
-    { "repository": "octo/unknown", "repository-url": "https://github.com/octo/unknown", "upgrade-required": 0, "upgrade-action-visible": true },
-    { "repository": "octo/unreleased", "repository-url": "https://github.com/octo/unreleased", "upgrade-required": 0, "upgrade-action-visible": true },
-    { "repository": "other/second", "repository-url": "https://github.com/other/second", "upgrade-required": 1, "upgrade-action-visible": true }
+    { "repository": "octo/first", "repository-url": "https://github.com/octo/first", "upgrade-required": 0, "upgrade-state": "Upgrade status unavailable", "upgrade-status-reason": "Installed compiler version and latest stable gh-aw release are unavailable.", "upgrade-action-visible": false },
+    { "repository": "octo/unknown", "repository-url": "https://github.com/octo/unknown", "upgrade-required": 0, "upgrade-state": "Upgrade status unavailable", "upgrade-status-reason": "Installed compiler version and latest stable gh-aw release are unavailable.", "upgrade-action-visible": false },
+    { "repository": "octo/unreleased", "repository-url": "https://github.com/octo/unreleased", "upgrade-required": 0, "upgrade-state": "Upgrade status unavailable", "upgrade-status-reason": "Latest stable gh-aw release unavailable.", "upgrade-action-visible": false },
+    { "repository": "other/second", "repository-url": "https://github.com/other/second", "upgrade-required": 1, "upgrade-state": "Upgrade recommended", "upgrade-status-reason": "Mixed installed gh-aw compiler versions were retained; at least one upgrade is recommended.", "upgrade-action-visible": true }
+  ],
+  "campaigns": [
+    { "campaign": "operations", "campaign-name": "Operations", "campaign-source": "acme/catalog/operations", "campaign-version": "111111111111", "campaign-current-version": "222222222222", "campaign-update-state": "update-available", "campaign-registration": "true" },
+    { "campaign": "local", "campaign-name": "Local package", "campaign-source": "", "campaign-version": "unknown", "campaign-current-version": "unknown", "campaign-update-state": "unknown", "campaign-registration": "true" }
+  ],
+  "standalone-workflows": [
+    { "organization": "acme", "repository": "control", "workflow": ".github/workflows/review.md", "workflow-name": "Review", "workflow-role": "standalone", "workflow-source-kind": "source-managed", "workflow-source": "acme/workflows/review", "workflow-source-version": "111111111111", "workflow-source-current-version": "222222222222", "workflow-source-update-state": "update-available" },
+    { "organization": "acme", "repository": "control", "workflow": ".github/workflows/local.md", "workflow-name": "Local", "workflow-role": "standalone", "workflow-source-kind": "local", "workflow-source": "", "workflow-source-version": "unknown", "workflow-source-current-version": "unknown", "workflow-source-update-state": "unknown" },
+    { "organization": "acme", "repository": "control", "workflow": ".github/workflows/incomplete.md", "workflow-name": "Incomplete", "workflow-role": "standalone", "workflow-source-kind": "source-managed", "workflow-source": "acme/workflows/incomplete", "workflow-source-version": "333333333333", "workflow-source-current-version": "unknown", "workflow-source-update-state": "unknown" }
   ]
 }
