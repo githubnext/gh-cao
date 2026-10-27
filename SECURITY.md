@@ -1,33 +1,31 @@
+Thanks for helping make GitHub safe for everyone.
+
 # Security
 
-Thank you for helping keep Central Agentic Ops and its users safe.
+GitHub takes the security of our software products and services seriously, including all of the open source code repositories managed through our GitHub organizations, such as [GitHub](https://github.com/GitHub).
 
-## Report a vulnerability privately
+Even though [open source repositories are outside of the scope of our bug bounty program](https://bounty.github.com/index.html#scope) and therefore not eligible for bounty rewards, we will ensure that your finding gets passed along to the appropriate maintainers for remediation. 
 
-Do not report suspected vulnerabilities through public issues, discussions,
-pull requests, or other public channels. Email
-[opensource-security@github.com](mailto:opensource-security@github.com) and
-coordinate disclosure with the GitHub security team.
+## Reporting Security Issues
 
-Include as much of the following as practical:
+If you believe you have found a security vulnerability in any GitHub-owned repository, please report it to us through coordinated disclosure.
 
-- the affected component, version, commit, or source location;
-- the vulnerability type and potential impact;
-- required configuration or deployment conditions;
-- clear reproduction steps; and
-- a minimal proof of concept or suggested remediation, when available.
+**Please do not report security vulnerabilities through public GitHub issues, discussions, or pull requests.**
 
-Remove credentials, tokens, private repository data, personal information, and
-other unnecessary sensitive data from the report and attachments.
+Instead, please send an email to opensource-security[@]github.com.
 
-GitHub will route the report to the appropriate maintainers for triage. Please
-allow time for investigation before disclosing the issue publicly.
+Please include as much of the information listed below as you can to help us better understand and resolve the issue:
 
-## Bounty and safe harbor
+  * The type of issue (e.g., buffer overflow, SQL injection, or cross-site scripting)
+  * Full paths of source file(s) related to the manifestation of the issue
+  * The location of the affected source code (tag/branch/commit or direct URL)
+  * Any special configuration required to reproduce the issue
+  * Step-by-step instructions to reproduce the issue
+  * Proof-of-concept or exploit code (if possible)
+  * Impact of the issue, including how an attacker might exploit the issue
 
-GitHub-owned open source repositories are outside the scope of the
-[GitHub Bug Bounty program](https://bounty.github.com/index.html#scope) and are
-not eligible for bounty rewards. Security research is subject to
-[GitHub's Bug Bounty Program Legal Safe Harbor](https://docs.github.com/en/site-policy/security-policies/github-bug-bounty-program-legal-safe-harbor#1-safe-harbor-terms).
+This information will help us triage your report more quickly.
 
-For non-security bugs and usage questions, see [SUPPORT.md](SUPPORT.md).
+## Policy
+
+See [GitHub's Safe Harbor Policy](https://docs.github.com/en/site-policy/security-policies/github-bug-bounty-program-legal-safe-harbor#1-safe-harbor-terms)
