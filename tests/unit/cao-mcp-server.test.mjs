@@ -102,9 +102,17 @@ test("gh-aw gateway can initialize and list tools over HTTP", async () => {
   assert.equal(initialize.body.result.protocolVersion, "2024-11-05");
   assert.deepEqual(initialize.body.result.capabilities, { tools: {} });
 
+  const ping = await handleMcpRequest({
+    headers: { "mcp-protocol-version": "2024-11-05" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "ping", params: {} }),
+    indexedDB,
+  });
+  assert.equal(ping.status, 200);
+  assert.deepEqual(ping.body.result, {});
+
   const listed = await handleMcpRequest({
     headers: { "mcp-protocol-version": "2024-11-05" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }),
+    body: JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/list", params: {} }),
     indexedDB,
   });
   assert.equal(listed.status, 200);
