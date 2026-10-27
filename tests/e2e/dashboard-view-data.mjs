@@ -91,7 +91,7 @@ export async function downloadDeployedDashboardData(
       await pipeline(response.body, createWriteStream(destinationPath));
     }
   }));
-  for (const { name, sourceName } of deployedActivityShardEntries(manifest).slice(0, maximumShardCount)) {
+  for (const { name, sourceName } of deployedActivityShardEntries(manifest, maximumShardCount)) {
     const response = await fetcher(new URL(sourceName, sourceUrl));
     if (!response.ok || !response.body) throw new Error(`Unable to download deployed dashboard shard: ${sourceName}.`);
     await mkdir(dirname(join(destination, name)), { recursive: true });
