@@ -148,31 +148,13 @@ func resolveNamespaceDefault(envValue, checkoutDefault string) (string, namespac
 	return checkoutDefault, namespaceDefaultSourceCheckout
 }
 
-// ingestSourceOrigin identifies which input determined the ingest command's
-// deployed dashboard directory. It is useful for diagnosing misconfiguration
-// without logging the directory path itself.
-type ingestSourceOrigin string
-
-const (
-	ingestSourceOriginFlag          ingestSourceOrigin = "flag"
-	ingestSourceOriginPositionalArg ingestSourceOrigin = "positional-arg"
-)
-
-// resolveIngestSource applies the standard priority for the ingest command's
-// deployed dashboard directory: an explicit --source flag value, then a
-// single positional argument. It returns the resolved source and which input
-// supplied it, so callers can log the source without exposing the directory
-// path. An error is returned when neither input supplies a non-blank value.
-func resolveIngestSource(flagValue string, positionalArgs []string) (string, ingestSourceOrigin, error) {
+// resolveIngestSource returns the ingest command's deployed dashboard
+// directory from the required --source flag.
+func resolveIngestSource(flagValue string) (string, error) {
 	if source := strings.TrimSpace(flagValue); source != "" {
-		return source, ingestSourceOriginFlag, nil
+		return source, nil
 	}
-	if len(positionalArgs) == 1 {
-		if source := strings.TrimSpace(positionalArgs[0]); source != "" {
-			return source, ingestSourceOriginPositionalArg, nil
-		}
-	}
-	return "", "", errors.New("ingest requires --source DIRECTORY")
+	return "", errors.New("ingest requires --source DIRECTORY")
 }
 
 // checkoutNamespaceDefault resolves this checkout's default Redis namespace
@@ -926,26 +908,27 @@ func newServeCommand() *cobra.Command {
 
 func newIngestCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "ingest [source]",
+		Use:   "ingest",
 		Short: "ingest a deployed dashboard directory into Postgres",
+		Args:  cobra.NoArgs,
 	}
 	cmd.Flags().String("redis-url", defaultRedisURL, "legacy Redis URL (not used for canonical Postgres ingestion)")
 	postgresURL := cmd.Flags().String("postgres-url", "", "Postgres dashboard entity store URL; defaults to CAO_POSTGRES_URL")
 	redisNamespace, namespaceErr := registerRedisNamespaceFlag(cmd, "canonical Postgres dataset namespace (legacy flag name)")
 	source := cmd.Flags().String("source", "", "deployed dashboard directory")
 	databaseQueries := cmd.Flags().String("database-queries", "../dashboard/site/src/data/queries/database.json", "canonical database projection queries")
-	cmd.RunE = func(_ *cobra.Command, args []string) error {
+	cmd.RunE = func(_ *cobra.Command, _ []string) error {
 		if namespaceErr != nil {
 			return namespaceErr
 		}
 		if _, _, err := resolvePostgresEndpoint(*postgresURL, os.Getenv("CAO_POSTGRES_URL")); err != nil {
 			return err
 		}
-		resolvedSource, sourceOrigin, err := resolveIngestSource(*source, args)
+		resolvedSource, err := resolveIngestSource(*source)
 		if err != nil {
 			return err
 		}
-		commandLog.Printf("ingest flags parsed source_origin=%s", sourceOrigin)
+		commandLog.Printf("ingest flags parsed")
 		ctx := context.Background()
 		closeTelemetry, err := setupTelemetry(ctx, version, telemetry.Setup)
 		if err != nil {
