@@ -3,13 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-26T15:11:24Z",
-      "worker_run_id": "40346360811",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the initial bounded GitHub requests for the latest 20 completed docs.yml runs, latest 20 completed cao-dashboard.yml runs, and open duplicate issues failed because the runtime could not create a new OS thread. Per resource-limit policy, all further GitHub API and model work stopped. A current evidence window, the required five comparable successful full runs, workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, dashboard-producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-26T15:54:13Z",
       "worker_run_id": "40353101086",
       "category": "scheduling, concurrency, and avoidable rebuilds",
@@ -716,6 +709,13 @@
         40423934092
       ],
       "outcome": "incomplete: the 2026-10-27T00:03:52Z to 2026-10-27T05:01:28Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job metadata for the four newest successful schedule runs (40452955442, 40452318960, 40451330692, and 40449857707) showed only 7-9 second schedule-freshness jobs while build and deploy were skipped. The other 16 runs overlap recent bounded evaluations whose trusted job and step metadata identified only two successful full build-and-deploy paths: workflow_run 40444453160 and workflow_run 40433684472; the remaining successful runs were freshness-only executions and three workflow_run callbacks were skipped. Schedule run 40444504675 remained a queue-delay outlier, elapsing 93 seconds while executing only freshness. Two comparable full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, a sufficient repeated-cost comparison, cache-effectiveness verification across five comparable builds, the CAO Dashboard producer comparison, and a complete scheduling/concurrency evaluation could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-27T05:40:52Z",
+      "worker_run_id": "40456419737",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
