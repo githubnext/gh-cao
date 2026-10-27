@@ -209,7 +209,7 @@ test("terminal prefers GitHub CLI installation and matches the production CLI", 
 
 test("landing page shows shared and local workflows with explicit ownership", () => {
   assert.match(hero, /One workflow ecosystem/);
-  assert.match(hero, /Shared work\. Clear ownership\./);
+  assert.match(hero, /Shared workflows\. Clear ownership\./);
   assert.match(hero, /\.product-story \{[^}]*width: min\(calc\(100% - 2rem\), 76rem\)/);
   assert.match(hero, /\.dispatch-story \{[^}]*grid-template-columns: minmax\(0, 1fr\);[^}]*gap: 0\.75rem/);
   assert.match(hero, /\.dispatch-story > \.section-eyebrow \{[\s\S]*?justify-self: center/);
@@ -218,7 +218,7 @@ test("landing page shows shared and local workflows with explicit ownership", ()
   assert.match(hero, /@media \(width > 72rem\) \{[\s\S]*?\.dispatch-illustration \{[^}]*width: min\(80%, 56rem\)/);
   assert.match(hero, /\.dispatch-illustration :global\(\.workflow-ecosystem\) \{[^}]*width: auto;[^}]*zoom: 0\.8/);
   assert.match(hero, /@media \(min-width: 64rem\) \{[\s\S]*?\.dispatch-story h2 \{[\s\S]*?white-space: nowrap/);
-  assert.match(hero, /Enterprise teams, organizations, and repository maintainers own their workflows/);
+  assert.match(hero, /Enrolled repositories benefit from enterprise-, organization-, and repository-owned workflows working side by side/);
   assert.match(hero, /<WorkflowEcosystem \/>/);
   assert.doesNotMatch(hero, /DispatchIllustration/);
   assert.match(hero, /aria-describedby="dispatch-description"/);

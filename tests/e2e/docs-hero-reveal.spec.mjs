@@ -5,7 +5,7 @@ for (const { name, viewport } of [
   { name: "mobile", viewport: { width: 390, height: 844 } },
 ]) {
   for (const { selector, heading } of [
-    { selector: ".dispatch-story", heading: "Shared work. Clear ownership." },
+    { selector: ".dispatch-story", heading: "Shared workflows. Clear ownership." },
     { selector: ".decision-story", heading: "Use evidence to decide what scales." },
     { selector: ".maintenance-story", heading: "Less upkeep. Current workflows." },
   ]) {

@@ -8,7 +8,7 @@ for (const width of [320, 390, 800, 1280, 1440, 1920]) {
     await page.evaluate(() => document.fonts.ready);
     const copy = page.locator(".dispatch-story > p:not(.section-eyebrow)");
     await expect(copy).toHaveText(
-      "Enterprise teams, organizations, and repository maintainers own their workflows. Shared work reaches enrolled repositories alongside local automation, with explicit scope and ownership.",
+      "Enrolled repositories benefit from enterprise-, organization-, and repository-owned workflows working side by side. Shared workflows reach each repository without being copied into it, while ownership and scope remain explicit.",
     );
     const layout = await copy.evaluate(paragraph => {
       const range = document.createRange();

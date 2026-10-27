@@ -1037,7 +1037,7 @@ for (const { name, viewport } of [
       const tagline = page.locator(".docs-hero-intro .tagline");
       await expect(tagline).toBeVisible();
       await expect(tagline).toHaveText("Keep track of all runs, costs, and outcomes of your GitHub Agentic Workflows across repositories. Set execution scope and rollout policy, refine workflows in review mode, and roll out with confidence.");
-      await expect(page.getByRole("heading", { name: "Shared work. Clear ownership.", exact: true })).toBeAttached();
+      await expect(page.getByRole("heading", { name: "Shared workflows. Clear ownership.", exact: true })).toBeAttached();
       await expect(page.getByRole("heading", { name: "Less upkeep. Current workflows.", exact: true })).toBeAttached();
       await expect(page.locator(".runs-story, .value-story")).toHaveCount(0);
       await expect(page.getByRole("heading", { name: "Roll out with confidence.", exact: true })).toBeAttached();
