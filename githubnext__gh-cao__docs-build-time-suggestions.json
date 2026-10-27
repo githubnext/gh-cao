@@ -3,34 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-26T08:33:35Z",
-      "worker_run_id": "40292789785",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        40290150733,
-        40288574033,
-        40287630568,
-        40285236877,
-        40284552724,
-        40282131435,
-        40277614405,
-        40276551094,
-        40275320260,
-        40275215980,
-        40275177761,
-        40274685314,
-        40273080889,
-        40271685323,
-        40270443435,
-        40269469161,
-        40268819291,
-        40267911663,
-        40266682889,
-        40266177342
-      ],
-      "outcome": "incomplete: the 2026-10-26T03:52:21Z to 2026-10-26T08:08:06Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Only four successful full build-and-deploy paths were present: push runs 40275215980, 40275177761, and 40266177342 plus workflow_run run 40269469161. The other successful runs completed in 11-15 seconds after freshness checking; skipped workflow_run runs were excluded. This is below the required five comparable successful full runs. Therefore a complete scheduling/concurrency evaluation, including current full-workflow and dashboard/build/deploy median and p90 timings, repeated-cost analysis, trusted cache verification, CAO Dashboard producer comparison, duplicate open-issue check, and actionable duplicate-rebuild determination, could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-26T09:38:18Z",
       "worker_run_id": "40300752020",
       "category": "scheduling, concurrency, and avoidable rebuilds",
@@ -695,6 +667,34 @@
         40403910625
       ],
       "outcome": "incomplete: the 2026-10-26T21:23:15Z to 2026-10-27T01:47:12Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Trusted job and step metadata identified only two successful full build-and-deploy paths: workflow_run 40433684472 (77-second build, 10-second deploy) and schedule run 40403910625 (69-second build, 11-second deploy). The newest schedule runs 40434621085, 40432238157, and 40429501482 executed only schedule-freshness and skipped build and deploy; the remaining overlapping runs were already verified in the immediately preceding bounded evaluations as freshness-only or skipped. Both confirmed full builds restored the CAO Dashboard cache successfully and skipped artifact fallback. Two comparable full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, a sufficient repeated-cost comparison, the CAO Dashboard producer comparison, and a complete scheduling/concurrency evaluation could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-27T02:30:12Z",
+      "worker_run_id": "40438495475",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40436542296,
+        40434621085,
+        40433684472,
+        40432238157,
+        40431314481,
+        40429501482,
+        40423934092,
+        40422030497,
+        40420548567,
+        40420137066,
+        40419126820,
+        40416790881,
+        40415340448,
+        40414254268,
+        40413690470,
+        40412247562,
+        40409202717,
+        40407295709,
+        40405972149,
+        40405659232
+      ],
+      "outcome": "incomplete: the 2026-10-26T21:35:37Z to 2026-10-27T02:07:11Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Elapsed run metadata and the immediately preceding trusted job evaluation identify only one successful full build-and-deploy path in the current window, workflow_run 40433684472; it completed in 118 seconds and previously verified job metadata showed a 77-second build and 10-second deploy with a successful dashboard cache restore and skipped artifact fallback. The other 15 successful runs completed in 12-20 seconds and were freshness-only executions; four ineligible workflow_run callbacks were skipped. One comparable full path is below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, a sufficient repeated-cost comparison, current cache-effectiveness verification across five comparable builds, the CAO Dashboard producer comparison, and a complete scheduling/concurrency evaluation could not be produced. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
