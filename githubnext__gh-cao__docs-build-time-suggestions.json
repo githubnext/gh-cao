@@ -3,13 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-26T19:25:38Z",
-      "worker_run_id": "40386196544",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-26T19:55:24Z",
       "worker_run_id": "40390589063",
       "category": "reusable dashboard generation",
@@ -673,6 +666,34 @@
         40467795991
       ],
       "outcome": "complete no-op: the 2026-10-27T07:33:05Z to 2026-10-27T10:12:09Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Nine successful full build-and-deploy paths were comparable across six push, two workflow_run, and one schedule trigger at six source SHAs. Full elapsed workflow time was 103.0s median (129.4s p90); execution excluding initial queue was 98.0s (107.8s p90), initial queue was 4.0s (20.6s p90), build was 83.0s (88.2s p90), deploy was 12.0s (22.6s p90), and the five latest successful CAO Dashboard producer build jobs were 16.0s (20.0s p90). Repeated docs costs were checkout 24.0s median, setup-node 6.0s, npm ci 22.0s, Astro generation 13.0s, dashboard restore 1.0s, Pages artifact upload 3.0s, and deploy-pages 9.0s. Bounded logs for the five latest full builds verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits; trusted step metadata showed dashboard artifact fallback skipped in all nine builds. For artifact transfer and Pages packaging, dashboard restore plus Pages upload plus deployment totaled 13.0s median, 13.3% of median execution, and only 4.0s was directly controllable transfer/packaging; producer upload, cache download, and cache save were each 1-2s. Push run 40486203969 was disclosed as an 87-second concurrency queue outlier, and run 40481216407 as a 29-second Deploy Pages service-time outlier. No concrete workflow change is expected to save 60 seconds or 15% without weakening deployment safety, so no recommendation was made. The next category is scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-10-27T11:22:38Z",
+      "worker_run_id": "40495283444",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        40493003006,
+        40491623282,
+        40490069183,
+        40488761507,
+        40488405066,
+        40488190573,
+        40486203969,
+        40486166691,
+        40485318491,
+        40484042652,
+        40483719667,
+        40483353694,
+        40483052690,
+        40481216407,
+        40481105749,
+        40478115694,
+        40476932831,
+        40476332306,
+        40474284793,
+        40471302568
+      ],
+      "outcome": "incomplete: the 2026-10-27T08:06:56Z to 2026-10-27T11:01:43Z latest-20 completed docs.yml window contained 16 successful and four skipped runs, with no failed or cancelled runs. Trusted job and step metadata identified seven successful full build-and-deploy paths across four push, two workflow_run, and one schedule trigger. Dashboard cache restoration succeeded and artifact fallback was skipped in all seven. While collecting the remaining required evidence, the runtime failed to create a new OS thread. Per resource-limit policy, all further GitHub API work stopped. Current CAO Dashboard producer timings, bounded cache logs, the complete open-issue duplicate search, and therefore a complete scheduling/concurrency determination could not be finished. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
