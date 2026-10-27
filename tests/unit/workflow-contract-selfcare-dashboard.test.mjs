@@ -273,6 +273,7 @@ test("SelfCare dashboard performance worker selects one highest-ROI small win", 
   assert.match(source, /skip-if-match: 'is:pr is:open "gh-aw-workflow-id: self-care-dashboard-performance" in:body'/);
   assert.match(source, /cache-memory:\n\s+retention-days: 30\n\s+allowed-extensions: \["\.json"\]/);
   assert.match(source, /dashboard-performance-rotation\.json/);
+  assert.match(source, /initialize .* without reporting missing data/);
   assert.match(source, /Rank candidates by highest evidence-backed impact per unit of effort/);
   assert.match(source, /Select exactly one highest-ranked actionable candidate/);
   assert.match(source, /at most three production files plus focused tests/);
