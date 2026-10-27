@@ -3,104 +3,74 @@
 <span id="project-status-and-scope"></span>
 
 > [!NOTE]
-> **Research prototype:** Features and interfaces may change as the project evolves.
+> **Research prototype:** Features and interfaces may change.
 
-> [!TIP]
-> **Agent setup router:** When asked to create, bootstrap, initialize, or set up a Central Agentic Ops control plane, load and follow [the setup skill](skills/setup-cao/SKILL.md). Use a separate control repository by default; any repository may explicitly run workflows it maintains in-tree as a source-managed control plane, including a catalog dogfooding its own workflows.
-
-> [!TIP]
-> **Agent debugging router:** When a CAO deployment, credential, Agentic Workflow, Activity collection, or dashboard build fails, load and follow [the `debug-cao` skill](skills/debug-cao/SKILL.md). Preserve the failing workflow commit and exact component versions before changing or rerunning the deployment.
-
-Monitor [GitHub Agentic Workflow](https://github.github.com/gh-aw/) runs, costs,
-and outcomes from one control repository. Add policy-governed operations when
-you are ready; CAO does not replace repository permissions, branch protections,
+Central Agentic Ops (CAO) brings GitHub Agentic Workflow runs, costs, and
+outcomes into one dashboard, then adds policy-governed execution when you are
+ready. It operates from a control repository across explicitly enrolled
+repositories. CAO does not replace repository permissions, branch protection,
 or human review.
 
-## Get started: monitor one repository
+## Start safely
 
-Install the **`gh cao` extension** with GitHub CLI, then open guided setup
-from the root of an existing control-repository checkout:
+From the root of a private control-repository checkout:
 
 ```bash
 gh extension install githubnext/gh-cao
 gh cao setup
 ```
 
-Git and authenticated GitHub CLI 2.68+ are required. Native setup prepares
-missing gh-aw, runtime files, and baseline policy without installing Node.js
-or adding or running a campaign.
+Git and authenticated GitHub CLI 2.68+ are required. Need a control repository?
+Create one with `gh repo create OWNER/CONTROL --private --clone`, then `cd CONTROL`.
 
-> [!TIP]
-> **SAML-token installation failure:** If GitHub CLI cannot download the extension
-> because your token lacks cross-organization SAML authorization, use the
-> [curl installer](docs/cao-cli.md#control-plane-installer):
-> `curl -fsSL https://raw.githubusercontent.com/githubnext/gh-cao/main/install-gh-cao.sh | bash -s -- --setup`.
-> This fallback requires Bash, curl, and Node.js 24+; public tool downloads are
-> anonymous, while stored credentials remain available for control-repository
-> and runtime-provenance operations.
+Setup prepares the monitoring runtime, policy, and gh-aw. It does **not** install
+or run a campaign, and it keeps changes local unless you separately approve
+commit and push. A published setup reports **deployment pending**; an empty
+dashboard is normal until Agentic Workflow evidence exists.
 
-No checkout yet? Explicitly use `gh repo create OWNER/CONTROL --private --clone`
-or `gh repo clone OWNER/CONTROL`, then `cd CONTROL` before installation. Choose
-`--public` instead only for public evidence.
+Use a private control repository for non-public evidence, but verify dashboard
+visibility before publishing: a private repository does not guarantee private
+GitHub Pages. If SAML authorization blocks extension installation, use the
+[documented installer fallback](docs/cao-cli.md#control-plane-installer).
 
-Follow [Set Up CAO](docs/setup-quickstarts.md) for scope, authentication,
-publication, and the first dashboard visit. Setup offers a separate default-No
-commit-and-push prompt; declining or unattended setup leaves files local.
-Publication returns **deployment pending**, not a ready dashboard.
-**No campaign is installed or run.** An empty dashboard is expected when there
-is no Agentic Workflow history.
+Follow [Set Up CAO](docs/setup-quickstarts.md) for authentication, scope,
+publication, and your first dashboard visit.
 
-Use a private control repository for non-public evidence. A private repository
-does **not** guarantee a private Pages site: verify dashboard visibility before
-publishing.
+## Add work when ready
 
-**Optional, later:** describe your outcome and scope in
-[From Outcome to Execution](docs/operation-patterns.md), then try the
-[Daily Repo Status quickstart](docs/setup/quickstart.md) or the
-[Repo Assist review walkthrough](docs/repo-assist-quickstart.md).
-Campaigns are one first-class way to scale recurring work, not a prerequisite.
-Start with one repository in `review`; live outputs need explicit reviewed
-policy and declared safe-output capabilities. You can also read
-[real Repo Assist reports](repo-assist/README.md#see-repo-assist-in-action)
-without starting a workflow or spending AI credits.
+Start with one repository in `review`; live outputs require explicit reviewed
+policy and declared safe-output capabilities. Describe the outcome and scope
+first—campaigns are one way to scale work, not a prerequisite. See
+[From Outcome to Execution](docs/operation-patterns.md) and the
+[campaign catalog](https://githubnext.github.io/gh-cao/catalog/).
 
-## Documentation
+For agents, install the [CAO plugin](docs/agent-plugin.md) and use the task skill:
+`setup-cao`, `debug-cao`, `add-cao-campaign`, `create-cao-campaign`,
+`analyze-cao`, or `cao-cli`.
 
-Read the [documentation site](https://githubnext.github.io/gh-cao/), or start
-with the guide for your task:
+## Read the docs
 
-| Task | Guide |
-| --- | --- |
-| Understand CAO and its boundaries | [What is CAO?](docs/architecture-at-a-glance.md) and [Architecture](docs/architecture.md) |
-| Install and monitor existing workflows | [Set Up CAO](docs/setup-quickstarts.md) |
-| Use or upgrade the CLI | <span id="github-cli-extension"></span>[CAO Commands](docs/cao-cli.md) |
-| Choose and provision credentials | [Authentication](docs/authentication.md) and [credential setup](docs/control-plane-authentication.md) |
-| Host the dashboard | <span id="github-pages-setup"></span>[Deployment options](docs/deployment.md) and [GitHub Pages](docs/deployment-actions.md) |
-| Interpret evidence | [Dashboard](docs/dashboard.md) |
-| Analyze evidence with CLI or MCP | <span id="agent-analysis"></span>[Agent analysis](docs/agent-analysis.md) |
-| Install skills or use a Copilot canvas | <span id="agent-plugin-and-requirements"></span>[Agent plugin and canvas](docs/agent-plugin.md) |
-| Preview locally | [Local serving modes](docs/dashboard-data-ingestion.md#choose-a-local-serving-mode) |
-| Add shared work | [From Outcome to Execution](docs/operation-patterns.md) and [campaign catalog](https://githubnext.github.io/gh-cao/catalog/) |
-| Operate, update, or recover | [Monitor and recover](docs/operations.md) |
+<span id="github-cli-extension"></span>
+<span id="github-pages-setup"></span>
+<span id="agent-analysis"></span>
+<span id="agent-plugin-and-requirements"></span>
 
-For agents: [`llms.txt`](https://githubnext.github.io/gh-cao/llms.txt) for
-navigation, [`llms-small.txt`](https://githubnext.github.io/gh-cao/llms-small.txt)
-for compact context, and [`llms-full.txt`](https://githubnext.github.io/gh-cao/llms-full.txt)
-for the full corpus.
+- [What CAO is and its safety boundaries](docs/architecture-at-a-glance.md)
+- [CLI commands](docs/cao-cli.md), [authentication](docs/authentication.md), and
+  [deployment](docs/deployment.md)
+- [Dashboard evidence](docs/dashboard.md) and [agent analysis](docs/agent-analysis.md)
+- [Operations, updates, and recovery](docs/operations.md)
+- [Documentation site](https://githubnext.github.io/gh-cao/) and
+  [compact agent context](https://githubnext.github.io/gh-cao/llms-small.txt)
 
 <span id="contributing"></span>
 <span id="maintainers"></span>
 <span id="support"></span>
 
-## Contributing and support
+## Project
 
-Read [Contributing](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
-Use [open issues](https://github.com/githubnext/gh-cao/issues) and
-[Support](SUPPORT.md) for help; report vulnerabilities privately through
-[Security](SECURITY.md). Maintained by [GitHub Next](https://github.com/githubnext),
-with ownership in [CODEOWNERS](.github/CODEOWNERS).
+See [Contributing](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md),
+and [Support](SUPPORT.md). Report vulnerabilities privately through
+[Security](SECURITY.md). Maintained by [GitHub Next](https://github.com/githubnext).
 
-## License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for the
-full terms.
+Licensed under the [MIT License](LICENSE).
