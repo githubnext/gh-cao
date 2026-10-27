@@ -19,10 +19,8 @@ const paths = [
   "dashboard/",
   "catalog/",
   "catalog/dependabot/",
-  "blog/",
   "operational-observability-visualization-specification/",
   "operational-value-how-to/",
-  "blog/measuring-agent-work-value/",
 ];
 
 for (const width of [320, 1280]) {
@@ -93,14 +91,6 @@ for (const colorScheme of ["light", "dark"]) {
         }
       }
 
-      expect((await page.goto("blog/measuring-agent-work-value/"))?.ok()).toBe(true);
-      const diagram = page.locator(".sl-markdown-content .mermaid svg");
-      await expect(diagram).toBeVisible();
-      await expect(diagram).not.toContainText("Syntax error");
-      expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
-      expect((await page.goto("blog/"))?.ok()).toBe(true);
-      await expect(page.locator("main").getByRole("link", { name: "What counts as value from agent work?", exact: true }))
-        .toBeVisible();
     });
   }
 }
@@ -912,7 +902,7 @@ for (const width of [320, 390, 768, 1024]) {
     await menu.locator("summary").click();
     await expect(menu).toHaveAttribute("open", "");
     await expect(menu.getByRole("navigation", { name: "Global links menu" })).toBeVisible();
-    await expect(menu.getByRole("link")).toHaveText(["Docs", "Blog"]);
+    await expect(menu.getByRole("link")).toHaveText(["Docs"]);
     await expect(menu.getByRole("link", { name: "Docs", exact: true }))
       .toHaveAttribute("href", "/gh-cao/architecture-at-a-glance/");
     expect(await page.locator("html").evaluate((element) => element.scrollWidth))
@@ -920,24 +910,15 @@ for (const width of [320, 390, 768, 1024]) {
   });
 }
 
-test("desktop documentation navigation links to the introduction and published blog posts", async ({ page }) => {
+test("desktop documentation navigation links to the introduction", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   expect((await page.goto("setup-quickstarts/"))?.ok()).toBe(true);
 
   const navigation = page.getByRole("navigation", { name: "Global links", exact: true });
-  await expect(navigation.getByRole("link")).toHaveText(["Docs", "Blog"]);
+  await expect(navigation.getByRole("link")).toHaveText(["Docs"]);
   await navigation.getByRole("link", { name: "Docs", exact: true }).click();
   await expect(page).toHaveURL(/\/architecture-at-a-glance\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("What is Central Agentic Ops?");
-
-  await navigation.getByRole("link", { name: "Blog", exact: true }).click();
-  await expect(page).toHaveURL(/\/blog\/$/);
-  await expect(page).toHaveTitle(/Central Agentic Ops Blog/);
-  const blogNavigation = page.getByRole("navigation", { name: "Main", exact: true });
-  await expect(blogNavigation.getByRole("link", { name: "All posts", exact: true })).toBeVisible();
-  await expect(blogNavigation.getByRole("link", { name: "RSS", exact: true })).toBeVisible();
-  await expect(page.locator("main").getByRole("link", { name: "What counts as value from agent work?", exact: true }))
-    .toBeVisible();
 });
 
 for (const colorScheme of ["light", "dark"]) {
@@ -1056,8 +1037,8 @@ for (const { name, viewport } of [
       const tagline = page.locator(".docs-hero-intro .tagline");
       await expect(tagline).toBeVisible();
       await expect(tagline).toHaveText("Keep track of all runs, costs, and outcomes of your GitHub Agentic Workflows across repositories. Set execution scope and rollout policy, refine workflows in review mode, and roll out with confidence.");
-      await expect(page.getByRole("heading", { name: "Shared work. Clear ownership.", exact: true })).toBeAttached();
-      await expect(page.getByRole("heading", { name: "Less upkeep. Current workflows.", exact: true })).toBeAttached();
+      await expect(page.getByRole("heading", { name: "Shared workflows. Clear ownership.", exact: true })).toBeAttached();
+      await expect(page.getByRole("heading", { name: "Distributed reach. Central upkeep.", exact: true })).toBeAttached();
       await expect(page.locator(".runs-story, .value-story")).toHaveCount(0);
       await expect(page.getByRole("heading", { name: "Roll out with confidence.", exact: true })).toBeAttached();
       await expect(page.locator(".terminal-story .section-eyebrow")).toHaveText("Setup, authentication, and rollout");
@@ -1106,10 +1087,13 @@ for (const { name, viewport } of [
       await expect(page.locator(".phone-image")).toHaveCount(1);
       await expect(page.locator(".product-shot-mobile")).toHaveCount(0);
       const maintenance = page.locator(".maintenance-story");
-      await expect(maintenance.locator(".section-eyebrow")).toHaveText("Maintenance");
-      await expect(maintenance.locator("dt")).toHaveText(["01 gh-aw upgrades", "02 Workflow source updates", "03 Reviewed changes"]);
-      await expect(maintenance).not.toContainText(/campaign/i);
-      await expect(maintenance).toContainText("Offload automation upkeep");
+      await expect(maintenance.locator(".section-eyebrow")).toHaveText("One reviewed place");
+      await expect(maintenance.locator("dt")).toHaveText(["01 gh-aw upgrades", "02 Workflow source updates", "03 CAO campaign updates"]);
+      await expect(maintenance).toContainText("upkeep stays in one reviewed control repository");
+      await expect(maintenance).toContainText("Version pins keep installs reproducible");
+      await expect(maintenance).toContainText("3-way merges preserve local customizations");
+      await expect(maintenance).toContainText("one atomic runtime revision");
+      await expect(maintenance).toContainText("validate a bounded target before rollout");
       await expect(maintenance.getByRole("link", { name: "gh aw upgrade", exact: true }))
         .toHaveAttribute("href", "https://github.github.com/gh-aw/setup/cli/#upgrade");
       await expect(maintenance.getByRole("link", { name: "gh aw update", exact: true }))

@@ -359,7 +359,6 @@ jobs:
           REPORT_PUBLIC_ONLY: ${{ matrix.publicOnly == true }}
           ACTIVITY_ARTIFACT: ${{ matrix.artifact }}
           ACTIVITY_DATABASE: ${{ runner.temp }}/cao-activity/collection.sqlite
-          ACTIVITY_OWNER: ${{ matrix.owner }}
           CAO_OPERATIONAL_VALUE_GH_TOKEN: ""
           GH_TOKEN: ""
           REPORT_TARGET_REPOSITORIES_JSON: ${{ toJSON(matrix.repositories) }}
@@ -395,7 +394,7 @@ jobs:
           repository_args=()
           while IFS= read -r target_repository; do
             repository_args+=(--repository "$target_repository")
-          done < <(jq -r --arg owner "$ACTIVITY_OWNER" '.[] | "\($owner)/\(.)"' <<< "$REPORT_TARGET_REPOSITORIES_JSON")
+          done < <(jq -r '.[]' <<< "$REPORT_TARGET_REPOSITORIES_JSON")
           node activity/workflow-values.mjs \
               --root . --policy .github/workflows/cao.json \
               --database "$ACTIVITY_DATABASE" --output "$rich_output" \

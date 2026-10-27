@@ -68,25 +68,27 @@ test("landing page presents the product through real operational surfaces", () =
   assert.doesNotMatch(terminalText, /(?<![\w-])cao\.sh|gh cao validate|gh aw run|--raw-field|integrate-cao-workflow/);
   assert.deepEqual(
     [...hero.matchAll(/<section class="product-story ([^"]+)"/g)].map(([, classes]) => classes),
-    ["dispatch-story", "terminal-story", "maintenance-story", "decision-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
+    ["dispatch-story", "maintenance-story", "terminal-story", "decision-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
   );
   assert.match(hero, /aria-labelledby="maintenance-title" data-reveal data-slideshow-slide/);
-  assert.match(hero, /Less upkeep\. Current workflows\./);
-  assert.match(hero, /Offload automation upkeep/);
-  assert.match(hero, /gh-aw versions and workflows from their original sources/);
+  assert.match(hero, /Distributed reach\. Central upkeep\./);
+  assert.match(hero, /upkeep stays in one reviewed control repository/);
+  assert.match(hero, /Review updates and upgrades once, reduce repeated maintenance, and keep the fleet current/);
   assert.match(hero, /href="\/gh-cao\/operations\/#update-cao"/);
   assert.match(hero, /data-slideshow-snippet="Dashboard maintenance"/);
-  for (const label of ["gh-aw upgrades", "Workflow source updates", "Reviewed changes"]) assert.ok(hero.includes(label));
+  for (const label of ["gh-aw upgrades", "Workflow source updates", "CAO campaign updates"]) assert.ok(hero.includes(label));
   const maintenance = hero.match(/<section class="product-story maintenance-story"[\s\S]*?<\/section>/)?.[0];
   assert.ok(maintenance);
-  assert.doesNotMatch(maintenance, /campaign/i);
   assert.match(maintenance, /gh aw upgrade/);
   assert.match(maintenance, /gh aw update/);
-  assert.match(maintenance, /Upstream changes merge with local edits by default/);
+  assert.match(maintenance, /Version pins keep installs reproducible/);
+  assert.match(maintenance, /3-way merges preserve local customizations/);
+  assert.match(maintenance, /gh cao update/);
+  assert.match(maintenance, /one atomic runtime revision/);
+  assert.match(maintenance, /validate a bounded target before rollout/);
   assert.match(maintenance, /https:\/\/github\.com\/user-attachments\/assets\//);
   assert.match(maintenance, /individual Upgrade buttons and Upgrade all/);
   assert.match(maintenance, /Unknown version evidence stays explicit/);
-  assert.match(hero, /without widening rollout policy/);
   assert.doesNotMatch(hero, /https:\/\/github\.github\.com\/gh-aw\/practices\//);
   assert.doesNotMatch(hero, /One operating picture|phone-caption/);
   assert.doesNotMatch(
@@ -209,7 +211,7 @@ test("terminal prefers GitHub CLI installation and matches the production CLI", 
 
 test("landing page shows shared and local workflows with explicit ownership", () => {
   assert.match(hero, /One workflow ecosystem/);
-  assert.match(hero, /Shared work\. Clear ownership\./);
+  assert.match(hero, /Shared workflows\. Clear ownership\./);
   assert.match(hero, /\.product-story \{[^}]*width: min\(calc\(100% - 2rem\), 76rem\)/);
   assert.match(hero, /\.dispatch-story \{[^}]*grid-template-columns: minmax\(0, 1fr\);[^}]*gap: 0\.75rem/);
   assert.match(hero, /\.dispatch-story > \.section-eyebrow \{[\s\S]*?justify-self: center/);
@@ -218,7 +220,7 @@ test("landing page shows shared and local workflows with explicit ownership", ()
   assert.match(hero, /@media \(width > 72rem\) \{[\s\S]*?\.dispatch-illustration \{[^}]*width: min\(80%, 56rem\)/);
   assert.match(hero, /\.dispatch-illustration :global\(\.workflow-ecosystem\) \{[^}]*width: auto;[^}]*zoom: 0\.8/);
   assert.match(hero, /@media \(min-width: 64rem\) \{[\s\S]*?\.dispatch-story h2 \{[\s\S]*?white-space: nowrap/);
-  assert.match(hero, /Enterprise teams, organizations, and repository maintainers own their workflows/);
+  assert.match(hero, /Enrolled repositories benefit from enterprise-, organization-, and repository-owned workflows working side by side/);
   assert.match(hero, /<WorkflowEcosystem \/>/);
   assert.doesNotMatch(hero, /DispatchIllustration/);
   assert.match(hero, /aria-describedby="dispatch-description"/);

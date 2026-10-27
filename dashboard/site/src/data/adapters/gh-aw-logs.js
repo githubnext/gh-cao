@@ -1422,6 +1422,19 @@ function createCachedGhAwJsonlAccumulator(options) {
       throw new TypeError(`gh-aw JSONL line ${line}.operational_value must contain a valid rollup numerator and denominator together`);
     }
     const repositoryId = repositoryCoordinateId(coordinates.owner, coordinates.name);
+    if (value.workflow_path !== undefined) {
+      const slug = requiredString(value.workflow_slug, 'operational value workflow filename stem');
+      const workflowPath = requiredString(value.workflow_path, 'operational value workflow path');
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || workflowPath !== `.github/workflows/${slug}.md`) {
+        throw new TypeError('Operational value workflow path must match its observed filename stem');
+      }
+      const workflowId = workflowCoordinateId(coordinates.owner, coordinates.name, workflowPath);
+      workflows.set(workflowId, {
+        kind: 'workflow', source: OBSERVATION_SOURCE, sourceId: workflowPath, observedAt,
+        data: { id: workflowId, repositoryId, name: optionalString(value.workflow_name) ?? slug,
+          path: workflowPath, state: 'unknown' }
+      });
+    }
     repositories.set(repositoryId, {
       kind: 'repository',
       source: OBSERVATION_SOURCE,

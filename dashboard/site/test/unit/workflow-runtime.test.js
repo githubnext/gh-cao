@@ -103,7 +103,8 @@ describe('renderWorkflowRuntime', () => {
     selectWorkflow(rendered);
 
     expect(rendered.dataset.workflow).toBe('githubnext/gh-cao:.github/workflows/multi-device-docs-tester.md');
-    expect(rendered.querySelector('.repository-tabs')?.textContent).toBe('InsightsReportsValueRuns');
+    expect(rendered.querySelector('.repository-tabs')?.textContent).toBe('InsightsReportsRuns');
+    expect(rendered.querySelector('.repository-tabs a[href^="#page-workflow-value"]')).toBeNull();
     expect(rendered.querySelector('.repository-tabs [aria-current="page"]')?.textContent).toBe('Insights');
     expect(rendered.querySelector('.repository-tabs a:last-child')?.getAttribute('href')).toBe(
       '#page-workflow-runs?workflow=githubnext%2Fgh-cao%3A.github%2Fworkflows%2Fmulti-device-docs-tester.md'

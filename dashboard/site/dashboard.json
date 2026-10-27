@@ -26,6 +26,27 @@
     ],
     "card-templates": [
       {
+        "id": "workflow-measurement",
+        "icon": "graph",
+        "title": { "field": "measurement-label", "title": "Native value" },
+        "subtitle": { "field": "measurement-context", "title": "Workflow" },
+        "status": { "field": "maturity-status", "title": "Maturity" },
+        "labels": [],
+        "detail-labels": "visible",
+        "details": [
+          { "field": "metric-name", "title": "Measure" },
+          { "field": "campaign", "title": "Campaign" },
+          { "field": "metric-direction", "title": "Goal direction" },
+          { "field": "measurement-kind", "title": "Measurement kind" },
+          { "field": "coverage-status", "title": "Coverage" },
+          { "field": "missing-reason", "title": "Missing evidence" }
+        ],
+        "timing": [
+          { "field": "observed-at", "type": "temporal", "title": "Assessed", "format": "human-friendly-timestamp", "icon": "clock" },
+          { "field": "window-end", "type": "temporal", "title": "Evidence through", "format": "human-friendly-timestamp", "icon": "calendar" }
+        ]
+      },
+      {
         "id": "webhook-status",
         "icon": "broadcast",
         "title": { "field": "scope", "title": "Counter scope" },

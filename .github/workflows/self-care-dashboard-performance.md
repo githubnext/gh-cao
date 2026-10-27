@@ -175,7 +175,7 @@ Improve exactly one dashboard performance bottleneck evidenced by the determinis
 
 ## ROI selection and attempt history
 
-Use `/tmp/gh-aw/cache-memory/dashboard-performance-rotation.json` for bounded attempt history. On a cache miss, initialize `{ "version": 2, "recent": [] }`. Normalize older state to version 2 while retaining valid `recent` entries.
+Use `/tmp/gh-aw/cache-memory/dashboard-performance-rotation.json` for bounded attempt history. On a cache miss, initialize `{ "version": 2, "recent": [] }` without reporting missing data; the absent optional state file is expected initialization, not missing evidence. Normalize older state to version 2 while retaining valid `recent` entries.
 
 Give each candidate a stable fingerprint formed from persona, Lighthouse audit or metric ID, and the responsible source path. Estimate ROI only from available evidence: use Lighthouse estimated savings or metric deficit as impact, and production files, component touchpoints, validation scope, and regression risk as effort. Never invent a numeric saving. Rank candidates by highest evidence-backed impact per unit of effort, then by lower regression risk, fewer production files, and fingerprint ascending. Candidates without comparable numeric evidence rank below candidates with it.
 

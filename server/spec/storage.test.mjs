@@ -170,6 +170,11 @@ test('grader and eval observations retain distinct definitions and audit provena
 
 test('native table fields cover database projections and joins without speculative columns', () => {
   const defects = [];
+  // The SQL source derives these from typed parents, not duplicate stored columns.
+  const derived = new Map([['$operationalValues', new Set(['repository', 'workflow-route'])]]);
+  for (const [source, fields] of derived) {
+    for (const field of fields) assert.equal(tables.get(source).has(field), false, `${source}.${field} must be derived`);
+  }
   const required = new Map([...tables.keys()].map((source) => [source, new Set(['id'])]));
   required.get('$runs').add('repositoryId'); // Cross-parent canonical integrity.
   // This input normalizes the packet and its typed child values, not root columns.
@@ -183,18 +188,22 @@ test('native table fields cover database projections and joins without speculati
     const fields = inputFields(definition);
     if (tables.has(definition.from)) {
       for (const field of fields) {
-        if (!tables.get(definition.from).has(field)) defects.push(`missing ${definition.from}.${field}`);
+        if (!tables.get(definition.from).has(field) && !derived.get(definition.from)?.has(field)) {
+          defects.push(`missing ${definition.from}.${field}`);
+        }
       }
     }
     for (const source of sources) {
       if (!required.has(source)) continue;
-      for (const field of fields) required.get(source).add(field);
+      for (const field of fields) if (!derived.get(source)?.has(field)) required.get(source).add(field);
     }
     for (const join of definition.joins ?? []) {
       if (!tables.has(join.source)) continue;
       for (const field of [...join.on.map((key) => key.right), ...join.fields.map((field) => field.field)]) {
-        if (!tables.get(join.source).has(field)) defects.push(`missing joined ${join.source}.${field}`);
-        required.get(join.source).add(field);
+        if (!tables.get(join.source).has(field) && !derived.get(join.source)?.has(field)) {
+          defects.push(`missing joined ${join.source}.${field}`);
+        }
+        if (!derived.get(join.source)?.has(field)) required.get(join.source).add(field);
       }
     }
   }
@@ -206,13 +215,17 @@ test('native table fields cover database projections and joins without speculati
   assert.deepEqual(defects, []);
 });
 
-test('operational value evidence projects exactly the typed fact and common packet contract', () => {
+test('operational value evidence projects typed facts, common packet metadata and derived route identities', () => {
   assert.deepEqual(evidenceFactFields.sort(), [...EVIDENCE_FACT_FIELDS].sort());
   const projection = definitions.find((definition) => definition.name === 'operational-value-evidence');
   assert.deepEqual(projection.select.map((field) => field.field).sort(), [
     ...EVIDENCE_FACT_FIELDS, 'report-id', 'organization', 'repository', 'workflow', 'workflow-path',
-    'observed-at', 'window-start', 'window-end', 'contract-digest'
+    'observed-at', 'window-start', 'window-end', 'contract-digest', 'workflow-route', 'snapshot-route'
   ].sort());
+  for (const field of ['workflow-route', 'snapshot-route']) {
+    assert.equal(evidenceFactFields.includes(field), false, `${field} must not duplicate packet identity in stored facts`);
+    assert.equal(tables.get('$operationalValueEvidence').has(field), false, `${field} must be derived`);
+  }
   const sql = readFileSync(new URL('../internal/postgresx/schema.sql', import.meta.url), 'utf8');
   assert.match(sql, /CREATE TABLE IF NOT EXISTS operational_value_evidence_facts/);
   assert.match(sql, /FOREIGN KEY \(namespace, packet_id\) REFERENCES operational_value_evidence/);

@@ -423,6 +423,30 @@
       ]
     },
     {
+      "id": "value-measurement",
+      "title": "Native measurement",
+      "description": "Inspect an original batch assessment and its exact evidence period without inferring accepted changes or verified quality.",
+      "intent": "Inspect a native outcome measurement under its frozen evaluator.",
+      "subject": "One original canonical operational-value observation.",
+      "objective": "Keep missingness, coverage, maturity and immutable fingerprints visible.",
+      "acceptance": "Never replace null with zero or reinterpret interval results as repository snapshots.",
+      "experimental": false,
+      "parameters": [
+        {
+          "name": "measurement",
+          "required": true,
+          "description": "The measurement this page reports on.",
+          "schema": {
+            "type": "string",
+            "description": "The measurement this page reports on."
+          }
+        }
+      ],
+      "queries": [
+        "value-measurement-facts"
+      ]
+    },
+    {
       "id": "workflow-value",
       "title": "Workflow value",
       "description": "Inspect measured repository movement and open the evidence behind a workflow's result.",
@@ -444,6 +468,8 @@
       ],
       "queries": [
         "value-collection-health",
+        "value-current-measurements",
+        "value-measurement-facts",
         "value-report-summary",
         "value-workflow-results"
       ]
@@ -518,6 +544,8 @@
       "parameters": [],
       "queries": [
         "value-collection-health",
+        "value-current-measurements",
+        "value-measurement-facts",
         "value-registered-collections",
         "value-report-summary",
         "value-workflow-results"
@@ -3374,6 +3402,84 @@
       }
     },
     {
+      "id": "value-measurement-facts",
+      "subject": "Original native primary and diagnostic observations from reviewed batch evaluators.",
+      "objective": "Keep periods, native units, evaluator identity and missingness inspectable without inventing delivery events.",
+      "acceptance": "Null is unavailable, not zero. Interval measurements are not snapshots or cumulative accepted contributions.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "measurement",
+          "field": "id"
+        },
+        {
+          "name": "workflow",
+          "field": "workflow-route"
+        }
+      ],
+      "sources": [
+        "workflow-value-measurements"
+      ],
+      "used-by-pages": [
+        "value",
+        "value-measurement",
+        "workflow-value"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-measurement-order",
+      "subject": "Latest assessment of each workflow measure, including unavailable assessments.",
+      "objective": "Do not let an older numeric value hide a newer incomplete period.",
+      "acceptance": "Choose latest cutoff and assessment before considering value or coverage; preserve evaluator digest.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-measurement-facts"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-current-measurements",
+      "subject": "Latest native primary measurements, separately from event-ledger reports.",
+      "objective": "Expose ordinary reviewed batch results on the same Value surface.",
+      "acceptance": "Do not infer healthy outcomes, accepted implementations or complete coverage from a non-null value.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "workflow",
+          "field": "workflow-route"
+        }
+      ],
+      "sources": [
+        "value-measurement-order"
+      ],
+      "used-by-pages": [
+        "value",
+        "workflow-value"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
       "id": "value-evidence-facts",
       "subject": "Published original evidence for frozen workflow value contracts.",
       "objective": "Keep report identity, target repository, workflow and capture together.",
@@ -3394,13 +3500,51 @@
     },
     {
       "id": "value-contracts",
-      "subject": "Latest retained report contract per repository, workflow and native measure.",
-      "objective": "Prevent old reports or versions from masking newer evidence.",
-      "acceptance": "Select the latest cutoff then capture before evaluating missing or incomplete evidence. Preserve separate measures.",
+      "subject": "One retained contract per repository, workflow and versioned native measure.",
+      "objective": "Compute each report independently before selecting current workflow results.",
+      "acceptance": "Preserve separate versions and exact report identity. Latest-version selection belongs to the workflow result query.",
       "description": "",
       "parameters": [],
       "sources": [
         "value-evidence-facts"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence"
+        ]
+      }
+    },
+    {
+      "id": "value-measurement-captures",
+      "subject": "Accepted complete native batch assessments, separately from collection decisions.",
+      "objective": "Expose actual retained capture clocks without advancing them on failure or partial data.",
+      "acceptance": "Only mature complete non-null primary assessments establish an accepted capture; zero remains valid.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-measurement-facts"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-contract-captures",
+      "subject": "Original capture clocks from accepted rich evidence packets.",
+      "objective": "Align capture metadata without merging measured populations.",
+      "acceptance": "This union is capture metadata only, never combined metric totals.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-contracts"
       ],
       "used-by-pages": [],
       "execution": {
@@ -3419,14 +3563,16 @@
       "description": "",
       "parameters": [],
       "sources": [
-        "value-contracts"
+        "value-contract-captures",
+        "value-measurement-captures"
       ],
       "used-by-pages": [],
       "execution": {
         "local": true,
         "backend": "sqlite",
         "requirements": [
-          "operational-value-evidence"
+          "operational-value-evidence",
+          "workflow-value-measurements"
         ]
       }
     },
@@ -3445,7 +3591,8 @@
         "local": true,
         "backend": "sqlite",
         "requirements": [
-          "operational-value-evidence"
+          "operational-value-evidence",
+          "workflow-value-measurements"
         ]
       }
     },
@@ -3474,7 +3621,8 @@
         "backend": "sqlite",
         "requirements": [
           "operational-value-evidence",
-          "workflow-value-collections"
+          "workflow-value-collections",
+          "workflow-value-measurements"
         ]
       }
     },
@@ -3496,7 +3644,8 @@
         "backend": "sqlite",
         "requirements": [
           "operational-value-evidence",
-          "workflow-value-collections"
+          "workflow-value-collections",
+          "workflow-value-measurements"
         ]
       }
     },
@@ -3721,6 +3870,25 @@
       }
     },
     {
+      "id": "value-workflow-result-order",
+      "subject": "Version ordering after independently computing each report.",
+      "objective": "Keep exact report queries partition-local without changing latest-version selection.",
+      "acceptance": "Rank cutoffs then captures within each workflow and measure. Explicit report links do not need other report facts.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-report-summary"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence"
+        ]
+      }
+    },
+    {
       "id": "value-workflow-results",
       "subject": "Current published report results per native measure.",
       "objective": "Expose the latest coherent packet on the workflow Value tab.",
@@ -3733,7 +3901,7 @@
         }
       ],
       "sources": [
-        "value-report-summary"
+        "value-workflow-result-order"
       ],
       "used-by-pages": [
         "value",

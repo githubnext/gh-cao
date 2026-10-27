@@ -208,6 +208,7 @@ const RUN_LINKED_STORES = /** @type {const} */ ([
   'issues', 'experimentAssignments', 'graderObservations', 'evalObservations'
 ]);
 const QUERYABLE_STRING_KEY_PATHS = new Set([
+  'id',
   'slug',
   'repositoryId',
   'campaignId',
@@ -1225,7 +1226,7 @@ export async function readCollection(indexedDB, storeName) {
  * @param {IDBFactory} indexedDB
  * @param {typeof ENTITY_STORES[number]} storeName
  * @param {import('../../data-operations.js').DataOperator[]} operators
- * @param {{ maxRows?: number, onMetrics?: (metrics: { durationMs: number, requestCount: number, recordsScanned: number, recordsReturned: number, index: string | null }) => void }} [options]
+ * @param {{ maxRows?: number, maxBytes?: number, keyFilter?: (key: IDBValidKey) => boolean, checkpoint?: () => void, onMetrics?: (metrics: { durationMs: number, requestCount: number, recordsScanned: number, recordsReturned: number, index: string | null }) => void }} [options]
  */
 export async function queryCollection(indexedDB, storeName, operators, options = {}) {
   const startedAt = monotonicNow();
@@ -1242,8 +1243,29 @@ export async function queryCollection(indexedDB, storeName, operators, options =
         throw new Error(`IndexedDB selection exceeded max-input-rows of ${options.maxRows}`);
       }
     }
+    /** @type {Record<string, any>[]} */
     let records;
-    if (!plan) {
+    if (options.maxBytes !== undefined) {
+      const selected = new Map();
+      let bytes = 0;
+      for (const range of plan?.keys ?? [undefined]) {
+        options.checkpoint?.();
+        const keys = await requestResult((plan?.index ?? store).getAllKeys(range));
+        for (const key of keys) {
+          options.checkpoint?.();
+          if (options.keyFilter && !options.keyFilter(key)) continue;
+          if (selected.has(key)) continue;
+          const row = await requestResult(store.get(key));
+          bytes += new TextEncoder().encode(JSON.stringify(row)).length;
+          if (bytes > options.maxBytes || (options.maxRows !== undefined && selected.size >= options.maxRows)) {
+            throw new Error('Canonical selection exceeded bounded input budget');
+          }
+          selected.set(key, row);
+        }
+      }
+      records = [...selected.values()];
+      records.sort((left, right) => indexedDB.cmp(left[String(store.keyPath)], right[String(store.keyPath)]));
+    } else if (!plan) {
       records = await requestResult(store.getAll());
     } else {
       const matches = await Promise.all(plan.keys.map((key) => requestResult(plan.index.getAll(key))));
@@ -1610,10 +1632,9 @@ function indexedQueryPlan(store, operators) {
       ? [[predicate.field, /** @type {string[]} */ (values)]]
       : [];
   })));
-  /** @type {{ index: IDBIndex, keys: IDBValidKey[] } | null} */
+  /** @type {{ index: IDBIndex | IDBObjectStore, keys: IDBValidKey[] } | null} */
   let best = null;
-  for (const indexName of store.indexNames) {
-    const index = store.index(indexName);
+  for (const index of [store, ...Array.from(store.indexNames, name => store.index(name))]) {
     const keyPath = Array.isArray(index.keyPath) ? index.keyPath : [index.keyPath];
     if (!keyPath.every((field) => typeof field === 'string' && predicates.has(field))) continue;
     const keys = keyPath.reduce(

@@ -21,6 +21,7 @@ export const unitTestAreas = {
     /^token-optimization-data-contract\./, /^unit-area-selection\./,
     /^backfill-stress-report\./, /^source-map-compat\./,
     /^maintainer-simulation\./,
+    /^(?:native-value-import|value-session-archive)\./,
   ],
   documentation: [
     /^docs-/, /^landing-page-/, /^catalog-page\./,

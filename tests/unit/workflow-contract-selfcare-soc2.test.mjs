@@ -27,7 +27,7 @@ test("SOC2 worker is registered consistently without expanding target authority"
   assert.equal(dispatch.imports[0].with.dispatch_max, workers.length);
   assert.equal(dispatch["safe-outputs"]["dispatch-workflow"].max, workers.length);
   assert.deepEqual([...dispatch["safe-outputs"]["dispatch-workflow"].workflows].sort(), workers.sort());
-  assert.equal(dispatch.imports[0].with.worker_credits_per_target, 5000);
+  assert.equal(dispatch.imports[0].with.worker_credits_per_target, 5100);
   assert.equal(dispatch["max-ai-credits"], 200);
 });
 

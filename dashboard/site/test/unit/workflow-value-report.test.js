@@ -4,8 +4,9 @@ import { configureSourceLoader, publishSource, resetSourceStore } from '../../sr
 import { dashboardViewAliasName } from '../../src/data/queries/view-payload-compiler.js';
 import fragment from '../../dashboard-fragments/workflow-value.json' with { type: 'json' };
 
-const reportData = fragment.pages[1].views[0].data;
-const names = 'sources' in reportData ? reportData.sources : [];
+const reportData = fragment.pages.find(page => page.id === 'value-report')?.views[0].data;
+if (!reportData || !('sources' in reportData)) throw new Error('Native report sources must be declared');
+const names = reportData.sources;
 /** @type {import('../../src/presenter.js').SourceMetadata} */
 const metadata = {
   'source-id': 'value-report-component', 'source-kind': 'fixture',

@@ -28,6 +28,8 @@ const debug = createDebug('mcp');
 /** Final stateless MCP protocol revision this server implements. */
 export const MCP_PROTOCOL_VERSION = mcpContract.protocolVersion;
 
+const GH_AW_MCP_PROTOCOL_VERSION = '2024-11-05';
+
 /** Maximum accepted request body, in bytes. */
 export const MAX_MCP_REQUEST_BYTES = mcpContract.limits.maxRequestBytes;
 
@@ -144,16 +146,6 @@ export async function handleMcpRequest({ headers, body, indexedDB, dashboardPath
     const value = headers[name] ?? headers[name.toLowerCase()];
     return typeof value === 'string' ? value.trim() : '';
   };
-  const protocolVersion = header('mcp-protocol-version');
-  if (!protocolVersion) {
-    return { status: 400, body: errorResponse(null, -32600, 'MCP-Protocol-Version header is required') };
-  }
-  if (protocolVersion !== MCP_PROTOCOL_VERSION) {
-    return {
-      status: 400,
-      body: errorResponse(null, -32600, `Unsupported MCP-Protocol-Version: ${protocolVersion}; this server implements ${MCP_PROTOCOL_VERSION}`)
-    };
-  }
   if (Buffer.byteLength(body) > MAX_MCP_REQUEST_BYTES) {
     return { status: 413, body: errorResponse(null, -32600, `Request body exceeds ${MAX_MCP_REQUEST_BYTES} bytes`) };
   }
@@ -168,18 +160,49 @@ export async function handleMcpRequest({ headers, body, indexedDB, dashboardPath
   }
   const id = typeof message.id === 'string' || typeof message.id === 'number' ? message.id : null;
   const method = message.method;
+  const params = isPlainObject(message.params) ? message.params : {};
+  if (method === 'initialize') {
+    const requestedVersion = typeof params.protocolVersion === 'string' ? params.protocolVersion : '';
+    if (requestedVersion !== GH_AW_MCP_PROTOCOL_VERSION && requestedVersion !== MCP_PROTOCOL_VERSION) {
+      return {
+        status: 400,
+        body: errorResponse(id, -32600, `Unsupported MCP protocol version: ${requestedVersion || '(missing)'}`)
+      };
+    }
+    return {
+      status: 200,
+      body: successResponse(id, {
+        protocolVersion: requestedVersion,
+        capabilities: { tools: {} },
+        serverInfo: SERVER_INFO,
+        instructions: INSTRUCTIONS
+      })
+    };
+  }
+  const protocolVersion = header('mcp-protocol-version');
+  if (!protocolVersion) {
+    return { status: 400, body: errorResponse(null, -32600, 'MCP-Protocol-Version header is required') };
+  }
+  if (protocolVersion !== MCP_PROTOCOL_VERSION && protocolVersion !== GH_AW_MCP_PROTOCOL_VERSION) {
+    return {
+      status: 400,
+      body: errorResponse(null, -32600, `Unsupported MCP-Protocol-Version: ${protocolVersion}; this server implements ${MCP_PROTOCOL_VERSION}`)
+    };
+  }
   const declaredMethod = header('mcp-method');
-  if (!declaredMethod) {
+  if (!declaredMethod && protocolVersion === MCP_PROTOCOL_VERSION) {
     return { status: 400, body: errorResponse(id, -32600, 'Mcp-Method header is required') };
   }
-  if (declaredMethod !== method) {
+  if (declaredMethod && declaredMethod !== method) {
     return {
       status: 400,
       body: errorResponse(id, -32600, `Mcp-Method header ${declaredMethod} does not match request method ${method}`)
     };
   }
-  const params = isPlainObject(message.params) ? message.params : {};
   const startedAt = Date.now();
+  if (protocolVersion === GH_AW_MCP_PROTOCOL_VERSION && (method === 'notifications/initialized' || method === 'ping')) {
+    return { status: 200, body: successResponse(id, {}) };
+  }
   if (method === 'server/discover') {
     return {
       status: 200,

@@ -3060,6 +3060,32 @@ for atomic source-data updates.
 
 ## 31.2 Native Operational Value report evidence
 
+Reviewed ordinary batch/timeline evaluation SHALL publish existing schema-v2
+`operational_value` envelopes, without inventing accepted events or changing
+canonical observation identity. Snapshot and interval grain, original period
+boundaries, numeric zero, null/unavailable, partial/interim states and evaluator,
+population and evidence fingerprints SHALL survive publication and ingestion.
+An explicit `workflow_path`, when supplied, SHALL match the workflow filename
+stem and establish only an observed unknown-state Workflow, not registration.
+
+The `workflow-value-measurements` logical source SHALL project those original
+assessments. Its workflow route is available only when retained workflow metadata
+agrees with the namespaced metric ID. Native cards SHALL select the latest period
+and assessment before considering value or coverage; missing latest results
+SHALL NOT fall back to older numeric results. Native detail views SHALL expose
+the original assessment, window and provenance fingerprints, not an inferred
+contribution or quality verdict. Scalar observations and rich event-ledger
+packets remain separate populations. Complete mature primary observations may
+supply actual accepted-capture metadata to collection health; partial/interim/
+unavailable observations SHALL NOT advance that clock.
+
+Exact observation reads SHALL use canonical identity before materialization.
+Workflow reads SHALL narrow by repository and namespaced metric keys before
+loading observation bodies, with a 20,000-record/key and 16 MiB input bound for
+local/browser reads. Key scanning is bounded, not a claim of constant physical
+I/O at arbitrary fleet size. Hosted SQL SHALL scope typed observations before
+resource statistics under its existing query/transaction budgets.
+
 Canonical schema 33 SHALL retain `operationalValueEvidence`: one bounded current
 packet per exact target repository, workflow filename stem and frozen
 contribution metric ID/version. Capture time is not part of identity. A newer
@@ -3121,12 +3147,21 @@ is required for continued measurement. The health-first admission and deferral
 contract in section 31.3 governs automatic acquisition.
 
 The single logical source `operational-value-evidence` SHALL purely normalize
-these originals. Every row SHALL expose `report-id`, `organization`,
+these originals. Every row SHALL expose `report-id`, `workflow-route` (the
+observed `OWNER/REPOSITORY:.github/workflows/SLUG.md` identity), `organization`,
 `repository`, `workflow` (filename stem), `workflow-path` (the validated original
 Markdown source path), `observed-at` (capture), `window-start`, `window-end`
 (evidence cutoff) and `contract-digest`. Original capture/cutoff boundaries
 SHALL NOT advance on replay. `fact-kind` and `fact-id` identify each fact;
 IDs SHALL be stable and unique within kind and optional parent.
+Snapshot and snapshot-item rows SHALL also expose `snapshot-route`, the
+composite `report-id|snapshot-id`; an item's snapshot ID is its original
+`parent-id`. The URI-encoded canonical report ID contains no literal `|`, so
+the first separator identifies its packet without inferring a relationship.
+Other fact kinds SHALL leave this optional identity absent.
+Local/browser normalization SHALL reuse each snapshot's compound identity for
+its items and bound newly constructed identity bytes by the existing 16 MiB
+read budget, before allocating an over-budget expansion.
 Base-source metadata SHALL retain the oldest included packet cutoff as `as-of`
 and its oldest capture as `retrieved-at`; these clocks alone SHALL NOT promote
 completeness or freshness to known states.
@@ -3152,6 +3187,29 @@ All selection, grouping, totals, comparisons, movement, attention and report
 presentation SHALL be Dashboard Language queries over these factual rows,
 re-executed within the active abort-scoped worker subscription. No navigation
 handler SHALL fetch saved reports or acquire missing evidence.
+
+Exact workflow/report predicates SHALL reach the packet read before fact
+expansion. SQLite SHALL use the existing record-key primary index (exact packet
+or workflow identity prefix); browser storage SHALL use the primary key or
+`byWorkflow` index. Shared-source selection SHALL union every reachable
+consumer's necessary equality, and SHALL NOT narrow an unscoped consumer.
+The authored query still evaluates the complete predicate afterward. Version
+ranking SHALL occur after independent report computation so an exact report
+does not require unrelated versions. The public snapshot route SHALL require
+only its composite `snapshot` parameter. Packet selection SHALL derive the
+report ID from that canonical identity before expansion; generated links and
+agent calls SHALL NOT require a second `report` argument. Queries still match
+the complete snapshot identity after the bounded packet read.
+
+Local/browser packet reads SHALL admit at most 32 packets, 16 MiB of packet
+data and 20,000 facts before expansion, without raising ordinary query limits.
+Reads SHALL observe cancellation and reject over-budget populations explicitly;
+an unscoped fleet list may require a narrower workflow/report. This gate is not
+a complete fleet-summary index or a claim that all-repository lists are constant
+cost. PostgreSQL SHALL bind the same scoped parent identities before typed fact
+joins and SQL resource statistics, including scoped capture/cutoff metadata; it
+retains its ordinary transaction/query admission limits. Neither navigation nor archive inspection
+may acquire missing GitHub evidence.
 
 ## 31.3 Workflow Value collection health
 

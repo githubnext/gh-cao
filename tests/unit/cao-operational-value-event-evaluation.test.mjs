@@ -163,4 +163,10 @@ test("ordinary evaluation remains opt-in and report fallback renders the existin
   assert.equal(pulse.metrics[0].kind, "snapshot");
   assert.equal(pulse.metrics[0].basis, "repository-outcome");
   assert.equal(pulse.metrics[0].cumulative.length, 0);
+  const observations = readFileSync(f.file("measurements.jsonl"), "utf8").trim().split("\n").map(JSON.parse);
+  assert.ok(observations.length > 0);
+  assert.ok(observations.every(row => row.schema_version === 2 && row.kind === "operational_value"
+    && row.operational_value.repository === repository
+    && row.operational_value.workflow_slug === slug
+    && row.operational_value.evaluator_digest === f.read("timeline.json").valueFunction.sha256));
 });

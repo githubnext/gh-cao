@@ -283,21 +283,6 @@ function sortableKey(key) {
 }
 
 /**
- * @param {unknown} key
- * @param {unknown} query
- */
-function matchesQuery(key, query) {
-  if (query === undefined || query === null) return true;
-  if (query instanceof SqliteIDBKeyRange) {
-    const lower = compareKeys(key, query.lower);
-    const upper = compareKeys(key, query.upper);
-    return (query.lower === undefined || (query.lowerOpen ? lower > 0 : lower >= 0))
-      && (query.upper === undefined || (query.upperOpen ? upper < 0 : upper <= 0));
-  }
-  return compareKeys(key, query) === 0;
-}
-
-/**
  * @param {object} target
  * @param {string} name
  * @param {Record<string, unknown>} [event]
@@ -387,6 +372,19 @@ class SqliteIDBIndex {
         ORDER BY __idb_key_sort(index_key), __idb_key_sort(record_key) LIMIT ?
       `).all(...selection.values, count ?? -1)
         .map((row) => JSON.parse(String(row.value)));
+    });
+  }
+
+  /** @param {unknown} [query] */
+  getAllKeys(query) {
+    if (!this.transaction) throw new Error('Index is not associated with a transaction');
+    const transaction = this.transaction;
+    return transaction.runRequest(() => {
+      const selection = this.selection(query);
+      return transaction.database.connection.prepare(`${selection.text}
+        SELECT record_key FROM indexed_records WHERE ${selection.predicate}
+        ORDER BY __idb_key_sort(index_key), __idb_key_sort(record_key)
+      `).all(...selection.values).map(row => JSON.parse(String(row.record_key)));
     });
   }
 
@@ -557,27 +555,44 @@ class SqliteIDBObjectStore {
   /** @param {unknown} [query] */
   count(query) {
     return this.requireTransaction().runRequest(() => {
-      if (query !== undefined) {
-        return this.database.records(this.name)
-          .filter((record) => matchesQuery(record.key, query))
-          .length;
-      }
+      const selection = this.keySelection(query);
       const row = /** @type {{ count: number }} */ (this.database.connection.prepare(`
         SELECT count(*) AS count
         FROM __idb_records
-        WHERE database_name = ? AND store_name = ?
-      `).get(this.database.name, this.name));
+        WHERE ${selection.predicate}
+      `).get(...selection.values));
       return Number(row.count);
     });
   }
 
   /** @param {unknown} [query] */
   getAllKeys(query) {
-    return this.requireTransaction().runRequest(() => this.database.records(this.name)
-      .map((record) => record.key)
-      .filter((key) => matchesQuery(key, query))
-      .sort(compareKeys)
-      .map(clone));
+    return this.requireTransaction().runRequest(() => {
+      const selection = this.keySelection(query);
+      return this.database.connection.prepare(`
+        SELECT record_key FROM __idb_records WHERE ${selection.predicate}
+        ORDER BY __idb_key_sort(record_key)
+      `).all(...selection.values).map(row => JSON.parse(String(row.record_key)));
+    });
+  }
+
+  /** @param {unknown} query */
+  keySelection(query) {
+    const predicates = ['database_name = ?', 'store_name = ?'];
+    const values = [this.database.name, this.name];
+    /** @param {unknown} key @param {string} operator */
+    const bound = (key, operator) => {
+      if (!isValidJsonKey(key)) throw new TypeError('Invalid IndexedDB key');
+      predicates.push(operator === '=' ? 'record_key = ?' : `__idb_key_compare(record_key, ?) ${operator} 0`);
+      values.push(encodeKey(key));
+    };
+    if (query instanceof SqliteIDBKeyRange) {
+      if (query.lower !== undefined) bound(query.lower, query.lowerOpen ? '>' : '>=');
+      if (query.upper !== undefined) bound(query.upper, query.upperOpen ? '<' : '<=');
+    } else if (query !== undefined && query !== null) {
+      bound(query, '=');
+    }
+    return { predicate: predicates.join(' AND '), values };
   }
 
   /** @param {unknown} key */

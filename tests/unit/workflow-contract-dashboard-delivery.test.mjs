@@ -661,11 +661,10 @@ test("mobile dashboard integration downloads deployed dashboard data", () => {
   assert.match(mobileTest, /Memory\.getDOMCounters/);
   assert.match(mobileTest, /VmRSS/);
   assert.match(mobileTest, /payload-hashes\.json/);
-  assert.match(mobileTest, /deployedActivityShardEntries\(payloadHashes\)/);
+  assert.match(mobileTest, /deployedActivityShardEntries\(payloadHashes, mobileDebugShardLimit\(\)\)/);
   assert.match(mobileTest, /gh-aw-logs-\(\?:runs\|records\)/);
   assert.match(mobileTest, /inventory-sources\.json/);
   assert.match(mobileTest, /process\.env\.MOBILE_BROWSER === "webkit"[\s\S]*?Math\.min\(requested \?\? maximumWebKitShardCount, maximumWebKitShardCount\)/);
-  assert.match(mobileTest, /shards\.slice\(0, mobileDebugShardLimit\(\)\)/);
   assert.match(mobileTest, /for \(const \{ name, sourceName \} of selectedShards\)[\s\S]*?legacyPhaseJsonToJsonl[\s\S]*?pipeline\(response\.body, createWriteStream\(shardPath\)\)/);
   assert.match(mobileTest, /parameters\.set\("debug-shard-limit", String\(shardLimit\)\)/);
   assert.doesNotMatch(mobileTest, /fetch\(dataUrl\)/);

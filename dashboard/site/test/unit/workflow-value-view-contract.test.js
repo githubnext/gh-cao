@@ -10,6 +10,10 @@ import { compileDashboardViewPayloadQueries } from '../../src/data/queries/view-
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
 import ledgerFixture from '../fixtures/operational-value-ledger.json' with { type: 'json' };
 import contract from '../fixtures/workflow-value-view-contract.json' with { type: 'json' };
+import { evidencePacketSelection, readEvidencePackets } from '../../src/data/queries/evidence-selection.js';
+import { operationalValueEvidenceId, operationalValueEvidenceRows } from '../../src/data/model/operational-value-evidence.js';
+import { workflowValueCollectionId } from '../../src/data/model/workflow-value-collection.js';
+import { measurementSelection, readMeasurements } from '../../src/data/queries/measurement-selection.js';
 
 const dashboard = authoritativeDashboard.dashboard;
 const repository = resolve('../..');
@@ -78,6 +82,161 @@ function fileLedger(direction = 'decrease') {
 }
 
 describe('native workflow value production contract', () => {
+  it('bounds compound identity allocation before expanding oversized snapshot histories', async () => {
+    const packet = await publish(fileLedger());
+    const header = packet.facts.find((/** @type {Record<string, unknown>} */ fact) => fact['fact-kind'] === 'contract');
+    const snapshot = packet.facts.find((/** @type {Record<string, unknown>} */ fact) => fact['fact-kind'] === 'snapshot');
+    header['metric-id'] = 'm'.repeat(10000);
+    packet.id = operationalValueEvidenceId(packet.repository, packet.workflow, header['metric-id'], header['metric-version']);
+    packet.facts = packet.facts.filter((/** @type {Record<string, unknown>} */ fact) =>
+      !['snapshot', 'snapshot-item'].includes(String(fact['fact-kind'])));
+    packet.facts.push(...Array.from({ length: 2000 }, (_, index) => ({
+      ...snapshot, 'fact-id': String(index), 'items-available': false
+    })));
+    expect(() => operationalValueEvidenceRows([packet])).toThrow(/snapshot identities exceed the bounded read budget/);
+  });
+
+  it('resolves and scopes a snapshot using only its declared public route parameter', async () => {
+    const packet = await publish(fileLedger());
+    const snapshot = packet.facts.find((/** @type {Record<string, unknown>} */ fact) => fact['fact-kind'] === 'snapshot');
+    const page = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === contract.snapshotPage);
+    const parameters = { [page.route['hash-query-parameter']]: `${packet.id}|${snapshot['fact-id']}` };
+    const compiled = compileDashboardViewPayloadQueries(page, page.id, {
+      queries: dashboard.queries, routeParameters: parameters
+    });
+    expect(evidencePacketSelection(compiled.queries, compiled.aliases)).toEqual([{ field: 'id', value: packet.id }]);
+    const [snapshots, items] = await execute(contract.snapshotPage, parameters);
+    expect(snapshots.rows).toHaveLength(1);
+    expect(items.rows).toHaveLength(16);
+    expect(items.rows.every(row => row['report-id'] === packet.id)).toBe(true);
+  });
+
+  it('does not narrow an overridden or limited canonical identity projection', () => {
+    for (const projection of [
+      { limit: 1 },
+      { compute: [{ as: 'report-id', function: 'literal', args: [{ value: 'changed' }] }] },
+      { select: [{ field: 'other', as: 'report-id' }] }
+    ]) {
+      expect(evidencePacketSelection([
+        { name: 'operational-value-evidence', from: '$operationalValueEvidence', ...projection },
+        { name: 'selected', from: 'operational-value-evidence',
+          filter: { predicates: [{ field: 'report-id', equals: 'changed' }] } }
+      ], ['selected'])).toBeNull();
+    }
+  });
+
+  it.each(['example/service', 'Example/Service'])('publishes a reviewed batch workflow with scoped cards and health for %s', async (repositoryCoordinate) => {
+    const detailPage = dashboard.pages.find((/** @type {{id: string}} */ page) => page.id === 'value-measurement');
+    const table = detailPage.views.find((/** @type {{mark: string}} */ view) => view.mark === 'table');
+    expect(table.encoding.columns.map((/** @type {{field: string}} */ column) => column.field)).toEqual(
+      expect.arrayContaining(['measurement-label', 'metric-direction', 'maturity-status', 'coverage-status', 'missing-reason'])
+    );
+    const module = join(repository, 'tests/fixtures/operational-value/native-workflow.mjs');
+    execFileSync(process.execPath, [
+      '.github/skills/add-operational-value/scripts/evaluate.mjs', '--native', '--function', module,
+      '--output-dir', directory, '--end', '2026-10-15T00:00:00Z', repositoryCoordinate, 'incident-response'
+    ], { cwd: repository, stdio: 'pipe' });
+    const emitted = readFileSync(join(directory, 'example-service/incident-response-measurements.jsonl'), 'utf8');
+    await ingestCachedGhAwJsonl(indexedDB, emitted, { now: Date.parse('2026-10-20T00:00:00Z') });
+    const health = JSON.parse(readFileSync(join(repository, 'dashboard/site/test/fixtures/workflow-value-collection.jsonl'), 'utf8'));
+    health.workflow_value_collection.repository = repositoryCoordinate;
+    health.workflow_value_collection.workflow = 'incident-response';
+    health.workflow_value_collection.id = workflowValueCollectionId(repositoryCoordinate, 'incident-response');
+    health.workflow_value_collection.sourcePath = '.github/workflows/incident-response.md';
+    health.workflow_value_collection.observedAt = '2026-10-20T00:00:00.000Z';
+    health.workflow_value_collection.lastAttemptAt = '2026-10-19T00:00:00.000Z';
+    await ingestCachedGhAwJsonl(indexedDB, JSON.stringify(health), { now: Date.parse('2026-10-20T00:00:00Z') });
+    const original = emitted.trim().split('\n').map(line => JSON.parse(line));
+    for (let batch = 0; batch < 20; batch++) {
+      const other = Array.from({ length: 50 }, (_, index) => ({
+        ...original[0], operational_value: { ...original[0].operational_value,
+          repository: `load/service-${batch * 50 + index}`, workflow_slug: 'another-workflow',
+          workflow_path: '.github/workflows/another-workflow.md',
+          value_id: 'another-workflow.response-hours' }
+      }));
+      await ingestCachedGhAwJsonl(indexedDB, other.map(item => JSON.stringify(item)).join('\n'),
+        { now: Date.parse('2026-10-20T00:00:00Z'), payloadScope: `measurements-${batch}` });
+    }
+    const route = `${repositoryCoordinate}:.github/workflows/incident-response.md`;
+    /** @type {Array<{keysScanned: number, recordsRead: number, bytes: number}>} */
+    const measured = [];
+    const selected = await readMeasurements(indexedDB, [{ field: 'workflow-route', value: route }],
+      undefined, metrics => measured.push(metrics));
+    expect(selected).toHaveLength(2);
+    expect(measured[0]).toMatchObject({ keysScanned: 2, recordsRead: 2 });
+    for (let batch = 0; batch < 20; batch++) {
+      const other = Array.from({ length: 50 }, (_, index) => {
+        const slug = `other-${batch * 50 + index}`;
+        return { ...original[0], operational_value: { ...original[0].operational_value,
+          workflow_slug: slug, workflow_path: `.github/workflows/${slug}.md`, value_id: `${slug}.response-hours` } };
+      });
+      await ingestCachedGhAwJsonl(indexedDB, other.map(item => JSON.stringify(item)).join('\n'),
+        { now: Date.parse('2026-10-20T00:00:00Z'), payloadScope: `same-repository-${batch}` });
+    }
+    const page = dashboard.pages.find((/** @type {{id: string}} */ page) => page.id === 'workflow-value');
+    const compiled = compileDashboardViewPayloadQueries(page, page.id, {
+      queries: dashboard.queries, routeParameters: { workflow: route }
+    });
+    const scope = measurementSelection(compiled.queries, compiled.aliases);
+    expect(scope).toEqual([{ field: 'workflow-route', value: route }]);
+    expect(await readMeasurements(indexedDB, scope, undefined, metrics => measured.push(metrics))).toHaveLength(2);
+    expect(measured[1]).toMatchObject({ keysScanned: 1002, recordsRead: 2, bytes: measured[0].bytes });
+    const workflow = await execute('workflow-value', { workflow: route });
+    expect(workflow[0].rows[0]['captured-at']).toBe('2026-10-08T00:00:00.000Z');
+    expect(workflow[0].rows[0]['evidence-cutoff']).toBe('2026-10-08T00:00:00.000Z');
+    const cards = workflow[workflow.length - 1].rows;
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toMatchObject({
+      repository: repositoryCoordinate, value: null, 'measurement-label': 'Not measured',
+      'measurement-kind': 'interval', 'coverage-status': 'partial', 'maturity-status': 'unavailable'
+    });
+    const detail = await execute('value-measurement', { measurement: String(cards[0].id) });
+    expect(detail[0].rows).toHaveLength(1);
+    expect(detail[0].rows[0]).toMatchObject({
+      'missing-reason': 'Incomplete retained deliveries', 'evidence-digest': expect.any(String),
+      'evaluator-digest': expect.any(String), 'window-start': '2026-10-08T00:00:00.000Z'
+    });
+    const outside = await execute('workflow-value', { workflow: 'outside/service:.github/workflows/incident-response.md' });
+    expect(outside[outside.length - 1].rows).toEqual([]);
+  }, 30000);
+
+  it('bounds exact native report reads while 1000 unrelated workflows remain stored', async () => {
+    const packet = await publish(fileLedger());
+    for (let batch = 0; batch < 40; batch++) {
+      const lines = Array.from({ length: 25 }, (_, offset) => {
+        const other = structuredClone(packet);
+        other.repository = `load/repo-${batch * 25 + offset}`;
+        other.id = packet.id.replace('octo%2Fexample', encodeURIComponent(other.repository));
+        return JSON.stringify({ schema_version: 2, kind: 'operational_value_evidence', operational_value_evidence: other });
+      }).join('\n');
+      await ingestCachedGhAwJsonl(indexedDB, lines, { now: Date.parse(packet.observedAt), payloadScope: `load-${batch}` });
+    }
+    for (const [pageId, parameters] of [
+      [contract.reportPage, { report: packet.id }],
+      [contract.page, { workflow: contract.route }],
+      [contract.snapshotPage, { snapshot: `${packet.id}|${packet.facts.find(
+        (/** @type {Record<string, unknown>} */ fact) => fact['fact-kind'] === 'snapshot')['fact-id']}` }],
+    ]) {
+      const page = dashboard.pages.find((/** @type {{id: string}} */ page) => page.id === pageId);
+      const compiled = compileDashboardViewPayloadQueries(page, String(pageId), {
+        queries: dashboard.queries, routeParameters: /** @type {Record<string, string>} */ (parameters)
+      });
+      const selection = evidencePacketSelection(compiled.queries, compiled.aliases);
+      expect(selection).toHaveLength(1);
+      const selected = await readEvidencePackets(indexedDB, selection);
+      expect(selected).toHaveLength(1);
+      expect(selected[0].facts).toHaveLength(packet.facts.length);
+      const sources = await processDataRequest({ operation: 'query-canonical-dashboard',
+        sourceNames: compiled.aliases, context: { queries: compiled.queries, pages: dashboard.pages } });
+      for (const source of Object.values(/** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (sources))) {
+        expect(source.metadata.availability).not.toBe('unavailable');
+      }
+    }
+    await expect(readEvidencePackets(indexedDB, null)).rejects.toThrow(/max-input-rows/);
+    await expect(readEvidencePackets(indexedDB, [{ field: 'id', value: packet.id }],
+      () => { throw new Error('cancelled before read'); })).rejects.toThrow('cancelled before read');
+  }, 30000);
+
   it('declares a shared card, native report, complete source contract and exact-item route', () => {
     const value = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'value');
     expect(value).toMatchObject({ title: 'Value', icon: 'trophy' });
@@ -95,6 +254,13 @@ describe('native workflow value production contract', () => {
     expect(dashboard.queries.some((/** @type {{ name: string }} */ query) =>
       query.name.startsWith('operational-value-'))).toBe(false);
     const page = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === contract.page);
+    expect(page.route).toMatchObject({
+      'hash-query-parameter': 'workflow',
+      'navigation-page': 'value',
+      breadcrumbs: [{ page: 'value' }]
+    });
+    expect(page.route.tab).toBeUndefined();
+    expect(page.route.tabs).toBeUndefined();
     expect(page.views[0]).toMatchObject({
       id: contract.collectionView, data: { source: contract.collectionQuery, arguments: [{ name: 'workflow', field: 'workflow-route' }] },
       mark: 'list', list: { card: contract.collectionCard }
@@ -109,7 +275,7 @@ describe('native workflow value production contract', () => {
     });
     const snapshot = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === contract.snapshotPage);
     expect(snapshot.views[0]).toMatchObject({
-      element: contract.snapshotElement, data: { arguments: [{ name: 'snapshot', field: 'snapshot-route' }] }
+      element: contract.snapshotElement, data: { arguments: contract.snapshotArguments }
     });
   });
 
@@ -123,7 +289,7 @@ describe('native workflow value production contract', () => {
       'native-result': 1, 'complete-report': false, 'recent-result': null, 'previous-result': null
     });
     const sources = await execute(contract.reportPage, { report: packet.id });
-    expect(sources[0].rows).toEqual(cards.rows);
+    expect(sources[0].rows).toEqual(cards.rows.map(({ 'older-report': _order, ...row }) => row));
     expect(sources[1].rows[0].url).toContain('/blob/abc123/.github/workflows/verify-bugs.md');
     expect(sources[4].rows).toHaveLength(1);
     expect(sources[5].rows[0]['implementation-url']).toBe('https://github.com/octo/example/pull/2');

@@ -1,5 +1,5 @@
-# gh-aw-metadata: {"schema_version":"v4","frontmatter_hash":"32112e5bc47474673001023c0cefb924699d9463babc241b2c4b581d8abc4803","body_hash":"aeb3b8e1e1820de09926dc60e8cc566093082c9c4e3b4876678385634ae6f901","compiler_version":"v0.93.5","strict":true,"agent_id":"copilot","engine_versions":{"copilot":"1.0.101"}}
-# gh-aw-manifest: {"version":1,"secrets":["GH_AW_DEFAULT_OTLP_ENDPOINT","GH_AW_DEFAULT_OTLP_HEADERS","GH_AW_GITHUB_MCP_SERVER_TOKEN","GH_AW_GITHUB_READ_APP_PRIVATE_KEY","GH_AW_GITHUB_READ_PAT","GH_AW_GITHUB_TOKEN","GH_AW_GITHUB_WRITE_APP_PRIVATE_KEY","GH_AW_GITHUB_WRITE_PAT","GITHUB_TOKEN"],"actions":[{"repo":"actions/checkout","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1","version":"v7.0.1"},{"repo":"actions/create-github-app-token","sha":"64ab729a6294000f5aa4a4bc0b73d1f32bc45510","version":"v3.3.0"},{"repo":"actions/create-github-app-token","sha":"bcd2ba49218906704ab6c1aa796996da409d3eb1","version":"v3.2.0"},{"repo":"actions/download-artifact","sha":"3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c","version":"v8.0.1"},{"repo":"actions/download-artifact","sha":"9000827ccba6bdab643e8b6fd33ac0654aef8333","version":"v8.0.2"},{"repo":"actions/github-script","sha":"3a2844b7e9c422d3c10d287c895573f7108da1b3","version":"v9.0.0"},{"repo":"actions/upload-artifact","sha":"043fb46d1a93c77aae656e7c1c64a875d1fc6a0a","version":"v7.0.1"},{"repo":"actions/upload-artifact","sha":"cf430e030ddbb5b0abf93d22962f4752f3646cd9","version":"v7.0.2"},{"repo":"github/gh-aw-actions/setup","sha":"de9d416cac8ccea1a2d582cb07c4b7db96946792","version":"v0.93.5"}],"containers":[{"image":"ghcr.io/github/gh-aw-firewall/agent:0.28.70","digest":"sha256:b15ab48cbbab02904eb9bbd359a398db59690eebbea1e6934d47ed2bb407dd34","pinned_image":"ghcr.io/github/gh-aw-firewall/agent:0.28.70@sha256:b15ab48cbbab02904eb9bbd359a398db59690eebbea1e6934d47ed2bb407dd34"},{"image":"ghcr.io/github/gh-aw-firewall/api-proxy:0.28.70","digest":"sha256:9ac8f9c7294e892c916de3da9d2588dfd8cd4931e5c39b00143266d7ed9fd52a","pinned_image":"ghcr.io/github/gh-aw-firewall/api-proxy:0.28.70@sha256:9ac8f9c7294e892c916de3da9d2588dfd8cd4931e5c39b00143266d7ed9fd52a"},{"image":"ghcr.io/github/gh-aw-firewall/squid:0.28.70","digest":"sha256:b5bc53f4becfd96e926e63c83831f1b3c9512f713c83161d2b8c9b7204b3e917","pinned_image":"ghcr.io/github/gh-aw-firewall/squid:0.28.70@sha256:b5bc53f4becfd96e926e63c83831f1b3c9512f713c83161d2b8c9b7204b3e917"},{"image":"ghcr.io/github/gh-aw-mcpg:v0.4.37","digest":"sha256:9c7f242f6dec2d7d7b55d4c9e07872d59b85377c6cb3de46c915a5d1ffb91442","pinned_image":"ghcr.io/github/gh-aw-mcpg:v0.4.37@sha256:9c7f242f6dec2d7d7b55d4c9e07872d59b85377c6cb3de46c915a5d1ffb91442"},{"image":"ghcr.io/github/gh-aw-node","digest":"sha256:11c2c544876cdbaffefe0f7f1283b74838c209654b4934a78e23ed11f750490f","pinned_image":"ghcr.io/github/gh-aw-node@sha256:11c2c544876cdbaffefe0f7f1283b74838c209654b4934a78e23ed11f750490f"}],"mcp_servers":[{"name":"github","tools":["actions_get","actions_list","get_commit","get_file_contents","get_job_logs","get_latest_release","get_release_by_tag","get_tag","list_branches","list_commits","list_releases","list_starred_repositories","list_tags","search_code","search_repositories"]},{"name":"safeoutputs","tools":["dispatch_workflow","noop","report_incomplete","report_missing_data","report_missing_tool","self_care_accessibility_checker","self_care_agent_discoverability","self_care_code_improvement","self_care_dashboard_data_schema","self_care_dashboard_debug_logging","self_care_dashboard_language_refactor","self_care_dashboard_performance","self_care_dashboard_review","self_care_data_acquisition_audit","self_care_docs_build_time_investigator","self_care_docs_maintainer","self_care_documentation_discoverability","self_care_glossary","self_care_open_source_failures","self_care_pages_health","self_care_primer_brand_checker","self_care_reactive_ui_expert","self_care_release_blogger","self_care_server_go_logging","self_care_server_soc2","self_care_specs_maintainer"]}],"threat_detection":{"mode":"disabled"},"admission":false}
+# gh-aw-metadata: {"schema_version":"v4","frontmatter_hash":"0647b344fba65f811707af1c719dce400a0a091ac046fb7ef499f4746c6e85a2","body_hash":"87d129951797e7270ab10d001fa459e3357f8b37d319790c14ada622f953d064","compiler_version":"v0.93.5","strict":true,"agent_id":"copilot","engine_versions":{"copilot":"1.0.101"}}
+# gh-aw-manifest: {"version":1,"secrets":["GH_AW_DEFAULT_OTLP_ENDPOINT","GH_AW_DEFAULT_OTLP_HEADERS","GH_AW_GITHUB_MCP_SERVER_TOKEN","GH_AW_GITHUB_READ_APP_PRIVATE_KEY","GH_AW_GITHUB_READ_PAT","GH_AW_GITHUB_TOKEN","GH_AW_GITHUB_WRITE_APP_PRIVATE_KEY","GH_AW_GITHUB_WRITE_PAT","GITHUB_TOKEN"],"actions":[{"repo":"actions/checkout","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1","version":"v7.0.1"},{"repo":"actions/create-github-app-token","sha":"64ab729a6294000f5aa4a4bc0b73d1f32bc45510","version":"v3.3.0"},{"repo":"actions/create-github-app-token","sha":"bcd2ba49218906704ab6c1aa796996da409d3eb1","version":"v3.2.0"},{"repo":"actions/download-artifact","sha":"3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c","version":"v8.0.1"},{"repo":"actions/download-artifact","sha":"9000827ccba6bdab643e8b6fd33ac0654aef8333","version":"v8.0.2"},{"repo":"actions/github-script","sha":"3a2844b7e9c422d3c10d287c895573f7108da1b3","version":"v9.0.0"},{"repo":"actions/upload-artifact","sha":"043fb46d1a93c77aae656e7c1c64a875d1fc6a0a","version":"v7.0.1"},{"repo":"actions/upload-artifact","sha":"cf430e030ddbb5b0abf93d22962f4752f3646cd9","version":"v7.0.2"},{"repo":"github/gh-aw-actions/setup","sha":"de9d416cac8ccea1a2d582cb07c4b7db96946792","version":"v0.93.5"}],"containers":[{"image":"ghcr.io/github/gh-aw-firewall/agent:0.28.70","digest":"sha256:b15ab48cbbab02904eb9bbd359a398db59690eebbea1e6934d47ed2bb407dd34","pinned_image":"ghcr.io/github/gh-aw-firewall/agent:0.28.70@sha256:b15ab48cbbab02904eb9bbd359a398db59690eebbea1e6934d47ed2bb407dd34"},{"image":"ghcr.io/github/gh-aw-firewall/api-proxy:0.28.70","digest":"sha256:9ac8f9c7294e892c916de3da9d2588dfd8cd4931e5c39b00143266d7ed9fd52a","pinned_image":"ghcr.io/github/gh-aw-firewall/api-proxy:0.28.70@sha256:9ac8f9c7294e892c916de3da9d2588dfd8cd4931e5c39b00143266d7ed9fd52a"},{"image":"ghcr.io/github/gh-aw-firewall/squid:0.28.70","digest":"sha256:b5bc53f4becfd96e926e63c83831f1b3c9512f713c83161d2b8c9b7204b3e917","pinned_image":"ghcr.io/github/gh-aw-firewall/squid:0.28.70@sha256:b5bc53f4becfd96e926e63c83831f1b3c9512f713c83161d2b8c9b7204b3e917"},{"image":"ghcr.io/github/gh-aw-mcpg:v0.4.37","digest":"sha256:9c7f242f6dec2d7d7b55d4c9e07872d59b85377c6cb3de46c915a5d1ffb91442","pinned_image":"ghcr.io/github/gh-aw-mcpg:v0.4.37@sha256:9c7f242f6dec2d7d7b55d4c9e07872d59b85377c6cb3de46c915a5d1ffb91442"},{"image":"ghcr.io/github/gh-aw-node","digest":"sha256:11c2c544876cdbaffefe0f7f1283b74838c209654b4934a78e23ed11f750490f","pinned_image":"ghcr.io/github/gh-aw-node@sha256:11c2c544876cdbaffefe0f7f1283b74838c209654b4934a78e23ed11f750490f"}],"mcp_servers":[{"name":"github","tools":["actions_get","actions_list","get_commit","get_file_contents","get_job_logs","get_latest_release","get_release_by_tag","get_tag","list_branches","list_commits","list_releases","list_starred_repositories","list_tags","search_code","search_repositories"]},{"name":"safeoutputs","tools":["dispatch_workflow","noop","report_incomplete","report_missing_data","report_missing_tool","self_care_accessibility_checker","self_care_agent_discoverability","self_care_cli_consistency","self_care_code_improvement","self_care_dashboard_data_schema","self_care_dashboard_debug_logging","self_care_dashboard_language_refactor","self_care_dashboard_performance","self_care_dashboard_review","self_care_data_acquisition_audit","self_care_docs_build_time_investigator","self_care_docs_maintainer","self_care_documentation_discoverability","self_care_glossary","self_care_open_source_failures","self_care_pages_health","self_care_primer_brand_checker","self_care_reactive_ui_expert","self_care_server_go_logging","self_care_server_soc2","self_care_specs_maintainer"]}],"threat_detection":{"mode":"disabled"},"admission":false}
 # This file was automatically generated by gh-aw (v0.93.5). DO NOT EDIT. To debug this workflow, load the skill at https://github.com/github/gh-aw/blob/main/debug.md
 #
 #    ___                   _   _
@@ -304,7 +304,7 @@ jobs:
           GH_AW_GITHUB_SERVER_URL: ${{ github.server_url }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
           GH_AW_PROMPT_CONTENT_0000: "<system>\n"
-          GH_AW_PROMPT_CONTENT_0001: "<safe-output-tools>\nTools: self_care_accessibility_checker, self_care_agent_discoverability, self_care_code_improvement, self_care_dashboard_data_schema, self_care_dashboard_debug_logging, self_care_dashboard_performance, self_care_data_acquisition_audit, self_care_dashboard_language_refactor, self_care_dashboard_review, self_care_docs_build_time_investigator, self_care_docs_maintainer, self_care_documentation_discoverability, self_care_glossary, self_care_open_source_failures, self_care_pages_health, self_care_primer_brand_checker, self_care_reactive_ui_expert, self_care_release_blogger, self_care_server_go_logging, self_care_server_soc2, self_care_specs_maintainer, report_missing_tool, report_missing_data, noop(max:2)\nShared budgets: dispatch-workflow [self_care_accessibility_checker, self_care_agent_discoverability, self_care_code_improvement, self_care_dashboard_data_schema, self_care_dashboard_debug_logging, self_care_dashboard_performance, self_care_data_acquisition_audit, self_care_dashboard_language_refactor, self_care_dashboard_review, self_care_docs_build_time_investigator, self_care_docs_maintainer, self_care_documentation_discoverability, self_care_glossary, self_care_open_source_failures, self_care_pages_health, self_care_primer_brand_checker, self_care_reactive_ui_expert, self_care_release_blogger, self_care_server_go_logging, self_care_server_soc2, self_care_specs_maintainer](max:21 total)\n"
+          GH_AW_PROMPT_CONTENT_0001: "<safe-output-tools>\nTools: self_care_accessibility_checker, self_care_agent_discoverability, self_care_cli_consistency, self_care_code_improvement, self_care_dashboard_data_schema, self_care_dashboard_debug_logging, self_care_dashboard_performance, self_care_data_acquisition_audit, self_care_dashboard_language_refactor, self_care_dashboard_review, self_care_docs_build_time_investigator, self_care_docs_maintainer, self_care_documentation_discoverability, self_care_glossary, self_care_open_source_failures, self_care_pages_health, self_care_primer_brand_checker, self_care_reactive_ui_expert, self_care_server_go_logging, self_care_server_soc2, self_care_specs_maintainer, report_missing_tool, report_missing_data, noop(max:2)\nShared budgets: dispatch-workflow [self_care_accessibility_checker, self_care_agent_discoverability, self_care_cli_consistency, self_care_code_improvement, self_care_dashboard_data_schema, self_care_dashboard_debug_logging, self_care_dashboard_performance, self_care_data_acquisition_audit, self_care_dashboard_language_refactor, self_care_dashboard_review, self_care_docs_build_time_investigator, self_care_docs_maintainer, self_care_documentation_discoverability, self_care_glossary, self_care_open_source_failures, self_care_pages_health, self_care_primer_brand_checker, self_care_reactive_ui_expert, self_care_server_go_logging, self_care_server_soc2, self_care_specs_maintainer](max:21 total)\n"
           GH_AW_PROMPT_CONTENT_0002: "</safe-output-tools>\n"
           GH_AW_PROMPT_CONTENT_0003: "<github-context>\nThe following GitHub context information is available for this workflow:\n{{#if github.actor}}\n- **actor**: __GH_AW_GITHUB_ACTOR__\n{{/if}}\n{{#if github.repository}}\n- **repository**: __GH_AW_GITHUB_REPOSITORY__\n{{/if}}\n{{#if github.workspace}}\n- **workspace**: __GH_AW_GITHUB_WORKSPACE__\n{{/if}}\n{{#if github.event.issue.number || (github.aw.context.item_type == 'issue' && github.aw.context.item_number)}}\n- **issue-number**: #__GH_AW_EXPR_7C248226__\n{{/if}}\n{{#if github.event.discussion.number || (github.aw.context.item_type == 'discussion' && github.aw.context.item_number)}}\n- **discussion-number**: #__GH_AW_EXPR_C19C384F__\n{{/if}}\n{{#if github.event.pull_request.number || (github.aw.context.item_type == 'pull_request' && github.aw.context.item_number)}}\n- **pull-request-number**: #__GH_AW_EXPR_76DF9333__\n{{/if}}\n{{#if github.event.comment.id || github.aw.context.comment_id}}\n- **comment-id**: __GH_AW_EXPR_77C1A4D2__\n{{/if}}\n{{#if github.run_id}}\n- **workflow-run-id**: __GH_AW_GITHUB_RUN_ID__\n{{/if}}\n</github-context>\n\n"
           GH_AW_PROMPT_CONTENT_0004: "</system>\n"
@@ -699,7 +699,7 @@ jobs:
         env:
           GH_AW_FILE_ROOT: "${{ runner.temp }}/gh-aw"
           GH_AW_FILE_CONFIG: "{\"files\":[{\"path\":\"safeoutputs/config.json\",\"content_env\":\"GH_AW_SAFE_OUTPUTS_CONFIG\"}]}"
-          GH_AW_SAFE_OUTPUTS_CONFIG: "{\"create_report_incomplete_issue\":{},\"dispatch_workflow\":{\"allowed_refs\":[\"refs/heads/${{ github.event.repository.default_branch }}\"],\"aw_context_workflows\":[\"self-care-accessibility-checker\",\"self-care-agent-discoverability\",\"self-care-code-improvement\",\"self-care-dashboard-data-schema\",\"self-care-dashboard-debug-logging\",\"self-care-dashboard-performance\",\"self-care-data-acquisition-audit\",\"self-care-dashboard-language-refactor\",\"self-care-dashboard-review\",\"self-care-docs-build-time-investigator\",\"self-care-docs-maintainer\",\"self-care-documentation-discoverability\",\"self-care-glossary\",\"self-care-open-source-failures\",\"self-care-pages-health\",\"self-care-primer-brand-checker\",\"self-care-reactive-ui-expert\",\"self-care-release-blogger\",\"self-care-server-go-logging\",\"self-care-server-soc2\",\"self-care-specs-maintainer\"],\"max\":21,\"workflow_files\":{\"self-care-accessibility-checker\":\".lock.yml\",\"self-care-agent-discoverability\":\".lock.yml\",\"self-care-code-improvement\":\".lock.yml\",\"self-care-dashboard-data-schema\":\".lock.yml\",\"self-care-dashboard-debug-logging\":\".lock.yml\",\"self-care-dashboard-language-refactor\":\".lock.yml\",\"self-care-dashboard-performance\":\".lock.yml\",\"self-care-dashboard-review\":\".lock.yml\",\"self-care-data-acquisition-audit\":\".lock.yml\",\"self-care-docs-build-time-investigator\":\".lock.yml\",\"self-care-docs-maintainer\":\".lock.yml\",\"self-care-documentation-discoverability\":\".lock.yml\",\"self-care-glossary\":\".lock.yml\",\"self-care-open-source-failures\":\".lock.yml\",\"self-care-pages-health\":\".lock.yml\",\"self-care-primer-brand-checker\":\".lock.yml\",\"self-care-reactive-ui-expert\":\".lock.yml\",\"self-care-release-blogger\":\".lock.yml\",\"self-care-server-go-logging\":\".lock.yml\",\"self-care-server-soc2\":\".lock.yml\",\"self-care-specs-maintainer\":\".lock.yml\"},\"workflows\":[\"self-care-accessibility-checker\",\"self-care-agent-discoverability\",\"self-care-code-improvement\",\"self-care-dashboard-data-schema\",\"self-care-dashboard-debug-logging\",\"self-care-dashboard-performance\",\"self-care-data-acquisition-audit\",\"self-care-dashboard-language-refactor\",\"self-care-dashboard-review\",\"self-care-docs-build-time-investigator\",\"self-care-docs-maintainer\",\"self-care-documentation-discoverability\",\"self-care-glossary\",\"self-care-open-source-failures\",\"self-care-pages-health\",\"self-care-primer-brand-checker\",\"self-care-reactive-ui-expert\",\"self-care-release-blogger\",\"self-care-server-go-logging\",\"self-care-server-soc2\",\"self-care-specs-maintainer\"]},\"noop\":{\"max\":2,\"report-as-issue\":\"false\"},\"report_incomplete\":{},\"report_missing_data\":{},\"report_missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_CONFIG: "{\"create_report_incomplete_issue\":{},\"dispatch_workflow\":{\"allowed_refs\":[\"refs/heads/${{ github.event.repository.default_branch }}\"],\"aw_context_workflows\":[\"self-care-accessibility-checker\",\"self-care-agent-discoverability\",\"self-care-cli-consistency\",\"self-care-code-improvement\",\"self-care-dashboard-data-schema\",\"self-care-dashboard-debug-logging\",\"self-care-dashboard-performance\",\"self-care-data-acquisition-audit\",\"self-care-dashboard-language-refactor\",\"self-care-dashboard-review\",\"self-care-docs-build-time-investigator\",\"self-care-docs-maintainer\",\"self-care-documentation-discoverability\",\"self-care-glossary\",\"self-care-open-source-failures\",\"self-care-pages-health\",\"self-care-primer-brand-checker\",\"self-care-reactive-ui-expert\",\"self-care-server-go-logging\",\"self-care-server-soc2\",\"self-care-specs-maintainer\"],\"max\":21,\"workflow_files\":{\"self-care-accessibility-checker\":\".lock.yml\",\"self-care-agent-discoverability\":\".lock.yml\",\"self-care-cli-consistency\":\".lock.yml\",\"self-care-code-improvement\":\".lock.yml\",\"self-care-dashboard-data-schema\":\".lock.yml\",\"self-care-dashboard-debug-logging\":\".lock.yml\",\"self-care-dashboard-language-refactor\":\".lock.yml\",\"self-care-dashboard-performance\":\".lock.yml\",\"self-care-dashboard-review\":\".lock.yml\",\"self-care-data-acquisition-audit\":\".lock.yml\",\"self-care-docs-build-time-investigator\":\".lock.yml\",\"self-care-docs-maintainer\":\".lock.yml\",\"self-care-documentation-discoverability\":\".lock.yml\",\"self-care-glossary\":\".lock.yml\",\"self-care-open-source-failures\":\".lock.yml\",\"self-care-pages-health\":\".lock.yml\",\"self-care-primer-brand-checker\":\".lock.yml\",\"self-care-reactive-ui-expert\":\".lock.yml\",\"self-care-server-go-logging\":\".lock.yml\",\"self-care-server-soc2\":\".lock.yml\",\"self-care-specs-maintainer\":\".lock.yml\"},\"workflows\":[\"self-care-accessibility-checker\",\"self-care-agent-discoverability\",\"self-care-cli-consistency\",\"self-care-code-improvement\",\"self-care-dashboard-data-schema\",\"self-care-dashboard-debug-logging\",\"self-care-dashboard-performance\",\"self-care-data-acquisition-audit\",\"self-care-dashboard-language-refactor\",\"self-care-dashboard-review\",\"self-care-docs-build-time-investigator\",\"self-care-docs-maintainer\",\"self-care-documentation-discoverability\",\"self-care-glossary\",\"self-care-open-source-failures\",\"self-care-pages-health\",\"self-care-primer-brand-checker\",\"self-care-reactive-ui-expert\",\"self-care-server-go-logging\",\"self-care-server-soc2\",\"self-care-specs-maintainer\"]},\"noop\":{\"max\":2,\"report-as-issue\":\"false\"},\"report_incomplete\":{},\"report_missing_data\":{},\"report_missing_tool\":{}}"
         with:
           script: |
             const path = require('path');
@@ -830,6 +830,62 @@ jobs:
                     "type": "object"
                   },
                   "name": "self_care_agent_discoverability"
+                },
+                {
+                  "_workflow_name": "self-care-cli-consistency",
+                  "description": "Dispatch the 'self-care-cli-consistency' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository. Use the 'ref' parameter to target a specific branch or tag (allowed patterns: refs/heads/${GH_AW_GITHUB_EVENT_REPOSITORY_DEFAULT_BRANCH}).",
+                  "inputSchema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "batch_label": {
+                        "description": "Input parameter 'batch_label' for workflow self-care-cli-consistency",
+                        "type": "string"
+                      },
+                      "central_repo": {
+                        "description": "Input parameter 'central_repo' for workflow self-care-cli-consistency",
+                        "type": "string"
+                      },
+                      "control_plane_run_url": {
+                        "description": "Input parameter 'control_plane_run_url' for workflow self-care-cli-consistency",
+                        "type": "string"
+                      },
+                      "correlation_id": {
+                        "description": "Input parameter 'correlation_id' for workflow self-care-cli-consistency",
+                        "type": "string"
+                      },
+                      "max_repos": {
+                        "description": "Input parameter 'max_repos' for workflow self-care-cli-consistency",
+                        "type": "number"
+                      },
+                      "ref": {
+                        "description": "The git ref (branch, tag, or SHA) to dispatch the workflow on. Must match one of the configured allowed ref patterns: refs/heads/${GH_AW_GITHUB_EVENT_REPOSITORY_DEFAULT_BRANCH}. If omitted, the ref is resolved from the triggering context, including the pull request head for pull request comments.",
+                        "type": "string"
+                      },
+                      "rollout_percent": {
+                        "description": "Input parameter 'rollout_percent' for workflow self-care-cli-consistency",
+                        "type": "number"
+                      },
+                      "safe_output_mode": {
+                        "description": "Input parameter 'safe_output_mode' for workflow self-care-cli-consistency",
+                        "type": "string"
+                      },
+                      "safe_output_repo": {
+                        "description": "Input parameter 'safe_output_repo' for workflow self-care-cli-consistency",
+                        "type": "string"
+                      },
+                      "target_repo": {
+                        "description": "Input parameter 'target_repo' for workflow self-care-cli-consistency",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "safe_output_mode",
+                      "safe_output_repo",
+                      "target_repo"
+                    ],
+                    "type": "object"
+                  },
+                  "name": "self_care_cli_consistency"
                 },
                 {
                   "_workflow_name": "self-care-code-improvement",
@@ -1670,62 +1726,6 @@ jobs:
                     "type": "object"
                   },
                   "name": "self_care_reactive_ui_expert"
-                },
-                {
-                  "_workflow_name": "self-care-release-blogger",
-                  "description": "Dispatch the 'self-care-release-blogger' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository. Use the 'ref' parameter to target a specific branch or tag (allowed patterns: refs/heads/${GH_AW_GITHUB_EVENT_REPOSITORY_DEFAULT_BRANCH}).",
-                  "inputSchema": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "batch_label": {
-                        "description": "Input parameter 'batch_label' for workflow self-care-release-blogger",
-                        "type": "string"
-                      },
-                      "central_repo": {
-                        "description": "Input parameter 'central_repo' for workflow self-care-release-blogger",
-                        "type": "string"
-                      },
-                      "control_plane_run_url": {
-                        "description": "Input parameter 'control_plane_run_url' for workflow self-care-release-blogger",
-                        "type": "string"
-                      },
-                      "correlation_id": {
-                        "description": "Input parameter 'correlation_id' for workflow self-care-release-blogger",
-                        "type": "string"
-                      },
-                      "max_repos": {
-                        "description": "Input parameter 'max_repos' for workflow self-care-release-blogger",
-                        "type": "number"
-                      },
-                      "ref": {
-                        "description": "The git ref (branch, tag, or SHA) to dispatch the workflow on. Must match one of the configured allowed ref patterns: refs/heads/${GH_AW_GITHUB_EVENT_REPOSITORY_DEFAULT_BRANCH}. If omitted, the ref is resolved from the triggering context, including the pull request head for pull request comments.",
-                        "type": "string"
-                      },
-                      "rollout_percent": {
-                        "description": "Input parameter 'rollout_percent' for workflow self-care-release-blogger",
-                        "type": "number"
-                      },
-                      "safe_output_mode": {
-                        "description": "Input parameter 'safe_output_mode' for workflow self-care-release-blogger",
-                        "type": "string"
-                      },
-                      "safe_output_repo": {
-                        "description": "Input parameter 'safe_output_repo' for workflow self-care-release-blogger",
-                        "type": "string"
-                      },
-                      "target_repo": {
-                        "description": "Input parameter 'target_repo' for workflow self-care-release-blogger",
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "safe_output_mode",
-                      "safe_output_repo",
-                      "target_repo"
-                    ],
-                    "type": "object"
-                  },
-                  "name": "self_care_release_blogger"
                 },
                 {
                   "_workflow_name": "self-care-server-go-logging",
@@ -3019,7 +3019,7 @@ jobs:
           CAO_TARGET_REPOSITORIES: ${{ inputs.target_repos || '' }}
           CAO_TARGET_REPOSITORY: ${{ inputs.target_repo || '' }}
           CAO_WORKER: __none__
-          CAO_WORKER_CREDITS_PER_TARGET: "5000"
+          CAO_WORKER_CREDITS_PER_TARGET: "5100"
           CAO_WORKFLOW: __none__
           CAO_WORKFLOW_TOKEN: ${{ github.token }}
           GITHUB_WORKFLOW_SHA: ${{ github.workflow_sha }}
@@ -3416,7 +3416,7 @@ jobs:
           GH_AW_ALLOWED_DOMAINS: "*.githubusercontent.com,api.githubcopilot.com,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,codeload.github.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,docs.github.com,github-cloud.githubusercontent.com,github-cloud.s3.amazonaws.com,github.blog,github.com,github.githubassets.com,json-schema.org,json.schemastore.org,keyserver.ubuntu.com,lfs.github.com,objects.githubusercontent.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,patch-diff.githubusercontent.com,patchdiff.githubusercontent.com,ppa.launchpad.net,raw.githubusercontent.com,s.symcb.com,s.symcd.com,security.ubuntu.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com,www.googleapis.com"
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_API_URL: ${{ github.api_url }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_report_incomplete_issue\":{},\"dispatch_workflow\":{\"allowed_refs\":[\"refs/heads/${{ github.event.repository.default_branch }}\"],\"aw_context_workflows\":[\"self-care-accessibility-checker\",\"self-care-agent-discoverability\",\"self-care-code-improvement\",\"self-care-dashboard-data-schema\",\"self-care-dashboard-debug-logging\",\"self-care-dashboard-performance\",\"self-care-data-acquisition-audit\",\"self-care-dashboard-language-refactor\",\"self-care-dashboard-review\",\"self-care-docs-build-time-investigator\",\"self-care-docs-maintainer\",\"self-care-documentation-discoverability\",\"self-care-glossary\",\"self-care-open-source-failures\",\"self-care-pages-health\",\"self-care-primer-brand-checker\",\"self-care-reactive-ui-expert\",\"self-care-release-blogger\",\"self-care-server-go-logging\",\"self-care-server-soc2\",\"self-care-specs-maintainer\"],\"max\":21,\"workflow_files\":{\"self-care-accessibility-checker\":\".lock.yml\",\"self-care-agent-discoverability\":\".lock.yml\",\"self-care-code-improvement\":\".lock.yml\",\"self-care-dashboard-data-schema\":\".lock.yml\",\"self-care-dashboard-debug-logging\":\".lock.yml\",\"self-care-dashboard-language-refactor\":\".lock.yml\",\"self-care-dashboard-performance\":\".lock.yml\",\"self-care-dashboard-review\":\".lock.yml\",\"self-care-data-acquisition-audit\":\".lock.yml\",\"self-care-docs-build-time-investigator\":\".lock.yml\",\"self-care-docs-maintainer\":\".lock.yml\",\"self-care-documentation-discoverability\":\".lock.yml\",\"self-care-glossary\":\".lock.yml\",\"self-care-open-source-failures\":\".lock.yml\",\"self-care-pages-health\":\".lock.yml\",\"self-care-primer-brand-checker\":\".lock.yml\",\"self-care-reactive-ui-expert\":\".lock.yml\",\"self-care-release-blogger\":\".lock.yml\",\"self-care-server-go-logging\":\".lock.yml\",\"self-care-server-soc2\":\".lock.yml\",\"self-care-specs-maintainer\":\".lock.yml\"},\"workflows\":[\"self-care-accessibility-checker\",\"self-care-agent-discoverability\",\"self-care-code-improvement\",\"self-care-dashboard-data-schema\",\"self-care-dashboard-debug-logging\",\"self-care-dashboard-performance\",\"self-care-data-acquisition-audit\",\"self-care-dashboard-language-refactor\",\"self-care-dashboard-review\",\"self-care-docs-build-time-investigator\",\"self-care-docs-maintainer\",\"self-care-documentation-discoverability\",\"self-care-glossary\",\"self-care-open-source-failures\",\"self-care-pages-health\",\"self-care-primer-brand-checker\",\"self-care-reactive-ui-expert\",\"self-care-release-blogger\",\"self-care-server-go-logging\",\"self-care-server-soc2\",\"self-care-specs-maintainer\"]},\"noop\":{\"max\":2,\"report-as-issue\":\"false\"},\"report_incomplete\":{},\"report_missing_data\":{},\"report_missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_report_incomplete_issue\":{},\"dispatch_workflow\":{\"allowed_refs\":[\"refs/heads/${{ github.event.repository.default_branch }}\"],\"aw_context_workflows\":[\"self-care-accessibility-checker\",\"self-care-agent-discoverability\",\"self-care-cli-consistency\",\"self-care-code-improvement\",\"self-care-dashboard-data-schema\",\"self-care-dashboard-debug-logging\",\"self-care-dashboard-performance\",\"self-care-data-acquisition-audit\",\"self-care-dashboard-language-refactor\",\"self-care-dashboard-review\",\"self-care-docs-build-time-investigator\",\"self-care-docs-maintainer\",\"self-care-documentation-discoverability\",\"self-care-glossary\",\"self-care-open-source-failures\",\"self-care-pages-health\",\"self-care-primer-brand-checker\",\"self-care-reactive-ui-expert\",\"self-care-server-go-logging\",\"self-care-server-soc2\",\"self-care-specs-maintainer\"],\"max\":21,\"workflow_files\":{\"self-care-accessibility-checker\":\".lock.yml\",\"self-care-agent-discoverability\":\".lock.yml\",\"self-care-cli-consistency\":\".lock.yml\",\"self-care-code-improvement\":\".lock.yml\",\"self-care-dashboard-data-schema\":\".lock.yml\",\"self-care-dashboard-debug-logging\":\".lock.yml\",\"self-care-dashboard-language-refactor\":\".lock.yml\",\"self-care-dashboard-performance\":\".lock.yml\",\"self-care-dashboard-review\":\".lock.yml\",\"self-care-data-acquisition-audit\":\".lock.yml\",\"self-care-docs-build-time-investigator\":\".lock.yml\",\"self-care-docs-maintainer\":\".lock.yml\",\"self-care-documentation-discoverability\":\".lock.yml\",\"self-care-glossary\":\".lock.yml\",\"self-care-open-source-failures\":\".lock.yml\",\"self-care-pages-health\":\".lock.yml\",\"self-care-primer-brand-checker\":\".lock.yml\",\"self-care-reactive-ui-expert\":\".lock.yml\",\"self-care-server-go-logging\":\".lock.yml\",\"self-care-server-soc2\":\".lock.yml\",\"self-care-specs-maintainer\":\".lock.yml\"},\"workflows\":[\"self-care-accessibility-checker\",\"self-care-agent-discoverability\",\"self-care-cli-consistency\",\"self-care-code-improvement\",\"self-care-dashboard-data-schema\",\"self-care-dashboard-debug-logging\",\"self-care-dashboard-performance\",\"self-care-data-acquisition-audit\",\"self-care-dashboard-language-refactor\",\"self-care-dashboard-review\",\"self-care-docs-build-time-investigator\",\"self-care-docs-maintainer\",\"self-care-documentation-discoverability\",\"self-care-glossary\",\"self-care-open-source-failures\",\"self-care-pages-health\",\"self-care-primer-brand-checker\",\"self-care-reactive-ui-expert\",\"self-care-server-go-logging\",\"self-care-server-soc2\",\"self-care-specs-maintainer\"]},\"noop\":{\"max\":2,\"report-as-issue\":\"false\"},\"report_incomplete\":{},\"report_missing_data\":{},\"report_missing_tool\":{}}"
           GH_AW_SAFE_OUTPUTS_STAGED: ${{ inputs.safe_output_mode == 'debug' }}
           GH_AW_GITHUB_TOKEN_SOURCE: ${{ steps.safe-outputs-app-token.outputs.token != '' && 'app' || 'unknown' }}
         with:

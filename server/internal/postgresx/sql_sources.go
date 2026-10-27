@@ -64,16 +64,24 @@ func (r *readTransaction) entitySQLSource(name string) (query.SQLRelation, error
 	}
 
 	columns := relationColumns(table, func(index int) string { return "get_bit(t.present_fields, " + strconv.Itoa(index) + ") = 1" })
-	return query.SQLRelation{
+	relation := query.SQLRelation{
 		SQL:     "(SELECT * FROM " + query.SQLIdentifier(table.name) + " WHERE namespace = {}) AS t",
 		Params:  []any{r.store.namespace},
 		Columns: columns,
 		Order:   "t.ordinal",
-	}, nil
+	}
+	if name == "$operationalValues" {
+		relation.SQL = "(SELECT v.*, NULLIF(repo.owner,'')||'/'||NULLIF(repo.name,'') AS __repository FROM " +
+			query.SQLIdentifier(table.name) + " v LEFT JOIN repositories repo ON repo.namespace=v.namespace AND repo.id=v.repository_id WHERE v.namespace={}) AS t"
+		columns["repository"] = query.SQLColumn{Expression: "t.__repository", Presence: "t.__repository IS NOT NULL", Kind: query.SQLText}
+		route := "CASE WHEN t.workflow_slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND starts_with(t.value_id,t.workflow_slug||'.') THEN t.__repository||':.github/workflows/'||t.workflow_slug||'.md' END"
+		columns["workflow-route"] = query.SQLColumn{Expression: route, Presence: "(" + route + ") IS NOT NULL", Kind: query.SQLText}
+	}
+	return relation, nil
 }
 
 // The logical input is a projection of typed child facts, not a saved report.
-func (r *readTransaction) operationalValueEvidenceSQLSource() query.SQLRelation {
+func (r *readTransaction) operationalValueEvidenceSQLSource(selections ...query.SourceEquality) query.SQLRelation {
 	facts := entityTables["$operationalValueEvidence.facts"]
 	columns := relationColumns(facts, func(index int) string {
 		return "get_bit(t.present_fields, " + strconv.Itoa(index) + ") = 1"
@@ -97,10 +105,36 @@ func (r *readTransaction) operationalValueEvidenceSQLSource() query.SQLRelation 
 	projections = append(projections, "split_part(p.repository, '/', 1) AS __organization", "split_part(p.repository, '/', 2) AS __repository")
 	columns["organization"] = query.SQLColumn{Expression: "t.__organization", Presence: "TRUE", Kind: query.SQLText}
 	columns["repository"] = query.SQLColumn{Expression: "t.__repository", Presence: "TRUE", Kind: query.SQLText}
+	projections = append(projections, "p.repository || ':' || p.source_path AS __workflow_route")
+	columns["workflow-route"] = query.SQLColumn{Expression: "t.__workflow_route", Presence: "TRUE", Kind: query.SQLText}
+	projections = append(projections, `CASE f.fact_kind WHEN 'snapshot' THEN p.id || '|' || f.fact_id
+		WHEN 'snapshot-item' THEN p.id || '|' || f.parent_id END AS __snapshot_route`)
+	columns["snapshot-route"] = query.SQLColumn{Expression: "t.__snapshot_route", Presence: "t.__snapshot_route IS NOT NULL", Kind: query.SQLText}
+	predicate, params := r.operationalValueEvidencePredicate(selections)
 	return query.SQLRelation{
-		SQL:    "(SELECT " + strings.Join(projections, ",") + " FROM operational_value_evidence_facts f JOIN operational_value_evidence p ON p.namespace=f.namespace AND p.id=f.packet_id WHERE f.namespace={}) AS t",
-		Params: []any{r.store.namespace}, Columns: columns, Order: "t.ordinal",
+		SQL:    "(SELECT " + strings.Join(projections, ",") + " FROM operational_value_evidence_facts f JOIN operational_value_evidence p ON p.namespace=f.namespace AND p.id=f.packet_id WHERE " + predicate + ") AS t",
+		Params: params, Columns: columns, Order: "t.ordinal",
 	}
+}
+
+func (r *readTransaction) operationalValueEvidencePredicate(selections []query.SourceEquality) (string, []any) {
+	predicate := "p.namespace={}"
+	params := []any{r.store.namespace}
+	var scopes []string
+	for _, selection := range selections {
+		switch selection.Field {
+		case "report-id":
+			scopes = append(scopes, "p.id={}")
+			params = append(params, selection.Value)
+		case "workflow-route":
+			scopes = append(scopes, "p.workflow_id={}")
+			params = append(params, "workflow:"+model.EncodeCoordinate(strings.ToLower(selection.Value)))
+		}
+	}
+	if len(scopes) > 0 {
+		predicate += " AND (" + strings.Join(scopes, " OR ") + ")"
+	}
+	return predicate, params
 }
 
 func runtimeSQLSource(name string, source model.Source) (query.SQLRelation, error) {

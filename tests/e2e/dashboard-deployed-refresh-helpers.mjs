@@ -46,7 +46,7 @@ export async function configureDeployedStorageQuota(page, url) {
   }
 }
 
-export function deployedActivityShardEntries(manifest) {
+export function deployedActivityShardEntries(manifest, maximumShardCount = Number.POSITIVE_INFINITY) {
   const entries = Object.entries(manifest ?? {})
     .filter(([, hash]) => typeof hash === "string" && /^[a-f0-9]{64}$/i.test(hash));
   const select = (extension) => entries
@@ -73,7 +73,15 @@ export function deployedActivityShardEntries(manifest) {
   if (!selected.some(({ name }) => name.startsWith("gh-aw-logs-runs/"))) {
     throw new Error("Deployed dashboard manifest contains no compacted run-information shards.");
   }
-  return selected;
+  if (maximumShardCount === Number.POSITIVE_INFINITY) return selected;
+  if (!Number.isSafeInteger(maximumShardCount) || maximumShardCount < 2) {
+    throw new Error("Dashboard preview shard limit must be at least 2 to include both phases.");
+  }
+  const records = selected.find(({ name }) => name.startsWith("gh-aw-logs-records/"));
+  if (!records) throw new Error("Deployed dashboard manifest contains no compacted record shards.");
+  const limited = selected.slice(0, maximumShardCount);
+  if (!limited.includes(records)) limited[limited.length - 1] = records;
+  return limited;
 }
 
 export function legacyPhaseJsonToJsonl(content) {

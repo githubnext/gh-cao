@@ -266,11 +266,13 @@ attempt. A newer explicit credit measurement, including zero, takes precedence
 over a preserved summary.
 
 Open **Value** in the sidebar for published workflow results, then select a card
-to inspect its native evidence report. A workflow's **Value** tab opens its own
-results. Reports keep intent, safe outputs, accepted implementations and
-independent repository snapshots separate; snapshot drill-downs expose the exact
-retained items counted. See [Operational Value](operational-value.md) for the
-measurement and publication contract.
+to inspect its native evidence report. Value is not a permanent workflow tab;
+the top-level destination is the single discovery surface. Collection-health
+cards may open a workflow-scoped detail page, while reports keep intent, safe
+outputs, accepted implementations and independent repository snapshots separate.
+Snapshot drill-downs expose the exact retained items counted. See
+[Operational Value](operational-value.md) for the measurement and publication
+contract.
 
 The legacy **Operational Value** page, its **Repository measurements** tab and
 repository drill-downs are no longer shipped. Existing canonical observations

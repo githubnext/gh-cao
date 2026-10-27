@@ -145,6 +145,7 @@ const optimizationExpectedFiles = [
 const selfCareExpectedFiles = [
   ".github/workflows/self-care-accessibility-checker.md",
   ".github/workflows/self-care-agent-discoverability.md",
+  ".github/workflows/self-care-cli-consistency.md",
   ".github/workflows/self-care-code-improvement.md",
   ".github/workflows/self-care-dashboard-data-schema.md",
   ".github/workflows/self-care-dashboard-debug-logging.md",
@@ -159,7 +160,6 @@ const selfCareExpectedFiles = [
   ".github/workflows/self-care-pages-health.md",
   ".github/workflows/self-care-primer-brand-checker.md",
   ".github/workflows/self-care-reactive-ui-expert.md",
-  ".github/workflows/self-care-release-blogger.md",
   ".github/workflows/self-care-server-go-logging.md",
   ".github/workflows/self-care-specs-maintainer.md",
   ".github/workflows/self-care.md",

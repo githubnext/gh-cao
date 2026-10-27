@@ -164,6 +164,10 @@ func ReadCollection(ctx context.Context, db SnapshotReader, collection string, m
 // ReadCollectionFields projects known-live fields inside SQLite. A nil field
 // list preserves every public field, and limits still cover full stored records.
 func ReadCollectionFields(ctx context.Context, db SnapshotReader, collection string, fields []string, maxRows int, maxBytes int64) (result []map[string]any, err error) {
+	return readCollectionFields(ctx, db, collection, fields, maxRows, maxBytes, "", nil)
+}
+
+func readCollectionFields(ctx context.Context, db SnapshotReader, collection string, fields []string, maxRows int, maxBytes int64, where string, selection []any) (result []map[string]any, err error) {
 	contentSQL := "value"
 	args := []any{}
 	if fields != nil {
@@ -181,8 +185,9 @@ func ReadCollectionFields(ctx context.Context, db SnapshotReader, collection str
 		) END`
 	}
 	args = append(args, DatabaseName, collection)
+	args = append(args, selection...)
 	rows, err := db.QueryContext(ctx, `SELECT record_key, `+contentSQL+`, length(CAST(value AS BLOB))
-		FROM __idb_records WHERE database_name=? AND store_name=?`, args...)
+		FROM __idb_records WHERE database_name=? AND store_name=?`+where, args...)
 	if err != nil {
 		return nil, fmt.Errorf("read canonical %s: %w", collection, err)
 	}

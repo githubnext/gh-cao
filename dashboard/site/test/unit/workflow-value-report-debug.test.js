@@ -2,8 +2,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import fragment from '../../dashboard-fragments/workflow-value.json' with { type: 'json' };
 
-const reportData = fragment.pages[1].views[0].data;
-const names = 'sources' in reportData ? reportData.sources : [];
+const reportData = fragment.pages.find(page => page.id === 'value-report')?.views[0].data;
+if (!reportData || !('sources' in reportData)) throw new Error('Native report sources must be declared');
+const names = reportData.sources;
 
 afterEach(() => {
   vi.doUnmock('../../src/debug.js');

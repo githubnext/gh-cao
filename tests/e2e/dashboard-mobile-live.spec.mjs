@@ -228,8 +228,7 @@ test.beforeAll(async () => {
       if (!inventoryResponse.ok) throw new Error(`Unable to download deployed dashboard inventory: HTTP ${inventoryResponse.status}.`);
       if (!inventoryResponse.body) throw new Error("Deployed dashboard inventory response has no body.");
       const payloadHashes = await payloadHashesResponse.json();
-      const shards = deployedActivityShardEntries(payloadHashes);
-      const selectedShards = shards.slice(0, mobileDebugShardLimit());
+      const selectedShards = deployedActivityShardEntries(payloadHashes, mobileDebugShardLimit());
       expectedActivityShardPaths = selectedShards.map(({ name }) => `/${name}`);
       await mkdir(destination, { recursive: true });
       const inventoryPath = join(destination, "inventory-sources.json");

@@ -52,8 +52,9 @@ test("Copilot setup stages evidence with the JavaScript runtime, not the operato
 });
 
 test("agentic and deterministic CAO workflows do not invoke the native operator extension", () => {
-  // Release packaging verifies the native product, not the agent runtime.
-  const sources = readdirSync(workflowsDirectory).filter((name) => name.endsWith(".md") && name !== "release.md");
+  // Packaging and CLI maintenance validate the native product, not the agent runtime.
+  const productValidation = new Set(["release.md", "self-care-cli-consistency.md"]);
+  const sources = readdirSync(workflowsDirectory).filter((name) => name.endsWith(".md") && !productValidation.has(name));
   const names = [
     ...sources,
     ...sources.map((name) => name.replace(/\.md$/, ".lock.yml")),
@@ -155,6 +156,7 @@ test("repository-local SelfCare uses organization-billed Copilot authentication"
   const workflowIds = [
     "self-care-accessibility-checker",
     "self-care-agent-discoverability",
+    "self-care-cli-consistency",
     "self-care-code-improvement",
     "self-care-dashboard-data-schema",
     "self-care-dashboard-debug-logging",
@@ -169,7 +171,6 @@ test("repository-local SelfCare uses organization-billed Copilot authentication"
     "self-care-pages-health",
     "self-care-primer-brand-checker",
     "self-care-reactive-ui-expert",
-    "self-care-release-blogger",
     "self-care-server-go-logging",
     "self-care-specs-maintainer",
     "self-care",

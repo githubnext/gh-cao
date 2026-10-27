@@ -416,6 +416,7 @@ export const TABLE_VALUES = [
   'findings',
   'operational-values',
   'operational-value-evidence',
+  'workflow-value-measurements',
   'workflow-value-collections',
   'github-api-rate-limits',
   'github-api-collector-health',
@@ -530,17 +531,23 @@ export const TABLE_FIELDS = {
   findings: ['organization', 'repository', 'workflow', 'run', 'safe-output', 'code', 'finding-kind', 'finding-severity', 'finding-status', 'finding-summary', 'observed-at', 'engine', 'engine-version', 'requested-model', 'resolved-model', 'issue-link', 'pull-request-link', 'run-link', 'external-link', 'organization-link', 'repository-link', 'workflow-link'],
   'operational-values': ['id', 'organization', 'repository', 'repository-name', 'workflow', 'campaign', 'campaign-name', 'campaign-icon', 'evaluator-digest', 'cadence-days', 'window-start', 'window-end', 'measurement-kind', 'coverage-status', 'missing-reason', 'eligible-count', 'population-digest', 'evidence-digest', 'operational-value', 'operational-value-definition', 'operational-value-role', 'operational-value-name', 'operational-value-unit', 'operational-value-direction', 'rollup-numerator', 'rollup-denominator', 'maturity-status', 'adoption-at', 'evaluation-mode', 'workflow-slug', 'workflow-name', 'observed-at', 'organization-link', 'repository-link', 'campaign-link', 'run-link'],
   'workflow-value-collections': [
-    'id', 'organization', 'repository', 'workflow', 'workflow-path', 'registration', 'collector',
+    'id', 'organization', 'repository', 'workflow', 'workflow-path', 'workflow-route', 'registration', 'collector',
     'collection-state', 'reason-code', 'reason', 'checked-at', 'policy-digest', 'last-attempt-at', 'last-attempt-outcome'
   ],
   'operational-value-evidence': [
-    'report-id', 'organization', 'repository', 'workflow', 'workflow-path', 'observed-at', 'window-start', 'window-end', 'contract-digest',
+    'report-id', 'workflow-route', 'snapshot-route', 'organization', 'repository', 'workflow', 'workflow-path', 'observed-at', 'window-start', 'window-end', 'contract-digest',
     'fact-kind', 'fact-id', 'parent-id', 'related-id', 'label', 'title', 'url', 'at', 'accepted-at', 'end-at',
     'value', 'ref', 'state', 'origin', 'scope', 'coverage-status', 'status', 'detail', 'goal', 'acceptance',
     'metric-id', 'metric-name', 'metric-unit', 'metric-direction', 'metric-version', 'metric-formula', 'result-label',
     'measurement-basis', 'snapshot-name', 'snapshot-unit', 'snapshot-direction', 'snapshot-id', 'snapshot-version',
     'snapshot-formula', 'outputs-available', 'repository-state-available', 'checks-available', 'items-available',
     'output-unit', 'implementation-unit', 'output-scope', 'output-coverage', 'workflow-name', 'cadence-days', 'maturation-days'
+  ],
+  'workflow-value-measurements': [
+    'id', 'repository', 'workflow-route', 'campaign', 'workflow-slug', 'workflow-name', 'value-id', 'value',
+    'metric-role', 'metric-name', 'metric-unit', 'metric-direction', 'evaluator-digest', 'observed-at',
+    'window-start', 'window-end', 'measurement-kind', 'maturity-status', 'coverage-status', 'missing-reason',
+    'evidence-digest', 'eligible-count', 'population-digest', 'cadence-days', 'evaluation-mode', 'adoption-at'
   ],
   'github-api-rate-limits': ['observation-id', 'operation-execution-id', 'observed-at', 'phase', 'operation', 'outcome', 'credential', 'credential-type', 'resource', 'bucket', 'maximum-lane', 'history-series', 'has-history', 'limit', 'used', 'remaining', 'remaining-percent', 'reset-at', 'minutes-to-reset', 'consumed-since-previous', 'burn-rate-per-minute', 'projected-remaining-at-reset', 'projected-exhaustion-at', 'runway-ratio', 'risk-status', 'risk-order', 'is-unhealthy', 'is-current', 'attribution-status', 'operation-consumed', 'run-link'],
   'github-api-collector-health': ['observed-at', 'operation-execution-id', 'phase', 'operation', 'outcome', 'credential', 'cache-hydrated', 'cache-bytes', 'cache-entries', 'cache-folders', 'rate-limit-error'],

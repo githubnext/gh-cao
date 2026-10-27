@@ -36,7 +36,7 @@ test("documentation links expose complete static social cards for Teams", async 
     return tags[0].match(/\bcontent="([^"]+)"/)?.[1];
   }
 
-  for (const route of ["", "architecture/", "catalog/", "blog/"]) {
+  for (const route of ["", "architecture/", "catalog/"]) {
     const html = await readFile(path.join(dist, route, "index.html"), "utf8");
     const imageUrl = meta(html, "og:image");
     assert.equal(imageUrl, new URL("social-card.png", publicBase).href);

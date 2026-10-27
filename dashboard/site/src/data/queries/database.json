@@ -172,7 +172,9 @@
       "on": [{ "left": "repositoryId", "right": "id" }],
       "fields": [{ "field": "owner", "as": "organization" }, { "field": "name", "as": "repository-name" }]
     }],
+    "compute": [{ "as": "workflow-route", "function": "concat", "args": [{ "field": "repository" }, { "value": ":" }, { "field": "sourcePath" }] }],
     "select": [
+      { "field": "workflow-route" },
       { "field": "id" }, { "field": "organization" }, { "field": "repository-name", "as": "repository" },
       { "field": "workflow" }, { "field": "sourcePath", "as": "workflow-path" },
       { "field": "registration" }, { "field": "collector" }, { "field": "state", "as": "collection-state" },
@@ -188,6 +190,8 @@
     "from": "$operationalValueEvidence",
     "select": [
       { "field": "report-id" },
+      { "field": "workflow-route" },
+      { "field": "snapshot-route" },
       { "field": "organization" },
       { "field": "repository" },
       { "field": "workflow" },
@@ -844,6 +848,25 @@
       { "field": "status", "as": "run-status" },
       { "field": "conclusion", "as": "run-conclusion" },
       { "field": "effective-rollout-mode", "as": "rollout-mode" }
+    ]
+  },
+  {
+    "name": "workflow-value-measurements",
+    "stores": ["operationalValues"],
+    "from": "$operationalValues",
+    "select": [
+      { "field": "id" }, { "field": "repository" }, { "field": "workflow-route" }, { "field": "campaign" },
+      { "field": "workflow-slug" }, { "field": "workflow-name" },
+      { "field": "valueId", "as": "value-id" }, { "field": "value" },
+      { "field": "operational-value-role", "as": "metric-role" },
+      { "field": "operational-value-name", "as": "metric-name" },
+      { "field": "operational-value-unit", "as": "metric-unit" },
+      { "field": "operational-value-direction", "as": "metric-direction" },
+      { "field": "evaluator-digest" }, { "field": "timestamp", "as": "observed-at" },
+      { "field": "window-start" }, { "field": "window-end" }, { "field": "measurement-kind" },
+      { "field": "maturity-status" }, { "field": "coverage-status" }, { "field": "missing-reason" },
+      { "field": "evidence-digest" }, { "field": "eligible-count" }, { "field": "population-digest" },
+      { "field": "cadence-days" }, { "field": "evaluation-mode" }, { "field": "adoption-at" }
     ]
   },
   {

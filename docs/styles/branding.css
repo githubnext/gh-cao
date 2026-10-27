@@ -255,10 +255,6 @@ starlight-toc h2,
   display: contents;
 }
 
-.right-group .social-icons a[href$="/blog/rss.xml"] {
-  display: none;
-}
-
 .right-group .theme-toggle {
   order: 2;
 }
