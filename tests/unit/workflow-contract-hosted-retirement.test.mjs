@@ -27,5 +27,5 @@ test("SelfCare dispatch stays live-only without the retired health worker", () =
   assert.doesNotMatch(source, /hosted-health/);
   assert.doesNotMatch(manifest, /hosted-health/);
   assert.equal(campaign.workers["hosted-health"], undefined);
-  assert.equal(Object.keys(campaign.workers).length, 21);
+  assert.equal(Object.keys(campaign.workers).length, 20);
 });
