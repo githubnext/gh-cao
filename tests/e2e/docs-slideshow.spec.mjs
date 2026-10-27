@@ -5,7 +5,7 @@ const runtimeAsset = /\/slideshow\.[^/]+\.js(?:\?|$)/;
 const slideTitles = [
   "Central Agentic Ops",
   "Monitor and govern GitHub Agentic Workflows at scale.",
-  "Shared work. Clear ownership.",
+  "Shared workflows. Clear ownership.",
   "Roll out with confidence.",
   "Less upkeep. Current workflows.",
   "Use evidence to decide what scales.",
