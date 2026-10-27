@@ -310,6 +310,21 @@ dataset.
   adapters MAY hold projection coordination and health state, but MUST NOT hold entity rows,
   canonical source documents, query indexes, persistent query projections, or
   execute dashboard data queries.
+- Collector-enabled hosted Operational Value reconstruction MUST query canonical
+  PostgreSQL through the production Dashboard Language SQL executor in one
+  repeatable-read transaction. Every physical source MUST be restricted to the
+  exact enrolled repository set before filtering, joining, or aggregation;
+  sources that cannot enforce that scope MUST fail closed. The hosted path MUST
+  NOT create, copy, open, rebuild, or ingest SQLite as an intermediate store.
+- Hosted Operational Value publication MUST compare the starting canonical
+  revision under the namespace writer lock and reject a stale revision. It MUST
+  also reject a changed completed-projection generation, reviewed policy,
+  local-eligibility request, or exact enrollment set. A successful publication
+  atomically replaces canonical `operationalValues`, advances the ordinary
+  canonical revision without changing the Activity data revision, and notifies
+  existing revision consumers. Accepted JSONL MAY be mirrored into the evidence
+  lake for cold-start recovery, but that mirror MUST NOT become the hosted query
+  input. Actions/static reconstruction remains an independent SQLite path.
 - Inventory discovery MUST NOT silently truncate the enrolled repository set. An
   implementation MAY enforce a configured bound, but exceeding it MUST fail the
   projection rather than publish a partial inventory.

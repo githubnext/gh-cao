@@ -3,6 +3,9 @@ import test from "node:test";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { createServer } from "node:net";
+import { once } from "node:events";
+import { tmpdir } from "node:os";
 import { createDatabase } from "../../activity/cli/ingestion.mjs";
 import { upsertCanonicalBatch } from "../../dashboard/site/src/data/storage/indexeddb.js";
 import {
@@ -104,6 +107,52 @@ console.log(${JSON.stringify(JSON.stringify(runs))});
   } finally {
     if (previous === undefined) delete process.env.CAO_ACTIVITY_CLI;
     else process.env.CAO_ACTIVITY_CLI = previous;
+    rmSync(temporary, {recursive:true, force:true});
+  }
+});
+
+test("Optimization metrics are identical through the hosted canonical query socket", async () => {
+  const temporary = mkdtempSync(path.join(tmpdir(), "cao-hosted-value-"));
+  const socketPath = path.join(temporary, "query.sock");
+  const runs = Array.from({ length: 3 }, (_, index) => ({
+    owner: "github", repository: "gh-aw",
+    declaredWorkflowPath: ".github/workflows/example.md",
+    githubRunId: index + 1, conclusion: index === 2 ? "failure" : "success",
+    aicTotal: index < 2 ? 10 : null,
+    startedAt: `2026-09-10T0${index}:00:00Z`
+  }));
+  let received;
+  const server = createServer(connection => {
+    let requestBody = "";
+    connection.setEncoding("utf8");
+    connection.on("data", chunk => requestBody += chunk);
+    connection.on("end", () => {
+      received = JSON.parse(requestBody);
+      const name = received.requested[0];
+      connection.end(JSON.stringify({schemaVersion: 1, sources: {
+        [name]: {source: name, rows: runs, metadata: {
+          availability: "available", "canonical-revision": 42
+        }}
+      }}));
+    });
+  });
+  server.listen(socketPath);
+  await once(server, "listening");
+  const previous = process.env.CAO_DASHBOARD_QUERY_SOCKET;
+  process.env.CAO_DASHBOARD_QUERY_SOCKET = socketPath;
+  try {
+    const [collection] = await collectBatch([request], {history: true});
+    assert.equal(scoreMetric("aic-per-successful-run", collection.evidence), 10);
+    assert.equal(scoreMetric("failure-rate-percent", collection.evidence), 33.333333333);
+    assert.equal(scoreMetric("cancellation-rate-percent", collection.evidence), 0);
+    assert.equal(received.schemaVersion, 1);
+    assert.equal(received.queries.length, 1);
+    assert.deepEqual(received.requested, ["optimization-repository-efficiency"]);
+  } finally {
+    if (previous === undefined) delete process.env.CAO_DASHBOARD_QUERY_SOCKET;
+    else process.env.CAO_DASHBOARD_QUERY_SOCKET = previous;
+    server.close();
+    await once(server, "close");
     rmSync(temporary, {recursive:true, force:true});
   }
 });

@@ -147,6 +147,7 @@ flowchart LR
     GoServer["Go HTTP(S) query server"]
     GitHub["GitHub / gh-aw<br/>authoritative state"]
     Compute["Versioned computations<br/>bounded insights"]
+    HostedValue["Hosted Operational Value<br/>reviewed adapters"]
     Results["Materialized computation results<br/>generation-scoped"]
     UI["Static dashboard"]
     CLI["cao CLI and agents"]
@@ -165,6 +166,8 @@ flowchart LR
     Postgres --> GoServer --> Query
     IndexedDB --> Compute --> Results --> Query
     SQLite --> Compute
+    Postgres -->|"bounded repository-scoped<br/>Dashboard Language queries"| HostedValue
+    HostedValue -->|"revision-checked canonical publication"| Postgres
     Query --> UI
     Compute --> CLI
 ```
@@ -177,8 +180,18 @@ before continuing with event shards. Raw Activity JSONL remains available only
 inside the Activity cache for audits and projection rebuilds. The deployed
 dashboard artifact contains the SQLite projection, inventory, and compacted
 normalized run and record JSONL; browser ingestion fails closed rather than
-falling back to raw Activity JSONL. Static-browser download, normalization, persistence, and queries run in a
-dedicated Web Worker. The optional Go server profile ingests the same deployed
+falling back to raw Activity JSONL. Static-browser download, normalization,
+persistence, and queries run in a dedicated Web Worker. Actions and explicitly
+selected static Operational Value
+reconstruction use the rebuildable SQLite projection. A collector-enabled
+hosted server instead runs the same reviewed JavaScript metric definitions
+against one repeatable-read, exact-enrollment PostgreSQL revision through the
+production Dashboard Language SQL boundary. It does not create, copy, open, or
+ingest an intermediate SQLite database. Completed observations replace the
+canonical `operationalValues` collection under the namespace writer lock with
+an expected-revision check; the accepted JSONL is mirrored only for cold-start
+lake recovery and is never the hosted computation input. The optional Go server
+profile ingests the same deployed
 dashboard artifact into Postgres, keeps database credentials server-side,
 compiles hosted Dashboard Language queries to parameterized SQL in the
 request's repeatable-read transaction, and returns

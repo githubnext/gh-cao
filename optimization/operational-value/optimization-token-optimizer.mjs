@@ -1,8 +1,9 @@
-import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { executeCanonicalQuery } from "../../activity/canonical-query.mjs";
 import { executeDashboardQuery } from "../../dashboard/site/src/data/queries/declarative.js";
 
 const DAY_MS = 86_400_000;
@@ -362,7 +363,7 @@ export function efficiencyQuery(start, end) {
   };
 }
 
-function queryEfficiencyWindows(database, requests) {
+async function queryEfficiencyWindows(database, requests) {
   const start = new Date(Math.min(...requests.map((request) => Date.parse(request.windowStart)))).toISOString();
   const end = new Date(Math.max(...requests.map((request) => Date.parse(request.windowEnd)))).toISOString();
   const projection = efficiencyQuery(start, end);
@@ -375,25 +376,15 @@ function queryEfficiencyWindows(database, requests) {
     "owner", "repository", "declaredWorkflowPath", "githubRunId", "startedAt",
     "conclusion", "aicTotal",
   ].map((field) => ({ field }));
-  const output = run(process.execPath, [
-    process.env.CAO_ACTIVITY_CLI || ACTIVITY_CLI,
-    "query",
-    "--database",
-    database,
-    "--stdin",
-  ], {
-    input: `${JSON.stringify(projection)}\n`,
-  });
-  const rows = JSON.parse(output);
-  if (!Array.isArray(rows)) fail("Activity query returned invalid efficiency evidence");
-  return rows;
+  return executeCanonicalQuery(projection, { database });
 }
 
 export async function collectBatch(requests, context = {}) {
-  if (context.localOnly && !context.database) {
+  const hosted = Boolean(process.env.CAO_DASHBOARD_QUERY_SOCKET);
+  if (context.localOnly && !context.database && !hosted) {
     fail("Local-only Optimization collection requires an existing Activity database");
   }
-  if (context.history && !context.database) {
+  if (context.history && !context.database && !hosted) {
     fail("Historical Optimization collection requires a preserved Activity database; remote acquisition is disabled");
   }
   const supported = new Set(
@@ -413,12 +404,14 @@ export async function collectBatch(requests, context = {}) {
         && Date.parse(request.observedAt) >= Date.parse(request.windowEnd);
     });
   if (!valid) fail("invalid batch collection request");
-  if (!existsSync(ACTIVITY_CLI)) fail("CAO Activity CLI is unavailable");
+  if (!process.env.CAO_DASHBOARD_QUERY_SOCKET && !existsSync(ACTIVITY_CLI)) {
+    fail("CAO Activity CLI is unavailable");
+  }
 
   let temporary;
   let database = context.database;
   try {
-    if (!database) {
+    if (!database && !hosted) {
       const localDatabase = path.join(process.cwd(), ".cao", "gh-aw-logs.sqlite");
       if (existsSync(localDatabase)) {
         database = localDatabase;
@@ -462,9 +455,12 @@ export async function collectBatch(requests, context = {}) {
         }
       }
     }
-    if (!existsSync(database)) fail("CAO Activity database is unavailable");
+    if (!process.env.CAO_DASHBOARD_QUERY_SOCKET && !existsSync(database)) {
+      fail("CAO Activity database is unavailable");
+    }
 
-    const canonicalRows = queryEfficiencyWindows(database, requests);
+    const canonicalSource = await queryEfficiencyWindows(database, requests);
+    const canonicalRows = canonicalSource.rows;
     const rowsByWindow = new Map();
     const readWindow = (start, end) => {
       const key = `${start}\0${end}`;
@@ -481,7 +477,12 @@ export async function collectBatch(requests, context = {}) {
       }
       return rowsByWindow.get(key);
     };
-    const digest = createHash("sha256").update(readFileSync(database)).digest("hex");
+    const digest = hosted
+      ? createHash("sha256").update(String(
+          canonicalSource.metadata?.["canonical-revision"]
+            ?? fail("Canonical PostgreSQL query did not identify its revision"),
+        )).digest("hex")
+      : createHash("sha256").update(readFileSync(database)).digest("hex");
 
     return requests.map((request) => {
       const rows = readWindow(request.windowStart, request.windowEnd);

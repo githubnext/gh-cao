@@ -50,7 +50,9 @@ export async function computeLocalValues(options) {
   }
   return runOperationalValue({
     ...plan, root: options.root, outputPath: options.output,
-    databasePath: options.database ?? path.join(options.snapshot, 'gh-aw-logs.sqlite'),
+    databasePath: options.database ?? (
+      process.env.CAO_DASHBOARD_QUERY_SOCKET ? undefined : path.join(options.snapshot, 'gh-aw-logs.sqlite')
+    ),
     localOnly: true, retentionWindow: 365 * 86400000,
     signal: options.signal ?? AbortSignal.timeout(120000), workerTimeoutMs: 30000,
   });

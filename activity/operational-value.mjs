@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir, mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { executeCanonicalQuery } from './canonical-query.mjs';
 import { canonicalTimestamp, operationalValuePeriod } from '../dashboard/site/src/data/model/schema.js';
 import { readCollection } from '../dashboard/site/src/data/storage/indexeddb.js';
 
@@ -32,7 +33,8 @@ const WORKER_ENVIRONMENT = [
   'GH_HOST',
   'GITHUB_API_URL',
   'GITHUB_SERVER_URL',
-  'CAO_DEPENDABOT_ALERTS_MAX_PAGES'
+  'CAO_DEPENDABOT_ALERTS_MAX_PAGES',
+  'CAO_DASHBOARD_QUERY_SOCKET'
 ];
 
 function commandFailureMessage(result, fallback) {
@@ -81,13 +83,71 @@ function operationalValueWorkerEnvironment(databasePath, observedAt, rateLimitRe
   )));
   const token = localOnly ? undefined : process.env.CAO_OPERATIONAL_VALUE_GH_TOKEN || process.env.GH_TOKEN;
   if (token) env.GH_TOKEN = token;
-  env.CAO_DATABASE = path.resolve(databasePath);
+  if (databasePath) env.CAO_DATABASE = path.resolve(databasePath);
   env.CAO_ACTIVITY_CLI = fileURLToPath(new URL('./cao.mjs', import.meta.url));
   env.CAO_OPERATIONAL_VALUE_TIMESTAMP = observedAt;
   if (rateLimitReserve !== undefined) {
     env.CAO_GITHUB_API_MIN_REMAINING = String(rateLimitReserve);
   }
   return { env, token };
+}
+
+function canonicalOperationalValueEnvelope(row) {
+  const value = {
+    timestamp: row.timestamp,
+    repository: row.repository,
+    campaign: row.campaign,
+    campaign_id: row.campaign ? `campaign:${row.campaign}` : undefined,
+    value_id: row.valueId,
+    value: row.value,
+    metric_role: row['operational-value-role'],
+    metric_name: row['operational-value-name'],
+    metric_unit: row['operational-value-unit'],
+    metric_direction: row['operational-value-direction'],
+    maturity_status: row['maturity-status'],
+    adoption_at: row['adoption-at'],
+    evaluation_mode: row['evaluation-mode'],
+    workflow_slug: row['workflow-slug'],
+    workflow_name: row['workflow-name'],
+    evaluator_digest: row['evaluator-digest'],
+    cadence_days: row['cadence-days'],
+    window_start: row['window-start'],
+    window_end: row['window-end'],
+    measurement_kind: row['measurement-kind'],
+    coverage_status: row['coverage-status'],
+    missing_reason: row['missing-reason'],
+    eligible_count: row['eligible-count'],
+    population_digest: row['population-digest'],
+    evidence_digest: row['evidence-digest'],
+    rollup_numerator: row['rollup-numerator'],
+    rollup_denominator: row['rollup-denominator'],
+  };
+  return {
+    schema_version: 2,
+    kind: 'operational_value',
+    operational_value: Object.fromEntries(
+      Object.entries(value).filter(([, field]) => field !== undefined)
+    ),
+  };
+}
+
+async function retainedCanonicalOperationalValues(cutoff, signal) {
+  const predicates = [{ field: 'campaign', gte: '' }];
+  if (Number.isFinite(cutoff)) {
+    predicates.push({ field: 'timestamp', gte: new Date(cutoff).toISOString() });
+  }
+  const source = await executeCanonicalQuery({
+    name: 'retained-operational-values',
+    from: 'operationalValues',
+    filter: { predicates },
+    'order-by': [
+      { field: 'campaign' },
+      { field: 'repository' },
+      { field: 'valueId' },
+      { field: 'timestamp' },
+    ],
+  }, { signal });
+  return source.rows.map(canonicalOperationalValueEnvelope);
 }
 
 function redactToken(message, token) {
@@ -528,20 +588,25 @@ export async function runOperationalValue({
   const cutoff = retentionWindow === undefined
     ? Number.NEGATIVE_INFINITY
     : Date.parse(observedAt) - retentionWindow;
-  const retained = output && retentionWindow !== undefined
-    ? await retainedOperationalValueEnvelopes(output, cutoff)
-    : [];
+  const retained = retentionWindow === undefined
+    ? []
+    : process.env.CAO_DASHBOARD_QUERY_SOCKET
+      ? await retainedCanonicalOperationalValues(cutoff, signal)
+      : output
+        ? await retainedOperationalValueEnvelopes(output, cutoff)
+        : [];
   const retainedKeys = new Set(retained.map((envelope) => {
     const value = envelope.operational_value;
     return operationalValueKey(value.campaign, value.repository, value.value_id, value.timestamp);
   }));
-  const request = `${JSON.stringify({
+  const requestDocument = {
     schemaVersion: 1,
     timestamp: observedAt,
     repositories: uniqueRepositories,
-    database: path.resolve(databasePath),
     ...(localOnly ? { localOnly: true, disabledWorkflows, disabledCollections } : {})
-  })}\n`;
+  };
+  if (databasePath) requestDocument.database = path.resolve(databasePath);
+  const request = `${JSON.stringify(requestDocument)}\n`;
   const values = [];
   const warnings = [];
   const activeValueIds = new Map();
@@ -620,14 +685,15 @@ export async function runOperationalValue({
           for (const batch of batches) {
             if (batch.length === 0) continue;
             signal?.throwIfAborted();
-            const historyRequest = `${JSON.stringify({
+            const historyRequestDocument = {
               schemaVersion: 1,
               timestamp: batch.at(-1),
               ...(definition.historyBatch ? { historyTimestamps: batch } : {}),
               repositories: supportedRepositories,
-              database: path.resolve(databasePath),
               ...(localOnly ? { localOnly: true, disabledWorkflows, disabledCollections } : {})
-            })}\n`;
+            };
+            if (databasePath) historyRequestDocument.database = path.resolve(databasePath);
+            const historyRequest = `${JSON.stringify(historyRequestDocument)}\n`;
             const historyOutput = await runOperationalValueWorker(
               entry,
               historyRequest,

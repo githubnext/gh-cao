@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { once } from 'node:events';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -9,6 +11,71 @@ import { LOCAL_VALUE_ADAPTER_DIGEST, MAX_LOCAL_VALUE_BYTES, runOperationalValue 
 
 const root = path.resolve(import.meta.dirname, '..', '..');
 const cao = path.join(root, 'activity', 'cao.mjs');
+
+test('hosted history uses the canonical query socket without resolving a SQLite path', async (t) => {
+  const temporary = mkdtempSync(path.join(os.tmpdir(), 'cao-hosted-value-history-'));
+  t.after(() => rmSync(temporary, { recursive: true, force: true }));
+  const campaign = path.join(temporary, 'example');
+  const modulePath = path.join(campaign, 'operational-value', 'example-worker.mjs');
+  const socketPath = path.join(temporary, 'query.sock');
+  const output = path.join(temporary, 'values.jsonl');
+  mkdirSync(path.dirname(modulePath), { recursive: true });
+  writeFileSync(path.join(campaign, 'operational-value.mjs'), readFileSync(path.join(root,
+    '.github/skills/add-operational-value/templates/campaign-operational-value.mjs')));
+  writeFileSync(modulePath, `
+export const historyBatch = true;
+export const definition = {
+  slug: "example-worker", adoption: { adoptedAt: "2026-09-15T00:00:00Z" },
+  evaluation: { mode: "attainment-only" },
+  evidence: { measurementKind: "interval", repositories: ["octo/api"],
+    window: { durationDays: 1, maturationDays: 0, cadenceDays: 1 } },
+  metrics: [{id:"current", role:"primary", name:"Current", unit:"items", direction:"decrease"}]
+};
+export function collectBatch(windows, context) {
+  if (context.database !== undefined) throw new Error("hosted history received a SQLite database");
+  return windows.map(() => ({evidence:{value:3, coverageStatus:"complete"}}));
+}
+export function scoreMetric(id, evidence) { return evidence.value; }
+`);
+  const server = createServer(connection => {
+    let requestBody = '';
+    connection.setEncoding('utf8');
+    connection.on('data', chunk => requestBody += chunk);
+    connection.on('end', () => {
+      const request = JSON.parse(requestBody);
+      const name = request.requested[0];
+      connection.end(JSON.stringify({schemaVersion: 1, sources: {
+        [name]: {source: name, rows: [], metadata: {
+          availability: 'empty', completeness: 'complete', freshness: 'current',
+          'canonical-revision': 7
+        }}
+      }}));
+    });
+  });
+  server.listen(socketPath);
+  await once(server, 'listening');
+  t.after(async () => {
+    server.close();
+    await once(server, 'close');
+  });
+  const previous = process.env.CAO_DASHBOARD_QUERY_SOCKET;
+  process.env.CAO_DASHBOARD_QUERY_SOCKET = socketPath;
+  t.after(() => {
+    if (previous === undefined) delete process.env.CAO_DASHBOARD_QUERY_SOCKET;
+    else process.env.CAO_DASHBOARD_QUERY_SOCKET = previous;
+  });
+  const result = await runOperationalValue({
+    root: temporary,
+    outputPath: output,
+    timestamp: '2026-09-18T00:00:00Z',
+    repositories: ['octo/api'],
+    historyCampaign: 'example',
+    retentionWindow: 30 * 86_400_000
+  });
+  assert.deepEqual(result.warnings, []);
+  assert.ok(result.historyValues > 0);
+  assert.ok(readFileSync(output, 'utf8').includes('"campaign":"example"'));
+});
 
 test('standard adapter batches local history once and preserves accepted partial snapshots', async () => {
   mkdirSync(path.join(root, '.tmp'), { recursive: true });

@@ -28,6 +28,7 @@ type SQLExecutionOptions struct {
 	Runtime        func(context.Context, string) (model.Source, error)
 	Pages          map[string]SQLPage
 	ResourceLimits *SQLResourceLimits
+	Repositories   []string
 }
 
 func sqlResourceLimits(override *SQLResourceLimits) (SQLResourceLimits, error) {
@@ -65,11 +66,17 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 		"$operationalValues", "id", "workflow-route")
 	resolve := func(name string) (query.SQLRelation, error) {
 		if strings.HasPrefix(name, statisticalSnapshotPrefix) {
+			if len(options.Repositories) > 0 {
+				return query.SQLRelation{}, fmt.Errorf("hosted local Value cannot query unscoped statistical source %q", name)
+			}
 			relation, quality, err := r.frozenStatisticalSource(ctx, name)
 			metadata[name] = quality
 			return relation, err
 		}
 		if name == "$statisticalMembership" {
+			if len(options.Repositories) > 0 {
+				return query.SQLRelation{}, fmt.Errorf("hosted local Value cannot query unscoped statistical source %q", name)
+			}
 			relation, quality, err := r.statisticalSQLSource(ctx)
 			metadata[name] = quality
 			return relation, err
@@ -96,7 +103,11 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 				}
 			}
 			metadata[name] = source.Metadata
-			return runtimeSQLSource(name, source)
+			relation, err := runtimeSQLSource(name, source)
+			if err != nil {
+				return query.SQLRelation{}, err
+			}
+			return r.scopeSQLRelation(name, relation, options.Repositories)
 		}
 		relation, err := r.entitySQLSource(name)
 		if err != nil {
@@ -126,12 +137,13 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 		if value["availability"] == "unavailable" {
 			relation.SQL = "(SELECT * FROM " + relation.SQL + " WHERE FALSE) AS t"
 		}
-		return relation, nil
+		return r.scopeSQLRelation(name, relation, options.Repositories)
 	}
 	plan, err := query.CompileSQL(definitions, requested, resolve)
 	if err != nil {
 		return nil, model.Metrics{}, err
 	}
+
 	statsSQL, statsArgs, err := plan.StatisticsStatement()
 	if err != nil {
 		return nil, model.Metrics{}, err
@@ -293,6 +305,55 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 		metrics.OutputRows += len(result)
 	}
 	return output, metrics, nil
+}
+
+func (r *readTransaction) scopeSQLRelation(
+	name string,
+	relation query.SQLRelation,
+	repositories []string,
+) (query.SQLRelation, error) {
+	if len(repositories) == 0 {
+		return relation, nil
+	}
+	normalized := make([]string, 0, len(repositories))
+	for _, repository := range repositories {
+		repository = strings.ToLower(strings.TrimSpace(repository))
+		if parts := strings.Split(repository, "/"); len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+			return query.SQLRelation{}, fmt.Errorf("invalid hosted local Value repository scope %q", repository)
+		}
+		normalized = append(normalized, repository)
+	}
+	var predicate string
+	if repositoryID, exists := relation.Columns["repositoryId"]; exists {
+		predicate = "(" + repositoryID.Expression + `) IN (
+			SELECT id FROM repositories
+			WHERE namespace={} AND lower(owner||'/'||name)=ANY({})
+		)`
+		relation.Params = append(relation.Params, r.store.namespace, normalized)
+	} else if owner, ownerExists := relation.Columns["owner"]; ownerExists {
+		if repository, exists := relation.Columns["repository"]; exists {
+			predicate = "lower((" + owner.Expression + ")||'/'||(" + repository.Expression + "))=ANY({})"
+			relation.Params = append(relation.Params, normalized)
+		} else if repository, exists := relation.Columns["name"]; exists {
+			predicate = "lower((" + owner.Expression + ")||'/'||(" + repository.Expression + "))=ANY({})"
+			relation.Params = append(relation.Params, normalized)
+		}
+	} else if organization, organizationExists := relation.Columns["organization"]; organizationExists {
+		if repository, exists := relation.Columns["repository"]; exists {
+			predicate = "lower((" + organization.Expression + ")||'/'||(" + repository.Expression + "))=ANY({})"
+			relation.Params = append(relation.Params, normalized)
+		}
+	} else if name == "$operationalValues" {
+		if repository, exists := relation.Columns["repository"]; exists {
+			predicate = "lower(" + repository.Expression + ")=ANY({})"
+			relation.Params = append(relation.Params, normalized)
+		}
+	}
+	if predicate == "" {
+		return query.SQLRelation{}, fmt.Errorf("hosted local Value source %q cannot be repository scoped", name)
+	}
+	relation.SQL = "(SELECT * FROM " + relation.SQL + " WHERE " + predicate + ") AS t"
+	return relation, nil
 }
 
 func (r *readTransaction) rootMetadata(ctx context.Context, name string, valueSelections ...query.SourceEquality) (model.Metadata, error) {

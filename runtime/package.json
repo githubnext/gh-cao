@@ -7,6 +7,7 @@
     "node": ">=24"
   },
   "files": [
+    "activity/canonical-query.mjs",
     "activity/cli",
     "activity/commands",
     "activity/computations",

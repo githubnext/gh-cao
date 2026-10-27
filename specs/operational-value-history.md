@@ -104,12 +104,23 @@ definition nor a value grants repository access or permission to perform work.
 A reconstruction invocation MUST receive:
 
 - a package root;
-- an Activity SQLite database path;
 - an output path;
 - an observation instant;
 - one or more requested repository coordinates; and
 - when history is requested, a history-campaign name and a positive retention
   duration.
+
+It MUST receive exactly one canonical evidence boundary:
+
+- Actions and static reconstruction receive an Activity SQLite database path;
+  or
+- a collector-enabled hosted server receives a private canonical query
+  transport backed by one repeatable-read PostgreSQL transaction and carrying
+  its canonical revision.
+
+The hosted transport MUST execute the adapter's Dashboard Language definitions
+through the production SQL compiler and executor. It MUST NOT expose PostgreSQL
+credentials to adapters or create, copy, open, rebuild, or ingest SQLite.
 
 The observation instant MUST be normalized to UTC in canonical form
 `YYYY-MM-DDTHH:mm:ss.sssZ`. Repository coordinates MUST match
@@ -615,6 +626,17 @@ The server collector MAY treat the completed operational-value invocation as a
 best-effort projection stage so that its failure does not block newer Activity
 evidence. That integration policy does not weaken this section's publication
 requirements.
+
+For collector-enabled hosted execution, retained observations MUST be read from
+canonical PostgreSQL through the same query boundary as current evidence.
+Current and retained reads MUST share one repeatable-read revision and exact
+enrolled repository scope. Publication MUST reject a changed canonical
+revision, completed projection generation, reviewed policy, local eligibility
+request, or enrollment set. Successful output MUST use the canonical
+PostgreSQL namespace publication and revision channel. A recovery JSONL mirror
+MAY be written only after canonical acceptance while the ordinary projection
+lease is held; the mirror is not an alternate hosted implementation or query
+source. Actions/static SQLite reconstruction remains independent.
 
 ## 10. Resource, security, and privacy requirements
 
