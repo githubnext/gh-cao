@@ -87,8 +87,12 @@ For agents, install the [CAO plugin](docs/agent-plugin.md) and use the task skil
 
 ## Project
 
-See [Contributing](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md),
-and [Support](SUPPORT.md). Report vulnerabilities privately through
-[Security](SECURITY.md). Maintained by [GitHub Next](https://github.com/githubnext).
+- Want to contribute? Read [Contributing](CONTRIBUTING.md).
+- Help keep the community welcoming: follow the
+  [Code of Conduct](CODE_OF_CONDUCT.md).
+- Need support? Check out [Support](SUPPORT.md).
+- Report vulnerabilities privately through [Security](SECURITY.md).
+
+Maintained by [GitHub Next](https://github.com/githubnext).
 
 Licensed under the [MIT License](LICENSE).
