@@ -480,8 +480,8 @@
       "description": "Trace workflow intent through safe outputs, accepted changes and independent repository measurements.",
       "intent": "Explain one workflow value result through its intent, safe outputs, acceptance and native evidence.",
       "subject": "One coherent published evidence packet and independently measured repository history.",
-      "objective": "Inspect the result and follow the exact evidence behind it.",
-      "acceptance": "Read the same packet as its Value card; preserve zero, negative, incomplete and unverified evidence. No causal score or interactive GitHub acquisition.",
+      "objective": "Inspect the result and follow the exact evidence behind it by category without scanning one unbounded page.",
+      "acceptance": "Read the same complete packet as its Value card; preserve zero, negative, incomplete and unverified evidence. Disclose one counted category at a time and progressively render searchable sortable tables without truncating their query sources. No causal score or interactive GitHub acquisition.",
       "experimental": false,
       "parameters": [
         {
