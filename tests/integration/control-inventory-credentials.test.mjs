@@ -471,6 +471,7 @@ test("App inventory scopes group owners and split tokens without an installation
 test("PAT resolution separates control from target and rejects missing, mixed or unavailable mappings", async () => {
   const env = {
     CAO_AUTH_MODE: "pat", CAO_CONTROL_READ_PAT: "control-pat", CAO_INVENTORY_READ_PAT: "inventory-pat",
+    CAO_WORKFLOW_TOKEN: "workflow-token",
     CAO_INVENTORY_PAT_REPOSITORY: "acme/private-a",
     CAO_READ_PAT_REPOSITORIES: JSON.stringify({
       "acme/control": "CONTROL_PAT", "acme/private-a": "TARGET_PAT", "acme/private-b": "OTHER_PAT",
