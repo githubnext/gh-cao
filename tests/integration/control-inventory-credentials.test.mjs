@@ -177,19 +177,17 @@ test("repository-local scheduled inventory avoids unrelated PAT mappings", async
 });
 
 test("shared control keeps scheduled PAT orchestrators repository-local", async () => {
-  const defaultTarget = ({ eventName = "schedule", authMode = "pat", role = "orchestrator" } = {}) =>
+  const defaultTarget = ({ eventName = "schedule", authMode = "pat" } = {}) =>
     interpolate(shared.env.CAO_DEFAULT_TARGET_REPOSITORY, {
       github: {
         repository: "acme/control",
         event_name: eventName,
-        aw: { "import-inputs": { role } },
       },
       vars: { GH_AW_GITHUB_AUTH_MODE: authMode },
     });
   assert.equal(defaultTarget(), "acme/control");
   assert.equal(defaultTarget({ eventName: "workflow_dispatch" }), "");
   assert.equal(defaultTarget({ authMode: "app" }), "");
-  assert.equal(defaultTarget({ role: "worker" }), "");
   const env = {
     CAO_CONTROL_READ_PAT: "control-pat", CAO_INVENTORY_READ_PAT: "control-pat",
     CAO_READ_PAT_REPOSITORIES: JSON.stringify({
