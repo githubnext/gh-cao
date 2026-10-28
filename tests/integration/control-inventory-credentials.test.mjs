@@ -38,7 +38,7 @@ async function scenario({
   const api = await inventoryApi({ policy: document, ...options });
   const directory = mkdtempSync(join(tmpdir(), "cao-inventory-credentials-"));
   const before = { ...process.env }, beforeExit = process.exitCode;
-  const globals = Object.fromEntries(["github", "inventoryGithub", "core", "getOctokit", "context"].map(name => [name, globalThis[name]]));
+  const globals = Object.fromEntries(["github", "inventoryGithub", "workflowGithub", "core", "getOctokit", "context"].map(name => [name, globalThis[name]]));
   const output = join(directory, "outputs");
   const summary = join(directory, "summary");
   const workflow = role === "direct" ? "direct-audit" : role === "standalone" ? "fleet-audit" : "__none__";
@@ -139,6 +139,7 @@ test("actual github-script uses target-scoped inventory tokens and control-only 
   const source = result.calls.filter(call => call.path.includes("/contents/") || call.path.endsWith("/actions/workflows"));
   assert.ok(source.every(call => ["workflow-token", "control-token"].includes(call.token)));
   assert.ok(source.filter(call => call.path.includes("/contents/")).every(call => call.query.ref === "1".repeat(40)));
+  assert.ok(source.filter(call => call.path.endsWith("/actions/workflows")).every(call => call.token === "workflow-token"));
   assert.equal(result.calls.find(call => call.path === "/repos/acme/private-a").token, "inventory-1");
 });
 
@@ -481,11 +482,13 @@ test("PAT resolution separates control from target and rejects missing, mixed or
       repositories, controlRepository: "acme/control", getOctokit: api.getOctokit,
       core: { setSecret() {} }, env: { ...env, ...changes },
     }, operation);
-    await invoke(["acme/private-a"], {}, async ({ control, inventory }) => {
+    await invoke(["acme/private-a"], {}, async ({ control, inventory, workflow }) => {
       await control.request("GET /repos/acme/control/actions/workflows");
       await inventory.request("GET /repos/acme/private-a");
+      await workflow.request("GET /repos/acme/control/actions/workflows");
     });
-    assert.equal(api.calls.find(call => call.path.endsWith("/actions/workflows")).token, "control-pat");
+    assert.deepEqual(api.calls.filter(call => call.path.endsWith("/actions/workflows")).map(call => call.token),
+      ["control-pat", "workflow-token"]);
     assert.equal(api.calls.find(call => call.path === "/repos/acme/private-a").token, "inventory-pat");
     await assert.rejects(invoke(["acme/private-b"]), /multiple PAT secrets/);
     await assert.rejects(invoke(["acme/private-a"], { CAO_INVENTORY_READ_PAT: "", CAO_WORKFLOW_TOKEN: "workflow-token" }), /credential is unavailable/);

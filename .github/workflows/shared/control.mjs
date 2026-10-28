@@ -119,9 +119,16 @@ function run(command, args, options = {}) {
 }
 
 async function githubRequest(endpoint, fields = {}, boundary = "control") {
-  const client = boundary === "inventory" ? globalThis.inventoryGithub : globalThis.github;
+  const client = boundary === "inventory"
+    ? globalThis.inventoryGithub
+    : boundary === "workflow"
+      ? globalThis.workflowGithub
+      : globalThis.github;
   if (boundary === "inventory" && globalThis.github && !client) {
     throw new InventoryError("inventory-credential-unavailable", "The inventory client has not been resolved for the admitted scope.");
+  }
+  if (boundary === "workflow" && globalThis.github && !client) {
+    throw new InventoryError("workflow-credential-unavailable", "The job-scoped workflow credential is unavailable.");
   }
   if (!client?.request) return null;
   const [path, query = ""] = endpoint.split("?", 2);
@@ -660,6 +667,7 @@ async function loadWorkflowInventory(repository) {
   for (let page = 1; page <= 101; page += 1) {
     const parsed = parseJsonOutput(await ghApi(`repos/${repository}/actions/workflows?per_page=100&page=${page}`, {
       jq: ".workflows[] | {id, name, path, state}",
+      boundary: "workflow",
     }));
     const batch = Array.isArray(parsed) ? parsed : parsed.workflows ?? [parsed];
     if (page > 100) {
@@ -1268,9 +1276,10 @@ async function precompute() {
       await withInventoryCredentials({
         repositories, controlRepository: options.controlRepository,
         getOctokit: globalThis.getOctokit, core: globalThis.core,
-      }, async ({ control, inventory, profile }) => {
+      }, async ({ control, inventory, workflow, profile }) => {
         globalThis.github = control;
         globalThis.inventoryGithub = inventory;
+        globalThis.workflowGithub = workflow;
         logDecision("inventory-credential", "resolved", { profile, repository_count: repositories.length });
         try {
           await preparePrecompute(policy, repositories);
@@ -1283,6 +1292,7 @@ async function precompute() {
     } finally {
       globalThis.github = original;
       delete globalThis.inventoryGithub;
+      delete globalThis.workflowGithub;
     }
     return;
   }

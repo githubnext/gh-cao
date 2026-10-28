@@ -269,6 +269,13 @@ export async function withInventoryCredentials({
       controlToken = profile === "legacy-token" ? env.CAO_LEGACY_READ_TOKEN : env.CAO_WORKFLOW_TOKEN;
     }
     const control = octokit(controlToken);
+    let workflowClient;
+    const workflow = {
+      request(...args) {
+        workflowClient ??= octokit(env.CAO_WORKFLOW_TOKEN);
+        return workflowClient.request(...args);
+      },
+    };
     const inventory = {
       async request(route, parameters) {
         const match = /^GET \/repos\/([^/]+\/[^/?]+)(?:[/?]|$)/.exec(route);
@@ -281,7 +288,7 @@ export async function withInventoryCredentials({
         }
       },
     };
-    return await operation({ control, inventory, profile });
+    return await operation({ control, inventory, workflow, profile });
   } catch (error) {
     failure = credentialFailure(error);
     throw failure;

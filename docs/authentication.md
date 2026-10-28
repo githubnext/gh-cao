@@ -65,6 +65,9 @@ gh-aw strict-mode validation must be able to inspect the declared scopes.
 Admission reads policy at the exact `github.workflow_sha` with the control
 repository's job token. After admission, shared control resolves the selected
 read profile and creates **separate control and inventory Octokit clients**.
+Orchestrator precompute reads the control repository's current workflow states
+with the job-scoped token, whose `Actions: read` permission is declared on
+`pre_activation`, instead of spending a shared App or PAT rate-limit budget.
 Changing `GH_TOKEN` does not change a github-script client.
 
 The pre-activation App action remains restricted to the control repository with
