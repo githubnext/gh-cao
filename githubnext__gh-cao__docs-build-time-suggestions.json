@@ -1,35 +1,7 @@
 {
-  "source_sha": "fa6b2b8e1cf34783808cab8d52138e471a9f6c97",
-  "next_category": "reusable dashboard generation",
+  "source_sha": "f03c7805a94f025f289f90453e0e5a1e0769cf12",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-27T16:22:56Z",
-      "worker_run_id": "40539497698",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        40536817575,
-        40535119161,
-        40533523862,
-        40531150100,
-        40531081926,
-        40527098544,
-        40525463266,
-        40525313767,
-        40525295917,
-        40524803093,
-        40521683326,
-        40521173089,
-        40517410838,
-        40515979657,
-        40514774034,
-        40512623935,
-        40508323254,
-        40507718470,
-        40507316939,
-        40507164615
-      ],
-      "outcome": "complete no-op: the 2026-10-27T12:52:01Z to 2026-10-27T16:01:50Z latest-20 completed docs.yml window contained 16 successful, three skipped, and one cancelled run, with no failed runs. Seven successful full build-and-deploy paths were comparable across two push, three workflow_run, and two schedule triggers at four source SHAs. Full elapsed workflow time was 135.0s median (958.8s p90); execution excluding initial queue was 101.0s (447.0s p90), initial queue was 4.0s (330.2s p90), build was 72.0s (114.2s p90), deploy was 13.0s (46.0s p90), and the five latest successful CAO Dashboard producer build jobs were 19.0s (20.8s p90). Repeated docs costs were checkout 24.0s median, npm ci 22.0s, Astro generation 15.0s, dashboard restore 1.0s, Pages upload 2.0s, and deploy-pages 9.0s in the five non-service-outlier runs. Bounded logs for the five latest full builds verified exact central-agentic-ops-dashboard cache hits; trusted step metadata showed dashboard artifact fallback skipped in all seven builds. Producer-side activity restore was 1.0s median, dependency installation 2.0s, Dashboard Language assembly 2.0s, and artifact upload 2.0s. Schedule run 40521683326 was disclosed as a 734-second initial concurrency-queue outlier, push run 40521173089 as a 744-second wait between build and deploy plus a 45-second Deploy Pages service-time outlier, workflow_run 40525295917 as a 42-second Deploy Pages service-time outlier, and push run 40525313767 as cancelled and excluded. No reusable-dashboard recommendation was made: the dashboard is generated independently in 19.0s median and consumed from cache in 1.0s median; removing the entire docs-side reuse cost would save about 1% of median execution, below both actionability thresholds, while rebuilding or bypassing freshness would weaken performance or correctness. The next category is artifact transfer and Pages packaging."
-    },
     {
       "evaluated_at": "2026-10-27T16:55:05Z",
       "worker_run_id": "40544644910",
@@ -631,6 +603,34 @@
         40628544326
       ],
       "outcome": "complete no-op: the 2026-10-28T03:46:02Z to 2026-10-28T07:05:24Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Five successful full build-and-deploy paths were comparable across one push, two workflow_run, and two schedule triggers at three source SHAs; the other 13 successful runs were freshness-only. Full elapsed workflow time was 118.0s median (143.6s p90); execution excluding initial queue was 116.0s (135.6s p90), initial queue was 4.0s (10.4s p90), docs build was 69.0s (90.4s p90), deploy was 12.0s (24.4s p90), and the five latest successful CAO Dashboard producer build jobs were 19.0s (26.8s p90). Repeated docs costs were checkout 23.0s median, setup-node 4.0s, npm ci 22.0s, Astro documentation generation 12.0s (14.0s p90), dashboard restore 1.0s, Pages upload 3.0s, and deploy-pages 8.0s. Bounded logs verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits in all five builds; dashboard artifact fallback was skipped throughout. Schedule run 40639891027 disclosed a 144-second initial concurrency queue before a freshness-only execution; no failed or cancelled run was hidden. No Astro recommendation was made: even eliminating the entire 12.0s median documentation-generation step would save only 10.3% of median execution and 10.2% of full elapsed time, below the 15% and 60-second actionability thresholds. The next category is reusable dashboard generation."
+    },
+    {
+      "evaluated_at": "2026-10-28T08:25:10Z",
+      "worker_run_id": "40656093964",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        40656164326,
+        40653890777,
+        40652162832,
+        40650606775,
+        40650513216,
+        40649976831,
+        40649378777,
+        40647604073,
+        40647428337,
+        40646402108,
+        40645663555,
+        40644937154,
+        40644508717,
+        40644064472,
+        40641401449,
+        40639891027,
+        40638490973,
+        40638456932,
+        40638231910,
+        40637270292
+      ],
+      "outcome": "complete no-op: the 2026-10-28T05:18:57Z to 2026-10-28T08:21:13Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Seven successful full build-and-deploy paths were comparable across one push, three workflow_run, and three schedule triggers at four source SHAs; the other ten successful runs were freshness-only. Full elapsed workflow time was 118.0s median (140.4s p90); execution excluding initial queue was 114.0s (133.2s p90), initial queue was 5.0s (9.0s p90), docs build was 69.0s (97.8s p90), deploy was 12.0s (22.6s p90), and the five latest successful CAO Dashboard producer build jobs were 22.0s (28.8s p90). Repeated docs costs were checkout 23.0s median, npm ci 22.0s, Astro generation 14.0s, dashboard restore 1.0s (3.4s p90), Pages upload 3.0s, and deploy-pages 8.0s. Bounded logs verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits in all seven builds; trusted step metadata showed dashboard artifact lookup and download fallback skipped throughout. Producer-side activity restore was 1.0s median, dashboard dependency installation 2.0s, Dashboard Language assembly 2.0s, and artifact upload 3.0s; activity upgrade varied from 1-11s. Schedule run 40644064472 had a 102-second build with 38-second checkout and 7-second dashboard restore, and schedule run 40638456932 had a 28-second deploy; both are disclosed in the p90 tail. No reusable-dashboard recommendation was made: dashboard production remains independent at 22.0s median and docs consumes the exact cached artifact in 1.0s median, so eliminating the entire docs-side reuse cost would save under 1% of median execution, below both actionability thresholds. The next category is artifact transfer and Pages packaging."
     }
   ]
 }
