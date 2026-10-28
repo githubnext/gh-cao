@@ -1,35 +1,7 @@
 {
-  "source_sha": "0513039fee228cc95698b282852f4d23fcc08f8b",
+  "source_sha": "186e74c9b3a7ec5672af0d2fecbb199dc1d653a0",
   "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-27T15:47:00Z",
-      "worker_run_id": "40533296133",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        40533523862,
-        40531150100,
-        40531081926,
-        40527098544,
-        40525463266,
-        40525313767,
-        40525295917,
-        40524803093,
-        40521683326,
-        40521173089,
-        40517410838,
-        40515979657,
-        40514774034,
-        40512623935,
-        40508323254,
-        40507718470,
-        40507316939,
-        40507164615,
-        40506023539,
-        40505055373
-      ],
-      "outcome": "complete no-op: the 2026-10-27T12:36:09Z to 2026-10-27T15:41:58Z latest-20 completed docs.yml window contained 16 successful, three skipped, and one cancelled run, with no failed runs. Eight successful full build-and-deploy paths were comparable across three push, three workflow_run, and two schedule triggers at five source SHAs. Full elapsed workflow time was 127.5s median (928.1s p90); execution excluding initial queue was 100.0s (368.0s p90), initial queue was 4.0s (262.9s p90), build was 71.5s (111.9s p90), deploy was 15.5s (45.5s p90), and the five latest successful CAO Dashboard producer build jobs were 19.0s (20.8s p90). Repeated docs costs were checkout 23.0s median, setup-node 3.5s, npm ci 18.5s (25.6s p90), Astro generation 13.0s, dashboard restore 1.0s, Pages upload 2.0s, and deploy-pages 12.0s. Bounded logs for the five latest full builds verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits; all still rebuilt 845 packages in 12-27s and skipped dashboard artifact fallback. Schedule run 40521683326 was disclosed as a 734-second initial concurrency-queue outlier, push run 40521173089 as a long mid-run serialization/deployment wait outlier, workflow_run 40525295917 as a 42-second Deploy Pages service-time outlier, and push run 40525313767 as cancelled and excluded. Exact-key installed-dependency caching remains potentially actionable because npm ci is 18.5% of median execution, but open issue #19689 already represents the same workflow change; current install timing is lower than its 23.0s baseline and does not materially strengthen or change the recommendation. No duplicate issue was created. The next category is Astro documentation generation."
-    },
     {
       "evaluated_at": "2026-10-27T15:58:24Z",
       "worker_run_id": "40535651693",
@@ -652,6 +624,13 @@
         40614467538
       ],
       "outcome": "incomplete: the 2026-10-28T01:20:41Z to 2026-10-28T05:01:24Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job metadata directly confirmed the five newly entered runs: schedule runs 40635565659, 40634164619, 40632846617, and 40631857559 executed only 10-13 second schedule-freshness jobs while build and deploy were skipped; workflow_run 40633154199 skipped all jobs. Combined with the immediately preceding overlapping bounded evaluation, only one successful full build-and-deploy path remains in the current window: workflow_run 40614467538. All 20 runs used source SHA 0513039fee228cc95698b282852f4d23fcc08f8b; the other 16 successful runs were freshness-only executions and three ineligible workflow_run callbacks were skipped. One comparable successful full path is below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, sufficient step-level repeated-cost analysis, cache-effectiveness verification across five comparable builds, the CAO Dashboard producer comparison, and a complete Astro documentation-generation evaluation could not be produced. No recommendation was made, and Astro documentation generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-28T06:28:34Z",
+      "worker_run_id": "40643716638",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable Astro documentation-generation determination could not be completed. No recommendation was made, and Astro documentation generation remains the next category."
     }
   ]
 }
