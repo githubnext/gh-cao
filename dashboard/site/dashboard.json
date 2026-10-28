@@ -89,6 +89,23 @@
         ]
       },
       {
+        "id": "workflow-value-overview",
+        "icon": "trophy",
+        "title": { "field": "overview-title", "title": "Workflow" },
+        "status": { "field": "trend-movement", "title": "Compared with goal" },
+        "detail-labels": "visible",
+        "labels": [{ "field": "overview-state", "title": "Collection" }, { "field": "overview-evidence", "title": "Evidence" }],
+        "details": [
+          { "field": "trend-label", "title": "Observed change" },
+          { "field": "trend-measure", "title": "Measure" },
+          { "field": "overview-reason", "title": "Collection reason" }
+        ],
+        "timing": [
+          { "field": "overview-captured", "type": "temporal", "format": "human-friendly-timestamp", "title": "Evidence captured", "icon": "clock" },
+          { "field": "overview-cutoff", "type": "temporal", "format": "human-friendly-timestamp", "title": "Evidence through", "icon": "calendar" }
+        ]
+      },
+      {
         "id": "workflow-value-result",
         "icon": "trophy",
         "title": { "field": "delta-label", "title": "Observed change" },
