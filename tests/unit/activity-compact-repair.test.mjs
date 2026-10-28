@@ -133,11 +133,45 @@ test('scoped collection refuses to discard unattributable evidence from a foreig
   const foreignOnly = path.join(directory, 'first-logs-foreign.jsonl');
   await writeFile(foreignOnly, jsonl([
     run('other/repo', 2),
+    { kind: 'safe_output_item', safe_output: { run_id: 99 } }
+  ]));
+  await assert.rejects(compactJsonlShards(directory, [groups[0]], 1024, {
+    excludeOutOfScope: true
+  }), /kind: safe_output_item; dependency: missing run identity/);
+  assert.equal(await readFile(source, 'utf8'), content);
+  assert.equal((await readdir(directory)).length, 2);
+});
+
+test('scoped collection resolves dependent evidence through an earlier compacted shard', async (t) => {
+  const safeOutput = { kind: 'safe_output_item', safe_output: { run_id: 1 } };
+  const { directory, source } = await fixture(t, [run('octo-a/b', 1)]);
+  const later = path.join(directory, 'first-logs-foreign.jsonl');
+  await writeFile(later, jsonl([run('other/repo', 2), safeOutput]));
+
+  const result = await compactJsonlShards(directory, [groups[0]], 1024, {
+    excludeOutOfScope: true
+  });
+
+  assert.equal(result.repairedShards, 1);
+  assert.equal(result.excludedRecords, 1);
+  assert.deepEqual(await groupRecords(result.groups[0]), [
+    { ...safeOutput, request: { repository: 'octo-a/b' } },
+    run('octo-a/b', 1)
+  ]);
+  await assert.rejects(readFile(source), { code: 'ENOENT' });
+  await assert.rejects(readFile(later), { code: 'ENOENT' });
+});
+
+test('cross-shard dependency repair still refuses conflicting parent identities', async (t) => {
+  const { directory, source, content } = await fixture(t, [run('octo-a/b', 1)]);
+  const conflicting = path.join(directory, 'first-logs-conflicting.jsonl');
+  await writeFile(conflicting, jsonl([
+    run('other/repo', 1),
     { kind: 'safe_output_item', safe_output: { run_id: 1 } }
   ]));
   await assert.rejects(compactJsonlShards(directory, [groups[0]], 1024, {
     excludeOutOfScope: true
-  }), /Foreign shard contains unattributable records/);
+  }), /kind: safe_output_item; dependency: conflicting run identity/);
   assert.equal(await readFile(source, 'utf8'), content);
   assert.equal((await readdir(directory)).length, 2);
 });

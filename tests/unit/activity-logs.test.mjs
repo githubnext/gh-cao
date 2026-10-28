@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
@@ -188,11 +188,26 @@ const run = (repository, run_id) => ({ schema_version: 2, kind: "run", run: {
 } });
 fs.writeFileSync(shard, [
   run("githubnext/gh-cao", 1),
+  { kind: "safe_output_item", safe_output: { run_id: 0, type: "create_issue" } },
   { kind: "github_api_rate_limit", rate_limit: { host: "github.com" } },
   run("other/repo", 2)
 ].map((record) => JSON.stringify(record)).join("\\n") + "\\n");
 `);
   await chmod(ghPath, 0o755);
+  await mkdir(item.logsPath, { recursive: true });
+  await writeFile(path.join(item.logsPath, "logs-restored.jsonl"), `${JSON.stringify({
+    schema_version: 2,
+    kind: "run",
+    run: {
+      repository: "githubnext/gh-cao",
+      run_id: 0,
+      organization: "githubnext",
+      workflow_name: "Sample",
+      workflow_path: ".github/workflows/sample.lock.yml",
+      status: "completed",
+      created_at: new Date().toISOString(),
+    },
+  })}\n`);
   const inventoryPath = path.join(item.root, "inventory-sources.json");
   await writeFile(inventoryPath, JSON.stringify({
     repositories: { rows: [], metadata: { completeness: "complete" } },
@@ -222,7 +237,19 @@ fs.writeFileSync(shard, [
     assert.equal(inventory[name].metadata["repository-failures"][0].repository, "githubnext/gh-cao");
   }
   const runs = await readGhAwLogShards(item.logsPath);
-  assert.deepEqual(runs.map((run) => run.repository), ["githubnext/gh-cao"]);
+  assert.deepEqual(runs.map((run) => run.repository), ["githubnext/gh-cao", "githubnext/gh-cao"]);
+  const records = (await Promise.all((await readdir(item.logsPath))
+    .filter((name) => name.endsWith(".jsonl"))
+    .map((name) => readFile(path.join(item.logsPath, name), "utf8"))))
+    .join("")
+    .trim()
+    .split("\n")
+    .map(JSON.parse);
+  assert.deepEqual(records.filter((record) => record.kind === "safe_output_item"), [{
+    kind: "safe_output_item",
+    request: { repository: "githubnext/gh-cao" },
+    safe_output: { run_id: 0, type: "create_issue" },
+  }]);
 });
 
 test("collect-logs.sh creates the drain3 weights destination directory before moving generated weights", async () => {

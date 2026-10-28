@@ -7,7 +7,7 @@ import { normalize } from '../../dashboard/site/src/data/normalize/index.js';
 import { ENTITY_COLLECTIONS } from '../cli-usage.mjs';
 import { UsageError } from './options.mjs';
 import { jsonlRecords, totalFileBytes } from './files.mjs';
-import { inspectShardRepositories, recordRepository } from './jsonl-identity.mjs';
+import { indexRunRepositories, inspectShardRepositories, recordRepository } from './jsonl-identity.mjs';
 
 export const DEFAULT_COMPACTED_JSONL_SHARD_BYTES = 4 * 1024 * 1024;
 
@@ -125,12 +125,12 @@ async function inspectJsonlCompaction(records) {
 
 async function compactJsonlShardGroup(directory, prefix, names, maxBytes, repository, ownership) {
   const sourcePaths = names.map((name) => path.join(directory, name));
-  const mixed = sourcePaths.some((filePath) => ownership.get(filePath).mixed);
+  const mixed = sourcePaths.some((filePath) => ownership.get(filePath).associatedRepositories.size > 1);
   const records = function* () {
     for (const filePath of sourcePaths) {
       const identity = ownership.get(filePath);
       for (const record of jsonlRecords([filePath])) {
-        if (!identity.mixed) {
+        if (identity.associatedRepositories.size <= 1) {
           yield record;
         } else if (identity.repositoryFor(record.value) === repository) {
           if (recordRepository(record.value)) yield record;
@@ -242,9 +242,14 @@ export async function compactJsonlShards(
   const directory = path.resolve(inputDirectory);
   const ownership = new Map();
   const excludedPaths = new Set();
-  for (const name of (await readdir(directory)).filter((name) => name.endsWith('.jsonl')).sort()) {
+  const names = (await readdir(directory)).filter((name) => name.endsWith('.jsonl')).sort();
+  const runRepositories = indexRunRepositories(names.map((name) => path.join(directory, name)));
+  for (const name of names) {
     const filePath = path.join(directory, name);
-    const identity = inspectShardRepositories(filePath, { excludeUnscopedRateLimits: excludeOutOfScope });
+    const identity = inspectShardRepositories(filePath, {
+      excludeUnscopedRateLimits: excludeOutOfScope,
+      runRepositories
+    });
     ownership.set(filePath, identity);
     if (!excludeOutOfScope && identity.mixed
         && [...identity.repositories].some((repository) => !groupsByRepository.has(repository))) {
@@ -252,13 +257,13 @@ export async function compactJsonlShards(
     }
     if (excludeOutOfScope && identity.repositories.size > 0) {
       const expectedPrefix = [...groupsByRepository.values()].some(({ prefix }) => name.startsWith(prefix));
-      const inScope = [...identity.repositories].some((repository) => groupsByRepository.has(repository));
+      const inScope = [...identity.associatedRepositories].some((repository) => groupsByRepository.has(repository));
       if (!expectedPrefix && !inScope && [...identity.repositories].some((repository) => !groupsByRepository.has(repository))) {
         throw new UsageError('Foreign shard lacks a declared download prefix; compaction requires operator repair');
       }
       if (expectedPrefix) excludedPaths.add(filePath);
     }
-    for (const repository of identity.repositories) {
+    for (const repository of identity.associatedRepositories) {
       if (groupsByRepository.has(repository)) groupsByRepository.get(repository).names.push(name);
     }
   }
@@ -271,10 +276,8 @@ export async function compactJsonlShards(
       const identity = ownership.get(filePath);
       const foreignOnly = [...identity.repositories].every((repository) => !groupsByRepository.has(repository));
       for (const { value } of jsonlRecords([filePath])) {
-        if (foreignOnly && !recordRepository(value) && value?.kind !== 'github_api_rate_limit') {
-          throw new UsageError('Foreign shard contains unattributable records; compaction requires operator repair');
-        }
-        if (!groupsByRepository.has(identity.repositoryFor(value))) excludedRecords += 1;
+        const repository = identity.repositoryFor(value, { allowShardFallback: !foreignOnly });
+        if (!groupsByRepository.has(repository)) excludedRecords += 1;
       }
     }
   }
@@ -295,7 +298,8 @@ export async function compactJsonlShards(
   return {
     command: 'compact-jsonl',
     inputDirectory: directory,
-    repairedShards: [...ownership.values()].filter((identity) => identity.mixed).length,
+    repairedShards: [...ownership.values()]
+      .filter((identity) => identity.associatedRepositories.size > 1).length,
     excludedRecords,
     groups
   };

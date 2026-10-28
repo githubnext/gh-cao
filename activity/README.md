@@ -96,13 +96,16 @@ dependent-record association. The bounded files limit peak browser parsing
 memory. Compaction automatically repairs mixed-repository shards on a best-effort
 basis by splitting records with unambiguous repository identities into the declared
 repository groups. Dependent records without a repository are associated only by
-an unambiguous run ID within the original shard. Record order is preserved, and
+an unambiguous run ID across the retained shard snapshot, including when a fresh
+wildcard append contains dependent evidence whose parent run remains in an earlier
+compacted shard. Record order is preserved, and
 the verified repository is added to those dependent records' request metadata so
 bounded shards remain attributable on subsequent compactions.
 `repairedShards` reports how many mixed shards were repaired. Contradictory identities
-within a record, unattributable records, or mixed shards containing undeclared
-repositories still fail closed without replacing the originals. Original shards
-are removed only after every group's output has been written successfully.
+within a record, missing or conflicting parent-run identities, unknown records, or
+mixed shards containing undeclared repositories still fail closed without replacing
+the originals. Original shards are removed only after every group's output has been
+written successfully.
 After a fresh per-repository download, the collector explicitly uses
 `--exclude-out-of-scope`: records with a verified foreign repository are removed
 from its scoped shard directory, and repository-free GitHub API rate-limit

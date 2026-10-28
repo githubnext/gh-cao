@@ -32,32 +32,66 @@ function recordRunIds(record) {
   return id == null ? [] : [String(id)];
 }
 
-export function inspectShardRepositories(filePath, { excludeUnscopedRateLimits = false } = {}) {
-  const repositories = new Set();
+function repositoryDependencyError(record, runIds, identities) {
+  const kind = typeof record?.kind === 'string' && /^[A-Za-z0-9_-]+$/.test(record.kind)
+    ? record.kind : 'unknown';
+  const dependency = runIds.length === 0
+    ? 'no run identity'
+    : identities.some((identity) => identity === null)
+      ? 'conflicting run identity'
+      : 'missing run identity';
+  return new UsageError(
+    `Shard contains conflicting repository identities with unattributable records; `
+    + `compaction requires operator repair (kind: ${kind}; dependency: ${dependency})`
+  );
+}
+
+export function indexRunRepositories(filePaths) {
   const runs = new Map();
+  for (const filePath of filePaths) {
+    for (const { value } of jsonlRecords([filePath])) {
+      const repository = recordRepository(value);
+      if (!repository) continue;
+      for (const id of recordRunIds(value)) {
+        if (!runs.has(id)) runs.set(id, repository);
+        else if (runs.get(id) !== repository) runs.set(id, null);
+      }
+    }
+  }
+  return runs;
+}
+
+export function inspectShardRepositories(
+  filePath,
+  { excludeUnscopedRateLimits = false, runRepositories } = {}
+) {
+  const repositories = new Set();
   for (const { value } of jsonlRecords([filePath])) {
     const repository = recordRepository(value);
     if (!repository) continue;
     repositories.add(repository);
-    for (const id of recordRunIds(value)) {
-      if (!runs.has(id)) runs.set(id, repository);
-      else if (runs.get(id) !== repository) runs.set(id, null);
-    }
   }
+  const runs = runRepositories ?? indexRunRepositories([filePath]);
   const mixed = repositories.size > 1;
-  const repositoryFor = (record) => {
+  const repositoryFor = (record, { allowShardFallback = true } = {}) => {
     const repository = recordRepository(record);
-    if (repository || !mixed) return repository ?? [...repositories][0] ?? null;
+    if (repository) return repository;
     if (excludeUnscopedRateLimits && record?.kind === 'github_api_rate_limit') return null;
-    const identities = recordRunIds(record).map((id) => runs.get(id));
-    if (!identities.length || !identities[0] || identities.some((identity) => identity !== identities[0])) {
-      throw new UsageError('Shard contains conflicting repository identities with unattributable records; compaction requires operator repair');
+    const runIds = recordRunIds(record);
+    const identities = runIds.map((id) => runs.get(id));
+    if (identities.length > 0 && identities[0]
+        && identities.every((identity) => identity === identities[0])) {
+      return identities[0];
     }
-    return identities[0];
+    if (!mixed && allowShardFallback && !identities.some((identity) => identity === null)) {
+      return [...repositories][0] ?? null;
+    }
+    throw repositoryDependencyError(record, runIds, identities);
   };
-  // Validate every association before any compaction output is written.
-  if (mixed) {
-    for (const { value } of jsonlRecords([filePath])) repositoryFor(value);
+  const associatedRepositories = new Set(repositories);
+  for (const { value } of jsonlRecords([filePath])) {
+    const repository = repositoryFor(value);
+    if (repository) associatedRepositories.add(repository);
   }
-  return { repositories, mixed, repositoryFor };
+  return { repositories, associatedRepositories, mixed, repositoryFor };
 }
