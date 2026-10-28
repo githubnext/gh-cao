@@ -273,6 +273,7 @@ describe('native workflow value production contract', () => {
       mark: 'list', list: { card: contract.card, drill: { page: contract.reportPage } }
     });
     const report = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === contract.reportPage);
+    expect(report.acceptance).toBe(contract.reportAcceptance);
     expect(report.views[0]).toMatchObject({
       mark: 'element', element: contract.reportElement, data: { sources: contract.reportSources }
     });

@@ -136,7 +136,7 @@ Named elements own specialized DOM, accessibility, interaction, local state, and
 | `environment-defaults` | Edits the full gh-aw defaults YAML through declared `gh aw env` actions, with scope selection, dry-run preview, explicit approval, and private temporary-file transport; does not query activity evidence or grant rollout authority. |
 | `prompt-wizard` | Renders JSON-declared authoring steps and conditional fields, validates explicit choices, and uses the standard prompt button to review and copy an AW or Campaign generation prompt; has no operational data sources or command execution. |
 | `measure-history` | Presents reusable grouped temporal-measure history from declarative query results. |
-| `workflow-value-report` | Presents query-prepared workflow value, a linked snapshot plot and an evidence disclosure; owns only presentation, scoped reveal/focus and reactive cleanup. |
+| `workflow-value-report` | Presents query-prepared workflow value, a linked snapshot plot and counted one-at-a-time evidence categories; tabular categories reuse the shared searchable, sortable 25-row disclosure and own only presentation, scoped reveal/focus and reactive cleanup. |
 | `workflow-value-snapshot` | Presents exact immutable item links and distinguishes omitted item evidence from an explicitly empty population. |
 | `factory-header` | Presents campaign status, retained-output context, work in motion, and weekly rhythm. |
 | `factory-floor` | Presents linked repository, run, dispatch, and value stations. |
@@ -150,11 +150,14 @@ Named elements own specialized DOM, accessibility, interaction, local state, and
 ## Testing standard
 
 The value report uses named elements because standard marks cannot compose its
-scoped evidence-reveal buttons, focus preservation and exact-item snapshot
-navigation into one compact report. Its counts, time periods, relationships,
-coverage checks, direction and comparison labels remain Dashboard Language
-queries in `dashboard-fragments/workflow-value.json`. The Value card and full
-report share the same summary query and frozen evidence identity. The
+scoped evidence-reveal buttons, category focus preservation, progressive table
+disclosure and exact-item snapshot navigation into one compact report. Evidence
+categories expose their counts and open one at a time. Searchable and sortable
+tables initially attach 25 rows and reveal more explicitly without truncating
+their declarative query sources. Counts, time periods, relationships, coverage
+checks, direction and comparison labels remain Dashboard Language queries in
+`dashboard-fragments/workflow-value.json`. The Value card and full report share
+the same summary query and frozen evidence identity. The
 first-to-last snapshot comparison is descriptive, not an alert policy or causal
 credit; missing data never becomes zero.
 

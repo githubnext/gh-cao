@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWorkflowValueReport, renderWorkflowValueSnapshot } from '../../src/components/workflow-value-report.js';
 import { configureSourceLoader, publishSource, resetSourceStore } from '../../src/source-store.js';
 import { dashboardViewAliasName } from '../../src/data/queries/view-payload-compiler.js';
+import { DataRequestWorker } from '../data-request-worker.js';
 import fragment from '../../dashboard-fragments/workflow-value.json' with { type: 'json' };
 
 const reportData = fragment.pages.find(page => page.id === 'value-report')?.views[0].data;
@@ -39,9 +40,13 @@ function context(rows = [[summary], [], [], [], [], [], [
     sources: Object.fromEntries(names.map((name, index) => [name, { source: name, metadata, rows: rows[index] ?? [] }]))
   };
 }
+beforeEach(() => {
+  vi.stubGlobal('Worker', DataRequestWorker);
+});
 afterEach(() => {
   document.body.replaceChildren();
   resetSourceStore();
+  vi.unstubAllGlobals();
 });
 
 describe('native workflow value report', () => {
@@ -61,7 +66,97 @@ describe('native workflow value report', () => {
     expect(loader).not.toHaveBeenCalled();
     root.querySelector('button')?.click();
     expect(root.querySelector('details')?.open).toBe(true);
-    expect(document.activeElement).toBe(root.querySelector('[data-value-section="outputs"]'));
+    expect((/** @type {HTMLDetailsElement | null} */ (root.querySelector('[data-value-section="outputs"]')))?.open).toBe(true);
+    expect(document.activeElement).toBe(root.querySelector('[data-value-section="outputs"] > summary'));
+  });
+
+  it('discloses one counted category at a time and progressively renders searchable sortable evidence', async () => {
+    const input = context();
+    input.sources[names[3]].rows = Array.from({ length: 60 }, (_, index) => {
+      const number = String(index + 1).padStart(3, '0');
+      return {
+        label: `Output ${number}`,
+        url: `https://github.com/org/repo/issues/${index + 1}`,
+        at: `2026-09-${String(index % 28 + 1).padStart(2, '0')}T00:00:00Z`,
+        state: index % 2 === 0 ? 'open' : 'closed',
+        origin: 'receipt-verified'
+      };
+    });
+    input.sources[names[4]].rows = [{
+      'output-label': 'Output 001',
+      'output-url': 'https://github.com/org/repo/issues/1',
+      'implementation-label': 'Implementation 001',
+      'implementation-url': 'https://github.com/org/repo/pull/1',
+      'trail-accepted-at': metadata['as-of'],
+      'implementation-value': 0
+    }];
+    input.sources[names[7]].rows = [{ label: 'Tests', status: 'verified', detail: 'Focused checks passed.' }];
+    input.sources[names[8]].rows = [{ label: 'Attribution', detail: 'Contribution is not exclusive causal credit.' }];
+    const root = renderWorkflowValueReport(input);
+    document.body.append(root);
+
+    const outputButton = root.querySelector('[aria-label^="Safe outputs:"]');
+    expect(outputButton).toBeInstanceOf(HTMLButtonElement);
+    /** @type {HTMLButtonElement} */ (outputButton).click();
+    const outputCategory = /** @type {HTMLDetailsElement} */ (root.querySelector('[data-value-section="outputs"]'));
+    const outputSummary = outputCategory.querySelector(':scope > summary');
+    expect(outputCategory.open).toBe(true);
+    expect(outputSummary?.textContent).toContain('60 outputs');
+    expect(document.activeElement).toBe(outputSummary);
+    expect([...root.querySelectorAll('[data-value-section]')].filter(category => (
+      category instanceof HTMLDetailsElement && category.open
+    ))).toEqual([outputCategory]);
+
+    const table = /** @type {HTMLElement} */ (root.querySelector('[data-evidence-table="outputs"]'));
+    const attachedRows = () => [...table.querySelectorAll('tbody > tr')]
+      .filter(row => row.parentElement instanceof HTMLTableSectionElement);
+    await vi.waitFor(() => expect(attachedRows()).toHaveLength(25));
+    await vi.waitFor(() => expect(table.querySelector('.table-filter-result')?.textContent).toBe('Showing 25 of 60 outputs'));
+
+    const outputSort = /** @type {HTMLButtonElement} */ (table.querySelector('[data-table-sort="0"]'));
+    outputSort.click();
+    outputSort.click();
+    await vi.waitFor(() => expect(outputSort.closest('th')?.getAttribute('aria-sort')).toBe('descending'));
+    await vi.waitFor(() => {
+      const rows = attachedRows();
+      const first = /** @type {HTMLTableRowElement} */ (rows[0]).cells[0]?.textContent ?? '';
+      const last = /** @type {HTMLTableRowElement} */ (rows.at(-1)).cells[0]?.textContent ?? '';
+      expect(first.localeCompare(last)).toBeGreaterThan(0);
+    });
+    const firstSortedLabel = /** @type {HTMLTableRowElement} */ (attachedRows()[0]).cells[0]?.textContent ?? '';
+
+    const filter = /** @type {HTMLInputElement} */ (table.querySelector('[data-table-filter]'));
+    filter.value = firstSortedLabel;
+    filter.dispatchEvent(new Event('input'));
+    await vi.waitFor(() => expect(attachedRows()).toHaveLength(1));
+    expect(table.querySelector('.table-filter-result')?.textContent).toBe('Showing 1 of 1 output');
+
+    filter.value = '';
+    filter.dispatchEvent(new Event('input'));
+    await vi.waitFor(() => expect(attachedRows()).toHaveLength(25));
+    /** @type {HTMLButtonElement} */ (table.querySelector('[data-table-more]')).click();
+    await vi.waitFor(() => expect(attachedRows()).toHaveLength(50));
+    expect(table.querySelector('.table-filter-result')?.textContent).toBe('Showing 50 of 60 outputs');
+    /** @type {HTMLButtonElement} */ (table.querySelector('[data-table-more]')).click();
+    await vi.waitFor(() => expect(table.querySelector('.table-filter-result')?.textContent).toBe('Showing 60 of 60 outputs'));
+    expect(attachedRows()).toHaveLength(50);
+    expect(table.querySelector('.table-filter-result')?.textContent).toBe('Showing 60 of 60 outputs');
+
+    const trailsCategory = /** @type {HTMLDetailsElement} */ (root.querySelector('[data-value-section="trails"]'));
+    /** @type {HTMLElement} */ (trailsCategory.querySelector(':scope > summary')).click();
+    await vi.waitFor(() => {
+      expect(trailsCategory.open).toBe(true);
+      expect(outputCategory.open).toBe(false);
+    });
+
+    /** @type {HTMLButtonElement} */ (root.querySelector('.value-report-quality')).click();
+    const checksCategory = /** @type {HTMLDetailsElement} */ (root.querySelector('[data-value-section="checks"]'));
+    await vi.waitFor(() => {
+      expect(checksCategory.open).toBe(true);
+      expect(trailsCategory.open).toBe(false);
+    });
+    expect(checksCategory.querySelector(':scope > summary')?.textContent).toContain('1 check · 1 limitation');
+    expect(document.activeElement).toBe(checksCategory.querySelector(':scope > summary'));
   });
 
   it('does not turn unavailable source metadata into a successful report', () => {
@@ -83,6 +178,7 @@ describe('native workflow value report', () => {
     await vi.waitFor(() => expect(root.querySelector('.value-report-movement')?.textContent).toBe('↓ -1 files · Better'));
     expect(root.querySelector('.value-report-number')?.textContent).toBe('15 files');
     expect(root.querySelector('details')?.open).toBe(true);
+    expect((/** @type {HTMLDetailsElement | null} */ (root.querySelector('[data-value-section="outputs"]')))?.open).toBe(true);
     expect(document.activeElement).toBe(focused);
     root.remove();
     await Promise.resolve();

@@ -170,8 +170,17 @@ for (const width of [1440, 390]) {
     const outputs = page.getByRole('button', { name: 'Safe outputs: 1 issues. Explore evidence.' });
     await outputs.focus();
     await outputs.press('Enter');
-    await expect(page.locator('[data-value-section="outputs"]')).toBeFocused();
+    const outputCategory = page.locator('[data-value-section="outputs"]');
+    const outputSummary = outputCategory.locator(':scope > summary');
+    await expect(outputCategory).toHaveJSProperty('open', true);
+    await expect(outputSummary).toBeFocused();
+    await expect(outputSummary).toContainText('1 output');
+    await expect(page.locator('[data-value-section][open]')).toHaveCount(1);
     await expect(page.locator('[data-value-section="trails"] a[href="https://github.com/octo/example/pull/2"]')).toHaveCount(1);
+    await page.getByRole('button', { name: 'Quality checks and evidence limits' }).click();
+    await expect(page.locator('[data-value-section="checks"]')).toHaveJSProperty('open', true);
+    await expect(page.locator('[data-value-section="checks"] > summary')).toBeFocused();
+    await expect(outputCategory).not.toHaveAttribute('open', '');
     await page.locator('details.value-report-evidence > summary').click();
     await page.locator('.value-report-plot svg a').first().locator('circle').click();
     await expect(page).toHaveURL(/#page-value-snapshot\?snapshot=/);

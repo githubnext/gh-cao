@@ -9,6 +9,7 @@
   "collectionSource": "workflow-value-collections",
   "reportPage": "value-report",
   "reportElement": "workflow-value-report",
+  "reportAcceptance": "Read the same complete packet as its Value card; preserve zero, negative, incomplete and unverified evidence. Disclose one counted category at a time and progressively render searchable sortable tables without truncating their query sources. No causal score or interactive GitHub acquisition.",
   "snapshotPage": "value-snapshot",
   "snapshotElement": "workflow-value-snapshot",
   "snapshotArguments": [{ "name": "snapshot", "field": "snapshot-route" }],

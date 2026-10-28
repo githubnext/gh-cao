@@ -4,16 +4,19 @@
  */
 import { h, svgAnchor } from '../dom.js';
 import { createDebug } from '../debug.js';
-import { render, state } from '../reactive.js';
+import { render } from '../reactive.js';
 import { formatNumber } from '../view-formatters.js';
 import { bindFactorySources, createFactoryScope } from './factory-elements.js';
 import { externalAnchorAttrs } from './link-content.js';
+import { renderTableRegion } from './table-region.js';
 import { isSafeHttpsUrl, renderIconSpan, renderLoadingMessage, renderVisualizationEmptyMessage } from './ui-primitives.js';
 
 const debugWorkflowValueReport = createDebug('workflow-value-report');
+const EVIDENCE_PAGE_SIZE = 25;
 
 /** @typedef {Record<string, unknown>} Row */
 /** @typedef {import('./ui-elements.js').ElementRenderContext} Context */
+/** @typedef {string | HTMLElement | { content: string | HTMLElement, sortValue?: string | number }} EvidenceCell */
 
 /** @param {unknown} value */
 const text = value => typeof value === 'string' ? value : '';
@@ -21,6 +24,10 @@ const text = value => typeof value === 'string' ? value : '';
 const quantity = value => typeof value === 'number' && Number.isFinite(value) ? formatNumber(value) : 'Unknown';
 /** @param {unknown} value */
 const date = value => text(value) ? new Date(text(value)).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' }) : 'Not retained';
+/** @param {number} value @param {string} singular @param {string} [plural] */
+const countLabel = (value, singular, plural = `${singular}s`) => `${formatNumber(value)} ${value === 1 ? singular : plural}`;
+/** @param {string | HTMLElement} content @param {string | number} sortValue */
+const sortableCell = (content, sortValue) => ({ content, sortValue });
 
 /** @param {unknown} label @param {unknown} url */
 function evidenceLink(label, url) {
@@ -60,25 +67,35 @@ function boundEvidence(context, draw) {
 
 /** @param {Context} context */
 export function renderWorkflowValueReport(context) {
-  const expanded = state(false);
+  let evidenceExpanded = false;
+  /** @type {string | null} */
+  let activeEvidenceSection = null;
   return boundEvidence(context, ([headers, sources, requirements, outputs, trails, files, snapshots, checks, limitations, origins]) => {
     const summary = headers[0];
     const root = h('article', { className: 'workflow-value-report' });
-    const evidence = h('details', { className: 'value-report-evidence', open: expanded.get(),
+    const evidence = h('details', { className: 'value-report-evidence', open: evidenceExpanded,
       onToggle: (/** @type {Event} */ event) => {
-        if (event.currentTarget instanceof HTMLDetailsElement) expanded.set(event.currentTarget.open);
+        if (event.currentTarget instanceof HTMLDetailsElement) evidenceExpanded = event.currentTarget.open;
       } },
-      h('summary', null, 'Explore evidence'));
+      h('summary', null,
+        h('span', null, 'Explore evidence'),
+        h('span', { className: 'value-report-evidence-count' }, '5 categories')));
     /** @param {string} id @param {Event} event */
     const reveal = (id, event) => {
       debugWorkflowValueReport({ event: 'evidence-revealed', section: id });
       const owner = event.currentTarget instanceof Element ? event.currentTarget.closest('.workflow-value-report') : null;
-      owner?.querySelector('.value-report-evidence')?.setAttribute('open', '');
-      expanded.set(true);
+      const disclosure = owner?.querySelector('.value-report-evidence');
+      if (disclosure instanceof HTMLDetailsElement) disclosure.open = true;
+      evidenceExpanded = true;
       const destination = owner?.querySelector(`[data-value-section="${id}"]`);
-      if (destination instanceof HTMLElement) {
+      if (destination instanceof HTMLDetailsElement) {
+        activeEvidenceSection = id;
+        for (const category of owner?.querySelectorAll('[data-value-section]') ?? []) {
+          if (category instanceof HTMLDetailsElement) category.open = category === destination;
+        }
         destination.scrollIntoView?.({ block: 'start' });
-        destination.focus({ preventScroll: true });
+        const categorySummary = destination.querySelector(':scope > summary');
+        if (categorySummary instanceof HTMLElement) categorySummary.focus({ preventScroll: true });
       }
     };
     /** @param {string} label @param {unknown} value @param {string} unit @param {string} destination */
@@ -119,31 +136,63 @@ export function renderWorkflowValueReport(context) {
         h('h3', null, `Recent ${text(summary['result-label']) || 'linked results'}`),
         h('p', null, h('strong', null, quantity(summary['recent-result'])), ` ${text(summary['metric-unit'])} in 28 days · ${quantity(summary['previous-result'])} in the previous 28`)),
       h('button', { type: 'button', className: 'value-report-quality', onClick: reveal.bind(null, 'checks') }, 'Quality checks and evidence limits'));
-    /** @param {string} id @param {string} title @param {HTMLElement} content */
-    const section = (id, title, content) => h('section', { 'data-value-section': id, tabIndex: -1 }, h('h3', null, title), content);
+    /** @param {string} id @param {string} title @param {string} count @param {HTMLElement} content */
+    const section = (id, title, count, content) => h('details', {
+      className: 'value-report-evidence-category',
+      'data-value-section': id,
+      open: activeEvidenceSection === id,
+      onToggle: (/** @type {Event} */ event) => {
+        if (!(event.currentTarget instanceof HTMLDetailsElement)) return;
+        const category = event.currentTarget;
+        if (category.open) {
+          activeEvidenceSection = id;
+          const group = category.closest('.value-report-evidence');
+          for (const other of group?.querySelectorAll('[data-value-section]') ?? []) {
+            if (other instanceof HTMLDetailsElement && other !== category) other.open = false;
+          }
+        } else if (activeEvidenceSection === id) {
+          activeEvidenceSection = null;
+        }
+      }
+    },
+    h('summary', null,
+      h('span', null, title),
+      h('span', { className: 'value-report-evidence-count' }, count)),
+    h('div', { className: 'value-report-evidence-content' }, content));
     evidence.append(
-      h('p', { className: 'muted' }, 'Linked measurements demonstrate a contribution, not exclusive causal credit or proof that every safeguard passed. Independent repository state includes everyone’s work.'),
-      section('intent', 'Intent sources and acceptance requirements', h('div', null,
+      h('p', { className: 'muted value-report-evidence-intro' }, 'Linked measurements demonstrate a contribution, not exclusive causal credit or proof that every safeguard passed. Independent repository state includes everyone’s work.'),
+      section('intent', 'Intent sources and acceptance requirements',
+        `${countLabel(sources.length, 'source')} · ${countLabel(requirements.length, 'requirement')}`, h('div', null,
         h('ul', null, ...sources.map(row => h('li', null, evidenceLink(row.label, row.url)))),
         h('ul', null, ...requirements.map(row => h('li', null, text(row.label)))))),
-      section('outputs', 'Retained safe outputs', h('div', null, evidenceTable(
+      section('outputs', 'Retained safe outputs',
+        `${countLabel(outputs.length, 'output')} · ${countLabel(origins.length, 'origin link')}`, h('div', null, evidenceTable(
         ['Output', 'Created', 'State at cutoff', 'Origin'],
-        outputs.map(row => [evidenceLink(row.label, row.url), date(row.at), text(row.state), text(row.origin)]),
-        'No retained output facts. Missing context is not an empty cohort.'),
+        outputs.map(row => [evidenceLink(row.label, row.url), sortableCell(date(row.at), text(row.at)), text(row.state), text(row.origin)]),
+        'No retained output facts. Missing context is not an empty cohort.',
+        { id: 'outputs', label: 'Search retained safe outputs', noun: 'output' }),
         evidenceTable(['Output', 'Origin evidence'], origins.map(row => [
           evidenceLink(row['output-label'], row['output-url']), evidenceLink(row.label, row.url)
-        ]), 'No producer evidence links were retained.'))),
-      section('trails', 'Outputs → accepted implementations', evidenceTable(
+        ]), 'No producer evidence links were retained.',
+        { id: 'output-origins', label: 'Search output origin evidence', noun: 'link' }))),
+      section('trails', 'Outputs → accepted implementations',
+        countLabel(trails.length, 'trail'), evidenceTable(
         ['Safe output', 'Accepted implementation', 'Accepted', 'Native effect'],
         trails.map(row => [evidenceLink(row['output-label'], row['output-url']),
-          evidenceLink(row['implementation-label'], row['implementation-url']), date(row['trail-accepted-at']), quantity(row['implementation-value'])]),
-        'No accepted implementation trails were retained. Closed issues alone are not acceptance.')),
-      section('files', 'Measured changes and Git evidence', evidenceTable(
+          evidenceLink(row['implementation-label'], row['implementation-url']),
+          sortableCell(date(row['trail-accepted-at']), text(row['trail-accepted-at'])),
+          sortableCell(quantity(row['implementation-value']), typeof row['implementation-value'] === 'number' ? row['implementation-value'] : '')]),
+        'No accepted implementation trails were retained. Closed issues alone are not acceptance.',
+        { id: 'trails', label: 'Search accepted implementation trails', noun: 'trail' })),
+      section('files', 'Measured changes and Git evidence',
+        countLabel(files.length, 'evidence item'), evidenceTable(
         ['Implementation', 'Evidence', 'Observed relationship'],
         files.map(row => [evidenceLink(row['implementation-label'], row['implementation-url']), evidenceLink(row.label, row.url),
-          row.at ? date(row.at) : 'Not applicable']),
-        'Item-level implementation evidence was not retained.')),
-      section('checks', 'Quality checks and limitations', h('div', null,
+          row.at ? sortableCell(date(row.at), text(row.at)) : 'Not applicable']),
+        'Item-level implementation evidence was not retained.',
+        { id: 'files', label: 'Search measured changes and Git evidence', noun: 'item' })),
+      section('checks', 'Quality checks and limitations',
+        `${countLabel(checks.length, 'check')} · ${countLabel(limitations.length, 'limitation')}`, h('div', null,
         checks.length ? h('ul', null, ...checks.map(row => h('li', null,
           h('strong', null, `${text(row.label)}: ${text(row.status)}`), ` — ${text(row.detail)}`)))
           : h('p', null, 'Quality checks were not retained; full acceptance is not verified.'),
@@ -172,12 +221,56 @@ export function renderWorkflowValueSnapshot(context) {
   });
 }
 
-/** @param {string[]} headings @param {(string | HTMLElement)[][]} rows @param {string} empty */
-function evidenceTable(headings, rows, empty) {
+/**
+ * @param {string[]} headings
+ * @param {EvidenceCell[][]} rows
+ * @param {string} empty
+ * @param {{ id: string, label: string, noun: string, plural?: string }} options
+ */
+function evidenceTable(headings, rows, empty, options) {
   if (!rows.length) return h('p', { className: 'muted' }, empty);
-  return h('div', { className: 'value-report-table' }, h('table', null,
-    h('thead', null, h('tr', null, ...headings.map(heading => h('th', { scope: 'col' }, heading)))),
-    h('tbody', null, ...rows.map(row => h('tr', null, ...row.map(value => h('td', null, value)))))));
+  const bodyRows = rows.map(row => h('tr', null, ...row.map(value => {
+    const cell = typeof value === 'object' && value !== null && !(value instanceof HTMLElement)
+      ? value
+      : { content: value };
+    return h('td', cell.sortValue === undefined ? null : { 'data-sort-value': String(cell.sortValue) }, cell.content);
+  })));
+  const initialRows = bodyRows.slice(0, EVIDENCE_PAGE_SIZE);
+  const continuation = bodyRows.length > initialRows.length
+    ? {
+        token: String(initialRows.length),
+        totalRows: bodyRows.length,
+        load: async (/** @type {string} */ token) => {
+          const offset = Number(token);
+          if (!Number.isInteger(offset) || offset < 0 || offset > bodyRows.length) {
+            throw new TypeError('Invalid workflow value evidence continuation.');
+          }
+          const nextOffset = Math.min(offset + EVIDENCE_PAGE_SIZE, bodyRows.length);
+          return {
+            rows: bodyRows.slice(offset, nextOffset).filter(row => row instanceof HTMLTableRowElement),
+            continuationToken: nextOffset < bodyRows.length ? String(nextOffset) : undefined
+          };
+        }
+      }
+    : undefined;
+  const region = renderTableRegion({
+    tableClassName: 'custom-table',
+    regionClassName: 'value-report-table-region',
+    emptyMessage: empty,
+    colSpan: headings.length,
+    headCells: headings,
+    bodyRows: initialRows,
+    filterLabel: options.label,
+    filterPlaceholder: 'Search this evidence category',
+    lazyList: true,
+    pageSize: EVIDENCE_PAGE_SIZE,
+    continuation,
+    resultNoun: options.noun,
+    resultNounPlural: options.plural,
+    sortable: true
+  });
+  region.dataset.evidenceTable = options.id;
+  return region;
 }
 
 /** @param {Row[]} snapshots @param {string} direction */

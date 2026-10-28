@@ -115,8 +115,11 @@ chart points reveal the counted files with links at the measured Git revision.
 Dashed lines guide the eye between snapshots, not continuous observations.
 The plot states which direction is better; signed change shows whether the
 repository problem improved or worsened since the first snapshot.
-**Explore evidence** links each result to its issue, merged change, before/after
-files and measurement rules. Historical reductions
+**Explore evidence** groups intent, outputs, accepted implementations, Git
+evidence, and quality limits into counted categories that open one at a time.
+Evidence tables can be searched, sorted, and expanded beyond their initial
+25-row batch. The complete retained evidence remains available: the progressive
+display does not truncate the underlying dashboard queries. Historical reductions
 do not mean that many fewer files remain today.
 
 **Review results** asks for inspection, not retirement. **Check evidence** means
