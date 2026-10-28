@@ -103,6 +103,13 @@ bounded shards remain attributable on subsequent compactions.
 within a record, unattributable records, or mixed shards containing undeclared
 repositories still fail closed without replacing the originals. Original shards
 are removed only after every group's output has been written successfully.
+After a fresh per-repository download, the collector explicitly uses
+`--exclude-out-of-scope`: records with a verified foreign repository are removed
+from its scoped shard directory, and repository-free GitHub API rate-limit
+audits in mixed shards are omitted rather than assigned to the wrong repository.
+Unattributable dependent evidence, unknown records, and contradictory identities
+still fail closed. Exclusions are counted, warned about, and mark the collection
+partial; restored-cache compaction keeps the strict default.
 Failed collections never replace the published cache. Shards containing only
 out-of-range dated records are pruned by `gh aw logs --cache-before`. CAO also
 runs `cao recycle-cache` before compaction, between repository downloads, and

@@ -218,7 +218,8 @@ async function compactJsonlShardGroup(directory, prefix, names, maxBytes, reposi
 export async function compactJsonlShards(
   inputDirectory,
   groupDefinitions,
-  maxBytes = DEFAULT_COMPACTED_JSONL_SHARD_BYTES
+  maxBytes = DEFAULT_COMPACTED_JSONL_SHARD_BYTES,
+  { excludeOutOfScope = false } = {}
 ) {
   if (groupDefinitions.length === 0) throw new UsageError('At least one --group is required');
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) {
@@ -240,20 +241,43 @@ export async function compactJsonlShards(
   }
   const directory = path.resolve(inputDirectory);
   const ownership = new Map();
+  const excludedPaths = new Set();
   for (const name of (await readdir(directory)).filter((name) => name.endsWith('.jsonl')).sort()) {
     const filePath = path.join(directory, name);
-    const identity = inspectShardRepositories(filePath);
+    const identity = inspectShardRepositories(filePath, { excludeUnscopedRateLimits: excludeOutOfScope });
     ownership.set(filePath, identity);
-    if (identity.mixed && [...identity.repositories].some((repository) => !groupsByRepository.has(repository))) {
+    if (!excludeOutOfScope && identity.mixed
+        && [...identity.repositories].some((repository) => !groupsByRepository.has(repository))) {
       throw new UsageError('Mixed shard contains repositories outside the declared compaction groups; compaction requires operator repair');
+    }
+    if (excludeOutOfScope && identity.repositories.size > 0) {
+      const expectedPrefix = [...groupsByRepository.values()].some(({ prefix }) => name.startsWith(prefix));
+      const inScope = [...identity.repositories].some((repository) => groupsByRepository.has(repository));
+      if (!expectedPrefix && !inScope && [...identity.repositories].some((repository) => !groupsByRepository.has(repository))) {
+        throw new UsageError('Foreign shard lacks a declared download prefix; compaction requires operator repair');
+      }
+      if (expectedPrefix) excludedPaths.add(filePath);
     }
     for (const repository of identity.repositories) {
       if (groupsByRepository.has(repository)) groupsByRepository.get(repository).names.push(name);
     }
   }
   const groups = [];
-  const sourcePaths = new Set([...groupsByRepository.values()].flatMap(({ names }) =>
-    names.map((name) => path.join(directory, name))));
+  const sourcePaths = new Set([...excludedPaths, ...[...groupsByRepository.values()].flatMap(({ names }) =>
+    names.map((name) => path.join(directory, name)))]);
+  let excludedRecords = 0;
+  if (excludeOutOfScope) {
+    for (const filePath of sourcePaths) {
+      const identity = ownership.get(filePath);
+      const foreignOnly = [...identity.repositories].every((repository) => !groupsByRepository.has(repository));
+      for (const { value } of jsonlRecords([filePath])) {
+        if (foreignOnly && !recordRepository(value) && value?.kind !== 'github_api_rate_limit') {
+          throw new UsageError('Foreign shard contains unattributable records; compaction requires operator repair');
+        }
+        if (!groupsByRepository.has(identity.repositoryFor(value))) excludedRecords += 1;
+      }
+    }
+  }
   try {
     for (const [repository, { prefix, names }] of [...groupsByRepository].sort(([left], [right]) => left.localeCompare(right))) {
       groups.push({
@@ -272,6 +296,7 @@ export async function compactJsonlShards(
     command: 'compact-jsonl',
     inputDirectory: directory,
     repairedShards: [...ownership.values()].filter((identity) => identity.mixed).length,
+    excludedRecords,
     groups
   };
 }
