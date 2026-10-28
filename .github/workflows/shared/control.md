@@ -158,6 +158,7 @@ safe-outputs:
           });
 
 env:
+  CAO_DEFAULT_TARGET_REPOSITORY: ${{ github.event_name == 'schedule' && vars.GH_AW_GITHUB_AUTH_MODE == 'pat' && github.aw.import-inputs.role == 'orchestrator' && github.repository || '' }}
   CAO_CAMPAIGN: ${{ github.aw.import-inputs.campaign }}
   CAO_WORKFLOW: ${{ github.aw.import-inputs.workflow }}
   CAO_ROLE: ${{ github.aw.import-inputs.role }}
