@@ -3,13 +3,6 @@
   "next_category": "Astro documentation generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-27T11:39:25Z",
-      "worker_run_id": "40497439631",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable scheduling/concurrency determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-27T12:35:15Z",
       "worker_run_id": "40504150796",
       "category": "scheduling, concurrency, and avoidable rebuilds",
@@ -652,6 +645,13 @@
         40602534933
       ],
       "outcome": "incomplete: the 2026-10-27T23:30:02Z to 2026-10-28T03:21:30Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job metadata confirmed newly entered schedule runs 40626198865, 40624304931, and 40622863668 executed only 9-10 second schedule-freshness jobs while build and deploy were skipped; workflow_run 40622258385 skipped all jobs. Combined with the immediately preceding overlapping bounded evaluation, only three successful full build-and-deploy paths remain in the current window: workflow_run runs 40614467538 and 40613437079, and schedule run 40612181205, all at source SHA 0513039fee228cc95698b282852f4d23fcc08f8b. The other successful runs were freshness-only executions and three ineligible workflow_run callbacks were skipped. Three comparable successful full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, sufficient step-level repeated-cost analysis, cache-effectiveness verification across five comparable builds, the CAO Dashboard producer comparison, and a complete Astro documentation-generation evaluation could not be produced. No recommendation was made, and Astro documentation generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-28T03:35:55Z",
+      "worker_run_id": "40627363320",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable Astro documentation-generation determination could not be completed. No recommendation was made, and Astro documentation generation remains the next category."
     }
   ]
 }
