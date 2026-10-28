@@ -1,14 +1,7 @@
 {
   "source_sha": "3c0431373f3e8e2304fafb744acd5b413ef86d3b",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-10-27T19:33:52Z",
-      "worker_run_id": "40569661289",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable Astro documentation-generation determination could not be completed. No recommendation was made, and Astro documentation generation remains the next category."
-    },
     {
       "evaluated_at": "2026-10-27T19:54:08Z",
       "worker_run_id": "40572591964",
@@ -568,6 +561,34 @@
         40657616192
       ],
       "outcome": "complete no-op: the 2026-10-28T08:33:14Z to 2026-10-28T11:18:17Z latest-20 completed docs.yml window contained 19 successful and one skipped run, with no failed or cancelled runs. Seven successful full build-and-deploy paths were comparable across three push and four workflow_run triggers at four source SHAs; the other 12 successful runs were freshness-only. Full elapsed workflow time was 107.0s median (120.4s p90); execution excluding initial queue was 103.0s (116.4s p90), initial queue was 4.0s (4.0s p90), docs build was 76.0s (92.6s p90), deploy was 11.0s (12.4s p90), and the five latest successful CAO Dashboard producer build jobs were 32.0s (44.4s p90). Repeated docs costs were checkout 27.0s median, npm ci 19.0s, Astro generation 12.0s, dashboard restore 1.0s, Pages upload 4.0s, and deploy-pages 8.0s. Bounded logs verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits in all seven builds; dashboard artifact fallback was skipped throughout. Twelve freshness-only runs consumed 7-9 second schedule-freshness jobs, and schedule run 40672752810 waited about 25 seconds behind an active publication before its freshness check correctly skipped the build. No scheduling recommendation was made: the freshness gate already prevents avoidable scheduled rebuilds, its individual cost is below both actionability thresholds, separating or cancelling queued checks would not reduce full-build execution, and reducing the 15-minute safety schedule would weaken freshness. The next category is dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-10-28T11:33:09.887906Z",
+      "worker_run_id": "40680332971",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        40680580583,
+        40678873557,
+        40676727641,
+        40674688053,
+        40673755062,
+        40672752810,
+        40672565028,
+        40671149679,
+        40669820735,
+        40669548515,
+        40668814127,
+        40666811192,
+        40665581190,
+        40664902772,
+        40663496831,
+        40661073832,
+        40661014267,
+        40660119743,
+        40659149898,
+        40658725651
+      ],
+      "outcome": "complete no-op: the 2026-10-28T08:42:27Z to 2026-10-28T11:31:24Z latest-20 completed docs.yml window contained 19 successful and one skipped run, with no failed or cancelled runs. Seven successful full build-and-deploy paths were comparable across three push and four workflow_run triggers at four source SHAs; the other 12 successful runs were freshness-only. Full elapsed workflow time was 107.0s median (120.4s p90); execution excluding initial queue was 103.0s (116.4s p90), initial queue was 4.0s (4.0s p90), docs build was 76.0s (92.6s p90), deploy was 11.0s (12.4s p90), and the five latest successful CAO Dashboard producer build jobs were 32.0s (44.4s p90). Dependency setup was 24.0s median (33.2s p90): setup-node 4.0s (5.4s p90) and npm ci 19.0s (29.0s p90). Bounded logs verified the exact 298 MB setup-node npm cache hit in all seven full builds; nevertheless npm ci reinstalled 845 packages each time and varied from 11-38 seconds. Dashboard cache hits were also exact and artifact fallback was skipped throughout. No dependency-caching recommendation was made: npm ci alone is 18.4% of median execution, but an exact node_modules cache or dependency artifact would still require downloading and extracting a similarly large tree, so the observed evidence does not support a confident net saving of at least 15% or 60 seconds; skipping npm ci without an exact, runner-compatible dependency tree would weaken correctness. The 38-second npm install in workflow_run 40673755062 is disclosed as the p90 tail, not treated as typical. The next category is Astro documentation generation."
     }
   ]
 }
