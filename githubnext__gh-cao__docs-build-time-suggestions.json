@@ -3,13 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-28T04:35:10Z",
-      "worker_run_id": "40632912414",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable Astro documentation-generation determination could not be completed. No recommendation was made, and Astro documentation generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-28T05:19:26Z",
       "worker_run_id": "40637017312",
       "category": "Astro documentation generation",
@@ -505,6 +498,34 @@
         40706722235
       ],
       "outcome": "incomplete: the 2026-10-28T14:31:08Z to 2026-10-28T18:22:18Z latest-20 completed docs.yml window contained 20 successful runs, with no failed or cancelled runs. All 20 used source SHA 3afcfbab8885219b6d73e6a0697f6e2d811382ca. Trusted job and step metadata for the newly entered runs confirmed workflow_run 40738302018 as a full build-and-deploy path and schedule run 40738883381 as freshness-only after waiting behind it. Combined with the immediately preceding overlapping bounded evaluations, only four successful full build-and-deploy paths are present in the current window: workflow_run runs 40738302018, 40734561072, 40721452634, and 40710423755; the other 16 runs were freshness-only executions. Four comparable successful full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost and trusted cache-hit analysis, the CAO Dashboard producer comparison, duplicate-issue check, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-28T18:38:07Z",
+      "worker_run_id": "40746414764",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        40746201523,
+        40744477641,
+        40741259254,
+        40738883381,
+        40738302018,
+        40736532538,
+        40734561072,
+        40734303402,
+        40731711301,
+        40729226321,
+        40726820188,
+        40725088475,
+        40721797268,
+        40721452634,
+        40719292133,
+        40716824656,
+        40714742829,
+        40711716123,
+        40710423755,
+        40709170813
+      ],
+      "outcome": "incomplete: the 2026-10-28T14:45:57Z to 2026-10-28T18:33:30Z latest-20 completed docs.yml window contained 20 successful runs, with no failed or cancelled runs. All 20 used source SHA 3afcfbab8885219b6d73e6a0697f6e2d811382ca. Run-level trusted Actions metadata, together with trusted job and step evidence retained from immediately preceding overlapping bounded evaluations, identifies only four successful full build-and-deploy paths: workflow_run runs 40738302018, 40734561072, 40721452634, and 40710423755. The other 16 were freshness-only schedule executions. Four comparable successful full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost and cache-hit analysis, the CAO Dashboard producer comparison, duplicate-issue check, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
