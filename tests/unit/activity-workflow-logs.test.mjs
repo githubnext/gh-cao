@@ -143,25 +143,25 @@ test('collection preserves quota-exhausted statuses from discovery and gh-aw', a
   }
 });
 
-test('collection allows gh-aw one minute to flush evidence after its own timeout', async (t) => {
+test('collection allows gh-aw to audit and flush evidence after its download timeout', async (t) => {
   const timeout = AbortSignal.timeout.bind(AbortSignal);
   const deadlines = [];
   t.mock.method(AbortSignal, 'timeout', (milliseconds) => {
     deadlines.push(milliseconds);
-    return timeout(milliseconds / 20);
+    return timeout(milliseconds / 100);
   });
-  const f = await fixture(t, { collectionDelay: 3_250 });
+  const f = await fixture(t, { collectionDelay: 2_500 });
   const [, binary, ...args] = f.args;
   args[args.indexOf('--timeout') + 1] = '1';
 
   assert.equal(await collectWorkflowLogs(binary, args), 0);
-  assert.deepEqual(deadlines, [120_000]);
+  assert.deepEqual(deadlines, [360_000]);
   assert.equal((await f.calls()).length, 2);
 });
 
 test('collection still fails closed when gh-aw exceeds the bounded cleanup window', async (t) => {
   const timeout = AbortSignal.timeout.bind(AbortSignal);
-  t.mock.method(AbortSignal, 'timeout', (milliseconds) => timeout(milliseconds / 20));
+  t.mock.method(AbortSignal, 'timeout', (milliseconds) => timeout(milliseconds / 100));
   const f = await fixture(t, { collectionDelay: 10_000 });
   const [, binary, ...args] = f.args;
   args[args.indexOf('--timeout') + 1] = '1';

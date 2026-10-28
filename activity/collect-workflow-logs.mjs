@@ -37,9 +37,9 @@ export async function collectWorkflowLogs(binary, args, {
   }
   const timeoutIndex = args.indexOf('--timeout');
   const minutes = timeoutIndex < 0 ? 0 : Number(args[timeoutIndex + 1]);
-  // gh-aw needs time after its download deadline to flush retained evidence.
+  // Auditing and writing hundreds of downloaded runs can outlast the download deadline.
   const signal = Number.isSafeInteger(minutes) && minutes > 0
-    ? AbortSignal.timeout(minutes * 60_000 + 60_000) : undefined;
+    ? AbortSignal.timeout((minutes + 5) * 60_000) : undefined;
   if (publicOnly) {
     // A missing repository or visibility change must stop publication, not be
     // downgraded to an unavailable artifact.
