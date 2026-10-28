@@ -3,13 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-27T17:34:30Z",
-      "worker_run_id": "40551385990",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable dependency-installation and caching determination could not be completed. No recommendation was made, and dependency installation and caching remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-27T17:53:27Z",
       "worker_run_id": "40554128747",
       "category": "dependency installation and caching",
@@ -610,6 +603,13 @@
         40644508717
       ],
       "outcome": "complete no-op: the 2026-10-28T06:32:46Z to 2026-10-28T09:03:11Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs. Eight successful full build-and-deploy paths were comparable across two push, four workflow_run, and two schedule triggers at four source SHAs; the other ten successful runs were freshness-only. Full elapsed workflow time was 109.0s median (131.9s p90); execution excluding initial queue was 104.5s (121.4s p90), initial queue was 4.0s (8.0s p90), docs build was 74.5s (95.9s p90), deploy was 12.0s (13.8s p90), and the five latest successful CAO Dashboard producer build jobs were 29.0s (31.2s p90). Repeated docs costs were checkout 27.5s median, npm ci 21.5s, Astro generation 13.0s, dashboard restore 1.0s, Pages upload 3.0s, and deploy-pages 8.0s. Bounded logs verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits in the five most recent full builds; dashboard artifact fallback was skipped in all eight. Artifact transfer plus Pages packaging/deployment cost 12.5s median (16.9s p90), only 12.0% of median execution even if entirely eliminated, below the 15% and 60-second actionability thresholds. Push run 40647604073 had a disclosed 34-second deploy-job handoff delay, while push run 40660119743 had a 41-second checkout and workflow_run 40650513216 had a 32-second npm install; no failed or cancelled run was hidden. No actionable recommendation or duplicate issue was created. The next category is scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-10-28T09:34:31Z",
+      "worker_run_id": "40664904484",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, duplicate open-issue check, and actionable scheduling, concurrency, and avoidable-rebuild determination could not be completed. No recommendation was made, and scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
