@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-28T08:25:10Z",
-      "worker_run_id": "40656093964",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        40656164326,
-        40653890777,
-        40652162832,
-        40650606775,
-        40650513216,
-        40649976831,
-        40649378777,
-        40647604073,
-        40647428337,
-        40646402108,
-        40645663555,
-        40644937154,
-        40644508717,
-        40644064472,
-        40641401449,
-        40639891027,
-        40638490973,
-        40638456932,
-        40638231910,
-        40637270292
-      ],
-      "outcome": "complete no-op: the 2026-10-28T05:18:57Z to 2026-10-28T08:21:13Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Seven successful full build-and-deploy paths were comparable across one push, three workflow_run, and three schedule triggers at four source SHAs; the other ten successful runs were freshness-only. Full elapsed workflow time was 118.0s median (140.4s p90); execution excluding initial queue was 114.0s (133.2s p90), initial queue was 5.0s (9.0s p90), docs build was 69.0s (97.8s p90), deploy was 12.0s (22.6s p90), and the five latest successful CAO Dashboard producer build jobs were 22.0s (28.8s p90). Repeated docs costs were checkout 23.0s median, npm ci 22.0s, Astro generation 14.0s, dashboard restore 1.0s (3.4s p90), Pages upload 3.0s, and deploy-pages 8.0s. Bounded logs verified exact setup-node npm-cache and central-agentic-ops-dashboard cache hits in all seven builds; trusted step metadata showed dashboard artifact lookup and download fallback skipped throughout. Producer-side activity restore was 1.0s median, dashboard dependency installation 2.0s, Dashboard Language assembly 2.0s, and artifact upload 3.0s; activity upgrade varied from 1-11s. Schedule run 40644064472 had a 102-second build with 38-second checkout and 7-second dashboard restore, and schedule run 40638456932 had a 28-second deploy; both are disclosed in the p90 tail. No reusable-dashboard recommendation was made: dashboard production remains independent at 22.0s median and docs consumes the exact cached artifact in 1.0s median, so eliminating the entire docs-side reuse cost would save under 1% of median execution, below both actionability thresholds. The next category is artifact transfer and Pages packaging."
-    },
-    {
       "evaluated_at": "2026-10-28T08:37:10Z",
       "worker_run_id": "40657769712",
       "category": "artifact transfer and Pages packaging",
@@ -505,6 +477,34 @@
       "category": "reusable dashboard generation",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-28T20:34:37.882548Z",
+      "worker_run_id": "40764092323",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        40764005687,
+        40762208631,
+        40760988984,
+        40759560269,
+        40757223714,
+        40755536180,
+        40754999103,
+        40752863264,
+        40750502074,
+        40748124371,
+        40746201523,
+        40744477641,
+        40741259254,
+        40738883381,
+        40738302018,
+        40736532538,
+        40734561072,
+        40734303402,
+        40731711301,
+        40729226321
+      ],
+      "outcome": "incomplete: the 2026-10-28T16:46:15Z to 2026-10-28T20:31:24Z latest-20 completed docs.yml window contained 19 successful and one skipped run, with no failed or cancelled runs, all at source SHA 3afcfbab8885219b6d73e6a0697f6e2d811382ca. Run-level trusted Actions metadata identifies only three successful full build-and-deploy profiles: workflow_run runs 40755536180, 40738302018, and 40734561072; the other 16 successful runs were freshness-only schedule executions. Three comparable successful full paths are below the required five, so current full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost and trusted cache-hit analysis, CAO Dashboard producer comparison, duplicate-issue check, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
