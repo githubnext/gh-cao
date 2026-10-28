@@ -616,8 +616,6 @@
               "y": {
                 "field": "dispatches",
                 "type": "quantitative",
-                "aggregate": "sum",
-                "as": "total-dispatches",
                 "title": "Dispatches"
               },
               "href": {

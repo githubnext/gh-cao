@@ -129,6 +129,14 @@ describe('entity card templates', () => {
       data: { source: 'campaign-inventory' },
       mark: 'table'
     });
+    const dispatches = pages.campaigns.definition.views.find(
+      (/** @type {Record<string, any>} */ view) => view.id === 'campaigns-dispatches'
+    );
+    expect(dispatches).toMatchObject({
+      data: { source: 'campaign-inventory' },
+      encoding: { y: { field: 'dispatches', type: 'quantitative' } }
+    });
+    expect(dispatches.encoding.y).not.toHaveProperty('aggregate');
     expect(pages.campaigns.definition.views.find(
       (/** @type {Record<string, any>} */ view) => view.id === 'campaigns-repository-coverage'
     )).toMatchObject({
