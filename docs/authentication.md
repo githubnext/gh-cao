@@ -86,13 +86,16 @@ map is not a repository allowlist.
 
 In explicit `app` mode, missing credentials or denied installation access never
 fall through to a PAT or workflow token. In `pat` mode, the control repository
-and each target need exact read-secret mappings. Without an explicit target, a
-scheduled fleet must map every enrolled repository to the control repository's
-selected read PAT secret; multi-secret fleets are explicitly unsupported in
-this path. Use explicit targets or the App profile instead. Unset mode retains
-legacy precedence, selecting one profile before making requests; a partially
-configured App fails closed. Public metadata reads with the workflow token do
-not establish private target reach.
+and each target need exact read-secret mappings. Shared control narrows scheduled
+orchestrators in explicit `pat` mode to the control repository, so every
+campaign can continue bounded local work without treating another repository's
+PAT as a fallback. Manual runs without a target, and any custom workflow that
+overrides this default to request fleet inventory, must map every enrolled
+repository to the selected read PAT secret; multi-secret fleets are explicitly
+unsupported in this path. Use explicit targets or the App profile for remote
+repositories. Unset mode retains legacy precedence, selecting one profile before
+making requests; a partially configured App fails closed. Public metadata reads
+with the workflow token do not establish private target reach.
 
 Required inventory is **all-or-nothing**. An incomplete fleet retains the
 admission artifact and an `authorized: true` policy decision, but records
@@ -109,9 +112,10 @@ does not alone prove absent installation membership.
 
 ### Recover from `pat-fleet-unsupported`
 
-This is a credential-configuration failure, not a policy denial. Retrying the
-same scheduled run, reducing `max_repos`, or changing only
-`GH_AW_GITHUB_AUTH_MODE` will not fix it.
+This is a credential-configuration failure, not a policy denial. Shared-control
+scheduled orchestrators avoid it by defaulting to bounded local work, but
+retrying the same fleet run, reducing `max_repos`, or changing only
+`GH_AW_GITHUB_AUTH_MODE` will not restore remote inventory.
 
 **Unblock one run without changing authentication:** dispatch the failed
 orchestrator with one explicitly enrolled target. For the ESLint Factory failure

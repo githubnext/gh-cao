@@ -7,7 +7,7 @@ export function runCompactJsonl({
   option,
   rejectUnknownOptions,
 }) {
-  rejectUnknownOptions(options, ["input-dir", "group", "max-bytes"]);
+  rejectUnknownOptions(options, ["input-dir", "group", "max-bytes", "exclude-out-of-scope"]);
   const groups = options.group
     ? Array.isArray(options.group) ? options.group : [options.group]
     : [];
@@ -17,5 +17,6 @@ export function runCompactJsonl({
     option(options, "max-bytes", false) === undefined
       ? DEFAULT_COMPACTED_JSONL_SHARD_BYTES
       : Number(option(options, "max-bytes", false)),
+    { excludeOutOfScope: option(options, "exclude-out-of-scope", false) === "true" },
   );
 }

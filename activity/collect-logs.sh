@@ -103,12 +103,32 @@ fi
 compact_shards() {
   local compact_args=(compact-jsonl --input-dir "$shard_directory")
   local shard_group
+  local result
+  local excluded
   for shard_group in "${shard_groups[@]}"; do
     compact_args+=(--group "$shard_group")
   done
+  if [[ "${1:-}" == "downloaded" ]]; then compact_args+=(--exclude-out-of-scope); fi
   node "$cao_script" recycle-cache --input-dir "$shard_directory" \
     --retention-days "$window_days" --max-bytes "$max_cache_bytes" || return $?
-  node "$cao_script" "${compact_args[@]}"
+  result="$(node "$cao_script" "${compact_args[@]}")" || return $?
+  printf '%s\n' "$result"
+  excluded="$(jq -er '.excludedRecords | select(type == "number")' <<< "$result")" || return $?
+  if [[ "$excluded" -gt 0 ]]; then
+    echo "::warning::Activity collection excluded $excluded out-of-scope or unscoped audit records from mixed downloaded shards."
+    if [[ -n "${GITHUB_OUTPUT:-}" ]]; then printf 'evidence-partial=true\n' >> "$GITHUB_OUTPUT"; fi
+    if [[ -n "${REPORT_INVENTORY_SOURCES:-}" ]]; then
+      node --input-type=module - "$REPORT_INVENTORY_SOURCES" "${repositories[@]}" <<'EOF'
+import { readFile, writeFile } from "node:fs/promises";
+import { markInventoryCollectionPartial } from "./activity/inventory-sources.mjs";
+const [filename, ...repositories] = process.argv.slice(2);
+const sources = JSON.parse(await readFile(filename, "utf8"));
+markInventoryCollectionPartial(sources, repositories,
+  "Downloaded shard included out-of-scope or unscoped audit records; collection is partial.");
+await writeFile(filename, `${JSON.stringify(sources, null, 2)}\n`);
+EOF
+    fi
+  fi
 }
 if [[ $exit_code -eq 0 ]]; then
   echo "Activity log collection: compacting restored shards for ${#shard_groups[@]} repository groups"
@@ -228,7 +248,7 @@ collection_exit_code=$exit_code
 if [[ $exit_code -eq 0 || $exit_code -eq 75 ]]; then
   exit_code=0
   echo "Activity log collection: compacting downloaded shards"
-  compact_shards || exit_code=$?
+  compact_shards downloaded || exit_code=$?
   if [[ $exit_code -eq 0 && -n "$activity_database" ]]; then
     echo "Activity log collection: ingesting scoped shards into the activity database"
     node "$cao_script" ingest-jsonl \

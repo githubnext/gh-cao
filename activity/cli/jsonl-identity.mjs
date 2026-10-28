@@ -32,7 +32,7 @@ function recordRunIds(record) {
   return id == null ? [] : [String(id)];
 }
 
-export function inspectShardRepositories(filePath) {
+export function inspectShardRepositories(filePath, { excludeUnscopedRateLimits = false } = {}) {
   const repositories = new Set();
   const runs = new Map();
   for (const { value } of jsonlRecords([filePath])) {
@@ -48,6 +48,7 @@ export function inspectShardRepositories(filePath) {
   const repositoryFor = (record) => {
     const repository = recordRepository(record);
     if (repository || !mixed) return repository ?? [...repositories][0] ?? null;
+    if (excludeUnscopedRateLimits && record?.kind === 'github_api_rate_limit') return null;
     const identities = recordRunIds(record).map((id) => runs.get(id));
     if (!identities.length || !identities[0] || identities.some((identity) => identity !== identities[0])) {
       throw new UsageError('Shard contains conflicting repository identities with unattributable records; compaction requires operator repair');

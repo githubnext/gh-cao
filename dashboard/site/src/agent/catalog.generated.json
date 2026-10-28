@@ -543,12 +543,7 @@
       "experimental": false,
       "parameters": [],
       "queries": [
-        "value-collection-health",
-        "value-current-measurements",
-        "value-measurement-facts",
-        "value-registered-collections",
-        "value-report-summary",
-        "value-workflow-results"
+        "value-workflow-overview"
       ]
     },
     {
@@ -3478,7 +3473,6 @@
         "workflow-value-measurements"
       ],
       "used-by-pages": [
-        "value",
         "value-measurement",
         "workflow-value"
       ],
@@ -3525,7 +3519,6 @@
         "value-measurement-order"
       ],
       "used-by-pages": [
-        "value",
         "workflow-value"
       ],
       "execution": {
@@ -3670,7 +3663,6 @@
         "workflow-value-collections"
       ],
       "used-by-pages": [
-        "value",
         "workflow-value"
       ],
       "execution": {
@@ -3693,9 +3685,7 @@
       "sources": [
         "value-collection-health"
       ],
-      "used-by-pages": [
-        "value"
-      ],
+      "used-by-pages": [],
       "execution": {
         "local": true,
         "backend": "sqlite",
@@ -3914,7 +3904,6 @@
         "value-report-delivery"
       ],
       "used-by-pages": [
-        "value",
         "value-report",
         "workflow-value"
       ],
@@ -3961,7 +3950,6 @@
         "value-workflow-result-order"
       ],
       "used-by-pages": [
-        "value",
         "workflow-value"
       ],
       "execution": {
@@ -3969,6 +3957,133 @@
         "backend": "sqlite",
         "requirements": [
           "operational-value-evidence"
+        ]
+      }
+    },
+    {
+      "id": "value-workflow-headline-order",
+      "subject": "Most recent current report across the measures of each workflow.",
+      "objective": "Give each workflow and repository one headline result; other measures stay on the workflow page.",
+      "acceptance": "Select by cutoff then capture. Never replace a missing result with an older or zero value.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-workflow-results"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence"
+        ]
+      }
+    },
+    {
+      "id": "value-workflow-headlines",
+      "subject": "One headline result per workflow and repository.",
+      "objective": "Join cleanly to collection health without multiplying rows.",
+      "acceptance": "Exactly one row per workflow route.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-workflow-headline-order"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence"
+        ]
+      }
+    },
+    {
+      "id": "value-workflow-reported-overview",
+      "subject": "Workflows with a retained headline result, with any published collection state.",
+      "objective": "Show a report even when no collection fact was published for its workflow.",
+      "acceptance": "A missing collection fact stays unknown, never an inferred registration.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-collection-health",
+        "value-workflow-headlines"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-collections",
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-workflow-registered-reports",
+      "subject": "Registered workflows marked with whether a headline result exists.",
+      "objective": "Separate registration from retained outcomes before selecting unreported workflows.",
+      "acceptance": "Join on workflow route only; one row per registration.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-registered-collections",
+        "value-workflow-headlines"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-collections",
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-workflow-unreported-overview",
+      "subject": "Registered workflows that have no retained headline result.",
+      "objective": "Keep collection health visible before the first accepted packet.",
+      "acceptance": "No result is not zero value or a healthy outcome.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-workflow-registered-reports"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-collections",
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-workflow-overview",
+      "subject": "One row per workflow and repository: collection health plus its headline result trend.",
+      "objective": "Show the first-to-last trend and collection state in a single card.",
+      "acceptance": "Missing reports remain unavailable, never zero. Registration and outcome stay independent facts.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-workflow-reported-overview",
+        "value-workflow-unreported-overview"
+      ],
+      "used-by-pages": [
+        "value"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-collections",
+          "workflow-value-measurements"
         ]
       }
     },
