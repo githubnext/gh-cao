@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
@@ -165,6 +165,91 @@ process.stderr.write("Fetched 1 run\\n");
   } finally {
     await rm(item.root, { recursive: true, force: true });
   }
+});
+
+test("collection scopes mixed fresh shards and reports exclusions as partial evidence", async (t) => {
+  const item = await fixture();
+  t.after(() => rm(item.root, { recursive: true, force: true }));
+  const ghPath = path.join(item.bin, "gh");
+  await writeFile(ghPath, `#!/usr/bin/env node
+const fs = require("node:fs");
+const args = process.argv.slice(2);
+if (args[0] === "api") {
+  process.stdout.write(JSON.stringify(args[1] === "rate_limit"
+    ? { resources: { core: { limit: 5000, remaining: 5000, reset: 1791406800 } } }
+    : [{ workflows: [{ path: ".github/workflows/sample.lock.yml" }] }]));
+  process.exit(0);
+}
+const shard = args[args.indexOf("--cached-jsonl") + 1].replace(/\\*$/, "") + "fixture.jsonl";
+const run = (repository, run_id) => ({ schema_version: 2, kind: "run", run: {
+  repository, run_id, organization: repository.split("/")[0],
+  workflow_name: "Sample", workflow_path: ".github/workflows/sample.lock.yml",
+  status: "completed", created_at: new Date().toISOString()
+} });
+fs.writeFileSync(shard, [
+  run("githubnext/gh-cao", 1),
+  { kind: "safe_output_item", safe_output: { run_id: 0, type: "create_issue" } },
+  { kind: "github_api_rate_limit", rate_limit: { host: "github.com" } },
+  run("other/repo", 2)
+].map((record) => JSON.stringify(record)).join("\\n") + "\\n");
+`);
+  await chmod(ghPath, 0o755);
+  await mkdir(item.logsPath, { recursive: true });
+  await writeFile(path.join(item.logsPath, "logs-restored.jsonl"), `${JSON.stringify({
+    schema_version: 2,
+    kind: "run",
+    run: {
+      repository: "githubnext/gh-cao",
+      run_id: 0,
+      organization: "githubnext",
+      workflow_name: "Sample",
+      workflow_path: ".github/workflows/sample.lock.yml",
+      status: "completed",
+      created_at: new Date().toISOString(),
+    },
+  })}\n`);
+  const inventoryPath = path.join(item.root, "inventory-sources.json");
+  await writeFile(inventoryPath, JSON.stringify({
+    repositories: { rows: [], metadata: { completeness: "complete" } },
+    workflows: { rows: [], metadata: { completeness: "complete" } },
+  }));
+  const collection = await execFileAsync("bash", [path.resolve("activity/collect-logs.sh")], {
+    env: {
+      ...process.env,
+      PATH: `${item.bin}:${process.env.PATH}`,
+      GITHUB_REPOSITORY: "githubnext/gh-cao",
+      REPORT_TARGET_REPOSITORIES_JSON: JSON.stringify(["githubnext/gh-cao"]),
+      REPORT_INCLUDE_CONTROL_REPOSITORY: "0",
+      REPORT_GH_AW_LOGS_SHARDS: item.logsPath,
+      REPORT_GH_AW_LOGS_EXIT_CODE: path.join(item.root, "cache", "gh-aw-logs-exit-code"),
+      REPORT_AIC_CACHE: item.outputPath,
+      REPORT_INVENTORY_SOURCES: inventoryPath,
+      GITHUB_OUTPUT: item.githubOutput,
+    },
+  });
+  assert.match(collection.stdout, /"excludedRecords": 2/);
+  assert.match(collection.stdout, /Activity log collection: completed with exit code 0/);
+  assert.match(collection.stdout, /::warning::Activity collection excluded 2/);
+  assert.equal(await readFile(item.githubOutput, "utf8"), "evidence-partial=true\n");
+  const inventory = JSON.parse(await readFile(inventoryPath, "utf8"));
+  for (const name of ["repositories", "workflows"]) {
+    assert.equal(inventory[name].metadata.completeness, "partial");
+    assert.equal(inventory[name].metadata["repository-failures"][0].repository, "githubnext/gh-cao");
+  }
+  const runs = await readGhAwLogShards(item.logsPath);
+  assert.deepEqual(runs.map((run) => run.repository), ["githubnext/gh-cao", "githubnext/gh-cao"]);
+  const records = (await Promise.all((await readdir(item.logsPath))
+    .filter((name) => name.endsWith(".jsonl"))
+    .map((name) => readFile(path.join(item.logsPath, name), "utf8"))))
+    .join("")
+    .trim()
+    .split("\n")
+    .map(JSON.parse);
+  assert.deepEqual(records.filter((record) => record.kind === "safe_output_item"), [{
+    kind: "safe_output_item",
+    request: { repository: "githubnext/gh-cao" },
+    safe_output: { run_id: 0, type: "create_issue" },
+  }]);
 });
 
 test("collect-logs.sh creates the drain3 weights destination directory before moving generated weights", async () => {

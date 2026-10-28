@@ -148,6 +148,10 @@ for (const width of [1440, 390]) {
     await expect(page.getByText('No retained capture', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('disabled', { exact: true }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: '↓ -1 defects', exact: true })).toHaveCount(0);
+    await page.getByRole('link', { name: 'octo/example · verify-bugs', exact: true }).click();
+    await expect(page).toHaveURL(/#page-workflow-value\?workflow=/);
+    await page.goBack();
+    await expect(page).toHaveURL(/#page-value$/);
     publication = publishedShards(structuredClone(ledgerFixture), { defer: null, previousHealth: publication.health });
     await page.evaluate(async ({ dashboard }) => {
       const { loadCanonicalDashboardSources } = await import(`${location.origin}/src/data-processor.js`);
@@ -155,10 +159,12 @@ for (const width of [1440, 390]) {
         pages: dashboard.dashboard.pages, queries: dashboard.dashboard.queries, views: dashboard.dashboard.views
       });
     }, { dashboard: authoritativeDashboard });
-    await expect(page.getByText('Retained evidence available', { exact: true })).toBeVisible();
+    await expect(page.getByText('Retained evidence available').first()).toBeVisible();
     await expect(page.getByText('The collector failed; previous accepted evidence is retained.', { exact: true })).toBeVisible();
     await expect(page.getByText('failed', { exact: true }).first()).toBeVisible();
-    await page.getByRole('link', { name: '↓ -1 defects', exact: true }).click();
+    await expect(page.getByText('↓ -1 defects')).toHaveCount(1);
+    await page.getByRole('link', { name: /octo\/example · Verify bugs/ }).click();
+    await expect(page).toHaveURL(/#page-value-report\?report=/);
     await expect(page.locator('.value-report-heading')).toContainText('Resolve confirmed defects.');
     await expect(page.locator('.value-report-movement')).toHaveText('↓ -1 defects · Better');
     const outputs = page.getByRole('button', { name: 'Safe outputs: 1 issues. Explore evidence.' });

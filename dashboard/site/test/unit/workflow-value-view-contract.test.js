@@ -240,8 +240,11 @@ describe('native workflow value production contract', () => {
   it('declares a shared card, native report, complete source contract and exact-item route', () => {
     const value = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'value');
     expect(value).toMatchObject({ title: 'Value', icon: 'trophy' });
-    expect(value.views[0]).toMatchObject({ data: { source: 'value-registered-collections' }, list: { card: contract.collectionCard } });
-    expect(value.views[1]).toMatchObject({ data: { source: contract.query }, list: { card: contract.card } });
+    expect(value.views).toHaveLength(1);
+    expect(value.views[0]).toMatchObject({
+      data: { source: 'value-workflow-overview' },
+      list: { card: 'workflow-value-overview', drill: { type: 'external', field: 'overview-href' } }
+    });
     expect(dashboard.navigation.flatMap((/** @type {{ pages: string[] }} */ group) => group.pages)).toContain('value');
     expect(value.route?.tabs).toBeUndefined();
     expect(value.views[0]['empty-message']).not.toContain('Repository measurements');
@@ -300,7 +303,22 @@ describe('native workflow value production contract', () => {
     expect(snapshotSources[0].rows).toHaveLength(1);
     expect(snapshotSources[1].rows).toHaveLength(54);
     expect(snapshotSources[1].rows[0].url).toMatch(/^https:\/\/github.com\/octo\/example\/blob\/abc123\/pkg\/file-\d+.go$/);
+    const overview = (await execute('value', {}))[0].rows;
+    expect(overview).toHaveLength(1);
+    expect(overview[0]['trend-label']).not.toBeNull();
+    expect(overview[0]['overview-href']).toBe(`#page-value-report?report=${encodeURIComponent(packet.id)}`);
     expect((await execute(contract.page, { workflow: 'octo/other:.github/workflows/verify-bugs.md' }))[1].rows).toEqual([]);
+  });
+
+  it('keeps workflows without retained evidence routed to collection detail', async () => {
+    const health = readFileSync(join(repository, 'dashboard/site/test/fixtures/workflow-value-collection.jsonl'), 'utf8');
+    await ingestCachedGhAwJsonl(indexedDB, health, { now: Date.parse('2026-10-23T14:00:00.000Z') });
+    const overview = (await execute('value', {}))[0].rows;
+    expect(overview).toHaveLength(1);
+    expect(overview[0]).toMatchObject({
+      'trend-label': 'No retained result',
+      'overview-href': `#page-workflow-value?workflow=${encodeURIComponent(String(overview[0]['workflow-route']))}`
+    });
   });
 
   it('interprets the same native movement using the frozen desired direction', async () => {
@@ -411,7 +429,11 @@ describe('native workflow value production contract', () => {
     });
     expect(health.rows[0]['last-attempt-at']).toBeUndefined();
     expect(reports.rows).toEqual([]);
-    expect((await execute('value', {}))[0].rows).toEqual(health.rows);
+    const unreported = (await execute('value', {}))[0].rows;
+    expect(unreported).toHaveLength(health.rows.length);
+    expect(unreported[0]).toMatchObject({
+      'overview-state': health.rows[0]['collection-state'], 'overview-evidence': 'No retained capture', 'trend-label': 'No retained result'
+    });
     const packet = await publish();
     const [retained] = await execute(contract.page, { workflow: contract.route });
     expect(retained.rows[0]).toMatchObject({

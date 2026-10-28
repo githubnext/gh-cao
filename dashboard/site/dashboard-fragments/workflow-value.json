@@ -344,6 +344,100 @@
       "filter": { "predicates": [{ "field": "older-report", "equals": "unknown" }] }
     },
     {
+      "name": "value-workflow-headline-order",
+      "subject": "Most recent current report across the measures of each workflow.",
+      "objective": "Give each workflow and repository one headline result; other measures stay on the workflow page.",
+      "acceptance": "Select by cutoff then capture. Never replace a missing result with an older or zero value.",
+      "from": "value-workflow-results",
+      "window": [{ "operation": "change", "field": "report-marker", "as": "older-headline", "mode": "absolute",
+        "groupby": ["workflow-route"],
+        "order-by": [{ "field": "window-end", "direction": "desc" }, { "field": "observed-at", "direction": "desc" }, { "field": "report-id", "direction": "desc" }] }]
+    },
+    {
+      "name": "value-workflow-headlines",
+      "subject": "One headline result per workflow and repository.",
+      "objective": "Join cleanly to collection health without multiplying rows.",
+      "acceptance": "Exactly one row per workflow route.",
+      "from": "value-workflow-headline-order",
+      "filter": { "predicates": [{ "field": "older-headline", "equals": "unknown" }] }
+    },
+    {
+      "name": "value-workflow-reported-overview",
+      "subject": "Workflows with a retained headline result, with any published collection state.",
+      "objective": "Show a report even when no collection fact was published for its workflow.",
+      "acceptance": "A missing collection fact stays unknown, never an inferred registration.",
+      "from": "value-workflow-headlines",
+      "joins": [{
+        "source": "value-collection-health", "type": "left",
+        "on": [{ "left": "workflow-route", "right": "workflow-route" }],
+        "fields": [
+          { "field": "collection-state", "as": "overview-state" },
+          { "field": "reason", "as": "overview-reason" }
+        ]
+      }],
+      "compute": [
+        { "as": "overview-title", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }, { "value": " \u00b7 " }, { "field": "workflow-label" }] },
+        { "as": "overview-evidence", "function": "literal", "args": [{ "value": "Retained evidence available" }] }
+      ],
+      "select": [
+        { "field": "workflow-route" }, { "field": "overview-title" }, { "field": "overview-state" },
+        { "field": "overview-reason" }, { "field": "overview-evidence" },
+        { "field": "observed-at", "as": "overview-captured" }, { "field": "window-end", "as": "overview-cutoff" },
+        { "field": "change-label", "as": "trend-label" }, { "field": "movement", "as": "trend-movement" },
+        { "field": "snapshot-name", "as": "trend-measure" }, { "field": "report-href", "as": "overview-href" }
+      ]
+    },
+    {
+      "name": "value-workflow-registered-reports",
+      "subject": "Registered workflows marked with whether a headline result exists.",
+      "objective": "Separate registration from retained outcomes before selecting unreported workflows.",
+      "acceptance": "Join on workflow route only; one row per registration.",
+      "from": "value-registered-collections",
+      "joins": [{
+        "source": "value-workflow-headlines", "type": "left",
+        "on": [{ "left": "workflow-route", "right": "workflow-route" }],
+        "fields": [{ "field": "report-id", "as": "headline-report" }]
+      }],
+      "compute": [
+        { "as": "has-report", "function": "equals-any", "args": [{ "field": "headline-report" }, { "value": null }] }
+      ]
+    },
+    {
+      "name": "value-workflow-unreported-overview",
+      "subject": "Registered workflows that have no retained headline result.",
+      "objective": "Keep collection health visible before the first accepted packet.",
+      "acceptance": "No result is not zero value or a healthy outcome.",
+      "from": "value-workflow-registered-reports",
+      "filter": { "predicates": [{ "field": "has-report", "equals": true }] },
+      "compute": [
+        { "as": "overview-title", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }, { "value": " \u00b7 " }, { "field": "workflow" }] },
+        { "as": "trend-label", "function": "literal", "args": [{ "value": "No retained result" }] },
+        { "as": "trend-movement", "function": "literal", "args": [{ "value": "No result to compare" }] },
+        { "as": "trend-measure", "function": "literal", "args": [{ "value": "Not available" }] },
+        { "as": "encoded-workflow", "function": "url-encode", "args": [{ "field": "workflow-route" }] },
+        { "as": "overview-href", "function": "concat", "args": [{ "value": "#page-workflow-value?workflow=" }, { "field": "encoded-workflow" }] }
+      ],
+      "filter": { "predicates": [{ "field": "has-report", "equals": true }] },
+      "select": [
+        { "field": "workflow-route" }, { "field": "overview-title" },
+        { "field": "collection-state", "as": "overview-state" },
+        { "field": "reason", "as": "overview-reason" }, { "field": "evidence-state", "as": "overview-evidence" },
+        { "field": "captured-at", "as": "overview-captured" }, { "field": "evidence-cutoff", "as": "overview-cutoff" },
+        { "field": "trend-label" }, { "field": "trend-movement" }, { "field": "trend-measure" },
+        { "field": "overview-href" }
+      ]
+    },
+    {
+      "name": "value-workflow-overview",
+      "subject": "One row per workflow and repository: collection health plus its headline result trend.",
+      "objective": "Show the first-to-last trend and collection state in a single card.",
+      "acceptance": "Missing reports remain unavailable, never zero. Registration and outcome stay independent facts.",
+      "from": "value-workflow-reported-overview",
+      "union": ["value-workflow-unreported-overview"],
+      "order-by": [{ "field": "overview-title", "direction": "asc" }],
+      "limit": 1000
+    },
+    {
       "name": "value-intent-sources",
       "subject": "Immutable extracted workflow intent sources.",
       "objective": "Let readers inspect the original goal and requirements.",
@@ -536,37 +630,18 @@
       "objective": "Explain missing or delayed evidence and open the native evidence that is available.",
       "acceptance": "Keep native units, direction, repository, workflow, dates and unknowns visible. No alert score, causal credit or GitHub acquisition.",
       "views": [{
-        "id": "value-collection-health", "title": "Collection health",
+        "id": "value-workflows", "title": "Workflows", "show-title": false,
         "description": "Optional acquisition must leave capacity for Activity. A recent status check does not make retained measurements fresh.",
-        "subject": "Reviewed registrations and their real collection status before or after a report exists.",
-        "objective": "Explain deferrals and failures without discarding accepted evidence.",
+        "subject": "One card per workflow and repository: collection state and its headline result trend.",
+        "objective": "Open retained evidence directly, while workflows without a report open collection detail.",
         "acceptance": "Never infer opt-in, successful capture or zero value from missing reports.",
-        "data": { "source": "value-registered-collections", "query-context": false, "time": { "range": "all" } },
+        "data": { "source": "value-workflow-overview", "query-context": false, "time": { "range": "all" } },
         "mark": "list",
-        "list": { "style": "entity-cards", "card": "workflow-value-collection", "icon": "pulse",
-          "drill": { "type": "query", "page": "workflow-value", "query": "value-collection-health", "title-field": "workflow-context", "arguments": [{ "name": "workflow", "field": "workflow-route" }] } },
-        "encoding": { "columns": [{ "field": "workflow-context", "type": "nominal", "title": "Workflow" }] },
+        "list": { "style": "entity-cards", "card": "workflow-value-overview", "icon": "trophy",
+          "drill": { "type": "external", "field": "overview-href" } },
+        "encoding": { "columns": [{ "field": "overview-title", "type": "nominal", "title": "Workflow" }] },
         "layout": "full",
         "empty-message": "No reviewed Value registrations are present in the published collection inventory. If that inventory is unavailable, configuration is unknown."
-      }, {
-        "id": "value-results", "title": "Workflow results", "show-title": false,
-        "subject": "Direction-aware results from published frozen evidence packets.",
-        "objective": "Open a result's intent, output, acceptance and independent measurement trail.",
-        "acceptance": "Use the same latest-packet selector and reusable card as the workflow shortcut. Missing reports do not imply missing registration, zero value or healthy outcomes.",
-        "data": { "source": "value-workflow-results", "query-context": false, "time": { "range": "all" } },
-        "mark": "list",
-        "list": { "style": "entity-cards", "card": "workflow-value-result", "icon": "trophy",
-          "drill": { "type": "query", "page": "value-report", "query": "value-report-summary", "title-field": "workflow-name", "arguments": [{ "name": "report", "field": "report-id" }] } },
-        "encoding": { "columns": [{ "field": "change-label", "type": "nominal", "title": "Observed change" }] },
-        "layout": "full",
-        "empty-message": "No accepted workflow Value reports are retained. See collection health above; a registered collector may be deferred before its first capture."
-      }, {
-        "id": "value-native-measurements", "title": "Native measurements",
-        "data": { "source": "value-current-measurements", "query-context": false, "time": { "range": "all" } },
-        "mark": "list", "list": { "style": "entity-cards", "card": "workflow-measurement", "icon": "graph",
-          "drill": { "type": "query", "page": "value-measurement", "query": "value-measurement-facts", "title-field": "metric-name", "arguments": [{ "name": "measurement", "field": "id" }] } },
-        "encoding": { "columns": [{ "field": "measurement-label", "type": "nominal", "title": "Value" }] },
-        "layout": "full", "empty-message": "No native batch measurements have been published."
       }]
     }
   ]

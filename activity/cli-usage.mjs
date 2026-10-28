@@ -42,7 +42,7 @@ export const USAGE = `Usage:
   cao prune-dashboard --input FILE [--output FILE]
   cao ingest-jsonl [--database FILE] [--input FILE|--input-dir SHARD_DIRECTORY|--runs-dir DIRECTORY --records-dir DIRECTORY] [--context CONTEXT_JSON] [--retention-days DAYS|all] [--run-retention-days DAYS|all]
   cao audit-jsonl [--input-dir SHARD_DIRECTORY]
-  cao compact-jsonl --input-dir SHARD_DIRECTORY --group OWNER/REPOSITORY=SHARD_PREFIX [--group OWNER/REPOSITORY=SHARD_PREFIX...] [--max-bytes BYTES]
+  cao compact-jsonl --input-dir SHARD_DIRECTORY --group OWNER/REPOSITORY=SHARD_PREFIX [--group OWNER/REPOSITORY=SHARD_PREFIX...] [--max-bytes BYTES] [--exclude-out-of-scope]
   cao recycle-cache --input-dir SHARD_DIRECTORY [--retention-days DAYS|all] [--max-bytes BYTES]
   cao issue-status [--database FILE] --input-dir SHARD_DIRECTORY [--batch-size COUNT] [--graphql-cost-budget POINTS] [--graphql-min-remaining POINTS]
   cao pages [PAGE_ID] [--dashboard FILE] [--json]
