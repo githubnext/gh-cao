@@ -241,7 +241,10 @@ describe('native workflow value production contract', () => {
     const value = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'value');
     expect(value).toMatchObject({ title: 'Value', icon: 'trophy' });
     expect(value.views).toHaveLength(1);
-    expect(value.views[0]).toMatchObject({ data: { source: 'value-workflow-overview' }, list: { card: 'workflow-value-overview' } });
+    expect(value.views[0]).toMatchObject({
+      data: { source: 'value-workflow-overview' },
+      list: { card: 'workflow-value-overview', drill: { type: 'external', field: 'overview-href' } }
+    });
     expect(dashboard.navigation.flatMap((/** @type {{ pages: string[] }} */ group) => group.pages)).toContain('value');
     expect(value.route?.tabs).toBeUndefined();
     expect(value.views[0]['empty-message']).not.toContain('Repository measurements');
@@ -303,7 +306,19 @@ describe('native workflow value production contract', () => {
     const overview = (await execute('value', {}))[0].rows;
     expect(overview).toHaveLength(1);
     expect(overview[0]['trend-label']).not.toBeNull();
+    expect(overview[0]['overview-href']).toBe(`#page-value-report?report=${encodeURIComponent(packet.id)}`);
     expect((await execute(contract.page, { workflow: 'octo/other:.github/workflows/verify-bugs.md' }))[1].rows).toEqual([]);
+  });
+
+  it('keeps workflows without retained evidence routed to collection detail', async () => {
+    const health = readFileSync(join(repository, 'dashboard/site/test/fixtures/workflow-value-collection.jsonl'), 'utf8');
+    await ingestCachedGhAwJsonl(indexedDB, health, { now: Date.parse('2026-10-23T14:00:00.000Z') });
+    const overview = (await execute('value', {}))[0].rows;
+    expect(overview).toHaveLength(1);
+    expect(overview[0]).toMatchObject({
+      'trend-label': 'No retained result',
+      'overview-href': `#page-workflow-value?workflow=${encodeURIComponent(String(overview[0]['workflow-route']))}`
+    });
   });
 
   it('interprets the same native movement using the frozen desired direction', async () => {

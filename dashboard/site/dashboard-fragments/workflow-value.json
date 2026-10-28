@@ -384,7 +384,7 @@
         { "field": "overview-reason" }, { "field": "overview-evidence" },
         { "field": "observed-at", "as": "overview-captured" }, { "field": "window-end", "as": "overview-cutoff" },
         { "field": "change-label", "as": "trend-label" }, { "field": "movement", "as": "trend-movement" },
-        { "field": "snapshot-name", "as": "trend-measure" }
+        { "field": "snapshot-name", "as": "trend-measure" }, { "field": "report-href", "as": "overview-href" }
       ]
     },
     {
@@ -413,7 +413,9 @@
         { "as": "overview-title", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }, { "value": " \u00b7 " }, { "field": "workflow" }] },
         { "as": "trend-label", "function": "literal", "args": [{ "value": "No retained result" }] },
         { "as": "trend-movement", "function": "literal", "args": [{ "value": "No result to compare" }] },
-        { "as": "trend-measure", "function": "literal", "args": [{ "value": "Not available" }] }
+        { "as": "trend-measure", "function": "literal", "args": [{ "value": "Not available" }] },
+        { "as": "encoded-workflow", "function": "url-encode", "args": [{ "field": "workflow-route" }] },
+        { "as": "overview-href", "function": "concat", "args": [{ "value": "#page-workflow-value?workflow=" }, { "field": "encoded-workflow" }] }
       ],
       "filter": { "predicates": [{ "field": "has-report", "equals": true }] },
       "select": [
@@ -421,7 +423,8 @@
         { "field": "collection-state", "as": "overview-state" },
         { "field": "reason", "as": "overview-reason" }, { "field": "evidence-state", "as": "overview-evidence" },
         { "field": "captured-at", "as": "overview-captured" }, { "field": "evidence-cutoff", "as": "overview-cutoff" },
-        { "field": "trend-label" }, { "field": "trend-movement" }, { "field": "trend-measure" }
+        { "field": "trend-label" }, { "field": "trend-movement" }, { "field": "trend-measure" },
+        { "field": "overview-href" }
       ]
     },
     {
@@ -630,12 +633,12 @@
         "id": "value-workflows", "title": "Workflows", "show-title": false,
         "description": "Optional acquisition must leave capacity for Activity. A recent status check does not make retained measurements fresh.",
         "subject": "One card per workflow and repository: collection state and its headline result trend.",
-        "objective": "Open the workflow page for every measure, report and collection detail.",
+        "objective": "Open retained evidence directly, while workflows without a report open collection detail.",
         "acceptance": "Never infer opt-in, successful capture or zero value from missing reports.",
         "data": { "source": "value-workflow-overview", "query-context": false, "time": { "range": "all" } },
         "mark": "list",
         "list": { "style": "entity-cards", "card": "workflow-value-overview", "icon": "trophy",
-          "drill": { "type": "query", "page": "workflow-value", "query": "value-collection-health", "title-field": "overview-title", "arguments": [{ "name": "workflow", "field": "workflow-route" }] } },
+          "drill": { "type": "external", "field": "overview-href" } },
         "encoding": { "columns": [{ "field": "overview-title", "type": "nominal", "title": "Workflow" }] },
         "layout": "full",
         "empty-message": "No reviewed Value registrations are present in the published collection inventory. If that inventory is unavailable, configuration is unknown."

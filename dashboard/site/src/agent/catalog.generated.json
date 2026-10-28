@@ -543,7 +543,6 @@
       "experimental": false,
       "parameters": [],
       "queries": [
-        "value-collection-health",
         "value-workflow-overview"
       ]
     },
@@ -3664,7 +3663,6 @@
         "workflow-value-collections"
       ],
       "used-by-pages": [
-        "value",
         "workflow-value"
       ],
       "execution": {
