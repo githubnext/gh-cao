@@ -270,11 +270,11 @@ async function canaryWorker(worker) {
 function waitForWorker(worker) {
   if (!worker || worker.state === 'redundant') return Promise.resolve(null);
   if (worker.state === 'installed' || worker.state === 'activated') return Promise.resolve(worker);
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const timeout = window.setTimeout(() => {
       worker.removeEventListener('statechange', onStateChange);
-      resolve(null);
-    }, CANARY_TIMEOUT_MS);
+      reject(new Error('Service worker installation timed out.'));
+    }, DOWNLOAD_TIMEOUT_MS);
     const onStateChange = () => {
       if (!['installed', 'activated', 'redundant'].includes(worker.state)) return;
       window.clearTimeout(timeout);
@@ -289,11 +289,11 @@ function waitForWorker(worker) {
 function waitForActivation(worker) {
   if (worker.state === 'activated') return Promise.resolve(worker);
   if (worker.state === 'redundant') return Promise.resolve(null);
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const timeout = window.setTimeout(() => {
       worker.removeEventListener('statechange', onStateChange);
-      resolve(null);
-    }, CANARY_TIMEOUT_MS);
+      reject(new Error('Service worker activation timed out.'));
+    }, DOWNLOAD_TIMEOUT_MS);
     const onStateChange = () => {
       if (!['activated', 'redundant'].includes(worker.state)) return;
       window.clearTimeout(timeout);
@@ -307,7 +307,8 @@ function waitForActivation(worker) {
 /**
  * Updates the registration without HTTP cache reuse, canaries a waiting worker
  * before activation, and force-registers a cache-busted script if the active
- * worker cannot answer the canary.
+ * worker cannot answer the canary. Recovery updates the existing registration:
+ * unregistering during installation or activation can invalidate clients.claim().
  * @param {ServiceWorkerContainer} serviceWorkers
  * @param {URL} scriptUrl
  * @param {(registration: ServiceWorkerRegistration) => void} [onRegistration]
@@ -321,22 +322,24 @@ export async function ensureHealthyDashboardServiceWorker(serviceWorkers, script
 
   const candidate = await waitForWorker(registration.waiting ?? registration.installing);
   if (candidate) {
+    let healthy = false;
     try {
-      if (await canaryWorker(candidate)) {
-        if (candidate.state !== 'activated') candidate.postMessage({ type: 'ACTIVATE' });
-        const activated = await waitForActivation(candidate);
-        if (activated) {
-          debugServiceWorker('activated candidate worker');
-          return { registration, worker: activated };
-        }
-      }
+      healthy = await canaryWorker(candidate);
     } catch (error) {
       debugServiceWorker('candidate worker canary failed', { message: error instanceof Error ? error.message : String(error) });
       // Keep the healthy active worker; a later update can replace this candidate.
     }
+    if (healthy) {
+      if (candidate.state === 'installed') candidate.postMessage({ type: 'ACTIVATE' });
+      const activated = await waitForActivation(candidate);
+      if (activated) {
+        debugServiceWorker('activated candidate worker');
+        return { registration, worker: activated };
+      }
+    }
   }
 
-  const active = registration.active ?? candidate;
+  const active = registration.active ? await waitForActivation(registration.active) : null;
   if (active) {
     try {
       if (await canaryWorker(active)) {
@@ -350,18 +353,18 @@ export async function ensureHealthyDashboardServiceWorker(serviceWorkers, script
   }
 
   debugServiceWorker('forcing service worker recovery');
-  await registration.unregister();
   const recoveryUrl = new URL(scriptUrl);
   recoveryUrl.searchParams.set('force-update', String(Date.now()));
   registration = await serviceWorkers.register(recoveryUrl, options);
   onRegistration?.(registration);
-  const recovered = await waitForWorker(registration.active ?? registration.waiting ?? registration.installing);
+  const recovered = await waitForWorker(registration.waiting ?? registration.installing ?? registration.active);
   if (!recovered || !await canaryWorker(recovered)) {
-    await registration.unregister();
     throw new Error('Unable to install a healthy dashboard service worker.');
   }
-  if (registration.waiting === recovered) recovered.postMessage({ type: 'ACTIVATE' });
-  return { registration, worker: recovered };
+  if (recovered.state === 'installed') recovered.postMessage({ type: 'ACTIVATE' });
+  const activated = await waitForActivation(recovered);
+  if (!activated) throw new Error('Unable to activate a healthy dashboard service worker.');
+  return { registration, worker: activated };
 }
 
 /**

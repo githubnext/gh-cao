@@ -745,7 +745,130 @@ describe('automatic dashboard data updates', () => {
     stop();
   });
 
-  it('force-registers a cache-busted worker when the active canary fails', async () => {
+  it('waits for asset installation beyond the canary timeout without unregistering', async () => {
+    vi.useFakeTimers();
+    const worker = new FakeWorker();
+    worker.state = 'installing';
+    const currentRegistration = {
+      ...registration(worker),
+      active: null,
+      installing: worker
+    };
+    const serviceWorkers = { register: vi.fn().mockResolvedValue(currentRegistration) };
+    const healthy = ensureHealthyDashboardServiceWorker(
+      /** @type {ServiceWorkerContainer} */ (/** @type {unknown} */ (serviceWorkers)),
+      new URL('https://example.test/service-worker.js')
+    );
+    const result = expect(healthy).resolves.toMatchObject({ worker });
+
+    await vi.advanceTimersByTimeAsync(3500);
+    expect(currentRegistration.unregister).not.toHaveBeenCalled();
+    expect(serviceWorkers.register).toHaveBeenCalledOnce();
+    worker.state = 'installed';
+    worker.dispatchEvent(new Event('statechange'));
+    await result;
+    expect(worker.state).toBe('activated');
+  });
+
+  it('does not report an activating worker as healthy before activation completes', async () => {
+    vi.useFakeTimers();
+    const worker = new FakeWorker();
+    worker.state = 'activating';
+    const currentRegistration = registration(worker);
+    const serviceWorkers = { register: vi.fn().mockResolvedValue(currentRegistration) };
+    const healthy = ensureHealthyDashboardServiceWorker(
+      /** @type {ServiceWorkerContainer} */ (/** @type {unknown} */ (serviceWorkers)),
+      new URL('https://example.test/service-worker.js')
+    );
+    const settled = vi.fn();
+    const result = healthy.then(settled);
+
+    await vi.advanceTimersByTimeAsync(3500);
+    expect(settled).not.toHaveBeenCalled();
+    expect(currentRegistration.unregister).not.toHaveBeenCalled();
+    worker.state = 'activated';
+    worker.dispatchEvent(new Event('statechange'));
+    await result;
+    expect(settled).toHaveBeenCalledWith({ registration: currentRegistration, worker });
+  });
+
+  it('reports an installation timeout without tearing down the pending worker', async () => {
+    vi.useFakeTimers();
+    const worker = new FakeWorker();
+    worker.state = 'installing';
+    const currentRegistration = {
+      ...registration(worker),
+      active: null,
+      installing: worker
+    };
+    const serviceWorkers = { register: vi.fn().mockResolvedValue(currentRegistration) };
+    const result = expect(ensureHealthyDashboardServiceWorker(
+      /** @type {ServiceWorkerContainer} */ (/** @type {unknown} */ (serviceWorkers)),
+      new URL('https://example.test/service-worker.js')
+    )).rejects.toThrow('Service worker installation timed out.');
+
+    await vi.advanceTimersByTimeAsync(120000);
+    await result;
+    expect(currentRegistration.unregister).not.toHaveBeenCalled();
+    expect(serviceWorkers.register).toHaveBeenCalledOnce();
+  });
+
+  it('reports an activation timeout without unregistering the activating worker', async () => {
+    vi.useFakeTimers();
+    const worker = new FakeWorker();
+    worker.state = 'activating';
+    const currentRegistration = registration(worker);
+    const serviceWorkers = { register: vi.fn().mockResolvedValue(currentRegistration) };
+    const result = expect(ensureHealthyDashboardServiceWorker(
+      /** @type {ServiceWorkerContainer} */ (/** @type {unknown} */ (serviceWorkers)),
+      new URL('https://example.test/service-worker.js')
+    )).rejects.toThrow('Service worker activation timed out.');
+
+    await vi.advanceTimersByTimeAsync(120000);
+    await result;
+    expect(currentRegistration.unregister).not.toHaveBeenCalled();
+    expect(serviceWorkers.register).toHaveBeenCalledOnce();
+  });
+
+  it.each([false, true])('waits for a waiting worker to activate, with recovery=%s', async (recovery) => {
+    vi.useFakeTimers();
+    const worker = new FakeWorker();
+    worker.state = 'installed';
+    const postMessage = worker.postMessage.bind(worker);
+    vi.spyOn(worker, 'postMessage').mockImplementation((message, ports) => {
+      if (message.type !== 'ACTIVATE') return postMessage(message, ports);
+      worker.state = 'activating';
+      worker.dispatchEvent(new Event('statechange'));
+    });
+    const currentRegistration = {
+      ...registration(new FakeWorker()),
+      waiting: worker
+    };
+    const brokenRegistration = registration(new FakeWorker(false));
+    const serviceWorkers = {
+      register: recovery
+        ? vi.fn().mockResolvedValueOnce(brokenRegistration).mockResolvedValue(currentRegistration)
+        : vi.fn().mockResolvedValue(currentRegistration)
+    };
+    const settled = vi.fn();
+    const result = ensureHealthyDashboardServiceWorker(
+      /** @type {ServiceWorkerContainer} */ (/** @type {unknown} */ (serviceWorkers)),
+      new URL('https://example.test/service-worker.js')
+    ).then(settled);
+
+    await vi.advanceTimersByTimeAsync(3500);
+    expect(worker.messages).toContainEqual({ type: 'CANARY' });
+    expect(worker.state).toBe('activating');
+    expect(settled).not.toHaveBeenCalled();
+    worker.state = 'activated';
+    worker.dispatchEvent(new Event('statechange'));
+    await result;
+    expect(settled).toHaveBeenCalledWith({ registration: currentRegistration, worker });
+    expect(currentRegistration.unregister).not.toHaveBeenCalled();
+    expect(brokenRegistration.unregister).not.toHaveBeenCalled();
+  });
+
+  it('force-registers a cache-busted worker without unregistering when the active canary fails', async () => {
     vi.useFakeTimers();
     const brokenRegistration = registration(new FakeWorker(false));
     const recoveredWorker = new FakeWorker();
@@ -763,7 +886,7 @@ describe('automatic dashboard data updates', () => {
     await vi.advanceTimersByTimeAsync(3000);
     await recovery;
 
-    expect(brokenRegistration.unregister).toHaveBeenCalledOnce();
+    expect(brokenRegistration.unregister).not.toHaveBeenCalled();
     expect(serviceWorkers.register).toHaveBeenCalledTimes(2);
     expect(String(serviceWorkers.register.mock.calls[1][0])).toContain('force-update=');
   });
