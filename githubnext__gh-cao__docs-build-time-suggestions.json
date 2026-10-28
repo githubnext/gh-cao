@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-28T05:19:26Z",
-      "worker_run_id": "40637017312",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        40635565659,
-        40634164619,
-        40633154199,
-        40632846617,
-        40631857559,
-        40629959171,
-        40628544326,
-        40627846806,
-        40627291443,
-        40626198865,
-        40624304931,
-        40622863668,
-        40622258385,
-        40621588091,
-        40620703211,
-        40618500493,
-        40616992881,
-        40615533306,
-        40614703459,
-        40614467538
-      ],
-      "outcome": "incomplete: the 2026-10-28T01:20:41Z to 2026-10-28T05:01:24Z latest-20 completed docs.yml window contained 17 successful and three skipped runs, with no failed or cancelled runs. Trusted job metadata directly confirmed the five newly entered runs: schedule runs 40635565659, 40634164619, 40632846617, and 40631857559 executed only 10-13 second schedule-freshness jobs while build and deploy were skipped; workflow_run 40633154199 skipped all jobs. Combined with the immediately preceding overlapping bounded evaluation, only one successful full build-and-deploy path remains in the current window: workflow_run 40614467538. All 20 runs used source SHA 0513039fee228cc95698b282852f4d23fcc08f8b; the other 16 successful runs were freshness-only executions and three ineligible workflow_run callbacks were skipped. One comparable successful full path is below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, sufficient step-level repeated-cost analysis, cache-effectiveness verification across five comparable builds, the CAO Dashboard producer comparison, and a complete Astro documentation-generation evaluation could not be produced. No recommendation was made, and Astro documentation generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-28T06:28:34Z",
       "worker_run_id": "40643716638",
       "category": "Astro documentation generation",
@@ -526,6 +498,13 @@
         40709170813
       ],
       "outcome": "incomplete: the 2026-10-28T14:45:57Z to 2026-10-28T18:33:30Z latest-20 completed docs.yml window contained 20 successful runs, with no failed or cancelled runs. All 20 used source SHA 3afcfbab8885219b6d73e6a0697f6e2d811382ca. Run-level trusted Actions metadata, together with trusted job and step evidence retained from immediately preceding overlapping bounded evaluations, identifies only four successful full build-and-deploy paths: workflow_run runs 40738302018, 40734561072, 40721452634, and 40710423755. The other 16 were freshness-only schedule executions. Four comparable successful full paths are below the required five. Therefore current full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost and cache-hit analysis, the CAO Dashboard producer comparison, duplicate-issue check, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-28T19:17:31Z",
+      "worker_run_id": "40752528086",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
