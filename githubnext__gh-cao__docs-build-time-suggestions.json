@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-29T03:51:01Z",
-      "worker_run_id": "40814174934",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        40813976269,
-        40812721517,
-        40811695237,
-        40810258108,
-        40809777208,
-        40808281062,
-        40807041812,
-        40806104345,
-        40805061131,
-        40803891845,
-        40802390668,
-        40800921132,
-        40799810691,
-        40798874673,
-        40798647211,
-        40797421113,
-        40795821158,
-        40791502264,
-        40790553699,
-        40789624908
-      ],
-      "outcome": "incomplete: the 2026-10-28T23:46:04Z to 2026-10-29T03:46:21Z latest-20 completed docs.yml window contained 17 successful runs, two skipped runs, and one failed schedule run (40812721517), with no cancelled runs; all used source SHA 3afcfbab8885219b6d73e6a0697f6e2d811382ca. Trusted run metadata identifies only two successful full build-and-deploy paths, workflow_run runs 40798647211 and 40790553699; the other 15 successful runs were freshness-only schedule executions. Two comparable successful full paths are below the required five, so full-workflow and dashboard/build/deploy median and p90 timings, sufficient step-level repeated-cost and trusted cache-hit analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-29T04:21:34Z",
       "worker_run_id": "40817014738",
       "category": "reusable dashboard generation",
@@ -610,6 +582,13 @@
         40859911000
       ],
       "outcome": "incomplete: the 2026-10-29T10:44:20Z to 2026-10-29T13:46:09Z latest-20 completed docs.yml window contained 15 successful runs and five skipped workflow_run runs, with no failed or cancelled runs. Trusted job metadata confirms the two newly entered successful runs: schedule 40884947285 was freshness-only with build and deploy skipped, while workflow_run 40884528691 completed the full build-and-deploy path and restored the CAO Dashboard cache successfully (fallback discovery and artifact download were skipped). Retained trusted job and step evidence from the immediately preceding overlapping evaluations identifies only two other successful full paths in the current window: push 40864514377 and schedule 40860174638; the other 12 successful runs were freshness-only schedules. Thus the window has only three successful full build-and-deploy paths, including two at source SHA d22fa1c096559602951a30460095754a169af08e and one at cd624947648b01320c1eb4f553f813eb20028d5e, below the required five comparable successful runs. Queue-versus-execution distributions, full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-29T14:19:37Z",
+      "worker_run_id": "40889873525",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs in the last 14 days returned a GitHub API rate-limit error at 2026-10-29T14:19:37Z before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, queue-versus-execution separation, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
