@@ -247,6 +247,18 @@ starlight-toc h2,
   color: #f0f6fc !important;
 }
 
+.site-title:focus-visible,
+.hero-action:focus-visible {
+  outline: 3px solid #1f6feb;
+  outline-offset: 3px;
+  border-radius: 0.5rem;
+}
+
+:root[data-theme="dark"] .site-title:focus-visible,
+:root[data-theme="dark"] .hero-action:focus-visible {
+  outline-color: #79c0ff;
+}
+
 .right-group {
   gap: 0.2rem;
 }
