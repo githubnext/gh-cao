@@ -1,7 +1,7 @@
 name: Central Agentic Ops
 icon: ":workflow:"
 description: Central agentic workflow control plane for reusable campaigns at the organization level
-min-version: v0.93.5
+min-version: v1.0.1
 experimental: true
 includes:
   - activity/aw.yml

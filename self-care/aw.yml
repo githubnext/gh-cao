@@ -1,7 +1,7 @@
 name: SelfCare
 icon: ":check-circle:"
 description: Repository-local live checks for dashboard quality, documentation freshness and discoverability, data schemas, accessibility, experimental-view correctness, production Pages health, Lighthouse performance, build performance, CLI consistency, component reuse, declarative view reuse, canonical view-source queries, reactive UI patterns, Go server quality, glossary freshness, acquisition efficiency, public-project run failures, and Primer brand alignment in Central Agentic Ops.
-min-version: v0.93.5
+min-version: v1.0.1
 private: true
 experimental: true
 includes:

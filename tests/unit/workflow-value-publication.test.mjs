@@ -40,7 +40,7 @@ async function fixture(t, input = envelope) {
   await mkdir(path.dirname(policy), { recursive: true });
   await writeFile(policy, JSON.stringify({
     version: 1,
-    'gh-aw-version': 'v0.93.5',
+    'gh-aw-version': 'v1.0.1',
     'control-plane': {
       scope: { 'allowed-owners': ['github'], 'allowed-repositories': ['github/gh-aw'] },
       activity: { repositories: ['github/gh-aw'] },

@@ -1,7 +1,7 @@
 name: Bug Bash
 icon: ":rocket:"
 description: Find a bug you can reproduce. Review a fix you can understand. Test one versioned explicit-zero-default hypothesis against one repository revision.
-min-version: v0.93.5
+min-version: v1.0.1
 experimental: true
 includes:
   - .github/workflows/bug-bash-investigation.md

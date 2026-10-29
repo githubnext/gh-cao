@@ -1,7 +1,7 @@
 name: EU CRA
 icon: ":shield:"
 description: Advisory, non-binding evidence gathering and operational readiness workflows for Regulation (EU) 2024/2847.
-min-version: v0.93.5
+min-version: v1.0.1
 private: true
 experimental: true
 includes:

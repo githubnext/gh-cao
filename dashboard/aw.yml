@@ -1,7 +1,7 @@
 name: CAO Dashboard
 icon: ":graph:"
 description: Root-package component that deploys an access-controlled, read-only Central Agentic Ops report with GitHub Pages and optional background data updates; not a standalone installation entry point.
-min-version: v0.93.5
+min-version: v1.0.1
 experimental: true
 includes:
   - .github/workflows/cao-dashboard.yml
