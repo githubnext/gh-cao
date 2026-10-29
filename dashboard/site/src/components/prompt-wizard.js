@@ -1,5 +1,5 @@
 import { h } from '../dom.js';
-import { effect, state } from '../reactive.js';
+import { batch, effect, render, state } from '../reactive.js';
 import { normalizeAction } from '../action-model.js';
 import { octicon } from '../octicons.js';
 import { parsePromptWizard, initialWizardValues, updateWizardValues, wizardFieldVisible, wizardFieldError, buildWizardPrompt } from '../prompt-wizard.js';
@@ -19,20 +19,28 @@ export function renderPromptWizard(context) {
   const values = state(initialWizardValues(wizard));
   const active = state(0);
   const error = state('');
+  const fieldErrors = state(/** @type {Record<string, string>} */ ({}));
   const reviewedPrompt = state('');
   const fieldsById = new Map(wizard.steps.flatMap((step) => step.fields.map((field) => [field.id, field])));
   const prefix = `prompt-wizard-${++nextWizardId}`;
-  /** @type {Map<string, { root: HTMLElement, control: HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement|HTMLButtonElement, description: HTMLElement }>} */
+  /** @type {Map<string, { root: HTMLElement, control: HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement|HTMLButtonElement, description: HTMLElement, error: HTMLElement }>} */
   const controls = new Map();
   /** @param {string} id @param {string|string[]} value */
   const update = (id, value) => {
     if (scope.signal.aborted) return;
     const field = fieldsById.get(id);
     if (!field) throw new Error('Wizard field is not declared.');
-    values.set((current) => updateWizardValues(field, current, value));
-    controls.get(id)?.control.removeAttribute('aria-invalid');
-    reviewedPrompt.set('');
-    error.set('');
+    batch(() => {
+      const current = values.set((current) => updateWizardValues(field, current, value));
+      const remaining = Object.fromEntries(Object.keys(fieldErrors.get()).flatMap((id) => {
+        const field = fieldsById.get(id);
+        const message = field && wizardFieldVisible(field, current) ? wizardFieldError(field, current[id]) : null;
+        return message ? [[id, message]] : [];
+      }));
+      fieldErrors.set(remaining);
+      reviewedPrompt.set('');
+      if (!Object.keys(remaining).length) error.set('');
+    });
   };
   const panels = wizard.steps.map((step, index) => /** @type {HTMLFieldSetElement} */ (h('fieldset', {
     className: 'prompt-wizard-step', 'aria-describedby': `${prefix}-${step.id}-description`
@@ -41,6 +49,7 @@ export function renderPromptWizard(context) {
   ...step.fields.map((field) => {
     const id = `${prefix}-${field.id}`;
     const description = h('p', { id: `${id}-help`, className: 'prompt-wizard-help' });
+    const fieldError = h('p', { id: `${id}-error`, className: 'prompt-wizard-field-error', hidden: true });
     const label = `${field.label}${field.required ? ' (required)' : ''}`;
     /** @type {HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement|HTMLButtonElement} */
     let control;
@@ -66,7 +75,7 @@ export function renderPromptWizard(context) {
       });
       control = cards[0];
       root = h('fieldset', { className: 'prompt-wizard-field prompt-wizard-cards' },
-        h('legend', null, label),
+        h('legend', null, label), fieldError,
         h('div', { className: 'entity-card-list entity-card-list-marketplace' }, ...cards));
     } else if (field.control === 'checkboxes') {
       const inputs = (field.options ?? []).map((option) => {
@@ -80,7 +89,7 @@ export function renderPromptWizard(context) {
       });
       control = inputs[0].input;
       root = h('fieldset', { className: 'prompt-wizard-field prompt-wizard-options' },
-        h('legend', null, label), ...inputs.map(({ root }) => root), description);
+        h('legend', null, label), fieldError, ...inputs.map(({ root }) => root), description);
     } else {
       control = /** @type {HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement} */ (h(
         field.control === 'select' ? 'select' : field.control === 'textarea' ? 'textarea' : 'input',
@@ -97,9 +106,9 @@ export function renderPromptWizard(context) {
         ] : [])
       ));
       control.value = String(values.get()[field.id]);
-      root = h('div', { className: 'prompt-wizard-field' }, h('label', { for: id }, label), control, description);
+      root = h('div', { className: 'prompt-wizard-field' }, h('label', { for: id }, label), control, fieldError, description);
     }
-    controls.set(field.id, { root, control, description });
+    controls.set(field.id, { root, control, description, error: fieldError });
     root.dataset.wizardStep = String(index);
     return root;
   }))));
@@ -111,18 +120,38 @@ export function renderPromptWizard(context) {
     }, `${index + 1}. ${step.title}`)));
   const progress = h('ol', { className: 'prompt-wizard-progress', 'aria-label': 'Wizard progress' },
     ...stepButtons.map((button) => h('li', null, button)));
-  const validateStep = () => {
-    const step = wizard.steps[active.get()];
-    for (const field of step?.fields ?? []) {
-      if (!wizardFieldVisible(field, values.get())) continue;
-      const message = wizardFieldError(field, values.get()[field.id]);
-      const control = controls.get(field.id)?.control;
-      control?.setAttribute('aria-invalid', String(Boolean(message)));
-      if (message) {
-        error.set(message);
-        control?.focus();
-        return false;
+  /** @param {string} id */
+  const focusInvalidField = (id) => {
+    const item = controls.get(id);
+    if (!item || scope.signal.aborted) return;
+    active.set(Number(item.root.dataset.wizardStep));
+    item.control.focus();
+    item.control.scrollIntoView?.({ block: 'center' });
+  };
+  /** @param {boolean} [allSteps] */
+  const validateSteps = (allSteps = false) => {
+    const errors = { ...fieldErrors.get() };
+    /** @type {string | undefined} */
+    let firstInvalid;
+    wizard.steps.forEach((step, index) => {
+      if (!allSteps && index !== active.get()) return;
+      for (const field of step.fields) {
+        delete errors[field.id];
+        if (!wizardFieldVisible(field, values.get())) continue;
+        const message = wizardFieldError(field, values.get()[field.id]);
+        if (message) {
+          errors[field.id] = message;
+          firstInvalid ??= field.id;
+        }
       }
+    });
+    batch(() => {
+      fieldErrors.set(errors);
+      error.set(firstInvalid ? allSteps ? 'Cannot generate prompt.' : 'Cannot continue.' : '');
+    });
+    if (firstInvalid) {
+      focusInvalidField(firstInvalid);
+      return false;
     }
     return true;
   };
@@ -148,13 +177,13 @@ export function renderPromptWizard(context) {
     onClick: () => goBack(active.get() - 1)
   }, 'Back'));
   const advance = () => {
-    if (scope.signal.aborted || active.get() >= wizard.steps.length - 1 || !validateStep()) return;
+    if (scope.signal.aborted || active.get() >= wizard.steps.length - 1 || !validateSteps()) return;
     active.set(active.get() + 1);
     error.set('');
     focusPanel();
   };
   const preparePrompt = () => {
-    if (scope.signal.aborted || active.get() !== wizard.steps.length - 1 || !validateStep()) return false;
+    if (scope.signal.aborted || active.get() !== wizard.steps.length - 1 || !validateSteps(true)) return false;
     try {
       reviewedPrompt.set(buildWizardPrompt(wizard, values.get()));
       error.set('');
@@ -175,10 +204,20 @@ export function renderPromptWizard(context) {
   }, { id: `${context.viewId ?? 'wizard'}-generate`, type: 'prompt' }), reviewedPrompt.get,
   undefined, undefined, undefined, preparePrompt);
   const navigation = h('div', { className: 'prompt-wizard-actions' }, back, next, preview);
+  const errorSummary = h('div', { className: 'prompt-wizard-errors', role: 'alert', hidden: true });
+  render(errorSummary, () => [
+    h('strong', null, error.get() || 'Check your answers before continuing.'),
+    h('ul', null, ...wizard.steps.flatMap((step, index) => step.fields.flatMap((field) => {
+      const message = fieldErrors.get()[field.id];
+      return message ? [h('li', null, h('p', null, message), h('button', {
+        type: 'button', onClick: () => focusInvalidField(field.id)
+      }, `Fix ${field.label} - Step ${index + 1}: ${step.title}`))] : [];
+    })))
+  ], { signal: scope.signal });
   const root = h('section', { className: 'prompt-wizard', 'aria-label': context.title },
     h('p', null, wizard.intro),
     progress,
-    ...panels, status,
+    ...panels, status, errorSummary,
     navigation);
   effect(() => {
     const current = active.get();
@@ -186,6 +225,9 @@ export function renderPromptWizard(context) {
     navigation.hidden = current === 0 && fields?.length === 1 && fields[0]['advance-on-select'] === true;
     panels.forEach((panel, index) => { panel.hidden = index !== current; panel.disabled = index !== current; });
     stepButtons.forEach((item, index) => {
+      const hasErrors = wizard.steps[index].fields.some((field) => fieldErrors.get()[field.id]);
+      item.textContent = `${index + 1}. ${wizard.steps[index].title}${hasErrors ? ' (needs attention)' : ''}`;
+      item.setAttribute('aria-label', `Return to ${wizard.steps[index].title}${hasErrors ? ', needs attention' : ''}`);
       item.disabled = index >= current;
       if (index === current) item.setAttribute('aria-current', 'step');
       else item.removeAttribute('aria-current');
@@ -193,12 +235,25 @@ export function renderPromptWizard(context) {
     back.disabled = current === 0;
     next.hidden = current === wizard.steps.length - 1;
     preview.hidden = current !== wizard.steps.length - 1;
-    status.textContent = error.get() || `Step ${current + 1} of ${wizard.steps.length}: ${wizard.steps[current].title}`;
+    errorSummary.hidden = !error.get() && !Object.keys(fieldErrors.get()).length;
+    status.textContent = Object.values(fieldErrors.get())[0] || error.get() || `Step ${current + 1} of ${wizard.steps.length}: ${wizard.steps[current].title}`;
     for (const step of wizard.steps) {
       for (const field of step.fields) {
         const item = controls.get(field.id);
         if (!item) continue;
         item.root.hidden = !wizardFieldVisible(field, values.get());
+        const message = fieldErrors.get()[field.id];
+        item.error.textContent = message ?? '';
+        item.error.hidden = !message;
+        for (const control of item.root.querySelectorAll('input, textarea, select, button')) {
+          if (message) control.setAttribute('aria-invalid', 'true');
+          else control.removeAttribute('aria-invalid');
+          const descriptions = (control.getAttribute('aria-describedby') ?? '').split(' ')
+            .filter((id) => id && id !== item.error.id);
+          if (message) descriptions.push(item.error.id);
+          if (descriptions.length) control.setAttribute('aria-describedby', descriptions.join(' '));
+          else control.removeAttribute('aria-describedby');
+        }
         if (field.control === 'select') {
           if (item.control.value !== values.get()[field.id]) item.control.value = String(values.get()[field.id]);
           item.description.textContent = field.options?.find((option) => option.value === values.get()[field.id])?.description ?? '';

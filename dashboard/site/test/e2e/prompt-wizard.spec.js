@@ -10,7 +10,12 @@ registerSmokeRoutes();
 for (const width of [390, 1280]) {
   test(`JSON wizard supports Campaign design, keyboard navigation and prompt copy at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
-    const wizardPage = authoritativeDashboard.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'wizard');
+    const wizardPage = structuredClone(authoritativeDashboard.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'wizard'));
+    const configuration = /** @type {import('../../src/prompt-wizard.js').PromptWizard} */ (wizardPage.views[0].config.wizard);
+    const engine = configuration.steps.flatMap((step) => step.fields).find((field) => field.id === 'engine');
+    if (!engine?.options?.[1]) throw new Error('Expected an alternative engine.');
+    const alternativeEngine = engine.options[1];
+    alternativeEngine.defaults = { artifact: '' };
     await page.evaluate(() => { window.location.hash = 'page-wizard'; });
     await page.setContent(`
       <div id="root"></div>
@@ -53,6 +58,10 @@ for (const width of [390, 1280]) {
     await page.getByRole('button', { name: 'Generate', exact: true }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible();
     await expect(page.getByLabel('Campaign target repositories (required)')).toBeFocused();
+    await expect(root.getByRole('alert')).toContainText('Cannot generate prompt.');
+    await expect(root.getByRole('alert')).toContainText('Step 3: Scope and behavior');
+    await expect(page.getByLabel('Campaign target repositories (required)')).toHaveAccessibleDescription('Campaign target repositories is required.');
+    await expect(root.locator('.prompt-wizard-field-error').filter({ hasText: 'Campaign target repositories is required.' })).toBeInViewport();
     await page.getByLabel('Campaign target repositories (required)').fill('acme/one\nacme/two');
     await expect(page.getByRole('checkbox', { name: 'add comment', exact: false })).toBeChecked();
     await expect(page.getByRole('checkbox', { name: 'add labels', exact: false })).toBeChecked();
@@ -88,6 +97,19 @@ for (const width of [390, 1280]) {
     await expect(selected).toBeFocused();
     await selected.press('Enter');
     await expect(page.getByLabel('What do you want to generate? (required)')).toBeFocused();
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.getByLabel('Agent engine (required)').selectOption(alternativeEngine.value);
+    await page.getByRole('button', { name: 'Generate', exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+    await expect(page.getByLabel('What do you want to generate? (required)')).toBeFocused();
+    await expect(tabs.nth(1)).toContainText('needs attention');
+    await expect(root.getByRole('alert')).toContainText('Step 2: Describe your goal');
+    await expect(root.locator('.prompt-wizard-field-error').filter({ hasText: 'What do you want to generate? is required.' })).toBeInViewport();
+    await page.getByLabel('What do you want to generate? (required)').selectOption('workflow');
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.getByRole('button', { name: 'Generate', exact: true }).click();
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press('Escape');
     expect(await root.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   });
 }
@@ -200,6 +222,29 @@ test.describe('populated dashboard wizard', () => {
         await page.locator('.prompt-wizard-progress button').nth(1).click();
         await expect(page.getByLabel('What do you want to generate? (required)')).toBeFocused();
         await page.getByRole('button', { name: 'Next', exact: true }).click();
+        const manualTrigger = page.getByRole('checkbox', { name: 'workflow dispatch', exact: false });
+        await manualTrigger.uncheck();
+        await page.getByRole('button', { name: 'Generate', exact: true }).click();
+        await expect(page.getByRole('dialog')).not.toBeVisible();
+        await expect(page.getByRole('checkbox', { name: 'issues when a new issue is opened', exact: true })).toBeFocused();
+        const triggerError = page.locator('.prompt-wizard-field-error').filter({ hasText: 'When should it run? is required.' });
+        await expect(triggerError).toBeInViewport();
+        await expect(manualTrigger).toHaveAttribute('aria-invalid', 'true');
+        const inlineErrorScreenshot = testInfo.outputPath(`workflow-wizard-inline-error-${width}.png`);
+        await page.screenshot({ path: inlineErrorScreenshot, fullPage: false });
+        await testInfo.attach(`Visible trigger error (${width}px)`, { path: inlineErrorScreenshot, contentType: 'image/png' });
+        const validationSummary = page.locator('.prompt-wizard-errors');
+        await expect(validationSummary).toContainText('Cannot generate prompt.');
+        await expect(validationSummary).toContainText('When should it run? is required.');
+        await validationSummary.scrollIntoViewIfNeeded();
+        const validationScreenshot = testInfo.outputPath(`workflow-wizard-validation-${width}.png`);
+        await page.screenshot({ path: validationScreenshot, fullPage: false });
+        await testInfo.attach(`Actionable validation summary (${width}px)`, { path: validationScreenshot, contentType: 'image/png' });
+        await validationSummary.getByRole('button', { name: 'Fix When should it run? - Step 3: Scope and behavior', exact: true }).click();
+        await expect(triggerError).toBeInViewport();
+        await manualTrigger.check();
+        await expect(validationSummary).toBeHidden();
+        await expect(manualTrigger).not.toHaveAttribute('aria-invalid');
         await page.getByRole('button', { name: 'Generate', exact: true }).click();
         expect(commands).toEqual([]);
         expect(sessions).toEqual([]);

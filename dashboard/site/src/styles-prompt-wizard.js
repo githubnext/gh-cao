@@ -29,6 +29,14 @@ export const promptWizardStyles = `
 .prompt-wizard :is(button,.table-intent-button){min-height:44px}
 .prompt-wizard-actions>.table-intent-control{margin-left:auto}
 .prompt-wizard-status{display:block;color:var(--muted)}
+.prompt-wizard-field-error{color:var(--danger);font-weight:600;overflow-wrap:anywhere}
+.prompt-wizard-field [aria-invalid="true"]{border-color:var(--danger)}
+.prompt-wizard-errors{margin-top:16px;padding:16px;border:1px solid var(--danger);border-radius:6px;overflow-wrap:anywhere}
+.prompt-wizard-errors>strong{color:var(--danger)}
+.prompt-wizard-errors ul{padding-left:20px;margin-bottom:0}
+.prompt-wizard-errors li+li{margin-top:12px}
+.prompt-wizard-errors li p{margin:0}
+.prompt-wizard-errors button{max-width:100%;padding:0;border:0;background:none;color:var(--accent);font:inherit;text-align:left;text-decoration:underline;cursor:pointer}
 .prompt-wizard [hidden]{display:none!important}
 @media(max-width:600px){.prompt-wizard-progress{gap:6px}.prompt-wizard-progress button{font-size:12px;padding:6px}.prompt-wizard-options{padding:6px}}
 `;

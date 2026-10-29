@@ -10,7 +10,7 @@
       "intent": "Turn an explicit automation goal into a bounded, reviewable workflow or campaign authoring request.",
       "subject": "Author-selected requirements and pinned upstream workflow patterns, not operational authority.",
       "objective": "Review a complete generation prompt before handing it to a coding agent.",
-      "acceptance": "Preserve explicit scope, safe outputs and success criteria; treat mined patterns as historical guidance; never install or activate generated work.",
+      "acceptance": "Preserve explicit scope, safe outputs and success criteria; label invalid answers with discoverable errors and reveal their pane before generation; treat mined patterns as historical guidance; never install or activate generated work.",
       "filter-bar": false,
       "view-mode-control": false,
       "views": [

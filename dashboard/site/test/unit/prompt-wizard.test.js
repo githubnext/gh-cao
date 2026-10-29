@@ -242,6 +242,72 @@ describe('declarative wizard contract', () => {
 });
 
 describe('wizard interaction and lifecycle', () => {
+  it('labels every invalid field and keeps remaining errors visible after an answer is corrected', () => {
+    const root = mount();
+    fillGoal(root, 'campaign');
+    const trigger = /** @type {HTMLInputElement} */ (root.querySelector('input[value="workflow_dispatch"]'));
+    trigger.click();
+    button(root, 'Generate').click();
+    const targets = /** @type {HTMLTextAreaElement} */ (root.querySelector('[id$="-targets"]'));
+    const summary = root.querySelector('[role="alert"]');
+    expect(summary?.textContent).toContain('Cannot generate prompt');
+    expect(summary?.textContent).toContain('Campaign target repositories is required.');
+    expect(summary?.textContent).toContain('When should it run? is required.');
+    expect(targets.getAttribute('aria-invalid')).toBe('true');
+    expect(trigger.getAttribute('aria-invalid')).toBe('true');
+    for (const control of [targets, trigger]) {
+      const errorId = control.getAttribute('aria-describedby')?.split(' ').find((id) => id.endsWith('-error'));
+      expect(document.getElementById(errorId ?? '')?.textContent).toContain('is required.');
+    }
+    expect(document.activeElement).toBe(targets);
+    input(root, 'Campaign target repositories', 'acme/one');
+    expect(targets.hasAttribute('aria-invalid')).toBe(false);
+    expect(summary?.textContent).not.toContain('Campaign target repositories is required.');
+    expect(summary?.textContent).toContain('When should it run? is required.');
+    button(root, 'Fix When should it run? - Step 3: Scope and behavior').click();
+    expect(document.activeElement).toBe(root.querySelector('input[value="issues"]'));
+    trigger.click();
+    expect(summary?.hasAttribute('hidden')).toBe(true);
+    button(root, 'Generate').click();
+    expect(root.querySelector('dialog')?.hasAttribute('open')).toBe(true);
+  });
+
+  it('validates all panes on Generate and reveals an earlier answer invalidated by a later choice', () => {
+    const configuration = structuredClone(wizard);
+    const engine = configuration.steps.flatMap((step) => step.fields).find((field) => field.id === 'engine');
+    if (!engine?.options?.[1]) throw new Error('Expected an alternative engine.');
+    engine.options[1].defaults = { artifact: '' };
+    const root = mount(configuration);
+    fillBehavior(root);
+    input(root, 'Agent engine', engine.options[1].value);
+    button(root, 'Generate').click();
+    expect(root.querySelector('dialog')?.hasAttribute('open')).toBe(false);
+    expect(root.querySelector('[id$="-artifact"]')).toBe(document.activeElement);
+    expect(root.querySelector('[id$="-artifact"]')?.closest('fieldset')?.hasAttribute('hidden')).toBe(false);
+    expect(root.querySelector('[role="alert"]')?.textContent).toContain('What do you want to generate? is required.');
+    expect(root.querySelector('[role="alert"]')?.textContent).toContain('Step 2: Describe your goal');
+    input(root, 'What do you want to generate?', 'workflow');
+    button(root, 'Next').click();
+    button(root, 'Generate').click();
+    expect(root.querySelector('dialog')?.hasAttribute('open')).toBe(true);
+  });
+
+  it('shows actionable format errors and removes failures for fields that become inapplicable', () => {
+    const root = mount();
+    fillGoal(root, 'campaign');
+    input(root, 'Campaign target repositories', 'acme/*');
+    button(root, 'Generate').click();
+    expect(root.querySelector('[role="alert"]')?.textContent).toContain('must list exact owner/repository names');
+    button(root, 'Back').click();
+    input(root, 'What do you want to generate?', 'workflow');
+    expect(root.querySelector('[role="alert"]')?.hasAttribute('hidden')).toBe(true);
+    expect(root.querySelector('[id$="-targets"]')?.hasAttribute('aria-invalid')).toBe(false);
+    button(root, 'Next').click();
+    button(root, 'Generate').click();
+    expect(root.querySelector('dialog')?.hasAttribute('open')).toBe(true);
+    expect(root.querySelector('.table-intent-preview')?.textContent).not.toContain('acme/*');
+  });
+
   it('starts an app session with the reviewed prompt only after an explicit canvas handoff', async () => {
     const meta = document.createElement('meta');
     meta.name = 'dashboard-copilot-session';

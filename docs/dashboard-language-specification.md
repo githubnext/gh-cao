@@ -101,15 +101,15 @@ from prompts. Earlier step buttons allow direct Back navigation; future steps
 cannot bypass validation. Invalid configuration fails closed.
 
 `prompt` declares `label` and `instructions`. **Generate** replaces Next on the
-last configured step, with no extra Review pane. It validates answers and opens
-the shared `propose`-level
-preview. **Copy prompt** copies up to 100000 characters. App canvases instead offer
-**Start session** through the native Copilot session tool. Opening previews does
-nothing; handoff requires a click, never a CLI task or automation activation.
-Generated prompts start with “Create a Pull Request for the following task:”
-and render the design as natural language. Only selected authoring instructions
-are included; Campaign guidance is conditional. Raw pattern records, provenance,
-rankings and anti-patterns stay out. Answers are never shell substitutions.
+last step, validates all answers, and reveals and focuses invalid fields.
+Inline errors and step links persist until corrected; valid answers open the
+shared `propose` preview. **Copy prompt** copies up to 100000
+characters; app canvases offer **Start session** via the native Copilot tool.
+Previewing has no side effects; handoff requires a click, never CLI execution or
+activation. Prompts start with “Create a Pull Request for the following task:”
+and include selected natural-language instructions, with conditional Campaign
+guidance. Raw patterns, provenance, rankings and anti-patterns stay out.
+Answers are never shell substitutions.
 
 The wizard opens a workflow-type marketplace, then collects artifact kind,
 intent and scope. The prompt infers the title and kebab-case workflow or campaign
