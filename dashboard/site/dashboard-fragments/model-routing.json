@@ -529,6 +529,23 @@
       ]
     },
     {
+      "name": "routing-run-summary", "from": "routing-runs",
+      "subject": "Keep the selected Run's compact routing and baseline evidence visible.",
+      "objective": "Preserve the comparison when shorter-lived Audit detail expires.",
+      "acceptance": "Retained aggregate costs and baseline evidence survive Audit expiry; absent phase details stay unknown.",
+      "joins": [{
+        "source": "routing-cost-runs", "type": "left",
+        "on": [{ "left": "routing-run-key", "right": "routing-run-key" }],
+        "fields": [
+          { "field": "cost-complete", "as": "cost-complete" },
+          { "field": "missing-cost-records", "as": "missing-cost-records" },
+          { "field": "detection-aic", "as": "detection-aic" },
+          { "field": "run-aic", "as": "run-aic" },
+          { "field": "budget-use", "as": "budget-use" }
+        ]
+      }]
+    },
+    {
       "name": "routing-weekly-cost-totals", "from": "routing-runs",
       "subject": "Summarize complete agent-phase costs by UTC ISO week and routing state.",
       "objective": "Expose trends without including partial costs.",
@@ -884,7 +901,7 @@
           "objective": "Compare known main-request cost to the named baseline before acting.",
           "acceptance": "Incomplete baseline estimates stay explicitly incomplete; deeper evidence is available from the Actions run's usage artifact.",
           "description": "The aggregate preserves the main-request baseline comparison separately from total accounting. Open the Actions run and download its usage artifact for the full aw_session.jsonl. Per-request and attribution evidence below is retained to explain unmatched costs without treating them as zero.",
-          "data": { "source": "routing-cost-runs", "route-field": "routing-run-key", "limit": 1, "query-context": false },
+          "data": { "source": "routing-run-summary", "route-field": "routing-run-key", "limit": 1, "query-context": false },
           "encoding": { "columns": [
             { "field": "routing-state", "title": "State" }, { "field": "pick", "title": "Pick" },
             { "field": "harness-status", "title": "Harness report" }, { "field": "cost-complete", "title": "Complete" },

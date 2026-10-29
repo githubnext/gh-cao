@@ -24,7 +24,8 @@ export function requireCommand(command) {
 }
 
 export function run(command, args = [], options = {}) {
-  const result = spawnSync(command, args, {
+  const isNodeScript = path.extname(command) === ".mjs";
+  const result = spawnSync(isNodeScript ? process.execPath : command, isNodeScript ? [command, ...args] : args, {
     encoding: Object.hasOwn(options, "encoding") ? options.encoding : "utf8",
     input: options.input,
     cwd: options.cwd,

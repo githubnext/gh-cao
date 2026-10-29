@@ -886,7 +886,6 @@
         "on": [{ "left": "repositoryId", "right": "id" }],
         "fields": [
           { "field": "owner", "as": "organization" },
-          { "field": "name", "as": "repository" },
           { "field": "name", "as": "repository-name" },
           { "field": "organizationLink", "as": "organization-link" },
           { "field": "repositoryLink", "as": "repository-link" }
@@ -906,7 +905,7 @@
     "select": [
       { "field": "id" },
       { "field": "organization" },
-      { "field": "repository" },
+      { "field": "repository-name", "as": "repository" },
       { "field": "repository-name" },
       { "field": "campaign" },
       { "field": "campaign-name" },

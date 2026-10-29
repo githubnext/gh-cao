@@ -5,9 +5,18 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
+import { run } from "../../.github/skills/add-operational-value/scripts/common.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const scripts = path.join(root, ".github/skills/add-operational-value/scripts");
+
+test("script runner invokes Node modules without executable permissions or a shebang", (t) => {
+  const temporary = mkdtempSync(path.join(os.tmpdir(), "value script runner-"));
+  t.after(() => rmSync(temporary, { recursive: true, force: true }));
+  const script = path.join(temporary, "script.mjs");
+  writeFileSync(script, "console.log(JSON.stringify(process.argv.slice(2)));\n", { mode: 0o600 });
+  assert.deepEqual(JSON.parse(run(script, ["argument with spaces"])), ["argument with spaces"]);
+});
 
 test("skill connects frozen intent, final acceptance, dated lineage and reusable reporting", () => {
   const skill = readFileSync(path.join(root, ".github/skills/add-operational-value/SKILL.md"), "utf8");

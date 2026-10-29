@@ -157,6 +157,9 @@ async function inTables(page, width, check) {
           await expect(page.locator('[data-view-id="routing-run-cost"]')).toContainText('claude-sonnet-5.5');
           await expect(page.locator('[data-view-id="routing-run-cost"]')).toContainText('Baseline estimate (estimated)');
           expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+          const detailScreenshot = testInfo.outputPath(`routing-baseline-detail-go-${width}.png`);
+          await page.screenshot({ path: detailScreenshot, fullPage: true });
+          await testInfo.attach(`routing-baseline-detail-go-${width}`, { path: detailScreenshot, contentType: 'image/png' });
         } finally {
           await real.server.close();
           await rm(real.workspace, { recursive: true, force: true });

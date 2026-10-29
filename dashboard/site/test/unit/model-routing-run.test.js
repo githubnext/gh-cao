@@ -158,4 +158,20 @@ describe('run-scoped model routing', () => {
       .toMatchObject([{ 'correlation-id': 'new', aic: 2 }]);
     expect((await viewResult(indexedDB, 'octo/api:2', 'routing-run-attribution')).rows).toHaveLength(12);
   });
+
+  it('keeps the Run baseline comparison visible after its Audit detail expires', async () => {
+    const indexedDB = new IDBFactory();
+    await ingest(indexedDB, 1, [
+      event('firewall.model_routing', { stage: 'selection', selectedModel: 'gpt-5' }),
+      event('model.baseline_estimate', { baselineModel: 'claude-sonnet-5.5', aic: 6, complete: true, mainRequests: 1 }),
+      event('firewall.model_routing', { stage: 'request', requestId: 'main', routed: 'as_selected' }),
+      event('firewall.token_usage', { requestId: 'main', aic: 1 })
+    ]);
+    const { maintainCanonicalDatabase } = await import('../../src/data/storage/indexeddb.js');
+    await maintainCanonicalDatabase(indexedDB, { now: now + 8 * 86400000, maxDatabaseBytes: Number.MAX_SAFE_INTEGER });
+    expect((await viewResult(indexedDB, 'octo/api:1', 'routing-run-cost')).rows).toMatchObject([
+      { 'baseline-model': 'claude-sonnet-5.5', 'baseline-aic': 6, 'baseline-complete': true }
+    ]);
+    expect((await viewResult(indexedDB, 'octo/api:1', 'routing-run-attribution')).rows).toEqual([]);
+  });
 });

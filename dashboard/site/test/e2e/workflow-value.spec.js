@@ -222,7 +222,7 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole('link', { name: 'Not measured', exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Not measured', exact: true }).click();
     await expect(page).toHaveURL(/#page-value-measurement\?/);
-    await expect(page.getByText('Incomplete retained deliveries', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Not measured metadata').getByText('Incomplete retained deliveries', { exact: true })).toBeVisible();
     await expect(page.getByText('interval', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Period and evidence identity', { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);

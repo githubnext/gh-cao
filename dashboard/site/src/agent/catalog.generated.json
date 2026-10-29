@@ -1323,10 +1323,10 @@
       ],
       "queries": [
         "routing-attributed-accounting",
-        "routing-cost-runs",
         "routing-deviations",
         "routing-events",
-        "routing-resolutions"
+        "routing-resolutions",
+        "routing-run-summary"
       ]
     },
     {
@@ -9401,6 +9401,120 @@
             "description": "Workflow",
             "default": ""
           }
+        }
+      ],
+      "sources": [
+        "routing-agent-costs",
+        "routing-detection-costs",
+        "routing-resolved-runs",
+        "routing-runs"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "audits",
+          "routing-aggregates"
+        ]
+      }
+    },
+    {
+      "id": "routing-run-summary",
+      "subject": "Keep the selected Run's compact routing and baseline evidence visible.",
+      "objective": "Preserve the comparison when shorter-lived Audit detail expires.",
+      "acceptance": "Retained aggregate costs and baseline evidence survive Audit expiry; absent phase details stay unknown.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "routing-filter-awf",
+          "type": "string",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "AWF version",
+            "default": ""
+          }
+        },
+        {
+          "name": "routing-filter-end",
+          "type": "string",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "End time (UTC)",
+            "default": ""
+          }
+        },
+        {
+          "name": "routing-filter-engine",
+          "type": "string",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Engine",
+            "default": ""
+          }
+        },
+        {
+          "name": "routing-filter-goal",
+          "type": "string",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Goal",
+            "default": ""
+          }
+        },
+        {
+          "name": "routing-filter-mode",
+          "type": "string",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Resolved mode",
+            "default": ""
+          }
+        },
+        {
+          "name": "routing-filter-repository",
+          "type": "string",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Repository (OWNER/NAME)",
+            "default": ""
+          }
+        },
+        {
+          "name": "routing-filter-start",
+          "type": "string",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Start time (UTC)",
+            "default": ""
+          }
+        },
+        {
+          "name": "routing-filter-state",
+          "type": "string",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Routing state",
+            "default": ""
+          }
+        },
+        {
+          "name": "routing-filter-workflow",
+          "type": "string",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Workflow",
+            "default": ""
+          }
         },
         {
           "name": "routing-run",
@@ -9408,9 +9522,7 @@
         }
       ],
       "sources": [
-        "routing-agent-costs",
-        "routing-detection-costs",
-        "routing-resolved-runs",
+        "routing-cost-runs",
         "routing-runs"
       ],
       "used-by-pages": [

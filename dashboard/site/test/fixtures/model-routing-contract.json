@@ -18,6 +18,7 @@
   "detail-audit-read-bound": 1,
   "queries": [
     "routing-runs",
+    "routing-run-summary",
     "routing-attributed-accounting",
     "routing-deviations",
     "routing-health",

@@ -75,7 +75,7 @@ describe('dashboard-chunks source discovery', () => {
       expect(stub, page.id).toBeDefined();
       expect(chunk, page.id).toBeDefined();
       if (!chunk) throw new Error(`Missing page chunk: ${page.id}`);
-      for (const field of ['intent', 'subject', 'objective', 'acceptance']) {
+      for (const field of ['description', 'intent', 'subject', 'objective', 'acceptance']) {
         expect(stub?.[field], `${page.id}.${field}`).toBeUndefined();
         expect(chunk.page[field], `${page.id}.${field}`).toBe(page[field]);
         expect(mergeDashboardPage(stub, chunk.page)[field]).toBe(page[field]);

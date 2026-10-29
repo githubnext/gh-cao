@@ -571,16 +571,20 @@ async function executePostgresBackend(
   child.stderr.on("data", (chunk) => { logs += chunk; });
   try {
     await waitForServer(serverURL, { child });
-    const response = await fetch(`${serverURL}/api/v1/query`, {
-      method: "POST",
-      headers: {
-        authorization: ["Bearer", accessToken].join(" "),
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ sourceNames: names, queries }),
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(`Postgres query failed (${response.status}): ${JSON.stringify(payload)}`);
+    const sources = {};
+    for (let offset = 0; offset < names.length; offset += 256) {
+      const response = await fetch(`${serverURL}/api/v1/query`, {
+        method: "POST",
+        headers: {
+          authorization: ["Bearer", accessToken].join(" "),
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ sourceNames: names.slice(offset, offset + 256), queries }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(`Postgres query failed (${response.status}): ${JSON.stringify(payload)}`);
+      Object.assign(sources, payload.sources);
+    }
     const goTools = await callGoMcp("tools/list");
     const nodeTools = await handleMcpRequest({
       headers: {
@@ -645,7 +649,7 @@ async function executePostgresBackend(
       }
       goMcpRows[name] = result.result.structuredContent.rows;
     }
-    return { postgres: rowsByQuery(payload.sources, names), goMcp: goMcpRows };
+    return { postgres: rowsByQuery(sources, names), goMcp: goMcpRows };
   } finally {
     child.kill("SIGTERM");
     await Promise.race([

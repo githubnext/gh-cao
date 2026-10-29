@@ -142,7 +142,7 @@ func testSetupOptions(t *testing.T, ctx context.Context, root, catalog, binary s
 		setupAssertJSON(t, result["settings"], expectedSettings)
 		for range 2 {
 			result = setupOptionRun(t, ctx, f, args...)
-			if result["command"] != "admission setup" || result["repository"] != "platform/control" ||
+			if result["command"] != "setup admission" || result["repository"] != "platform/control" ||
 				result["scope"] != "repository" || result["enabled"] != true || result["applied"] != true {
 				t.Fatalf("unexpected admission report: %#v", result)
 			}

@@ -55,7 +55,7 @@ func TestReplaceOperationalValuesPublishesAndRejectsStaleRevision(t *testing.T) 
 	}
 	err = store.WithReadTransaction(t.Context(), func(ctx context.Context, reader NativeReader) error {
 		sources, _, err := reader.ExecuteSQLPlan(ctx, []query.Definition{{
-			Name: "values", From: "operationalValues",
+			Name: "values", From: "$operationalValues",
 			Select: []query.SelectedField{{Field: "repository"}, {Field: "valueId"},
 				{Field: "value"}, {Field: "coverage-status"}, {Field: "missing-reason"}},
 		}}, []string{"values"})
@@ -106,7 +106,7 @@ func TestHostedSQLPlanRepositoryScopePrecedesAggregation(t *testing.T) {
 	}
 	err = store.WithReadTransaction(t.Context(), func(ctx context.Context, reader NativeReader) error {
 		sources, _, err := reader.ExecuteSQLPlanWithOptions(ctx, []query.Definition{{
-			Name: "totals", From: "runs",
+			Name: "totals", From: "$runs",
 			Aggregate: &query.Aggregate{
 				Values: []query.AggregateValue{{Field: "id", As: "runs", Reducer: "count"}},
 			},
