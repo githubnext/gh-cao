@@ -55,7 +55,7 @@ If npmjs access is blocked by the Microsoft corporate firewall, use the Microsof
 npm ci --registry=https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ --replace-registry-host=npmjs
 ```
 
-Do not configure the Microsoft feed for environments that can access the default registry. See the [npm skill](.github/skills/npm/SKILL.md) for Microsoft proxy, certificate, and feed troubleshooting.
+Do not configure the Microsoft feed for environments that can access the default registry. Load the [npm skill](.github/skills/npm/SKILL.md) before troubleshooting dependency installation, registry, proxy, or certificate failures. If a pinned release is unavailable, check the 1ES feed for a compatible available release and use it when compatibility can be verified. Update dependency constraints or overrides as needed and regenerate the lockfile with npm; do not hand-edit lockfile URLs or integrity values. Verify with `npm ci` and the affected tests or build. Report a blocker only when no compatible release is available or access itself fails.
 
 ### Full validation
 
