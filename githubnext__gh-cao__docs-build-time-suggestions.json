@@ -3,13 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-28T23:17:41Z",
-      "worker_run_id": "40785977267",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-28T23:20:00Z",
       "worker_run_id": "40787558937",
       "category": "reusable dashboard generation",
@@ -610,6 +603,34 @@
       "category": "reusable dashboard generation",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs in the last 14 days returned a GitHub API rate-limit error at 2026-10-29T09:34:47Z before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, queue-versus-execution separation, full-workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-29T09:51:18.035352Z",
+      "worker_run_id": "40852485032",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        40852252475,
+        40850270287,
+        40848891944,
+        40848337946,
+        40846391241,
+        40844474967,
+        40842957464,
+        40841833319,
+        40839244672,
+        40838972711,
+        40837531424,
+        40835937881,
+        40834779971,
+        40832842315,
+        40832789797,
+        40831778232,
+        40831053015,
+        40829427985,
+        40826777122,
+        40825326061
+      ],
+      "outcome": "incomplete: the 2026-10-29T05:46:33Z to 2026-10-29T09:46:49Z latest-20 completed docs.yml window contained 16 successful schedule runs and four skipped workflow_run runs, with no failed or cancelled runs; all used source SHA 3afcfbab8885219b6d73e6a0697f6e2d811382ca. Retained trusted job evidence from the immediately preceding overlapping evaluation established that every overlapping successful run through 40846391241 was freshness-only, with build and deploy skipped. The only three newly entered successful runs were schedules 40848891944, 40850270287, and 40852252475, so even if all three were full paths the window contains at most three comparable successful full build-and-deploy runs, below the required five. Attempts to retrieve their job metadata hit a runner OS-thread resource limit, so collection stopped per resource-limit policy. Full-workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost and cache-hit analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
