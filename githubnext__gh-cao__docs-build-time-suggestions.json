@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-29T03:21:08Z",
-      "worker_run_id": "40811358114",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        40810258108,
-        40809777208,
-        40808281062,
-        40807041812,
-        40806104345,
-        40805061131,
-        40803891845,
-        40802390668,
-        40800921132,
-        40799810691,
-        40798874673,
-        40798647211,
-        40797421113,
-        40795821158,
-        40791502264,
-        40790553699,
-        40789624908,
-        40787902969,
-        40786208400,
-        40784308965
-      ],
-      "outcome": "incomplete: the 2026-10-28T23:01:16Z to 2026-10-29T03:06:39Z latest-20 completed docs.yml window contained 18 successful runs and two skipped runs, with no failed or cancelled runs, all at source SHA 3afcfbab8885219b6d73e6a0697f6e2d811382ca. Run-level trusted Actions metadata and retained trusted job/step evidence from the immediately preceding overlapping evaluations identify only two successful full build-and-deploy paths: workflow_run runs 40798647211 and 40790553699. The other 16 successful runs were freshness-only schedule executions. Two comparable successful full paths are below the required five, so full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost and cache-hit analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-29T03:37:05Z",
       "worker_run_id": "40812860272",
       "category": "reusable dashboard generation",
@@ -610,6 +582,34 @@
         40856911411
       ],
       "outcome": "incomplete: the 2026-10-29T10:21:26Z to 2026-10-29T13:19:52Z latest-20 completed docs.yml window contained 14 successful runs and six skipped workflow_run runs, with no failed or cancelled runs. Trusted job metadata confirms the two newly entered successful schedule runs 40880899412 and 40878196990 were freshness-only: schedule-freshness succeeded while build and deploy were skipped. Retained trusted job and step evidence from the immediately preceding overlapping evaluations identifies only three successful full build-and-deploy paths in the current window: push run 40864514377 at source SHA d22fa1c096559602951a30460095754a169af08e, schedule run 40860174638 at source SHA cd624947648b01320c1eb4f553f813eb20028d5e, and push run 40856911411 at source SHA 0f30b3a74209b5adf7274cc630fbcaf987421e31; the other 11 successful runs were freshness-only schedules. The three full paths are at different source revisions and are below the required five comparable successful runs. Therefore queue-versus-execution distributions, full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost and trusted cache-hit analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-29T13:33:00Z",
+      "worker_run_id": "40882684815",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        40882659784,
+        40880899412,
+        40880498599,
+        40878196990,
+        40876230926,
+        40874992138,
+        40873286556,
+        40869961999,
+        40867919101,
+        40865962669,
+        40865778822,
+        40864543414,
+        40864514377,
+        40864214933,
+        40863891070,
+        40862152116,
+        40860174638,
+        40859911000,
+        40858202345,
+        40856931380
+      ],
+      "outcome": "incomplete: the 2026-10-29T10:21:35Z to 2026-10-29T13:31:24Z latest-20 completed docs.yml window contained 14 successful runs and six skipped workflow_run runs, with no failed or cancelled runs. Trusted job metadata confirms the newly entered successful schedule run 40882659784 was freshness-only: schedule-freshness succeeded while build and deploy were skipped. Retained trusted job and step evidence from the immediately preceding overlapping evaluations identifies only two successful full build-and-deploy paths in the current window: push run 40864514377 at source SHA d22fa1c096559602951a30460095754a169af08e and schedule run 40860174638 at source SHA cd624947648b01320c1eb4f553f813eb20028d5e; the other 12 successful runs were freshness-only schedules. The two full paths are at different source revisions and are below the required five comparable successful runs. Therefore queue-versus-execution distributions, full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost and trusted cache-hit analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
