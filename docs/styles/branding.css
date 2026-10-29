@@ -202,6 +202,7 @@ starlight-toc h2,
   border-radius: 0.5rem;
 }
 
+:is(.site-title, .hero-action):focus-visible,
 :where(.sidebar-pane, .right-sidebar-panel, .sl-markdown-content, .pagination-links, .sl-link-button, summary):focus-visible,
 :where(.sidebar-pane, .right-sidebar-panel, .sl-markdown-content, .pagination-links, .sl-link-button) a:focus-visible,
 :where(.sidebar-pane, .right-sidebar-panel, .sl-markdown-content, .pagination-links, .sl-link-button) button:focus-visible,
@@ -214,6 +215,7 @@ starlight-toc h2,
 :root[data-theme="dark"] .sl-skip-link:focus-visible,
 :root[data-theme="dark"] #_top:focus-visible,
 :root[data-theme="dark"] :is(h1, h2, h3, h4, h5, h6)[tabindex="-1"]:focus,
+:root[data-theme="dark"] :is(.site-title, .hero-action):focus-visible,
 :root[data-theme="dark"] :where(.sidebar-pane, .right-sidebar-panel, .sl-markdown-content, .pagination-links, .sl-link-button, summary):focus-visible,
 :root[data-theme="dark"] :where(.sidebar-pane, .right-sidebar-panel, .sl-markdown-content, .pagination-links, .sl-link-button) a:focus-visible,
 :root[data-theme="dark"] :where(.sidebar-pane, .right-sidebar-panel, .sl-markdown-content, .pagination-links, .sl-link-button) button:focus-visible,
