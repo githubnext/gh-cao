@@ -202,6 +202,8 @@ starlight-toc h2,
   border-radius: 0.5rem;
 }
 
+.sl-markdown-content :is(table, pre):focus-visible,
+:where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible,
 :where(.sidebar-pane, .right-sidebar-panel, .sl-markdown-content, .pagination-links, .sl-link-button, summary):focus-visible,
 :where(.sidebar-pane, .right-sidebar-panel, .sl-markdown-content, .pagination-links, .sl-link-button) a:focus-visible,
 :where(.sidebar-pane, .right-sidebar-panel, .sl-markdown-content, .pagination-links, .sl-link-button) button:focus-visible,
@@ -211,6 +213,8 @@ starlight-toc h2,
   border-radius: 0.5rem;
 }
 
+:root[data-theme="dark"] .sl-markdown-content :is(table, pre):focus-visible,
+:root[data-theme="dark"] :where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible,
 :root[data-theme="dark"] .sl-skip-link:focus-visible,
 :root[data-theme="dark"] #_top:focus-visible,
 :root[data-theme="dark"] :is(h1, h2, h3, h4, h5, h6)[tabindex="-1"]:focus,
