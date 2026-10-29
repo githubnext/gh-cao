@@ -269,6 +269,7 @@ starlight-toc h2,
   color: #1f2328 !important;
 }
 
+.site-title:focus-visible,
 .right-group .theme-toggle:focus-visible,
 .right-group .social-icons a:focus-visible,
 button[data-open-modal]:focus-visible {
@@ -302,6 +303,7 @@ button[data-open-modal]:focus-visible {
   color: #f0f6fc !important;
 }
 
+:root[data-theme="dark"] .site-title:focus-visible,
 :root[data-theme="dark"] .right-group .theme-toggle:focus-visible,
 :root[data-theme="dark"] .right-group .social-icons a:focus-visible,
 :root[data-theme="dark"] button[data-open-modal]:focus-visible {
