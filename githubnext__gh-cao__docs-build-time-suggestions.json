@@ -3,13 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-28T12:40:32Z",
-      "worker_run_id": "40689433503",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub API rate-limit error before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-28T12:53:04Z",
       "worker_run_id": "40691093445",
       "category": "reusable dashboard generation",
@@ -505,6 +498,34 @@
         40757223714
       ],
       "outcome": "incomplete: the 2026-10-28T19:45:59Z to 2026-10-28T23:46:25Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs, all at source SHA 3afcfbab8885219b6d73e6a0697f6e2d811382ca. Run-level trusted Actions metadata identifies only one successful full build-and-deploy elapsed profile, workflow_run 40779667833 (116 seconds); the other 17 successful runs completed in 10-17 seconds and were freshness-only schedule executions. One comparable successful full path is below the required five, so current full-workflow and dashboard/build/deploy median and p90 timings, sufficient step-level repeated-cost and trusted cache-hit analysis, CAO Dashboard producer comparison, duplicate-issue check, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-29T00:39:40.754657Z",
+      "worker_run_id": "40795171972",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        40791502264,
+        40790553699,
+        40789624908,
+        40787902969,
+        40786208400,
+        40784308965,
+        40782498759,
+        40780535134,
+        40779667833,
+        40778843256,
+        40776670118,
+        40774672860,
+        40772602789,
+        40770612418,
+        40768365638,
+        40766162839,
+        40765701104,
+        40764005687,
+        40762208631,
+        40760988984
+      ],
+      "outcome": "incomplete: the 2026-10-28T20:11:11Z to 2026-10-29T00:03:34Z latest-20 completed docs.yml window contained 18 successful and two skipped runs, with no failed or cancelled runs, all at source SHA 3afcfbab8885219b6d73e6a0697f6e2d811382ca. Trusted job and step metadata confirms only two successful full build-and-deploy paths: workflow_run runs 40790553699 and 40779667833; the other 16 successful runs were freshness-only schedule executions. Run 40790553699 completed in 129 seconds, with a 102-second build job and 8-second deploy job; its dashboard cache restore was a trusted hit because both fallback discovery and artifact-download steps were skipped. Two comparable successful full paths are below the required five, so current full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost analysis, CAO Dashboard producer comparison, duplicate-issue check, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
