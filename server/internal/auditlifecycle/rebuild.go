@@ -10,8 +10,11 @@ import (
 	"slices"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
+
+var scanLog = logger.New("cao:auditlifecycle")
 
 const (
 	DefaultGrace = time.Hour
@@ -142,23 +145,7 @@ func Scan(ctx context.Context, reader Reader, options Options) (Result, error) {
 		addIssue(&result.Issues, "selected_suffix")
 	}
 	for _, entry := range ids {
-		switch {
-		case entry.completed > 0:
-			entry.Classification = "terminal_observed"
-			result.Completed++
-		case !result.TailReached || slices.Contains(result.Issues, "history_gap"):
-			entry.Classification = "unknown"
-		case entry.FirstSeenAt.IsZero() || slices.Contains(entry.Issues, "clock_uncertain"):
-			entry.Classification = "unknown"
-		case options.Now.Sub(entry.FirstSeenAt) < options.Grace:
-			// Recent evidence may still be active; status and lease expiry do
-			// not prove execution liveness or termination.
-			entry.Classification = "pending"
-			result.Pending++
-		default:
-			entry.Classification = "missing_terminal"
-			result.MissingTerminal++
-		}
+		classify(&result, entry, options)
 		if entry.admitted == 0 {
 			addIssue(&entry.Issues, "admission_not_observed")
 		}
@@ -177,19 +164,47 @@ func Scan(ctx context.Context, reader Reader, options Options) (Result, error) {
 		return 0
 	})
 	slices.Sort(result.Issues)
-	result.Status = "ok"
+	result.Status = resultStatus(result)
+	scanLog.Printf("audit lifecycle scan finished: status=%s scanned=%d findings=%d tail_reached=%t", result.Status, result.Scanned, len(result.Findings), result.TailReached)
+	return result, nil
+}
+
+// classify assigns a lifecycle its classification and updates the result tallies.
+func classify(result *Result, entry *lifecycle, options Options) {
+	switch {
+	case entry.completed > 0:
+		entry.Classification = "terminal_observed"
+		result.Completed++
+	case !result.TailReached || slices.Contains(result.Issues, "history_gap"):
+		entry.Classification = "unknown"
+	case entry.FirstSeenAt.IsZero() || slices.Contains(entry.Issues, "clock_uncertain"):
+		entry.Classification = "unknown"
+	case options.Now.Sub(entry.FirstSeenAt) < options.Grace:
+		// Recent evidence may still be active; status and lease expiry do
+		// not prove execution liveness or termination.
+		entry.Classification = "pending"
+		result.Pending++
+	default:
+		entry.Classification = "missing_terminal"
+		result.MissingTerminal++
+	}
+}
+
+// resultStatus reports "incomplete" for partial history or scan issues,
+// "attention" for missing terminals or finding issues, and "ok" otherwise.
+func resultStatus(result Result) string {
+	if !result.HistoryComplete || len(result.Issues) > 0 {
+		return "incomplete"
+	}
 	if result.MissingTerminal > 0 {
-		result.Status = "attention"
+		return "attention"
 	}
 	for _, finding := range result.Findings {
 		if len(finding.Issues) > 0 {
-			result.Status = "attention"
+			return "attention"
 		}
 	}
-	if !result.HistoryComplete || len(result.Issues) > 0 {
-		result.Status = "incomplete"
-	}
-	return result, nil
+	return "ok"
 }
 
 func observe(result *Result, ids map[string]*lifecycle, event operational.AuditEvent) {
