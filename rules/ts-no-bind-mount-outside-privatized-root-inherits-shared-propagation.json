@@ -183,6 +183,16 @@
       "readiness_for_target": "needs-work",
       "target_repo": "github/gh-aw-firewall",
       "txn_id": "refiner-39771988009-3"
+    },
+    {
+      "false_negative_count": 0,
+      "false_positive_count": 0,
+      "readiness_for_target": "not-applicable",
+      "reason": "No mount-namespace bind-mount code in repository JS/TS sources.",
+      "target_commit": "d22fa1c096559602951a30460095754a169af08e",
+      "target_repo": "githubnext/gh-cao",
+      "true_positive_count": 0,
+      "txn_id": "refiner-40883104673-7"
     }
   ],
   "affected_paths": [
@@ -241,7 +251,7 @@
   "existing_plugin_coverage": "None found; this requires tracking prior `mount --make-private` calls against bind destinations across a function, which is repository/domain-specific (Linux mount-namespace shared-subtree semantics) and not modeled by any published generic ESLint rule.",
   "language": "typescript",
   "last_seen_at": "2026-10-12T22:03:43Z",
-  "last_updated": "2026-10-22T11:45:00Z",
+  "last_updated": "2026-10-29T13:40:00Z",
   "last_updated_by_run": "39067866988",
   "last_updated_target_repo": "github/gh-aw-firewall",
   "likely_false_positives": "A bind whose destination is itself located inside a path that was already privatized (e.g. binding two paths both under the same already-private allocation root) is safe and should not be flagged; only binds that cross into a separately-rooted, potentially-shared destination are unsafe.",
