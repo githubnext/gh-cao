@@ -181,6 +181,16 @@ starlight-toc h2,
   }
 }
 
+:where(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #1f6feb;
+  outline-offset: 3px;
+  border-radius: 0.5rem;
+}
+
+:root[data-theme="dark"] :where(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline-color: #79c0ff;
+}
+
 .sl-skip-link:focus-visible {
   clip: unset;
   z-index: var(--sl-z-index-skiplink);
