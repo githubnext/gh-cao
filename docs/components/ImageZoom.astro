@@ -59,6 +59,16 @@ import { Icon } from "@astrojs/starlight/components";
     dialog.dataset.imageZoomReady = "";
     closeButton.addEventListener("click", () => dialog.close());
     dialog.addEventListener("keydown", (event) => {
+      if (event.key === "Tab") {
+        if (event.shiftKey && document.activeElement === closeButton) {
+          event.preventDefault();
+          viewport.focus();
+        } else if (!event.shiftKey && document.activeElement === viewport) {
+          event.preventDefault();
+          closeButton.focus();
+        }
+        return;
+      }
       if (event.key !== "Escape") return;
       event.preventDefault();
       dialog.close();
