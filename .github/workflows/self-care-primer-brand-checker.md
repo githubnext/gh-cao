@@ -28,7 +28,7 @@ on:
         type: string
       batch_label:
         type: string
-  skip-if-match: 'is:pr is:open in:title "Primer branding"'
+  skip-if-match: 'is:pr is:open "gh-aw-workflow-id: self-care-primer-brand-checker" in:body'
   permissions:
     contents: read
     actions: read
