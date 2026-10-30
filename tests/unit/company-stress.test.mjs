@@ -5,17 +5,24 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
+import { parse } from "yaml";
 
 const execute = promisify(execFile);
 const launcher = resolve("scripts/company-stress.mjs");
 
-test("company stress is opt-in and preserves the existing fleet command", async () => {
+test("company stress runs the large preset daily and preserves manual configuration", async () => {
   const workflow = await readFile(".github/workflows/company-stress.yml", "utf8");
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /workflow_call:/);
   assert.doesNotMatch(workflow, /schedule:|pull_request:|secrets\.|gh aw run/);
   assert.match(workflow, /max_locks_per_transaction=1024/);
   assert.match(workflow, /if: always\(\)/);
+  const daily = parse(await readFile(".github/workflows/ci-daily.yml", "utf8"));
+  assert.deepEqual(daily.on.schedule, [{ cron: "37 6 * * *" }]);
+  assert.equal(daily.jobs["company-stress"].needs, "revision");
+  assert.equal(daily.jobs["company-stress"].uses, "./.github/workflows/company-stress.yml");
+  assert.deepEqual(daily.jobs["company-stress"].with, { preset: "large" });
+  assert.ok(daily.jobs.report.needs.includes("company-stress"));
   const pkg = JSON.parse(await readFile("package.json", "utf8"));
   assert.equal(pkg.scripts["test:stress:company"], "node scripts/company-stress.mjs");
   assert.match(pkg.scripts["test:stress:cao"], /TestGitHubSimulatorFleetStress/);

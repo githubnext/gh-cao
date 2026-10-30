@@ -54,9 +54,11 @@ peak RSS or database memory). `--report-dir PATH` selects another directory.
 Failure reports identify the incomplete stage; the command exits nonzero. A hard
 timeout may leave only the launcher's incomplete report and test log.
 
-The existing Go CI runs the small service-backed smoke test; the full-size case
-is opt-in through `.github/workflows/company-stress.yml`, which accepts a preset
-or complete scenario JSON and uploads evidence even on failure. Existing fleet,
+The existing Go CI runs the small service-backed smoke test. Daily full validation
+(`.github/workflows/ci-daily.yml`) runs the large preset on `main` at 06:37 UTC
+and includes its outcome in the aggregate daily report. The reusable
+`.github/workflows/company-stress.yml` also accepts manual preset or complete
+scenario JSON inputs and uploads evidence even on failure. Existing fleet,
 backfill, and monthly-budget tests retain their separate coverage.
 
 The dashboard's **Simulators > Pull request** tab is a side-effect-free calculator
