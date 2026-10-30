@@ -3,13 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-30T11:50:51Z",
-      "worker_run_id": "41050720223",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs in the last 14 days returned a GitHub API rate-limit error at 2026-10-30T11:50:51Z before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, queue-versus-execution separation, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-30T12:24:53Z",
       "worker_run_id": "41054831663",
       "category": "reusable dashboard generation",
@@ -736,6 +729,34 @@
         41109713232
       ],
       "outcome": "incomplete: the 2026-10-30T18:46:10Z to 2026-10-30T22:31:28Z latest-20 completed docs.yml window contained 16 successful schedule runs and four skipped workflow_run runs; all used source SHA 182cdeb7b5ccdb391653c8afac8d3afd31f1e8f1. Trusted Actions job and step metadata confirms all 16 successful runs were freshness-only: schedule-freshness succeeded while build and deploy were skipped. The window therefore contains zero comparable successful full build-and-deploy paths, below the required five. Full-workflow and dashboard/build/deploy median and p90 distributions, step-level repeated-cost analysis, trusted dashboard cache-hit comparison, CAO Dashboard producer comparison, duplicate open-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-30T22:52:00Z",
+      "worker_run_id": "41140531794",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41140584259,
+        41140275127,
+        41138641636,
+        41136958021,
+        41136497091,
+        41135254922,
+        41133461714,
+        41131643201,
+        41129744615,
+        41129235299,
+        41127765716,
+        41125826745,
+        41123868934,
+        41122445345,
+        41121813141,
+        41119993616,
+        41117870632,
+        41115911275,
+        41113860284,
+        41113322042
+      ],
+      "outcome": "incomplete: the 2026-10-30T19:12:23Z to 2026-10-30T22:51:02Z latest-20 completed docs.yml window contained 16 successful runs and four skipped workflow_run runs; all used source SHA 182cdeb7b5ccdb391653c8afac8d3afd31f1e8f1, with no failed or cancelled runs. Trusted Actions job and step metadata identifies only one successful full build-and-deploy path, workflow_run 41140584259: 119 seconds wall-clock, with schedule-freshness executing for 14 seconds after 6 seconds queue, build for 65 seconds after 8 seconds queue, and deploy for 11 seconds after 13 seconds queue. Its dashboard cache restore succeeded in 2 seconds and fallback discovery and artifact download were skipped. The other 15 successful runs were freshness-only with build and deploy skipped. With only one comparable successful full path, below the required five, full-workflow and dashboard/build/deploy median and p90 distributions, sufficient repeated-cost analysis, CAO Dashboard producer comparison, duplicate open-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
