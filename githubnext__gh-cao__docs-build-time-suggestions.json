@@ -3,13 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-30T10:32:08Z",
-      "worker_run_id": "41041135441",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs in the last 14 days returned a GitHub API rate-limit error at 2026-10-30T10:32:08Z before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, queue-versus-execution separation, full-workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-30T10:51:23Z",
       "worker_run_id": "41043390618",
       "category": "reusable dashboard generation",
@@ -694,6 +687,34 @@
         41100496054
       ],
       "outcome": "incomplete: the 2026-10-30T17:38:25Z to 2026-10-30T21:16:28Z latest-20 completed docs.yml window contained 16 successful runs, three skipped workflow_run runs, and one cancelled workflow_run. Trusted Actions job and step metadata identifies only two successful full build-and-deploy paths: schedule run 41101359443 and push run 41100496054, both at source SHA 182cdeb7b5ccdb391653c8afac8d3afd31f1e8f1; their triggers differ, so there is at most one like-for-like run per trigger. The other 14 successful runs were freshness-only with build and deploy skipped. Both full paths verified CAO Dashboard cache hits because restore completed in 2 seconds and fallback dashboard discovery and artifact download were skipped. With only two successful full paths overall, below the required five comparable successful runs, full-workflow and dashboard/build/deploy median and p90 distributions, sufficient repeated-cost analysis, CAO Dashboard producer comparison, duplicate open-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-30T21:32:38Z",
+      "worker_run_id": "41131355988",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41131643201,
+        41129744615,
+        41129235299,
+        41127765716,
+        41125826745,
+        41123868934,
+        41122445345,
+        41121813141,
+        41119993616,
+        41117870632,
+        41115911275,
+        41113860284,
+        41113322042,
+        41111703973,
+        41109713232,
+        41107616385,
+        41105797518,
+        41103288154,
+        41103149424,
+        41101359443
+      ],
+      "outcome": "incomplete: the 2026-10-30T17:45:57Z to 2026-10-30T21:31:33Z latest-20 completed docs.yml window contained 16 successful runs, three skipped workflow_run runs, and one cancelled workflow_run. Trusted Actions job and step metadata identifies only one successful full build-and-deploy path, schedule run 41101359443 at source SHA 182cdeb7b5ccdb391653c8afac8d3afd31f1e8f1; the other 15 successful runs were freshness-only with build and deploy skipped. Run 41101359443 verified a CAO Dashboard cache hit because cache restore completed in 2 seconds and fallback dashboard discovery and artifact download were skipped. With only one successful full path, below the required five comparable successful runs, full-workflow and dashboard/build/deploy median and p90 distributions, sufficient repeated-cost analysis, CAO Dashboard producer comparison, duplicate open-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
