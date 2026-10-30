@@ -31,6 +31,7 @@ on:
         description: "Optional comma-separated site paths to audit (defaults to a representative sample discovered from the build output)"
         required: false
         type: string
+  skip-if-match: 'is:pr is:open "gh-aw-workflow-id: self-care-accessibility-checker" in:body'
   permissions:
     contents: read
     actions: read
