@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-30T03:46:00Z",
-      "worker_run_id": "40999362477",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        40999168102,
-        40997964760,
-        40996923763,
-        40995622254,
-        40995030689,
-        40993574459,
-        40992378097,
-        40991477840,
-        40989268482,
-        40987789034,
-        40987240183,
-        40986343265,
-        40985059703,
-        40984783924,
-        40983049210,
-        40981449977,
-        40977195460,
-        40975348454,
-        40973667141,
-        40972192295
-      ],
-      "outcome": "incomplete: the 2026-10-29T23:18:08Z to 2026-10-30T03:46:00Z latest-20 completed docs.yml window contained 17 successful runs and three skipped workflow_run runs, with no failed or cancelled runs; all used source SHA c2df4eb759ff38e211e3c5cafa849c87c69a45d2. Trusted job metadata confirms the newly entered successful schedule run 40999168102 was freshness-only: schedule-freshness succeeded while build and deploy were skipped. Retained trusted job and step evidence from the immediately preceding overlapping evaluations classifies every other successful run except workflow_run 40987240183 as freshness-only. The window therefore contains only one successful full build-and-deploy path, workflow_run 40987240183, below the required five comparable successful runs. Queue-versus-execution distributions, full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. The one observed full path had a trusted dashboard cache hit because fallback discovery and artifact download were skipped. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-30T04:23:10Z",
       "worker_run_id": "41002322472",
       "category": "reusable dashboard generation",
@@ -652,6 +624,34 @@
         41035826583
       ],
       "outcome": "incomplete: the 2026-10-30T09:46:07Z to 2026-10-30T13:31:50Z latest-20 completed docs.yml window contained 15 successful runs, two failed schedule runs, and three skipped workflow_run runs; all used source SHA c2df4eb759ff38e211e3c5cafa849c87c69a45d2. Trusted job metadata shows 14 successful runs were freshness-only with build and deploy skipped. Workflow_run 41037833837 was the only successful full build-and-deploy path, completing in 123 seconds wall-clock: schedule-freshness executed for 15 seconds after 4 seconds queue, build executed for 80 seconds after 4 seconds queue, and deploy executed for 10 seconds after 9 seconds queue. Retained trusted step evidence records a successful CAO Dashboard cache restore in 2 seconds with fallback discovery and artifact download skipped; checkout took 28 seconds, dependency installation 15 seconds, documentation generation 12 seconds, Pages artifact upload 12 seconds, and deployment 6 seconds. Schedule runs 41059822344 and 41058006341 failed in schedule-freshness and were disclosed rather than included as normal samples. With only one comparable successful full path, the required minimum of five was not met, so full-workflow and dashboard/build/deploy median and p90 distributions, repeated-cost analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-30T13:54:14Z",
+      "worker_run_id": "41066732120",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41065947414,
+        41063867514,
+        41062229542,
+        41061846153,
+        41059822344,
+        41058006341,
+        41056872714,
+        41055316120,
+        41052326991,
+        41050438545,
+        41048942486,
+        41048659227,
+        41046856089,
+        41046514116,
+        41044975275,
+        41043135277,
+        41041344666,
+        41039826879,
+        41037833837,
+        41037640053
+      ],
+      "outcome": "incomplete: the 2026-10-30T10:01:15Z to 2026-10-30T13:46:21Z latest-20 completed docs.yml window contained 14 successful runs, three failed schedule runs, and three skipped workflow_run runs; all used source SHA c2df4eb759ff38e211e3c5cafa849c87c69a45d2. Trusted job metadata confirms newly entered schedule run 41063867514 was freshness-only: schedule-freshness executed for 10 seconds after 3 seconds queue, its freshness check took 8 seconds, and build and deploy were skipped. Newly entered schedule run 41065947414 failed in schedule-freshness after 20 seconds execution and 4 seconds queue; build and deploy were skipped, and the failure was disclosed rather than included as a normal sample. Retained trusted evidence from the immediately preceding overlapping evaluation classifies the other successful schedules as freshness-only and workflow_run 41037833837 as the only successful full build-and-deploy path, completing in 123 seconds wall-clock: schedule-freshness executed for 15 seconds after 4 seconds queue, build executed for 80 seconds after 4 seconds queue, and deploy executed for 10 seconds after 9 seconds queue. Its CAO Dashboard cache restore succeeded in 2 seconds and fallback discovery and artifact download were skipped; checkout took 28 seconds, dependency installation 15 seconds, documentation generation 12 seconds, Pages artifact upload 12 seconds, and deployment 6 seconds. With only one comparable successful full path, the required minimum of five was not met, so full-workflow and dashboard/build/deploy median and p90 distributions, repeated-cost analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
