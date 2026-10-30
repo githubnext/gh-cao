@@ -434,6 +434,15 @@ persistent policy, carry a parent dispatcher envelope, or authorize subsequent
 runs. It uses the admitted target as its staged output destination rather than
 resolving a review repository.
 
+When no `target_repo` input is supplied, the resolver MUST use the workflow's
+compiled `CAO_DEFAULT_TARGET_REPOSITORY` value, when non-empty, as the requested
+target for both policy resolution and the runtime context. An explicit
+`target_repo` input takes precedence. The default is a request, not authority:
+it MUST pass the same target validation and policy intersection as a dispatched
+`target_repo`, and an empty value MUST leave the request unset. A scheduled
+workflow MAY set it to its own repository to scope inventory to that
+repository.
+
 ## 6. Resolution Lifecycle
 
 ### 6.1 Resolver Requirements
@@ -655,4 +664,5 @@ Invalid JSON, schema violations, unknown static identities, widening requests, u
 - Defined the central orchestrator and worker execution contract, credential reach, runtime records, deprecated monthly budget compatibility, revalidation timing, and protected environment boundary.
 - Required job-local GitHub App installation tokens to be scoped to the single admitted target or review repository rather than defaulting to the control repository or an installation-wide wildcard.
 - Added conformance classes, compliance levels, tests, examples, and security and privacy considerations.
+- Defined the workflow-supplied default target request that applies when no `target_repo` input is given.
 - Defined single-run manual worker debug admission, rejected campaign-level debug policy and dispatches, and added provenance and forced-staging compliance cases.
