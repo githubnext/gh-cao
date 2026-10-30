@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-29T22:52:10Z",
-      "worker_run_id": "40968662964",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        40968324476,
-        40966477151,
-        40964769614,
-        40964073591,
-        40963375562,
-        40962818569,
-        40962584518,
-        40960491410,
-        40958494937,
-        40956451620,
-        40954187298,
-        40951960907,
-        40949777463,
-        40949718563,
-        40947900186,
-        40947552640,
-        40945284198,
-        40943059523,
-        40940854992,
-        40938601489
-      ],
-      "outcome": "incomplete: the 2026-10-29T19:16:34Z to 2026-10-29T22:46:17Z latest-20 completed docs.yml window contained 15 successful schedule runs, three skipped workflow_run runs, and two action_required workflow_run runs, with no failed or cancelled runs; all used source SHA c2df4eb759ff38e211e3c5cafa849c87c69a45d2. Trusted job metadata confirms every successful run was freshness-only: schedule-freshness succeeded while build and deploy were skipped. The window therefore contains zero successful full build-and-deploy paths, below the required five comparable successful runs. Queue-versus-execution distributions, full-workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost and cache-hit analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-29T23:30:49Z",
       "worker_run_id": "40973323821",
       "category": "reusable dashboard generation",
@@ -757,6 +729,34 @@
         41007729733
       ],
       "outcome": "incomplete: the 2026-10-30T05:18:46Z to 2026-10-30T09:17:46Z latest-20 completed docs.yml window contained 17 successful schedule runs and three skipped workflow_run runs, with no failed or cancelled runs; all used source SHA c2df4eb759ff38e211e3c5cafa849c87c69a45d2. Trusted job and step metadata confirms newly entered schedule run 41030395703 was freshness-only: it queued for 8 seconds, schedule-freshness executed for 11 seconds, the freshness check took 9 seconds, and build and deploy were skipped; newly entered workflow_run 41032379143 was fully skipped. Retained trusted evidence from the immediately preceding overlapping evaluations classifies every other successful run as freshness-only. The window therefore contains zero successful full build-and-deploy paths, below the required five comparable successful runs. Queue-versus-execution distributions, full-workflow and dashboard/build/deploy median and p90 timings, sufficient repeated-cost and trusted cache-hit analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-30T09:35:52Z",
+      "worker_run_id": "41034221633",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41034039409,
+        41032676962,
+        41032379143,
+        41030395703,
+        41028663254,
+        41027174992,
+        41026103019,
+        41025859904,
+        41023715004,
+        41022076258,
+        41020583289,
+        41019407633,
+        41017490535,
+        41016561055,
+        41015829735,
+        41015249686,
+        41014267084,
+        41014053615,
+        41011711660,
+        41010227857
+      ],
+      "outcome": "incomplete: the 2026-10-30T05:45:52Z to 2026-10-30T09:31:45Z latest-20 completed docs.yml window contained 16 successful schedule runs and four skipped workflow_run runs, with no failed or cancelled runs; all used source SHA c2df4eb759ff38e211e3c5cafa849c87c69a45d2. Trusted job and step metadata confirms newly entered schedule runs 41032676962 and 41034039409 were freshness-only: they queued for 4 and 11 seconds, schedule-freshness executed for 13 and 12 seconds, the freshness check took 9 and 10 seconds, and build and deploy were skipped. Retained trusted evidence from the immediately preceding overlapping evaluation classifies every other successful run as freshness-only. The window therefore contains zero successful full build-and-deploy paths, below the required five comparable successful runs. Queue-versus-execution distributions for full builds, full-workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost and trusted cache-hit analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
