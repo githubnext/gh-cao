@@ -3,13 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-30T05:50:18Z",
-      "worker_run_id": "41010420258",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs in the last 14 days returned a GitHub API rate-limit error at 2026-10-30T05:50:18Z before a current evidence window could be collected. Per resource-limit policy, all further GitHub API and model work stopped. The required five comparable successful runs, queue-versus-execution separation, full workflow and dashboard/build/deploy median and p90 timings, step-level repeated-cost analysis, trusted cache-hit verification, outlier disclosure, CAO Dashboard producer comparison, duplicate open-issue check, and actionable reusable-dashboard determination could not be completed. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-30T06:26:53Z",
       "worker_run_id": "41013866341",
       "category": "reusable dashboard generation",
@@ -673,6 +666,34 @@
         41050438545
       ],
       "outcome": "incomplete: the 2026-10-30T11:46:04Z to 2026-10-30T15:17:59Z latest-20 completed docs.yml window contained 12 successful runs, four failed runs, three skipped workflow_run runs, and one cancelled push run. Trusted current run metadata and retained step evidence from the immediately preceding identical window classify eleven successful runs as freshness-only and schedule run 41072257518 at source SHA bb53a9b728c99747092c26e68fb68687a6fb290c as the only successful full build-and-deploy path: 174 seconds wall-clock, with schedule-freshness executing for 12 seconds after 2 seconds queue, build for 118 seconds after 3 seconds queue, and deploy for 30 seconds after 7 seconds queue. Its dashboard cache restore succeeded in 4 seconds and fallback discovery and artifact download were skipped; checkout took 49 seconds, dependency installation 23 seconds, documentation generation 14 seconds, Pages artifact upload 15 seconds, and deployment 27 seconds. Workflow_run 41071124439 completed its build but failed deployment; schedule runs 41065947414, 41059822344, and 41058006341 failed freshness checks; cancelled run 41071153949 had no jobs. With only one comparable successful full path, below the required five, full-workflow and dashboard/build/deploy median and p90 distributions, sufficient repeated-cost analysis, CAO Dashboard producer comparison, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-30T15:49:45Z",
+      "worker_run_id": "41083919430",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41083751219,
+        41081480484,
+        41079376980,
+        41078974177,
+        41076870327,
+        41074546405,
+        41072257518,
+        41071166652,
+        41071153949,
+        41071124439,
+        41070891735,
+        41068189529,
+        41065947414,
+        41063867514,
+        41062229542,
+        41061846153,
+        41059822344,
+        41058006341,
+        41056872714,
+        41055316120
+      ],
+      "outcome": "incomplete: the 2026-10-30T12:26:10Z to 2026-10-30T15:46:25Z latest-20 completed docs.yml window contained 12 successful runs, four failed runs, three skipped workflow_run runs, and one cancelled push run. Trusted job and step metadata confirms newly entered schedule runs 41081480484 and 41083751219 at source SHA bb53a9b728c99747092c26e68fb68687a6fb290c were freshness-only: each queued for 3-4 seconds, schedule-freshness executed for 7-9 seconds, freshness checks took 5-6 seconds, and build and deploy were skipped. Retained trusted evidence from the immediately preceding overlapping evaluation classifies the other successful schedules as freshness-only and schedule run 41072257518 at the same source SHA as the only successful full build-and-deploy path: 174 seconds wall-clock, with schedule-freshness executing for 12 seconds after 2 seconds queue, build for 118 seconds after 3 seconds queue, and deploy for 30 seconds after 7 seconds queue. Its dashboard cache restore succeeded in 4 seconds and fallback discovery and artifact download were skipped; checkout took 49 seconds, dependency installation 23 seconds, documentation generation 14 seconds, Pages artifact upload 15 seconds, and deployment 27 seconds. Workflow_run 41071124439 completed its build but failed deployment; schedule runs 41065947414, 41059822344, and 41058006341 failed freshness checks; cancelled run 41071153949 had no jobs. With only one comparable successful full path, below the required five, full-workflow and dashboard/build/deploy median and p90 distributions, sufficient repeated-cost analysis, CAO Dashboard producer comparison, duplicate-issue determination, and a complete reusable-dashboard evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
