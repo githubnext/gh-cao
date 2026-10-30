@@ -100,6 +100,11 @@ jobs:
   fleet-stress:
     needs: revision
     uses: ./.github/workflows/cao-fleet-stress.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
+  company-stress:
+    needs: revision
+    uses: ./.github/workflows/company-stress.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
+    with:
+      preset: large
   backfill-stress:
     needs: revision
     uses: ./.github/workflows/backfill-stress.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
@@ -162,6 +167,7 @@ jobs:
       - deployed
       - dashboard-stress
       - fleet-stress
+      - company-stress
       - backfill-stress
       - worker-memory
     runs-on: ubuntu-latest
