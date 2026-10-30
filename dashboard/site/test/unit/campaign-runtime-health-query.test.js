@@ -239,3 +239,22 @@ it('diagnoses report-incomplete tool evidence when the safe-output payload is un
     })
   ]);
 });
+
+it('counts campaign runs by status in the worker query', () => {
+  const query = dashboard.queries.find(
+    (/** @type {{ name?: string }} */ candidate) => candidate.name === 'campaign-run-status-counts'
+  );
+  const rows = [
+    { campaign: 'a', status: 'success', 'started-at': '2026-09-01T00:00:00Z' },
+    { campaign: 'a', status: 'success', 'started-at': '2026-09-02T00:00:00Z' },
+    { campaign: 'a', status: 'failure', 'started-at': '2026-09-03T00:00:00Z' },
+    { campaign: 'b', status: 'success', 'started-at': '2026-09-04T00:00:00Z' }
+  ];
+  const result = executeDashboardQueries([query], {
+    'campaign-runs': { source: 'campaign-runs', metadata, rows }
+  }, ['campaign-run-status-counts']);
+  const counts = result['campaign-run-status-counts'].rows
+    .map((/** @type {Record<string, unknown>} */ row) => `${row.campaign}:${row.status}:${row.runs}`)
+    .sort();
+  expect(counts).toEqual(['a:failure:1', 'a:success:2', 'b:success:1']);
+});
