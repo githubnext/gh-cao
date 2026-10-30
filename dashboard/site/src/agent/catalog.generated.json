@@ -12113,6 +12113,11 @@
           "required": true
         },
         {
+          "name": "company-repositories",
+          "type": "number",
+          "required": true
+        },
+        {
           "name": "days",
           "type": "number",
           "required": true
@@ -12124,11 +12129,6 @@
         },
         {
           "name": "prs-per-developer-per-day",
-          "type": "number",
-          "required": true
-        },
-        {
-          "name": "repositories",
           "type": "number",
           "required": true
         }
@@ -12163,6 +12163,11 @@
           "required": true
         },
         {
+          "name": "company-repositories",
+          "type": "number",
+          "required": true
+        },
+        {
           "name": "days",
           "type": "number",
           "required": true
@@ -12174,11 +12179,6 @@
         },
         {
           "name": "prs-per-developer-per-day",
-          "type": "number",
-          "required": true
-        },
-        {
-          "name": "repositories",
           "type": "number",
           "required": true
         }
@@ -12213,6 +12213,11 @@
           "required": true
         },
         {
+          "name": "company-repositories",
+          "type": "number",
+          "required": true
+        },
+        {
           "name": "days",
           "type": "number",
           "required": true
@@ -12224,11 +12229,6 @@
         },
         {
           "name": "prs-per-developer-per-day",
-          "type": "number",
-          "required": true
-        },
-        {
-          "name": "repositories",
           "type": "number",
           "required": true
         }
@@ -12263,6 +12263,11 @@
           "required": true
         },
         {
+          "name": "company-repositories",
+          "type": "number",
+          "required": true
+        },
+        {
           "name": "days",
           "type": "number",
           "required": true
@@ -12274,11 +12279,6 @@
         },
         {
           "name": "prs-per-developer-per-day",
-          "type": "number",
-          "required": true
-        },
-        {
-          "name": "repositories",
           "type": "number",
           "required": true
         }
@@ -12313,6 +12313,11 @@
           "required": true
         },
         {
+          "name": "company-repositories",
+          "type": "number",
+          "required": true
+        },
+        {
           "name": "days",
           "type": "number",
           "required": true
@@ -12324,11 +12329,6 @@
         },
         {
           "name": "prs-per-developer-per-day",
-          "type": "number",
-          "required": true
-        },
-        {
-          "name": "repositories",
           "type": "number",
           "required": true
         }

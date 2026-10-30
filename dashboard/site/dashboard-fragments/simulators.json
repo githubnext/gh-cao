@@ -98,7 +98,7 @@
       "acceptance": "Developers multiply PRs per developer per day, AW runs per PR and AIC per run; repositories divide averages only. Duration scales totals independently of the synthetic day source.",
       "from": "simulation-days",
       "parameters": [
-        { "name": "repositories", "type": "number" },
+        { "name": "company-repositories", "type": "number" },
         { "name": "developers", "type": "number" },
         { "name": "prs-per-developer-per-day", "type": "number" },
         { "name": "aw-runs-per-pr", "type": "number" },
@@ -113,8 +113,8 @@
         { "as": "total-prs", "function": "product", "args": [{ "field": "daily-prs" }, { "parameter": "days" }] },
         { "as": "total-runs", "function": "product", "args": [{ "field": "daily-runs" }, { "parameter": "days" }] },
         { "as": "total-aic", "function": "product", "args": [{ "field": "daily-aic" }, { "parameter": "days" }] },
-        { "as": "prs-per-repo", "function": "quotient", "args": [{ "field": "daily-prs" }, { "parameter": "repositories" }] },
-        { "as": "runs-per-repo", "function": "quotient", "args": [{ "field": "daily-runs" }, { "parameter": "repositories" }] },
+        { "as": "prs-per-repo", "function": "quotient", "args": [{ "field": "daily-prs" }, { "parameter": "company-repositories" }] },
+        { "as": "runs-per-repo", "function": "quotient", "args": [{ "field": "daily-runs" }, { "parameter": "company-repositories" }] },
         { "as": "runs-per-second", "function": "quotient", "args": [{ "field": "daily-runs" }, { "value": 86400 }] }
       ]
     },
@@ -240,7 +240,7 @@
         "description": "PRs are per developer per day, not per repository. Duration counts calendar days. The CLI stress runner independently bounds generated records to five million.",
         "fields": [
           {
-            "id": "repositories",
+            "id": "company-repositories",
             "label": "Repositories",
             "control": "slider",
             "min": 1,

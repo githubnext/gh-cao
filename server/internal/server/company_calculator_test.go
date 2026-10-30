@@ -27,7 +27,7 @@ func assertCompanyCalculator(t *testing.T, ctx context.Context, local *httptest.
 		t.Fatal(err)
 	}
 	parameters := map[string]any{
-		"repositories": company.Repositories, "developers": company.Developers,
+		"company-repositories": company.Repositories, "developers": company.Developers,
 		"prs-per-developer-per-day": company.PRsPerDeveloperPerDay, "aw-runs-per-pr": company.AWRunsPerPR,
 		"days": company.Days, "aic-per-run": company.AICPerRun,
 	}

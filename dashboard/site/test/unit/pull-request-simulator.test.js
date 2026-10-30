@@ -41,7 +41,7 @@ describe('Pull request simulator', () => {
       .toEqual(contract.fields);
     expect(dashboardFormDefaultValues(page.form)).toEqual(contract.defaults);
     expect(contract.defaults).toEqual({
-      repositories: large.repositories, developers: large.developers,
+      'company-repositories': large.repositories, developers: large.developers,
       'prs-per-developer-per-day': large.prsPerDeveloperPerDay,
       'aw-runs-per-pr': large.awRunsPerPR, days: large.days, 'aic-per-run': large.aicPerRun
     });
@@ -63,7 +63,7 @@ describe('Pull request simulator', () => {
 
   it('recomputes all inputs and does not multiply volume by repository count', async () => {
     const values = {
-      repositories: 7, developers: 3, 'prs-per-developer-per-day': 2,
+      'company-repositories': 7, developers: 3, 'prs-per-developer-per-day': 2,
       'aw-runs-per-pr': 4, days: 31, 'aic-per-run': 0.25
     };
     const rows = await project(values);
@@ -72,7 +72,7 @@ describe('Pull request simulator', () => {
       { measure: 'AW runs', daily: 24, total: 744 },
       { measure: 'AI Credits (AIC)', daily: 6, total: 186 }
     ]);
-    expect(await project({ ...values, repositories: 1 })).toEqual(rows);
+    expect(await project({ ...values, 'company-repositories': 1 })).toEqual(rows);
     const [averages] = await project(values, 'simulator-pr-averages');
     expect(averages['prs-per-repo']).toBeCloseTo(6 / 7);
     expect(averages['runs-per-repo']).toBeCloseTo(24 / 7);

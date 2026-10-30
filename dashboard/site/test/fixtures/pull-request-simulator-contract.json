@@ -5,7 +5,7 @@
   "query": "simulator-pr-summary",
   "fields": ["measure", "daily", "total"],
   "defaults": {
-    "repositories": 10000,
+    "company-repositories": 10000,
     "developers": 10000,
     "prs-per-developer-per-day": 10,
     "aw-runs-per-pr": 5,
