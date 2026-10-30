@@ -1,0 +1,121 @@
+name: Synthetic company ingestion stress
+
+on:
+  workflow_dispatch:
+    inputs:
+      preset:
+        description: Company size (ignored when scenario JSON is supplied)
+        type: choice
+        options: [small, medium, large]
+        default: small
+      scenario:
+        description: Optional complete company scenario JSON; every workload input is configurable
+        type: string
+        default: ""
+  workflow_call:
+    inputs:
+      preset:
+        type: string
+        default: small
+      scenario:
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: company-stress-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  company-stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      COMPANY_PRESET: ${{ inputs.preset }}
+      COMPANY_SCENARIO: ${{ inputs.scenario }}
+      CAO_COMPANY_REPORT_DIR: ${{ github.workspace }}/test-results/company-stress
+      GH_TOKEN: ""
+      GITHUB_TOKEN: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: server/go.mod
+          cache: false
+      - name: Start disposable loopback PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$CAO_COMPANY_REPORT_DIR"
+          docker run --detach --name cao-company-stress-postgres \
+            --env POSTGRES_HOST_AUTH_METHOD=trust --env POSTGRES_DB=cao_company \
+            --publish 127.0.0.1::5432 postgres:16-alpine \
+            postgres -c max_locks_per_transaction=1024
+          ready=false
+          for attempt in $(seq 1 60); do
+            if docker exec cao-company-stress-postgres pg_isready -U postgres -d cao_company; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = true
+          address=$(docker port cao-company-stress-postgres 5432/tcp)
+          echo "POSTGRES_URL=postgres://postgres@$address/cao_company?sslmode=disable" >> "$GITHUB_ENV"
+      - name: Resolve explicit company configuration
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const preset = process.env.COMPANY_PRESET || 'small';
+          if (!['small', 'medium', 'large'].includes(preset)) throw new Error('Unknown company preset');
+          const scenario = process.env.COMPANY_SCENARIO?.trim()
+            || readFileSync(`tests/fixtures/company-stress/${preset}.json`, 'utf8');
+          writeFileSync(`${process.env.RUNNER_TEMP}/company-scenario.json`, JSON.stringify(JSON.parse(scenario)));
+          JS
+      - name: Generate and ingest synthetic AW evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run test:stress:company -- \
+            --scenario "$RUNNER_TEMP/company-scenario.json" \
+            --report-dir "$CAO_COMPANY_REPORT_DIR" \
+            2>&1 | tee "$CAO_COMPANY_REPORT_DIR/go-test.txt"
+      - name: Publish measured results
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## Synthetic company ingestion stress'
+            echo 'Generated AW evidence only: no agents, completion simulation, GitHub traffic or spending.'
+            if [ -f "$CAO_COMPANY_REPORT_DIR/company-stress.json" ]; then
+              echo '```json'
+              cat "$CAO_COMPANY_REPORT_DIR/company-stress.json"
+              echo '```'
+            else
+              echo 'FAILED / INCOMPLETE: no report was produced; inspect the job log.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Capture PostgreSQL logs and stop the test container
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$CAO_COMPANY_REPORT_DIR"
+          docker logs cao-company-stress-postgres > "$CAO_COMPANY_REPORT_DIR/postgres.log" 2>&1
+          docker rm --force --volumes cao-company-stress-postgres
+      - name: Upload stress evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: company-stress
+          path: test-results/company-stress/
+          if-no-files-found: error
+          retention-days: 14
