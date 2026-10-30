@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -14,7 +14,12 @@ import (
 
 func companyFixture(t *testing.T, name string) Company {
 	t.Helper()
-	data, err := os.ReadFile("../../../tests/fixtures/company-stress/" + name + ".json")
+	root, err := os.OpenRoot("../../../tests/fixtures/company-stress")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = root.Close() }()
+	data, err := root.ReadFile(name + ".json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +95,12 @@ func TestCompanyEvidence(t *testing.T) {
 			if err != nil || totals.PRs != 60 || totals.Runs != 300 || totals.AIC != 30_000 {
 				t.Fatalf("totals: %+v %v", totals, err)
 			}
-			data, err := os.ReadFile(filepath.Join(directory, "gh-aw-logs-runs/synthetic.jsonl"))
+			root, err := os.OpenRoot(directory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = root.Close() })
+			data, err := root.ReadFile("gh-aw-logs-runs/synthetic.jsonl")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -160,7 +170,7 @@ func TestCompanyZeroVolumeAndCancellation(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	if _, err := companyFixture(t, "small").WriteLake(ctx, t.TempDir(), time.Now()); err != context.Canceled {
+	if _, err := companyFixture(t, "small").WriteLake(ctx, t.TempDir(), time.Now()); !errors.Is(err, context.Canceled) {
 		t.Fatalf("canceled generation: %v", err)
 	}
 }
