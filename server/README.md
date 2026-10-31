@@ -252,72 +252,58 @@ company workloads, reports, and the dashboard calculator.
 
 ## Secret-free fleet stress simulation
 
-Run `npm run test:stress:cao` from the repository root. The dedicated
-`cao-fleet-stress.yml` Actions workflow runs daily and manually, without adding
-the full stress workload to pull requests. It simulates three days starting with 1,000 repositories and
-5,000 developers. Each developer produces 2, 6, 10, 14, or 18 PRs per day
-(p50 10, exactly 50,000 PRs/day); 10% of arrivals form a correlated daily burst.
-At each subsequent day boundary, 1% of active repositories are archived/deleted
-(alternating) and 2% are created, rounding down. Only drained repositories are
-retired: outstanding PRs are never exempted from the review SLA.
+Run `npm run test:stress:cao` from the repository root. `cao-fleet-stress.yml`
+runs daily and manually, not on PRs, with a 60-minute test/65-minute job budget.
+Three simulated days start with 1,000 repositories and 5,000 developers producing
+2/6/10/14/18 PRs/day (p50 10, exactly 50,000/day); 10% arrive in a daily burst.
+At day boundaries, 1% of active repositories are archived/deleted (alternating)
+and 2% created, rounding down. Only drained targets retire; no PR is exempt from SLA.
 
-The vulnerability-review campaign is a compiler-manifest fixture subscribed to
-`pull_request: ready_for_review`. The test exercises production manifest discovery,
-policy intersection, signature validation, admission, batching, durable SQLite
-queues, fencing, retry classification, and worker dispatch. The entire fleet uses
-one reviewed fixture policy, one inventory registry, and one durable queue.
-A single control repository declares the campaign for all enrolled source
-repositories, whose workflow inventories are empty. The enrollment and derived
-route ceilings are 2,048; the 1 MiB registry limit, operational storage budget,
-API limits, eight-repository discovery rounds and reviewed scope remain unchanged.
-SQLite batch rotation, capacity, recovery and retention use indexed plans so
-burst handling does not repeatedly parse the entire retained job payload set.
-Future fixture repository IDs
-are explicitly pre-enrolled but remain inactive until the simulator creates them.
-The inventory registry and live GitHub authority facts are in-memory fixtures,
-not a PostgreSQL durability or GitHub authentication benchmark.
+The compiler-manifest vulnerability-review fixture subscribes to
+`pull_request: ready_for_review`, exercising production discovery, policy
+intersection, signatures, admission, batching, durable SQLite queues, fencing,
+retry classification and dispatch. One reviewed policy, registry and queue serve
+one control repository and enrolled targets with empty workflow inventories.
+Enrollment/route ceilings (2,048), registry size (1 MiB), operational budgets,
+API limits, eight-repository discovery rounds and scope remain unchanged.
+SQLite batch rotation, capacity, recovery and retention use indexed plans,
+avoiding repeated retained-payload parsing. Future IDs are pre-enrolled but
+inactive until created. Registry/authority facts are in-memory fixtures,
+not PostgreSQL durability or GitHub authentication evidence.
 
-The simulator enforces shared per-installation REST budgets of 12,500 requests
-per hour and 900 points per minute (reads cost 1, writes cost 5), returning primary
-403/reset headers and secondary 429/Retry-After responses. Other GitHub abuse,
-GraphQL, and content-generation limits are not modeled. Discovery and review
-traffic consume these budgets. Signed repository lifecycle webhooks invalidate
-inventory through the production discovery-hints path. Deliberate shared-budget exhaustion and the burst
-exercise throttling, while identical webhook replays exercise deduplication.
+Discovery and reviews share installation REST budgets: 12,500 requests/hour,
+900 points/minute (reads 1, writes 5), primary 403/reset and secondary
+429/Retry-After. Other abuse, GraphQL and content-generation limits are unmodeled.
+Signed lifecycle webhooks invalidate inventory through production discovery hints;
+quota exhaustion/bursts exercise throttling and webhook replays exercise deduplication.
 
-Every accepted dispatch batch also executes the production token broker's
-`copilot-request` exchange and invalidation lifecycle. One synthetic execution
-identity per batch is pinned to the control repository's immutable ID, workflow
-ref and SHA in a private fixture policy. A fresh ephemeral App key signs issuer
-requests; an in-process GitHub transport checks that minting requests only
-`copilot_requests: read` for that control repository. Identity verification and
-GitHub issuance/revocation are fixtures, not real OIDC, hosted HTTP/TLS, Key Vault
-or GitHub authentication evidence, and issuer calls do not consume the fleet's
-REST quota. Production broker rate and context ceilings remain unchanged:
-throttled exchanges retry on later simulated minutes without resetting the SLA.
-Each batch mints once, revokes after all its reviews finish, and proves repeated
-invalidation is idempotent and completed executions cannot mint again.
-The report's `tokenBroker` counters require matching jobs, exchanges,
-invalidations and revocations; the full stress workload must exercise throttling.
+Each dispatch batch executes production token-broker `copilot-request` exchange
+and invalidation with an immutable control-repository ID, workflow ref/SHA and
+distinct fixture job identity. Ephemeral App keys sign issuer requests; an
+in-process transport enforces `copilot_requests: read` for that repository only.
+Identity verification and issuance/revocation are fixtures, not OIDC, hosted
+HTTP/TLS, Key Vault or GitHub authentication evidence; issuer calls do not use
+fleet REST quota. Unchanged broker rate/context limits defer throttled exchanges.
+Batches mint once, revoke after all reviews, prove idempotent invalidation and
+deny reminting. `tokenBroker` report counts must match jobs, exchanges,
+invalidations and revocations; full stress must exercise broker throttling.
 
-No agentic workflow, vulnerability analysis, inference, or real GitHub request
-runs. Synthetic review completion occurs two simulated minutes after dispatch,
-plus any API-quota or broker delay; dispatch acceptance alone never counts as a review.
-Every ready PR must have exactly one completed synthetic review within 3,600
-simulated seconds, measured from its original ready time, including discovery
-and admission retries. Missing, duplicate, or late reviews fail the test.
-An injected manual time provider controls ingress, discovery, authorization, the broker,
-queue leases/retention/backoff, and simulated API windows without sleeping.
-HTTP cancellation and I/O deadlines remain wall-clock based.
+No agents, vulnerability analysis, inference or real GitHub requests run.
+Synthetic reviews complete two simulated minutes after dispatch plus quota/broker
+delay; acceptance is not completion. Each ready PR needs exactly one review
+within 3,600 simulated seconds from its original ready time, including discovery
+and admission retries. Missing, duplicate or late reviews fail.
+Manual time controls ingress, discovery, authorization, broker, queue
+leases/retention/backoff and API windows without sleeping; I/O deadlines and
+cancellation remain wall-clock based.
 
-All HTTP clients are confined to the exact numeric-loopback simulator endpoint,
-with proxies disabled. The test reads no secrets or credentials; its public HMAC
-fixture and ephemeral App-constructor key have no external authority.
-Synthetic installation-token routes accept only positive int64 installation IDs
-and format the fixture token from the parsed number, never the raw request path.
-Set `CAO_FLEET_STRESS_REPORT_DIR` to retain `fleet-stress.json`. Actions uploads
-that report and the test log, including incomplete outcomes on failure.
-The smaller `TestGitHubSimulatorFleetSmoke` scenario runs in ordinary Go tests.
+Network clients use only the exact numeric-loopback endpoint with proxies off;
+the broker's in-process transport cannot send network traffic. No secrets are read:
+public HMAC fixtures and ephemeral App keys have no external authority.
+Installation-token routes accept positive int64 IDs and format tokens from
+parsed IDs, never raw paths. `CAO_FLEET_STRESS_REPORT_DIR` retains
+`fleet-stress.json`; Actions uploads it and logs, including incomplete failures.
+`TestGitHubSimulatorFleetSmoke` runs in ordinary Go tests.
 
 ## Optional ADX analytics
 

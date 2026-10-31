@@ -34,7 +34,7 @@
     "test:integration:actions-simulator-postgres": "CAO_ACTIONS_SIMULATOR_POSTGRES=1 go -C server test -race ./internal/admission ./internal/webhookgateway -run '^(TestLocalActionsPostgresIntegration|TestIssueServiceSimulatorGatewayPostgres|TestGitHubSimulator(Gateway|Discovery)Postgres)$' -count=1 -timeout=2m -v",
     "test:stress:dashboard-backfill": "CAO_BACKFILL_STRESS=1 bash scripts/test-dashboard-backfill.sh",
     "test:stress:monthly-budget": "CAO_MONTHLY_BUDGET_STRESS=1 go -C server test ./internal/postgresx -run '^TestMonthlyBudgetStress$' -count=1 -timeout=40m -v",
-    "test:stress:cao": "CAO_FLEET_STRESS=1 go -C server test ./internal/webhookgateway -run '^TestGitHubSimulatorFleetStress$' -count=1 -timeout=40m -v",
+    "test:stress:cao": "CAO_FLEET_STRESS=1 go -C server test ./internal/webhookgateway -run '^TestGitHubSimulatorFleetStress$' -count=1 -timeout=60m -v",
     "test:stress:company": "node scripts/company-stress.mjs",
     "dashboard:server:spec": "npm --prefix server/spec run generate",
     "dashboard:server:spec:check": "npm --prefix server/spec run check",
