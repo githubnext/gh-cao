@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-31T13:15:10Z",
-      "worker_run_id": "41204530913",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41203665126,
-        41202548434,
-        41202162111,
-        41201465742,
-        41200595362,
-        41200489339,
-        41199285218,
-        41198230017,
-        41197180456,
-        41196111755,
-        41195816923,
-        41195659598,
-        41195650795,
-        41195102101,
-        41194065803,
-        41193041309,
-        41192028426,
-        41191801064,
-        41191036886,
-        41190022448
-      ],
-      "outcome": "incomplete: the 2026-10-31T09:46:04Z to 2026-10-31T13:01:30Z latest-20 completed docs.yml window contained 16 successful runs and four skipped workflow_run runs, all within the 14-day limit. Trusted Actions run and job metadata, combined with retained trusted step evidence for the overlapping window, identifies only two successful full build-and-deploy paths: workflow_run 41202162111 and push run 41195650795, both at source SHA 90b69b2c7d910e13690700171f6bd982b859a57e but with different triggers. The other 14 successful runs were schedule freshness-only with build and deploy skipped; four workflow_run runs were fully skipped. Run 41202162111 completed in 118 seconds wall-clock and retained evidence verifies a CAO Dashboard cache hit; run 41195650795 completed in 127 seconds wall-clock and also verified a dashboard cache hit. The newest schedule run 41203665126 waited 3 seconds from run creation to job start, executed schedule-freshness for 6 seconds, spent 4 seconds in the freshness check, and skipped build and deploy. With only two full paths and no five-run like-for-like sample, below the required five comparable successful runs, full-workflow and dashboard/build/deploy median and p90 distributions, sufficient repeated-cost and CAO Dashboard producer analysis, duplicate-open-issue determination, and a complete reusable dashboard generation evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-31T13:32:20.424777Z",
       "worker_run_id": "41205755441",
       "category": "reusable dashboard generation",
@@ -778,6 +750,34 @@
         41236915423
       ],
       "outcome": "incomplete: the 2026-10-31T20:01:23Z to 2026-10-31T23:11:40Z latest-20 completed docs.yml window was within the 14-day limit and contained 14 successful runs, five skipped workflow_run runs, and one action_required workflow_run. Trusted Actions run metadata, newly collected job and step metadata for schedule runs 41250746834, 41249630424, and 41248512276 plus skipped workflow_run 41251486835, and retained trusted evidence for the overlapping window identify only one successful full build-and-deploy path: push run 41247714288 at source SHA 3570599c3781017c134e75fc16a849efb9223baa. The other 13 successful runs were schedule freshness-only with build and deploy skipped; five workflow_run runs skipped every job, and action_required run 41245288911 started no jobs. The newest three schedule runs each queued for three to four seconds, executed schedule-freshness for six seconds, spent four seconds in the freshness check, and skipped build and deploy. Run 41247714288 previously verified a CAO Dashboard cache hit because cache restore succeeded in three seconds and dashboard discovery and artifact download were skipped. With only one successful full path, below the required five comparable successful runs, full-workflow and dashboard/build/deploy median and p90 distributions, current repeated-cost and dashboard producer analysis, duplicate-open-issue determination, and a complete reusable dashboard generation evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-10-31T23:30:51Z",
+      "worker_run_id": "41252672906",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41251788794,
+        41251486835,
+        41250746834,
+        41249630424,
+        41248512276,
+        41247724182,
+        41247714288,
+        41247420418,
+        41247105704,
+        41246272524,
+        41245288911,
+        41245110563,
+        41243952057,
+        41242778496,
+        41242423863,
+        41241618197,
+        41240455657,
+        41239286868,
+        41238073941,
+        41237821330
+      ],
+      "outcome": "incomplete: the 2026-10-31T20:12:33Z to 2026-10-31T23:16:06Z latest-20 completed docs.yml window was within the 14-day limit and contained 14 successful runs, five skipped workflow_run runs, and one action_required workflow_run. Trusted Actions run metadata, newly collected job and step metadata for schedule run 41251788794, and retained trusted evidence for the overlapping window identify only one successful full build-and-deploy path: push run 41247714288 at source SHA 3570599c3781017c134e75fc16a849efb9223baa. The other 13 successful runs were schedule freshness-only with build and deploy skipped; five workflow_run runs skipped every job, and action_required run 41245288911 started no jobs. The newest schedule run queued for three seconds, executed schedule-freshness for six seconds, spent four seconds in the freshness check, and skipped build and deploy. Run 41247714288 previously verified a CAO Dashboard cache hit because cache restore succeeded in three seconds and dashboard discovery and artifact download were skipped. With only one successful full path, below the required five comparable successful runs, full-workflow and dashboard/build/deploy median and p90 distributions, current repeated-cost and dashboard producer analysis, duplicate-open-issue determination, and a complete reusable dashboard generation evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
