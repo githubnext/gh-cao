@@ -13,10 +13,12 @@ export function resetPreparationDiagnostics() {
   preparationLog.length = 0;
   preparationStorage.set(null);
   recording = true;
+  debugBrowserFirstLoad({ event: 'preparation-started' });
 }
 
 export function finishPreparationDiagnostics() {
   recording = false;
+  debugBrowserFirstLoad({ event: 'preparation-finished', recordedEvents: preparationLog.length });
 }
 
 /** @param {string} event @param {Record<string, string | number | boolean | null>} [details] */
@@ -28,6 +30,11 @@ export function recordPreparationEvent(event, details = {}) {
 /** @param {PreparationStorage} diagnostics */
 export function recordPreparationStorage(diagnostics) {
   preparationStorage.set(diagnostics);
+  debugBrowserFirstLoad({
+    event: 'storage-recorded',
+    persisted: diagnostics.persisted,
+    errorName: diagnostics.errorName ?? null
+  });
   recordPreparationEvent('browser-storage', diagnostics);
 }
 

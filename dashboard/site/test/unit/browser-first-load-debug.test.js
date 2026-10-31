@@ -85,3 +85,44 @@ describe('browser first-load debug logging', () => {
     expect(browserFirstLoad.get()).toEqual({ status: 'failed', dismissed: false });
   });
 });
+
+describe('browser first-load preparation debug logging', () => {
+  it('emits nothing by default', async () => {
+    const debugFn = vi.fn();
+    mockDebugModule(debugFn, '');
+    const mod = await import('../../src/browser-first-load.js');
+
+    mod.resetPreparationDiagnostics();
+    mod.recordPreparationStorage({ persisted: true, usage: 1, quota: 2 });
+    mod.finishPreparationDiagnostics();
+
+    expect(debugFn).not.toHaveBeenCalled();
+  });
+
+  it('logs lifecycle transitions with scalar metadata only', async () => {
+    const debugFn = vi.fn();
+    mockDebugModule(debugFn, '?debug=browser-first-load');
+    const mod = await import('../../src/browser-first-load.js');
+
+    mod.resetPreparationDiagnostics();
+    mod.recordPreparationEvent('secret-event', { token: 'sekrit-value' });
+    mod.recordPreparationStorage({ persisted: false, usage: 123456, quota: 999999, errorName: 'QuotaExceededError' });
+    mod.finishPreparationDiagnostics();
+
+    expect(debugFn.mock.calls).toEqual([
+      ['[cao:browser-first-load]', { event: 'preparation-started' }],
+      ['[cao:browser-first-load]', { event: 'storage-recorded', persisted: false, errorName: 'QuotaExceededError' }],
+      ['[cao:browser-first-load]', { event: 'preparation-finished', recordedEvents: 2 }]
+    ]);
+    expect(JSON.stringify(debugFn.mock.calls)).not.toMatch(/sekrit|secret-event|123456/);
+  });
+
+  it('is excluded by a category exclusion', async () => {
+    const debugFn = vi.fn();
+    mockDebugModule(debugFn, '?debug=*,-browser-first-load');
+    const mod = await import('../../src/browser-first-load.js');
+
+    mod.resetPreparationDiagnostics();
+    expect(debugFn).not.toHaveBeenCalled();
+  });
+});
