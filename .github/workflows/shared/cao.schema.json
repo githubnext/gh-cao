@@ -664,6 +664,41 @@
         "queue": { "type": "object", "description": "Strict bounded QueueOptions contract validated by the gateway at startup; see RFC-033." }
       }
     },
+    "tokenBroker": {
+      "type": "object",
+      "description": "Credential authorization only, independent of global rollout scope; does not grant write or live capabilities. Omission disables the broker.",
+      "additionalProperties": false,
+      "required": ["copilot-requests"],
+      "properties": {
+        "copilot-requests": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["workflows"],
+          "properties": {
+            "workflows": {
+              "type": "array",
+              "description": "Exact approved workflow identities. An empty list authorizes nothing.",
+              "maxItems": 128,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["repository-id", "owner-id", "workflow-ref", "workflow-sha"],
+                "properties": {
+                  "repository-id": { "type": "string", "pattern": "^[1-9][0-9]{0,19}(?![\\s\\S])" },
+                  "owner-id": { "type": "string", "pattern": "^[1-9][0-9]{0,19}(?![\\s\\S])" },
+                  "workflow-ref": {
+                    "type": "string",
+                    "pattern": "^(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9][A-Za-z0-9._-]*/\\.github/workflows/[A-Za-z0-9_-][A-Za-z0-9._-]*\\.ya?ml@refs/(?:heads|tags)/(?!.*\\.lock(?:/|$))[A-Za-z0-9_-]+(?:[./][A-Za-z0-9_-]+)*(?![\\s\\S])"
+                  },
+                  "workflow-sha": { "type": "string", "pattern": "^[a-f0-9]{40}(?![\\s\\S])" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "controlPlane": {
       "type": "object",
       "additionalProperties": false,
@@ -678,7 +713,8 @@
         "operations": { "$ref": "#/$defs/controlOperations" },
         "publishing": { "$ref": "#/$defs/publishing" },
         "marketplace": { "$ref": "#/$defs/marketplace" },
-        "webhook-gateway": { "$ref": "#/$defs/webhookGateway" }
+        "webhook-gateway": { "$ref": "#/$defs/webhookGateway" },
+        "token-broker": { "$ref": "#/$defs/tokenBroker" }
       }
     },
     "targetCampaign": {

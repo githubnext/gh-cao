@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CAO dashboard server",
-    "version": "2.12.0",
+    "version": "2.13.0",
     "description": "The Go dashboard server HTTP contract. Local mode uses a loopback bearer capability; hosted mode uses an authorized GitHub OAuth session and X-CSRF-Token on protected mutations. The optional MCP HTTP transport is covered, but its protocol messages and tool schemas are owned by the MCP contract; dashboard static assets are outside this contract."
   },
   "tags": [
@@ -41,6 +41,9 @@
     },
     {
       "name": "Private session archive"
+    },
+    {
+      "name": "Token broker"
     }
   ],
   "paths": {
@@ -1221,6 +1224,199 @@
             "ApiKeyAuth": []
           }
         ]
+      }
+    },
+    "/api/token-broker": {
+      "post": {
+        "operationId": "TokenBroker_exchange",
+        "description": "Optional, request-only organization GitHub App broker implementing the gh-aw exchange shape. Authentication is exclusively the oidc_token in the JSON body, not OAuth, CSRF, a bearer header, or admission. The exact configured HTTPS endpoint is the OIDC audience. Enrolled immutable owner/repository IDs, workflow reference and SHA, trusted event/ref and signed job identity must match before issuance. App private keys are read from Azure Key Vault using managed identity. All responses are no-store with empty failure bodies. This initial single-process profile does not claim integrated-deployment conformance; actual Copilot use and renewal require operator acceptance.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrokerCredential"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There is no content to send for this request, but the headers may be useful. ",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server could not understand the request due to invalid syntax.",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access is unauthorized.",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access is forbidden.",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Client error",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Client error",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Client error",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Client error",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Server error",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable.",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Token broker"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/CopilotRequestExchange"
+                  },
+                  {
+                    "$ref": "#/components/schemas/UnsupportedCopilotTaskExchange"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TokenBrokerInvalidation"
+                  }
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/diagnostics": {
@@ -4328,6 +4524,27 @@
           }
         }
       },
+      "BrokerCredential": {
+        "type": "object",
+        "required": [
+          "token",
+          "expires_at"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "Only the credential and its actual upstream expiry are returned; no provider endpoint or other authority is conveyed."
+      },
       "CollectionStatus": {
         "type": "object",
         "required": [
@@ -4625,6 +4842,37 @@
             ]
           }
         ]
+      },
+      "CopilotRequestExchange": {
+        "type": "object",
+        "required": [
+          "token_type",
+          "provider",
+          "oidc_token"
+        ],
+        "properties": {
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "copilot-request"
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "github"
+            ]
+          },
+          "oidc_token": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Signed GitHub Actions identity with the exact public exchange URL as its string audience. Never a GitHub API token."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "GitHub Actions OIDC exchange for organization-billed Copilot inference. Additional and duplicate members are rejected."
       },
       "DataState": {
         "type": "object",
@@ -6448,6 +6696,29 @@
           }
         }
       },
+      "TokenBrokerInvalidation": {
+        "type": "object",
+        "required": [
+          "operation",
+          "oidc_token"
+        ],
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "invalidate"
+            ]
+          },
+          "oidc_token": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "Cleanup obtains a fresh identity for the same verified job; it never includes an issued credential."
+      },
       "Trace.Archive.Event": {
         "type": "object",
         "required": [
@@ -7176,6 +7447,29 @@
             "$ref": "#/components/schemas/Trace.Identity"
           }
         ]
+      },
+      "UnsupportedCopilotTaskExchange": {
+        "type": "object",
+        "required": [
+          "token_type",
+          "oidc_token"
+        ],
+        "properties": {
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "copilot-task"
+            ]
+          },
+          "oidc_token": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A known but unsupported capability; identity and enrollment are verified before returning 501."
       },
       "UsageArtifactID": {
         "type": "string",

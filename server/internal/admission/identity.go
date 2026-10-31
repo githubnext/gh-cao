@@ -26,6 +26,8 @@ type Identity struct {
 	Issuer, Subject, Repository, RepositoryID, OwnerID string
 	RunID, RunAttempt, Ref, Event, Actor, ActorID      string
 	WorkflowRef, WorkflowSHA                           string
+	CheckRunID                                         string
+	EnvironmentPresent                                 bool
 }
 
 func (i Identity) Key() string {
@@ -134,7 +136,9 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Identity, error) {
 		RunID: get("run_id"), RunAttempt: get("run_attempt"), Ref: get("ref"),
 		Event: get("event_name"), Actor: get("actor"), ActorID: get("actor_id"),
 		WorkflowRef: get("workflow_ref"), WorkflowSHA: get("workflow_sha"),
+		CheckRunID: get("check_run_id"),
 	}
+	_, i.EnvironmentPresent = claims["environment"]
 	if !repository.MatchString(i.Repository) || i.Subject == "" || i.Ref == "" || i.Event == "" ||
 		!clean(i.Actor, 100) || !decimal.MatchString(i.RepositoryID) ||
 		!decimal.MatchString(i.OwnerID) || !decimal.MatchString(i.ActorID) ||

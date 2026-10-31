@@ -92,6 +92,22 @@ func (f *fixture) token(t *testing.T, claims jwt.MapClaims) string {
 
 type policyFunc func(context.Context, Identity) (Allowances, error)
 
+func TestVerifierExposesSignedBrokerJobClaimsWithoutChangingAdmissionProfile(t *testing.T) {
+	f := newFixture(t)
+	f.claims["check_run_id"] = "987654321"
+	identity, err := f.verifier.Verify(context.Background(), f.token(t, f.claims))
+	if err != nil || identity.CheckRunID != "987654321" || identity.EnvironmentPresent {
+		t.Fatal("signed job claim was not preserved")
+	}
+	key := identity.Key()
+	f.claims["check_run_id"] = "987654322"
+	f.claims["environment"] = "production"
+	identity, err = f.verifier.Verify(context.Background(), f.token(t, f.claims))
+	if err != nil || identity.CheckRunID != "987654322" || !identity.EnvironmentPresent || identity.Key() != key {
+		t.Fatal("broker claim extraction changed admission identity semantics")
+	}
+}
+
 func (f policyFunc) Evaluate(ctx context.Context, i Identity) (Allowances, error) { return f(ctx, i) }
 
 type decisionsFunc func(context.Context, string, *Allowances) (Allowances, error)

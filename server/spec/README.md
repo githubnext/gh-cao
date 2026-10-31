@@ -4,9 +4,13 @@
 `main.tsp` imports independent domains: shared response/auth types, Dashboard
 Language queries and SSE, health, agent discovery, hosted sessions, canonical
 entities, repository memory, ingestion/administration, explicit workflow-value
-publication, and the optional MCP HTTP
+publication, the optional organization Copilot requests token broker, and MCP HTTP
 transport. MCP protocol messages and tool schemas, and static dashboard assets,
 are intentionally out of scope.
+
+`token-broker.tsp` specifies the OIDC-in-body exchange and job invalidation
+protocol, independently of dashboard session authentication and activation
+admission. It supports `copilot-request` only; no task credential is issued.
 
 `storage.tsp` is a separate, **fresh-only** physical Postgres contract.
 `storage.tspconfig.yaml` runs the repository-owned `postgres-emitter.mjs` to

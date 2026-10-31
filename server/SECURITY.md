@@ -34,6 +34,103 @@ normative [hosted CLI actions specification](../specs/server-hosted-cli.md).
 
 ## Supported security boundary
 
+### Optional Copilot requests broker
+
+The opt-in `/api/token-broker` service has a separate Actions OIDC boundary;
+dashboard sessions, API bearers and admission decisions never authorize
+issuance. Its protected `cao.json` allowlist pins immutable owner/repository
+IDs and exact workflow references and revisions. It checks signed execution
+and job evidence, denies fork/pull-request and reusable execution, and supports
+only `copilot-request` with the trusted `github` provider. Unsupported tasks do
+not trigger minting.
+
+A dedicated organization App's private key is read from Azure Key Vault using
+managed identity, never from policy or caller inputs. GitHub installation
+identity, organization ownership and least-privilege `copilot_requests: read`
+are checked before minting. Issuance is billable organization access, not
+read-only financial behavior. GitHub Copilot organization budgets must be
+configured separately; CAO admission budgets are not a broker spending cap.
+
+Request sizes, upstream responses, timeouts, in-flight issuance, retained
+credentials and rate subjects are bounded. Redirects and caller-selected
+upstream destinations are forbidden. Never capture broker bodies, OIDC tokens,
+App JWTs, Key Vault secrets or returned credentials in logs, traces or proxies.
+Failures have empty no-store responses without upstream diagnostics.
+
+The initial broker requires one explicitly acknowledged process replica.
+Job invalidation and graceful shutdown revoke tracked tokens, but a crash loses
+the process-local revocation registry. Installation tokens can remain valid
+until their actual expiry, bounded to one hour. No durable cleanup,
+multi-replica operation, Azure Functions hosting, or integrated-deployment
+certification is claimed.
+
+#### Broker enrollment and setup
+
+The organization permission is **Copilot Requests: Read-only**
+(`copilot_requests: read`); despite its name it authorizes billable AI requests.
+Use a dedicated organization-installed App, not a personal/enterprise
+installation or the collector App. Review the
+[GitHub organization App access documentation](https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/administer-copilot/manage-for-organization/manage-app-copilot-access)
+and enable organization spending controls before activation.
+
+The checked-in `control-plane.token-broker.copilot-requests.workflows` list in
+`cao.json` is empty: no workflow is enrolled by this change. Each enrollment
+requires exact `repository-id`, `owner-id`, `workflow-ref`, and `workflow-sha`
+strings. The reference includes the repository, workflow filename and branch/tag,
+for example `acme/project/.github/workflows/triage.lock.yml@refs/heads/main`;
+the SHA is the 40-character lowercase commit SHA of that workflow revision.
+Wildcards are not supported. Protect the mounted policy from untrusted writes
+and serve the reviewed policy snapshot corresponding to enrolled workflow
+revisions. Update the pin only after reviewing a new revision. Broker
+authorization is independent of admission, rollout mode and repository writes.
+
+Configure these server environment settings; none contains a private key:
+
+| Setting | Required value |
+| --- | --- |
+| `CAO_TOKEN_BROKER_ENABLED` | `true` (otherwise disabled) |
+| `CAO_TOKEN_BROKER_SINGLE_PROCESS` | `true`, acknowledging one process/replica and volatile cleanup state |
+| `CAO_TOKEN_BROKER_URL` | Exact public `https://HOST/api/token-broker`, also the OIDC audience |
+| `CAO_TOKEN_BROKER_APP_ID` | Dedicated GitHub App's numeric ID |
+| `CAO_TOKEN_BROKER_INSTALLATION_ID` | Organization installation's numeric ID |
+| `CAO_TOKEN_BROKER_OWNER_ID` | Organization's immutable numeric ID |
+| `CAO_TOKEN_BROKER_KEY_VAULT_SECRET_URL` | `https://VAULT.vault.azure.net/secrets/SECRET`, optionally with a version |
+| `CAO_TOKEN_BROKER_MANAGED_IDENTITY_CLIENT_ID` | Optional user-assigned managed identity client ID |
+| `CAO_POLICY_PATH` | Protected control-repository `cao.json` path |
+
+Store the App's PEM private key as an Azure Key Vault **secret**, provisioned by
+an operator outside the server. Grant the server's managed identity secret-read
+access only to that secret (for example, Azure RBAC Key Vault Secrets User at
+the narrowest supported scope). App Service managed identity and Azure IMDS
+are supported; the runtime never provisions a vault, writes keys, or accepts a
+PEM through environment variables, workflow inputs, or request bodies.
+An unversioned secret URL reads the current version on each mint, supporting
+rotation without persisting keys in CAO. Use a private endpoint/firewall where
+appropriate and audit secret reads without capturing values.
+
+Run through hosted HTTPS with the reviewed allowed host and one process-owned
+listener. Azure Functions, externally owned listeners, and multiple replicas
+are rejected for this initial profile. Do not autoscale, overlap deployments,
+or enable broker request/response-body capture in a reverse proxy or APM system.
+Only explicitly trusted push, schedule and manual-dispatch execution is
+supported; pull requests, reusable workflows, environment-based subjects and
+identities lacking signed `check_run_id` job evidence fail closed.
+Cleanup uses gh-aw's fresh-OIDC `invalidate` request to revoke only that job's
+issued tokens; graceful shutdown also attempts revocation. A crash can lose
+cleanup state while GitHub tokens remain usable until their actual expiry
+(at most one hour). This is not a durable/multi-replica broker.
+
+For compatible gh-aw releases, opt in with `token-broker.copilot-request: true`
+and set `GH_AW_TOKEN_BROKER_URL` to that exact endpoint. Do not also set
+`permissions.copilot-requests: write`. As of the upstream experimental
+[broker specification](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/specs/token-broker-specification.md),
+bounded threat-detection/evals consumers are wired; main-agent inference still
+requires renewable AWF credential support. Existing compiled workflows are not
+changed here. Before claiming integrated support, test real GitHub OIDC
+exchange, authorized Copilot inference, renewal, key rotation and job-scoped
+invalidation with your selected gh-aw version and organization entitlements.
+Offline tests or a token-shaped response do not establish that acceptance.
+
 The supported deployment is:
 
 - one trusted operator;

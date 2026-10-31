@@ -130,6 +130,9 @@ components:
   actions_credentials:
     path: activity/authentication.mjs
     responsibility: Actions-only credential profiles, owner-scoped naming and bounded Activity collection planning; native gh cao setup auth exclusively owns operator provisioning
+  copilot_requests_broker:
+    path: server/internal/tokenbroker/
+    responsibility: opt-in HTTPS OIDC exchange for dedicated organization App copilot_requests read tokens; protected cao.json pins immutable owner/repository IDs and workflow reference/revision, signed job context isolates issuance/invalidation, Azure Key Vault managed identity supplies private keys; grants no rollout, admission, repository-write or Copilot task authority; bounded process-local revocation registry requires one explicitly acknowledged process replica, rejects platform/external listeners and overlapping replicas, and can lose cleanup after crashes until upstream expiry bounded to one hour; live inference/renewal/cleanup acceptance remains operator-owned
   dashboard:
     path: dashboard/
     responsibility: publish evidence and build the shared operational dashboard UI for either Pages or the hosted Go server
