@@ -50,6 +50,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/sessionarchiveblob"
 	"github.com/githubnext/gh-cao/server/internal/sqlitex"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
+	"github.com/githubnext/gh-cao/server/internal/tokenbroker"
 )
 
 var serverLog = logger.New("cao:server")
@@ -97,6 +98,7 @@ type Config struct {
 	// operations; nil disables them (local mode and tests).
 	Audit              *audit.Logger
 	Admission          *AdmissionConfig
+	TokenBroker        *tokenbroker.Config
 	ADX                *adxingest.Config
 	ADXTraces          *adxtrace.Config
 	SessionArchive     *sessionarchive.Config
@@ -109,6 +111,10 @@ type Config struct {
 	// RedisMaxBytes bounds cache pressure against whole-node memory usage.
 	// Zero selects CAO_REDIS_MAX_BYTES or the 200 MB default.
 	RedisMaxBytes int64
+
+	// TokenBrokerSingleProcessConfirmed acknowledges volatile credential cleanup
+	// and prohibits multiple or overlapping broker process replicas.
+	TokenBrokerSingleProcessConfirmed bool
 }
 
 type App struct {
@@ -149,6 +155,7 @@ type App struct {
 	hostedCLI        *hostedCLI
 	valuePublisher   operationalValuePublisher
 	admission        *admission.Service
+	tokenBroker      *tokenbroker.Service
 	adx              *adxingest.Worker
 	adxTraces        *adxtrace.Worker
 	sessionArchive   *sessionArchiveService
@@ -255,6 +262,10 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	if err != nil {
 		return nil, err
 	}
+	broker, err := newTokenBroker(config)
+	if err != nil {
+		return nil, err
+	}
 	info, err := os.Stat(config.SiteDirectory)
 	if err != nil || !info.IsDir() {
 		return nil, errors.New("site directory must exist and contain the built dashboard")
@@ -347,9 +358,10 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	}
 	serverLog.Printf("initialized host_profile=%s oauth=%t source_ingestion=%t", profile.Name, oauth != nil, config.SourceDirectory != "")
 	app := &App{
-		admission: activationAdmission,
-		services:  services,
-		database:  config.Database, databaseQueries: databaseQueries, config: config, accessToken: accessToken, oauth: oauth, hub: newEventHub(),
+		admission:   activationAdmission,
+		tokenBroker: broker,
+		services:    services,
+		database:    config.Database, databaseQueries: databaseQueries, config: config, accessToken: accessToken, oauth: oauth, hub: newEventHub(),
 		canonical: canonicalService{store: config.Database, definitions: databaseQueries}, reconciler: reconciler, memory: memoryResolver,
 		webhookSecret: []byte(config.WebhookSecret), actionsToken: actionsToken, actionsActor: actionsActor,
 		quota: quota, drain: make(chan struct{}),
@@ -572,6 +584,10 @@ func (a *App) Stop(ctx context.Context) error {
 			return err
 		}
 	}
+	var brokerErr error
+	if a.tokenBroker != nil {
+		brokerErr = a.tokenBroker.Close(ctx)
+	}
 	if a.ownedDatabase != nil || a.ownedOperational != nil || a.sessionArchive != nil {
 		a.closeDatabase.Do(func() {
 			if a.sessionArchive != nil {
@@ -584,9 +600,9 @@ func (a *App) Stop(ctx context.Context) error {
 				a.closeError = errors.Join(a.closeError, a.ownedOperational.Close())
 			}
 		})
-		return a.closeError
+		return errors.Join(a.closeError, brokerErr)
 	}
-	return nil
+	return brokerErr
 }
 
 func (a *App) waitTasks(ctx context.Context) error {
@@ -753,6 +769,7 @@ func (a *App) Handler() http.Handler {
 	register("POST /api/v1/value", a.publishValue)
 	register("POST /api/admission", a.activationAdmission)
 	register("POST /api/conclusion", a.conclusionAdmission)
+	register("POST /api/token-broker", a.exchangeBrokerToken)
 	if a.mcp != nil {
 		register("POST /mcp", a.mcp.ServeHTTP)
 	}
@@ -788,6 +805,10 @@ func (a *App) Handler() http.Handler {
 	}
 	dashboardHandler := handler
 	handler = http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == tokenBrokerPath {
+			a.exchangeBrokerToken(response, request)
+			return
+		}
 		if admissionPath(request.URL.Path) {
 			route := semconv.HTTPRoute(request.URL.Path)
 			trace.SpanFromContext(request.Context()).SetAttributes(route)

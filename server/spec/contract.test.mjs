@@ -51,7 +51,7 @@ test('agent discovery describes public GET and body-free HEAD responses', () => 
 
 test('the generated contract describes the implemented security and wire formats', () => {
   assert.equal(openapi.openapi, '3.1.0')
-  assert.equal(openapi.info.version, '2.12.0')
+  assert.equal(openapi.info.version, '2.13.0')
   for (const path of ['/api/runs/{id}/jobs', '/api/runs/{id}/sessions', '/api/sessions/{id}/events']) {
     assert.equal(openapi.paths[path], undefined)
   }
@@ -109,6 +109,20 @@ test('the generated contract describes the implemented security and wire formats
     },
     { type: 'string', format: 'date-time' }
   )
+})
+
+test('token broker exposes only the OIDC exchange and exact credential response', () => {
+  const operation = openapi.paths['/api/token-broker'].post
+  assert.equal(operation.security, undefined)
+  assert.ok(operation.requestBody.content['application/json'])
+  for (const status of ['200', '204', '400', '401', '403', '413', '415', '422', '429', '501', '503']) {
+    assert.deepEqual(operation.responses[status].headers['cache-control'].schema.enum, ['no-store'])
+    if (status !== '200') assert.equal(operation.responses[status].content, undefined)
+  }
+  assert.deepEqual(Object.keys(openapi.components.schemas.BrokerCredential.properties).sort(), ['expires_at', 'token'])
+  assert.equal(openapi.components.schemas.CopilotRequestExchange.properties.token_type.enum[0], 'copilot-request')
+  assert.equal(openapi.components.schemas.CopilotRequestExchange.properties.provider.enum[0], 'github')
+  assert.equal(openapi.components.schemas.TokenBrokerInvalidation.properties.operation.enum[0], 'invalidate')
 })
 
 test('private archive queries preserve explicit full-content authority and the shared event contract', () => {

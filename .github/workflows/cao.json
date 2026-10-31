@@ -3,6 +3,11 @@
   "version": 1,
   "gh-aw-version": "v1.0.1",
   "control-plane": {
+    "token-broker": {
+      "copilot-requests": {
+        "workflows": []
+      }
+    },
     "scope": {
       "allowed-owners": [
         "githubnext",

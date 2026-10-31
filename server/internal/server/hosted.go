@@ -142,8 +142,14 @@ func newHostedAppWithPolicy(
 		_ = database.Close()
 		return nil, err
 	}
+	brokerConfig, err := tokenBrokerConfigFromEnv()
+	if err != nil {
+		_ = database.Close()
+		return nil, err
+	}
 	config := Config{
 		Admission:              admissionConfig,
+		TokenBroker:            brokerConfig,
 		Database:               database,
 		Audit:                  auditLog,
 		HostProfile:            host.Profile,
@@ -186,6 +192,7 @@ func newHostedAppWithPolicy(
 		},
 		Logger: logger,
 	}
+	config.TokenBrokerSingleProcessConfirmed = os.Getenv("CAO_TOKEN_BROKER_SINGLE_PROCESS") == "true"
 	app, err := New(ctx, store, config)
 	if err != nil {
 		_ = database.Close()
