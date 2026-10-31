@@ -220,7 +220,7 @@ test("SelfCare docs maintainer uses daily merged-change and ADR evidence", () =>
   assert.match(source, /query inclusively from the pull request cursor timestamp/);
   assert.match(source, /discard only keys less than or equal to the saved key/);
   assert.match(source, /Ignore copyable markers from every other author/);
-  assert.doesNotMatch(source, /skip-if-match:/);
+  assert.match(source, /skip-if-match: 'is:pr is:open "gh-aw-workflow-id: self-care-docs-maintainer" in:body'/);
   assert.match(source, /inspect its changed-file list and bounded diff/);
   assert.match(source, /never treat a pull request description as proof of behavior/);
   assert.match(source, /first 100 commits from `saved_sha\.\.current_head`/);

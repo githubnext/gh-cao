@@ -127,7 +127,7 @@ The single eligible repository contains the documentation site and dashboard mai
 - `self-care-primer-brand-checker`: audits the dashboard against retrieved Primer brand guidance and opens one focused draft pull request when an evidenced presentational fix is available.
 - `self-care-reactive-ui-expert`: maintains the reactive UI skill, migrates JavaScript-produced view sources to request-scoped dashboard queries, reviews recent dashboard JavaScript changes, and replaces evidenced imperative DOM updates with owned reactive elements, data binding, and effects.
 - `self-care-server-go-logging`: refactors one Go server subsystem with privacy-preserving internal logging and focused unit tests that use real code without mocks, then opens one focused draft pull request.
-- `self-care-server-soc2`: reassesses bounded Go server SOC 2 readiness daily, publishes evidence even when a remediation PR remains open, and proposes at most three compatible verified code fixes in one focused draft PR.
+- `self-care-server-soc2`: reassesses bounded Go server SOC 2 readiness daily when no PR from this worker remains open, publishes evidence, and proposes at most three compatible verified code fixes in one focused draft PR.
 - `self-care-specs-maintainer`: scans recently merged pull requests for behavior changes missing from the normative specifications and opens one focused draft pull request that fixes them in W3C specification style.
 
 For a selected `live` target, dispatch every non-cadence-limited worker. Dispatch `self-care-agent-discoverability`, `self-care-dashboard-data-schema`, `self-care-data-acquisition-audit`, `self-care-docs-maintainer`, `self-care-glossary`, and `self-care-specs-maintainer` only when no run of the respective workflow is in progress or started during the preceding 24 hours. Inspect at most the ten most recent runs of each workflow to make this decision. Dispatch `self-care-documentation-discoverability` only when no run of that workflow is queued, in progress, or started during the preceding seven days. Inspect at most its ten most recent runs. Dispatch `self-care-pages-health` only when no run of that workflow is queued, in progress, or started during the preceding six hours. Inspect at most the 20 most recent Pages Health workflow runs to make this decision. If any run history is unavailable or ambiguous, fail closed by not dispatching the affected cadence-limited worker and record the incomplete cadence check. Never dispatch any worker in review mode or for another repository.
@@ -138,8 +138,8 @@ Dispatch `self-care-server-soc2` only when no run is queued, in progress, or
 started during the preceding 24 hours. Inspect at most its ten most recent
 runs, including failed and cancelled runs. If history is unavailable,
 truncated before the time boundary, or ambiguous, fail closed by deferring
-this worker and recording the incomplete cadence check. Do not gate its
-assessment dispatch on an open remediation PR. Include its daily eligibility
+this worker and recording the incomplete cadence check. The worker's
+pre-activation check skips assessment while its own PR remains open. Include its daily eligibility
 and confirmed dispatch/defer reason in `Outcome`.
 
 Submit each dispatch through its configured safe-output tool and wait for the complete result. When using the supported CLI transport, pass the standard dispatch envelope as one inline JSON argument: `safeoutputs <tool_name> '<JSON>'`. Never pipe `safeoutputs` output to `head` or another truncating consumer, run dispatch calls in the background, or treat bridge startup logs as confirmation. Count a dispatch only after the tool confirms that its safe-output request was recorded; this confirms dispatch intent, not downstream worker completion.

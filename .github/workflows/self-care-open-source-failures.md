@@ -28,6 +28,7 @@ on:
         type: string
       batch_label:
         type: string
+  skip-if-match: 'is:pr is:open "gh-aw-workflow-id: self-care-open-source-failures" in:body'
   permissions:
     actions: read
     contents: read

@@ -17,6 +17,14 @@ import (
 // Service-backed tests never replace another test's or the operator's data.
 func Postgres(t testing.TB, parent context.Context, environment ...string) *postgresx.Store {
 	t.Helper()
+	store, _ := PostgresWithConfig(t, parent, environment...)
+	return store
+}
+
+// PostgresWithConfig also exposes the isolated schema connection for operational
+// adapters that need their own tables in the same disposable database.
+func PostgresWithConfig(t testing.TB, parent context.Context, environment ...string) (*postgresx.Store, *pgx.ConnConfig) {
+	t.Helper()
 	endpoint := ""
 	for _, name := range environment {
 		if endpoint = os.Getenv(name); endpoint != "" {
@@ -86,5 +94,5 @@ func Postgres(t testing.TB, parent context.Context, environment ...string) *post
 		t.Fatal("initialize isolated Postgres test schema")
 	}
 	t.Cleanup(func() { _ = store.Close() })
-	return store
+	return store, config
 }

@@ -185,6 +185,24 @@ for continuously sampled feedback. The runtime aborts superseded page
 projections and only renders the newest complete result. Form components never
 filter or compute data themselves.
 
+The built-in **Simulators > Pull request** page demonstrates a standalone company
+calculator. Its six editable inputs are repositories, developers, PRs per
+developer per day, AW runs per PR, duration, and AIC per AW run (default 100).
+The default 10,000-developer scenario produces 100,000 PRs, 500,000 AW runs,
+and 50 million modeled AIC each day. Repository count affects per-repository
+averages, not the total number of PRs.
+
+Its queries use the intrinsic `simulation-days` synthetic source, restrict it to
+one row, and multiply daily values by the selected duration. This does not extend
+the source's fixed 30-row calendar or read observed activity. All arithmetic
+remains in Dashboard Language. Outputs are estimates, not measured capacity,
+actual spending, or authorization to execute workflows.
+
+For real ingestion/storage/query measurements from generated AW evidence, run
+`npm run test:stress:company -- --preset large` with disposable local PostgreSQL;
+see the [company stress runner](../server/README.md#configurable-company-ingestion-stress).
+The calculator itself never starts that test.
+
 ## Present the result
 
 Views turn query results into a small set of standard marks:

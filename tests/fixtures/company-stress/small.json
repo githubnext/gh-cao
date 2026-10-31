@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "name": "small",
+  "repositories": 10,
+  "developers": 10,
+  "prsPerDeveloperPerDay": 10,
+  "awRunsPerPR": 5,
+  "days": 1,
+  "aicPerRun": 100,
+  "seed": 42,
+  "distribution": "uniform"
+}

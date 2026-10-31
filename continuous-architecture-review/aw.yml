@@ -1,0 +1,10 @@
+name: Continuous Architecture Review
+icon: ":code:"
+description: Evidence-led, incremental architecture improvements with reviewable patches and readiness history.
+min-version: v1.0.1
+experimental: true
+includes:
+  - README.md
+  - report.mjs
+  - .github/workflows/continuous-architecture-review.md
+  - .github/workflows/continuous-architecture-review-implementation.md

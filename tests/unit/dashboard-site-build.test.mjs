@@ -28,7 +28,11 @@ test("dashboard site filters experimental views unless explicitly enabled", () =
   const document = {
     "language-version": "0.1.0",
     dashboard: {
-      pages: [{ id: "stable" }, { id: "preview" }],
+      pages: [
+        { id: "stable" },
+        { id: "preview" },
+        { id: "preview-tab", experimental: true, route: { "navigation-page": "preview" } },
+      ],
       navigation: [
         { label: "Main", pages: ["stable"] },
         { label: "Preview", experimental: true, pages: ["preview"] },
@@ -36,6 +40,7 @@ test("dashboard site filters experimental views unless explicitly enabled", () =
       callouts: [
         { id: "stable-callout", "navigation-page": "stable" },
         { id: "preview-callout", "navigation-page": "preview" },
+        { id: "preview-tab-callout", "navigation-page": "preview-tab" },
       ],
     },
   };

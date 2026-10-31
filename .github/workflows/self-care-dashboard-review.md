@@ -26,6 +26,7 @@ on:
         type: string
       batch_label:
         type: string
+  skip-if-match: 'is:pr is:open "gh-aw-workflow-id: self-care-dashboard-review" in:body'
   permissions:
     contents: read
     actions: read

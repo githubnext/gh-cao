@@ -27,6 +27,7 @@ on:
         type: string
       batch_label:
         type: string
+  skip-if-match: 'is:pr is:open "gh-aw-workflow-id: self-care-server-soc2" in:body'
   permissions:
     contents: read
     actions: read
@@ -173,9 +174,9 @@ unavailable, truncated before the time boundary, or ambiguous, call
    resolution from a title, copied marker or closed-unmerged PR. If pagination,
    source drift or unavailable evidence prevents complete duplicate checks,
    fail closed for remediation and report the incomplete check.
-5. Always finish the assessment/report even if this worker already has an open
-   PR. Never use a workflow-level PR skip: an open remediation PR must not
-   suppress daily assessment. If any open PR carries this worker's
+5. The workflow-level open-PR check skips assessment while this worker has an
+   open PR. If a PR appears after activation, finish the assessment/report
+   without creating another PR. If any open PR carries this worker's
    `gh-aw-workflow-id: self-care-server-soc2` marker, do not create another PR
    or modify its branch. Report proposed register/changelog deltas in the daily
    artifact for human consolidation; do not claim they were committed.

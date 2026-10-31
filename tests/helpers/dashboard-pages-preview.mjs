@@ -11,7 +11,7 @@ import { prepareDashboardPages } from "../../scripts/simulate-dashboard-pages.mj
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const execute = promisify(execFile);
 
-export async function startDashboardPagesPreview({ downloadData, basePath = "/gh-cao/", fixture = false } = {}) {
+export async function startDashboardPagesPreview({ downloadData, basePath = "/gh-cao/", fixture = false, fixtureExperimental = false } = {}) {
   const scratch = join(root, ".tmp");
   await mkdir(scratch, { recursive: true });
   const directory = await mkdtemp(join(scratch, "pages-preview-"));
@@ -51,7 +51,7 @@ export async function startDashboardPagesPreview({ downloadData, basePath = "/gh
       await writeFile(join(activityDir, "payload-hashes.json"), JSON.stringify(hashes));
       await prepareDashboardPages({ activityDir, output: site, includeSqlite: false });
     } else {
-      await prepareDashboardPages({ fixture, output: site });
+      await prepareDashboardPages({ fixture, fixtureExperimental, output: site });
     }
     await execute("go", ["-C", "server", "build", "-o", executable, "./cmd/cao-dashboard"], {
       cwd: root, timeout: 180_000, maxBuffer: 1024 * 1024,

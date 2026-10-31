@@ -60,4 +60,8 @@ test("every deployed benchmark query has resolved operands", () => {
   const routing = queries.find(({ name }) => name === "routing-filter-candidates");
   assert.ok(routing);
   assert.deepEqual(routing.compute.find(({ as }) => as === "all-workflows").args[0], { value: "" });
+  const database = queries.find(({ name }) => name === "simulator-database-inputs");
+  assert.deepEqual(database.compute.find(({ as }) => as === "runs-daily").args[0], { value: 1000 });
+  const company = queries.find(({ name }) => name === "simulator-pr-inputs");
+  assert.deepEqual(company.compute.find(({ as }) => as === "prs-per-repo").args[1], { value: 10000 });
 });
