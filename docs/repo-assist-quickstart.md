@@ -3,8 +3,6 @@ title: Try a Repo Assist review
 description: Manually install, review, and run one bounded Repo Assist campaign.
 ---
 
-# Try a Repo Assist review
-
 To monitor existing Agentic Workflows without adding a campaign, start with
 [Set Up CAO](setup-quickstarts.md). This optional walkthrough uses ordinary
 campaign commands after setup; nothing commits, pushes, or dispatches on your behalf.
