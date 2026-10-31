@@ -243,6 +243,13 @@ This is command/protocol coverage: image builds, job execution, PostgreSQL,
 managed identities, and hosted OAuth are simulated, not deployed or attested.
 The separate Azure-local harness exercises the real Functions host.
 
+## Configurable company ingestion stress
+
+Run `npm run test:stress:company -- --preset large` with disposable local
+PostgreSQL to measure ingestion and queries from generated AW evidence, without
+running agents. See [Company stress testing](COMPANY-STRESS.md) for configurable
+company workloads, reports, and the dashboard calculator.
+
 ## Secret-free fleet stress simulation
 
 Run `npm run test:stress:cao` from the repository root. The dedicated

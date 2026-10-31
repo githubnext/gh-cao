@@ -44,7 +44,7 @@ test("daily calls every suite at the same revision and reports even on failure",
   assert.equal(daily.on.schedule.length, 1);
   assert.equal(daily.concurrency["cancel-in-progress"], false);
   const suites = Object.entries(daily.jobs).filter(([, job]) => job.uses);
-  assert.equal(suites.length, 16);
+  assert.equal(suites.length, 17);
   for (const [id, job] of suites) {
     assert.match(job.uses, /^\.\/\.github\/workflows\/[^/]+\.yml$/);
     assert.equal(job.needs, "revision");
@@ -62,12 +62,13 @@ test("daily calls every suite at the same revision and reports even on failure",
   }
   assert.equal(daily.jobs.report.if, "always()");
   assert.deepEqual(daily.jobs.deployed.with, { full: true });
+  assert.deepEqual(daily.jobs["company-stress"].with, { preset: "large" });
   assert.equal(daily.jobs["worker-memory"].needs, "revision");
   const memorySteps = daily.jobs["worker-memory"].steps;
   assert.ok(memorySteps.some((step) => step.uses?.startsWith("actions/setup-go@")));
   assert.ok(memorySteps.some((step) => step.run?.includes("npm --prefix dashboard/site ci")));
   for (const name of ["actions.yml", "dashboard-views.yml", "cao-bootstrap.yml",
-    "cao-fleet-stress.yml", "backfill-stress.yml", "dashboard-massive-scale.yml"]) {
+    "cao-fleet-stress.yml", "company-stress.yml", "backfill-stress.yml", "dashboard-massive-scale.yml"]) {
     assert.equal(load(name).on.schedule, undefined, `${name} must not duplicate the daily schedule`);
   }
 });

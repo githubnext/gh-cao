@@ -211,8 +211,8 @@ test("bounded fresh history keeps tracked outputs, native snapshots and explicit
 });
 
 test("incremental history starts discovery at the retained cutoff and reuses immutable identities", () => {
-  const initial = acquireFileDietHistory(fakeHistory(), until);
-  const next = "2026-10-21T00:00:00Z";
+  const initial = acquireFileDietHistory(fakeHistory(), "2026-10-18T11:54:09Z");
+  const next = "2026-10-31T02:00:00Z";
   const calls = [];
   const source = fakeHistory();
   const proof = acquireFileDietHistory((endpoint, query) => {
@@ -222,14 +222,18 @@ test("incremental history starts discovery at the retained cutoff and reuses imm
   assert.deepEqual(proof.adoption, initial.adoption);
   assert.equal(proof.issues.length, initial.issues.length);
   assert.equal(proof.issues[0].reference.runId, initial.issues[0].reference.runId);
-  assert.ok(calls.some(endpoint => endpoint.includes(`since=${until}`)));
+  assert.ok(calls.some(endpoint => endpoint.includes(`since=${initial.until}`)));
   assert.ok(calls.filter(endpoint => endpoint.startsWith("search/issues?"))
-    .every(endpoint => decodeURIComponent(endpoint).includes(`updated:${until.slice(0, 10)}..${next.slice(0, 10)}`)));
+    .every(endpoint => decodeURIComponent(endpoint).includes(`updated:${initial.until.slice(0, 10)}..${next.slice(0, 10)}`)));
   assert.ok(!calls.includes(`repos/${repository}/commits/${sha("a")}`));
   assert.ok(!calls.some(endpoint => endpoint.endsWith("/actions/runs/42")));
   assert.ok(!calls.some(endpoint => endpoint.includes("/artifacts?")));
-  assert.equal(proof.snapshots.length, 1);
-  assert.equal(proof.snapshots[0].at, next);
+  assert.deepEqual(proof.snapshots.map(snapshot => snapshot.at), [
+    ...Array.from({ length: 13 }, (_, index) =>
+      `2026-10-${String(index + 19).padStart(2, "0")}T00:00:00Z`),
+    next,
+  ]);
+  assert.equal(calls.filter(endpoint => endpoint.startsWith(`repos/${repository}/commits?until=`)).length, 14);
 });
 
 test("Git evidence reuses immutable facts and resolves new deliveries from actual parent headers", t => {

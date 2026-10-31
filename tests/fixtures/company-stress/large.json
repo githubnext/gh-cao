@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "name": "large",
+  "repositories": 10000,
+  "developers": 10000,
+  "prsPerDeveloperPerDay": 10,
+  "awRunsPerPR": 5,
+  "days": 1,
+  "aicPerRun": 100,
+  "seed": 42,
+  "distribution": "uniform"
+}

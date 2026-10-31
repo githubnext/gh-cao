@@ -75,6 +75,37 @@ test('fast collection preserves Value history and publishes a deferred decision 
   assert.equal(JSON.parse(readFileSync(path.join(shards, 'workflow-value-local.json'), 'utf8'))[0].eligible, false);
 });
 
+test('ordinary Activity leaves the reviewed Value grant above its protected API floor', (t) => {
+  const steps = workflow.jobs.collect.steps;
+  const reserve = step('collect', 'Reserve reviewed Value API capacity');
+  const inventory = step('collect', 'Collect owner-scoped dashboard inventory');
+  const logs = step('collect', 'Download owner-scoped agentic workflow logs');
+  const value = step('collect', 'Retain Value evidence and publish collection health');
+  assert.ok(steps.indexOf(reserve) < steps.indexOf(inventory));
+  assert.ok(steps.indexOf(reserve) < steps.indexOf(logs));
+  assert.match(reserve.run, /workflowValueApiHeadroom\(policy, repositories\)/);
+  assert.match(reserve.run, /log-floor=-\$\{base \+ headroom\}\\nvalue-reserve=\$\{base\}/);
+  assert.equal(inventory.env.REPORT_MAX_GITHUB_API_RATE_LIMIT, '${{ steps.value-api-capacity.outputs.log-floor }}');
+  assert.equal(logs.env.REPORT_MAX_GITHUB_API_RATE_LIMIT, '${{ steps.value-api-capacity.outputs.log-floor }}');
+  assert.equal(value.env.REPORT_VALUE_API_RESERVE, '${{ steps.value-api-capacity.outputs.value-reserve }}');
+  const directory = mkdtempSync(path.join(tmpdir(), 'activity-value-reserve-'));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const output = path.join(directory, 'capacity');
+  for (const [repositories, base, expected] of [
+    [['github/gh-aw'], '2000', 'log-floor=-2700\nvalue-reserve=2000\n'],
+    [['githubnext/gh-cao'], '2000', 'log-floor=-2000\nvalue-reserve=2000\n'],
+    [['github/gh-aw'], '100', 'log-floor=-800\nvalue-reserve=100\n'],
+    [['githubnext/gh-cao'], '100', 'log-floor=-100\nvalue-reserve=100\n'],
+  ]) {
+    writeFileSync(output, '');
+    execFileSync('bash', ['-euc', reserve.run], { cwd: root, env: {
+      ...process.env, ACTIVITY_REPOSITORIES_JSON: JSON.stringify(repositories),
+      ACTIVITY_BASE_RESERVE: base, GITHUB_OUTPUT: output,
+    } });
+    assert.equal(readFileSync(output, 'utf8'), expected);
+  }
+});
+
 test('forced recycling runs before new downloads and safely clears only disposable payloads', (t) => {
   for (const [job, download] of [
     ['collect', 'Download owner-scoped agentic workflow logs'],

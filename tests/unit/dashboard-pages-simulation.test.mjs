@@ -85,6 +85,8 @@ test("Pages output refuses repository paths, unowned data, and symlink ancestors
   await assert.rejects(prepareDashboardPages({ output: path.join(directory, "output") }), /exactly one/);
   await assert.rejects(prepareDashboardPages({ fixture: true, includeSqlite: false }), /not a synthetic fixture/);
   await assert.rejects(prepareDashboardPages({ fixture: true, includeSqlite: null }), /must be a boolean/);
+  await assert.rejects(prepareDashboardPages({ fixture: true, fixtureExperimental: null }), /fixtureExperimental/);
+  await assert.rejects(prepareDashboardPages({ activityDir: directory, fixtureExperimental: true }), /fixtureExperimental/);
 });
 
 test("offline pipeline publishes real build assets, canonical SQLite, and verified phased payloads", { timeout: 120_000 }, async (t) => {
@@ -97,6 +99,8 @@ test("offline pipeline publishes real build assets, canonical SQLite, and verifi
   assert.equal(marker.synthetic, true);
   assert.equal(marker.includeSqlite, true);
   assert.equal(marker.retention, "all");
+  const dashboard = JSON.parse(await readFile(path.join(output, "dashboard.json"), "utf8"));
+  assert.ok(!dashboard.dashboard.pages.some(({ id }) => id === "simulator-pull-request"));
   const names = await readdir(output);
   for (const name of ["index.html", "dashboard.json", "service-worker.js", "payload-hashes.json",
     "gh-aw-logs.sqlite", "inventory-sources.json", "agent-summary.json", "llms.txt"]) {

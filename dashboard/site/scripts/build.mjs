@@ -178,6 +178,9 @@ export function filterExperimentalDashboardViews(document, enabled = false) {
       .filter((section) => section?.experimental === true)
       .flatMap((section) => Array.isArray(section.pages) ? section.pages : []),
   );
+  for (const page of document.dashboard.pages) {
+    if (page.experimental === true) experimentalPageIds.add(page.id);
+  }
   if (experimentalPageIds.size === 0) return document;
   return {
     ...document,

@@ -19,7 +19,7 @@ export const unitTestAreas = {
     /^eslint-rules-/, /^actions-context\./, /^actions-runtime\./, /^agent-plugin\./,
     /^install-script\./, /^installer-canary\./, /^repository-/, /^no-hardcoded-github-actions-url\./,
     /^token-optimization-data-contract\./, /^unit-area-selection\./,
-    /^backfill-stress-report\./, /^source-map-compat\./,
+    /^backfill-stress-report\./, /^company-stress\./, /^source-map-compat\./,
     /^maintainer-simulation\./,
     /^(?:native-value-import|value-session-archive)\./,
   ],
