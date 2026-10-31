@@ -91,14 +91,16 @@ test('ordinary Activity leaves the reviewed Value grant above its protected API 
   const directory = mkdtempSync(path.join(tmpdir(), 'activity-value-reserve-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const output = path.join(directory, 'capacity');
-  for (const [repositories, expected] of [
-    [['github/gh-aw'], 'log-floor=-2700\nvalue-reserve=2000\n'],
-    [['githubnext/gh-cao'], 'log-floor=-2000\nvalue-reserve=2000\n'],
+  for (const [repositories, base, expected] of [
+    [['github/gh-aw'], '2000', 'log-floor=-2700\nvalue-reserve=2000\n'],
+    [['githubnext/gh-cao'], '2000', 'log-floor=-2000\nvalue-reserve=2000\n'],
+    [['github/gh-aw'], '100', 'log-floor=-800\nvalue-reserve=100\n'],
+    [['githubnext/gh-cao'], '100', 'log-floor=-100\nvalue-reserve=100\n'],
   ]) {
     writeFileSync(output, '');
     execFileSync('bash', ['-euc', reserve.run], { cwd: root, env: {
       ...process.env, ACTIVITY_REPOSITORIES_JSON: JSON.stringify(repositories),
-      ACTIVITY_BASE_RESERVE: '2000', GITHUB_OUTPUT: output,
+      ACTIVITY_BASE_RESERVE: base, GITHUB_OUTPUT: output,
     } });
     assert.equal(readFileSync(output, 'utf8'), expected);
   }

@@ -482,17 +482,19 @@ test("CAO Activity workflow-token API reserves fit its standard 1000-request quo
   const logs = steps.find(({ name }) => name === "Download owner-scoped agentic workflow logs");
   const inventory = steps.find(({ name }) => name === "Collect owner-scoped dashboard inventory");
   const value = steps.find(({ name }) => name === "Retain Value evidence and publish collection health");
-  for (const [step, appPatReserve] of [[inventory, 2000], [logs, 2000]]) {
+  const reserve = steps.find(({ name }) => name === "Reserve reviewed Value API capacity");
+  assert.equal(reserve.env.ACTIVITY_BASE_RESERVE,
+    "${{ (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && '100' || '2000' }}");
+  for (const step of [inventory, logs]) {
     assert.equal(
       step.env.REPORT_MAX_GITHUB_API_RATE_LIMIT,
-      "${{ (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && '-100' || '-"
-        + appPatReserve + "' }}",
+      "${{ steps.value-api-capacity.outputs.log-floor }}",
     );
   }
   assert.equal(value.env.GH_TOKEN, undefined);
   assert.equal(value.env.CAO_GITHUB_CREDENTIAL_ID, "${{ matrix.credentialRepository || matrix.owner }}");
   assert.equal(value.env.REPORT_VALUE_API_RESERVE,
-    "${{ (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && '100' || '2000' }}");
+    "${{ steps.value-api-capacity.outputs.value-reserve }}");
   assert.match(value.run, /reason=/);
   assert.match(value.run, /--apiBudget/);
   assert.match(value.run, /--apiReserve "\$REPORT_VALUE_API_RESERVE"/);
