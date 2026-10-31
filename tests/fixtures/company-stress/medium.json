@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "name": "medium",
+  "repositories": 1000,
+  "developers": 1000,
+  "prsPerDeveloperPerDay": 10,
+  "awRunsPerPR": 5,
+  "days": 1,
+  "aicPerRun": 100,
+  "seed": 42,
+  "distribution": "uniform"
+}

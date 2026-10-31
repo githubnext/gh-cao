@@ -96,6 +96,12 @@ capacity defers before invocation and leaves accepted packets, immutable proof
 and freshness clocks unchanged. Fast mode, public-only mode and observed API
 exhaustion keep their more precise deferral reasons. A separate worker alone
 still does not isolate shared quota.
+For registered remote collectors, ordinary Activity reserves their reviewed
+request ceilings on top of its protected API floor before downloading logs.
+If log collection stops at that floor, Value still checks live capacity against
+its own grant and the original protected floor before attempting a refresh.
+Without that capacity it remains deferred; local-only collectors remain deferred
+when ordinary collection reports API exhaustion.
 
 Collectors without remote requests need no ceiling. Git transport and immutable
 blob measurement remain under their separate existing bounds rather than being
@@ -143,7 +149,8 @@ their digests, then acquires fresh discovery and lifecycle evidence. This
 preserves verified receipts after upstream artifact expiry without treating the
 historical capture as fresh. Subsequent collections continue from their retained
 proof and cutoff: discovery and workflow-source history cover only the new
-interval, immutable merged pulls, receipts, snapshots, Git inventories and blob
+interval, missed daily snapshot cutoffs are reconstructed from immutable Git
+history, immutable merged pulls, receipts, snapshots, Git inventories and blob
 measurements are reused, and only mutable lifecycle evidence is refreshed.
 Rich evidence acquisition has a ten-minute per-collector runtime ceiling
 (the hosted wrapper allows ten additional seconds for shutdown), independent

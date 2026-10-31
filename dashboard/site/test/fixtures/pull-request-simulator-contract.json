@@ -1,0 +1,15 @@
+{
+  "page": "simulator-pull-request",
+  "navigation": "simulators",
+  "view": "simulator-pr-totals",
+  "query": "simulator-pr-summary",
+  "fields": ["measure", "daily", "total"],
+  "defaults": {
+    "company-repositories": 10000,
+    "developers": 10000,
+    "prs-per-developer-per-day": 10,
+    "aw-runs-per-pr": 5,
+    "days": 1,
+    "aic-per-run": 100
+  }
+}

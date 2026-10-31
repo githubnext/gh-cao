@@ -90,7 +90,7 @@ test("SelfCare Primer brand checker audits the dashboard against retrieved guida
   assert.match(source, /campaign: self-care/);
   assert.match(source, /worker: primer-brand-checker/);
   assert.match(source, /safe_output_mode` is `live`/);
-  assert.match(source, /skip-if-match: 'is:pr is:open in:title "Primer branding"'/);
+  assert.match(source, /skip-if-match: 'is:pr is:open "gh-aw-workflow-id: self-care-primer-brand-checker" in:body'/);
   assert.match(source, /@primer\/brand-mcp@0\.74\.0/);
   assert.match(source, /cli-proxy: true/);
   assert.match(source, /dashboard\/site\/src\/styles\.js/);

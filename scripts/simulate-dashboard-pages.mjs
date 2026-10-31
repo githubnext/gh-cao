@@ -115,8 +115,8 @@ async function json(file, value) {
   await writeFile(file, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-async function writeFixture(directory, fixtureTime) {
-  const settings = { campaigns: {}, web: {}, scope: { "allowed-repositories": [fixtureRepository] } };
+async function writeFixture(directory, fixtureTime, experimental) {
+  const settings = { campaigns: {}, web: { experimental }, scope: { "allowed-repositories": [fixtureRepository] } };
   const sources = buildInventoryDashboardSources({
     inventory: { workflows: [{
       id: "pages-fixture", name: "Synthetic Pages fixture", role: "standalone",
@@ -266,11 +266,15 @@ export async function runPagesPreparationCommand(stage, args, { timeoutMs = PAGE
 
 export async function prepareDashboardPages({
   activityDir, fixture = false, output = path.join(root, ".tmp/dashboard-pages"), fixtureNow = Date.now(), includeSqlite = true,
+  fixtureExperimental = false,
 } = {}) {
   if (Boolean(activityDir) === Boolean(fixture)) {
     throw new Error("Choose exactly one of --activity-dir DIR or --fixture; no implicit collection or fallback");
   }
   if (typeof includeSqlite !== "boolean") throw new Error("includeSqlite must be a boolean");
+  if (typeof fixtureExperimental !== "boolean" || fixtureExperimental && !fixture) {
+    throw new Error("fixtureExperimental must be a boolean and can only enable synthetic fixture views");
+  }
   if (!includeSqlite && fixture) throw new Error("includeSqlite: false requires supplied normalized phased data, not a synthetic fixture");
   const destination = await assertSafePagesOutput(output);
   const source = activityDir && path.resolve(activityDir);
@@ -285,7 +289,7 @@ export async function prepareDashboardPages({
   try {
     const fixtureTime = fixture ? new Date(fixtureNow).toISOString() : undefined;
     let hashes;
-    if (fixture) await writeFixture(activity, fixtureTime);
+    if (fixture) await writeFixture(activity, fixtureTime, fixtureExperimental);
     else hashes = await copySnapshot(source, activity, { includeSqlite });
     const inventoryPath = path.join(activity, "inventory-sources.json");
     const settings = await loadDashboardControlSettings(path.join(activity, "control-settings.json"));

@@ -26,6 +26,8 @@ on:
       - .github/workflows/cao-activity.yml
       - .github/actions/setup-cao-runtime/**
       - server/**
+      - tests/fixtures/company-stress/**
+      - scripts/company-stress.mjs
       - "!dashboard/site/**/*.md"
       - "!server/**/*.md"
   push:
@@ -39,6 +41,8 @@ on:
       - activity/**
       - dashboard/site/**
       - server/**
+      - tests/fixtures/company-stress/**
+      - scripts/company-stress.mjs
       - scripts/test-dashboard-backfill.sh
       - scripts/run-daily-run-counts-conformance.mjs
       - package.json
