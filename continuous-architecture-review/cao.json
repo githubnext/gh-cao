@@ -1,0 +1,7 @@
+{
+  "campaign": "continuous-architecture-review",
+  "orchestrator": "continuous-architecture-review",
+  "workers": {
+    "implementation": "continuous-architecture-review-implementation"
+  }
+}

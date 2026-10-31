@@ -28,6 +28,12 @@ export function workflowValueSelections(document, repositories) {
     .filter(entry => valueRepositoryInScope(document, repositories, entry.repository));
 }
 
+export function workflowValueApiHeadroom(document, repositories) {
+  if (document['control-plane']?.campaigns?.activity?.enabled === false) return 0;
+  return workflowValueSelections(document, repositories).reduce((total, entry) =>
+    total + (entry.enabled !== false && entry.collector ? entry['api-requests'] ?? 0 : 0), 0);
+}
+
 export async function readValueEnvelopes(filename) {
   try {
     return (await readFile(filename, 'utf8')).split('\n').filter(Boolean).map(line => JSON.parse(line));

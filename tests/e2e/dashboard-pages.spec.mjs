@@ -5,12 +5,41 @@ let preview;
 
 test.beforeAll(async () => {
   test.setTimeout(240_000);
-  preview = await startDashboardPagesPreview({ fixture: true });
+  preview = await startDashboardPagesPreview({ fixture: true, fixtureExperimental: true });
 });
 
 test.afterAll(async () => { await preview?.close(); });
 
 for (const width of [1440, 390]) {
+  test(`Pull request simulator recomputes company estimates at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${preview.url}/?debug-eager-ingest=1#page-simulators`, { waitUntil: "domcontentloaded" });
+    await expect(page.locator("#page-title")).toHaveText("Simulators");
+    await expect(page.locator(".first-load-overlay")).toHaveCount(0, { timeout: 90_000 });
+    await page.locator('[data-page-id="simulators"]').getByRole("link", { name: "Pull request", exact: true }).click();
+    const simulator = page.locator('[data-page-id="simulator-pull-request"]');
+    await expect(simulator.getByRole("link", { name: "Pull request", exact: true })).toHaveAttribute("aria-current", "page");
+    const table = simulator.locator('[data-view-id="simulator-pr-totals"]').getByRole("table");
+    await expect(table.getByRole("row", { name: "AW runs 500000 500000", exact: true })).toBeVisible();
+    await expect(table.getByRole("row", { name: "AI Credits (AIC) 50000000 50000000", exact: true })).toBeVisible();
+    const screenshot = testInfo.outputPath(`pull-request-simulator-${width}.png`);
+    await page.screenshot({ path: screenshot, fullPage: true });
+    await testInfo.attach(`Pull request simulator ${width}px`, { path: screenshot, contentType: "image/png" });
+    await simulator.getByRole("slider", { name: "Duration (days)", exact: true }).fill("2");
+    await expect(table.getByRole("row", { name: "AW runs 500000 1000000", exact: true })).toBeVisible();
+    const developerInput = simulator.getByRole("slider", { name: "Developers", exact: true });
+    await developerInput.focus();
+    await developerInput.fill("3");
+    await expect(table.getByRole("row", { name: "AW runs 150 300", exact: true })).toBeVisible();
+    await expect(developerInput).toBeFocused();
+    await simulator.getByRole("slider", { name: "Repositories", exact: true }).fill("7");
+    await expect(table.getByRole("row", { name: "AW runs 150 300", exact: true })).toBeVisible();
+    await simulator.getByRole("slider", { name: "AIC per AW run", exact: true }).fill("0");
+    await expect(table.getByRole("row", { name: "AI Credits (AIC) 0 0", exact: true })).toBeVisible();
+    await simulator.getByRole("link", { name: "Database size", exact: true }).click();
+    await expect(page.locator('[data-page-id="simulators"]').getByRole("slider")).toHaveCount(5);
+  });
+
   test(`Go Pages deployment uses populated IndexedDB at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     const hostedRequests = [];

@@ -13,6 +13,7 @@ test("every root unit test runs in exactly one topical area", () => {
   assert.ok(partition.documentation.includes("docs-workflow-ecosystem-layout.test.mjs"));
   assert.ok(partition.tooling.includes("azure-local-harness.test.mjs"));
   assert.ok(partition.tooling.includes("backfill-stress-report.test.mjs"));
+  assert.ok(partition.tooling.includes("company-stress.test.mjs"));
   assert.ok(partition.tooling.includes("source-map-compat.test.mjs"));
   assert.ok(partition.tooling.includes("installer-canary.test.mjs"));
   assert.ok(partition.tooling.includes("maintainer-simulation.test.mjs"));
