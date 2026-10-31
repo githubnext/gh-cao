@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import test from "node:test";
+import { parse } from "yaml";
 import { root, stepBlock, workflow } from "./workflow-contract.helpers.mjs";
 
 // SelfCare workers that audit and improve the dashboard.
@@ -355,6 +357,41 @@ test("SelfCare Pages health worker audits every deployed view on three profiles"
   assert.match(source, /Fix only the selected quick wins/);
   assert.doesNotMatch(source, /^evals:/m);
   assert.doesNotMatch(source, /^graders:/m);
+});
+
+test("SelfCare Pages health bounds collection and records failures before agent execution", () => {
+  const source = workflow("self-care-pages-health.md");
+  const config = parse(source.split("---")[1]);
+  const collector = config["pre-agent-steps"].find(
+    (step) => step.name === "Collect deployed Pages health evidence",
+  );
+  assert.match(collector.run, /timeout --kill-after=30s 80m node dashboard\/site\/test\/performance\/pages-health\.mjs/);
+  assert.equal(config["timeout-minutes"], 120);
+  assert.match(source, /missing or nonzero \(including timeout codes 124 and 137\)/);
+  assert.match(source, /call `noop` exactly once.*stop without requiring `summary\.json`/);
+
+  for (const [program, expectedStatus] of [
+    ["process.exit(0)", "0"],
+    ["process.exit(1)", "1"],
+    ["setInterval(() => {}, 1000)", "124"],
+    ["process.on('SIGTERM', () => {}); setInterval(() => {}, 1000)", "137"],
+  ]) {
+    const directory = mkdtempSync(join(tmpdir(), "pages-health-"));
+    const outputDirectory = join(directory, "evidence");
+    try {
+      execFileSync("bash", ["-c", `
+timeout() { command timeout --kill-after=0.2s 0.2s node -e "$COLLECTOR_PROGRAM"; }
+${collector.run}
+`], {
+        env: { ...process.env, PAGES_HEALTH_OUTPUT_DIR: outputDirectory, COLLECTOR_PROGRAM: program },
+        timeout: 5_000,
+        stdio: "pipe",
+      });
+      assert.equal(readFileSync(join(outputDirectory, "collector-exit-code"), "utf8").trim(), expectedStatus);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  }
 });
 
 test("SelfCare code improvement preserves its focused dashboard component mission", () => {

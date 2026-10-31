@@ -151,8 +151,10 @@ pre-agent-steps:
       PAGES_HEALTH_OUTPUT_DIR: ${{ github.workspace }}/self-care-pages-health-evidence
     run: |
       set +e
-      node dashboard/site/test/performance/pages-health.mjs
-      printf '%s\n' "$?" > "$PAGES_HEALTH_OUTPUT_DIR/collector-exit-code"
+      timeout --kill-after=30s 80m node dashboard/site/test/performance/pages-health.mjs
+      collector_status=$?
+      mkdir -p "$PAGES_HEALTH_OUTPUT_DIR"
+      printf '%s\n' "$collector_status" > "$PAGES_HEALTH_OUTPUT_DIR/collector-exit-code"
       exit 0
 ---
 
@@ -166,7 +168,7 @@ Audit the deployed GitHub Pages dashboard at `https://githubnext.github.io/gh-ca
 
 ## Evidence
 
-1. Read `self-care-pages-health-evidence/collector-exit-code`, `self-care-pages-health-evidence/summary.json`, and the referenced per-page Lighthouse JSON reports. Do not rerun the collector or install dependencies.
+1. Read `self-care-pages-health-evidence/collector-exit-code` first. If it is missing or nonzero (including timeout codes 124 and 137), upload the available evidence, call `noop` exactly once with the collector failure or timeout, and stop without requiring `summary.json`. Otherwise read `self-care-pages-health-evidence/summary.json` and the referenced per-page Lighthouse JSON reports. Do not rerun the collector or install dependencies.
 2. Verify that every page in `summary.json.declaredPages` and every view in `summary.json.declaredViews` has navigation evidence, and that every page has one Lighthouse result in each of the `desktop`, `mobile`, and `low-bandwidth` profiles.
 3. Treat console errors, uncaught page errors, failed requests, HTTP responses at or above 400, incomplete navigation, and incomplete Lighthouse runs as explicit findings. Never classify an incomplete check as passing.
 4. Report the Lighthouse performance score, First Contentful Paint, Largest Contentful Paint, Cumulative Layout Shift, Speed Index, and Total Blocking Time for every page and profile. Compare profiles without inventing thresholds or causal claims.

@@ -78,6 +78,17 @@
       "dashboard": {
         "deploy": false
       },
+      "continuous-architecture-review": {
+        "icon": "code",
+        "enabled": false,
+        "mode": "review",
+        "max-repositories": 1,
+        "workers": {
+          "implementation": {
+            "workflow": "continuous-architecture-review-implementation"
+          }
+        }
+      },
       "uk-ai-advisory": {
         "icon": "eye",
         "workers": {
