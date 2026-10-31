@@ -59,10 +59,11 @@ describe('Audit dashboard view', () => {
       .toEqual(['chart', 'table', 'list']);
     expect(issues.views
       .filter((/** @type {{ data?: { source?: string } }} */ view) => view.data?.source === 'campaign-worker-issues')
-      .map((/** @type {{ data: Record<string, string> }} */ view) => view.data['route-field'])).toEqual([
-      'campaign',
-      'campaign'
-    ]);
+      .map((/** @type {{ data: Record<string, string> }} */ view) => view.data['route-field'])).toEqual(['campaign']);
+    expect(issues.views.find((/** @type {{ id: string }} */ view) => view.id === 'campaign-issue-status')).toMatchObject({
+      data: { source: 'campaign-issue-status-counts', 'route-field': 'campaign' },
+      encoding: { y: { field: 'issues' } }
+    });
   });
 
   it('projects native observations, including decreasing positive AIC per successful run', () => {

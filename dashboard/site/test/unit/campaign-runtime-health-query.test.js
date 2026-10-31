@@ -258,3 +258,22 @@ it('counts campaign runs by status in the worker query', () => {
     .sort();
   expect(counts).toEqual(['a:failure:1', 'a:success:2', 'b:success:1']);
 });
+
+it('counts campaign worker issues by status in the worker query', () => {
+  const query = dashboard.queries.find(
+    (/** @type {{ name?: string }} */ candidate) => candidate.name === 'campaign-issue-status-counts'
+  );
+  const rows = [
+    { campaign: 'a', 'safe-output': 'i1', 'issue-status-detail': 'Open' },
+    { campaign: 'a', 'safe-output': 'i2', 'issue-status-detail': 'Open' },
+    { campaign: 'a', 'safe-output': 'i3', 'issue-status-detail': 'Closed as completed' },
+    { campaign: 'b', 'safe-output': 'i4', 'issue-status-detail': 'Open' }
+  ];
+  const result = executeDashboardQueries([query], {
+    'campaign-worker-issues': { source: 'campaign-worker-issues', metadata, rows }
+  }, ['campaign-issue-status-counts']);
+  const counts = result['campaign-issue-status-counts'].rows
+    .map((/** @type {Record<string, unknown>} */ row) => `${row.campaign}:${row['issue-status-detail']}:${row.issues}`)
+    .sort();
+  expect(counts).toEqual(['a:Closed as completed:1', 'a:Open:2', 'b:Open:1']);
+});
