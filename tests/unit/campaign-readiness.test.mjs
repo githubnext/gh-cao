@@ -46,7 +46,7 @@ function snapshot(root, date) {
 test("renders deterministic GFM summary and escapes untrusted references and findings", () => {
   const input = evidence();
   input.checks.architecture.evidence = "review/<script>|[bad](url).md";
-  input.findings.blocked = ["<script>alert(1)</script>|table"];
+  input.findings.blocked = ["<ScRiPt>alert(1)</sCrIpT>|table"];
   input.findings.regressed = ["regression", "another regression", "fourth finding"];
   input.nextActions = ["first", "second", "third", "fourth"];
   const report = renderReport(input);
@@ -58,8 +58,8 @@ test("renders deterministic GFM summary and escapes untrusted references and fin
   assert.match(report, /\| Security blockers \| — \| — \| — \| — \|/);
   assert.equal((report.match(/<details>/g) ?? []).length, 3);
   assert.match(report, /&lt;script&gt;/);
-  assert.match(report, /- Blocked by: &lt;script&gt;/);
-  assert.doesNotMatch(report, /<script>|fourth finding|fourth\n/);
+  assert.match(report, /- Blocked by: &lt;ScRiPt&gt;/);
+  assert.doesNotMatch(report, /<script>|fourth finding|fourth\n/i);
   const actions = report.split("## Next Actions")[1].split("<details>")[0];
   assert.match(actions, /\n1\. first\n2\. second\n3\. third\n/);
   assert.doesNotMatch(actions, /^- /m);
