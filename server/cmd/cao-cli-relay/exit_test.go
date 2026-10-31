@@ -12,7 +12,7 @@ func TestWorkloadExitCode(t *testing.T) {
 		t.Fatalf("nil error = %d, want 0", got)
 	}
 
-	err := exec.Command("sh", "-c", "exit 7").Run()
+	err := exec.CommandContext(t.Context(), "sh", "-c", "exit 7").Run()
 	if got := workloadExitCode(err); got != 7 {
 		t.Fatalf("exit 7 = %d, want 7", got)
 	}
@@ -21,7 +21,7 @@ func TestWorkloadExitCode(t *testing.T) {
 		t.Fatalf("non-exit error = %d, want 125", got)
 	}
 
-	if err := exec.Command("/nonexistent/cao-relay-workload").Run(); err == nil {
+	if err := exec.CommandContext(t.Context(), "/nonexistent/cao-relay-workload").Run(); err == nil {
 		t.Fatal("expected start failure")
 	} else if got := workloadExitCode(err); got != 125 {
 		t.Fatalf("missing executable = %d, want 125", got)
