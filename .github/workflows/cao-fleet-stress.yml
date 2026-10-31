@@ -15,7 +15,7 @@ jobs:
   fleet-stress:
     name: 1000 repositories, 5000 developers, three simulated days
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 65
     env:
       CAO_FLEET_STRESS_REPORT_DIR: ${{ github.workspace }}/test-results/cao-fleet-stress
     steps:

@@ -759,6 +759,7 @@
         "campaign-insight-tab-counts",
         "campaign-issue-tab-counts",
         "campaign-problem-tab-counts",
+        "campaign-run-status-counts",
         "campaign-runs",
         "dispatches"
       ]
@@ -4619,6 +4620,33 @@
         "campaign-runs"
       ],
       "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "runs",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "campaign-run-status-counts",
+      "subject": "Count retained workflow runs by observed status for each campaign.",
+      "objective": "Show the distribution of run statuses so failed or stalled campaign runs can be identified.",
+      "acceptance": "Each count reconciles to campaign-runs rows with a start time for the same campaign and status; an empty result is not proof of healthy execution.",
+      "description": "Worker-side status distribution of campaign-attributed workflow runs.",
+      "parameters": [
+        {
+          "name": "campaign",
+          "field": "campaign"
+        }
+      ],
+      "sources": [
+        "campaign-runs"
+      ],
+      "used-by-pages": [
+        "campaign-runs"
+      ],
       "execution": {
         "local": true,
         "backend": "sqlite",

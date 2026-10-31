@@ -25,6 +25,7 @@ type stressPR struct {
 	simulator.FleetPullRequest
 	admitted, dispatched, reviewed bool
 	due                            time.Time
+	execution                      *stressExecution
 }
 
 type stressReport struct {
@@ -51,6 +52,7 @@ type stressReport struct {
 	WallSeconds         float64              `json:"wallSeconds"`
 	API                 simulator.FleetStats `json:"github"`
 	Quota               simulator.QuotaStats `json:"quota"`
+	TokenBroker         stressBrokerReport   `json:"tokenBroker"`
 }
 
 type stressDriver struct {
@@ -68,6 +70,7 @@ type stressDriver struct {
 	limited   bool
 	tick      int
 	waiting   []*stressPR
+	broker    *stressBroker
 }
 
 func (*stressDriver) WebhookSecrets(context.Context, string) ([]byte, []byte, error) {
@@ -139,12 +142,14 @@ func (d *stressDriver) DispatchCompiler(ctx context.Context, s wg.Subscription, 
 	}
 	status, headers, body := d.request(ctx, http.MethodPost, "/repos/"+destination+"/dispatches", 2, payload)
 	if status == 204 {
+		execution := d.broker.execution(len(deliveries))
 		for _, delivery := range deliveries {
 			pr := d.prs[delivery.ID]
 			if pr == nil || pr.Repository.ID != s.Source.RepositoryID || pr.dispatched {
 				d.t.Fatal("missing, misrouted or duplicate PR dispatch")
 			}
 			pr.dispatched, pr.due = true, d.clock.Now().Add(2*time.Minute)
+			pr.execution = execution
 			d.pending = append(d.pending, pr)
 		}
 	}
@@ -253,6 +258,10 @@ func (d *stressDriver) completeReviews() {
 			remaining = append(remaining, pr)
 			continue
 		}
+		if !d.broker.exchange(pr.execution) {
+			remaining = append(remaining, pr)
+			continue
+		}
 		status, _, _ := d.request(d.t.Context(), http.MethodPost,
 			fmt.Sprintf("/repos/%s/pulls/%d/reviews", pr.Repository.Name, pr.Number), 2,
 			[]byte(`{"event":"COMMENT","body":"Synthetic vulnerability review; no inference."}`))
@@ -268,6 +277,7 @@ func (d *stressDriver) completeReviews() {
 			d.t.Fatal("duplicate completed review")
 		}
 		pr.reviewed = true
+		d.broker.complete(pr.execution)
 		d.report.Reviewed++
 		latency := d.clock.Now().Sub(pr.ReadyAt).Seconds()
 		d.latencies = append(d.latencies, latency)
