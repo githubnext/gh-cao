@@ -54,6 +54,7 @@ func newStressDriver(t *testing.T, repositories, developers, days int) *stressDr
 	d := &stressDriver{t: t, clock: c, api: api, quota: quota, url: server.URL,
 		client: &http.Client{Transport: transport, Timeout: 5 * time.Second}, prs: make(map[string]*stressPR),
 		report: stressReport{InitialRepositories: repositories, Developers: developers, Days: days, PRsPerDeveloperP50: 10}}
+	d.broker = newStressBroker(t, c.Now)
 
 	// Pre-enrollment is explicit fixture authority, not discovery-created scope.
 	// Future immutable IDs are initially absent from GitHub and fail closed.
@@ -217,6 +218,7 @@ func runFleetStress(t *testing.T, repositories, developers, days int) {
 	t.Cleanup(func() {
 		d.report.Missing = d.report.Ready - d.report.Reviewed
 		d.report.API, d.report.Quota = d.api.Stats(), d.quota.Stats()
+		d.report.TokenBroker = d.broker.report
 		d.report.WallSeconds = time.Since(started).Seconds()
 		if dir := os.Getenv("CAO_FLEET_STRESS_REPORT_DIR"); dir != "" {
 			if err := os.MkdirAll(dir, 0750); err != nil { // #nosec G703 -- report destination is explicitly selected by the local test operator, never webhook input.
@@ -266,6 +268,14 @@ func runFleetStress(t *testing.T, repositories, developers, days int) {
 	}
 	if developers >= 5000 && (d.quota.Stats().Secondary == 0 || d.report.Archived == 0 || d.report.Replays == 0) {
 		t.Fatal("full scenario did not exercise secondary throttling, archive and replay")
+	}
+	broker := d.broker.report
+	if broker.Jobs == 0 || broker.Jobs != broker.Exchanges || broker.Jobs != broker.Invalidations ||
+		broker.Jobs != broker.Revocations || len(d.broker.tokens) != 0 || len(d.broker.jobs) != 0 {
+		t.Fatalf("broker lifecycle incomplete: %+v", broker)
+	}
+	if developers >= 5000 && broker.Throttled == 0 {
+		t.Fatal("full scenario did not exercise broker throttling")
 	}
 }
 

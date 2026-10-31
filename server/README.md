@@ -285,13 +285,28 @@ traffic consume these budgets. Signed repository lifecycle webhooks invalidate
 inventory through the production discovery-hints path. Deliberate shared-budget exhaustion and the burst
 exercise throttling, while identical webhook replays exercise deduplication.
 
+Every accepted dispatch batch also executes the production token broker's
+`copilot-request` exchange and invalidation lifecycle. One synthetic execution
+identity per batch is pinned to the control repository's immutable ID, workflow
+ref and SHA in a private fixture policy. A fresh ephemeral App key signs issuer
+requests; an in-process GitHub transport checks that minting requests only
+`copilot_requests: read` for that control repository. Identity verification and
+GitHub issuance/revocation are fixtures, not real OIDC, hosted HTTP/TLS, Key Vault
+or GitHub authentication evidence, and issuer calls do not consume the fleet's
+REST quota. Production broker rate and context ceilings remain unchanged:
+throttled exchanges retry on later simulated minutes without resetting the SLA.
+Each batch mints once, revokes after all its reviews finish, and proves repeated
+invalidation is idempotent and completed executions cannot mint again.
+The report's `tokenBroker` counters require matching jobs, exchanges,
+invalidations and revocations; the full stress workload must exercise throttling.
+
 No agentic workflow, vulnerability analysis, inference, or real GitHub request
 runs. Synthetic review completion occurs two simulated minutes after dispatch,
-plus any API-quota delay; dispatch acceptance alone never counts as a review.
+plus any API-quota or broker delay; dispatch acceptance alone never counts as a review.
 Every ready PR must have exactly one completed synthetic review within 3,600
 simulated seconds, measured from its original ready time, including discovery
 and admission retries. Missing, duplicate, or late reviews fail the test.
-An injected manual time provider controls ingress, discovery, authorization,
+An injected manual time provider controls ingress, discovery, authorization, the broker,
 queue leases/retention/backoff, and simulated API windows without sleeping.
 HTTP cancellation and I/O deadlines remain wall-clock based.
 
