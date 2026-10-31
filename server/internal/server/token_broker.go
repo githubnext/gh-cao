@@ -104,7 +104,10 @@ func (a *App) exchangeBrokerToken(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
-	defer func() { _ = controller.SetWriteDeadline(time.Time{}) }()
+	defer func() {
+		_ = controller.Flush()
+		_ = controller.SetWriteDeadline(time.Time{})
+	}()
 	http.TimeoutHandler(a.tokenBroker, time.Until(deadline), "").ServeHTTP(
 		&admissionResponse{ResponseWriter: w, headers: make(http.Header)}, r.WithContext(ctx))
 }

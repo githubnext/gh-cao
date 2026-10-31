@@ -23,7 +23,7 @@ type workflowRule struct {
 	WorkflowSHA  string `json:"workflow-sha"`
 }
 
-func (s *Service) authorized(i admission.Identity) bool {
+func (s *Service) authorizedIdentity(i admission.Identity) bool {
 	if !stableID.MatchString(i.RepositoryID) || !stableID.MatchString(i.OwnerID) ||
 		!stableID.MatchString(i.RunID) || !stableID.MatchString(i.RunAttempt) ||
 		!stableID.MatchString(i.CheckRunID) || i.EnvironmentPresent || i.OwnerID != s.config.OwnerID ||
@@ -42,6 +42,13 @@ func (s *Service) authorized(i admission.Identity) bool {
 	switch i.Event {
 	case "workflow_dispatch", "schedule", "push":
 	default:
+		return false
+	}
+	return true
+}
+
+func (s *Service) authorized(i admission.Identity) bool {
+	if !s.authorizedIdentity(i) {
 		return false
 	}
 	// Read on every operation. A changed or removed mounted policy immediately

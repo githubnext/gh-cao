@@ -17,7 +17,13 @@ type deniedBrokerIdentity struct{}
 
 type brokerDeadlineWriter struct {
 	*httptest.ResponseRecorder
-	read, write []time.Time
+	read, write  []time.Time
+	boundedFlush bool
+}
+
+func (w *brokerDeadlineWriter) Flush() {
+	w.boundedFlush = len(w.write) > 0 && !w.write[len(w.write)-1].IsZero()
+	w.ResponseRecorder.Flush()
 }
 
 func (w *brokerDeadlineWriter) SetReadDeadline(deadline time.Time) error {
@@ -174,6 +180,9 @@ func TestTokenBrokerUsesOIDCInsteadOfDashboardAuthentication(t *testing.T) {
 		want := http.StatusForbidden
 		if endpoint == "https://broker.example/api/token-broker" {
 			want = http.StatusUnauthorized
+			if !response.boundedFlush {
+				t.Fatal("broker cleared its transport deadline before flushing the response")
+			}
 			for _, deadlines := range [][]time.Time{response.read, response.write} {
 				if len(deadlines) != 2 || deadlines[0].IsZero() ||
 					!deadlines[0].Before(time.Now().Add(9*time.Second)) || !deadlines[1].IsZero() {

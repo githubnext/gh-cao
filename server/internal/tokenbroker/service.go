@@ -187,7 +187,15 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
-	if !s.authorized(identity) {
+	now := s.now()
+	s.prune(now)
+	key := executionKey(identity)
+	state := s.contexts[key]
+	// Policy revocation stops minting, not cleanup of a context this process
+	// previously authorized. The verified profile and complete execution key
+	// still have to match; an untracked context requires current enrollment.
+	trackedCleanup := input.invalidate && state != nil && s.authorizedIdentity(identity)
+	if !trackedCleanup && !s.authorized(identity) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -199,10 +207,6 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	now := s.now()
-	s.prune(now)
-	key := executionKey(identity)
-	state := s.contexts[key]
 	if s.closed {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return

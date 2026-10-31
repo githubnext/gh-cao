@@ -131,7 +131,7 @@ func TestUpstreamTransportFailsClosed(t *testing.T) {
 	}
 	f := newFixture(t)
 	f.service.client.Transport = transportFunc(func(*http.Request) (*http.Response, error) {
-		return testResponse(200, strings.Repeat("x", bodyLimit+1)), nil
+		return testResponse(200, strings.Repeat("x", githubAPIBodyLimit+1)), nil
 	})
 	if w := f.call(exchangeBody); w.Code != 503 || w.Body.Len() != 0 {
 		t.Fatal("oversized upstream response accepted")

@@ -15,7 +15,10 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/admission"
 )
 
-const githubAPI = "https://api.github.com"
+const (
+	githubAPI          = "https://api.github.com"
+	githubAPIBodyLimit = 256 << 10
+)
 
 var errUpstream = errors.New("credential issuer unavailable")
 
@@ -116,8 +119,8 @@ func upstream(ctx context.Context, client *http.Client, method, endpoint, token 
 		return nil, errUpstream
 	}
 	defer func() { _ = res.Body.Close() }()
-	body, err := io.ReadAll(io.LimitReader(res.Body, bodyLimit+1))
-	if err != nil || len(body) > bodyLimit {
+	body, err := io.ReadAll(io.LimitReader(res.Body, githubAPIBodyLimit+1))
+	if err != nil || len(body) > githubAPIBodyLimit {
 		return nil, errUpstream
 	}
 	if res.StatusCode != expected {
