@@ -166,6 +166,19 @@ internal wildcard shard directory used to carry forward cache entries across
 runs is an implementation detail of that cache file; it MUST NOT be treated as
 an alternate or partial published snapshot by a consumer.
 
+Shard compaction MUST attribute every record to exactly one declared repository
+group. A record without a repository MUST be attributed only by a run identity
+that resolves to a single repository across the retained shard snapshot. The
+compactor MUST fail closed, without replacing the original shards, for
+contradictory identities, missing or conflicting parent-run identities, unknown
+records, or mixed shards containing undeclared repositories. After a fresh
+per-repository download, the collector MAY instead exclude records with a
+verified foreign repository and repository-free GitHub API rate-limit audits
+from the scoped shard directory; the other fail-closed conditions MUST still
+apply. Any such exclusion MUST be counted and MUST mark the collection partial
+rather than complete. Compaction of restored cache shards MUST use the strict
+behavior.
+
 The cache is a reusable transport and efficiency mechanism. It MUST NOT be
 represented as durable historical authority.
 
