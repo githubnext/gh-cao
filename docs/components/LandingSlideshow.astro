@@ -38,12 +38,29 @@ import SlideshowSnippet from "./SlideshowSnippet.astro";
     const trigger = document.querySelector<HTMLButtonElement>("[data-slideshow-trigger]");
     const errorMessage = document.querySelector<HTMLElement>("[data-slideshow-error]");
     const deck = document.querySelector<HTMLElement>("[data-slideshow-slides]");
-    if (!trigger || !errorMessage || !deck?.querySelector(":scope > [data-slideshow-slide]")) return;
+    const dialog = document.querySelector<HTMLDialogElement>("#landing-slideshow");
+    if (!trigger || !errorMessage || !dialog || !deck?.querySelector(":scope > [data-slideshow-slide]")) return;
     const controller = new AbortController();
     const { signal } = controller;
     const desktop = window.matchMedia("(min-width: 50rem)");
     let runtime: import("../scripts/slideshow").SlideshowController | undefined;
     trigger.hidden = false;
+    dialog.addEventListener("keydown", (event) => {
+      if (event.key !== "Tab" || !dialog.open) return;
+      const focusable = [...dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )].filter((element) => !element.hidden && element.getAttribute("aria-hidden") !== "true" && element.offsetParent !== null);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }, { signal });
     trigger.addEventListener("click", async () => {
       if (!desktop.matches || trigger.disabled) return;
       trigger.disabled = true;
