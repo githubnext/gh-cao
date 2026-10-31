@@ -310,8 +310,14 @@ func NewAzureFunctionsHandlerFromEnv(ctx context.Context, siteDirectory, dashboa
 		_ = database.Close()
 		return nil, err
 	}
+	brokerConfig, err := tokenBrokerConfigFromEnv()
+	if err != nil {
+		_ = database.Close()
+		return nil, err
+	}
 	app, err := New(ctx, store, Config{
 		Admission:              admissionConfig,
+		TokenBroker:            brokerConfig,
 		Database:               database,
 		Audit:                  auditLog,
 		DatabaseQueriesPath:    databaseQueries,

@@ -9,6 +9,7 @@ import { activityCollectionPlan } from '../../activity/authentication.mjs';
 import { adaptCachedGhAwJsonl } from '../../dashboard/site/src/data/adapters/gh-aw-logs.js';
 import { normalize } from '../../dashboard/site/src/data/normalize/index.js';
 import { localValuePlan, retainLocalValues } from '../../activity/local-values.mjs';
+import { workflowValueApiHeadroom } from '../../activity/workflow-value-status.mjs';
 
 async function collection(options) {
   return JSON.parse(await readFile(options.output.replace(/\.jsonl$/, '-collections.jsonl'), 'utf8')).workflow_value_collection;
@@ -116,10 +117,16 @@ test('dogfood File Diet registration pins existing effective Activity scope with
     },
   }]);
   assert.equal(control.campaigns.dashboard.deploy, false);
+  assert.equal(workflowValueApiHeadroom(document, ['github/gh-aw']), 700);
+  assert.equal(workflowValueApiHeadroom(document, ['githubnext/gh-cao']), 0);
+  const disabled = structuredClone(document);
+  disabled['control-plane'].campaigns.activity['workflow-values'][0].enabled = false;
+  assert.equal(workflowValueApiHeadroom(disabled, ['github/gh-aw']), 0);
 });
 
-test('reviewed remote collection requires full post-Activity capacity before invocation', async t => {
+test('reviewed remote collection uses reserved capacity after ordinary Activity reaches its floor', async t => {
   const options = await fixture(t);
+  options.defer = 'api-budget';
   const remote = policy();
   remote['control-plane'].campaigns.activity['workflow-values'][0]['api-requests'] = 3;
   await writeFile(options.policy, JSON.stringify(remote));
@@ -139,6 +146,15 @@ test('reviewed remote collection requires full post-Activity capacity before inv
   result = await runWorkflowValues(options);
   assert.equal(result.collected, 1);
   assert.equal(JSON.parse(await readFile(options.apiBudget, 'utf8')).granted, 3);
+});
+
+test('API-limited Activity still defers collectors without a reviewed remote grant', async t => {
+  const options = await fixture(t);
+  options.defer = 'api-budget';
+  const result = await runWorkflowValues(options);
+  assert.equal(result.deferred, 1);
+  assert.equal(result.collected, 0);
+  assert.equal((await collection(options)).reasonCode, 'api-budget');
 });
 
 test('collector request exhaustion is counted before execution and reported explicitly', async t => {

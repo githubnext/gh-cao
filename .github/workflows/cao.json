@@ -3,6 +3,11 @@
   "version": 1,
   "gh-aw-version": "v1.0.1",
   "control-plane": {
+    "token-broker": {
+      "copilot-requests": {
+        "workflows": []
+      }
+    },
     "scope": {
       "allowed-owners": [
         "githubnext",
@@ -72,6 +77,17 @@
     "campaigns": {
       "dashboard": {
         "deploy": false
+      },
+      "continuous-architecture-review": {
+        "icon": "code",
+        "enabled": false,
+        "mode": "review",
+        "max-repositories": 1,
+        "workers": {
+          "implementation": {
+            "workflow": "continuous-architecture-review-implementation"
+          }
+        }
       },
       "uk-ai-advisory": {
         "icon": "eye",

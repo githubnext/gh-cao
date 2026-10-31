@@ -5,7 +5,11 @@ export { AuthorityError as PolicyError } from "./authority.mjs";
 
 const SCHEMA_URI = "https://raw.githubusercontent.com/githubnext/gh-cao/main/.github/workflows/shared/cao.schema.json";
 const ROOT_KEYS = ["$schema", "version", "gh-aw-version", "control-plane", "target-authority"];
-const CONTROL_KEYS = ["scope", "activity", "inventory", "web", "defaults", "campaigns", "workflows", "operations", "publishing", "marketplace", "webhook-gateway"];
+const CONTROL_KEYS = ["scope", "activity", "inventory", "web", "defaults", "campaigns", "workflows", "operations", "publishing", "marketplace", "webhook-gateway", "token-broker"];
+const TOKEN_BROKER_WORKFLOW_KEYS = ["repository-id", "owner-id", "workflow-ref", "workflow-sha"];
+const TOKEN_BROKER_ID_PATTERN = /^[1-9][0-9]{0,19}(?![\s\S])/;
+const TOKEN_BROKER_SHA_PATTERN = /^[a-f0-9]{40}(?![\s\S])/;
+const TOKEN_BROKER_WORKFLOW_REF_PATTERN = /^(?!.*\.\.)[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9][A-Za-z0-9._-]*\/\.github\/workflows\/[A-Za-z0-9_-][A-Za-z0-9._-]*\.ya?ml@refs\/(?:heads|tags)\/(?!.*\.lock(?:\/|$))[A-Za-z0-9_-]+(?:[./][A-Za-z0-9_-]+)*(?![\s\S])/;
 const SCOPE_KEYS = ["allowed-owners", "allowed-repositories"];
 const ACTIVITY_KEYS = ["repositories", "public-only"];
 const INVENTORY_KEYS = ["max-scan-repositories", "cell-count", "cell-index", "batch-size", "batch-index"];
@@ -294,6 +298,36 @@ function validateControlPlane(control) {
   if ("publishing" in control) validatePublishing(control.publishing);
   if ("marketplace" in control) validateMarketplace(control.marketplace);
   if ("webhook-gateway" in control) validateWebhookGateway(control["webhook-gateway"], control.scope);
+  if ("token-broker" in control) validateTokenBroker(control["token-broker"]);
+}
+
+function validateTokenBroker(broker) {
+  const path = "control-plane.token-broker";
+  assertMapping(broker, path);
+  assertKeys(broker, ["copilot-requests"], path);
+  const requests = broker["copilot-requests"];
+  assertMapping(requests, `${path}.copilot-requests`);
+  assertKeys(requests, ["workflows"], `${path}.copilot-requests`);
+  const workflows = requests.workflows;
+  if (!Array.isArray(workflows) || workflows.length > 128) {
+    throw new PolicyError(`${path}.copilot-requests.workflows must contain at most 128 entries`);
+  }
+  const identities = new Set();
+  for (const [index, workflow] of workflows.entries()) {
+    const entryPath = `${path}.copilot-requests.workflows[${index}]`;
+    assertMapping(workflow, entryPath);
+    assertKeys(workflow, TOKEN_BROKER_WORKFLOW_KEYS, entryPath);
+    for (const key of ["repository-id", "owner-id"]) {
+      assertString(workflow[key], `${entryPath}.${key}`, TOKEN_BROKER_ID_PATTERN);
+    }
+    assertString(workflow["workflow-ref"], `${entryPath}.workflow-ref`, TOKEN_BROKER_WORKFLOW_REF_PATTERN);
+    assertString(workflow["workflow-sha"], `${entryPath}.workflow-sha`, TOKEN_BROKER_SHA_PATTERN);
+    const identity = JSON.stringify(TOKEN_BROKER_WORKFLOW_KEYS.map(key => workflow[key]));
+    if (identities.has(identity)) {
+      throw new PolicyError(`${path}.copilot-requests.workflows must contain unique entries`);
+    }
+    identities.add(identity);
+  }
 }
 
 function validateWebhookGateway(gateway, scope) {

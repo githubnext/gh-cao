@@ -224,6 +224,26 @@ jobs:
           echo "token=$token" >> "$GITHUB_OUTPUT"
           echo "GH_TOKEN=$token" >> "$GITHUB_ENV"
 
+      - name: Reserve reviewed Value API capacity
+        id: value-api-capacity
+        env:
+          ACTIVITY_REPOSITORIES_JSON: ${{ toJSON(matrix.repositories) }}
+          ACTIVITY_BASE_RESERVE: ${{ (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && '100' || '2000' }}
+        run: |
+          node --input-type=module <<'EOF'
+          import { appendFileSync } from 'node:fs';
+          import { loadPolicyFile } from './.github/workflows/shared/policy.mjs';
+          import { workflowValueApiHeadroom } from './activity/workflow-value-status.mjs';
+          const policy = loadPolicyFile('.github/workflows/cao.json');
+          const repositories = JSON.parse(process.env.ACTIVITY_REPOSITORIES_JSON);
+          const base = Number(process.env.ACTIVITY_BASE_RESERVE);
+          const headroom = workflowValueApiHeadroom(policy, repositories);
+          if (!Number.isSafeInteger(base) || base < 0 || !Number.isSafeInteger(headroom)) {
+            throw new Error('Invalid Activity/Value API reserve');
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT, `log-floor=-${base + headroom}\nvalue-reserve=${base}\n`);
+          EOF
+
       - name: Resolve owner-scoped control settings
         env:
           ACTIVITY_OWNER: ${{ matrix.owner }}
@@ -270,7 +290,7 @@ jobs:
       - name: Collect owner-scoped dashboard inventory
         env:
           ACTIVITY_CREDENTIAL_OWNER: ${{ matrix.owner }}
-          REPORT_MAX_GITHUB_API_RATE_LIMIT: ${{ (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && '-100' || '-2000' }}
+          REPORT_MAX_GITHUB_API_RATE_LIMIT: ${{ steps.value-api-capacity.outputs.log-floor }}
           REPORT_CONTROL_SETTINGS: ${{ runner.temp }}/cao-activity-partial/${{ matrix.artifact }}/control-settings.json
           REPORT_INVENTORY: ${{ runner.temp }}/cao-activity-partial/${{ matrix.artifact }}/control-plane-inventory.json
           REPORT_INVENTORY_SOURCES: ${{ runner.temp }}/cao-activity-partial/${{ matrix.artifact }}/inventory-sources.json
@@ -324,7 +344,7 @@ jobs:
           REPORT_TARGET_REPOSITORIES_JSON: ${{ toJSON(matrix.repositories) }}
           REPORT_DEFER_ISSUE_STATUS: "1"
           REPORT_LOG_TIMEOUT: ${{ inputs.fast == true && '5' || '10' }}
-          REPORT_MAX_GITHUB_API_RATE_LIMIT: ${{ (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && '-100' || '-2000' }}
+          REPORT_MAX_GITHUB_API_RATE_LIMIT: ${{ steps.value-api-capacity.outputs.log-floor }}
           REPORT_MAX_STORAGE: ${{ inputs.fast == true && '100' || '1200' }}
           REPORT_RUN_LIMIT: ${{ inputs.fast == true && '10' || '10000' }}
           REPORT_RUN_WINDOW_DAYS: "30"
@@ -361,7 +381,7 @@ jobs:
           ACTIVITY_ARTIFACT: ${{ matrix.artifact }}
           ACTIVITY_DATABASE: ${{ runner.temp }}/cao-activity/collection.sqlite
           CAO_GITHUB_CREDENTIAL_ID: ${{ matrix.credentialRepository || matrix.owner }}
-          REPORT_VALUE_API_RESERVE: ${{ (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && '100' || '2000' }}
+          REPORT_VALUE_API_RESERVE: ${{ steps.value-api-capacity.outputs.value-reserve }}
           REPORT_TARGET_REPOSITORIES_JSON: ${{ toJSON(matrix.repositories) }}
           REPORT_GH_AW_LOGS_SHARDS: ${{ runner.temp }}/cao-activity-partial/${{ matrix.artifact }}/gh-aw-logs-shards
           REPORT_INVENTORY_SOURCES: ${{ runner.temp }}/cao-activity-partial/${{ matrix.artifact }}/inventory-sources.json

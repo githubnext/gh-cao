@@ -31,15 +31,15 @@ test("SOC2 worker is registered consistently without expanding target authority"
   assert.equal(dispatch["max-ai-credits"], 200);
 });
 
-test("SOC2 cadence uses daily fail-closed dispatch history, never PR activation skips", () => {
+test("SOC2 cadence uses daily fail-closed dispatch history and open-PR activation skips", () => {
   assert.equal(dispatch.on.schedule, "every 20 minutes");
   assert.equal(config.on.schedule, undefined);
-  assert.equal(config.on["skip-if-match"], undefined);
+  assert.equal(config.on["skip-if-match"], `is:pr is:open "gh-aw-workflow-id: ${id}" in:body`);
   assert.ok(config.on.workflow_dispatch);
   assert.match(orchestrator, /Dispatch `self-care-server-soc2` only when no run is queued, in progress, or\nstarted during the preceding 24 hours/);
   assert.match(orchestrator, /at most its ten most recent\nruns, including failed and cancelled runs/);
   assert.match(orchestrator, /truncated before the time boundary, or ambiguous, fail closed/);
-  assert.match(orchestrator, /Do not gate its\nassessment dispatch on an open remediation PR/);
+  assert.match(orchestrator, /pre-activation check skips assessment while its own PR remains open/);
   assert.match(source, /Manual dispatch does not authorize extra daily fixes/);
   assert.match(source, /excluding this run/);
   assert.match(source, /unavailable, truncated before the time boundary, or ambiguous/);
@@ -125,13 +125,14 @@ test("SOC2 selection requires verified ranked code gaps, never invented evidence
   assert.match(source, /never merge, deploy, approve risks,\napprove exclusions or close evidence gaps/);
 });
 
-test("SOC2 duplicate guards block remediation, not daily bounded reporting", () => {
+test("SOC2 duplicate guards retain bounded reporting if a PR appears after activation", () => {
   assert.match(source, /100 open PRs, 30 recently merged PRs/);
   assert.match(source, /at most 20 read-only\n\s+GitHub calls total/);
   assert.match(source, /Search all remediation authors/);
   assert.match(source, /including concurrent individual-finding remediation/);
   assert.match(source, /fail closed for remediation and report the incomplete check/);
-  assert.match(source, /Always finish the assessment\/report even if this worker already has an open\n\s+PR/);
+  assert.match(source, /workflow-level open-PR check skips assessment/);
+  assert.match(source, /If a PR appears after activation, finish the assessment\/report/);
   assert.match(source, /do not create another PR\n\s+or modify its branch/);
   assert.match(source, /Recheck current open PR overlap immediately before proposing/);
   const artifact = config["safe-outputs"]["upload-artifact"];
