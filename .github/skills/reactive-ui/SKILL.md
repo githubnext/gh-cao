@@ -15,7 +15,7 @@ Build dashboard experiences declaratively first. Use JavaScript only for interac
 2. Express data shaping under `dashboard.queries`; keep joins, projections, aggregates, filters, ordering, and computed fields out of view-specific JavaScript.
 3. Prefer an existing Dashboard Language mark, encoding, layout, section, route, control, or named UI element.
 4. Extend a shared declarative renderer when the missing behavior applies to an existing mark.
-5. Add a named UI element only when the experience requires reusable interaction or presentation that the declarative vocabulary cannot represent. Record a concise `intent` and declare every source it consumes.
+5. Add a named UI element only when the experience requires reusable interaction or presentation that the declarative vocabulary cannot represent. Add its name to `VIEW_ELEMENT_VALUES` in `dashboard/site/src/specification.js`, give the view `subject`, `objective`, and `acceptance` (views have no `intent` key; `intent` belongs to pages and row actions), and declare every source it consumes in `data.sources`.
 6. Do not infer specialized behavior from page IDs, view IDs, source names, or source contents.
 
 ## Named UI elements
@@ -26,7 +26,7 @@ Build dashboard experiences declaratively first. Use JavaScript only for interac
 - Reuse `dashboard/site/src/dom.js`, shared UI primitives, chart elements, badges, formatters, Octicons, and view chrome instead of duplicating markup or behavior.
 - Return one owned root element. Keep selectors and events scoped to that root, preserve semantic HTML and keyboard operation, and expose accessible names and state.
 - Add the element to `EMPTY_AWARE_ELEMENTS` only when it renders honest empty or unavailable states itself.
-- Use lazy registration for substantial elements that are not needed on every page.
+- Use lazy registration for substantial elements that are not needed on every page: add a `<name>-lazy` entry to `LAZY_ELEMENT_RENDERERS` through `lazyElementRenderer` instead of a static import and `ELEMENT_RENDERERS` entry.
 
 ## Reactive state
 
