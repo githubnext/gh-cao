@@ -418,10 +418,17 @@ describe('dashboard view query contracts', () => {
     const views = viewsOf(page);
 
     expect(views[0]?.id).toBe('campaign-run-navigation');
-    for (const viewId of ['campaign-failure-reason-distribution', 'campaign-failed-dispatch-table']) {
+    const sources = {
+      'campaign-failure-reason-distribution': 'campaign-failed-dispatch-reason-counts',
+      'campaign-failed-dispatch-table': 'dispatches'
+    };
+    for (const [viewId, source] of Object.entries(sources)) {
       const view = views.find((candidate) => candidate.id === viewId);
-      expect(/** @type {Record<string, unknown> | undefined} */ (view?.data)?.source).toBe('dispatches');
+      expect(/** @type {Record<string, unknown> | undefined} */ (view?.data)?.source).toBe(source);
     }
+    const reasons = /** @type {Record<string, any>} */ (views.find((view) => view.id === 'campaign-failure-reason-distribution'));
+    expect(reasons.encoding.y).toMatchObject({ field: 'failed-dispatches' });
+    expect(reasons.encoding.y).not.toHaveProperty('aggregate');
   });
 
   it('uses one shared route shell first across every primary campaign tab', () => {

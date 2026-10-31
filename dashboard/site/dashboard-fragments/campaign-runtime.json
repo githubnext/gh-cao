@@ -131,6 +131,26 @@
       }
     },
     {
+      "name": "campaign-failed-dispatch-reason-counts",
+      "subject": "Count failed workflow dispatches by retained failure reason for each campaign.",
+      "objective": "Prioritize which failed dispatch reasons need investigation.",
+      "acceptance": "Each count reconciles to failed dispatches rows for the same campaign and failure reason; missing reasons remain unknown and an empty result is not proof of healthy execution.",
+      "description": "Worker-side distribution of failure reasons across failed campaign dispatches.",
+      "from": "dispatches",
+      "filter": {
+        "predicates": [
+          { "field": "status", "in": ["failure", "startup-failure", "timed-out", "stale"] }
+        ]
+      },
+      "aggregate": {
+        "by": ["campaign", "status-detail"],
+        "values": [
+          { "field": "status-detail", "as": "failed-dispatches", "reducer": "count" }
+        ]
+      },
+      "order-by": [{ "field": "failed-dispatches", "direction": "desc" }]
+    },
+    {
       "name": "campaign-performance-baseline",
       "subject": "Turn each campaign's selected-horizon baseline totals into deterministic reliability and production signals with an explicit successful-run efficiency fact.",
       "objective": "Decide which campaign baseline signal needs run- or output-level verification next.",
@@ -418,22 +438,8 @@
           "acceptance": "A prioritized reason is supported by the linked dispatch evidence; missing reasons remain unknown.",
           "description": "Grouped by the strongest failure reason retained for each dispatch. Select a reason in the table below to open its GitHub Actions evidence.",
           "data": {
-            "source": "dispatches",
-            "route-field": "campaign",
-            "filters": {
-              "status": [
-                "failure",
-                "startup-failure",
-                "timed-out",
-                "stale"
-              ]
-            },
-            "order-by": [
-              {
-                "field": "count-status-detail",
-                "direction": "desc"
-              }
-            ]
+            "source": "campaign-failed-dispatch-reason-counts",
+            "route-field": "campaign"
           },
           "mark": "chart",
           "chart": "pie",
@@ -445,9 +451,8 @@
               "title": "Failure reason"
             },
             "y": {
-              "field": "status-detail",
+              "field": "failed-dispatches",
               "type": "quantitative",
-              "aggregate": "count",
               "title": "Failed dispatches"
             }
           },

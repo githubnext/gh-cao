@@ -258,3 +258,22 @@ it('counts campaign runs by status in the worker query', () => {
     .sort();
   expect(counts).toEqual(['a:failure:1', 'a:success:2', 'b:success:1']);
 });
+
+it('counts failed campaign dispatches by failure reason in the worker query', () => {
+  const query = dashboard.queries.find(
+    (/** @type {{ name?: string }} */ candidate) => candidate.name === 'campaign-failed-dispatch-reason-counts'
+  );
+  const rows = [
+    { campaign: 'a', status: 'failure', 'status-detail': 'Timeout' },
+    { campaign: 'a', status: 'timed-out', 'status-detail': 'Timeout' },
+    { campaign: 'a', status: 'stale', 'status-detail': 'Stale' },
+    { campaign: 'a', status: 'success', 'status-detail': 'Ignored' },
+    { campaign: 'b', status: 'failure', 'status-detail': 'Timeout' }
+  ];
+  const result = executeDashboardQueries([query], {
+    dispatches: { source: 'dispatches', metadata, rows }
+  }, ['campaign-failed-dispatch-reason-counts']);
+  expect(result['campaign-failed-dispatch-reason-counts'].rows.map(
+    (/** @type {Record<string, unknown>} */ row) => `${row.campaign}:${row['status-detail']}:${row['failed-dispatches']}`
+  )).toEqual(['a:Timeout:2', 'a:Stale:1', 'b:Timeout:1']);
+});
