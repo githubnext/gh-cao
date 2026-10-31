@@ -72,15 +72,21 @@ func run() int {
 	command.Stdin, command.Stdout, command.Stderr = os.Stdin, os.Stdout, os.Stderr
 	command.Env = workloadEnv(os.Environ())
 	relayLog.Printf("starting workload: args=%d", len(os.Args)-2)
-	if err := command.Run(); err != nil {
-		var exit *exec.ExitError
-		if errors.As(err, &exit) && exit.ExitCode() >= 0 {
-			relayLog.Printf("workload exited: code=%d", exit.ExitCode())
-			return exit.ExitCode()
-		}
-		relayLog.Printf("workload failed to run")
-		fmt.Fprintln(os.Stderr, "hosted CLI relay workload failed")
-		return 125
+	return workloadExitCode(command.Run())
+}
+
+// workloadExitCode maps a workload run result to the relay exit status: the
+// workload's own code when it exited, 125 when it could not be run or was killed.
+func workloadExitCode(err error) int {
+	if err == nil {
+		return 0
 	}
-	return 0
+	var exit *exec.ExitError
+	if errors.As(err, &exit) && exit.ExitCode() >= 0 {
+		relayLog.Printf("workload exited: code=%d", exit.ExitCode())
+		return exit.ExitCode()
+	}
+	relayLog.Printf("workload failed to run")
+	fmt.Fprintln(os.Stderr, "hosted CLI relay workload failed")
+	return 125
 }
