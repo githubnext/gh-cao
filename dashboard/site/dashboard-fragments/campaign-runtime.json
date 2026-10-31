@@ -117,6 +117,20 @@
       }
     },
     {
+      "name": "campaign-run-status-counts",
+      "subject": "Count retained workflow runs by observed status for each campaign.",
+      "objective": "Show the distribution of run statuses so failed or stalled campaign runs can be identified.",
+      "acceptance": "Each count reconciles to campaign-runs rows with a start time for the same campaign and status; an empty result is not proof of healthy execution.",
+      "description": "Worker-side status distribution of campaign-attributed workflow runs.",
+      "from": "campaign-runs",
+      "aggregate": {
+        "by": ["campaign", "status"],
+        "values": [
+          { "field": "started-at", "as": "runs", "reducer": "count" }
+        ]
+      }
+    },
+    {
       "name": "campaign-performance-baseline",
       "subject": "Turn each campaign's selected-horizon baseline totals into deterministic reliability and production signals with an explicit successful-run efficiency fact.",
       "objective": "Decide which campaign baseline signal needs run- or output-level verification next.",
@@ -376,7 +390,7 @@
           "acceptance": "Any concerning status is checked against the underlying runs; an empty chart is not treated as proof of healthy execution.",
           "description": "Observed workflow conclusions provide the campaign's leading execution signal.",
           "data": {
-            "source": "campaign-runs",
+            "source": "campaign-run-status-counts",
             "route-field": "campaign"
           },
           "mark": "chart",
@@ -390,9 +404,8 @@
               "title": "Status"
             },
             "y": {
-              "field": "started-at",
+              "field": "runs",
               "type": "quantitative",
-              "aggregate": "count",
               "title": "Runs"
             }
           }

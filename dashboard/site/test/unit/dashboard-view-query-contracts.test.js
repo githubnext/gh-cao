@@ -612,10 +612,13 @@ describe('dashboard view query contracts', () => {
       mark: 'list',
       list: { style: 'entity-cards', card: 'problem' }
     });
-    expect(viewsOf(runs).find((view) => view.id === 'campaign-run-status')).toMatchObject({
-      data: { source: 'campaign-runs', 'route-field': 'campaign' },
-      mark: 'chart'
+    const runStatus = /** @type {Record<string, any>} */ (viewsOf(runs).find((view) => view.id === 'campaign-run-status'));
+    expect(runStatus).toMatchObject({
+      data: { source: 'campaign-run-status-counts', 'route-field': 'campaign' },
+      mark: 'chart',
+      encoding: { y: { field: 'runs', type: 'quantitative' } }
     });
+    expect(runStatus.encoding.y).not.toHaveProperty('aggregate');
   });
 
   it('builds a route-scoped selected-horizon campaign baseline with deterministic signals', () => {
