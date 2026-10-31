@@ -86,6 +86,15 @@ authorization is independent of admission, rollout mode and repository writes.
 
 Configure these server environment settings; none contains a private key:
 
+The native `gh cao setup token-broker` command prepares a non-secret environment
+JSON document for existing App/Key Vault resources; it does not provision them,
+enroll workflows, or replace the hosted profile configuration.
+`gh cao doctor token-broker --settings PATH --policy PATH --json` checks that
+document and the intended mounted policy offline. It never reads the private
+key or verifies live inference. See the
+[operator guide](../docs/cao-cli.md#optional-copilot-token-broker-setup) and
+[authentication walkthrough](../docs/authentication.md#optional-copilot-requests-token-broker).
+
 | Setting | Required value |
 | --- | --- |
 | `CAO_TOKEN_BROKER_ENABLED` | `true` (otherwise disabled) |

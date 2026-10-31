@@ -76,6 +76,7 @@ type Service struct {
 	closed       bool
 	tenantWindow time.Time
 	tenantMints  int
+	telemetry    brokerTelemetry
 }
 
 func New(config Config) (*Service, error) {
@@ -135,6 +136,7 @@ func New(config Config) (*Service, error) {
 	return &Service{
 		config: config, verifier: verifier, keyReader: reader, client: client, now: now,
 		gate: make(chan struct{}, 1), contexts: map[string]*execution{}, cipher: aead,
+		telemetry: newBrokerTelemetry(),
 	}, nil
 }
 
@@ -148,6 +150,9 @@ func executionKey(i admission.Identity) string {
 }
 
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, observed := observe(r.Context(), spanExchange, s.telemetry.exchange)
+	op, result := operationExchange, outcomeInvalidRequest
+	defer func() { observed.finish(op, result) }()
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if r.URL.Path != "/api/token-broker" {
@@ -159,7 +164,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
 	controller := http.NewResponseController(w)
 	_ = controller.SetReadDeadline(time.Now().Add(requestTimeout))
@@ -169,10 +174,15 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
 		return
 	}
+	if input.invalidate {
+		op = operationInvalidate
+	}
 	identity, err := s.verifier.Verify(ctx, input.identity)
 	if err != nil {
+		result = outcomeUnauthenticated
 		status = http.StatusUnauthorized
 		if errors.Is(err, admission.ErrUnavailable) {
+			result = outcomeUnavailable
 			status = http.StatusServiceUnavailable
 		}
 		w.WriteHeader(status)
@@ -184,6 +194,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case s.gate <- struct{}{}:
 		defer func() { <-s.gate }()
 	case <-ctx.Done():
+		result = outcomeUnavailable
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
@@ -196,23 +207,28 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// still have to match; an untracked context requires current enrollment.
 	trackedCleanup := input.invalidate && state != nil && s.authorizedIdentity(identity)
 	if !trackedCleanup && !s.authorized(identity) {
+		result = outcomeDenied
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 	if !input.invalidate && input.tokenType == "copilot-task" {
+		result = outcomeUnsupported
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
 	if !input.invalidate && input.provider != "github" {
+		result = outcomeDenied
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 	if s.closed {
+		result = outcomeUnavailable
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
 	if state == nil {
 		if len(s.contexts) >= maxContexts {
+			result = outcomeThrottled
 			w.WriteHeader(http.StatusTooManyRequests)
 			return
 		}
@@ -224,23 +240,28 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	state.requests++
 	if state.requests > 30 {
+		result = outcomeThrottled
 		w.WriteHeader(http.StatusTooManyRequests)
 		return
 	}
 	if input.invalidate {
 		state.invalidated = true
-		if s.revoke(ctx, key, state) != nil {
+		if s.revoke(ctx, key, state, operationInvalidate) != nil {
+			result = outcomeUnavailable
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
+		result = outcomeSuccess
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	if state.invalidated {
+		result = outcomeDenied
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 	if state.requests > 6 || len(state.tokens) >= maxTokens {
+		result = outcomeThrottled
 		w.WriteHeader(http.StatusTooManyRequests)
 		return
 	}
@@ -248,40 +269,44 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.tenantWindow, s.tenantMints = now, 0
 	}
 	if s.tenantMints >= 60 {
+		result = outcomeThrottled
 		w.WriteHeader(http.StatusTooManyRequests)
 		return
 	}
 	s.tenantMints++
-	result, issueErr := s.issue(ctx, identity)
+	credential, issueErr := s.issue(ctx, identity)
 	var response []byte
 	if issueErr == nil {
-		response, issueErr = json.Marshal(result)
+		response, issueErr = json.Marshal(credential)
 		if len(response) > bodyLimit {
 			issueErr = errUpstream
 		}
 	}
-	if result.Token != "" {
-		expiry := result.ExpiresAt
+	if credential.Token != "" {
+		expiry := credential.ExpiresAt
 		if expiry.IsZero() {
 			expiry = now.Add(time.Hour)
 		}
 		// Record every returned credential before any attempt to send it. Even
 		// rejected upstream scope/expiry results must be revoked or retained.
 		state.tokens = append(state.tokens, heldToken{
-			sealed: s.seal(key, result.Token), expires: expiry,
+			sealed: s.seal(key, credential.Token), expires: expiry,
 		})
 		state.until = now.Add(70 * time.Minute)
 	}
 	if issueErr != nil {
-		_ = s.revoke(ctx, key, state)
+		result = outcomeUnavailable
+		_ = s.revoke(ctx, key, state, operationCleanup)
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write(response); err != nil {
+		result = outcomeDeliveryFailed
 		// Delivery may have been partial. Retain the credential until cleanup.
 		return
 	}
+	result = outcomeSuccess
 }
 
 func (s *Service) seal(key, token string) []byte {
@@ -309,19 +334,23 @@ func (s *Service) prune(now time.Time) {
 	}
 }
 
-func (s *Service) revoke(ctx context.Context, key string, state *execution) error {
+func (s *Service) revoke(ctx context.Context, key string, state *execution, op operation) error {
 	var failed bool
 	remaining := state.tokens[:0]
 	for _, token := range state.tokens {
+		tokenCtx, observed := observe(ctx, spanRevoke, s.telemetry.token)
 		n := s.cipher.NonceSize()
 		plain, err := s.cipher.Open(nil, token.sealed[:n], token.sealed[n:], []byte(key))
 		if err == nil {
-			err = s.revokeToken(ctx, string(plain))
+			err = s.revokeToken(tokenCtx, string(plain))
 		}
 		clear(plain)
 		if err != nil {
+			observed.finish(op, outcomeUnavailable)
 			failed = true
 			remaining = append(remaining, token)
+		} else {
+			observed.finish(op, outcomeSuccess)
 		}
 	}
 	clear(state.tokens[len(remaining):])
@@ -335,6 +364,9 @@ func (s *Service) revoke(ctx context.Context, key string, state *execution) erro
 // Close stops issuance and attempts to revoke all outstanding credentials.
 // Failed cleanup remains in memory so callers can retry Close with a fresh context.
 func (s *Service) Close(ctx context.Context) error {
+	ctx, observed := observe(ctx, spanShutdown, s.telemetry.shutdown)
+	result := outcomeUnavailable
+	defer func() { observed.finish(operationShutdown, result) }()
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
 	select {
@@ -347,12 +379,13 @@ func (s *Service) Close(ctx context.Context) error {
 	s.prune(s.now())
 	var failed bool
 	for key, state := range s.contexts {
-		if s.revoke(ctx, key, state) != nil {
+		if s.revoke(ctx, key, state, operationShutdown) != nil {
 			failed = true
 		}
 	}
 	if failed {
 		return errors.New("token broker cleanup unavailable")
 	}
+	result = outcomeSuccess
 	return nil
 }

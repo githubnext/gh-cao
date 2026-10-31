@@ -20,6 +20,98 @@ See [setup combinations and verification](setup-compatibility.md) for the
 visibility/owner matrix, effective operator capabilities, PAT limitations,
 GHE.com data residency, and the distinction between simulator and live evidence.
 
+## Optional Copilot requests token broker
+
+The hosted server can separately broker **billable Copilot inference** credentials
+for explicitly enrolled GitHub Actions jobs. This is not a target-access
+credential, admission gate, hosted CLI executor, or replacement for the bundled
+workflows' built-in inference profile. Broker support is opt-in and experimental;
+the default `control-plane.token-broker.copilot-requests.workflows` list is empty.
+
+### Prepare the deployment
+
+1. Create a dedicated private GitHub App with the organization permission
+   **Copilot Requests: Read-only** (`copilot_requests: read`), installed in the
+   intended organization. Do not reuse dashboard login, collector, safe-output,
+   or hosted-executor Apps. Obtain its exact numeric App, installation, and
+   organization IDs. Review [GitHub App Copilot access](https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/administer-copilot/manage-for-organization/manage-app-copilot-access)
+   and configure organization spending controls: a read-named permission can
+   authorize paid requests, and CAO admission budgets are not a broker spending cap.
+2. Store its PEM private key as an Azure Key Vault **secret**, not in Actions,
+   policy, command arguments, or a generated environment document. Grant the
+   server's managed identity secret-read access at the narrowest supported scope.
+   An unversioned secret URL reads the current version at each mint; a versioned
+   URL requires an explicit deployment update during rotation.
+3. Prepare settings with [native token-broker setup](cao-cli.md#optional-copilot-token-broker-setup).
+   Deploy them only to an existing OAuth-protected HTTPS `serve-hosted` server
+   with an exact reviewed allowed host and a process-owned listener. The public
+   URL must be exactly `https://HOST/api/token-broker`, without credentials,
+   port, query, fragment, or a trailing slash; the same URL is the OIDC audience.
+   Complete the ordinary hosted storage, proxy, OAuth, and secret-manager
+   configuration separately. See the [server security contract](https://github.com/githubnext/gh-cao/blob/main/server/SECURITY.md#broker-enrollment-and-setup)
+   for every environment variable and managed-identity constraint.
+
+Run exactly **one process replica**, with no autoscaling or overlapping
+deployments. Azure Functions and externally owned listeners are unsupported.
+Job invalidation and graceful shutdown attempt revocation, but a crash loses the
+process-local registry; GitHub-issued tokens can remain usable until their actual
+expiry, capped at one hour. No durable cleanup or multi-replica guarantee exists.
+
+### Enroll a reviewed workflow revision
+
+In the control repository's protected `cao.json`, add only explicitly approved
+entries under `control-plane.token-broker.copilot-requests.workflows`. Each entry
+requires four strings:
+
+| Field | Required identity |
+| --- | --- |
+| `owner-id` | Immutable numeric organization ID matching the broker installation owner |
+| `repository-id` | Immutable numeric repository ID |
+| `workflow-ref` | Exact `OWNER/REPO/.github/workflows/NAME.lock.yml@refs/heads/BRANCH` or tag reference |
+| `workflow-sha` | Full 40-character lowercase commit SHA of the reviewed workflow revision |
+
+No wildcards or unpinned revisions are accepted. Protect the mounted policy from
+untrusted writes, retain the reviewed workflow/policy evidence, and update pins
+only after reviewing new workflow revisions. Removing enrollment stops new
+issuance; a previously tracked job can still authenticate cleanup.
+Only push, schedule, and manual-dispatch jobs with signed `check_run_id` evidence
+are supported. Pull requests, reusable workflows, environment-based identities,
+and `copilot-task` requests are unsupported.
+
+For a compatible gh-aw release, opt the intended consumer into
+`token-broker.copilot-request: true`, configure `GH_AW_TOKEN_BROKER_URL` to the
+exact endpoint, and do **not** also grant `permissions.copilot-requests: write`.
+Review and compile the Markdown workflow sources and generated locks. Do not
+change bundled workflows or introduce `COPILOT_GITHUB_TOKEN` fallback merely to
+enable a broker. Consult the selected compiler's
+[experimental broker contract](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/specs/token-broker-specification.md):
+bounded threat-detection/evals consumers are wired, but main-agent inference
+requires renewable AWF credential support. An installation token alone does not
+prove that your consumer can use or renew it.
+
+### Diagnose and accept
+
+Use `gh cao doctor token-broker --settings PATH --policy PATH --json` to inspect
+prepared non-secret settings and the intended mounted policy without contacting
+GitHub or Azure. Ordinary `gh cao doctor` remains an installation diagnostic,
+not proof of broker deployment, App permission, or model entitlement.
+
+Before live acceptance, independently verify real GitHub Actions OIDC exchange,
+the exact enrolled workflow revision and organization installation, Key Vault
+access and key rotation, authorized Copilot inference and renewal, fresh-OIDC
+job invalidation, and graceful-shutdown cleanup. Confirm another job, an
+unenrolled revision, and an unsupported execution profile cannot mint credentials.
+Retain sanitized outcomes, never request/response bodies or credentials.
+Setup output, offline tests, or a successful token-shaped response do not
+establish this acceptance.
+
+Use the server's existing [OpenTelemetry configuration](https://github.com/githubnext/gh-cao/blob/main/server/README.md#telemetry)
+for broker metrics and spans. Keep exporter authentication in the deployment
+secret manager. Never enable proxy/APM body capture for `/api/token-broker`;
+OIDC credentials and issued tokens must not enter traces, logs, or artifacts.
+Alert on issuance/revocation failures and absent telemetry, and preserve the
+one-hour crash limitation even when instrumentation is healthy.
+
 ## Choose Cross-Repository Authentication
 
 | Your run | Use |

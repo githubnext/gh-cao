@@ -22,7 +22,15 @@ const (
 
 var errUpstream = errors.New("credential issuer unavailable")
 
-func (s *Service) issue(ctx context.Context, identity admission.Identity) (credential, error) {
+func (s *Service) issue(ctx context.Context, identity admission.Identity) (issued credential, issueErr error) {
+	ctx, observed := observe(ctx, spanIssue, s.telemetry.token)
+	defer func() {
+		result := outcomeSuccess
+		if issueErr != nil {
+			result = outcomeUnavailable
+		}
+		observed.finish(operationIssue, result)
+	}()
 	pem, err := s.keyReader.PrivateKey(ctx)
 	if err != nil {
 		return credential{}, errUpstream

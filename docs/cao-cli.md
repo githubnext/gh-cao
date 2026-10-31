@@ -277,6 +277,61 @@ only, never successful delivery or live provider access. See the
 [external-source gateway contract](https://github.com/githubnext/gh-cao/blob/main/specs/rfc-033-webhook-gateway.md#622-independently-enrolled-external-sources)
 for authentication, normalization, expiry and dispatch requirements.
 
+### Optional Copilot token-broker setup
+
+`gh cao setup token-broker` prepares non-secret environment settings for an
+**existing** dedicated organization GitHub App and Azure Key Vault secret.
+It runs offline in Go; it does not create an App, install it, upload a private
+key, deploy a server, enroll workflows, or change inference authentication:
+
+```bash
+gh cao setup token-broker \
+  --url https://broker.example.com/api/token-broker \
+  --app-id 12345 --installation-id 67890 --owner-id 24680 \
+  --key-vault-secret-url https://cao-vault.vault.azure.net/secrets/copilot-app \
+  --single-replica --single-process \
+  --output /secure/deployment/token-broker-environment.json
+```
+
+Replace the example endpoint and IDs with reviewed values. Both acknowledgments
+are required: one process replica with volatile token cleanup state. Optional
+`--managed-identity-client-id` selects a user-assigned Azure managed identity.
+Stdout is a JSON object of environment names and string values; `--output`
+also creates a new mode-`0600` file, never overwriting an existing file or symlink.
+Its parent directory must exist and have restricted ACLs, especially on Windows.
+`--dry-run` prints settings without creating the file. The JSON is not a shell
+script; apply its entries through the deployment's environment configuration.
+Never add private keys, OIDC tokens, installation tokens, or exporter credentials.
+
+The prepared settings do not replace hosted OAuth, trusted HTTPS host/proxy
+configuration, operational storage, or protected policy. Follow
+[broker enrollment and deployment](authentication.md#optional-copilot-requests-token-broker)
+before activation. The default workflow allowlist remains empty.
+
+Check the prepared document against the **actual protected policy** intended for
+the server:
+
+```bash
+gh cao doctor token-broker \
+  --settings /secure/deployment/token-broker-environment.json \
+  --policy /secure/deployment/cao.json --json
+```
+
+This is a read-only, offline configuration diagnosis, not an authenticated
+exchange or deployment health probe. Malformed settings, unsupported hosting,
+and missing/invalid workflow enrollment require remediation. Runtime App
+permissions, managed-identity access, organization entitlement, inference,
+renewal, and cleanup remain unverified. Neither setup nor a passing local check
+establishes live broker acceptance. Upgrade the extension to receive these commands;
+merging source alone does not update an installed binary.
+
+Replica confirmation belongs to reviewed `control-plane.web.host.target`
+policy (`replicas: 1`), not a `CAO_SINGLE_REPLICA` environment variable.
+The doctor does not resolve `extends` imports: supply a reviewed composed policy
+for local host-profile checks. Its `broker-runtime` warning always records the
+remaining live verification. Ordinary `gh cao doctor` also validates a declared
+broker allowlist's local shape; an empty default allowlist is non-failing.
+
 ### Optional ADX destination setup
 
 `gh cao setup adx` prepares the existing hosted server's **snapshot-only** ADX
@@ -380,6 +435,7 @@ to invoke it as `gh cao`.
 | Onboarding and authentication | `setup`, `setup auth github-app\|enterprise-app\|hosted-cli\|token` | Native Go; setup prepares missing monitoring runtime and policy, Pages, scope, and authentication, preserving separate read/write and hosted-executor credentials. |
 | Issue-service webhook setup | `setup linear`, `setup jira`, `setup ado` (alias `setup azure-devops`) | Native Go; offline enrollment preparation and provider instructions, with separate receive secrets and outbound safe-output credentials. |
 | Cooperative admission | `setup admission`, `admission status`, `admission disable` | Native Go; configure admission with `setup admission`. Configures or inspects non-secret Actions variables, not server deployment or enrollment authority. |
+| Copilot requests broker | `setup token-broker`, `doctor token-broker` | Native Go; offline non-secret deployment preparation and read-only settings/policy diagnostics. No App provisioning, workflow enrollment, or live inference verification. |
 | Cloud deployment | `deploy azure` | Native Go; read-only preflight and planning, or explicit application of a reviewed development deployment plan. |
 | Lifecycle | `repos add OWNER/REPO`, `update`, `upgrade-gh-aw` | Native Go; gh-aw still owns workflow generation and campaign installation records. |
 | Read-only analysis | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `mcp` | Native Go with pure-Go SQLite access and declarative Dashboard Language evaluation. |

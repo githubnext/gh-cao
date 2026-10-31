@@ -2123,6 +2123,29 @@ those authorization boundaries. Use a separate development operational
 namespace and secrets. Removing a mode or scope does not revoke previously
 issued GitHub grants; revoke the development App authorization when finished.
 
+### Optional Copilot requests token broker
+
+`/api/token-broker` is a separate, opt-in Actions OIDC credential exchange for
+billable organization Copilot requests. It does not authorize repository writes,
+admission, or hosted CLI execution. Use a dedicated organization-installed App
+with `copilot_requests: read` and keep its private key in Azure Key Vault,
+accessible only through the server's managed identity.
+
+Prepare existing-resource environment settings with `gh cao setup token-broker`,
+then diagnose them with
+`gh cao doctor token-broker --settings PATH --policy PATH --json`. Both commands
+run offline; neither deploys the server, enrolls workflows, reads a private key,
+or verifies live entitlement. Complete hosted OAuth/HTTPS configuration and
+review exact workflow identity/revision enrollment separately. See the
+[operator walkthrough](../docs/authentication.md#optional-copilot-requests-token-broker)
+and [security/configuration contract](SECURITY.md#optional-copilot-requests-broker).
+
+The initial profile requires exactly one process-owned listener and one replica,
+without autoscaling or overlapping deployments. Azure Functions/external
+listeners are unsupported. Cleanup state is volatile: crashes can leave issued
+tokens valid until upstream expiry, at most one hour. Real inference, renewal,
+rotation, and job-scoped invalidation require independent operator acceptance.
+
 ### Hosted CLI actions
 
 Hosted CLI actions are an experimental feature and are off by default. To
@@ -3728,6 +3751,38 @@ in custom instrumentation. This application-level minimization does not
 certify the entire deployment's GDPR compliance.
 
 ## Telemetry
+
+### Copilot token-broker signals
+
+The optional broker uses the shared `github.com/githubnext/gh-cao/server`
+instrumentation scope and the existing OTLP exporters. Configure
+`OTEL_EXPORTER_OTLP_ENDPOINT` (or signal-specific endpoints) in the server
+deployment; keep exporter authentication headers in its secret manager.
+Absent endpoints or `OTEL_SDK_DISABLED=true` mean no exported signals.
+Instrumentation does not establish live inference acceptance.
+
+| Signal | Meaning |
+| --- | --- |
+| `cao_tokenbroker.exchange.count`, `.duration` | Requests reaching the broker service, by exchange/invalidate operation and fixed outcome; duration is in seconds. Host rejection, drain, and edge limiter failures remain visible through ordinary HTTP status/duration signals. |
+| `cao_tokenbroker.token.operation.count`, `.duration` | Issuance and individual revocation attempts, including invalidation, failed-issuance cleanup, and shutdown. Retries count as new attempts, not new credentials. |
+| `cao_tokenbroker.shutdown.count`, `.duration` | Shutdown cleanup attempts and their outcome. |
+| `cao_tokenbroker.exchange`, `.token.issue`, `.token.revoke`, `.shutdown` | Correlated lifecycle spans with bounded operation/outcome attributes only. |
+
+`cao_tokenbroker.operation` is one of `exchange`, `invalidate`, `issue`,
+`cleanup`, or `shutdown`. `cao_tokenbroker.outcome` is one of `success`,
+`invalid_request`, `unauthenticated`, `denied`, `unsupported`, `throttled`,
+`unavailable`, or `delivery_failed`. No identities, token hashes, credentials,
+payloads, URLs, or raw upstream errors are added to these application signals.
+The counts are attempts, not billing totals or proof that a client used a token.
+
+Alert on `unavailable` issuance and revocation outcomes, failed shutdown cleanup,
+delivery failures, sustained throttling, and missing expected telemetry.
+Investigate revocation failures before restart: pending cleanup remains only in
+that process and may be lost on a crash. Healthy spans cannot remove the
+one-hour upstream expiry limitation. Never enable proxy/APM request or response
+body capture for the broker.
+
+### Server-wide configuration
 
 The server is instrumented with standard, vendor-neutral
 [OpenTelemetry](https://opentelemetry.io/) tracing and metrics

@@ -34,6 +34,8 @@ Private/internal remote targets still require separately configured credentials.
 Run without a subcommand for guided setup, use auth to configure credentials,
 admission to configure the cooperative OIDC gate's non-secret variables,
 or adx to prepare optional snapshot export settings for an existing destination.
+Use token-broker for offline secret-free preparation of an existing dedicated
+organization App broker; hosted prerequisites and reviewed policy remain separate.
 Use linear, jira, or ado (alias azure-devops) for offline external webhook
 enrollment preparation and manual provider configuration instructions.
 Admission does not require a workflow secret. Non-interactive setup applies only the bounded public profile.
@@ -113,7 +115,7 @@ execute-cli deployment's secret manager, then securely remove it. Keep this App
 separate from dashboard login and Actions read/write Apps. This command does not
 change CAO policy, Actions secrets, authentication mode, or hosted-feature gates.`
 	auth.AddCommand(app, enterprise, hosted, token)
-	setup.AddCommand(auth, setupADXCommand(), setupAdmissionCommand(gh), setupExternalCommand("linear"), setupExternalCommand("jira"), setupExternalCommand("ado"))
+	setup.AddCommand(auth, setupADXCommand(), setupTokenBrokerCommand(), setupAdmissionCommand(gh), setupExternalCommand("linear"), setupExternalCommand("jira"), setupExternalCommand("ado"))
 	return setup
 }
 

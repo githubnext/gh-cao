@@ -40,6 +40,8 @@ not workflow App installation access or target write permissions.
 Authentication may contact GitHub. External checks
 have at most 15 seconds each; the GitHub CLI version probe has five seconds.
 No files, secrets, or repository settings are changed.
+Use doctor token-broker --settings PATH --policy PATH --json for separate
+offline broker deployment-settings and mounted-policy checks.
 
 This does not repair SQLite snapshots or replace the full policy and workflow
 validation performed by the CAO validation Actions workflow. No Node.js runtime
@@ -75,6 +77,7 @@ gh workflow run cao-validate.yml -f verify-credentials=true`,
 		},
 	}
 	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Write machine-readable diagnostic results")
+	cmd.AddCommand(doctorTokenBrokerCommand())
 	return cmd
 }
 
@@ -138,13 +141,14 @@ func diagnose(ctx context.Context, version func(context.Context) (string, error)
 	if err := ctx.Err(); err != nil {
 		return report, err
 	}
-	policy, err := readPolicy()
+	policy, err := readDoctorPolicy()
 	if err != nil {
 		add("policy", "fail", "Local CAO policy is missing, unreadable, or has invalid basic structure.", "Run gh cao setup from the control repository root if no policy exists; otherwise review .github/workflows/cao.json. Use gh cao init only for local policy preparation.")
 		add("gh-aw-version", "skip", "Requires a readable CAO policy.", "")
 		return report, nil
 	}
 	add("policy", "pass", "Local CAO policy has valid basic structure (not full schema or authority validation).", "")
+	tokenBrokerPolicyCheck(&report, policy, false, "")
 	pin, ok := policy["gh-aw-version"].(string)
 	if !ok || pin == "" || versionPattern.FindString(pin) != pin {
 		add("gh-aw-version", "fail", "CAO policy must pin an exact gh-aw version.", "Review gh-aw-version in .github/workflows/cao.json.")
