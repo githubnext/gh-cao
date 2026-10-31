@@ -204,7 +204,8 @@ export async function runWorkflowValues(options) {
         entry.enabled === false ? 'disabled' : disabled ? 'activity-disabled' : 'unconfigured');
       continue;
     }
-    const defer = options.defer || (Date.now() - startedAt >= batchTimeout ? 'batch-budget' : '');
+    const defer = (options.defer === 'api-budget' && entry['api-requests'] ? '' : options.defer)
+      || (Date.now() - startedAt >= batchTimeout ? 'batch-budget' : '');
     if (defer) {
       decision('deferred', defer);
       result.deferred++;
