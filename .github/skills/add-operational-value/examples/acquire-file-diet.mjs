@@ -153,12 +153,16 @@ export function acquireFileDietHistory(request, until, previous = null) {
   });
   const cutoffs = previous ? [] : [adoption.at];
   const date = new Date(previous?.until ?? adoption.at);
-  date.setUTCDate(1);
   date.setUTCHours(0, 0, 0, 0);
-  date.setUTCMonth(date.getUTCMonth() + 1);
+  if (previous) date.setUTCDate(date.getUTCDate() + 1);
+  else {
+    date.setUTCDate(1);
+    date.setUTCMonth(date.getUTCMonth() + 1);
+  }
   while (date.getTime() < Date.parse(until)) {
     cutoffs.push(date.toISOString().replace(".000Z", "Z"));
-    date.setUTCMonth(date.getUTCMonth() + 1);
+    if (previous) date.setUTCDate(date.getUTCDate() + 1);
+    else date.setUTCMonth(date.getUTCMonth() + 1);
   }
   cutoffs.push(until);
   const snapshots = cutoffs.map((at, index) => {
