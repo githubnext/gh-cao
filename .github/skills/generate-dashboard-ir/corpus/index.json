@@ -12,6 +12,11 @@
       "dashboard": "examples/triage-review-readiness.dashboard.yml"
     },
     {
+      "id": "unpinned-dependency-remediation",
+      "metadata": "examples/unpinned-dependency-remediation.json",
+      "dashboard": "examples/unpinned-dependency-remediation.dashboard.yml"
+    },
+    {
       "id": "workflow-cost-inventory",
       "metadata": "examples/workflow-cost-inventory.json",
       "dashboard": "examples/workflow-cost-inventory.dashboard.yml"

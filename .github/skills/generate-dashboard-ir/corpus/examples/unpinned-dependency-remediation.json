@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "unpinned-dependency-remediation",
+  "task": {
+    "actor": "Repository operator",
+    "subject": "A review-mode workflow that proposes bounded pull requests for unpinned workflow dependencies in githubnext/gh-cao",
+    "intent": "Determine whether the dependency-pin remediation workflow activates only on deterministic unpinned-dependency findings, produces an attributable pull request when a safe pinning change is available, leaves already pinned or unevaluable workflows unchanged, and attains accepted remediation at the opportunity cutoff.",
+    "activationConditions": [
+      "A deterministic workflow-smells observation in githubnext/gh-cao identifies smell-id unpinned-dependencies for .github/workflows/dependency-pin-remediation.md.",
+      "The workflow binds the run to one stable opportunity consisting of the target repository, affected workflow identity, unpinned-dependencies smell identity, and the configuration-evidence identity captured at activation.",
+      "No prior accepted remediation output covers that same stable opportunity."
+    ],
+    "requiredEffects": [
+      "Evaluate only the dependency references identified by the bound opportunity and preserve the deterministic finding and run provenance.",
+      "When immutable replacements can be established safely, emit at most one review-mode pull request in githubnext/gh-cao that pins those references without broadening workflow permissions or rollout authority.",
+      "When a safe immutable replacement cannot be established, produce no durable repository change and retain the missing or insufficient evidence state for operator review."
+    ],
+    "noopConditions": [
+      "The affected dependency is already pinned to an immutable commit or digest when evaluated.",
+      "The finding is stale, duplicate, outside githubnext/gh-cao, or already covered by an accepted pull request for the same stable opportunity.",
+      "The workflow cannot establish an immutable replacement from accepted repository evidence without guessing a revision or changing unrelated workflow behavior."
+    ],
+    "successConditions": [
+      "Every eligible run is attributable to exactly one stable unpinned-dependency opportunity and does not widen repository scope.",
+      "A required effect is successful only when the pull-request outcome for the same opportunity is accepted in githubnext/gh-cao; run success alone is insufficient.",
+      "The operator can inspect activation evidence, run provenance, pull-request disposition, actionable exceptions, and the native attainment metric without treating missing evidence as zero."
+    ],
+    "uncertainties": [
+      "A workflow-smells observation may be repeated while the underlying configuration opportunity is unchanged.",
+      "A successful run may intentionally no-op because a safe immutable replacement is unavailable.",
+      "Pending, rejected, ignored, or cross-repository pull-request outcomes do not establish accepted remediation.",
+      "A null attainment observation remains missing evidence and must not be converted to numeric zero."
+    ]
+  },
+  "operationalValue": {
+    "upstream": "gh-aw",
+    "opportunity": {
+      "identity": "target repository + affected workflow identity + unpinned-dependencies smell identity + activation configuration-evidence identity",
+      "binding": "Each hypothetical workflow run binds to exactly one opportunity before evaluation; repeated observations of unchanged configuration retain the same opportunity instead of creating new attainment credit."
+    },
+    "acceptedRepositories": [
+      "githubnext/gh-cao"
+    ],
+    "acceptedEvidence": [
+      "A deterministic workflow-smells row with smell-id unpinned-dependencies for the bound repository and affected workflow.",
+      "The attributed workflow run and its run link for the same bound opportunity.",
+      "An outcomes row in githubnext/gh-cao with outcome-category pull-request and outcome-state accepted, attributable to that run and opportunity."
+    ],
+    "orderedMetrics": [
+      {
+        "id": "dependency-pin-remediation-attainment",
+        "unit": "ratio",
+        "direction": "higher_is_better",
+        "range": [
+          0,
+          1
+        ],
+        "directness": "direct",
+        "definition": "1 when the bound opportunity has an accepted attributable pull-request outcome in githubnext/gh-cao by the cutoff; 0 only after maturation when eligible evidence is complete and no accepted outcome exists."
+      }
+    ],
+    "maturationRule": "Assess attainment at the earlier of an accepted attributable pull-request observation or seven complete UTC days after the bound run finishes, using evidence through that cutoff.",
+    "zeroRule": "Publish 0 only after the maturation cutoff when the opportunity, eligible run, target repository, and complete outcome search are all evidenced and no accepted attributable pull request exists.",
+    "missingEvidenceRule": "Publish null before maturation or whenever opportunity identity, run attribution, repository match, outcome coverage, or accepted-state evidence is missing, partial, unavailable, or contradictory.",
+    "baseline": {
+      "kind": "attainment-only",
+      "value": null,
+      "cutoff": "The opportunity-specific maturation cutoff; synthetic design tasks have no immutable comparable pre-adoption baseline."
+    },
+    "preservation": "Preserve the upstream metric ID, ordering, native finite value or null, ratio unit, higher-is-better direction, opportunity cutoff, and evidence state exactly as published by gh-aw."
+  },
+  "logicalSources": {
+    "workflows": {
+      "rows": [
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/dependency-pin-remediation.md",
+          "workflow-name": "Dependency pin remediation",
+          "workflow-role": "standalone",
+          "workflow-active": "true",
+          "rollout-mode": "review",
+          "observed-at": "2026-09-01T00:00:00Z",
+          "repository-link": {
+            "relation": "repository",
+            "href": "https://github.com/githubnext/gh-cao",
+            "label": "githubnext/gh-cao"
+          },
+          "workflow-link": {
+            "relation": "workflow",
+            "href": "https://github.com/githubnext/gh-cao/blob/HEAD/.github/workflows/dependency-pin-remediation.md",
+            "label": "Dependency pin remediation"
+          }
+        }
+      ]
+    }
+  },
+  "dashboard": "unpinned-dependency-remediation.dashboard.yml"
+}
