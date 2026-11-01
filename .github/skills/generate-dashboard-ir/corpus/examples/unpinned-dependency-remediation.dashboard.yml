@@ -1,0 +1,195 @@
+language-version: "0.1.0"
+dashboard:
+  id: unpinned-dependency-remediation
+  title: Dependency pin remediation
+  defaults:
+    scope:
+      repositories:
+        - githubnext/gh-cao
+      workflows:
+        - .github/workflows/dependency-pin-remediation.md
+    time:
+      range: 30d
+  units:
+    attainment-ratio:
+      name: Attainment ratio
+      symbol: ratio
+      significant: 0.01
+      format: number
+  queries:
+    - name: unpinned-dependency-finding-history
+      subject: Select deterministic unpinned-dependency observations for the synthetic workflow.
+      objective: Preserve exact activation evidence for categorical history inspection.
+      acceptance: Every output row has smell-id unpinned-dependencies and retains evidence provenance.
+      from: workflow-smells
+      filter:
+        predicates:
+          - field: smell-id
+            equals: unpinned-dependencies
+      select:
+        - field: smell-id
+        - field: smell-severity
+        - field: observed-at
+        - field: evidence-link
+      order-by:
+        - field: observed-at
+          direction: asc
+      limit: 100
+    - name: actionable-unpinned-dependency-findings
+      subject: Select high-severity unpinned-dependency findings that require operator review.
+      objective: Produce a bounded evidence queue with remediation guidance and provenance.
+      acceptance: Every output row is a high-severity unpinned-dependencies finding ordered newest first.
+      from: workflow-smells
+      filter:
+        predicates:
+          - field: smell-id
+            equals: unpinned-dependencies
+          - field: smell-severity
+            equals: high
+      select:
+        - field: smell-summary
+        - field: smell-evidence
+        - field: smell-recommendation
+        - field: run
+        - field: observed-at
+        - field: evidence-link
+        - field: run-link
+      order-by:
+        - field: observed-at
+          direction: desc
+      limit: 30
+  pages:
+    - id: unpinned-dependency-remediation
+      kind: custom
+      title: Dependency pin remediation
+      subject: Activation, execution, pull-request effects, exceptions, and attainment for the dependency-pin remediation workflow.
+      objective: Help a repository operator decide whether unpinned dependency opportunities are being remediated safely and accepted.
+      acceptance: Every view remains scoped to the synthetic workflow and distinguishes deterministic findings, run execution, accepted pull requests, and missing attainment evidence.
+      description: Shows deterministic unpinned-dependency activation evidence, actionable findings, pull-request disposition, and native remediation attainment.
+      sections:
+        - id: remediation-overview
+          title: Remediation overview
+          description: Activation history and durable pull-request disposition for the selected workflow.
+          layout: full
+          views:
+            - unpinned-finding-history
+            - pull-request-disposition
+            - remediation-attainment
+            - unpinned-finding-queue
+      views:
+        - id: unpinned-finding-history
+          subject: Deterministic unpinned-dependency observations for the selected workflow.
+          objective: Show when activation evidence appeared and whether its severity changed over time.
+          acceptance: Every plotted observation is an unpinned-dependencies workflow smell within the selected workflow scope and horizon.
+          title: Unpinned dependency history
+          description: Exact deterministic finding observations over time, grouped by reported severity.
+          data:
+            source: unpinned-dependency-finding-history
+          mark: chart
+          chart: swimlane
+          layout: full
+          disclosure: essential
+          encoding:
+            x:
+              field: observed-at
+              type: temporal
+              title: Observed
+            y:
+              field: smell-severity
+              type: ordinal
+              title: Severity
+            color:
+              field: smell-id
+              type: nominal
+              title: Finding
+            href:
+              field: evidence-link
+              type: nominal
+        - id: pull-request-disposition
+          subject: Pull-request safe-output outcomes attributed to the selected remediation workflow.
+          objective: Distinguish accepted remediation from pending, rejected, ignored, and lifecycle-only outcomes.
+          acceptance: The distribution counts only pull-request outcomes and never treats run success as accepted remediation.
+          title: Pull request disposition
+          description: Current distribution of durable pull-request outcome states for the selected workflow.
+          data:
+            source: outcomes
+            filters:
+              outcome-category: pull-request
+          mark: chart
+          chart: pie
+          layout: half
+          disclosure: essential
+          encoding:
+            x:
+              field: outcome-state
+              type: ordinal
+              title: Outcome state
+            y:
+              field: safe-output
+              type: quantitative
+              aggregate: count
+              title: Pull requests
+        - id: remediation-attainment
+          subject: Native dependency-pin remediation attainment observations published by gh-aw for the selected workflow scope.
+          objective: Show whether matured stable opportunities attain accepted remediation without replacing null with zero.
+          acceptance: Values preserve the dependency-pin-remediation-attainment metric identity, ratio unit, direction, cutoff, and missing-evidence semantics.
+          title: Remediation attainment
+          description: Native attainment observations over time; missing evidence remains absent rather than becoming zero.
+          data:
+            source: operational-values
+            filters:
+              operational-value-definition: dependency-pin-remediation-attainment
+          mark: chart
+          chart: line
+          layout: half
+          disclosure: essential
+          encoding:
+            x:
+              field: observed-at
+              type: temporal
+              time-unit: day
+              title: Observed
+            y:
+              field: operational-value
+              type: quantitative
+              aggregate: mean
+              title: Mean attainment
+              unit: attainment-ratio
+        - id: unpinned-finding-queue
+          subject: Actionable deterministic unpinned-dependency findings for the selected workflow.
+          objective: Give operators the evidence, bounded recommendation, provenance, and links needed to investigate exceptions.
+          acceptance: Only high-severity unpinned-dependencies findings appear, newest first, with finding evidence and direct provenance links.
+          title: Actionable unpinned dependencies
+          description: Deterministic findings that still require operator review or attributable remediation evidence.
+          data:
+            source: actionable-unpinned-dependency-findings
+          mark: table
+          controls: interactive
+          layout: full
+          disclosure: essential
+          empty-message: No high-severity unpinned-dependency findings were observed for the selected workflow in this horizon.
+          encoding:
+            href:
+              field: evidence-link
+              type: nominal
+            columns:
+              - field: smell-summary
+                type: nominal
+                title: Finding
+              - field: smell-evidence
+                type: nominal
+                title: Evidence
+              - field: smell-recommendation
+                type: nominal
+                title: Recommendation
+              - field: run
+                type: nominal
+                title: Run
+                display: run-link
+              - field: observed-at
+                type: temporal
+                title: Observed
+              - field: evidence-link
+                type: nominal
+                title: Evidence link
+                display: evidence-link
