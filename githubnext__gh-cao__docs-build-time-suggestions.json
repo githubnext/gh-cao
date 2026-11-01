@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-01T04:50:02.330944Z",
-      "worker_run_id": "41274429396",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41274369068,
-        41273941137,
-        41273417181,
-        41272557967,
-        41272427120,
-        41271431711,
-        41270492148,
-        41269534084,
-        41268758217,
-        41268640766,
-        41267498482,
-        41266511709,
-        41265510087,
-        41264836302,
-        41263500211,
-        41263484069,
-        41263425703,
-        41262435374,
-        41261441687,
-        41260364063
-      ],
-      "outcome": "incomplete: the 2026-11-01T01:16:00Z to 2026-11-01T04:46:42Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful runs, three skipped workflow_run runs, and one cancelled schedule run. Trusted Actions run metadata, newly collected job and step metadata for schedule runs 41274369068 and 41273417181 plus skipped workflow_run 41273941137, and retained trusted evidence for the overlapping window identify only three successful full build-and-deploy paths: schedule run 41264836302 at source SHA f04e44b8cd05c9eeda3c2fe45d9c539937abcd71, push run 41263500211 at source SHA 2abd9c9c99eefb1bfb080d8c370ffb29deaa4ad8, and workflow_run 41263425703 at source SHA 3570599c3781017c134e75fc16a849efb9223baa. Their trigger or source revision differs, leaving one full path per comparison group. The other 13 successful runs were schedule freshness-only with build and deploy skipped; three workflow_run runs skipped every job, and cancelled schedule run 41263484069 was excluded. The two newest schedule runs queued for three to thirteen seconds, executed schedule-freshness for nine to ten seconds, spent six to seven seconds in the freshness check, and skipped build and deploy. The three full paths previously verified CAO Dashboard cache hits because restore succeeded and dashboard discovery and artifact download were skipped. With only three non-comparable successful full paths, below the required five comparable successful runs, full-workflow and dashboard/build/deploy median and p90 distributions, a complete reusable dashboard generation evaluation, and an actionable recommendation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-01T05:17:58.929381Z",
       "worker_run_id": "41276197222",
       "category": "reusable dashboard generation",
@@ -841,6 +813,34 @@
         41301128378
       ],
       "outcome": "incomplete: the 2026-11-01T11:16:09Z to 2026-11-01T15:11:35Z latest-20 completed docs.yml window was within the 14-day limit and contained 17 successful runs and three skipped workflow_run runs, all at source SHA f04e44b8cd05c9eeda3c2fe45d9c539937abcd71. Trusted Actions run metadata, newly collected job and step metadata for schedule run 41319063671 and skipped workflow_run 41319959468, and retained trusted evidence for the overlapping window show that 16 successful schedule runs executed only schedule-freshness and skipped build and deploy; all three skipped workflow_run runs supplied no successful build-and-deploy path. Only workflow_run 41307919363 completed the full build-and-deploy path, so the window contains one successful full path, below the required five comparable successful runs. That full run took 183 seconds wall-clock, with a 140-second build job and an 11-second deploy job; its verified dashboard cache hit completed in five seconds and skipped dashboard lookup and artifact download. The newest successful schedule run queued for four seconds, executed schedule-freshness for eleven seconds, spent seven seconds in the freshness check, and skipped build and deploy. With only one full path, median and p90 distributions and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-01T15:31:24.229452Z",
+      "worker_run_id": "41321386030",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41321592260,
+        41320338080,
+        41319959468,
+        41319063671,
+        41317828587,
+        41316592783,
+        41315335887,
+        41315021746,
+        41314081320,
+        41312819980,
+        41311619064,
+        41310432303,
+        41309237556,
+        41308040009,
+        41307919363,
+        41306847706,
+        41306001925,
+        41305832405,
+        41304505343,
+        41303329150
+      ],
+      "outcome": "incomplete: the 2026-11-01T11:45:58Z to 2026-11-01T15:31:00Z latest-20 completed docs.yml window was within the 14-day limit and contained 17 successful runs and three skipped workflow_run runs, all at source SHA f04e44b8cd05c9eeda3c2fe45d9c539937abcd71. Trusted Actions run metadata, newly collected job and step metadata for schedule runs 41321592260 and 41320338080, and retained trusted evidence for the overlapping window show that 16 successful schedule runs executed only schedule-freshness and skipped build and deploy; all three skipped workflow_run runs supplied no additional successful build-and-deploy path. Only workflow_run 41307919363 completed the full build-and-deploy path, so the window contains one successful full path, below the required five comparable successful runs. That full run took 183 seconds wall-clock, with a 140-second build job and an 11-second deploy job; its verified dashboard cache hit completed in five seconds and skipped dashboard lookup and artifact download. The two newest schedule runs queued for four seconds, executed schedule-freshness for nine to eleven seconds, spent six to seven seconds in the freshness check, and skipped build and deploy. With only one full path, median and p90 distributions and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
