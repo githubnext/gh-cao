@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-10-31T16:17:49Z",
-      "worker_run_id": "41218743769",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41218875673,
-        41218651944,
-        41217629505,
-        41216416511,
-        41215194490,
-        41214035842,
-        41213701017,
-        41212850389,
-        41211621201,
-        41211285965,
-        41211154522,
-        41210477822,
-        41209337052,
-        41209010007,
-        41208194098,
-        41207026832,
-        41206250406,
-        41205886219,
-        41204799924,
-        41203665126
-      ],
-      "outcome": "incomplete: the 2026-10-31T13:01:20Z to 2026-10-31T16:16:38Z latest-20 completed docs.yml window contained 16 successful runs and four skipped workflow_run runs, all within the 14-day limit. Trusted Actions run, job, and step metadata identifies only three successful full build-and-deploy paths: schedule run 41211621201 at source SHA 8af232489ff5589c2761f3630782d222a6ccc88b, push run 41211285965 at 57dbba91ef5c2b3b55eb1f8880fd1e55ef910941, and push run 41206250406 at 6d7f5450883c9fab01b0fae33d1546da07008142. Every full path has a different trigger-and-revision comparison group; the other 13 successful runs were schedule freshness-only with build and deploy skipped. All three full paths verified CAO Dashboard cache hits because restore completed successfully in three seconds and dashboard discovery and artifact download were skipped. Their build jobs executed for 86-90 seconds; dependency installation took 16-23 seconds, Astro generation 14 seconds, and Pages artifact upload 14-16 seconds. With only three non-comparable full paths, below the required five comparable successful runs, full-workflow and dashboard/build/deploy median and p90 distributions, sufficient producer comparison, duplicate-open-issue determination, and a complete reusable dashboard generation evaluation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-10-31T16:31:31Z",
       "worker_run_id": "41219886919",
       "category": "reusable dashboard generation",
@@ -820,6 +792,34 @@
         41247724182
       ],
       "outcome": "incomplete: the 2026-10-31T22:20:16Z to 2026-11-01T02:05:24Z latest-20 completed docs.yml window was within the 14-day limit and contained 15 successful runs, four skipped workflow_run runs, and one cancelled schedule run. Trusted Actions run, job, and step metadata identifies only two successful full build-and-deploy paths: push run 41263500211 at source SHA 2abd9c9c99eefb1bfb080d8c370ffb29deaa4ad8 and workflow_run 41263425703 at source SHA 3570599c3781017c134e75fc16a849efb9223baa. Their triggers and source revisions differ, leaving one full path per comparison group. The other 13 successful runs were schedule freshness-only with build and deploy skipped; four workflow_run runs skipped every job, and cancelled schedule run 41263484069 started no jobs. Run 41263500211 completed in 198 seconds wall-clock, with build executing for 99 seconds after a 64-second run-to-job-start wait and deploy for 30 seconds after a 4-second inter-job wait. Run 41263425703 completed in 126 seconds wall-clock, with schedule-freshness executing for 11 seconds after a 3-second initial queue, build for 94 seconds after a 3-second inter-job wait, and deploy for 10 seconds after a 4-second inter-job wait. Both verified CAO Dashboard cache hits because restore succeeded in 3-5 seconds and dashboard discovery and artifact download were skipped. Dependency installation took 20 and 25 seconds, Astro generation 14 seconds in both runs, and Pages artifact upload 18 and 17 seconds. With only two non-comparable successful full paths, below the required five comparable successful runs, full-workflow and dashboard/build/deploy median and p90 distributions, a complete reusable dashboard generation evaluation, and an actionable recommendation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-01T02:33:18Z",
+      "worker_run_id": "41265489686",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41265510087,
+        41264836302,
+        41263500211,
+        41263484069,
+        41263425703,
+        41262435374,
+        41261441687,
+        41260364063,
+        41260250864,
+        41259428850,
+        41258879233,
+        41257943108,
+        41257818859,
+        41255079055,
+        41253874784,
+        41252856013,
+        41251788794,
+        41251486835,
+        41250746834,
+        41249630424
+      ],
+      "outcome": "incomplete: the 2026-10-31T22:45:57Z to 2026-11-01T02:30:59Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful runs, three skipped workflow_run runs, and one cancelled schedule run. Trusted Actions run metadata plus job and step metadata for the three long-running successful paths identify only three successful full build-and-deploy paths: schedule run 41264836302 at source SHA f04e44b8cd05c9eeda3c2fe45d9c539937abcd71, push run 41263500211 at 2abd9c9c99eefb1bfb080d8c370ffb29deaa4ad8, and workflow_run 41263425703 at 3570599c3781017c134e75fc16a849efb9223baa. Their trigger or source revision differs, leaving one full path per comparison group. The other 13 successful runs were freshness-only with build and deploy skipped; three workflow_run runs skipped every job, and cancelled schedule run 41263484069 was excluded. The newest full schedule run completed in 150 seconds wall-clock: schedule-freshness executed for 7 seconds after a 3-second queue, build for 93 seconds after a 3-second inter-job wait, and deploy for 39 seconds after a 4-second inter-job wait. It verified a CAO Dashboard cache hit because restore succeeded in 4 seconds and dashboard discovery and artifact download were skipped; dependency installation took 22 seconds, Astro generation 14 seconds, and Pages artifact upload 17 seconds. With only three non-comparable successful full paths, below the required five comparable successful runs, full-workflow and dashboard/build/deploy median and p90 distributions, a complete reusable dashboard generation evaluation, and an actionable recommendation were not produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
