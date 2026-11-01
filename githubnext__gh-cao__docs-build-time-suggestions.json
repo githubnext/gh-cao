@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-01T07:20:00Z",
-      "worker_run_id": "41284004286",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41284125349,
-        41283956393,
-        41283116410,
-        41282105232,
-        41281313004,
-        41280609563,
-        41280503819,
-        41279156211,
-        41278166489,
-        41277261687,
-        41276281779,
-        41275324223,
-        41274369068,
-        41273941137,
-        41273417181,
-        41272557967,
-        41272427120,
-        41271431711,
-        41270492148,
-        41269534084
-      ],
-      "outcome": "incomplete: the 2026-11-01T03:31:39Z to 2026-11-01T07:16:48Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful schedule runs and four skipped workflow_run runs. Trusted Actions run, job, and step metadata shows that every successful run executed only schedule-freshness and skipped both build and deploy; all four workflow_run runs skipped every job. The window therefore contains zero successful full build-and-deploy paths, below the required five comparable successful runs. Queue time for successful schedule checks was 3-13 seconds, schedule-freshness execution was 7-14 seconds, and the freshness step was 5-11 seconds, but freshness-only checks cannot support full-workflow or dashboard/build/deploy median and p90 distributions, repeated build-cost analysis, current cache-hit verification, or a complete reusable dashboard generation evaluation. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-01T07:31:24Z",
       "worker_run_id": "41284924645",
       "category": "reusable dashboard generation",
@@ -841,6 +813,34 @@
         41310432303
       ],
       "outcome": "incomplete: GitHub Actions API rate limiting prevented collection of the current latest-20 completed docs.yml window, jobs, steps, and bounded logs. No additional API requests were attempted after the limit. The most recent retained trusted window (2026-11-01T13:16:09Z to 2026-11-01T17:10:51Z) contained zero successful full build-and-deploy paths, below the required five comparable successful runs, so it cannot substitute for current full-workflow or dashboard/build/deploy median and p90 distributions, repeated cost analysis, or current cache verification. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-01T17:50:10Z",
+      "worker_run_id": "41333258010",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41333108856,
+        41331883901,
+        41330579344,
+        41330124673,
+        41329288110,
+        41328019896,
+        41326750955,
+        41325418120,
+        41325222518,
+        41324157983,
+        41322868289,
+        41321592260,
+        41320338080,
+        41319959468,
+        41319063671,
+        41317828587,
+        41316592783,
+        41315335887,
+        41315021746,
+        41314081320
+      ],
+      "outcome": "incomplete: the 2026-11-01T14:01:26Z to 2026-11-01T17:46:00Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful schedule runs and four skipped workflow_run runs, all at source SHA f04e44b8cd05c9eeda3c2fe45d9c539937abcd71. Current trusted Actions run metadata, newly collected job and step metadata for schedule runs 41333108856, 41331883901, and 41330579344, and retained trusted evidence for the overlapping window show that every successful run executed only schedule-freshness and skipped both build and deploy; all workflow_run entries supplied no successful build-and-deploy path. The three newest schedule runs queued for two to three seconds, executed schedule-freshness for twelve to fifteen seconds, spent nine to eleven seconds in the freshness check, and skipped build and deploy. The window therefore contains zero successful full build-and-deploy paths, below the required five comparable successful runs. Freshness-only checks cannot support full-workflow or dashboard/build/deploy median and p90 distributions, repeated build-cost analysis, current cache-hit verification, or a complete reusable dashboard generation evaluation. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
