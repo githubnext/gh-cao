@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-01T09:51:22.375337Z",
-      "worker_run_id": "41294721556",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41290237356,
-        41294536942,
-        41289222360,
-        41293470436,
-        41288293340,
-        41288171563,
-        41292393924,
-        41292281097,
-        41287099094,
-        41291276722,
-        41286094532,
-        41285089585,
-        41284125349,
-        41283956393,
-        41283116410,
-        41282105232,
-        41281313004,
-        41280609563,
-        41280503819,
-        41279156211
-      ],
-      "outcome": "incomplete: the 2026-11-01T06:01:45Z to 2026-11-01T09:46:32Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful schedule runs and four skipped workflow_run runs, all at source SHA f04e44b8cd05c9eeda3c2fe45d9c539937abcd71. Trusted Actions run metadata, newly collected job and step metadata for schedule runs 41294536942 and 41293470436, and retained trusted evidence for the overlapping window show that every successful run executed only schedule-freshness and skipped both build and deploy; the workflow_run entries supplied no successful build-and-deploy path. The two newly inspected schedule runs queued for three to five seconds, executed schedule-freshness for sixteen seconds, and spent twelve to thirteen seconds in the freshness check. Some older retained job step timestamps were internally inconsistent by one hour, so they were not used for step-duration statistics. The window therefore contains zero successful full build-and-deploy paths, below the required five comparable successful runs. Freshness-only checks cannot support full-workflow or dashboard/build/deploy median and p90 distributions, repeated build-cost analysis, current cache-hit verification, or a complete reusable dashboard generation evaluation. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-01T10:16:39Z",
       "worker_run_id": "41296568873",
       "category": "reusable dashboard generation",
@@ -841,6 +813,34 @@
         41322868289
       ],
       "outcome": "incomplete: the 2026-11-01T15:45:58Z to 2026-11-01T19:16:03Z latest-20 completed docs.yml window was within the 14-day limit and contained 15 successful schedule runs, four skipped workflow_run runs, and one action_required workflow_run with no jobs, all at source SHA f04e44b8cd05c9eeda3c2fe45d9c539937abcd71. Trusted Actions run metadata, newly collected job and step metadata for schedule run 41340827282, and retained trusted evidence for the overlapping window show that every successful schedule run executed only schedule-freshness and skipped both build and deploy; the workflow_run entries supplied no successful build-and-deploy path. The newest schedule run queued for three seconds, executed schedule-freshness for sixteen seconds, spent twelve seconds in the freshness check, and skipped build and deploy. The window therefore contains zero successful full build-and-deploy paths, below the required five comparable successful runs. Freshness-only checks cannot support full-workflow or dashboard/build/deploy median and p90 distributions, repeated build-cost analysis, current cache-hit verification, or a complete reusable dashboard generation evaluation. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-01T19:51:07Z",
+      "worker_run_id": "41343587620",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41343349874,
+        41342122324,
+        41340827282,
+        41340373281,
+        41339571293,
+        41338274312,
+        41337554864,
+        41336997885,
+        41335813383,
+        41335592924,
+        41334443808,
+        41333108856,
+        41331883901,
+        41330579344,
+        41330124673,
+        41329288110,
+        41328019896,
+        41326750955,
+        41325418120,
+        41325222518
+      ],
+      "outcome": "incomplete: the 2026-11-01T16:13:39Z to 2026-11-01T19:46:05Z latest-20 completed docs.yml window was within the 14-day limit and contained 15 successful schedule runs, four skipped workflow_run runs, and one action_required workflow_run with no jobs, all at source SHA f04e44b8cd05c9eeda3c2fe45d9c539937abcd71. Trusted Actions run metadata, newly collected job and step metadata for the eight newest entries, and retained trusted evidence for the overlapping window show that every successful schedule run executed only schedule-freshness and skipped both build and deploy; the workflow_run entries supplied no successful build-and-deploy path. The window therefore contains zero successful full build-and-deploy paths, below the required five comparable successful runs. Freshness-only checks cannot support full-workflow or dashboard/build/deploy median and p90 distributions, repeated build-cost analysis, current cache-hit verification, or a complete reusable dashboard generation evaluation. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
