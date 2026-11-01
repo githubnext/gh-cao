@@ -514,6 +514,14 @@ CAO installation does not require Copilot organization billing. Bundled workflow
 
 For this reason, verifying it up front is completely optional: most user tokens cannot read organization billing, and a granted `copilot-requests: write` permission alone does not ensure model access. Without an entitlement, a bundled workflow fails with HTTP 403 before the agent starts. Customers may author workflows with another gh-aw-supported engine/provider and configure its Actions secrets; that requires an explicit workflow change and compilation. CAO does not support `COPILOT_GITHUB_TOKEN` inference fallback, runtime token precedence, or mixed authentication profiles, and target-access credentials cannot authenticate model inference.
 
+### Optional Copilot requests broker
+
+A hosted CAO server can optionally broker organization-billed model inference instead of granting `permissions.copilot-requests: write`. The broker is disabled unless `CAO_TOKEN_BROKER_ENABLED=true`. `POST /api/token-broker` exchanges a GitHub Actions OIDC token for a dedicated organization GitHub App installation token that carries only `copilot_requests: read`. That permission authorizes billable AI requests despite its name. The endpoint's authority is separate from dashboard sessions, API bearers, admission, rollout mode, and repository writes.
+
+Enroll each workflow in `control-plane.token-broker.copilot-requests.workflows` in `.github/workflows/cao.json`. The checked-in list is empty, so no workflow is authorized. An entry pins exact `repository-id`, `owner-id`, `workflow-ref`, and 40-character `workflow-sha` strings; wildcards are unsupported. Only trusted push, schedule, and manual-dispatch runs with signed job evidence qualify. Pull requests, forks, and reusable workflows are denied.
+
+The App's private key is read from an Azure Key Vault secret through managed identity. It is never accepted from policy, workflow inputs, or request bodies. The initial profile requires hosted HTTPS with one process-owned listener, acknowledged by `CAO_TOKEN_BROKER_SINGLE_PROCESS=true`. Azure Functions, external listeners, and multiple replicas are unsupported. A crash can lose revocation state, so issued tokens may remain valid until their upstream expiry, at most one hour. CAO admission budgets are not a spending cap; configure organization Copilot budgets separately. See [server/SECURITY.md](https://github.com/githubnext/gh-cao/blob/main/server/SECURITY.md#optional-copilot-requests-broker) for the full environment settings and acceptance steps.
+
 ## Credential Reference
 
 These are configuration references, not an unconditional fallback chain.
