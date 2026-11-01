@@ -163,19 +163,6 @@
       "readiness_for_target": "needs-work",
       "target_repo": "github/gh-aw-firewall",
       "txn_id": "refiner-39771988009-2"
-    },
-    {
-      "false_negative_count": 0,
-      "false_positive_count": 0,
-      "missing_suppression_count": 0,
-      "true_positive_count": 0,
-      "unclear_diagnostic_count": 0,
-      "unsafe_autofix_count": 0,
-      "readiness_for_target": "not-applicable",
-      "reason": "No barrel re-export smoke-test file with a no-duplication header; tests/unit/cao-cli.test.mjs only checks export reference identity.",
-      "target_commit": "f04e44b8cd05c9eeda3c2fe45d9c539937abcd71",
-      "target_repo": "githubnext/gh-cao",
-      "txn_id": "refiner-41331949970-1"
     }
   ],
   "affected_paths": [
@@ -258,9 +245,9 @@
   "existing_plugin_coverage": "None found; this is a repository-specific, automated test-generation workflow pattern not covered by eslint-plugin-jest or other published rules, which generally do not model 'this file's documented testing scope' as a lint target.",
   "language": "typescript",
   "last_seen_at": "2026-10-13T16:57:20Z",
-  "last_updated": "2026-11-01T17:40:00Z",
-  "last_updated_by_run": "41331949970",
-  "last_updated_target_repo": "githubnext/gh-cao",
+  "last_updated": "2026-10-22T11:45:00Z",
+  "last_updated_by_run": "39067866988",
+  "last_updated_target_repo": "github/gh-aw-firewall",
   "likely_false_positives": "A barrel test file without an explicit 'shape-only, no duplication' scope comment is not a violation; adding the first behavioral test for a function that has no dedicated module test file elsewhere is legitimate and should not be flagged.",
   "mechanical_correction": "When adding coverage for a function, first check whether it already has a behavioral test file for its defining module (e.g. via existing `<module>.test.ts` or `<module>-host-config.test.ts` conventions) before adding assertions to a barrel/re-export test file. If the barrel file's header comment states it checks re-export shape only, confine additions there to `typeof x === 'function'`-style shape checks and add real behavioral assertions to the defining module's own test file instead.",
   "normalization": {
