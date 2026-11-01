@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-01T13:15:46Z",
-      "worker_run_id": "41310160831",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41309237556,
-        41308040009,
-        41307919363,
-        41306847706,
-        41306001925,
-        41305832405,
-        41304505343,
-        41303329150,
-        41302244597,
-        41301128378,
-        41300774297,
-        41300008235,
-        41298896314,
-        41297831631,
-        41296700736,
-        41296449566,
-        41295607936,
-        41290237356,
-        41294536942,
-        41289222360
-      ],
-      "outcome": "incomplete: the 2026-11-01T09:31:28Z to 2026-11-01T13:01:45Z latest-20 completed docs.yml window was within the 14-day limit and contained 17 successful runs and three skipped workflow_run runs, all at source SHA f04e44b8cd05c9eeda3c2fe45d9c539937abcd71. Trusted Actions run, job, and step metadata shows that 16 successful runs executed only schedule-freshness and skipped build and deploy; the three skipped workflow_run runs skipped every job. Only workflow_run 41307919363 completed the full build-and-deploy path, so the window contains one successful full path, below the required five comparable successful runs. That run took 183 seconds wall-clock, with a 140-second build job and an 11-second deploy job; its initial queue was three seconds, with three seconds between freshness and build and five seconds between build and deploy. The dashboard cache was a verified hit: restore completed in five seconds and dashboard lookup and artifact download were skipped. Checkout took 64 seconds, dependency installation 21 seconds, Astro documentation generation 16 seconds, and Pages artifact upload 21 seconds. The following scheduled run 41308040009 waited behind the full run because of workflow concurrency, then performed only a freshness check and skipped build and deploy. With only one full path, median and p90 distributions and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-01T13:31:17.374720Z",
       "worker_run_id": "41311407234",
       "category": "reusable dashboard generation",
@@ -841,6 +813,34 @@
         41340827282
       ],
       "outcome": "incomplete: the 2026-11-01T19:15:43Z to 2026-11-01T22:45:57Z latest-20 completed docs.yml window was within the 14-day limit and contained 17 successful runs (15 schedule, one push, and one workflow_run), two skipped workflow_run runs, and one action_required workflow_run. The window spans source SHAs f04e44b8cd05c9eeda3c2fe45d9c539937abcd71 and fb8ce95eda1a96712fbce50c84ff2162bf25c375. Trusted Actions run, job, and step metadata shows only two successful full build-and-deploy paths: workflow_run 41351133559 at the older SHA and push 41356257246 at the newer SHA. The other 15 successful schedule runs executed only schedule-freshness and skipped build and deploy. The push took 118 seconds wall-clock, with a 74-second build job and a 34-second deploy job; its dashboard cache was a verified hit because restore completed in three seconds and both cache-miss-only dashboard lookup and artifact download were skipped. The older workflow_run took 131 seconds wall-clock, with a 93-second build job and an 11-second deploy job, and also had a verified dashboard cache hit. With only two full paths, and only one per source revision and trigger, the evidence is below the required five comparable successful runs. Full-workflow and dashboard/build/deploy median and p90 distributions, repeated-cost analysis, and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-01T23:16:13.485386Z",
+      "worker_run_id": "41361065783",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41360921726,
+        41360010252,
+        41358745248,
+        41357516269,
+        41356282410,
+        41356257246,
+        41355898405,
+        41354952028,
+        41353705317,
+        41352576142,
+        41352420688,
+        41351133559,
+        41351098582,
+        41349816635,
+        41348499963,
+        41347274727,
+        41346006851,
+        41345672730,
+        41344699917,
+        41343349874
+      ],
+      "outcome": "incomplete: the 2026-11-01T19:45:40Z to 2026-11-01T23:11:57Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful runs (14 schedule, one push, and one workflow_run), three skipped workflow_run runs, and one action_required workflow_run. The window spans source SHAs f04e44b8cd05c9eeda3c2fe45d9c539937abcd71 and fb8ce95eda1a96712fbce50c84ff2162bf25c375. Trusted Actions run, job, and step metadata shows only two successful full build-and-deploy paths: workflow_run 41351133559 at the older SHA and push 41356257246 at the newer SHA. The other 14 successful schedule runs executed only schedule-freshness and skipped build and deploy; the skipped and action_required workflow_run entries supplied no additional full path. The push took 118 seconds wall-clock, with a 74-second build job and a 34-second deploy job; the older workflow_run took 131 seconds wall-clock, with a 93-second build job and an 11-second deploy job. Both had verified dashboard cache hits because restore completed in three seconds and the cache-miss-only dashboard lookup and artifact-download steps were skipped. With only two full paths, and only one per source revision and trigger, the evidence is below the required five comparable successful runs. Full-workflow and dashboard/build/deploy median and p90 distributions, repeated-cost analysis, and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
