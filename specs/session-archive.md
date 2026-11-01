@@ -126,7 +126,14 @@ Publication MUST follow this order:
    configured conservative retirement grace permit deletion.
 
 Interrupted conversion/publication MUST be retried without another logical
-projection or resurrection of withdrawn input. Staging, archive, manifest,
+projection or resurrection of withdrawn input.
+
+When withdrawal invalidates a pending hosted publication candidate, recovery
+MUST read the leased durable Blob pointer before acknowledging or replacing the
+candidate. A destination receipt that cannot be resolved MUST retain the pending
+evidence for retry. Staging bodies that durable state still references MUST
+remain protected, whether expired or withdrawn, and MAY be released only after
+those references are durably cleared. Staging, archive, manifest,
 membership, and replay state each require hard bounds. Reaching a bound MUST
 reject admission/publication or report an explicit gap; it MUST NOT emit a
 truncated ready trace. No archive state belongs in PostgreSQL.
@@ -148,6 +155,10 @@ The withdrawal-aware reader MUST remain registered through result serialization
 and caller reauthorization. The final content-access check and bounded HTTP
 response write MUST be serialized with withdrawal; completing the backend query
 alone MUST NOT release that protection. Every response exit MUST close its reader.
+
+A hosted query MUST fail explicitly with a capacity error, rather than wait past
+its deadline, when publication owns the snapshot lock. A failed or canceled
+query MUST release its single-reader slot without waiting for publication.
 
 Withdrawn identities MUST remain replay-fenced for the supported replay horizon.
 If required fences cannot fit, admission MUST stop or reject older inputs.
