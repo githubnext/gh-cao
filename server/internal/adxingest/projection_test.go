@@ -115,3 +115,45 @@ func TestSchemaUsesOnlyFreeCompatibleFeatures(t *testing.T) {
 		}
 	}
 }
+
+func TestObservationRowRecordsPresenceAndQuality(t *testing.T) {
+	session := testSession()
+	var runFamily family
+	for _, candidate := range families {
+		if candidate.source == "$runs" {
+			runFamily = candidate
+		}
+	}
+	row, err := observationRow(session, "run", runFamily, "run", session.Run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if row["ObservationId"] != "run" || row["RunAttempt"] != 1 || row["Availability"] != "available" ||
+		row["Completeness"] != "partial" || row["Freshness"] != "unknown" {
+		t.Fatalf("unexpected row: %+v", row)
+	}
+	if _, leaked := row["Title"]; leaked {
+		t.Fatal("unapproved field escaped")
+	}
+	if !slices.Equal(row["NullFields"].([]string), []string{"OutputTokens"}) {
+		t.Fatalf("null fields = %v", row["NullFields"])
+	}
+}
+
+func TestObservationRowRejectsInvalidValues(t *testing.T) {
+	session := testSession()
+	var runFamily family
+	for _, candidate := range families {
+		if candidate.source == "$runs" {
+			runFamily = candidate
+		}
+	}
+	bad := model.Row{"id": "run", "status": 7}
+	if _, err := observationRow(session, "run", runFamily, "run", bad); err == nil || !strings.Contains(err.Error(), "status") {
+		t.Fatalf("expected invalid status error, got %v", err)
+	}
+	session.Run["attempt"] = "one"
+	if _, err := observationRow(session, "run", runFamily, "run", model.Row{"id": "run"}); err == nil {
+		t.Fatal("expected invalid attempt error")
+	}
+}

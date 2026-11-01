@@ -10,9 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/sessionexport"
 )
+
+var projectionLog = logger.New("cao:adx:projection")
 
 type field struct{ source, kind string }
 type family struct {
@@ -61,41 +64,9 @@ func project(session sessionexport.Session) (Projection, error) {
 				return Projection{}, errors.New("ADX observation belongs to another run")
 			}
 			seen[id] = true
-			row := model.Row{"Namespace": session.Namespace, "RunId": runID, "ObservationId": id, "ContractVersion": contractVersion}
-			presence := make([]string, 0, len(family.fields)+1)
-			nulls := make([]string, 0)
-			if attempt, present := session.Run["attempt"]; present {
-				if !validScalar(attempt, "long") {
-					return Projection{}, errors.New("invalid canonical run attempt")
-				}
-				row["RunAttempt"] = attempt
-				presence = append(presence, "RunAttempt")
-				if attempt == nil {
-					nulls = append(nulls, "RunAttempt")
-				}
-			}
-			for _, field := range family.fields {
-				if value, present := canonical[field.source]; present {
-					if !validScalar(value, field.kind) {
-						return Projection{}, fmt.Errorf("invalid canonical ADX field %s", field.source)
-					}
-					name := columnName(field.source)
-					row[name] = value
-					presence = append(presence, name)
-					if value == nil {
-						nulls = append(nulls, name)
-					}
-				}
-			}
-			row["PresentFields"] = presence
-			row["NullFields"] = nulls
-			quality := session.Quality[family.source]
-			for _, key := range []string{"availability", "completeness", "freshness"} {
-				value, ok := quality[key].(string)
-				if !ok {
-					value = "unknown"
-				}
-				row[columnName(key)] = value
+			row, err := observationRow(session, runID, family, id, canonical)
+			if err != nil {
+				return Projection{}, err
 			}
 			content, err := json.Marshal(row)
 			if err != nil {
@@ -106,6 +77,7 @@ func project(session sessionexport.Session) (Projection, error) {
 			projection.Tables[family.table] = append(projection.Tables[family.table], row)
 			rowCount++
 			if rowCount > sessionexport.MaxRows {
+				projectionLog.Printf("projection rejected: reason=too_many_rows limit=%d", sessionexport.MaxRows)
 				return Projection{}, sessionexport.ErrTooLarge
 			}
 		}
@@ -140,9 +112,53 @@ func project(session sessionexport.Session) (Projection, error) {
 		return Projection{}, err
 	}
 	if len(content) > sessionexport.MaxBytes {
+		projectionLog.Printf("projection rejected: reason=too_large bytes=%d limit=%d", len(content), sessionexport.MaxBytes)
 		return Projection{}, sessionexport.ErrTooLarge
 	}
+	projectionLog.Printf("projected session: tables=%d rows=%d bytes=%d", len(projection.Tables), rowCount, len(content))
 	return projection, nil
+}
+
+// observationRow maps one canonical observation to its allowlisted ADX row,
+// recording which fields were present or explicitly null.
+func observationRow(session sessionexport.Session, runID string, family family, id string, canonical model.Row) (model.Row, error) {
+	row := model.Row{"Namespace": session.Namespace, "RunId": runID, "ObservationId": id, "ContractVersion": contractVersion}
+	presence := make([]string, 0, len(family.fields)+1)
+	nulls := make([]string, 0)
+	if attempt, present := session.Run["attempt"]; present {
+		if !validScalar(attempt, "long") {
+			return nil, errors.New("invalid canonical run attempt")
+		}
+		row["RunAttempt"] = attempt
+		presence = append(presence, "RunAttempt")
+		if attempt == nil {
+			nulls = append(nulls, "RunAttempt")
+		}
+	}
+	for _, field := range family.fields {
+		if value, present := canonical[field.source]; present {
+			if !validScalar(value, field.kind) {
+				return nil, fmt.Errorf("invalid canonical ADX field %s", field.source)
+			}
+			name := columnName(field.source)
+			row[name] = value
+			presence = append(presence, name)
+			if value == nil {
+				nulls = append(nulls, name)
+			}
+		}
+	}
+	row["PresentFields"] = presence
+	row["NullFields"] = nulls
+	quality := session.Quality[family.source]
+	for _, key := range []string{"availability", "completeness", "freshness"} {
+		value, ok := quality[key].(string)
+		if !ok {
+			value = "unknown"
+		}
+		row[columnName(key)] = value
+	}
+	return row, nil
 }
 
 func columnName(field string) string { return strings.ToUpper(field[:1]) + field[1:] }
