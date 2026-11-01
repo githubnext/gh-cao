@@ -178,21 +178,6 @@
       "txn_id": "refiner-38313694983-1",
       "target_repo": "github/gh-aw-actions",
       "target_commit": "a0486bb9f7e2d8b990201dc43e34e7d668f191a4"
-    },
-    {
-      "target_commit": "f04e44b8cd05c9eeda3c2fe45d9c539937abcd71",
-      "unclear_diagnostic_count": 0,
-      "unsafe_autofix_count": 0,
-      "missing_suppression_count": 0,
-      "performance_regression_count": 0,
-      "lint_duration_delta_ms": null,
-      "readiness_for_target": "ready",
-      "true_positive_count": 6,
-      "false_positive_count": 0,
-      "false_negative_count": 0,
-      "reason": "Re-confirmed: dashboard/site/src/components/account-menu.js busy.set(false) in finally blocks (lines 99, 130) still write after await with no scope.signal.aborted check; unchanged true positives, no false positives.",
-      "target_repo": "githubnext/gh-cao",
-      "txn_id": "refiner-41265608847-1"
     }
   ],
   "affected_paths": [
@@ -283,7 +268,7 @@
   "existing_plugin_coverage": "No published ESLint rule covers this: it depends on recognizing this repo's specific `reactive.js` state/effect/createFactoryScope convention and its abort-signal idiom, not a generic async/await or React-hooks pattern that an existing plugin (eslint-plugin-react-hooks, eslint-plugin-promise, etc.) targets.",
   "language": "javascript",
   "last_seen_at": "2026-10-12T22:03:43Z",
-  "last_updated": "2026-11-01T02:34:45Z",
+  "last_updated": "2026-10-29T21:35:03Z",
   "last_updated_by_run": "https://github.com/githubnext/gh-aw-cao/actions/runs/38089620887",
   "last_updated_target_repo": "githubnext/gh-aw-cao",
   "likely_false_positives": "An async handler that calls `.set()` after `await` but whose component is never removed from the DOM during that async work (e.g. a top-level page-scoped singleton that outlives all navigation) does not need the guard; the rule should only fire when the enclosing scope is created via `createFactoryScope()`/bound to a removable node, i.e. an abort signal is already available in scope but unused after an await preceding a `.set()` call.",
