@@ -82,6 +82,10 @@ The repository that hosts CAO workflows and policy. It coordinates work across e
 
 The local, loopback-only **Central Agentic Ops** Copilot SDK surface that hosts the experimental dashboard **Query editor** page for authoring and previewing custom views. It is not enabled on the static website, hosted server, or ordinary local preview, and its authoring sessions have no filesystem, shell, MCP, or repository-write tools. See [Design queries in a Copilot canvas](agent-plugin.md#design-queries-in-a-copilot-canvas).
 
+## Copilot requests token broker
+
+A separately opt-in, single-replica server endpoint (`POST /api/token-broker`) that exchanges a GitHub Actions OIDC identity for a dedicated organization App installation token limited to `copilot_requests: read`. The control repository's `control-plane.token-broker.copilot-requests.workflows` policy must pin the exact owner and repository IDs, workflow reference, and workflow revision; an empty list authorizes nothing. It grants credential authorization only, never rollout, admission, or repository-write authority.
+
 ## Daily partition
 
 A UTC-day partition of a high-volume canonical PostgreSQL table, such as runs. Owner-run bootstrap initializes the partitions and owner-run maintenance keeps historical, current, and 28 upcoming days provisioned, expiring only complete days at each retention cutoff; runtime opens provisioned state without DDL. See [Architecture](architecture.md).
