@@ -186,7 +186,7 @@ components:
     responsibility: independently schedule collector-enabled local-only Operational Value; resolve reviewed eligibility, capture exact enrollment and canonical revision, expose only a bounded private Unix-socket Dashboard Language query transport to reviewed adapters, preserve frozen metric formulas and missing/partial semantics in JavaScript, reject superseded projection/policy/request/enrollment/revision inputs, publish completed measurements directly through canonical PostgreSQL revisioning, and mirror accepted JSONL only for cold-start recovery; never create or ingest hosted SQLite
   canonical_storage_contract:
     path: server/internal/dashboardstore/
-    responsibility: accept existing canonical storage readers without changing PostgreSQL SQL execution or ingestion
+    responsibility: own implementation-neutral Store and transaction-scoped Reader interfaces, State, Page, ResourceLimits and ExecutionOptions using only shared model/query vocabulary; PostgreSQL and SQLite implement the contract and PostgreSQL retains reverse compatibility aliases; preserve consistent bounded cancellation-aware state/query/diagnostics reads, callback and storage errors and backend-specific revisions; retain explicit PostgreSQL SQL versus SQLite bounded-Go execution and rejection of SQLite resource-limit overrides, with shared real-adapter conformance and dependency-direction tests; no driver/adapter dependencies, fallback, shared writes or ingestion changes
   canonical_session_export:
     path: server/internal/sessionexport/
     responsibility: define a neutral bounded exact-repository completed-session snapshot reader; PostgreSQL selects requested canonical scalars and available run-linked observations with presence and source quality in one repeatable-read transaction closed before external I/O; not transactional change capture
@@ -397,6 +397,7 @@ dependencies:
   - go_extension_commands -> go_extension_catalog
   - go_extension_commands -> local_go_query_engine
   - dashboard_https_server -> canonical_storage_contract
+  - postgres_entity_store -> canonical_storage_contract
   - local_sqlite_entity_store -> canonical_storage_contract
   - local_sqlite_entity_store -> local_go_query_engine
   - catalog -> control_repository
@@ -484,6 +485,10 @@ dependencies:
   - marketplace_hosted_resolver -> marketplace_ui
 
 boundaries:
+  - subject: canonical_storage_contract
+    must_not_depend_on:
+      - postgres_entity_store
+      - local_sqlite_entity_store
   - subject: optional_session_archive
     must_not_depend_on:
       - postgres_entity_store
