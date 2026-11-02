@@ -3,8 +3,6 @@ title: Activity cache compression analysis
 description: Measurements and remediation for repeated Activity cache shard data.
 ---
 
-# Activity cache compression analysis
-
 On 2026-09-17, the deployed `cao-activity-index` snapshot was downloaded and
 queried with the `cao` CLI. The snapshot was healthy, covered six repositories,
 and contained 23,566 runs, 17,214 jobs, 3,203 sessions, and 117,707 events after
