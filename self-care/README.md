@@ -4,7 +4,7 @@ SelfCare runs repository-local maintenance for `githubnext/gh-cao`. Its orchestr
 
 - **Accessibility Checker** audits the rendered documentation site and publishes one prioritized accessibility issue.
 - **Code Improvement** extracts one evidenced duplicated dashboard UI construct into a tested reusable component and opens one focused draft pull request.
-- **Calesi Design Principles** checks domain-owned service interfaces, protocol/location-independent consumption, faithful local implementations, multi-adapter conformance and deliberate governed extension delivery. Registered disabled; it proposes at most one bounded, tested Go remediation in a draft PR after explicit reviewed enablement.
+- **Calesi Design Principles** checks domain-owned service interfaces, protocol/location-independent consumption, faithful local implementations, multi-adapter conformance and deliberate governed extension delivery. Enabled for the existing authorized target, it proposes at most one bounded, tested Go remediation in a draft PR.
 - **Dashboard Performance** rotates through trace-backed CFO, CTO, and CSO Lighthouse bottlenecks and opens one focused draft pull request.
 - **Dashboard Debug Logging** instruments one evidenced dashboard JavaScript subsystem with category-filtered, privacy-preserving diagnostics.
 - **Dashboard Data Schema** verifies the deployed dashboard JSON contracts and opens one focused draft pull request when inferred pseudo schemas change.
@@ -50,13 +50,14 @@ must pass; skipped backends remain incomplete. Work outside that boundary is
 deferred, not partially migrated. No new enforcement framework or dependency on
 an unmerged architectural refactor is introduced.
 
-The effective policy registers this worker with `enabled: false`. Adding it
-does not authorize live execution, change the existing target, scope, credentials,
-campaign review default or unrelated worker settings. The parent must skip it
-until maintainers explicitly enable it through reviewed policy at the same
-workflow revision. Existing live-only SelfCare admission remains unchanged;
-standard review-mode output routing remains fail-closed, not a new review-mode
-dispatch path. No execution or rollout is implied by registration.
+The effective policy enables this worker with `enabled: true` for SelfCare's
+existing sole authorized target, `githubnext/gh-cao`. This explicit enablement
+does not change target scope, credentials, the campaign review default or
+unrelated worker settings. The parent must still require successful precomputed
+policy admission at the exact workflow revision. Existing live-only SelfCare
+admission remains unchanged; standard review-mode output routing remains
+fail-closed, not a new review-mode dispatch path. Activation requires the
+reviewed sources, policy and compiled workflows on the active control branch.
 
 There is no deterministic operational-value grader yet: a proposed abstraction
 or successful test run is not evidence of accepted architectural value. Measure

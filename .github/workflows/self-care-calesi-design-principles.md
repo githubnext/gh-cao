@@ -126,7 +126,7 @@ pre-agent-steps:
 
 # SelfCare Calesi Design Principles
 
-Read `/tmp/gh-aw/agent/control-precompute.json` first. This worker is authorized only when its precomputed `target_repo` is exactly `githubnext/gh-cao` and its precomputed `safe_output_mode` is `live`. Require successful shared admission at the exact workflow SHA. Otherwise call `noop` once with the denied scope and stop without inspecting or changing repository files. Its checked-in policy registration is disabled; neither dispatch inputs nor this prompt enable it.
+Read `/tmp/gh-aw/agent/control-precompute.json` first. This worker is authorized only when its precomputed `target_repo` is exactly `githubnext/gh-cao` and its precomputed `safe_output_mode` is `live`. Require successful shared admission at the exact workflow SHA, including worker enablement in the reviewed policy. Otherwise call `noop` once with the denied scope and stop without inspecting or changing repository files. Neither dispatch inputs nor this prompt grant authority.
 
 The existing SelfCare orchestrator owns discovery and dispatch. Process only the dispatched target. Do not discover repositories, dispatch workflows, add a schedule, spawn agents or sessions, widen scope or mode, or change credentials. Enforcement means a bounded, reviewable draft PR and regression tests, never direct unreviewed writes, merging or deployment. Use GitHub tools read-only; publish only through the declared safe output.
 

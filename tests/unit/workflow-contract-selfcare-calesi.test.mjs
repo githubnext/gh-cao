@@ -13,13 +13,13 @@ const config = parse(/^---\n([\s\S]*?)\n---/.exec(source)[1]);
 const orchestrator = workflow("self-care.md");
 const dispatch = parse(/^---\n([\s\S]*?)\n---/.exec(orchestrator)[1]);
 
-test("Calesi registration is complete without enabling a new live operation", () => {
+test("Calesi registration enables only the worker within the existing target scope", () => {
   const descriptor = JSON.parse(readFileSync(join(root, "self-care/cao.json"), "utf8"));
   const manifest = parse(readFileSync(join(root, "self-care/aw.yml"), "utf8"));
   const campaign = controlPolicy["control-plane"].campaigns["self-care"];
   assert.equal(descriptor.workers[worker], id);
   assert.ok(manifest.includes.includes(`.github/workflows/${id}.md`));
-  assert.deepEqual(campaign.workers[worker], { workflow: id, enabled: false });
+  assert.deepEqual(campaign.workers[worker], { workflow: id, enabled: true });
   assert.equal(campaign.mode, "review");
   assert.equal(campaign["max-repositories"], 1);
   assert.equal(campaign["rollout-percent"], 100);
@@ -35,8 +35,28 @@ test("Calesi registration is complete without enabling a new live operation", ()
   assert.match(orchestrator, /missing or disabled entries are ineligible/);
 });
 
-test("production policy resolution denies the disabled worker in every requested mode", () => {
+test("production policy resolution admits the enabled worker for the existing live target", () => {
   const document = parsePolicy(JSON.stringify(controlPolicy));
+  const result = effectivePolicy(document, {
+    campaignName: "self-care", role: "worker", workerName: worker,
+    controlRepository: "githubnext/gh-cao", targetRepository: "githubnext/gh-cao",
+    requestedMode: "live", eventName: "workflow_dispatch",
+  });
+  assert.equal(result.authorized, true);
+  assert.equal(result.safe_output_mode, "live");
+  assert.equal(result.worker_policies[id].enabled, true);
+  const parent = effectivePolicy(document, {
+    campaignName: "self-care", role: "orchestrator", controlRepository: "githubnext/gh-cao",
+  });
+  assert.equal(parent.worker_policies[id].enabled, true);
+  assert.equal(parent.safe_output_mode, "review");
+  assert.deepEqual(parent.target_policies, { "githubnext/gh-cao": { mode: "live" } });
+});
+
+test("production policy resolution denies the disabled worker in every requested mode", () => {
+  const disabled = structuredClone(controlPolicy);
+  disabled["control-plane"].campaigns["self-care"].workers[worker].enabled = false;
+  const document = parsePolicy(JSON.stringify(disabled));
   for (const requestedMode of ["review", "live", "debug"]) {
     const result = effectivePolicy(document, {
       campaignName: "self-care", role: "worker", workerName: worker,

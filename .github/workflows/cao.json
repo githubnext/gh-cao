@@ -269,7 +269,7 @@
           },
           "calesi-design-principles": {
             "workflow": "self-care-calesi-design-principles",
-            "enabled": false
+            "enabled": true
           },
           "cli-consistency": {
             "workflow": "self-care-cli-consistency"

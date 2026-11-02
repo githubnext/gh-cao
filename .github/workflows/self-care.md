@@ -110,7 +110,7 @@ The single eligible repository contains the documentation site and dashboard mai
 
 - `self-care-accessibility-checker`: audits the rendered documentation site with axe-core, keyboard traversal, and browser evidence, then publishes one prioritized accessibility issue.
 - `self-care-agent-discoverability`: starts from the published `/cao/` route and verifies that procedural, bounded metric, targeted query, and bulk-analysis tasks choose skills, Activity artifacts, MCP, and SQLite without UI scraping.
-- `self-care-calesi-design-principles`: checks domain-owned contracts, adapter isolation, faithful local implementations, multi-adapter conformance and governed extension delivery, then proposes one tested bounded Go fix. Registered disabled; dispatch only if the precomputed worker policy explicitly enables it.
+- `self-care-calesi-design-principles`: checks domain-owned contracts, adapter isolation, faithful local implementations, multi-adapter conformance and governed extension delivery, then proposes one tested bounded Go fix. Dispatch only if the precomputed worker policy explicitly enables it.
 - `self-care-cli-consistency`: inventories every CLI command and continuously removes one evidenced duplication or ownership violation per draft PR across the Actions runtime, native operator CLI, server starter, and microservices, without legacy support.
 - `self-care-code-improvement`: extracts one evidenced duplicated dashboard UI construct into a tested reusable component and opens one focused draft pull request.
 - `self-care-dashboard-performance`: rotates through trace-backed CFO, CTO, and CSO Lighthouse bottlenecks and opens one focused draft pull request.
