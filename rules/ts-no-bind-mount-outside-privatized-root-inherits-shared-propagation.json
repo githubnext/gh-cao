@@ -183,6 +183,16 @@
       "readiness_for_target": "needs-work",
       "target_repo": "github/gh-aw-firewall",
       "txn_id": "refiner-39771988009-3"
+    },
+    {
+      "target_repo": "githubnext/gh-cao",
+      "target_commit": "fb8ce95eda1a96712fbce50c84ff2162bf25c375",
+      "readiness_for_target": "not-applicable",
+      "true_positive_count": 0,
+      "false_positive_count": 0,
+      "false_negative_count": 0,
+      "reason": "No mount-namespace bind-mount code in repository sources.",
+      "txn_id": "refiner-41414160237-2"
     }
   ],
   "affected_paths": [

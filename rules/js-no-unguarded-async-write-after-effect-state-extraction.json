@@ -178,6 +178,16 @@
       "txn_id": "refiner-38313694983-1",
       "target_repo": "github/gh-aw-actions",
       "target_commit": "a0486bb9f7e2d8b990201dc43e34e7d668f191a4"
+    },
+    {
+      "target_repo": "githubnext/gh-cao",
+      "target_commit": "fb8ce95eda1a96712fbce50c84ff2162bf25c375",
+      "readiness_for_target": "ready",
+      "true_positive_count": 6,
+      "false_positive_count": 0,
+      "false_negative_count": 0,
+      "reason": "Re-confirmed: dashboard/site/src/components/account-menu.js still writes busy.set(false) after await with no scope.signal.aborted check; unchanged true positives, no false positives.",
+      "txn_id": "refiner-41414160237-3"
     }
   ],
   "affected_paths": [
