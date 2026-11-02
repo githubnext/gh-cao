@@ -270,7 +270,7 @@ test('declarative Overview views preserve desktop and mobile behavior', async ({
       };
     });
     expect(headingPlacement.title).toBe('Weekly rhythm');
-    expect(headingPlacement.subtitle).toBe('Agnetic Workflow runs');
+    expect(headingPlacement.subtitle).toBe('Agentic Workflow runs');
     expect(headingPlacement.subtitleTypography).toEqual(headingPlacement.legendTypography);
     expect(headingPlacement.titleBottom).toBeLessThanOrEqual(headingPlacement.subtitleTop);
     expect(headingPlacement.subtitleBottom).toBeLessThanOrEqual(headingPlacement.legendTop);

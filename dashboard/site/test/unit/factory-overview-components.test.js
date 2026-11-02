@@ -83,9 +83,9 @@ describe('Overview component boundaries', () => {
     const days = [...rendered.querySelectorAll('.factory-rhythm-day')];
 
     expect(days).toHaveLength(7);
-    expect(rendered.getAttribute('aria-label')).toBe('Agnetic Workflow runs this week and last week from Monday through Sunday');
+    expect(rendered.getAttribute('aria-label')).toBe('Agentic Workflow runs this week and last week from Monday through Sunday');
     expect([...rendered.querySelector('.factory-rhythm-heading')?.children ?? []].map((child) => child.textContent))
-      .toEqual(['Weekly rhythm', 'Agnetic Workflow runs', 'This weekLast week']);
+      .toEqual(['Weekly rhythm', 'Agentic Workflow runs', 'This weekLast week']);
     expect(rendered.querySelector('.graph-widget-y-axis-label')).toBeNull();
     expect(rendered.querySelector('.graph-widget-plot.factory-rhythm-bars')).not.toBeNull();
     expect(days[0]?.getAttribute('aria-label')).toBe('Mon 2026-09-07: 1 workflow run this week; 7 workflow runs last week.');
@@ -115,7 +115,7 @@ describe('Overview component boundaries', () => {
     const controller = new AbortController();
     const rendered = renderFactoryRhythm(binding(), { signal: controller.signal });
     expect(rendered.querySelectorAll('.factory-rhythm-day')).toHaveLength(7);
-    expect(rendered.querySelector('.factory-rhythm-heading strong')?.textContent).toBe('Agnetic Workflow runs');
+    expect(rendered.querySelector('.factory-rhythm-heading strong')?.textContent).toBe('Agentic Workflow runs');
     expect(rendered.querySelector('.graph-widget-y-axis-label')).toBeNull();
     expect(rendered.querySelectorAll('.factory-rhythm-bar-pair i')).toHaveLength(14);
     expect(rendered.querySelector('.factory-rhythm-day')?.getAttribute('aria-label'))
