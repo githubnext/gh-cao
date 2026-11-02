@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-01T15:50:26.074175Z",
-      "worker_run_id": "41323008633",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41322868289,
-        41321592260,
-        41320338080,
-        41319959468,
-        41319063671,
-        41317828587,
-        41316592783,
-        41315335887,
-        41315021746,
-        41314081320,
-        41312819980,
-        41311619064,
-        41310432303,
-        41309237556,
-        41308040009,
-        41307919363,
-        41306847706,
-        41306001925,
-        41305832405,
-        41304505343
-      ],
-      "outcome": "incomplete: the 2026-11-01T12:01:43Z to 2026-11-01T15:46:14Z latest-20 completed docs.yml window was within the 14-day limit and contained 17 successful runs and three skipped workflow_run runs, all at source SHA f04e44b8cd05c9eeda3c2fe45d9c539937abcd71. Trusted Actions run metadata, newly collected job and step metadata for schedule run 41322868289, and retained trusted evidence for the overlapping window show that 16 successful schedule runs executed only schedule-freshness and skipped build and deploy; all three skipped workflow_run runs supplied no additional successful build-and-deploy path. Only workflow_run 41307919363 completed the full build-and-deploy path, so the window contains one successful full path, below the required five comparable successful runs. That full run took 183 seconds wall-clock, with a 140-second build job and an 11-second deploy job; its verified dashboard cache hit completed in five seconds and skipped dashboard lookup and artifact download. The newest schedule run queued for three seconds, executed schedule-freshness for twelve seconds, spent eight seconds in the freshness check, and skipped build and deploy. With only one full path, median and p90 distributions and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-01T16:16:03.849759Z",
       "worker_run_id": "41325198066",
       "category": "reusable dashboard generation",
@@ -840,6 +812,34 @@
         41354952028
       ],
       "outcome": "incomplete: the 2026-11-01T22:01:13Z to 2026-11-02T01:46:20Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful runs (15 schedule and one push) and four skipped workflow_run runs. The window spans source SHAs f04e44b8cd05c9eeda3c2fe45d9c539937abcd71 and fb8ce95eda1a96712fbce50c84ff2162bf25c375. Trusted Actions run, job, and step metadata shows that all 15 successful schedule runs executed only schedule-freshness and skipped build and deploy; the skipped workflow_run entries supplied no successful build-and-deploy path. Only push run 41356257246 completed the full path, so the window contains one successful full build-and-deploy run, below the required five comparable successful runs. That run took 118 seconds wall-clock, with a 74-second build job and a 34-second deploy job; its dashboard cache was a verified hit because restore completed in three seconds and the cache-miss-only dashboard lookup and artifact-download steps were skipped. Checkout took 24 seconds, dependency installation 11 seconds, Astro documentation generation 11 seconds, and Pages artifact upload 15 seconds. With only one full path, median and p90 distributions for the full workflow and dashboard/build/deploy jobs, repeated-cost analysis, and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-02T02:21:30Z",
+      "worker_run_id": "41377056068",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41377142471,
+        41375501223,
+        41374179867,
+        41372916543,
+        41371710435,
+        41371548820,
+        41370256114,
+        41369425926,
+        41368264385,
+        41368089076,
+        41365091331,
+        41363696524,
+        41362447681,
+        41361275228,
+        41360921726,
+        41360010252,
+        41358745248,
+        41357516269,
+        41356282410,
+        41356257246
+      ],
+      "outcome": "incomplete: the 2026-11-01T22:16:00Z to 2026-11-02T02:20:03Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful runs (15 schedule and one push) and four skipped workflow_run runs, all at source SHA fb8ce95eda1a96712fbce50c84ff2162bf25c375. Trusted Actions run metadata, newly collected job and step metadata for schedule run 41375501223 and skipped workflow_run run 41377142471, and retained trusted evidence for the overlapping window show that all 15 schedule runs executed only schedule-freshness and skipped build and deploy; the skipped workflow_run entries supplied no successful build-and-deploy path. Only push run 41356257246 completed the full path, so the window contains one successful full build-and-deploy run, below the required five comparable successful runs. That run took 118 seconds wall-clock, with a 74-second build job and a 34-second deploy job; its dashboard cache was a verified hit because restore completed in three seconds and the cache-miss-only dashboard lookup and artifact-download steps were skipped. Checkout took 24 seconds, dependency installation 11 seconds, Astro documentation generation 11 seconds, and Pages artifact upload 15 seconds. The newest successful schedule run queued for three seconds, executed schedule-freshness for ten seconds, spent eight seconds in the freshness check, and skipped build and deploy. With only one full path, median and p90 distributions for the full workflow and dashboard/build/deploy jobs, repeated-cost analysis, and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
