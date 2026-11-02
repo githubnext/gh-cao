@@ -1,34 +1,7 @@
 {
-  "source_sha": "fb8ce95eda1a96712fbce50c84ff2162bf25c375",
+  "source_sha": "f8b2fc99422744fd19aaf4ed7599fdc47fd5bce4",
   "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-02T01:30:22Z",
-      "worker_run_id": "41372605282",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41369425926,
-        41368264385,
-        41368089076,
-        41365091331,
-        41363696524,
-        41362447681,
-        41361275228,
-        41360921726,
-        41360010252,
-        41358745248,
-        41357516269,
-        41356282410,
-        41355898405,
-        41354952028,
-        41353705317,
-        41352576142,
-        41352420688,
-        41351133559,
-        41351098582
-      ],
-      "outcome": "incomplete: GitHub Actions API rate limiting prevented collection of the current latest-20 completed docs.yml window, jobs, steps, and bounded logs. No additional GitHub API requests were attempted after the limit. The most recent retained trusted window (2026-11-01T21:15:48Z to 2026-11-02T00:52:07Z) contained only two successful full build-and-deploy paths, one per source revision and trigger, below the required five comparable successful runs. Retained evidence shows both full paths had verified dashboard cache hits, but it cannot substitute for a current evidence window or support current full-workflow and dashboard/build/deploy median and p90 distributions, repeated-cost analysis, or a complete reusable dashboard generation evaluation. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
     {
       "evaluated_at": "2026-11-02T01:51:57.471179Z",
       "worker_run_id": "41374439985",
@@ -840,6 +813,34 @@
         41408428291
       ],
       "outcome": "incomplete: the 2026-11-02T07:46:09Z to 2026-11-02T11:30:52Z latest-20 completed docs.yml window was within the 14-day limit and contained 15 successful schedule runs, four skipped workflow_run runs, and one cancelled workflow_run run. The 19 non-cancelled runs used source SHA fb8ce95eda1a96712fbce50c84ff2162bf25c375; the cancelled outlier used f8b2fc99422744fd19aaf4ed7599fdc47fd5bce4 and was excluded. Trusted Actions run, job, and step metadata shows that every successful schedule run executed only schedule-freshness and skipped build and deploy; skipped workflow_run entries also supplied no successful build-and-deploy path. Across the 15 freshness-only successes, workflow wall time had a 21-second median and 40-second p90; initial queue time had a 4-second median and 11-second p90, and schedule-freshness execution had a 15-second median and 24-second p90. The window contains zero successful full build-and-deploy runs, below the required five comparable successful runs. Build, deploy, dashboard reuse, dependency installation, Astro generation, artifact transfer, Pages packaging, and cache-hit distributions therefore cannot be evaluated from this window. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-02T11:51:51Z",
+      "worker_run_id": "41439705803",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41439372522,
+        41437339771,
+        41437318776,
+        41435472071,
+        41435068729,
+        41433393303,
+        41431465494,
+        41429471055,
+        41427487607,
+        41425394597,
+        41423365441,
+        41422355586,
+        41421262020,
+        41419973266,
+        41419688612,
+        41417376041,
+        41415491071,
+        41413676248,
+        41412600482,
+        41412380850
+      ],
+      "outcome": "incomplete: the 2026-11-02T08:20:49Z to 2026-11-02T11:46:22Z latest-20 completed docs.yml window was within the 14-day limit and contained 15 successful runs (14 schedule and one push), four skipped workflow_run runs, and one cancelled workflow_run run. The cancelled outlier was excluded. The window spans source SHAs fb8ce95eda1a96712fbce50c84ff2162bf25c375 and f8b2fc99422744fd19aaf4ed7599fdc47fd5bce4. Trusted current Actions run, job, and step metadata for the new source revision, plus retained trusted evidence for the overlapping window, show that all 14 successful schedule runs executed only schedule-freshness and skipped build and deploy; skipped workflow_run entries supplied no successful build-and-deploy path. Only push run 41437318776 completed the full path, so the window contains one successful full build-and-deploy run, below the required five comparable successful runs. That run took 171 seconds wall-clock, with 18 seconds before the build job started, a 114-second build job, a 5-second gap before deploy, and a 33-second deploy job. Its dashboard cache was a verified hit: restore completed in 4 seconds and the cache-miss-only dashboard lookup and artifact-download steps were skipped. Checkout took 34 seconds, dependency installation 23 seconds, Astro documentation generation 18 seconds, and Pages artifact upload 23 seconds. The newest schedule run took 22 seconds wall-clock, including 14 seconds of initial queue and a 7-second schedule-freshness job, and skipped build and deploy. With only one full path, median and p90 distributions for the full workflow and dashboard/build/deploy jobs, repeated-cost analysis, and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
