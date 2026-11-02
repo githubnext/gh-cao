@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-02T00:55:00Z",
-      "worker_run_id": "41369767598",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41369425926,
-        41368264385,
-        41368089076,
-        41365091331,
-        41363696524,
-        41362447681,
-        41361275228,
-        41360921726,
-        41360010252,
-        41358745248,
-        41357516269,
-        41356282410,
-        41356257246,
-        41355898405,
-        41354952028,
-        41353705317,
-        41352576142,
-        41352420688,
-        41351133559,
-        41351098582
-      ],
-      "outcome": "incomplete: the 2026-11-01T21:15:48Z to 2026-11-02T00:52:07Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful runs (14 schedule, one push, and one workflow_run), three skipped workflow_run runs, and one action_required workflow_run. The window spans source SHAs f04e44b8cd05c9eeda3c2fe45d9c539937abcd71 and fb8ce95eda1a96712fbce50c84ff2162bf25c375. Current trusted Actions run metadata, newly collected job and step metadata for schedule runs 41369425926 and 41368264385 and skipped workflow_run 41368089076, plus retained trusted evidence for the overlapping window, show only two successful full build-and-deploy paths: workflow_run 41351133559 at the older SHA and push 41356257246 at the newer SHA. The other 14 successful schedule runs executed only schedule-freshness and skipped build and deploy; skipped and action_required runs supplied no additional full path. The push took 118 seconds wall-clock, with a 74-second build job and a 34-second deploy job; the older workflow_run took 131 seconds wall-clock, with a 93-second build job and an 11-second deploy job. Both had verified dashboard cache hits because restore completed in three seconds and cache-miss-only dashboard lookup and artifact-download steps were skipped. Each of the two newest schedule runs queued three seconds before schedule-freshness, executed that job for ten seconds, spent seven seconds in the freshness step, and skipped build and deploy. With only two full paths, and only one per source revision and trigger, the evidence remains below the required five comparable successful runs. Full-workflow and dashboard/build/deploy median and p90 distributions, repeated-cost analysis, and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-02T01:21:13.745557Z",
       "worker_run_id": "41371604132",
       "category": "reusable dashboard generation",
@@ -840,6 +812,34 @@
         41402524315
       ],
       "outcome": "incomplete: the 2026-11-02T06:51:02Z to 2026-11-02T10:46:44Z latest-20 completed docs.yml window was within the 14-day limit and contained 17 successful schedule runs plus three skipped workflow_run runs, all at source SHA fb8ce95eda1a96712fbce50c84ff2162bf25c375. Trusted current Actions run metadata, newly collected job and step metadata for the six newest successful schedule runs, and retained trusted evidence for the overlapping window show that every successful schedule run executed only schedule-freshness and skipped build and deploy; the skipped workflow_run entries supplied no successful build-and-deploy path. Across the 17 freshness-only successes, workflow wall time had an 18-second median and 40-second p90. For the six newest successes, initial queue time ranged from 4 to 24 seconds and schedule-freshness execution ranged from 14 to 35 seconds; build and deploy did not execute. The window therefore contains zero successful full build-and-deploy runs, below the required five comparable successful runs. Freshness-only runs cannot support full-build median and p90 measurements for the workflow or dashboard/build/deploy jobs, repeated build-cost analysis, or current dashboard cache-hit verification. No recommendation was made, and reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-02T11:18:43Z",
+      "worker_run_id": "41435289827",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41435472071,
+        41435068729,
+        41433393303,
+        41431465494,
+        41429471055,
+        41427487607,
+        41425394597,
+        41423365441,
+        41422355586,
+        41421262020,
+        41419973266,
+        41419688612,
+        41417376041,
+        41415491071,
+        41413676248,
+        41412600482,
+        41412380850,
+        41410127581,
+        41408428291,
+        41406805151
+      ],
+      "outcome": "incomplete: the 2026-11-02T07:31:05Z to 2026-11-02T11:16:36Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful schedule runs plus four skipped workflow_run runs, all at source SHA fb8ce95eda1a96712fbce50c84ff2162bf25c375. Trusted current Actions run metadata, newly collected job and step metadata for the six newest successful schedule runs, and retained trusted evidence for the overlapping window show that every successful schedule run executed only schedule-freshness and skipped build and deploy; the skipped workflow_run entries supplied no successful build-and-deploy path. Across the 16 freshness-only successes, workflow wall time had a 20.5-second median and 40-second p90. For the six newest successes, initial queue time ranged from 4 to 11 seconds, schedule-freshness execution ranged from 14 to 17 seconds, and the freshness step took 11 to 14 seconds; build and deploy did not execute. The window therefore contains zero successful full build-and-deploy runs, below the required five comparable successful runs. Freshness-only runs cannot support full-build median and p90 measurements for the workflow or dashboard/build/deploy jobs, repeated build-cost analysis, or current dashboard cache-hit verification. No recommendation was made, and reusable dashboard generation remains the next category."
     }
   ]
 }
