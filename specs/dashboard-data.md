@@ -3322,9 +3322,39 @@ Observed API exhaustion, fast mode and public-only mode retain their precise
 deferral reasons. Git transport SHALL remain under its separate immutable
 inventory/blob bounds and SHALL NOT consume GitHub API request units.
 
-Hosted automatic cycles SHALL continue to defer remote collectors until they
-provide equivalent shared admission; explicit operator evaluation and evidence
-publication remain separate.
+Only the explicitly selected hosted GitHub App collector profile MAY use
+verified, deduplicated and enrolled issue, pull-request, completed-run and
+default-branch push deliveries as remote Value invalidations. Webhook payloads
+SHALL NOT establish accepted evidence or bypass reviewed exact-pair opt-in,
+effective scope or the frozen cadence. Durable repository hint generations
+SHALL preserve an event arriving during acquisition; a periodic daily sweep
+SHALL also revisit enabled registrations when deliveries are missed. Value
+work SHALL have bounded per-worker concurrency and a distributed
+single-owner lease per repository, and SHALL NOT
+hold the Activity projection or repository lease across collector execution.
+The default Actions profile has no inbound webhook receiver.
+
+The hosted collector SHALL keep installation credentials outside its confined
+collector subprocess. Every uncached API call SHALL use the existing shared
+installation quota service for its actual REST/core, search or GraphQL
+resource, preserving core headroom. GraphQL SHALL reserve an upper cost bound
+before execution and reconcile authoritative response points and remaining
+quota; one GraphQL request is not one quota point. Unknown or insufficient
+shared quota, an ungoverned redirect or absent authoritative cost SHALL defer
+the optional acquisition without substituting a PAT, publishing a zero or
+refreshing accepted evidence. Artifact redirects SHALL not forward the App
+token to the download host. The reviewed `api-requests` limit SHALL bound
+actual forwarded requests; private per-pair history SHALL record API calls,
+observed GraphQL points, unverified-cost GraphQL requests, elapsed wall time
+and received/output bytes, including failed attempts, without reporting
+unknown points as zero or calling wall time CPU or billing cost.
+
+The worker SHALL recheck enrollment, reviewed registration and retained
+starting evidence before publication. Only a valid original evidence packet
+MAY be atomically published to canonical PostgreSQL. Superseded, failed or
+withdrawn work SHALL retain prior accepted facts and freshness clocks; erasure
+SHALL remove private proof and hint state. Explicit operator evaluation and
+evidence publication remain separate.
 
 A collector continuing an accepted proof SHALL start discovery and mutable
 source-history acquisition at the retained cutoff, with exact timestamp

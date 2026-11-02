@@ -131,13 +131,32 @@ private snapshot, never the core projection lease. Publication rechecks enrollme
 and the starting input, policy and retained evidence; a concurrent change defers
 the result rather than overwriting newer evidence. Completed-cache imports reject
 conflicting measurements at an identical observation identity.
-The optional server collector's signed issue/PR webhooks currently enrich
-partial lifecycle evidence; they do not activate or replace remote Value
-acquisition. The default Actions profile has no inbound webhook receiver.
-Webhook-driven remote Value needs an explicitly selected collector deployment,
-durable per-pair invalidation and shared installation-quota enforcement before
-it can substitute for scheduled discovery. An outcome webhook alone cannot
-establish applied-output lineage or cadence-aligned repository snapshots.
+When the optional hosted GitHub App collector is explicitly selected, verified
+issue, pull-request and completed-run deliveries and default-branch pushes
+persist a debounced Value refresh hint for enrolled repositories. A separate
+bounded worker checks reviewed remote registrations, current enrollment and
+the frozen cadence before collecting; a daily sweep repairs missed webhooks.
+A webhook is a prompt to inspect evidence, not proof of acceptance or a new
+capture. Ordinary Activity projection and bounded local Value remain
+independent. The default Actions profile has no inbound webhook receiver and
+continues its existing scheduled collection.
+
+The hosted worker keeps the installation token outside the collector process.
+Its repository-confined API bridge admits REST/core, search and GraphQL
+requests against the same shared installation quota used by Activity; GraphQL
+is limited to the reviewed File Diet query shape and its points are accounted
+separately from the reviewed API request count. Unsupported query shapes fail
+closed rather than extending a registration's authority. Missing
+quota evidence, exhausted capacity, changed policy/enrollment, incomplete
+collection or superseded accepted evidence defers publication. On success
+only the validated original packet is atomically published to PostgreSQL.
+Private per-pair proof retains the last 30 attempts' API request count, wall
+time and received/output bytes, including failures, plus cumulative observed
+GraphQL points and the number of requests whose point cost could not be
+verified. An unknown point cost is not reported as zero; quota preflight is
+counted as an API call. These are acquisition costs, not CPU or billed spend. On
+withdrawal the private proof and pending hint are erased. No webhook alone
+establishes applied-output lineage or cadence-aligned repository snapshots.
 
 Collection decisions and actual attempts retain independent clocks. Reordered
 or repeated health observations cannot erase a known attempt or restore an older

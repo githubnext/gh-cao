@@ -3166,6 +3166,27 @@ Collection separates three concerns that fail differently:
    interval, so ingestion cost follows the collection rate rather than the
    event rate.
 
+With this optional App collector profile, eligible signed issue, pull-request,
+completed-run and default-branch push events also invalidate registered remote
+workflow Value. Ordinary pushes enqueue only a separately debounced Value hint;
+they do not download logs or rebuild inventory. A separate bounded worker
+rechecks reviewed registration, enrollment and the frozen collection cadence,
+while a daily sweep repairs missed notifications. The collector does not
+receive an installation token: a private host-side API bridge admits its
+repository-confined requests against shared core, search and GraphQL quota.
+The authenticated Unix-socket bridge requires Linux and recognizes only the
+reviewed File Diet GraphQL shape; unsupported requests fail closed.
+Unavailable quota or changed policy/evidence defers the attempt without
+replacing an accepted packet. The shared durable lake contains private
+`.remote-value-workspaces/` with retained proof and `collection-cost.json`
+per exact pair. Costs keep cumulative API/preflight requests, wall time,
+output and transport bytes, observed GraphQL points and unverified GraphQL
+request counts plus 30 recent attempts, including failures;
+these are not CPU or billing figures. Withdrawal erases that proof and its
+pending hint. These private files are not Activity snapshot shards. The
+default Actions profile does not receive webhooks and retains its separate
+scheduled remote collection.
+
 The evidence lake is laid out byte-compatibly with a snapshot published by the
 Activity workflow:
 

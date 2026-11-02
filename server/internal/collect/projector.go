@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
+	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/operational"
@@ -55,6 +57,10 @@ type Projector struct {
 	OutcomeClient       OutcomeClient
 	Quota               RunQuotaService
 	QuotaApp            string
+	RemoteQuota         *githubquota.Service
+	RemoteSearchQuota   *githubquota.Service
+	RemoteHTTP          *http.Client
+	RemoteValuePlan     *RemoteValuePlanCache
 	WindowDays          int
 	DatabaseQueriesPath string
 	// PolicyPath is the reviewed deployment policy resolved for inventory.

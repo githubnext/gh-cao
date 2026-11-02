@@ -40,6 +40,7 @@ type Task struct {
 	RepositoryID     int64           `json:"repositoryId,omitempty"`
 	Lifecycle        string          `json:"lifecycle,omitempty"`
 	InventoryRefresh bool            `json:"inventoryRefresh,omitempty"`
+	ValueRefresh     bool            `json:"valueRefresh,omitempty"`
 	Scope            *ScopeChange    `json:"scope,omitempty"`
 	Traceparent      string          `json:"traceparent,omitempty"`
 	Outcome          *mining.Outcome `json:"outcome,omitempty"`
@@ -62,6 +63,9 @@ func (task Task) debounceKey() string {
 	}
 	if task.InventoryRefresh {
 		return "collect:inventory-debounce:" + task.Repository
+	}
+	if task.ValueRefresh && task.Reason == "push.value" {
+		return "collect:value-debounce:" + task.Repository
 	}
 	if task.Lifecycle != "" || task.Erase {
 		return ""
