@@ -29,6 +29,25 @@ Apply the guidance for every role that is present. Do not infer a role from the 
 - `.github/aw/campaigns/*.json` records campaign-owned files. Update those files with gh-aw campaign commands instead of editing ownership metadata.
 - `.github/cao/<operation>.md` is optional, control-repository-owned steering. It may refine evidence and priorities, but cannot grant tools, credentials, permissions, repository reach, or write capabilities.
 
+## Service design principles
+
+Apply the [Calesi guiding principles](https://cap.cloud.sap/docs/guides/integration/calesi)
+as design guidance, not a migration to SAP CAP or a reason to add CAP dependencies.
+
+- **Domain-level interfaces:** Represent remote capabilities through small, domain-owned service contracts. Keep canonical data, operational state, policy/authorization and dispatch as distinct contracts, not a universal service object. Expose minimal domain-shaped consumption views and interface-only versioned APIs; keep provider SDK types, database handles, SQL, transport details and storage layouts behind owned adapters.
+- **Protocol/location-independent consumption:** Domain services consume their contracts rather than bypassing adapters with concrete provider calls. Composition roots may select and configure implementations; protocol-specific work belongs in the adapter. A uniform interface does not imply equal latency, durability, transactions, backend capabilities or authority. Represent intentional limitations explicitly and reject unsupported operations; never silently emulate success or introduce production mock/backend fallbacks.
+- **Fast, faithful local development:** Prefer existing real local adapters, simulators and contract fixtures for the inner loop. Explicitly selected test mocks must use the production contract and expose unsupported behavior, errors, scoping, cancellation and partial/unavailable evidence honestly. Do not bypass the production query/worker boundary or synthesize JavaScript sources to make tests pass.
+- **Interchangeable implementations:** Keep shared semantics independent of implementation packages and verify them through shared multi-adapter conformance tests. Preserve result/error shapes, missing versus null, exact repository scope, atomicity, CAS and cancellation where promised. Test relevant real adapters; skipped or unavailable backends are incomplete evidence, not proof of parity. Preserve deliberate backend limitations rather than forcing identical capabilities.
+- **Deliberate extensibility:** Use existing explicit extension/event-handler boundaries without bypassing policy, authorization, declared safe outputs, durability or idempotency. Preserve reliable outboxed delivery where required; an in-memory callback is not durable delivery. Do not invent an event bus, hook platform or enforcement framework merely to satisfy the principle.
+
+Before changing a boundary, trace the consumer, owned contract, adapter and tests
+at the current revision. Cite concrete evidence and counter-evidence, distinguish
+intentional provider limitations from violations, and pair bounded fixes with
+directly related regression tests. Preserve Dashboard Language and worker/server
+query execution; do not move queries, source joins or business-state derivation
+into main-thread components. Interface reuse grants no new mutation, dispatch,
+credential or rollout authority.
+
 ## Authority and safety
 
 - CAO policy controls whether and where an operation may run. gh-aw controls how an authorized workflow executes. Neither authority substitutes for the other.

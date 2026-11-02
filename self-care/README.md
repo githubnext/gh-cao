@@ -1,9 +1,10 @@
 # SelfCare
 
-SelfCare runs repository-local maintenance for `githubnext/gh-cao`. Its orchestrator dispatches up to twenty live-only workers, including:
+SelfCare runs repository-local maintenance for `githubnext/gh-cao`. Its orchestrator registers twenty-two live-only workers and dispatches only enabled workers, including:
 
 - **Accessibility Checker** audits the rendered documentation site and publishes one prioritized accessibility issue.
 - **Code Improvement** extracts one evidenced duplicated dashboard UI construct into a tested reusable component and opens one focused draft pull request.
+- **Calesi Design Principles** checks domain-owned service interfaces, protocol/location-independent consumption, faithful local implementations, multi-adapter conformance and deliberate governed extension delivery. Enabled for the existing authorized target, it proposes at most one bounded, tested Go remediation in a draft PR.
 - **Dashboard Performance** rotates through trace-backed CFO, CTO, and CSO Lighthouse bottlenecks and opens one focused draft pull request.
 - **Dashboard Debug Logging** instruments one evidenced dashboard JavaScript subsystem with category-filtered, privacy-preserving diagnostics.
 - **Dashboard Data Schema** verifies the deployed dashboard JSON contracts and opens one focused draft pull request when inferred pseudo schemas change.
@@ -22,7 +23,48 @@ SelfCare runs repository-local maintenance for `githubnext/gh-cao`. Its orchestr
 
 The checked-in control policy admits only `githubnext/gh-cao` as a live target, and the target-authority declaration grants this repository's control plane authority for the campaign. The orchestrator rejects every other repository and every non-live candidate; all workers repeat those checks before performing their mission. Open Source Failures selects public project records only from the dashboard's validated activity snapshot; it does not discover or access repositories independently.
 
-The campaign uses `shared/control.md` for policy resolution, target authority, dispatch envelopes, safe-output routing, and correlation. It dispatches at most twenty workflows for its single target.
+The campaign uses `shared/control.md` for policy resolution, target authority, dispatch envelopes, safe-output routing, and correlation. Its dispatch ceiling is twenty-two workflows for its single target; disabled workers remain ineligible.
+
+## Calesi design-principle enforcement
+
+The [Calesi worker](../.github/workflows/self-care-calesi-design-principles.md)
+adapts [SAP's guiding principles](https://cap.cloud.sap/docs/guides/integration/calesi)
+without migrating CAO to SAP CAP or adding dependencies. Canonical data,
+operational state, policy/authorization and dispatch remain separate narrow
+contracts. A uniform interface does not promise identical latency, durability,
+transactions, backend capabilities or authority.
+
+Each finding needs current SHA/path/line evidence, a consumer-to-contract-to-adapter
+trace, a violated principle, counter-evidence and explicit provider limitations.
+The worker checks for implementation leakage, adapter bypasses, misleading local
+fixtures, missing shared conformance and extension side effects bypassing
+authorization, safe outputs, outbox durability or idempotency. Intentional
+limitations are not forced into parity; unsupported operations must fail
+explicitly. Production mock/backend fallbacks and main-thread dashboard queries
+or component-side joins are prohibited.
+
+Enforcement uses the existing draft-PR/test mechanism: one reproduced violation,
+at most four production Go files and six tests under `server/internal/`, ten files
+and 50 KiB total. Required regression and relevant real-adapter conformance tests
+must pass; skipped backends remain incomplete. Work outside that boundary is
+deferred, not partially migrated. No new enforcement framework or dependency on
+an unmerged architectural refactor is introduced.
+
+The effective policy enables this worker with `enabled: true` for SelfCare's
+existing sole authorized target, `githubnext/gh-cao`. This explicit enablement
+does not change target scope, credentials, the campaign review default or
+unrelated worker settings. The parent must still require successful precomputed
+policy admission at the exact workflow revision. Existing live-only SelfCare
+admission remains unchanged; standard review-mode output routing remains
+fail-closed, not a new review-mode dispatch path. Activation requires the
+reviewed sources, policy and compiled workflows on the active control branch.
+
+There is no deterministic operational-value grader yet: a proposed abstraction
+or successful test run is not evidence of accepted architectural value. Measure
+accepted remediation and preserved semantics only after independent adoption
+evidence supports a frozen value function.
+
+## Server SOC2 readiness
 
 The SOC2 worker follows the [readiness specification](../specs/server-soc2-compliance.md)
 and [assessment skill](../.github/skills/soc2-server-assessment/SKILL.md).
@@ -45,5 +87,7 @@ registration at the same commit on the control repository's active branch,
 existing read/safe-output credentials, Actions availability and human PR review.
 Registration does not add targets or change the existing sole live target;
 campaign default remains review. No manual run, merge or deployment is implied.
+
+## Operational value
 
 The Docs Build-Time Investigator registers an operational grader through gh-aw's `operational-value` protocol. It measures material `docs.yml` execution-time reduction while requiring completed-run reliability to be preserved. The campaign dashboard keeps recommendations distinct from matured attainment. Design graders for the other workers after adoption evidence establishes measurable accessibility, component-reuse, declarative-view-reuse, reactive-UI-maintenance, glossary-maintenance, data-acquisition, dashboard-review, public-failure-remediation, and brand-maintenance outcomes.
