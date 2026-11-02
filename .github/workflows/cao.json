@@ -267,6 +267,10 @@
           "agent-discoverability": {
             "workflow": "self-care-agent-discoverability"
           },
+          "calesi-design-principles": {
+            "workflow": "self-care-calesi-design-principles",
+            "enabled": false
+          },
           "cli-consistency": {
             "workflow": "self-care-cli-consistency"
           },

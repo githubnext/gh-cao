@@ -273,7 +273,7 @@ test("enterprise defaults, budgets, timeouts, and concurrency are finite", () =>
     "eu-cra-compliance.md": { credits: 200, timeout: 15, dispatchMax: 48, workers: 6 },
     "eu-cra-compliance-campaign-maintainer.md": { credits: 200, timeout: 20 },
     "optimization.md": { credits: 250, timeout: 15, dispatchMax: 12, workers: 2 },
-    "self-care.md": { credits: 200, timeout: 15, dispatchMax: 21, workers: 21 },
+    "self-care.md": { credits: 200, timeout: 15, dispatchMax: 22, workers: 22 },
     "cao-evolution-failures-investigator.md": { credits: 500, timeout: 30 },
     "cao-evolution-compiler-security.md": { credits: 500, timeout: 45 },
     "dependabot-update-planner.md": { credits: 600, timeout: 60 },
@@ -291,6 +291,7 @@ test("enterprise defaults, budgets, timeouts, and concurrency are finite", () =>
     "software-development-practices-nist-ssdf.md": { credits: 400, timeout: 30 },
     "self-care-accessibility-checker.md": { credits: 400, timeout: 30 },
     "self-care-agent-discoverability.md": { credits: 250, timeout: 30 },
+    "self-care-calesi-design-principles.md": { credits: 400, timeout: 40 },
     "self-care-cli-consistency.md": { credits: 500, timeout: 60 },
     "self-care-code-improvement.md": { credits: 400, timeout: 30 },
     "self-care-dashboard-data-schema.md": { credits: 100, timeout: 15 },
@@ -472,7 +473,7 @@ test("control workflows deny before activation through one shared admission cont
       name,
     );
     assert.match(source, /jobs:\n  pre-activation:\n    outputs:\n      cao_authorized: \$\{\{ steps\.cao_admission\.outputs\.authorized == 'true' && steps\.cao_precompute\.outputs\.authorized != 'false' \}\}/, name);
-    const expectedGuard = name === "self-care-server-soc2.md"
+    const expectedGuard = ["self-care-server-soc2.md", "self-care-calesi-design-principles.md"].includes(name)
       ? "needs.pre_activation.outputs.cao_authorized == 'true' && inputs.target_repo == 'githubnext/gh-cao' && inputs.safe_output_mode == 'live'"
       : "needs.pre_activation.outputs.cao_authorized == 'true'";
     assert.equal(workflowConfig(name).if, expectedGuard, name);
