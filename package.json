@@ -23,6 +23,8 @@
     "dashboard:server:otel-smoke": "go -C server run ./cmd/cao-dashboard otel-smoke",
     "dashboard:server:lint": "cd server && golangci-lint fmt --diff && golangci-lint run ./...",
     "dashboard:server:test": "go -C server test -p 1 ./...",
+    "test:scenario:dashboard-contract": "go -C server test ./internal/simulator -run '^TestDashboardReadSyntheticScenario$' -count=1 -timeout=1m -v",
+    "test:integration:dashboard-contract": "CAO_DASHBOARD_CONTRACT_PROCESS=1 go -C server test ./internal/simulator -run '^TestDashboardReadSyntheticProcessScenario$' -count=1 -timeout=3m -v",
     "test:integration:dashboard-backfill": "bash scripts/test-dashboard-backfill.sh",
     "test:integration:actions-simulator": "go -C server test -race ./internal/simulator ./internal/admission ./internal/webhookgateway ./cmd/cao-webhook-gateway -run '^(TestLocalActions|TestSpecLocalHost|TestGatewayAPI|TestIssueServiceSimulator($|HTTP|GatewaySQLite)|TestGitHubSimulator(Gateway|Discovery)SQLite)' -count=1 -timeout=2m -v",
     "test:integration:issue-services": "go -C server test -race ./internal/simulator ./internal/webhookgateway -run '^TestIssueServiceSimulator($|HTTP|GatewaySQLite)' -count=1 -timeout=2m -v",
