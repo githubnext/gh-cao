@@ -82,6 +82,8 @@ and directory listings and escaping symlinks are refused. Paths in npm Go
 commands resolve relative to `server/`. Static Pages is an explicit mode,
 never a fallback for hosted serving.
 
+[Canonical read contract inner loop (explicitly synthetic)](DASHBOARD-CONTRACT.md).
+
 ### Daily agentic maintainer journeys
 
 The repository-private `dashboard-maintainer-simulation` agentic workflow runs
