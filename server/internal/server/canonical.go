@@ -8,7 +8,6 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/model"
-	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
 )
 
@@ -23,7 +22,7 @@ var errCanonicalEntityNotFound = errors.New("canonical entity was not found")
 
 func (service canonicalService) rows(ctx context.Context, source string) ([]model.Row, error) {
 	var rows []model.Row
-	err := service.store.WithReadTransaction(ctx, func(ctx context.Context, reader postgresx.NativeReader) error {
+	err := service.store.WithReadTransaction(ctx, func(ctx context.Context, reader dashboardstore.Reader) error {
 		active, err := reader.State(ctx)
 		if err != nil {
 			return err
@@ -57,7 +56,7 @@ func (service canonicalService) filteredRows(ctx context.Context, source string,
 	}
 	definitions := append(append([]query.Definition{}, service.definitions...), definition)
 	var rows []model.Row
-	err := service.store.WithReadTransaction(ctx, func(ctx context.Context, reader postgresx.NativeReader) error {
+	err := service.store.WithReadTransaction(ctx, func(ctx context.Context, reader dashboardstore.Reader) error {
 		active, err := reader.State(ctx)
 		if err != nil {
 			return err
@@ -113,7 +112,7 @@ func (service canonicalService) parentRuns(ctx context.Context, parent, field, i
 	presentation.Name, presentation.From = "canonical-parent-runs", "canonical-run-input"
 	definitions = append(definitions, presentation)
 	var rows []model.Row
-	err := service.store.WithReadTransaction(ctx, func(ctx context.Context, reader postgresx.NativeReader) error {
+	err := service.store.WithReadTransaction(ctx, func(ctx context.Context, reader dashboardstore.Reader) error {
 		active, err := reader.State(ctx)
 		if err != nil {
 			return err

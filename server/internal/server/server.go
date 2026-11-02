@@ -1616,7 +1616,7 @@ func (a *App) executeQuery(ctx context.Context, input queryRequest, allowCollect
 	started := time.Now()
 	var response queryResponse
 	var status int
-	err = a.database.WithReadTransaction(ctx, func(ctx context.Context, reader postgresx.NativeReader) error {
+	err = a.database.WithReadTransaction(ctx, func(ctx context.Context, reader dashboardstore.Reader) error {
 		var queryErr error
 		response, status, queryErr = a.executeQueryWithReader(ctx, input, allowCollectionHealth, reader)
 		return queryErr
@@ -1636,7 +1636,7 @@ func (a *App) executeQuery(ctx context.Context, input queryRequest, allowCollect
 	return response, status, err
 }
 
-func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, allowCollectionHealth bool, reader postgresx.NativeReader) (queryResponse, int, error) {
+func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, allowCollectionHealth bool, reader dashboardstore.Reader) (queryResponse, int, error) {
 	active, err := reader.State(ctx)
 	if err != nil || !active.Ready {
 		return queryResponse{}, http.StatusServiceUnavailable, errors.New("dashboard data is unavailable")
@@ -1663,13 +1663,13 @@ func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, al
 		ctx: ctx, database: reader, operational: a.services.Cache, dataRevision: active.DataRevision,
 		app: a, allowCollectionHealth: allowCollectionHealth,
 	}
-	pages := map[string]postgresx.SQLPage{}
+	pages := map[string]dashboardstore.Page{}
 	for name, page := range input.Pagination {
 		offset, err := paginationOffset(name, strconv.FormatInt(active.Revision, 10), page)
 		if err != nil {
 			return queryResponse{}, http.StatusBadRequest, err
 		}
-		pages[name] = postgresx.SQLPage{Offset: offset, Limit: page.Limit}
+		pages[name] = dashboardstore.Page{Offset: offset, Limit: page.Limit}
 	}
 	sources, metrics, err := loader.ExecuteSQLPlan(definitions, requested, pages)
 	if err != nil {
@@ -1720,15 +1720,15 @@ func (a *App) queryPlan(input queryRequest) ([]query.Definition, []string) {
 
 type databaseLoader struct {
 	ctx                   context.Context
-	database              postgresx.NativeReader
+	database              dashboardstore.Reader
 	operational           operational.Cache
 	dataRevision          string
 	app                   *App
 	allowCollectionHealth bool
 }
 
-func (loader *databaseLoader) ExecuteSQLPlan(definitions []query.Definition, requested []string, pages map[string]postgresx.SQLPage) (map[string]model.Source, model.Metrics, error) {
-	return loader.database.ExecuteSQLPlanWithOptions(loader.ctx, definitions, requested, postgresx.SQLExecutionOptions{
+func (loader *databaseLoader) ExecuteSQLPlan(definitions []query.Definition, requested []string, pages map[string]dashboardstore.Page) (map[string]model.Source, model.Metrics, error) {
+	return loader.database.ExecuteSQLPlanWithOptions(loader.ctx, definitions, requested, dashboardstore.ExecutionOptions{
 		Pages: pages, Runtime: func(ctx context.Context, name string) (model.Source, error) {
 			return loader.runtimeSource(ctx, name, definitions)
 		},

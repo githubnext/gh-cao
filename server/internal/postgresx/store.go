@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/inputlimits"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/model"
@@ -24,13 +25,7 @@ import (
 
 var storeLog = logger.New("cao:postgresx:store")
 
-type State struct {
-	Ready        bool
-	Revision     int64
-	DataRevision string
-	EvaluatedAt  time.Time
-	Counts       map[string]int
-}
+type State = dashboardstore.State
 
 type Store struct {
 	db                  *sql.DB
@@ -47,17 +42,15 @@ type Store struct {
 // is useful only as a test seam, not as a source of revision state.
 func (s *Store) Open() bool { return s != nil && s.db != nil }
 
-type NativeReader interface {
-	State(context.Context) (State, error)
-	ExecuteSQLPlan(context.Context, []query.Definition, []string) (map[string]model.Source, model.Metrics, error)
-	ExecuteSQLPlanWithOptions(context.Context, []query.Definition, []string, SQLExecutionOptions) (map[string]model.Source, model.Metrics, error)
-	Diagnostics(context.Context) (model.Diagnostics, error)
-}
+type NativeReader = dashboardstore.Reader
 
 type readTransaction struct {
 	store *Store
 	tx    *sql.Tx
 }
+
+var _ dashboardstore.Store = (*Store)(nil)
+var _ dashboardstore.Reader = (*readTransaction)(nil)
 
 func New(ctx context.Context, dsn string, namespaces ...string) (*Store, error) {
 	if len(namespaces) > 1 {

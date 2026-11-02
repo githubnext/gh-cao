@@ -11,25 +11,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/inputlimits"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/query"
 	"github.com/githubnext/gh-cao/server/internal/sqlbuilder"
 )
 
-type SQLPage struct{ Offset, Limit int }
-type SQLResourceLimits struct {
-	MaxInputRows    int
-	MaxOperations   int
-	MaxWorkingBytes int64
-}
-
-type SQLExecutionOptions struct {
-	Runtime        func(context.Context, string) (model.Source, error)
-	Pages          map[string]SQLPage
-	ResourceLimits *SQLResourceLimits
-	Repositories   []string
-}
+type SQLPage = dashboardstore.Page
+type SQLResourceLimits = dashboardstore.ResourceLimits
+type SQLExecutionOptions = dashboardstore.ExecutionOptions
 
 func sqlResourceLimits(override *SQLResourceLimits) (SQLResourceLimits, error) {
 	limits := SQLResourceLimits{

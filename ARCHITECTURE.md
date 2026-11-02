@@ -782,6 +782,24 @@ environment variables alone do not override the SQLite default.
 contract behind `server/internal/dashboardstore/`; PostgreSQL's SQL executor,
 ingestion, and hosted defaults remain unchanged.
 
+The implementation-neutral `dashboardstore` package owns the `Store` and
+transaction-scoped `Reader` interfaces together with `State`, `Page`,
+`ResourceLimits`, and `ExecutionOptions`. It depends only on the shared model
+and query vocabulary, never on a storage adapter or driver. PostgreSQL and
+SQLite implement that contract; legacy PostgreSQL type names are reverse
+aliases for source compatibility, not the contract's owner. HTTP queries and
+the canonical API consume the neutral reader. State, query results, and
+diagnostics share one bounded, cancellation-aware read transaction; callback
+and storage errors propagate rather than turning unavailable storage into
+successful empty data. Revisions retain their backend-specific identities.
+The historical `ExecuteSQLPlan` method names do not promise a common execution
+engine: PostgreSQL compiles SQL, while SQLite uses its bounded Go evaluator
+and explicitly rejects resource-limit overrides. This boundary does not add
+backend fallback, a hosted SQLite profile, or shared write/ingestion APIs.
+Shared conformance tests exercise both real adapters, including concurrent
+publication and next-read revision visibility; dependency tests keep contract
+ownership and production dependencies independent of the implementations.
+
 Automatic acquisition uses `DASHBOARD_DATA_URL` or the public CAO Pages snapshot.
 `serve --download-sqlite[=URL]` explicitly refreshes even an existing cache before
 opening it. Any Pages site or custom-domain directory, dashboard directory, or
