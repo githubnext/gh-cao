@@ -63,6 +63,8 @@ or successful test run is not evidence of accepted architectural value. Measure
 accepted remediation and preserved semantics only after independent adoption
 evidence supports a frozen value function.
 
+## Server SOC2 readiness
+
 The SOC2 worker follows the [readiness specification](../specs/server-soc2-compliance.md)
 and [assessment skill](../.github/skills/soc2-server-assessment/SKILL.md).
 Its daily JSON/Markdown evidence artifacts (14-day retention) and run summary
@@ -84,5 +86,7 @@ registration at the same commit on the control repository's active branch,
 existing read/safe-output credentials, Actions availability and human PR review.
 Registration does not add targets or change the existing sole live target;
 campaign default remains review. No manual run, merge or deployment is implied.
+
+## Operational value
 
 The Docs Build-Time Investigator registers an operational grader through gh-aw's `operational-value` protocol. It measures material `docs.yml` execution-time reduction while requiring completed-run reliability to be preserved. The campaign dashboard keeps recommendations distinct from matured attainment. Design graders for the other workers after adoption evidence establishes measurable accessibility, component-reuse, declarative-view-reuse, reactive-UI-maintenance, glossary-maintenance, data-acquisition, dashboard-review, public-failure-remediation, and brand-maintenance outcomes.
