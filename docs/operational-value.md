@@ -96,6 +96,16 @@ capacity defers before invocation and leaves accepted packets, immutable proof
 and freshness clocks unchanged. Fast mode, public-only mode and observed API
 exhaustion keep their more precise deferral reasons. A separate worker alone
 still does not isolate shared quota.
+Each invoked collector retains `collection-cost.json` in its existing private
+per-pair proof workspace. Its cumulative totals and last 30 attempts record
+actual uncached GitHub requests consumed from the reviewed grant (not the grant
+ceiling), separate capacity-check requests, elapsed collector wall time and
+stdout bytes, including failed attempts. The Activity job also prints aggregate
+costs for that invocation. Unmetered local attempts are counted separately;
+wall time is not CPU or billing cost, and Git transport is not included in the
+GitHub API count. Capacity checks that defer before invocation appear in the
+job aggregate, not as collector attempts. Retained proof and its cost history
+are copied forward together, so a failed refresh does not erase prior usage.
 For registered remote collectors, ordinary Activity reserves their reviewed
 request ceilings on top of its protected API floor before downloading logs.
 If log collection stops at that floor, Value still checks live capacity against
@@ -121,6 +131,13 @@ private snapshot, never the core projection lease. Publication rechecks enrollme
 and the starting input, policy and retained evidence; a concurrent change defers
 the result rather than overwriting newer evidence. Completed-cache imports reject
 conflicting measurements at an identical observation identity.
+The optional server collector's signed issue/PR webhooks currently enrich
+partial lifecycle evidence; they do not activate or replace remote Value
+acquisition. The default Actions profile has no inbound webhook receiver.
+Webhook-driven remote Value needs an explicitly selected collector deployment,
+durable per-pair invalidation and shared installation-quota enforcement before
+it can substitute for scheduled discovery. An outcome webhook alone cannot
+establish applied-output lineage or cadence-aligned repository snapshots.
 
 Collection decisions and actual attempts retain independent clocks. Reordered
 or repeated health observations cannot erase a known attempt or restore an older

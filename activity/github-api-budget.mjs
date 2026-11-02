@@ -113,6 +113,21 @@ export function consumeGithubApiBudget(filename, count = 1) {
   if (typeof filename !== 'string' || !filename || !validInteger(count, 1, MAX_REQUESTS)) {
     throw new GithubApiBudgetError('GitHub API budget consumption is invalid', 'budget-unavailable');
   }
+  const state = readGithubApiBudget(filename);
+  if (state.consumed + count > state.granted) {
+    throw new GithubApiBudgetError(
+      `GitHub API Value request budget exhausted: ${state.consumed}/${state.granted} requests consumed`,
+    );
+  }
+  state.consumed += count;
+  atomicWrite(path.resolve(filename), state);
+  return state;
+}
+
+export function readGithubApiBudget(filename) {
+  if (typeof filename !== 'string' || !filename) {
+    throw new GithubApiBudgetError('GitHub API budget state is unavailable', 'budget-unavailable');
+  }
   const resolved = path.resolve(filename);
   let info;
   try {
@@ -130,13 +145,6 @@ export function consumeGithubApiBudget(filename, count = 1) {
     if (error instanceof GithubApiBudgetError) throw error;
     throw new GithubApiBudgetError('GitHub API budget state is unreadable', 'budget-unavailable');
   }
-  if (state.consumed + count > state.granted) {
-    throw new GithubApiBudgetError(
-      `GitHub API Value request budget exhausted: ${state.consumed}/${state.granted} requests consumed`,
-    );
-  }
-  state.consumed += count;
-  atomicWrite(resolved, state);
   return state;
 }
 

@@ -4,12 +4,12 @@
 // The return value is the original schema-v2 operational_value_evidence envelope.
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { lstat, mkdir, mkdtemp, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadPolicyFile } from '../.github/workflows/shared/policy.mjs';
 import { validateOperationalValueEvidence } from '../dashboard/site/src/data/model/operational-value-evidence.js';
-import { GithubApiBudgetError, prepareGithubApiBudget } from './github-api-budget.mjs';
+import { GithubApiBudgetError, prepareGithubApiBudget, readGithubApiBudget } from './github-api-budget.mjs';
 import { assertValueHistory } from './workflow-value-history.mjs';
 import { readReviewedValueEvidence } from './workflow-value-evidence.mjs';
 import { createValueArchiveProvider, valueArchiveAccessFromEnvironment } from './value-session-archive.mjs';
@@ -23,6 +23,7 @@ export { assertValueHistory } from './workflow-value-history.mjs';
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const MAX_BATCH_BYTES = 32 * 1024 * 1024;
+const MAX_COST_HISTORY = 30;
 const DAY = 86400000;
 const modulePath = new URL(import.meta.url);
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.toLowerCase() === b.toLowerCase();
@@ -47,6 +48,45 @@ export function workflowValueRegistrations(document, repositories) {
   const activity = control.campaigns?.activity;
   if (activity?.enabled === false) return [];
   return workflowValueSelections(document, repositories).filter(entry => entry.enabled !== false);
+}
+
+async function recordValueCost(workspace, entry, cost) {
+  await mkdir(workspace, { recursive: true });
+  if ((await lstat(workspace)).isSymbolicLink()) throw new Error('Value cost workspace symlinks are forbidden');
+  const filename = path.join(workspace, 'collection-cost.json');
+  let history;
+  try {
+    const info = await lstat(filename);
+    if (!info.isFile() || info.isSymbolicLink() || info.size > 128 * 1024) {
+      throw new Error('Value cost history is not a bounded regular file');
+    }
+    history = JSON.parse(await readFile(filename, 'utf8'));
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    history = { schemaVersion: 1, repository: entry.repository, workflow: entry.workflow,
+      totals: { attempts: 0, apiRequests: 0, unmeteredAttempts: 0, capacityChecks: 0,
+        wallMs: 0, outputBytes: 0 }, recent: [] };
+  }
+  const costFields = ['attempts', 'apiRequests', 'unmeteredAttempts', 'capacityChecks', 'wallMs', 'outputBytes'];
+  if (!history || history.schemaVersion !== 1 || !same(history.repository, entry.repository)
+    || history.workflow !== entry.workflow || !Array.isArray(history.recent)
+    || history.recent.length > MAX_COST_HISTORY || !history.totals
+    || costFields.some(field => !Number.isSafeInteger(history.totals[field]) || history.totals[field] < 0)) {
+    throw new Error('Value cost history is invalid');
+  }
+  const totals = history.totals;
+  for (const [field, value] of Object.entries({
+    attempts: 1, apiRequests: cost.apiRequests ?? 0,
+    unmeteredAttempts: cost.apiRequests === null ? 1 : 0,
+    capacityChecks: cost.capacityChecks, wallMs: cost.wallMs, outputBytes: cost.outputBytes,
+  })) {
+    totals[field] += value;
+    if (!Number.isSafeInteger(totals[field])) throw new Error('Value cost total exceeds its integer budget');
+  }
+  history.recent = [...history.recent.slice(-(MAX_COST_HISTORY - 1)), cost];
+  const pending = `${filename}.pending`;
+  await writeFile(pending, `${JSON.stringify(history)}\n`, { mode: 0o600 });
+  await rename(pending, filename);
 }
 
 export async function collectWorkflowValue(request, { archiveAccess, archiveReader, signal } = {}) {
@@ -141,6 +181,7 @@ async function executeCollector(request, timeout, environment = {}) {
       terminate();
       resolve({
         status: failed ? -1 : status, timedOut,
+        outputBytes: bytes,
         stdout: Buffer.concat(chunks).toString('utf8'),
         stderr: Buffer.concat(errorChunks).toString('utf8'),
       });
@@ -189,7 +230,9 @@ export async function runWorkflowValues(options) {
     }]) + '\n', { mode: 0o600 });
     await rename(`${options.localRequest}.pending`, options.localRequest);
   }
-  const result = { imported: imported.length, collected: 0, skipped: 0, deferred: 0, failed: 0, warnings: [] };
+  const result = { imported: imported.length, collected: 0, skipped: 0, deferred: 0, failed: 0,
+    cost: { apiRequests: 0, unmeteredAttempts: 0, capacityChecks: 0, collectorWallMs: 0, outputBytes: 0 },
+    warnings: [] };
   const fresh = [];
   let freshBytes = 0;
   const startedAt = Date.now();
@@ -219,6 +262,7 @@ export async function runWorkflowValues(options) {
         continue;
       }
       try {
+        result.cost.capacityChecks++;
         prepareGithubApiBudget({
           filename: options.apiBudget,
           requested: entry['api-requests'],
@@ -236,6 +280,7 @@ export async function runWorkflowValues(options) {
     const reserve = Number(process.env.CAO_GITHUB_API_MIN_REMAINING
       ?? Math.abs(Number(process.env.REPORT_MAX_GITHUB_API_RATE_LIMIT ?? 0)));
     if (!entry['api-requests'] && reserve > 0) {
+      result.cost.capacityChecks++;
       const budget = spawnSync('gh', ['api', 'rate_limit', '--jq', '.resources.core.remaining'], {
         encoding: 'utf8', timeout: 30000, maxBuffer: 16384, env: process.env,
       });
@@ -260,10 +305,20 @@ export async function runWorkflowValues(options) {
       workspace: path.resolve(options.workspace, identity),
     };
     const attemptAt = now();
+    const started = performance.now();
     const child = await executeCollector(request, Math.min(options.timeout ?? 600000,
       Math.max(1, batchTimeout - (Date.now() - startedAt))), entry['api-requests'] ? {
       CAO_GITHUB_API_BUDGET_FILE: path.resolve(options.apiBudget),
     } : {});
+    const apiRequests = entry['api-requests'] ? readGithubApiBudget(options.apiBudget).consumed : null;
+    const cost = { at: attemptAt, apiRequests, capacityChecks: entry['api-requests'] || reserve > 0 ? 1 : 0,
+      wallMs: Math.ceil(performance.now() - started), outputBytes: child.outputBytes,
+      exitStatus: child.status, timedOut: child.timedOut };
+    await recordValueCost(request.workspace, entry, cost);
+    result.cost.apiRequests += apiRequests ?? 0;
+    result.cost.unmeteredAttempts += apiRequests === null ? 1 : 0;
+    result.cost.collectorWallMs += cost.wallMs;
+    result.cost.outputBytes += cost.outputBytes;
     const attempt = { observedAt: now(), lastAttemptAt: attemptAt };
     try {
       for (const entry of await readdir(request.workspace)) {
