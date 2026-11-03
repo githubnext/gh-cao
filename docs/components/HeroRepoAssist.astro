@@ -66,17 +66,17 @@ const trace = (values: number[]) => values.map((value, index) => `${index ? "L" 
           <text x={x(0) + 16} y="48" text-anchor="middle">Adoption day</text>
         </g>
         <g class="flying-agents" aria-hidden="true">
-          <g class="flying-agent" transform="translate(835 122) rotate(-5 82 45)">
-            <image class="agent-trail" href={repoAssistTrail.src} x="0" y="26" width="112" height="46" />
-            <image class="agent-figure" href={repoAssistAgent.src} x="75" y="0" width="90" height="90" />
+          <g class="flying-agent" transform="translate(795 145)">
+            <image class="agent-trail" href={repoAssistTrail.src} x="-10" y="25" width="125" height="51" />
+            <image class="agent-figure" href={repoAssistAgent.src} x="70" y="0" width="130" height="130" />
           </g>
-          <g class="flying-agent" transform="translate(840 249)">
-            <image class="agent-trail" href={repoAssistTrail.src} x="0" y="26" width="112" height="46" />
-            <image class="agent-figure" href={repoAssistAgent.src} x="75" y="0" width="90" height="90" />
+          <g class="flying-agent" transform="translate(825 240)">
+            <image class="agent-trail" href={repoAssistTrail.src} x="-10" y="25" width="125" height="51" />
+            <image class="agent-figure" href={repoAssistAgent.src} x="70" y="0" width="130" height="130" />
           </g>
-          <g class="flying-agent" transform="translate(834 373) rotate(5 82 45)">
-            <image class="agent-trail" href={repoAssistTrail.src} x="0" y="26" width="112" height="46" />
-            <image class="agent-figure" href={repoAssistAgent.src} x="75" y="0" width="90" height="90" />
+          <g class="flying-agent" transform="translate(795 338)">
+            <image class="agent-trail" href={repoAssistTrail.src} x="-10" y="25" width="125" height="51" />
+            <image class="agent-figure" href={repoAssistAgent.src} x="70" y="0" width="130" height="130" />
           </g>
         </g>
       </svg>
@@ -94,6 +94,8 @@ const trace = (values: number[]) => values.map((value, index) => `${index ? "L" 
     --chart-muted: var(--cao-story-text);
     --chart-line: var(--cao-story-text);
     --chart-accent: var(--sl-color-text-accent);
+    --adoption-accent: var(--chart-accent);
+    --adoption-glow: none;
     width: 100%;
     max-width: 70rem;
     min-width: 0;
@@ -116,7 +118,11 @@ const trace = (values: number[]) => values.map((value, index) => `${index ? "L" 
   .plot-axes path { fill: none; stroke: var(--chart-muted); stroke-width: 1.5; }
   .repository-traces { stroke: var(--chart-line); stroke-width: 1.8; stroke-linejoin: round; }
   .repository-traces path:nth-child(3n) { opacity: 0.7; }
-  .adoption-marker { fill: none; stroke: var(--chart-accent); stroke-width: 2.5; }
+  :global(:root[data-theme="dark"]) .repo-assist-chart {
+    --adoption-accent: #a371f7;
+    --adoption-glow: drop-shadow(0 0 8px rgba(163, 113, 247, 0.72));
+  }
+  .adoption-marker { fill: none; stroke: var(--adoption-accent); stroke-width: 2.5; filter: var(--adoption-glow); }
   .adoption-marker rect { fill: var(--cao-page-bg); }
   .adoption-marker text { fill: var(--chart-ink); stroke: none; font-family: var(--sl-font); font-size: 20px; font-weight: 600; }
   .adoption-marker g { stroke: var(--chart-ink); stroke-width: 1.5; }
