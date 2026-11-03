@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { accessSync, constants, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { pathToFileURL } from "node:url";
@@ -103,5 +104,5 @@ export function escapeXml(value) {
 }
 
 export function sha256File(file) {
-  return execFileSync("shasum", ["-a", "256", file], { encoding: "utf8" }).split(/\s+/)[0];
+  return createHash("sha256").update(readFileSync(file)).digest("hex");
 }

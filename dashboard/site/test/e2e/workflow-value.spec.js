@@ -222,6 +222,18 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole('link', { name: 'Not measured', exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Not measured', exact: true }).click();
     await expect(page).toHaveURL(/#page-value-measurement\?/);
+    const measurementPage = page.locator('[data-page-id="value-measurement"]');
+    await expect(measurementPage).toHaveAttribute('data-view-mode', /^(card|table)$/);
+    if (width < 768) {
+      if (await measurementPage.getAttribute('data-view-mode') !== 'table') {
+        await page.getByRole('button', { name: 'Switch to Table view', exact: true }).click();
+      }
+    } else {
+      await page.getByRole('button', { name: 'Table', exact: true }).click();
+    }
+    await expect(page.getByRole('cell', { name: 'Incomplete retained deliveries', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: width < 768 ? 'Switch to Cards view' : 'Cards', exact: true }).click();
+    await expect(measurementPage).toHaveAttribute('data-view-mode', 'card');
     await expect(page.getByLabel('Not measured metadata').getByText('Incomplete retained deliveries', { exact: true })).toBeVisible();
     await expect(page.getByText('interval', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Period and evidence identity', { exact: true })).toBeVisible();

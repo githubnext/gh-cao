@@ -95,9 +95,7 @@ For agents, install the [CAO plugin](docs/agent-plugin.md) and use the task skil
 
 Maintained by [GitHub Next](https://github.com/githubnext).
 
-## Acknowledgements
-
-CAO's service design principles are inspired by SAP's
+**Acknowledgements:** CAO's service design principles are inspired by SAP's
 [Calesi pattern for CAP-Level Service Integration](https://cap.cloud.sap/docs/guides/integration/calesi):
 domain-level interfaces, protocol-independent consumption, fast local development,
 interchangeable implementations, and deliberate extensibility.

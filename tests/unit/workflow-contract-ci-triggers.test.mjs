@@ -48,6 +48,16 @@ function runsForFile(name, event, file) {
   return true;
 }
 
+test("dashboard WebKit uses an OS-specific browser cache on its supported Ubuntu runner", () => {
+  const job = parse(workflow("cid.yml")).jobs["playwright-integration"];
+  assert.equal(job["runs-on"], "ubuntu-24.04");
+  const cache = job.steps.find((step) => step.name === "Cache Playwright browsers");
+  assert.ok(cache.with.key.includes("-24.04-"));
+  assert.equal(cache.with["restore-keys"], undefined);
+  const install = job.steps.find((step) => step.name === "Install Chromium and WebKit");
+  assert.match(install.run, /playwright install --with-deps chromium webkit/);
+});
+
 test("slow integration workflows run on relevant main pushes, not pull requests", () => {
   for (const name of mainOnlyWorkflows) {
     const triggers = parse(workflow(name)).on;

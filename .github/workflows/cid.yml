@@ -113,7 +113,7 @@ jobs:
   playwright-integration:
     name: Playwright integration tests (${{ matrix.shard }})
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -145,7 +145,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-${{ runner.arch }}-playwright-${{ hashFiles('dashboard/site/package-lock.json') }}-chromium-webkit
+          key: ${{ runner.os }}-24.04-${{ runner.arch }}-playwright-${{ hashFiles('dashboard/site/package-lock.json') }}-chromium-webkit
       - name: Install Chromium and WebKit
         # Playwright's system dependencies come from the Ubuntu archives. The runner
         # image also configures Google's Chrome repository, whose index intermittently
