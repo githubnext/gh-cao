@@ -42,6 +42,7 @@
     "activity/normalized-phase.mjs",
     "activity/normalized-shards.mjs",
     "activity/operational-value.mjs",
+    "activity/value-acquisition.mjs",
     "activity/workflow-values.mjs",
     "activity/workflow-value-evidence.mjs",
     "activity/workflow-value-history.mjs",

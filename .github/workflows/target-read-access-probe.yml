@@ -15,6 +15,7 @@ on:
       - .github/workflows/target-read-access-probe.yml
       - .github/workflows/shared/control.md
       - .github/workflows/shared/github-apps.mjs
+      - activity/value-acquisition.mjs
       - scripts/probe-target-read-access.mjs
   schedule:
     - cron: "41 6 * * 1"
@@ -38,8 +39,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
-            .github/workflows
-            scripts
+            .github/workflows/
+            scripts/
+            /activity/value-acquisition.mjs
+          sparse-checkout-cone-mode: false
           persist-credentials: false
 
       - name: Set up Node.js

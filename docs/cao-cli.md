@@ -382,7 +382,7 @@ to invoke it as `gh cao`.
 | Cooperative admission | `setup admission`, `admission status`, `admission disable` | Native Go; configure admission with `setup admission`. Configures or inspects non-secret Actions variables, not server deployment or enrollment authority. |
 | Cloud deployment | `deploy azure` | Native Go; read-only preflight and planning, or explicit application of a reviewed development deployment plan. |
 | Lifecycle | `repos add OWNER/REPO`, `update`, `upgrade-gh-aw` | Native Go; gh-aw still owns workflow generation and campaign installation records. |
-| Read-only analysis | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `mcp` | Native Go with pure-Go SQLite access and declarative Dashboard Language evaluation. |
+| Read-only analysis | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `api-cost`, `mcp` | Native Go with pure-Go SQLite access, hosted server queries where declared, and declarative Dashboard Language evaluation. |
 | Workflow value | `value publish`, `value enable`, `value disable` | Publish prepared evidence to a hosted dashboard, or edit reviewed local policy for recurring collection of one workflow. |
 | Operator evidence | `evidence release` | Native Go; bounded read-only GitHub references, optional provenance verification and development Azure receipt summaries. No Node runtime or checkout required. |
 | Installation diagnostics | `doctor`, `version` | Native Go. `doctor` checks GitHub CLI, gh-aw, authentication, and basic local policy structure and compiler pin. |
@@ -689,6 +689,16 @@ GitHub API requests and is omitted for a local-only collector. Activity admits
 the full ceiling only after ordinary collection and above its protected reserve;
 missing or insufficient admission publishes the actual deferral reason.
 Bounded local-only computations run outside its publication path.
+
+When the collector exports `definition.acquisition.requirements`, `value enable`
+normalizes and copies them into the exact reviewed registration. Each
+requirement freezes a source, quota pool, versioned primitive, selected
+population scope and cache lifetime. Hosted collection rejects a collector when
+that manifest no longer matches policy. For one repository collection, multiple
+workflows declaring the same invocation-cacheable GitHub requirement can reuse
+byte-identical successful API responses; each workflow still keeps its own
+request ceiling, proof and publication checks. The manifest does not grant
+credentials, repository scope or additional quota.
 A failed refresh retains the last accepted capture without changing
 its timestamp or inventing a zero. Disable stops future collection, not history.
 An explicit disable persists even if the skill is used again.
@@ -1047,10 +1057,33 @@ The CLI also exposes evidence used to improve campaigns:
 | --- | --- |
 | `node activity/cao.mjs operational-value` | Compute campaign-specific value evidence from the canonical snapshot. |
 | `node activity/cao.mjs cluster-problems` | Cluster bounded problem evidence emitted by installed campaigns. |
+| `gh cao api-cost --profile daily-file-diet` | Estimate GitHub quota, collector-grant, and runner bottlenecks from retained canonical Daily File Diet evidence. |
+| `gh cao api-cost --profile daily-file-diet --server URL --calibrate` | Calibrate the Daily File Diet model from hosted PostgreSQL request-pool and wall-time observations. |
+| `gh cao api-cost --input SCENARIO.json` | Simulate another declarative data-acquisition request profile. |
 | `node activity/cao.mjs dashboard-complexity --input FILE [--database FILE]` | Rank Dashboard Language queries by estimated computation pressure. |
 | `node activity/cao.mjs prune-dashboard --input FILE` | Report reusable, redundant, and unreferenced dashboard queries and views. |
 
 Without `--database`, `dashboard-complexity` normalizes every canonical database table to weight one. With `--database FILE`, it weights tables by their deployed row counts (normalized to the largest table) read from that downloaded snapshot, giving a more realistic computation-pressure ranking.
+
+`api-cost` is a planning model, not admission. It reports sustained and peak
+core, Search, and GraphQL demand; the modeled and full-grant-guaranteed fleet
+limits; and serialized runner capacity. The built-in Daily File Diet retained
+scenario queries the canonical `operational-value-evidence` source from the
+local SQLite snapshot, or from hosted PostgreSQL through `--server URL`. It has
+no checked-in evidence-file or hard-coded population fallback; missing database
+evidence is unavailable. Use `CAO_SERVER_TOKEN` for a loopback server, or the
+same `CAO_SERVER_SESSION` and `CAO_SERVER_CSRF` administrator session values as
+hosted Value publication. `--scenario hard-bound` tests the collector's
+declared pagination and population ceilings without requiring retained data.
+`--calibrate` requires `--server`; it uses bounded private daily cost aggregates
+from the last 30 days across the hosted Daily File Diet fleet and fails when
+none exist. PostgreSQL reduces detailed repository accounting to a bounded
+workflow-level series before Dashboard Language aggregates it. Observed costs
+affect modeled capacity, while guaranteed capacity continues to reserve the
+collector's full reviewed request grant.
+Use `--collection-window-hours` to compare one synchronized hourly batch with a
+webhook- or queue-spread collection window. See the [GitHub API Capacity
+Specification](../specs/github-api-capacity.md).
 
 Data-pipeline and dashboard-maintainer commands are listed by `node activity/cao.mjs --help`. For the full data workflow, see [Dashboard data ingestion](dashboard-data-ingestion.md#use-local-sqlite).
 

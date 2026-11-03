@@ -156,7 +156,18 @@ Use `/add-operational-value OWNER/REPO` to list repository workflows or `/add-op
   - Run `.github/skills/add-operational-value/scripts/verify-value-function.mjs --collector --cao-adapter <adapter> <path>` and do not report success unless it passes.
   - For ongoing native Value reports, implement and test the bounded
     `collectValueEvidence` interface described below using the same frozen
-    definition and acquired originals. Once both function and collector pass
+    definition and acquired originals. Declare every recurring evidence source
+    in `definition.acquisition.requirements` before registration. Each
+    requirement contains exactly `source`, `pool`, `primitive`, `scope`, and
+    `cache`. Use `canonical/local/canonical` for database queries,
+    `github/(core|search|graphql)/invocation` for GitHub reads,
+    `git/git/immutable` for immutable Git facts, or
+    `archive/archive/invocation` for approved archive linkage. `primitive`
+    versions the acquisition operation; `scope` versions its exact selected
+    population. Reuse an existing primitive and scope only when two modules can
+    safely consume the same repository fact. The verifier rejects malformed or
+    duplicate requirements.
+    Once both function and collector pass
     verification, automatically stage registration for the selected pair with
     `gh cao value enable OWNER/REPO WORKFLOW --collector PATH --if-absent`.
     If the collector issues GitHub API requests, freeze its verified worst-case
@@ -464,6 +475,11 @@ proof, not a target for fresh collections.
 
 - The value function is a self-contained importable ECMAScript module and uses only Node.js built-in modules plus repository-local deterministic tools. Window evaluation does not call GitHub APIs.
 - It exports `definition`, the current JSON contract containing `schemaVersion`, repository, workflow, adoption, `evaluation.mode`, frozen evidence contract, model, summary, metrics, and validation examples. Mode is `baseline-comparable` or `attainment-only`. `schemaVersion` is the only interface version; do not add separate collector version or command metadata.
+- A recurring collector additionally declares
+  `definition.acquisition.requirements`. Registration copies the normalized
+  requirements into reviewed policy, and runtime execution requires an exact
+  match. The manifest describes reusable evidence families; it grants no
+  repository, credential, request, archive, or mutation authority.
 - It exports `collectBatch(requests, context)`, which accepts every requested `{windowStart, windowEnd, observedAt}` object as one array and returns one collection result per window in the same order. A CAO adapter may additionally supply `repository` on each request and `database` in context.
 - When `context.database` contains the authoritative facts, execute bounded canonical queries for all requested windows. Use persisted precomputations or an available immutable target-repository checkout for evidence absent from that database; otherwise return missing evidence.
 - Collect repository state at the last immutable commit at or before `windowEnd`; `observedAt` records when matured evidence is available and is not the repository-state cutoff.
@@ -525,6 +541,32 @@ projections, immutable Git measurements and independent quality evidence are
 different sources. Read admitted webhook/canonical facts through the supplied
 database; use the archive capability for retained producer linkage. Do not infer
 a webhook delivery, merge, Git baseline or passing quality gate from a session.
+
+### Shared acquisition planning
+
+- The hosted collector compiles every enabled registration for one repository
+  into one reviewed acquisition plan under the existing repository lease.
+- Requirements are unioned by exact repository, source, pool, primitive, scope,
+  and cache identity. Workflow identity and output publication remain separate.
+- When at least two workflows declare the same
+  `github/(core|search|graphql)/invocation` requirement, the repository-confined
+  proxy may reuse a byte-identical successful REST, Search, artifact, or
+  GraphQL response during that one collection invocation. The cached response
+  consumes no second request grant or shared quota reservation.
+- Route every GitHub call through `githubReader` with a total
+  `requirementFor(endpoint, query, binary)` classifier. The reader labels the
+  confined request with the SHA-256 identity of that exact normalized
+  requirement. Unlabelled, unknown, or quota-pool-incompatible calls remain
+  metered and isolated; they never borrow another requirement's response.
+- Reuse never crosses repositories, installations, collection invocations, API
+  origins, or policy revisions. It never caches failed transport, unverifiable
+  quota, or server-error responses. Each collector retains its own reviewed
+  ceiling, timeout, proof workspace, starting packet check, publication CAS,
+  failure result, and cost record.
+- Legacy registrations without an acquisition manifest remain isolated. New
+  skill-generated remote collectors must declare their requirements. A bespoke
+  primitive is acceptable only when canonical data and an existing shared
+  primitive cannot represent the required fact.
 
 ### CAO Adapter Interface
 

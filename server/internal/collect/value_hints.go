@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -172,23 +173,38 @@ func (w Worker) remoteValueLoop(ctx context.Context) {
 		if w.Projector.State == nil || w.Projector.Leases == nil || w.Projector.PolicyPath == "" {
 			continue
 		}
-		repositories, err := w.Projector.RemoteValueRepositories(ctx)
+		targets, err := w.Projector.RemoteValueTargets(ctx)
 		if err != nil {
 			workerLog.Printf("remote Value eligibility unavailable; acquisition deferred")
 			continue
 		}
 		const parallelCollections = 8
-		pending := make(chan string)
+		targets = roundRobinRemoteValueTargets(targets)
+		installationSlots := map[int64]chan struct{}{}
+		for _, target := range targets {
+			if installationSlots[target.Installation] == nil {
+				installationSlots[target.Installation] = make(chan struct{}, 1)
+			}
+		}
+		pending := make(chan remoteValueTarget)
 		var workers sync.WaitGroup
-		for range min(len(repositories), parallelCollections) {
+		for range min(len(targets), parallelCollections) {
 			workers.Add(1)
 			go func() {
 				defer workers.Done()
-				for repository := range pending {
+				for target := range pending {
 					if ctx.Err() != nil {
 						return
 					}
-					if err := w.collectRemoteValue(ctx, repository, time.Now().UTC()); err != nil &&
+					slot := installationSlots[target.Installation]
+					select {
+					case slot <- struct{}{}:
+					case <-ctx.Done():
+						return
+					}
+					err := w.collectRemoteValue(ctx, target.Repository, time.Now().UTC())
+					<-slot
+					if err != nil &&
 						!errors.Is(err, ErrRepositoryBusy) && ctx.Err() == nil {
 						workerLog.Printf("remote Value acquisition deferred or failed; accepted evidence retained")
 					}
@@ -196,14 +212,38 @@ func (w Worker) remoteValueLoop(ctx context.Context) {
 			}()
 		}
 	dispatch:
-		for _, repository := range repositories {
+		for _, target := range targets {
 			select {
 			case <-ctx.Done():
 				break dispatch
-			case pending <- repository:
+			case pending <- target:
 			}
 		}
 		close(pending)
 		workers.Wait()
 	}
+}
+
+func roundRobinRemoteValueTargets(targets []remoteValueTarget) []remoteValueTarget {
+	byInstallation := map[int64][]remoteValueTarget{}
+	installations := make([]int64, 0)
+	for _, target := range targets {
+		if len(byInstallation[target.Installation]) == 0 {
+			installations = append(installations, target.Installation)
+		}
+		byInstallation[target.Installation] = append(byInstallation[target.Installation], target)
+	}
+	slices.Sort(installations)
+	result := make([]remoteValueTarget, 0, len(targets))
+	for len(result) < len(targets) {
+		for _, installation := range installations {
+			current := byInstallation[installation]
+			if len(current) == 0 {
+				continue
+			}
+			result = append(result, current[0])
+			byInstallation[installation] = current[1:]
+		}
+	}
+	return result
 }

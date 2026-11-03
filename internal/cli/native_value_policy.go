@@ -2,8 +2,10 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,7 +21,53 @@ var (
 	nativeCollectorPath = regexp.MustCompile(`^[A-Za-z0-9._/-]+\.mjs$`)
 	nativeEvidencePath  = regexp.MustCompile(`^\.github/value-evidence/[A-Za-z0-9._/-]+\.jsonl(?:\.gz)?$`)
 	nativeSHA256        = regexp.MustCompile(`^[a-f0-9]{64}$`)
+	nativeAcquisitionID = regexp.MustCompile(`^[a-z0-9]+(?:[a-z0-9._:/-]*[a-z0-9])?$`)
 )
+
+func nativeValueAcquisitionRule(value any) error {
+	acquisition, ok := value.(map[string]any)
+	if !ok || len(acquisition) != 1 {
+		return errors.New("workflow-values acquisition must contain requirements")
+	}
+	requirements, ok := acquisition["requirements"].([]any)
+	if !ok || len(requirements) == 0 || len(requirements) > 64 {
+		return errors.New("workflow-values acquisition requirements must contain 1 through 64 entries")
+	}
+	allowed := map[string]map[string]map[string]bool{
+		"canonical": {"local": {"canonical": true}},
+		"github": {
+			"core": {"invocation": true}, "search": {"invocation": true},
+			"graphql": {"invocation": true},
+		},
+		"git":     {"git": {"immutable": true}},
+		"archive": {"archive": {"invocation": true}},
+	}
+	seen := map[string]bool{}
+	for _, value := range requirements {
+		requirement, ok := value.(map[string]any)
+		if !ok || len(requirement) != 5 {
+			return errors.New("workflow-values acquisition requirement must contain source, pool, primitive, scope and cache")
+		}
+		values := make([]string, 0, 5)
+		for _, key := range []string{"source", "pool", "primitive", "scope", "cache"} {
+			text, valid := requirement[key].(string)
+			if !valid || len(text) > 160 || !nativeAcquisitionID.MatchString(text) {
+				return errors.New("workflow-values acquisition requirement contains an invalid identifier")
+			}
+			values = append(values, text)
+		}
+		source, pool, cache := values[0], values[1], values[4]
+		if !allowed[source][pool][cache] {
+			return errors.New("workflow-values acquisition requirement has incompatible source, pool or cache")
+		}
+		key := strings.Join(values, "\x00")
+		if seen[key] {
+			return errors.New("workflow-values acquisition requirements contain a duplicate")
+		}
+		seen[key] = true
+	}
+	return nil
+}
 
 func nativeWorkflowValuesRule(value any, at string) error {
 	entries, ok := value.([]any)
@@ -33,7 +81,7 @@ func nativeWorkflowValuesRule(value any, at string) error {
 			return errors.New("workflow-values entries must be objects")
 		}
 		for key := range entry {
-			if key != "repository" && key != "workflow" && key != "collector" && key != "evidence" && key != "api-requests" && key != "enabled" {
+			if key != "repository" && key != "workflow" && key != "collector" && key != "evidence" && key != "api-requests" && key != "enabled" && key != "acquisition" {
 				return errors.New("unknown workflow-values entry field")
 			}
 		}
@@ -58,6 +106,14 @@ func nativeWorkflowValuesRule(value any, at string) error {
 		if value, exists := entry["api-requests"]; exists {
 			if nativeInteger(1, 1000)(value, "workflow-values api-requests") != nil || !hasCollector {
 				return errors.New("workflow-values api-requests must be an integer from 1 through 1000 with a collector")
+			}
+			if value, exists := entry["acquisition"]; exists {
+				if !hasCollector {
+					return errors.New("workflow-values acquisition requires a collector")
+				}
+				if err := nativeValueAcquisitionRule(value); err != nil {
+					return err
+				}
 			}
 		}
 		for _, part := range strings.Split(collector, "/") {
@@ -182,10 +238,28 @@ if(d?.schemaVersion!==3 || d.repository?.toLowerCase()!==process.argv[2].toLower
  || !Number.isFinite(Date.parse(d.adoption?.adoptedAt))
  || !Number.isSafeInteger(d.evidence?.window?.maturationDays) || d.evidence.window.maturationDays<0
  || !(d.evidence?.window?.cadenceDays>0) || typeof c!=='function') process.exit(1);
+process.stdout.write(JSON.stringify(d.acquisition ?? null));
 `, collector, args[0], args[1])
 		inspect.Env = []string{"PATH=" + os.Getenv("PATH")}
-		if err := inspect.Run(); err != nil {
+		output, err := inspect.Output()
+		if err != nil {
 			return errors.New("collector must export the exact schemaVersion 3 frozen definition and collectValueEvidence; Node inspection failed")
+		}
+		decoder := json.NewDecoder(strings.NewReader(string(output)))
+		decoder.UseNumber()
+		var acquisition any
+		if err := decoder.Decode(&acquisition); err != nil {
+			return errors.New("collector acquisition requirements could not be inspected")
+		}
+		var trailing any
+		if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+			return errors.New("collector acquisition requirements could not be inspected")
+		}
+		if acquisition != nil {
+			if err := nativeValueAcquisitionRule(acquisition); err != nil {
+				return err
+			}
+			entry["acquisition"] = acquisition
 		}
 		updated = append(updated, entry)
 	} else {
