@@ -185,17 +185,15 @@ test('DLS-PAGE-014 DLS-PAGE-015 built-in campaigns page renders dispatches, inve
                   id: 'campaign-failure-reason-distribution',
                   title: 'Why these dispatches failed',
                   data: {
-                    source: 'dispatches',
-                    'route-field': 'campaign',
-                    filters: { status: ['failure', 'startup-failure', 'timed-out', 'stale'] },
-                    'order-by': [{ field: 'count-status-detail', direction: 'desc' }]
+                    source: 'campaign-dispatch-failure-reasons',
+                    'route-field': 'campaign'
                   },
                   mark: 'chart',
                   chart: 'pie',
                   'empty-message': 'No failed workflow dispatch runs were observed for this campaign in the current run window.',
                   encoding: {
                     x: { field: 'status-detail', type: 'nominal', title: 'Failure reason' },
-                    y: { field: 'status-detail', type: 'quantitative', aggregate: 'count', title: 'Failed dispatches' }
+                    y: { field: 'failed-dispatches', type: 'quantitative', title: 'Failed dispatches' }
                   }
                 },
                 {
