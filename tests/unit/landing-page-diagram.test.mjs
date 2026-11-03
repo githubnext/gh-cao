@@ -161,7 +161,7 @@ test("backend story maps portable specifications to an illustrative Azure applic
   for (const label of ["CAO TypeSpec", "Storage schema", "Analytics contracts", "CAO server", "PostgreSQL", "Blob Storage", "Data Explorer", "Azure resource map"]) {
     assert.ok(diagram.includes(label), label);
   }
-  for (const edge of ["server-to-postgres", "server-to-objects", "analytics-to-objects"]) {
+  for (const edge of ["webhooks-to-gateway", "gateway-to-actions", "actions-to-server", "server-to-postgres", "server-to-objects", "analytics-to-objects"]) {
     assert.ok(diagram.includes(`data-edge="${edge}"`), edge);
   }
   assert.match(diagram, /not automatic provisioning/);
@@ -176,6 +176,11 @@ test("backend story maps portable specifications to an illustrative Azure applic
   assert.match(diagram, /vector-effect: non-scaling-stroke/);
   assert.match(diagram, /border-radius: 50%/);
   assert.match(diagram, /stroke-dasharray/);
+  assert.match(diagram, /Opt-in webhook dispatch to GitHub Actions/);
+  assert.match(diagram, /External services/);
+  assert.match(diagram, /GitHub workflows/);
+  assert.match(diagram, /repository_dispatch/);
+  assert.match(diagram, /separate, opt-in gateway dispatches only approved workflows in enrolled repositories/);
   assert.doesNotMatch(diagram, /class="service-port|architecture-sheet|drawing-header/);
   assert.doesNotMatch(diagram, /<script/);
 });

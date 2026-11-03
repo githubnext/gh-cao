@@ -23,8 +23,44 @@
       </div>
       <svg viewBox="0 0 40 32" aria-hidden="true"><path d="M9 25H8a6 6 0 0 1-1-12 11 11 0 0 1 21-2 7 7 0 0 1 1 14h-3M16 20l-4 5 4 5m8-10 4 5-4 5" /></svg>
     </header>
+    <div class="workflow-flow" role="group" aria-label="Opt-in webhook dispatch to GitHub Actions">
+      <div class="flow-label">Events &amp; execution <span>Across services, Azure, and GitHub</span></div>
+      <div class="event-pipeline">
+        <svg class="event-connections" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+          <path data-edge="webhooks-to-gateway" d="M16.67 5H50m-10-1 2 1-2 1" />
+          <path data-edge="gateway-to-actions" d="M50 5h33.33m-10-1 2 1-2 1" />
+        </svg>
+        <div class="event-step webhook-step">
+          <div class="service-icon event-icon">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="10" r="5" /><circle cx="10" cy="35" r="5" /><circle cx="38" cy="35" r="5" /><path d="m22 15-10 15m3 5h18m2-5L26 15M19 5a10 10 0 0 1 13 12M4 28a10 10 0 0 0 12 16m17-1a10 10 0 0 0 11-15" /></svg>
+          </div>
+          <strong>Webhooks</strong>
+          <span>External services</span>
+        </div>
+        <div class="event-step gateway-step">
+          <div class="service-icon event-icon">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path class="icon-fill" d="m24 5 15 6v12c0 10-15 19-15 19S9 33 9 23V11z" /><path d="m17 24 5 5 10-12" /></svg>
+          </div>
+          <strong>Gateway</strong>
+          <span>CAO / Opt-in</span>
+        </div>
+        <div class="event-step actions-step">
+          <div class="service-icon event-icon">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="12" cy="12" r="6" /><path d="m11 9 4 3-4 3zM12 18v12a6 6 0 0 0 6 6h7M18 12h9a6 6 0 0 1 6 6v6" /><rect x="25" y="24" width="17" height="17" rx="5" /><path d="m29 32 3 3 6-7" /></svg>
+          </div>
+          <strong>Actions</strong>
+          <span>GitHub workflows</span>
+        </div>
+      </div>
+      <p class="dispatch-contract">Reviewed enrollment <span aria-hidden="true">/</span> <code>repository_dispatch</code></p>
+    </div>
+    <div class="evidence-handoff">
+      <svg viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true"><path data-edge="actions-to-server" d="M83.33 0C83.33 15 50 5 50 20" /></svg>
+      <span>Collected run evidence</span>
+    </div>
     <div class="resource-graph">
       <svg class="map-connections" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <path class="core-edge" d="M50 0V14" />
         <path class="core-edge" data-edge="server-to-postgres" d="M50 14C36 14 22 26 22 46" />
         <path class="optional-edge" data-edge="server-to-objects" d="M50 14C64 14 78 26 78 46" />
         <path class="optional-edge query-edge" data-edge="analytics-to-objects" d="M50 74C50 60 50 46 78 46" />
@@ -71,6 +107,7 @@
   <figcaption>
     Illustrative resource mapping, not automatic provisioning. Archives and analytics are independently opt-in;
     neither is required for PostgreSQL-backed dashboard queries. Other clouds need compatible adapters.
+    The separate, opt-in gateway dispatches only approved workflows in enrolled repositories.
   </figcaption>
 </figure>
 
@@ -83,6 +120,7 @@
     --map-blue: #0969bd;
     --map-purple: #8250c4;
     --map-green: #167766;
+    --map-orange: #a55314;
     --node-paper: #ffffff;
     --node-shadow: rgba(37, 83, 133, 0.13);
     --map-glow: rgba(84, 166, 255, 0.12);
@@ -102,6 +140,7 @@
     --map-blue: #79c0ff;
     --map-purple: #c9a5ff;
     --map-green: #72d9bd;
+    --map-orange: #ffb77c;
     --node-paper: #192d42;
     --node-shadow: rgba(0, 0, 0, 0.25);
     --map-glow: rgba(71, 154, 255, 0.12);
@@ -146,6 +185,25 @@
   .map-header .map-eyebrow { display: block; font-size: 0.5625rem; }
   .map-header strong { display: block; margin-top: 0.25rem; font-size: 1rem; font-weight: 600; }
   .map-header > svg { width: 2.5rem; height: 2rem; flex-shrink: 0; color: var(--map-blue); opacity: 0.7; }
+  .workflow-flow { margin: 1.25rem 0.75rem 0; }
+  .flow-label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 1rem; color: var(--map-muted); font: 500 0.5625rem/1.5 "Mona Sans Mono", monospace; }
+  .flow-label > span { font-size: 0.5rem; }
+  .event-pipeline { position: relative; display: flex; }
+  .event-step { position: relative; display: flex; width: calc(100% / 3); min-width: 0; flex-direction: column; align-items: center; text-align: center; }
+  .webhook-step { --service-color: var(--map-orange); }
+  .gateway-step { --service-color: var(--map-green); }
+  .actions-step { --service-color: var(--map-blue); }
+  .event-step strong { max-width: 100%; font-size: 0.75rem; line-height: 1.5; }
+  .event-step > span { max-width: 100%; color: var(--map-muted); font-size: 0.5625rem; line-height: 1.5; }
+  .event-connections { position: absolute; top: 0; left: 0; width: 100%; height: 3rem; }
+  .event-connections path, .evidence-handoff path { stroke: var(--map-line); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  .event-connections path { stroke-dasharray: 4 4; }
+  .dispatch-contract { margin: 0.75rem 0 0; color: var(--map-muted); font-size: 0.5625rem; text-align: center; }
+  .dispatch-contract > span { padding-inline: 0.25rem; }
+  .dispatch-contract code { padding: 0; background: none; color: inherit; font-size: inherit; }
+  .evidence-handoff { position: relative; height: 2.5rem; margin-inline: 0.75rem; }
+  .evidence-handoff svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .evidence-handoff > span { position: absolute; top: 50%; left: 50%; border-radius: 2rem; padding: 0.125rem 0.5rem; background: var(--map-paper); color: var(--map-muted); font: 500 0.5625rem/1.5 "Mona Sans Mono", monospace; transform: translate(-50%, -50%); white-space: nowrap; }
   .resource-graph { position: relative; height: 27rem; margin-inline: 0.5rem; }
   .map-connections { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .map-connections path { stroke: var(--map-line); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
@@ -172,6 +230,7 @@
   }
 
   .service-icon svg { width: 60%; height: 60%; stroke-width: 1.8; }
+  .event-icon { width: 3rem; height: 3rem; margin-top: 0; margin-bottom: 0.625rem; }
   .icon-fill { fill: color-mix(in srgb, var(--service-color, var(--map-blue)) 15%, var(--node-paper)); }
   .backend-node strong { max-width: 100%; font-size: clamp(0.75rem, 2.7cqw, 0.9375rem); line-height: 1.4; }
   .backend-node > span { max-width: 100%; margin-top: 0.125rem; color: var(--map-muted); font-size: clamp(0.625rem, 2cqw, 0.75rem); line-height: 1.5; }
