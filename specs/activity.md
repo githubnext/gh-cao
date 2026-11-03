@@ -27,6 +27,8 @@ Implementers should read `docs/activity.md` first, then this specification,
 Historical reconstruction of campaign-defined operational-value observations is
 defined by `specs/operational-value-history.md`; their cross-subsystem Value
 semantics, collection lanes, and retention are defined by `specs/value.md`.
+Deterministic request-cost and fleet-capacity planning is defined by
+`specs/github-api-capacity.md`.
 
 ## 1. Status and conformance
 
@@ -263,3 +265,5 @@ Dashboard presentation and attention semantics are defined by the
   relationship for operators and contributors.
 - [Data Acquisition Audit](data-acquisition-audit.md) inventories current API,
   indexing, and caching behavior; it is informative rather than normative.
+- [GitHub API Capacity](github-api-capacity.md) defines the executable planning
+  model for request families, quota pools, bursts, grants, and runner capacity.

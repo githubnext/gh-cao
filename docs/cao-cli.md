@@ -389,7 +389,7 @@ to invoke it as `gh cao`.
 | Workflow-agent evidence APIs | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `mcp` | Supported `node activity/cao.mjs <command>` APIs inside agentic workflows, including their installed runtime dependencies; intentional overlap with operator reads, not deprecated duplicates. |
 | Active ingestion and packaging | `ingest-jsonl`, `compact-jsonl`, `hash-payloads` | Node Actions pipeline: import raw or normalized JSONL into SQLite, compact raw shards per repository, and generate normalized run/record shards plus payload checksums. |
 | Manual artifact import | `ingest` | Supported `node activity/cao.mjs ingest --context FILE --logs DIRECTORY` importer for extracted gh-aw artifacts; not used by the Activity or Dashboard pipelines and not deprecated. |
-| Actions pipeline and maintainer tools | `discover-workflows`, `audit-jsonl`, `recycle-cache`, `issue-status`, `activity-stats`, `validate-activity-data`, `operational-value`, `cluster-problems`, `dashboard-complexity`, `prune-dashboard` | Invoke with `node activity/cao.mjs <command>`; not migrated to the extension. |
+| Actions pipeline and maintainer tools | `discover-workflows`, `audit-jsonl`, `recycle-cache`, `issue-status`, `activity-stats`, `api-cost`, `validate-activity-data`, `operational-value`, `cluster-problems`, `dashboard-complexity`, `prune-dashboard` | Invoke with `node activity/cao.mjs <command>`; not migrated to the extension. |
 | Control-plane validation | `node activity/cao.mjs validate --json` | Actions-only JavaScript runtime invoked by `cao-validate.yml`; no Go or shell-wrapper command. |
 | Node-only administration | `node activity/cao.mjs repair-database` | Mutating SQLite repair/retention; no equivalent Go command. |
 
@@ -1047,10 +1047,21 @@ The CLI also exposes evidence used to improve campaigns:
 | --- | --- |
 | `node activity/cao.mjs operational-value` | Compute campaign-specific value evidence from the canonical snapshot. |
 | `node activity/cao.mjs cluster-problems` | Cluster bounded problem evidence emitted by installed campaigns. |
+| `node activity/cao.mjs api-cost --profile daily-file-diet` | Estimate GitHub quota, collector-grant, and runner bottlenecks for Daily File Diet. |
+| `node activity/cao.mjs api-cost --input SCENARIO.json` | Simulate another declarative data-acquisition request profile. |
 | `node activity/cao.mjs dashboard-complexity --input FILE [--database FILE]` | Rank Dashboard Language queries by estimated computation pressure. |
 | `node activity/cao.mjs prune-dashboard --input FILE` | Report reusable, redundant, and unreferenced dashboard queries and views. |
 
 Without `--database`, `dashboard-complexity` normalizes every canonical database table to weight one. With `--database FILE`, it weights tables by their deployed row counts (normalized to the largest table) read from that downloaded snapshot, giving a more realistic computation-pressure ranking.
+
+`api-cost` is a planning model, not admission. It reports sustained and peak
+core, Search, and GraphQL demand; the modeled and full-grant-guaranteed fleet
+limits; and serialized runner capacity. The built-in Daily File Diet retained
+scenario reads the checked-in evidence population, while `--scenario
+hard-bound` tests the collector's declared pagination and population ceilings.
+Use `--collection-window-hours` to compare one synchronized hourly batch with a
+webhook- or queue-spread collection window. See the [GitHub API Capacity
+Specification](../specs/github-api-capacity.md).
 
 Data-pipeline and dashboard-maintainer commands are listed by `node activity/cao.mjs --help`. For the full data workflow, see [Dashboard data ingestion](dashboard-data-ingestion.md#use-local-sqlite).
 

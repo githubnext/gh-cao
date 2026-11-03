@@ -1,4 +1,5 @@
 import { runActivityStats } from "./activity-stats.mjs";
+import { runApiCost } from "./api-cost.mjs";
 import { runAuditJsonl } from "./audit-jsonl.mjs";
 import { runClusterProblems } from "./cluster-problems.mjs";
 import { runCompactJsonl } from "./compact-jsonl.mjs";
@@ -29,6 +30,7 @@ import { runValidate } from "./validate.mjs";
 // Keep workflow-agent evidence handlers and dependencies in the installed runtime.
 export const commandHandlers = new Map([
   ["activity-stats", runActivityStats],
+  ["api-cost", runApiCost],
   ["audit-jsonl", runAuditJsonl],
   ["cluster-problems", runClusterProblems],
   ["compact-jsonl", runCompactJsonl],

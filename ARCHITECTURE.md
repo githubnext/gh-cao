@@ -977,6 +977,12 @@ exports. `activity/cli/` owns argument parsing, dispatch, policy and campaign
 configuration, authentication, evidence ingestion and publication, downloads,
 and local queries in focused modules. `activity/commands/` owns one handler per
 command; implementation modules depend on shared helpers, not the entry point.
+`cao api-cost` executes the deterministic planning model in
+`activity/api-cost-model.mjs`. It keeps sustained quota, synchronized burst,
+reviewed collector grants and serialized runner time separate, supports
+declarative custom acquisition scenarios, and ships a Daily File Diet profile.
+It predicts capacity only; runtime admission and per-request accounting remain
+authoritative. `specs/github-api-capacity.md` defines this contract.
 Successful-Run value computations keep produced safe outputs, native
 operational-grader measurements, and efficiency evidence separate; they do not
 turn runtime success or output creation into accepted value.
@@ -1889,6 +1895,8 @@ not authorize cross-repository evidence access.
 - `specs/control-architecture.md` defines authority, admission, and execution
   invariants.
 - `specs/activity.md` defines evidence collection and snapshot semantics.
+- `specs/github-api-capacity.md` defines deterministic GitHub acquisition-cost
+  and fleet-capacity modeling.
 - `specs/value.md` defines the cross-subsystem Value contract, including
   measurement meaning, collection lanes, retention, webhook hints, archive
   linkage, and bounded failure diagnostics.

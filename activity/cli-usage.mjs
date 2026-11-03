@@ -62,6 +62,8 @@ export const USAGE = `Usage:
   cao download [--url URL] [--output DIRECTORY] [--manifest-sha256 DIGEST]
   cao hash-payloads [--database FILE] [--shard-dir SHARD_DIRECTORY] [--normalized-dir DIRECTORY] [--runs-dir DIRECTORY] [--records-dir DIRECTORY] [--inventory FILE] [--output FILE] [--max-bytes BYTES] [--max-cache-bytes BYTES]
   cao activity-stats [--repo OWNER/REPO] [--workflow FILE] [--artifact NAME] [--limit COUNT] [--keep] [--output FILE]
+  cao api-cost [--profile daily-file-diet] [--scenario retained|hard-bound] [--repositories COUNT] [--collection-window-hours HOURS] [--wall-minutes MINUTES] [--format json|markdown]
+  cao api-cost --input SCENARIO_JSON [--repositories COUNT] [--collection-window-hours HOURS] [--format json|markdown]
   cao validate-activity-data --database FILE --shard-dir DIRECTORY --payload-hashes FILE --control-settings FILE --inventory FILE --memory-manifest FILE
   cao gh runs [--database FILE] [--repo OWNER/REPO] [--workflow NAME|FILE] [--status STATUS] [--since TIME] [--until TIME] [--limit COUNT]
   cao gh issues [--database FILE] [--repo OWNER/REPO] [--workflow NAME|FILE] [--since TIME] [--until TIME] [--limit COUNT]
@@ -85,6 +87,8 @@ Query local CAO data as JSON. Download the deployed snapshot before querying:
   cao computation runtime-health --campaign dependabot --diagnose
   cao operational-value --output .cao/gh-aw-logs-shards/operational-values.jsonl --retention-days 30 --history-campaign optimization --max-github-api-rate-limit -2000
   cao cluster-problems
+  cao api-cost --profile daily-file-diet --repositories 100 --collection-window-hours 1
+  cao api-cost --profile daily-file-diet --scenario hard-bound --format markdown
   cao gh runs -R githubnext/gh-cao -w cao-activity --status failure --since 2026-09-01 --until 2026-09-15
   cao gh issues -R githubnext/gh-cao --since 2026-09-01
   cao gh prs -R githubnext/gh-cao -w cao-activity -L 10
