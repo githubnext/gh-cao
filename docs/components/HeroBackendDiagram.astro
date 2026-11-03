@@ -65,9 +65,9 @@
       <svg class="map-connections" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <path class="core-edge" d="M50 0V14" />
         <path class="core-edge" data-edge="server-to-dashboard" d="M50 14H16" />
-        <path class="core-edge" data-edge="server-to-postgres" d="M50 14C36 14 22 26 22 46" />
-        <path class="optional-edge" data-edge="server-to-objects" d="M50 14C64 14 78 26 78 46" />
-        <path class="optional-edge query-edge" data-edge="analytics-to-objects" d="M50 74C50 60 50 46 78 46" />
+        <path class="core-edge" data-edge="server-to-postgres" d="M50 14C36 14 22 26 22 52" />
+        <path class="optional-edge" data-edge="server-to-objects" d="M50 14C64 14 78 26 78 52" />
+        <path class="optional-edge query-edge" data-edge="analytics-to-objects" d="M50 74C50 60 50 52 78 52" />
       </svg>
       <span class="edge-label database-label">Read / write</span>
       <span class="edge-label archive-label">Archive</span>
@@ -226,8 +226,8 @@
   .backend-node { position: absolute; display: flex; width: 40%; min-width: 0; flex-direction: column; align-items: center; transform: translateX(-50%); text-align: center; }
   .server-node { top: 14%; left: 50%; --service-color: var(--map-blue); }
   .dashboard-node { top: 14%; left: 16%; --service-color: var(--map-green); }
-  .database-node { top: 46%; left: 22%; --service-color: var(--map-blue); }
-  .object-node { top: 46%; left: 78%; --service-color: var(--map-green); }
+  .database-node { top: 52%; left: 22%; --service-color: var(--map-blue); }
+  .object-node { top: 52%; left: 78%; --service-color: var(--map-green); }
   .analytics-node { top: 74%; left: 50%; --service-color: var(--map-purple); }
   .service-icon {
     display: grid;
@@ -251,7 +251,7 @@
   .backend-node > span { max-width: 100%; margin-top: 0.125rem; color: var(--map-muted); font-size: clamp(0.625rem, 2cqw, 0.75rem); line-height: 1.5; }
   .backend-node small { margin-top: 0.375rem; border-radius: 2rem; padding: 0.125rem 0.5rem; background: color-mix(in srgb, var(--service-color) 9%, var(--map-paper)); color: var(--service-color); font-size: 0.5625rem; line-height: 1.5; }
   .edge-label { position: absolute; border-radius: 2rem; padding: 0.125rem 0.375rem; background: var(--map-paper); color: var(--map-muted); font: 500 0.5625rem/1.5 "Mona Sans Mono", monospace; transform: translate(-50%, -50%); white-space: nowrap; }
-  .database-label { left: 25%; top: 27%; }
+  .database-label { left: 25%; top: 37%; }
   .archive-label { left: 75%; top: 27%; }
   .query-label { left: 50%; top: 63%; color: var(--map-purple); }
   .network-legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0.875rem 0.75rem 1rem; color: var(--map-muted); font-size: 0.5625rem; }

@@ -147,6 +147,9 @@ for (const colorScheme of ["light", "dark"]) {
       await expect(architecture.locator(".dashboard-node")).toContainText("Served by CAO");
       await expect(architecture.locator('[data-edge="server-to-dashboard"]')).toHaveCount(1);
       await expect(architecture.locator('[data-edge="postgres-to-dashboard"]')).toHaveCount(0);
+      const readWriteLabel = await architecture.locator(".database-label").boundingBox();
+      const dashboard = await architecture.locator(".dashboard-node").boundingBox();
+      expect(readWriteLabel.y).toBeGreaterThan(dashboard.y + dashboard.height);
       const eventFlow = architecture.getByRole("group", { name: "Webhook ingestion and opt-in Actions dispatch" });
       await expect(eventFlow.locator(".event-step strong")).toHaveText(["Webhooks", "Gateway", "Actions"]);
       await expect(eventFlow).toContainText("Reviewed enrollment");
