@@ -1,14 +1,7 @@
 {
-  "source_sha": "601cb65fafa26a6c5fc738eb53d271e0378ea1fb",
-  "next_category": "Astro documentation generation",
+  "source_sha": "47432411fcf4c55d24069ea7f545f90f81fd3ba2",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-02T16:33:30Z",
-      "worker_run_id": "41482136791",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: GitHub Actions evidence collection was stopped after the GitHub API returned a rate-limit exhaustion response while requesting the latest completed docs.yml runs. The required current latest-20, 14-day evidence window, five comparable successful full build-and-deploy runs, workflow and dashboard/build/deploy timing distributions, bounded step-cost analysis, and cache hit/miss verification could not be established. No recommendation was made; reusable dashboard generation remains the next category."
-    },
     {
       "evaluated_at": "2026-11-02T16:50:00Z",
       "worker_run_id": "41485484727",
@@ -758,6 +751,34 @@
         41555625744
       ],
       "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-03T00:49:54Z to 2026-11-03T02:33:54Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Nine comparable successful push runs completed the full build-and-deploy path. Full workflow wall time had a 133-second median and 203-second nearest-rank p90; initial queue time had a 4-second median and 49-second p90; post-queue execution had a 123-second median and 199-second p90. Build jobs had an 89-second median and 116-second p90; deploy jobs had a 30-second median and 103-second p90. docs.yml has no separate dashboard job; dashboard cache restore had a 3-second median and 5-second p90, with cache-miss lookup and download skipped in all nine full runs. Trusted logs verified setup-node npm download-cache hits in all nine full runs. Setup Node.js had a 4-second median and 13-second p90, while npm ci had a 20-second median and 25-second p90 and consistently installed 845 packages. Other repeated step medians/p90s were checkout 23/35 seconds, Astro generation 14/15 seconds, Pages upload 18/21 seconds, and Deploy Pages 27/100 seconds. The npm cache is already effective; even eliminating npm ci entirely would save only 20 seconds (16.3% of median execution), while an additional exact-lock node_modules cache would incur restore overhead and cannot be evidenced from these runs to preserve a net saving of at least 18.45 seconds (15%) without correctness risk. No actionable dependency-caching change meets the threshold. Confidence is high for cache-hit and timing evidence and moderate-high for the no-op because the theoretical maximum is only marginally above the threshold."
+    },
+    {
+      "evaluated_at": "2026-11-03T02:50:00Z",
+      "worker_run_id": "41568386386",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        41568102210,
+        41566687550,
+        41566629441,
+        41565602070,
+        41565383117,
+        41564177241,
+        41563791401,
+        41563599363,
+        41563498086,
+        41561852697,
+        41561686857,
+        41560265238,
+        41559123233,
+        41558671644,
+        41558488903,
+        41558311176,
+        41558078752,
+        41557912581,
+        41556918357,
+        41556697944
+      ],
+      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-03T00:59:28Z to 2026-11-03T02:46:01Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Nine comparable successful push runs completed the full build-and-deploy path. Full workflow wall time had a 133-second median and 203-second nearest-rank p90; initial queue time had a 4-second median and 49-second p90; post-queue execution had a 123-second median and 199-second p90. Build jobs had an 89-second median and 116-second p90; deploy jobs had a 30-second median and 103-second p90. docs.yml has no separate dashboard job; dashboard cache restore had a 3-second median and 5-second p90. Trusted logs verified setup-node npm download-cache and dashboard cache hits in all nine full runs, and the dashboard cache-miss lookup and artifact-download steps were skipped. Repeated step medians/p90s were checkout 23/35 seconds, npm ci 20/25 seconds, Astro documentation generation 14/15 seconds, dashboard restore 3/5 seconds, and Pages upload 18/21 seconds. Astro logs reported its primary build phases completing in roughly 4.3-6.8 seconds, with the full documentation step consistently 9-15 seconds across revisions. Even eliminating the entire 14-second median documentation step would save only 11.4% of median execution time and less than 60 seconds, below the actionable threshold. No correctness-preserving Astro caching or generation change is evidenced to save at least 60 seconds or 15% of median execution time. Confidence is high for timing and cache evidence and high for the no-op because the theoretical maximum saving is below both thresholds."
     }
   ]
 }
