@@ -19,6 +19,9 @@ for (const colorScheme of ["light", "dark"]) {
       await expect(section.locator(".flying-agents > .flying-agent")).toHaveCount(3);
       await expect(section.locator(".flying-agents .agent-trail")).toHaveCount(3);
       await expect(section.locator(".flying-agents .agent-figure")).toHaveCount(3);
+      expect(await section.locator(".flying-agents > .flying-agent").evaluateAll(
+        agents => agents.map(agent => agent.getAttribute("data-anchor-value")),
+      )).toEqual(["90", "62", "32"]);
       await expect(section.locator(".adoption-marker")).toContainText("Adoption day");
       await expect(section.locator("figcaption")).toContainText("Traces are approximate");
       await expect(section.locator("figcaption")).toContainText("not live CAO data or evidence of causation");

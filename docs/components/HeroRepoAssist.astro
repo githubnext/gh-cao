@@ -23,6 +23,12 @@ const repositories = [
 const x = (day: number) => 90 + (day + 100) / 180 * 780;
 const y = (value: number) => 500 - value / 130 * 420;
 const trace = (values: number[]) => values.map((value, index) => `${index ? "L" : "M"}${x(days[index]).toFixed(1)},${y(value).toFixed(1)}`).join(" ");
+const flightAgents = [
+  { value: 90, agentX: 895, trailWidth: 90 },
+  { value: 62, agentX: 925, trailWidth: 120 },
+  { value: 32, agentX: 895, trailWidth: 90 },
+];
+const finalDay = days[days.length - 1];
 ---
 
 <figure class="repo-assist-chart" aria-labelledby="repo-assist-caption">
@@ -43,7 +49,7 @@ const trace = (values: number[]) => values.map((value, index) => `${index ? "L" 
       </ul>
     </div>
     <div class="chart-scroll" role="region" aria-label="Issue burndown chart; scroll horizontally on small screens" tabindex="0">
-      <svg class="burndown-plot" viewBox="0 0 1000 600" role="img" aria-labelledby="repo-assist-plot-title" aria-describedby="repo-assist-plot-description">
+      <svg class="burndown-plot" viewBox="0 0 1060 600" role="img" aria-labelledby="repo-assist-plot-title" aria-describedby="repo-assist-plot-description">
         <title id="repo-assist-plot-title">Open issues before and after Repo Assist adoption</title>
         <desc id="repo-assist-plot-description">Reconstructed from the supplied presentation slide. Fourteen repository traces are normalized to 100 percent on adoption day. Before adoption most stay near 100 percent; afterward many fall sharply, while some decline more slowly. Three purple and blue flying agent figures with pale curved lightning trails decorate the right edge. Coordinates are illustrative, not original measurements, and do not establish causation.</desc>
         <g class="plot-grid" aria-hidden="true">
@@ -66,18 +72,27 @@ const trace = (values: number[]) => values.map((value, index) => `${index ? "L" 
           <text x={x(0) + 16} y="48" text-anchor="middle">Adoption day</text>
         </g>
         <g class="flying-agents" aria-hidden="true">
-          <g class="flying-agent" transform="translate(795 145)">
-            <image class="agent-trail" href={repoAssistTrail.src} x="-10" y="25" width="125" height="51" />
-            <image class="agent-figure" href={repoAssistAgent.src} x="70" y="0" width="130" height="130" />
-          </g>
-          <g class="flying-agent" transform="translate(825 240)">
-            <image class="agent-trail" href={repoAssistTrail.src} x="-10" y="25" width="125" height="51" />
-            <image class="agent-figure" href={repoAssistAgent.src} x="70" y="0" width="130" height="130" />
-          </g>
-          <g class="flying-agent" transform="translate(795 338)">
-            <image class="agent-trail" href={repoAssistTrail.src} x="-10" y="25" width="125" height="51" />
-            <image class="agent-figure" href={repoAssistAgent.src} x="70" y="0" width="130" height="130" />
-          </g>
+          {flightAgents.map(({ value, agentX, trailWidth }) => (
+            <g class="flying-agent" data-anchor-value={value}>
+              <image
+                class="agent-trail"
+                href={repoAssistTrail.src}
+                x={x(finalDay)}
+                y={y(value) - 7}
+                width={trailWidth}
+                height="28"
+                preserveAspectRatio="none"
+              />
+              <image
+                class="agent-figure"
+                href={repoAssistAgent.src}
+                x={agentX}
+                y={y(value) - 45}
+                width="130"
+                height="130"
+              />
+            </g>
+          ))}
         </g>
       </svg>
     </div>
