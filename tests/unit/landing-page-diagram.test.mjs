@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
+import { parse } from "yaml";
 import { issueOpenedPaths } from "../../docs/components/workflow-illustration-icons.mjs";
 
 const landingPage = readFileSync("docs/README.md", "utf8");
@@ -158,11 +159,17 @@ test("the original operational-value storyboard retains evidence, human judgment
 test("landing workflow example shows Markdown instructions without granting rollout authority", () => {
   const excerpt = hero.match(/filename="\.github\/workflows\/dependabot\.md"\s+code=\{`([\s\S]*?)`\}/)?.[1];
   assert.ok(excerpt, "workflow snippet should show Markdown instructions");
-  assert.match(excerpt, /^# Tackle the Dependabot backlog/);
+  const frontmatter = excerpt.match(/^---\n([\s\S]*?)\n---\n/);
+  assert.ok(frontmatter, "workflow snippet should declare tools and safe outputs");
+  assert.deepEqual(parse(frontmatter[1]), {
+    tools: { github: true },
+    "safe-outputs": { "create-issue": null },
+  });
+  assert.match(excerpt, /# Tackle the Dependabot backlog/);
   assert.match(excerpt, /security-critical repos within the enrolled scope/);
   assert.match(excerpt, /critical and high-severity Dependabot alerts/);
-  assert.match(excerpt, /one admitted repository/);
-  assert.match(excerpt, /human review; do not merge/);
+  assert.match(excerpt, /Open an issue with proposed fixes for human review/);
+  assert.ok(excerpt.slice(frontmatter[0].length).trim().split("\n").length <= 4);
   assert.doesNotMatch(hero, /dependabot\/aw\.yml/);
   assert.match(hero, /Illustrative Markdown instructions, not a complete workflow/);
   assert.match(hero, /Keep it disabled and review-only/);

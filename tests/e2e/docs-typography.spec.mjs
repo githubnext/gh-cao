@@ -11,6 +11,8 @@ for (const colorScheme of ["light", "dark"]) {
       await story.scrollIntoViewIfNeeded();
       await expect(story.locator(".workflow-file-name")).toHaveText(".github/workflows/dependabot.md");
       const code = story.locator("pre.astro-code code");
+      await expect(code).toContainText("github: true");
+      await expect(code).toContainText("create-issue:");
       await expect(code).toContainText("# Tackle the Dependabot backlog");
       await expect(code).toContainText("security-critical repos");
       await expect(code).toHaveCSS("font-family", /"Mona Sans Mono"/);

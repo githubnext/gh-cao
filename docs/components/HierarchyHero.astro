@@ -170,15 +170,17 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
     label="Illustrative example: from a prompt to a Markdown workflow to bounded repository work"
     prompt="Find security-critical repositories and eat the Dependabot backlog. Keep it disabled and review-only."
     filename=".github/workflows/dependabot.md"
-    code={`# Tackle the Dependabot backlog
+    code={`---
+tools:
+  github: true
+safe-outputs:
+  create-issue:
+---
 
+# Tackle the Dependabot backlog
 Find security-critical repos within the enrolled scope.
 Prioritize critical and high-severity Dependabot alerts.
-
-## Plan the work
-- Propose fixes for the highest-risk dependencies first.
-- Keep each worker focused on one admitted repository.
-- Prepare changes for human review; do not merge.`}
+Open an issue with proposed fixes for human review.`}
     transition="After installation, before enabling execution"
     resultTitle="Workflow prepared for review"
     result="A central orchestrator selects admitted repositories. Each worker handles one target."
