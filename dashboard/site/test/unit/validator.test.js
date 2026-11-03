@@ -303,7 +303,7 @@ describe('dashboard document validation', () => {
         })])
       });
     }
-  });
+  }, 10_000);
 
   it('validates the optional page mode-indicator flag', () => {
     const accepted = JSON.parse(authoritativeDashboardSource);

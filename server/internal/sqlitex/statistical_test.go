@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/githubnext/gh-cao/internal/dashboardquery"
+
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/query"
