@@ -125,7 +125,14 @@ test('dogfood File Diet registration pins existing effective Activity scope with
 });
 
 test('reviewed remote collection uses reserved capacity after ordinary Activity reaches its floor', async t => {
-  const options = await fixture(t);
+  const budgetModule = new URL('../../activity/github-api-budget.mjs', import.meta.url).href;
+  const options = await fixture(t, `
+ const {consumeGithubApiBudget}=await import(${JSON.stringify(budgetModule)});
+ consumeGithubApiBudget(process.env.CAO_GITHUB_API_BUDGET_FILE);
+ consumeGithubApiBudget(process.env.CAO_GITHUB_API_BUDGET_FILE);
+ consumeGithubApiBudget(process.env.CAO_GITHUB_API_BUDGET_FILE);
+ return ${JSON.stringify(packet())};
+`);
   options.defer = 'api-budget';
   const remote = policy();
   remote['control-plane'].campaigns.activity['workflow-values'][0]['api-requests'] = 3;
@@ -146,11 +153,12 @@ test('reviewed remote collection uses reserved capacity after ordinary Activity 
   result = await runWorkflowValues(options);
   assert.equal(result.collected, 1);
   assert.equal(JSON.parse(await readFile(options.apiBudget, 'utf8')).granted, 3);
-  assert.equal(result.cost.apiRequests, 0);
+  assert.equal(JSON.parse(await readFile(options.apiBudget, 'utf8')).consumed, 3);
+  assert.equal(result.cost.apiRequests, 3);
   assert.equal(result.cost.capacityChecks, 1);
   const [directory] = await readdir(options.workspace);
   const history = JSON.parse(await readFile(path.join(options.workspace, directory, 'collection-cost.json')));
-  assert.equal(history.totals.apiRequests, 0);
+  assert.equal(history.totals.apiRequests, 3);
   assert.equal(history.totals.capacityChecks, 1);
   assert.equal(history.totals.attempts, 1);
   assert.ok(history.recent[0].wallMs >= 0);
@@ -191,6 +199,29 @@ test('collector request exhaustion is counted before execution and reported expl
   assert.equal(history.totals.apiRequests, 1);
   assert.equal(history.recent[0].exitStatus, 1);
   await assert.rejects(readFile(options.output, 'utf8'), /ENOENT/);
+});
+
+test('collector failures retain evidence and expose only a bounded safe diagnostic', async t => {
+  const options = await fixture(t, `
+ const error=new Error('secret command output must not escape');
+ error.code='ETIMEDOUT';
+ error.killed=true;
+ error.signal='SIGTERM';
+ throw error;
+`);
+  const previous = packet('2026-10-19T12:00:00.000Z');
+  previous.operational_value_evidence.windowEnd = '2026-10-19T00:00:00.000Z';
+  previous.operational_value_evidence.facts[1]['end-at'] = '2026-10-19T00:00:00.000Z';
+  const retained = `${JSON.stringify(previous)}\n`;
+  await writeFile(options.output, retained);
+  const result = await runWorkflowValues(options);
+  assert.equal(result.failed, 1);
+  assert.equal((await collection(options)).reasonCode, 'timeout');
+  assert.deepEqual(result.warnings, [
+    'org/repo/daily-review: collector command timed out (SIGTERM); previous evidence retained',
+  ]);
+  assert.doesNotMatch(JSON.stringify(result), /secret command output/);
+  assert.equal(await readFile(options.output, 'utf8'), retained);
 });
 
 test('recurring producer emits original typed facts, retains proof, skips satisfied cadence and preserves disabled history', async (t) => {
