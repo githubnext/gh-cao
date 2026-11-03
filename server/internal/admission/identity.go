@@ -115,11 +115,11 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Identity, error) {
 		value, _ := strconv.ParseInt(raw, 10, 64)
 		return value
 	}
-	now := time.Now().Unix()
-	iat, nbf, exp := date("iat"), date("nbf"), date("exp")
-	if get("iss") != Issuer || get("aud") != v.audience ||
-		iat <= 0 || iat > now+30 || iat < now-600 || nbf <= 0 || nbf > now+30 ||
-		exp <= now || exp <= iat || exp-iat > 600 || nbf >= exp {
+	if get("iss") != Issuer || get("aud") != v.audience {
+		return Identity{}, ErrDenied
+	}
+	if !validTokenWindow(date("iat"), date("nbf"), date("exp"), time.Now().Unix()) {
+		admissionLog.Printf("token rejected: reason=time_window")
 		return Identity{}, ErrDenied
 	}
 	// This profile intentionally does not admit reusable calls: the protocol
@@ -139,18 +139,36 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Identity, error) {
 		CheckRunID: get("check_run_id"),
 	}
 	_, i.EnvironmentPresent = claims["environment"]
+	if reason := identityViolation(i); reason != "" {
+		admissionLog.Printf("token rejected: reason=%s", reason)
+		return Identity{}, ErrDenied
+	}
+	return i, nil
+}
+
+// validTokenWindow reports whether the issued-at, not-before, and expiry Unix
+// times describe a short-lived token that is valid at now, allowing 30 seconds
+// of clock skew.
+func validTokenWindow(iat, nbf, exp, now int64) bool {
+	return iat > 0 && iat <= now+30 && iat >= now-600 && nbf > 0 && nbf <= now+30 &&
+		exp > now && exp > iat && exp-iat <= 600 && nbf < exp
+}
+
+// identityViolation returns a fixed reason code for the first malformed
+// identity field, or "" when the identity is admissible.
+func identityViolation(i Identity) string {
 	if !repository.MatchString(i.Repository) || i.Subject == "" || i.Ref == "" || i.Event == "" ||
 		!clean(i.Actor, 100) || !decimal.MatchString(i.RepositoryID) ||
 		!decimal.MatchString(i.OwnerID) || !decimal.MatchString(i.ActorID) ||
 		!decimal.MatchString(i.RunID) || len(i.RunID) > 128 ||
 		!decimal.MatchString(i.RunAttempt) || len(i.RunAttempt) > 128 ||
 		!revision.MatchString(i.WorkflowSHA) || len(i.WorkflowRef) > 1024 {
-		return Identity{}, ErrDenied
+		return "identity_fields"
 	}
 	if !strings.HasPrefix(i.WorkflowRef, i.Repository+"/.github/workflows/") {
-		return Identity{}, ErrDenied
+		return "workflow_ref"
 	}
-	return i, nil
+	return ""
 }
 
 func (v *Verifier) key(ctx context.Context, kid string) (*rsa.PublicKey, error) {
