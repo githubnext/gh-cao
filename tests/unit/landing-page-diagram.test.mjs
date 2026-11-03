@@ -161,6 +161,20 @@ test("the original operational-value storyboard retains evidence, human judgment
   assert.doesNotMatch(decision, /<img|<svg|<script/);
 });
 
+test("Repo Assist hero uses the supplied study figure without inventing measurements or causal claims", () => {
+  const chart = readFileSync("docs/components/HeroRepoAssistValue.astro", "utf8");
+  assert.match(hero, /<HeroRepoAssistValue \/>/);
+  assert.match(hero, /<summary>How evidence guides rollout<\/summary>/);
+  assert.match(chart, /repo-assist-issue-backlog\.png/);
+  assert.ok(existsSync("docs/assets/product/repo-assist-issue-backlog.png"));
+  assert.match(chart, /Each series is normalized to 100% on adoption day/);
+  assert.match(chart, /Several backlogs approach zero after adoption; others remain higher/);
+  assert.match(chart, /observed change, not proof of causation/);
+  assert.match(chart, /href=\{backlog\.src\}/);
+  assert.match(chart, /Open full-size Repo Assist issue backlog chart/);
+  assert.doesNotMatch(chart, /<script|<svg|snapshots|Illustrative scenario|\bfetch\(/);
+});
+
 test("landing workflow example shows Markdown instructions without granting rollout authority", () => {
   const excerpt = hero.match(/filename="\.github\/workflows\/dependabot\.md"\s+code=\{`([\s\S]*?)`\}/)?.[1];
   assert.ok(excerpt, "workflow snippet should show Markdown instructions");

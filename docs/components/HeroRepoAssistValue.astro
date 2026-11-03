@@ -1,0 +1,64 @@
+---
+import { Image } from "astro:assets";
+import backlog from "../assets/product/repo-assist-issue-backlog.png";
+---
+
+<figure class="repo-assist-value" aria-labelledby="repo-assist-value-title">
+  <a
+    class="chart-image-link"
+    href={backlog.src}
+    target="_blank"
+    rel="noreferrer"
+    aria-label="Open full-size Repo Assist issue backlog chart"
+  >
+    <Image
+      src={backlog}
+      widths={[640, 960, 1440, 2000]}
+      sizes="(max-width: 52rem) calc(100vw - 5rem), (max-width: 76rem) calc(100vw - 8rem), 60rem"
+      alt="Repos that clean themselves: open issue backlogs in F# repositories before and after Repo Assist adoption. Each series is normalized to 100% on adoption day, marked by a purple vertical line at day zero. Several backlogs approach zero afterward, while others remain higher."
+      loading="lazy"
+      decoding="async"
+    />
+    <span class="expand-label">Open full-size chart <span aria-hidden="true">↗</span></span>
+  </a>
+  <figcaption>
+    <strong id="repo-assist-value-title">Repo Assist in F# repositories.</strong>
+    Open issues as a percentage of each repository's adoption-day count.
+    Several backlogs approach zero after adoption; others remain higher.
+    This supplied study figure shows observed change, not proof of causation.
+  </figcaption>
+</figure>
+
+<style>
+  @layer starlight.core {
+    .repo-assist-value { min-width: 0; margin: 0; color: var(--cao-story-heading); }
+    .chart-image-link {
+      display: block;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--cao-loop-border);
+      border-radius: 0.875rem;
+      background: #000;
+      color: #f0f6fc;
+      text-decoration: none;
+    }
+    .chart-image-link:focus-visible { outline: 3px solid var(--sl-color-text-accent); outline-offset: 4px; }
+    .chart-image-link :global(img) { display: block; width: 100%; height: auto; }
+    .expand-label {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      min-height: 2.75rem;
+      padding: 0.5rem 1rem;
+      border-top: 1px solid #30363d;
+      color: #b1bac4;
+      font-size: 0.8125rem;
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
+    .chart-image-link:hover .expand-label { color: #fff; }
+    figcaption { margin-top: 1rem; color: var(--cao-story-text); font-size: 0.8125rem; line-height: 1.6; text-wrap: pretty; }
+    figcaption strong { color: var(--cao-story-heading); }
+  }
+</style>

@@ -7,6 +7,7 @@ import ThemeImage from "./ThemeImage.astro";
 import HeroWorkflowSnippet from "./HeroWorkflowSnippet.astro";
 import HeroControlDiagram from "./HeroControlDiagram.astro";
 import HeroDecisionLoop from "./HeroDecisionLoop.astro";
+import HeroRepoAssistValue from "./HeroRepoAssistValue.astro";
 import dashboardMobileOverview from "../assets/product/cao-dashboard-mobile-overview.png";
 import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile-overview-light.png";
 ---
@@ -138,13 +139,20 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
       Cheaper runs are not better if they deliver less value; compare cost per accepted outcome.
     </p>
     <p>
+      A shrinking issue backlog makes progress tangible.
       Use evidence to refine workflows, expand what earns confidence, and pause what does not.
     </p>
     <a class="hero-story-link" href="/gh-cao/operational-value-how-to/">
       Explore operational value <span aria-hidden="true">→</span>
     </a>
   </div>
-  <HeroDecisionLoop />
+  <div class="value-story-visual">
+    <HeroRepoAssistValue />
+    <details class="value-method">
+      <summary>How evidence guides rollout</summary>
+      <HeroDecisionLoop />
+    </details>
+  </div>
 </section>
 <section class="product-story snippet-story webhook-story" aria-labelledby="webhook-title" data-reveal data-slideshow-slide>
   <div class="product-story-copy">
@@ -505,6 +513,29 @@ Open an issue with proposed fixes for human review.`}
 
     .terminal-story {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .decision-story {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 2rem;
+    }
+
+    .decision-story > .product-story-copy { max-width: 50rem; }
+    .value-story-visual { width: 100%; max-width: 60rem; min-width: 0; justify-self: center; }
+    .value-method { margin-top: 0.75rem; }
+    .value-method > summary {
+      display: flex;
+      align-items: center;
+      min-height: 2.75rem;
+      color: var(--sl-color-text-accent);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
+    .value-method > summary:focus-visible {
+      outline: 2px solid var(--sl-color-text-accent);
+      outline-offset: 2px;
     }
 
     .maintenance-story {

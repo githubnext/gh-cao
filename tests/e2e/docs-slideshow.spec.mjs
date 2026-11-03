@@ -218,6 +218,27 @@ for (const theme of ["light", "dark"]) {
   });
 
   for (const viewport of [{ width: 1440, height: 900 }, { width: 800, height: 600 }, { width: 1280, height: 480 }]) {
+    test(`fits the Repo Assist chart to ${viewport.width}x${viewport.height} in ${theme} mode`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.addInitScript(value => localStorage.setItem("starlight-theme", value), theme);
+      await page.goto("./");
+      await openSlideshow(page);
+      const valueIndex = slideTitles.indexOf("Operational Value");
+      for (let index = 0; index < valueIndex; index++) {
+        await page.getByRole("button", { name: "Next slide", exact: true }).click();
+      }
+      await expectSlide(page, valueIndex);
+      const chart = presentation(page).locator(".repo-assist-value");
+      await expect(chart).toBeVisible();
+      await expect.poll(() => chart.locator("img").evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+      await expect.poll(async () => {
+        const bounds = await chart.boundingBox();
+        return bounds.x >= 0 && bounds.y >= 0
+          && bounds.x + bounds.width <= viewport.width + 1
+          && bounds.y + bounds.height <= viewport.height + 1;
+      }).toBe(true);
+    });
+
     test(`fits all slides to ${viewport.width}x${viewport.height} in ${theme} mode`, async ({ page }, testInfo) => {
       await page.setViewportSize(viewport);
       await page.addInitScript(value => localStorage.setItem("starlight-theme", value), theme);
@@ -248,7 +269,7 @@ for (const theme of ["light", "dark"]) {
         }).toBe(true);
         expect(await slide.evaluate(element => {
           const bounds = element.getBoundingClientRect();
-          return [...element.querySelectorAll("h1, h2, .docs-hero-intro, .hero-visual, .phone-preview, .product-story-copy, .terminal, .dispatch-illustration, .product-shot, .workflow-example, .control-diagram, .decision-loop")]
+          return [...element.querySelectorAll("h1, h2, .docs-hero-intro, .hero-visual, .phone-preview, .product-story-copy, .terminal, .dispatch-illustration, .product-shot, .workflow-example, .control-diagram, .repo-assist-value, .decision-loop")]
             .filter(child => child.checkVisibility())
             .every(child => {
               const content = child.getBoundingClientRect();

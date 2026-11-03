@@ -28,7 +28,7 @@ for (const colorScheme of ["light", "dark"]) {
     }
   });
 
-  for (const width of [390, 1280]) {
+  for (const width of [320, 390, 1280]) {
     test(`canonical diagrams enlarge for inspection at ${width}px in ${colorScheme}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
@@ -94,6 +94,28 @@ for (const colorScheme of ["light", "dark"]) {
       await expect(valueStory).toContainText("accepted, evidence-backed repository outcomes, not run counts or generated output");
       await expect(valueStory).toContainText("Minimize token and compute costs without sacrificing outcome quality");
       await expect(valueStory).toContainText("compare cost per accepted outcome");
+      const backlog = valueStory.getByRole("figure", { name: "Repo Assist in F# repositories." });
+      await expect(backlog).toBeVisible();
+      await expect(backlog).toContainText("observed change, not proof of causation");
+      const backlogImage = backlog.getByRole("img", { name: /Repos that clean themselves/ });
+      await backlog.scrollIntoViewIfNeeded();
+      await expect.poll(() => backlogImage.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+      await expect(backlogImage).toBeVisible();
+      const fullSize = backlog.getByRole("link", { name: "Open full-size Repo Assist issue backlog chart" });
+      await expect(fullSize).toHaveAttribute("href", /repo-assist-issue-backlog.*\.png$/);
+      await fullSize.focus();
+      await expect(fullSize).toBeFocused();
+      const [expanded] = await Promise.all([page.waitForEvent("popup"), fullSize.press("Enter")]);
+      await expect.poll(() => expanded.locator("img").evaluate(image => ({
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      }))).toEqual({ width: 2000, height: 950 });
+      await expanded.close();
+      const method = valueStory.getByText("How evidence guides rollout", { exact: true });
+      await method.click();
+      await expect(value).toBeVisible();
+      await method.click();
+      await expect(value).not.toBeVisible();
       await page.evaluate(() => document.fonts.ready);
       const valueHeight = await valueStory.evaluate((element) => element.getBoundingClientRect().height);
       // Keep the fixed header outside a tall storyboard's capture.

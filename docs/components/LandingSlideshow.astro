@@ -188,7 +188,7 @@ import SlideshowSnippet from "./SlideshowSnippet.astro";
   }
   dialog :global(.hierarchy-hero) { grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr); }
   dialog :global(.docs-hero-intro .actions) { display: none; }
-  dialog :global(.product-story:not(.dispatch-story)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  dialog :global(.product-story:not(.dispatch-story, .decision-story)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   dialog :global([data-reveal]) { opacity: 1; transform: none; transition: none; }
   .slideshow-controls {
     position: absolute;
