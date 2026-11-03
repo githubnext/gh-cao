@@ -1767,7 +1767,7 @@ func (loader *databaseLoader) runtimeSource(ctx context.Context, name string, de
 	}
 	if name == valueCollectionCostsSourceName {
 		if loader.app == nil {
-			return model.Source{}, errors.New("Value collection cost provider is unavailable")
+			return model.Source{}, errors.New("value collection cost provider is unavailable")
 		}
 		return loader.app.valueCollectionCostsSource(ctx, loader.allowCollectionHealth)
 	}

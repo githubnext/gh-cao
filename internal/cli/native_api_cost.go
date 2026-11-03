@@ -541,12 +541,9 @@ func nativeAPICostPopulation(rows []any, metadata map[string]any, source string)
 		return apicost.Population{}, errors.New("invalid Daily File Diet population query row count")
 	}
 	row := nativeObject(rows[0])
-	outputs, implementations := nativeNumber(row["tracked-issues"]), nativeNumber(row["retained-implementations"])
-	maxIntExclusive := math.Ldexp(1, strconv.IntSize-1)
-	if math.IsNaN(outputs) || math.IsInf(outputs, 0) || outputs < 0 || outputs >= maxIntExclusive ||
-		outputs != math.Trunc(outputs) ||
-		math.IsNaN(implementations) || math.IsInf(implementations, 0) || implementations < 0 ||
-		implementations >= maxIntExclusive || implementations != math.Trunc(implementations) {
+	outputs, outputsValid := nativeAPICostCount(row["tracked-issues"])
+	implementations, implementationsValid := nativeAPICostCount(row["retained-implementations"])
+	if !outputsValid || !implementationsValid {
 		return apicost.Population{}, errors.New("invalid Daily File Diet population counts")
 	}
 	observedAt, windowEnd := nativeText(row["observed-at"]), nativeText(row["window-end"])
@@ -554,9 +551,18 @@ func nativeAPICostPopulation(rows []any, metadata map[string]any, source string)
 		return apicost.Population{}, errors.New("invalid Daily File Diet population query evidence clocks")
 	}
 	return apicost.Population{
-		Outputs: int(outputs), Implementations: int(implementations),
+		Outputs: outputs, Implementations: implementations,
 		ObservedAt: observedAt, WindowEnd: windowEnd, Source: source,
 	}, nil
+}
+
+func nativeAPICostCount(value any) (int, bool) {
+	number := nativeNumber(value)
+	if math.IsNaN(number) || math.IsInf(number, 0) || number < 0 || number != math.Trunc(number) {
+		return 0, false
+	}
+	count, err := strconv.Atoi(strconv.FormatFloat(number, 'f', -1, 64))
+	return count, err == nil
 }
 
 func nativeAPICostRows(value any) []any {
