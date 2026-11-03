@@ -689,6 +689,16 @@ GitHub API requests and is omitted for a local-only collector. Activity admits
 the full ceiling only after ordinary collection and above its protected reserve;
 missing or insufficient admission publishes the actual deferral reason.
 Bounded local-only computations run outside its publication path.
+
+When the collector exports `definition.acquisition.requirements`, `value enable`
+normalizes and copies them into the exact reviewed registration. Each
+requirement freezes a source, quota pool, versioned primitive, selected
+population scope and cache lifetime. Hosted collection rejects a collector when
+that manifest no longer matches policy. For one repository collection, multiple
+workflows declaring the same invocation-cacheable GitHub requirement can reuse
+byte-identical successful API responses; each workflow still keeps its own
+request ceiling, proof and publication checks. The manifest does not grant
+credentials, repository scope or additional quota.
 A failed refresh retains the last accepted capture without changing
 its timestamp or inventing a zero. Disable stops future collection, not history.
 An explicit disable persists even if the skill is used again.

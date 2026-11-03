@@ -27,6 +27,10 @@ import (
 // Reserving 500 points leaves ample headroom if its pricing changes; no other
 // query shape is permitted and the returned actual cost must not exceed 500.
 const remoteValueGraphPoints = 500
+const (
+	remoteValueCacheEntries = 512
+	remoteValueCacheBytes   = 32 << 20
+)
 
 var remoteValueGraphAlias = regexp.MustCompile(`n([1-9][0-9]*): issueOrPullRequest\(number:([1-9][0-9]*)\)`)
 
@@ -87,23 +91,73 @@ func remoteValueExpectedGraphQuery(repository string, numbers []int) string {
 // executable speaks to this private Unix socket; the host reserves each API
 // request against the shared installation buckets before forwarding it.
 type remoteValueAPI struct {
-	client       *http.Client
-	quota        *githubquota.Service
-	searchQuota  *githubquota.Service
-	app          string
-	installation int64
-	repository   string
-	collector    string
-	base         *url.URL
-	token        string
-	max          int
-	mu           sync.Mutex
-	used         int
-	sent         int
-	preflights   int
-	graphPoints  int
-	graphUnknown int
-	bytes        int64
+	client             *http.Client
+	quota              *githubquota.Service
+	searchQuota        *githubquota.Service
+	app                string
+	installation       int64
+	repository         string
+	collector          string
+	base               *url.URL
+	token              string
+	max                int
+	cache              *remoteValueResponseCache
+	sharedRequirements map[string]remoteValueRequirement
+	mu                 sync.Mutex
+	used               int
+	sent               int
+	preflights         int
+	graphPoints        int
+	graphUnknown       int
+	cacheHits          int
+	bytes              int64
+}
+
+type remoteValueCachedResponse struct {
+	content []byte
+	headers http.Header
+	status  int
+}
+
+type remoteValueResponseCache struct {
+	mu      sync.Mutex
+	entries map[string]remoteValueCachedResponse
+	bytes   int
+}
+
+func newRemoteValueResponseCache() *remoteValueResponseCache {
+	return &remoteValueResponseCache{entries: map[string]remoteValueCachedResponse{}}
+}
+
+func (c *remoteValueResponseCache) get(key string) (remoteValueCachedResponse, bool) {
+	if c == nil {
+		return remoteValueCachedResponse{}, false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	value, ok := c.entries[key]
+	if !ok {
+		return remoteValueCachedResponse{}, false
+	}
+	value.content = bytes.Clone(value.content)
+	value.headers = value.headers.Clone()
+	return value, true
+}
+
+func (c *remoteValueResponseCache) put(key string, value remoteValueCachedResponse) {
+	if c == nil || len(value.content) > remoteValueCacheBytes {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, exists := c.entries[key]; exists || len(c.entries) >= remoteValueCacheEntries ||
+		c.bytes+len(value.content) > remoteValueCacheBytes {
+		return
+	}
+	value.content = bytes.Clone(value.content)
+	value.headers = value.headers.Clone()
+	c.entries[key] = value
+	c.bytes += len(value.content)
 }
 
 func (a *remoteValueAPI) usage() (int, int64) {
@@ -112,16 +166,31 @@ func (a *remoteValueAPI) usage() (int, int64) {
 	return a.sent, a.bytes
 }
 
-func (a *remoteValueAPI) costUsage() (int, int, int, int, int64) {
+func (a *remoteValueAPI) costUsage() (int, int, int, int, int, int64) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return a.sent, a.preflights, a.graphPoints, a.graphUnknown, a.bytes
+	return a.sent, a.cacheHits, a.preflights, a.graphPoints, a.graphUnknown, a.bytes
 }
 
 func (a *remoteValueAPI) recordBytes(count int) {
 	a.mu.Lock()
 	a.bytes += int64(count)
 	a.mu.Unlock()
+}
+
+func (a *remoteValueAPI) recordCacheHit() {
+	a.mu.Lock()
+	a.cacheHits++
+	a.mu.Unlock()
+}
+
+func (a *remoteValueAPI) sharedCacheKey(requirementID, resource, requestKey string) (string, bool) {
+	requirement, ok := a.sharedRequirements[requirementID]
+	if !ok || requirement.Source != "github" || requirement.Cache != "invocation" ||
+		requirement.Pool != resource {
+		return "", false
+	}
+	return requirementID + "\x00" + requestKey, true
 }
 
 func (a *remoteValueAPI) requestClient() http.Client {
@@ -233,7 +302,9 @@ func (a *remoteValueAPI) observeResource(ctx context.Context, resource string) e
 	})
 }
 
-func (a *remoteValueAPI) request(ctx context.Context, endpoint string) ([]byte, http.Header, int, error) {
+func (a *remoteValueAPI) request(
+	ctx context.Context, endpoint string, requirementIDs ...string,
+) ([]byte, http.Header, int, error) {
 	path, err := url.Parse(endpoint)
 	if len(endpoint) > 2048 || err != nil || path.IsAbs() || path.Host != "" || path.Fragment != "" || strings.HasPrefix(endpoint, "//") ||
 		strings.Contains(path.EscapedPath(), "%") {
@@ -257,6 +328,17 @@ func (a *remoteValueAPI) request(ctx context.Context, endpoint string) ([]byte, 
 		resource = "search"
 	default:
 		return nil, nil, 0, errors.New("remote Value API endpoint is outside its enrolled repository")
+	}
+	requirementID := ""
+	if len(requirementIDs) == 1 {
+		requirementID = requirementIDs[0]
+	}
+	cacheKey, cacheable := a.sharedCacheKey(requirementID, resource, "GET\x00"+endpoint)
+	if cacheable {
+		if cached, ok := a.cache.get(cacheKey); ok {
+			a.recordCacheHit()
+			return cached.content, cached.headers, cached.status, nil
+		}
 	}
 	reservation, service, err := a.reserve(ctx, resource)
 	if err != nil {
@@ -314,7 +396,7 @@ func (a *remoteValueAPI) request(ctx context.Context, endpoint string) ([]byte, 
 				canonical := strings.TrimPrefix(target.Path, strings.TrimSuffix(a.base.Path, "/")+"/")
 				if strings.EqualFold(canonical, "repos/"+a.repository) ||
 					strings.HasPrefix(strings.ToLower(canonical), "repos/"+a.repository+"/") {
-					return a.request(ctx, canonical)
+					return a.request(ctx, canonical, requirementID)
 				}
 			}
 		}
@@ -325,7 +407,17 @@ func (a *remoteValueAPI) request(ctx context.Context, endpoint string) ([]byte, 
 		if err != nil {
 			return nil, nil, 0, err
 		}
-		return content, http.Header{"Content-Type": []string{"application/zip"}}, http.StatusOK, nil
+		headers := http.Header{"Content-Type": []string{"application/zip"}}
+		if cacheable {
+			a.cache.put(cacheKey, remoteValueCachedResponse{content: content, headers: headers, status: http.StatusOK})
+		}
+		return content, headers, http.StatusOK, nil
+	}
+	if cacheable && response.StatusCode < http.StatusInternalServerError {
+		headers := http.Header{"Content-Type": []string{response.Header.Get("Content-Type")}}
+		a.cache.put(cacheKey, remoteValueCachedResponse{
+			content: content, headers: headers, status: response.StatusCode,
+		})
 	}
 	return content, response.Header, response.StatusCode, nil
 }
@@ -396,9 +488,20 @@ func (a *remoteValueAPI) downloadArtifact(ctx context.Context, location string) 
 	return content, nil
 }
 
-func (a *remoteValueAPI) graphQL(ctx context.Context, query string) ([]byte, error) {
+func (a *remoteValueAPI) graphQL(ctx context.Context, query string, requirementIDs ...string) ([]byte, error) {
 	if !remoteValueGraphQuery(a.repository, query) {
 		return nil, errors.New("remote Value GraphQL query exceeds the frozen reviewed scope")
+	}
+	requirementID := ""
+	if len(requirementIDs) == 1 {
+		requirementID = requirementIDs[0]
+	}
+	cacheKey, cacheable := a.sharedCacheKey(requirementID, "graphql", "POST\x00graphql\x00"+query)
+	if cacheable {
+		if cached, ok := a.cache.get(cacheKey); ok {
+			a.recordCacheHit()
+			return cached.content, nil
+		}
 	}
 	reservation, service, err := a.reserve(ctx, "graphql")
 	if err != nil {
@@ -486,6 +589,9 @@ func (a *remoteValueAPI) graphQL(ctx context.Context, query string) ([]byte, err
 	if response.StatusCode != http.StatusOK || len(result.Errors) != 0 {
 		return nil, errors.New("remote Value GraphQL query failed")
 	}
+	if cacheable {
+		a.cache.put(cacheKey, remoteValueCachedResponse{content: content, status: http.StatusOK})
+	}
 	return content, nil
 }
 
@@ -533,7 +639,9 @@ func (a *remoteValueAPI) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			http.Error(writer, "invalid remote Value GraphQL request", http.StatusForbidden)
 			return
 		}
-		content, err := a.graphQL(request.Context(), input.Query)
+		content, err := a.graphQL(
+			request.Context(), input.Query, request.Header.Get("X-CAO-Value-Acquisition-Requirement"),
+		)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusServiceUnavailable)
 			return
@@ -547,7 +655,9 @@ func (a *remoteValueAPI) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 	endpoint := request.URL.Query().Get("endpoint")
-	content, headers, status, err := a.request(request.Context(), endpoint)
+	content, headers, status, err := a.request(
+		request.Context(), endpoint, request.Header.Get("X-CAO-Value-Acquisition-Requirement"),
+	)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusServiceUnavailable)
 		return
@@ -594,10 +704,13 @@ if (!graph && !rest) {
   process.exit(1);
 }
 const body = graph ? JSON.stringify({query: args[3].slice('query='.length)}) : '';
+const requirement = process.env.CAO_VALUE_ACQUISITION_REQUIREMENT || '';
+const headers = graph ? {'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body)} : {};
+if (/^[a-f0-9]{64}$/.test(requirement)) headers['X-CAO-Value-Acquisition-Requirement'] = requirement;
 const request = http.request({socketPath: process.env.CAO_REMOTE_VALUE_SOCKET.replace(/^@/, '\0'),
   path: graph ? '/graphql' : '/api?endpoint=' + encodeURIComponent(args[1]),
   method: graph ? 'POST' : 'GET', timeout: 65000,
-  headers: graph ? {'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body)} : {}}, response => {
+  headers}, response => {
   if (response.statusCode < 200 || response.statusCode >= 300) {
     process.stderr.write('remote Value API failed (HTTP ' + response.statusCode + ')\n');
     response.resume();

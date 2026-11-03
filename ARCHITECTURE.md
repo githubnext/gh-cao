@@ -991,12 +991,25 @@ operational-grader measurements, and efficiency evidence separate; they do not
 turn runtime success or output creation into accepted value.
 Package-level `operational-value.mjs` programs compute repository-scoped metric
 records through `cao operational-value`. Automatic remote acquisition remains
-deferred without shared per-request API admission; separate workers are not
-separate quota. Actions Activity may admit a reviewed collector only after
+bounded by shared per-request API admission; separate workers are not separate
+quota. Each recurring collector freezes acquisition requirements in its
+definition, and `value enable` copies their normalized source, quota pool,
+versioned primitive, population scope and cache lifetime into reviewed policy.
+The hosted repository worker compiles those requirements under its existing
+repository lease. Workflows that declare an identical invocation-cacheable
+GitHub requirement share byte-identical successful REST, Search, artifact and
+GraphQL reads through the repository-confined proxy. Every reusable request is
+labelled with the exact reviewed requirement digest and checked against its
+native quota pool; unlabelled or mismatched calls remain isolated. Reuse never crosses a
+repository, installation, API origin, policy snapshot or collection invocation;
+each collector keeps its own request grant, proof, timeout, starting-packet
+check and publication CAS. Legacy registrations without a manifest remain
+isolated. Actions Activity may admit a reviewed collector only after
 ordinary collection and only when its complete request ceiling fits above the
 protected reserve. It durably counts each uncached GitHub request before
 execution and retains accepted packets/proof on missing capacity or exhaustion.
-Hosted cycles remain deferred pending equivalent admission. Health reconciles
+Hosted cycles use the same shared quota services and count cache hits separately
+from metered requests. Health reconciles
 the latest decision and actual attempt independently of arrival order; unknown
 attempts never erase known history.
 Bounded cache-only/local computation remains independent:

@@ -633,13 +633,13 @@ func DailyFileDietScenario(options DailyFileDietOptions) (Scenario, error) {
 		scenarioName = "retained"
 	}
 	if scenarioName != "retained" && scenarioName != "hard-bound" {
-		return Scenario{}, errors.New("Daily File Diet scenario must be retained or hard-bound")
+		return Scenario{}, errors.New("the Daily File Diet scenario must be retained or hard-bound")
 	}
 	hard := scenarioName == "hard-bound"
 	population := Population{}
 	if !hard {
 		if options.Population == nil || options.Population.Source == "" {
-			return Scenario{}, errors.New("Daily File Diet retained scenario requires canonical database evidence")
+			return Scenario{}, errors.New("the Daily File Diet retained scenario requires canonical database evidence")
 		}
 		population = *options.Population
 	}

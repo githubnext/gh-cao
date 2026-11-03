@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-const nativeCollectorFixture = `export const definition={schemaVersion:3,repository:"owner/repo",slug:"daily-review",sourcePath:".github/workflows/daily-review.md",adoption:{adoptedAt:"2026-10-01T00:00:00.000Z"},evidence:{repositories:["owner/repo"],window:{cadenceDays:1,maturationDays:0}}}; export async function collectValueEvidence(){throw new Error("must not collect during enable")}`
+const nativeCollectorFixture = `export const definition={schemaVersion:3,repository:"owner/repo",slug:"daily-review",sourcePath:".github/workflows/daily-review.md",adoption:{adoptedAt:"2026-10-01T00:00:00.000Z"},evidence:{repositories:["owner/repo"],window:{cadenceDays:1,maturationDays:0}},acquisition:{requirements:[{source:"github",pool:"core",primitive:"github.repository-metadata.v1",scope:"repository",cache:"invocation"}]}}; export async function collectValueEvidence(){throw new Error("must not collect during enable")}`
 
 func TestNativeValueOptInOnlyStagesExactLocalPolicy(t *testing.T) {
 	nativeManagementDirectory(t)
@@ -30,6 +30,12 @@ func TestNativeValueOptInOnlyStagesExactLocalPolicy(t *testing.T) {
 	if len(entries) != 1 || entries[0].(map[string]any)["collector"] != "collectors/value.mjs" ||
 		entries[0].(map[string]any)["api-requests"] != json.Number("25") {
 		t.Fatalf("unexpected opt-in: %+v", entries)
+	}
+	acquisition := entries[0].(map[string]any)["acquisition"].(map[string]any)
+	requirements := acquisition["requirements"].([]any)
+	if len(requirements) != 1 ||
+		requirements[0].(map[string]any)["primitive"] != "github.repository-metadata.v1" {
+		t.Fatalf("reviewed acquisition requirements were not frozen: %+v", acquisition)
 	}
 	delete(control["campaigns"].(map[string]any), "activity")
 	left, _ := json.Marshal(policy)
@@ -169,6 +175,25 @@ func TestNativeValueOptInRejectsInvalidAPIRequestCeiling(t *testing.T) {
 		cmd.Flags().String("api-requests", value, "")
 		if err := nativeValueConfigure(cmd, []string{"owner/repo", "daily-review"}, true); err == nil {
 			t.Fatalf("accepted invalid API request ceiling %q", value)
+		}
+	}
+}
+
+func TestNativeValueOptInRejectsInvalidAcquisitionRequirements(t *testing.T) {
+	nativeManagementDirectory(t)
+	writeTestFile(t, policyPath, nativeManagementPolicy)
+	for _, acquisition := range []string{
+		`{requirements:[]}`,
+		`{requirements:[{source:"github",pool:"local",primitive:"github.repository-metadata.v1",scope:"repository",cache:"invocation"}]}`,
+		`{requirements:[{source:"github",pool:"core",primitive:"UPPER",scope:"repository",cache:"invocation"}]}`,
+	} {
+		module := `export const definition={schemaVersion:3,repository:"owner/repo",slug:"daily-review",sourcePath:".github/workflows/daily-review.md",adoption:{adoptedAt:"2026-10-01T00:00:00.000Z"},evidence:{repositories:["owner/repo"],window:{cadenceDays:1,maturationDays:0}},acquisition:` +
+			acquisition + `}; export async function collectValueEvidence(){}`
+		writeTestFile(t, "collectors/value.mjs", module)
+		cmd, _ := nativeManagementCommand()
+		cmd.Flags().String("collector", "collectors/value.mjs", "")
+		if err := nativeValueConfigure(cmd, []string{"owner/repo", "daily-review"}, true); err == nil {
+			t.Fatalf("accepted invalid acquisition requirements: %s", acquisition)
 		}
 	}
 }

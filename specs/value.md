@@ -160,6 +160,28 @@ registration and a confined collector deployed with the same reviewed policy.
 It runs only inside effective Activity scope and the frozen cadence. Function or
 collector presence alone grants no execution authority.
 
+A recurring collector SHOULD freeze a bounded acquisition manifest with one or
+more requirements. Each requirement identifies its source, quota pool,
+versioned primitive, exact population scope, and permitted cache lifetime.
+Registration MUST copy that normalized manifest into reviewed policy, and
+execution MUST fail closed when the deployed collector's manifest differs.
+The manifest describes required evidence; it does not grant credentials,
+repository reach, request capacity, archive access, mutation, or publication
+authority.
+
+Hosted collection MUST compile all enabled manifests for one repository under
+the repository lease before invoking their collectors. Identical requirements
+MAY be unioned for planning. When at least two workflows declare the same
+invocation-cacheable GitHub requirement, the repository-confined quota bridge
+MAY return one byte-identical successful REST, Search, artifact, or GraphQL
+response to later collectors in that repository collection. Each collector
+MUST retain its own request ceiling, timeout, proof workspace, starting-evidence
+check, output validation, publication CAS, and failure state.
+Every reusable request MUST identify the exact reviewed requirement that
+produced it. The bridge MUST partition responses by that requirement identity
+and native quota pool. Missing, unknown, or pool-incompatible identities MUST
+remain metered and isolated rather than borrowing another requirement's cache.
+
 ### 5.4 Local-only collection
 
 A separately admitted local-only lane MAY query an already published canonical
@@ -189,6 +211,14 @@ One unit MUST be durably consumed before every uncached REST, Search, artifact,
 or GraphQL request. Cached reads consume no new unit. A failed request MAY
 remain counted, but no request may execute before its count is persisted.
 Git transport remains under separate bounded immutable-object controls.
+
+Shared response reuse MUST remain bounded to one repository, installation, API
+origin, policy snapshot, and collection invocation. The bridge MUST validate
+the later collector's endpoint or GraphQL scope before reading the cache. It
+MUST NOT cache transport failures, responses without authoritative quota
+metadata, GraphQL results with errors or unverified point cost, or HTTP server
+errors. Cache saturation MUST reduce reuse rather than fail collection or
+silently widen memory.
 
 Hosted collectors MUST keep installation credentials outside the collector
 process and forward requests only through the repository-confined shared quota

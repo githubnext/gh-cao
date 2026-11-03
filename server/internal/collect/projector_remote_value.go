@@ -63,12 +63,24 @@ func (p Projector) CollectRemoteValues(ctx context.Context, repository string) e
 	if !enrolled || installation <= 0 {
 		return fmt.Errorf("%w: remote Value repository is no longer enrolled", ErrRemoteValueDeferred)
 	}
+	plan := compileRemoteValueAcquisitionPlan(selected)
+	var shared *remoteValueResponseCache
+	if len(plan.Shared) > 0 {
+		shared = newRemoteValueResponseCache()
+	}
 	apiBase, err := remoteValueAPIBase(p.GitHubAPIURL)
 	if err != nil {
 		return err
 	}
 	for _, entry := range selected {
-		if err := p.collectRemoteValue(ctx, name, installation, entry, policyDigest, apiBase); err != nil {
+		cache := (*remoteValueResponseCache)(nil)
+		requirements := plan.Shared[entry.Workflow]
+		if len(requirements) > 0 {
+			cache = shared
+		}
+		if err := p.collectRemoteValue(
+			ctx, name, installation, entry, policyDigest, apiBase, cache, requirements,
+		); err != nil {
 			return err
 		}
 	}
@@ -77,7 +89,8 @@ func (p Projector) CollectRemoteValues(ctx context.Context, repository string) e
 
 func (p Projector) collectRemoteValue(
 	ctx context.Context, repository string, installation int64, entry remoteValueEntry,
-	policyDigest [sha256.Size]byte, base *url.URL,
+	policyDigest [sha256.Size]byte, base *url.URL, cache *remoteValueResponseCache,
+	sharedRequirements map[string]remoteValueRequirement,
 ) (resultErr error) {
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Minute)
 	defer cancel()
@@ -121,7 +134,8 @@ func (p Projector) collectRemoteValue(
 	api := &remoteValueAPI{
 		client: transport, quota: p.RemoteQuota, searchQuota: p.RemoteSearchQuota,
 		app: p.QuotaApp, installation: installation, repository: repository, collector: entry.Collector,
-		base: base, token: token, max: entry.APIRequests,
+		base: base, token: token, max: entry.APIRequests, cache: cache,
+		sharedRequirements: sharedRequirements,
 	}
 	socket, closeAPI, err := api.listen(ctx)
 	if err != nil {
@@ -155,9 +169,10 @@ func (p Projector) collectRemoteValue(
 	stderr := &remoteValueOutput{limit: 16 << 10}
 	failureReason := ""
 	defer func() {
-		apiCalls, preflights, points, unverified, receivedBytes := api.costUsage()
+		apiCalls, cacheHits, preflights, points, unverified, receivedBytes := api.costUsage()
 		if costErr := appendRemoteValueCost(root, remoteValueCost{
-			At: started.UTC(), APIRequests: apiCalls, WallMs: time.Since(started).Milliseconds(),
+			At: started.UTC(), APIRequests: apiCalls, CacheHits: cacheHits,
+			WallMs:            time.Since(started).Milliseconds(),
 			PreflightRequests: preflights, GraphQLPointsObserved: points,
 			GraphQLRequestsUnverified: unverified, OutputBytes: stdout.bytes, TransportBytes: receivedBytes,
 			Succeeded: resultErr == nil, FailureReason: failureReason,
@@ -287,7 +302,8 @@ func (p Projector) remoteValueRegistrationCurrent(
 	for _, current := range entries {
 		if enrolled && owner == installation && currentDigest == digest &&
 			strings.EqualFold(current.Repository, repository) && current.Workflow == entry.Workflow &&
-			current.Collector == entry.Collector && current.APIRequests == entry.APIRequests {
+			current.Collector == entry.Collector && current.APIRequests == entry.APIRequests &&
+			remoteValueAcquisitionEqual(current.Acquisition, entry.Acquisition) {
 			return nil
 		}
 	}
@@ -491,6 +507,7 @@ func promoteRemoteValueProof(root, work string) error {
 type remoteValueCost struct {
 	At                        time.Time `json:"at"`
 	APIRequests               int       `json:"apiRequests"`
+	CacheHits                 int       `json:"cacheHits"`
 	PreflightRequests         int       `json:"preflightRequests"`
 	GraphQLPointsObserved     int       `json:"graphqlPointsObserved"`
 	GraphQLRequestsUnverified int       `json:"graphqlRequestsUnverified"`
@@ -519,6 +536,7 @@ func appendRemoteValueCost(root string, record remoteValueCost) error {
 		SchemaVersion             int               `json:"schemaVersion"`
 		Attempts                  int64             `json:"attempts"`
 		APIRequests               int64             `json:"apiRequests"`
+		CacheHits                 int64             `json:"cacheHits"`
 		Preflights                int64             `json:"preflightRequests"`
 		GraphQLPointsObserved     int64             `json:"graphqlPointsObserved"`
 		GraphQLRequestsUnverified int64             `json:"graphqlRequestsUnverified"`
@@ -540,7 +558,7 @@ func appendRemoteValueCost(root string, record remoteValueCost) error {
 			return err
 		}
 		if err := json.Unmarshal(content, &history); err != nil || history.SchemaVersion != 1 ||
-			history.Attempts < 0 || history.APIRequests < 0 || history.Preflights < 0 ||
+			history.Attempts < 0 || history.APIRequests < 0 || history.CacheHits < 0 || history.Preflights < 0 ||
 			history.GraphQLPointsObserved < 0 || history.GraphQLRequestsUnverified < 0 ||
 			history.WallMs < 0 || history.OutputBytes < 0 || history.TransportBytes < 0 ||
 			len(history.Recent) > 30 ||
@@ -552,6 +570,7 @@ func appendRemoteValueCost(root string, record remoteValueCost) error {
 	}
 	history.Attempts++
 	history.APIRequests += int64(record.APIRequests)
+	history.CacheHits += int64(record.CacheHits)
 	history.Preflights += int64(record.PreflightRequests)
 	history.GraphQLPointsObserved += int64(record.GraphQLPointsObserved)
 	history.GraphQLRequestsUnverified += int64(record.GraphQLRequestsUnverified)

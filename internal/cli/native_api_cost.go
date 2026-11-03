@@ -385,7 +385,7 @@ func nativeAPICostAuth(local bool, getenv func(string) string) (http.Header, err
 func nativeAPICostPopulation(rows []any, metadata map[string]any, source string) (apicost.Population, error) {
 	availability := nativeText(metadata["availability"])
 	if availability == "unavailable" {
-		return apicost.Population{}, errors.New("Daily File Diet canonical Value evidence is unavailable")
+		return apicost.Population{}, errors.New("the Daily File Diet canonical Value evidence is unavailable")
 	}
 	if len(rows) == 0 {
 		return apicost.Population{}, errors.New("no retained Daily File Diet evidence exists in the selected database")

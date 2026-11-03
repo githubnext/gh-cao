@@ -9,9 +9,10 @@ import {
 } from "../../.github/skills/add-operational-value/scripts/github-evidence.mjs";
 import { collectGitInventories } from "../../.github/skills/add-operational-value/scripts/git-evidence.mjs";
 import {
-  acquireFileDietHistory, appliedReceipt, collectReceipts, preserveReceipt, refreshFileDiet,
-  verifyPreservedDeliveries,
+  acquireFileDietHistory, appliedReceipt, collectReceipts, fileDietAcquisitionRequirement,
+  preserveReceipt, refreshFileDiet, verifyPreservedDeliveries,
 } from "../../.github/skills/add-operational-value/examples/acquire-file-diet.mjs";
+import { valueAcquisitionRequirementId } from "../../activity/value-acquisition.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const repository = "github/gh-aw";
@@ -103,6 +104,24 @@ test("fresh reader caches one acquisition, distinguishes deleted runs and surfac
   assert.throws(() => forbidden("repos/github/gh-aw/actions/runs/42"), /HTTP 403/);
   const invalid = githubReader(path.join(directory, "invalid"), () => '{"errors":[{"message":"denied"}]}');
   assert.throws(() => invalid("graphql", "query {}"), /Incomplete GitHub/);
+});
+
+test("GitHub evidence labels remote reads with their exact reviewed acquisition requirement", t => {
+  const directory = temporary(t);
+  const calls = [];
+  const read = githubReader(directory, (_command, args, options) => {
+    calls.push({ args, requirement: options.env.CAO_VALUE_ACQUISITION_REQUIREMENT });
+    return args[1] === "graphql"
+      ? '{"data":{"repository":{}}}'
+      : '{"id":1,"full_name":"github/gh-aw"}';
+  }, { requirementFor: fileDietAcquisitionRequirement });
+  assert.equal(read("repos/github/gh-aw").id, 1);
+  assert.deepEqual(read("graphql", graphQuery(repository, [1])).data.repository, {});
+  assert.equal(calls[0].requirement,
+    valueAcquisitionRequirementId(fileDietAcquisitionRequirement("repos/github/gh-aw")));
+  assert.equal(calls[1].requirement,
+    valueAcquisitionRequirementId(fileDietAcquisitionRequirement("graphql", graphQuery(repository, [1]))));
+  assert.notEqual(calls[0].requirement, calls[1].requirement);
 });
 
 test("expired source artifacts do not erase preserved applied-output receipt identity", () => {

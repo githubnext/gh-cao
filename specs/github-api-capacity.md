@@ -37,12 +37,20 @@ A conforming model MUST keep these quantities separate:
 - **guaranteed capacity:** capacity when every admitted collector consumes its
   complete reviewed grant; and
 - **runtime observation:** actual requests, GraphQL points, wall time and output
-  bytes from a completed attempt.
+  bytes from a completed attempt; and
+- **shared acquisition requirement:** a reviewed source, quota pool, versioned
+  primitive, exact population scope, and cache lifetime that may be unioned
+  across workflow registrations for one repository.
 
 Average daily capacity MUST NOT hide a per-minute Search bottleneck, a per-hour
 core/GraphQL bottleneck, a synchronized scheduled burst, or serialized runner
 time. Cache hits MAY reduce modeled demand only when the scenario declares the
 hit rate; they MUST NOT enlarge a reviewed request grant or quota limit.
+Runtime exact-response cache hits MUST be retained separately from metered
+requests so later simulations can calibrate sharing without treating unobserved
+requests as free. A hit is valid only when the request identifies the exact
+reviewed acquisition requirement and its native Core, Search, or GraphQL pool;
+unknown or mismatched identities remain metered.
 
 ## 3. Scenario contract
 
@@ -83,6 +91,13 @@ Nonlinear source characteristics such as pages per issue or batches of ten
 issues MUST be resolved into operation coefficients by a reviewed built-in
 profile or by the scenario author. The simulator does not execute collectors or
 infer request shapes from source code.
+
+Reviewed Value acquisition manifests MAY supply request-family identity to a
+scenario compiler. Requirements may be deduplicated only when repository,
+source, pool, primitive, scope, and cache lifetime are identical. A manifest
+does not supply request counts, pagination, GraphQL points, wall time, or cache
+hit rates by itself; those quantities require conservative reviewed assumptions
+or canonical runtime observations.
 
 ## 4. Capacity calculation
 

@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { githubApiBudgetConsumerFromEnvironment } from "../../../../activity/github-api-budget.mjs";
+import { valueAcquisitionRequirementId } from "../../../../activity/value-acquisition.mjs";
 import { readJsonArchive } from "./json-archive.mjs";
 
 export const digest = value => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -27,7 +28,11 @@ export function githubReader(directory, execute = execFileSync, options = {}) {
   assert.ok(Number.isSafeInteger(maxRequests) && maxRequests > 0 && maxRequests <= 1000,
     "Evidence API request budget is invalid");
   return (endpoint, query, binary = false) => {
-    const key = binary ? [endpoint, query ?? null, "binary"] : [endpoint, query ?? null];
+    const requirement = options.requirementFor?.(endpoint, query, binary) ?? null;
+    const requirementId = requirement ? valueAcquisitionRequirementId(requirement) : null;
+    const key = binary
+      ? [requirementId, endpoint, query ?? null, "binary"]
+      : [requirementId, endpoint, query ?? null];
     const cache = path.join(directory, `${digest(key)}${binary ? ".zip" : ".json.gz"}`);
     if (existsSync(cache)) return binary ? readFileSync(cache) : readJsonArchive(cache);
     assert.ok(++requests <= maxRequests, "Evidence API request budget exceeded");
@@ -36,7 +41,10 @@ export function githubReader(directory, execute = execFileSync, options = {}) {
     try {
       const bytes = execute("gh", query ? ["api", "graphql", "-f", `query=${query}`] : ["api", endpoint],
         { encoding: binary ? null : "utf8", timeout: 60_000, maxBuffer: 16 * 1024 * 1024,
-          stdio: ["pipe", "pipe", "pipe"] });
+          stdio: ["pipe", "pipe", "pipe"],
+          env: requirementId
+            ? { ...process.env, CAO_VALUE_ACQUISITION_REQUIREMENT: requirementId }
+            : process.env });
       value = binary ? bytes : JSON.parse(bytes);
       if (query) assert.ok(!value.errors?.length && value.data, "Incomplete GitHub graph response");
     } catch (error) {
