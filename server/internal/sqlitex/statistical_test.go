@@ -139,10 +139,11 @@ func TestStatisticalSnapshotCanonicalClockFallback(t *testing.T) {
 }
 
 func TestStatisticalCandidateRangeExcludesHistoricalBudget(t *testing.T) {
-	runs := []model.Row{{
+	runs := make([]model.Row, 0, 11)
+	runs = append(runs, model.Row{
 		"id": "github:run:o/r:eligible", "owner": "o", "repository": "r", "githubRunId": "eligible",
 		"status": "completed", "conclusion": "success", "startedAt": "2026-10-07T00:00:00Z",
-	}}
+	})
 	for index := range 10 {
 		runs = append(runs, model.Row{
 			"id": "github:run:o/r:old-" + fmt.Sprint(index), "status": "completed",
