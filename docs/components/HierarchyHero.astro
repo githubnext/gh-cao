@@ -9,6 +9,7 @@ import HeroControlDiagram from "./HeroControlDiagram.astro";
 import HeroDecisionLoop from "./HeroDecisionLoop.astro";
 import HeroFactoryDashboard from "./HeroFactoryDashboard.astro";
 import HeroEnterpriseEvolution from "./HeroEnterpriseEvolution.astro";
+import HeroSafetyDiagram from "./HeroSafetyDiagram.astro";
 import dashboardMobileOverview from "../assets/product/cao-dashboard-mobile-overview.png";
 import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile-overview-light.png";
 ---
@@ -232,6 +233,15 @@ Open an issue with proposed fixes for human review.`}
     result="A central orchestrator selects admitted repositories. Each worker handles one target."
     caption="Illustrative Markdown instructions, not a complete workflow. Reviewed policy controls scope, enablement, and review/live mode."
   />
+</section>
+
+<section class="product-story safety-story" aria-labelledby="safety-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">Defense in depth</p>
+    <h2 id="safety-title">Safety by design</h2>
+    <p>A sandbox enforces what the agent can access, do, and affect.</p>
+  </div>
+  <HeroSafetyDiagram />
 </section>
 </div>
 <LandingSlideshow />
@@ -524,6 +534,12 @@ Open an issue with proposed fixes for human review.`}
 
     .snippet-story {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .safety-story {
+      --section-accent: #00b9ee;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.5rem;
     }
 
     .evolution-story {
