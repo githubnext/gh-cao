@@ -30,9 +30,12 @@ for (const colorScheme of ["light", "dark"]) {
       await chart.focus();
       await expect(chart).toBeFocused();
       if (width < 400) {
-        expect(await chart.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
-        await page.keyboard.press("ArrowRight");
-        await expect.poll(() => chart.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+        expect(await chart.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+        expect(await chart.evaluate(chartElement => {
+          const plotBounds = chartElement.querySelector(".burndown-plot").getBoundingClientRect();
+          const chartBounds = chartElement.getBoundingClientRect();
+          return plotBounds.left >= chartBounds.left - 1 && plotBounds.right <= chartBounds.right + 1;
+        })).toBe(true);
       }
       if (width !== 320) {
         const path = testInfo.outputPath(`repo-assist-${width}-${colorScheme}.png`);

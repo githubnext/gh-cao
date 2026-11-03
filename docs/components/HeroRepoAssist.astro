@@ -48,7 +48,7 @@ const finalDay = days[days.length - 1];
         ))}
       </ul>
     </div>
-    <div class="chart-scroll" role="region" aria-label="Issue burndown chart; scroll horizontally on small screens" tabindex="0">
+    <div class="chart-scroll" role="region" aria-label="Issue burndown chart" tabindex="0">
       <svg class="burndown-plot" viewBox="0 0 1060 600" role="img" aria-labelledby="repo-assist-plot-title" aria-describedby="repo-assist-plot-description">
         <title id="repo-assist-plot-title">Open issues before and after Repo Assist adoption</title>
         <desc id="repo-assist-plot-description">Reconstructed from the supplied presentation slide. Fourteen repository traces are normalized to 100 percent on adoption day. Before adoption most stay near 100 percent; afterward many fall sharply, while some decline more slowly. Three purple and blue flying agent figures with pale curved lightning trails decorate the right edge. Coordinates are illustrative, not original measurements, and do not establish causation.</desc>
@@ -146,6 +146,8 @@ const finalDay = days[days.length - 1];
   figcaption span { display: block; margin-top: 0.4rem; font-size: 0.75rem; }
   @media (max-width: 60rem) {
     .repo-assist-visual { grid-template-columns: minmax(0, 1fr); }
+    .chart-scroll { overflow-x: visible; }
+    .burndown-plot { min-width: 0; }
     .repository-legend { order: 1; }
     .repository-legend ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .repository-legend h3 { margin-bottom: 0.75rem; }
