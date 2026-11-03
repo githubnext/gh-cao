@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-03T05:51:46.566867Z",
-      "worker_run_id": "41586078753",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        41585793923,
-        41584408665,
-        41582996240,
-        41582758722,
-        41581436761,
-        41580044123,
-        41578617039,
-        41577342773,
-        41577123396,
-        41575616203,
-        41574830500,
-        41574817035,
-        41574142350,
-        41572679960,
-        41571376871,
-        41569640371,
-        41568913853,
-        41568102210,
-        41566687550,
-        41566629441
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-03T02:31:18Z to 2026-11-03T05:46:00Z) was within 14 days and contained 16 successful runs (14 schedule and two push) and four skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs 67e3fdca0b8f722cd9872cd25d19f5784d448097, 47432411fcf4c55d24069ea7f545f90f81fd3ba2, and 601cb65fafa26a6c5fc738eb53d271e0378ea1fb. Only push runs 41574817035 and 41566687550 completed the comparable full build-and-deploy path, below the required five. For those two full runs, workflow wall time had a 148.5-second median and 175-second nearest-rank p90; initial queue time was 3.5/4 seconds; build jobs were 84/88 seconds; deploy jobs were 54/77 seconds. docs.yml has no separate dashboard job. Pages artifact upload was 18/19 seconds and deploy-pages was 51.5/74 seconds. Trusted step metadata verified dashboard cache hits in both full runs because restore succeeded while cache-miss lookup and artifact download were skipped. Across the 14 freshness-only schedule successes, workflow wall time was 12 seconds median and 17 seconds p90; the two newly observed schedules also skipped build and deploy. With only two comparable full runs, repeated-cost analysis for artifact transfer and Pages packaging remains insufficient for a complete evaluation or an evidence-backed recommendation meeting the 60-second or 15% threshold. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-03T06:25:59Z",
       "worker_run_id": "41589412887",
       "category": "artifact transfer and Pages packaging",
@@ -796,6 +768,13 @@
     {
       "evaluated_at": "2026-11-03T16:51:57.433444Z",
       "worker_run_id": "41678035570",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. The required current 14-day evidence window, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded artifact-transfer and Pages-packaging step analysis, and cache hit/miss verification could not be established. No recommendation was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-03T17:18:41Z",
+      "worker_run_id": "41682456568",
       "category": "artifact transfer and Pages packaging",
       "evidence_run_ids": [],
       "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. The required current 14-day evidence window, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded artifact-transfer and Pages-packaging step analysis, and cache hit/miss verification could not be established. No recommendation was made; artifact transfer and Pages packaging remains the next category."
