@@ -70,6 +70,47 @@ func TestRemoteValuePublicationRejectsChangedStartingPacket(t *testing.T) {
 	}
 }
 
+func TestRemoteValueFailureUsesOnlyBoundedWorkerDiagnostic(t *testing.T) {
+	for _, testCase := range []struct {
+		name, stderr, reason, message string
+	}{
+		{
+			name: "timeout",
+			stderr: "private command output\n" + remoteValueFailurePrefix +
+				`{"reasonCode":"timeout","detail":"collector command timed out (SIGTERM)"}` + "\n",
+			reason: "timeout", message: "remote Value collector command timed out; previous evidence retained",
+		},
+		{
+			name: "api budget",
+			stderr: remoteValueFailurePrefix +
+				`{"reasonCode":"api-budget","detail":"collector exhausted its reviewed API request grant"}` + "\n",
+			reason:  "api-budget",
+			message: "remote Value collector exhausted its reviewed API request grant; previous evidence retained",
+		},
+		{
+			name:   "malformed marker",
+			stderr: remoteValueFailurePrefix + `{"reasonCode":"secret-output"}` + "\nprivate command output\n",
+			reason: "collector-failed", message: "remote Value collector failed; previous evidence retained",
+		},
+		{
+			name:   "raw stderr",
+			stderr: "private command output\n",
+			reason: "collector-failed", message: "remote Value collector failed; previous evidence retained",
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			reason := remoteValueFailureReason([]byte(testCase.stderr))
+			if reason != testCase.reason {
+				t.Fatalf("reason = %q, want %q", reason, testCase.reason)
+			}
+			message := remoteValueFailureError(reason).Error()
+			if message != testCase.message || strings.Contains(message, "private command output") {
+				t.Fatalf("safe diagnostic = %q, want %q", message, testCase.message)
+			}
+		})
+	}
+}
+
 func TestRemoteValueRepositoriesReviewedPolicyCacheAndEnrollment(t *testing.T) {
 	b := volatileBackfill(t)
 	root, err := filepath.Abs(filepath.Join("..", "..", ".."))
@@ -696,10 +737,14 @@ func TestRemoteValueProofCopyConfinesFilesAndByteBudget(t *testing.T) {
 
 func TestRemoteValueCostRetainsBoundedRecentAndTotals(t *testing.T) {
 	directory := t.TempDir()
+	if err := appendRemoteValueCost(directory, remoteValueCost{FailureReason: "private command output"}); err == nil {
+		t.Fatal("unbounded remote Value failure reason was retained")
+	}
 	for range 40 {
 		if err := appendRemoteValueCost(directory, remoteValueCost{
 			APIRequests: 2, PreflightRequests: 1, GraphQLPointsObserved: 3,
 			GraphQLRequestsUnverified: 1, WallMs: 3, OutputBytes: 4, TransportBytes: 5,
+			FailureReason: "timeout",
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -710,7 +755,8 @@ func TestRemoteValueCostRetainsBoundedRecentAndTotals(t *testing.T) {
 		!strings.Contains(string(content), `"preflightRequests":40`) ||
 		!strings.Contains(string(content), `"graphqlPointsObserved":120`) ||
 		!strings.Contains(string(content), `"graphqlRequestsUnverified":40`) ||
-		!strings.Contains(string(content), `"transportBytes":200`) {
+		!strings.Contains(string(content), `"transportBytes":200`) ||
+		!strings.Contains(string(content), `"failureReason":"timeout"`) {
 		t.Fatalf("remote Value cost totals lost: %s %v", content, err)
 	}
 }
