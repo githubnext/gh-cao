@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-03T12:23:47Z",
-      "worker_run_id": "41634801276",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        41635131269,
-        41634812317,
-        41634171274,
-        41634145115,
-        41633118791,
-        41632287698,
-        41630194016,
-        41628164336,
-        41626110147,
-        41625723711,
-        41624041271,
-        41622002765,
-        41619959966,
-        41617835466,
-        41617564866,
-        41615737473,
-        41613690489,
-        41611683661,
-        41609901146,
-        41609536851
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-03T09:15:23Z to 2026-11-03T12:22:27Z) was within 14 days and contained 15 successful runs (13 schedule, one push, and one workflow_run) and five skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs 6433faf6c035f899915ed1d098e44ce10db6b32d, 70909cb2e72fc5b3d55449afcdd35d4476678ddb, and 67e3fdca0b8f722cd9872cd25d19f5784d448097. Only push run 41634145115 and workflow_run 41633118791 completed the comparable full build-and-deploy path, below the required five. Their workflow wall times were 173 and 194 seconds, initial queue times were 4 and 3 seconds, build jobs were 93 and 135 seconds, and deploy jobs were 69 and 29 seconds. docs.yml has no separate dashboard job; dashboard cache restore took 3 and 5 seconds. Artifact transfer and Pages packaging evidence was limited to 20-second Pages artifact uploads in both runs and Deploy Pages steps of 66 and 26 seconds. Trusted Actions step metadata verified dashboard cache hits in both full runs because restore succeeded while cache-miss lookup and artifact download were skipped. With only two comparable full runs, median and p90 distributions and repeated artifact-cost analysis are insufficient for a complete evaluation or an evidence-backed recommendation meeting the 60-second or 15% threshold. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-03T12:36:35Z",
       "worker_run_id": "41636741179",
       "category": "artifact transfer and Pages packaging",
@@ -799,6 +771,34 @@
         41700538960
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-03T19:09:00Z to 2026-11-03T22:46:30Z) was within 14 days and contained 17 successful runs (15 freshness-only schedules and two full build-and-deploy runs), two skipped workflow_run callbacks, and one cancelled push. All successful runs used source SHA f5acee05a2a514a651702026e1a57fb4a50a3712; the cancelled push used efef71607f4ed57255b24fd3e5799b45a5342de1 and was excluded. Trusted Actions job metadata verified that only workflow_run 41704653976 and schedule run 41701687404 completed the full build-and-deploy path, below the required five comparable successful runs. Their workflow wall times were 778 and 233 seconds; initial queue times were 4 and 14 seconds; build jobs were 742 and 138 seconds; deploy jobs were 12 and 67 seconds. docs.yml has no separate dashboard job. The remaining successful runs executed schedule-freshness and skipped build and deploy; run 41706285193 also had a long queue/concurrency wait before its six-second freshness job. Because only two comparable full runs remain in the current window, the required timing distributions, bounded artifact-transfer and Pages-packaging step analysis, and current cache hit/miss verification cannot support a complete evaluation or an actionable recommendation meeting the 60-second or 15% threshold. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-03T23:16:06Z",
+      "worker_run_id": "41737406934",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        41737234109,
+        41735795964,
+        41733658881,
+        41731477412,
+        41729222049,
+        41728674060,
+        41727072325,
+        41724788678,
+        41722555922,
+        41720239811,
+        41719631654,
+        41717902074,
+        41715586192,
+        41713252661,
+        41710926653,
+        41710712903,
+        41708710647,
+        41706285193,
+        41704653976,
+        41703992090
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-03T19:31:09Z to 2026-11-03T23:12:06Z) was within 14 days and contained 17 successful runs (16 freshness-only schedules and one full workflow_run build-and-deploy) and three skipped workflow_run callbacks; there were no failed or cancelled runs. All runs used source SHA f5acee05a2a514a651702026e1a57fb4a50a3712. Trusted Actions job metadata for the newest schedule, together with retained trusted evidence for the overlapping prior window, verified that only workflow_run 41704653976 completed the full build-and-deploy path, below the required five comparable successful runs. Its workflow wall time was 778 seconds, build job 742 seconds, deploy job 12 seconds, dashboard cache restore 4 seconds, and Pages artifact upload 17 seconds; the 680-second checkout was an outlier and is disclosed rather than attributed to packaging. docs.yml has no separate dashboard job. The newest schedule took 14 seconds wall-clock, queued 3 seconds, ran schedule-freshness for 10 seconds, spent 8 seconds in the freshness check, and skipped build and deploy. With only one comparable full run, the required full-workflow and dashboard/build/deploy median and p90 distributions, repeated artifact-transfer and Pages-packaging step analysis, and a complete current cache-effectiveness sample cannot be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
