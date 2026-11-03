@@ -148,7 +148,7 @@ test("enterprise evolution connects multi-agent sessions to reviewed optimizer u
   assert.doesNotMatch(evolution, /<script/);
 });
 
-test("backend story connects portable specifications to cloud-neutral storage and analytics", () => {
+test("backend story maps portable specifications to an illustrative Azure application map", () => {
   const story = hero.match(/<section class="product-story snippet-story backend-story"[\s\S]*?<\/section>/)?.[0];
   const diagram = readFileSync("docs/components/HeroBackendDiagram.astro", "utf8");
   assert.ok(story);
@@ -158,7 +158,7 @@ test("backend story connects portable specifications to cloud-neutral storage an
   assert.match(story, /data-reveal data-slideshow-slide/);
   assert.match(story, /href="https:\/\/github.com\/githubnext\/gh-cao\/blob\/main\/server\/spec\/README.md"/);
   assert.match(story, /href="\/gh-cao\/deployment\/"/);
-  for (const label of ["TypeSpec contracts", "Storage schema", "Analytics contracts", "CAO server", "PostgreSQL", "Object storage", "Analytics engine"]) {
+  for (const label of ["CAO TypeSpec", "Storage schema", "Analytics contracts", "CAO server", "PostgreSQL", "Blob Storage", "Data Explorer", "Azure resource map"]) {
     assert.ok(diagram.includes(label), label);
   }
   for (const edge of ["server-to-postgres", "server-to-objects", "analytics-to-objects"]) {
@@ -167,18 +167,16 @@ test("backend story connects portable specifications to cloud-neutral storage an
   assert.match(diagram, /not automatic provisioning/);
   assert.match(diagram, /independently opt-in/);
   assert.match(diagram, /neither is required for PostgreSQL-backed dashboard queries/);
-  assert.match(diagram, /Custom providers need compatible adapters/);
-  assert.match(diagram, /Deployment architecture/);
-  assert.match(diagram, /Deployment boundary/);
+  assert.match(diagram, /Other clouds need compatible adapters/);
+  assert.match(diagram, /01 \/ Specification/);
+  assert.match(diagram, /One possible deployment/);
   assert.match(diagram, /Core backend/);
   assert.match(diagram, /Optional archive \+ analytics/);
-  assert.match(diagram, /\.database-node \{ grid-area: 1 \/ 3/);
-  assert.match(diagram, /\.object-node \{ grid-area: 3 \/ 3/);
-  assert.match(diagram, /\.analytics-node \{ grid-area: 3 \/ 1/);
-  assert.match(diagram, /class="archive-start"/);
-  assert.match(diagram, /class="archive-end"/);
-  assert.equal([...diagram.matchAll(/class="service-port /g)].length, 6);
-  assert.doesNotMatch(`${story}\n${diagram}`, /Azure|ADX|KQL|AWS|Google Cloud/);
+  assert.match(diagram, /class="map-connections"/);
+  assert.match(diagram, /vector-effect: non-scaling-stroke/);
+  assert.match(diagram, /border-radius: 50%/);
+  assert.match(diagram, /stroke-dasharray/);
+  assert.doesNotMatch(diagram, /class="service-port|architecture-sheet|drawing-header/);
   assert.doesNotMatch(diagram, /<script/);
 });
 

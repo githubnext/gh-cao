@@ -128,7 +128,7 @@ for (const colorScheme of ["light", "dark"]) {
 
 for (const colorScheme of ["light", "dark"]) {
   for (const width of [320, 390, 1440]) {
-    test(`cloud-neutral backend renders at ${width}px in ${colorScheme}`, async ({ page }, testInfo) => {
+    test(`Azure application map renders at ${width}px in ${colorScheme}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
       await page.goto("./");
@@ -140,38 +140,47 @@ for (const colorScheme of ["light", "dark"]) {
         .toHaveAttribute("href", "https://github.com/githubnext/gh-cao/blob/main/server/spec/README.md");
       await expect(backend.getByRole("link", { name: "Explore deployment options" }))
         .toHaveAttribute("href", "/gh-cao/deployment/");
-      const architecture = backend.getByRole("figure", { name: "Spec-driven backend architecture" });
-      await expect(architecture.locator(".backend-node strong")).toHaveText(["CAO server", "PostgreSQL", "Object storage", "Analytics engine"]);
+      const architecture = backend.getByRole("figure", { name: "Specification to Azure resource map" });
+      await expect(architecture.locator(".backend-node strong")).toHaveText(["CAO server", "PostgreSQL", "Blob Storage", "Data Explorer"]);
       await expect(architecture.locator("[data-edge]")).toHaveCount(3);
       await expect(architecture.locator(".service-icon svg")).toHaveCount(4);
-      await expect(architecture.locator(".service-port")).toHaveCount(6);
+      await expect(architecture.locator(".specification")).toContainText("CAO TypeSpec");
+      await expect(architecture.locator(".application-map")).toContainText("Azure resource map");
+      await expect(architecture.locator(".backend-node small")).toHaveText(["Optional", "Optional"]);
       await expect(architecture.locator(".network-legend")).toContainText("Optional archive + analytics");
-      const positions = await architecture.locator(".backend-node").evaluateAll(nodes =>
+      const positions = await architecture.locator(".service-icon").evaluateAll(nodes =>
         nodes.map(node => {
           const { x, y } = node.getBoundingClientRect();
           return { x, y };
         }),
       );
-      expect(positions[0].x).toBeLessThan(positions[1].x);
-      expect(positions[0].y).toBe(positions[1].y);
-      expect(positions[2].x).toBe(positions[1].x);
-      expect(positions[2].y).toBeGreaterThan(positions[1].y);
+      expect(positions[0].x).toBeGreaterThan(positions[1].x);
+      expect(positions[0].y).toBeLessThan(positions[1].y);
+      expect(positions[2].x).toBeGreaterThan(positions[1].x);
+      expect(positions[2].y).toBe(positions[1].y);
       expect(positions[3].x).toBe(positions[0].x);
-      expect(positions[3].y).toBe(positions[2].y);
+      expect(positions[3].y).toBeGreaterThan(positions[2].y);
+      for (const icon of await architecture.locator(".service-icon").all()) {
+        await expect(icon).toHaveCSS("border-radius", "50%");
+      }
+      const legendTop = await architecture.locator(".network-legend").evaluate(element => element.getBoundingClientRect().top);
+      for (const node of await architecture.locator(".backend-node").all()) {
+        expect(await node.evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThan(legendTop);
+      }
       await expect(architecture).toContainText("independently opt-in");
-      await expect(backend).not.toContainText(/Azure|ADX/);
       for (const node of await architecture.locator(".backend-node").all()) {
         await expect(node).toBeVisible();
-        expect(await node.evaluate(element =>
-          [...element.querySelectorAll("strong, small, span:not(.service-port)")].every(label =>
-            label.scrollWidth <= label.clientWidth && label.getBoundingClientRect().width <= element.clientWidth,
-          ),
-        )).toBe(true);
+        const overflowingLabels = await node.evaluate(element =>
+          [...element.querySelectorAll("strong, small, span")].filter(label =>
+            label.scrollWidth > label.clientWidth || label.getBoundingClientRect().width > element.getBoundingClientRect().width,
+          ).map(label => label.textContent),
+        );
+        expect(overflowingLabels).toEqual([]);
       }
       expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
       if (width !== 320) {
         const path = testInfo.outputPath(`bring-your-own-backend-${width}-${colorScheme}.png`);
-        await backend.screenshot({ path });
+        await architecture.screenshot({ path });
         await testInfo.attach("Bring Your Own Backend", { path, contentType: "image/png" });
       }
     });
