@@ -143,11 +143,30 @@ for (const colorScheme of ["light", "dark"]) {
       const architecture = backend.getByRole("figure", { name: "Spec-driven backend architecture" });
       await expect(architecture.locator(".backend-node strong")).toHaveText(["CAO server", "PostgreSQL", "Object storage", "Analytics engine"]);
       await expect(architecture.locator("[data-edge]")).toHaveCount(3);
+      await expect(architecture.locator(".service-icon svg")).toHaveCount(4);
+      await expect(architecture.locator(".service-port")).toHaveCount(6);
+      await expect(architecture.locator(".network-legend")).toContainText("Optional archive + analytics");
+      const positions = await architecture.locator(".backend-node").evaluateAll(nodes =>
+        nodes.map(node => {
+          const { x, y } = node.getBoundingClientRect();
+          return { x, y };
+        }),
+      );
+      expect(positions[0].x).toBeLessThan(positions[1].x);
+      expect(positions[0].y).toBe(positions[1].y);
+      expect(positions[2].x).toBe(positions[1].x);
+      expect(positions[2].y).toBeGreaterThan(positions[1].y);
+      expect(positions[3].x).toBe(positions[0].x);
+      expect(positions[3].y).toBe(positions[2].y);
       await expect(architecture).toContainText("independently opt-in");
       await expect(backend).not.toContainText(/Azure|ADX/);
       for (const node of await architecture.locator(".backend-node").all()) {
         await expect(node).toBeVisible();
-        expect(await node.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+        expect(await node.evaluate(element =>
+          [...element.querySelectorAll("strong, small, span:not(.service-port)")].every(label =>
+            label.scrollWidth <= label.clientWidth && label.getBoundingClientRect().width <= element.clientWidth,
+          ),
+        )).toBe(true);
       }
       expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
       if (width !== 320) {

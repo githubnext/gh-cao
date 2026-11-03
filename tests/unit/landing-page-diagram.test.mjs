@@ -168,6 +168,16 @@ test("backend story connects portable specifications to cloud-neutral storage an
   assert.match(diagram, /independently opt-in/);
   assert.match(diagram, /neither is required for PostgreSQL-backed dashboard queries/);
   assert.match(diagram, /Custom providers need compatible adapters/);
+  assert.match(diagram, /Deployment architecture/);
+  assert.match(diagram, /Deployment boundary/);
+  assert.match(diagram, /Core backend/);
+  assert.match(diagram, /Optional archive \+ analytics/);
+  assert.match(diagram, /\.database-node \{ grid-area: 1 \/ 3/);
+  assert.match(diagram, /\.object-node \{ grid-area: 3 \/ 3/);
+  assert.match(diagram, /\.analytics-node \{ grid-area: 3 \/ 1/);
+  assert.match(diagram, /class="archive-start"/);
+  assert.match(diagram, /class="archive-end"/);
+  assert.equal([...diagram.matchAll(/class="service-port /g)].length, 6);
   assert.doesNotMatch(`${story}\n${diagram}`, /Azure|ADX|KQL|AWS|Google Cloud/);
   assert.doesNotMatch(diagram, /<script/);
 });
