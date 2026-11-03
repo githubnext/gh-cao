@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -86,7 +87,7 @@ func (p Projector) collectRemoteValue(
 	case err != nil:
 		return err
 	}
-	root, err := p.remoteValueWorkspace(repository, entry.Workflow)
+	root, err := p.remoteValueWorkspace(ctx, repository, entry.Workflow)
 	if err != nil {
 		return err
 	}
@@ -102,7 +103,7 @@ func (p Projector) collectRemoteValue(
 	if err := os.Mkdir(bin, 0o700); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(remoteValueGH), 0o700); err != nil {
+	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(remoteValueGH), 0o700); err != nil { // #nosec G306 -- owner-only executable bridge in a private invocation directory.
 		return err
 	}
 	token, err := p.Tokens.InstallationToken(ctx, installation)
@@ -119,7 +120,7 @@ func (p Projector) collectRemoteValue(
 		app: p.QuotaApp, installation: installation, repository: repository, collector: entry.Collector,
 		base: base, token: token, max: entry.APIRequests,
 	}
-	socket, closeAPI, err := api.listen()
+	socket, closeAPI, err := api.listen(ctx)
 	if err != nil {
 		return err
 	}
@@ -263,7 +264,7 @@ func (w *remoteValueOutput) Write(content []byte) (int, error) {
 	return w.buffer.Write(content)
 }
 
-func (p Projector) remoteValueWorkspace(repository, workflow string) (string, error) {
+func (p Projector) remoteValueWorkspace(ctx context.Context, repository, workflow string) (string, error) {
 	path, err := p.remoteValueWorkspacePath(repository, workflow)
 	if err != nil {
 		return "", err
@@ -289,7 +290,7 @@ func (p Projector) remoteValueWorkspace(repository, workflow string) (string, er
 		return "", err
 	}
 	identityPath := filepath.Join(path, "identity.json")
-	previous, err := readLocalValueFile(context.Background(), identityPath, 4096)
+	previous, err := readLocalValueFile(ctx, identityPath, 4096)
 	if errors.Is(err, os.ErrNotExist) {
 		if err := WriteFileAtomic(identityPath, identity); err != nil {
 			return "", err
@@ -315,7 +316,7 @@ func (p Projector) remoteValueWorkspacePath(repository, workflow string) (string
 // ForgetRemoteValueWorkspace removes durable private proofs after enrollment
 // withdrawal. Publication independently rechecks enrollment under its mutation
 // lock, so a withdrawn repository cannot publish after this cleanup.
-func (p Projector) ForgetRemoteValueWorkspace(repository string) error {
+func (p Projector) ForgetRemoteValueWorkspace(ctx context.Context, repository string) error {
 	if !filepath.IsAbs(p.Lake.Directory) || strings.TrimSpace(p.Lake.Directory) == "" {
 		return errors.New("remote Value requires an absolute private lake directory")
 	}
@@ -340,7 +341,7 @@ func (p Projector) ForgetRemoteValueWorkspace(repository string) error {
 			continue
 		}
 		directory := filepath.Join(parent, entry.Name())
-		identity, readErr := readLocalValueFile(context.Background(), filepath.Join(directory, "identity.json"), 4096)
+		identity, readErr := readLocalValueFile(ctx, filepath.Join(directory, "identity.json"), 4096)
 		if errors.Is(readErr, os.ErrNotExist) {
 			continue
 		}
@@ -375,30 +376,50 @@ func copyRemoteValueProof(source, destination string, remaining int64) error {
 	if err := os.Mkdir(destination, 0o700); err != nil {
 		return err
 	}
-	return filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		relative, err := filepath.Rel(source, path)
+	sourceRoot, err := os.OpenRoot(source)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = sourceRoot.Close() }()
+	destinationRoot, err := os.OpenRoot(destination)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = destinationRoot.Close() }()
+	return fs.WalkDir(sourceRoot.FS(), ".", func(relative string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if relative == "." {
 			return nil
 		}
-		target := filepath.Join(destination, relative)
-		if info.IsDir() {
-			return os.Mkdir(target, 0o700)
+		if entry.IsDir() {
+			return destinationRoot.Mkdir(relative, 0o700)
+		}
+		if !entry.Type().IsRegular() {
+			return errors.New("retained remote Value proof exceeds its confined byte budget")
+		}
+		file, err := sourceRoot.Open(relative)
+		if err != nil {
+			return err
+		}
+		defer func() { _ = file.Close() }()
+		info, err := file.Stat()
+		if err != nil {
+			return err
 		}
 		if !info.Mode().IsRegular() || info.Size() > remaining {
 			return errors.New("retained remote Value proof exceeds its confined byte budget")
 		}
-		remaining -= info.Size()
-		content, err := os.ReadFile(path) // #nosec G304 -- walked beneath private workspace, symlinks rejected.
+		content, err := io.ReadAll(io.LimitReader(file, remaining+1))
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(target, content, 0o600)
+		if int64(len(content)) > remaining {
+			return errors.New("retained remote Value proof exceeds its confined byte budget")
+		}
+		remaining -= int64(len(content))
+		return destinationRoot.WriteFile(relative, content, 0o600)
 	})
 }
 

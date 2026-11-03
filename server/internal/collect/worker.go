@@ -395,7 +395,7 @@ func (w Worker) processErasure(ctx context.Context, lease Lease) bool {
 		return false
 	}
 	if w.Projector.Lake.Directory != "" {
-		if err := w.Projector.ForgetRemoteValueWorkspace(lease.Task.Repository); err != nil {
+		if err := w.Projector.ForgetRemoteValueWorkspace(ctx, lease.Task.Repository); err != nil {
 			workerLog.Printf("remote Value proof erasure failed repository=%s", lease.Task.Repository)
 			w.retryRefresh(ctx, lease, err)
 			return false

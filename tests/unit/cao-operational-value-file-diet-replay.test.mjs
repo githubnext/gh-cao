@@ -110,7 +110,13 @@ test("the real reviewed File Diet collector loads in the isolated worker and reu
       limit: 5000, remaining: 4000, used: 1000, reset: 1790000000,
     } } }), stderr: "" }),
   });
-  assert.deepEqual(result, { imported: 0, collected: 0, skipped: 1, deferred: 0, failed: 0, warnings: [] });
+  const { cost, ...counts } = result;
+  assert.deepEqual(counts, { imported: 0, collected: 0, skipped: 1, deferred: 0, failed: 0, warnings: [] });
+  assert.deepEqual(cost, {
+    apiRequests: 0, unmeteredAttempts: 0, capacityChecks: 1,
+    collectorWallMs: cost.collectorWallMs, outputBytes: 4,
+  });
+  assert.ok(Number.isInteger(cost.collectorWallMs) && cost.collectorWallMs >= 0);
 });
 
 test("cold-start proof is pinned, evidence-only, bounded and validated before reuse", async t => {

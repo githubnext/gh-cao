@@ -1,7 +1,6 @@
 package collect
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -31,7 +30,7 @@ func TestRemoteValueGraphQueryMatchesFrozenReviewedGenerator(t *testing.T) {
 	generator := filepath.Join(root, ".github", "skills", "add-operational-value", "scripts", "github-evidence.mjs")
 	code := `import { pathToFileURL } from 'node:url'; const {graphQuery} = await import(pathToFileURL(process.argv[1]));
 process.stdout.write(graphQuery("octo/api", [5, 23]));`
-	command := exec.CommandContext(t.Context(), "node", "--input-type=module", "-e", code, generator)
+	command := exec.CommandContext(t.Context(), "node", "--input-type=module", "-e", code, generator) // #nosec G204 -- fixed repository generator, not external input.
 	query, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("read frozen GraphQL generator: %v: %s", err, query)
@@ -77,12 +76,12 @@ func TestRemoteValueRepositoriesReviewedPolicyCacheAndEnrollment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	policy, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "cao.json"))
+	policy, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "cao.json")) // #nosec G304 -- fixed checked-in policy fixture.
 	if err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(t.TempDir(), "cao.json")
-	if err := os.WriteFile(path, policy, 0o600); err != nil {
+	if err := os.WriteFile(path, policy, 0o600); err != nil { // #nosec G703 -- fixed filename beneath t.TempDir.
 		t.Fatal(err)
 	}
 	projector := Projector{CatalogRoot: root, PolicyPath: path, Enrollment: b.Enrollment,
@@ -107,7 +106,7 @@ func TestRemoteValueRepositoriesReviewedPolicyCacheAndEnrollment(t *testing.T) {
 	if disabled == string(policy) {
 		t.Fatal("fixture registration not found")
 	}
-	if err := os.WriteFile(path, []byte(disabled), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(disabled), 0o600); err != nil { // #nosec G703 -- fixed filename beneath t.TempDir.
 		t.Fatal(err)
 	}
 	if names, err := projector.RemoteValueRepositories(t.Context()); err != nil || len(names) != 0 {
@@ -152,6 +151,7 @@ func TestRemoteValueAPIEnforcesEveryResourceAndRequestCap(t *testing.T) {
 		writer.Header().Set("X-RateLimit-Limit", map[string]string{"core": "5000", "search": "30"}[resource])
 		writer.Header().Set("X-RateLimit-Remaining", remaining)
 		writer.Header().Set("X-RateLimit-Reset", strconv.FormatInt(reset, 10))
+		writer.Header().Set("Content-Type", "text/html")
 		_, _ = io.WriteString(writer, `{"ok":true}`)
 	}))
 	defer upstream.Close()
@@ -177,8 +177,15 @@ func TestRemoteValueAPIEnforcesEveryResourceAndRequestCap(t *testing.T) {
 	for _, endpoint := range []string{
 		"repos/octo/api/actions/runs/42", "search/issues?q=repo:octo/api+label:bug",
 	} {
-		if _, _, _, err := api.request(t.Context(), endpoint); err != nil {
-			t.Errorf("reviewed endpoint %q: %v", endpoint, err)
+		response := httptest.NewRecorder()
+		request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api?endpoint="+url.QueryEscape(endpoint), nil)
+		api.ServeHTTP(response, request)
+		if response.Code != http.StatusOK || response.Body.String() != `{"ok":true}` {
+			t.Errorf("reviewed endpoint %q: %d %s", endpoint, response.Code, response.Body.String())
+		}
+		if response.Header().Get("Content-Type") != "application/json" ||
+			response.Header().Get("X-Content-Type-Options") != "nosniff" {
+			t.Error("API bridge allowed upstream content to be interpreted as HTML")
 		}
 	}
 	if _, _, _, err := api.request(t.Context(), "repos/octo/api/issues"); err == nil {
@@ -362,16 +369,16 @@ func TestRemoteValueGraphQLReservesUpperBoundCommitsObservedCost(t *testing.T) {
 	}
 	if runtime.GOOS == "linux" {
 		api.max = 3
-		socket, closeAPI, err := api.listen()
+		socket, closeAPI, err := api.listen(t.Context())
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer closeAPI()
 		script := filepath.Join(t.TempDir(), "gh")
-		if err := os.WriteFile(script, []byte(remoteValueGH), 0o700); err != nil {
+		if err := os.WriteFile(script, []byte(remoteValueGH), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		command := exec.CommandContext(t.Context(), "node", script, "api", "graphql", "-f", "query="+query)
+		command := exec.CommandContext(t.Context(), "node", script, "api", "graphql", "-f", "query="+query) // #nosec G204 -- fixed bridge script and generated test query.
 		command.Env = []string{"PATH=" + os.Getenv("PATH"), "GH_TOKEN=remote-value-proxy-only",
 			"CAO_REMOTE_VALUE_SOCKET=" + socket}
 		output, err := command.CombinedOutput()
@@ -526,10 +533,10 @@ func TestRemoteValueArtifactRedirectRejectsOtherDestinations(t *testing.T) {
 func TestRemoteValueGHWrapperRejectsGraphQLWithoutToken(t *testing.T) {
 	directory := t.TempDir()
 	script := filepath.Join(directory, "gh")
-	if err := os.WriteFile(script, []byte(remoteValueGH), 0o700); err != nil {
+	if err := os.WriteFile(script, []byte(remoteValueGH), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	command := exec.CommandContext(context.Background(), "node", script, "api", "graphql", "-f", "query=query{}")
+	command := exec.CommandContext(t.Context(), "node", script, "api", "graphql", "-f", "query=query{}") // #nosec G204 -- fixed bridge script beneath t.TempDir.
 	command.Env = []string{"PATH=" + os.Getenv("PATH"),
 		"CAO_REMOTE_VALUE_SOCKET=" + filepath.Join(directory, "missing.sock")}
 	output, err := command.CombinedOutput()
@@ -571,23 +578,23 @@ func TestRemoteValueGHWrapperUsesHostQuotaAndKeepsTokenPrivate(t *testing.T) {
 		app: "github-app-1", installation: 7, repository: "octo/api",
 		base: base, token: "private-installation-token", max: 1}
 	directory := t.TempDir()
-	socket, closeAPI, err := api.listen()
+	socket, closeAPI, err := api.listen(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer closeAPI()
 	script := filepath.Join(directory, "gh")
-	if err := os.WriteFile(script, []byte(remoteValueGH), 0o700); err != nil {
+	if err := os.WriteFile(script, []byte(remoteValueGH), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	command := exec.CommandContext(t.Context(), "node", script, "api", "repos/octo/api")
+	command := exec.CommandContext(t.Context(), "node", script, "api", "repos/octo/api") // #nosec G204 -- fixed bridge script beneath t.TempDir.
 	command.Env = []string{"PATH=" + os.Getenv("PATH"), "GH_TOKEN=remote-value-proxy-only",
 		"CAO_REMOTE_VALUE_SOCKET=" + socket}
 	content, err := command.CombinedOutput()
 	if err != nil || string(content) != `{"id":42}` || calls != 1 {
 		t.Fatalf("confined request: output=%s calls=%d err=%v", content, calls, err)
 	}
-	denied := exec.CommandContext(t.Context(), "node", script, "api", "repos/octo/api")
+	denied := exec.CommandContext(t.Context(), "node", script, "api", "repos/octo/api") // #nosec G204 -- fixed bridge script beneath t.TempDir.
 	denied.Env = command.Env
 	content, err = denied.CombinedOutput()
 	if err == nil || calls != 1 {
@@ -604,7 +611,7 @@ func TestRemoteValueDefersWithoutHostedServices(t *testing.T) {
 
 func TestRemoteValueWorkspaceProofPreservedAndWithdrawn(t *testing.T) {
 	projector := Projector{Lake: Lake{Directory: t.TempDir()}}
-	root, err := projector.remoteValueWorkspace("octo/api", "my-workflow")
+	root, err := projector.remoteValueWorkspace(t.Context(), "octo/api", "my-workflow")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -625,11 +632,11 @@ func TestRemoteValueWorkspaceProofPreservedAndWithdrawn(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(invocation, "latest", "proof"), []byte("failed"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	content, err := os.ReadFile(filepath.Join(old, "proof"))
+	content, err := os.ReadFile(filepath.Join(old, "proof")) // #nosec G304 -- fixed proof filename beneath t.TempDir.
 	if err != nil || string(content) != "accepted" {
 		t.Fatalf("failed collector modified previous proof: %s %v", content, err)
 	}
-	if err := projector.ForgetRemoteValueWorkspace("octo/api"); err != nil {
+	if err := projector.ForgetRemoteValueWorkspace(t.Context(), "octo/api"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Lstat(root); !errors.Is(err, os.ErrNotExist) {
@@ -640,12 +647,50 @@ func TestRemoteValueWorkspaceProofPreservedAndWithdrawn(t *testing.T) {
 func TestRemoteValueWorkspaceRejectsUnconfiguredOrRelativeLake(t *testing.T) {
 	for _, directory := range []string{"", ".", "relative/lake"} {
 		projector := Projector{Lake: Lake{Directory: directory}}
-		if _, err := projector.remoteValueWorkspace("octo/api", "my-workflow"); err == nil {
+		if _, err := projector.remoteValueWorkspace(t.Context(), "octo/api", "my-workflow"); err == nil {
 			t.Errorf("workspace accepted unsafe lake directory %q", directory)
 		}
-		if err := projector.ForgetRemoteValueWorkspace("octo/api"); err == nil {
+		if err := projector.ForgetRemoteValueWorkspace(t.Context(), "octo/api"); err == nil {
 			t.Errorf("withdrawal scanned unsafe lake directory %q", directory)
 		}
+	}
+}
+
+func TestRemoteValueProofCopyConfinesFilesAndByteBudget(t *testing.T) {
+	for _, scenario := range []string{"nested", "oversized", "symlink"} {
+		t.Run(scenario, func(t *testing.T) {
+			source := t.TempDir()
+			if err := os.Mkdir(filepath.Join(source, "nested"), 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(source, "nested", "proof"), []byte("proof"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			budget := int64(5)
+			switch scenario {
+			case "oversized":
+				budget = 4
+			case "symlink":
+				if err := os.Symlink(t.TempDir(), filepath.Join(source, "escape")); err != nil {
+					t.Fatal(err)
+				}
+			}
+			destination := filepath.Join(t.TempDir(), "latest")
+			err := copyRemoteValueProof(source, destination, budget)
+			if scenario != "nested" {
+				if err == nil {
+					t.Fatal("unsafe or oversized proof was copied")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			content, err := os.ReadFile(filepath.Join(destination, "nested", "proof")) // #nosec G304 -- fixed copied proof beneath t.TempDir.
+			if err != nil || string(content) != "proof" {
+				t.Fatalf("nested proof was not preserved: %s %v", content, err)
+			}
+		})
 	}
 }
 
@@ -659,7 +704,7 @@ func TestRemoteValueCostRetainsBoundedRecentAndTotals(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	content, err := os.ReadFile(filepath.Join(directory, "collection-cost.json"))
+	content, err := os.ReadFile(filepath.Join(directory, "collection-cost.json")) // #nosec G304 -- fixed cost filename beneath t.TempDir.
 	if err != nil || !strings.Contains(string(content), `"attempts":40`) ||
 		!strings.Contains(string(content), `"apiRequests":80`) ||
 		!strings.Contains(string(content), `"preflightRequests":40`) ||

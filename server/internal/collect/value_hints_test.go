@@ -60,7 +60,7 @@ func TestWithdrawalErasesRemoteValueHintsAndPrivateProof(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	workspace, err := worker.Projector.remoteValueWorkspace(repository, "daily-file-diet")
+	workspace, err := worker.Projector.remoteValueWorkspace(t.Context(), repository, "daily-file-diet")
 	if err != nil {
 		t.Fatal(err)
 	}

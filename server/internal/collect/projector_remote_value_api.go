@@ -191,7 +191,7 @@ func (a *remoteValueAPI) observeResource(ctx context.Context, resource string) e
 	if err != nil {
 		return errors.New("remote Value quota preflight transport failed")
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	content, err := io.ReadAll(io.LimitReader(response.Body, (1<<20)+1))
 	a.recordBytes(len(content))
 	if err != nil || len(content) > 1<<20 {
@@ -280,7 +280,7 @@ func (a *remoteValueAPI) request(ctx context.Context, endpoint string) ([]byte, 
 		// An unknown transport outcome consumes the reservation until its TTL.
 		return nil, nil, 0, errors.New("remote Value API transport failed")
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	content, err := io.ReadAll(io.LimitReader(response.Body, (16<<20)+1))
 	a.recordBytes(len(content))
 	if err != nil || len(content) > 16<<20 {
@@ -354,8 +354,8 @@ func (a *remoteValueAPI) downloadArtifact(ctx context.Context, location string) 
 	target, err := url.Parse(location)
 	if err != nil || target.Scheme != "https" || target.User != nil || target.Fragment != "" ||
 		target.Hostname() == "" || path.Clean(target.Path) != target.Path ||
-		!(target.Port() == "" || target.Port() == "443" ||
-			a.base.Scheme == "http" && target.Hostname() == a.base.Hostname()) {
+		(target.Port() != "" && target.Port() != "443" &&
+			(a.base.Scheme != "http" || target.Hostname() != a.base.Hostname())) {
 		return nil, errors.New("remote Value artifact redirect is not an approved HTTPS destination")
 	}
 	host := strings.ToLower(target.Hostname())
@@ -381,7 +381,7 @@ func (a *remoteValueAPI) downloadArtifact(ctx context.Context, location string) 
 	if err != nil {
 		return nil, errors.New("remote Value artifact download failed")
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.ContentLength > 16<<20 {
 		return nil, errors.New("remote Value artifact download is unavailable or oversized")
 	}
@@ -437,7 +437,7 @@ func (a *remoteValueAPI) graphQL(ctx context.Context, query string) ([]byte, err
 	if err != nil {
 		return nil, errors.New("remote Value GraphQL transport failed")
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	content, err := io.ReadAll(io.LimitReader(response.Body, (16<<20)+1))
 	a.recordBytes(len(content))
 	if err != nil || len(content) > 16<<20 {
@@ -508,6 +508,7 @@ func remoteValueScopedSearch(expression, repository string) bool {
 }
 
 func (a *remoteValueAPI) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("X-Content-Type-Options", "nosniff")
 	if request.Method == http.MethodPost && request.URL.Path == "/graphql" {
 		if request.Header.Get("Content-Type") != "application/json" {
 			http.Error(writer, "unsupported remote Value GraphQL body", http.StatusForbidden)
@@ -551,14 +552,15 @@ func (a *remoteValueAPI) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		http.Error(writer, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
-	if contentType := headers.Get("Content-Type"); contentType != "" {
-		writer.Header().Set("Content-Type", contentType)
+	writer.Header().Set("Content-Type", "application/json")
+	if headers.Get("Content-Type") == "application/zip" {
+		writer.Header().Set("Content-Type", "application/zip")
 	}
 	writer.WriteHeader(status)
-	_, _ = writer.Write(content)
+	_, _ = writer.Write(content) // #nosec G705 -- only JSON or ZIP with nosniff, never upstream-selected HTML.
 }
 
-func (a *remoteValueAPI) listen() (string, func(), error) {
+func (a *remoteValueAPI) listen(ctx context.Context) (string, func(), error) {
 	if runtime.GOOS != "linux" {
 		return "", nil, errors.New("remote Value authenticated API confinement requires Linux abstract Unix sockets")
 	}
@@ -567,7 +569,7 @@ func (a *remoteValueAPI) listen() (string, func(), error) {
 		return "", nil, err
 	}
 	name := "cao-remote-value-" + nonce
-	listener, err := net.Listen("unix", "@"+name)
+	listener, err := (&net.ListenConfig{}).Listen(ctx, "unix", "@"+name)
 	if err != nil {
 		return "", nil, err
 	}
@@ -615,7 +617,7 @@ func remoteValueAPIBase(raw string) (*url.URL, error) {
 	}
 	base, err := url.Parse(raw)
 	if err != nil || base.Host == "" || base.User != nil ||
-		(base.Scheme != "https" && !(base.Scheme == "http" && (base.Hostname() == "127.0.0.1" || base.Hostname() == "localhost"))) {
+		(base.Scheme != "https" && (base.Scheme != "http" || (base.Hostname() != "127.0.0.1" && base.Hostname() != "localhost"))) {
 		return nil, errors.New("remote Value API base must be HTTPS or test loopback")
 	}
 	return base, nil
