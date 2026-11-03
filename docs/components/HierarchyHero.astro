@@ -7,8 +7,11 @@ import ThemeImage from "./ThemeImage.astro";
 import HeroWorkflowSnippet from "./HeroWorkflowSnippet.astro";
 import HeroControlDiagram from "./HeroControlDiagram.astro";
 import HeroDecisionLoop from "./HeroDecisionLoop.astro";
+import HeroFactoryDashboard from "./HeroFactoryDashboard.astro";
 import HeroEnterpriseEvolution from "./HeroEnterpriseEvolution.astro";
 import HeroRepoAssist from "./HeroRepoAssist.astro";
+import HeroBackendDiagram from "./HeroBackendDiagram.astro";
+import HeroSafetyDiagram from "./HeroSafetyDiagram.astro";
 import dashboardMobileOverview from "../assets/product/cao-dashboard-mobile-overview.png";
 import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile-overview-light.png";
 ---
@@ -43,12 +46,14 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
 </div>
 
 <section class="product-story dispatch-story" aria-labelledby="dispatch-title" data-reveal data-slideshow-slide>
-  <p class="section-eyebrow">One workflow ecosystem</p>
-  <h2 id="dispatch-title">Shared workflows. Clear ownership.</h2>
-  <p>
-    Enrolled repositories benefit from enterprise-, organization-, and repository-owned workflows working side by side.
-    Shared workflows reach each repository without being copied into it, while ownership and scope remain explicit.
-  </p>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">One workflow ecosystem</p>
+    <h2 id="dispatch-title">Shared workflows. Clear ownership.</h2>
+    <p>
+      Enrolled repositories benefit from enterprise-, organization-, and repository-owned workflows working side by side.
+      Shared workflows reach each repository without being copied into it, while ownership and scope remain explicit.
+    </p>
+  </div>
   <figure class="dispatch-illustration" aria-describedby="dispatch-description">
     <figcaption id="dispatch-description" class="visually-hidden">
       Connectors group organizations within the enterprise and repositories within their organization.
@@ -126,6 +131,34 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
   <TerminalDemo />
 </section>
 
+<section class="product-story factory-story" aria-labelledby="factory-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">From execution to insight</p>
+    <h2 id="factory-title">Understand your factory</h2>
+    <p>
+      CAO includes a dashboard with <a href="/gh-cao/dashboard/">built-in views</a>{" "}
+      for workflow health, AIC cost, and operational value.
+    </p>
+    <p>
+      Use OpenTelemetry to understand cost in AI Credits (AIC) and failures in real time.
+      Pair traces, metrics, and logs with accepted outcomes to assess operational value.
+    </p>
+    <p>
+      Analyze approved session traces in the optional{" "}
+      <a href="/gh-cao/dashboard-data-ingestion/#query-the-private-session-archive">agent session lake</a>,{" "}
+      powered by Kusto (Azure Data Explorer).
+    </p>
+    <p>
+      All three are <a href="/gh-cao/agent-analysis/">agent-ready</a>:{" "}
+      agents can mine approved evidence to investigate failures, explain AIC spend, and assess operational value.
+    </p>
+    <a class="hero-story-link" href="/gh-cao/configuration/#optional-observability">
+      Explore observability <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <HeroFactoryDashboard />
+</section>
+
 <section class="product-story decision-story" aria-labelledby="decision-title" data-reveal data-slideshow-slide>
   <div class="product-story-copy">
     <span id="evidence-title"></span><span id="operational-value-title"></span>
@@ -170,6 +203,24 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
     </a>
   </div>
   <HeroEnterpriseEvolution />
+</section>
+
+<section class="product-story snippet-story backend-story" aria-labelledby="backend-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">Your infrastructure. Shared contracts.</p>
+    <h2 id="backend-title">Bring Your Own Backend</h2>
+    <p>
+      CAO provides specifications you can turn into a backend to store and analyze agentic sessions.
+      Generate API and storage contracts; adapt the implementation to your infrastructure.
+    </p>
+    <a class="hero-story-link" href="https://github.com/githubnext/gh-cao/blob/main/server/spec/README.md">
+      Explore the backend specifications <span aria-hidden="true">→</span>
+    </a>
+    <a class="hero-story-link" href="/gh-cao/deployment/">
+      Explore deployment options <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <HeroBackendDiagram />
 </section>
 
 <section class="product-story snippet-story webhook-story" aria-labelledby="webhook-title" data-reveal data-slideshow-slide>
@@ -220,6 +271,15 @@ Open an issue with proposed fixes for human review.`}
     caption="Illustrative Markdown instructions, not a complete workflow. Reviewed policy controls scope, enablement, and review/live mode."
   />
 </section>
+
+<section class="product-story safety-story" aria-labelledby="safety-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">Defense in depth</p>
+    <h2 id="safety-title">Safety by design</h2>
+    <p>A sandbox enforces what the agent can access, do, and affect.</p>
+  </div>
+  <HeroSafetyDiagram />
+</section>
 </div>
 <LandingSlideshow />
 
@@ -248,6 +308,10 @@ Open an issue with proposed fixes for human review.`}
 <style>
   @layer starlight.core {
     .cao-title-slide { display: none; }
+
+    [data-slideshow-slides] {
+      container: cao-landing / inline-size;
+    }
 
     :global(.content-panel:has(.hierarchy-hero)) {
       --cao-page-bg: #f7faf8;
@@ -513,6 +577,12 @@ Open an issue with proposed fixes for human review.`}
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 
+    .safety-story {
+      --section-accent: #00b9ee;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.5rem;
+    }
+
     .evolution-story,
     .repo-assist-story {
       grid-template-columns: minmax(0, 1fr);
@@ -550,14 +620,14 @@ Open an issue with proposed fixes for human review.`}
       grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.2fr);
     }
 
+    .factory-story {
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    }
+
     .dispatch-story {
       grid-template-columns: minmax(0, 1fr);
       gap: 0.75rem;
       text-align: center;
-    }
-
-    .dispatch-story > .section-eyebrow {
-      justify-self: center;
     }
 
     .dispatch-story h2 {
@@ -566,7 +636,7 @@ Open an issue with proposed fixes for human review.`}
       text-align: center;
     }
 
-    .dispatch-story > p:not(.section-eyebrow) {
+    .dispatch-story .product-story-copy > p:not(.section-eyebrow) {
       max-width: 80ch;
       margin: 0 auto;
       color: var(--cao-story-text);
@@ -578,18 +648,6 @@ Open an issue with proposed fixes for human review.`}
     .dispatch-illustration {
       width: min(100%, 72rem);
       margin: 1rem auto 0;
-    }
-
-    @media (width > 72rem) {
-      .dispatch-illustration {
-        width: min(80%, 56rem);
-      }
-
-      .dispatch-illustration :global(.workflow-ecosystem) {
-        width: auto;
-        /* Unlike transform, zoom also reduces the diagram's occupied height. */
-        zoom: 0.8;
-      }
     }
 
     .product-story::before {
@@ -733,7 +791,7 @@ Open an issue with proposed fixes for human review.`}
       text-transform: uppercase;
     }
 
-    .dispatch-story > .section-eyebrow {
+    .dispatch-story .section-eyebrow {
       margin-block-end: 0;
     }
 
@@ -805,10 +863,6 @@ Open an issue with proposed fixes for human review.`}
     }
 
     @media (min-width: 64rem) {
-      .dispatch-story h2 {
-        white-space: nowrap;
-      }
-
       .hierarchy-hero {
         grid-template-columns: minmax(22rem, 0.95fr) minmax(18rem, 0.7fr);
         gap: clamp(2.5rem, 5vw, 5rem);
@@ -824,6 +878,83 @@ Open an issue with proposed fixes for human review.`}
 
       .hierarchy-hero :global(.actions) {
         justify-content: flex-start;
+      }
+    }
+
+    @container cao-landing (min-width: 72rem) {
+      .hierarchy-hero,
+      .product-story {
+        box-sizing: border-box;
+        aspect-ratio: 16 / 9;
+        grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+        grid-template-rows: minmax(0, 1fr);
+        gap: 2rem;
+        padding: 2rem;
+        container-type: inline-size;
+      }
+
+      .product-story:nth-child(odd) {
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      }
+
+      .product-story:nth-child(odd) > .product-story-copy {
+        grid-column: 2;
+        grid-row: 1;
+      }
+
+      .product-story:nth-child(odd) > :last-child {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .product-story .product-story-copy {
+        max-width: 100%;
+        text-align: left;
+      }
+
+      .product-story h2 {
+        font-size: clamp(2rem, 3.5cqw, 2.5rem);
+        text-align: left;
+      }
+
+      .dispatch-story .product-story-copy > p:not(.section-eyebrow) {
+        font-size: 1rem;
+        text-wrap: pretty;
+      }
+
+      .dispatch-illustration {
+        width: 100%;
+        margin: 0;
+      }
+
+      .dispatch-illustration :global(.workflow-ecosystem) {
+        width: auto;
+        zoom: 0.55;
+      }
+
+      .evolution-story {
+        justify-items: stretch;
+      }
+
+      .evolution-story :global(.enterprise-evolution) {
+        zoom: 0.8;
+      }
+
+      .factory-story :global(.factory-dashboard),
+      .agentic-workflows-story :global(.workflow-example) {
+        zoom: 0.85;
+      }
+
+      .backend-story :global(.backend-diagram) {
+        zoom: 0.52;
+      }
+
+      .webhook-story :global(.control-diagram) {
+        zoom: 0.8;
+      }
+
+      .safety-story :global(.safety-diagram) {
+        zoom: 0.85;
       }
     }
 

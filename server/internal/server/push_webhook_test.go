@@ -15,7 +15,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 )
 
-func TestSignedPushQueuesOnlyDefaultBranchAgenticLocks(t *testing.T) {
+func TestSignedPushQueuesIndependentValueAndInventoryRefreshes(t *testing.T) {
 	store, err := memory.New(memory.Config{})
 	if err != nil {
 		t.Fatal(err)
@@ -34,8 +34,8 @@ func TestSignedPushQueuesOnlyDefaultBranchAgenticLocks(t *testing.T) {
 		queued, duplicate bool
 	}{
 		{"refs/heads/topic", ".github/workflows/build.lock.yml", "ignore", false, false},
-		{"refs/heads/trunk", ".github/workflows/build.md", "ignore", false, false},
-		{"refs/heads/trunk", ".github/workflows/build.yml", "ignore", false, false},
+		{"refs/heads/trunk", ".github/workflows/build.md", "value-refresh", true, false},
+		{"refs/heads/trunk", ".github/workflows/build.yml", "value-refresh", false, false},
 		{"refs/heads/trunk", ".github/workflows/build.lock.yml", "workflow-refresh", true, false},
 		{"refs/heads/trunk", ".github/workflows/build.lock.yml", "workflow-refresh", false, false},
 		{"refs/heads/trunk", ".github/workflows/build.lock.yml", "workflow-refresh", false, true},
@@ -68,7 +68,7 @@ func TestSignedPushQueuesOnlyDefaultBranchAgenticLocks(t *testing.T) {
 			t.Fatalf("push %d: %+v", i, admitted)
 		}
 	}
-	if depth, err := queue.Depth(t.Context()); err != nil || depth != 1 {
-		t.Fatalf("expected one grouped refresh: %d, %v", depth, err)
+	if depth, err := queue.Depth(t.Context()); err != nil || depth != 2 {
+		t.Fatalf("expected separate grouped Value and inventory refreshes: %d, %v", depth, err)
 	}
 }

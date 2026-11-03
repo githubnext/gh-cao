@@ -28,6 +28,7 @@ const (
 	IntentOutcome         IntentKind = "outcome"
 	IntentRepository      IntentKind = "repository"
 	IntentWorkflowRefresh IntentKind = "workflow-refresh"
+	IntentValueRefresh    IntentKind = "value-refresh"
 	// IntentEnroll adds repositories to the enrollment set.
 	IntentEnroll IntentKind = "enroll"
 	// IntentUnenroll removes repositories from the enrollment set.
@@ -50,6 +51,7 @@ type Intent struct {
 	RepositoryID   int64
 	Lifecycle      string
 	Outcome        *mining.Outcome
+	ValueRefresh   bool
 }
 
 type webhookEnvelope struct {
@@ -153,7 +155,7 @@ func parsePullRequestEvent(envelope webhookEnvelope) Intent {
 		return Intent{Kind: IntentIgnore}
 	}
 	return Intent{Kind: IntentOutcome, Repository: repository, InstallationID: envelope.Installation.ID,
-		Reason: "pull-request-outcome"}
+		Reason: "pull-request-outcome", ValueRefresh: true}
 }
 
 func parsePushEvent(envelope webhookEnvelope) Intent {
@@ -178,11 +180,12 @@ func parsePushEvent(envelope webhookEnvelope) Intent {
 			}
 		}
 	}
-	if !changed {
-		return Intent{Kind: IntentIgnore}
+	if changed {
+		return Intent{Kind: IntentWorkflowRefresh, Repository: repository,
+			InstallationID: envelope.Installation.ID, Reason: "push.workflows", ValueRefresh: true}
 	}
-	return Intent{Kind: IntentWorkflowRefresh, Repository: repository,
-		InstallationID: envelope.Installation.ID, Reason: "push.workflows"}
+	return Intent{Kind: IntentValueRefresh, Repository: repository,
+		InstallationID: envelope.Installation.ID, Reason: "push.value", ValueRefresh: true}
 }
 
 func parseRepositoryEvent(envelope webhookEnvelope) Intent {
@@ -256,7 +259,7 @@ func parseIssueEvent(envelope webhookEnvelope) Intent {
 		}
 	}
 	return Intent{Kind: IntentIssueStatus, Repository: repository,
-		InstallationID: envelope.Installation.ID, Issue: update}
+		InstallationID: envelope.Installation.ID, Issue: update, ValueRefresh: true}
 }
 
 // parseWorkflowRunEvent maps a "workflow_run" delivery to a collection intent.
@@ -275,6 +278,7 @@ func parseWorkflowRunEvent(envelope webhookEnvelope) (Intent, error) {
 		Repository:     envelope.Repository.FullName,
 		InstallationID: envelope.Installation.ID,
 		Reason:         "workflow_run",
+		ValueRefresh:   true,
 	}, nil
 }
 
@@ -405,7 +409,8 @@ func (a Admitter) AdmitDelivery(
 	if isScopeIntent(intent.Kind) {
 		return a.queueScope(ctx, intent, delivery, deliveryTTL)
 	}
-	if intent.Kind == IntentIssueStatus || intent.Kind == IntentOutcome || intent.Kind == IntentRepository || intent.Kind == IntentWorkflowRefresh {
+	if intent.Kind == IntentIssueStatus || intent.Kind == IntentOutcome || intent.Kind == IntentRepository ||
+		intent.Kind == IntentWorkflowRefresh || intent.Kind == IntentValueRefresh {
 		return a.admitIssue(ctx, intent, delivery, deliveryTTL)
 	}
 	if intent.Kind != IntentCollect {
@@ -445,6 +450,7 @@ func (a Admitter) AdmitDelivery(
 		Repository:     intent.Repository,
 		InstallationID: installationID,
 		Reason:         intent.Reason,
+		ValueRefresh:   intent.ValueRefresh,
 	}, delivery, deliveryTTL)
 	if err != nil {
 		return Admission{}, err
@@ -483,6 +489,7 @@ func (a Admitter) admitIssue(ctx context.Context, intent Intent, delivery string
 		RepositoryID:     intent.RepositoryID,
 		Lifecycle:        intent.Lifecycle,
 		InventoryRefresh: intent.Kind == IntentWorkflowRefresh,
+		ValueRefresh:     intent.ValueRefresh,
 	}
 	if a.Mining {
 		task.Outcome = intent.Outcome
@@ -640,12 +647,13 @@ func (a Admitter) admitIntent(ctx context.Context, intent Intent) (Admission, er
 			Repository:     intent.Repository,
 			InstallationID: installationID,
 			Reason:         intent.Reason,
+			ValueRefresh:   intent.ValueRefresh,
 		})
 		if err != nil {
 			return Admission{}, err
 		}
 		return Admission{Kind: IntentCollect, Enqueued: enqueued}, nil
-	case IntentIssueStatus, IntentOutcome, IntentRepository, IntentWorkflowRefresh:
+	case IntentIssueStatus, IntentOutcome, IntentRepository, IntentWorkflowRefresh, IntentValueRefresh:
 		return a.admitIssue(ctx, intent, "", 0)
 	default:
 		return Admission{Kind: IntentIgnore}, nil

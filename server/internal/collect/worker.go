@@ -134,6 +134,7 @@ func (w Worker) Run(ctx context.Context) error {
 		projectionCtx, cancelProjection := context.WithCancel(ctx)
 		projectionDone := make(chan struct{})
 		valueDone := make(chan struct{})
+		remoteValueDone := make(chan struct{})
 		go func() {
 			defer close(projectionDone)
 			w.projectionLoop(projectionCtx)
@@ -142,10 +143,15 @@ func (w Worker) Run(ctx context.Context) error {
 			defer close(valueDone)
 			w.localValueLoop(projectionCtx)
 		}()
+		go func() {
+			defer close(remoteValueDone)
+			w.remoteValueLoop(projectionCtx)
+		}()
 		defer func() {
 			cancelProjection()
 			<-projectionDone
 			<-valueDone
+			<-remoteValueDone
 		}()
 	}
 	for ctx.Err() == nil {
@@ -294,6 +300,12 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 			w.retryRefresh(ctx, lease, err)
 			return false
 		}
+		if task.ValueRefresh {
+			if err := w.Projector.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
+				w.retryRefresh(ctx, lease, err)
+				return false
+			}
+		}
 		if err := w.Queue.Complete(ctx, lease); err != nil {
 			workerLog.Printf("mined outcome acknowledgement failed")
 		}
@@ -314,12 +326,28 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 			return false
 		}
 	}
+	if task.ValueRefresh && task.Reason == "push.value" {
+		if err := w.Projector.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
+			w.retryRefresh(ctx, lease, err)
+			return false
+		}
+		if err := w.Queue.Complete(ctx, lease); err != nil {
+			workerLog.Printf("value hint acknowledgement failed repository=%s", task.Repository)
+		}
+		return false
+	}
 	if err := w.Runner.Collect(ctx, task); err != nil {
 		workerLog.Printf("collection failed attempt=%d", task.Attempt)
 		if retryErr := w.Queue.Retry(ctx, lease, err); retryErr != nil {
 			workerLog.Printf("task retry failed")
 		}
 		return false
+	}
+	if task.ValueRefresh {
+		if err := w.Projector.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
+			w.retryRefresh(ctx, lease, err)
+			return false
+		}
 	}
 	if err := w.Queue.Complete(ctx, lease); err != nil {
 		workerLog.Printf("task acknowledgement failed")
@@ -365,6 +393,20 @@ func (w Worker) processErasure(ctx context.Context, lease Lease) bool {
 			workerLog.Printf("task retry failed repository=%s", lease.Task.Repository)
 		}
 		return false
+	}
+	if w.Projector.Lake.Directory != "" {
+		if err := w.Projector.ForgetRemoteValueWorkspace(ctx, lease.Task.Repository); err != nil {
+			workerLog.Printf("remote Value proof erasure failed repository=%s", lease.Task.Repository)
+			w.retryRefresh(ctx, lease, err)
+			return false
+		}
+	}
+	if w.Projector.State != nil {
+		if err := w.Projector.State.SetOperationalState(ctx, remoteValueHintKey(lease.Task.Repository), nil); err != nil {
+			workerLog.Printf("remote Value hint erasure failed repository=%s", lease.Task.Repository)
+			w.retryRefresh(ctx, lease, err)
+			return false
+		}
 	}
 	// The task remains reclaimable if the follow-up cannot be persisted.
 	// Repeating Forget is safe; acknowledging without projection intent is not.

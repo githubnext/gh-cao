@@ -352,8 +352,19 @@ Activity finishes ordinary owner-scoped collection first, admits the full
 ceiling only above the selected credential's protected reserve, and persists a
 secret-free grant that is consumed before every uncached REST, search, artifact
 or GraphQL request. Missing enforcement, insufficient capacity and exhaustion
-fail closed without replacing accepted evidence. Hosted cycles keep remote
-collection deferred until they provide equivalent admission. Due collectors run
+fail closed without replacing accepted evidence. Optional hosted App collector
+deployments turn verified issue, pull-request, completed-run and default-branch
+push deliveries into durable, debounced repository Value invalidations; an
+independent daily sweep repairs missed deliveries without treating a webhook as
+accepted-outcome proof. A bounded worker intersects reviewed registrations
+with current enrollment and frozen cadence, confines the collector to the
+exact repository, and enforces shared resource-specific installation quota
+before forwarding GitHub API calls. Unknown quota, changed policy or scope,
+incomplete evidence and failed acquisition retain the previous capture. Only
+validated original packets are published atomically in PostgreSQL; private
+proof and per-pair API, time and byte costs survive refreshes and are erased
+on withdrawal. The default Actions profile has no inbound webhooks. Due
+collectors run
 only within effective collection scope and frozen cadence. They continue from
 the retained proof/cutoff, reuse immutable receipts, merged implementations,
 snapshots and Git measurements, and refresh only the new discovery/source

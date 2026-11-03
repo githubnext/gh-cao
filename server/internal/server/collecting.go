@@ -202,6 +202,10 @@ func NewCollector(
 	if err != nil {
 		return nil, fmt.Errorf("configure github quota: %w", err)
 	}
+	searchQuota, err := githubquota.New(services.GitHubQuota, githubquota.Options{SafetyReserve: 1})
+	if err != nil {
+		return nil, fmt.Errorf("configure search quota: %w", err)
+	}
 	quotaApp := "github-app-" + strconv.FormatInt(config.AppID, 10)
 	enrollment := collect.Enrollment{Metadata: services.Collection, Leases: services.Leases}
 	queue := collect.Queue{
@@ -263,17 +267,22 @@ func NewCollector(
 		return nil, err
 	}
 	projector := collect.Projector{State: services.State, Leases: services.Leases, Data: data,
-		Lake:                     lake,
-		Enrollment:               enrollment,
-		CatalogRoot:              config.CatalogRoot,
-		NodeBinary:               config.NodeBinary,
-		GitHubBinary:             config.GitHubBinary,
-		GitHubAPIURL:             config.BaseURL,
-		Tokens:                   client,
-		Budget:                   budget,
-		OutcomeClient:            client,
-		Quota:                    quota,
-		QuotaApp:                 quotaApp,
+		Lake:              lake,
+		Enrollment:        enrollment,
+		CatalogRoot:       config.CatalogRoot,
+		NodeBinary:        config.NodeBinary,
+		GitHubBinary:      config.GitHubBinary,
+		GitHubAPIURL:      config.BaseURL,
+		Tokens:            client,
+		Budget:            budget,
+		OutcomeClient:     client,
+		Quota:             quota,
+		QuotaApp:          quotaApp,
+		RemoteQuota:       quota,
+		RemoteSearchQuota: searchQuota,
+		RemoteHTTP: &http.Client{Transport: config.Transport, Timeout: 65 * time.Second,
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
+		RemoteValuePlan:          &collect.RemoteValuePlanCache{},
 		WindowDays:               config.WindowDays,
 		DatabaseQueriesPath:      databaseQueriesPath,
 		ControlRepository:        config.ControlRepository,

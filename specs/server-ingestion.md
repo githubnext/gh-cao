@@ -145,6 +145,14 @@ The implementation MUST receive events on the existing CAO webhook endpoint.
   collection tasks. Workers MUST recheck installation ownership and persist the
   coalesced projection request before acknowledging the task, without acquiring
   run logs for a push.
+- In the optional collector profile, eligible issue, pull-request and completed
+  run deliveries and default-branch pushes MAY also carry a durable remote
+  Operational Value invalidation for the exact enrolled repository. A push
+  without a workflow-lock change MUST NOT download run logs or request an
+  inventory projection solely for Value. Value-only push debounce MUST remain
+  independent of ordinary run and inventory work. An invalidation is not
+  evidence of an accepted outcome and MUST NOT bypass reviewed Value
+  registration, frozen cadence or installation-quota admission.
 - Installation scope changes MUST be queued atomically with delivery
   deduplication, not applied by the HTTP receiver. Positive discovery hints MUST
   coalesce by installation and enumerate current authenticated coverage rather

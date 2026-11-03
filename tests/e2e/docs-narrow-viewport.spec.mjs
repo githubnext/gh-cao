@@ -616,7 +616,7 @@ for (const colorScheme of ["light", "dark"]) {
           const link = getComputedStyle(node, "::before");
           const border = Number.parseFloat(getComputedStyle(node).borderTopWidth);
           return {
-            header: (header.top + header.bottom) / 2 - box.top,
+            header: ((header.top + header.bottom) / 2 - box.top) / node.currentCSSZoom,
             connector: border + Number.parseFloat(link.top) + Number.parseFloat(link.borderTopWidth) / 2,
             pulses: [...node.querySelectorAll(".mobile-delivery")].map((pulse) => (
               border + Number.parseFloat(getComputedStyle(pulse).top) + 2.5
@@ -988,7 +988,7 @@ for (const { name, viewport } of [
       expect(hero?.width).toBeLessThanOrEqual(1216);
       expect(Math.max(...stories.map((story) => story.width))
         - Math.min(...stories.map((story) => story.width))).toBeLessThanOrEqual(1);
-      const eyebrow = await page.locator(".dispatch-story > .section-eyebrow").boundingBox();
+      const eyebrow = await page.locator(".dispatch-story .section-eyebrow").boundingBox();
       const heading = await page.locator("#dispatch-title").boundingBox();
       expect(heading.y - (eyebrow.y + eyebrow.height)).toBeLessThanOrEqual(16);
       if (name === "desktop" || name === "wide desktop") {

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import {
-  GithubApiBudgetError, consumeGithubApiBudget, prepareGithubApiBudget,
+  GithubApiBudgetError, consumeGithubApiBudget, prepareGithubApiBudget, readGithubApiBudget,
 } from '../../activity/github-api-budget.mjs';
 import { githubReader } from '../../.github/skills/add-operational-value/scripts/github-evidence.mjs';
 
@@ -31,6 +31,7 @@ test('reviewed API budget admits full capacity and persists consumption without 
   assert.equal(state.granted, 3);
   assert.doesNotMatch(readFileSync(filename, 'utf8'), /secret-token/);
   assert.equal(consumeGithubApiBudget(filename).consumed, 1);
+  assert.equal(readGithubApiBudget(filename).consumed, 1);
   assert.equal(consumeGithubApiBudget(filename, 2).consumed, 3);
   assert.throws(() => consumeGithubApiBudget(filename), error =>
     error instanceof GithubApiBudgetError && error.reasonCode === 'api-budget');

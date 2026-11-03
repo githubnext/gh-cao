@@ -146,6 +146,14 @@ test('reviewed remote collection uses reserved capacity after ordinary Activity 
   result = await runWorkflowValues(options);
   assert.equal(result.collected, 1);
   assert.equal(JSON.parse(await readFile(options.apiBudget, 'utf8')).granted, 3);
+  assert.equal(result.cost.apiRequests, 0);
+  assert.equal(result.cost.capacityChecks, 1);
+  const [directory] = await readdir(options.workspace);
+  const history = JSON.parse(await readFile(path.join(options.workspace, directory, 'collection-cost.json')));
+  assert.equal(history.totals.apiRequests, 0);
+  assert.equal(history.totals.capacityChecks, 1);
+  assert.equal(history.totals.attempts, 1);
+  assert.ok(history.recent[0].wallMs >= 0);
 });
 
 test('API-limited Activity still defers collectors without a reviewed remote grant', async t => {
@@ -177,6 +185,11 @@ test('collector request exhaustion is counted before execution and reported expl
   assert.equal(result.failed, 1);
   assert.equal((await collection(options)).reasonCode, 'api-budget');
   assert.equal(JSON.parse(await readFile(options.apiBudget, 'utf8')).consumed, 1);
+  assert.equal(result.cost.apiRequests, 1);
+  const [directory] = await readdir(options.workspace);
+  const history = JSON.parse(await readFile(path.join(options.workspace, directory, 'collection-cost.json')));
+  assert.equal(history.totals.apiRequests, 1);
+  assert.equal(history.recent[0].exitStatus, 1);
   await assert.rejects(readFile(options.output, 'utf8'), /ENOENT/);
 });
 
@@ -190,7 +203,10 @@ test('recurring producer emits original typed facts, retains proof, skips satisf
   assert.equal((await runWorkflowValues(options)).skipped, 1);
   assert.equal(await readFile(options.output, 'utf8'), original);
   const [directory] = await readdir(options.workspace);
-  assert.deepEqual(await readdir(path.join(options.workspace, directory)), ['proof.json']);
+  assert.deepEqual(await readdir(path.join(options.workspace, directory)), ['collection-cost.json', 'proof.json']);
+  const cost = JSON.parse(await readFile(path.join(options.workspace, directory, 'collection-cost.json')));
+  assert.equal(cost.totals.attempts, 2);
+  assert.equal(cost.totals.unmeteredAttempts, 2);
   const revoked = policy();
   revoked['control-plane'].campaigns.activity['workflow-values'] = [{ ...entry, enabled: false }];
   await writeFile(options.policy, JSON.stringify(revoked));

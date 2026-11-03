@@ -64,6 +64,26 @@ Triggers, packaging, and hosting do not require campaigns. The optional
 webhook gateway has separate ingress and dispatch contracts, not a general
 workflow engine; the direct import does not connect to it.
 
+### Repository-local Java backend experiment
+
+The catalog source's `.github/workflows/java-backend-reimplementation.md` is a
+daily, manually dispatchable experiment in implementing the CAO specifications
+with a Java 21 backend and cloud-ready packaging. Each run attempts one tested
+increment under `experiments/java-backend/` and may open one draft pull request.
+An open `java-backend-experiment` pull request pauses further attempts; only
+merged default-branch code counts as accepted progress.
+
+The workflow reads the checked-out specifications and HTTP contracts, maintains
+a section-level implementation status, and preserves validation evidence as a
+14-day Actions artifact. Maven verification, negative contract tests and applicable
+real-adapter checks gate proposals; unavailable checks are incomplete evidence.
+Cloud-ready packaging means local container/configuration work, not deployment.
+This private repository-local workflow is not installed by the root campaign,
+does not participate in CAO fleet admission, and cannot change production code,
+rollout policy, credentials or cloud resources. Its schedule takes effect only
+after the compiled workflow is merged into the repository's default branch;
+execution still requires the repository's normal Actions and Copilot setup.
+
 ## Infer execution structure, never authority
 
 CAO governs whether and where participating workflows run; gh-aw governs how:

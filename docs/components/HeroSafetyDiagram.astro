@@ -1,0 +1,259 @@
+---
+const stages = [
+  {
+    id: "inputs",
+    label: "Inputs",
+    threats: ["Prompt Injection"],
+    items: ["Pull Requests", "Issues", "Web Pages"],
+    icon: "M20 12a8 8 0 1 1-8-8 M16 12a4 4 0 1 1-4-4 M12 12l9-9 M16 3h5v5",
+  },
+  {
+    id: "sandbox",
+    label: "Sandbox",
+    threats: ["Permissions Abuse", "Data Exfiltration"],
+    items: ["Read-only Permissions", "Zero Secrets", "Micro-VMs / Containers / Firewalls", "Integrity Filtering"],
+    icon: "M12 2 3 6v6c0 5 9 10 9 10s9-5 9-10V6Z M8 12l3 3 5-6",
+  },
+  {
+    id: "outputs",
+    label: "Safe Outputs",
+    threats: ["Malware Injection"],
+    items: ["Create Issue", "Create Pull Request", "Send Message"],
+    icon: "M10 8l6 4-6 4Z M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
+  },
+];
+---
+
+<figure class="safety-diagram" aria-label="Layered workflow safety: inputs, sandbox, and safe outputs">
+  <div class="safety-flow">
+    {stages.map((stage) => (
+      <div class={`safety-stage safety-${stage.id}`}>
+        <div class="safety-threats" aria-label={`Threats at ${stage.label}`}>
+          {stage.threats.map((threat) => (
+            <div class="safety-threat">
+              <span>{threat}</span>
+              <svg viewBox="0 0 40 80" aria-hidden="true">
+                <path d="M20 0c32 14-32 14 0 28s-32 14 0 28-8 12 0 20m-6-8 6 8 6-8" />
+              </svg>
+            </div>
+          ))}
+        </div>
+        <div class="safety-boundary">
+          {stage.id === "outputs" && (
+            <strong class="safety-detection">Threat Detection</strong>
+          )}
+          <ul>
+            {stage.items.map((item) => <li>{item}</li>)}
+          </ul>
+          {stage.id === "sandbox" && (
+            <span class="safety-agent">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3V1 M5 7V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2 M5 9H3v9h2 M19 9h2v9h-2 M5 7h14v14H5Z M9 11v3 M15 11v3 M9 17h6" />
+              </svg>
+              Agent
+            </span>
+          )}
+          <strong class="safety-label">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d={stage.icon} /></svg>
+            {stage.label}
+          </strong>
+        </div>
+      </div>
+    ))}
+  </div>
+  <figcaption>
+    <a href="https://github.github.com/gh-aw/introduction/architecture/">Security Architecture</a>
+    <span>GitHub Agentic Workflows</span>
+    <small>
+      Layered defenses limit impact, not eliminate every risk. Credentials stay outside the agent;
+      isolation and filtering depend on the configured runtime. Only declared safe outputs may publish changes.
+      Threat detection checks outputs before publication; enforcement depends on detection mode.
+    </small>
+  </figcaption>
+</figure>
+
+<style>
+  .safety-diagram {
+    --safety-bg: var(--sl-color-bg);
+    --safety-text: var(--cao-story-heading);
+    --safety-muted: var(--cao-story-text);
+    --safety-border: #52745c;
+    --safety-flow: #1a7f37;
+    --safety-threat: #007b9e;
+    --safety-agent: #8250df;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    color: var(--safety-text);
+  }
+
+  :global(:root[data-theme="dark"]) .safety-diagram {
+    --safety-bg: #000;
+    --safety-border: #60856b;
+    --safety-flow: #aff5b4;
+    --safety-threat: #00b9ee;
+    --safety-agent: #bc8cff;
+  }
+
+  .safety-flow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.3fr) minmax(0, 1.25fr);
+    gap: 2rem;
+    padding-block: 1.5rem 2rem;
+  }
+
+  .safety-stage { min-width: 0; }
+
+  .safety-threats {
+    display: flex;
+    align-items: start;
+    justify-content: space-around;
+    gap: 1rem;
+    height: 9rem;
+  }
+
+  .safety-threat {
+    display: grid;
+    justify-items: center;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .safety-threat > span {
+    width: 100%;
+    border: 1px solid var(--safety-threat);
+    border-radius: 999px;
+    padding: 0.65rem 0.5rem;
+    background: var(--safety-bg);
+    box-shadow: 0 0 1.2rem color-mix(in srgb, var(--safety-threat) 40%, transparent);
+    font-size: clamp(0.75rem, 1.1vw, 0.9375rem);
+    font-weight: 600;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  .safety-threat svg {
+    width: 2rem;
+    height: 5.5rem;
+    fill: none;
+    stroke: var(--safety-threat);
+    stroke-width: 2;
+    filter: drop-shadow(0 0 4px var(--safety-threat));
+  }
+
+  .safety-boundary {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 12.5rem;
+    border: 2px solid var(--safety-border);
+    border-radius: 1.5rem;
+    padding: 1.25rem 1rem 2rem;
+    background: var(--safety-bg);
+  }
+
+  .safety-stage:not(:last-child) .safety-boundary::after {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    width: calc(2rem + 2px);
+    height: 0.65rem;
+    background: var(--safety-flow);
+    clip-path: polygon(0 44%, 74% 44%, 74% 0, 100% 50%, 74% 100%, 74% 56%, 0 56%);
+    content: "";
+  }
+
+  .safety-boundary ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--safety-muted);
+    font-size: clamp(0.8125rem, 1.3vw, 1rem);
+    line-height: 1.65;
+  }
+
+  .safety-boundary li { margin: 0; }
+
+  .safety-outputs .safety-boundary {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
+  .safety-detection {
+    border: 1px solid var(--safety-border);
+    border-radius: 0.5rem;
+    padding: 0.4rem;
+    color: var(--safety-text);
+    font-size: 0.8125rem;
+    text-align: center;
+  }
+
+  .safety-label, .safety-agent {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border: 2px solid var(--safety-border);
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    background: var(--safety-bg);
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+
+  .safety-label {
+    position: absolute;
+    bottom: -1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .safety-label svg, .safety-agent svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+
+  .safety-agent {
+    align-self: start;
+    margin-left: auto;
+    border-color: var(--safety-agent);
+    box-shadow: 0 0 1.2rem color-mix(in srgb, var(--safety-agent) 35%, transparent);
+  }
+
+  figcaption {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+    margin-top: 1.5rem;
+    color: var(--safety-muted);
+    font-size: 0.875rem;
+  }
+
+  figcaption a { font-weight: 600; }
+  figcaption small { flex-basis: 100%; font-size: 0.8125rem; }
+
+  @container cao-landing (max-width: 60rem) {
+    .safety-flow { grid-template-columns: 1fr; gap: 3.5rem; }
+    .safety-threats { height: 7rem; }
+    .safety-threat > span { width: auto; min-width: 70%; font-size: 0.875rem; }
+    .safety-threat svg { height: 3.5rem; }
+    .safety-boundary { min-height: 10rem; padding: 1.25rem 1.25rem 2rem; }
+    .safety-boundary ul { font-size: 0.9375rem; }
+    .safety-stage:not(:last-child) .safety-boundary::after {
+      top: calc(100% + 1.75rem);
+      left: calc(50% - 1rem);
+      transform: rotate(90deg);
+    }
+    .safety-sandbox .safety-boundary { flex-wrap: wrap-reverse; }
+    .safety-agent { margin-left: 0; }
+  }
+</style>

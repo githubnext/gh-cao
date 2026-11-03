@@ -3163,10 +3163,12 @@ Collection separates three concerns that fail differently:
    operational-value orchestrator, whose output is equivalence-tested against
    `cao operational-value`. Campaign adapters remain shared JavaScript modules,
    invoked with one installation-scoped token per repository. Operational-value
-   failure remains best-effort and does not block newer Activity evidence.
+   failures do not block newer Activity evidence.
    Canonical replacement is coalesced behind a dirty flag and a minimum
    interval, so ingestion cost follows the collection rate rather than the
    event rate.
+
+See [remote Value](../docs/operational-value.md).
 
 The evidence lake is laid out byte-compatibly with a snapshot published by the
 Activity workflow:

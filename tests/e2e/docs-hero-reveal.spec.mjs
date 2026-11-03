@@ -48,7 +48,7 @@ for (const { name, viewport } of [
 test("landing stories remain visible with reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./");
-  await expect(page.locator("[data-reveal]")).toHaveCount(8);
+  await expect(page.locator("[data-reveal]")).toHaveCount(11);
   await expect(page.locator(".maintenance-story")).toContainText("Dashboard maintenance");
   for (const story of await page.locator("[data-reveal]").all()) {
     await expect(story).toHaveCSS("opacity", "1");
@@ -65,7 +65,7 @@ for (const colorScheme of ["light", "dark"]) {
       const section = page.getByRole("region", { name: "Built on Agentic Workflows", exact: true });
       await section.scrollIntoViewIfNeeded();
       await expect(section).toBeVisible();
-      await expect(page.locator(".product-story").last()).toHaveAttribute("aria-labelledby", "agentic-workflows-title");
+      await expect(page.locator(".product-story").last()).toHaveAttribute("aria-labelledby", "safety-title");
       await expect(section.getByRole("link", { name: "Explore GitHub Agentic Workflows" }))
         .toHaveAttribute("href", "https://github.github.com/gh-aw/");
       const example = section.getByRole("group", { name: "Illustrative example: from a prompt to a campaign to bounded repository work" });
@@ -126,12 +126,87 @@ for (const colorScheme of ["light", "dark"]) {
   }
 }
 
+for (const colorScheme of ["light", "dark"]) {
+  for (const width of [320, 390, 1440]) {
+    test(`Azure application map renders at ${width}px in ${colorScheme}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+      await page.goto("./");
+      const backend = page.getByRole("region", { name: "Bring Your Own Backend", exact: true });
+      await backend.scrollIntoViewIfNeeded();
+      await expect(backend).toBeVisible();
+      await expect(backend).toContainText("store and analyze agentic sessions");
+      await expect(backend.getByRole("link", { name: "Explore the backend specifications" }))
+        .toHaveAttribute("href", "https://github.com/githubnext/gh-cao/blob/main/server/spec/README.md");
+      await expect(backend.getByRole("link", { name: "Explore deployment options" }))
+        .toHaveAttribute("href", "/gh-cao/deployment/");
+      const architecture = backend.getByRole("figure", { name: "Specification to Azure resource map" });
+      await expect(architecture.locator(".backend-node strong")).toHaveText(["CAO server", "Dashboard", "PostgreSQL", "Blob Storage", "Data Explorer"]);
+      await expect(architecture.locator("[data-edge]")).toHaveCount(7);
+      await expect(architecture.locator(".service-icon svg")).toHaveCount(8);
+      await expect(architecture.locator(".dashboard-node")).toContainText("Served by CAO");
+      await expect(architecture.locator('[data-edge="server-to-dashboard"]')).toHaveCount(1);
+      await expect(architecture.locator('[data-edge="postgres-to-dashboard"]')).toHaveCount(0);
+      const readWriteLabel = await architecture.locator(".database-label").boundingBox();
+      const dashboard = await architecture.locator(".dashboard-node").boundingBox();
+      expect(readWriteLabel.y).toBeGreaterThan(dashboard.y + dashboard.height);
+      const eventFlow = architecture.getByRole("group", { name: "Webhook ingestion and opt-in Actions dispatch" });
+      await expect(eventFlow.locator(".event-step strong")).toHaveText(["Webhooks", "Gateway", "Actions"]);
+      await expect(eventFlow).toContainText("Reviewed enrollment");
+      await expect(eventFlow).toContainText("repository_dispatch");
+      await expect(architecture.locator(".evidence-handoff")).toContainText("Collected run evidence");
+      await expect(architecture.locator(".evidence-handoff")).toContainText("Webhook events");
+      await expect(architecture.locator('.evidence-handoff [data-edge="webhooks-to-server"]')).toHaveCount(1);
+      await expect(architecture.locator('[data-edge="webhooks-to-gateway"]')).toHaveCount(0);
+      await expect(architecture.locator(".specification")).toContainText("CAO TypeSpec");
+      await expect(architecture.locator(".application-map")).toContainText("Azure resource map");
+      await expect(architecture.locator(".backend-node small")).toHaveText(["Optional", "Optional"]);
+      await expect(architecture.locator(".network-legend")).toContainText("Optional archive + analytics");
+      const positions = await architecture.locator(".backend-node:not(.dashboard-node) .service-icon").evaluateAll(nodes =>
+        nodes.map(node => {
+          const { x, y } = node.getBoundingClientRect();
+          return { x, y };
+        }),
+      );
+      expect(positions[0].x).toBeGreaterThan(positions[1].x);
+      expect(positions[0].y).toBeLessThan(positions[1].y);
+      expect(positions[2].x).toBeGreaterThan(positions[1].x);
+      expect(positions[2].y).toBe(positions[1].y);
+      expect(positions[3].x).toBe(positions[0].x);
+      expect(positions[3].y).toBeGreaterThan(positions[2].y);
+      for (const icon of await architecture.locator(".service-icon").all()) {
+        await expect(icon).toHaveCSS("border-radius", "50%");
+      }
+      const legendTop = await architecture.locator(".network-legend").evaluate(element => element.getBoundingClientRect().top);
+      for (const node of await architecture.locator(".backend-node").all()) {
+        expect(await node.evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThan(legendTop);
+      }
+      await expect(architecture).toContainText("independently opt-in");
+      for (const node of await architecture.locator(".backend-node").all()) {
+        await expect(node).toBeVisible();
+        const overflowingLabels = await node.evaluate(element =>
+          [...element.querySelectorAll("strong, small, span")].filter(label =>
+            label.scrollWidth > label.clientWidth || label.getBoundingClientRect().width > element.getBoundingClientRect().width,
+          ).map(label => label.textContent),
+        );
+        expect(overflowingLabels).toEqual([]);
+      }
+      expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
+      if (width !== 320) {
+        const path = testInfo.outputPath(`bring-your-own-backend-${width}-${colorScheme}.png`);
+        await architecture.screenshot({ path, style: "header.header { position: absolute !important; }" });
+        await testInfo.attach("Bring Your Own Backend", { path, contentType: "image/png" });
+      }
+    });
+  }
+}
+
 test("landing stories remain visible without JavaScript", async ({ browser, baseURL }) => {
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
   try {
     const page = await context.newPage();
     await page.goto("./");
-    await expect(page.locator("[data-reveal]")).toHaveCount(8);
+    await expect(page.locator("[data-reveal]")).toHaveCount(11);
     await expect(page.locator(".maintenance-story")).toContainText("Dashboard maintenance");
     for (const story of await page.locator("[data-reveal]").all()) {
       await expect(story).toHaveCSS("opacity", "1");
@@ -149,6 +224,7 @@ test("landing stories remain visible without JavaScript", async ({ browser, base
     await expect(page.locator(".decision-loop .decision-paths strong")).toHaveText(["Refine", "Expand", "Pause"]);
     await expect(page.locator(".enterprise-evolution .evolution-stages li")).toHaveCount(4);
     await expect(page.locator(".enterprise-evolution")).toContainText("Architecture pattern.");
+    await expect(page.getByRole("region", { name: "Bring Your Own Backend", exact: true }).getByRole("figure")).toBeVisible();
   } finally {
     await context.close();
   }

@@ -4,6 +4,8 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { digest } from "./github-evidence.mjs";
 
+const promisedBlobFetchBatchSize = 50;
+
 export function collectGitInventories(proof, prior, directory, eligible, execute = execFileSync) {
   const inventories = new Map(prior?.inventories ?? []);
   const counts = new Map();
@@ -60,8 +62,8 @@ export function collectGitInventories(proof, prior, directory, eligible, execute
   const missing = [...new Set([...newInventories.values()].flatMap(files => files.map(file => file.blob)))]
     .filter(blob => !counts.has(blob));
   assert.ok(counts.size + missing.length <= 50_000, "Native blob measurement budget exceeded");
-  for (let offset = 0; offset < missing.length; offset += 100) {
-    const batch = missing.slice(offset, offset + 100);
+  for (let offset = 0; offset < missing.length; offset += promisedBlobFetchBatchSize) {
+    const batch = missing.slice(offset, offset + promisedBlobFetchBatchSize);
     git(["fetch", "--quiet", "--no-tags", "--no-write-fetch-head", "origin", "--stdin"], { input: `${batch.join("\n")}\n` });
     const bytes = git(["cat-file", "--batch"], { input: `${batch.join("\n")}\n`, encoding: null });
     let cursor = 0;
