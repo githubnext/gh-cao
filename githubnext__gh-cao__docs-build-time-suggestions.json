@@ -1,35 +1,7 @@
 {
-  "source_sha": "00251a3b31adf50c8e80636883f863b11a5781a5",
+  "source_sha": "c1e2acd3e4289a585e03247e2dc65419e03603c9",
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-02T15:37:08Z",
-      "worker_run_id": "41472602715",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41472402386,
-        41470271470,
-        41469942342,
-        41467509986,
-        41465155852,
-        41462774226,
-        41460756143,
-        41460408100,
-        41458098782,
-        41455833821,
-        41453669179,
-        41451763994,
-        41451450492,
-        41449478146,
-        41447367407,
-        41445509506,
-        41444278852,
-        41443975732,
-        41441431112,
-        41439372522
-      ],
-      "outcome": "incomplete: the 2026-11-02T11:46:00Z to 2026-11-02T15:31:49Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful schedule runs and four skipped workflow_run runs; there were no failed or cancelled runs in the window. All 20 runs used source SHA f8b2fc99422744fd19aaf4ed7599fdc47fd5bce4. Trusted Actions run, job, and step metadata shows that every successful schedule run executed only schedule-freshness and skipped build and deploy; the workflow_run entries skipped all jobs. The window therefore contains zero comparable successful full build-and-deploy runs, below the required five. Across the 16 freshness-only schedule successes, workflow wall time had a 14.5-second median and 25-second p90; initial queue time had a 4-second median and 13-second p90; schedule-freshness execution had a 9.5-second median and 13.5-second p90. Dashboard, build, and deploy job medians and p90s are unavailable because those jobs did not execute. No dependency installation, Astro generation, dashboard restore/download, Pages packaging, or deployment steps ran, so current-window cache hits/misses and repeated build costs cannot be verified. A complete reusable dashboard generation evaluation and actionable recommendation cannot be produced; the category remains next."
-    },
     {
       "evaluated_at": "2026-11-02T15:54:43Z",
       "worker_run_id": "41475533929",
@@ -754,6 +726,13 @@
     {
       "evaluated_at": "2026-11-03T01:32:39Z",
       "worker_run_id": "41560087616",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. The current latest-20 evidence window and its dates, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded repeated-step costs, and cache hit/miss verification could not be established. No recommendation was made; scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-03T01:51:30Z",
+      "worker_run_id": "41562121178",
       "category": "scheduling, concurrency, and avoidable rebuilds",
       "evidence_run_ids": [],
       "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. The current latest-20 evidence window and its dates, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded repeated-step costs, and cache hit/miss verification could not be established. No recommendation was made; scheduling, concurrency, and avoidable rebuilds remains the next category."
