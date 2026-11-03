@@ -23,11 +23,10 @@
       </div>
       <svg viewBox="0 0 40 32" aria-hidden="true"><path d="M9 25H8a6 6 0 0 1-1-12 11 11 0 0 1 21-2 7 7 0 0 1 1 14h-3M16 20l-4 5 4 5m8-10 4 5-4 5" /></svg>
     </header>
-    <div class="workflow-flow" role="group" aria-label="Opt-in webhook dispatch to GitHub Actions">
+    <div class="workflow-flow" role="group" aria-label="Webhook ingestion and opt-in Actions dispatch">
       <div class="flow-label">Events &amp; execution <span>Across services, Azure, and GitHub</span></div>
       <div class="event-pipeline">
         <svg class="event-connections" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
-          <path data-edge="webhooks-to-gateway" d="M16.67 5H50m-10-1 2 1-2 1" />
           <path data-edge="gateway-to-actions" d="M50 5h33.33m-10-1 2 1-2 1" />
         </svg>
         <div class="event-step webhook-step">
@@ -35,7 +34,7 @@
             <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="10" r="5" /><circle cx="10" cy="35" r="5" /><circle cx="38" cy="35" r="5" /><path d="m22 15-10 15m3 5h18m2-5L26 15M19 5a10 10 0 0 1 13 12M4 28a10 10 0 0 0 12 16m17-1a10 10 0 0 0 11-15" /></svg>
           </div>
           <strong>Webhooks</strong>
-          <span>External services</span>
+          <span>GitHub events</span>
         </div>
         <div class="event-step gateway-step">
           <div class="service-icon event-icon">
@@ -55,12 +54,17 @@
       <p class="dispatch-contract">Reviewed enrollment <span aria-hidden="true">/</span> <code>repository_dispatch</code></p>
     </div>
     <div class="evidence-handoff">
-      <svg viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true"><path data-edge="actions-to-server" d="M83.33 0C83.33 15 50 5 50 20" /></svg>
-      <span>Collected run evidence</span>
+      <svg viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
+        <path data-edge="webhooks-to-server" d="M16.67 0C16.67 15 50 5 50 20" />
+        <path data-edge="actions-to-server" d="M83.33 0C83.33 15 50 5 50 20" />
+      </svg>
+      <span class="webhook-evidence">Webhook events</span>
+      <span class="workflow-evidence">Collected run evidence</span>
     </div>
     <div class="resource-graph">
       <svg class="map-connections" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <path class="core-edge" d="M50 0V14" />
+        <path class="core-edge" data-edge="server-to-dashboard" d="M50 14H16" />
         <path class="core-edge" data-edge="server-to-postgres" d="M50 14C36 14 22 26 22 46" />
         <path class="optional-edge" data-edge="server-to-objects" d="M50 14C64 14 78 26 78 46" />
         <path class="optional-edge query-edge" data-edge="analytics-to-objects" d="M50 74C50 60 50 46 78 46" />
@@ -74,6 +78,13 @@
         </div>
         <strong>CAO server</strong>
         <span>Azure Functions</span>
+      </div>
+      <div class="backend-node dashboard-node">
+        <div class="service-icon">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="8" width="38" height="31" rx="4" /><path d="M5 16h38M10 12h1m4 0h1M11 22h9v11h-9zM26 23h10m-10 5h10m-10 5h6" /></svg>
+        </div>
+        <strong>Dashboard</strong>
+        <span>Served by CAO</span>
       </div>
       <div class="backend-node database-node">
         <div class="service-icon">
@@ -107,7 +118,8 @@
   <figcaption>
     Illustrative resource mapping, not automatic provisioning. Archives and analytics are independently opt-in;
     neither is required for PostgreSQL-backed dashboard queries. Other clouds need compatible adapters.
-    The separate, opt-in gateway dispatches only approved workflows in enrolled repositories.
+    Webhooks deliver events to the CAO server. The separate, opt-in gateway dispatches only approved workflows in enrolled repositories.
+    The CAO server and PostgreSQL power the dashboard; the browser connects only to the server.
   </figcaption>
 </figure>
 
@@ -201,9 +213,11 @@
   .dispatch-contract { margin: 0.75rem 0 0; color: var(--map-muted); font-size: 0.5625rem; text-align: center; }
   .dispatch-contract > span { padding-inline: 0.25rem; }
   .dispatch-contract code { padding: 0; background: none; color: inherit; font-size: inherit; }
-  .evidence-handoff { position: relative; height: 2.5rem; margin-inline: 0.75rem; }
+  .evidence-handoff { position: relative; height: 3.25rem; margin-inline: 0.75rem; }
   .evidence-handoff svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .evidence-handoff > span { position: absolute; top: 50%; left: 50%; border-radius: 2rem; padding: 0.125rem 0.5rem; background: var(--map-paper); color: var(--map-muted); font: 500 0.5625rem/1.5 "Mona Sans Mono", monospace; transform: translate(-50%, -50%); white-space: nowrap; }
+  .evidence-handoff > span { position: absolute; top: 50%; max-width: 46%; border-radius: 2rem; padding: 0.125rem 0.5rem; background: var(--map-paper); color: var(--map-muted); font: 500 0.5625rem/1.5 "Mona Sans Mono", monospace; transform: translate(-50%, -50%); text-align: center; }
+  .webhook-evidence { left: 25%; }
+  .workflow-evidence { left: 75%; }
   .resource-graph { position: relative; height: 27rem; margin-inline: 0.5rem; }
   .map-connections { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .map-connections path { stroke: var(--map-line); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
@@ -211,6 +225,7 @@
   .map-connections .query-edge { stroke: var(--map-purple); }
   .backend-node { position: absolute; display: flex; width: 40%; min-width: 0; flex-direction: column; align-items: center; transform: translateX(-50%); text-align: center; }
   .server-node { top: 14%; left: 50%; --service-color: var(--map-blue); }
+  .dashboard-node { top: 14%; left: 16%; --service-color: var(--map-green); }
   .database-node { top: 46%; left: 22%; --service-color: var(--map-blue); }
   .object-node { top: 46%; left: 78%; --service-color: var(--map-green); }
   .analytics-node { top: 74%; left: 50%; --service-color: var(--map-purple); }

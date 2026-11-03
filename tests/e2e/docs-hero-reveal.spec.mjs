@@ -141,19 +141,25 @@ for (const colorScheme of ["light", "dark"]) {
       await expect(backend.getByRole("link", { name: "Explore deployment options" }))
         .toHaveAttribute("href", "/gh-cao/deployment/");
       const architecture = backend.getByRole("figure", { name: "Specification to Azure resource map" });
-      await expect(architecture.locator(".backend-node strong")).toHaveText(["CAO server", "PostgreSQL", "Blob Storage", "Data Explorer"]);
-      await expect(architecture.locator("[data-edge]")).toHaveCount(6);
-      await expect(architecture.locator(".service-icon svg")).toHaveCount(7);
-      const eventFlow = architecture.getByRole("group", { name: "Opt-in webhook dispatch to GitHub Actions" });
+      await expect(architecture.locator(".backend-node strong")).toHaveText(["CAO server", "Dashboard", "PostgreSQL", "Blob Storage", "Data Explorer"]);
+      await expect(architecture.locator("[data-edge]")).toHaveCount(7);
+      await expect(architecture.locator(".service-icon svg")).toHaveCount(8);
+      await expect(architecture.locator(".dashboard-node")).toContainText("Served by CAO");
+      await expect(architecture.locator('[data-edge="server-to-dashboard"]')).toHaveCount(1);
+      await expect(architecture.locator('[data-edge="postgres-to-dashboard"]')).toHaveCount(0);
+      const eventFlow = architecture.getByRole("group", { name: "Webhook ingestion and opt-in Actions dispatch" });
       await expect(eventFlow.locator(".event-step strong")).toHaveText(["Webhooks", "Gateway", "Actions"]);
       await expect(eventFlow).toContainText("Reviewed enrollment");
       await expect(eventFlow).toContainText("repository_dispatch");
       await expect(architecture.locator(".evidence-handoff")).toContainText("Collected run evidence");
+      await expect(architecture.locator(".evidence-handoff")).toContainText("Webhook events");
+      await expect(architecture.locator('.evidence-handoff [data-edge="webhooks-to-server"]')).toHaveCount(1);
+      await expect(architecture.locator('[data-edge="webhooks-to-gateway"]')).toHaveCount(0);
       await expect(architecture.locator(".specification")).toContainText("CAO TypeSpec");
       await expect(architecture.locator(".application-map")).toContainText("Azure resource map");
       await expect(architecture.locator(".backend-node small")).toHaveText(["Optional", "Optional"]);
       await expect(architecture.locator(".network-legend")).toContainText("Optional archive + analytics");
-      const positions = await architecture.locator(".backend-node .service-icon").evaluateAll(nodes =>
+      const positions = await architecture.locator(".backend-node:not(.dashboard-node) .service-icon").evaluateAll(nodes =>
         nodes.map(node => {
           const { x, y } = node.getBoundingClientRect();
           return { x, y };
