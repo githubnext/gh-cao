@@ -38,12 +38,12 @@ const services = [
     <strong>Authenticate. Match. Queue.</strong>
     <div class="evidence-tags"><span>Enrolled routes</span><span>Bounded batches</span><span>Fresh access checks</span></div>
   </div>
-  <div class="diagram-connector" aria-hidden="true"><span>Workflow dispatch</span></div>
+  <div class="diagram-connector" aria-hidden="true"><span><code>repository_dispatch</code></span></div>
   <div class="diagram-node destination-repository">
     <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d={repoPath} /></svg>
-    <strong>Control repository</strong>
-    <span>Approved agentic workflow</span>
-    <span class="node-detail">Runs in the destination repository, not the source service.</span>
+    <strong>Enrolled repositories</strong>
+    <span>Approved agentic workflows</span>
+    <span class="node-detail">Workflows run in the destination repositories, not the source services.</span>
   </div>
   <figcaption>
     Illustrative service sources require enrollment and a supported event adapter.

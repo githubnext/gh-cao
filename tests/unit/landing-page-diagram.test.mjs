@@ -171,14 +171,16 @@ test("gateway hero diagram shows service logos and approved dispatch without an 
   assert.match(hero, /<HeroControlDiagram \/>/);
   assert.doesNotMatch(hero, /Admission Gate|admission-story|admission-gate/);
   assert.doesNotMatch(diagrams, /Admission|admission|blocked-symbol|branched/);
-  assert.match(hero, /Dispatch enrolled service events/);
+  assert.match(hero, /Trigger approved workflows in enrolled repositories using <code>repository_dispatch<\/code>/);
   for (const service of ["Linear", "Jira", "Sentry", "Azure DevOps"]) {
     assert.ok(diagrams.includes(`name: "${service}"`));
   }
   assert.match(diagrams, /viewBox="0 0 24 24"[\s\S]*?d=\{service\.path\}/);
   assert.doesNotMatch(diagrams, /acme\//);
-  assert.match(diagrams, /Control repository/);
-  assert.match(diagrams, /Runs in the destination repository, not the source service/);
+  assert.doesNotMatch(diagrams, /Control repository/);
+  assert.match(diagrams, /Enrolled repositories/);
+  assert.match(diagrams, /<code>repository_dispatch<\/code>/);
+  assert.match(diagrams, /Workflows run in the destination repositories, not the source services/);
   assert.match(diagrams, /require enrollment and a supported event adapter/);
   assert.doesNotMatch(diagrams, /<script|data-slideshow-snippet/);
 });
