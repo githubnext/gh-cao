@@ -54,6 +54,10 @@ The recommended getting-started campaign for a new control repository: it select
 
 The consistent entities, identities, and relationships produced by applying the dashboard data model to published activity evidence. Canonical data is source-neutral derived state, not a new source of authority.
 
+## Canonical read contract
+
+The implementation-neutral `dashboardstore` interface (`Store` and transaction-scoped `Reader`) through which the dashboard server reads state, query results, and diagnostics in one bounded, cancellation-aware transaction. PostgreSQL and SQLite each implement it, and storage errors propagate instead of becoming successful empty data. It adds no backend fallback or shared write API, and revisions keep their backend-specific identities.
+
 ## CAO runtime
 
 The curated production bundle of canonical Activity and Dashboard code that a control repository installs and executes. It is packaged from `runtime/package.json` by `npm run runtime:pack -- DESTINATION REVISION` (see `scripts/build-cao-runtime.mjs`) and built and attested by `.github/workflows/cao-runtime.yml` as a verified exact-SHA artifact. The Release workflow verifies that artifact and attaches it to the draft before immutable publication, providing stable release assets for stable version references; successful Actions artifacts retained for 90 days serve main/SHA references. The trusted materializer verifies GitHub signed build provenance for the catalog, signer workflow, and source and signer SHAs on a GitHub-hosted runner before replacing an installed repository's bounded canonical destinations, failing closed without source or npm fallback when an artifact is missing or unverifiable. Normal installation needs Node.js and authenticated GitHub CLI artifact/attestation access, not npm; explicit local source materialization remains a developer path using npm. See [Repository Layout and Installation](https://github.com/githubnext/gh-cao/blob/main/specs/repository-layout-and-installation.md).
