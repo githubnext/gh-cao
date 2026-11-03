@@ -15,8 +15,7 @@ const ANALYSIS_CONTEXT = [
   `Dashboard Language and query contracts: ${CONTEXT_ROOT}/blob/main/docs/dashboard-language-specification.md`,
   `Dashboard definition and fragment manifest: ${CONTEXT_ROOT}/blob/main/dashboard/site/dashboard.json`,
   `Page, view and named-query source definitions: ${CONTEXT_ROOT}/tree/main/dashboard/site/dashboard-fragments`,
-  `Architecture and authority boundaries: ${CONTEXT_ROOT}/blob/main/CODEBASE.yml`,
-  `Complete architecture contract: ${CONTEXT_ROOT}/blob/main/ARCHITECTURE.md`,
+  `Architecture and authority boundaries: ${CONTEXT_ROOT}/blob/main/ARCHITECTURE.md`,
   `Workflow authoring guidance if a source change is justified: ${CONTEXT_ROOT}/blob/main/skills/agentic-workflows/SKILL.md`
 ].join('\n');
 

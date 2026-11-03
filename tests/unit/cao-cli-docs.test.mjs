@@ -251,7 +251,7 @@ test("active documentation and architecture do not advertise the retired Quickst
   for (const filename of [
     "docs/cao-cli.md", "docs/repo-assist-quickstart.md", "docs/glossary.md",
     "docs/authentication.md", "docs/setup-quickstarts.md", "README.md",
-    "repo-assist/README.md", "ARCHITECTURE.md", "CODEBASE.yml",
+    "repo-assist/README.md", "ARCHITECTURE.md",
     "specs/repository-layout-and-installation.md", "skills/setup-cao/SKILL.md",
     "skills/setup-cao/references/implementation-details.md",
     "skills/setup-cao/references/non-interactive.md",

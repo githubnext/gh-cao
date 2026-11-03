@@ -83,7 +83,7 @@ orchestrator or a campaign. It has no target-repository write authority.
 
 ## Start the isolated environment
 
-Read `.tmp/maintainer-simulation/environment.json`, `CODEBASE.yml`, the dashboard
+Read `.tmp/maintainer-simulation/environment.json`, `ARCHITECTURE.md`, the dashboard
 page declarations, and relevant documentation before planning. The preparation
 step already built the Go binary and dashboard, fetched 36 historical runs
 from the existing fake GitHub API across three fictional repositories, and

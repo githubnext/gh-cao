@@ -654,8 +654,8 @@ Implement in separately reviewable phases:
    enabling the new profile.
 
 Update `specs/dashboard-data.md` and related ingestion/query contracts first in
-the implementation series, then `ARCHITECTURE.md` and its compiled
-`CODEBASE.yml` when the architecture changes. Update canonical/browser schema
+the implementation series, then `ARCHITECTURE.md` when the architecture changes.
+Update canonical/browser schema
 versions, TypeSpec-generated PostgreSQL artifacts, query/view declarations,
 fixtures, and generated agent query catalogs when affected. Existing
 incompatible PostgreSQL layouts require fresh canonical storage under the
