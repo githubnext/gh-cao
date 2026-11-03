@@ -106,6 +106,9 @@ type remoteValueAPI struct {
 	mu                 sync.Mutex
 	used               int
 	sent               int
+	coreRequests       int
+	searchRequests     int
+	graphQLRequests    int
 	preflights         int
 	graphPoints        int
 	graphUnknown       int
@@ -166,10 +169,25 @@ func (a *remoteValueAPI) usage() (int, int64) {
 	return a.sent, a.bytes
 }
 
-func (a *remoteValueAPI) costUsage() (int, int, int, int, int, int64) {
+func (a *remoteValueAPI) costUsage() (int, int, int, int, int, int, int, int, int64) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return a.sent, a.cacheHits, a.preflights, a.graphPoints, a.graphUnknown, a.bytes
+	return a.sent, a.coreRequests, a.searchRequests, a.graphQLRequests,
+		a.cacheHits, a.preflights, a.graphPoints, a.graphUnknown, a.bytes
+}
+
+func (a *remoteValueAPI) recordRequest(resource string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.sent++
+	switch resource {
+	case "core":
+		a.coreRequests++
+	case "search":
+		a.searchRequests++
+	case "graphql":
+		a.graphQLRequests++
+	}
 }
 
 func (a *remoteValueAPI) recordBytes(count int) {
@@ -251,8 +269,8 @@ func (a *remoteValueAPI) observeResource(ctx context.Context, resource string) e
 	}
 	request.Header.Set("Authorization", "Bearer "+a.token)
 	request.Header.Set("Accept", "application/vnd.github+json")
+	a.recordRequest("core")
 	a.mu.Lock()
-	a.sent++
 	a.preflights++
 	a.mu.Unlock()
 	client := a.requestClient()
@@ -353,9 +371,7 @@ func (a *remoteValueAPI) request(
 	}
 	request.Header.Set("Authorization", "Bearer "+a.token)
 	request.Header.Set("Accept", "application/vnd.github+json")
-	a.mu.Lock()
-	a.sent++
-	a.mu.Unlock()
+	a.recordRequest(resource)
 	client := a.requestClient()
 	response, err := client.Do(request)
 	if err != nil {
@@ -531,8 +547,8 @@ func (a *remoteValueAPI) graphQL(ctx context.Context, query string, requirementI
 	request.Header.Set("Authorization", "Bearer "+a.token)
 	request.Header.Set("Accept", "application/vnd.github+json")
 	request.Header.Set("Content-Type", "application/json")
+	a.recordRequest("graphql")
 	a.mu.Lock()
-	a.sent++
 	a.graphUnknown++
 	a.mu.Unlock()
 	client := a.requestClient()

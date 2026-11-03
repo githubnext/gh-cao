@@ -56,6 +56,68 @@ CREATE TABLE IF NOT EXISTS cao_value_publications (
   CHECK (digest ~ '^[a-f0-9]{64}$')
 );
 
+CREATE TABLE IF NOT EXISTS cao_value_proof_files (
+  namespace TEXT NOT NULL,
+  repository TEXT NOT NULL,
+  workflow TEXT NOT NULL,
+  path TEXT NOT NULL,
+  digest TEXT NOT NULL,
+  content BYTEA NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (namespace, repository, workflow, path),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (repository ~ '^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$'),
+  CHECK (workflow ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
+  CHECK (octet_length(repository) <= 256 AND octet_length(workflow) <= 256),
+  CHECK (digest ~ '^[a-f0-9]{64}$'),
+  CHECK (octet_length(path) BETWEEN 1 AND 512),
+  CHECK (octet_length(content) <= 16777216)
+);
+
+CREATE TABLE IF NOT EXISTS cao_value_collection_costs (
+  namespace TEXT NOT NULL,
+  installation_id BIGINT NOT NULL,
+  repository TEXT NOT NULL,
+  workflow TEXT NOT NULL,
+  collector TEXT NOT NULL,
+  day TIMESTAMPTZ NOT NULL,
+  attempts BIGINT NOT NULL,
+  successes BIGINT NOT NULL,
+  failures BIGINT NOT NULL,
+  api_requests BIGINT NOT NULL,
+  core_requests BIGINT NOT NULL,
+  search_requests BIGINT NOT NULL,
+  graphql_requests BIGINT NOT NULL,
+  cache_hits BIGINT NOT NULL,
+  preflight_requests BIGINT NOT NULL,
+  graphql_points_observed BIGINT NOT NULL,
+  graphql_requests_unverified BIGINT NOT NULL,
+  wall_ms BIGINT NOT NULL,
+  max_wall_ms BIGINT NOT NULL,
+  output_bytes BIGINT NOT NULL,
+  transport_bytes BIGINT NOT NULL,
+  last_failure_reason TEXT,
+  PRIMARY KEY (namespace, installation_id, repository, workflow, day),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (installation_id > 0),
+  CHECK (repository ~ '^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$'),
+  CHECK (workflow ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
+  CHECK (octet_length(repository) <= 256 AND octet_length(workflow) <= 256),
+  CHECK (octet_length(collector) BETWEEN 1 AND 512),
+  CHECK (day = date_trunc('day', day AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'),
+  CHECK (attempts > 0 AND successes >= 0 AND failures >= 0 AND successes + failures = attempts),
+  CHECK (api_requests >= 0 AND core_requests >= 0 AND search_requests >= 0 AND graphql_requests >= 0),
+  CHECK (api_requests = core_requests + search_requests + graphql_requests),
+  CHECK (cache_hits >= 0 AND preflight_requests >= 0 AND preflight_requests <= core_requests),
+  CHECK (graphql_points_observed >= 0 AND graphql_requests_unverified >= 0 AND graphql_requests_unverified <= graphql_requests),
+  CHECK (wall_ms >= 0 AND max_wall_ms >= 0 AND max_wall_ms <= wall_ms AND output_bytes >= 0 AND transport_bytes >= 0),
+  CHECK ((failures = 0 AND last_failure_reason IS NULL) OR (failures > 0 AND last_failure_reason IN ('api-budget','budget-unavailable','timeout','output-budget','collector-failed')))
+);
+
+CREATE INDEX IF NOT EXISTS cao_value_collection_costs_recent ON cao_value_collection_costs (namespace, day DESC, repository, workflow);
+
+CREATE INDEX IF NOT EXISTS cao_value_collection_costs_installation ON cao_value_collection_costs (namespace, installation_id, day DESC);
+
 CREATE TABLE IF NOT EXISTS cao_quality (
   namespace TEXT NOT NULL,
   collection TEXT NOT NULL,

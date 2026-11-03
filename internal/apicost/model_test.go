@@ -64,6 +64,31 @@ func TestDailyFileDietHardBound(t *testing.T) {
 	}
 }
 
+func TestDailyFileDietUsesObservedCalibration(t *testing.T) {
+	scenario, err := DailyFileDietScenario(DailyFileDietOptions{
+		Population: &Population{
+			Outputs: 95, Implementations: 51, Source: "canonical database revision 17",
+		},
+		Calibration: &DailyFileDietCalibration{
+			Attempts: 4, CoreRequests: 12, SearchRequests: 8, GraphQLRequests: 4,
+			GraphQLPointsObserved: 12, WallMS: 240000, MaxWallMS: 120000,
+			OutputBytes: 1000, TransportBytes: 2000, Source: "hosted cost aggregates",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(scenario.Operations) != 3 ||
+		scenario.Operations[0].Scale.PerWorkflow != 3 ||
+		scenario.Operations[1].Scale.PerWorkflow != 2 ||
+		scenario.Operations[2].Scale.PerWorkflow != 1 ||
+		scenario.Operations[2].UnitCost != 3 ||
+		scenario.Admissions[0].ActualRequestsPerInstance != 6 ||
+		scenario.Runner.MinutesPerInstance != 2 {
+		t.Fatalf("calibrated scenario=%+v", scenario)
+	}
+}
+
 func TestCustomScenariosModelPeakAndCache(t *testing.T) {
 	base := Scenario{
 		SchemaVersion: 1, Name: "Repository metadata", Repositories: 100,

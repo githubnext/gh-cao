@@ -1058,6 +1058,7 @@ The CLI also exposes evidence used to improve campaigns:
 | `node activity/cao.mjs operational-value` | Compute campaign-specific value evidence from the canonical snapshot. |
 | `node activity/cao.mjs cluster-problems` | Cluster bounded problem evidence emitted by installed campaigns. |
 | `gh cao api-cost --profile daily-file-diet` | Estimate GitHub quota, collector-grant, and runner bottlenecks from retained canonical Daily File Diet evidence. |
+| `gh cao api-cost --profile daily-file-diet --server URL --calibrate` | Calibrate the Daily File Diet model from hosted PostgreSQL request-pool and wall-time observations. |
 | `gh cao api-cost --input SCENARIO.json` | Simulate another declarative data-acquisition request profile. |
 | `node activity/cao.mjs dashboard-complexity --input FILE [--database FILE]` | Rank Dashboard Language queries by estimated computation pressure. |
 | `node activity/cao.mjs prune-dashboard --input FILE` | Report reusable, redundant, and unreferenced dashboard queries and views. |
@@ -1074,6 +1075,12 @@ evidence is unavailable. Use `CAO_SERVER_TOKEN` for a loopback server, or the
 same `CAO_SERVER_SESSION` and `CAO_SERVER_CSRF` administrator session values as
 hosted Value publication. `--scenario hard-bound` tests the collector's
 declared pagination and population ceilings without requiring retained data.
+`--calibrate` requires `--server`; it uses bounded private daily cost aggregates
+from the last 30 days across the hosted Daily File Diet fleet and fails when
+none exist. PostgreSQL reduces detailed repository accounting to a bounded
+workflow-level series before Dashboard Language aggregates it. Observed costs
+affect modeled capacity, while guaranteed capacity continues to reserve the
+collector's full reviewed request grant.
 Use `--collection-window-hours` to compare one synchronized hourly batch with a
 webhook- or queue-spread collection window. See the [GitHub API Capacity
 Specification](../specs/github-api-capacity.md).

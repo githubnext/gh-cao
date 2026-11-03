@@ -23,6 +23,7 @@ import (
 
 const (
 	nativeAPICostQuery       = "api-cost-daily-file-diet-population"
+	nativeAPICostCostQuery   = "api-cost-daily-file-diet-observed"
 	nativeAPICostMaxScenario = 1 << 20
 	nativeAPICostMaxResponse = 1 << 20
 )
@@ -32,6 +33,9 @@ func nativeAPICost(cmd *cobra.Command) error {
 	profile := nativeString(cmd, "profile")
 	if input != "" && profile != "" {
 		return errors.New("--input cannot be combined with --profile")
+	}
+	if input != "" && nativeBool(cmd, "calibrate") {
+		return errors.New("--calibrate cannot be combined with --input")
 	}
 	if profile != "" && profile != "daily-file-diet" {
 		return errors.New("--profile must be daily-file-diet")
@@ -74,8 +78,22 @@ func nativeAPICost(cmd *cobra.Command) error {
 				return populationErr
 			}
 			options.Population = &population
+			if nativeBool(cmd, "calibrate") {
+				server := nativeString(cmd, "server")
+				if server == "" {
+					return errors.New("--calibrate requires --server")
+				}
+				calibration, calibrationErr := nativeDailyFileDietServerCalibration(
+					cmd.Context(), server, http.DefaultClient, os.Getenv)
+				if calibrationErr != nil {
+					return calibrationErr
+				}
+				options.Calibration = &calibration
+			}
 		} else if nativeString(cmd, "server") != "" || cmd.Flags().Changed("database") || cmd.Flags().Changed("repository") {
 			return errors.New("--server, --database, and --repository apply only to the retained scenario")
+		} else if nativeBool(cmd, "calibrate") {
+			return errors.New("--calibrate applies only to the retained scenario")
 		}
 		scenario, err = apicost.DailyFileDietScenario(options)
 	}
@@ -143,6 +161,7 @@ func nativeAPICostOverrideScenario(cmd *cobra.Command, scenario *apicost.Scenari
 		"mutable-pulls", "new-receipts", "search-pages-per-term",
 		"timeline-pages-per-issue", "pull-file-pages", "snapshot-reads",
 		"graphql-points-per-request", "repository",
+		"calibrate",
 	} {
 		if cmd.Flags().Changed(name) {
 			return fmt.Errorf("--%s cannot be combined with --input", name)
@@ -253,6 +272,32 @@ func nativeDailyFileDietQuery(repository string) map[string]any {
 	}
 }
 
+func nativeDailyFileDietCostQuery() map[string]any {
+	return map[string]any{
+		"name":       nativeAPICostCostQuery,
+		"subject":    "Observed hosted Daily File Diet acquisition costs.",
+		"objective":  "Calibrate request-pool and wall-time assumptions from private daily aggregates.",
+		"acceptance": "Use bounded administrator-authorized aggregates only; never expose credentials or proof payloads.",
+		"from":       "value-collection-costs",
+		"time":       map[string]any{"range": "all"},
+		"filter": map[string]any{"predicates": []any{
+			map[string]any{"field": "workflow", "equals": "daily-file-diet"},
+		}},
+		"aggregate": map[string]any{"values": []any{
+			map[string]any{"field": "attempts", "as": "attempts", "reducer": "sum"},
+			map[string]any{"field": "core-requests", "as": "core-requests", "reducer": "sum"},
+			map[string]any{"field": "search-requests", "as": "search-requests", "reducer": "sum"},
+			map[string]any{"field": "graphql-requests", "as": "graphql-requests", "reducer": "sum"},
+			map[string]any{"field": "graphql-points-observed", "as": "graphql-points-observed", "reducer": "sum"},
+			map[string]any{"field": "wall-ms", "as": "wall-ms", "reducer": "sum"},
+			map[string]any{"field": "max-wall-ms", "as": "max-wall-ms", "reducer": "max"},
+			map[string]any{"field": "output-bytes", "as": "output-bytes", "reducer": "sum"},
+			map[string]any{"field": "transport-bytes", "as": "transport-bytes", "reducer": "sum"},
+		}},
+		"limit": 1,
+	}
+}
+
 func nativeDailyFileDietPopulation(cmd *cobra.Command, repository string) (apicost.Population, error) {
 	if server := nativeString(cmd, "server"); server != "" {
 		return nativeDailyFileDietServerPopulation(cmd.Context(), server, repository, http.DefaultClient, os.Getenv)
@@ -291,24 +336,53 @@ func nativeDailyFileDietServerPopulation(
 	client *http.Client,
 	getenv func(string) string,
 ) (apicost.Population, error) {
-	endpoint, local, err := nativeServerEndpoint(server, "/api/v1/query")
+	sources, revision, err := nativeAPICostServerQueries(ctx, server, client, getenv,
+		[]map[string]any{nativeDailyFileDietQuery(repository)}, []string{nativeAPICostQuery})
 	if err != nil {
 		return apicost.Population{}, err
+	}
+	source, exists := sources[nativeAPICostQuery]
+	if !exists {
+		return apicost.Population{}, errors.New("invalid API cost database response: query result is absent")
+	}
+	if revision == "" {
+		revision = "unknown"
+	}
+	return nativeAPICostPopulation(source.Rows, source.Metadata,
+		"canonical server database revision "+revision)
+}
+
+type nativeAPICostServerSource struct {
+	Rows     []any
+	Metadata map[string]any
+}
+
+func nativeAPICostServerQueries(
+	ctx context.Context,
+	server string,
+	client *http.Client,
+	getenv func(string) string,
+	queries []map[string]any,
+	sourceNames []string,
+) (map[string]nativeAPICostServerSource, string, error) {
+	endpoint, local, err := nativeServerEndpoint(server, "/api/v1/query")
+	if err != nil {
+		return nil, "", err
 	}
 	headers, err := nativeAPICostAuth(local, getenv)
 	if err != nil {
-		return apicost.Population{}, err
+		return nil, "", err
 	}
 	body, err := json.Marshal(map[string]any{
-		"sourceNames": []string{nativeAPICostQuery},
-		"queries":     []any{nativeDailyFileDietQuery(repository)},
+		"sourceNames": sourceNames,
+		"queries":     queries,
 	})
 	if err != nil {
-		return apicost.Population{}, err
+		return nil, "", err
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), bytes.NewReader(body))
 	if err != nil {
-		return apicost.Population{}, errors.New("unable to construct API cost database query")
+		return nil, "", errors.New("unable to construct API cost database query")
 	}
 	request.Header = headers.Clone()
 	request.Header.Set("Content-Type", "application/json")
@@ -319,24 +393,24 @@ func nativeDailyFileDietServerPopulation(
 	response, err := copyClient.Do(request)
 	if err != nil {
 		if ctx.Err() != nil {
-			return apicost.Population{}, ctx.Err()
+			return nil, "", ctx.Err()
 		}
-		return apicost.Population{}, errors.New("API cost database query failed: transport or timeout error")
+		return nil, "", errors.New("API cost database query failed: transport or timeout error")
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		switch response.StatusCode {
 		case http.StatusUnauthorized, http.StatusForbidden:
-			return apicost.Population{}, errors.New("API cost database query denied: server authentication is required")
+			return nil, "", errors.New("API cost database query denied: server authentication is required")
 		case http.StatusServiceUnavailable:
-			return apicost.Population{}, errors.New("API cost database query unavailable: server data is unavailable")
+			return nil, "", errors.New("API cost database query unavailable: server data is unavailable")
 		default:
-			return apicost.Population{}, fmt.Errorf("API cost database query failed: HTTP %d", response.StatusCode)
+			return nil, "", fmt.Errorf("API cost database query failed: HTTP %d", response.StatusCode)
 		}
 	}
 	content, err := io.ReadAll(io.LimitReader(response.Body, nativeAPICostMaxResponse+1))
 	if err != nil || len(content) > nativeAPICostMaxResponse {
-		return apicost.Population{}, errors.New("invalid API cost database response: unreadable or oversized JSON")
+		return nil, "", errors.New("invalid API cost database response: unreadable or oversized JSON")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(content))
 	decoder.UseNumber()
@@ -348,18 +422,91 @@ func nativeDailyFileDietServerPopulation(
 		} `json:"sources"`
 	}
 	if err := decoder.Decode(&result); err != nil {
-		return apicost.Population{}, errors.New("invalid API cost database response")
+		return nil, "", errors.New("invalid API cost database response")
 	}
-	source, exists := result.Sources[nativeAPICostQuery]
-	if !exists {
-		return apicost.Population{}, errors.New("invalid API cost database response: query result is absent")
+	sources := make(map[string]nativeAPICostServerSource, len(result.Sources))
+	for name, source := range result.Sources {
+		sources[name] = nativeAPICostServerSource{Rows: source.Rows, Metadata: source.Metadata}
 	}
-	revision := result.Revision.String()
+	return sources, result.Revision.String(), nil
+}
+
+func nativeDailyFileDietServerCalibration(
+	ctx context.Context,
+	server string,
+	client *http.Client,
+	getenv func(string) string,
+) (apicost.DailyFileDietCalibration, error) {
+	sources, revision, err := nativeAPICostServerQueries(ctx, server, client, getenv,
+		[]map[string]any{nativeDailyFileDietCostQuery()}, []string{nativeAPICostCostQuery})
+	if err != nil {
+		return apicost.DailyFileDietCalibration{}, err
+	}
+	source, exists := sources[nativeAPICostCostQuery]
+	if !exists || nativeText(source.Metadata["availability"]) == "unavailable" {
+		return apicost.DailyFileDietCalibration{}, errors.New("hosted Value collection cost observations are unavailable")
+	}
+	if len(source.Rows) != 1 {
+		return apicost.DailyFileDietCalibration{}, errors.New("hosted Value collection cost aggregation returned an invalid row count")
+	}
+	row := nativeObject(source.Rows[0])
+	integer := func(field string) (int64, error) {
+		number, ok := row[field].(json.Number)
+		value, err := number.Int64()
+		if !ok || err != nil || value < 0 {
+			return 0, errors.New("hosted Value collection cost observations are invalid")
+		}
+		return value, nil
+	}
+	attempts, err := integer("attempts")
+	if err != nil {
+		return apicost.DailyFileDietCalibration{}, err
+	}
+	if attempts == 0 {
+		return apicost.DailyFileDietCalibration{}, errors.New("no hosted Daily File Diet collection cost observations exist")
+	}
+	core, err := integer("core-requests")
+	if err != nil {
+		return apicost.DailyFileDietCalibration{}, err
+	}
+	search, err := integer("search-requests")
+	if err != nil {
+		return apicost.DailyFileDietCalibration{}, err
+	}
+	graphQL, err := integer("graphql-requests")
+	if err != nil {
+		return apicost.DailyFileDietCalibration{}, err
+	}
+	points, err := integer("graphql-points-observed")
+	if err != nil {
+		return apicost.DailyFileDietCalibration{}, err
+	}
+	wallMS, err := integer("wall-ms")
+	if err != nil {
+		return apicost.DailyFileDietCalibration{}, err
+	}
+	maxWallMS, err := integer("max-wall-ms")
+	if err != nil {
+		return apicost.DailyFileDietCalibration{}, err
+	}
+	outputBytes, err := integer("output-bytes")
+	if err != nil {
+		return apicost.DailyFileDietCalibration{}, err
+	}
+	transportBytes, err := integer("transport-bytes")
+	if err != nil {
+		return apicost.DailyFileDietCalibration{}, err
+	}
+	result := apicost.DailyFileDietCalibration{
+		Attempts: int(attempts), CoreRequests: int(core), SearchRequests: int(search),
+		GraphQLRequests: int(graphQL), GraphQLPointsObserved: int(points),
+		WallMS: wallMS, MaxWallMS: maxWallMS, OutputBytes: outputBytes, TransportBytes: transportBytes,
+	}
 	if revision == "" {
 		revision = "unknown"
 	}
-	return nativeAPICostPopulation(source.Rows, source.Metadata,
-		"canonical server database revision "+revision)
+	result.Source = "hosted cost aggregates at canonical database revision " + revision
+	return result, nil
 }
 
 func nativeAPICostAuth(local bool, getenv func(string) string) (http.Header, error) {

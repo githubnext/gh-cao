@@ -985,7 +985,11 @@ profile reads only canonical Value evidence through one Dashboard Language
 query against local SQLite or the Go server's PostgreSQL query boundary; it has
 no Activity-workspace, checked-in evidence-file or population-default fallback.
 It predicts capacity only; runtime admission and per-request accounting remain
-authoritative. `specs/github-api-capacity.md` defines this contract.
+authoritative. With `--server URL --calibrate`, the retained profile reads
+administrator-authorized daily acquisition-cost aggregates from PostgreSQL and
+uses observed per-pool requests, GraphQL points, and maximum wall time while
+keeping the reviewed grant as the guaranteed upper bound.
+`specs/github-api-capacity.md` defines this contract.
 Successful-Run value computations keep produced safe outputs, native
 operational-grader measurements, and efficiency evidence separate; they do not
 turn runtime success or output creation into accepted value.
@@ -1009,9 +1013,24 @@ ordinary collection and only when its complete request ceiling fits above the
 protected reserve. It durably counts each uncached GitHub request before
 execution and retains accepted packets/proof on missing capacity or exhaustion.
 Hosted cycles use the same shared quota services and count cache hits separately
-from metered requests. Health reconciles
+from metered requests. Accepted remote proof is stored as bounded private
+PostgreSQL files keyed by the exact repository/workflow deployment, restored
+into an invocation-local workspace, and replaced in the same transaction as
+accepted evidence publication. Daily PostgreSQL cost aggregates retain Core,
+Search, GraphQL, GraphQL-point, cache-hit, wall-time, byte, and bounded failure
+observations without storing credentials or payloads. The fleet scheduler round-robins due
+repositories across installations, permits at most one concurrent acquisition
+per installation in a worker process, and retains a global concurrency bound;
+repository leases and shared quota services remain authoritative across
+replicas. Health reconciles
 the latest decision and actual attempt independently of arrival order; unknown
 attempts never erase known history.
+The canonical workflow inventory and collection-health projection enumerate
+standalone workflows, campaign orchestrators, and workers even before a Value
+contract exists. Such deployments remain explicitly `unconfigured`; the system
+does not fabricate a generic Value metric. Adding enterprise coverage means
+adding reviewed workflow-specific contracts and database-local evaluators, not
+deriving outcome claims from runtime success.
 Bounded cache-only/local computation remains independent:
 Actions runs it only after a successful eligible Activity snapshot, while the
 hosted worker uses its own single-owner lease and verified private snapshot.

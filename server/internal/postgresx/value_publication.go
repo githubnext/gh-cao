@@ -33,6 +33,13 @@ type ValuePublication struct {
 	ObservedAt string `json:"observedAt"`
 }
 
+type valueProofPublication struct {
+	repository string
+	workflow   string
+	files      []ValueProofFile
+	updatedAt  time.Time
+}
+
 func valueFactKey(fact map[string]any) string {
 	return fmt.Sprintf("%q:%q:%q", fact["fact-kind"], evidenceText(fact["parent-id"]), fact["fact-id"])
 }
@@ -311,9 +318,38 @@ func (s *Store) ReadOperationalValue(ctx context.Context, repository, workflow s
 // PublishOperationalValue publishes measured facts, not an evaluator or report.
 // The same namespace lock as snapshot ingestion makes ownership and facts atomic.
 func (s *Store) PublishOperationalValue(ctx context.Context, input model.Row) (ValuePublication, error) {
+	return s.publishOperationalValue(ctx, input, nil)
+}
+
+// PublishOperationalValueWithProof atomically publishes accepted evidence and
+// replaces its private reusable acquisition proof.
+func (s *Store) PublishOperationalValueWithProof(
+	ctx context.Context, input model.Row, repository, workflow string,
+	files []ValueProofFile, updatedAt time.Time,
+) (ValuePublication, error) {
+	if len(repository) > 256 || len(workflow) > 256 ||
+		!targetCoordinate.MatchString(repository) || !evidenceSlug.MatchString(workflow) || updatedAt.IsZero() {
+		return ValuePublication{}, ErrValueInvalid
+	}
+	files, err := validateValueProofFiles(files)
+	if err != nil {
+		return ValuePublication{}, err
+	}
+	return s.publishOperationalValue(ctx, input, &valueProofPublication{
+		repository: strings.ToLower(repository), workflow: workflow, files: files, updatedAt: updatedAt,
+	})
+}
+
+func (s *Store) publishOperationalValue(
+	ctx context.Context, input model.Row, proof *valueProofPublication,
+) (ValuePublication, error) {
 	row, digest, err := normalizeValuePublication(input)
 	if err != nil {
 		return ValuePublication{}, err
+	}
+	if proof != nil && (row["repository"] != proof.repository ||
+		row["sourcePath"] != ".github/workflows/"+proof.workflow+".md") {
+		return ValuePublication{}, ErrValueInvalid
 	}
 	connection, err := pgx.ConnectConfig(ctx, s.config.Copy())
 	if err != nil {
@@ -354,6 +390,15 @@ func (s *Store) PublishOperationalValue(ctx context.Context, input model.Row) (V
 		return ValuePublication{}, err
 	}
 	if err == nil && previousDigest == digest {
+		if proof == nil {
+			return result, nil
+		}
+		if err := s.replaceValueProof(ctx, tx, proof.repository, proof.workflow, proof.files, proof.updatedAt); err != nil {
+			return ValuePublication{}, err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return ValuePublication{}, err
+		}
 		return result, nil
 	}
 	previous, err := readValuePacket(ctx, tx, s.namespace, result.ID)
@@ -401,6 +446,11 @@ func (s *Store) PublishOperationalValue(ctx context.Context, input model.Row) (V
 	}
 	if err := writer.valueQuality(ctx); err != nil {
 		return ValuePublication{}, err
+	}
+	if proof != nil {
+		if err := s.replaceValueProof(ctx, tx, proof.repository, proof.workflow, proof.files, proof.updatedAt); err != nil {
+			return ValuePublication{}, err
+		}
 	}
 	capture, _ := evidenceTime(row["observedAt"])
 	if err := tx.QueryRow(ctx, `UPDATE cao_state SET revision=revision+1,evaluated_at=greatest(evaluated_at,$2)

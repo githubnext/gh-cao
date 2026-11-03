@@ -96,6 +96,7 @@ func addOperatorCommands(root *cobra.Command, execute runtimeExecutor, github gh
 		textFlag("server", "CAO server base URL (HTTPS except loopback)"),
 		textFlag("repository", "Repository whose Daily File Diet evidence supplies the retained population (default github/gh-aw)"),
 		textFlag("profile", "Built-in profile (daily-file-diet)"),
+		boolFlag("calibrate", "Use retained hosted collector cost observations (requires --server)"),
 		textFlag("scenario", "Built-in scenario (retained or hard-bound)"),
 		textFlag("input", "Custom schema-v1 API cost scenario JSON"),
 		textFlag("format", "Output format (json or markdown)"),

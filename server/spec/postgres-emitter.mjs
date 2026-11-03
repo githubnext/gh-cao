@@ -21,7 +21,7 @@ const snake = (field) => field.replace(/-/g, '_').replace(/[A-Z]/g, (letter) => 
 const kinds = new Map([
   ['string', ['', 'TEXT']], ['decimal', ['numeric', 'NUMERIC']],
   ['int64', ['numeric', 'BIGINT']], ['boolean', ['boolean', 'BOOLEAN']],
-  ['utcDateTime', ['timestamp', 'TIMESTAMPTZ']]
+  ['utcDateTime', ['timestamp', 'TIMESTAMPTZ']], ['bytes', ['', 'BYTEA']]
 ]);
 const inputNames = new Map([
   ['securityFindings', '$security-findings'], ['outcomePerformance', '$outcomes'],
@@ -32,6 +32,7 @@ const runtimeNames = new Map([
   ['cliCommandStatuses', 'cli-command-statuses'],
   ['collectionHealth', 'collection-health'], ['githubQuotaUsage', 'github-quota-usage'],
   ['webhookStatus', 'webhook-status'],
+  ['valueCollectionCosts', 'value-collection-costs'],
   ['simulationDays', 'simulation-days']
 ]);
 
@@ -124,6 +125,31 @@ export async function $onEmit(context) {
       'PRIMARY KEY (namespace, id)',
       'CHECK (octet_length(id) <= 512)',
       'CHECK (octet_length(etag) <= 4096 AND octet_length(upstream_etag) <= 4096)'
+    ] : table.name === 'cao_value_proof_files' ? [
+      'PRIMARY KEY (namespace, repository, workflow, path)',
+      'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
+      "CHECK (repository ~ '^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$')",
+      "CHECK (workflow ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$')",
+      'CHECK (octet_length(repository) <= 256 AND octet_length(workflow) <= 256)',
+      "CHECK (digest ~ '^[a-f0-9]{64}$')",
+      'CHECK (octet_length(path) BETWEEN 1 AND 512)',
+      'CHECK (octet_length(content) <= 16777216)'
+    ] : table.name === 'cao_value_collection_costs' ? [
+      'PRIMARY KEY (namespace, installation_id, repository, workflow, day)',
+      'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
+      'CHECK (installation_id > 0)',
+      "CHECK (repository ~ '^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$')",
+      "CHECK (workflow ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$')",
+      'CHECK (octet_length(repository) <= 256 AND octet_length(workflow) <= 256)',
+      'CHECK (octet_length(collector) BETWEEN 1 AND 512)',
+      "CHECK (day = date_trunc('day', day AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')",
+      'CHECK (attempts > 0 AND successes >= 0 AND failures >= 0 AND successes + failures = attempts)',
+      'CHECK (api_requests >= 0 AND core_requests >= 0 AND search_requests >= 0 AND graphql_requests >= 0)',
+      'CHECK (api_requests = core_requests + search_requests + graphql_requests)',
+      'CHECK (cache_hits >= 0 AND preflight_requests >= 0 AND preflight_requests <= core_requests)',
+      'CHECK (graphql_points_observed >= 0 AND graphql_requests_unverified >= 0 AND graphql_requests_unverified <= graphql_requests)',
+      'CHECK (wall_ms >= 0 AND max_wall_ms >= 0 AND max_wall_ms <= wall_ms AND output_bytes >= 0 AND transport_bytes >= 0)',
+      "CHECK ((failures = 0 AND last_failure_reason IS NULL) OR (failures > 0 AND last_failure_reason IN ('api-budget','budget-unavailable','timeout','output-budget','collector-failed')))"
     ] : table.name === 'cao_value_publications' ? [
       'PRIMARY KEY (namespace, packet_id)',
       'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
@@ -143,6 +169,10 @@ export async function $onEmit(context) {
     statements.push(`CREATE TABLE IF NOT EXISTS ${table.name} (\n${table.columns.map((c) => `  ${c.name} ${c.sql}${c.required ? ' NOT NULL' : ''}`).join(',\n')},\n  ${constraints.join(',\n  ')}\n);`);
     if (table.name === 'cao_repository_lifecycle') statements.push('CREATE INDEX IF NOT EXISTS cao_repository_lifecycle_coordinate ON cao_repository_lifecycle (namespace, owner, name);');
     if (table.name === 'cao_github_resources') statements.push('CREATE INDEX IF NOT EXISTS cao_github_resources_expiry ON cao_github_resources (namespace, validated_at, id);');
+    if (table.name === 'cao_value_collection_costs') {
+      statements.push('CREATE INDEX IF NOT EXISTS cao_value_collection_costs_recent ON cao_value_collection_costs (namespace, day DESC, repository, workflow);');
+      statements.push('CREATE INDEX IF NOT EXISTS cao_value_collection_costs_installation ON cao_value_collection_costs (namespace, installation_id, day DESC);');
+    }
   }
   const go = ['// Code generated from server/spec/storage.tsp. DO NOT EDIT.', '', 'package postgresx', '', 'var entityTables = map[string]entityTable{'];
   for (const table of tables) {

@@ -159,6 +159,7 @@ func TestNativeAPICostReadsHostedCanonicalEvidence(t *testing.T) {
 			request.Header.Get("Authorization") != "Bearer local-token" {
 			t.Fatalf("request=%s auth=%q", request.URL.Path, request.Header.Get("Authorization"))
 		}
+
 		var body map[string]any
 		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
 			t.Fatal(err)
@@ -184,5 +185,70 @@ func TestNativeAPICostReadsHostedCanonicalEvidence(t *testing.T) {
 	if population.Outputs != 95 || population.Implementations != 51 ||
 		population.Source != "canonical server database revision 17" {
 		t.Fatalf("population=%+v", population)
+	}
+}
+
+func TestNativeAPICostReadsHostedCalibration(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if sources, _ := body["sourceNames"].([]any); len(sources) != 1 || sources[0] != nativeAPICostCostQuery {
+			t.Fatalf("body=%v", body)
+		}
+		queries, _ := body["queries"].([]any)
+		if len(queries) != 1 {
+			t.Fatalf("cost calibration query is absent: %v", body)
+		}
+		query, _ := queries[0].(map[string]any)
+		aggregate, _ := query["aggregate"].(map[string]any)
+		if len(aggregate) == 0 || query["limit"] != float64(1) {
+			t.Fatalf("cost calibration was not aggregated declaratively: %v", body)
+		}
+		response.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprintf(response, `{"revision":19,"sources":{%q:{"rows":[
+			{"attempts":2,"core-requests":6,"search-requests":4,"graphql-requests":2,
+			"graphql-points-observed":6,"wall-ms":90000,"max-wall-ms":60000,
+			"output-bytes":100,"transport-bytes":200}],"metadata":{"availability":"available"}}}}`,
+			nativeAPICostCostQuery)
+	}))
+	defer server.Close()
+	calibration, err := nativeDailyFileDietServerCalibration(t.Context(), server.URL,
+		server.Client(), func(name string) string {
+			if name == "CAO_SERVER_TOKEN" {
+				return "local-token"
+			}
+			return ""
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if calibration.Attempts != 2 || calibration.CoreRequests != 6 ||
+		calibration.GraphQLPointsObserved != 6 || calibration.MaxWallMS != 60000 ||
+		!strings.Contains(calibration.Source, "revision 19") {
+		t.Fatalf("calibration=%+v", calibration)
+	}
+}
+
+func TestNativeAPICostRejectsEmptyHostedCalibration(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		response.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprintf(response, `{"revision":19,"sources":{%q:{"rows":[{
+			"attempts":0,"core-requests":0,"search-requests":0,"graphql-requests":0,
+			"graphql-points-observed":0,"wall-ms":0,"max-wall-ms":null,
+			"output-bytes":0,"transport-bytes":0}],"metadata":{"availability":"available"}}}}`,
+			nativeAPICostCostQuery)
+	}))
+	defer server.Close()
+	_, err := nativeDailyFileDietServerCalibration(t.Context(), server.URL,
+		server.Client(), func(name string) string {
+			if name == "CAO_SERVER_TOKEN" {
+				return "local-token"
+			}
+			return ""
+		})
+	if err == nil || !strings.Contains(err.Error(), "no hosted Daily File Diet") {
+		t.Fatalf("empty calibration error=%v", err)
 	}
 }

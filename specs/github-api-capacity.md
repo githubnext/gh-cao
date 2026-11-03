@@ -99,6 +99,15 @@ does not supply request counts, pagination, GraphQL points, wall time, or cache
 hit rates by itself; those quantities require conservative reviewed assumptions
 or canonical runtime observations.
 
+Hosted collection persists credential-free daily aggregates for each exact
+repository/workflow deployment. `gh cao api-cost --profile daily-file-diet
+--server URL --calibrate` uses the last 30 days of authorized aggregates to
+replace estimated Core, Search, GraphQL, GraphQL-point, and maximum wall-time
+costs. Calibration does not replace the reviewed grant: modeled capacity uses
+observed costs while guaranteed capacity still assumes the full grant.
+Missing or empty observations fail closed rather than silently falling back to
+an apparently calibrated result.
+
 ## 4. Capacity calculation
 
 For each operation and evaluation scale:
@@ -168,6 +177,14 @@ Git blobless fetches are reported as a separate bounded transport cost because
 they do not consume REST, Search or GraphQL quota. Runtime collection remains
 the authority for actual metered requests, GraphQL points, wall time, output
 bytes and failure state.
+
+The hosted runtime stores detailed daily PostgreSQL aggregates partitioned by
+installation, repository, and workflow. Before Dashboard Language evaluation,
+the administrator-authorized runtime source reduces those rows in PostgreSQL to
+a bounded daily workflow/failure-class series with distinct collector,
+installation, and repository counts. It never materializes an enterprise-wide
+per-repository source in the query engine. It never contains installation
+credentials, request or response bodies, or retained proof payloads.
 
 ## 6. Conformance
 

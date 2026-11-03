@@ -618,6 +618,20 @@ type DailyFileDietOptions struct {
 	PullFilePages           *int
 	SnapshotReads           *int
 	GraphQLPointsPerRequest *float64
+	Calibration             *DailyFileDietCalibration
+}
+
+type DailyFileDietCalibration struct {
+	Attempts              int
+	CoreRequests          int
+	SearchRequests        int
+	GraphQLRequests       int
+	GraphQLPointsObserved int
+	WallMS                int64
+	MaxWallMS             int64
+	OutputBytes           int64
+	TransportBytes        int64
+	Source                string
 }
 
 func value[T any](pointer *T, fallback T) T {
@@ -705,7 +719,60 @@ func DailyFileDietScenario(options DailyFileDietOptions) (Scenario, error) {
 				fmt.Sprintf("Retained evidence observed %s with cutoff %s.", population.ObservedAt, population.WindowEnd))
 		}
 	}
+	actualCore := float64(corePerWorkflow)
+	actualSearch := float64(searchRequests)
+	actualGraphQL := float64(graphQLRequests)
+	actualRequests := float64(totalRequests)
+	calibrated := options.Calibration
+	if calibrated != nil {
+		if calibrated.Attempts <= 0 || calibrated.CoreRequests < 0 || calibrated.SearchRequests < 0 ||
+			calibrated.GraphQLRequests < 0 || calibrated.GraphQLPointsObserved < 0 ||
+			calibrated.WallMS < 0 || calibrated.MaxWallMS < 0 || calibrated.OutputBytes < 0 ||
+			calibrated.TransportBytes < 0 || calibrated.Source == "" {
+			return Scenario{}, errors.New("Daily File Diet calibration is invalid")
+		}
+		attempts := float64(calibrated.Attempts)
+		actualCore = float64(calibrated.CoreRequests) / attempts
+		actualSearch = float64(calibrated.SearchRequests) / attempts
+		actualGraphQL = float64(calibrated.GraphQLRequests) / attempts
+		actualRequests = actualCore + actualSearch + actualGraphQL
+		if options.WallMinutes == nil {
+			wallMinutes = float64(calibrated.MaxWallMS) / 60000
+			if wallMinutes <= 0 {
+				wallMinutes = float64(calibrated.WallMS) / attempts / 60000
+			}
+			if wallMinutes <= 0 {
+				wallMinutes = 10
+			}
+		}
+		if options.GraphQLPointsPerRequest == nil && calibrated.GraphQLRequests > 0 {
+			graphQLPoints = float64(calibrated.GraphQLPointsObserved) / float64(calibrated.GraphQLRequests)
+			if graphQLPoints <= 0 {
+				graphQLPoints = 1
+			}
+		}
+		assumptions = append(assumptions,
+			fmt.Sprintf("Observed calibration uses %d successful or failed attempt(s) from hosted deployments with the daily-file-diet workflow slug at %s.", calibrated.Attempts, calibrated.Source),
+			"Observed per-pool request and maximum wall-time costs replace the retained population estimate; the reviewed grant remains the fail-safe upper bound.")
+	}
 	burstHours := wallMinutes / 60
+	operations := []Operation{
+		{ID: "repository-aliases-and-source-history", Pool: "core", Scale: Scale{PerWorkflow: 3}, CadenceHours: 24, BurstHours: burstHours},
+		{ID: "tracked-issue-timelines", Pool: "core", Scale: Scale{PerWorkflow: float64(trackedIssues * timelinePages)}, CadenceHours: 24, BurstHours: burstHours},
+		{ID: "new-output-provenance", Pool: "core", Scale: Scale{PerWorkflow: float64(newIssues * 2)}, CadenceHours: 24, BurstHours: burstHours},
+		{ID: "mutable-pull-details-and-files", Pool: "core", Scale: Scale{PerWorkflow: float64(mutablePulls * (1 + pullPages))}, CadenceHours: 24, BurstHours: burstHours},
+		{ID: "new-receipt-metadata-and-download", Pool: "core", Scale: Scale{PerWorkflow: float64(newReceipts * 2)}, CadenceHours: 24, BurstHours: burstHours},
+		{ID: "snapshot-cutoff", Pool: "core", Scale: Scale{PerWorkflow: float64(snapshotReads)}, CadenceHours: 24, BurstHours: burstHours},
+		{ID: "output-discovery-search", Pool: "search", Scale: Scale{PerWorkflow: float64(searchRequests)}, CadenceHours: 24, BurstHours: burstHours},
+		{ID: "issue-and-pull-relationship-graphs", Pool: "graphql", Scale: Scale{PerWorkflow: float64(graphQLRequests)}, UnitCost: graphQLPoints, CadenceHours: 24, BurstHours: burstHours},
+	}
+	if calibrated != nil {
+		operations = []Operation{
+			{ID: "observed-core-requests", Pool: "core", Scale: Scale{PerWorkflow: actualCore}, CadenceHours: 24, BurstHours: burstHours},
+			{ID: "observed-search-requests", Pool: "search", Scale: Scale{PerWorkflow: actualSearch}, CadenceHours: 24, BurstHours: burstHours},
+			{ID: "observed-graphql-requests", Pool: "graphql", Scale: Scale{PerWorkflow: actualGraphQL}, UnitCost: graphQLPoints, CadenceHours: 24, BurstHours: burstHours},
+		}
+	}
 	scenario := Scenario{
 		SchemaVersion: 1,
 		Name:          fmt.Sprintf("Daily File Diet GitHub API capacity (%s)", scenarioName),
@@ -718,20 +785,11 @@ func DailyFileDietScenario(options DailyFileDietOptions) (Scenario, error) {
 			"search":  {Limit: value(options.SearchLimit, 30), Reserve: value(options.SearchReserve, 0), WindowHours: value(options.SearchWindowMinutes, 1) / 60},
 			"graphql": {Limit: value(options.GraphQLLimit, 5000), Reserve: value(options.GraphQLReserve, 500), WindowHours: 1},
 		},
-		Operations: []Operation{
-			{ID: "repository-aliases-and-source-history", Pool: "core", Scale: Scale{PerWorkflow: 3}, CadenceHours: 24, BurstHours: burstHours},
-			{ID: "tracked-issue-timelines", Pool: "core", Scale: Scale{PerWorkflow: float64(trackedIssues * timelinePages)}, CadenceHours: 24, BurstHours: burstHours},
-			{ID: "new-output-provenance", Pool: "core", Scale: Scale{PerWorkflow: float64(newIssues * 2)}, CadenceHours: 24, BurstHours: burstHours},
-			{ID: "mutable-pull-details-and-files", Pool: "core", Scale: Scale{PerWorkflow: float64(mutablePulls * (1 + pullPages))}, CadenceHours: 24, BurstHours: burstHours},
-			{ID: "new-receipt-metadata-and-download", Pool: "core", Scale: Scale{PerWorkflow: float64(newReceipts * 2)}, CadenceHours: 24, BurstHours: burstHours},
-			{ID: "snapshot-cutoff", Pool: "core", Scale: Scale{PerWorkflow: float64(snapshotReads)}, CadenceHours: 24, BurstHours: burstHours},
-			{ID: "output-discovery-search", Pool: "search", Scale: Scale{PerWorkflow: float64(searchRequests)}, CadenceHours: 24, BurstHours: burstHours},
-			{ID: "issue-and-pull-relationship-graphs", Pool: "graphql", Scale: Scale{PerWorkflow: float64(graphQLRequests)}, UnitCost: graphQLPoints, CadenceHours: 24, BurstHours: burstHours},
-		},
+		Operations: operations,
 		Admissions: []Admission{{
 			ID: "reviewed-collector-grant", Pool: "core", Grant: value(options.CollectorGrant, 700),
-			ActualPoolUnitsPerInstance: float64(corePerWorkflow),
-			ActualRequestsPerInstance:  float64(totalRequests),
+			ActualPoolUnitsPerInstance: actualCore,
+			ActualRequestsPerInstance:  actualRequests,
 			InstancesPerRepository:     1, CadenceHours: 24,
 		}},
 		Runner:      &Runner{MinutesPerInstance: wallMinutes, InstancesPerRepository: 1, Parallelism: value(options.Parallelism, 1)},
@@ -745,9 +803,21 @@ func DailyFileDietScenario(options DailyFileDietOptions) (Scenario, error) {
 			"graphqlRequestsPerWorkflow": graphQLRequests, "totalRequestsPerWorkflow": totalRequests,
 		},
 	}
+	if calibrated != nil {
+		scenario.Detail["observedAttempts"] = calibrated.Attempts
+		scenario.Detail["observedCoreRequestsPerWorkflow"] = actualCore
+		scenario.Detail["observedSearchRequestsPerWorkflow"] = actualSearch
+		scenario.Detail["observedGraphQLRequestsPerWorkflow"] = actualGraphQL
+		scenario.Detail["observedTotalRequestsPerWorkflow"] = actualRequests
+		scenario.Detail["observedMaxWallMinutes"] = wallMinutes
+		scenario.Detail["observedOutputBytes"] = calibrated.OutputBytes
+		scenario.Detail["observedTransportBytes"] = calibrated.TransportBytes
+	}
 	for index := range scenario.Operations {
 		scenario.Operations[index].RequestCount = 1
-		scenario.Operations[index].UnitCost = 1
+		if scenario.Operations[index].UnitCost == 0 {
+			scenario.Operations[index].UnitCost = 1
+		}
 	}
 	return normalizedScenario(scenario)
 }

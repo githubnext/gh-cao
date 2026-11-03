@@ -2,6 +2,7 @@ package collect
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -50,6 +51,11 @@ type remoteValueRequirement struct {
 type remoteValueAcquisitionPlan struct {
 	Requirements []remoteValueRequirement
 	Shared       map[string]map[string]remoteValueRequirement
+}
+
+type remoteValueTarget struct {
+	Repository   string
+	Installation int64
 }
 
 func remoteValueRequirementKey(requirement remoteValueRequirement) string {
@@ -201,11 +207,23 @@ func (p Projector) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sh
 // registrations that remain enrolled. It never acquires an App token or calls
 // GitHub, and the policy runtime subprocess runs only when policy bytes change.
 func (p Projector) RemoteValueRepositories(ctx context.Context) ([]string, error) {
+	targets, err := p.RemoteValueTargets(ctx)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, len(targets))
+	for index, target := range targets {
+		names[index] = target.Repository
+	}
+	return names, nil
+}
+
+func (p Projector) RemoteValueTargets(ctx context.Context) ([]remoteValueTarget, error) {
 	entries, _, err := p.remoteValuePlan(ctx)
 	if err != nil {
 		return nil, err
 	}
-	names := make([]string, 0, len(entries))
+	targets := make([]remoteValueTarget, 0, len(entries))
 	seen := map[string]bool{}
 	for _, entry := range entries {
 		name, err := NormalizeRepository(entry.Repository)
@@ -220,10 +238,22 @@ func (p Projector) RemoteValueRepositories(ctx context.Context) ([]string, error
 			return nil, err
 		}
 		if enrolled {
-			names = append(names, name)
+			installation, err := p.Enrollment.InstallationFor(ctx, name)
+			if err != nil {
+				return nil, err
+			}
+			if installation <= 0 {
+				continue
+			}
+			targets = append(targets, remoteValueTarget{Repository: name, Installation: installation})
 			seen[name] = true
 		}
 	}
-	slices.Sort(names)
-	return names, nil
+	slices.SortFunc(targets, func(left, right remoteValueTarget) int {
+		if left.Installation != right.Installation {
+			return cmp.Compare(left.Installation, right.Installation)
+		}
+		return strings.Compare(left.Repository, right.Repository)
+	})
+	return targets, nil
 }

@@ -15,7 +15,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 
@@ -112,7 +111,7 @@ func (p Projector) collectRemoteValue(
 		return err
 	}
 	defer func() { _ = os.RemoveAll(work) }()
-	if err := copyRemoteValueProof(filepath.Join(root, "latest"), filepath.Join(work, "latest"), 64<<20); err != nil {
+	if err := restoreRemoteValueProof(ctx, p.Data, repository, entry.Workflow, filepath.Join(work, "latest")); err != nil {
 		return err
 	}
 	bin := filepath.Join(work, "bin")
@@ -169,10 +168,18 @@ func (p Projector) collectRemoteValue(
 	stderr := &remoteValueOutput{limit: 16 << 10}
 	failureReason := ""
 	defer func() {
-		apiCalls, cacheHits, preflights, points, unverified, receivedBytes := api.costUsage()
-		if costErr := appendRemoteValueCost(root, remoteValueCost{
+		if resultErr != nil && failureReason == "" {
+			failureReason = "collector-failed"
+		}
+		apiCalls, coreRequests, searchRequests, graphQLRequests, cacheHits,
+			preflights, points, unverified, receivedBytes := api.costUsage()
+		costCtx, stopCost := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer stopCost()
+		if costErr := p.Data.AppendValueCollectionCost(costCtx, postgresx.ValueCollectionCost{
 			At: started.UTC(), APIRequests: apiCalls, CacheHits: cacheHits,
-			WallMs:            time.Since(started).Milliseconds(),
+			Installation: installation, Repository: repository, Workflow: entry.Workflow, Collector: entry.Collector,
+			CoreRequests: coreRequests, SearchRequests: searchRequests, GraphQLRequests: graphQLRequests,
+			WallMS:            time.Since(started).Milliseconds(),
 			PreflightRequests: preflights, GraphQLPointsObserved: points,
 			GraphQLRequestsUnverified: unverified, OutputBytes: stdout.bytes, TransportBytes: receivedBytes,
 			Succeeded: resultErr == nil, FailureReason: failureReason,
@@ -221,6 +228,10 @@ func (p Projector) collectRemoteValue(
 		envelope.Packet["workflow"] != entry.Workflow {
 		return errors.New("remote Value evidence exceeds the reviewed repository or workflow")
 	}
+	proof, err := readRemoteValueProof(filepath.Join(work, "latest"))
+	if err != nil {
+		return err
+	}
 	return p.Enrollment.withMutationLock(ctx, func(locked context.Context) error {
 		if err := p.remoteValueRegistrationCurrent(locked, repository, installation, entry, policyDigest); err != nil {
 			return err
@@ -234,10 +245,13 @@ func (p Projector) collectRemoteValue(
 		if !remoteValuePacketCurrent(previous, current) {
 			return fmt.Errorf("%w: canonical remote Value proof changed before publication", ErrRemoteValueDeferred)
 		}
-		if _, err := p.Data.PublishOperationalValue(locked, envelope.Packet); err != nil {
+		if proof == nil {
+			_, err := p.Data.PublishOperationalValue(locked, envelope.Packet)
 			return err
 		}
-		return promoteRemoteValueProof(root, work)
+		_, err = p.Data.PublishOperationalValueWithProof(
+			locked, envelope.Packet, repository, entry.Workflow, proof, time.Now().UTC())
+		return err
 	})
 }
 
@@ -386,6 +400,11 @@ func (p Projector) ForgetRemoteValueWorkspace(ctx context.Context, repository st
 	if err != nil {
 		return err
 	}
+	if p.Data != nil && p.Data.Open() {
+		if err := p.Data.DeleteValueProofs(ctx, name); err != nil {
+			return err
+		}
+	}
 	parent := filepath.Join(p.Lake.Directory, ".remote-value-workspaces")
 	entries, err := os.ReadDir(parent)
 	if errors.Is(err, os.ErrNotExist) {
@@ -427,163 +446,79 @@ func (p Projector) ForgetRemoteValueWorkspace(ctx context.Context, repository st
 	return nil
 }
 
-func copyRemoteValueProof(source, destination string, remaining int64) error {
-	info, err := os.Lstat(source)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-		return errors.New("retained remote Value proof is not a directory")
+func restoreRemoteValueProof(
+	ctx context.Context, store *postgresx.Store, repository, workflow, destination string,
+) error {
+	files, err := store.ReadValueProof(ctx, repository, workflow)
+	if err != nil || len(files) == 0 {
+		return err
 	}
 	if err := os.Mkdir(destination, 0o700); err != nil {
 		return err
 	}
-	sourceRoot, err := os.OpenRoot(source)
+	root, err := os.OpenRoot(destination)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = sourceRoot.Close() }()
-	destinationRoot, err := os.OpenRoot(destination)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = destinationRoot.Close() }()
-	return fs.WalkDir(sourceRoot.FS(), ".", func(relative string, entry fs.DirEntry, err error) error {
-		if err != nil {
+	defer func() { _ = root.Close() }()
+	for _, file := range files {
+		parent := filepath.Dir(file.Path)
+		if parent != "." {
+			if err := root.MkdirAll(parent, 0o700); err != nil {
+				return err
+			}
+		}
+		if err := root.WriteFile(file.Path, file.Content, 0o600); err != nil {
 			return err
 		}
-		if relative == "." {
-			return nil
+	}
+	return nil
+}
+
+func readRemoteValueProof(directory string) ([]postgresx.ValueProofFile, error) {
+	info, err := os.Lstat(directory)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return nil, errors.New("retained remote Value proof is not a directory")
+	}
+	root, err := os.OpenRoot(directory)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = root.Close() }()
+	files := []postgresx.ValueProofFile{}
+	var total int64
+	err = fs.WalkDir(root.FS(), ".", func(relative string, entry fs.DirEntry, err error) error {
+		if err != nil || relative == "." {
+			return err
 		}
 		if entry.IsDir() {
-			return destinationRoot.Mkdir(relative, 0o700)
+			return nil
 		}
-		if !entry.Type().IsRegular() {
-			return errors.New("retained remote Value proof exceeds its confined byte budget")
+		if !entry.Type().IsRegular() || len(files) >= postgresx.ValueProofMaxFiles {
+			return errors.New("retained remote Value proof exceeds its confined file budget")
 		}
-		file, err := sourceRoot.Open(relative)
+		file, err := root.Open(relative)
 		if err != nil {
 			return err
 		}
 		defer func() { _ = file.Close() }()
 		info, err := file.Stat()
-		if err != nil {
-			return err
-		}
-		if !info.Mode().IsRegular() || info.Size() > remaining {
+		if err != nil || !info.Mode().IsRegular() || info.Size() > postgresx.ValueProofFileMax {
 			return errors.New("retained remote Value proof exceeds its confined byte budget")
 		}
-		content, err := io.ReadAll(io.LimitReader(file, remaining+1))
-		if err != nil {
-			return err
-		}
-		if int64(len(content)) > remaining {
+		content, err := io.ReadAll(io.LimitReader(file, postgresx.ValueProofFileMax+1))
+		if err != nil || len(content) > postgresx.ValueProofFileMax {
 			return errors.New("retained remote Value proof exceeds its confined byte budget")
 		}
-		remaining -= int64(len(content))
-		return destinationRoot.WriteFile(relative, content, 0o600)
-	})
-}
-
-func promoteRemoteValueProof(root, work string) error {
-	next := filepath.Join(work, "latest")
-	if _, err := os.Lstat(next); errors.Is(err, os.ErrNotExist) {
+		total += int64(len(content))
+		if total > postgresx.ValueProofMaxBytes {
+			return errors.New("retained remote Value proof exceeds its confined byte budget")
+		}
+		files = append(files, postgresx.ValueProofFile{Path: relative, Content: content})
 		return nil
-	} else if err != nil {
-		return err
-	}
-	old := filepath.Join(root, "latest")
-	backup := filepath.Join(work, "previous")
-	if err := os.Rename(old, backup); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	if err := os.Rename(next, old); err != nil {
-		_ = os.Rename(backup, old)
-		return err
-	}
-	return nil
-}
-
-type remoteValueCost struct {
-	At                        time.Time `json:"at"`
-	APIRequests               int       `json:"apiRequests"`
-	CacheHits                 int       `json:"cacheHits"`
-	PreflightRequests         int       `json:"preflightRequests"`
-	GraphQLPointsObserved     int       `json:"graphqlPointsObserved"`
-	GraphQLRequestsUnverified int       `json:"graphqlRequestsUnverified"`
-	WallMs                    int64     `json:"wallMs"`
-	OutputBytes               int64     `json:"outputBytes"`
-	TransportBytes            int64     `json:"transportBytes"`
-	Succeeded                 bool      `json:"succeeded"`
-	FailureReason             string    `json:"failureReason,omitempty"`
-}
-
-func validRemoteValueFailureReason(reason string) bool {
-	switch reason {
-	case "", "api-budget", "budget-unavailable", "timeout", "output-budget", "collector-failed":
-		return true
-	default:
-		return false
-	}
-}
-
-func appendRemoteValueCost(root string, record remoteValueCost) error {
-	if !validRemoteValueFailureReason(record.FailureReason) {
-		return errors.New("remote Value cost failure reason is invalid")
-	}
-	filename := filepath.Join(root, "collection-cost.json")
-	history := struct {
-		SchemaVersion             int               `json:"schemaVersion"`
-		Attempts                  int64             `json:"attempts"`
-		APIRequests               int64             `json:"apiRequests"`
-		CacheHits                 int64             `json:"cacheHits"`
-		Preflights                int64             `json:"preflightRequests"`
-		GraphQLPointsObserved     int64             `json:"graphqlPointsObserved"`
-		GraphQLRequestsUnverified int64             `json:"graphqlRequestsUnverified"`
-		WallMs                    int64             `json:"wallMs"`
-		OutputBytes               int64             `json:"outputBytes"`
-		TransportBytes            int64             `json:"transportBytes"`
-		Recent                    []remoteValueCost `json:"recent"`
-	}{SchemaVersion: 1}
-	info, err := os.Lstat(filename)
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	if err == nil && (!info.Mode().IsRegular() || info.Size() > 128<<10) {
-		return errors.New("remote Value cost history exceeds its byte budget")
-	}
-	if err == nil {
-		content, err := os.ReadFile(filename) // #nosec G304 -- bounded regular file in private workspace.
-		if err != nil {
-			return err
-		}
-		if err := json.Unmarshal(content, &history); err != nil || history.SchemaVersion != 1 ||
-			history.Attempts < 0 || history.APIRequests < 0 || history.CacheHits < 0 || history.Preflights < 0 ||
-			history.GraphQLPointsObserved < 0 || history.GraphQLRequestsUnverified < 0 ||
-			history.WallMs < 0 || history.OutputBytes < 0 || history.TransportBytes < 0 ||
-			len(history.Recent) > 30 ||
-			slices.ContainsFunc(history.Recent, func(value remoteValueCost) bool {
-				return !validRemoteValueFailureReason(value.FailureReason)
-			}) {
-			return errors.New("remote Value cost history is invalid")
-		}
-	}
-	history.Attempts++
-	history.APIRequests += int64(record.APIRequests)
-	history.CacheHits += int64(record.CacheHits)
-	history.Preflights += int64(record.PreflightRequests)
-	history.GraphQLPointsObserved += int64(record.GraphQLPointsObserved)
-	history.GraphQLRequestsUnverified += int64(record.GraphQLRequestsUnverified)
-	history.WallMs += record.WallMs
-	history.OutputBytes += record.OutputBytes
-	history.TransportBytes += record.TransportBytes
-	history.Recent = append(history.Recent, record)
-	if len(history.Recent) > 30 {
-		history.Recent = history.Recent[len(history.Recent)-30:]
-	}
-	content, err := json.Marshal(history)
-	if err != nil {
-		return err
-	}
-	return WriteFileAtomic(filename, append(content, '\n'))
+	})
+	return files, err
 }

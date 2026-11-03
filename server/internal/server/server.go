@@ -1572,21 +1572,25 @@ func (a *App) executeQuery(ctx context.Context, input queryRequest, allowCollect
 	}
 	cacheEnabled := !cache.Disabled && a.services.Cache != nil && (len(input.SourceNames) > 0 || len(input.Aliases) > 0)
 	liveWebhook := false
+	liveValueCosts := false
 	if cacheEnabled {
 		definitions, requested := a.queryPlan(input)
 		if err := query.WalkPlan(definitions, requested, func(name string) error {
 			liveWebhook = liveWebhook || name == webhookStatusSourceName
+			liveValueCosts = liveValueCosts || name == valueCollectionCostsSourceName
 			return nil
 		}, func(query.Definition) error { return nil }); err != nil {
 			return queryResponse{}, http.StatusBadRequest, err
 		}
-		cacheEnabled = !liveWebhook
+		cacheEnabled = !liveWebhook && !liveValueCosts
 	}
 	if !cacheEnabled {
 		reason := "readiness"
 		switch {
 		case liveWebhook:
 			reason = "live-webhook"
+		case liveValueCosts:
+			reason = "live-value-costs"
 		case cache.Disabled:
 			reason = "disabled"
 		case a.services.Cache == nil:
@@ -1761,6 +1765,12 @@ func (loader *databaseLoader) runtimeSource(ctx context.Context, name string, de
 		}
 		return loader.app.gitHubQuotaUsageSource(ctx, loader.allowCollectionHealth)
 	}
+	if name == valueCollectionCostsSourceName {
+		if loader.app == nil {
+			return model.Source{}, errors.New("Value collection cost provider is unavailable")
+		}
+		return loader.app.valueCollectionCostsSource(ctx, loader.allowCollectionHealth)
+	}
 	if name == "$marketplacePackages" {
 		source := marketplaceSource(ctx, loader.operational, loader.dataRevision)
 		for index, input := range source.Rows {
@@ -1789,7 +1799,8 @@ func (loader *databaseLoader) runtimeSource(ctx context.Context, name string, de
 // RuntimeQuerySourceNames lists sources resolved by the server rather than
 // stored as Postgres dashboard entities.
 func RuntimeQuerySourceNames() []string {
-	return []string{collectionHealthSourceName, gitHubQuotaUsageSourceName, webhookStatusSourceName, marketplace.SourceName, simulationDaysSourceName,
+	return []string{collectionHealthSourceName, gitHubQuotaUsageSourceName, valueCollectionCostsSourceName,
+		webhookStatusSourceName, marketplace.SourceName, simulationDaysSourceName,
 		"cli-commands", "cli-command-summary", "cli-command-statuses"}
 }
 
