@@ -185,7 +185,7 @@ for (const colorScheme of ["light", "dark"]) {
       expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
       if (width !== 320) {
         const path = testInfo.outputPath(`bring-your-own-backend-${width}-${colorScheme}.png`);
-        await architecture.screenshot({ path });
+        await architecture.screenshot({ path, style: "header.header { position: absolute !important; }" });
         await testInfo.attach("Bring Your Own Backend", { path, contentType: "image/png" });
       }
     });
