@@ -28,7 +28,7 @@ const stages = [
   <div class="safety-flow">
     {stages.map((stage) => (
       <div class={`safety-stage safety-${stage.id}`}>
-        <div class="safety-threats" aria-label={`Threats at ${stage.label}`}>
+        <div class="safety-threats" role="group" aria-label={`Threats at ${stage.label}`}>
           {stage.threats.map((threat) => (
             <div class="safety-threat">
               <span>{threat}</span>
