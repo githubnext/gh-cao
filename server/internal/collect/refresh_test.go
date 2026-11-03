@@ -25,11 +25,11 @@ func TestPushWorkflowPathsAndDefaultBranch(t *testing.T) {
 		{"tag", "refs/tags/trunk", "trunk", `"commits":[{"added":[".github/workflows/build.lock.yml"]}]`, false, IntentIgnore},
 		{"no default", "refs/heads/main", "", `"commits":[{"added":[".github/workflows/build.lock.yml"]}]`, false, IntentIgnore},
 		{"deleted branch", "refs/heads/trunk", "trunk", `"commits":[{"removed":[".github/workflows/build.lock.yml"]}]`, true, IntentIgnore},
-		{"other files", "refs/heads/trunk", "trunk", `"commits":[{"modified":["README.md",".github/workflows-other/build.md"]}]`, false, IntentIgnore},
-		{"markdown source", "refs/heads/trunk", "trunk", `"commits":[{"modified":[".github/workflows/build.md"]}]`, false, IntentIgnore},
-		{"yaml extension", "refs/heads/trunk", "trunk", `"commits":[{"modified":[".github/workflows/build.yaml"]}]`, false, IntentIgnore},
-		{"ordinary workflow", "refs/heads/trunk", "trunk", `"commits":[{"modified":[".github/workflows/build.yml"]}]`, false, IntentIgnore},
-		{"nested workflow", "refs/heads/trunk", "trunk", `"commits":[{"modified":[".github/workflows/shared/build.lock.yml"]}]`, false, IntentIgnore},
+		{"other files", "refs/heads/trunk", "trunk", `"commits":[{"modified":["README.md",".github/workflows-other/build.md"]}]`, false, IntentValueRefresh},
+		{"markdown source", "refs/heads/trunk", "trunk", `"commits":[{"modified":[".github/workflows/build.md"]}]`, false, IntentValueRefresh},
+		{"yaml extension", "refs/heads/trunk", "trunk", `"commits":[{"modified":[".github/workflows/build.yaml"]}]`, false, IntentValueRefresh},
+		{"ordinary workflow", "refs/heads/trunk", "trunk", `"commits":[{"modified":[".github/workflows/build.yml"]}]`, false, IntentValueRefresh},
+		{"nested workflow", "refs/heads/trunk", "trunk", `"commits":[{"modified":[".github/workflows/shared/build.lock.yml"]}]`, false, IntentValueRefresh},
 		{"truncated", "refs/heads/trunk", "trunk", `"size":3,"commits":[{"modified":["README.md"]}]`, false, IntentWorkflowRefresh},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -38,7 +38,7 @@ func TestPushWorkflowPathsAndDefaultBranch(t *testing.T) {
 			if err != nil || intent.Kind != tc.want {
 				t.Fatalf("classification = %+v, %v; want %s", intent, err, tc.want)
 			}
-			if intent.Kind == IntentWorkflowRefresh && intent.Repository != "octo/api" {
+			if intent.Kind != IntentIgnore && (intent.Repository != "octo/api" || !intent.ValueRefresh) {
 				t.Fatalf("repository was not normalized: %+v", intent)
 			}
 		})
@@ -70,6 +70,7 @@ func TestPushRefreshIsIndependentOfRunCollectionAndRechecksScope(t *testing.T) {
 	if err := w.Enrollment.AddRepositories(ctx, 7, []string{"octo/api"}); err != nil {
 		t.Fatal(err)
 	}
+
 	admitter := Admitter{Queue: w.Queue, Enrollment: w.Enrollment}
 	payload := []byte(`{"ref":"refs/heads/trunk","installation":{"id":7},"repository":{"full_name":"octo/api","default_branch":"trunk"},"commits":[{"modified":[".github/workflows/build.lock.yml"]}]}`)
 	for index := range 3 {
@@ -115,6 +116,37 @@ func TestPushRefreshIsIndependentOfRunCollectionAndRechecksScope(t *testing.T) {
 	w.process(ctx, lease)
 	if dirty, err := w.Projector.PendingProjection(ctx); err != nil || dirty {
 		t.Fatalf("stale push refreshed withdrawn repository: %t, %v", dirty, err)
+	}
+}
+
+func TestDefaultBranchValuePushOnlyQueuesAValueHint(t *testing.T) {
+	w := refreshWorker(t)
+	ctx := t.Context()
+	if err := w.Enrollment.AddRepositories(ctx, 7, []string{"octo/api"}); err != nil {
+		t.Fatal(err)
+	}
+	admitter := Admitter{Queue: w.Queue, Enrollment: w.Enrollment}
+	payload := []byte(`{"ref":"refs/heads/trunk","installation":{"id":7},"repository":{"full_name":"octo/api","default_branch":"trunk"},"commits":[{"modified":["README.md"]}]}`)
+	for index := range 3 {
+		result, err := admitter.AdmitDelivery(ctx, "push", payload, fmt.Sprintf("value-push-%d", index), time.Hour)
+		if err != nil || result.Enqueued != (index == 0) || result.Duplicate {
+			t.Fatalf("push %d: %+v, %v", index, result, err)
+		}
+	}
+	result, err := admitter.AdmitDelivery(ctx, "push", payload, "value-push-0", time.Hour)
+	if err != nil || !result.Duplicate {
+		t.Fatalf("duplicate delivery: %+v, %v", result, err)
+	}
+	lease := refreshLease(t, w.Queue)
+	if !lease.Task.ValueRefresh || lease.Task.InventoryRefresh || lease.Task.Reason != "push.value" {
+		t.Fatalf("unexpected push work: %+v", lease.Task)
+	}
+	w.process(ctx, lease)
+	if pending, err := w.Queue.Pending(ctx); err != nil || pending != 0 {
+		t.Fatalf("value-only push was not acknowledged: %d, %v", pending, err)
+	}
+	if dirty, err := w.Projector.PendingProjection(ctx); err != nil || dirty {
+		t.Fatalf("value-only push requested Activity projection: %t, %v", dirty, err)
 	}
 }
 

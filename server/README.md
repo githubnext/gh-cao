@@ -3168,6 +3168,8 @@ Collection separates three concerns that fail differently:
    interval, so ingestion cost follows the collection rate rather than the
    event rate.
 
+For hosted remote Value, see [Operational Value](../docs/operational-value.md).
+
 The evidence lake is laid out byte-compatibly with a snapshot published by the
 Activity workflow:
 

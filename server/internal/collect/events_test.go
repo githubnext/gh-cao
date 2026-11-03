@@ -42,6 +42,10 @@ func TestIssueDeliveryQueuesRepositoryRefresh(t *testing.T) {
 	if depth != 1 {
 		t.Fatalf("queue depth = %d, want one durable repository refresh", depth)
 	}
+	leases, err := queue.Lease(ctx, "value-test", 1, 0)
+	if err != nil || len(leases) != 1 || !leases[0].Task.ValueRefresh {
+		t.Fatalf("enrolled issue did not retain a Value invalidation: %+v, %v", leases, err)
+	}
 }
 
 func TestParseEventClassifiesDeliveries(t *testing.T) {
@@ -94,6 +98,14 @@ func TestParseEventClassifiesDeliveries(t *testing.T) {
 			payload:  `{"repository":{"full_name":"octo/api"}}`,
 			wantKind: IntentIgnore,
 		},
+		{
+			name:  "default-branch push requests only Value refresh",
+			event: "push",
+			payload: `{"ref":"refs/heads/main","installation":{"id":42},
+				"repository":{"full_name":"octo/api","default_branch":"main"},
+				"commits":[{"modified":["README.md"]}]}`,
+			wantKind: IntentValueRefresh, wantRepo: "octo/api", wantInstal: 42,
+		},
 	}
 
 	for _, testCase := range cases {
@@ -113,6 +125,9 @@ func TestParseEventClassifiesDeliveries(t *testing.T) {
 			}
 			if intent.InstallationID != testCase.wantInstal {
 				t.Fatalf("installation = %d, want %d", intent.InstallationID, testCase.wantInstal)
+			}
+			if (intent.Kind == IntentCollect || intent.Kind == IntentValueRefresh) && !intent.ValueRefresh {
+				t.Fatalf("collection event did not request Value invalidation: %+v", intent)
 			}
 		})
 	}

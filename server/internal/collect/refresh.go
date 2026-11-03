@@ -198,6 +198,11 @@ func (w Worker) processRefresh(ctx context.Context, lease Lease) (err error) {
 	if err := w.Projector.RequestProjection(ctx); err != nil {
 		return err
 	}
+	if task.ValueRefresh {
+		if err := w.Projector.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
+			return err
+		}
+	}
 	return w.Queue.Complete(ctx, lease)
 }
 
