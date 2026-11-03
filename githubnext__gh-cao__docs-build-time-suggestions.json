@@ -1,35 +1,7 @@
 {
-  "source_sha": "c1e2acd3e4289a585e03247e2dc65419e03603c9",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "source_sha": "601cb65fafa26a6c5fc738eb53d271e0378ea1fb",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-02T15:54:43Z",
-      "worker_run_id": "41475533929",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41474803813,
-        41472402386,
-        41470271470,
-        41469942342,
-        41467509986,
-        41465155852,
-        41462774226,
-        41460756143,
-        41460408100,
-        41458098782,
-        41455833821,
-        41453669179,
-        41451763994,
-        41451450492,
-        41449478146,
-        41447367407,
-        41445509506,
-        41444278852,
-        41443975732,
-        41441431112
-      ],
-      "outcome": "incomplete: the 2026-11-02T12:02:07Z to 2026-11-02T15:46:20Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful schedule runs and four skipped workflow_run runs; there were no failed or cancelled runs. All 20 runs used source SHA f8b2fc99422744fd19aaf4ed7599fdc47fd5bce4. Trusted Actions run, job, and step metadata shows that every successful schedule run executed only schedule-freshness and skipped build and deploy; the four workflow_run entries skipped all jobs. The window therefore contains zero comparable successful full build-and-deploy runs, below the required five. Across the 16 freshness-only schedule successes, workflow wall time had a 14.5-second median and 25-second p90; initial queue time had a 4-second median and 11-second p90; execution and schedule-freshness job time had a 10-second median and 16-second p90. Dashboard, build, and deploy job medians and p90s are unavailable because those jobs did not execute. No dependency installation, Astro generation, dashboard restore/download, artifact transfer, Pages packaging, or deployment steps ran, so current-window cache hits/misses and repeated build costs cannot be verified. A complete reusable dashboard generation evaluation and actionable recommendation cannot be produced; the category remains next."
-    },
     {
       "evaluated_at": "2026-11-02T16:23:03Z",
       "worker_run_id": "41480084590",
@@ -736,6 +708,35 @@
       "category": "scheduling, concurrency, and avoidable rebuilds",
       "evidence_run_ids": [],
       "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. The current latest-20 evidence window and its dates, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded repeated-step costs, and cache hit/miss verification could not be established. No recommendation was made; scheduling, concurrency, and avoidable rebuilds remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-03T02:22:57.523305Z",
+      "worker_run_id": "41565297972",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        41565383117,
+        41564177241,
+        41563791401,
+        41563599363,
+        41563498086,
+        41561852697,
+        41561686857,
+        41560265238,
+        41559123233,
+        41558671644,
+        41558488903,
+        41558311176,
+        41558078752,
+        41557912581,
+        41556918357,
+        41556697944,
+        41555625744,
+        41554035382,
+        41553802108,
+        41549900925
+      ],
+      "outcome": "complete suggestion: the latest-20 completed docs.yml window (2026-11-03T00:02:19Z to 2026-11-03T02:19:33Z) was within 14 days and contained 16 successful runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Ten successful runs completed the full build-and-deploy path (eight push and two schedule), meeting the minimum sample; six other successful schedules ran freshness only. Full workflow wall time had a 137.5-second median and 168-second nearest-rank p90; initial queue time had a 4-second median and 12-second p90; post-queue execution had a 126-second median and 150-second p90. Build jobs had a 90-second median and 102-second p90; deploy jobs had a 29.5-second median and 48-second p90. docs.yml has no separate dashboard job; the dashboard restore step had a 3-second median and 4-second p90. Trusted logs verified npm download-cache and dashboard cache hits in all ten full runs, with dashboard fallback lookup/download skipped. Repeated step medians/p90s were checkout 24.5/27 seconds, npm ci 19/23 seconds, Astro generation 13.5/15 seconds, dashboard restore 3/4 seconds, and Pages upload 19/21 seconds. A three-push burst exposed whole-workflow concurrency serialization: run 41563791401 waited 49 seconds after a newer revision arrived while run 41563599363 completed its obsolete build and deployment. Replace workflow-level serialization with cancel-in-progress build-job concurrency and non-cancelling deploy-job concurrency so superseded builds are coalesced without interrupting an active Pages deployment. In the observed overlap this would remove about 45 seconds of obsolete remaining work and latest-revision latency, approximately 36% of median execution time, exceeding the 15% threshold. Confidence is high for timing/cache evidence and moderate-high for the projected saving because validation must confirm GitHub job-concurrency behavior and final newest-revision deployment ordering.",
+      "suggestion_fingerprint": "coalesce-superseded-docs-build-jobs-preserve-pages-deploy-serialization"
     }
   ]
 }
