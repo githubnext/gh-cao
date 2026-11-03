@@ -334,6 +334,12 @@ CREATE INDEX IF NOT EXISTS runs_workflow_id ON runs (namespace, workflow_id, ord
 
 CREATE INDEX IF NOT EXISTS runs_identity ON runs (namespace, id);
 
+CREATE INDEX IF NOT EXISTS runs_statistical_watermark ON runs
+  (namespace, greatest(started_at, created_at, completed_at, updated_at) DESC);
+
+CREATE INDEX IF NOT EXISTS runs_statistical_candidates ON runs
+  (namespace, status, coalesce(started_at, created_at), id COLLATE "C");
+
 CREATE TABLE IF NOT EXISTS audits (
   namespace TEXT NOT NULL,
   ordinal BIGINT NOT NULL CHECK (ordinal >= 0),

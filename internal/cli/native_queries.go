@@ -291,13 +291,15 @@ func (c *nativeCatalog) runQuery(ctx context.Context, db *sql.DB, id string, par
 		switch {
 		case source == "$statisticalMembership":
 			canonicalRead, otherCanonicalRead = true, true
-			candidates, readErr := load("$runs")
+			candidates, watermark, readErr := dashboardquery.ReadStatisticalRunCandidates(ctx, db, "",
+				[]string{"id", "owner", "repository", "githubRunId", "startedAt", "createdAt", "completedAt", "updatedAt", "status", "conclusion"},
+				dashboardquery.StatisticalMaxInputRows, dashboardquery.StatisticalMaxInputBytes)
 			if readErr != nil {
 				return nil, readErr
 			}
 			selected, frame, sampleErr := dashboardquery.SampleStatisticalRuns(candidates, dashboardquery.StatisticalOptions{
 				Context: ctx, Logf: log.Printf,
-				Watermark: dashboardquery.CanonicalStatisticalWatermark(candidates), Capacity: dashboardquery.StatisticalSQLiteCapacity,
+				Watermark: watermark, Capacity: dashboardquery.StatisticalSQLiteCapacity,
 			})
 			if sampleErr != nil {
 				return nil, sampleErr

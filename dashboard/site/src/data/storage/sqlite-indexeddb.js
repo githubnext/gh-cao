@@ -390,6 +390,20 @@ class SqliteIDBIndex {
   }
 
   /** @param {unknown} [query] */
+  getLastKey(query) {
+    if (!this.transaction) throw new Error('Index is not associated with a transaction');
+    const transaction = this.transaction;
+    return transaction.runRequest(() => {
+      const selection = this.selection(query);
+      const row = transaction.database.connection.prepare(`${selection.text}
+        SELECT record_key, index_key FROM indexed_records WHERE ${selection.predicate}
+        ORDER BY __idb_key_sort(index_key) DESC, __idb_key_sort(record_key) DESC LIMIT 1
+      `).get(...selection.values);
+      return row ? JSON.parse(String(row.index_key)) : undefined;
+    });
+  }
+
+  /** @param {unknown} [query] */
   count(query) {
     if (!this.transaction) throw new Error('Index is not associated with a transaction');
     const transaction = this.transaction;

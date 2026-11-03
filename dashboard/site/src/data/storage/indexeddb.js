@@ -1,4 +1,4 @@
-import { relationshipErrors } from '../model/schema.js';
+import { relationshipErrors, timestampMilliseconds } from '../model/schema.js';
 import { DAILY_RUN_COUNT_STORES, DAILY_RUN_COUNT_STATE_ID, evictDailyRunCounts, reconcileDailyRunCountsBatch } from '../model/daily-run-counts.js';
 import { pruneCanonicalRecord } from '../model/fields.js';
 import { BROWSER_RETENTION_WINDOWS_MS, recordTimestamp, RETENTION_TIMESTAMPS as RETENTION_TIMESTAMP_FIELDS } from './retention.js';
@@ -19,7 +19,7 @@ import {
 const debug = createDebug('data:indexeddb');
 
 export const DATABASE_NAME = 'gh-aw-cao-dashboard-data';
-export const DATABASE_VERSION = 47;
+export const DATABASE_VERSION = 48;
 /** @type {Set<(versions: { oldVersion: number, newVersion: number }) => void>} */
 const upgradeListeners = new Set();
 
@@ -81,7 +81,10 @@ export const CANONICAL_DATABASE_SCHEMA = /** @type {Record<
      byWorkflow: 'workflowId',
      byConclusion: 'conclusion',
      byEvent: 'event',
-     byEventConclusion: ['event', 'conclusion']
+     byEventConclusion: ['event', 'conclusion'],
+     byStatisticalTimestamp: ['status', '_storage.statisticalTimestamp', 'id'],
+     byStatisticalWatermark: ['_storage.statisticalWatermark', 'id'],
+     byStatisticalUndated: ['_storage.statisticalUndated', 'id']
    }
  },
  domains: {
@@ -1096,22 +1099,28 @@ export async function readCanonicalBatch(indexedDB) {
 
 /**
  * Reads multiple stores through one connection and one readonly transaction.
+ * @template {readonly typeof DATABASE_STORES[number][]} Stores
  * @param {IDBFactory} indexedDB
- * @param {readonly typeof DATABASE_STORES[number][]} storeNames
- * @param {{ bounds?: { stores: ReadonlySet<string>, rows: number, bytes: number, onLimit: () => void }, checkpoint?: () => void }} [options]
+ * @param {Stores} storeNames
+ * @param {{ bounds?: { stores: ReadonlySet<string>, rows: number, bytes: number, onLimit: () => void }, checkpoint?: () => void, statisticalRuns?: { watermark?: unknown, exact: boolean, rows: number, bytes: number, onLimit: () => void } }} [options]
+ * @returns {Promise<{ [Store in Stores[number]]: any[] } & Record<string, any[]>>}
  */
 export async function readCollections(indexedDB, storeNames, options = {}) {
   const startedAt = monotonicNow();
   const database = await openCanonicalDatabase(indexedDB);
   try {
-    const records = storeNames.length === 0
-      ? []
+    const result = storeNames.length === 0
+      ? { records: [], statisticalRuns: undefined }
       : await (async () => {
-        const transaction = database.transaction([...storeNames]);
+        const transaction = database.transaction([...new Set(storeNames)]);
         const done = transactionDone(transaction);
         let bytes = 0;
         const encoder = new TextEncoder();
+        const statisticalOptions = options.statisticalRuns;
         const values = storeNames.map((storeName) => {
+          if (storeName === 'runs' && statisticalOptions && !statisticalOptions.exact) {
+            return Promise.resolve([]);
+          }
           const store = transaction.objectStore(storeName);
           const bounds = options.bounds;
           if (!bounds?.stores.has(storeName)) return requestResult(store.getAll());
@@ -1155,8 +1164,23 @@ export async function readCollections(indexedDB, storeNames, options = {}) {
           });
           return result;
         });
-        const [records] = await Promise.all([Promise.all(values), done]);
-        return records;
+        const statistical = statisticalOptions
+          ? readStatisticalRuns(transaction, statisticalOptions, {
+              checkpoint: options.checkpoint,
+              charge: (record) => {
+                bytes += encoder.encode(JSON.stringify(record)).byteLength;
+                return bytes <= statisticalOptions.bytes;
+              }
+            })
+          : undefined;
+        const [records, statisticalRuns] = await Promise.all([
+          Promise.all(values), statistical, done
+        ]);
+        if (statisticalRuns && !options.statisticalRuns?.exact) {
+          const index = storeNames.indexOf('runs');
+          if (index >= 0) records[index] = statisticalRuns.rows;
+        }
+        return { records, statisticalRuns };
       })();
     debug('completed multi-store collection read', {
       storeCount: storeNames.length,
@@ -1164,12 +1188,132 @@ export async function readCollections(indexedDB, storeNames, options = {}) {
       stores: [...storeNames].join('|'),
       durationMs: monotonicNow() - startedAt
     });
-    return Object.fromEntries(storeNames.map((storeName, index) => [
-      storeName, records[index].map((record) => canonicalRecord(record))
-    ]));
+    return /** @type {{ [Store in Stores[number]]: any[] } & Record<string, any[]>} */ ({
+      ...Object.fromEntries(storeNames.map((storeName, index) => [
+      storeName, result.records[index].map((record) => canonicalRecord(record))
+      ])),
+      ...(result.statisticalRuns ? { statisticalRuns: result.statisticalRuns } : {})
+    });
   } finally {
     database.close();
   }
+}
+
+/**
+ * Reads the recorded statistical clock and only terminal Runs whose execution
+ * timestamp can fall inside its seven-day frame. Terminal undated Runs remain
+ * explicit invalid evidence and are charged to the same bounded input budget.
+ * @param {IDBTransaction} transaction
+ * @param {{ watermark?: unknown, rows: number, onLimit: () => void }} options
+ * @param {{ checkpoint?: () => void, charge: (record: Record<string, unknown>) => boolean }} budget
+ */
+async function readStatisticalRuns(transaction, options, budget) {
+  const store = transaction.objectStore('runs');
+  const keyRange = globalThis.IDBKeyRange;
+  const [total, indexed] = await Promise.all([
+    requestResult(store.count()),
+    requestResult(store.index('byStatisticalWatermark').count())
+  ]);
+  if (indexed === 0 || !keyRange) {
+    if (total > options.rows) {
+      options.onLimit();
+      return { rows: [], watermark: '' };
+    }
+    /** @type {Record<string, unknown>[]} */
+    const rows = [];
+    /** @type {IDBKeyRange | undefined} */
+    let range;
+    let derived = -Infinity;
+    while (rows.length <= options.rows) {
+      budget.checkpoint?.();
+      const records = await requestResult(store.getAll(range, Math.min(1000, options.rows - rows.length + 1)));
+      for (const record of records) {
+        const row = canonicalRecord(record);
+        if (rows.length >= options.rows || !budget.charge(row)) {
+          options.onLimit();
+          return { rows: [], watermark: '' };
+        }
+        rows.push(row);
+        for (const field of ['startedAt', 'createdAt', 'completedAt', 'updatedAt']) {
+          const value = timestampMilliseconds(row[field]);
+          if (value !== null) derived = Math.max(derived, value);
+        }
+      }
+      if (records.length < 1000) break;
+      range = IDBKeyRange.lowerBound(records.at(-1)?.[String(store.keyPath)], true);
+    }
+    const recorded = timestampMilliseconds(options.watermark);
+    const watermark = recorded ?? (Number.isFinite(derived) ? derived : null);
+    return {
+      rows,
+      watermark: watermark === null ? '' : new Date(watermark).toISOString()
+    };
+  }
+  let watermark = timestampMilliseconds(options.watermark);
+  if (watermark === null) {
+    const index = /** @type {IDBIndex & { getLastKey?: (query?: unknown) => IDBRequest }} */ (
+      store.index('byStatisticalWatermark')
+    );
+    const key = typeof index.openKeyCursor === 'function'
+      ? /** @type {IDBValidKey[] | undefined} */ (
+          (await requestResult(index.openKeyCursor(undefined, 'prev')))?.key
+        )
+      : typeof index.getLastKey === 'function'
+      ? /** @type {IDBValidKey[] | undefined} */ (await requestResult(index.getLastKey()))
+      : /** @type {IDBValidKey[][]} */ (await requestResult(index.getAllKeys())).at(-1);
+    watermark = Array.isArray(key) && Number.isFinite(key[0]) ? Number(key[0]) : null;
+  }
+  if (watermark === null) return { rows: [], watermark: '' };
+  const selected = new Map();
+  let limited = false;
+  const append = (/** @type {Record<string, unknown>[]} */ records) => {
+    for (const record of records) {
+      budget.checkpoint?.();
+      const id = record.id;
+      if (selected.has(id)) continue;
+      const row = canonicalRecord(record);
+      if (selected.size >= options.rows || !budget.charge(row)) {
+        limited = true;
+        options.onLimit();
+        return;
+      }
+      selected.set(id, row);
+    }
+  };
+  /**
+   * @param {string} indexName
+   * @param {IDBKeyRange} initialRange
+   * @param {(record: any, range: IDBKeyRange) => IDBKeyRange} keyOf
+   */
+  const readRange = async (indexName, initialRange, keyOf) => {
+    const index = store.index(indexName);
+    let range = initialRange;
+    while (!limited) {
+      budget.checkpoint?.();
+      const records = await requestResult(index.getAll(range, Math.min(1000, options.rows - selected.size + 1)));
+      append(records);
+      if (limited || records.length < 1000) break;
+      range = keyOf(records.at(-1), range);
+    }
+  };
+  const start = watermark - 7 * 86400000;
+  const upper = ['completed', watermark];
+  await readRange(
+    'byStatisticalTimestamp',
+    keyRange.bound(['completed', start], upper, false, true),
+    (record) => keyRange.bound(
+      ['completed', Number(record._storage.statisticalTimestamp), record.id],
+      upper, true, true
+    )
+  );
+  await readRange(
+    'byStatisticalUndated',
+    keyRange.bound(['completed'], ['completed', []]),
+    (record) => keyRange.bound(['completed', record.id], ['completed', []], true, false)
+  );
+  const rows = limited ? [] : [...selected.values()]
+    .sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+  return { rows, watermark: new Date(watermark).toISOString() };
 }
 
 /**

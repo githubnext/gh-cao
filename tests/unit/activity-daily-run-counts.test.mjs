@@ -142,7 +142,7 @@ test('Activity SQLite v44 upgrade backfills multiple cursor pages without rewrit
   assert.equal(values(database, 'runCountContributions').length, 251);
   runCao(['query', '--database', database, '--collection', 'runs']);
   assert.equal(values(database, 'dailyRunCounts')[0].total, 251);
-  assert.equal(DATABASE_VERSION, 47);
+  assert.equal(DATABASE_VERSION, 48);
   assert.equal(CANONICAL_SCHEMA_VERSION, 36);
 });
 

@@ -53,14 +53,29 @@ export function withStorageMetadata(storeName, record, failureLogPruned = false)
   const timestamp = recordTimestamp(storeName, stored) ?? -Number.MAX_SAFE_INTEGER;
   const day = Object.hasOwn(RETENTION_TIMESTAMPS, storeName)
     ? Math.floor(timestamp / DAY_MS) : 0;
+  const statistical = storeName === 'runs' ? statisticalRunStorage(stored) : {};
   return {
     ...stored,
     _storage: {
       shard: `${storeName}:${day}`,
       timestamp,
       bytes: new TextEncoder().encode(JSON.stringify(stored)).byteLength + 512,
+      ...statistical,
       ...(failureLogPruned ? { failureLogPruned: true } : {})
     }
+  };
+}
+
+/** @param {Record<string, unknown>} record */
+function statisticalRunStorage(record) {
+  const execution = timestampMilliseconds(record.startedAt) ?? timestampMilliseconds(record.createdAt);
+  const clocks = ['startedAt', 'createdAt', 'completedAt', 'updatedAt']
+    .map((field) => timestampMilliseconds(record[field]))
+    .filter((value) => value !== null);
+  return {
+    ...(execution !== null ? { statisticalTimestamp: execution } : {}),
+    ...(clocks.length > 0 ? { statisticalWatermark: Math.max(...clocks) } : {}),
+    ...(record.status === 'completed' && execution === null ? { statisticalUndated: 'completed' } : {})
   };
 }
 

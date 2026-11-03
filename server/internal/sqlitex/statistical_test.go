@@ -2,10 +2,14 @@ package sqlitex
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"os"
 	"slices"
 	"testing"
+
+	"github.com/githubnext/gh-cao/internal/dashboardquery"
 
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/model"
@@ -131,5 +135,31 @@ func TestStatisticalSnapshotCanonicalClockFallback(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestStatisticalCandidateRangeExcludesHistoricalBudget(t *testing.T) {
+	runs := make([]model.Row, 0, 11)
+	runs = append(runs, model.Row{
+		"id": "github:run:o/r:eligible", "owner": "o", "repository": "r", "githubRunId": "eligible",
+		"status": "completed", "conclusion": "success", "startedAt": "2026-10-07T00:00:00Z",
+	})
+	for index := range 10 {
+		runs = append(runs, model.Row{
+			"id": "github:run:o/r:old-" + fmt.Sprint(index), "status": "completed",
+			"conclusion": "success", "startedAt": "2026-09-01T00:00:00Z",
+		})
+	}
+	path := testutil.SQLiteSnapshot(t, map[string][]model.Row{"runs": runs})
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+	rows, watermark, err := dashboardquery.ReadStatisticalRunCandidates(t.Context(), db,
+		"2026-10-08T12:00:00Z", []string{"id", "startedAt", "status", "conclusion"}, 2, 1<<20)
+	if err != nil || watermark != "2026-10-08T12:00:00.000Z" || len(rows) != 1 ||
+		rows[0]["id"] != "github:run:o/r:eligible" {
+		t.Fatalf("historical rows consumed the SQLite candidate budget: rows=%v watermark=%s err=%v", rows, watermark, err)
 	}
 }

@@ -1240,14 +1240,6 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
   const exactStores = new Set(resolveDashboardQuerySources(databaseQueries, requested, statisticalNames)
     .filter((name) => !statisticalNames.has(name)).flatMap(queryStores));
   let statisticalError = '';
-  if (statisticalRequested) {
-    options.checkpoint?.();
-    const counts = await countCollections(indexedDB, ['runs']);
-    if (counts.runs > STATISTICAL_INPUT_LIMITS.rows) {
-      statisticalError = 'Statistical candidate frame exceeds input row budget';
-      debugDatabase({ event: 'statistical-source', status: 'unavailable', reason: 'input-budget', inputCount: counts.runs });
-    }
-  }
   const unavailableStatistical = new Set(statisticalError
     ? statisticalNames : []);
   const activeQueries = statisticalError
@@ -1259,14 +1251,30 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
     stores.filter((name) => name !== 'transactions' && name !== 'operationalValueEvidence'
       && !(name === 'operationalValues' && databaseRequested.includes('workflow-value-measurements')))
   );
+  const sources = namedSources(logicalSources);
+  const rawRuns = /** @type {import('../../presenter.js').LogicalSourceInput | undefined} */ (sources.runs);
+  const runMetadata = queryMetadata(sources, 'runs', 'runs', rawRuns?.metadata?.availability !== 'unavailable');
   if (stores.includes('dailyRunCounts')) collectionStores.push('dailyRunCountState');
   const databaseStartedAt = monotonicNow();
-  /** @type {[Record<string, Record<string, unknown>[]>, Record<string, unknown>[]]} */
+  /** @type {[Record<string, any>, Record<string, unknown>[]]} */
   const [collections, transactions] = await Promise.all([
     collectionStores.length > 0 ? readCollections(indexedDB, collectionStores, {
       checkpoint: options.checkpoint,
+      ...(statisticalRequested ? {
+        statisticalRuns: {
+          watermark: runMetadata['as-of'],
+          exact: exactStores.has('runs'),
+          rows: STATISTICAL_INPUT_LIMITS.rows,
+          bytes: STATISTICAL_INPUT_LIMITS.bytes,
+          onLimit: () => {
+            statisticalError = 'Statistical candidate frame exceeds input budget';
+            for (const name of statisticalNames) unavailableStatistical.add(name);
+            debugDatabase({ event: 'statistical-source', status: 'unavailable', reason: 'input-budget' });
+          }
+        }
+      } : {}),
       ...(statisticalRequested ? { bounds: {
-        stores: new Set(collectionStores.filter((store) => !exactStores.has(store))),
+        stores: new Set(collectionStores.filter((store) => store !== 'runs' && !exactStores.has(store))),
         rows: STATISTICAL_INPUT_LIMITS.rows, bytes: STATISTICAL_INPUT_LIMITS.bytes,
         onLimit: () => {
           statisticalError = 'Statistical source exceeds input budget';
@@ -1285,16 +1293,17 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
   }
   if (collections.operationalValues) collections.operationalValues = measurementRows(collections.operationalValues);
   const databaseMs = monotonicNow() - databaseStartedAt;
-  const sources = namedSources(logicalSources);
   /** @type {import('../../presenter.js').LogicalSourceInput | undefined} */
   let statisticalMembership;
   if (statisticalRequested && !statisticalError) {
-    const rawRuns = /** @type {import('../../presenter.js').LogicalSourceInput | undefined} */ (sources.runs);
-    const runMetadata = queryMetadata(sources, 'runs', 'runs', rawRuns?.metadata?.availability !== 'unavailable');
     try {
-      const sample = await sampleStatisticalRuns(collections.runs ?? [], {
+      const statisticalRuns = /** @type {{ rows?: Record<string, unknown>[], watermark?: string } | undefined} */ (
+        collections.statisticalRuns
+      );
+      const sample = await sampleStatisticalRuns(statisticalRuns?.rows ?? collections.runs ?? [], {
         capacity: options.statisticalCapacity,
-        watermark: runMetadata['as-of'] || canonicalStatisticalWatermark(collections.runs ?? []),
+        watermark: statisticalRuns?.watermark || runMetadata['as-of']
+          || canonicalStatisticalWatermark(collections.runs ?? []),
         complete: runMetadata.completeness === 'complete'
           && runMetadata.availability !== 'unavailable',
         checkpoint: options.checkpoint
@@ -1349,7 +1358,8 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
     }
     if (visiting.has(name)) throw new Error(`Cyclic canonical database query: ${name}`);
     if (name === 'daily-run-counts') {
-      const state = collections.dailyRunCountState?.find((record) => record.id === DAILY_RUN_COUNT_STATE_ID);
+      const state = collections.dailyRunCountState?.find((/** @type {Record<string, unknown>} */ record) =>
+        record.id === DAILY_RUN_COUNT_STATE_ID);
       const metadata = dailyRunCountMetadata(state);
       if (metadata.availability === 'unavailable') {
         return unavailableResult(definition, /** @type {import('../../presenter.js').SourceMetadata} */ ({
@@ -1375,7 +1385,10 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
           ? { ...queryMetadata(sources, store, store, true), ...operationalValueEvidenceMetadata(collections[store]),
               'evidence-packets-read': collections[store].length,
               'evidence-scoped-read': Boolean(options.evidenceSelection?.length),
-              'evidence-facts-materialized': collections[store].reduce((count, packet) => count
+              'evidence-facts-materialized': collections[store].reduce((
+                /** @type {number} */ count,
+                /** @type {Record<string, unknown>} */ packet
+              ) => count
                 + (Array.isArray(packet.facts) ? packet.facts.length : 0), 0) }
           : queryMetadata(sources, store, store, true)
       }];
@@ -1387,7 +1400,8 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
   };
   for (const name of requested) result[name] = resolveSource(name);
   const totalMs = monotonicNow() - startedAt;
-  const recordsRead = Object.values(collections).reduce((total, records) => total + records.length, 0)
+  const recordsRead = Object.entries(collections).reduce((total, [store, records]) =>
+    total + (store === 'statisticalRuns' ? 0 : records.length), 0)
     + transactions.length;
   debugDatabase({
     event: 'query-sources-resolved',

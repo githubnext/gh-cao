@@ -1,6 +1,7 @@
 package postgresx
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"testing"
@@ -42,7 +43,9 @@ func TestOversizedStatisticalInputIsCappedBeforePublication(t *testing.T) {
 		store.namespace, dashboardquery.StatisticalMaxInputRows+1); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := writer.statisticalCandidates(t.Context()); !errors.Is(err, dashboardquery.ErrStatisticalBudget) {
+	if _, _, _, err := writer.statisticalCandidates(t.Context(), sql.NullTime{
+		Time: time.Now().UTC().Add(time.Minute), Valid: true,
+	}); !errors.Is(err, dashboardquery.ErrStatisticalBudget) {
 		t.Fatalf("unpublished oversized input bypassed the sampling guard: %v", err)
 	}
 	if err := writer.Quality(t.Context(), "$runs", model.Metadata{
@@ -101,5 +104,46 @@ func TestMissingStatisticalClockPreservesExactQueries(t *testing.T) {
 	}
 	if len(results["exact"].Rows) != 1 || results["exact"].Rows[0]["id"] != "repository" {
 		t.Fatalf("sampling unavailability changed exact evidence: %+v", results["exact"])
+	}
+}
+
+func TestStatisticalCandidateRangeExcludesHistoricalPopulation(t *testing.T) {
+	store, _ := nativeTestStore(t)
+	writer, err := store.BeginIngestion(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Abort(t.Context())
+	for _, input := range []struct {
+		name string
+		row  model.Row
+	}{
+		{"$repositories", model.Row{"id": "repository", "owner": "o", "name": "r"}},
+		{"$workflows", model.Row{"id": "workflow", "repositoryId": "repository", "path": "worker.md"}},
+		{"$runs", model.Row{"id": "github:run:o/r:eligible", "repositoryId": "repository", "workflowId": "workflow",
+			"createdAt": "2026-10-07T00:00:00Z", "status": "completed", "conclusion": "success"}},
+	} {
+		if err := writer.Append(t.Context(), input.name, input.row); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writer.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writer.tx.Exec(t.Context(), `INSERT INTO runs(namespace,ordinal,present_fields,id,repository_id,workflow_id,run_at,created_at,status,conclusion)
+		SELECT namespace,n+1,present_fields,'github:run:o/r:old-' || n,repository_id,workflow_id,run_at,
+			'2026-09-01T00:00:00Z',status,conclusion
+		FROM runs CROSS JOIN generate_series(1,$2) AS n
+		WHERE namespace=$1 AND id='github:run:o/r:eligible'`,
+		store.namespace, dashboardquery.StatisticalMaxInputRows+1); err != nil {
+		t.Fatal(err)
+	}
+	rows, watermark, policy, err := writer.statisticalCandidates(t.Context(), sql.NullTime{
+		Time: time.Date(2026, time.October, 8, 12, 0, 0, 0, time.UTC), Valid: true,
+	})
+	if err != nil || len(rows) != 1 || rows[0]["id"] != "github:run:o/r:eligible" ||
+		watermark != "2026-10-08T12:00:00.000Z" || policy != "recorded-run-as-of" {
+		t.Fatalf("historical rows consumed the PostgreSQL candidate budget: rows=%d watermark=%s policy=%s err=%v",
+			len(rows), watermark, policy, err)
 	}
 }
