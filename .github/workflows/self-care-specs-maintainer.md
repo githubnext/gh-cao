@@ -145,7 +145,7 @@ Follow W3C conventions for every specification change: RFC 2119 / RFC 8174 confo
 
 ## Detect missing specification updates
 
-1. Read `AGENTS.md`, `CODEBASE.yml`, and the `specs/` file list. Use `CODEBASE.yml` to map changed source paths to the specifications that govern them.
+1. Read `AGENTS.md`, `ARCHITECTURE.md`, and the `specs/` file list. Use `ARCHITECTURE.md` to map changed source paths to the specifications that govern them.
 2. For every candidate pull request, inspect its changed-file list and bounded diff. A pull request is a candidate for a missing specification update only when it changes externally observable or cross-component behavior governed by a specification, such as policy resolution, dispatch envelopes, safe-output contracts, activity or dashboard data schemas, canonical storage, query semantics, server ingestion, rate limiting, installation layout, or computations, and it does not modify the governing file under `specs/`.
 3. Skip pull requests that only change tests, formatting, dependencies, generated lock files, documentation outside `specs/`, or internal refactors with no contract change.
 4. Verify each candidate against the current default-branch implementation and the current specification text. Record a gap only when the specification is contradicted by, silent about, or stale relative to the merged behavior that is still present on the default branch. Do not rely on the pull request title, description, comments, or commit messages.

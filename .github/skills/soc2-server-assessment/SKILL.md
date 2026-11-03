@@ -12,7 +12,7 @@ Do not label the system "SOC 2 compliant" based on source, tests, or this skill.
 
 ## Scope and authority
 
-Read `CODEBASE.yml`, `specs/server-soc2-compliance.md`, `server/SOC2.md`,
+Read `ARCHITECTURE.md`, `specs/server-soc2-compliance.md`, `server/SOC2.md`,
 `server/SOC2-CHANGELOG.md`, `server/SECURITY.md`, and the relevant normative
 specifications before assessing a component. RFC-035 at the established SOC 2
 specification path defines the maintained evidence, decision and closure

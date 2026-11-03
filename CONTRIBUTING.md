@@ -172,7 +172,7 @@ Edit the authored source, not another copy of its rendered output:
 | Repository entry point | Root `README.md`; keep it short and route readers to task guides |
 | Documentation pages and landing page | `docs/*.md` and `docs/README.md`; `docs/content.config.ts` loads these, while `astro.config.mjs` owns navigation and redirects |
 | Catalog pages | `docs/pages/catalog/` renders campaign manifests and READMEs through `docs/lib/catalog.ts`; the repository README and site rendering of a campaign are intentionally the same source |
-| Contributor architecture and contracts | `ARCHITECTURE.md`, its compiled `CODEBASE.yml`, and `specs/`; the reader-facing `docs/architecture.md` explains those boundaries without replacing them |
+| Contributor architecture and contracts | `ARCHITECTURE.md` and `specs/`; the reader-facing `docs/architecture.md` explains those boundaries without replacing them |
 | Agent discovery | Generated `llms*.txt`, `agent/` indexes, and per-page `index.json`; edit the source Markdown/metadata, never generated output |
 
 Some authored pages, such as `docs/control-policy-specification.md`, are

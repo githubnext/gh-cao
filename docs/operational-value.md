@@ -7,6 +7,12 @@ Operational value is the degree to which a workflow's intended repository outcom
 
 It measures repository outcomes rather than workflow runs, generated output, or an agent's assessment. A person or another system achieving the same outcome must count as success under the same contract.
 
+The normative cross-subsystem contract is the
+[Value specification](https://github.com/githubnext/gh-cao/blob/main/specs/value.md).
+It connects the frozen measurement, canonical records, 365-day compact history,
+recurring collectors, webhook hints, private archive linkage, and dashboard
+presentation without treating those layers as interchangeable.
+
 For the short intent → output → Git evidence flow, see
 [Define and measure workflow value](operational-value-how-to.md).
 
@@ -167,6 +173,14 @@ Opening a report does not trigger collection. A failed acquisition, timeout or
 invalid result leaves previous evidence and its capture/cutoff timestamps intact;
 it is not a fresh success or zero. Explicit operator evaluation and one-time
 publication remain separate, subject to their existing authority and budgets.
+
+Collector subprocess failures cross runtime boundaries only as bounded categories:
+`api-budget`, `budget-unavailable`, `timeout`, `output-budget`, or
+`collector-failed`. Worker markers cannot supply `output-budget`; that category
+is owned by the host enforcing its output limits. Unknown markers and raw stderr
+collapse to the generic category, and hosted diagnostics use fixed host-owned
+text. Private cost history may retain the allowlisted category, but diagnostics
+never advance evidence freshness.
 
 ### Daily File Diet collector
 

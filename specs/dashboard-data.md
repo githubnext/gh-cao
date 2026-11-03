@@ -3038,6 +3038,11 @@ treated as durable evidence.
 
 # 31. Query-only derived results
 
+The cross-subsystem meaning, authority, collection-lane, webhook, archive-link,
+diagnostic, and retention invariants for these records are defined by
+[`value.md`](value.md). This specification owns their canonical storage,
+logical-source, query, and presentation contracts.
+
 ## 31.1 Campaign outcome signals
 
 The legacy Operational Value overview and repository drill-downs are no longer
@@ -3725,9 +3730,11 @@ The architecture MUST NOT require every browser to retain unlimited execution hi
 Ingestion SHALL upsert each collected batch onto the records already retained
 instead of replacing them, so a partial collection or worker restart never drops
 observations the browser still retains. The browser retains run-linked records
-observed within the last seven days and Operational Values within the last
-30 days; records observed outside their window SHALL be pruned during the next
-ingestion.
+observed within the last seven days and compact Operational Values within the
+last 365 days; records observed outside their window SHALL be pruned during the
+next ingestion. Run summaries retain their separate 30-day default. Rich current
+Operational Value evidence and collection-health records remain governed by
+Section 31 and are not shortened by Run or run-detail retention.
 
 Retention pruning MUST remain relationship-safe: a retained record SHALL be
 dropped when a mandatory parent no longer survives, and structural parents that

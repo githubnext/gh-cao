@@ -27,7 +27,7 @@ Source map:
   `.github/aw/campaigns/*.json`;
 - Activity: `.github/workflows/cao-activity.yml` and `activity/`;
 - dashboard: `.github/workflows/cao-dashboard.yml` and `dashboard/`;
-- architecture: `CODEBASE.yml`, `ARCHITECTURE.md`, and `specs/`.
+- architecture: `ARCHITECTURE.md` and `specs/`.
 
 For browser-only failures, use the narrowest `?debug=` category from
 `dashboard/site/src/debug.js`. For Go/Redis server failures, use the narrowest

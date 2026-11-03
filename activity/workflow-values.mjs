@@ -25,6 +25,7 @@ const MAX_BYTES = 8 * 1024 * 1024;
 const MAX_BATCH_BYTES = 32 * 1024 * 1024;
 const MAX_COST_HISTORY = 30;
 const DAY = 86400000;
+const COLLECTOR_FAILURE_PREFIX = 'CAO_WORKFLOW_VALUE_FAILURE ';
 const modulePath = new URL(import.meta.url);
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.toLowerCase() === b.toLowerCase();
 
@@ -191,6 +192,53 @@ async function executeCollector(request, timeout, environment = {}) {
   });
 }
 
+function collectorFailureDiagnostic(error) {
+  if (error instanceof GithubApiBudgetError) {
+    return {
+      reasonCode: error.reasonCode,
+      detail: error.reasonCode === 'api-budget'
+        ? 'collector exhausted its reviewed API request grant'
+        : 'collector API budget state was unavailable',
+    };
+  }
+  const code = typeof error?.code === 'string' && /^[A-Z0-9_]{2,64}$/.test(error.code)
+    ? error.code : null;
+  const signal = typeof error?.signal === 'string' && /^SIG[A-Z0-9]+$/.test(error.signal)
+    ? error.signal : null;
+  if (error?.killed === true || signal || code === 'ETIMEDOUT') {
+    return {
+      reasonCode: 'timeout',
+      detail: `collector command timed out${signal || code ? ` (${signal ?? code})` : ''}`,
+    };
+  }
+  if (error?.name === 'AssertionError') {
+    return {
+      reasonCode: 'collector-failed',
+      detail: `collector assertion failed${code ? ` (${code})` : ''}`,
+    };
+  }
+  return {
+    reasonCode: 'collector-failed',
+    detail: `collector failed${code ? ` (${code})` : ''}`,
+  };
+}
+
+function readCollectorFailure(stderr) {
+  const line = stderr.split(/\r?\n/).find(value => value.startsWith(COLLECTOR_FAILURE_PREFIX));
+  if (!line) return null;
+  try {
+    const diagnostic = JSON.parse(line.slice(COLLECTOR_FAILURE_PREFIX.length));
+    if (!diagnostic || !['api-budget', 'budget-unavailable', 'timeout', 'collector-failed']
+      .includes(diagnostic.reasonCode)
+      || typeof diagnostic.detail !== 'string' || !diagnostic.detail || diagnostic.detail.length > 160) {
+      return null;
+    }
+    return diagnostic;
+  } catch {
+    return null;
+  }
+}
+
 export async function runWorkflowValues(options) {
   const now = options.now ?? (() => new Date().toISOString());
   const policy = loadPolicyFile(options.policy);
@@ -327,12 +375,17 @@ export async function runWorkflowValues(options) {
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
     }
-    if (child.status !== 0 || child.error) {
-      decision('failed', child.timedOut ? 'timeout'
-        : child.stderr.includes('api-budget') ? 'api-budget' : 'collector-failed',
-      { ...attempt, lastAttemptOutcome: 'failed' });
+    if (child.status !== 0) {
+      const diagnostic = readCollectorFailure(child.stderr);
+      const reason = child.timedOut ? 'timeout'
+        : diagnostic?.reasonCode === 'api-budget' ? 'api-budget'
+          : diagnostic?.reasonCode === 'timeout' ? 'timeout' : 'collector-failed';
+      decision('failed', reason, { ...attempt, lastAttemptOutcome: 'failed' });
       result.failed++;
-      result.warnings.push(`${entry.repository}/${entry.workflow}: collector failed, incomplete or budget exhausted; previous evidence retained`);
+      result.warnings.push(`${entry.repository}/${entry.workflow}: ${
+        child.timedOut ? 'collector process exceeded its time budget'
+          : diagnostic?.detail ?? 'collector failed without a safe diagnostic'
+      }; previous evidence retained`);
       continue;
     }
     try {
@@ -401,8 +454,12 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
       process.stdout.write(`${JSON.stringify(result)}\n`);
     }
   } catch (error) {
-    const reason = error instanceof GithubApiBudgetError ? `: ${error.reasonCode}` : '';
-    process.stderr.write(`Workflow Value collection failed${reason}; existing evidence retained\n`);
+    const diagnostic = collectorFailureDiagnostic(error);
+    if (process.argv[2] === '--worker') {
+      process.stderr.write(`${COLLECTOR_FAILURE_PREFIX}${JSON.stringify(diagnostic)}\n`);
+    } else {
+      process.stderr.write(`Workflow Value collection failed: ${diagnostic.detail}; existing evidence retained\n`);
+    }
     process.exitCode = 1;
   }
 }

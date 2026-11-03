@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -23,6 +24,8 @@ import (
 )
 
 var ErrRemoteValueDeferred = errors.New("remote Value acquisition deferred")
+
+const remoteValueFailurePrefix = "CAO_WORKFLOW_VALUE_FAILURE "
 
 // CollectRemoteValues works on one exact enrolled repository. The caller owns
 // the per-repository lease and durable dirty hint. This method never holds the
@@ -150,13 +153,14 @@ func (p Projector) collectRemoteValue(
 	command.Stdin = bytes.NewReader(input)
 	stdout := &remoteValueOutput{limit: 8 << 20}
 	stderr := &remoteValueOutput{limit: 16 << 10}
+	failureReason := ""
 	defer func() {
 		apiCalls, preflights, points, unverified, receivedBytes := api.costUsage()
 		if costErr := appendRemoteValueCost(root, remoteValueCost{
 			At: started.UTC(), APIRequests: apiCalls, WallMs: time.Since(started).Milliseconds(),
 			PreflightRequests: preflights, GraphQLPointsObserved: points,
 			GraphQLRequestsUnverified: unverified, OutputBytes: stdout.bytes, TransportBytes: receivedBytes,
-			Succeeded: resultErr == nil,
+			Succeeded: resultErr == nil, FailureReason: failureReason,
 		}); costErr != nil {
 			resultErr = errors.Join(resultErr, costErr)
 		}
@@ -170,7 +174,15 @@ func (p Projector) collectRemoteValue(
 	runErr := command.Run()
 	stopRemoteValueProcessGroup(command)
 	if runErr != nil || stdout.exceeded || stderr.exceeded {
-		return errors.New("remote Value collector failed or exceeded its budget; previous evidence retained")
+		switch {
+		case errors.Is(ctx.Err(), context.DeadlineExceeded):
+			failureReason = "timeout"
+		case stdout.exceeded || stderr.exceeded:
+			failureReason = "output-budget"
+		default:
+			failureReason = remoteValueFailureReason(stderr.buffer.Bytes())
+		}
+		return remoteValueFailureError(failureReason)
 	}
 	if bytes.Equal(bytes.TrimSpace(stdout.buffer.Bytes()), []byte("null")) {
 		return nil
@@ -212,6 +224,40 @@ func (p Projector) collectRemoteValue(
 		}
 		return promoteRemoteValueProof(root, work)
 	})
+}
+
+func remoteValueFailureReason(stderr []byte) string {
+	for _, line := range bytes.Split(stderr, []byte{'\n'}) {
+		if !bytes.HasPrefix(line, []byte(remoteValueFailurePrefix)) {
+			continue
+		}
+		var diagnostic struct {
+			ReasonCode string `json:"reasonCode"`
+		}
+		if err := json.Unmarshal(bytes.TrimPrefix(line, []byte(remoteValueFailurePrefix)), &diagnostic); err != nil {
+			continue
+		}
+		switch diagnostic.ReasonCode {
+		case "api-budget", "budget-unavailable", "timeout", "collector-failed":
+			return diagnostic.ReasonCode
+		}
+	}
+	return "collector-failed"
+}
+
+func remoteValueFailureError(reason string) error {
+	switch reason {
+	case "api-budget":
+		return errors.New("remote Value collector exhausted its reviewed API request grant; previous evidence retained")
+	case "budget-unavailable":
+		return errors.New("remote Value collector API budget state was unavailable; previous evidence retained")
+	case "timeout":
+		return errors.New("remote Value collector command timed out; previous evidence retained")
+	case "output-budget":
+		return errors.New("remote Value collector exceeded its output budget; previous evidence retained")
+	default:
+		return errors.New("remote Value collector failed; previous evidence retained")
+	}
 }
 
 func remoteValuePacketCurrent(start, current model.Row) bool {
@@ -452,9 +498,22 @@ type remoteValueCost struct {
 	OutputBytes               int64     `json:"outputBytes"`
 	TransportBytes            int64     `json:"transportBytes"`
 	Succeeded                 bool      `json:"succeeded"`
+	FailureReason             string    `json:"failureReason,omitempty"`
+}
+
+func validRemoteValueFailureReason(reason string) bool {
+	switch reason {
+	case "", "api-budget", "budget-unavailable", "timeout", "output-budget", "collector-failed":
+		return true
+	default:
+		return false
+	}
 }
 
 func appendRemoteValueCost(root string, record remoteValueCost) error {
+	if !validRemoteValueFailureReason(record.FailureReason) {
+		return errors.New("remote Value cost failure reason is invalid")
+	}
 	filename := filepath.Join(root, "collection-cost.json")
 	history := struct {
 		SchemaVersion             int               `json:"schemaVersion"`
@@ -484,7 +543,10 @@ func appendRemoteValueCost(root string, record remoteValueCost) error {
 			history.Attempts < 0 || history.APIRequests < 0 || history.Preflights < 0 ||
 			history.GraphQLPointsObserved < 0 || history.GraphQLRequestsUnverified < 0 ||
 			history.WallMs < 0 || history.OutputBytes < 0 || history.TransportBytes < 0 ||
-			len(history.Recent) > 30 {
+			len(history.Recent) > 30 ||
+			slices.ContainsFunc(history.Recent, func(value remoteValueCost) bool {
+				return !validRemoteValueFailureReason(value.FailureReason)
+			}) {
 			return errors.New("remote Value cost history is invalid")
 		}
 	}

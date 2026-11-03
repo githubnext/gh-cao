@@ -143,8 +143,7 @@ func nativeAnalysisContext() string {
 		{"Dashboard Language and query contracts", "/blob/main/docs/dashboard-language-specification.md"},
 		{"Dashboard definition and fragment manifest", "/blob/main/dashboard/site/dashboard.json"},
 		{"Page, view and named-query source definitions", "/tree/main/dashboard/site/dashboard-fragments"},
-		{"Architecture and authority boundaries", "/blob/main/CODEBASE.yml"},
-		{"Complete architecture contract", "/blob/main/ARCHITECTURE.md"},
+		{"Architecture and authority boundaries", "/blob/main/ARCHITECTURE.md"},
 		{"Workflow authoring guidance if a source change is justified", "/blob/main/skills/agentic-workflows/SKILL.md"},
 	}
 	result := []string{}

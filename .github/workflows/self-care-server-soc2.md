@@ -147,7 +147,7 @@ unavailable, truncated before the time boundary, or ambiguous, call
 
 ## Assessment first, remediation second
 
-1. Read `CODEBASE.yml`, `specs/server-soc2-compliance.md`, `server/SOC2.md`,
+1. Read `ARCHITECTURE.md`, `specs/server-soc2-compliance.md`, `server/SOC2.md`,
    `server/SOC2-CHANGELOG.md`, `server/SECURITY.md`, and
    `.github/skills/soc2-server-assessment/SKILL.md`. Follow its read-only
    assessment procedure. This worker's explicit remediation authorization is

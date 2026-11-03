@@ -109,7 +109,7 @@ test("SOC2 proposals have a compiled draft and path/resource boundary", () => {
 });
 
 test("SOC2 selection requires verified ranked code gaps, never invented evidence", () => {
-  for (const record of ["CODEBASE.yml", "specs/server-soc2-compliance.md", "server/SOC2.md", "server/SOC2-CHANGELOG.md", ".github/skills/soc2-server-assessment/SKILL.md"]) {
+  for (const record of ["ARCHITECTURE.md", "specs/server-soc2-compliance.md", "server/SOC2.md", "server/SOC2-CHANGELOG.md", ".github/skills/soc2-server-assessment/SKILL.md"]) {
     assert.ok(source.includes(record), record);
   }
   assert.match(source, /Rank eligible findings by severity \(`high`, `medium`, `low`, `informational`\),\nthen confidence \(`high`, `medium`, `low`\), then stable finding ID ascending/);
