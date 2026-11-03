@@ -124,12 +124,16 @@ for (const colorScheme of ["light", "dark"]) {
       const story = page.getByRole("region", { name: "Understand your factory", exact: true });
       await story.scrollIntoViewIfNeeded();
       await expect(story.getByRole("heading", { name: "Understand your factory", exact: true })).toBeVisible();
-      await expect(story).toContainText("CAO includes a dashboard with built-in views");
-      await expect(story).toContainText("workflow health, AIC cost, and operational value");
+      await expect(story.locator(".product-story-copy > p:not(.section-eyebrow)")).toHaveText([
+        "CAO includes a dashboard with built-in views for workflow health, AIC cost, and operational value.",
+        "Use OpenTelemetry to understand cost in AI Credits (AIC) and failures in real time. Pair traces, metrics, and logs with accepted outcomes to assess operational value.",
+        "Analyze approved session traces in the optional agent session lake, powered by Kusto (Azure Data Explorer).",
+        "All three are agent-ready: agents can mine approved evidence to investigate failures, explain AIC spend, and assess operational value.",
+      ]);
       const dashboardLink = story.getByRole("link", { name: "built-in views", exact: true });
       await expect(dashboardLink).toHaveAttribute("href", "/gh-cao/dashboard/");
       expect((await page.request.get(await dashboardLink.getAttribute("href"))).ok()).toBe(true);
-      await expect(story).toContainText("optional, experimental");
+      await expect(story).not.toContainText(/experimental/i);
       await expect(story).toContainText("powered by Kusto (Azure Data Explorer)");
       const lakeLink = story.getByRole("link", { name: "agent session lake", exact: true });
       await expect(lakeLink).toHaveAttribute("href", "/gh-cao/dashboard-data-ingestion/#query-the-private-session-archive");

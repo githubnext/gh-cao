@@ -102,7 +102,8 @@ test("factory hero connects OpenTelemetry signals to independently verified valu
   assert.ok(story);
   assert.match(story, /CAO includes a dashboard with <a href="\/gh-cao\/dashboard\/">built-in views<\/a>/);
   assert.match(story, /for workflow health, AIC cost, and operational value/);
-  assert.match(story, /optional, experimental/);
+  assert.match(story, /optional/);
+  assert.doesNotMatch(story, /experimental/i);
   assert.match(story, /href="\/gh-cao\/dashboard-data-ingestion\/#query-the-private-session-archive">agent session lake<\/a>/);
   assert.match(story, /powered by Kusto \(Azure Data Explorer\)/);
   assert.match(story, /All three are <a href="\/gh-cao\/agent-analysis\/">agent-ready<\/a>/);
