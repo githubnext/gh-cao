@@ -9,6 +9,7 @@ const slideTitles = [
   "Easy upkeep",
   "Roll out with confidence.",
   "Use evidence to decide what scales.",
+  "Evolution at the Enterprise Scale",
   "Webhook Gateway",
   "Built on Agentic Workflows",
 ];
@@ -217,6 +218,25 @@ for (const theme of ["light", "dark"]) {
     await expect(controls).toHaveCSS("opacity", "0.12");
   });
 
+  test(`enterprise evolution fits a short presentation viewport in ${theme} mode`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 480 });
+    await page.addInitScript(value => localStorage.setItem("starlight-theme", value), theme);
+    await page.goto("./");
+    await openSlideshow(page);
+    const index = slideTitles.indexOf("Evolution at the Enterprise Scale");
+    for (let step = 0; step < index; step++) await page.keyboard.press("ArrowRight");
+    await expectSlide(page, index);
+    const diagram = presentation(page).locator(".enterprise-evolution");
+    await expect(diagram.locator(".evolution-stages li")).toHaveCount(4);
+    await expect.poll(async () => {
+      const bounds = await diagram.boundingBox();
+      const frame = await presentation(page).locator("[data-slideshow-viewport]").boundingBox();
+      return bounds.x >= frame.x && bounds.y >= frame.y
+        && bounds.x + bounds.width <= frame.x + frame.width + 1
+        && bounds.y + bounds.height <= frame.y + frame.height + 1;
+    }).toBe(true);
+  });
+
   for (const viewport of [{ width: 1440, height: 900 }, { width: 800, height: 600 }, { width: 1280, height: 480 }]) {
     test(`fits all slides to ${viewport.width}x${viewport.height} in ${theme} mode`, async ({ page }, testInfo) => {
       await page.setViewportSize(viewport);
@@ -248,7 +268,7 @@ for (const theme of ["light", "dark"]) {
         }).toBe(true);
         expect(await slide.evaluate(element => {
           const bounds = element.getBoundingClientRect();
-          return [...element.querySelectorAll("h1, h2, .docs-hero-intro, .hero-visual, .phone-preview, .product-story-copy, .terminal, .dispatch-illustration, .product-shot, .workflow-example, .control-diagram, .decision-loop")]
+          return [...element.querySelectorAll("h1, h2, .docs-hero-intro, .hero-visual, .phone-preview, .product-story-copy, .terminal, .dispatch-illustration, .product-shot, .workflow-example, .control-diagram, .decision-loop, .enterprise-evolution")]
             .filter(child => child.checkVisibility())
             .every(child => {
               const content = child.getBoundingClientRect();

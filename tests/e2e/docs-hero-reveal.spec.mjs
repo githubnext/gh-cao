@@ -48,7 +48,7 @@ for (const { name, viewport } of [
 test("landing stories remain visible with reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./");
-  await expect(page.locator("[data-reveal]")).toHaveCount(6);
+  await expect(page.locator("[data-reveal]")).toHaveCount(7);
   await expect(page.locator(".maintenance-story")).toContainText("Dashboard maintenance");
   for (const story of await page.locator("[data-reveal]").all()) {
     await expect(story).toHaveCSS("opacity", "1");
@@ -74,6 +74,26 @@ for (const colorScheme of ["light", "dark"]) {
       await expect(example).toContainText("Campaign prepared for review");
       await expect(example).toContainText("disabled and review-only");
       const gateway = page.getByRole("region", { name: "Webhook Gateway", exact: true });
+      const evolution = page.getByRole("region", { name: "Evolution at the Enterprise Scale", exact: true });
+      await expect(evolution).toContainText("Hundreds of Copilot, Claude, and Codex agents");
+      await expect(evolution.locator(".evolution-stages li")).toHaveCount(4);
+      await expect(evolution).toContainText("Azure Blob Storage + Parquet");
+      await expect(evolution).toContainText("Send query results to an optimizer agent");
+      await expect(evolution).toContainText("Reviewed updates feed the next round of sessions");
+      await expect(evolution.locator("[data-edge]")).toHaveCount(4);
+      await expect(evolution.locator(".signal-port")).toHaveCount(8);
+      await expect(evolution).toContainText("Block diagram / Closed loop");
+      await expect(evolution.locator('[data-edge="optimizer-to-agents"]')).toContainText("Review gate");
+      const blocks = await evolution.locator(".evolution-stages li").evaluateAll(nodes =>
+        nodes.map(node => {
+          const { x, y } = node.getBoundingClientRect();
+          return { x, y };
+        }),
+      );
+      expect(blocks[0].x).toBeLessThan(blocks[1].x);
+      expect(blocks[0].y).toBeLessThan(blocks[3].y);
+      expect(blocks[2].x).toBeGreaterThan(blocks[3].x);
+      expect(blocks[1].y).toBeLessThan(blocks[2].y);
       await expect(page.getByRole("region", { name: "Admission Gate", exact: true })).toHaveCount(0);
       await expect(gateway).toContainText("reviewed enrollment");
       await expect(gateway).toContainText("Trigger approved workflows in enrolled repositories using repository_dispatch");
@@ -96,7 +116,7 @@ for (const colorScheme of ["light", "dark"]) {
         .toHaveAttribute("href", /#webhook-gateway-operations$/);
       expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
       if (width !== 320) {
-        for (const [name, story] of [["agentic-workflows", section], ["webhook-gateway", gateway]]) {
+        for (const [name, story] of [["agentic-workflows", section], ["webhook-gateway", gateway], ["enterprise-evolution", evolution]]) {
           const path = testInfo.outputPath(`${name}-${width}-${colorScheme}.png`);
           await story.screenshot({ path });
           await testInfo.attach(name, { path, contentType: "image/png" });
@@ -111,7 +131,7 @@ test("landing stories remain visible without JavaScript", async ({ browser, base
   try {
     const page = await context.newPage();
     await page.goto("./");
-    await expect(page.locator("[data-reveal]")).toHaveCount(6);
+    await expect(page.locator("[data-reveal]")).toHaveCount(7);
     await expect(page.locator(".maintenance-story")).toContainText("Dashboard maintenance");
     for (const story of await page.locator("[data-reveal]").all()) {
       await expect(story).toHaveCSS("opacity", "1");
@@ -127,6 +147,8 @@ test("landing stories remain visible without JavaScript", async ({ browser, base
     await expect(page.locator(".decision-loop .evidence-stages li")).toHaveCount(3);
     await expect(page.locator(".decision-loop")).toContainText("Reviewed policy.");
     await expect(page.locator(".decision-loop .decision-paths strong")).toHaveText(["Refine", "Expand", "Pause"]);
+    await expect(page.locator(".enterprise-evolution .evolution-stages li")).toHaveCount(4);
+    await expect(page.locator(".enterprise-evolution")).toContainText("Architecture pattern.");
   } finally {
     await context.close();
   }
