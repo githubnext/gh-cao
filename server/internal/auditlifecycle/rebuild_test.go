@@ -302,3 +302,64 @@ func TestRebuildMultipleIDsSortedAndUnrelatedEventsIgnored(t *testing.T) {
 		t.Fatalf("%+v", result)
 	}
 }
+
+func TestScanStatus(t *testing.T) {
+	attention := []Finding{{Issues: []string{"duplicate_start"}}}
+	for name, tc := range map[string]struct {
+		result Result
+		want   string
+	}{
+		"clean complete history": {Result{HistoryComplete: true}, "ok"},
+		"missing terminal":       {Result{HistoryComplete: true, MissingTerminal: 1}, "attention"},
+		"finding with issues":    {Result{HistoryComplete: true, Findings: attention}, "attention"},
+		"finding without issues": {Result{HistoryComplete: true, Findings: []Finding{{}}}, "ok"},
+		"incomplete history":     {Result{MissingTerminal: 1}, "incomplete"},
+		"result issues":          {Result{HistoryComplete: true, Issues: []string{"selected_suffix"}}, "incomplete"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got := scanStatus(tc.result); got != tc.want {
+				t.Fatalf("scanStatus() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestClassifyTalliesAndSortsFindings(t *testing.T) {
+	now := observed
+	ids := map[string]*lifecycle{
+		"done": {Finding: Finding{RebuildID: "done", FirstSequence: 1, FirstSeenAt: now.Add(-3 * time.Hour), Issues: []string{}}, admitted: 1, completed: 1},
+		"late": {Finding: Finding{RebuildID: "late", FirstSequence: 5, FirstSeenAt: now.Add(-3 * time.Hour), Issues: []string{}}, admitted: 1},
+		"new":  {Finding: Finding{RebuildID: "new", FirstSequence: 3, FirstSeenAt: now.Add(-time.Minute), Issues: []string{}}, admitted: 1},
+		"orph": {Finding: Finding{RebuildID: "orph", FirstSequence: 2, FirstSeenAt: now.Add(-3 * time.Hour), Issues: []string{}}, completed: 1},
+	}
+	result := Result{TailReached: true, Issues: []string{"b_issue", "a_issue"}}
+	classify(&result, ids, Options{Now: now, Grace: DefaultGrace})
+
+	if result.Completed != 2 || result.Pending != 1 || result.MissingTerminal != 1 {
+		t.Fatalf("counters = %+v", result)
+	}
+	if !slices.Equal(result.Issues, []string{"a_issue", "b_issue"}) {
+		t.Fatalf("issues = %v", result.Issues)
+	}
+	var order []string
+	for _, finding := range result.Findings {
+		order = append(order, finding.RebuildID)
+	}
+	if want := []string{"orph", "new", "late"}; !slices.Equal(order, want) {
+		t.Fatalf("finding order = %v, want %v", order, want)
+	}
+	if got := ids["orph"].Issues; !slices.Equal(got, []string{"admission_not_observed"}) {
+		t.Fatalf("orphan issues = %v", got)
+	}
+}
+
+func TestClassifyUnknownWhenTailNotReached(t *testing.T) {
+	ids := map[string]*lifecycle{
+		"x": {Finding: Finding{RebuildID: "x", FirstSequence: 1, FirstSeenAt: observed.Add(-5 * time.Hour), Issues: []string{}}, admitted: 1},
+	}
+	result := Result{}
+	classify(&result, ids, Options{Now: observed, Grace: DefaultGrace})
+	if ids["x"].Classification != "unknown" || result.MissingTerminal != 0 || result.Pending != 0 {
+		t.Fatalf("classification = %q result = %+v", ids["x"].Classification, result)
+	}
+}

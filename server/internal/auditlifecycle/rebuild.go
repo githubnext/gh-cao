@@ -10,8 +10,11 @@ import (
 	"slices"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
+
+var lifecycleLog = logger.New("cao:auditlifecycle")
 
 const (
 	DefaultGrace = time.Hour
@@ -141,6 +144,15 @@ func Scan(ctx context.Context, reader Reader, options Options) (Result, error) {
 	if options.AfterSequence > 0 {
 		addIssue(&result.Issues, "selected_suffix")
 	}
+	classify(&result, ids, options)
+	result.Status = scanStatus(result)
+	lifecycleLog.Printf("audit lifecycle scan finished: status=%s scanned=%d lifecycles=%d findings=%d issues=%d", result.Status, result.Scanned, len(ids), len(result.Findings), len(result.Issues))
+	return result, nil
+}
+
+// classify assigns each lifecycle a classification, tallies the counters, and
+// sorts the findings by first sequence and the result issues alphabetically.
+func classify(result *Result, ids map[string]*lifecycle, options Options) {
 	for _, entry := range ids {
 		switch {
 		case entry.completed > 0:
@@ -177,19 +189,24 @@ func Scan(ctx context.Context, reader Reader, options Options) (Result, error) {
 		return 0
 	})
 	slices.Sort(result.Issues)
-	result.Status = "ok"
+}
+
+// scanStatus derives the overall status: incomplete when history or issues are
+// not conclusive, attention when any finding needs review, otherwise ok.
+func scanStatus(result Result) string {
+	status := "ok"
 	if result.MissingTerminal > 0 {
-		result.Status = "attention"
+		status = "attention"
 	}
 	for _, finding := range result.Findings {
 		if len(finding.Issues) > 0 {
-			result.Status = "attention"
+			status = "attention"
 		}
 	}
 	if !result.HistoryComplete || len(result.Issues) > 0 {
-		result.Status = "incomplete"
+		status = "incomplete"
 	}
-	return result, nil
+	return status
 }
 
 func observe(result *Result, ids map[string]*lifecycle, event operational.AuditEvent) {
