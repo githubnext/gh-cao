@@ -143,26 +143,25 @@ describe('declarative card filters', () => {
     }
   });
 
-  it('rejects unknown keys, missing sources and invalid field bindings', () => {
-    const bar = contract['filter-bar'];
-    const variants = [
-      { ...bar, unknown: true }, { ...bar, filters: [] },
-      ...[
-        { source: 'missing-source' }, { field: 'missing-field' },
-        { 'value-field': 'missing-field' }, { field: 'issue-status-detail' }
-      ].map((invalid) => ({
-        filters: [
-          { ...bar.filters[0], groups: [{ ...bar.filters[0].groups[0], ...invalid }] },
-          bar.filters[1]
-        ]
-      }))
-    ];
-    for (const invalid of variants) {
-      const model = structuredClone(authoritativeDashboard);
-      const issues = model.dashboard.pages.find((/** @type {{ id: string }} */ entry) => entry.id === page.id);
-      issues.definition.views[2]['filter-bar'] = invalid;
-      expect(validateDashboardDocument(JSON.stringify(model)).ok).toBe(false);
-    }
+  const bar = contract['filter-bar'];
+  const invalidFilterBars = [
+    { ...bar, unknown: true }, { ...bar, filters: [] },
+    ...[
+      { source: 'missing-source' }, { field: 'missing-field' },
+      { 'value-field': 'missing-field' }, { field: 'issue-status-detail' }
+    ].map((invalid) => ({
+      filters: [
+        { ...bar.filters[0], groups: [{ ...bar.filters[0].groups[0], ...invalid }] },
+        bar.filters[1]
+      ]
+    }))
+  ];
+
+  it.each(invalidFilterBars)('rejects invalid filter bar %#', (invalid) => {
+    const model = structuredClone(authoritativeDashboard);
+    const issues = model.dashboard.pages.find((/** @type {{ id: string }} */ entry) => entry.id === page.id);
+    issues.definition.views[2]['filter-bar'] = invalid;
+    expect(validateDashboardDocument(JSON.stringify(model)).ok).toBe(false);
   });
 
   it('requires a stable owning view id for filter selections', () => {
