@@ -7,6 +7,7 @@ import ThemeImage from "./ThemeImage.astro";
 import HeroWorkflowSnippet from "./HeroWorkflowSnippet.astro";
 import HeroControlDiagram from "./HeroControlDiagram.astro";
 import HeroDecisionLoop from "./HeroDecisionLoop.astro";
+import HeroFactoryDashboard from "./HeroFactoryDashboard.astro";
 import HeroEnterpriseEvolution from "./HeroEnterpriseEvolution.astro";
 import dashboardMobileOverview from "../assets/product/cao-dashboard-mobile-overview.png";
 import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile-overview-light.png";
@@ -123,6 +124,34 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
     </p>
   </div>
   <TerminalDemo />
+</section>
+
+<section class="product-story factory-story" aria-labelledby="factory-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">From execution to insight</p>
+    <h2 id="factory-title">Understand your factory</h2>
+    <p>
+      CAO includes a dashboard with <a href="/gh-cao/dashboard/">built-in views</a>{" "}
+      for workflow health, AIC cost, and operational value.
+    </p>
+    <p>
+      Use OpenTelemetry to understand cost in AI Credits (AIC) and failures in real time.
+      Pair traces, metrics, and logs with accepted outcomes to assess operational value.
+    </p>
+    <p>
+      Analyze approved session traces in the optional{" "}
+      <a href="/gh-cao/dashboard-data-ingestion/#query-the-private-session-archive">agent session lake</a>,{" "}
+      powered by Kusto (Azure Data Explorer).
+    </p>
+    <p>
+      All three are <a href="/gh-cao/agent-analysis/">agent-ready</a>:{" "}
+      agents can mine approved evidence to investigate failures, explain AIC spend, and assess operational value.
+    </p>
+    <a class="hero-story-link" href="/gh-cao/configuration/#optional-observability">
+      Explore observability <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <HeroFactoryDashboard />
 </section>
 
 <section class="product-story decision-story" aria-labelledby="decision-title" data-reveal data-slideshow-slide>
@@ -530,6 +559,10 @@ Open an issue with proposed fixes for human review.`}
 
     .maintenance-story {
       grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.2fr);
+    }
+
+    .factory-story {
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
     }
 
     .dispatch-story {

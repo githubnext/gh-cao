@@ -73,7 +73,7 @@ for (const colorScheme of ["light", "dark"]) {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
       expect((await page.goto("./"))?.ok()).toBe(true);
-      await expect(page.locator(".product-story")).toHaveCount(6);
+      await expect(page.locator(".product-story")).toHaveCount(8);
       await expect(page.locator(".hero-callout, .evidence-storyboard")).toHaveCount(0);
       await expect(page.locator(".phone-preview figcaption")).toBeVisible();
       await expect(page.locator(".phone-preview figcaption")).toContainText("not verified improvements");
@@ -104,12 +104,67 @@ for (const colorScheme of ["light", "dark"]) {
         await expect.poll(() => image.evaluate((element) => element.complete && element.naturalWidth > 0)).toBe(true);
         await image.evaluate((element) => element.decode());
       }
+
       await page.evaluate(() => document.fonts.ready);
       await page.evaluate(() => window.scrollTo(0, 0));
       expect(await page.locator("html").evaluate((element) => element.scrollWidth)).toBeLessThanOrEqual(width);
       const screenshot = testInfo.outputPath(`docs-visual-cleanup-${width}-${colorScheme}.png`);
       await page.screenshot({ path: screenshot, fullPage: true });
       await testInfo.attach("Simplified landing page", { path: screenshot, contentType: "image/png" });
+    });
+  }
+}
+
+for (const colorScheme of ["light", "dark"]) {
+  for (const width of [320, 390, 1280]) {
+    test(`factory observability hero renders at ${width}px in ${colorScheme}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+      expect((await page.goto("./"))?.ok()).toBe(true);
+      const story = page.getByRole("region", { name: "Understand your factory", exact: true });
+      await story.scrollIntoViewIfNeeded();
+      await expect(story.getByRole("heading", { name: "Understand your factory", exact: true })).toBeVisible();
+      await expect(story.locator(".product-story-copy > p:not(.section-eyebrow)")).toHaveText([
+        "CAO includes a dashboard with built-in views for workflow health, AIC cost, and operational value.",
+        "Use OpenTelemetry to understand cost in AI Credits (AIC) and failures in real time. Pair traces, metrics, and logs with accepted outcomes to assess operational value.",
+        "Analyze approved session traces in the optional agent session lake, powered by Kusto (Azure Data Explorer).",
+        "All three are agent-ready: agents can mine approved evidence to investigate failures, explain AIC spend, and assess operational value.",
+      ]);
+      const dashboardLink = story.getByRole("link", { name: "built-in views", exact: true });
+      await expect(dashboardLink).toHaveAttribute("href", "/gh-cao/dashboard/");
+      expect((await page.request.get(await dashboardLink.getAttribute("href"))).ok()).toBe(true);
+      await expect(story).not.toContainText(/experimental/i);
+      await expect(story).toContainText("powered by Kusto (Azure Data Explorer)");
+      const lakeLink = story.getByRole("link", { name: "agent session lake", exact: true });
+      await expect(lakeLink).toHaveAttribute("href", "/gh-cao/dashboard-data-ingestion/#query-the-private-session-archive");
+      const lakeResponse = await page.request.get(await lakeLink.getAttribute("href"));
+      expect(lakeResponse.ok()).toBe(true);
+      expect(await lakeResponse.text()).toContain('id="query-the-private-session-archive"');
+      await expect(story).toContainText("All three are agent-ready");
+      await expect(story).toContainText("agents can mine approved evidence");
+      const agentLink = story.getByRole("link", { name: "agent-ready", exact: true });
+      await expect(agentLink).toHaveAttribute("href", "/gh-cao/agent-analysis/");
+      expect((await page.request.get(await agentLink.getAttribute("href"))).ok()).toBe(true);
+      await expect(story).toContainText("Use OpenTelemetry");
+      await expect(story).toContainText("cost in AI Credits (AIC) and failures in real time");
+      await expect(story.locator(".metric dt")).toHaveText(["Run cost (AIC)", "Operational value", "Failures"]);
+      await expect(story.locator(".metric").first()).toContainText("24.80");
+      await expect(story).not.toContainText(/friction|\$\d/i);
+      await expect(story.getByRole("img", { name: "Illustrative workflow activity over 24 hours" })).toBeVisible();
+      await expect(story.locator(".trace-list li")).toHaveCount(3);
+      await expect(story.locator("figcaption")).toContainText("not live telemetry");
+      await expect(story.locator("figcaption")).toContainText("independently verified, accepted outcomes");
+      const link = story.getByRole("link", { name: "Explore observability" });
+      const href = await link.getAttribute("href");
+      const response = await page.request.get(href);
+      expect(response.ok()).toBe(true);
+      expect(await response.text()).toContain('id="optional-observability"');
+      expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
+      expect(await story.locator(".factory-dashboard").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+      await page.evaluate(() => document.fonts.ready);
+      const screenshot = testInfo.outputPath(`factory-${width}-${colorScheme}.png`);
+      await story.screenshot({ path: screenshot });
+      await testInfo.attach("Factory observability hero", { path: screenshot, contentType: "image/png" });
     });
   }
 }
