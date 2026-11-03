@@ -9,6 +9,7 @@ import HeroControlDiagram from "./HeroControlDiagram.astro";
 import HeroDecisionLoop from "./HeroDecisionLoop.astro";
 import HeroFactoryDashboard from "./HeroFactoryDashboard.astro";
 import HeroEnterpriseEvolution from "./HeroEnterpriseEvolution.astro";
+import HeroBackendDiagram from "./HeroBackendDiagram.astro";
 import HeroSafetyDiagram from "./HeroSafetyDiagram.astro";
 import dashboardMobileOverview from "../assets/product/cao-dashboard-mobile-overview.png";
 import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile-overview-light.png";
@@ -184,6 +185,24 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
     </a>
   </div>
   <HeroEnterpriseEvolution />
+</section>
+
+<section class="product-story snippet-story backend-story" aria-labelledby="backend-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">Your infrastructure. Shared contracts.</p>
+    <h2 id="backend-title">Bring Your Own Backend</h2>
+    <p>
+      CAO provides specifications you can turn into a backend to store and analyze agentic sessions.
+      Generate API and storage contracts; adapt the implementation to your infrastructure.
+    </p>
+    <a class="hero-story-link" href="https://github.com/githubnext/gh-cao/blob/main/server/spec/README.md">
+      Explore the backend specifications <span aria-hidden="true">→</span>
+    </a>
+    <a class="hero-story-link" href="/gh-cao/deployment/">
+      Explore deployment options <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <HeroBackendDiagram />
 </section>
 
 <section class="product-story snippet-story webhook-story" aria-labelledby="webhook-title" data-reveal data-slideshow-slide>
