@@ -167,19 +167,22 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
     </a>
   </div>
   <HeroWorkflowSnippet
-    label="Illustrative example: from a prompt to a campaign to bounded repository work"
-    prompt="Roll out a Dependabot campaign across enrolled repositories. Keep it disabled and review-only."
-    filename="dependabot/aw.yml"
-    code={`name: Dependabot
-includes:
-  - operational-value.mjs
-  - operational-value/dependabot-update-planner.mjs
-  - .github/workflows/dependabot.md
-  - .github/workflows/dependabot-update-planner.md`}
+    label="Illustrative example: from a prompt to a Markdown workflow to bounded repository work"
+    prompt="Find security-critical repositories and eat the Dependabot backlog. Keep it disabled and review-only."
+    filename=".github/workflows/dependabot.md"
+    code={`# Tackle the Dependabot backlog
+
+Find security-critical repos within the enrolled scope.
+Prioritize critical and high-severity Dependabot alerts.
+
+## Plan the work
+- Propose fixes for the highest-risk dependencies first.
+- Keep each worker focused on one admitted repository.
+- Prepare changes for human review; do not merge.`}
     transition="After installation, before enabling execution"
-    resultTitle="Campaign prepared for review"
+    resultTitle="Workflow prepared for review"
     result="A central orchestrator selects admitted repositories. Each worker handles one target."
-    caption="Campaign manifest excerpt. Reviewed policy controls scope, enablement, and review/live mode."
+    caption="Illustrative Markdown instructions, not a complete workflow. Reviewed policy controls scope, enablement, and review/live mode."
   />
 </section>
 </div>

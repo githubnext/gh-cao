@@ -1,6 +1,31 @@
 import { expect, test } from "@playwright/test";
 
 for (const colorScheme of ["light", "dark"]) {
+  for (const width of [390, 1280]) {
+    test(`landing workflow reads as highlighted Markdown at ${width}px in ${colorScheme}`, async ({ page }, testInfo) => {
+      await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+      await page.setViewportSize({ width, height: 1000 });
+      expect((await page.goto("./"))?.ok()).toBe(true);
+      await page.evaluate(() => document.fonts.ready);
+      const story = page.locator(".agentic-workflows-story");
+      await story.scrollIntoViewIfNeeded();
+      await expect(story.locator(".workflow-file-name")).toHaveText(".github/workflows/dependabot.md");
+      const code = story.locator("pre.astro-code code");
+      await expect(code).toContainText("# Tackle the Dependabot backlog");
+      await expect(code).toContainText("security-critical repos");
+      await expect(code).toHaveCSS("font-family", /"Mona Sans Mono"/);
+      await expect(story.locator(".workflow-file-name")).toHaveCSS("font-family", /"Mona Sans Mono"/);
+      expect(await code.locator("span[style]").evaluateAll(spans =>
+        new Set(spans.map(span => getComputedStyle(span).color)).size)).toBeGreaterThan(1);
+      expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
+      const screenshot = testInfo.outputPath(`workflow-code-${width}-${colorScheme}.png`);
+      await story.screenshot({ path: screenshot });
+      await testInfo.attach("Markdown workflow example", { path: screenshot, contentType: "image/png" });
+    });
+  }
+}
+
+for (const colorScheme of ["light", "dark"]) {
   for (const width of [320, 390, 800, 1280, 1920]) {
     test(`docs reading rhythm and text-only navigation at ${width}px in ${colorScheme}`, async ({ page }) => {
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
