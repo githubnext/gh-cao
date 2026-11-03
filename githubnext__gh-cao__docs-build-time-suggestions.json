@@ -1,35 +1,7 @@
 {
   "source_sha": "47432411fcf4c55d24069ea7f545f90f81fd3ba2",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-02T16:50:00Z",
-      "worker_run_id": "41485484727",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41484719192,
-        41482458936,
-        41480183849,
-        41479720041,
-        41477378964,
-        41474803813,
-        41472402386,
-        41470271470,
-        41469942342,
-        41467509986,
-        41465155852,
-        41462774226,
-        41460756143,
-        41460408100,
-        41458098782,
-        41455833821,
-        41453669179,
-        41451763994,
-        41451450492,
-        41449478146
-      ],
-      "outcome": "incomplete: the 2026-11-02T13:01:51Z to 2026-11-02T16:46:46Z latest-20 completed docs.yml window was within the 14-day limit and contained 16 successful schedule runs and four skipped workflow_run runs; there were no failed or cancelled runs. All 20 runs used source SHA f8b2fc99422744fd19aaf4ed7599fdc47fd5bce4. Trusted Actions run, job, and step metadata shows that every successful schedule run executed only schedule-freshness and skipped build and deploy; the workflow_run entries supplied no successful full path. The window therefore contains zero comparable successful full build-and-deploy runs, below the required five. Across the 16 freshness-only successes, workflow wall time had a 22-second median and 30-second p90; initial queue time had a 4-second median and 14-second p90; schedule-freshness execution had a 12.5-second median and 18-second p90. Dashboard, build, and deploy job medians and p90s are unavailable because those jobs did not execute. No dependency installation, Astro generation, dashboard restore/download, artifact transfer, Pages packaging, or deployment steps ran, so current-window cache hits/misses and repeated build costs cannot be verified. A complete reusable dashboard generation evaluation and actionable recommendation cannot be produced; the category remains next."
-    },
     {
       "evaluated_at": "2026-11-02T17:18:39.278388Z",
       "worker_run_id": "41489300885",
@@ -779,6 +751,34 @@
         41556697944
       ],
       "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-03T00:59:28Z to 2026-11-03T02:46:01Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Nine comparable successful push runs completed the full build-and-deploy path. Full workflow wall time had a 133-second median and 203-second nearest-rank p90; initial queue time had a 4-second median and 49-second p90; post-queue execution had a 123-second median and 199-second p90. Build jobs had an 89-second median and 116-second p90; deploy jobs had a 30-second median and 103-second p90. docs.yml has no separate dashboard job; dashboard cache restore had a 3-second median and 5-second p90. Trusted logs verified setup-node npm download-cache and dashboard cache hits in all nine full runs, and the dashboard cache-miss lookup and artifact-download steps were skipped. Repeated step medians/p90s were checkout 23/35 seconds, npm ci 20/25 seconds, Astro documentation generation 14/15 seconds, dashboard restore 3/5 seconds, and Pages upload 18/21 seconds. Astro logs reported its primary build phases completing in roughly 4.3-6.8 seconds, with the full documentation step consistently 9-15 seconds across revisions. Even eliminating the entire 14-second median documentation step would save only 11.4% of median execution time and less than 60 seconds, below the actionable threshold. No correctness-preserving Astro caching or generation change is evidenced to save at least 60 seconds or 15% of median execution time. Confidence is high for timing and cache evidence and high for the no-op because the theoretical maximum saving is below both thresholds."
+    },
+    {
+      "evaluated_at": "2026-11-03T03:20:00Z",
+      "worker_run_id": "41571263257",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41571376871,
+        41569640371,
+        41568913853,
+        41568102210,
+        41566687550,
+        41566629441,
+        41565602070,
+        41565383117,
+        41564177241,
+        41563791401,
+        41563599363,
+        41563498086,
+        41561852697,
+        41561686857,
+        41560265238,
+        41559123233,
+        41558671644,
+        41558488903,
+        41558311176,
+        41558078752
+      ],
+      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-03T01:11:30Z to 2026-11-03T03:18:17Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Eight comparable successful push runs completed the full build-and-deploy path, meeting the minimum sample; nine successful schedules ran freshness only. Full workflow wall time had a 129.5-second median and 168-second nearest-rank p90; initial queue time had a 3.5-second median and 49-second p90; post-queue execution had a 121-second median and 150-second p90. Build jobs had an 89-second median and 116-second p90; deploy jobs had a 29.5-second median and 31-second p90. docs.yml has no separate dashboard job: its reusable-dashboard restore step had a 3-second median and 5-second p90. Trusted Actions step metadata verified dashboard cache hits in all eight full runs because Restore cached CAO Dashboard succeeded while the cache-miss-only lookup and artifact-download steps were skipped. Repeated step medians/p90s were checkout 23.5/35 seconds, npm ci 18.5/25 seconds, Astro generation 14/15 seconds, dashboard restore 3/5 seconds, and Pages upload 18/21 seconds. The latest successful cao-dashboard.yml run independently generated the dashboard, then successfully downloaded its artifact and replaced the reusable cache in a 15-second cache job; its expensive 22-minute-54-second build remained off the docs critical path. Dashboard reuse is therefore already effective and costs only 2-5 seconds per docs build. No concrete change in this category is supported to save at least 60 seconds or 15% of median execution time without weakening dashboard freshness or cache correctness. Confidence is high for timing and cache behavior. No suggestion was made."
     }
   ]
 }
