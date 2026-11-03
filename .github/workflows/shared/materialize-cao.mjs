@@ -519,7 +519,6 @@ export function verifyCaoRuntime(bundle, repositoryRoot = process.cwd()) {
   const required = {
     activity: [
       'activity/cao.mjs',
-      'activity/api-cost-model.mjs',
       'activity/github-api-budget.mjs',
       'activity/workflow-values.mjs',
       'activity/workflow-value-evidence.mjs',
@@ -545,7 +544,6 @@ export function verifyCaoRuntime(bundle, repositoryRoot = process.cwd()) {
       'activity/cli-usage.mjs',
       'activity/normalized-phase.mjs',
       'activity/commands/index.mjs',
-      'activity/commands/api-cost.mjs',
       'activity/control-settings.mjs',
       'activity/repository-visibility.mjs',
       'activity/recycle-snapshot.mjs',

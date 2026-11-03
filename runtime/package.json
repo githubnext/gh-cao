@@ -16,7 +16,6 @@
     "activity/admission-evidence.mjs",
     "activity/agent-catalog.mjs",
     "activity/agent-summary.mjs",
-    "activity/api-cost-model.mjs",
     "activity/authentication.mjs",
     "activity/campaign-intelligence.mjs",
     "activity/cao.mjs",

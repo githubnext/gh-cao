@@ -267,7 +267,7 @@ The direct activity client retries 403 and 429 responses only when the advertise
 
 ## 7. Recommendations
 
-`cao api-cost` now turns the request families in this audit into executable
+`gh cao api-cost` now turns the request families in this audit into executable
 capacity scenarios. The built-in Daily File Diet profile distinguishes retained
 incremental work from source-level hard bounds and reports core, Search,
 GraphQL, reviewed-grant, and runner bottlenecks separately. New acquisition

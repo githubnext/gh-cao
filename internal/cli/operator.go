@@ -91,6 +91,38 @@ func addOperatorCommands(root *cobra.Command, execute runtimeExecutor, github gh
 		return nil
 	}
 	computation.AddCommand(intelligence, health)
+	apiCost := operatorCommand("api-cost", "Simulate GitHub API and collector capacity from canonical Value evidence", cobra.NoArgs, []operatorFlag{
+		databaseFlag,
+		textFlag("server", "CAO server base URL (HTTPS except loopback)"),
+		textFlag("repository", "Repository whose Daily File Diet evidence supplies the retained population (default github/gh-aw)"),
+		textFlag("profile", "Built-in profile (daily-file-diet)"),
+		textFlag("scenario", "Built-in scenario (retained or hard-bound)"),
+		textFlag("input", "Custom schema-v1 API cost scenario JSON"),
+		textFlag("format", "Output format (json or markdown)"),
+		textFlag("repositories", "Repositories to simulate"),
+		textFlag("horizon-hours", "Simulation horizon in hours"),
+		textFlag("collection-window-hours", "Hours across which due collections are spread"),
+		textFlag("wall-minutes", "Collector wall-time ceiling per repository"),
+		textFlag("parallelism", "Concurrent collector runners"),
+		textFlag("core-limit", "Core quota units per window"),
+		textFlag("core-reserve", "Protected core quota units per window"),
+		textFlag("search-limit", "Search requests per window"),
+		textFlag("search-reserve", "Protected Search requests per window"),
+		textFlag("search-window-minutes", "Search quota-window duration"),
+		textFlag("graphql-limit", "GraphQL points per window"),
+		textFlag("graphql-reserve", "Protected GraphQL points per window"),
+		textFlag("collector-grant", "Reviewed request grant per collector"),
+		textFlag("tracked-issues", "Tracked issue population override"),
+		textFlag("new-issues", "New output issues per cadence"),
+		textFlag("mutable-pulls", "Mutable pull requests per cadence"),
+		textFlag("new-receipts", "New receipt artifacts per cadence"),
+		textFlag("search-pages-per-term", "Search pages per discovery term"),
+		textFlag("timeline-pages-per-issue", "Timeline pages per tracked issue"),
+		textFlag("pull-file-pages", "Changed-file pages per mutable pull request"),
+		textFlag("snapshot-reads", "Snapshot cutoff reads per cadence"),
+		textFlag("graphql-points-per-request", "Modeled GraphQL point cost per request"),
+	}, execute)
+	apiCost.MarkFlagsMutuallyExclusive("database", "server")
 	value := &cobra.Command{
 		Use: "value", Short: "Publish evidence or manage reviewed recurring Value collection", Args: cobra.NoArgs,
 		RunE: func(*cobra.Command, []string) error {
@@ -125,6 +157,7 @@ Success is JSON; stale or conflicting captures fail without retrying.`
 	disable.Long = "Persist an explicit disable for the exact workflow without deleting evidence. Automatic skill registration respects it. Review, commit, and deploy/push cao.json before scheduled collection stops."
 	value.AddCommand(publish, enable, disable)
 	root.AddCommand(setupCommand(execute, github), download, pages, queries, info, prompt, query, mcp, upgrade, gh, computation,
+		apiCost,
 		value,
 		passthroughCommand("update [REF] [GH_AW_OPTIONS...]", "Update installed CAO packages without widening rollout", execute),
 	)

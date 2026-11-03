@@ -977,10 +977,13 @@ exports. `activity/cli/` owns argument parsing, dispatch, policy and campaign
 configuration, authentication, evidence ingestion and publication, downloads,
 and local queries in focused modules. `activity/commands/` owns one handler per
 command; implementation modules depend on shared helpers, not the entry point.
-`cao api-cost` executes the deterministic planning model in
-`activity/api-cost-model.mjs`. It keeps sustained quota, synchronized burst,
-reviewed collector grants and serialized runner time separate, supports
-declarative custom acquisition scenarios, and ships a Daily File Diet profile.
+Native `gh cao api-cost` executes the deterministic planning model in
+`internal/apicost`. It keeps sustained quota, synchronized burst, reviewed
+collector grants and serialized runner time separate, supports declarative
+custom acquisition scenarios, and ships a Daily File Diet profile. The retained
+profile reads only canonical Value evidence through one Dashboard Language
+query against local SQLite or the Go server's PostgreSQL query boundary; it has
+no Activity-workspace, checked-in evidence-file or population-default fallback.
 It predicts capacity only; runtime admission and per-request accounting remain
 authoritative. `specs/github-api-capacity.md` defines this contract.
 Successful-Run value computations keep produced safe outputs, native

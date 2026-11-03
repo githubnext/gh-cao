@@ -46,7 +46,7 @@ hit rate; they MUST NOT enlarge a reviewed request grant or quota limit.
 
 ## 3. Scenario contract
 
-`cao api-cost --input FILE` accepts a JSON object with `schemaVersion: 1`:
+`gh cao api-cost --input FILE` accepts a JSON object with `schemaVersion: 1`:
 
 ```json
 {
@@ -124,9 +124,15 @@ and MUST remain separate from the modeled maximum.
 
 ## 5. Daily File Diet profile
 
-`cao api-cost --profile daily-file-diet` models the current incremental
-collector. The retained scenario reads the checked-in evidence packet to obtain
-the tracked-output population. It models:
+`gh cao api-cost --profile daily-file-diet` models the current incremental
+collector. The retained scenario obtains the tracked-output population only
+through the canonical `operational-value-evidence` logical source. The native
+operator executes the same Dashboard Language query against a downloaded
+SQLite snapshot by default or against the Go server's PostgreSQL database with
+`--server URL`. It MUST NOT read `.github/value-evidence/`, an Activity
+workspace, or a compiled-in population fallback. Missing, empty or unavailable
+database evidence MUST fail closed instead of producing a result with invented
+freshness or population. It models:
 
 - two repository-alias reads and one workflow-source history read;
 - six Search terms with a configurable page count;
@@ -141,7 +147,7 @@ The retained scenario assumes merged pull, receipt, Git inventory and blob
 measurements are reused. The `hard-bound` scenario applies the collector's
 declared population and pagination ceilings. It intentionally shows whether the
 source-level hard bound fits the reviewed 700-request grant; it is not a
-forecast of ordinary daily traffic.
+forecast of ordinary daily traffic and does not require retained evidence.
 
 Git blobless fetches are reported as a separate bounded transport cost because
 they do not consume REST, Search or GraphQL quota. Runtime collection remains
