@@ -16,6 +16,8 @@ for (const colorScheme of ["light", "dark"]) {
       await expect(section.locator("img, image, canvas")).toHaveCount(0);
       await expect(section.locator(".repository-traces > path")).toHaveCount(14);
       await expect(section.locator(".repository-traces > .dashed")).toHaveCount(4);
+      await expect(section.locator(".motion-trails > path")).toHaveCount(3);
+      await expect(section.locator(".flying-agents > .flying-agent")).toHaveCount(3);
       await expect(section.locator(".adoption-marker")).toContainText("Adoption day");
       await expect(section.locator("figcaption")).toContainText("Traces are approximate");
       await expect(section.locator("figcaption")).toContainText("not live CAO data or evidence of causation");

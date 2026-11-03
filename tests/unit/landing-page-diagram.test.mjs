@@ -120,8 +120,14 @@ test("Repo Assist reconstructs the reference with theme-aware native graphics, n
   assert.match(chart, /aria-describedby="repo-assist-plot-description"/);
   assert.match(chart, /var\(--cao-story-heading\)/);
   assert.match(chart, /var\(--sl-color-text-accent\)/);
+  assert.match(chart, /id="repo-assist-copilot"/);
+  assert.match(chart, /class="flying-agents"/);
+  assert.equal([...chart.matchAll(/class="flying-agent"/g)].length, 3);
+  assert.equal([...chart.matchAll(/<g class="motion-trails"[\s\S]*?<\/g>/g)][0]?.[0].match(/<path /g)?.length, 3);
+  assert.match(chart, /repo-assist-agent-gradient/);
+  assert.doesNotMatch(chart, /repo-assist-bot|assist-bot|bot-shell|bot-eye|robot-trails/);
   assert.match(chart, /Traces are approximate; original measurements were not provided/);
-  assert.doesNotMatch(chart, /<img\b|<image\b|<canvas\b|<script\b|https?:\/\/|linearGradient/);
+  assert.doesNotMatch(chart, /<img\b|<image\b|<canvas\b|<script\b|https?:\/\//);
 });
 
 test("enterprise evolution connects multi-agent sessions to reviewed optimizer updates", () => {
