@@ -156,11 +156,22 @@ test("the original operational-value storyboard retains evidence, human judgment
   assert.doesNotMatch(decision, /<img|<svg|<script/);
 });
 
-test("landing campaign example uses the real Dependabot manifest without granting rollout authority", () => {
-  const excerpt = hero.match(/filename="dependabot\/aw\.yml"\s+code=\{`([\s\S]*?)`\}/)?.[1];
-  assert.ok(excerpt, "campaign snippet should show its manifest");
-  const manifest = parse(readFileSync("dependabot/aw.yml", "utf8"));
-  assert.deepEqual(parse(excerpt), { name: manifest.name, includes: manifest.includes });
+test("landing workflow example shows Markdown instructions without granting rollout authority", () => {
+  const excerpt = hero.match(/filename="\.github\/workflows\/dependabot\.md"\s+code=\{`([\s\S]*?)`\}/)?.[1];
+  assert.ok(excerpt, "workflow snippet should show Markdown instructions");
+  const frontmatter = excerpt.match(/^---\n([\s\S]*?)\n---\n/);
+  assert.ok(frontmatter, "workflow snippet should declare tools and safe outputs");
+  assert.deepEqual(parse(frontmatter[1]), {
+    tools: { github: true },
+    "safe-outputs": { "create-issue": null },
+  });
+  assert.match(excerpt, /# Tackle the Dependabot backlog/);
+  assert.match(excerpt, /security-critical repos within the enrolled scope/);
+  assert.match(excerpt, /critical and high-severity Dependabot alerts/);
+  assert.match(excerpt, /Open an issue with proposed fixes for human review/);
+  assert.ok(excerpt.slice(frontmatter[0].length).trim().split("\n").length <= 4);
+  assert.doesNotMatch(hero, /dependabot\/aw\.yml/);
+  assert.match(hero, /Illustrative Markdown instructions, not a complete workflow/);
   assert.match(hero, /Keep it disabled and review-only/);
   assert.match(hero, /Each worker handles one target/);
   assert.match(hero, /Reviewed policy controls scope, enablement, and review\/live mode/);

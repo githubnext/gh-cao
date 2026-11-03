@@ -1,4 +1,5 @@
 ---
+import { Code } from "astro:components";
 import { checkPath, clockPath, issueOpenedPaths } from "./workflow-illustration-icons.mjs";
 
 interface Props {
@@ -28,7 +29,7 @@ const {
   <span class="workflow-example-connector" aria-hidden="true"></span>
   <div class="workflow-example-card workflow-file" data-slideshow-snippet={filename}>
     <p class="workflow-file-name">{filename}</p>
-    <pre><code>{code}</code></pre>
+    <Code code={code} lang="markdown" theme="github-dark" />
   </div>
   <p class="workflow-example-timing">
     <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d={clockPath} /></svg>
@@ -88,36 +89,40 @@ const {
     .workflow-file {
       overflow: hidden;
       padding: 0;
+      background: #0d1117;
     }
 
     .workflow-file-name {
-      border-bottom: 1px solid var(--cao-section-border);
+      border-bottom: 1px solid #30363d;
       padding: 0.625rem 1rem;
-      color: var(--cao-story-text);
-      font-family: var(--sl-font-mono);
+      background: #161b22;
+      color: #b1bac4;
+      font-family: "Mona Sans Mono", ui-monospace, monospace;
       overflow-wrap: anywhere;
     }
+  }
 
-    .workflow-file pre {
-      margin: 0;
-      border: 0;
-      border-radius: 0;
-      padding: 0.875rem 1rem;
-      background: transparent;
-      color: var(--cao-story-heading);
-      font-family: var(--sl-font-mono);
-      font-size: 0.75rem;
-      line-height: 1.6;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
+  .workflow-file :global(pre.astro-code) {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    padding: 0.875rem 1rem;
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: "Mona Sans Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
 
-    .workflow-file code {
-      padding: 0;
-      background: transparent;
-      font: inherit;
-    }
+  .workflow-file :global(pre.astro-code code) {
+    padding: 0;
+    background: transparent;
+    font: inherit;
+  }
 
+  @layer starlight.core {
     .workflow-example svg {
       width: 1rem;
       height: 1rem;

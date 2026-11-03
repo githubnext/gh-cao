@@ -167,17 +167,17 @@ test("expands and edits code locally without changing the original commands or n
   expect(await page.locator(".terminal code").allTextContents()).toEqual(original);
 });
 
-test("expands the campaign snippet without changing its manifest", async ({ page }) => {
+test("expands the workflow snippet without changing its Markdown", async ({ page }) => {
   await page.goto("./");
   await openSlideshow(page);
   await page.keyboard.press("End");
   await expectSlide(page, slideTitles.indexOf("Built on Agentic Workflows"));
   const code = presentation(page).locator("[data-slideshow-slide]:visible pre code");
   const original = await code.textContent();
-  const trigger = presentation(page).getByRole("button", { name: "Expand dependabot/aw.yml", exact: true });
+  const trigger = presentation(page).getByRole("button", { name: "Expand .github/workflows/dependabot.md", exact: true });
   await trigger.click();
-  const expanded = page.getByRole("dialog", { name: "dependabot/aw.yml", exact: true });
-  await expect(expanded.getByRole("textbox")).toContainText("name: Dependabot");
+  const expanded = page.getByRole("dialog", { name: ".github/workflows/dependabot.md", exact: true });
+  await expect(expanded.getByRole("textbox")).toContainText("# Tackle the Dependabot backlog");
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
   await expect(code).toHaveText(original);
