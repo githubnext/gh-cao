@@ -48,7 +48,7 @@ for (const { name, viewport } of [
 test("landing stories remain visible with reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./");
-  await expect(page.locator("[data-reveal]")).toHaveCount(8);
+  await expect(page.locator("[data-reveal]")).toHaveCount(10);
   await expect(page.locator(".maintenance-story")).toContainText("Dashboard maintenance");
   for (const story of await page.locator("[data-reveal]").all()) {
     await expect(story).toHaveCSS("opacity", "1");
@@ -65,7 +65,7 @@ for (const colorScheme of ["light", "dark"]) {
       const section = page.getByRole("region", { name: "Built on Agentic Workflows", exact: true });
       await section.scrollIntoViewIfNeeded();
       await expect(section).toBeVisible();
-      await expect(page.locator(".product-story").last()).toHaveAttribute("aria-labelledby", "agentic-workflows-title");
+      await expect(page.locator(".product-story").last()).toHaveAttribute("aria-labelledby", "safety-title");
       await expect(section.getByRole("link", { name: "Explore GitHub Agentic Workflows" }))
         .toHaveAttribute("href", "https://github.github.com/gh-aw/");
       const example = section.getByRole("group", { name: "Illustrative example: from a prompt to a campaign to bounded repository work" });
@@ -206,7 +206,7 @@ test("landing stories remain visible without JavaScript", async ({ browser, base
   try {
     const page = await context.newPage();
     await page.goto("./");
-    await expect(page.locator("[data-reveal]")).toHaveCount(8);
+    await expect(page.locator("[data-reveal]")).toHaveCount(10);
     await expect(page.locator(".maintenance-story")).toContainText("Dashboard maintenance");
     for (const story of await page.locator("[data-reveal]").all()) {
       await expect(story).toHaveCSS("opacity", "1");
