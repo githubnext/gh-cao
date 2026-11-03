@@ -1,35 +1,7 @@
 {
-  "source_sha": "84ac9922c00685d71d90ecaf9282a032e855819a",
+  "source_sha": "356dc0dee766f6183357a7c822d7a9b6722f067a",
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-02T14:52:50Z",
-      "worker_run_id": "41465616763",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41465155852,
-        41462774226,
-        41460756143,
-        41460408100,
-        41458098782,
-        41455833821,
-        41453669179,
-        41451763994,
-        41451450492,
-        41449478146,
-        41447367407,
-        41445509506,
-        41444278852,
-        41443975732,
-        41441431112,
-        41439372522,
-        41437339771,
-        41437318776,
-        41435472071,
-        41435068729
-      ],
-      "outcome": "incomplete: the 2026-11-02T11:13:26Z to 2026-11-02T14:46:57Z latest-20 completed docs.yml window was within the 14-day limit and contained 15 successful runs (14 schedule and one push), four skipped workflow_run runs, and one cancelled workflow_run run. The cancelled run was excluded. The window spans source SHAs fb8ce95eda1a96712fbce50c84ff2162bf25c375 and f8b2fc99422744fd19aaf4ed7599fdc47fd5bce4. Trusted Actions metadata for the newest schedule run, plus retained trusted job and step evidence for the overlapping window, shows that all 14 successful schedule runs executed only schedule-freshness and skipped build and deploy; skipped workflow_run entries supplied no successful build-and-deploy path. Only push run 41437318776 completed the full path, so the window contains one comparable successful full build-and-deploy run, below the required five. That run took 171 seconds wall-clock, with an 18-second initial queue, a 114-second build job, a 5-second build-to-deploy gap, and a 33-second deploy job. Its dashboard cache was a verified hit: restore completed in 4 seconds and the cache-miss-only dashboard lookup and artifact-download steps were skipped. Checkout took 34 seconds, dependency installation 23 seconds, Astro documentation generation 18 seconds, and Pages artifact upload 23 seconds. Across the 14 freshness-only schedule successes, workflow wall time had a 14-second median and 23-second p90. The newest schedule run took 23 seconds wall-clock, queued 4 seconds for schedule-freshness, executed that job for 18 seconds, spent 8 seconds in the freshness check, and skipped build and deploy. With only one full path, median and p90 distributions for comparable full executions and dashboard/build/deploy jobs, repeated-cost analysis, and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
     {
       "evaluated_at": "2026-11-02T15:21:28Z",
       "worker_run_id": "41470015218",
@@ -799,6 +771,13 @@
         41533685118
       ],
       "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-02T22:02:02Z to 2026-11-03T00:50:04Z) was within 14 days and contained 14 successful runs, three skipped workflow_run runs, and three cancelled runs (two push and one workflow_run); cancelled runs were excluded and disclosed. Six successful runs completed the full build-and-deploy path, split evenly between schedule and push triggers. Full workflow wall time had a 163.5-second median and 245-second nearest-rank p90; initial queue time had a 3-second median and 75-second p90; post-queue execution had a 156-second median and 244-second p90. Build jobs had a 90.5-second median and 106-second p90; deploy jobs had a 48.5-second median and 136-second p90. docs.yml has no separate dashboard job: the dashboard cache restore step had a 3-second median and 4-second p90, and all six restores were verified hits because the cache-miss-only lookup and download steps were skipped. Pages artifact upload had an 18.5-second median and 21-second p90. Trusted logs show a stable 107.58 MB github-pages artifact in all six runs, while deployment ranged from 12 to 136 seconds despite effectively unchanged artifact size, indicating service-side queue/sync variability rather than a repeated packaging regression. Schedule full runs had 156-second median wall time and 162-second p90; push full runs had 189-second median and 245-second p90, with the push tail dominated by a 75-second initial queue and a 136-second deploy. The upload step is below both the 60-second and 15%-of-median-execution thresholds, and no correctness-preserving workflow change is evidenced to reduce the variable Pages deployment time by at least 60 seconds or 15%. Confidence is high for artifact size, upload timing, and cache behavior, and moderate for deployment tails due to the six-run sample. No suggestion was made."
+    },
+    {
+      "evaluated_at": "2026-11-03T01:18:30Z",
+      "worker_run_id": "41558559448",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. The required current 14-day evidence window, at least five comparable successful full build-and-deploy runs, workflow and dashboard/build/deploy timing distributions, bounded step-cost analysis, and cache hit/miss verification could not be established. No recommendation was made; scheduling, concurrency, and avoidable rebuilds remains the next category."
     }
   ]
 }
