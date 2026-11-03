@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-03T02:34:57Z",
-      "worker_run_id": "41566628449",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        41566687550,
-        41566629441,
-        41565602070,
-        41565383117,
-        41564177241,
-        41563791401,
-        41563599363,
-        41563498086,
-        41561852697,
-        41561686857,
-        41560265238,
-        41559123233,
-        41558671644,
-        41558488903,
-        41558311176,
-        41558078752,
-        41557912581,
-        41556918357,
-        41556697944,
-        41555625744
-      ],
-      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-03T00:49:54Z to 2026-11-03T02:33:54Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Nine comparable successful push runs completed the full build-and-deploy path. Full workflow wall time had a 133-second median and 203-second nearest-rank p90; initial queue time had a 4-second median and 49-second p90; post-queue execution had a 123-second median and 199-second p90. Build jobs had an 89-second median and 116-second p90; deploy jobs had a 30-second median and 103-second p90. docs.yml has no separate dashboard job; dashboard cache restore had a 3-second median and 5-second p90, with cache-miss lookup and download skipped in all nine full runs. Trusted logs verified setup-node npm download-cache hits in all nine full runs. Setup Node.js had a 4-second median and 13-second p90, while npm ci had a 20-second median and 25-second p90 and consistently installed 845 packages. Other repeated step medians/p90s were checkout 23/35 seconds, Astro generation 14/15 seconds, Pages upload 18/21 seconds, and Deploy Pages 27/100 seconds. The npm cache is already effective; even eliminating npm ci entirely would save only 20 seconds (16.3% of median execution), while an additional exact-lock node_modules cache would incur restore overhead and cannot be evidenced from these runs to preserve a net saving of at least 18.45 seconds (15%) without correctness risk. No actionable dependency-caching change meets the threshold. Confidence is high for cache-hit and timing evidence and moderate-high for the no-op because the theoretical maximum is only marginally above the threshold."
-    },
-    {
       "evaluated_at": "2026-11-03T02:50:00Z",
       "worker_run_id": "41568386386",
       "category": "Astro documentation generation",
@@ -820,6 +792,34 @@
         41611683661
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-03T09:31:15Z to 2026-11-03T12:32:24Z) was within 14 days and contained 16 successful runs (13 schedule, two push, and one workflow_run) and four skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs e1d42c2ca77ebf2005dd2f7f6d842badbbd20da2, 6433faf6c035f899915ed1d098e44ce10db6b32d, 70909cb2e72fc5b3d55449afcdd35d4476678ddb, and 67e3fdca0b8f722cd9872cd25d19f5784d448097. Only push runs 41635754069 and 41634145115 and workflow_run 41633118791 completed the comparable full build-and-deploy path, below the required five. Their workflow wall times were 183, 173, and 194 seconds; build jobs were 66, 93, and 135 seconds; deploy jobs were 108, 69, and 29 seconds. docs.yml has no separate dashboard job; dashboard cache restore took 3, 3, and 5 seconds. Artifact transfer and Pages packaging evidence was limited to Pages artifact uploads of 13, 20, and 20 seconds and Deploy Pages steps of 104, 66, and 26 seconds. Trusted Actions step metadata verified dashboard cache hits in all three full runs because restore succeeded while cache-miss lookup and artifact download were skipped. With only three comparable full runs, median and p90 distributions and repeated artifact-cost analysis are insufficient for a complete evaluation or an evidence-backed recommendation meeting the 60-second or 15% threshold. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-03T13:20:00Z",
+      "worker_run_id": "41642704585",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        41642937239,
+        41642631548,
+        41640647457,
+        41638523431,
+        41636539518,
+        41635754069,
+        41635131269,
+        41634812317,
+        41634171274,
+        41634145115,
+        41633118791,
+        41632287698,
+        41630194016,
+        41628164336,
+        41626110147,
+        41625723711,
+        41624041271,
+        41622002765,
+        41619959966,
+        41617835466
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-03T10:16:06Z to 2026-11-03T13:17:07Z) was within 14 days and contained 16 successful runs (13 schedule, two push, and one workflow_run) and four skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs e1d42c2ca77ebf2005dd2f7f6d842badbbd20da2, 6433faf6c035f899915ed1d098e44ce10db6b32d, 70909cb2e72fc5b3d55449afcdd35d4476678ddb, and 67e3fdca0b8f722cd9872cd25d19f5784d448097. Only push runs 41635754069 and 41634145115 and workflow_run 41633118791 completed the comparable full build-and-deploy path, below the required five. Their workflow wall times were 183, 173, and 194 seconds; build jobs were 66, 93, and 135 seconds; deploy jobs were 108, 69, and 29 seconds. docs.yml has no separate dashboard job; dashboard cache restore took 3, 3, and 5 seconds. Artifact transfer and Pages packaging evidence was limited to Pages artifact uploads of 13, 20, and 20 seconds and Deploy Pages steps of 104, 66, and 26 seconds. Trusted Actions step metadata verified dashboard cache hits in all three full runs because restore succeeded while cache-miss lookup and artifact download were skipped. With only three comparable full runs, median and p90 distributions and repeated artifact-cost analysis are insufficient for a complete evaluation or an evidence-backed recommendation meeting the 60-second or 15% threshold. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
