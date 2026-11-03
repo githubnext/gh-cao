@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-02T23:54:31Z",
-      "worker_run_id": "41548275977",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41547905678,
-        41546197418,
-        41546162081,
-        41546118836,
-        41546006359,
-        41544883679,
-        41544094043,
-        41543627126,
-        41543175067,
-        41543154263,
-        41542088386,
-        41539987428,
-        41537911407,
-        41535833600,
-        41535417083,
-        41533685118,
-        41531337096,
-        41529080665,
-        41526722797,
-        41526261105
-      ],
-      "outcome": "incomplete: the 2026-11-02T21:12:46Z to 2026-11-02T23:46:09Z latest-20 completed docs.yml window was within the 14-day limit and contained 14 successful runs, three skipped workflow_run runs, and three cancelled runs (two push and one workflow_run). The cancelled runs were excluded and disclosed. The window spans source SHAs f8b2fc99422744fd19aaf4ed7599fdc47fd5bce4, c214f9fe5c81ee07c1b4a69cda12bd665e98bfe7, 15039044dcee8760368bf903fd0ac48e915ce305, 8e92dae4d0ef88381b67739611345d5ce86ab434, d82ec7a004f517f68f4ee0c3f306780e0f222ad4, 5b27f7103bb56c19165ba0a84e0d32acf78eb49b, and 1c71d4c8a920935ad2e8d000cb2f694ad1716175. Trusted Actions run, job, and step metadata shows that ten successful schedule runs executed only schedule-freshness and skipped build and deploy. Four successful runs completed the full path: push runs 41543154263, 41544883679, and 41546197418, plus schedule run 41546006359. This is below the required five comparable successful full runs. Their workflow wall times were 245, 165, 189, and 162 seconds (descriptive median 177 seconds, nearest-rank p90 245 seconds); execution times after initial queue were 240, 160, 111, and 158 seconds (median 159 seconds, p90 240 seconds); build jobs were 98, 106, 80, and 75 seconds (median 89 seconds, p90 106 seconds); deploy jobs were 136, 49, 27, and 70 seconds (median 59.5 seconds, p90 136 seconds). All four dashboard restores were verified cache hits because restore succeeded and the cache-miss-only dashboard lookup and artifact-download steps were skipped. Repeated step ranges were checkout 22-36 seconds, dependency installation 15-21 seconds, Astro generation 10-15 seconds, and Pages artifact upload 14-20 seconds. With only four full paths, the required reliable timing distributions and complete reusable dashboard generation evaluation cannot be produced. No recommendation was made; reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-03T00:33:52Z",
       "worker_run_id": "41553345443",
       "category": "reusable dashboard generation",
@@ -758,6 +730,34 @@
         41590825511
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-03T06:35:18Z to 2026-11-03T10:16:25Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. All 20 runs used source SHA 67e3fdca0b8f722cd9872cd25d19f5784d448097. Trusted Actions job and step metadata shows that every successful schedule run executed only schedule-freshness and skipped build and deploy; the workflow_run callbacks skipped all jobs. The window therefore contains zero comparable successful full build-and-deploy runs, below the required five. Across the 16 freshness-only successes, workflow wall time had a 17-second median and 27-second nearest-rank p90; initial queue time had a 3-second median and 7-second p90; schedule-freshness execution had a 13-second median and 22-second p90; the freshness check step had a 10-second median and 12-second p90. docs.yml has no separate dashboard job, and dashboard reuse, dependency installation, Astro generation, artifact transfer, Pages packaging, deployment, and cache hit/miss behavior were not exercised in this window. Full workflow execution and build/deploy timing distributions and repeated artifact-cost analysis cannot be produced, so no evidence-backed artifact transfer and Pages packaging recommendation can meet the 60-second or 15% threshold. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-03T10:32:06Z",
+      "worker_run_id": "41619580060",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        41617835466,
+        41617564866,
+        41615737473,
+        41613690489,
+        41611683661,
+        41609901146,
+        41609536851,
+        41607675961,
+        41605717998,
+        41603873813,
+        41602607996,
+        41602384948,
+        41600272303,
+        41598471481,
+        41596868704,
+        41595321360,
+        41595061600,
+        41593557359,
+        41591967057,
+        41590825511
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-03T06:35:18Z to 2026-11-03T10:16:25Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. All 20 runs used source SHA 67e3fdca0b8f722cd9872cd25d19f5784d448097. Trusted Actions job metadata verified that every successful schedule executed only schedule-freshness and skipped build and deploy; workflow_run callbacks skipped all jobs. The window therefore contains zero comparable successful full build-and-deploy runs, below the required five. Across the 16 freshness-only successes, workflow wall time had a 17-second median and 27-second nearest-rank p90; initial queue time had a 3-second median and 7-second p90; schedule-freshness execution had a 13-second median and 22-second p90. docs.yml has no separate dashboard job, and dependency installation, Astro generation, dashboard reuse, artifact transfer, Pages packaging, deployment, and cache hit/miss behavior were not exercised. Full workflow execution and build/deploy timing distributions and repeated artifact-cost analysis cannot be produced, so no evidence-backed recommendation can meet the 60-second or 15% threshold. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
