@@ -53,7 +53,7 @@ type ValueCollectionCost struct {
 
 func validateValueProofFiles(files []ValueProofFile) ([]ValueProofFile, error) {
 	if len(files) > ValueProofMaxFiles {
-		return nil, errors.New("Value proof file count exceeds its budget")
+		return nil, errors.New("value proof file count exceeds its budget")
 	}
 	result := slices.Clone(files)
 	var total int
@@ -63,21 +63,21 @@ func validateValueProofFiles(files []ValueProofFile) ([]ValueProofFile, error) {
 		if file.Path == "" || len(file.Path) > 512 || file.Path != path.Clean(file.Path) ||
 			path.IsAbs(file.Path) || file.Path == "." || strings.HasPrefix(file.Path, "../") ||
 			strings.Contains(file.Path, `\`) || seen[file.Path] {
-			return nil, errors.New("Value proof contains an unsafe or duplicate path")
+			return nil, errors.New("value proof contains an unsafe or duplicate path")
 		}
 		if len(file.Content) > ValueProofFileMax {
-			return nil, errors.New("Value proof file exceeds its byte budget")
+			return nil, errors.New("value proof file exceeds its byte budget")
 		}
 		total += len(file.Content)
 		if total > ValueProofMaxBytes {
-			return nil, errors.New("Value proof exceeds its byte budget")
+			return nil, errors.New("value proof exceeds its byte budget")
 		}
 		digest := fmt.Sprintf("%x", sha256.Sum256(file.Content))
 		if file.Digest == "" {
 			file.Digest = digest
 		}
 		if !valueProofDigest.MatchString(file.Digest) || file.Digest != digest {
-			return nil, errors.New("Value proof file digest is invalid")
+			return nil, errors.New("value proof file digest is invalid")
 		}
 		file.Content = slices.Clone(file.Content)
 		seen[file.Path] = true
@@ -99,7 +99,7 @@ func (s *Store) ReadValueProof(ctx context.Context, repository, workflow string)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	files := []ValueProofFile{}
 	for rows.Next() {
 		var file ValueProofFile
@@ -249,7 +249,7 @@ func (s *Store) ValueCollectionCostSource(ctx context.Context, since time.Time, 
 	if err != nil {
 		return model.Source{}, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	result := model.Source{Source: "value-collection-costs", Rows: []model.Row{}, Metadata: model.Metadata{
 		"source-id": "value-collection-costs", "availability": "available",
 		"completeness": "complete", "freshness": "current",
@@ -283,7 +283,7 @@ func (s *Store) ValueCollectionCostSource(ctx context.Context, since time.Time, 
 			"transport-bytes": row.TransportBytes, "last-failure-reason": optionalText(row.FailureReason),
 		})
 		if len(result.Rows) > limit {
-			return model.Source{}, errors.New("Value collection cost source exceeds its row budget")
+			return model.Source{}, errors.New("value collection cost source exceeds its row budget")
 		}
 	}
 	return result, rows.Err()

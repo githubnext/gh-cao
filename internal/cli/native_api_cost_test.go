@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -106,6 +108,23 @@ func TestNativeAPICostRetainedFailsWithoutDatabaseEvidence(t *testing.T) {
 	root.SetArgs([]string{"api-cost", "--database", file})
 	if err := root.Execute(); err == nil || !strings.Contains(err.Error(), "no retained Daily File Diet evidence") {
 		t.Fatalf("error=%v", err)
+	}
+}
+
+func TestNativeAPICostRejectsCountsOutsideIntRange(t *testing.T) {
+	maxIntExclusive := math.Ldexp(1, strconv.IntSize-1)
+	for _, field := range []string{"tracked-issues", "retained-implementations"} {
+		t.Run(field, func(t *testing.T) {
+			row := map[string]any{
+				"tracked-issues": 1.0, "retained-implementations": 1.0,
+				"observed-at": "2026-11-03T12:05:52.580Z", "window-end": "2026-11-03T11:54:09Z",
+			}
+			row[field] = maxIntExclusive
+			_, err := nativeAPICostPopulation([]any{row}, map[string]any{"availability": "available"}, "test")
+			if err == nil {
+				t.Fatal("expected an out-of-range count to be rejected")
+			}
+		})
 	}
 }
 

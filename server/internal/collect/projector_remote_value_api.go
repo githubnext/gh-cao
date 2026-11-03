@@ -663,7 +663,7 @@ func (a *remoteValueAPI) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			return
 		}
 		writer.Header().Set("Content-Type", "application/json")
-		_, _ = writer.Write(content)
+		_, _ = writer.Write(content) // #nosec G705 -- upstream GraphQL response is JSON-validated and nosniff is set.
 		return
 	}
 	if request.Method != http.MethodGet || request.URL.Path != "/api" {

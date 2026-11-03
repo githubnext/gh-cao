@@ -729,7 +729,7 @@ func DailyFileDietScenario(options DailyFileDietOptions) (Scenario, error) {
 			calibrated.GraphQLRequests < 0 || calibrated.GraphQLPointsObserved < 0 ||
 			calibrated.WallMS < 0 || calibrated.MaxWallMS < 0 || calibrated.OutputBytes < 0 ||
 			calibrated.TransportBytes < 0 || calibrated.Source == "" {
-			return Scenario{}, errors.New("Daily File Diet calibration is invalid")
+			return Scenario{}, errors.New("invalid Daily File Diet calibration")
 		}
 		attempts := float64(calibrated.Attempts)
 		actualCore = float64(calibrated.CoreRequests) / attempts

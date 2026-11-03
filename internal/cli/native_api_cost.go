@@ -538,18 +538,20 @@ func nativeAPICostPopulation(rows []any, metadata map[string]any, source string)
 		return apicost.Population{}, errors.New("no retained Daily File Diet evidence exists in the selected database")
 	}
 	if len(rows) != 1 {
-		return apicost.Population{}, errors.New("Daily File Diet population query returned an invalid row count")
+		return apicost.Population{}, errors.New("invalid Daily File Diet population query row count")
 	}
 	row := nativeObject(rows[0])
 	outputs, implementations := nativeNumber(row["tracked-issues"]), nativeNumber(row["retained-implementations"])
-	if math.IsNaN(outputs) || math.IsInf(outputs, 0) || outputs < 0 || outputs != math.Trunc(outputs) ||
+	maxIntExclusive := math.Ldexp(1, strconv.IntSize-1)
+	if math.IsNaN(outputs) || math.IsInf(outputs, 0) || outputs < 0 || outputs >= maxIntExclusive ||
+		outputs != math.Trunc(outputs) ||
 		math.IsNaN(implementations) || math.IsInf(implementations, 0) || implementations < 0 ||
-		implementations != math.Trunc(implementations) {
-		return apicost.Population{}, errors.New("Daily File Diet population query returned invalid counts")
+		implementations >= maxIntExclusive || implementations != math.Trunc(implementations) {
+		return apicost.Population{}, errors.New("invalid Daily File Diet population counts")
 	}
 	observedAt, windowEnd := nativeText(row["observed-at"]), nativeText(row["window-end"])
 	if observedAt == "" || windowEnd == "" {
-		return apicost.Population{}, errors.New("Daily File Diet population query returned invalid evidence clocks")
+		return apicost.Population{}, errors.New("invalid Daily File Diet population query evidence clocks")
 	}
 	return apicost.Population{
 		Outputs: int(outputs), Implementations: int(implementations),
