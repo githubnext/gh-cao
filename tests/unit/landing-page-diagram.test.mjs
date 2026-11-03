@@ -68,7 +68,7 @@ test("landing page presents the product through real operational surfaces", () =
   assert.doesNotMatch(terminalText, /(?<![\w-])cao\.sh|gh cao validate|gh aw run|--raw-field|integrate-cao-workflow/);
   assert.deepEqual(
     [...hero.matchAll(/<section class="product-story ([^"]+)"/g)].map(([, classes]) => classes),
-    ["dispatch-story", "maintenance-story", "terminal-story", "factory-story", "decision-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
+    ["dispatch-story", "maintenance-story", "terminal-story", "factory-story", "decision-story", "snippet-story evolution-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
   );
   assert.match(hero, /aria-labelledby="maintenance-title" data-reveal data-slideshow-slide/);
   assert.match(hero, /One control plane/);
@@ -129,13 +129,49 @@ test("landing page keeps the hero and supporting copy concise", () => {
   assert.ok(title && wordCount(title) <= 8, "hero headline should stay within eight words");
   assert.ok(tagline && wordCount(tagline) <= 40, "hero tagline should stay within forty words");
   const paragraphs = [...hero.matchAll(/<p>\s*([\s\S]*?)<\/p>/g)];
-  assert.equal(paragraphs.length, 11);
+  assert.equal(paragraphs.length, 12);
   const terminalParagraph = hero.match(/id="terminal-title"[\s\S]*?<p>\s*([\s\S]*?)<\/p>/)?.[1];
   for (const [, paragraph] of paragraphs) {
     const budget = paragraph === terminalParagraph ? 60 : 30;
     assert.ok(wordCount(paragraph) <= budget, `supporting paragraph should stay within ${budget} words`);
   }
   assert.doesNotMatch(hero, /<ul class="story-points">/);
+});
+
+test("enterprise evolution connects multi-agent sessions to reviewed optimizer updates", () => {
+  const story = hero.match(/<section class="product-story snippet-story evolution-story"[\s\S]*?<\/section>/)?.[0];
+  const evolution = readFileSync("docs/components/HeroEnterpriseEvolution.astro", "utf8");
+  assert.ok(story);
+  assert.match(story, /Evolution at the Enterprise Scale/);
+  assert.match(story, /Hundreds of Copilot, Claude, and Codex agents work across many repositories/);
+  assert.match(story, /<HeroEnterpriseEvolution \/>/);
+  assert.match(story, /data-reveal data-slideshow-slide/);
+  assert.match(story, /href="\/gh-cao\/dashboard-data-ingestion\/#query-the-private-session-archive"/);
+  assert.deepEqual(
+    [...evolution.matchAll(/<strong>([^<]+)<\/strong>/g)].map(([, title]) => title),
+    ["Many agents. Unified sessions.", "Ingest into a data lake", "Query with ADX", "Update the agent"],
+  );
+  for (const text of [
+    "Azure Blob Storage + Parquet",
+    "Azure Data Explorer",
+    "Send query results to an optimizer agent",
+    "Reviewed updates feed the next round of sessions",
+    "Architecture pattern.",
+    "private archive is opt-in",
+    "review and rollout policy",
+  ]) assert.ok(evolution.includes(text), text);
+  for (const edge of ["agents-to-lake", "lake-to-adx", "adx-to-optimizer", "optimizer-to-agents"]) {
+    assert.ok(evolution.includes(`data-edge="${edge}"`), `closed-loop connection: ${edge}`);
+  }
+  assert.match(evolution, /Review gate/);
+  assert.match(evolution, /grid-area: 3 \/ 1/);
+  assert.match(evolution, /grid-area: 3 \/ 3/);
+  assert.match(evolution, /--blueprint-grid/);
+  assert.match(evolution, /stroke-dasharray/);
+  assert.equal([...evolution.matchAll(/class="signal-port /g)].length, 8);
+  assert.match(evolution, /radial-gradient\(circle/);
+  assert.match(evolution, /Block diagram \/ Closed loop/);
+  assert.doesNotMatch(evolution, /<script/);
 });
 
 test("README routes detailed tasks without rebuilding their chapter structure", () => {
