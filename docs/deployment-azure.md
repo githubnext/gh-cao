@@ -181,6 +181,10 @@ optional destination; `main.bicep` includes it only with `adxEnabled=true`.
 The default remains false: no Kusto resources, private endpoint, ADX DNS zone,
 or additional subnet are created. Existing free or operator-managed destinations
 do not need this module; leave it disabled and use their reviewed endpoint.
+The native deployment preflight does not require `Microsoft.Kusto`
+registration, Kusto write permissions, or regional Kusto availability while
+this destination is disabled. Application Insights and Log Analytics do not
+require this resource provider.
 
 For a new destination, use the manual Bicep deployment below with these additional
 reviewed parameters (the native `gh cao deploy azure` configuration does not yet

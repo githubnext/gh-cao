@@ -555,7 +555,7 @@ func TestDeployAzurePostgresNameCheckUsesSupportedAPIVersion(t *testing.T) {
 
 	preflight := deployAzurePreflight{
 		config:   deployAzureConfig{Subscription: testDeploySubscription, Location: "westus3"},
-		template: deployAzureTemplateFactsFrom(content),
+		template: deployAzureTemplateFactsFrom(content, nil),
 	}
 	args := preflight.restNameArgs("Microsoft.DBforPostgreSQL", "Microsoft.DBforPostgreSQL/flexibleServers", "synthetic-test-pg")
 	if !strings.Contains(strings.Join(args, " "), "/locations/westus3/checkNameAvailability?api-version=2024-08-01") {

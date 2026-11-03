@@ -24,7 +24,7 @@ func testDeployProviders(t *testing.T, state, location string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	facts := deployAzureTemplateFactsFrom(content)
+	facts := deployAzureTemplateFactsFrom(content, nil)
 	type resourceType struct {
 		ResourceType string   `json:"resourceType"`
 		Locations    []string `json:"locations"`
