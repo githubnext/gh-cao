@@ -1889,6 +1889,9 @@ not authorize cross-repository evidence access.
 - `specs/control-architecture.md` defines authority, admission, and execution
   invariants.
 - `specs/activity.md` defines evidence collection and snapshot semantics.
+- `specs/value.md` defines the cross-subsystem Value contract, including
+  measurement meaning, collection lanes, retention, webhook hints, archive
+  linkage, and bounded failure diagnostics.
 - `specs/dashboard-data.md` defines the canonical data architecture.
 - `specs/dashboard.md` defines the dashboard product contract.
 - `specs/repository-layout-and-installation.md` defines canonical runtime layout and installation conformance.

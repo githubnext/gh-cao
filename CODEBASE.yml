@@ -305,6 +305,9 @@ components:
   computations:
     path: specs/computations.md
     responsibility: define deterministic partitioned measures that transform canonical evidence into bounded actionable insights
+  value_contract:
+    path: specs/value.md
+    responsibility: define the cross-subsystem Value contract for frozen repository outcomes, canonical Value populations and clocks, 365-day compact retention independent of seven-day detail, explicit publication and collection lanes, protected remote API admission, webhook hints, private session-archive linkage, bounded failure diagnostics, and declarative presentation without granting rollout or collection authority
   package_operational_value:
     path: <operation>/operational-value.mjs
     responsibility: compute timestamped repository-scoped metrics for installed packages through the cao operational-value command

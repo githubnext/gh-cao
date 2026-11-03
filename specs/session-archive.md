@@ -22,6 +22,11 @@ full traces. Dashboard SQLite/overlay, IndexedDB, JSONL publication, and ordinar
 dashboard query behavior MUST remain unchanged. There is no frontend or
 automatic cross-store join.
 
+When a Value collector requests exact producer linkage, the additional
+authority, evidence-meaning, and privacy boundary is defined by
+[`value.md`](value.md#8-private-archive-linkage). Archive availability never
+establishes outcome acceptance, canonical Value freshness, or Git evidence.
+
 ## 1. Acquisition and authority
 
 Archive enablement MUST NOT grant acquisition authority. Capture receives the

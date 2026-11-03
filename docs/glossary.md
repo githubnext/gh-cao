@@ -164,7 +164,7 @@ A later repository-state observation of what happened to a safe output, such as 
 
 ## Operational value
 
-A campaign-defined, timestamped numeric metric for one repository and campaign. An installed campaign computes these records through its `operational-value.mjs`; operational value is not inferred from run volume, safe-output count, grader output, or activity alone.
+The degree to which a workflow's intended repository outcome is attained across eligible opportunities, demonstrated by accepted evidence under a frozen measurement contract. Compact observations preserve native repository-scoped metrics at a fixed cadence; richer packets may preserve intent, accepted-change lineage, independent snapshots, quality, and coverage. Operational value counts the outcome regardless of actor and is not inferred from run volume, safe-output count, grader output, or activity alone. See the [Value specification](https://github.com/githubnext/gh-cao/blob/main/specs/value.md).
 
 ## Operational grader
 
@@ -196,7 +196,7 @@ One execution of a coordinator, worker, or standalone workflow. A coordinator ru
 
 ## Run-linked detail
 
-The Domain, Tool, Skill, Friction, Audit, Issue, experiment assignment, grader observation, and eval observation records attached to a Run. Browser IndexedDB and the Activity SQLite projection expire run-linked detail after a bounded 7-day window by default while retaining the Run and Operational Value records themselves for 30 days; the Go server's canonical Postgres schema expires the same run-linked tables independently from run retention on its own configurable window. Expiring run-linked detail MUST NOT remove its retained Run or the Run's structural parents. See `specs/dashboard-data.md` and [Activity](activity.md).
+The Domain, Tool, Skill, Friction, Audit, Issue, experiment assignment, grader observation, and eval observation records attached to a Run. Browser IndexedDB and the Activity SQLite projection expire run-linked detail after a bounded 7-day window by default while retaining Run summaries for 30 days and compact Operational Value records for at least 365 days; the Go server's canonical Postgres schema expires the same run-linked tables independently from run retention on its own configurable window. Rich current Value evidence and collection health remain independent of Run-detail expiry. Expiring run-linked detail MUST NOT remove its retained Run or the Run's structural parents. See `specs/dashboard-data.md`, `specs/value.md`, and [Activity](activity.md).
 
 ## Rollout mode
 

@@ -25,7 +25,8 @@ rollout policy, or durable operational outcomes.
 Implementers should read `docs/activity.md` first, then this specification,
 `specs/dashboard-data.md`, and the collection implementation under `activity/`.
 Historical reconstruction of campaign-defined operational-value observations is
-defined by `specs/operational-value-history.md`.
+defined by `specs/operational-value-history.md`; their cross-subsystem Value
+semantics, collection lanes, and retention are defined by `specs/value.md`.
 
 ## 1. Status and conformance
 

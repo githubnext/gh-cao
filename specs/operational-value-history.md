@@ -22,6 +22,11 @@ campaign adapter exchange, observation schedule, retention and idempotency
 rules, validation, retirement, cadence compaction, publication, and failure
 behavior.
 
+The cross-subsystem Value contract is defined by
+[`value.md`](value.md). This document owns compact observation reconstruction;
+it does not define rich evidence packets, current-only remote collector
+registration, webhook invalidation, or private session-archive linkage.
+
 The protocol is shared by the Activity command-line collector and the Go server
 collector. It enables one compliance suite to exercise both implementations
 without treating either implementation as the normative oracle.

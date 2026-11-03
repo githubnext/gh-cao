@@ -57,9 +57,11 @@ by the next scheduled trigger; GitHub Actions queues at most one pending
 refresh behind it.
 
 Runs collect a rolling 30-day window and recent artifact detail. The Activity
-SQLite projection retains Run and Operational Value records for 30 days by
-default while expiring run-linked detail after seven days. Historical archives
-can override these windows explicitly.
+SQLite projection retains Run records for 30 days and compact Operational Value
+records for at least 365 days by default while expiring run-linked detail after
+seven days. Rich current Value evidence and collection-health records are not
+shortened by Run-detail expiry. Historical archives can override these windows
+explicitly.
 
 ## Cache contract
 
