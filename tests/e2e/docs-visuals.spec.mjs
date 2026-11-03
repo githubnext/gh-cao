@@ -124,7 +124,7 @@ for (const colorScheme of ["light", "dark"]) {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
       expect((await page.goto("./"))?.ok()).toBe(true);
-      await expect(page.locator(".product-story")).toHaveCount(10);
+      await expect(page.locator(".product-story")).toHaveCount(11);
       await expect(page.locator(".hero-callout, .evidence-storyboard")).toHaveCount(0);
       await expect(page.locator(".phone-preview figcaption")).toBeVisible();
       await expect(page.locator(".phone-preview figcaption")).toContainText("not verified improvements");

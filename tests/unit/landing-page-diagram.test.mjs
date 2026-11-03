@@ -68,7 +68,7 @@ test("landing page presents the product through real operational surfaces", () =
   assert.doesNotMatch(terminalText, /(?<![\w-])cao\.sh|gh cao validate|gh aw run|--raw-field|integrate-cao-workflow/);
   assert.deepEqual(
     [...hero.matchAll(/<section class="product-story ([^"]+)"/g)].map(([, classes]) => classes),
-    ["dispatch-story", "maintenance-story", "terminal-story", "factory-story", "decision-story", "snippet-story evolution-story", "snippet-story backend-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story", "safety-story"],
+    ["dispatch-story", "maintenance-story", "terminal-story", "factory-story", "decision-story", "repo-assist-story", "snippet-story evolution-story", "snippet-story backend-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story", "safety-story"],
   );
   assert.match(hero, /aria-labelledby="maintenance-title" data-reveal data-slideshow-slide/);
   assert.match(hero, /One control plane/);
@@ -130,13 +130,35 @@ test("landing page keeps the hero and supporting copy concise", () => {
   assert.ok(title && wordCount(title) <= 8, "hero headline should stay within eight words");
   assert.ok(tagline && wordCount(tagline) <= 40, "hero tagline should stay within forty words");
   const paragraphs = [...hero.matchAll(/<p>\s*([\s\S]*?)<\/p>/g)];
-  assert.equal(paragraphs.length, 14);
+  assert.equal(paragraphs.length, 15);
   const terminalParagraph = hero.match(/id="terminal-title"[\s\S]*?<p>\s*([\s\S]*?)<\/p>/)?.[1];
   for (const [, paragraph] of paragraphs) {
     const budget = paragraph === terminalParagraph ? 60 : 30;
     assert.ok(wordCount(paragraph) <= budget, `supporting paragraph should stay within ${budget} words`);
   }
   assert.doesNotMatch(hero, /<ul class="story-points">/);
+});
+
+test("Repo Assist reconstructs the reference with the supplied flying agent and trail assets", () => {
+  const chart = readFileSync("docs/components/HeroRepoAssist.astro", "utf8");
+  assert.match(hero, /aria-labelledby="repo-assist-title" data-reveal data-slideshow-slide/);
+  assert.match(hero, /<HeroRepoAssist \/>/);
+  assert.match(chart, /class="burndown-plot" viewBox="0 0 1060 600"/);
+  assert.match(chart, /aria-describedby="repo-assist-plot-description"/);
+  assert.match(chart, /var\(--cao-story-heading\)/);
+  assert.match(chart, /var\(--sl-color-text-accent\)/);
+  assert.match(chart, /repo-assist-agent\.png/);
+  assert.match(chart, /repo-assist-trail\.png/);
+  assert.match(chart, /class="flying-agents"/);
+  assert.equal([...chart.matchAll(/class="flying-agent"/g)].length, 1);
+  assert.equal([...chart.matchAll(/class="agent-trail"/g)].length, 1);
+  assert.equal([...chart.matchAll(/class="agent-figure"/g)].length, 1);
+  assert.match(chart, /value: 90[\s\S]*value: 62[\s\S]*value: 32/);
+  assert.match(chart, /x=\{x\(finalDay\)\}/);
+  assert.match(chart, /preserveAspectRatio="none"/);
+  assert.doesNotMatch(chart, /repo-assist-bot|assist-bot|bot-shell|bot-eye|robot-trails|repo-assist-copilot/);
+  assert.match(chart, /Traces are approximate; original measurements were not provided/);
+  assert.doesNotMatch(chart, /<img\b|<canvas\b|<script\b|https?:\/\//);
 });
 
 test("safety follows Agentic Workflows and recreates the layered security diagram", () => {
