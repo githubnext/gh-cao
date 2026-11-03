@@ -13,11 +13,12 @@ for (const colorScheme of ["light", "dark"]) {
         .toHaveAttribute("href", "/gh-cao/repo-assist-quickstart/");
       await expect(section.getByRole("img", { name: "Open issues before and after Repo Assist adoption", exact: true })).toBeVisible();
       await expect(section.locator(".repository-legend li")).toHaveCount(14);
-      await expect(section.locator("img, image, canvas")).toHaveCount(0);
+      await expect(section.locator("img, canvas")).toHaveCount(0);
       await expect(section.locator(".repository-traces > path")).toHaveCount(14);
       await expect(section.locator(".repository-traces > .dashed")).toHaveCount(4);
-      await expect(section.locator(".motion-trails > path")).toHaveCount(3);
       await expect(section.locator(".flying-agents > .flying-agent")).toHaveCount(3);
+      await expect(section.locator(".flying-agents .agent-trail")).toHaveCount(3);
+      await expect(section.locator(".flying-agents .agent-figure")).toHaveCount(3);
       await expect(section.locator(".adoption-marker")).toContainText("Adoption day");
       await expect(section.locator("figcaption")).toContainText("Traces are approximate");
       await expect(section.locator("figcaption")).toContainText("not live CAO data or evidence of causation");

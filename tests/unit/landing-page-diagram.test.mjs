@@ -112,7 +112,7 @@ test("landing page keeps the hero and supporting copy concise", () => {
   assert.doesNotMatch(hero, /<ul class="story-points">/);
 });
 
-test("Repo Assist reconstructs the reference with theme-aware native graphics, not an image", () => {
+test("Repo Assist reconstructs the reference with the supplied flying agent and trail assets", () => {
   const chart = readFileSync("docs/components/HeroRepoAssist.astro", "utf8");
   assert.match(hero, /aria-labelledby="repo-assist-title" data-reveal data-slideshow-slide/);
   assert.match(hero, /<HeroRepoAssist \/>/);
@@ -120,14 +120,15 @@ test("Repo Assist reconstructs the reference with theme-aware native graphics, n
   assert.match(chart, /aria-describedby="repo-assist-plot-description"/);
   assert.match(chart, /var\(--cao-story-heading\)/);
   assert.match(chart, /var\(--sl-color-text-accent\)/);
-  assert.match(chart, /id="repo-assist-copilot"/);
+  assert.match(chart, /repo-assist-agent\.png/);
+  assert.match(chart, /repo-assist-trail\.png/);
   assert.match(chart, /class="flying-agents"/);
   assert.equal([...chart.matchAll(/class="flying-agent"/g)].length, 3);
-  assert.equal([...chart.matchAll(/<g class="motion-trails"[\s\S]*?<\/g>/g)][0]?.[0].match(/<path /g)?.length, 3);
-  assert.match(chart, /repo-assist-agent-gradient/);
-  assert.doesNotMatch(chart, /repo-assist-bot|assist-bot|bot-shell|bot-eye|robot-trails/);
+  assert.equal([...chart.matchAll(/class="agent-trail"/g)].length, 3);
+  assert.equal([...chart.matchAll(/class="agent-figure"/g)].length, 3);
+  assert.doesNotMatch(chart, /repo-assist-bot|assist-bot|bot-shell|bot-eye|robot-trails|repo-assist-copilot/);
   assert.match(chart, /Traces are approximate; original measurements were not provided/);
-  assert.doesNotMatch(chart, /<img\b|<image\b|<canvas\b|<script\b|https?:\/\//);
+  assert.doesNotMatch(chart, /<img\b|<canvas\b|<script\b|https?:\/\//);
 });
 
 test("enterprise evolution connects multi-agent sessions to reviewed optimizer updates", () => {
