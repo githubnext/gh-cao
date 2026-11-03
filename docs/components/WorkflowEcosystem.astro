@@ -68,7 +68,7 @@ const safeOutputs = [
               <p class="management-label">Repo-managed &middot; monitored</p>
               <div class="workflow-runs"><WorkflowRun name={repository.local} phase="local" compact /></div>
             </div>
-            <div class="safe-output-icons workflow-outputs" aria-label="Workflow safe outputs">
+            <div class="safe-output-icons workflow-outputs" role="group" aria-label="Workflow safe outputs">
               {[{
                 owner: "repository", source: repository.local, caption: repository.caption, phase: "local",
                 label: `Repository ${repository.output} safe output`, paths: safeOutputPaths[repository.output],
