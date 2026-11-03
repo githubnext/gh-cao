@@ -8,6 +8,7 @@ import HeroWorkflowSnippet from "./HeroWorkflowSnippet.astro";
 import HeroControlDiagram from "./HeroControlDiagram.astro";
 import HeroDecisionLoop from "./HeroDecisionLoop.astro";
 import HeroEnterpriseEvolution from "./HeroEnterpriseEvolution.astro";
+import HeroRepoAssist from "./HeroRepoAssist.astro";
 import dashboardMobileOverview from "../assets/product/cao-dashboard-mobile-overview.png";
 import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile-overview-light.png";
 ---
@@ -139,6 +140,21 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
     </a>
   </div>
   <HeroDecisionLoop />
+</section>
+
+<section class="product-story repo-assist-story" aria-labelledby="repo-assist-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">From backlog to breathing room</p>
+    <h2 id="repo-assist-title">Repos that clean themselves</h2>
+    <p>
+      A before-and-after view of open issues around Repo Assist adoption.
+      Each trace is normalized to 100% on adoption day, making different backlog trajectories visible side by side.
+    </p>
+    <a class="hero-story-link" href="/gh-cao/repo-assist-quickstart/">
+      Explore Repo Assist <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <HeroRepoAssist />
 </section>
 
 <section class="product-story snippet-story evolution-story" aria-labelledby="evolution-title" data-reveal data-slideshow-slide>
@@ -497,13 +513,15 @@ Open an issue with proposed fixes for human review.`}
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 
-    .evolution-story {
+    .evolution-story,
+    .repo-assist-story {
       grid-template-columns: minmax(0, 1fr);
       justify-items: center;
       gap: 2rem;
     }
 
-    .evolution-story .product-story-copy {
+    .evolution-story .product-story-copy,
+    .repo-assist-story .product-story-copy {
       max-width: 44rem;
       text-align: center;
     }

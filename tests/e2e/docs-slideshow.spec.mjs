@@ -9,6 +9,7 @@ const slideTitles = [
   "Easy upkeep",
   "Roll out with confidence.",
   "Use evidence to decide what scales.",
+  "Repos that clean themselves",
   "Evolution at the Enterprise Scale",
   "Webhook Gateway",
   "Built on Agentic Workflows",
@@ -268,7 +269,7 @@ for (const theme of ["light", "dark"]) {
         }).toBe(true);
         expect(await slide.evaluate(element => {
           const bounds = element.getBoundingClientRect();
-          return [...element.querySelectorAll("h1, h2, .docs-hero-intro, .hero-visual, .phone-preview, .product-story-copy, .terminal, .dispatch-illustration, .product-shot, .workflow-example, .control-diagram, .decision-loop, .enterprise-evolution")]
+          return [...element.querySelectorAll("h1, h2, .docs-hero-intro, .hero-visual, .phone-preview, .product-story-copy, .terminal, .dispatch-illustration, .product-shot, .workflow-example, .control-diagram, .decision-loop, .enterprise-evolution, .repo-assist-chart")]
             .filter(child => child.checkVisibility())
             .every(child => {
               const content = child.getBoundingClientRect();

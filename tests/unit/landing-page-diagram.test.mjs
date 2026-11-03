@@ -68,7 +68,7 @@ test("landing page presents the product through real operational surfaces", () =
   assert.doesNotMatch(terminalText, /(?<![\w-])cao\.sh|gh cao validate|gh aw run|--raw-field|integrate-cao-workflow/);
   assert.deepEqual(
     [...hero.matchAll(/<section class="product-story ([^"]+)"/g)].map(([, classes]) => classes),
-    ["dispatch-story", "maintenance-story", "terminal-story", "decision-story", "snippet-story evolution-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
+    ["dispatch-story", "maintenance-story", "terminal-story", "decision-story", "repo-assist-story", "snippet-story evolution-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
   );
   assert.match(hero, /aria-labelledby="maintenance-title" data-reveal data-slideshow-slide/);
   assert.match(hero, /One control plane/);
@@ -103,13 +103,25 @@ test("landing page keeps the hero and supporting copy concise", () => {
   assert.ok(title && wordCount(title) <= 8, "hero headline should stay within eight words");
   assert.ok(tagline && wordCount(tagline) <= 40, "hero tagline should stay within forty words");
   const paragraphs = [...hero.matchAll(/<p>\s*([\s\S]*?)<\/p>/g)];
-  assert.equal(paragraphs.length, 8);
+  assert.equal(paragraphs.length, 9);
   const terminalParagraph = hero.match(/id="terminal-title"[\s\S]*?<p>\s*([\s\S]*?)<\/p>/)?.[1];
   for (const [, paragraph] of paragraphs) {
     const budget = paragraph === terminalParagraph ? 60 : 30;
     assert.ok(wordCount(paragraph) <= budget, `supporting paragraph should stay within ${budget} words`);
   }
   assert.doesNotMatch(hero, /<ul class="story-points">/);
+});
+
+test("Repo Assist reconstructs the reference with theme-aware native graphics, not an image", () => {
+  const chart = readFileSync("docs/components/HeroRepoAssist.astro", "utf8");
+  assert.match(hero, /aria-labelledby="repo-assist-title" data-reveal data-slideshow-slide/);
+  assert.match(hero, /<HeroRepoAssist \/>/);
+  assert.match(chart, /class="burndown-plot" viewBox="0 0 1000 600"/);
+  assert.match(chart, /aria-describedby="repo-assist-plot-description"/);
+  assert.match(chart, /var\(--cao-story-heading\)/);
+  assert.match(chart, /var\(--sl-color-text-accent\)/);
+  assert.match(chart, /Traces are approximate; original measurements were not provided/);
+  assert.doesNotMatch(chart, /<img\b|<image\b|<canvas\b|<script\b|https?:\/\/|linearGradient/);
 });
 
 test("enterprise evolution connects multi-agent sessions to reviewed optimizer updates", () => {
