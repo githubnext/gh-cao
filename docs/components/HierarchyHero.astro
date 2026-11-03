@@ -7,6 +7,7 @@ import ThemeImage from "./ThemeImage.astro";
 import HeroWorkflowSnippet from "./HeroWorkflowSnippet.astro";
 import HeroControlDiagram from "./HeroControlDiagram.astro";
 import HeroDecisionLoop from "./HeroDecisionLoop.astro";
+import HeroEnterpriseEvolution from "./HeroEnterpriseEvolution.astro";
 import dashboardMobileOverview from "../assets/product/cao-dashboard-mobile-overview.png";
 import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile-overview-light.png";
 ---
@@ -139,6 +140,22 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
   </div>
   <HeroDecisionLoop />
 </section>
+
+<section class="product-story snippet-story evolution-story" aria-labelledby="evolution-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">From individual runs to fleet-wide learning</p>
+    <h2 id="evolution-title">Evolution at the Enterprise Scale</h2>
+    <p>
+      Hundreds of Copilot, Claude, and Codex agents work across many repositories.
+      Unified sessions turn that experience into evidence for an optimizer agent to improve the next iteration.
+    </p>
+    <a class="hero-story-link" href="/gh-cao/dashboard-data-ingestion/#query-the-private-session-archive">
+      Explore unified session evidence <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <HeroEnterpriseEvolution />
+</section>
+
 <section class="product-story snippet-story webhook-story" aria-labelledby="webhook-title" data-reveal data-slideshow-slide>
   <div class="product-story-copy">
     <p class="section-eyebrow">Events here. Workflows there.</p>
@@ -473,6 +490,17 @@ includes:
 
     .snippet-story {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .evolution-story {
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
+      gap: 2rem;
+    }
+
+    .evolution-story .product-story-copy {
+      max-width: 44rem;
+      text-align: center;
     }
 
     .hero-story-link {

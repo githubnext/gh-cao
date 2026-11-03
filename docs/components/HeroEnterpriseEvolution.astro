@@ -1,0 +1,361 @@
+<figure class="enterprise-evolution" aria-label="Enterprise agent evolution feedback loop">
+  <div class="blueprint">
+    <header class="blueprint-header">
+      <span class="model-name">Enterprise evolution</span>
+      <span>Block diagram / Closed loop</span>
+    </header>
+    <div class="blueprint-circuit">
+      <ol class="evolution-stages">
+        <li class="agent-bank">
+          <span class="signal-port input-port update-port" aria-hidden="true"></span>
+          <span class="signal-port output-port session-port" aria-hidden="true"></span>
+          <div class="block-id"><span>01 / Agent fleet</span><span>Session[]</span></div>
+          <svg viewBox="0 0 80 40" aria-hidden="true">
+            <path d="M3 30V12h20v18H3Zm27 0V6h20v24H30Zm27 0V12h20v18H57ZM13 30v7h54v-7M40 30v7" />
+            <path d="M8 18h10M35 12h10M62 18h10" />
+          </svg>
+          <strong>Many agents. Unified sessions.</strong>
+          <span>Copilot · Claude · Codex</span>
+          <small>Hundreds of agents across many repositories</small>
+        </li>
+        <li class="session-lake">
+          <span class="signal-port input-port session-port" aria-hidden="true"></span>
+          <span class="signal-port output-port archive-port" aria-hidden="true"></span>
+          <div class="block-id"><span>02 / Evidence store</span><span>Parquet</span></div>
+          <svg viewBox="0 0 80 40" aria-hidden="true">
+            <ellipse cx="40" cy="8" rx="26" ry="6" />
+            <path d="M14 8v24c0 8 52 8 52 0V8M14 20c0 8 52 8 52 0" />
+          </svg>
+          <strong>Ingest into a data lake</strong>
+          <span>Azure Blob Storage + Parquet</span>
+          <small>Approved, private unified-session evidence</small>
+        </li>
+        <li class="analytics-block">
+          <span class="signal-port input-port archive-port" aria-hidden="true"></span>
+          <span class="signal-port output-port result-port" aria-hidden="true"></span>
+          <div class="block-id"><span>03 / Measurement</span><span>Table</span></div>
+          <svg viewBox="0 0 80 40" aria-hidden="true">
+            <path d="M8 3v32h64M14 27h10l8-17 12 20 9-12h14" />
+            <path class="instrument-guide" d="M14 10h54M14 20h54" />
+          </svg>
+          <strong>Query with ADX</strong>
+          <span>Azure Data Explorer</span>
+          <small>Send query results to an optimizer agent</small>
+        </li>
+        <li class="optimizer-block">
+          <span class="signal-port input-port result-port" aria-hidden="true"></span>
+          <span class="signal-port output-port update-port" aria-hidden="true"></span>
+          <div class="block-id"><span>04 / Controller</span><span>Patch</span></div>
+          <svg viewBox="0 0 80 40" aria-hidden="true">
+            <path d="M12 9h56M12 20h56M12 31h56" />
+            <path class="instrument-knob" d="M25 5h8v8h-8zM49 16h8v8h-8zM33 27h8v8h-8z" />
+          </svg>
+          <strong>Update the agent</strong>
+          <span>Optimizer agent proposes improvements</span>
+          <small>Instructions, tools, and workflows</small>
+        </li>
+      </ol>
+      <div class="signal-route session-signal" data-edge="agents-to-lake" aria-hidden="true">
+        <span>Sessions</span>
+        <svg viewBox="0 0 80 24" preserveAspectRatio="none"><path d="M0 12h80m-8-7 8 7-8 7" /></svg>
+      </div>
+      <div class="signal-route query-signal" data-edge="lake-to-adx" aria-hidden="true">
+        <svg viewBox="0 0 24 80" preserveAspectRatio="none"><path d="M12 0v80m-7-8 7 8 7-8" /></svg>
+        <span>Query</span>
+      </div>
+      <div class="signal-route evidence-signal" data-edge="adx-to-optimizer" aria-hidden="true">
+        <span>Results</span>
+        <svg viewBox="0 0 80 24" preserveAspectRatio="none"><path d="M80 12H0m8-7-8 7 8 7" /></svg>
+      </div>
+      <div class="signal-route feedback-signal" data-edge="optimizer-to-agents" aria-hidden="true">
+        <svg viewBox="0 0 24 80" preserveAspectRatio="none"><path d="M12 80V0m-7 8 7-8 7 8" /></svg>
+        <span>Review gate</span>
+      </div>
+      <div class="loop-reference" aria-hidden="true"><span>Feedback<br />iteration</span></div>
+    </div>
+    <footer class="blueprint-footer">
+      <span class="feedback-key"></span>
+      <span>Reviewed updates feed the next round of sessions</span>
+      <span class="drawing-revision">Review-gated</span>
+    </footer>
+  </div>
+  <figcaption>
+    Architecture pattern. The private archive is opt-in; agent changes remain subject to review and rollout policy.
+    Read clockwise from the agent fleet; the review gate closes the feedback loop.
+  </figcaption>
+</figure>
+
+<style>
+  .enterprise-evolution {
+    --blueprint-ink: #27313b;
+    --blueprint-muted: #59636e;
+    --blueprint-rule: #b6bec7;
+    --blueprint-grid: #c4cbd3;
+    --blueprint-paper: #f6f7f9;
+    --blueprint-feedback: #176f32;
+    --session-wire: #1764aa;
+    --archive-wire: #8250b0;
+    --result-wire: #ad5700;
+    --agent-fill: #fff8ce;
+    --archive-fill: #f2eaff;
+    --analytics-fill: #e6f2ff;
+    --optimizer-fill: #fff0df;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    color: var(--blueprint-ink);
+  }
+
+  :global(:root[data-theme="dark"]) .enterprise-evolution {
+    --blueprint-ink: #e0e6ed;
+    --blueprint-muted: #a5b0bc;
+    --blueprint-rule: #52606d;
+    --blueprint-grid: #37434f;
+    --blueprint-paper: #19212a;
+    --blueprint-feedback: #7ee787;
+    --session-wire: #79baff;
+    --archive-wire: #c6a0f6;
+    --result-wire: #ffb86b;
+    --agent-fill: #34301c;
+    --archive-fill: #30243f;
+    --analytics-fill: #1b3047;
+    --optimizer-fill: #3b2b20;
+  }
+
+  .blueprint {
+    border: 1px solid var(--blueprint-rule);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--blueprint-paper);
+    background-image: radial-gradient(circle, var(--blueprint-grid) 0.75px, transparent 0.75px);
+    background-size: 0.875rem 0.875rem;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08);
+  }
+
+  .blueprint-header,
+  .blueprint-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: color-mix(in srgb, var(--blueprint-rule) 14%, var(--blueprint-paper));
+    font: 500 0.6875rem/1.5 "Mona Sans Mono", monospace;
+    letter-spacing: 0.015em;
+  }
+
+  .blueprint-header { border-bottom: 1px solid var(--blueprint-rule); }
+
+  .model-name {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-weight: 600;
+  }
+
+  .model-name::before {
+    width: 0.625rem;
+    height: 0.625rem;
+    border: 2px solid var(--session-wire);
+    background: var(--analytics-fill);
+    box-shadow: 3px 3px 0 var(--blueprint-rule);
+    content: "";
+  }
+
+  .blueprint-circuit {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 5rem minmax(0, 1fr);
+    grid-template-rows: auto 5.5rem auto;
+    padding: 1.5rem;
+  }
+
+  .evolution-stages {
+    display: contents;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .evolution-stages li {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+    margin: 0;
+    border: 2px solid var(--block-accent);
+    border-radius: 0.25rem;
+    padding: 0.875rem;
+    background: var(--block-fill);
+    box-shadow: 3px 3px 0 color-mix(in srgb, var(--blueprint-rule) 55%, transparent);
+    text-align: center;
+  }
+
+  .agent-bank { grid-area: 1 / 1; --block-accent: var(--session-wire); --block-fill: var(--agent-fill); }
+  .session-lake { grid-area: 1 / 3; --block-accent: var(--archive-wire); --block-fill: var(--archive-fill); }
+  .analytics-block { grid-area: 3 / 3; --block-accent: var(--session-wire); --block-fill: var(--analytics-fill); }
+  .optimizer-block { grid-area: 3 / 1; --block-accent: var(--result-wire); --block-fill: var(--optimizer-fill); }
+
+  .signal-port {
+    position: absolute;
+    z-index: 1;
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1px solid var(--blueprint-paper);
+    background: var(--port-color);
+    box-shadow: 0 0 0 1px var(--port-color);
+    transform: translate(-50%, -50%);
+  }
+
+  .session-port { --port-color: var(--session-wire); }
+  .archive-port { --port-color: var(--archive-wire); }
+  .result-port { --port-color: var(--result-wire); }
+  .update-port { --port-color: var(--blueprint-feedback); }
+  .agent-bank .input-port,
+  .session-lake .output-port { top: calc(100% + 1px); left: 50%; }
+  .agent-bank .output-port,
+  .optimizer-block .input-port { top: 50%; left: calc(100% + 1px); }
+  .session-lake .input-port,
+  .analytics-block .output-port { top: 50%; left: -1px; }
+  .analytics-block .input-port,
+  .optimizer-block .output-port { top: -1px; left: 50%; }
+
+  .block-id {
+    display: flex;
+    align-self: stretch;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--block-accent) 35%, transparent);
+    padding-bottom: 0.5rem;
+    color: var(--block-accent);
+    font: 500 0.625rem/1.5 "Mona Sans Mono", monospace;
+    text-transform: uppercase;
+  }
+
+  svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linejoin: miter;
+  }
+
+  .evolution-stages svg {
+    width: 4rem;
+    height: 2rem;
+    margin-block: 0.25rem;
+    color: var(--block-accent);
+  }
+
+  .instrument-guide {
+    stroke: var(--blueprint-rule);
+    stroke-dasharray: 2 3;
+  }
+
+  .instrument-knob { fill: var(--block-fill); }
+
+  strong {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  li > span:not(.signal-port) {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
+  small {
+    max-width: 32ch;
+    color: var(--blueprint-muted);
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .signal-route {
+    position: relative;
+    display: grid;
+    place-items: center;
+  }
+
+  .signal-route > span {
+    position: absolute;
+    padding: 0.15rem 0.3rem;
+    background: var(--blueprint-paper);
+    font: 500 0.625rem/1.4 "Mona Sans Mono", monospace;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .session-signal { grid-area: 1 / 2; color: var(--session-wire); }
+  .query-signal { grid-area: 2 / 3; color: var(--archive-wire); }
+  .evidence-signal { grid-area: 3 / 2; color: var(--result-wire); }
+  .feedback-signal { grid-area: 2 / 1; color: var(--blueprint-feedback); }
+
+  .session-signal svg,
+  .evidence-signal svg { width: 100%; height: 1.5rem; }
+
+  .session-signal > span,
+  .evidence-signal > span { transform: translateY(-1rem); }
+
+  .query-signal svg,
+  .feedback-signal svg { width: 1.5rem; height: 100%; }
+
+  .feedback-signal svg { stroke-dasharray: 4 3; }
+
+  .signal-route path { stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+
+  .feedback-signal > span {
+    border: 1px solid var(--blueprint-feedback);
+    border-radius: 0.125rem;
+  }
+
+  .loop-reference {
+    grid-area: 2 / 2;
+    display: grid;
+    place-items: center;
+    border: 1px dashed var(--blueprint-rule);
+    border-radius: 0.125rem;
+    color: var(--blueprint-muted);
+    background: var(--blueprint-paper);
+    font: 500 0.5625rem/1.5 "Mona Sans Mono", monospace;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .blueprint-footer { justify-content: flex-start; border-top: 1px solid var(--blueprint-rule); }
+
+  .feedback-key {
+    width: 1.5rem;
+    flex: 0 0 auto;
+    border-top: 2px dashed var(--blueprint-feedback);
+  }
+
+  .drawing-revision { margin-left: auto; white-space: nowrap; }
+
+  figcaption {
+    margin-top: 0.75rem;
+    color: var(--cao-loop-muted);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  @media (max-width: 42rem) {
+    .blueprint-header,
+    .blueprint-footer { gap: 0.5rem; padding: 0.5rem; font-size: 0.5625rem; }
+    .blueprint-header > span:last-child,
+    .drawing-revision { display: none; }
+    .blueprint-circuit { grid-template-columns: minmax(0, 1fr) 2rem minmax(0, 1fr); padding: 1rem 0.625rem; }
+    .evolution-stages li { padding: 0.5rem 0.375rem; }
+    .block-id { justify-content: center; font-size: 0.5rem; }
+    .block-id > span:last-child { display: none; }
+    strong { font-size: 0.8125rem; }
+    li > span:not(.signal-port) { font-size: 0.6875rem; }
+    small { font-size: 0.625rem; }
+    .session-signal > span,
+    .evidence-signal > span,
+    .loop-reference { display: none; }
+    .signal-route > span { font-size: 0.5625rem; }
+  }
+</style>
