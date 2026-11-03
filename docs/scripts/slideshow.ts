@@ -72,12 +72,10 @@ export function createSlideshow(trigger: HTMLButtonElement): SlideshowController
     const height = deck.offsetHeight;
     if (!width || !height) return;
     const scale = Math.min(viewport.clientWidth / width, viewport.clientHeight / height);
-    const slideWidth = viewport.clientWidth / scale;
-    const slideHeight = viewport.clientHeight / scale;
-    deck.style.setProperty("--cao-slide-width", `${slideWidth}px`);
-    deck.style.setProperty("--cao-slide-height", `${slideHeight}px`);
-    deck.style.transform = `scale(${scale})`;
-    ink.setAttribute("viewBox", `0 0 ${slideWidth} ${slideHeight}`);
+    const left = (viewport.clientWidth - width * scale) / 2;
+    const top = (viewport.clientHeight - height * scale) / 2;
+    deck.style.transform = `translate(${left}px, ${top}px) scale(${scale})`;
+    ink.setAttribute("viewBox", `0 0 ${viewport.clientWidth / scale} ${viewport.clientHeight / scale}`);
   };
   const observer = new ResizeObserver(fit);
   observer.observe(viewport);

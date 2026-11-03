@@ -159,7 +159,7 @@ test("safety follows Agentic Workflows and recreates the layered security diagra
   assert.match(safety, /https:\/\/github\.github\.com\/gh-aw\/introduction\/architecture\//);
   assert.match(safety, /aria-label="Layered workflow safety: inputs, sandbox, and safe outputs"/);
   assert.match(safety, /:global\(:root\[data-theme="dark"\]\)/);
-  assert.match(safety, /@media \(max-width: 60rem\)/);
+  assert.match(safety, /@container cao-landing \(max-width: 60rem\)/);
   assert.doesNotMatch(safety, /<script|<img|<animate/);
 });
 
@@ -357,12 +357,13 @@ test("landing page shows shared and local workflows with explicit ownership", ()
   assert.match(hero, /Shared workflows\. Clear ownership\./);
   assert.match(hero, /\.product-story \{[^}]*width: min\(calc\(100% - 2rem\), 76rem\)/);
   assert.match(hero, /\.dispatch-story \{[^}]*grid-template-columns: minmax\(0, 1fr\);[^}]*gap: 0\.75rem/);
-  assert.match(hero, /\.dispatch-story > \.section-eyebrow \{[\s\S]*?justify-self: center/);
-  assert.match(hero, /\.dispatch-story > p:not\(\.section-eyebrow\) \{[^}]*max-width: 80ch/);
+  assert.match(hero, /dispatch-story[\s\S]*?<div class="product-story-copy">/);
+  assert.match(hero, /\.dispatch-story \.product-story-copy > p:not\(\.section-eyebrow\) \{[^}]*max-width: 80ch/);
   assert.match(hero, /\.dispatch-illustration \{[^}]*width: min\(100%, 72rem\);[^}]*margin: 1rem auto 0/);
-  assert.match(hero, /@media \(width > 72rem\) \{[\s\S]*?\.dispatch-illustration \{[^}]*width: min\(80%, 56rem\)/);
-  assert.match(hero, /\.dispatch-illustration :global\(\.workflow-ecosystem\) \{[^}]*width: auto;[^}]*zoom: 0\.8/);
-  assert.match(hero, /@media \(min-width: 64rem\) \{[\s\S]*?\.dispatch-story h2 \{[\s\S]*?white-space: nowrap/);
+  assert.match(hero, /\.dispatch-illustration :global\(\.workflow-ecosystem\) \{[^}]*width: auto;[^}]*zoom: 0\.55/);
+  assert.match(hero, /@container cao-landing \(min-width: 72rem\) \{[\s\S]*?aspect-ratio: 16 \/ 9/);
+  assert.match(hero, /\.product-story:nth-child\(odd\) > \.product-story-copy \{[^}]*grid-column: 2;[^}]*grid-row: 1/);
+  assert.match(hero, /\.product-story:nth-child\(odd\) > :last-child \{[^}]*grid-column: 1;[^}]*grid-row: 1/);
   assert.match(hero, /Enrolled repositories benefit from enterprise-, organization-, and repository-owned workflows working side by side/);
   assert.match(hero, /<WorkflowEcosystem \/>/);
   assert.doesNotMatch(hero, /DispatchIllustration/);
