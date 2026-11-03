@@ -76,12 +76,19 @@ for (const colorScheme of ["light", "dark"]) {
       const gateway = page.getByRole("region", { name: "Webhook Gateway", exact: true });
       await expect(page.getByRole("region", { name: "Admission Gate", exact: true })).toHaveCount(0);
       await expect(gateway).toContainText("reviewed enrollment");
-      await expect(gateway).toContainText("Dispatch events across repositories");
-      const routing = gateway.getByRole("figure", { name: "Cross-repository webhook dispatch" });
+      await expect(gateway).toContainText("Dispatch enrolled service events");
+      const routing = gateway.getByRole("figure", { name: "Service webhook dispatch" });
       await expect(routing).toBeVisible();
-      await expect(routing.locator(".source-repositories strong")).toHaveText(["acme/service-a", "acme/service-b"]);
-      await expect(routing.locator(".destination-repository strong")).toHaveText("acme/control");
-      await expect(routing).toContainText("Cross-repo dispatch");
+      await expect(routing.locator(".source-services strong")).toHaveText(["Linear", "Jira", "Sentry", "Azure DevOps"]);
+      await expect(routing.locator(".source-services svg")).toHaveCount(4);
+      for (const logo of await routing.locator(".source-services svg").all()) {
+        await expect(logo).toBeVisible();
+        await expect(logo.locator("path")).toHaveAttribute("d", /^M.+/);
+      }
+      await expect(routing.locator(".destination-repository strong")).toHaveText("Control repository");
+      await expect(routing).not.toContainText("acme/");
+      await expect(routing).toContainText("supported event adapter");
+      await expect(routing).toContainText("Workflow dispatch");
       await expect(gateway.locator("pre")).toHaveCount(0);
       await expect(gateway.getByRole("link", { name: "Explore the Webhook Gateway" }))
         .toHaveAttribute("href", /#webhook-gateway-operations$/);
@@ -111,7 +118,7 @@ test("landing stories remain visible without JavaScript", async ({ browser, base
       const section = page.getByRole("region", { name, exact: true });
       await expect(section).toBeVisible();
       await expect(section.getByRole("figure")).toBeVisible();
-      await expect(section.locator(".diagram-node")).toHaveCount(4);
+      await expect(section.locator(".diagram-node")).toHaveCount(6);
     }
     await expect(page.locator(".agentic-workflows-story .workflow-example-card")).toHaveCount(3);
     await expect(page.locator(".agentic-workflows-story pre code")).not.toBeEmpty();

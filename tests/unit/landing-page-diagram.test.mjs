@@ -166,16 +166,20 @@ test("landing campaign example uses the real Dependabot manifest without grantin
   assert.match(hero, /Reviewed policy controls scope, enablement, and review\/live mode/);
 });
 
-test("gateway hero diagram shows cross-repo dispatch without an admission section", () => {
+test("gateway hero diagram shows service logos and approved dispatch without an admission section", () => {
   const diagrams = readFileSync("docs/components/HeroControlDiagram.astro", "utf8");
   assert.match(hero, /<HeroControlDiagram \/>/);
   assert.doesNotMatch(hero, /Admission Gate|admission-story|admission-gate/);
   assert.doesNotMatch(diagrams, /Admission|admission|blocked-symbol|branched/);
-  assert.match(hero, /Dispatch events across repositories/);
-  assert.match(diagrams, /acme\/service-a/);
-  assert.match(diagrams, /acme\/service-b/);
-  assert.match(diagrams, /acme\/control/);
-  assert.match(diagrams, /Runs in the destination repository, not the event source/);
+  assert.match(hero, /Dispatch enrolled service events/);
+  for (const service of ["Linear", "Jira", "Sentry", "Azure DevOps"]) {
+    assert.ok(diagrams.includes(`name: "${service}"`));
+  }
+  assert.match(diagrams, /viewBox="0 0 24 24"[\s\S]*?d=\{service\.path\}/);
+  assert.doesNotMatch(diagrams, /acme\//);
+  assert.match(diagrams, /Control repository/);
+  assert.match(diagrams, /Runs in the destination repository, not the source service/);
+  assert.match(diagrams, /require enrollment and a supported event adapter/);
   assert.doesNotMatch(diagrams, /<script|data-slideshow-snippet/);
 });
 
