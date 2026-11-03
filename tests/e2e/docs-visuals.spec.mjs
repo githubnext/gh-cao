@@ -125,8 +125,10 @@ for (const colorScheme of ["light", "dark"]) {
       await story.scrollIntoViewIfNeeded();
       await expect(story.getByRole("heading", { name: "Understand your factory", exact: true })).toBeVisible();
       await expect(story).toContainText("Use OpenTelemetry");
-      await expect(story).toContainText("cost, failures, and friction in real time");
-      await expect(story.locator(".metric dt")).toHaveText(["Run cost", "Operational value", "Failures", "Friction"]);
+      await expect(story).toContainText("cost in AI Credits (AIC) and failures in real time");
+      await expect(story.locator(".metric dt")).toHaveText(["Run cost (AIC)", "Operational value", "Failures"]);
+      await expect(story.locator(".metric").first()).toContainText("24.80");
+      await expect(story).not.toContainText(/friction|\$\d/i);
       await expect(story.getByRole("img", { name: "Illustrative workflow activity over 24 hours" })).toBeVisible();
       await expect(story.locator(".trace-list li")).toHaveCount(3);
       await expect(story.locator("figcaption")).toContainText("not live telemetry");

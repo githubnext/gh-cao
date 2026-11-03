@@ -100,16 +100,17 @@ test("factory hero connects OpenTelemetry signals to independently verified valu
   const dashboard = readFileSync("docs/components/HeroFactoryDashboard.astro", "utf8");
   const story = hero.match(/<section class="product-story factory-story"[\s\S]*?<\/section>/)?.[0];
   assert.ok(story);
-  assert.match(story, /Use OpenTelemetry to understand cost, failures, and friction in real time/);
+  assert.match(story, /Use OpenTelemetry to understand cost in AI Credits \(AIC\) and failures in real time/);
   assert.match(story, /accepted outcomes to assess operational value/);
   assert.match(story, /href="\/gh-cao\/configuration\/#optional-observability"/);
   assert.match(story, /<HeroFactoryDashboard \/>/);
-  for (const label of ["Run cost", "Operational value", "Failures", "Friction", "Trace explorer"]) {
+  for (const label of ["Run cost (AIC)", "Operational value", "Failures", "Trace explorer"]) {
     assert.ok(dashboard.includes(label));
   }
   assert.match(dashboard, /Illustrative dashboard, not live telemetry/);
   assert.match(dashboard, /independently verified, accepted outcomes/);
   assert.match(dashboard, /successful traces alone are not proof of value/);
+  assert.doesNotMatch(`${story}\n${dashboard}`, /friction|\$\d/i);
   assert.match(dashboard, /role="img" aria-labelledby="factory-chart-title" aria-describedby="factory-chart-description"/);
   assert.doesNotMatch(dashboard, /<script|fetch\(|setInterval/);
 });

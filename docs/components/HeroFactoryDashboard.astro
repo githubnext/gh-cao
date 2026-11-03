@@ -1,9 +1,8 @@
 ---
 const metrics = [
-  { label: "Run cost", value: "$24.80", detail: "Observed spend", tone: "neutral" },
+  { label: "Run cost (AIC)", value: "24.80", detail: "Observed credits", tone: "neutral" },
   { label: "Operational value", value: "12", detail: "Accepted outcomes", tone: "success" },
   { label: "Failures", value: "3", detail: "Runs to investigate", tone: "danger" },
-  { label: "Friction", value: "8m", detail: "Waiting for tools", tone: "warning" },
 ];
 const traces = [
   { name: "dependency-review", status: "Completed", duration: "42s", tone: "success" },
@@ -107,7 +106,7 @@ const traces = [
   .time-window,
   .panel-heading > span { color: var(--monitor-muted); }
   .dashboard-body { display: grid; gap: 0.875rem; padding: 1rem; }
-  .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; margin: 0; }
+  .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin: 0; }
   .metric { min-width: 0; padding: 0.75rem 0.5rem; border: 1px solid var(--monitor-border); border-radius: 6px; background: var(--monitor-panel); }
   .metric dt { color: var(--monitor-muted); font-size: 0.625rem; }
   .metric dd { display: grid; gap: 0.2rem; margin: 0.5rem 0 0; }
