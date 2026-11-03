@@ -68,7 +68,7 @@ test("landing page presents the product through real operational surfaces", () =
   assert.doesNotMatch(terminalText, /(?<![\w-])cao\.sh|gh cao validate|gh aw run|--raw-field|integrate-cao-workflow/);
   assert.deepEqual(
     [...hero.matchAll(/<section class="product-story ([^"]+)"/g)].map(([, classes]) => classes),
-    ["dispatch-story", "maintenance-story", "terminal-story", "factory-story", "decision-story", "snippet-story evolution-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
+    ["dispatch-story", "maintenance-story", "terminal-story", "factory-story", "decision-story", "snippet-story evolution-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story", "safety-story"],
   );
   assert.match(hero, /aria-labelledby="maintenance-title" data-reveal data-slideshow-slide/);
   assert.match(hero, /One control plane/);
@@ -130,13 +130,37 @@ test("landing page keeps the hero and supporting copy concise", () => {
   assert.ok(title && wordCount(title) <= 8, "hero headline should stay within eight words");
   assert.ok(tagline && wordCount(tagline) <= 40, "hero tagline should stay within forty words");
   const paragraphs = [...hero.matchAll(/<p>\s*([\s\S]*?)<\/p>/g)];
-  assert.equal(paragraphs.length, 12);
+  assert.equal(paragraphs.length, 13);
   const terminalParagraph = hero.match(/id="terminal-title"[\s\S]*?<p>\s*([\s\S]*?)<\/p>/)?.[1];
   for (const [, paragraph] of paragraphs) {
     const budget = paragraph === terminalParagraph ? 60 : 30;
     assert.ok(wordCount(paragraph) <= budget, `supporting paragraph should stay within ${budget} words`);
   }
   assert.doesNotMatch(hero, /<ul class="story-points">/);
+});
+
+test("safety follows Agentic Workflows and recreates the layered security diagram", () => {
+  const safety = readFileSync("docs/components/HeroSafetyDiagram.astro", "utf8");
+  assert.match(hero, /agentic-workflows-story[\s\S]*?<\/section>\s*<section class="product-story safety-story"/);
+  assert.match(hero, /aria-labelledby="safety-title" data-reveal data-slideshow-slide/);
+  assert.match(hero, /Safety by design/);
+  assert.match(hero, /A sandbox enforces what the agent can access, do, and affect\./);
+  assert.match(hero, /<HeroSafetyDiagram \/>/);
+  for (const label of [
+    "Prompt Injection", "Permissions Abuse", "Data Exfiltration", "Malware Injection",
+    "Inputs", "Sandbox", "Safe Outputs", "Pull Requests", "Issues", "Web Pages",
+    "Read-only Permissions", "Zero Secrets", "Micro-VMs / Containers / Firewalls",
+    "Integrity Filtering", "Agent", "Threat Detection", "Create Issue", "Create Pull Request", "Send Message",
+  ]) assert.ok(safety.includes(label), label);
+  assert.match(safety, /Credentials stay outside the agent/);
+  assert.match(safety, /Only declared safe outputs may publish changes/);
+  assert.match(safety, /stage.id === "outputs"[\s\S]*?class="safety-detection">Threat Detection<\/strong>[\s\S]*?<ul>/);
+  assert.match(safety, /enforcement depends on detection mode/);
+  assert.match(safety, /https:\/\/github\.github\.com\/gh-aw\/introduction\/architecture\//);
+  assert.match(safety, /aria-label="Layered workflow safety: inputs, sandbox, and safe outputs"/);
+  assert.match(safety, /:global\(:root\[data-theme="dark"\]\)/);
+  assert.match(safety, /@media \(max-width: 60rem\)/);
+  assert.doesNotMatch(safety, /<script|<img|<animate/);
 });
 
 test("enterprise evolution connects multi-agent sessions to reviewed optimizer updates", () => {

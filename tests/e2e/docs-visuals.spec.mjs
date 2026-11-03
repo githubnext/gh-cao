@@ -10,6 +10,57 @@ const diagramPages = [
 ];
 
 for (const colorScheme of ["light", "dark"]) {
+  for (const width of [320, 390, 1024, 1440]) {
+    test(`workflow safety diagram renders at ${width}px in ${colorScheme}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+      await page.goto("./");
+      const story = page.getByRole("region", { name: "Safety by design", exact: true });
+      await story.scrollIntoViewIfNeeded();
+      await expect(story).toBeVisible();
+      await expect(page.locator(".agentic-workflows-story + .safety-story")).toHaveCount(1);
+      await expect(story.locator(".safety-threat")).toHaveText([
+        "Prompt Injection", "Permissions Abuse", "Data Exfiltration", "Malware Injection",
+      ]);
+      await expect(story.locator(".safety-label")).toHaveText(["Inputs", "Sandbox", "Safe Outputs"]);
+      await expect(story.locator(".safety-agent")).toHaveText("Agent");
+      const detection = story.locator(".safety-outputs .safety-detection");
+      await expect(detection).toHaveText("Threat Detection");
+      const detectionBounds = await detection.boundingBox();
+      const outputsBounds = await story.locator(".safety-outputs ul").boundingBox();
+      expect(detectionBounds.y + detectionBounds.height).toBeLessThanOrEqual(outputsBounds.y);
+      await expect(story).toContainText("Only declared safe outputs may publish changes");
+      await expect(story.getByRole("link", { name: "Security Architecture" }))
+        .toHaveAttribute("href", "https://github.github.com/gh-aw/introduction/architecture/");
+      const boxes = await story.locator(".safety-boundary").evaluateAll(nodes =>
+        nodes.map(node => {
+          const { x, y, width, height } = node.getBoundingClientRect();
+          const fits = [...node.querySelectorAll("ul, .safety-agent, .safety-detection")].every(child => {
+            const bounds = child.getBoundingClientRect();
+            return bounds.x >= x && bounds.right <= x + width;
+          });
+          return { x, y, width, height, fits };
+        }),
+      );
+      expect(boxes.every(box => box.fits)).toBe(true);
+      if (width <= 960) {
+        expect(boxes[1].y).toBeGreaterThan(boxes[0].y + boxes[0].height);
+        expect(boxes[2].y).toBeGreaterThan(boxes[1].y + boxes[1].height);
+      } else {
+        expect(boxes[1].x).toBeGreaterThan(boxes[0].x + boxes[0].width);
+        expect(boxes[2].x).toBeGreaterThan(boxes[1].x + boxes[1].width);
+        expect(boxes[0].y).toBe(boxes[2].y);
+      }
+      expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
+      await page.evaluate(() => document.fonts.ready);
+      const screenshot = testInfo.outputPath(`safety-${width}-${colorScheme}.png`);
+      await story.screenshot({ path: screenshot });
+      await testInfo.attach("Workflow safety diagram", { path: screenshot, contentType: "image/png" });
+    });
+  }
+}
+
+for (const colorScheme of ["light", "dark"]) {
   test(`retained Mermaid diagrams render with accessible descriptions in ${colorScheme}`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
@@ -73,7 +124,7 @@ for (const colorScheme of ["light", "dark"]) {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
       expect((await page.goto("./"))?.ok()).toBe(true);
-      await expect(page.locator(".product-story")).toHaveCount(8);
+      await expect(page.locator(".product-story")).toHaveCount(9);
       await expect(page.locator(".hero-callout, .evidence-storyboard")).toHaveCount(0);
       await expect(page.locator(".phone-preview figcaption")).toBeVisible();
       await expect(page.locator(".phone-preview figcaption")).toContainText("not verified improvements");
