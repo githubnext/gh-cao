@@ -100,6 +100,13 @@ test("factory hero connects OpenTelemetry signals to independently verified valu
   const dashboard = readFileSync("docs/components/HeroFactoryDashboard.astro", "utf8");
   const story = hero.match(/<section class="product-story factory-story"[\s\S]*?<\/section>/)?.[0];
   assert.ok(story);
+  assert.match(story, /CAO includes a dashboard with <a href="\/gh-cao\/dashboard\/">built-in views<\/a>/);
+  assert.match(story, /for workflow health, AIC cost, and operational value/);
+  assert.match(story, /optional, experimental/);
+  assert.match(story, /href="\/gh-cao\/dashboard-data-ingestion\/#query-the-private-session-archive">agent session lake<\/a>/);
+  assert.match(story, /powered by Kusto \(Azure Data Explorer\)/);
+  assert.match(story, /All three are <a href="\/gh-cao\/agent-analysis\/">agent-ready<\/a>/);
+  assert.match(story, /agents can mine approved evidence/);
   assert.match(story, /Use OpenTelemetry to understand cost in AI Credits \(AIC\) and failures in real time/);
   assert.match(story, /accepted outcomes to assess operational value/);
   assert.match(story, /href="\/gh-cao\/configuration\/#optional-observability"/);
@@ -122,7 +129,7 @@ test("landing page keeps the hero and supporting copy concise", () => {
   assert.ok(title && wordCount(title) <= 8, "hero headline should stay within eight words");
   assert.ok(tagline && wordCount(tagline) <= 40, "hero tagline should stay within forty words");
   const paragraphs = [...hero.matchAll(/<p>\s*([\s\S]*?)<\/p>/g)];
-  assert.equal(paragraphs.length, 8);
+  assert.equal(paragraphs.length, 11);
   const terminalParagraph = hero.match(/id="terminal-title"[\s\S]*?<p>\s*([\s\S]*?)<\/p>/)?.[1];
   for (const [, paragraph] of paragraphs) {
     const budget = paragraph === terminalParagraph ? 60 : 30;
