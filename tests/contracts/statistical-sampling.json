@@ -10,6 +10,7 @@
     "frame-binding": "Full-population frame identities survive filtering, projection and input replay",
     "clock-validity": "Recorded canonical clocks only; pending/expired evidence and incomplete frames cannot invent weights",
     "input-budgets": "Candidate/byte limits and cancellation fail closed without suppressing independent exact queries",
+    "candidate-range-pushdown": "Historical terminal Runs outside the recorded seven-day frame do not consume candidate row or byte budgets",
     "owned-evidence": "Owned observations inherit selected Run membership and frame bindings",
     "sample-composition": "Shipped query remains unweighted sample composition, not exact or population totals",
     "activity-publication": "Real Activity workflow publication, replay, corrections and recycle preserve the statistical source",
@@ -41,7 +42,8 @@
         "allocation-parity": "shares framed SHA256 priorities and largest-remainder/failure-reserve golden membership with Go",
         "frame-binding": "binds weights to the entire eligible population, including unselected and zero-allocation candidates",
         "clock-validity": "never invents weights for incomplete frames, conflicting duplicates, invalid or missing timestamps",
-        "input-budgets": "keeps exact queries available and skips oversized statistical-only stores",
+        "input-budgets": "keeps exact queries available when the statistical source is unavailable",
+        "candidate-range-pushdown": "range-selects an eligible frame before charging historical IndexedDB rows",
         "owned-evidence": "keeps every owned observation of selected runs without sampling children independently",
         "sample-composition": "resolves sample composition through canonical ingestion and the production worker"
       }
@@ -76,7 +78,8 @@
       "coverage": {
         "frame-binding": "TestStatisticalSnapshotProductionBoundary",
         "clock-validity": "TestMissingStatisticalClockPreservesExactQueries",
-        "input-budgets": "TestOversizedStatisticalFramePreservesExactQueries"
+        "input-budgets": "TestOversizedStatisticalFramePreservesExactQueries",
+        "candidate-range-pushdown": "TestStatisticalCandidateRangeExcludesHistoricalBudget"
       }
     },
     {
@@ -93,6 +96,7 @@
         "owned-evidence": "TestStatisticalNativeSQLBoundary",
         "clock-validity": "TestMissingStatisticalClockPreservesExactQueries",
         "input-budgets": "TestOversizedStatisticalInputIsCappedBeforePublication",
+        "candidate-range-pushdown": "TestStatisticalCandidateRangeExcludesHistoricalPopulation",
         "persisted-bundles": "TestPersistedStatisticalBundles",
         "publication-rollback": "TestCancelledStatisticalPublicationRollsBack"
       }

@@ -220,7 +220,10 @@ func snapshotInputs(definition query.Definition) []string {
 
 func (r *reader) source(ctx context.Context, name string, state dashboardstore.State, options dashboardstore.ExecutionOptions, fields snapshotFields, valueSelections, measurementSelections []dashboardquery.EvidenceSelection, usesMeasurements bool) (model.Source, error) {
 	if name == "$statisticalMembership" {
-		rows, err := dashboardquery.ReadCollectionFields(ctx, r.tx, "runs",
+		quality := r.store.metadata["$runs"]
+		watermark, _ := quality["as-of"].(string)
+		policy := "recorded-run-as-of"
+		rows, watermark, err := dashboardquery.ReadStatisticalRunCandidates(ctx, r.tx, watermark,
 			[]string{"id", "owner", "repository", "githubRunId", "startedAt", "createdAt", "completedAt", "updatedAt", "status", "conclusion"},
 			dashboardquery.StatisticalMaxInputRows, dashboardquery.StatisticalMaxInputBytes)
 		if err != nil {
@@ -235,11 +238,8 @@ func (r *reader) source(ctx context.Context, name string, state dashboardstore.S
 		}
 		// Unlike exact-source presentation clocks, sampling never falls back to
 		// the server's evaluation time when the recorded clock is absent.
-		quality := r.store.metadata["$runs"]
-		watermark, _ := quality["as-of"].(string)
-		policy := "recorded-run-as-of"
-		if watermark == "" {
-			watermark, policy = dashboardquery.CanonicalStatisticalWatermark(rows), "canonical-run-max"
+		if _, recorded := quality["as-of"].(string); !recorded || quality["as-of"] == "" {
+			policy = "canonical-run-max"
 		}
 		if watermark == "" {
 			statisticalLog.Print("event=statistical-source status=unavailable reason=missing-clock")

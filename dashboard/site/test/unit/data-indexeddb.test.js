@@ -290,7 +290,11 @@ describe('canonical IndexedDB', () => {
     expect([...database.transaction('repositories').objectStore('repositories').indexNames]).toEqual([]);
     expect([...database.transaction('workflows').objectStore('workflows').indexNames]).toEqual(['byCampaign', 'byRepository']);
     expect([...database.transaction('runs').objectStore('runs').indexNames])
-      .toEqual(['byConclusion', 'byEvent', 'byEventConclusion', 'byRepository', 'byStorageTimestamp', 'byWorkflow']);
+      .toEqual([
+        'byConclusion', 'byEvent', 'byEventConclusion', 'byRepository',
+        'byStatisticalTimestamp', 'byStatisticalUndated', 'byStatisticalWatermark',
+        'byStorageTimestamp', 'byWorkflow'
+      ]);
     expect([...database.transaction('domains').objectStore('domains').indexNames])
       .toEqual(['byQueryDomain', 'byQuerySummary', 'byRun', 'byStorageRun', 'byStorageTimestamp']);
     expect([...database.transaction('tools').objectStore('tools').indexNames])

@@ -85,9 +85,30 @@ func frozenStatisticalDefinitions(definitions []query.Definition) []query.Defini
 	return result
 }
 
-func (w *Writer) statisticalCandidates(ctx context.Context) ([]map[string]any, error) {
+func (w *Writer) statisticalCandidates(ctx context.Context, recorded sql.NullTime) ([]map[string]any, string, string, error) {
 	fields := []string{"id", "owner", "repository", "githubRunId", "startedAt", "createdAt", "completedAt", "updatedAt", "status", "conclusion"}
 	relation := statisticalRelation(entityTables["$runs"], w.store.namespace)
+	watermark, policy := "", "canonical-run-max"
+	if recorded.Valid {
+		watermark, policy = recorded.Time.UTC().Format("2006-01-02T15:04:05.000Z"), "recorded-run-as-of"
+	} else {
+		var latest *time.Time
+		if err := w.tx.QueryRow(ctx, `SELECT max(greatest(started_at,created_at,completed_at,updated_at))
+			FROM runs WHERE namespace=$1`, w.store.namespace).Scan(&latest); err != nil {
+			return nil, "", "", err
+		}
+		if latest != nil {
+			watermark = latest.UTC().Format("2006-01-02T15:04:05.000Z")
+		}
+	}
+	if watermark == "" {
+		return nil, "", policy, nil
+	}
+	end, err := time.Parse(time.RFC3339Nano, watermark)
+	if err != nil {
+		return nil, watermark, policy, nil
+	}
+	start := end.Add(-7 * 24 * time.Hour)
 	projections := make([]string, len(fields))
 	for index, field := range fields {
 		column := relation.Columns[field]
@@ -95,20 +116,24 @@ func (w *Writer) statisticalCandidates(ctx context.Context) ([]map[string]any, e
 	}
 	//nolint:gosec // Identifiers and expressions are generated from TypeSpec.
 	rows, err := w.tx.Query(ctx, "SELECT "+strings.Join(projections, ",")+" FROM "+
-		strings.ReplaceAll(relation.SQL, "{}", "$1")+fmt.Sprintf(" LIMIT %d", query.MaxInputRows+1), w.store.namespace)
+		strings.ReplaceAll(relation.SQL, "{}", "$1")+` WHERE t.status='completed' AND (
+			(coalesce(t.started_at,t.created_at)>=$2 AND coalesce(t.started_at,t.created_at)<$3)
+			OR (t.started_at IS NULL AND t.created_at IS NULL))
+			ORDER BY t.id COLLATE "C"`+fmt.Sprintf(" LIMIT %d", query.MaxInputRows+1),
+		w.store.namespace, start, end)
 	if err != nil {
-		return nil, err
+		return nil, "", "", err
 	}
 	defer rows.Close()
 	candidates := []map[string]any{}
 	var bytes int64
 	for rows.Next() {
 		if len(candidates) == query.MaxInputRows {
-			return nil, dashboardquery.ErrStatisticalBudget
+			return nil, watermark, policy, dashboardquery.ErrStatisticalBudget
 		}
 		values, err := rows.Values()
 		if err != nil {
-			return nil, err
+			return nil, "", "", err
 		}
 		row := map[string]any{}
 		for index, field := range fields {
@@ -120,11 +145,11 @@ func (w *Writer) statisticalCandidates(ctx context.Context) ([]map[string]any, e
 		}
 		bytes += query.EstimateRowsBytes([]model.Row{model.Row(row)})
 		if bytes > query.MaxWorkingBytes {
-			return nil, dashboardquery.ErrStatisticalBudget
+			return nil, watermark, policy, dashboardquery.ErrStatisticalBudget
 		}
 		candidates = append(candidates, row)
 	}
-	return candidates, rows.Err()
+	return candidates, watermark, policy, rows.Err()
 }
 
 func (w *Writer) writeStatisticalRecords(ctx context.Context, source string, records []map[string]any) error {
@@ -185,11 +210,11 @@ func (w *Writer) persistStatisticalSnapshot(ctx context.Context, dataRevision st
 		return err
 	}
 	quality["availability"], quality["completeness"], quality["freshness"] = availability, completeness, freshness
-	candidates, inputErr := w.statisticalCandidates(ctx)
+	candidates, watermark, policy, inputErr := w.statisticalCandidates(ctx, recorded)
 	if inputErr != nil && !errors.Is(inputErr, dashboardquery.ErrStatisticalBudget) {
 		return inputErr
 	}
-	selected, frame, err := selectStatisticalSnapshot(ctx, quality, recorded, candidates, inputErr)
+	selected, frame, err := selectStatisticalSnapshot(ctx, quality, watermark, policy, candidates, inputErr)
 	if err != nil {
 		return err
 	}

@@ -3,11 +3,12 @@ import { IDBFactory, IDBObjectStore, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it, vi } from 'vitest';
 import fixture from '../fixtures/statistical-sampling.json' with { type: 'json' };
 import { sampleStatisticalRuns, statisticalPriority, STATISTICAL_CAPACITIES, STATISTICAL_FRAME_VERSION, STATISTICAL_INPUT_LIMITS } from '../../src/data/queries/statistical-sample.js';
-import { openCanonicalDatabase, readCollections } from '../../src/data/storage/indexeddb.js';
+import { openCanonicalDatabase, readCollections, upsertCanonicalBatch } from '../../src/data/storage/indexeddb.js';
 import { DashboardQueryCancelledError } from '../../src/data/queries/declarative.js';
 import { queryDatabaseSources } from '../../src/data/queries/database.js';
 import { processDataRequest } from '../../src/data-worker.js';
 import { executeNamedQuery } from '../../src/agent/query-executor.js';
+import { normalize } from '../../src/data/normalize/index.js';
 
 vi.stubGlobal('crypto', webcrypto);
 vi.stubGlobal('IDBKeyRange', IDBKeyRange);
@@ -214,7 +215,7 @@ describe('independent frozen statistical sampling', () => {
     await expect(sampleStatisticalRuns(Array(257).fill(row), options)).rejects.toThrow('working byte budget');
   }, 30000);
 
-  it('keeps exact queries available and skips oversized statistical-only stores', async () => {
+  it('keeps exact queries available when the statistical source is unavailable', async () => {
     const factory = new IDBFactory();
     const database = await openCanonicalDatabase(factory);
     const transaction = database.transaction('repositories', 'readwrite');
@@ -234,12 +235,42 @@ describe('independent frozen statistical sampling', () => {
       expect(result['statistical-tools']).toMatchObject({
         rows: [], metadata: { availability: 'unavailable', completeness: 'unknown' }
       });
-      expect((/** @type {IDBObjectStore[]} */ (getAll.mock.instances)).map((store) => store.name)).toEqual(['repositories']);
+      expect((/** @type {IDBObjectStore[]} */ (getAll.mock.instances)).map((store) => store.name))
+        .not.toContain('runs');
     } finally {
       count.mockRestore();
       getAll.mockRestore();
       vi.restoreAllMocks();
     }
+  });
+
+  it('range-selects an eligible frame before charging historical IndexedDB rows', async () => {
+    const factory = new IDBFactory();
+    const historical = Array.from({ length: 10 }, (_, index) => ({
+      id: `github:run:o/r:old-${index}`, owner: 'o', repository: 'r', githubRunId: `old-${index}`,
+      status: 'completed', conclusion: 'success', startedAt: '2026-09-01T00:00:00Z'
+    }));
+    const eligible = {
+      id: 'github:run:o/r:eligible', owner: 'o', repository: 'r', githubRunId: 'eligible',
+      status: 'completed', conclusion: 'success', startedAt: '2026-10-07T00:00:00Z'
+    };
+    await upsertCanonicalBatch(factory, {
+      ...normalize([]), runs: [...historical, eligible]
+    }, { validateRelationships: false });
+    const onLimit = vi.fn();
+    const result = /** @type {{ runs: Record<string, unknown>[], statisticalRuns?: { rows: Record<string, unknown>[], watermark: string } }} */ (
+      await readCollections(factory, ['runs'], {
+        statisticalRuns: {
+          watermark: fixture.watermark, exact: false, rows: 2, bytes: 1 << 20, onLimit
+        }
+      })
+    );
+    expect(onLimit).not.toHaveBeenCalled();
+    expect(result.runs.map((row) => row.id)).toEqual([eligible.id]);
+    expect(result.statisticalRuns).toMatchObject({
+      watermark: fixture.watermark,
+      rows: [{ id: eligible.id }]
+    });
   });
 
   it('bounds statistical materialization inside the same multi-store snapshot without limiting exact stores', async () => {

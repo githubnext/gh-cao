@@ -171,6 +171,12 @@ ${table.partitioned ? '  run_at TIMESTAMPTZ NOT NULL,\n' : ''}
         statements.push(`CREATE INDEX IF NOT EXISTS ${table.name}_${snake(field)} ON ${table.name} (namespace, ${snake(field)}, ordinal);`);
       }
       if (table.partitioned) statements.push(`CREATE INDEX IF NOT EXISTS ${table.name}_identity ON ${table.name} (namespace, id);`);
+      if (table.collection === 'runs') {
+        statements.push(`CREATE INDEX IF NOT EXISTS runs_statistical_watermark ON runs
+  (namespace, greatest(started_at, created_at, completed_at, updated_at) DESC);`);
+        statements.push(`CREATE INDEX IF NOT EXISTS runs_statistical_candidates ON runs
+  (namespace, status, coalesce(started_at, created_at), id COLLATE "C");`);
+      }
     }
     go.push(`\t"${table.source}": {name: "${table.name}", runtime: ${table.runtime}, canonical: ${table.canonical}, partitioned: ${table.partitioned},${table.owner ? ' internal: true,' : ''} columns: []entityColumn{`);
     for (const column of table.columns) {

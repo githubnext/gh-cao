@@ -24,12 +24,14 @@ func TestOversizedStatisticalFramePreservesExactQueries(t *testing.T) {
 	_, err = db.ExecContext(t.Context(), `WITH RECURSIVE candidates(n) AS (
 		SELECT 1 UNION ALL SELECT n+1 FROM candidates WHERE n < ?
 	) INSERT INTO __idb_records SELECT ?, 'runs', json_quote('github:run:o/r:' || n),
-		json_object('id','github:run:o/r:' || n) FROM candidates`,
+		json_object('id','github:run:o/r:' || n,'status','completed') FROM candidates`,
 		dashboardquery.StatisticalMaxInputRows+1, dashboardquery.DatabaseName)
 	if closeErr := db.Close(); err != nil || closeErr != nil {
 		t.Fatalf("prepare oversized frame: %v %v", err, closeErr)
 	}
-	store, err := Open(t.Context(), path)
+	store, err := OpenWithMetadata(t.Context(), path, map[string]model.Metadata{
+		"$runs": {"as-of": "2026-10-08T00:00:00Z", "availability": "available", "completeness": "complete"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

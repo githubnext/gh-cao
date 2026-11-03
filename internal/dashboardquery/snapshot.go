@@ -15,7 +15,7 @@ import (
 )
 
 const DatabaseName = "gh-aw-cao-dashboard-data"
-const DatabaseVersion = 47
+const DatabaseVersion = 48
 
 // ReadDailyRunCounts reads only the independently retained aggregate store.
 // An absent store is unavailable, not an authoritative empty history.
@@ -165,6 +165,49 @@ func ReadCollection(ctx context.Context, db SnapshotReader, collection string, m
 // list preserves every public field, and limits still cover full stored records.
 func ReadCollectionFields(ctx context.Context, db SnapshotReader, collection string, fields []string, maxRows int, maxBytes int64) (result []map[string]any, err error) {
 	return readCollectionFields(ctx, db, collection, fields, maxRows, maxBytes, "", nil)
+}
+
+// ReadStatisticalRunCandidates resolves the recorded canonical Run clock and
+// materializes only terminal Runs that can belong to its seven-day frame.
+// Terminal rows without a parseable execution clock remain in the bounded
+// input so the sampler can invalidate unsupported weights.
+func ReadStatisticalRunCandidates(ctx context.Context, db SnapshotReader, watermark string, fields []string, maxRows int, maxBytes int64) ([]map[string]any, string, error) {
+	if watermark == "" {
+		var value string
+		rows, queryErr := db.QueryContext(ctx, `WITH clocks(value) AS (
+			SELECT json_extract(value,'$.startedAt') FROM __idb_records WHERE database_name=? AND store_name='runs'
+			UNION ALL SELECT json_extract(value,'$.createdAt') FROM __idb_records WHERE database_name=? AND store_name='runs'
+			UNION ALL SELECT json_extract(value,'$.completedAt') FROM __idb_records WHERE database_name=? AND store_name='runs'
+			UNION ALL SELECT json_extract(value,'$.updatedAt') FROM __idb_records WHERE database_name=? AND store_name='runs'
+		) SELECT value FROM clocks WHERE julianday(value) IS NOT NULL ORDER BY julianday(value) DESC LIMIT 1`,
+			DatabaseName, DatabaseName, DatabaseName, DatabaseName)
+		if queryErr != nil {
+			return nil, "", queryErr
+		}
+		if rows.Next() {
+			if scanErr := rows.Scan(&value); scanErr != nil {
+				_ = rows.Close()
+				return nil, "", scanErr
+			}
+		}
+		if closeErr := rows.Close(); closeErr != nil {
+			return nil, "", closeErr
+		}
+		watermark = CanonicalStatisticalWatermark([]map[string]any{{"startedAt": value}})
+	}
+	instant, valid := statisticalInstant(watermark)
+	if !valid {
+		return nil, "", nil
+	}
+	normalized := instant.UTC().Format("2006-01-02T15:04:05.000Z")
+	start := instant.Add(-7 * 24 * time.Hour).UTC().Format(time.RFC3339Nano)
+	where := ` AND json_extract(value,'$.status')='completed' AND (
+		(coalesce(julianday(json_extract(value,'$.startedAt')),julianday(json_extract(value,'$.createdAt'))) >= julianday(?)
+		 AND coalesce(julianday(json_extract(value,'$.startedAt')),julianday(json_extract(value,'$.createdAt'))) < julianday(?))
+		OR (julianday(json_extract(value,'$.startedAt')) IS NULL AND julianday(json_extract(value,'$.createdAt')) IS NULL)
+	)`
+	result, err := readCollectionFields(ctx, db, "runs", fields, maxRows, maxBytes, where, []any{start, normalized})
+	return result, normalized, err
 }
 
 func readCollectionFields(ctx context.Context, db SnapshotReader, collection string, fields []string, maxRows int, maxBytes int64, where string, selection []any) (result []map[string]any, err error) {

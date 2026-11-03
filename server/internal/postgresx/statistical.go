@@ -2,7 +2,6 @@ package postgresx
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
 	"github.com/githubnext/gh-cao/internal/dashboardquery"
@@ -13,11 +12,7 @@ import (
 
 var statisticalLog = logger.New("cao:postgresx:sampling")
 
-func selectStatisticalSnapshot(ctx context.Context, quality model.Metadata, recorded sql.NullTime, candidates []map[string]any, inputErr error) ([]map[string]any, map[string]any, error) {
-	watermark, policy := dashboardquery.CanonicalStatisticalWatermark(candidates), "canonical-run-max"
-	if recorded.Valid {
-		watermark, policy = recorded.Time.UTC().Format("2006-01-02T15:04:05.000Z"), "recorded-run-as-of"
-	}
+func selectStatisticalSnapshot(ctx context.Context, quality model.Metadata, watermark, policy string, candidates []map[string]any, inputErr error) ([]map[string]any, map[string]any, error) {
 	var selected []map[string]any
 	var err error
 	frame := map[string]any{"weight-valid": false}

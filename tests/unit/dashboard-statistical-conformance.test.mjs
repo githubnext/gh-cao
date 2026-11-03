@@ -11,7 +11,7 @@ test('statistical conformance binds every backend to executable requirements', (
   assert.deepEqual(suites.map((suite) => suite.id), statisticalContract.requiredSuites);
   for (const id of ['sqlite', 'postgresql', 'indexeddb-worker']) {
     const suite = suites.find((suite) => suite.id === id);
-    for (const requirement of ['clock-validity', 'input-budgets']) {
+    for (const requirement of ['clock-validity', 'input-budgets', 'candidate-range-pushdown']) {
       assert.ok(suite.coverage[requirement], `${id} must exercise ${requirement}`);
     }
   }
