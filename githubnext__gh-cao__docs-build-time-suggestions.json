@@ -1,35 +1,7 @@
 {
   "source_sha": "1c71d4c8a920935ad2e8d000cb2f694ad1716175",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-02T14:25:08Z",
-      "worker_run_id": "41460731371",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41460756143,
-        41460408100,
-        41458098782,
-        41455833821,
-        41453669179,
-        41451763994,
-        41451450492,
-        41449478146,
-        41447367407,
-        41445509506,
-        41444278852,
-        41443975732,
-        41441431112,
-        41439372522,
-        41437339771,
-        41437318776,
-        41435472071,
-        41435068729,
-        41433393303,
-        41431465494
-      ],
-      "outcome": "incomplete: the 2026-11-02T10:46:22Z to 2026-11-02T14:19:10Z latest-20 completed docs.yml window was within the 14-day limit and contained 15 successful runs (14 schedule and one push), four skipped workflow_run runs, and one cancelled workflow_run run. The cancelled run was excluded. The window spans source SHAs fb8ce95eda1a96712fbce50c84ff2162bf25c375 and f8b2fc99422744fd19aaf4ed7599fdc47fd5bce4. Trusted Actions run, job, and step metadata shows that all 14 successful schedule runs executed only schedule-freshness and skipped build and deploy; skipped workflow_run entries supplied no successful build-and-deploy path. Only push run 41437318776 completed the full path, so the window contains one comparable successful full build-and-deploy run, below the required five. That run took 171 seconds wall-clock, with an 18-second initial queue, a 114-second build job, a 5-second build-to-deploy gap, and a 33-second deploy job. Its dashboard cache was a verified hit: restore completed in 4 seconds and the cache-miss-only dashboard lookup and artifact-download steps were skipped. Checkout took 34 seconds, dependency installation 23 seconds, Astro documentation generation 18 seconds, and Pages artifact upload 23 seconds. Across the 14 freshness-only schedule successes, workflow wall time had a 14-second median and 22-second p90. With only one full path, median and p90 distributions for comparable full executions and dashboard/build/deploy jobs, repeated-cost analysis, and a complete reusable dashboard generation evaluation cannot be produced. No recommendation was made, and reusable dashboard generation remains the next category."
-    },
     {
       "evaluated_at": "2026-11-02T14:34:51Z",
       "worker_run_id": "41462780721",
@@ -799,6 +771,34 @@
         41526261105
       ],
       "outcome": "incomplete: the 2026-11-02T21:12:46Z to 2026-11-02T23:46:09Z latest-20 completed docs.yml window was within the 14-day limit and contained 14 successful runs, three skipped workflow_run runs, and three cancelled runs (two push and one workflow_run). The cancelled runs were excluded and disclosed. The window spans source SHAs f8b2fc99422744fd19aaf4ed7599fdc47fd5bce4, c214f9fe5c81ee07c1b4a69cda12bd665e98bfe7, 15039044dcee8760368bf903fd0ac48e915ce305, 8e92dae4d0ef88381b67739611345d5ce86ab434, d82ec7a004f517f68f4ee0c3f306780e0f222ad4, 5b27f7103bb56c19165ba0a84e0d32acf78eb49b, and 1c71d4c8a920935ad2e8d000cb2f694ad1716175. Trusted Actions run, job, and step metadata shows that ten successful schedule runs executed only schedule-freshness and skipped build and deploy. Four successful runs completed the full path: push runs 41543154263, 41544883679, and 41546197418, plus schedule run 41546006359. This is below the required five comparable successful full runs. Their workflow wall times were 245, 165, 189, and 162 seconds (descriptive median 177 seconds, nearest-rank p90 245 seconds); execution times after initial queue were 240, 160, 111, and 158 seconds (median 159 seconds, p90 240 seconds); build jobs were 98, 106, 80, and 75 seconds (median 89 seconds, p90 106 seconds); deploy jobs were 136, 49, 27, and 70 seconds (median 59.5 seconds, p90 136 seconds). All four dashboard restores were verified cache hits because restore succeeded and the cache-miss-only dashboard lookup and artifact-download steps were skipped. Repeated step ranges were checkout 22-36 seconds, dependency installation 15-21 seconds, Astro generation 10-15 seconds, and Pages artifact upload 14-20 seconds. With only four full paths, the required reliable timing distributions and complete reusable dashboard generation evaluation cannot be produced. No recommendation was made; reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-03T00:33:52Z",
+      "worker_run_id": "41553345443",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41549900925,
+        41547905678,
+        41546197418,
+        41546162081,
+        41546118836,
+        41546006359,
+        41544883679,
+        41544094043,
+        41543627126,
+        41543175067,
+        41543154263,
+        41542088386,
+        41539987428,
+        41537911407,
+        41535833600,
+        41535417083,
+        41533685118,
+        41531337096,
+        41529080665,
+        41526722797
+      ],
+      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-02T21:15:46Z to 2026-11-03T00:04:17Z) was within 14 days and contained 15 successful runs, two skipped workflow_run runs, and three cancelled runs (two push and one workflow_run); cancelled runs were excluded and disclosed. Five successful runs completed the full build-and-deploy path (four push/schedule runs across recent source revisions plus the current-source schedule run), meeting the minimum sample. Full workflow wall time had a 165-second median and 245-second nearest-rank p90; initial queue time had a 4-second median and 77-second p90; post-queue execution had a 159-second median and 241-second p90. Build jobs had an 89-second median and 106-second p90; deploy jobs had a 49-second median and 136-second p90. docs.yml has no separate dashboard job: its reusable-dashboard restore path had a 3-second median and 4-second p90. All five restores were verified cache hits from trusted step metadata: Restore cached CAO Dashboard succeeded while the cache-miss-only lookup and artifact-download steps were skipped. Repeated step medians/p90s were checkout 26/36 seconds, npm ci 16/21 seconds, Astro generation 12/15 seconds, and Pages artifact upload 18/20 seconds. Dashboard reuse is already effective and costs only 2-4 seconds; no concrete change in this category is supported to save at least 60 seconds or 15% of median execution time without risking dashboard freshness. Confidence is high for cache behavior and moderate for tail timing because deploy variability and one 77-second queue outlier dominate p90. No suggestion was made."
     }
   ]
 }
