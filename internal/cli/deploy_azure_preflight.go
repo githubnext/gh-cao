@@ -89,7 +89,7 @@ type deployAzurePreflight struct {
 }
 
 func runDeployAzurePreflight(ctx context.Context, az azcli.Executor, config deployAzureConfig, template deployAzureTemplate) *deployAzurePreflight {
-	p := &deployAzurePreflight{az: az, config: config, template: deployAzureTemplateFactsFrom(template.Content)}
+	p := &deployAzurePreflight{az: az, config: config, template: deployAzureTemplateFactsFrom(template.Content, config.parameters())}
 	p.az = azcli.ExecutorFunc(func(ctx context.Context, args ...string) (azcli.Result, error) {
 		bounded, cancel := context.WithTimeout(ctx, time.Minute)
 		defer cancel()
@@ -855,43 +855,48 @@ type deployAzureTemplateFacts struct {
 
 var deployAzureParameterExpression = regexp.MustCompile(`^\[parameters\('([^']+)'\)\]$`)
 
-func deployAzureTemplateFactsFrom(content []byte) deployAzureTemplateFacts {
+func deployAzureTemplateFactsFrom(content []byte, supplied map[string]any) deployAzureTemplateFacts {
 	facts := deployAzureTemplateFacts{apiVersions: map[string]string{}}
 	var root map[string]any
 	if json.Unmarshal(content, &root) != nil {
 		return facts
 	}
-	parameters, _ := root["parameters"].(map[string]any)
-	resolve := func(value any) any {
-		if text, ok := value.(string); ok {
-			if match := deployAzureParameterExpression.FindStringSubmatch(text); match != nil {
-				if parameter, ok := parameters[match[1]].(map[string]any); ok {
-					return parameter["defaultValue"]
-				}
-				return nil
-			}
-		}
-		return value
-	}
-	text := func(value any) string {
-		switch typed := resolve(value).(type) {
-		case string:
-			if strings.HasPrefix(typed, "[") {
-				return ""
-			}
-			return typed
-		case bool:
-			return strconv.FormatBool(typed)
-		}
-		return ""
-	}
-	facts.postgresSKU = text("[parameters('postgresSkuName')]")
-	facts.postgresTier = text("[parameters('postgresSkuTier')]")
 	types := map[string]bool{}
-	var walk func(any)
-	walk = func(resources any) {
+	var walk func(map[string]any, map[string]any)
+	walk = func(document map[string]any, supplied map[string]any) {
+		parameters, _ := document["parameters"].(map[string]any)
+		resolve := func(value any) any {
+			if text, ok := value.(string); ok {
+				if match := deployAzureParameterExpression.FindStringSubmatch(text); match != nil {
+					if value, ok := supplied[match[1]]; ok {
+						return value
+					}
+					if parameter, ok := parameters[match[1]].(map[string]any); ok {
+						return parameter["defaultValue"]
+					}
+					return nil
+				}
+			}
+			return value
+		}
+		text := func(value any) string {
+			switch typed := resolve(value).(type) {
+			case string:
+				if strings.HasPrefix(typed, "[") {
+					return ""
+				}
+				return typed
+			case bool:
+				return strconv.FormatBool(typed)
+			}
+			return ""
+		}
+		if facts.postgresSKU == "" {
+			facts.postgresSKU = text("[parameters('postgresSkuName')]")
+			facts.postgresTier = text("[parameters('postgresSkuTier')]")
+		}
 		var list []any
-		switch typed := resources.(type) {
+		switch typed := document["resources"].(type) {
 		case []any:
 			list = typed
 		case map[string]any:
@@ -902,6 +907,11 @@ func deployAzureTemplateFactsFrom(content []byte) deployAzureTemplateFacts {
 		for _, item := range list {
 			resource, ok := item.(map[string]any)
 			if !ok {
+				continue
+			}
+			// Only omit resources proven disabled; unknown ARM expressions
+			// retain their prerequisites rather than weakening preflight.
+			if enabled, ok := resolve(resource["condition"]).(bool); ok && !enabled {
 				continue
 			}
 			resourceType, _ := resource["type"].(string)
@@ -930,12 +940,20 @@ func deployAzureTemplateFactsFrom(content []byte) deployAzureTemplateFacts {
 				}
 			case "microsoft.resources/deployments":
 				if nested, ok := properties["template"].(map[string]any); ok {
-					walk(nested["resources"])
+					values := map[string]any{}
+					if parameters, ok := properties["parameters"].(map[string]any); ok {
+						for name, entry := range parameters {
+							if parameter, ok := entry.(map[string]any); ok {
+								values[name] = resolve(parameter["value"])
+							}
+						}
+					}
+					walk(nested, values)
 				}
 			}
 		}
 	}
-	walk(root["resources"])
+	walk(root, supplied)
 	for resourceType := range types {
 		facts.types = append(facts.types, resourceType)
 	}
