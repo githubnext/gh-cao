@@ -68,7 +68,7 @@ test("landing page presents the product through real operational surfaces", () =
   assert.doesNotMatch(terminalText, /(?<![\w-])cao\.sh|gh cao validate|gh aw run|--raw-field|integrate-cao-workflow/);
   assert.deepEqual(
     [...hero.matchAll(/<section class="product-story ([^"]+)"/g)].map(([, classes]) => classes),
-    ["dispatch-story", "maintenance-story", "terminal-story", "decision-story", "snippet-story evolution-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
+    ["dispatch-story", "maintenance-story", "terminal-story", "decision-story", "snippet-story evolution-story", "snippet-story backend-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
   );
   assert.match(hero, /aria-labelledby="maintenance-title" data-reveal data-slideshow-slide/);
   assert.match(hero, /One control plane/);
@@ -103,7 +103,7 @@ test("landing page keeps the hero and supporting copy concise", () => {
   assert.ok(title && wordCount(title) <= 8, "hero headline should stay within eight words");
   assert.ok(tagline && wordCount(tagline) <= 40, "hero tagline should stay within forty words");
   const paragraphs = [...hero.matchAll(/<p>\s*([\s\S]*?)<\/p>/g)];
-  assert.equal(paragraphs.length, 8);
+  assert.equal(paragraphs.length, 9);
   const terminalParagraph = hero.match(/id="terminal-title"[\s\S]*?<p>\s*([\s\S]*?)<\/p>/)?.[1];
   for (const [, paragraph] of paragraphs) {
     const budget = paragraph === terminalParagraph ? 60 : 30;
@@ -146,6 +146,30 @@ test("enterprise evolution connects multi-agent sessions to reviewed optimizer u
   assert.match(evolution, /radial-gradient\(circle/);
   assert.match(evolution, /Block diagram \/ Closed loop/);
   assert.doesNotMatch(evolution, /<script/);
+});
+
+test("backend story connects portable specifications to cloud-neutral storage and analytics", () => {
+  const story = hero.match(/<section class="product-story snippet-story backend-story"[\s\S]*?<\/section>/)?.[0];
+  const diagram = readFileSync("docs/components/HeroBackendDiagram.astro", "utf8");
+  assert.ok(story);
+  assert.match(story, /Bring Your Own Backend/);
+  assert.match(story, /specifications you can turn into a backend to store and analyze agentic sessions/);
+  assert.match(story, /<HeroBackendDiagram \/>/);
+  assert.match(story, /data-reveal data-slideshow-slide/);
+  assert.match(story, /href="https:\/\/github.com\/githubnext\/gh-cao\/blob\/main\/server\/spec\/README.md"/);
+  assert.match(story, /href="\/gh-cao\/deployment\/"/);
+  for (const label of ["TypeSpec contracts", "Storage schema", "Analytics contracts", "CAO server", "PostgreSQL", "Object storage", "Analytics engine"]) {
+    assert.ok(diagram.includes(label), label);
+  }
+  for (const edge of ["server-to-postgres", "server-to-objects", "analytics-to-objects"]) {
+    assert.ok(diagram.includes(`data-edge="${edge}"`), edge);
+  }
+  assert.match(diagram, /not automatic provisioning/);
+  assert.match(diagram, /independently opt-in/);
+  assert.match(diagram, /neither is required for PostgreSQL-backed dashboard queries/);
+  assert.match(diagram, /Custom providers need compatible adapters/);
+  assert.doesNotMatch(`${story}\n${diagram}`, /Azure|ADX|KQL|AWS|Google Cloud/);
+  assert.doesNotMatch(diagram, /<script/);
 });
 
 test("README routes detailed tasks without rebuilding their chapter structure", () => {

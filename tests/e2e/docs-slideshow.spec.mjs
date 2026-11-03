@@ -10,6 +10,7 @@ const slideTitles = [
   "Roll out with confidence.",
   "Use evidence to decide what scales.",
   "Evolution at the Enterprise Scale",
+  "Bring Your Own Backend",
   "Webhook Gateway",
   "Built on Agentic Workflows",
 ];

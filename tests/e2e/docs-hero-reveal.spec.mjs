@@ -48,7 +48,7 @@ for (const { name, viewport } of [
 test("landing stories remain visible with reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./");
-  await expect(page.locator("[data-reveal]")).toHaveCount(7);
+  await expect(page.locator("[data-reveal]")).toHaveCount(8);
   await expect(page.locator(".maintenance-story")).toContainText("Dashboard maintenance");
   for (const story of await page.locator("[data-reveal]").all()) {
     await expect(story).toHaveCSS("opacity", "1");
@@ -126,12 +126,45 @@ for (const colorScheme of ["light", "dark"]) {
   }
 }
 
+for (const colorScheme of ["light", "dark"]) {
+  for (const width of [320, 390, 1440]) {
+    test(`cloud-neutral backend renders at ${width}px in ${colorScheme}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+      await page.goto("./");
+      const backend = page.getByRole("region", { name: "Bring Your Own Backend", exact: true });
+      await backend.scrollIntoViewIfNeeded();
+      await expect(backend).toBeVisible();
+      await expect(backend).toContainText("store and analyze agentic sessions");
+      await expect(backend.getByRole("link", { name: "Explore the backend specifications" }))
+        .toHaveAttribute("href", "https://github.com/githubnext/gh-cao/blob/main/server/spec/README.md");
+      await expect(backend.getByRole("link", { name: "Explore deployment options" }))
+        .toHaveAttribute("href", "/gh-cao/deployment/");
+      const architecture = backend.getByRole("figure", { name: "Spec-driven backend architecture" });
+      await expect(architecture.locator(".backend-node strong")).toHaveText(["CAO server", "PostgreSQL", "Object storage", "Analytics engine"]);
+      await expect(architecture.locator("[data-edge]")).toHaveCount(3);
+      await expect(architecture).toContainText("independently opt-in");
+      await expect(backend).not.toContainText(/Azure|ADX/);
+      for (const node of await architecture.locator(".backend-node").all()) {
+        await expect(node).toBeVisible();
+        expect(await node.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+      }
+      expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
+      if (width !== 320) {
+        const path = testInfo.outputPath(`bring-your-own-backend-${width}-${colorScheme}.png`);
+        await backend.screenshot({ path });
+        await testInfo.attach("Bring Your Own Backend", { path, contentType: "image/png" });
+      }
+    });
+  }
+}
+
 test("landing stories remain visible without JavaScript", async ({ browser, baseURL }) => {
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
   try {
     const page = await context.newPage();
     await page.goto("./");
-    await expect(page.locator("[data-reveal]")).toHaveCount(7);
+    await expect(page.locator("[data-reveal]")).toHaveCount(8);
     await expect(page.locator(".maintenance-story")).toContainText("Dashboard maintenance");
     for (const story of await page.locator("[data-reveal]").all()) {
       await expect(story).toHaveCSS("opacity", "1");
@@ -149,6 +182,7 @@ test("landing stories remain visible without JavaScript", async ({ browser, base
     await expect(page.locator(".decision-loop .decision-paths strong")).toHaveText(["Refine", "Expand", "Pause"]);
     await expect(page.locator(".enterprise-evolution .evolution-stages li")).toHaveCount(4);
     await expect(page.locator(".enterprise-evolution")).toContainText("Architecture pattern.");
+    await expect(page.getByRole("region", { name: "Bring Your Own Backend", exact: true }).getByRole("figure")).toBeVisible();
   } finally {
     await context.close();
   }
