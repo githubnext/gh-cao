@@ -39,6 +39,9 @@ func (r *reader) ExecuteSQLPlanWithOptions(ctx context.Context, definitions []qu
 	if options.ResourceLimits != nil {
 		return nil, metrics, errors.New("local SQLite queries do not support overriding resource limits")
 	}
+	if len(options.Repositories) > 0 {
+		return nil, metrics, errors.New("local SQLite queries do not support repository scoping")
+	}
 	if err := query.Validate(definitions); err != nil {
 		return nil, metrics, err
 	}
