@@ -99,6 +99,15 @@ identities, missing or conflicting parent-run identities, unknown records, and
 undeclared repositories still fail closed without replacing the original shards,
 which are removed only after every group's output is written.
 
+After a fresh per-repository download, the collector compacts with
+`--exclude-out-of-scope`. Records with a verified foreign repository are removed
+from the scoped shard directory, and repository-free GitHub API rate-limit audits
+in mixed shards are omitted rather than assigned to the wrong repository.
+Unattributable dependent evidence, unknown records, and contradictory identities
+still fail closed. Exclusions are counted and warned about, set the
+`evidence-partial` step output, and mark the repository's inventory collection
+partial. Compaction of restored cache shards keeps the strict default.
+
 Run-information shards are intentionally small and become queryable before
 event ingestion completes. This improves time to first useful render, but does
 not reduce the bytes needed for a complete refresh. Until the record phase
