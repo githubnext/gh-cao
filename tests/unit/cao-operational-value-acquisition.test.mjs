@@ -267,6 +267,43 @@ test("Git evidence reuses immutable facts and resolves new deliveries from actua
   assert.equal(reused.newBlobs, 0);
 });
 
+test("Git evidence bounds promised blob fetch batches without weakening native measurement", t => {
+  const directory = temporary(t);
+  const contents = Array.from({ length: 101 }, (_, index) => Buffer.from(`package example${index}\n`));
+  const blobs = contents.map(content =>
+    createHash("sha1").update(`blob ${content.length}\0`).update(content).digest("hex"));
+  const proof = { repository, until, adoption: { baselineCommit: sha("a"), commit: sha("a") },
+    snapshots: [], issues: [], history: [], pulls: [] };
+  const fetchBatches = [];
+  const execute = (command, args, options = {}) => {
+    assert.equal(command, "git");
+    const actual = args.slice(2);
+    if (actual[0] === "ls-tree") {
+      return blobs.map((blob, index) => `100644 blob ${blob}\tpkg/${index}.go`).join("\0") + "\0";
+    }
+    if (actual[0] === "fetch" && actual.includes("--stdin")) {
+      const batch = options.input.trim().split("\n");
+      assert.ok(batch.length <= 50, "Promised blob fetches must stay below the timeout-prone batch size");
+      fetchBatches.push(batch);
+      return "";
+    }
+    if (actual[0] === "cat-file" && actual[1] === "--batch") {
+      return Buffer.concat(options.input.trim().split("\n").flatMap(blob => {
+        const index = blobs.indexOf(blob);
+        assert.ok(index >= 0);
+        const content = contents[index];
+        return [Buffer.from(`${blob} blob ${content.length}\n`), content, Buffer.from("\n")];
+      }));
+    }
+    return "";
+  };
+  const result = collectGitInventories(proof, null, directory, file => file.endsWith(".go"), execute);
+  assert.deepEqual(fetchBatches.map(batch => batch.length), [50, 50, 1]);
+  assert.equal(result.newBlobs, 101);
+  assert.equal(result.uniqueBlobs, 101);
+  assert.equal(result.inventories.get(sha("a")).files.length, 101);
+});
+
 test("fresh collection refuses future cutoffs and existing output, and cleans temporary work on failure", t => {
   const directory = temporary(t);
   assert.throws(() => refreshFileDiet({ endAt: "2999-01-01T00:00:00Z", output: directory }), /endpoint/);
