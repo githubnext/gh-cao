@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-03T03:51:37Z",
-      "worker_run_id": "41574374358",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        41574142350,
-        41572679960,
-        41571376871,
-        41569640371,
-        41568913853,
-        41568102210,
-        41566687550,
-        41566629441,
-        41565602070,
-        41565383117,
-        41564177241,
-        41563791401,
-        41563599363,
-        41563498086,
-        41561852697,
-        41561686857,
-        41560265238,
-        41559123233,
-        41558671644,
-        41558488903
-      ],
-      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-03T01:15:06Z to 2026-11-03T03:46:16Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Six comparable successful push runs completed the full build-and-deploy path. Full workflow wall time had a 137.5-second median and 168-second nearest-rank p90; initial queue/concurrency time had a 3.5-second median and 49-second p90; post-queue execution had a 124-second median and 150-second p90. Build jobs had a 91-second median and 116-second p90; deploy jobs had a 29.5-second median and 31-second p90. docs.yml has no separate dashboard job; dashboard cache restore had a 3-second median and 5-second p90. Trusted step metadata verified dashboard cache hits in all six full runs because cache restore succeeded and fallback lookup/download were skipped. Repeated step medians/p90s were checkout 24.5/35 seconds, setup-node 4.5/13 seconds, npm ci 18.5/25 seconds, Astro generation 14/15 seconds, dashboard restore 3/5 seconds, and Pages upload 18.5/21 seconds. The same three-push concurrency burst remains in the window: run 41563791401 waited 49 seconds behind older run 41563599363 while obsolete work completed. However, open campaign issue #20131 already represents the same stable recommendation to split cancellable build concurrency from non-cancelling deploy concurrency, and the current source and timing evidence have not materially changed. No duplicate suggestion was made. Confidence is high for timing, cache behavior, and duplicate identification."
-    },
-    {
       "evaluated_at": "2026-11-03T04:20:40.602309Z",
       "worker_run_id": "41577204018",
       "category": "dependency installation and caching",
@@ -820,6 +792,34 @@
         41628164336
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-03T11:31:10Z to 2026-11-03T14:31:43Z) was within 14 days and contained 16 successful runs (13 schedule, two push, and one workflow_run) and four skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs e1d42c2ca77ebf2005dd2f7f6d842badbbd20da2, 6433faf6c035f899915ed1d098e44ce10db6b32d, 70909cb2e72fc5b3d55449afcdd35d4476678ddb, and 67e3fdca0b8f722cd9872cd25d19f5784d448097. Trusted Actions job metadata for the newest successful schedule, together with retained trusted evidence for the overlapping prior window, shows that only push runs 41635754069 and 41634145115 and workflow_run 41633118791 completed the full build-and-deploy path, below the required five comparable successful runs. Their workflow wall times were 183, 173, and 194 seconds; initial queue times were 3, 4, and 3 seconds; build jobs were 66, 93, and 135 seconds; deploy jobs were 108, 69, and 29 seconds. docs.yml has no separate dashboard job. The newest schedule took 26 seconds wall-clock, queued 14 seconds, executed schedule-freshness for 11 seconds, spent 7 seconds in the freshness check, and skipped build and deploy. With only three comparable full runs, median and p90 distributions, repeated artifact-transfer and Pages-packaging step analysis, and current cache hit/miss verification are insufficient for a complete evaluation or an evidence-backed recommendation meeting the 60-second or 15% threshold. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-03T14:53:23.670208Z",
+      "worker_run_id": "41657565306",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        41656939679,
+        41654493434,
+        41652147000,
+        41651800505,
+        41649643133,
+        41647278160,
+        41645075485,
+        41642937239,
+        41642631548,
+        41640647457,
+        41638523431,
+        41636539518,
+        41635754069,
+        41635131269,
+        41634812317,
+        41634171274,
+        41634145115,
+        41633118791,
+        41632287698,
+        41630194016
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-03T11:46:16Z to 2026-11-03T14:46:20Z) was within 14 days and contained 16 successful runs (13 schedule, two push, and one workflow_run) and four skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs e1d42c2ca77ebf2005dd2f7f6d842badbbd20da2, 6433faf6c035f899915ed1d098e44ce10db6b32d, 70909cb2e72fc5b3d55449afcdd35d4476678ddb, and 67e3fdca0b8f722cd9872cd25d19f5784d448097. Trusted Actions job metadata verified that only push runs 41635754069 and 41634145115 and workflow_run 41633118791 completed the full build-and-deploy path, below the required five comparable successful runs. Their workflow wall times were 183, 173, and 194 seconds; initial queue times were 3, 4, and 3 seconds; build jobs were 66, 93, and 135 seconds; deploy jobs were 108, 69, and 29 seconds. docs.yml has no separate dashboard job. Artifact transfer and Pages packaging evidence was limited to Pages artifact uploads of 13, 20, and 20 seconds and Deploy Pages steps of 104, 66, and 26 seconds. Trusted Actions step metadata verified dashboard cache hits in all three full runs because Restore cached CAO Dashboard succeeded while cache-miss-only lookup and artifact download steps were skipped. With only three comparable full runs, the required median and p90 distributions and repeated artifact-transfer and Pages-packaging analysis are insufficient for a complete evaluation or an evidence-backed recommendation meeting the 60-second or 15% threshold. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
