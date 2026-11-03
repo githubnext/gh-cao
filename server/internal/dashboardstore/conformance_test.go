@@ -206,6 +206,29 @@ func readConformance(t *testing.T, fixture readFixture, backend string) {
 			t.Fatalf("SQLite resource override must fail explicitly: %v", err)
 		}
 	})
+	t.Run("repository-scope", func(t *testing.T) {
+		err := store.WithReadTransaction(t.Context(), func(ctx context.Context, reader dashboardstore.Reader) error {
+			sources, _, err := reader.ExecuteSQLPlanWithOptions(ctx, nil, []string{"$repositories"}, dashboardstore.ExecutionOptions{
+				Repositories: []string{"octo/one"},
+			})
+			if err == nil && backend == "sqlite" {
+				t.Fatalf("SQLite ignored repository scope and returned %d rows", len(sources["$repositories"].Rows))
+			}
+			if err != nil && backend == "sqlite" {
+				if !strings.Contains(err.Error(), "do not support repository scoping") {
+					t.Fatalf("SQLite repository scope must fail explicitly: %v", err)
+				}
+				return nil
+			}
+			if err == nil && len(sources["$repositories"].Rows) != 1 {
+				t.Fatalf("PostgreSQL repository scope returned %d rows", len(sources["$repositories"].Rows))
+			}
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 	t.Run("cancellation", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
