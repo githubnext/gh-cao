@@ -65,6 +65,83 @@ async function execute(pageId, parameters) {
   return payload.aliases.map(alias => results[alias]);
 }
 
+const universalMetadata = {
+  'source-id': 'universal-value-fixture',
+  'source-kind': 'fixture',
+  'as-of': '2026-11-02T12:00:00Z',
+  'retrieved-at': '2026-11-02T12:00:00Z',
+  availability: 'available',
+  completeness: 'complete',
+  freshness: 'fresh',
+};
+
+/** @param {string} pageId @param {Record<string, string>} parameters */
+function executeUniversalValue(pageId, parameters = {}) {
+  const page = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === pageId);
+  const payload = compileDashboardViewPayloadQueries(page, pageId, {
+    queries: dashboard.queries, routeParameters: parameters
+  });
+  const rows = {
+    workflows: [
+      {
+        organization: 'acme', repository: 'control', workflow: 'campaign-worker.md',
+        'workflow-name': 'Campaign worker', 'workflow-role': 'worker',
+        campaign: 'quality', 'campaign-name': 'Quality'
+      },
+      {
+        organization: 'acme', repository: 'app', workflow: 'standalone.md',
+        'workflow-name': 'Standalone check', 'workflow-role': 'standalone'
+      }
+    ],
+    'workflow-value-collections': [
+      {
+        id: 'campaign-health', organization: 'acme', repository: 'control',
+        workflow: 'campaign-worker.md', 'workflow-path': 'campaign-worker.md',
+        'workflow-route': 'acme/control:campaign-worker.md', registration: 'unconfigured',
+        'collection-state': 'unconfigured', reason: 'Reviewed Value registration is missing',
+        'checked-at': '2026-11-02T11:00:00Z', 'policy-digest': 'campaign-policy'
+      },
+      {
+        id: 'standalone-health', organization: 'acme', repository: 'app',
+        workflow: 'standalone.md', 'workflow-path': 'standalone.md',
+        'workflow-route': 'acme/app:standalone.md', registration: 'enabled',
+        'collection-state': 'available', reason: 'Latest reviewed measurement retained',
+        'checked-at': '2026-11-02T11:00:00Z', 'policy-digest': 'standalone-policy'
+      }
+    ],
+    'workflow-value-measurements': [
+      {
+        id: 'campaign-measurement', repository: 'acme/control',
+        'workflow-route': 'acme/control:campaign-worker.md', campaign: 'quality',
+        'workflow-slug': 'campaign-worker.md', 'workflow-name': 'Campaign worker',
+        'value-id': 'issues-closed', value: 5, 'metric-role': 'primary',
+        'metric-name': 'Issues closed', 'metric-unit': 'issues', 'metric-direction': 'increase',
+        'evaluator-digest': 'campaign-evaluator', 'observed-at': '2026-11-02T10:00:00Z',
+        'window-start': '2026-10-26T00:00:00Z', 'window-end': '2026-11-02T00:00:00Z',
+        'measurement-kind': 'interval', 'maturity-status': 'matured', 'coverage-status': 'complete'
+      },
+      {
+        id: 'standalone-measurement', repository: 'acme/app',
+        'workflow-route': 'acme/app:standalone.md', campaign: null,
+        'workflow-slug': 'standalone.md', 'workflow-name': 'Standalone check',
+        'value-id': 'warnings-removed', value: 3, 'metric-role': 'primary',
+        'metric-name': 'Warnings removed', 'metric-unit': 'warnings', 'metric-direction': 'increase',
+        'evaluator-digest': 'standalone-evaluator', 'observed-at': '2026-11-02T10:00:00Z',
+        'window-start': '2026-10-26T00:00:00Z', 'window-end': '2026-11-02T00:00:00Z',
+        'measurement-kind': 'interval', 'maturity-status': 'matured', 'coverage-status': 'complete'
+      }
+    ],
+    'operational-value-evidence': []
+  };
+  const sources = Object.fromEntries(Object.entries(rows).map(([source, sourceRows]) => [
+    source, { source, rows: sourceRows, metadata: { ...universalMetadata, 'source-id': source } }
+  ]));
+  const results = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
+    operation: 'execute-dashboard-queries', queries: payload.queries, sourceNames: payload.aliases, sources
+  }));
+  return payload.aliases.map(alias => results[alias]);
+}
+
 /** @param {'decrease' | 'increase'} [direction] */
 function fileLedger(direction = 'decrease') {
   const ledger = structuredClone(ledgerFixture);
@@ -246,7 +323,19 @@ describe('native workflow value production contract', () => {
       list: { card: 'workflow-value-overview', drill: { type: 'external', field: 'overview-href' } }
     });
     expect(dashboard.navigation.flatMap((/** @type {{ pages: string[] }} */ group) => group.pages)).toContain('value');
-    expect(value.route?.tabs).toBeUndefined();
+    expect(value.route?.tabs).toEqual([
+      { id: 'all', label: 'All', icon: 'trophy', page: 'value' },
+      { id: 'campaigns', label: 'Campaigns', icon: 'goal', page: 'value-campaigns' },
+      { id: 'standalone', label: 'Standalone', icon: 'workflow', page: 'value-standalone' },
+      { id: 'review', label: 'Needs review', icon: 'alert', page: 'value-review' },
+    ]);
+    for (const pageId of ['value-campaigns', 'value-standalone', 'value-review']) {
+      expect(dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === pageId)?.route?.tabs)
+        .toEqual(value.route?.tabs);
+    }
+    expect(dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'campaign-value')).toMatchObject({
+      route: { 'hash-query-parameter': 'campaign', 'navigation-page': 'value' },
+    });
     expect(value.views[0]['empty-message']).not.toContain('Repository measurements');
     for (const id of ['operational-value', 'operational-value-evidence', 'operational-value-repository']) {
       expect(dashboard.pages.some((/** @type {{ id: string }} */ page) => page.id === id)).toBe(false);
@@ -402,6 +491,40 @@ describe('native workflow value production contract', () => {
     expect(cards.rows).toHaveLength(1);
     expect(cards.rows[0]).toMatchObject({ 'metric-version': 'v2', movement: 'Comparison unavailable' });
     expect((await execute(contract.reportPage, { report: older.id }))[0].rows[0]['change-label']).toBe(contract.headline);
+  });
+
+  it('projects campaign, standalone and review perspectives from one universal Value subject model', () => {
+    const all = executeUniversalValue('value')[0].rows;
+    expect(all).toHaveLength(2);
+    expect(all).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        'workflow-role': 'worker', campaign: 'quality', 'value-scope': 'Campaign',
+        'overview-title': 'acme/control · Campaign worker',
+        'overview-state': 'unconfigured', 'trend-label': '5 issues',
+        'attention-reason': 'Reviewed Value registration is missing', 'needs-review': true
+      }),
+      expect.objectContaining({
+        'workflow-role': 'standalone', 'value-scope': 'Standalone',
+        'overview-state': 'available', 'trend-label': '3 warnings', 'needs-review': false
+      })
+    ]));
+
+    expect(executeUniversalValue('value-campaigns')[0].rows).toMatchObject([{
+      campaign: 'quality', 'value-deployments': 1, 'value-repositories': 1,
+      'current-evidence-deployments': 1, 'unconfigured-deployments': 1, 'review-deployments': 1
+    }]);
+    expect(executeUniversalValue('value-standalone')[0].rows).toMatchObject([
+      { 'workflow-role': 'standalone', 'value-scope': 'Standalone', 'needs-review': false }
+    ]);
+    expect(executeUniversalValue('value-review')[0].rows).toMatchObject([
+      { campaign: 'quality', 'overview-state': 'unconfigured', 'needs-review': true }
+    ]);
+
+    const campaign = executeUniversalValue('campaign-value', { campaign: 'quality' });
+    expect(campaign[0].rows).toMatchObject([{ campaign: 'quality', 'value-deployments': 1 }]);
+    expect(campaign[1].rows).toMatchObject([
+      { campaign: 'quality', 'workflow-role': 'worker', 'value-scope': 'Campaign' }
+    ]);
   });
 
   it('publishes real registration decisions through the producer, canonical storage and worker before any packet exists', async () => {
