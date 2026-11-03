@@ -8,6 +8,7 @@ const slideTitles = [
   "Shared workflows. Clear ownership.",
   "Easy upkeep",
   "Roll out with confidence.",
+  "Understand your factory",
   "Use evidence to decide what scales.",
   "Webhook Gateway",
   "Built on Agentic Workflows",
@@ -248,7 +249,7 @@ for (const theme of ["light", "dark"]) {
         }).toBe(true);
         expect(await slide.evaluate(element => {
           const bounds = element.getBoundingClientRect();
-          return [...element.querySelectorAll("h1, h2, .docs-hero-intro, .hero-visual, .phone-preview, .product-story-copy, .terminal, .dispatch-illustration, .product-shot, .workflow-example, .control-diagram, .decision-loop")]
+          return [...element.querySelectorAll("h1, h2, .docs-hero-intro, .hero-visual, .phone-preview, .product-story-copy, .terminal, .dispatch-illustration, .product-shot, .workflow-example, .control-diagram, .decision-loop, .factory-dashboard")]
             .filter(child => child.checkVisibility())
             .every(child => {
               const content = child.getBoundingClientRect();
@@ -267,6 +268,24 @@ for (const theme of ["light", "dark"]) {
     });
   }
 }
+
+test("factory dashboard fits a short presentation viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 480 });
+  await page.goto("./");
+  await openSlideshow(page);
+  const index = slideTitles.indexOf("Understand your factory");
+  for (let step = 0; step < index; step++) await page.keyboard.press("ArrowRight");
+  await expectSlide(page, index);
+  const dashboard = presentation(page).locator(".factory-dashboard");
+  await expect(dashboard).toBeVisible();
+  await expect.poll(async () => {
+    const frame = await presentation(page).locator("[data-slideshow-viewport]").boundingBox();
+    const bounds = await dashboard.boundingBox();
+    return bounds.x >= frame.x && bounds.y >= frame.y
+      && bounds.x + bounds.width <= frame.x + frame.width + 1
+      && bounds.y + bounds.height <= frame.y + frame.height + 1;
+  }).toBe(true);
+});
 
 test("restores scroll and the mobile layout when the viewport becomes narrow", async ({ page }, testInfo) => {
   await page.goto("./");

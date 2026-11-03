@@ -68,7 +68,7 @@ test("landing page presents the product through real operational surfaces", () =
   assert.doesNotMatch(terminalText, /(?<![\w-])cao\.sh|gh cao validate|gh aw run|--raw-field|integrate-cao-workflow/);
   assert.deepEqual(
     [...hero.matchAll(/<section class="product-story ([^"]+)"/g)].map(([, classes]) => classes),
-    ["dispatch-story", "maintenance-story", "terminal-story", "decision-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
+    ["dispatch-story", "maintenance-story", "terminal-story", "factory-story", "decision-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story"],
   );
   assert.match(hero, /aria-labelledby="maintenance-title" data-reveal data-slideshow-slide/);
   assert.match(hero, /One control plane/);
@@ -93,7 +93,25 @@ test("landing page presents the product through real operational surfaces", () =
     /wizard-launch|Launch setup wizard|OpsWizard|Plan a control plane and first campaign in four steps|Stand up a control plane in three steps/,
   );
   assert.doesNotMatch(hero, /trust-section|Coordination without concentrated risk|section-actions/);
-  assert.doesNotMatch(`${landingPage}\n${hero}`, /\bfactor(?:y|ies)\b/i);
+  assert.match(hero, /<h2 id="factory-title">Understand your factory<\/h2>/);
+});
+
+test("factory hero connects OpenTelemetry signals to independently verified value", () => {
+  const dashboard = readFileSync("docs/components/HeroFactoryDashboard.astro", "utf8");
+  const story = hero.match(/<section class="product-story factory-story"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(story);
+  assert.match(story, /Use OpenTelemetry to understand cost, failures, and friction in real time/);
+  assert.match(story, /accepted outcomes to assess operational value/);
+  assert.match(story, /href="\/gh-cao\/configuration\/#optional-observability"/);
+  assert.match(story, /<HeroFactoryDashboard \/>/);
+  for (const label of ["Run cost", "Operational value", "Failures", "Friction", "Trace explorer"]) {
+    assert.ok(dashboard.includes(label));
+  }
+  assert.match(dashboard, /Illustrative dashboard, not live telemetry/);
+  assert.match(dashboard, /independently verified, accepted outcomes/);
+  assert.match(dashboard, /successful traces alone are not proof of value/);
+  assert.match(dashboard, /role="img" aria-labelledby="factory-chart-title" aria-describedby="factory-chart-description"/);
+  assert.doesNotMatch(dashboard, /<script|fetch\(|setInterval/);
 });
 
 test("landing page keeps the hero and supporting copy concise", () => {
@@ -103,7 +121,7 @@ test("landing page keeps the hero and supporting copy concise", () => {
   assert.ok(title && wordCount(title) <= 8, "hero headline should stay within eight words");
   assert.ok(tagline && wordCount(tagline) <= 40, "hero tagline should stay within forty words");
   const paragraphs = [...hero.matchAll(/<p>\s*([\s\S]*?)<\/p>/g)];
-  assert.equal(paragraphs.length, 7);
+  assert.equal(paragraphs.length, 8);
   const terminalParagraph = hero.match(/id="terminal-title"[\s\S]*?<p>\s*([\s\S]*?)<\/p>/)?.[1];
   for (const [, paragraph] of paragraphs) {
     const budget = paragraph === terminalParagraph ? 60 : 30;

@@ -1,0 +1,145 @@
+---
+const metrics = [
+  { label: "Run cost", value: "$24.80", detail: "Observed spend", tone: "neutral" },
+  { label: "Operational value", value: "12", detail: "Accepted outcomes", tone: "success" },
+  { label: "Failures", value: "3", detail: "Runs to investigate", tone: "danger" },
+  { label: "Friction", value: "8m", detail: "Waiting for tools", tone: "warning" },
+];
+const traces = [
+  { name: "dependency-review", status: "Completed", duration: "42s", tone: "success" },
+  { name: "issue-triage", status: "Tool timeout", duration: "2m 14s", tone: "danger" },
+  { name: "repo-assist", status: "Awaiting review", duration: "6m 08s", tone: "warning" },
+];
+---
+
+<figure class="factory-dashboard" aria-labelledby="factory-dashboard-caption">
+  <div class="dashboard-bar">
+    <span class="dashboard-name"><span class="signal-dot" aria-hidden="true"></span> Factory / Overview</span>
+    <span class="example-label">Illustrative data</span>
+  </div>
+  <div class="dashboard-body">
+    <div class="dashboard-toolbar">
+      <span class="telemetry-label">OpenTelemetry <span aria-hidden="true">/</span> Signals</span>
+      <span class="time-window">Last 24 hours</span>
+    </div>
+    <dl class="metric-grid">
+      {metrics.map((metric) => (
+        <div class:list={["metric", metric.tone]}>
+          <dt>{metric.label}</dt>
+          <dd><strong>{metric.value}</strong><span>{metric.detail}</span></dd>
+        </div>
+      ))}
+    </dl>
+    <div class="chart-panel">
+      <div class="panel-heading">
+        <strong>Workflow activity</strong>
+        <span class="chart-legend"><span aria-hidden="true"></span> Runs per hour</span>
+      </div>
+      <svg class="activity-chart" viewBox="0 0 480 110" preserveAspectRatio="none" role="img" aria-labelledby="factory-chart-title" aria-describedby="factory-chart-description">
+        <title id="factory-chart-title">Illustrative workflow activity over 24 hours</title>
+        <desc id="factory-chart-description">Run activity rises and falls throughout the day, with a peak in the afternoon. These are sample signals, not live measurements.</desc>
+        <path class="chart-grid" d="M0 20H480 M0 55H480 M0 90H480" />
+        <path class="chart-area" d="M0 86L20 80L40 84L60 60L80 68L100 40L120 55L140 48L160 65L180 70L200 38L220 46L240 24L260 36L280 18L300 42L320 30L340 58L360 48L380 64L400 36L420 52L440 26L460 40L480 32V110H0Z" />
+        <path class="chart-line" d="M0 86L20 80L40 84L60 60L80 68L100 40L120 55L140 48L160 65L180 70L200 38L220 46L240 24L260 36L280 18L300 42L320 30L340 58L360 48L380 64L400 36L420 52L440 26L460 40L480 32" />
+      </svg>
+      <div class="chart-axis" aria-hidden="true"><span>00:00 UTC</span><span>12:00</span><span>24:00</span></div>
+    </div>
+    <div class="trace-panel">
+      <div class="panel-heading"><strong>Trace explorer</strong><span>Workflow / status / duration</span></div>
+      <ul class="trace-list">
+        {traces.map((trace) => (
+          <li>
+            <span class="trace-name">{trace.name}</span>
+            <span class:list={["trace-status", trace.tone]}>{trace.status}</span>
+            <span class="trace-duration">{trace.duration}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+  <figcaption id="factory-dashboard-caption">
+    Illustrative dashboard, not live telemetry. Operational value requires independently verified, accepted outcomes; successful traces alone are not proof of value.
+  </figcaption>
+</figure>
+
+<style>
+  .factory-dashboard {
+    --monitor-bg: var(--sl-color-bg);
+    --monitor-panel: var(--sl-color-bg-nav);
+    --monitor-border: var(--sl-color-gray-5);
+    --monitor-text: var(--sl-color-white);
+    --monitor-muted: var(--sl-color-gray-2);
+    --monitor-success: var(--sl-color-green-high);
+    --monitor-danger: var(--sl-color-red-high);
+    --monitor-warning: var(--sl-color-orange-high);
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--monitor-border);
+    border-radius: 0.75rem;
+    background: var(--monitor-bg);
+    color: var(--monitor-text);
+    box-shadow: var(--cao-section-shadow);
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.6875rem;
+    line-height: 1.5;
+  }
+  .dashboard-bar,
+  .dashboard-toolbar,
+  .panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .dashboard-bar {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--monitor-border);
+    background: var(--monitor-panel);
+  }
+  .dashboard-name { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
+  .signal-dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--monitor-success); }
+  .example-label,
+  .time-window { border: 1px solid var(--monitor-border); border-radius: 4px; padding: 0.15rem 0.4rem; }
+  .example-label,
+  .telemetry-label,
+  .time-window,
+  .panel-heading > span { color: var(--monitor-muted); }
+  .dashboard-body { display: grid; gap: 0.875rem; padding: 1rem; }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; margin: 0; }
+  .metric { min-width: 0; padding: 0.75rem 0.5rem; border: 1px solid var(--monitor-border); border-radius: 6px; background: var(--monitor-panel); }
+  .metric dt { color: var(--monitor-muted); font-size: 0.625rem; }
+  .metric dd { display: grid; gap: 0.2rem; margin: 0.5rem 0 0; }
+  .metric strong { font-size: clamp(1.125rem, 2vw, 1.5rem); font-weight: 600; line-height: 1.2; }
+  .metric dd > span { color: var(--monitor-muted); font-size: 0.5625rem; }
+  .success { color: var(--monitor-success); }
+  .danger { color: var(--monitor-danger); }
+  .warning { color: var(--monitor-warning); }
+  .chart-panel,
+  .trace-panel { min-width: 0; border: 1px solid var(--monitor-border); border-radius: 6px; padding: 0.75rem; }
+  .panel-heading { font-size: 0.625rem; }
+  .panel-heading strong { font-weight: 600; }
+  .chart-legend { display: flex; align-items: center; gap: 0.35rem; }
+  .chart-legend > span { width: 0.8rem; height: 2px; background: var(--monitor-success); }
+  .activity-chart { display: block; width: 100%; height: 7rem; margin-top: 0.75rem; overflow: visible; }
+  .chart-grid { fill: none; stroke: var(--monitor-border); stroke-dasharray: 3 5; }
+  .chart-area { fill: var(--monitor-success); opacity: 0.09; }
+  .chart-line { fill: none; stroke: var(--monitor-success); stroke-width: 2; stroke-linejoin: round; }
+  .chart-axis { display: flex; justify-content: space-between; margin-top: 0.25rem; color: var(--monitor-muted); font-size: 0.5625rem; }
+  .trace-list { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+  .trace-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto 3.5rem; align-items: center; gap: 0.5rem; padding-block: 0.5rem; border-top: 1px solid var(--monitor-border); }
+  .trace-name { overflow-wrap: anywhere; color: var(--monitor-text); }
+  .trace-status { font-size: 0.5625rem; }
+  .trace-duration { color: var(--monitor-muted); text-align: right; font-variant-numeric: tabular-nums; }
+  figcaption { margin: 0; border-top: 1px solid var(--monitor-border); padding: 0.75rem 1rem; color: var(--monitor-muted); font: 0.6875rem/1.6 var(--sl-font); }
+  @media (max-width: 42rem) {
+    .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .metric { padding: 0.75rem; }
+    .metric dt { font-size: 0.6875rem; }
+    .metric dd > span { font-size: 0.625rem; }
+    .dashboard-body { padding: 0.75rem; }
+    .trace-list li { grid-template-columns: minmax(0, 1fr) auto; }
+    .trace-duration { display: none; }
+  }
+</style>

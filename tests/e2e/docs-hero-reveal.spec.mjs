@@ -48,7 +48,7 @@ for (const { name, viewport } of [
 test("landing stories remain visible with reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./");
-  await expect(page.locator("[data-reveal]")).toHaveCount(6);
+  await expect(page.locator("[data-reveal]")).toHaveCount(7);
   await expect(page.locator(".maintenance-story")).toContainText("Dashboard maintenance");
   for (const story of await page.locator("[data-reveal]").all()) {
     await expect(story).toHaveCSS("opacity", "1");
@@ -111,7 +111,7 @@ test("landing stories remain visible without JavaScript", async ({ browser, base
   try {
     const page = await context.newPage();
     await page.goto("./");
-    await expect(page.locator("[data-reveal]")).toHaveCount(6);
+    await expect(page.locator("[data-reveal]")).toHaveCount(7);
     await expect(page.locator(".maintenance-story")).toContainText("Dashboard maintenance");
     for (const story of await page.locator("[data-reveal]").all()) {
       await expect(story).toHaveCSS("opacity", "1");
