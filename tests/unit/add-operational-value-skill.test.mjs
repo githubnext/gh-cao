@@ -5,10 +5,26 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
-import { run } from "../../.github/skills/add-operational-value/scripts/common.mjs";
+import { run, sha256File } from "../../.github/skills/add-operational-value/scripts/common.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const scripts = path.join(root, ".github/skills/add-operational-value/scripts");
+
+test("value fingerprints use SHA-256 without external commands", (t) => {
+  mkdirSync(path.join(root, ".tmp"), { recursive: true });
+  const temporary = mkdtempSync(path.join(root, ".tmp", "value fingerprint-"));
+  t.after(() => rmSync(temporary, { recursive: true, force: true }));
+  const file = path.join(temporary, "value function.mjs");
+  writeFileSync(file, Buffer.from([0x61, 0x62, 0x63]));
+  const digest = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+  assert.equal(sha256File(file), digest);
+  assert.equal(execFileSync(process.execPath, [
+    path.join(scripts, "fingerprint-value-function.mjs"), file,
+  ], { encoding: "utf8", env: { ...process.env, PATH: "" } }).trim(), digest);
+  writeFileSync(file, "");
+  assert.equal(sha256File(file), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+  assert.throws(() => sha256File(path.join(temporary, "missing.mjs")), { code: "ENOENT" });
+});
 
 test("script runner invokes Node modules without executable permissions or a shebang", (t) => {
   const temporary = mkdtempSync(path.join(os.tmpdir(), "value script runner-"));
