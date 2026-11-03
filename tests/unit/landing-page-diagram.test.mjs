@@ -103,7 +103,7 @@ test("landing page keeps the hero and supporting copy concise", () => {
   assert.ok(title && wordCount(title) <= 8, "hero headline should stay within eight words");
   assert.ok(tagline && wordCount(tagline) <= 40, "hero tagline should stay within forty words");
   const paragraphs = [...hero.matchAll(/<p>\s*([\s\S]*?)<\/p>/g)];
-  assert.equal(paragraphs.length, 7);
+  assert.equal(paragraphs.length, 9);
   const terminalParagraph = hero.match(/id="terminal-title"[\s\S]*?<p>\s*([\s\S]*?)<\/p>/)?.[1];
   for (const [, paragraph] of paragraphs) {
     const budget = paragraph === terminalParagraph ? 60 : 30;
@@ -142,6 +142,11 @@ test("the original operational-value storyboard retains evidence, human judgment
   const story = hero.match(/<section class="product-story decision-story"[\s\S]*?<\/section>/)?.[0];
   const decision = readFileSync("docs/components/HeroDecisionLoop.astro", "utf8");
   assert.ok(story);
+  assert.match(story, /<h2 id="decision-title">Operational Value<\/h2>/);
+  assert.match(story, /accepted, evidence-backed repository outcomes, not run counts or generated output/);
+  assert.match(story, /Define success up front and track it consistently/);
+  assert.match(story, /Minimize token and compute costs without sacrificing outcome quality/);
+  assert.match(story, /Cheaper runs are not better if they deliver less value; compare cost per accepted outcome/);
   assert.match(story, /<HeroDecisionLoop \/>/);
   for (const stage of ["Run", "Observe", "Review", "Refine", "Expand", "Pause"]) {
     assert.ok(decision.includes(`<strong>${stage}</strong>`));

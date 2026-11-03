@@ -8,7 +8,7 @@ const slideTitles = [
   "Shared workflows. Clear ownership.",
   "Easy upkeep",
   "Roll out with confidence.",
-  "Use evidence to decide what scales.",
+  "Operational Value",
   "Webhook Gateway",
   "Built on Agentic Workflows",
 ];

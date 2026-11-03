@@ -90,6 +90,10 @@ for (const colorScheme of ["light", "dark"]) {
         .toHaveAttribute("href", "/gh-cao/operational-value-how-to/");
       const valueScreenshot = testInfo.outputPath(`operational-value-${width}-${colorScheme}.png`);
       const valueStory = page.locator(".decision-story");
+      await expect(valueStory.getByRole("heading", { name: "Operational Value", exact: true })).toBeVisible();
+      await expect(valueStory).toContainText("accepted, evidence-backed repository outcomes, not run counts or generated output");
+      await expect(valueStory).toContainText("Minimize token and compute costs without sacrificing outcome quality");
+      await expect(valueStory).toContainText("compare cost per accepted outcome");
       await page.evaluate(() => document.fonts.ready);
       const valueHeight = await valueStory.evaluate((element) => element.getBoundingClientRect().height);
       // Keep the fixed header outside a tall storyboard's capture.
