@@ -1136,16 +1136,16 @@ describe('dashboard document validation', () => {
     expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
   });
 
-  it('defines experimental skill analytics with rankings and workflow drill-through', () => {
+  it('defines standard skill analytics with rankings and workflow drill-through', () => {
     const document = JSON.parse(authoritativeDashboardSource);
     const skills = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'skills');
 
     expect(document.dashboard.navigation.find(
-      (/** @type {{ experimental?: boolean }} */ section) => section.experimental === true
+      (/** @type {{ label?: string }} */ section) => section.label === 'Data'
     ).pages).toContain('skills');
     expect(skills).toMatchObject({
       kind: 'custom',
-      experimental: true,
+      experimental: false,
       views: [
         {
           id: 'skills-most-invoked',
