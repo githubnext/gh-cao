@@ -134,11 +134,16 @@ func captureCandidate(config Config, root *os.Root, repository string, c candida
 	case err != nil:
 		return Evidence{}, "", err
 	}
+	e, reason := projectCandidate(config, repository, c, content, at, placeholder)
+	return e, reason, nil
+}
+
+func projectCandidate(config Config, repository string, c candidate, content []byte, at time.Time, placeholder Evidence) (Evidence, string) {
 	e, err := Project(config, repository, c.run, c.day, c.attempt, content, at)
 	if err != nil {
-		return placeholder, "invalid-source", nil
+		return placeholder, "invalid-source"
 	}
-	return e, "", nil
+	return e, ""
 }
 
 func readCandidates(ctx context.Context, reader io.Reader, repository, logs string, out map[string]candidate, limit int) error {
