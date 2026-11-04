@@ -1,10 +1,10 @@
 # Implementation status
 
-Source SHA: `f5acee05a2a514a651702026e1a57fb4a50a3712`
+Source SHA: `a19872d3939b084a99a40a017d1fa4c59b0f491a`
 Governing contract: `specs/control-architecture.md` (working draft v1.0.0), with
 `.github/workflows/shared/cao.schema.json`, `policy.mjs` and `authority.mjs` as comparison evidence only.
 
-## Implemented and verified (unit tests, `mvn verify`: 20 tests, 0 failures)
+## Implemented and verified (unit tests, `mvn verify`: 28 tests, 0 failures)
 
 | Spec reference | Behavior |
 | --- | --- |
@@ -14,6 +14,8 @@ Governing contract: `specs/control-architecture.md` (working draft v1.0.0), with
 | §5.3 | Wildcard-free owner/repository scope; bounds 1..1000 / 1..100; slug identifiers; unique workflow per campaign |
 | §5.4, T-RES-002/003 | Precedence defaults < campaign < exact target < worker ceiling; dispatch narrowing only; widening throws |
 | T-ARC-001, T-ARC-003 | Out-of-scope target rejected; deprecated budget validated and ignored |
+| §6.4, T-RES-004/005 | `WorkerRevalidator`: current policy intersected with the parent `DispatchEnvelope`; narrowing/revocation honored, broadening never widens; identity/target mismatch fatal |
+| §6.3, T-RES-006/007 (worker only) | `EffectiveRecord`: worker/denial record with status, reason, identity, mode, repo, workflow SHA, policy digest, schema version, time, envelope |
 | §7, Appendix B | `campaign-undeclared`, `campaign-disabled`, `worker-disabled` denials; unknown worker fatal; policy SHA-256 digest recorded |
 
 ## Partial
@@ -23,7 +25,7 @@ Governing contract: `specs/control-architecture.md` (working draft v1.0.0), with
 
 ## Not implemented
 
-Effective record (§6.3), worker revalidation (§6.4), standalone workflows and operations,
+Orchestrator/standalone effective records, standalone workflows and operations,
 `inventory`, `web.host`, host extensions, `target-authority`, authority envelopes,
 exact-SHA policy fetch, canonical ingestion/storage (PostgreSQL), Dashboard Language
 execution, HTTP API, authentication, operational state, container packaging.
@@ -35,5 +37,5 @@ truststore built from the system CA bundle to reach Maven Central (local only).
 
 ## Next bounded slice
 
-Effective record (§6.3) with worker revalidation against a parent envelope (T-RES-004/005, T-RES-007),
-then a minimal HTTP health/readiness service with a non-root container.
+Minimal HTTP health/readiness service on numeric loopback with a non-root container definition;
+then orchestrator effective records once inventory is modeled.
