@@ -122,11 +122,23 @@ Archive acquisition and projection MUST enforce explicit byte, entry,
 pagination, attempt and cancellation bounds. Archive paths are logical names,
 not filesystem locations.
 
-Historical run tasks use the native exact-attempt REST lookup. A provider MUST
-verify the returned repository, run, attempt and agentic workflow path before
-claiming or acquiring artifacts. A missing exact-attempt capability MUST fail;
+Historical run tasks use the native exact-attempt REST lookup. Acquisition MUST
+obtain an enrollment-fenced exact-attempt claim before the provider lookup.
+A provider MUST verify the returned repository, run, attempt and agentic workflow
+path before acquiring artifacts. A missing exact-attempt capability MUST fail;
 it MUST NOT substitute the latest attempt or expand the task into repository
 discovery.
+
+Historical run processing MUST use a fresh, opaque durable queue receipt for
+every delivery and reclaim, including reclaim by the same consumer name.
+Completion, delayed retry and dead-letter replacement MUST atomically reject a
+superseded receipt. Backends without that owned capability MUST reject native
+run processing; a separate ownership read followed by an unfenced mutation is
+not equivalent. The PostgreSQL operational adapter supplies this contract.
+Processing failure counts MUST remain separate from the GitHub run attempt;
+claim contention and shutdown MUST NOT spend the failure budget. Workers MUST
+persist the safe publication intent before ACK, so another process can recover
+and activate it after either a pre-ACK or post-ACK crash.
 
 The PostgreSQL acquisition adapter owns exact repository/run/attempt claims,
 database expiry, generation/token fencing and enrollment epochs. Only
@@ -156,7 +168,9 @@ partial source metadata, not success-shaped defaults or inferred zeroes.
 
 **Current activation limit:** this service and its PostgreSQL canonical/trace
 adapters are independently executable, but `CollectorConfig.NativeAcquisition`
-still fails closed. The hosted enrollment/queue/backfill lifecycle, complete
+still fails closed. The historical run consumer is available through the
+fenced queue/native acquisition boundary, but is not activated by the hosted
+composition. The hosted enrollment/queue/backfill lifecycle, complete
 inventory/Value replacement and session archive are not yet integrated with this
 boundary. Native Actions job-log/legacy audit extraction is also unavailable;
 `legacy-audit-unavailable` is explicit evidence, not a parity claim. The existing

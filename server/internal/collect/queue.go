@@ -91,6 +91,9 @@ type RunTask struct {
 	Attempt        int       `json:"attempt"`
 	CreatedAt      time.Time `json:"createdAt,omitempty"`
 	EnqueuedAt     time.Time `json:"enqueuedAt"`
+	// Failures counts processing failures, never GitHub run attempts.
+	Failures  int       `json:"failures,omitempty"`
+	NotBefore time.Time `json:"notBefore,omitempty"`
 }
 
 // Lease is a task delivered to one consumer and not yet acknowledged.

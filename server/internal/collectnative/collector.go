@@ -122,6 +122,11 @@ func (c Collector) CollectAttempt(ctx context.Context, identity Identity) error 
 	}
 	ctx, cancel := context.WithTimeout(ctx, c.timeout())
 	defer cancel()
+	claim, err := c.Store.Claim(ctx, identity, c.claimTTL())
+	if err != nil {
+		return err
+	}
+	defer c.releaseClaim(ctx, claim)
 	run, err := provider.Attempt(ctx, identity)
 	if err != nil {
 		return err
@@ -129,7 +134,7 @@ func (c Collector) CollectAttempt(ctx context.Context, identity Identity) error 
 	if run.Identity != identity || !workflowPath.MatchString(run.WorkflowPath) {
 		return ErrIdentity
 	}
-	return c.collectRun(ctx, run)
+	return c.publishRun(ctx, claim, run)
 }
 
 func (c Collector) collectRun(ctx context.Context, run Run) error {
@@ -137,13 +142,19 @@ func (c Collector) collectRun(ctx context.Context, run Run) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		cleanup, stop := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
-		defer stop()
-		// Publication clears the claim. A lost release cannot authorize a
-		// stale publication; database expiry remains the recovery path.
-		_ = c.Store.Release(cleanup, claim)
-	}()
+	defer c.releaseClaim(ctx, claim)
+	return c.publishRun(ctx, claim, run)
+}
+
+func (c Collector) releaseClaim(ctx context.Context, claim Claim) {
+	cleanup, stop := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+	defer stop()
+	// Publication clears the claim. A lost release cannot authorize a
+	// stale publication; database expiry remains the recovery path.
+	_ = c.Store.Release(cleanup, claim)
+}
+
+func (c Collector) publishRun(ctx context.Context, claim Claim, run Run) error {
 	evidence, err := c.extract(ctx, run)
 	if err != nil {
 		return err

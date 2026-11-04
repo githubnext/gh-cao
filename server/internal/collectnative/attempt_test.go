@@ -61,7 +61,7 @@ func TestGitHubNativeExactHistoricalAttempt(t *testing.T) {
 			t.Setenv("PATH", "/nonexistent")
 			err := collector.CollectAttempt(t.Context(), identity)
 			if !response.valid {
-				if !errors.Is(err, ErrIdentity) || len(store.published) != 0 || store.released != 0 {
+				if !errors.Is(err, ErrIdentity) || len(store.published) != 0 || store.released != 1 {
 					t.Fatalf("mismatched attempt reached safe publication: %v", err)
 				}
 				return
@@ -102,5 +102,33 @@ func TestGitHubNativeExactAttemptDoesNotExposeRawFailures(t *testing.T) {
 	provider := GitHub{BaseURL: server.URL, Tokens: testTokens{}, Quota: testQuota(t), App: "native-test"}
 	if _, err := provider.Attempt(t.Context(), testIdentity()); err == nil || strings.Contains(err.Error(), "PRIVATE") {
 		t.Fatalf("provider failure was hidden or exposed raw upstream content: %v", err)
+	}
+}
+
+type deniedAttemptScope struct{ Store }
+
+func (s deniedAttemptScope) Claim(context.Context, Identity, time.Duration) (Claim, error) {
+	return Claim{}, ErrIdentity
+}
+
+type trackedAttemptProvider struct {
+	staticProvider
+	lookups int
+}
+
+func (p *trackedAttemptProvider) Attempt(context.Context, Identity) (Run, error) {
+	p.lookups++
+	return nativeRun(), nil
+}
+
+func TestNativeExactAttemptChecksScopeBeforeProviderLookup(t *testing.T) {
+	provider := &trackedAttemptProvider{}
+	retained := &testEvidenceStore{}
+	collector := Collector{Provider: provider, Store: deniedAttemptScope{retained}}
+	if err := collector.CollectAttempt(t.Context(), testIdentity()); !errors.Is(err, ErrIdentity) {
+		t.Fatalf("unenrolled attempt was not rejected: %v", err)
+	}
+	if provider.lookups != 0 || len(retained.published) != 0 || retained.released != 0 {
+		t.Fatal("unenrolled historical task reached provider lookup or publication")
 	}
 }
