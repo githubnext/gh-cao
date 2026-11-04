@@ -35,7 +35,7 @@ func TestSessionArchiveLocalHTTPIntegration(t *testing.T) {
 	if err := os.Chmod(config.SessionArchive.Directory, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	app, err := NewLocalSQLiteOverlayApp(t.Context(), snapshot, filepath.Join(t.TempDir(), "overlay.sqlite"), 0, config)
+	app, err := NewLocalSQLiteApp(t.Context(), snapshot, config)
 	if err != nil {
 		t.Fatal(err)
 	}

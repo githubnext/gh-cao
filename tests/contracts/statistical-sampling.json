@@ -3,7 +3,7 @@
   "title": "Statistical sampling",
   "specification": "specs/dashboard-data.md#511-independent-statistical-run-projection",
   "scope": "Bounded snapshot sampling and PostgreSQL persisted bundles; not hot-tier eviction, daily aggregates, or an online reservoir.",
-  "requiredSuites": ["coverage-contract", "formal-publication", "activity-runtime", "indexeddb-worker", "native-browser", "shared-sampler", "native-cli", "sqlite", "sqlite-live-backfill", "postgresql"],
+  "requiredSuites": ["coverage-contract", "formal-publication", "activity-runtime", "indexeddb-worker", "native-browser", "shared-sampler", "native-cli", "sqlite", "sqlite-external-refresh", "postgresql"],
   "requirements": {
     "formal-atomicity": "Bounded publication, abort, restart, whole-bundle admission, exact-source isolation and post-selection filtering",
     "allocation-parity": "Versioned SHA256 priorities, deterministic strata/allocation and weights agree across JS and Go",
@@ -15,7 +15,7 @@
     "sample-composition": "Shipped query remains unweighted sample composition, not exact or population totals",
     "activity-publication": "Real Activity workflow publication, replay, corrections and recycle preserve the statistical source",
     "native-browser": "Native IndexedDB and a real data worker execute statistical queries, not synthesized source rows",
-    "sqlite-live-backfill": "The same local HTTP app sees a refreshed canonical SQLite overlay frame without changing snapshot bytes",
+    "sqlite-external-refresh": "The read-only local HTTP app observes externally committed canonical rows and statistical frames without acquiring or writing evidence",
     "persisted-bundles": "PostgreSQL preserves complete frozen bundles across restart, exact retention and incremental revisions",
     "publication-rollback": "Invalid or cancelled PostgreSQL publication preserves the committed frame"
   },
@@ -83,10 +83,10 @@
       }
     },
     {
-      "id": "sqlite-live-backfill", "runner": "go", "directory": "server", "packages": ["./internal/server"],
-      "files": ["server/internal/server/local_backfill_test.go"],
-      "pattern": "^TestLocalBackfill",
-      "coverage": { "sqlite-live-backfill": "TestLocalBackfillCollectsSnapshotScopeWithLocalToken" }
+      "id": "sqlite-external-refresh", "runner": "go", "directory": "server", "packages": ["./internal/server"],
+      "files": ["server/internal/server/local_sqlite_test.go"],
+      "pattern": "^TestLocalSQLiteExternalRefresh",
+      "coverage": { "sqlite-external-refresh": "TestLocalSQLiteExternalRefresh" }
     },
     {
       "id": "postgresql", "runner": "go", "directory": "server", "packages": ["./internal/postgresx"],

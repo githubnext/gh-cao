@@ -167,7 +167,7 @@ node .github/skills/add-operational-value/examples/native-file-diet.mjs \
   --proof PATH_TO_RETAINED_PROOF --output .tmp/file-diet-native
 npm --prefix dashboard/site run build
 cd server
-go run ./cmd/cao-dashboard serve --backfill=false \
+go run ./cmd/cao-dashboard serve \
   --sqlite ../.tmp/file-diet-native/dashboard.sqlite
 ```
 

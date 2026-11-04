@@ -43,8 +43,7 @@ func TestDashboardReadSyntheticProcessScenario(t *testing.T) {
 	// If another process wins the bind race, readiness/exit checks fail explicitly.
 	// #nosec G204 -- execute only the binary just built above with test-owned local fixture paths.
 	command := exec.CommandContext(ctx, binary, "serve",
-		"--listen="+address, "--sqlite="+fixture.snapshot, "--sqlite-overlay="+fixture.overlay,
-		"--backfill=false", "--site="+fixture.config.SiteDirectory,
+		"--listen="+address, "--sqlite="+fixture.snapshot, "--site="+fixture.config.SiteDirectory,
 		"--access-token="+dashboardScenarioToken,
 		"--database-queries="+fixture.config.DatabaseQueriesPath,
 		"--dashboard-queries="+fixture.config.DashboardQueriesPath,
@@ -117,13 +116,14 @@ func TestDashboardReadSyntheticProcessScenario(t *testing.T) {
 func dashboardScenarioEnvironment(t *testing.T, root string) []string {
 	t.Helper()
 	// Do not inherit credentials, policy, database URLs, exporters or proxy
-	// settings. The existing snapshot and disabled backfill require no network.
+	// settings. Serving the existing snapshot requires no acquisition tools.
 	environment := []string{
 		"HOME=" + root, "USERPROFILE=" + root,
+		"PATH=" + root,
 		"OTEL_SDK_DISABLED=true", "DO_NOT_TRACK=1", "GH_TELEMETRY=0",
 		"DASHBOARD_DATA_URL=disabled-synthetic-scenario",
 	}
-	for _, name := range []string{"PATH", "SystemRoot", "WINDIR", "TMPDIR", "TMP", "TEMP"} {
+	for _, name := range []string{"SystemRoot", "WINDIR", "TMPDIR", "TMP", "TEMP"} {
 		if value, ok := os.LookupEnv(name); ok {
 			environment = append(environment, name+"="+value)
 		}

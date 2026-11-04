@@ -257,15 +257,13 @@ func (a *App) configureSessionArchive(ctx context.Context) error {
 		if blob.Enabled {
 			return errors.New("local SQLite session archive cannot select hosted Blob/ADX analytics")
 		}
-		targets, err := database.BackfillTargets(ctx, time.Now().UTC())
+		repositories, err := database.SnapshotRepositories(ctx)
 		if err != nil {
 			return err
 		}
 		for _, repository := range config.Repositories {
-			if !slices.ContainsFunc(targets, func(target sqlitex.BackfillTarget) bool {
-				return target.Repository == repository
-			}) {
-				return errors.New("session archive scope must be contained in the local snapshot collection scope")
+			if !slices.Contains(repositories, repository) {
+				return errors.New("session archive scope must be contained in the local snapshot inventory")
 			}
 		}
 	} else {

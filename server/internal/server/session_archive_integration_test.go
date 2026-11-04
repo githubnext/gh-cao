@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -37,22 +35,15 @@ func archiveRuntime(t *testing.T) string {
 	return path
 }
 
-func TestSessionArchiveLocalBackfillIntegration(t *testing.T) {
+func TestSessionArchiveLocalCaptureIntegration(t *testing.T) {
 	duckdb := archiveRuntime(t)
 	if runtime.GOOS == "windows" {
 		t.Fatal("approved private archive requires a POSIX host")
 	}
-	if _, err := exec.LookPath("node"); err != nil {
-		t.Fatal("production local acquisition integration requires node")
-	}
-	original, _ := newSQLiteTestApp(t, false)
-	root, err := filepath.Abs("../../..")
-	if err != nil {
-		t.Fatal(err)
-	}
-	snapshot := filepath.Join(t.TempDir(), "snapshot.sqlite")
+	original, snapshot := newSQLiteTestApp(t, false)
 	config := original.config
 	config.Database = nil
+	var err error
 	config.DatabaseQueriesPath, err = filepath.Abs(config.DatabaseQueriesPath)
 	if err != nil {
 		t.Fatal(err)
@@ -94,59 +85,36 @@ func TestSessionArchiveLocalBackfillIntegration(t *testing.T) {
 	if err := os.WriteFile(fixture, append(record, '\n'), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	// #nosec G204 -- fixed production ingestion entry point and test-owned files.
-	initialize := exec.CommandContext(t.Context(), "node", "activity/cao.mjs", "ingest-jsonl",
-		"--database", snapshot, "--input", fixture)
-	initialize.Dir = root
-	if output, err := initialize.CombinedOutput(); err != nil {
-		t.Fatalf("initialize production SQLite snapshot: %v\n%s", err, output)
-	}
 	// #nosec G304 -- this immutable snapshot is created in the test's private directory.
 	before, err := os.ReadFile(snapshot)
 	if err != nil {
 		t.Fatal(err)
 	}
-	gh := `#!/bin/sh
-set -eu
-if [ "$1" = api ]; then
-  printf '[{"workflows":[{"path":".github/workflows/test.lock.yml"}]}]\n'
-  exit 0
-fi
-test "$1" = aw
-test "$GH_TOKEN" = archive-integration-token
-cache=''
-output=''
-while [ "$#" -gt 0 ]; do
-  case "$1" in
-    --cached-jsonl) cache="${2%\*}"; shift ;;
-    --output) output="$2"; shift ;;
-  esac
-  shift
-done
-mkdir -p "$output/run-124/usage"
-cp "` + source + `" "$output/run-124/usage/aw_session.jsonl"
-printf '{"repository":"octo/one","run_id":124,"run_attempt":"1"}\n' > "$output/run-124/usage/aw_info.json"
-cp "` + fixture + `" "${cache}1.jsonl"
-`
-	if err := os.WriteFile(filepath.Join(directory, "gh"), []byte(gh), 0o700); err != nil { // #nosec G306 -- executable test-only acquisition stub.
+	logs := filepath.Join(directory, "logs")
+	usage := filepath.Join(logs, "run-124", "usage")
+	if err := os.MkdirAll(usage, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("PATH", directory+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("GH_TOKEN", "archive-integration-token")
-	overlay := filepath.Join(directory, "overlay.sqlite")
-	app, err := NewLocalSQLiteOverlayApp(t.Context(), snapshot, overlay, time.Hour, config)
+	if err := os.Rename(source, filepath.Join(usage, "aw_session.jsonl")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(usage, "aw_info.json"),
+		[]byte(`{"repository":"octo/one","run_id":124,"run_attempt":1}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	app, err := NewLocalSQLiteApp(t.Context(), snapshot, config)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = app.Stop(context.WithoutCancel(t.Context())) })
-	if app.localBackfill == nil || app.localBackfill.traces == nil || app.adx != nil || app.adxTraces != nil {
-		t.Fatal("archive did not wire local acquisition independently of ADX")
+	if app.Collector() != nil || app.adx != nil || app.adxTraces != nil {
+		t.Fatal("local archive serving enabled remote acquisition")
 	}
-	if err := app.localBackfill.refresh(t.Context(), log.New(io.Discard, "", 0), func(int64) {}); err != nil {
+	if err := app.sessionArchive.Capture(t.Context(), "octo/one", logs, strings.TrimSuffix(fixture, ".jsonl")); err != nil {
 		t.Fatal(err)
 	}
 	if app.sessionArchive.backend.Status().StagedTraces != 1 {
-		t.Fatal("production acquisition did not durably admit full evidence before cleanup")
+		t.Fatal("explicit archive capture did not durably admit provided evidence")
 	}
 	if err := app.sessionArchive.backend.Flush(t.Context()); err != nil {
 		t.Fatal(err)
@@ -197,7 +165,7 @@ cp "` + fixture + `" "${cache}1.jsonl"
 	if err := app.Stop(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	restarted, err := NewLocalSQLiteOverlayApp(t.Context(), snapshot, overlay, 0, config)
+	restarted, err := NewLocalSQLiteApp(t.Context(), snapshot, config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -386,9 +354,9 @@ func TestSessionArchiveScopeRejectsBeforeRuntimeOrAcquisition(t *testing.T) {
 		Policy: adxtrace.Policy{Version: "test-approved", ContentApproved: true, RightsApproved: true,
 			Events: map[string][]string{"user.message": {"content"}}},
 	}
-	if _, err := NewLocalSQLiteOverlayApp(t.Context(), snapshot, filepath.Join(t.TempDir(), "delta.sqlite"), time.Minute, config); err == nil ||
-		!strings.Contains(err.Error(), "contained in the local snapshot collection scope") {
-		t.Fatalf("archive scope bypassed immutable local collection authority: %v", err)
+	if _, err := NewLocalSQLiteApp(t.Context(), snapshot, config); err == nil ||
+		!strings.Contains(err.Error(), "contained in the local snapshot inventory") {
+		t.Fatalf("archive scope bypassed local snapshot inventory: %v", err)
 	}
 	files, err := os.ReadDir(config.SessionArchive.Directory)
 	if err != nil || len(files) != 0 {

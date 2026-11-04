@@ -27,7 +27,6 @@ const dashboardScenarioToken = "synthetic-dashboard-contract-token-only"
 
 type dashboardReadFixture struct {
 	snapshot string
-	overlay  string
 	config   server.Config
 }
 
@@ -64,7 +63,7 @@ func newDashboardReadFixture(t *testing.T) dashboardReadFixture {
 		t.Fatal(err)
 	}
 	return dashboardReadFixture{
-		snapshot: snapshot, overlay: filepath.Join(t.TempDir(), "synthetic.local.sqlite"),
+		snapshot: snapshot,
 		config: server.Config{
 			Listen: "127.0.0.1:0", SiteDirectory: site, AccessToken: dashboardScenarioToken,
 			DatabaseQueriesPath:  filepath.Join(source, "data/queries/database.json"),
@@ -79,7 +78,7 @@ func newDashboardReadFixture(t *testing.T) dashboardReadFixture {
 
 func TestDashboardReadSyntheticScenario(t *testing.T) {
 	fixture := newDashboardReadFixture(t)
-	app, err := server.NewLocalSQLiteOverlayApp(t.Context(), fixture.snapshot, fixture.overlay, 0, fixture.config)
+	app, err := server.NewLocalSQLiteApp(t.Context(), fixture.snapshot, fixture.config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,12 +186,14 @@ func runDashboardReadScenario(t *testing.T, fixture dashboardReadFixture, endpoi
 			t.Fatal(err)
 		}
 		client.query(t, string(next))
-		dashboardScenarioWrite(t, fixture.overlay, `INSERT INTO __idb_records VALUES (?,?,?,?)`,
+		dashboardScenarioWrite(t, fixture.snapshot, `UPDATE __idb_records SET value=?
+			WHERE database_name=? AND store_name=? AND record_key=?`,
+			`{"id":"repository:synthetic/alpha","owner":"synthetic","name":"updated"}`,
 			dashboardquery.DatabaseName, "repositories", `"repository:synthetic/alpha"`,
-			`{"id":"repository:synthetic/alpha","owner":"synthetic","name":"updated"}`)
+		)
 		updated := client.query(t, `{"sourceNames":["repositories"]}`)
 		if updated.Revision == first.Revision || len(updated.Sources["repositories"].Rows) != 2 {
-			t.Fatalf("local commit did not produce fresh canonical state: %+v", updated)
+			t.Fatalf("external commit did not produce fresh canonical state: %+v", updated)
 		}
 		changed := client.query(t, `{"sourceNames":["changed"],"queries":[{
 			"name":"changed","from":"$repositories","filter":{"predicates":[{"field":"id","equals":"repository:synthetic/alpha"}]},
@@ -206,10 +207,10 @@ func runDashboardReadScenario(t *testing.T, fixture dashboardReadFixture, endpoi
 		}
 	})
 	t.Run("synthetic dependency failure stays unavailable", func(t *testing.T) {
-		dashboardScenarioWrite(t, fixture.overlay, `UPDATE __idb_databases SET version=0`)
+		dashboardScenarioWrite(t, fixture.snapshot, `UPDATE __idb_databases SET version=0`)
 		client.request(t, http.MethodPost, "/api/v1/query", `{"sourceNames":["repositories"]}`, http.StatusServiceUnavailable)
 		client.request(t, http.MethodGet, "/api/repositories", "", http.StatusServiceUnavailable)
-		dashboardScenarioWrite(t, fixture.overlay, `UPDATE __idb_databases SET version=?`, dashboardquery.DatabaseVersion)
+		dashboardScenarioWrite(t, fixture.snapshot, `UPDATE __idb_databases SET version=?`, dashboardquery.DatabaseVersion)
 		client.query(t, `{"sourceNames":["repositories"]}`)
 	})
 	t.Run("synthetic active transport cancellation", func(t *testing.T) {

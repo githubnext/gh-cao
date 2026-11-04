@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/ingest"
 	"github.com/githubnext/gh-cao/server/internal/model"
@@ -17,25 +15,6 @@ import (
 // NewLocalSQLiteApp owns a read-only snapshot and bounded process-local request
 // services, without local refresh or hosted collection.
 func NewLocalSQLiteApp(ctx context.Context, path string, config Config) (*App, error) {
-	return newLocalSQLiteApp(ctx, path, "", 0, config)
-}
-
-// NewLocalSQLiteOverlayApp keeps the deployed snapshot immutable and optionally
-// refreshes a separate local delta with the operator's GitHub credentials.
-func NewLocalSQLiteOverlayApp(ctx context.Context, path, overlay string, interval time.Duration, config Config) (*App, error) {
-	if config.Canvas != nil {
-		return nil, errors.New("canvas integration requires snapshot-only SQLite serving")
-	}
-	if strings.TrimSpace(overlay) == "" {
-		return nil, errors.New("local SQLite overlay path is required")
-	}
-	if interval < 0 {
-		return nil, errors.New("local backfill interval cannot be negative")
-	}
-	return newLocalSQLiteApp(ctx, path, overlay, interval, config)
-}
-
-func newLocalSQLiteApp(ctx context.Context, path, overlay string, interval time.Duration, config Config) (*App, error) {
 	if config.Database != nil {
 		return nil, errors.New("local SQLite cannot replace a configured database")
 	}
@@ -53,13 +32,7 @@ func newLocalSQLiteApp(ctx context.Context, path, overlay string, interval time.
 			return nil, errors.New("read published canvas inventory quality")
 		}
 	}
-	var database *sqlitex.Store
-	var err error
-	if overlay == "" {
-		database, err = sqlitex.OpenWithMetadata(ctx, path, metadata)
-	} else {
-		database, err = sqlitex.OpenOverlay(ctx, path, overlay, metadata)
-	}
+	database, err := sqlitex.OpenWithMetadata(ctx, path, metadata)
 	if err != nil {
 		return nil, err
 	}
@@ -81,21 +54,6 @@ func newLocalSQLiteApp(ctx context.Context, path, overlay string, interval time.
 	}
 	app.ownedOperational = store
 	app.ownedDatabase = database
-	if interval > 0 {
-		path, err = filepath.Abs(path)
-		if err != nil {
-			_ = database.Close()
-			_ = store.Close()
-			return nil, err
-		}
-		app.localBackfill = &localSQLiteBackfill{
-			database: database, snapshot: path, overlay: overlay, interval: interval,
-			catalog: filepath.Clean(filepath.Join(filepath.Dir(config.DatabaseQueriesPath), "../../../../..")),
-		}
-		if app.sessionArchive != nil {
-			app.localBackfill.traces = app.sessionArchive
-		}
-	}
 	return app, nil
 }
 
