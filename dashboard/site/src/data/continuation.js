@@ -36,7 +36,7 @@ export function bindSourceContinuations(
     if (!sourceNames.includes(name) || source.continuationToken === undefined) {
       return [name, source];
     }
-    const totalRows = validatePage(name, source);
+    const pageContract = validatePage(name, source);
     /** @type {string | undefined} */
     let currentToken = source.continuationToken;
     /** @type {Promise<import('../presenter.js').LogicalSourceInput> | undefined} */
@@ -56,7 +56,7 @@ export function bindSourceContinuations(
         ).then((nextSources) => {
           const next = nextSources[name];
           if (!next) throw new TypeError(`Continuation response is missing source "${name}".`);
-          validatePage(name, next, totalRows);
+          validatePage(name, next, pageContract);
           currentToken = next.continuationToken;
           debugContinuation({
             event: 'page-loaded',
@@ -105,7 +105,7 @@ export async function drainSourceContinuation(source) {
 export function sourceContinuation(source) {
   if (source.continuationToken === undefined) return undefined;
   if (typeof source.loadContinuation !== 'function') return undefined;
-  const totalRows = validatePage(source.source, source);
+  const { totalRows } = validatePage(source.source, source);
   return {
     token: source.continuationToken,
     totalRows,
@@ -116,9 +116,9 @@ export function sourceContinuation(source) {
 /**
  * @param {string} name
  * @param {import('../presenter.js').LogicalSourceInput} source
- * @param {number} [expectedTotal]
+ * @param {{ mode: 'counted'|'bounded', totalRows?: number }} [expected]
  */
-function validatePage(name, source, expectedTotal) {
+function validatePage(name, source, expected) {
   if (source.source !== name || !Array.isArray(source.rows)) {
     throw new TypeError(`Invalid continuation response for source "${name}".`);
   }
@@ -126,14 +126,32 @@ function validatePage(name, source, expectedTotal) {
       && (typeof source.continuationToken !== 'string' || source.continuationToken.length === 0)) {
     throw new TypeError(`Invalid continuation token for source "${name}".`);
   }
-  const totalRows = Number(source.metadata?.['total-row-count']);
-  if (!Number.isSafeInteger(totalRows) || totalRows < source.rows.length) {
+  const rawTotalRows = source.metadata?.['total-row-count'];
+  if (rawTotalRows !== undefined) {
+    const totalRows = Number(rawTotalRows);
+    if (!Number.isSafeInteger(totalRows) || totalRows < source.rows.length) {
+      throw new TypeError(`Invalid continuation row count for source "${name}".`);
+    }
+    if (expected?.mode === 'bounded'
+        || (expected?.totalRows !== undefined && totalRows !== expected.totalRows)) {
+      throw new TypeError(`Continuation data for "${name}" is stale.`);
+    }
+    return { mode: /** @type {'counted'} */ ('counted'), totalRows };
+  }
+
+  const pageSize = Number(source.metadata?.['page-size']);
+  const pageRowCount = Number(source.metadata?.['page-row-count']);
+  const hasMore = source.metadata?.['has-more'];
+  if (!Number.isSafeInteger(pageSize) || pageSize <= 0
+      || !Number.isSafeInteger(pageRowCount) || pageRowCount !== source.rows.length
+      || pageRowCount > pageSize || typeof hasMore !== 'boolean'
+      || hasMore !== (source.continuationToken !== undefined)) {
     throw new TypeError(`Invalid continuation row count for source "${name}".`);
   }
-  if (expectedTotal !== undefined && totalRows !== expectedTotal) {
+  if (expected?.mode === 'counted') {
     throw new TypeError(`Continuation data for "${name}" is stale.`);
   }
-  return totalRows;
+  return { mode: /** @type {'bounded'} */ ('bounded') };
 }
 
 /** @param {number} limit */

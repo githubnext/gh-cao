@@ -44,6 +44,55 @@ func TestNativePlanUsesExistingHTTPPaginationContract(t *testing.T) {
 	}
 }
 
+func TestWorkflowKeysetPaginationAnchorsOnBoundaryRows(t *testing.T) {
+	store := integrationDatabase(t)
+	fixture := nativeAPIFixture()
+	fixture["$repositories"] = model.Source{Rows: []model.Row{
+		{"id": "repo-1", "owner": "octo", "name": "one"},
+		{"id": "repo-2", "owner": "octo", "name": "two"},
+		{"id": "repo-3", "owner": "octo", "name": "three"},
+	}}
+	fixture["$workflows"] = model.Source{Rows: []model.Row{
+		{"id": "workflow-1", "repositoryId": "repo-1", "path": ".github/workflows/a.md"},
+		{"id": "workflow-2", "repositoryId": "repo-2", "path": ".github/workflows/b.md"},
+		{"id": "workflow-3", "repositoryId": "repo-3", "path": ".github/workflows/c.md"},
+	}}
+	seedDatabase(t, store, fixture)
+	app := &App{database: store}
+	definitions := []query.Definition{
+		{
+			Name: "workflow-subjects", From: "$workflows",
+			Select:  []query.SelectedField{{Field: "repositoryId"}, {Field: "path"}, {Field: "id"}},
+			OrderBy: []query.OrderField{{Field: "repositoryId"}, {Field: "path"}, {Field: "id"}},
+			Page: &query.PageBoundary{
+				Keys: []string{"repositoryId", "path", "id"}, Revision: "workflow-subjects",
+				Comparator: "utf8-bytewise-v1",
+			},
+		},
+		{
+			Name: "visible", From: "workflow-subjects",
+			Filter: &query.Filter{Predicates: []query.Predicate{{Field: "id", Equals: "workflow-2"}}},
+		},
+	}
+	input := queryRequest{
+		Queries: definitions, SourceNames: []string{"visible"},
+		Pagination: map[string]paginationRequest{"visible": {Limit: 1}},
+	}
+	first, status, err := app.executeQuery(t.Context(), input, false)
+	if err != nil || status != http.StatusOK || len(first.Sources["visible"].Rows) != 0 ||
+		first.Sources["visible"].ContinuationToken == "" || first.Sources["visible"].Metadata["has-more"] != true {
+		t.Fatalf("sparse first keyset page lost its boundary cursor: %+v %d %v", first, status, err)
+	}
+	input.Pagination["visible"] = paginationRequest{
+		Limit: 1, ContinuationToken: first.Sources["visible"].ContinuationToken,
+	}
+	second, status, err := app.executeQuery(t.Context(), input, false)
+	if err != nil || status != http.StatusOK || len(second.Sources["visible"].Rows) != 1 ||
+		second.Sources["visible"].Rows[0]["id"] != "workflow-2" {
+		t.Fatalf("deep keyset page did not resume from the boundary anchor: %+v %d %v", second, status, err)
+	}
+}
+
 func TestHostedSQLFailsClosedForUnsupportedDefinitions(t *testing.T) {
 	store := integrationDatabase(t)
 	seedDatabase(t, store, nil)

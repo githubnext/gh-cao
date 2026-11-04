@@ -82,6 +82,19 @@ function executeUniversalValue(pageId, parameters = {}) {
     queries: dashboard.queries, routeParameters: parameters
   });
   const rows = {
+    'workflow-subject-topology': [
+      {
+        repositoryId: 'repository:acme/control', path: 'campaign-worker.md', id: 'workflow:campaign',
+        organization: 'acme', repository: 'control', workflow: 'campaign-worker.md',
+        'workflow-name': 'Campaign worker', 'workflow-role': 'worker',
+        campaign: 'quality', 'campaign-name': 'Quality'
+      },
+      {
+        repositoryId: 'repository:acme/app', path: 'standalone.md', id: 'workflow:standalone',
+        organization: 'acme', repository: 'app', workflow: 'standalone.md',
+        'workflow-name': 'Standalone check', 'workflow-role': 'standalone'
+      }
+    ],
     workflows: [
       {
         organization: 'acme', repository: 'control', workflow: 'campaign-worker.md',
@@ -316,13 +329,15 @@ describe('native workflow value production contract', () => {
 
   it('keeps the unscoped Value inventory available beyond 32 retained packets', async () => {
     const packet = await publish();
-    const others = Array.from({ length: 32 }, (_, index) => {
+    const otherPackets = Array.from({ length: 32 }, (_, index) => {
       const other = structuredClone(packet);
       other.repository = `octo/repo-${index}`;
       other.id = operationalValueEvidenceId(other.repository, other.workflow, 'linked', 'v1');
-      return JSON.stringify({ schema_version: 2, kind: 'operational_value_evidence', operational_value_evidence: other });
+      return other;
     });
-    await ingestCachedGhAwJsonl(indexedDB, others.join('\n'), {
+    await ingestCachedGhAwJsonl(indexedDB, otherPackets.map((other) =>
+      JSON.stringify({ schema_version: 2, kind: 'operational_value_evidence', operational_value_evidence: other })
+    ).join('\n'), {
       now: Date.parse(packet.observedAt), payloadScope: 'fleet-packets'
     });
     expect(await readEvidencePackets(indexedDB, null)).toHaveLength(33);
@@ -335,19 +350,26 @@ describe('native workflow value production contract', () => {
     const routes = Array.from({ length: 10001 }, (_, index) => `acme/repo-${index}:.github/workflows/check.md`);
     const source = (/** @type {string} */ name, /** @type {Record<string, unknown>[]} */ rows) =>
       ({ source: name, rows, metadata: { ...universalMetadata, 'source-id': name } });
-    const definitions = ['value-workflow-overview', 'value-campaign-deployments', 'value-campaign-totals']
+    const definitions = ['value-campaign-coverage-deployments', 'value-campaign-totals']
       .map(name => dashboard.queries.find((/** @type {{name: string}} */ query) => query.name === name));
     const totals = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
       operation: 'execute-dashboard-queries', queries: definitions, sourceNames: ['value-campaign-totals'],
       sources: {
-        'value-subjects': source('value-subjects', routes.map((route, index) => ({
-          'workflow-route': route, 'repository-coordinate': `acme/repo-${index}`, 'workflow-label': 'Check'
-        }))),
-        'value-workflow-topology': source('value-workflow-topology', routes.map(route => ({
-          'workflow-route': route, campaign: 'quality', 'campaign-name': 'Quality', 'workflow-role': 'worker'
-        }))),
-        'value-collection-health': source('value-collection-health', []),
-        'value-headlines': source('value-headlines', [])
+        'value-campaign-complete-deployments': source(
+          'value-campaign-complete-deployments',
+          routes.map((route, index) => ({
+            'workflow-route': route,
+            'repository-coordinate': `acme/repo-${index}`,
+            campaign: 'quality',
+            'campaign-name': 'Quality',
+            'configured-value': 0,
+            'current-evidence-value': 0,
+            'unconfigured-value': 1,
+            'deferred-value': 0,
+            'failed-value': 0,
+            'review-value': 1
+          }))
+        )
       }
     }))['value-campaign-totals'];
     expect(totals.metadata.availability).toBe('available');

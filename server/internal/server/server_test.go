@@ -463,6 +463,24 @@ func TestCurrentDashboardQueriesAreAccepted(t *testing.T) {
 	}
 }
 
+func TestValueOverviewResolvesOneCanonicalPageBoundary(t *testing.T) {
+	database, err := ParseDashboardQueries("../../../dashboard/site/src/data/queries/database.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, err := ParseDashboardQueries("../../../dashboard/site/dashboard-fragments/workflow-value.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := query.ResolvePagePlan(append(database, value...), "value-workflow-overview")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan == nil || plan.Boundary != "workflow-subject-page" || plan.Root != "$workflows" {
+		t.Fatalf("Value overview did not resolve its canonical workflow page: %+v", plan)
+	}
+}
+
 func TestAPINeverReturnsRedisCredentials(t *testing.T) {
 	database := integrationDatabase(t)
 	address, closeServer := fakeRedis(t)

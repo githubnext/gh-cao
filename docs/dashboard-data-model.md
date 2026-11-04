@@ -107,7 +107,7 @@ Run-scoped Audit facts remain for request, attribution and resolution drill-down
 inventory and generic proxy events are discarded. Complete paired main-request
 costs can be compared to a named, explicitly estimated baseline, separately from
 total accounting. Missing costs remain unknown; partial runs do not
-enter cost quantiles. The canonical model is version 36; IndexedDB version 48
+enter cost quantiles. The canonical model is version 36; IndexedDB version 49
 preserves versions 44, 45, and 46 through an additive upgrade because Campaign
 and Workflow source-maintenance provenance is optional enrichment. Hosted PostgreSQL
 requires a fresh generated schema.
@@ -134,7 +134,7 @@ The activity shard manifest is the dashboard's published operational input. Norm
 The complete normative [cached gh-aw JSONL mapping](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-gh-aw-jsonl-mapping.md) describes source fields, canonical entities, identity, ownership, and accounting.
 
 The canonical model is version 36. The browser database is
-`gh-aw-cao-dashboard-data`, IndexedDB version 48. Its canonical stores are
+`gh-aw-cao-dashboard-data`, IndexedDB version 49. Its canonical stores are
 `campaigns`, `repositories`, `workflows`, `runs`, `domains`, `tools`, `skills`,
 `friction`, `audits`, `issues`, `operationalValues`, `operationalValueEvidence`, `workflowValueCollections`, `marketplacePackages`,
 `experiments`, `experimentAssignments`, `graders`, `graderObservations`,

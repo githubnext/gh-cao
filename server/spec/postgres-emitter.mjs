@@ -200,6 +200,14 @@ ${table.partitioned ? '  run_at TIMESTAMPTZ NOT NULL,\n' : ''}
       for (const [field] of parents.get(table.collection) ?? []) {
         statements.push(`CREATE INDEX IF NOT EXISTS ${table.name}_${snake(field)} ON ${table.name} (namespace, ${snake(field)}, ordinal);`);
       }
+      if (table.collection === 'workflows') {
+        statements.push(`CREATE INDEX IF NOT EXISTS workflows_subject_page ON workflows
+  (namespace, repository_id COLLATE "C", coalesce(path,'') COLLATE "C", id COLLATE "C");`);
+      }
+      if (table.collection === 'operationalValues') {
+        statements.push(`CREATE INDEX IF NOT EXISTS operational_values_workflow_route ON operational_values
+  (namespace, repository_id, workflow, workflow_slug);`);
+      }
       if (table.partitioned) statements.push(`CREATE INDEX IF NOT EXISTS ${table.name}_identity ON ${table.name} (namespace, id);`);
       if (table.collection === 'runs') {
         statements.push(`CREATE INDEX IF NOT EXISTS runs_statistical_watermark ON runs

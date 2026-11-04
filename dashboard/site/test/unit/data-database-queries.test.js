@@ -7,7 +7,8 @@ import {
   DATABASE_NAME,
   DATABASE_STORES,
   ENTITY_STORES,
-  recordTransaction
+  recordTransaction,
+  upsertCanonicalBatch
 } from '../../src/data/storage/indexeddb.js';
 import {
   loadDatabaseQuerySources,
@@ -24,6 +25,28 @@ const queryNativeCountSources = queryIndexedDatabaseSources;
 
 const metadata = { 'as-of': '2026-09-09T05:00:00Z', 'artifact-generation': 'generation-a' };
 const dashboardQueries = authoritativeDashboard.dashboard.queries;
+
+/**
+ * @param {Partial<import('../../src/data/model/schema.js').CanonicalBatch>} [overrides]
+ * @returns {import('../../src/data/model/schema.js').CanonicalBatch}
+ */
+function canonicalBatch(overrides = {}) {
+  return {
+    campaigns: [],
+    repositories: [],
+    workflows: [],
+    runs: [],
+    domains: [],
+    tools: [],
+    skills: [],
+    friction: [],
+    audits: [],
+    issues: [],
+    operationalValues: [],
+    marketplacePackages: [],
+    ...overrides
+  };
+}
 
 /** @param {string} storeName @param {Record<string, unknown>} record */
 async function putCanonicalRecord(storeName, record) {
@@ -184,6 +207,59 @@ afterEach(() => {
 });
 
 describe('canonical view sources', () => {
+  it('pushes workflow Value pages into IndexedDB and invalidates only on topology changes', async () => {
+    const canonical = {
+      campaigns: [],
+      repositories: [
+        { id: 'repository:1', owner: 'acme', name: 'one' },
+        { id: 'repository:2', owner: 'acme', name: 'two' },
+        { id: 'repository:3', owner: 'acme', name: 'three' }
+      ],
+      workflows: [
+        { id: 'workflow:2', repositoryId: 'repository:2', path: '.github/workflows/b.md', name: 'B', role: 'standalone' },
+        { id: 'workflow:1', repositoryId: 'repository:1', path: '.github/workflows/a.md', name: 'A', role: 'standalone' },
+        { id: 'workflow:3', repositoryId: 'repository:3', path: '.github/workflows/c.md', name: 'C', role: 'standalone' }
+      ]
+    };
+    await upsertCanonicalBatch(indexedDB, canonicalBatch(canonical), { validateRelationships: false });
+
+    const first = await loadCanonicalViewSources(indexedDB, {}, {
+      sourceNames: ['value-workflow-overview'],
+      queries: dashboardQueries,
+      pagination: { 'value-workflow-overview': { limit: 1 } }
+    });
+    expect(first['value-workflow-overview'].rows).toMatchObject([{
+      id: 'workflow:1', repositoryId: 'repository:1', path: '.github/workflows/a.md'
+    }]);
+    expect(first['value-workflow-overview'].metadata).toMatchObject({
+      'page-size': 1, 'page-row-count': 1, 'has-more': true
+    });
+    expect(first['value-workflow-overview'].metadata).not.toHaveProperty('total-row-count');
+    const token = first['value-workflow-overview'].continuationToken;
+    expect(token).toEqual(expect.any(String));
+
+    await upsertCanonicalBatch(indexedDB, canonicalBatch({
+      workflows: [{ ...canonical.workflows[0], name: 'Renamed B' }]
+    }), { validateRelationships: false });
+    const second = await loadCanonicalViewSources(indexedDB, {}, {
+      sourceNames: ['value-workflow-overview'],
+      queries: dashboardQueries,
+      pagination: { 'value-workflow-overview': { limit: 1, continuationToken: token } }
+    });
+    expect(second['value-workflow-overview'].rows).toMatchObject([{
+      id: 'workflow:2', repositoryId: 'repository:2'
+    }]);
+
+    await upsertCanonicalBatch(indexedDB, canonicalBatch({
+      workflows: [{ id: 'workflow:4', repositoryId: 'repository:3', path: '.github/workflows/d.md' }]
+    }), { validateRelationships: false });
+    await expect(loadCanonicalViewSources(indexedDB, {}, {
+      sourceNames: ['value-workflow-overview'],
+      queries: dashboardQueries,
+      pagination: { 'value-workflow-overview': { limit: 1, continuationToken: token } }
+    })).rejects.toThrow('Invalid or stale continuation token');
+  });
+
   it('executes temporal history through canonical IndexedDB projections and the worker query boundary', async () => {
     await processDataRequest({ operation: 'query-canonical-database-diagnostics' });
     for (const [run, attempt, startedAt] of [

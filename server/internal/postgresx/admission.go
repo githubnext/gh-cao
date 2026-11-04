@@ -2,7 +2,9 @@ package postgresx
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -39,7 +41,8 @@ func (s *Store) RecordAdmittedRun(ctx context.Context, identity admission.Identi
 	if err = tx.QueryRowContext(ctx, `SELECT clock_timestamp()`).Scan(&now); err != nil {
 		return err
 	}
-	if err := s.invocationParents(ctx, tx, run, now); err != nil {
+	topologyChanged, err := s.invocationParents(ctx, tx, run, now)
+	if err != nil {
 		return err
 	}
 	run["status"], run["admissionStatus"], run["updatedAt"] = "admitted", "admitted", now
@@ -57,7 +60,18 @@ func (s *Store) RecordAdmittedRun(ctx context.Context, identity admission.Identi
 			return err
 		}
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE cao_state SET revision=revision+1,evaluated_at=greatest(evaluated_at,$2) WHERE namespace=$1`, s.namespace, now); err != nil {
+	if topologyChanged {
+		digest, err := workflowSubjectDigestSQL(ctx, tx, s.namespace)
+		if err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `UPDATE cao_state SET revision=revision+1,
+			workflow_subject_revision=workflow_subject_revision+1,workflow_subject_digest=$3,
+			evaluated_at=greatest(evaluated_at,$2) WHERE namespace=$1`, s.namespace, now, digest); err != nil {
+			return err
+		}
+	} else if _, err = tx.ExecContext(ctx, `UPDATE cao_state SET revision=revision+1,
+		evaluated_at=greatest(evaluated_at,$2) WHERE namespace=$1`, s.namespace, now); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -104,15 +118,16 @@ func (s *Store) beginInvocation(ctx context.Context) (*sql.Tx, error) {
 		_ = tx.Rollback()
 		return nil, err
 	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO cao_state(namespace,revision,data_revision,evaluated_at,schema_version)
-		VALUES($1,0,'','epoch',$2) ON CONFLICT(namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
+	if _, err = tx.ExecContext(ctx, `INSERT INTO cao_state
+		(namespace,revision,workflow_subject_revision,workflow_subject_digest,data_revision,evaluated_at,schema_version)
+		VALUES($1,0,0,'','','epoch',$2) ON CONFLICT(namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
 		_ = tx.Rollback()
 		return nil, err
 	}
 	return tx, nil
 }
 
-func (s *Store) invocationParents(ctx context.Context, tx *sql.Tx, run model.Row, now time.Time) error {
+func (s *Store) invocationParents(ctx context.Context, tx *sql.Tx, run model.Row, now time.Time) (bool, error) {
 	owner, _ := run["owner"].(string)
 	name, _ := run["repository"].(string)
 	path, _ := run["workflowPath"].(string)
@@ -120,27 +135,58 @@ func (s *Store) invocationParents(ctx context.Context, tx *sql.Tx, run model.Row
 	workflowID, _ := run["workflowId"].(string)
 	// Prefer existing canonical inventory identities, including numeric GitHub
 	// identities from another supported evidence adapter.
+	repositoryExists := true
 	if err := tx.QueryRowContext(ctx, `SELECT id FROM repositories WHERE namespace=$1
 		AND lower(owner)=$2 AND lower(name)=$3 ORDER BY (id=$4) DESC,id LIMIT 1`,
-		s.namespace, strings.ToLower(owner), strings.ToLower(name), repositoryID).Scan(&repositoryID); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return err
+		s.namespace, strings.ToLower(owner), strings.ToLower(name), repositoryID).Scan(&repositoryID); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return false, err
+		}
+		repositoryExists = false
 	}
 	if err := insertInvocationEntity(ctx, tx, s.namespace, "$repositories", model.Row{
 		"id": repositoryID, "owner": owner, "name": name,
 	}, now); err != nil {
-		return err
+		return false, err
 	}
+	workflowExists := true
 	if err := tx.QueryRowContext(ctx, `SELECT id FROM workflows WHERE namespace=$1 AND repository_id=$2
-		AND lower(path)=$3 ORDER BY (id=$4) DESC,id LIMIT 1`, s.namespace, repositoryID, path, workflowID).Scan(&workflowID); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return err
+		AND lower(path)=$3 ORDER BY (id=$4) DESC,id LIMIT 1`, s.namespace, repositoryID, path, workflowID).Scan(&workflowID); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return false, err
+		}
+		workflowExists = false
 	}
 	if err := insertInvocationEntity(ctx, tx, s.namespace, "$workflows", model.Row{
 		"id": workflowID, "repositoryId": repositoryID, "path": path,
 	}, now); err != nil {
-		return err
+		return false, err
 	}
 	run["repositoryId"], run["workflowId"] = repositoryID, workflowID
-	return nil
+	return !repositoryExists || !workflowExists, nil
+}
+
+func workflowSubjectDigestSQL(ctx context.Context, tx *sql.Tx, namespace string) (string, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT repository_id,coalesce(path,''),id FROM workflows
+		WHERE namespace=$1 ORDER BY repository_id COLLATE "C",coalesce(path,'') COLLATE "C",id COLLATE "C"`, namespace)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = rows.Close() }()
+	hash := sha256.New()
+	for rows.Next() {
+		var repositoryID, path, id string
+		if err := rows.Scan(&repositoryID, &path, &id); err != nil {
+			return "", err
+		}
+		for _, value := range []string{repositoryID, path, id} {
+			_, _ = fmt.Fprintf(hash, "%d:%s", len(value), value)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
+	return "sha256:" + hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func partialInvocationQuality(ctx context.Context, tx *sql.Tx, namespace, source string) error {

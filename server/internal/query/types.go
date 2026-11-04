@@ -36,9 +36,16 @@ type Definition struct {
 	Window         []WindowField     `json:"window,omitempty"`
 	Select         []SelectedField   `json:"select,omitempty"`
 	OrderBy        []OrderField      `json:"order-by,omitempty"`
+	Page           *PageBoundary     `json:"page,omitempty"`
 	Limit          *int              `json:"limit,omitempty"`
 	Facet          *Facet            `json:"facet,omitempty"`
 	Stores         []string          `json:"stores,omitempty"`
+}
+
+type PageBoundary struct {
+	Keys       []string `json:"keys"`
+	Revision   string   `json:"revision"`
+	Comparator string   `json:"comparator"`
 }
 
 const MaxChartFacets = 64

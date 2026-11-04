@@ -243,7 +243,7 @@ function scanRecordsFromConnection(connection) {
     }
     if (reason) {
       invalid.push({ store, recordKey: String(row.record_key), reason });
-    } else if (store === 'transactions') {
+    } else if (store === 'transactions' && value.id !== 'workflow-subject-state') {
       transactions.push(/** @type {DoctorTransaction} */ (value));
     } else {
       batch[/** @type {keyof import('../model/schema.js').CanonicalBatch} */ (store)]?.push(value);

@@ -221,6 +221,96 @@ func TestSnapshotPlansAndReadOnlyState(t *testing.T) {
 	}
 }
 
+func TestWorkflowKeysetPageScopesValueCollectionHealth(t *testing.T) {
+	repositories := []model.Row{
+		{"id": "repo:1", "owner": "octo", "name": "one"},
+		{"id": "repo:2", "owner": "octo", "name": "two"},
+		{"id": "repo:3", "owner": "octo", "name": "three"},
+	}
+	workflows := []model.Row{
+		{"id": "workflow:1", "repositoryId": "repo:1", "path": ".github/workflows/a.md"},
+		{"id": "workflow:2", "repositoryId": "repo:2", "path": ".github/workflows/b.md"},
+		{"id": "workflow:3", "repositoryId": "repo:3", "path": ".github/workflows/c.md"},
+	}
+	collections := make([]model.Row, len(workflows))
+	for index, workflow := range workflows {
+		repository := repositories[index]["owner"].(string) + "/" + repositories[index]["name"].(string)
+		slug := strings.TrimSuffix(strings.TrimPrefix(workflow["path"].(string), ".github/workflows/"), ".md")
+		collections[index] = model.Row{
+			"id":         "workflow-value-collection:" + model.EncodeCoordinate(strings.ToLower(repository)+":"+slug),
+			"workflowId": workflow["id"], "repositoryId": workflow["repositoryId"], "state": "available",
+		}
+	}
+	path := testutil.SQLiteSnapshot(t, map[string][]model.Row{
+		"repositories": repositories, "workflows": workflows, "workflowValueCollections": collections,
+	})
+	store, err := Open(t.Context(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	definitions := []query.Definition{
+		{
+			Name: "workflow-subjects", From: "$workflows",
+			Select: []query.SelectedField{
+				{Field: "repositoryId", As: "repositoryId"},
+				{Field: "path", As: "path"},
+				{Field: "id", As: "id"},
+			},
+			OrderBy: []query.OrderField{{Field: "repositoryId"}, {Field: "path"}, {Field: "id"}},
+			Page: &query.PageBoundary{
+				Keys: []string{"repositoryId", "path", "id"}, Revision: "workflow-subjects",
+				Comparator: "utf8-bytewise-v1",
+			},
+		},
+		{
+			Name: "visible", From: "workflow-subjects",
+			Joins: []query.Join{{
+				Source: "$workflowValueCollections", Type: "left",
+				On:     []query.JoinKey{{Left: "id", Right: "workflowId"}},
+				Fields: []query.SelectedField{{Field: "state", As: "state"}},
+			}},
+		},
+	}
+	state, err := store.State(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = store.WithReadTransaction(t.Context(), func(ctx context.Context, reader dashboardstore.Reader) error {
+		sources, _, err := reader.ExecuteSQLPlanWithOptions(ctx, definitions, []string{"visible", "$repositories", "$workflowValueCollections"}, dashboardstore.ExecutionOptions{
+			Pages: map[string]dashboardstore.Page{"visible": {
+				Limit: 1,
+				Keyset: &dashboardstore.KeysetPage{
+					Boundary: "workflow-subjects", Revision: fmt.Sprint(state.WorkflowSubjectRevision),
+					Comparator: "utf8-bytewise-v1", Keys: []string{"repositoryId", "path", "id"},
+				},
+			}},
+		})
+		if err != nil {
+			return err
+		}
+		if len(sources["visible"].Rows) != 2 || sources["visible"].Rows[0]["id"] != "workflow:1" ||
+			sources["visible"].Rows[0]["state"] != "available" {
+			t.Fatalf("incorrect visible workflow enrichment: %+v", sources["visible"])
+		}
+		if sources["visible"].Rows[1]["state"] != nil {
+			t.Fatalf("page sentinel was enriched outside the visible cohort: %+v", sources["visible"])
+		}
+		health := sources["$workflowValueCollections"].Rows
+		if len(health) != 1 || health[0]["workflowId"] != "workflow:1" {
+			t.Fatalf("Value health was not scoped to the visible workflow: %+v", health)
+		}
+		repositories := sources["$repositories"].Rows
+		if len(repositories) != 1 || repositories[0]["id"] != "repo:1" {
+			t.Fatalf("repository enrichment was not scoped to the visible workflow: %+v", repositories)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSnapshotChangesAreObservedWithoutRestart(t *testing.T) {
 	store, path := localSnapshot(t)
 	before, err := store.State(t.Context())

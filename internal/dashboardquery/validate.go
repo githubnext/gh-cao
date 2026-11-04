@@ -70,7 +70,7 @@ func engineInteger(value any, min, max int) bool {
 func engineHas(mapping nativeRow, key string) bool { _, ok := mapping[key]; return ok }
 
 func engineValidate(def nativeRow) error {
-	if err := engineKeys(def, "name description subject objective acceptance parameters stores from union joins filter compute temporal-series aggregate predict window select order-by limit facet time"); err != nil {
+	if err := engineKeys(def, "name description subject objective acceptance parameters stores from union joins filter compute temporal-series aggregate predict window select order-by page limit facet time"); err != nil {
 		return err
 	}
 	if engineString(def["from"]) == "" {
@@ -162,6 +162,29 @@ func engineValidate(def nativeRow) error {
 	if value, ok := def["order-by"]; ok {
 		if err := engineValidateOrder(value, 0, 16); err != nil {
 			return err
+		}
+	}
+	if value, ok := def["page"]; ok {
+		page := engineMap(value)
+		if err := engineKeys(page, "keys revision comparator"); err != nil {
+			return err
+		}
+		keys := engineList(page["keys"])
+		order := engineList(def["order-by"])
+		if !engineStrings(page["keys"], 1, 4) || page["revision"] != "workflow-subjects" ||
+			page["comparator"] != "utf8-bytewise-v1" || len(order) != len(keys) ||
+			engineHas(def, "limit") || engineHas(def, "facet") {
+			return engineUnavailable("page requires workflow-subject keys and matching ascending order-by")
+		}
+		seen := map[string]bool{}
+		for index, key := range keys {
+			field := engineString(key)
+			clause := engineMap(order[index])
+			if field == "" || seen[field] || engineString(clause["field"]) != field ||
+				(engineHas(clause, "direction") && clause["direction"] != "asc") {
+				return engineUnavailable("page keys must exactly match ascending order-by")
+			}
+			seen[field] = true
 		}
 	}
 	if value, ok := def["limit"]; ok && !engineInteger(value, 1, engineMaxOutputRows) {

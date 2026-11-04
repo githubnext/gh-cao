@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS cao_contract (
 CREATE TABLE IF NOT EXISTS cao_state (
   namespace TEXT NOT NULL,
   revision BIGINT NOT NULL,
+  workflow_subject_revision BIGINT NOT NULL,
+  workflow_subject_digest TEXT NOT NULL,
   data_revision TEXT NOT NULL,
   evaluated_at TIMESTAMPTZ NOT NULL,
   schema_version BIGINT NOT NULL,
@@ -269,6 +271,9 @@ CREATE TABLE IF NOT EXISTS workflows (
 CREATE INDEX IF NOT EXISTS workflows_campaign_id ON workflows (namespace, campaign_id, ordinal);
 
 CREATE INDEX IF NOT EXISTS workflows_repository_id ON workflows (namespace, repository_id, ordinal);
+
+CREATE INDEX IF NOT EXISTS workflows_subject_page ON workflows
+  (namespace, repository_id COLLATE "C", coalesce(path,'') COLLATE "C", id COLLATE "C");
 
 CREATE TABLE IF NOT EXISTS runs (
   namespace TEXT NOT NULL,
@@ -1059,6 +1064,9 @@ CREATE TABLE IF NOT EXISTS operational_values (
 );
 
 CREATE INDEX IF NOT EXISTS operational_values_repository_id ON operational_values (namespace, repository_id, ordinal);
+
+CREATE INDEX IF NOT EXISTS operational_values_workflow_route ON operational_values
+  (namespace, repository_id, workflow, workflow_slug);
 
 CREATE TABLE IF NOT EXISTS outcome_performance (
   namespace TEXT NOT NULL,

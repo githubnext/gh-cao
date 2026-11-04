@@ -40,7 +40,7 @@ const FACET_LOOKUP_HORIZON = 1_000;
  *   filterPlaceholder?: string,
  *   filterFields?: TableFilterField[],
  *   lazyList?: boolean,
- *   continuation?: { token: string, totalRows: number, load: (token: string) => Promise<{ rows: HTMLTableRowElement[], continuationToken?: string }> },
+ *   continuation?: { token: string, totalRows?: number, load: (token: string) => Promise<{ rows: HTMLTableRowElement[], continuationToken?: string }> },
  *   pageSize?: number,
  *   resultNoun?: string,
  *   resultNounPlural?: string,
@@ -280,7 +280,7 @@ function cellSortKey(row, columnIndex) {
  */
 /**
  * @param {HTMLElement} region
- * @param {{ filterId?: string, lazyList: boolean, pageSize: number, resultNoun?: string, resultNounPlural?: string, facetLookupHorizon: number, continuation?: { token: string, totalRows: number, load: (token: string) => Promise<{ rows: HTMLTableRowElement[], continuationToken?: string }> } }} options
+ * @param {{ filterId?: string, lazyList: boolean, pageSize: number, resultNoun?: string, resultNounPlural?: string, facetLookupHorizon: number, continuation?: { token: string, totalRows?: number, load: (token: string) => Promise<{ rows: HTMLTableRowElement[], continuationToken?: string }> } }} options
  * @param {HTMLTableRowElement[]} rows
  */
 function enableTableFilter(region, options, rows) {
@@ -423,8 +423,9 @@ function enableTableFilter(region, options, rows) {
        }
      }
      const unfiltered = query === '' && predicates.length === 0;
-     const total = unfiltered && options.continuation
-       ? options.continuation.totalRows
+     const continuationTotal = options.continuation?.totalRows;
+     const total = unfiltered && typeof continuationTotal === 'number' && Number.isSafeInteger(continuationTotal)
+       ? continuationTotal
        : processed.length;
      resultText.set(formatResultCount(shown, total, options.resultNoun, options.resultNounPlural));
      moreHidden.set(!continuationToken && shown >= processed.length);

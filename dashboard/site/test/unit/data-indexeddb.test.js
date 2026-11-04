@@ -13,6 +13,8 @@ import {
   readCollections,
   readRecord,
   readTransactions,
+  readWorkflowSubjectPage,
+  readWorkflowSubjectRevision,
   recordTransaction,
   replaceCanonicalBatch,
   subscribeCanonicalDatabaseUpgrade,
@@ -288,7 +290,8 @@ describe('canonical IndexedDB', () => {
     ]);
     expect(database.transaction('repositories').objectStore('repositories').keyPath).toBe('id');
     expect([...database.transaction('repositories').objectStore('repositories').indexNames]).toEqual([]);
-    expect([...database.transaction('workflows').objectStore('workflows').indexNames]).toEqual(['byCampaign', 'byRepository']);
+    expect([...database.transaction('workflows').objectStore('workflows').indexNames])
+      .toEqual(['byCampaign', 'byRepository', 'bySubject']);
     expect([...database.transaction('runs').objectStore('runs').indexNames])
       .toEqual([
         'byConclusion', 'byEvent', 'byEventConclusion', 'byRepository',
@@ -541,6 +544,59 @@ describe('canonical IndexedDB', () => {
     await upsertCanonicalBatch(indexedDB, canonicalBatch);
 
     expect(await readCollection(indexedDB, 'repositories')).toHaveLength(1);
+  });
+
+  it('pages workflow identities and revises cursors only for topology changes', async () => {
+    const canonicalBatch = normalize([]);
+    canonicalBatch.workflows = [
+      { id: 'workflow:2', repositoryId: 'repository:2', path: '.github/workflows/b.md', name: 'B' },
+      { id: 'workflow:1', repositoryId: 'repository:1', path: '.github/workflows/a.md', name: 'A' },
+      { id: 'workflow:3', repositoryId: 'repository:3', path: '.github/workflows/c.md', name: 'C' }
+    ];
+    await upsertCanonicalBatch(indexedDB, canonicalBatch, { validateRelationships: false });
+    const revision = await readWorkflowSubjectRevision(indexedDB);
+    const first = await readWorkflowSubjectPage(indexedDB, { limit: 1, expectedRevision: revision });
+    expect(first.rows.map((row) => row.id)).toEqual(['workflow:1', 'workflow:2']);
+
+    await upsertCanonicalBatch(indexedDB, {
+      ...normalize([]),
+      workflows: [{ ...canonicalBatch.workflows[0], name: 'Renamed' }]
+    }, { validateRelationships: false });
+    expect(await readWorkflowSubjectRevision(indexedDB)).toBe(revision);
+
+    const deep = await readWorkflowSubjectPage(indexedDB, {
+      limit: 1,
+      after: ['repository:1', '.github/workflows/a.md', 'workflow:1'],
+      expectedRevision: revision
+    });
+    expect(deep.rows.map((row) => row.id)).toEqual(['workflow:2', 'workflow:3']);
+
+    await upsertCanonicalBatch(indexedDB, {
+      ...normalize([]),
+      workflows: [{ ...canonicalBatch.workflows[0], path: '.github/workflows/renamed.md' }]
+    }, { validateRelationships: false });
+    await expect(readWorkflowSubjectPage(indexedDB, {
+      limit: 1,
+      expectedRevision: revision
+    })).rejects.toThrow('Workflow topology changed');
+  });
+
+  it('orders workflow subject cursors by UTF-8 bytes for non-ASCII identities', async () => {
+    const canonicalBatch = normalize([]);
+    canonicalBatch.workflows = [
+      { id: 'workflow:supplementary', repositoryId: 'repository:\u{10000}', path: 'check.md' },
+      { id: 'workflow:bmp', repositoryId: 'repository:\uE000', path: 'check.md' }
+    ];
+    await upsertCanonicalBatch(indexedDB, canonicalBatch, { validateRelationships: false });
+    const revision = await readWorkflowSubjectRevision(indexedDB);
+    const first = await readWorkflowSubjectPage(indexedDB, { limit: 1, expectedRevision: revision });
+    expect(first.rows.map((row) => row.id)).toEqual(['workflow:bmp', 'workflow:supplementary']);
+    const deep = await readWorkflowSubjectPage(indexedDB, {
+      limit: 1,
+      after: ['repository:\uE000', 'check.md', 'workflow:bmp'],
+      expectedRevision: revision
+    });
+    expect(deep.rows.map((row) => row.id)).toEqual(['workflow:supplementary']);
   });
 
   it('reads selected stores through one readonly transaction', async () => {

@@ -41,6 +41,7 @@ const debugQuery = createDebug('data:query');
  *   window?: import('../../data-operations.js').WindowField[],
  *   select?: Array<{ field: string, as?: string }>,
  *   ['order-by']?: Array<{ field: string, direction?: 'asc'|'desc' }>,
+ *   page?: { keys: string[], revision: 'workflow-subjects', comparator: 'utf8-bytewise-v1' },
  *   limit?: number,
  *   facet?: import('./facet.js').FacetDefinition
  * }} DashboardQuery
@@ -63,6 +64,7 @@ export const DASHBOARD_QUERY_LIMITS = {
 };
 
 const CONTINUATION_TOKEN_VERSION = 2;
+const KEYSET_CONTINUATION_TOKEN_VERSION = 3;
 
 /**
  * Applies request-scoped pagination after query execution so query definitions
@@ -151,7 +153,137 @@ function decodeContinuationToken(token, source, revision) {
         || (cursor.run !== undefined && (typeof cursor.run !== 'string' || !/^\d+$/.test(cursor.run)))) {
       throw new Error('invalid cursor');
     }
+
     return /** @type {{ source: string, offset: number, run?: string, revision: string }} */ (cursor);
+  } catch {
+    throw new TypeError(`Invalid or stale continuation token for "${source}".`);
+  }
+}
+
+/**
+ * Pages one already ordered query boundary by a stable scalar key tuple.
+ * The returned rows are the only rows visible to downstream queries.
+ *
+ * @param {string} source
+ * @param {LogicalSourceInput} input
+ * @param {{ limit: number, continuationToken?: string }} request
+ * @param {{ keys: string[], revision: string, comparator: string }} definition
+ * @param {string} revision
+ * @param {string} planDigest
+ */
+function paginateDashboardKeysetBoundary(source, input, request, definition, revision, planDigest) {
+  if (!Number.isSafeInteger(request.limit) || request.limit <= 0 || request.limit > 32) {
+    throw new TypeError(`Keyset pagination limit for "${source}" must be a positive integer no greater than 32.`);
+  }
+  const cursor = request.continuationToken
+    ? decodeKeysetContinuationToken(request.continuationToken, source, definition, revision, planDigest)
+    : null;
+  const rows = Array.isArray(input.rows) ? input.rows : [];
+  const selected = cursor
+    ? rows.filter((row) =>
+        compareKeysetRow(row, definition.keys, cursor.key, definition.comparator) > 0)
+    : rows;
+  const hasMore = selected.length > request.limit;
+  const pageRows = selected.slice(0, request.limit);
+  const last = pageRows.at(-1);
+  const continuationToken = hasMore && last
+    ? encodeContinuationTokenValue({
+        version: KEYSET_CONTINUATION_TOKEN_VERSION,
+        source,
+        boundary: input.source,
+        planDigest,
+        revision,
+        comparator: definition.comparator,
+        key: definition.keys.map((field) => scalarKey(last[field], field))
+      })
+    : undefined;
+  const inputMetadata = { ...input.metadata };
+  delete inputMetadata['total-row-count'];
+  return {
+    ...input,
+    rows: pageRows,
+    ...(continuationToken ? { continuationToken } : {}),
+    metadata: {
+      ...inputMetadata,
+      'page-size': request.limit,
+      'page-row-count': pageRows.length,
+      'has-more': hasMore,
+      'workflow-subject-revision': revision,
+      'continuation-plan-digest': planDigest,
+      'continuation-comparator': definition.comparator
+    }
+  };
+}
+
+/** @param {unknown} value @param {string} field */
+function scalarKey(value, field) {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
+  throw new TypeError(`Keyset pagination field "${field}" must contain a scalar value.`);
+}
+
+/**
+ * @param {Row} row
+ * @param {string[]} keys
+ * @param {Array<string|number|boolean>} cursor
+ * @param {string} comparator
+ */
+function compareKeysetRow(row, keys, cursor, comparator) {
+  for (const [index, field] of keys.entries()) {
+    const value = scalarKey(row[field], field);
+    const expected = cursor[index];
+    if (typeof value !== typeof expected) {
+      throw new TypeError(`Keyset pagination field "${field}" changed scalar type.`);
+    }
+    if (value === expected) continue;
+    if (typeof value === 'string' && typeof expected === 'string'
+        && comparator === 'utf8-bytewise-v1') {
+      const left = new TextEncoder().encode(value);
+      const right = new TextEncoder().encode(expected);
+      const length = Math.min(left.length, right.length);
+      for (let offset = 0; offset < length; offset += 1) {
+        if (left[offset] !== right[offset]) return left[offset] < right[offset] ? -1 : 1;
+      }
+      return left.length < right.length ? -1 : 1;
+    }
+    return value < expected ? -1 : 1;
+  }
+  return 0;
+}
+
+/** @param {Record<string, unknown>} cursor */
+function encodeContinuationTokenValue(cursor) {
+  const bytes = new TextEncoder().encode(JSON.stringify(cursor));
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+}
+
+/**
+ * @param {string} token
+ * @param {string} source
+ * @param {{ keys: string[], revision: string, comparator: string }} definition
+ * @param {string} revision
+ * @param {string} planDigest
+ */
+function decodeKeysetContinuationToken(token, source, definition, revision, planDigest) {
+  try {
+    const encoded = token.replaceAll('-', '+').replaceAll('_', '/');
+    const binary = atob(encoded.padEnd(Math.ceil(encoded.length / 4) * 4, '='));
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    const cursor = JSON.parse(new TextDecoder().decode(bytes));
+    if (cursor?.version !== KEYSET_CONTINUATION_TOKEN_VERSION
+        || cursor?.source !== source
+        || typeof cursor?.boundary !== 'string'
+        || cursor?.planDigest !== planDigest
+        || cursor?.revision !== revision
+        || cursor?.comparator !== definition.comparator
+        || !Array.isArray(cursor?.key)
+        || cursor.key.length !== definition.keys.length
+        || cursor.key.some((/** @type {unknown} */ value) =>
+          !['string', 'number', 'boolean'].includes(typeof value))) {
+      throw new Error('invalid cursor');
+    }
+    return /** @type {{ key: Array<string|number|boolean> }} */ (cursor);
   } catch {
     throw new TypeError(`Invalid or stale continuation token for "${source}".`);
   }
@@ -358,6 +490,23 @@ function queryStructuralDefect(definition) {
   for (const join of joins) {
     if (!Array.isArray(join?.on) || join.on.length === 0) {
       return `join on "${String(join?.source)}" declares no equality keys`;
+    }
+    if (definition.page !== undefined) {
+      const page = definition.page;
+      const keys = page?.keys;
+      const order = definition['order-by'];
+      if (!isPlainObject(page)
+          || !Array.isArray(keys) || keys.length === 0 || keys.length > 4
+          || keys.some((field) => typeof field !== 'string' || field.length === 0)
+          || new Set(keys).size !== keys.length
+          || page.revision !== 'workflow-subjects'
+          || page.comparator !== 'utf8-bytewise-v1'
+          || !Array.isArray(order) || order.length !== keys.length
+          || order.some((clause, index) => !isPlainObject(clause)
+            || clause.field !== keys[index] || (clause.direction ?? 'asc') !== 'asc')
+          || definition.limit !== undefined || definition.facet !== undefined) {
+        return 'page requires one to four unique keys matching ascending order-by, workflow-subjects revision, and utf8-bytewise-v1 comparator';
+      }
     }
   }
   if (definition['temporal-series'] !== undefined) {
@@ -627,8 +776,30 @@ export function executeDashboardQueries(definitions, sources, requested, options
   for (const name of names) {
     if (!index.has(name)) continue;
     defineLazyProperty(derived, name, () => {
-      compileDashboardQuery(name, index, inputs, defects, queryBudget(), compiled, visiting);
       const page = options.pagination?.[name];
+      const boundary = page ? dashboardQueryPageBoundary(index, name) : null;
+      const pageDefinition = boundary?.page;
+      /** @type {{ result?: LogicalSourceInput }} */
+      const pageState = {};
+      compileDashboardQuery(name, index, inputs, defects, queryBudget(), compiled, visiting, boundary && page && pageDefinition ? {
+        output: name,
+        boundary: boundary.name,
+        request: page,
+        definition: pageDefinition,
+        revision: dashboardQueryPageRevision(boundary.name, index, sources),
+        planDigest: continuationRevision([...index.values()], { output: name, boundary: boundary.name }),
+        state: pageState
+      } : undefined);
+      if (boundary && page) {
+        const result = compiled[name];
+        const paged = pageState.result;
+        if (!paged) throw new TypeError(`Paged query boundary "${boundary.name}" was not executed.`);
+        return {
+          ...result,
+          ...(paged.continuationToken ? { continuationToken: paged.continuationToken } : {}),
+          metadata: { ...result.metadata, ...paged.metadata, 'row-count': result.rows.length }
+        };
+      }
       if (!page) return compiled[name];
       const required = new Set(resolveDashboardQuerySources(definitions, [name]));
       return paginateDashboardSources(
@@ -646,6 +817,83 @@ export function executeDashboardQueries(definitions, sources, requested, options
 }
 
 /**
+ * @param {Map<string, DashboardQuery>} index
+ * @param {string} name
+ * @returns {DashboardQuery | null}
+ */
+function dashboardQueryPageBoundary(index, name) {
+  const found = new Map();
+  /** @param {string} queryName */
+  const visit = (queryName) => {
+    const definition = index.get(queryName);
+    if (!definition) return;
+    if (definition.page) found.set(definition.name, definition);
+    for (const input of queryInputNames(definition)) {
+      if (index.has(input)) visit(input);
+    }
+  };
+  visit(name);
+  if (found.size > 1) {
+    throw new TypeError(`Paginated query "${name}" reaches more than one page boundary.`);
+  }
+  return found.values().next().value ?? null;
+}
+
+/**
+ * @param {string} boundary
+ * @param {Map<string, DashboardQuery>} index
+ * @param {Record<string, LogicalSourceInput>} sources
+ */
+function dashboardQueryPageRevision(boundary, index, sources) {
+  const required = new Set(resolveDashboardQuerySources([...index.values()], [boundary]));
+  const metadata = Object.fromEntries(Object.entries(sources)
+    .filter(([name]) => required.has(name))
+    .map(([name, source]) => [name, source.metadata]));
+  const declared = Object.values(metadata)
+    .map((value) => value?.['workflow-subject-revision'])
+    .filter((value) => typeof value === 'string' || typeof value === 'number');
+  if (declared.length > 0) {
+    if (new Set(declared.map(String)).size !== 1) {
+      throw new TypeError(`Paged query boundary "${boundary}" has conflicting workflow subject revisions.`);
+    }
+    return String(declared[0]);
+  }
+  return continuationRevision(index.get(boundary), metadata);
+}
+
+/**
+ * Resolves and validates the physical cursor needed to push a declared page
+ * boundary into a storage adapter before the query DAG executes.
+ *
+ * @param {unknown} definitions
+ * @param {Record<string, LogicalSourceInput>} sources
+ * @param {string} output
+ * @param {{ limit: number, continuationToken?: string }} request
+ */
+export function prepareDashboardQueryPage(definitions, sources, output, request) {
+  if (!Number.isSafeInteger(request.limit) || request.limit <= 0 || request.limit > 32) {
+    throw new TypeError(`Keyset pagination limit for "${output}" must be a positive integer no greater than 32.`);
+  }
+  const index = dashboardQueryIndex(definitions);
+  const boundary = dashboardQueryPageBoundary(index, output);
+  if (!boundary?.page) return null;
+  const revision = dashboardQueryPageRevision(boundary.name, index, sources);
+  const planDigest = continuationRevision([...index.values()], { output, boundary: boundary.name });
+  const cursor = request.continuationToken
+    ? decodeKeysetContinuationToken(
+        request.continuationToken, output, boundary.page, revision, planDigest
+      )
+    : null;
+  return {
+    boundary: boundary.name,
+    definition: boundary.page,
+    revision,
+    planDigest,
+    after: cursor?.key
+  };
+}
+
+/**
  * Compiles one consumed query and its dependencies into a shared working set
  * so dependencies are materialized at most once per batch.
  *
@@ -656,8 +904,9 @@ export function executeDashboardQueries(definitions, sources, requested, options
  * @param {QueryBudget} budget
  * @param {Record<string, LogicalSourceInput>} compiled
  * @param {Set<string>} visiting
+ * @param {{ output: string, boundary: string, request: { limit: number, continuationToken?: string }, definition: { keys: string[], revision: string, comparator: string }, revision: string, planDigest: string, state: { result?: LogicalSourceInput } }} [page]
  */
-function compileDashboardQuery(name, index, sources, defects, budget, compiled, visiting) {
+function compileDashboardQuery(name, index, sources, defects, budget, compiled, visiting, page) {
   /** @param {string} queryName */
   const compile = (queryName) => {
     if (Object.hasOwn(compiled, queryName) || visiting.has(queryName)) return;
@@ -680,6 +929,17 @@ function compileDashboardQuery(name, index, sources, defects, budget, compiled, 
       defects.get(queryName),
       budget
     );
+    if (page && queryName === page.boundary) {
+      compiled[queryName] = paginateDashboardKeysetBoundary(
+        page.output,
+        compiled[queryName],
+        page.request,
+        page.definition,
+        page.revision,
+        page.planDigest
+      );
+      page.state.result = compiled[queryName];
+    }
   };
   compile(name);
   return compiled;

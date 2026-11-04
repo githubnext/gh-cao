@@ -30,7 +30,7 @@ export function enableCardListPagination(section, { rows, renderItems, continuat
   let buffer = rows;
   let offset = Math.min(rows.length, CONTINUATION_PAGE_SIZE);
   let token = continuation?.token;
-  const total = continuation?.totalRows ?? rows.length;
+  const total = continuation ? continuation.totalRows : rows.length;
   const progress = state({
     phase: /** @type {'idle'|'loading'|'error'|'complete'} */ ('idle'),
     count: offset
@@ -45,7 +45,9 @@ export function enableCardListPagination(section, { rows, renderItems, continuat
     button.textContent = phase === 'loading' ? 'Loading...' : phase === 'error' ? 'Try again' : 'Load more';
     status.textContent = phase === 'error'
       ? 'Could not load more items. Try again.'
-      : `Showing ${count} of ${total} items`;
+      : Number.isSafeInteger(total)
+        ? `Showing ${count} of ${total} items`
+        : `Showing ${count} items`;
   }, { signal: scope.signal });
 
   const appendNext = async () => {

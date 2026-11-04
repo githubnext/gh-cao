@@ -33,8 +33,9 @@ func (s *Store) ReplaceOperationalValues(
 	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || ':' || $1, 0))`, s.namespace); err != nil {
 		return State{}, err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO cao_state (namespace, revision, data_revision, evaluated_at, schema_version)
-		VALUES ($1,0,'','epoch',$2) ON CONFLICT (namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO cao_state
+		(namespace,revision,workflow_subject_revision,workflow_subject_digest,data_revision,evaluated_at,schema_version)
+		VALUES ($1,0,0,'','','epoch',$2) ON CONFLICT (namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
 		return State{}, err
 	}
 	var state State
