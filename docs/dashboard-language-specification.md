@@ -1041,14 +1041,26 @@ units:
     symbol: s
     significant: 1
     format: duration
+  bytes:
+    name: Bytes
+    symbol: B
+    significant: 1
+    format: bytes
+  count:
+    name: Modeled count
+    symbol: count
+    significant: 0.01
+    format: compact-number
 ```
 
 The AIC definition uses a significance of `2`. Its `aicc` format divides the rounded AIC value by `100` and presents the result as US currency through the browser internationalization API. The `number` format presents the rounded numeric value without appending the unit symbol. The `duration` format interprets values as seconds and presents compact cascading components. It presents values below one minute as seconds (`45s`), values below one hour as minutes and seconds (`1m 30s`), values below one day as hours and minutes (`1h 23m`), and longer values as days and hours (`1d 3h`). The lower component is retained when zero, and components below the selected precision are omitted. The `usd` format presents US dollars with a dollar sign, two fractional digits when fewer are needed, and no more than three fractional digits. Values requiring more than three fractional digits are rounded upward at the third fractional digit.
 
+The `bytes` unit format scales rounded byte values into decimal units (`B`, `KB`, `MB`, `GB`, `TB`, `PB`, `EB`), using one fractional digit below ten scaled units and whole units otherwise. The `compact-number` unit format presents rounded values using English compact notation with at most three significant digits (`100K`, `50M`, `31T`); small fractional rates retain significant digits rather than being rounded to whole counts. Like `number`, it omits the unit symbol; column titles and measure labels identify the quantity. Both formats preserve source values and never convert modeled AI Credits into currency. Table cells expose the exact numeric value and unit name in a hover title and accessible label.
+
 - **DLS-UNIT-001:** A field `unit`, when present, **MUST** reference exactly one unit declared by `dashboard.units`.
 - **DLS-UNIT-002:** Unit formatting **MUST** affect presentation only and **MUST NOT** change filtering, aggregation, ordering, limiting, source data, or provenance.
 - **DLS-UNIT-003:** For a unit without `format`, a presenter **MUST** append the declared `symbol` to a unit-bearing value and round it to the nearest multiple of `significant`, with halfway cases rounded away from zero. A `number` unit **MUST** apply the same rounding without appending the symbol.
-- **DLS-UNIT-004:** `format`, when present, **MUST** be `aicc`, `duration`, `number`, or `usd`. An `aicc` unit **MUST** declare `name: AICc($)` and `significant: 2`. A presenter **MUST** round its AIC value to the declared significance, divide it by `100`, and present the result as `USD` currency using the browser internationalization API. A `duration` unit **MUST** declare `symbol: s` and `significant: 1`. A presenter **MUST** round its value to the nearest whole second with halfway cases rounded away from zero, preserve the sign, and present its absolute components using the compact cascading form defined above. Component suffixes are intrinsic to these formats, so the presenter **MUST NOT** append another `symbol`.
+- **DLS-UNIT-004:** `format`, when present, **MUST** be `aicc`, `duration`, `number`, `usd`, `bytes`, or `compact-number`. An `aicc` unit **MUST** declare `name: AICc($)` and `significant: 2`. A presenter **MUST** round its AIC value to the declared significance, divide it by `100`, and present the result as `USD` currency using the browser internationalization API. A `duration` unit **MUST** declare `symbol: s` and `significant: 1`. A presenter **MUST** round its value to the nearest whole second with halfway cases rounded away from zero, preserve the sign, and present its absolute components using the compact cascading form defined above. A `bytes` unit **MUST** declare `symbol: B` and `significant: 1` and **MUST** scale its rounded value by powers of 1,000 as defined above. A `compact-number` unit **MUST** apply its declared significance before presenting at most three significant digits in English compact notation. Both formats **MUST** retain the sign and expose the exact numeric value and unit name in table cells. Their suffixes are intrinsic, so the presenter **MUST NOT** append another `symbol`.
 - **DLS-UNIT-005:** A `usd` unit **MUST** declare `symbol: USD` and `significant: 0.001`. A presenter **MUST** prefix its value with the dollar sign, retain at least two and no more than three fractional digits, and round upward at the third fractional digit. The currency marker is intrinsic to this format, so the presenter **MUST NOT** append another `symbol`.
 
 ### 7.3 Aggregates

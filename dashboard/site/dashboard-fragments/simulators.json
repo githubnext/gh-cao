@@ -200,7 +200,7 @@
           "encoding": {
             "columns": [
               { "field": "table", "type": "nominal", "title": "Table" },
-              { "field": "bytes", "type": "quantitative", "title": "Estimated bytes after 30 days" }
+              { "field": "bytes", "type": "quantitative", "title": "Estimated size after 30 days", "unit": "bytes" }
             ]
           }
         }
@@ -324,12 +324,14 @@
               {
                 "field": "daily",
                 "type": "quantitative",
-                "title": "Per day"
+                "title": "Per day",
+                "unit": "count"
               },
               {
                 "field": "total",
                 "type": "quantitative",
-                "title": "Selected duration"
+                "title": "Selected duration",
+                "unit": "count"
               }
             ]
           }
@@ -353,17 +355,20 @@
               {
                 "field": "prs-per-repo",
                 "type": "quantitative",
-                "title": "PRs / repository / day"
+                "title": "PRs / repository / day",
+                "unit": "pull-requests-per-repository-day"
               },
               {
                 "field": "runs-per-repo",
                 "type": "quantitative",
-                "title": "AW runs / repository / day"
+                "title": "AW runs / repository / day",
+                "unit": "runs-per-repository-day"
               },
               {
                 "field": "runs-per-second",
                 "type": "quantitative",
-                "title": "AW runs / second"
+                "title": "AW runs / second",
+                "unit": "runs-per-second"
               }
             ]
           }

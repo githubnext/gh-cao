@@ -1066,6 +1066,13 @@ export function validateDashboard(dashboard, dashboardNode, errors) {
             path
           ));
         }
+        if (definition.format === 'bytes' && (definition.symbol !== 'B' || definition.significant !== 1)) {
+          errors.push(createError(
+            ERROR_CODES.missingOrInvalidRequiredField,
+            'byte units must use symbol "B" and significant 1.',
+            path
+          ));
+        }
         if (definition.format === 'usd' && (definition.symbol !== 'USD' || definition.significant !== 0.001)) {
           errors.push(createError(
             ERROR_CODES.missingOrInvalidRequiredField,

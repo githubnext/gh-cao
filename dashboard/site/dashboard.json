@@ -1277,6 +1277,36 @@
       }
     },
     "units": {
+      "bytes": {
+        "name": "Bytes",
+        "symbol": "B",
+        "significant": 1,
+        "format": "bytes"
+      },
+      "count": {
+        "name": "Modeled count",
+        "symbol": "count",
+        "significant": 0.01,
+        "format": "compact-number"
+      },
+      "pull-requests-per-repository-day": {
+        "name": "Pull requests per repository per day",
+        "symbol": "PR/repo/day",
+        "significant": 0.000001,
+        "format": "compact-number"
+      },
+      "runs-per-repository-day": {
+        "name": "AW runs per repository per day",
+        "symbol": "runs/repo/day",
+        "significant": 0.000001,
+        "format": "compact-number"
+      },
+      "runs-per-second": {
+        "name": "AW runs per second",
+        "symbol": "runs/s",
+        "significant": 0.000001,
+        "format": "compact-number"
+      },
       "aic": {
         "name": "AICc($)",
         "symbol": "cAIC",

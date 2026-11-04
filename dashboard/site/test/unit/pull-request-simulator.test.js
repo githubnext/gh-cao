@@ -39,12 +39,45 @@ describe('Pull request simulator', () => {
     });
     expect(page.views[0].encoding.columns.map((/** @type {{ field: string }} */ column) => column.field))
       .toEqual(contract.fields);
+    for (const [field, unit] of Object.entries(contract.units)) {
+      expect(page.views[0].encoding.columns.find((/** @type {{ field: string }} */ column) => column.field === field))
+        .toMatchObject({ type: 'quantitative', unit });
+    }
+    expect(page.views[1].encoding.columns.map(
+      (/** @type {{ unit?: string }} */ column) => column.unit
+    )).toEqual(['pull-requests-per-repository-day', 'runs-per-repository-day', 'runs-per-second']);
     expect(dashboardFormDefaultValues(page.form)).toEqual(contract.defaults);
     expect(contract.defaults).toEqual({
       'company-repositories': large.repositories, developers: large.developers,
       'prs-per-developer-per-day': large.prsPerDeveloperPerDay,
       'aw-runs-per-pr': large.awRunsPerPR, days: large.days, 'aic-per-run': large.aicPerRun
     });
+  });
+
+  it('validates simulator unit definitions and rejects undeclared units', () => {
+    const document = structuredClone(authoritativeDashboard);
+    expect(document.dashboard.units.bytes).toEqual({
+      name: 'Bytes', symbol: 'B', significant: 1, format: 'bytes'
+    });
+    expect(document.dashboard.units.count).toEqual({
+      name: 'Modeled count', symbol: 'count', significant: 0.01, format: 'compact-number'
+    });
+    const simulator = document.dashboard.pages.find(
+      (/** @type {{ id: string }} */ candidate) => candidate.id === contract.page
+    );
+    simulator.views[0].encoding.columns[1].unit = 'missing-unit';
+    expect(validateDashboardDocument(JSON.stringify(document)).errors).toContainEqual(expect.objectContaining({
+      code: 'DLS-E010', message: 'unit must reference a unit declared by dashboard.units.'
+    }));
+    document.dashboard.units.bytes.symbol = 'KB';
+    expect(validateDashboardDocument(JSON.stringify(document)).errors).toContainEqual(expect.objectContaining({
+      message: 'byte units must use symbol "B" and significant 1.'
+    }));
+    document.dashboard.units.bytes.symbol = 'B';
+    document.dashboard.units.bytes.significant = 0.1;
+    expect(validateDashboardDocument(JSON.stringify(document)).errors).toContainEqual(expect.objectContaining({
+      message: 'byte units must use symbol "B" and significant 1.'
+    }));
   });
 
   it('executes large-company arithmetic through the real worker without database reads', async () => {

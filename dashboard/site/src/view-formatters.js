@@ -164,6 +164,12 @@ export function formatNumber(value, unit = null, includeUnit = true) {
   if (unit && Number.isFinite(unit.significant) && unit.significant > 0) {
     const quotient = value / unit.significant;
     const rounded = Math.sign(quotient) * Math.round(Math.abs(quotient)) * unit.significant;
+    if (unit.format === 'bytes') {
+      return `${rounded < 0 ? '-' : ''}${formatDataSize(Math.abs(rounded))}`;
+    }
+    if (unit.format === 'compact-number') {
+      return formatCompactNumber(rounded);
+    }
     if (unit.format === 'duration') {
       return formatDurationSeconds(rounded);
     }
@@ -176,6 +182,28 @@ export function formatNumber(value, unit = null, includeUnit = true) {
     return `${rounded.toFixed(fractionDigits(unit.significant))}${includeUnit && unit.format !== 'number' ? ` ${unit.symbol}` : ''}`;
   }
   return Number.isInteger(value) ? String(value) : value.toFixed(3).replace(/0$/, '');
+}
+
+/** @param {number} value */
+export function formatCompactNumber(value) {
+  return new Intl.NumberFormat('en', {
+    notation: 'compact',
+    maximumSignificantDigits: 3
+  }).format(value);
+}
+
+/** @param {number} bytes */
+export function formatDataSize(bytes) {
+  const value = Math.max(0, Number(bytes) || 0);
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB'];
+  let scaled = value;
+  let unit = units[0];
+  for (let index = 1; index < units.length && scaled >= 1_000; index += 1) {
+    scaled /= 1_000;
+    unit = units[index];
+  }
+  const digits = scaled >= 10 || unit === 'B' ? 0 : 1;
+  return `${scaled.toFixed(digits)} ${unit}`;
 }
 
 /**

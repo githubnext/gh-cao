@@ -1,5 +1,8 @@
 import { createElapsedStepTracker } from './elapsed-step-tracker.js';
 import { createDebug } from './debug.js';
+import { formatDataSize } from './view-formatters.js';
+
+export { formatDataSize } from './view-formatters.js';
 
 const INGESTION_PROGRESS_INTERVAL_MS = 1_000;
 const INGESTION_PROGRESS_HISTORY_LIMIT = 100;
@@ -176,18 +179,4 @@ function formatRemainingTime(milliseconds) {
   const minutes = Math.ceil(seconds / 60);
   if (minutes < 60) return `${minutes}m`;
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-}
-
-/** @param {number} bytes */
-export function formatDataSize(bytes) {
-  const value = Math.max(0, Number(bytes) || 0);
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let scaled = value;
-  let unit = units[0];
-  for (let index = 1; index < units.length && scaled >= 1_000; index += 1) {
-    scaled /= 1_000;
-    unit = units[index];
-  }
-  const digits = scaled >= 10 || unit === 'B' ? 0 : 1;
-  return `${scaled.toFixed(digits)} ${unit}`;
 }
