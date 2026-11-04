@@ -309,9 +309,60 @@ describe('native workflow value production contract', () => {
         expect(source.metadata.availability).not.toBe('unavailable');
       }
     }
-    await expect(readEvidencePackets(indexedDB, null)).rejects.toThrow(/max-input-rows/);
+    await expect(readEvidencePackets(indexedDB, null)).rejects.toThrow(/bounded input budget|bounded read budget/);
     await expect(readEvidencePackets(indexedDB, [{ field: 'id', value: packet.id }],
       () => { throw new Error('cancelled before read'); })).rejects.toThrow('cancelled before read');
+  }, 30000);
+
+  it('keeps the unscoped Value inventory available beyond 32 retained packets', async () => {
+    const packet = await publish();
+    const others = Array.from({ length: 32 }, (_, index) => {
+      const other = structuredClone(packet);
+      other.repository = `octo/repo-${index}`;
+      other.id = operationalValueEvidenceId(other.repository, other.workflow, 'linked', 'v1');
+      return JSON.stringify({ schema_version: 2, kind: 'operational_value_evidence', operational_value_evidence: other });
+    });
+    await ingestCachedGhAwJsonl(indexedDB, others.join('\n'), {
+      now: Date.parse(packet.observedAt), payloadScope: 'fleet-packets'
+    });
+    expect(await readEvidencePackets(indexedDB, null)).toHaveLength(33);
+    const [overview] = await execute('value', {});
+    expect(overview.rows).toHaveLength(33);
+    expect(new Set(overview.rows.map(row => row['workflow-route'])).size).toBe(33);
+  }, 30000);
+
+  it('does not silently cap deployment totals or campaign cards at presentation thresholds', () => {
+    const routes = Array.from({ length: 10001 }, (_, index) => `acme/repo-${index}:.github/workflows/check.md`);
+    const source = (/** @type {string} */ name, /** @type {Record<string, unknown>[]} */ rows) =>
+      ({ source: name, rows, metadata: { ...universalMetadata, 'source-id': name } });
+    const definitions = ['value-workflow-overview', 'value-campaign-deployments', 'value-campaign-totals']
+      .map(name => dashboard.queries.find((/** @type {{name: string}} */ query) => query.name === name));
+    const totals = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
+      operation: 'execute-dashboard-queries', queries: definitions, sourceNames: ['value-campaign-totals'],
+      sources: {
+        'value-subjects': source('value-subjects', routes.map((route, index) => ({
+          'workflow-route': route, 'repository-coordinate': `acme/repo-${index}`, 'workflow-label': 'Check'
+        }))),
+        'value-workflow-topology': source('value-workflow-topology', routes.map(route => ({
+          'workflow-route': route, campaign: 'quality', 'campaign-name': 'Quality', 'workflow-role': 'worker'
+        }))),
+        'value-collection-health': source('value-collection-health', []),
+        'value-headlines': source('value-headlines', [])
+      }
+    }))['value-campaign-totals'];
+    expect(totals.metadata.availability).toBe('available');
+    expect(totals.rows).toMatchObject([{ 'value-deployments': 10001, 'value-repositories': 10001 }]);
+
+    const campaign = dashboard.queries.find((/** @type {{name: string}} */ query) => query.name === 'value-campaign-overview');
+    const overview = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
+      operation: 'execute-dashboard-queries', queries: [campaign], sourceNames: ['value-campaign-overview'],
+      sources: { 'value-campaign-totals': source('value-campaign-totals',
+        Array.from({ length: 1001 }, (_, index) => ({
+          campaign: `campaign-${index}`, 'campaign-name': `Campaign ${index}`, 'review-deployments': 0
+        }))) }
+    }))['value-campaign-overview'];
+    expect(overview.metadata.availability).toBe('available');
+    expect(overview.rows).toHaveLength(1001);
   }, 30000);
 
   it('declares a shared card, native report, complete source contract and exact-item route', () => {

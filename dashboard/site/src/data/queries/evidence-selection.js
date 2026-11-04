@@ -72,7 +72,7 @@ export async function readEvidencePackets(indexedDB, selections, checkpoint) {
       if (packets.has(packet.id)) continue;
       bytes += new TextEncoder().encode(JSON.stringify(packet)).length;
       facts += Array.isArray(packet.facts) ? packet.facts.length : 0;
-      if (packets.size >= EVIDENCE_READ_LIMITS.packets || bytes > EVIDENCE_READ_LIMITS.bytes
+      if (packets.size + 1 > EVIDENCE_READ_LIMITS.packets || bytes > EVIDENCE_READ_LIMITS.bytes
           || facts > EVIDENCE_READ_LIMITS.facts) {
         debugEvidenceSelection({ event: 'budget-exceeded', packets: packets.size, bytes, facts });
         throw new Error('Value evidence exceeds the bounded read budget; select an exact workflow or report.');
