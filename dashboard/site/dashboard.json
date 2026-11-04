@@ -1349,6 +1349,7 @@
           "engines-models",
           "firewall",
           "mcps",
+          "skills",
           "memory"
         ]
       },
@@ -1358,7 +1359,6 @@
         "pages": [
           "wizard",
           "model-routing",
-          "skills",
           "steering",
           "simulators"
         ]
