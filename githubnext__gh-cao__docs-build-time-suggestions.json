@@ -3,13 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-03T16:51:57.433444Z",
-      "worker_run_id": "41678035570",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. The required current 14-day evidence window, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded artifact-transfer and Pages-packaging step analysis, and cache hit/miss verification could not be established. No recommendation was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-03T17:18:41Z",
       "worker_run_id": "41682456568",
       "category": "artifact transfer and Pages packaging",
@@ -754,6 +747,13 @@
     {
       "evaluated_at": "2026-11-04T02:50:50Z",
       "worker_run_id": "41763087689",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. The required current 14-day evidence window, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded artifact-transfer and Pages-packaging step analysis, and cache hit/miss verification could not be established. No recommendation was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-04T03:18:50Z",
+      "worker_run_id": "41766028819",
       "category": "artifact transfer and Pages packaging",
       "evidence_run_ids": [],
       "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. The required current 14-day evidence window, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded artifact-transfer and Pages-packaging step analysis, and cache hit/miss verification could not be established. No recommendation was made; artifact transfer and Pages packaging remains the next category."
