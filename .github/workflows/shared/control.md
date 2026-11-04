@@ -179,8 +179,10 @@ jobs:
         with:
           ref: ${{ github.workflow_sha }}
           path: .cao
-          sparse-checkout: .github
-          sparse-checkout-cone-mode: true
+          sparse-checkout: |
+            .github/
+            /activity/value-acquisition.mjs
+          sparse-checkout-cone-mode: false
           fetch-depth: 1
           persist-credentials: false
           token: ${{ github.token }}

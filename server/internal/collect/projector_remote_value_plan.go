@@ -2,6 +2,7 @@ package collect
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -26,12 +27,98 @@ type RemoteValuePlanCache struct {
 }
 
 type remoteValueEntry struct {
-	Repository  string          `json:"repository"`
-	Workflow    string          `json:"workflow"`
-	Collector   string          `json:"collector"`
-	APIRequests int             `json:"api-requests"`
-	Enabled     *bool           `json:"enabled"`
-	Raw         json.RawMessage `json:"-"`
+	Repository  string                  `json:"repository"`
+	Workflow    string                  `json:"workflow"`
+	Collector   string                  `json:"collector"`
+	APIRequests int                     `json:"api-requests"`
+	Enabled     *bool                   `json:"enabled"`
+	Acquisition *remoteValueAcquisition `json:"acquisition,omitempty"`
+	Raw         json.RawMessage         `json:"-"`
+}
+
+type remoteValueAcquisition struct {
+	Requirements []remoteValueRequirement `json:"requirements"`
+}
+
+type remoteValueRequirement struct {
+	Source    string `json:"source"`
+	Pool      string `json:"pool"`
+	Primitive string `json:"primitive"`
+	Scope     string `json:"scope"`
+	Cache     string `json:"cache"`
+}
+
+type remoteValueAcquisitionPlan struct {
+	Requirements []remoteValueRequirement
+	Shared       map[string]map[string]remoteValueRequirement
+}
+
+type remoteValueTarget struct {
+	Repository   string
+	Installation int64
+}
+
+func remoteValueRequirementKey(requirement remoteValueRequirement) string {
+	return strings.Join([]string{
+		requirement.Cache, requirement.Pool, requirement.Primitive, requirement.Scope, requirement.Source,
+	}, "\x00")
+}
+
+func remoteValueRequirementID(requirement remoteValueRequirement) string {
+	digest := sha256.Sum256([]byte(remoteValueRequirementKey(requirement)))
+	return fmt.Sprintf("%x", digest)
+}
+
+func compileRemoteValueAcquisitionPlan(entries []remoteValueEntry) remoteValueAcquisitionPlan {
+	type planned struct {
+		requirement remoteValueRequirement
+		workflows   map[string]bool
+	}
+	plannedRequirements := map[string]*planned{}
+	for _, entry := range entries {
+		if entry.Acquisition == nil {
+			continue
+		}
+		for _, requirement := range entry.Acquisition.Requirements {
+			key := remoteValueRequirementKey(requirement)
+			current := plannedRequirements[key]
+			if current == nil {
+				current = &planned{requirement: requirement, workflows: map[string]bool{}}
+				plannedRequirements[key] = current
+			}
+			current.workflows[entry.Workflow] = true
+		}
+	}
+	keys := make([]string, 0, len(plannedRequirements))
+	for key := range plannedRequirements {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	plan := remoteValueAcquisitionPlan{Shared: map[string]map[string]remoteValueRequirement{}}
+	for _, key := range keys {
+		current := plannedRequirements[key]
+		plan.Requirements = append(plan.Requirements, current.requirement)
+		if current.requirement.Source == "github" && current.requirement.Cache == "invocation" &&
+			len(current.workflows) > 1 {
+			id := remoteValueRequirementID(current.requirement)
+			for workflow := range current.workflows {
+				if plan.Shared[workflow] == nil {
+					plan.Shared[workflow] = map[string]remoteValueRequirement{}
+				}
+				plan.Shared[workflow][id] = current.requirement
+			}
+		}
+	}
+	return plan
+}
+
+func remoteValueAcquisitionEqual(left, right *remoteValueAcquisition) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	leftJSON, leftErr := json.Marshal(left)
+	rightJSON, rightErr := json.Marshal(right)
+	return leftErr == nil && rightErr == nil && bytes.Equal(leftJSON, rightJSON)
 }
 
 func (p Projector) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sha256.Size]byte, error) {
@@ -120,11 +207,23 @@ func (p Projector) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sh
 // registrations that remain enrolled. It never acquires an App token or calls
 // GitHub, and the policy runtime subprocess runs only when policy bytes change.
 func (p Projector) RemoteValueRepositories(ctx context.Context) ([]string, error) {
+	targets, err := p.RemoteValueTargets(ctx)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, len(targets))
+	for index, target := range targets {
+		names[index] = target.Repository
+	}
+	return names, nil
+}
+
+func (p Projector) RemoteValueTargets(ctx context.Context) ([]remoteValueTarget, error) {
 	entries, _, err := p.remoteValuePlan(ctx)
 	if err != nil {
 		return nil, err
 	}
-	names := make([]string, 0, len(entries))
+	targets := make([]remoteValueTarget, 0, len(entries))
 	seen := map[string]bool{}
 	for _, entry := range entries {
 		name, err := NormalizeRepository(entry.Repository)
@@ -139,10 +238,22 @@ func (p Projector) RemoteValueRepositories(ctx context.Context) ([]string, error
 			return nil, err
 		}
 		if enrolled {
-			names = append(names, name)
+			installation, err := p.Enrollment.InstallationFor(ctx, name)
+			if err != nil {
+				return nil, err
+			}
+			if installation <= 0 {
+				continue
+			}
+			targets = append(targets, remoteValueTarget{Repository: name, Installation: installation})
 			seen[name] = true
 		}
 	}
-	slices.Sort(names)
-	return names, nil
+	slices.SortFunc(targets, func(left, right remoteValueTarget) int {
+		if left.Installation != right.Installation {
+			return cmp.Compare(left.Installation, right.Installation)
+		}
+		return strings.Compare(left.Repository, right.Repository)
+	})
+	return targets, nil
 }

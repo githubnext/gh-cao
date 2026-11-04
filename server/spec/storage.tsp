@@ -953,6 +953,30 @@ namespace Inputs {
       reserved: int64;
       `usage-percent`: decimal;
     }
+    /** Administrator-only aggregate acquisition costs; no credentials or proof payloads. */
+    model valueCollectionCosts {
+      day: utcDateTime;
+      workflow: string;
+      collectors: int64;
+      installations: int64;
+      repositories: int64;
+      attempts: int64;
+      successes: int64;
+      failures: int64;
+      `api-requests`: int64;
+      `core-requests`: int64;
+      `search-requests`: int64;
+      `graphql-requests`: int64;
+      `cache-hits`: int64;
+      `preflight-requests`: int64;
+      `graphql-points-observed`: int64;
+      `graphql-requests-unverified`: int64;
+      `wall-ms`: int64;
+      `max-wall-ms`: int64;
+      `output-bytes`: int64;
+      `transport-bytes`: int64;
+      `last-failure-reason`?: string;
+    }
     model collectionHealth {
       configured: boolean;
       health: string;
@@ -1025,6 +1049,43 @@ namespace Storage {
     packetId: string;
     digest: string;
     publishedAt: utcDateTime;
+  }
+
+  /** Private accepted acquisition proof, atomically replaced only after evidence publication. */
+  model caoValueProofFiles {
+    `namespace`: string;
+    repository: string;
+    workflow: string;
+    path: string;
+    digest: string;
+    content: bytes;
+    updatedAt: utcDateTime;
+  }
+
+  /** Private daily acquisition-cost aggregates used for capacity calibration. */
+  model caoValueCollectionCosts {
+    `namespace`: string;
+    installationId: int64;
+    repository: string;
+    workflow: string;
+    collector: string;
+    day: utcDateTime;
+    attempts: int64;
+    successes: int64;
+    failures: int64;
+    apiRequests: int64;
+    coreRequests: int64;
+    searchRequests: int64;
+    graphqlRequests: int64;
+    cacheHits: int64;
+    preflightRequests: int64;
+    graphqlPointsObserved: int64;
+    graphqlRequestsUnverified: int64;
+    wallMs: int64;
+    maxWallMs: int64;
+    outputBytes: int64;
+    transportBytes: int64;
+    lastFailureReason?: string;
   }
 
   @sampledBundle

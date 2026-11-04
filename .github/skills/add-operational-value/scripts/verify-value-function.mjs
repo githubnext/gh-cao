@@ -2,6 +2,7 @@
 
 import { existsSync } from "node:fs";
 import { operationalValuePeriod } from "../../../../dashboard/site/src/data/model/schema.js";
+import { normalizeValueAcquisition } from "../../../../activity/value-acquisition.mjs";
 import {
   fail, importValueModule, isIsoUtc, isRepository, isSlug, run, shiftDays,
 } from "./common.mjs";
@@ -35,6 +36,12 @@ const baselineValid = (adoption.baselineCommit == null && adoption.baselineAt ==
   || (isSha(adoption.baselineCommit) && isIsoUtc(adoption.baselineAt));
 const metrics = definition.metrics;
 const examples = definition.validationExamples ?? {};
+let acquisitionValid = true;
+try {
+  normalizeValueAcquisition(definition.acquisition);
+} catch {
+  acquisitionValid = false;
+}
 const valid = definition.schemaVersion === 3
   && isSlug(definition.slug)
   && /^\.github\/workflows\/.+\.md$/.test(definition.sourcePath ?? "")
@@ -44,6 +51,7 @@ const valid = definition.schemaVersion === 3
   && isIsoUtc(adoption.adoptedAt)
   && baselineValid
   && !Object.hasOwn(definition, "collector")
+  && acquisitionValid
   && typeof collectBatch === "function"
   && typeof scoreMetric === "function"
   && isString(definition.evidence?.key)

@@ -535,15 +535,40 @@
     {
       "id": "value",
       "title": "Value",
-      "description": "Inspect collection health, then review retained results at their actual capture and cutoff dates.",
-      "intent": "Distinguish collection availability from measured repository outcomes.",
-      "subject": "Reviewed Value registrations and latest retained workflow reports.",
-      "objective": "Explain missing or delayed evidence and open the native evidence that is available.",
-      "acceptance": "Keep native units, direction, repository, workflow, dates and unknowns visible. No alert score, causal credit or GitHub acquisition.",
+      "description": "Review every known campaign and standalone Value deployment through one evidence contract.",
+      "intent": "Find which workflow deployment needs attention and distinguish measured outcome movement from evidence availability.",
+      "subject": "Canonical workflow inventory, reviewed Value collection decisions and latest retained native or rich evidence.",
+      "objective": "Open the exact workflow result or collection state without separating campaign and standalone evidence systems.",
+      "acceptance": "Keep repository/workflow identity, topology, native result, collection state, dates and unknowns visible. No campaign score, causal credit or GitHub acquisition.",
       "experimental": false,
       "parameters": [],
       "queries": [
         "value-workflow-overview"
+      ]
+    },
+    {
+      "id": "campaign-value",
+      "title": "Campaign Value",
+      "description": "Inspect one campaign's Value coverage and exact worker deployments.",
+      "intent": "Understand why the selected campaign needs review and open the responsible workflow evidence.",
+      "subject": "The selected campaign's deployment coverage and repository/workflow Value cards.",
+      "objective": "Move from campaign coverage to exact worker evidence without changing measurement semantics.",
+      "acceptance": "Reuse universal cards and original evidence routes. Do not synthesize a campaign score or attribute worker outcomes to orchestration.",
+      "experimental": false,
+      "parameters": [
+        {
+          "name": "campaign",
+          "required": true,
+          "description": "The campaign this page reports on.",
+          "schema": {
+            "type": "string",
+            "description": "The campaign this page reports on."
+          }
+        }
+      ],
+      "queries": [
+        "value-campaign-deployments",
+        "value-campaign-overview"
       ]
     },
     {
@@ -756,6 +781,7 @@
         }
       ],
       "queries": [
+        "campaign-dispatch-failure-reasons",
         "campaign-insight-tab-counts",
         "campaign-issue-tab-counts",
         "campaign-problem-tab-counts",
@@ -3677,27 +3703,6 @@
       }
     },
     {
-      "id": "value-registered-collections",
-      "subject": "Reviewed Value registrations, including explicit disables and registrations with no report.",
-      "objective": "Make collection health visible before the first accepted packet.",
-      "acceptance": "Registration is independent of measured outcomes. No enrollment or acquisition follows from navigation.",
-      "description": "",
-      "parameters": [],
-      "sources": [
-        "value-collection-health"
-      ],
-      "used-by-pages": [],
-      "execution": {
-        "local": true,
-        "backend": "sqlite",
-        "requirements": [
-          "operational-value-evidence",
-          "workflow-value-collections",
-          "workflow-value-measurements"
-        ]
-      }
-    },
-    {
       "id": "value-snapshots",
       "subject": "Independent repository-state observations and exact item drill-downs.",
       "objective": "Keep everyone's changes separate from workflow-linked delivery.",
@@ -4000,15 +4005,170 @@
       }
     },
     {
-      "id": "value-workflow-reported-overview",
-      "subject": "Workflows with a retained headline result, with any published collection state.",
-      "objective": "Show a report even when no collection fact was published for its workflow.",
-      "acceptance": "A missing collection fact stays unknown, never an inferred registration.",
+      "id": "value-native-headline-order",
+      "subject": "Most recent primary native measurement for each repository and workflow.",
+      "objective": "Let ordinary batch Value functions participate in the universal Value inventory without requiring a rich report packet.",
+      "acceptance": "Select by evidence cutoff then assessment time. A newer unavailable assessment remains current and must not reveal an older numeric value.",
       "description": "",
       "parameters": [],
       "sources": [
-        "value-collection-health",
+        "value-current-measurements"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-native-headlines",
+      "subject": "One current primary native measurement per repository and workflow.",
+      "objective": "Supply a bounded workflow headline when no richer evidence report exists.",
+      "acceptance": "Keep missing value, coverage, maturity, native unit and campaign context unchanged.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-native-headline-order"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-rich-headline-overview",
+      "subject": "Rich evidence report headlines normalized for universal Value subject selection.",
+      "objective": "Reuse the existing repository movement result without changing its evidence identity or comparison.",
+      "acceptance": "Retain the report route and first-to-last native movement; campaign context remains unknown unless another canonical source supplies it.",
+      "description": "",
+      "parameters": [],
+      "sources": [
         "value-workflow-headlines"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence"
+        ]
+      }
+    },
+    {
+      "id": "value-native-headline-overview",
+      "subject": "Native batch measurements normalized for universal Value subject selection.",
+      "objective": "Expose the current native result while keeping comparison unavailable unless a reviewed comparison exists.",
+      "acceptance": "A numeric measurement is not a trend or causal result. Missing remains unavailable and routes to workflow detail.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-native-headlines"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-headline-candidates",
+      "subject": "Rich and native headline candidates for one exact repository and workflow deployment.",
+      "objective": "Choose one current drill target without combining unlike measurements.",
+      "acceptance": "Order by evidence cutoff and capture before preferring richer presentation. Never aggregate headline values.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-native-headline-overview",
+        "value-rich-headline-overview"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-headline-order",
+      "subject": "Current headline ordering for each exact repository and workflow deployment.",
+      "objective": "Prefer the newest evidence, then a rich evidence route when timestamps are equal.",
+      "acceptance": "A newer unavailable native assessment remains current. Rich presentation priority cannot cross an evidence-time gap.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-headline-candidates"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-headlines",
+      "subject": "One current Value headline per exact repository and workflow deployment.",
+      "objective": "Join current evidence to collection health and workflow topology without multiplying subjects.",
+      "acceptance": "Exactly one row per workflow route, with no cross-metric aggregation.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-headline-order"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-workflow-topology",
+      "subject": "Canonical workflow deployment topology for Value grouping.",
+      "objective": "Classify exact workflow identities as campaign workers, orchestrators or standalone workflows without copying topology into evidence.",
+      "acceptance": "Campaign and role come only from canonical workflow inventory. Missing topology remains unknown.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-health-subjects",
+      "subject": "Value subjects observed through authoritative collection decisions.",
+      "objective": "Keep enabled, disabled and unconfigured deployments visible even before evidence exists.",
+      "acceptance": "A collection decision supplies subject identity, not campaign topology or outcome attainment.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-collection-health"
       ],
       "used-by-pages": [],
       "execution": {
@@ -4022,15 +4182,14 @@
       }
     },
     {
-      "id": "value-workflow-registered-reports",
-      "subject": "Registered workflows marked with whether a headline result exists.",
-      "objective": "Separate registration from retained outcomes before selecting unreported workflows.",
-      "acceptance": "Join on workflow route only; one row per registration.",
+      "id": "value-headline-subjects",
+      "subject": "Value subjects observed through retained native or rich evidence.",
+      "objective": "Keep published outcomes visible when collection-health publication is absent.",
+      "acceptance": "Evidence supplies subject identity but cannot infer registration.",
       "description": "",
       "parameters": [],
       "sources": [
-        "value-registered-collections",
-        "value-workflow-headlines"
+        "value-headlines"
       ],
       "used-by-pages": [],
       "execution": {
@@ -4038,20 +4197,40 @@
         "backend": "sqlite",
         "requirements": [
           "operational-value-evidence",
-          "workflow-value-collections",
           "workflow-value-measurements"
         ]
       }
     },
     {
-      "id": "value-workflow-unreported-overview",
-      "subject": "Registered workflows that have no retained headline result.",
-      "objective": "Keep collection health visible before the first accepted packet.",
-      "acceptance": "No result is not zero value or a healthy outcome.",
+      "id": "value-topology-subjects",
+      "subject": "Declared workflow subjects without required collection or evidence observations.",
+      "objective": "Make every canonical campaign and standalone workflow visible with unknown Value configuration when health is missing.",
+      "acceptance": "Inventory presence does not imply registration, evidence, successful collection or measurable Value.",
       "description": "",
       "parameters": [],
       "sources": [
-        "value-workflow-registered-reports"
+        "value-workflow-topology"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-subject-candidates",
+      "subject": "All exact workflow deployment identities observed by inventory, collection health or accepted evidence.",
+      "objective": "Build one universal subject population without losing evidence-only or inventory-only deployments.",
+      "acceptance": "Identity union is not evidence aggregation. Each route is selected once in the next query.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-headline-subjects",
+        "value-health-subjects",
+        "value-topology-subjects"
       ],
       "used-by-pages": [],
       "execution": {
@@ -4060,20 +4239,67 @@
         "requirements": [
           "operational-value-evidence",
           "workflow-value-collections",
-          "workflow-value-measurements"
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-subject-order",
+      "subject": "Deterministic subject identity selection across inventory, health and evidence sources.",
+      "objective": "Prefer authoritative collection identity, then evidence identity, then declaration-only identity.",
+      "acceptance": "Exactly one selected identity per workflow route without changing topology or outcome facts.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-subject-candidates"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-collections",
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-subjects",
+      "subject": "One universal Value subject per exact repository and workflow deployment.",
+      "objective": "Provide the stable subject grain for all, campaign, standalone and review projections.",
+      "acceptance": "One row per workflow route. Missing health, topology or evidence remains missing after joins.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-subject-order"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-collections",
+          "workflow-value-measurements",
+          "workflows"
         ]
       }
     },
     {
       "id": "value-workflow-overview",
-      "subject": "One row per workflow and repository: collection health plus its headline result trend.",
-      "objective": "Show the first-to-last trend and collection state in a single card.",
-      "acceptance": "Missing reports remain unavailable, never zero. Registration and outcome stay independent facts.",
+      "subject": "One universal row per repository and workflow deployment with topology, collection health and current Value evidence.",
+      "objective": "Compare campaign and standalone Value subjects through one honest card contract.",
+      "acceptance": "Missing topology is unclassified, missing health is unknown and missing evidence is unavailable. None becomes zero or inferred success.",
       "description": "",
       "parameters": [],
       "sources": [
-        "value-workflow-reported-overview",
-        "value-workflow-unreported-overview"
+        "value-collection-health",
+        "value-headlines",
+        "value-subjects",
+        "value-workflow-topology"
       ],
       "used-by-pages": [
         "value"
@@ -4084,7 +4310,132 @@
         "requirements": [
           "operational-value-evidence",
           "workflow-value-collections",
-          "workflow-value-measurements"
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-campaign-deployments",
+      "subject": "Universal Value deployments grouped under a declared campaign.",
+      "objective": "Support campaign coverage and workflow drilldown without creating a separate evidence system.",
+      "acceptance": "Only rows with canonical campaign context are included. Unclassified deployments remain visible in All and Needs review.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "campaign",
+          "field": "campaign"
+        }
+      ],
+      "sources": [
+        "value-workflow-overview"
+      ],
+      "used-by-pages": [
+        "campaign-value"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-collections",
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-campaign-totals",
+      "subject": "Campaign Value coverage and attention summary over exact workflow deployments.",
+      "objective": "Aggregate campaign coverage and attention counts before presentation fields are derived.",
+      "acceptance": "Counts describe deployment coverage and attention only. They do not average native outcomes or create a campaign score.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-campaign-deployments"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-collections",
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-campaign-overview",
+      "subject": "Campaign Value coverage and attention presentation.",
+      "objective": "Find campaigns requiring evidence or outcome review before drilling into their workers.",
+      "acceptance": "Presentation fields derive only from bounded campaign deployment counts. No native outcome values are combined.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "campaign",
+          "field": "campaign"
+        }
+      ],
+      "sources": [
+        "value-campaign-totals"
+      ],
+      "used-by-pages": [
+        "campaign-value"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-collections",
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-standalone-overview",
+      "subject": "Standalone workflow Value deployments.",
+      "objective": "Inspect standalone workflows through the same collection, outcome and evidence contract as campaign workers.",
+      "acceptance": "Standalone is a canonical workflow role, not inferred from missing campaign evidence.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-workflow-overview"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-collections",
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-review-overview",
+      "subject": "Value deployments with measured deterioration or incomplete collection/evidence state.",
+      "objective": "Prioritize exact deployments needing outcome or evidence investigation.",
+      "acceptance": "Each row preserves its explicit reason. Missing evidence, failed collection and worsening outcome are not interchangeable.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-workflow-overview"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-value-collections",
+          "workflow-value-measurements",
+          "workflows"
         ]
       }
     },
@@ -4643,6 +4994,33 @@
       ],
       "sources": [
         "campaign-runs"
+      ],
+      "used-by-pages": [
+        "campaign-runs"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "runs",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "campaign-dispatch-failure-reasons",
+      "subject": "Count retained failed workflow dispatches by failure reason for each campaign.",
+      "objective": "Prioritize which failure reasons need investigation first.",
+      "acceptance": "Each count reconciles to failed, startup-failure, timed-out, or stale dispatches for the same campaign and reason; missing reasons stay unknown and an empty result is not proof of healthy dispatch.",
+      "description": "Worker-side distribution of failure reasons across campaign workflow dispatches.",
+      "parameters": [
+        {
+          "name": "campaign",
+          "field": "campaign"
+        }
+      ],
+      "sources": [
+        "dispatches"
       ],
       "used-by-pages": [
         "campaign-runs"

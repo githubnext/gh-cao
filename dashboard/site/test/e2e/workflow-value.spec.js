@@ -87,9 +87,18 @@ for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     let publication = publishedShards(structuredClone(ledgerFixture), { includeEvidence: false, defer: 'api-budget' });
     const inventory = {
+      campaigns: { rows: [{ campaign: 'quality', 'campaign-name': 'Quality' }], metadata: { 'as-of': ledgerFixture.observedAt } },
       repositories: { rows: [{ organization: 'octo', repository: 'example' }], metadata: { 'as-of': ledgerFixture.observedAt } },
-      workflows: { rows: [{ organization: 'octo', repository: 'example', workflow: ledgerFixture.sourcePath,
-        'workflow-name': ledgerFixture.workflowName }], metadata: { 'as-of': ledgerFixture.observedAt } }
+      workflows: { rows: [
+        { organization: 'octo', repository: 'example', workflow: ledgerFixture.sourcePath,
+          'workflow-name': ledgerFixture.workflowName, 'workflow-role': 'worker',
+          campaign: 'quality', 'campaign-name': 'Quality' },
+        { organization: 'octo', repository: 'example', workflow: '.github/workflows/disabled-worker.md',
+          'workflow-name': 'Disabled worker', 'workflow-role': 'worker',
+          campaign: 'quality', 'campaign-name': 'Quality' },
+        { organization: 'octo', repository: 'example', workflow: '.github/workflows/standalone-check.md',
+          'workflow-name': 'Standalone check', 'workflow-role': 'standalone' }
+      ], metadata: { 'as-of': ledgerFixture.observedAt } }
     };
     await context.route('http://dashboard.test/inventory-sources.json', route => route.fulfill({
       contentType: 'application/json', body: JSON.stringify(inventory)
@@ -131,6 +140,18 @@ for (const width of [1440, 390]) {
       ) => subscribe(pageId, names, options, viewId);
       document.querySelector('#root')?.append(renderDashboard({ document: model, sources: {}, loadPageSources }));
     }, { dashboard: authoritativeDashboard });
+    const topology = await page.evaluate(async ({ dashboard }) => {
+      const { processDataRequest } = await import(`${location.origin}/src/data-worker.js`);
+      const result = await processDataRequest({
+        operation: 'query-canonical-dashboard', sourceNames: ['workflows'],
+        context: { pages: dashboard.dashboard.pages, queries: dashboard.dashboard.queries }
+      });
+      return result.workflows.rows;
+    }, { dashboard: authoritativeDashboard });
+    expect(topology).toEqual(expect.arrayContaining([
+      expect.objectContaining({ campaign: 'quality', 'workflow-role': 'worker' }),
+      expect.objectContaining({ workflow: '.github/workflows/standalone-check.md', 'workflow-role': 'standalone' })
+    ]));
 
     await expect(page.locator('.workflow-tabs').getByRole('link', { name: 'Value', exact: true }))
       .toHaveCount(0);
@@ -144,11 +165,36 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole('heading', { level: 1, name: 'Value', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Repository measurements', exact: true })).toHaveCount(0);
     await expect(page.locator('a[href^="#page-operational-value"]')).toHaveCount(0);
-    await expect(page.getByText('GitHub API capacity is exhausted or reserved for ordinary Activity collection.', { exact: true })).toBeVisible();
+    await expect(page.getByText('GitHub API capacity is exhausted or reserved for ordinary Activity collection.', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('No retained capture', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('disabled', { exact: true }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: '↓ -1 defects', exact: true })).toHaveCount(0);
-    await page.getByRole('link', { name: 'octo/example · verify-bugs', exact: true }).click();
+    const valueTabs = page.locator('[data-page-id="value"] .route-tab-navigation');
+    await expect(valueTabs.getByRole('link', { name: 'All', exact: true })).toBeVisible();
+    await expect(valueTabs.getByRole('link', { name: 'Campaigns', exact: true })).toBeVisible();
+    await expect(valueTabs.getByRole('link', { name: 'Standalone', exact: true })).toBeVisible();
+    await expect(valueTabs.getByRole('link', { name: 'Needs review', exact: true })).toBeVisible();
+    await valueTabs.getByRole('link', { name: 'Campaigns', exact: true }).click();
+    await expect(page).toHaveURL(/#page-value-campaigns$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Campaign Value', exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'Quality', exact: true }).click();
+    await expect(page).toHaveURL(/#page-campaign-value\?campaign=quality$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Campaign Value', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'octo/example · Verify bugs', exact: true })).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL(/#page-value-campaigns$/);
+    await page.locator('[data-page-id="value-campaigns"] .route-tab-navigation')
+      .getByRole('link', { name: 'Standalone', exact: true }).click();
+    await expect(page).toHaveURL(/#page-value-standalone$/);
+    await expect(page.getByRole('link', { name: 'octo/example · Standalone check', exact: true })).toBeVisible();
+    await page.locator('[data-page-id="value-standalone"] .route-tab-navigation')
+      .getByRole('link', { name: 'Needs review', exact: true }).click();
+    await expect(page).toHaveURL(/#page-value-review$/);
+    await expect(page.getByRole('link', { name: 'octo/example · Standalone check', exact: true })).toBeVisible();
+    await page.locator('[data-page-id="value-review"] .route-tab-navigation')
+      .getByRole('link', { name: 'All', exact: true }).click();
+    await expect(page).toHaveURL(/#page-value$/);
+    await page.getByRole('link', { name: 'octo/example · Verify bugs', exact: true }).click();
     await expect(page).toHaveURL(/#page-workflow-value\?workflow=/);
     await page.goBack();
     await expect(page).toHaveURL(/#page-value$/);
@@ -159,11 +205,11 @@ for (const width of [1440, 390]) {
         pages: dashboard.dashboard.pages, queries: dashboard.dashboard.queries, views: dashboard.dashboard.views
       });
     }, { dashboard: authoritativeDashboard });
-    await expect(page.getByText('Retained evidence available').first()).toBeVisible();
-    await expect(page.getByText('The collector failed; previous accepted evidence is retained.', { exact: true })).toBeVisible();
+    await expect(page.getByText('Rich evidence retained').first()).toBeVisible();
+    await expect(page.getByText('The collector failed; previous accepted evidence is retained.', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('failed', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('↓ -1 defects')).toHaveCount(1);
-    await page.getByRole('link', { name: /octo\/example · Verify bugs/ }).click();
+    await page.locator('a[href^="#page-value-report?report="]').click();
     await expect(page).toHaveURL(/#page-value-report\?report=/);
     await expect(page.locator('.value-report-heading')).toContainText('Resolve confirmed defects.');
     await expect(page.locator('.value-report-movement')).toHaveText('↓ -1 defects · Better');

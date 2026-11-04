@@ -977,19 +977,60 @@ exports. `activity/cli/` owns argument parsing, dispatch, policy and campaign
 configuration, authentication, evidence ingestion and publication, downloads,
 and local queries in focused modules. `activity/commands/` owns one handler per
 command; implementation modules depend on shared helpers, not the entry point.
+Native `gh cao api-cost` executes the deterministic planning model in
+`internal/apicost`. It keeps sustained quota, synchronized burst, reviewed
+collector grants and serialized runner time separate, supports declarative
+custom acquisition scenarios, and ships a Daily File Diet profile. The retained
+profile reads only canonical Value evidence through one Dashboard Language
+query against local SQLite or the Go server's PostgreSQL query boundary; it has
+no Activity-workspace, checked-in evidence-file or population-default fallback.
+It predicts capacity only; runtime admission and per-request accounting remain
+authoritative. With `--server URL --calibrate`, the retained profile reads
+administrator-authorized daily acquisition-cost aggregates from PostgreSQL and
+uses observed per-pool requests, GraphQL points, and maximum wall time while
+keeping the reviewed grant as the guaranteed upper bound.
+`specs/github-api-capacity.md` defines this contract.
 Successful-Run value computations keep produced safe outputs, native
 operational-grader measurements, and efficiency evidence separate; they do not
 turn runtime success or output creation into accepted value.
 Package-level `operational-value.mjs` programs compute repository-scoped metric
 records through `cao operational-value`. Automatic remote acquisition remains
-deferred without shared per-request API admission; separate workers are not
-separate quota. Actions Activity may admit a reviewed collector only after
+bounded by shared per-request API admission; separate workers are not separate
+quota. Each recurring collector freezes acquisition requirements in its
+definition, and `value enable` copies their normalized source, quota pool,
+versioned primitive, population scope and cache lifetime into reviewed policy.
+The hosted repository worker compiles those requirements under its existing
+repository lease. Workflows that declare an identical invocation-cacheable
+GitHub requirement share byte-identical successful REST, Search, artifact and
+GraphQL reads through the repository-confined proxy. Every reusable request is
+labelled with the exact reviewed requirement digest and checked against its
+native quota pool; unlabelled or mismatched calls remain isolated. Reuse never crosses a
+repository, installation, API origin, policy snapshot or collection invocation;
+each collector keeps its own request grant, proof, timeout, starting-packet
+check and publication CAS. Legacy registrations without a manifest remain
+isolated. Actions Activity may admit a reviewed collector only after
 ordinary collection and only when its complete request ceiling fits above the
 protected reserve. It durably counts each uncached GitHub request before
 execution and retains accepted packets/proof on missing capacity or exhaustion.
-Hosted cycles remain deferred pending equivalent admission. Health reconciles
+Hosted cycles use the same shared quota services and count cache hits separately
+from metered requests. Accepted remote proof is stored as bounded private
+PostgreSQL files keyed by the exact repository/workflow deployment, restored
+into an invocation-local workspace, and replaced in the same transaction as
+accepted evidence publication. Daily PostgreSQL cost aggregates retain Core,
+Search, GraphQL, GraphQL-point, cache-hit, wall-time, byte, and bounded failure
+observations without storing credentials or payloads. The fleet scheduler round-robins due
+repositories across installations, permits at most one concurrent acquisition
+per installation in a worker process, and retains a global concurrency bound;
+repository leases and shared quota services remain authoritative across
+replicas. Health reconciles
 the latest decision and actual attempt independently of arrival order; unknown
 attempts never erase known history.
+The canonical workflow inventory and collection-health projection enumerate
+standalone workflows, campaign orchestrators, and workers even before a Value
+contract exists. Such deployments remain explicitly `unconfigured`; the system
+does not fabricate a generic Value metric. Adding enterprise coverage means
+adding reviewed workflow-specific contracts and database-local evaluators, not
+deriving outcome claims from runtime success.
 Bounded cache-only/local computation remains independent:
 Actions runs it only after a successful eligible Activity snapshot, while the
 hosted worker uses its own single-owner lease and verified private snapshot.
@@ -1889,6 +1930,8 @@ not authorize cross-repository evidence access.
 - `specs/control-architecture.md` defines authority, admission, and execution
   invariants.
 - `specs/activity.md` defines evidence collection and snapshot semantics.
+- `specs/github-api-capacity.md` defines deterministic GitHub acquisition-cost
+  and fleet-capacity modeling.
 - `specs/value.md` defines the cross-subsystem Value contract, including
   measurement meaning, collection lanes, retention, webhook hints, archive
   linkage, and bounded failure diagnostics.

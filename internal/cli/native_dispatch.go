@@ -32,6 +32,8 @@ func nativeOperator(gh ghExecutor) runtimeExecutor {
 			return nativeGh(cmd)
 		case "computation":
 			return nativeComputation(cmd)
+		case "api-cost":
+			return nativeAPICost(cmd)
 		case "mcp":
 			return nativeMCP(cmd)
 		case "value":

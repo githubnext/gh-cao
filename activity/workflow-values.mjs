@@ -12,6 +12,7 @@ import { validateOperationalValueEvidence } from '../dashboard/site/src/data/mod
 import { GithubApiBudgetError, prepareGithubApiBudget, readGithubApiBudget } from './github-api-budget.mjs';
 import { assertValueHistory } from './workflow-value-history.mjs';
 import { readReviewedValueEvidence } from './workflow-value-evidence.mjs';
+import { sameValueAcquisition } from './value-acquisition.mjs';
 import { createValueArchiveProvider, valueArchiveAccessFromEnvironment } from './value-session-archive.mjs';
 import {
   readValueEnvelopes, saveValueCollectionDecisions, valueCollectionDecision, VALUE_DEFERRALS,
@@ -102,7 +103,8 @@ export async function collectWorkflowValue(request, { archiveAccess, archiveRead
     || !Array.isArray(definition?.evidence?.repositories) || !definition.evidence.repositories.length
     || definition.evidence.repositories.some((target) => !same(target, repository))
     || !Number.isFinite(adoption) || !Number.isSafeInteger(maturation) || maturation < 0
-    || !Number.isSafeInteger(cadence) || cadence <= 0 || typeof collectValueEvidence !== 'function') {
+    || !Number.isSafeInteger(cadence) || cadence <= 0 || typeof collectValueEvidence !== 'function'
+    || !sameValueAcquisition(definition?.acquisition, request.entry.acquisition)) {
     throw new Error('Collector must export an exact frozen definition and collectValueEvidence');
   }
   const previous = request.previous;
