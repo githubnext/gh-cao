@@ -4,6 +4,7 @@
   "view": "simulator-pr-totals",
   "query": "simulator-pr-summary",
   "fields": ["measure", "daily", "total"],
+  "units": { "daily": "count", "total": "count" },
   "defaults": {
     "company-repositories": 10000,
     "developers": 10000,

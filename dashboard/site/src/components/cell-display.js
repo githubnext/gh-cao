@@ -17,7 +17,7 @@ const KNOWN_DISPLAYS = new Set(['mode', 'active-state', 'status', 'grader-status
  * @param {unknown} display
  * @param {unknown} value
  * @param {(value: unknown) => string} toText
- * @param {{ name: string, symbol: string, significant: number } | null} [unit]
+ * @param {{ name: string, symbol: string, significant: number, format?: string } | null} [unit]
  * @param {unknown} [type]
  * @param {unknown} [format]
  * @returns {string | HTMLElement}
@@ -43,6 +43,16 @@ export function renderCellDisplay(display, value, toText, unit = null, type, for
   if (type === 'quantitative' && !Number.isFinite(Number(value))) {
     debugCellDisplay({ event: 'quantitative-unparseable', type });
     return '';
+  }
+  if (unit?.format === 'bytes' || unit?.format === 'compact-number') {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      debugCellDisplay({ event: 'quantitative-unparseable', type });
+      return '';
+    }
+    const text = formatNumber(numeric, unit);
+    const title = `${numeric.toLocaleString('en', { maximumSignificantDigits: 21 })} ${unit.name}`;
+    return h('span', { title, ariaLabel: `${text} (${title})` }, text);
   }
   if (type === 'temporal' && typeof value === 'string' && Number.isFinite(Date.parse(value))) {
     const text = format === 'human-friendly-timestamp'
