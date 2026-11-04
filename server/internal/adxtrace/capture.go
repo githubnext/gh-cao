@@ -91,46 +91,59 @@ func CaptureEvidence(ctx context.Context, config Config, repository, logs, shard
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
+	reasons := map[string]int{}
 	for _, key := range keys {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		c := candidates[key]
-		at := now()
-		e := Evidence{ID: digest([]byte(repository + "\x00" + c.run + "\x00" + strconv.FormatInt(c.attempt, 10))),
-			Repository: repository, RunID: c.run, Attempt: c.attempt, Day: c.day, CapturedAt: at,
-			PolicyDigest: policyDigest(config.Policy)}
-		path, info, reason, err := artifactPath(root, c.directory)
+		e, reason, err := captureCandidate(config, root, repository, candidates[key], now())
 		if err != nil {
 			return err
-		}
-		if reason == "" && (scalar(info["run_id"]) != c.run ||
-			scalar(info["run_attempt"]) != strconv.FormatInt(c.attempt, 10) ||
-			strings.ToLower(scalar(info["repository"])) != repository) {
-			reason = "artifact-identity-gap"
-		}
-		if reason == "" {
-			content, err := sourceFile(root, path, config.MaxTraceBytes)
-			switch {
-			case errors.Is(err, errSourceSize):
-				reason = "size-exclusion"
-			case err != nil:
-				return err
-			default:
-				e, err = Project(config, repository, c.run, c.day, c.attempt, content, at)
-				if err != nil {
-					reason = "invalid-source"
-					e = Evidence{ID: digest([]byte(repository + "\x00" + c.run + "\x00" + strconv.FormatInt(c.attempt, 10))),
-						Repository: repository, RunID: c.run, Attempt: c.attempt, Day: c.day, CapturedAt: at,
-						PolicyDigest: policyDigest(config.Policy)}
-				}
-			}
 		}
 		if err := admit(e, reason); err != nil {
 			return err
 		}
+		reasons[reason]++
 	}
+	cacheLog.Printf("captured trace evidence: candidates=%d projected=%d excluded=%d", len(keys), reasons[""], len(keys)-reasons[""])
 	return nil
+}
+
+// captureCandidate classifies one candidate run. A non-empty reason marks an
+// evidence record that carries identity only; err is reserved for I/O failures.
+func captureCandidate(config Config, root *os.Root, repository string, c candidate, at time.Time) (Evidence, string, error) {
+	placeholder := Evidence{ID: digest([]byte(repository + "\x00" + c.run + "\x00" + strconv.FormatInt(c.attempt, 10))),
+		Repository: repository, RunID: c.run, Attempt: c.attempt, Day: c.day, CapturedAt: at,
+		PolicyDigest: policyDigest(config.Policy)}
+	path, info, reason, err := artifactPath(root, c.directory)
+	if err != nil {
+		return Evidence{}, "", err
+	}
+	if reason == "" && (scalar(info["run_id"]) != c.run ||
+		scalar(info["run_attempt"]) != strconv.FormatInt(c.attempt, 10) ||
+		strings.ToLower(scalar(info["repository"])) != repository) {
+		reason = "artifact-identity-gap"
+	}
+	if reason != "" {
+		return placeholder, reason, nil
+	}
+	content, err := sourceFile(root, path, config.MaxTraceBytes)
+	switch {
+	case errors.Is(err, errSourceSize):
+		return placeholder, "size-exclusion", nil
+	case err != nil:
+		return Evidence{}, "", err
+	}
+	e, reason := projectCandidate(config, repository, c, content, at, placeholder)
+	return e, reason, nil
+}
+
+func projectCandidate(config Config, repository string, c candidate, content []byte, at time.Time, placeholder Evidence) (Evidence, string) {
+	e, err := Project(config, repository, c.run, c.day, c.attempt, content, at)
+	if err != nil {
+		return placeholder, "invalid-source"
+	}
+	return e, ""
 }
 
 func readCandidates(ctx context.Context, reader io.Reader, repository, logs string, out map[string]candidate, limit int) error {
