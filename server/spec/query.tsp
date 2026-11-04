@@ -52,6 +52,13 @@ model OrderField {
   field: string;
   direction?: string;
 }
+model QueryPageBoundary {
+  @minItems(1)
+  @maxItems(4)
+  keys: string[];
+  revision: "workflow-subjects";
+  comparator: "utf8-bytewise-v1";
+}
 /** Terminal projection of processed rows into at most 64 chart panels. Declare field alone, or row and/or column; as names each panel's ordered row sequence. */
 model Facet {
   field?: string;
@@ -91,6 +98,7 @@ model QueryDefinition {
   window?: WindowField[];
   select?: SelectedField[];
   @encodedName("application/json", "order-by") orderBy?: OrderField[];
+  page?: QueryPageBoundary;
   limit?: int32;
   facet?: Facet;
   stores?: string[];

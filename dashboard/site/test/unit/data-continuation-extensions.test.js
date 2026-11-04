@@ -141,6 +141,87 @@ describe('continuation engine extensions', () => {
       )).toThrow('Invalid or stale continuation token');
     }
   });
+
+  it('pages a declared subject boundary before downstream enrichment', () => {
+    const definitions = [{
+      name: 'subjects',
+      from: 'workflows',
+      select: [{ field: 'repositoryId', as: 'repository-id' }, { field: 'path', as: 'workflow-path' }, { field: 'id', as: 'workflow-id' }],
+      'order-by': [
+        { field: 'repository-id', direction: 'asc' },
+        { field: 'workflow-path', direction: 'asc' },
+        { field: 'workflow-id', direction: 'asc' }
+      ],
+      page: {
+        keys: ['repository-id', 'workflow-path', 'workflow-id'],
+        revision: 'workflow-subjects',
+        comparator: 'utf8-bytewise-v1'
+      }
+    }, {
+      name: 'overview',
+      from: 'subjects',
+      joins: [{
+        source: 'health',
+        type: 'left',
+        on: [{ left: 'workflow-id', right: 'workflow-id' }],
+        fields: [{ field: 'state', as: 'collection-state' }]
+      }]
+    }];
+    const workflows = {
+      ...source('workflows', [
+        { repositoryId: 'repository:a', path: 'a.md', id: 'workflow:a' },
+        { repositoryId: 'repository:a', path: 'b.md', id: 'workflow:b' },
+        { repositoryId: 'repository:b', path: 'a.md', id: 'workflow:c' }
+      ]),
+      metadata: {
+        ...source('workflows', []).metadata,
+        'workflow-subject-revision': 'subjects-1'
+      }
+    };
+    const inputs = {
+      workflows,
+      health: source('health', [
+        { 'workflow-id': 'workflow:a', state: 'available' },
+        { 'workflow-id': 'workflow:b', state: 'failed' },
+        { 'workflow-id': 'workflow:c', state: 'deferred' }
+      ])
+    };
+
+    const first = executeDashboardQueries(definitions, inputs, ['overview'], {
+      pagination: { overview: { limit: 2 } }
+    }).overview;
+
+    expect(first.rows.map((row) => row['workflow-id'])).toEqual(['workflow:a', 'workflow:b']);
+    expect(first.metadata).toMatchObject({
+      'page-size': 2,
+      'page-row-count': 2,
+      'has-more': true,
+      'workflow-subject-revision': 'subjects-1',
+      'continuation-comparator': 'utf8-bytewise-v1'
+    });
+    expect(first.metadata).not.toHaveProperty('total-row-count');
+
+    const enriched = executeDashboardQueries(definitions, {
+      ...inputs,
+      health: {
+        ...inputs.health,
+        metadata: { ...inputs.health.metadata, 'artifact-generation': 'health-2' }
+      }
+    }, ['overview'], {
+      pagination: { overview: { limit: 2, continuationToken: first.continuationToken } }
+    }).overview;
+    expect(enriched.rows.map((row) => row['workflow-id'])).toEqual(['workflow:c']);
+
+    expect(() => executeDashboardQueries(definitions, {
+      ...inputs,
+      workflows: {
+        ...workflows,
+        metadata: { ...workflows.metadata, 'workflow-subject-revision': 'subjects-2' }
+      }
+    }, ['overview'], {
+      pagination: { overview: { limit: 2, continuationToken: first.continuationToken } }
+    }).overview.rows).toThrow('Invalid or stale continuation token');
+  });
 });
 
 describe('client continuation extensions', () => {
@@ -164,6 +245,40 @@ describe('client continuation extensions', () => {
 
     expect(sourceContinuation(bound.runs)?.token).toBe('next');
     expect(sourceContinuation(bound.usage)).toBeUndefined();
+  });
+
+  it('binds count-free keyset pages without inventing a fleet-wide total', async () => {
+    /** @param {Record<string, unknown>[]} rows @param {boolean} hasMore @returns {LogicalSourceInput} */
+    const page = (rows, hasMore) => ({
+      source: 'workflows',
+      rows,
+      ...(hasMore ? { continuationToken: 'next' } : {}),
+      metadata: {
+        'source-id': 'workflows',
+        'source-kind': 'derived',
+        'as-of': '2026-09-09T00:00:00Z',
+        'retrieved-at': '2026-09-09T00:00:00Z',
+        completeness: 'complete',
+        freshness: 'fresh',
+        availability: rows.length ? 'available' : 'empty',
+        'page-size': 2,
+        'page-row-count': rows.length,
+        'has-more': hasMore
+      }
+    });
+    const bound = bindSourceContinuations({
+      workflows: page([{ id: 'a' }, { id: 'b' }], true)
+    }, ['workflows'], async () => ({
+      workflows: page([{ id: 'c' }], false)
+    }), 2).workflows;
+
+    expect(sourceContinuation(bound)).toMatchObject({
+      token: 'next',
+      totalRows: undefined
+    });
+    await expect(bound.loadContinuation?.('next')).resolves.toMatchObject({
+      rows: [{ id: 'c' }]
+    });
   });
 
   it.each([

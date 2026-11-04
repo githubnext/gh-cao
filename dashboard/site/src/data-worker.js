@@ -11,7 +11,6 @@ import {
 import { normalize } from './data/normalize/index.js';
 import {
   queryDatabaseSources,
-  queryIndexedDatabaseSources,
   loadDatabaseQuerySources
 } from './data/queries/database.js';
 import { relationshipErrors } from './data/model/schema.js';
@@ -27,7 +26,7 @@ import {
 import { compileDashboardViewPayloadQueries, dashboardPartialViewSources } from './data/queries/view-payload-compiler.js';
 import { normalizeViewFilters } from './view-filter-contract.js';
 import { BROWSER_RETENTION_WINDOWS_MS } from './data/storage/retention.js';
-import { DashboardQueryCancelledError, continuationRevision, executeDashboardQueries, paginateDashboardSources, resolveDashboardQuerySources } from './data/queries/declarative.js';
+import { DashboardQueryCancelledError, executeDashboardQueries, resolveDashboardQuerySources } from './data/queries/declarative.js';
 import { formatDataSize, publishWorkerLoadingProgress, startIngestionProgress } from './ingestion-progress.js';
 import { loadDashboardSources } from './source-loader.js';
 import { createDebug, debugEagerIngest, debugShardLimit, diagnosticErrorName, isDebugEnabled } from './debug.js';
@@ -37,8 +36,6 @@ import { cliQueueOperation, cliQueueEnabled, configureCliQueue, isCliQueueQuery,
 import { createGitHubDataService } from './data/github-service.js';
 import { isGitHubQuerySource, githubSnapshotSource } from './data/github-query-sources.js';
 import { queryCalloutVisibility } from './data/queries/callouts.js';
-import { evidencePacketSelection } from './data/queries/evidence-selection.js';
-import { measurementSelection } from './data/queries/measurement-selection.js';
 
 const debugIngestion = createDebug('data:ingestion');
 const debugPerformance = createDebug('data:performance');
@@ -587,46 +584,28 @@ async function executeLiveDashboardQuery(
       ...[...requested].filter((name) => !replacedSources.has(name)),
       ...viewPayload.aliases
     ]);
-    const requestedWithDependencies = resolveDashboardQuerySources(executionQueries, executionRequested);
-    const nativeSources = dashboard.hosted ? {} : await queryIndexedDatabaseSources(
-      indexedDB,
-      dashboard.logicalSources,
-      executionQueries,
-      requestedWithDependencies,
-      { signal }
-    );
-    const nativeSourceNames = new Set(Object.keys(nativeSources));
-    const nonNativeRequested = [...executionRequested].filter((name) => !nativeSourceNames.has(name));
-    const required = resolveDashboardQuerySources(
-      executionQueries,
-      nonNativeRequested,
-      nativeSourceNames
-    );
-    const databaseRequired = required.filter((name) => !nativeSourceNames.has(name));
     /** @type {{ databaseMs: number, projectionMs: number, totalMs: number, recordsRead: number, stores: string[] } | undefined} */
     let databaseMetrics;
-    const databasePayload = dashboard.hosted ? dashboard.logicalSources : await queryDatabaseSources(
-      indexedDB,
-      dashboard.logicalSources,
-      databaseRequired,
-      { onMetrics: (metrics) => { databaseMetrics = metrics; },
-        checkpoint: () => { if (signal?.aborted) throw new DashboardQueryCancelledError('Value source read aborted', 'aborted'); },
-        evidenceSelection: evidencePacketSelection(executionQueries, nonNativeRequested),
-        measurementSelection: measurementSelection(executionQueries, nonNativeRequested) }
-    );
-    const directRequests = new Set([...executionRequested].filter((name) => (
-      !nativeSourceNames.has(name)
-    )));
-    const querySources = {
-      ...databasePayload,
-      ...nativeSources,
-      ...executeDashboardQueries(
+    const querySources = dashboard.hosted
+      ? executeDashboardQueries(
         executionQueries,
-        { ...databasePayload, ...nativeSources },
-        directRequests,
-        { signal }
+        dashboard.logicalSources,
+        executionRequested,
+        {
+          signal,
+          pagination: /** @type {Record<string, { limit: number, continuationToken?: string }>} */ (
+            pagination ?? {}
+          )
+        }
       )
-    };
+      : await loadDatabaseQuerySources(indexedDB, dashboard.logicalSources, {
+          sourceNames: [...executionRequested],
+          queries: executionQueries,
+          signal: /** @type {AbortSignal | undefined} */ (signal),
+          pagination: /** @type {Record<string, { limit: number, continuationToken?: string }>} */ (
+            pagination ?? {}
+          )
+        });
     const selected = pageScopedSources(
       querySources,
       new Set([...requested].filter((name) => !replacedSources.has(name)))
@@ -644,11 +623,7 @@ async function executeLiveDashboardQuery(
         };
       }
     }
-    const response = paginateDashboardSources(
-      responseSources,
-      /** @type {Record<string, { limit: number, continuationToken?: string }>} */ (pagination ?? {}),
-      continuationRevision(executionQueries, dashboard.revision)
-    );
+    const response = responseSources;
     const totalMs = monotonicNow() - startedAt;
     const databaseMs = databaseMetrics?.databaseMs ?? 0;
     debugPerformance('page query', {
@@ -1385,27 +1360,18 @@ export function processDataRequest(request, signal) {
         ? Object.keys(sources)
         : [...requestedSourceNames(request.sourceNames)];
       const queries = Array.isArray(request.queries) ? request.queries : [];
-      const required = new Set(resolveDashboardQuerySources(queries, sourceNames));
       const database = /** @type {Record<string, import('./presenter.js').LogicalSourceInput>} */ (
         await loadDatabaseQuerySources(indexedDB, sources, {
-          ingest: request.ingest === true, sourceNames, queries, signal
+          ingest: request.ingest === true,
+          sourceNames,
+          queries,
+          signal,
+          pagination: /** @type {Record<string, { limit: number, continuationToken?: string }>} */ (
+            request.pagination ?? {}
+          )
         })
       );
-      return {
-        ...database,
-        ...paginateDashboardSources(
-          pageScopedSources(database, new Set(sourceNames)),
-          /** @type {Record<string, { limit: number, continuationToken?: string }>} */ (request.pagination ?? {}),
-          continuationRevision(queries, {
-            inputs: Object.fromEntries(Object.entries(sources)
-              .filter(([name]) => required.has(name))
-              .map(([name, source]) => [
-                name, source && typeof source === 'object' && 'metadata' in source ? source.metadata : null
-              ])),
-            outputs: Object.fromEntries(Object.entries(database).map(([name, source]) => [name, source.metadata]))
-          })
-        )
-      };
+      return database;
     });
   }
   if (request?.operation === 'query-canonical-database-diagnostics') {

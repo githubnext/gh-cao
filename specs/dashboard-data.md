@@ -40,10 +40,11 @@ Audit retains typed routing identifiers,
 classifier labels, request identities, sub-agent ownership, token classes,
 per-response AIC and collection receipts. It MUST NOT retain prompts, bodies,
 free-form errors/reasons, raw tool payloads or content-derived hashes.
-The canonical model is version 36. IndexedDB version 48 SHALL rebuild older
+The canonical model is version 36. IndexedDB version 49 SHALL rebuild older
 browser projections so every retained Run receives the disposable statistical
-range keys and indexes defined in §5.1. The new Campaign and
-Workflow source-maintenance fields are optional enrichment.
+range keys and indexes defined in §5.1 and every retained Workflow receives the
+disposable subject key used for cursor paging. The Campaign and Workflow
+source-maintenance fields remain optional enrichment.
 Hosted PostgreSQL deployments require a fresh schema with the generated Audit
 and Run aggregate columns. Inventory (`model.inventory`) and generic proxy
 (`firewall.event`) rows SHALL NOT be retained, including replayed cached
@@ -637,8 +638,8 @@ The implementation profile defined by this specification is:
 | Layer | Version | Physical structure |
 | --- | ---: | --- |
 | Canonical model | 36 | Campaign, Repository, Workflow, Run, Domain, Tool, Skill, Friction, Audit, Issue, Operational Value, Operational Value Evidence, Workflow Value Collection, Marketplace Package, Experiment, Experiment Assignment, Grader, Grader Observation, Eval, and Eval Observation records |
-| Browser IndexedDB | 48 | Twenty canonical entity stores, `transactions`, disposable `storageShards` accounting, and three separate daily run-count projection stores |
-| Local SQLite projection | IndexedDB 48 | `__idb_databases`, `__idb_stores`, `__idb_indexes`, and `__idb_records` for the same logical stores, plus a `campaigns` table and six transactional relational evidence mirrors without duplicate record documents |
+| Browser IndexedDB | 49 | Twenty canonical entity stores, `transactions`, disposable `storageShards` accounting, and three separate daily run-count projection stores |
+| Local SQLite projection | IndexedDB 49 | `__idb_databases`, `__idb_stores`, `__idb_indexes`, and `__idb_records` for the same logical stores, plus a `campaigns` table and six transactional relational evidence mirrors without duplicate record documents |
 | Go server Postgres sources | Canonical model 19 | Fresh TypeSpec-defined entity and input tables with query-required native columns, compact presence bits, entity-owned relational child values, and transactional diagnostics/revision state; no stored JSON documents or duplicate scalar row formats |
 | Static SQL export | 3 | Versioned JSON interchange produced from upstream SQL tables or views |
 
@@ -921,7 +922,7 @@ store uses `id` as its key path. The implemented secondary indexes are:
 | --- | --- |
 | `campaigns` | `bySlug -> slug` |
 | `repositories` | none |
-| `workflows` | `byRepository -> repositoryId`, `byCampaign -> campaignId` |
+| `workflows` | `byRepository -> repositoryId`, `byCampaign -> campaignId`, `bySubject -> _storage.workflowSubject` |
 | `runs` | `byRepository -> repositoryId`, `byWorkflow -> workflowId`, `byConclusion -> conclusion`, `byEvent -> event`, `byEventConclusion -> [event, conclusion]`, `byStatisticalTimestamp -> [status, _storage.statisticalTimestamp, id]`, `byStatisticalWatermark -> [_storage.statisticalWatermark, id]`, `byStatisticalUndated -> [_storage.statisticalUndated, id]` |
 | `domains` | `byRun -> runId`, `byQuerySummary -> _queryKeys.byQuerySummary`, `byQueryDomain -> _queryKeys.byQueryDomain` |
 | `tools` | `byRun -> runId`, `byQuerySummary -> _queryKeys.byQuerySummary`, `byQueryMcpIdentity -> _queryKeys.byQueryMcpIdentity`, `byTypeStatusRun -> [type, status, runId]`, `byTypeStatusRunSummary -> [type, status, runId, summary]` |
@@ -2872,7 +2873,7 @@ The canonical browser database SHALL use:
 
 ```js
 const DATABASE_NAME = "gh-aw-cao-dashboard-data";
-const DATABASE_VERSION = 48;
+const DATABASE_VERSION = 49;
 ```
 
 The name MAY be scoped by deployment path to prevent unrelated dashboard
@@ -2884,7 +2885,7 @@ additive upgrade; incompatible older projections are recreated from inputs.
 
 # 27. Object Stores
 
-IndexedDB version 48 SHALL define:
+IndexedDB version 49 SHALL define:
 
 ```text
 campaigns
@@ -3097,6 +3098,18 @@ Campaign-wide run context SHALL be labeled as such, never as target-attributed
 execution. Missing inputs SHALL propagate unavailable states through the
 production query boundary. Active views SHALL requery on database changes within
 their abort-scoped subscription lifetime.
+
+Value workflow lists SHALL page the canonical Workflow subject population
+before collection-health, native-measurement, or rich-evidence enrichment.
+The stable key is the exact stored `(repositoryId, path, id)` tuple under the
+`utf8-bytewise-v1` comparator. The boundary reads one extra key to determine
+`has-more`; it SHALL NOT compute a fleet-wide total count. Its continuation
+binds the resolved query plan and `workflow-subject-revision`. That revision
+changes only when the ordered `(repositoryId, path, id)` Workflow identity
+population changes. Workflow display metadata, collection health, Operational
+Value, and evidence publication remain independent enrichment revisions and
+SHALL NOT invalidate subject paging. An identity-stale continuation fails
+closed and restarts at page one.
 
 Derived query results SHALL be computed from canonical records on demand.
 No derived-result generation, metadata pointer, or persistent projection

@@ -77,6 +77,9 @@
                 "$ref": "#/$defs/OrderField"
             }
         },
+        "page": {
+            "$ref": "#/$defs/QueryPageBoundary"
+        },
         "limit": {
             "type": "integer",
             "minimum": -2147483648,
@@ -396,6 +399,32 @@
             },
             "required": [
                 "field"
+            ]
+        },
+        "QueryPageBoundary": {
+            "type": "object",
+            "properties": {
+                "keys": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "maxItems": 4
+                },
+                "revision": {
+                    "type": "string",
+                    "const": "workflow-subjects"
+                },
+                "comparator": {
+                    "type": "string",
+                    "const": "utf8-bytewise-v1"
+                }
+            },
+            "required": [
+                "keys",
+                "revision",
+                "comparator"
             ]
         },
         "Facet": {

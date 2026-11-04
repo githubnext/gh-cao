@@ -103,7 +103,7 @@ func (s *Store) RecordConcludedRun(ctx context.Context, identity admission.Ident
 	} else {
 		runAt = at
 	}
-	if err := s.invocationParents(ctx, tx, run, at); err != nil {
+	if _, err := s.invocationParents(ctx, tx, run, at); err != nil {
 		return err
 	}
 	projected, err := projectConclusion(identity, input, run, at)

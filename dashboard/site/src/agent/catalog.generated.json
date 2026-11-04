@@ -4145,7 +4145,52 @@
       "id": "value-workflow-topology",
       "subject": "Canonical workflow deployment topology for Value grouping.",
       "objective": "Classify exact workflow identities as campaign workers, orchestrators or standalone workflows without copying topology into evidence.",
-      "acceptance": "Campaign and role come only from canonical workflow inventory. Missing topology remains unknown.",
+      "acceptance": "Campaign and role come only from canonical workflow inventory. The inventory identity is the paged subject grain.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "workflow-subject-topology"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "workflow-subject-topology"
+        ]
+      }
+    },
+    {
+      "id": "value-workflow-overview",
+      "subject": "One universal row per repository and workflow deployment with topology, collection health and current Value evidence.",
+      "objective": "Compare campaign and standalone Value subjects through one honest card contract.",
+      "acceptance": "Every canonical workflow remains visible. Missing health is unknown and missing evidence is unavailable; neither becomes zero or inferred success.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-collection-health",
+        "value-headlines",
+        "value-workflow-topology"
+      ],
+      "used-by-pages": [
+        "value"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-subject-topology",
+          "workflow-value-collections",
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-campaign-complete-topology",
+      "subject": "Complete canonical campaign workflow topology.",
+      "objective": "Provide unpaged workflow routes for complete campaign coverage aggregation.",
+      "acceptance": "Every canonical workflow remains at its exact repository and workflow identity.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -4161,34 +4206,15 @@
       }
     },
     {
-      "id": "value-health-subjects",
-      "subject": "Value subjects observed through authoritative collection decisions.",
-      "objective": "Keep enabled, disabled and unconfigured deployments visible even before evidence exists.",
-      "acceptance": "A collection decision supplies subject identity, not campaign topology or outcome attainment.",
+      "id": "value-campaign-complete-deployments",
+      "subject": "Complete canonical campaign workflow deployment population with collection and current evidence state.",
+      "objective": "Keep campaign coverage aggregates complete while workflow card lists use request-scoped subject pages.",
+      "acceptance": "Every declared campaign workflow is included once. Missing health or evidence remains explicit and no paged cohort is used.",
       "description": "",
       "parameters": [],
       "sources": [
-        "value-collection-health"
-      ],
-      "used-by-pages": [],
-      "execution": {
-        "local": true,
-        "backend": "sqlite",
-        "requirements": [
-          "operational-value-evidence",
-          "workflow-value-collections",
-          "workflow-value-measurements"
-        ]
-      }
-    },
-    {
-      "id": "value-headline-subjects",
-      "subject": "Value subjects observed through retained native or rich evidence.",
-      "objective": "Keep published outcomes visible when collection-health publication is absent.",
-      "acceptance": "Evidence supplies subject identity but cannot infer registration.",
-      "description": "",
-      "parameters": [],
-      "sources": [
+        "value-campaign-complete-topology",
+        "value-collection-health",
         "value-headlines"
       ],
       "used-by-pages": [],
@@ -4197,47 +4223,6 @@
         "backend": "sqlite",
         "requirements": [
           "operational-value-evidence",
-          "workflow-value-measurements"
-        ]
-      }
-    },
-    {
-      "id": "value-topology-subjects",
-      "subject": "Declared workflow subjects without required collection or evidence observations.",
-      "objective": "Make every canonical campaign and standalone workflow visible with unknown Value configuration when health is missing.",
-      "acceptance": "Inventory presence does not imply registration, evidence, successful collection or measurable Value.",
-      "description": "",
-      "parameters": [],
-      "sources": [
-        "value-workflow-topology"
-      ],
-      "used-by-pages": [],
-      "execution": {
-        "local": true,
-        "backend": "sqlite",
-        "requirements": [
-          "workflows"
-        ]
-      }
-    },
-    {
-      "id": "value-subject-candidates",
-      "subject": "All exact workflow deployment identities observed by inventory, collection health or accepted evidence.",
-      "objective": "Build one universal subject population without losing evidence-only or inventory-only deployments.",
-      "acceptance": "Identity union is not evidence aggregation. Each route is selected once in the next query.",
-      "description": "",
-      "parameters": [],
-      "sources": [
-        "value-headline-subjects",
-        "value-health-subjects",
-        "value-topology-subjects"
-      ],
-      "used-by-pages": [],
-      "execution": {
-        "local": true,
-        "backend": "sqlite",
-        "requirements": [
-          "operational-value-evidence",
           "workflow-value-collections",
           "workflow-value-measurements",
           "workflows"
@@ -4245,94 +4230,16 @@
       }
     },
     {
-      "id": "value-subject-order",
-      "subject": "Deterministic subject identity selection across inventory, health and evidence sources.",
-      "objective": "Prefer authoritative collection identity, then evidence identity, then declaration-only identity.",
-      "acceptance": "Exactly one selected identity per workflow route without changing topology or outcome facts.",
-      "description": "",
-      "parameters": [],
-      "sources": [
-        "value-subject-candidates"
-      ],
-      "used-by-pages": [],
-      "execution": {
-        "local": true,
-        "backend": "sqlite",
-        "requirements": [
-          "operational-value-evidence",
-          "workflow-value-collections",
-          "workflow-value-measurements",
-          "workflows"
-        ]
-      }
-    },
-    {
-      "id": "value-subjects",
-      "subject": "One universal Value subject per exact repository and workflow deployment.",
-      "objective": "Provide the stable subject grain for all, campaign, standalone and review projections.",
-      "acceptance": "One row per workflow route. Missing health, topology or evidence remains missing after joins.",
-      "description": "",
-      "parameters": [],
-      "sources": [
-        "value-subject-order"
-      ],
-      "used-by-pages": [],
-      "execution": {
-        "local": true,
-        "backend": "sqlite",
-        "requirements": [
-          "operational-value-evidence",
-          "workflow-value-collections",
-          "workflow-value-measurements",
-          "workflows"
-        ]
-      }
-    },
-    {
-      "id": "value-workflow-overview",
-      "subject": "One universal row per repository and workflow deployment with topology, collection health and current Value evidence.",
-      "objective": "Compare campaign and standalone Value subjects through one honest card contract.",
-      "acceptance": "Missing topology is unclassified, missing health is unknown and missing evidence is unavailable. None becomes zero or inferred success.",
-      "description": "",
-      "parameters": [],
-      "sources": [
-        "value-collection-health",
-        "value-headlines",
-        "value-subjects",
-        "value-workflow-topology"
-      ],
-      "used-by-pages": [
-        "value"
-      ],
-      "execution": {
-        "local": true,
-        "backend": "sqlite",
-        "requirements": [
-          "operational-value-evidence",
-          "workflow-value-collections",
-          "workflow-value-measurements",
-          "workflows"
-        ]
-      }
-    },
-    {
-      "id": "value-campaign-deployments",
+      "id": "value-campaign-coverage-deployments",
       "subject": "Universal Value deployments grouped under a declared campaign.",
-      "objective": "Support campaign coverage and workflow drilldown without creating a separate evidence system.",
+      "objective": "Support complete campaign coverage without creating a separate evidence system.",
       "acceptance": "Only rows with canonical campaign context are included. Unclassified deployments remain visible in All and Needs review.",
       "description": "",
-      "parameters": [
-        {
-          "name": "campaign",
-          "field": "campaign"
-        }
-      ],
+      "parameters": [],
       "sources": [
-        "value-workflow-overview"
+        "value-campaign-complete-deployments"
       ],
-      "used-by-pages": [
-        "campaign-value"
-      ],
+      "used-by-pages": [],
       "execution": {
         "local": true,
         "backend": "sqlite",
@@ -4352,7 +4259,7 @@
       "description": "",
       "parameters": [],
       "sources": [
-        "value-campaign-deployments"
+        "value-campaign-coverage-deployments"
       ],
       "used-by-pages": [],
       "execution": {
@@ -4396,6 +4303,35 @@
       }
     },
     {
+      "id": "value-campaign-deployments",
+      "subject": "Paged exact Value deployments for one declared campaign.",
+      "objective": "Support campaign workflow drilldown through the bounded universal workflow card path.",
+      "acceptance": "Only rows with canonical campaign context are included. Every row preserves its exact collection and evidence state.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "campaign",
+          "field": "campaign"
+        }
+      ],
+      "sources": [
+        "value-workflow-overview"
+      ],
+      "used-by-pages": [
+        "campaign-value"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-subject-topology",
+          "workflow-value-collections",
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
       "id": "value-standalone-overview",
       "subject": "Standalone workflow Value deployments.",
       "objective": "Inspect standalone workflows through the same collection, outcome and evidence contract as campaign workers.",
@@ -4411,9 +4347,9 @@
         "backend": "sqlite",
         "requirements": [
           "operational-value-evidence",
+          "workflow-subject-topology",
           "workflow-value-collections",
-          "workflow-value-measurements",
-          "workflows"
+          "workflow-value-measurements"
         ]
       }
     },
@@ -4433,9 +4369,9 @@
         "backend": "sqlite",
         "requirements": [
           "operational-value-evidence",
+          "workflow-subject-topology",
           "workflow-value-collections",
-          "workflow-value-measurements",
-          "workflows"
+          "workflow-value-measurements"
         ]
       }
     },

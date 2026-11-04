@@ -38,7 +38,7 @@ it('aborts an in-flight subscription query when its view unsubscribes', async ()
   const waiting = new Promise((resolve) => { release = () => resolve(undefined); });
   /** @type {{ aborted?: boolean } | undefined} */
   let signal;
-  vi.spyOn(databaseQueries, 'queryIndexedDatabaseSources').mockImplementation(async (_database, _sources, _definitions, _requested, options) => {
+  vi.spyOn(databaseQueries, 'loadDatabaseQuerySources').mockImplementation(async (_database, _sources, options) => {
     signal = options?.signal;
     await waiting;
     return {};

@@ -15,7 +15,7 @@ import (
 )
 
 const DatabaseName = "gh-aw-cao-dashboard-data"
-const DatabaseVersion = 48
+const DatabaseVersion = 49
 
 // ReadDailyRunCounts reads only the independently retained aggregate store.
 // An absent store is unavailable, not an authoritative empty history.
@@ -165,6 +165,23 @@ func ReadCollection(ctx context.Context, db SnapshotReader, collection string, m
 // list preserves every public field, and limits still cover full stored records.
 func ReadCollectionFields(ctx context.Context, db SnapshotReader, collection string, fields []string, maxRows int, maxBytes int64) (result []map[string]any, err error) {
 	return readCollectionFields(ctx, db, collection, fields, maxRows, maxBytes, "", nil)
+}
+
+// ReadCollectionRecords reads exact canonical primary keys without scanning the
+// rest of the collection.
+func ReadCollectionRecords(ctx context.Context, db SnapshotReader, collection string, recordIDs []string, fields []string, maxBytes int64) ([]map[string]any, error) {
+	if len(recordIDs) == 0 {
+		return []map[string]any{}, nil
+	}
+	placeholders := make([]string, len(recordIDs))
+	selection := make([]any, len(recordIDs))
+	for index, id := range recordIDs {
+		placeholders[index] = "?"
+		key, _ := json.Marshal(id)
+		selection[index] = string(key)
+	}
+	return readCollectionFields(ctx, db, collection, fields, len(recordIDs), maxBytes,
+		" AND record_key IN ("+strings.Join(placeholders, ",")+")", selection)
 }
 
 // ReadStatisticalRunCandidates resolves the recorded canonical Run clock and

@@ -61,14 +61,11 @@ describe('dashboard query architecture', () => {
      * }>} */ (JSON.parse(read('src/data/queries/database.json')));
     const dashboard = authoritativeDashboard.dashboard;
 
-    expect(worker).toContain('queryIndexedDatabaseSources(');
-    expect(worker).toMatch(/executeDashboardQueries\(\s*executionQueries,\s*\{ \.\.\.databasePayload, \.\.\.nativeSources \},\s*directRequests/);
-    const nativeQuery = worker.indexOf('const nativeSources =');
-    const databaseQuery = worker.indexOf('const databasePayload =');
-    expect(nativeQuery).toBeGreaterThan(-1);
+    expect(worker).toContain('loadDatabaseQuerySources(indexedDB, dashboard.logicalSources');
+    expect(worker).toContain('pagination: /** @type {Record<string, { limit: number, continuationToken?: string }>} */');
+    const databaseQuery = worker.indexOf('await loadDatabaseQuerySources(');
     expect(databaseQuery).toBeGreaterThan(-1);
-    expect(worker.indexOf('compileDashboardViewPayloadQueries(page, pageId')).toBeLessThan(nativeQuery);
-    expect(nativeQuery).toBeLessThan(databaseQuery);
+    expect(worker.indexOf('compileDashboardViewPayloadQueries(page, pageId')).toBeLessThan(databaseQuery);
     expect(worker).toContain('const replacedSources = new Set(viewPayload.replacedSources)');
     expect(worker).not.toContain('data-health.js');
     expect(worker).not.toMatch(/deriveOverviewSources|deriveRepositorySources|deriveRuntimeSources|deriveWorkflowSources/);

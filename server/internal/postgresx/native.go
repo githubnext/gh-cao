@@ -2,6 +2,8 @@ package postgresx
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -138,20 +140,22 @@ const BatchBytes = 8 << 20
 // Writer replaces one namespace under a transaction-scoped writer lock.
 // Rows are bounded per batch and are never retained beyond CopyFrom.
 type Writer struct {
-	store                *Store
-	connection           *pgx.Conn
-	tx                   pgx.Tx
-	ordinals             map[string]int64
-	inventoryOrdinals    map[string]int64
-	inventoryTables      map[string]bool
-	batches              map[string][][]any
-	rows, bytes          int
-	revision             int64
-	PreviousDataRevision string
-	evaluatedAt          time.Time
-	ingestedAt           time.Time
-	staged               map[string]bool
-	preserveValues       bool
+	store                   *Store
+	connection              *pgx.Conn
+	tx                      pgx.Tx
+	ordinals                map[string]int64
+	inventoryOrdinals       map[string]int64
+	inventoryTables         map[string]bool
+	batches                 map[string][][]any
+	rows, bytes             int
+	revision                int64
+	PreviousDataRevision    string
+	workflowSubjectRevision int64
+	workflowSubjectDigest   string
+	evaluatedAt             time.Time
+	ingestedAt              time.Time
+	staged                  map[string]bool
+	preserveValues          bool
 }
 
 func (s *Store) BeginIngestion(ctx context.Context) (*Writer, error) {
@@ -172,11 +176,14 @@ func (s *Store) BeginIngestion(ctx context.Context) (*Writer, error) {
 	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || ':' || $1, 0))`, s.namespace); err != nil {
 		return fail(err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO cao_state (namespace, revision, data_revision, evaluated_at, schema_version)
-		VALUES ($1,0,'','epoch',$2) ON CONFLICT (namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO cao_state
+		(namespace, revision, workflow_subject_revision, workflow_subject_digest, data_revision, evaluated_at, schema_version)
+		VALUES ($1,0,0,'','','epoch',$2) ON CONFLICT (namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
 		return fail(err)
 	}
-	if err := tx.QueryRow(ctx, `SELECT revision,data_revision FROM cao_state WHERE namespace=$1 FOR UPDATE`, s.namespace).Scan(&writer.revision, &writer.PreviousDataRevision); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT revision,data_revision,workflow_subject_revision,workflow_subject_digest
+		FROM cao_state WHERE namespace=$1 FOR UPDATE`, s.namespace).Scan(
+		&writer.revision, &writer.PreviousDataRevision, &writer.workflowSubjectRevision, &writer.workflowSubjectDigest); err != nil {
 		return fail(err)
 	}
 	if _, err := tx.Exec(ctx, "SET CONSTRAINTS ALL DEFERRED"); err != nil {
@@ -670,10 +677,22 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 	if err := w.persistStatisticalSnapshot(ctx, dataRevision, query.MaxWorkingBytes); err != nil {
 		return State{}, fmt.Errorf("publish statistical bundles: %w", err)
 	}
-	if err := w.tx.QueryRow(ctx, `UPDATE cao_state SET revision=revision+1,data_revision=$1,evaluated_at=$2,schema_version=$3
-		WHERE namespace=$4 RETURNING revision`, dataRevision, w.evaluatedAt, model.SchemaVersion, w.store.namespace).Scan(&state.Revision); err != nil {
+	workflowDigest, err := workflowSubjectDigestPGX(ctx, w.tx, w.store.namespace)
+	if err != nil {
 		return State{}, err
 	}
+	workflowRevision := w.workflowSubjectRevision
+	if workflowDigest != w.workflowSubjectDigest {
+		workflowRevision++
+	}
+	if err := w.tx.QueryRow(ctx, `UPDATE cao_state SET revision=revision+1,data_revision=$1,evaluated_at=$2,schema_version=$3,
+		workflow_subject_revision=$4,workflow_subject_digest=$5
+		WHERE namespace=$6 RETURNING revision`, dataRevision, w.evaluatedAt, model.SchemaVersion,
+		workflowRevision, workflowDigest, w.store.namespace).Scan(&state.Revision); err != nil {
+		return State{}, err
+	}
+	state.WorkflowSubjectRevision = workflowRevision
+	state.WorkflowSubjectDigest = workflowDigest
 	if err := w.tx.Commit(ctx); err != nil {
 		return State{}, err
 	}
@@ -681,4 +700,27 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 	_ = w.connection.Close(ctx)
 	w.connection = nil
 	return state, nil
+}
+
+func workflowSubjectDigestPGX(ctx context.Context, tx pgx.Tx, namespace string) (string, error) {
+	rows, err := tx.Query(ctx, `SELECT repository_id,coalesce(path,''),id FROM workflows
+		WHERE namespace=$1 ORDER BY repository_id COLLATE "C",coalesce(path,'') COLLATE "C",id COLLATE "C"`, namespace)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	hash := sha256.New()
+	for rows.Next() {
+		var repositoryID, path, id string
+		if err := rows.Scan(&repositoryID, &path, &id); err != nil {
+			return "", err
+		}
+		for _, value := range []string{repositoryID, path, id} {
+			_, _ = fmt.Fprintf(hash, "%d:%s", len(value), value)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
+	return "sha256:" + hex.EncodeToString(hash.Sum(nil)), nil
 }

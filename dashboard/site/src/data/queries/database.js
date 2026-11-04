@@ -9,17 +9,22 @@ import {
   readCollectionQueryKeys,
   readCollectionQueryKeyRecords,
   readCollections,
+  readWorkflowSubjectPage,
+  readWorkflowSubjectRevision,
   readTransactions,
   scanCanonicalCollection
 } from '../storage/indexeddb.js';
 import { STORAGE_SHARD_STORE } from '../storage/shards.js';
 import {
   createDashboardQueryBudget,
+  continuationRevision,
   DashboardQueryCancelledError,
   DASHBOARD_QUERY_LIMITS,
   dashboardQueryDefects,
   dashboardQueryIndex,
   executeDashboardQueries,
+  paginateDashboardSources,
+  prepareDashboardQueryPage,
   queryInputNames,
   resolveDashboardQuerySources,
   unavailableResult
@@ -217,7 +222,7 @@ function executeRecordQuery(sourceName, records, runs, sources, budget) {
  * @param {Record<string, unknown>} logicalSources
  * @param {unknown} definitions
  * @param {Iterable<string>} requested
- * @param {{ signal?: { aborted?: boolean }, budget?: import('./declarative.js').QueryBudget }} [options]
+ * @param {{ signal?: { aborted?: boolean }, budget?: import('./declarative.js').QueryBudget, workflowSubjectPage?: { limit: number, after?: string[], expectedRevision: string | number } }} [options]
  * @returns {Promise<Record<string, import('../../presenter.js').LogicalSourceInput>>}
  */
 export async function queryIndexedDatabaseSources(indexedDB, logicalSources, definitions, requested, options = {}) {
@@ -235,6 +240,41 @@ export async function queryIndexedDatabaseSources(indexedDB, logicalSources, def
     };
   }
   const defects = dashboardQueryDefects(definitions);
+  /** @type {Record<string, import('../../presenter.js').LogicalSourceInput>} */
+  const pagedWorkflowSources = {};
+  if (options.workflowSubjectPage
+      && Array.from(requested).some((name) =>
+        name === 'workflow-subject-page' || name === 'workflow-subject-topology')) {
+    const page = await readWorkflowSubjectPage(indexedDB, options.workflowSubjectPage);
+    const repositoryIds = [...new Set(page.rows.map((row) => row.repositoryId)
+      .filter((id) => typeof id === 'string'))];
+    const campaignIds = [...new Set(page.rows.map((row) => row.campaignId)
+      .filter((id) => typeof id === 'string'))];
+    const [repositories, campaigns] = await Promise.all([
+      repositoryIds.length === 0 ? [] : queryCollection(indexedDB, 'repositories', [{
+        op: 'filter', predicates: [{ field: 'id', in: repositoryIds }]
+      }], { maxRows: repositoryIds.length }),
+      campaignIds.length === 0 ? [] : queryCollection(indexedDB, 'campaigns', [{
+        op: 'filter', predicates: [{ field: 'id', in: campaignIds }]
+      }], { maxRows: campaignIds.length })
+    ]);
+    pagedWorkflowSources.$workflows = {
+      source: '$workflows',
+      rows: page.rows,
+      metadata: {
+        ...queryMetadata(logicalSources, 'workflows', 'workflows', true),
+        'workflow-subject-revision': page.revision
+      }
+    };
+    pagedWorkflowSources.$repositories = {
+      source: '$repositories', rows: repositories,
+      metadata: queryMetadata(logicalSources, 'repositories', 'repositories', true)
+    };
+    pagedWorkflowSources.$campaigns = {
+      source: '$campaigns', rows: campaigns,
+      metadata: queryMetadata(logicalSources, 'campaigns', 'campaigns', true)
+    };
+  }
   const countPlans = [...requested].flatMap((name) => {
     const definition = index.get(name);
     const plan = definition && !defects.has(name) ? nativeTableCountPlan(definition) : null;
@@ -652,6 +692,7 @@ export async function queryIndexedDatabaseSources(indexedDB, logicalSources, def
   }));
   budget.checkpoint();
   return {
+    ...pagedWorkflowSources,
     ...counted,
     ...Object.fromEntries(filtered),
     ...Object.fromEntries(recordAggregates.filter((entry) => entry !== null)),
@@ -1225,7 +1266,7 @@ function queryStores(name) {
  * @param {IDBFactory} indexedDB
  * @param {Record<string, unknown>} logicalSources
  * @param {string[]} sourceNames
- * @param {{ onMetrics?: (metrics: { databaseMs: number, projectionMs: number, totalMs: number, recordsRead: number, stores: string[] }) => void, checkpoint?: () => void, statisticalCapacity?: number, evidenceSelection?: ReturnType<typeof import('./evidence-selection.js').evidencePacketSelection>, measurementSelection?: ReturnType<typeof measurementSelection> }} [options]
+ * @param {{ onMetrics?: (metrics: { databaseMs: number, projectionMs: number, totalMs: number, recordsRead: number, stores: string[] }) => void, checkpoint?: () => void, statisticalCapacity?: number, evidenceSelection?: ReturnType<typeof import('./evidence-selection.js').evidencePacketSelection>, measurementSelection?: ReturnType<typeof measurementSelection>, workflowIds?: string[] }} [options]
  */
 export async function queryDatabaseSources(indexedDB, logicalSources, sourceNames, options = {}) {
   const startedAt = monotonicNow();
@@ -1249,6 +1290,7 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
   const transactionRequested = stores.includes('transactions');
   const collectionStores = /** @type {Array<typeof import('../storage/indexeddb.js').DATABASE_STORES[number]>} */ (
     stores.filter((name) => name !== 'transactions' && name !== 'operationalValueEvidence'
+      && !(name === 'workflowValueCollections' && options.workflowIds !== undefined)
       && !(name === 'operationalValues' && databaseRequested.includes('workflow-value-measurements')))
   );
   const sources = namedSources(logicalSources);
@@ -1287,6 +1329,13 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
   ]);
   if (stores.includes('operationalValueEvidence')) {
     collections.operationalValueEvidence = await readEvidencePackets(indexedDB, options.evidenceSelection ?? null, options.checkpoint);
+  }
+  if (stores.includes('workflowValueCollections') && options.workflowIds !== undefined) {
+    collections.workflowValueCollections = options.workflowIds.length === 0 ? [] : await queryCollection(
+      indexedDB, 'workflowValueCollections', [{
+        op: 'filter', predicates: [{ field: 'workflowId', in: options.workflowIds }]
+      }], { maxRows: Math.max(1, options.workflowIds.length * 8), checkpoint: options.checkpoint }
+    );
   }
   if (stores.includes('operationalValues') && databaseRequested.includes('workflow-value-measurements')) {
     collections.operationalValues = await readMeasurements(indexedDB, options.measurementSelection ?? null, options.checkpoint);
@@ -1424,31 +1473,114 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
 /**
  * @param {IDBFactory} indexedDB
  * @param {Record<string, unknown>} sources
- * @param {{ ingest?: boolean, storage?: StorageManager, sourceNames?: string[], queries?: unknown[], signal?: AbortSignal, budget?: import('./declarative.js').QueryBudget, statisticalCapacity?: number }} [options]
+ * @param {{ ingest?: boolean, storage?: StorageManager, sourceNames?: string[], queries?: unknown[], signal?: AbortSignal, budget?: import('./declarative.js').QueryBudget, statisticalCapacity?: number, pagination?: Record<string, { limit: number, continuationToken?: string }> }} [options]
  */
 export async function loadDatabaseQuerySources(indexedDB, sources, options = {}) {
   if (options.ingest) await ingestDashboardSources(indexedDB, sources, { storage: options.storage, signal: options.signal });
   debugDatabase({ event: 'load-database-query-sources', ingested: Boolean(options.ingest), sourceCount: Object.keys(sources).length });
   const sourceNames = Array.isArray(options.sourceNames) ? options.sourceNames : Object.keys(sources);
   const queries = options.queries ?? [];
+  const declaredNames = new Set(queries.flatMap((query) => {
+    if (!query || typeof query !== 'object') return [];
+    const name = /** @type {Record<string, unknown>} */ (query).name;
+    return typeof name === 'string' ? [name] : [];
+  }));
+  const pagingQueries = [
+    ...databaseQueries.filter((query) =>
+      (query.name === 'workflow-subject-page' || query.name === 'workflow-subject-topology')
+      && !declaredNames.has(query.name)),
+    ...queries
+  ];
+  let executionQueries = queries;
   const budget = options.budget ?? createDashboardQueryBudget({ signal: options.signal });
+  let workflowSubjectPage;
+  for (const [output, request] of Object.entries(options.pagination ?? {})) {
+    if (workflowSubjectPage) {
+      throw new TypeError('A dashboard request may contain only one workflow subject page.');
+    }
+    if (!resolveDashboardQuerySources(queries, [output]).includes('workflow-subject-topology')) {
+      continue;
+    }
+    const revision = await readWorkflowSubjectRevision(indexedDB);
+    const prepared = prepareDashboardQueryPage(pagingQueries, {
+      $workflows: {
+        source: '$workflows',
+        rows: [],
+        metadata: {
+          ...queryMetadata(sources, 'workflows', '$workflows', true),
+          'workflow-subject-revision': revision
+        }
+      }
+    }, output, request);
+    if (!prepared) continue;
+    workflowSubjectPage = {
+      limit: request.limit,
+      after: prepared.after?.map(String),
+      expectedRevision: prepared.revision
+    };
+  }
+  if (workflowSubjectPage) executionQueries = pagingQueries;
   const native = await queryIndexedDatabaseSources(
-    indexedDB, sources, queries, resolveDashboardQuerySources(queries, sourceNames), { budget }
+    indexedDB, sources, executionQueries, resolveDashboardQuerySources(executionQueries, sourceNames), {
+      budget, ...(workflowSubjectPage ? { workflowSubjectPage } : {})
+    }
   );
   const nativeNames = new Set(Object.keys(native));
+  const visibleWorkflowRows = workflowSubjectPage
+    ? (native.$workflows?.rows ?? []).slice(0, workflowSubjectPage.limit)
+    : [];
+  const visibleRepositories = new Map((native.$repositories?.rows ?? [])
+    .map((row) => [row.id, row]));
+  const visibleWorkflows = visibleWorkflowRows.map((row) => {
+    const repository = visibleRepositories.get(row.repositoryId);
+    return {
+      ...row,
+      organization: repository?.owner,
+      repository: repository?.name,
+      workflow: row.path
+    };
+  });
+  const workflowIds = visibleWorkflowRows.map((row) => row.id).filter((id) => typeof id === 'string');
+  const workflowRoutes = visibleWorkflows.flatMap((row) => (
+    typeof row.organization === 'string' && typeof row.repository === 'string' && typeof row.workflow === 'string'
+      ? [`${row.organization}/${row.repository}:${row.workflow}`] : []
+  ));
+  const declared = dashboardQueryIndex(executionQueries);
   const remaining = sourceNames.filter((name) => !nativeNames.has(name));
-  const declared = dashboardQueryIndex(queries);
-  const required = resolveDashboardQuerySources(queries, remaining, nativeNames)
+  const required = resolveDashboardQuerySources(executionQueries, remaining, nativeNames)
     .filter((name) => !nativeNames.has(name) && !declared.has(name));
   const database = await queryDatabaseSources(indexedDB, sources, required, {
     checkpoint: () => budget.checkpoint(), statisticalCapacity: options.statisticalCapacity,
-    evidenceSelection: evidencePacketSelection(queries, remaining),
-    measurementSelection: measurementSelection(queries, remaining)
+    evidenceSelection: workflowSubjectPage
+      ? workflowIds.map((value) => ({ field: /** @type {'workflowId'} */ ('workflowId'), value }))
+      : evidencePacketSelection(executionQueries, remaining),
+    measurementSelection: workflowSubjectPage
+      ? workflowRoutes.map((value) => ({ field: /** @type {'workflow-route'} */ ('workflow-route'), value }))
+      : measurementSelection(executionQueries, remaining),
+    workflowIds: workflowSubjectPage ? workflowIds : undefined
   });
-  return {
-    ...Object.fromEntries(sourceNames.filter((name) => nativeNames.has(name) || !declared.has(name)).map((name) => [
+  const direct = Object.fromEntries(sourceNames.filter((name) =>
+    nativeNames.has(name) || !declared.has(name)).map((name) => [
       name, native[name] ?? database[name]
-    ])),
-    ...executeDashboardQueries(queries, { ...database, ...native }, remaining, { budget })
+    ]));
+  const paginationSources = { ...database, ...native };
+  const pagedDirect = Object.fromEntries(Object.entries(direct).map(([name, source]) => {
+    const request = options.pagination?.[name];
+    if (!request) return [name, source];
+    const required = new Set(resolveDashboardQuerySources(executionQueries, [name]));
+    const metadata = Object.fromEntries(Object.entries(paginationSources)
+      .filter(([sourceName]) => required.has(sourceName))
+      .map(([sourceName, input]) => [sourceName, input.metadata]));
+    return [name, paginateDashboardSources(
+      { [name]: source },
+      { [name]: request },
+      continuationRevision(executionQueries, metadata)
+    )[name]];
+  }));
+  return {
+    ...pagedDirect,
+    ...executeDashboardQueries(executionQueries, { ...database, ...native }, remaining, {
+      budget, pagination: options.pagination
+    })
   };
 }

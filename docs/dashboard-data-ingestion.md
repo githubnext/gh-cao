@@ -164,8 +164,9 @@ failed resolutions appear in the Model routing Problems view once per run, with
 an unknown time unless the session clock is recorded, and per-run resolution roles
 stay on the run page. Routed sessions are expected
 to lack these events, and legacy sessions report no resolution evidence rather
-than failure. Canonical schema 36 adds retained Campaign and Workflow
-source-maintenance provenance. IndexedDB version 48 rebuilds older browser
+than failure. Canonical schema 36 retains Campaign and Workflow
+source-maintenance provenance. IndexedDB version 49 adds the disposable
+workflow-subject cursor index and rebuilds older browser
 projections so every retained Run receives the disposable statistical range
 keys and indexes. Hosted PostgreSQL
 needs a fresh generated schema with the new
@@ -178,7 +179,7 @@ The activity shard manifest is the dashboard's published operational input. The 
 The complete normative [cached gh-aw JSONL mapping](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-gh-aw-jsonl-mapping.md) describes source fields, canonical entities, identity, ownership, and accounting.
 
 The canonical model is version 36. The browser database is
-`gh-aw-cao-dashboard-data`, IndexedDB version 48. Its canonical stores are
+`gh-aw-cao-dashboard-data`, IndexedDB version 49. Its canonical stores are
 `campaigns`, `repositories`, `workflows`, `runs`, `domains`, `tools`, `skills`,
 `friction`, `audits`, `issues`, `operationalValues`, `operationalValueEvidence`, `workflowValueCollections`, `marketplacePackages`,
 `experiments`, `experimentAssignments`, `graders`, `graderObservations`,

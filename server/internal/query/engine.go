@@ -98,6 +98,24 @@ func Validate(definitions []Definition) error {
 		if definition.Limit != nil && (*definition.Limit <= 0 || *definition.Limit > MaxOutputRows) {
 			return fmt.Errorf("query %q has invalid limit", definition.Name)
 		}
+		if definition.Page != nil {
+			if len(definition.Page.Keys) == 0 || len(definition.Page.Keys) > 4 ||
+				definition.Page.Revision != "workflow-subjects" ||
+				definition.Page.Comparator != "utf8-bytewise-v1" ||
+				len(definition.OrderBy) != len(definition.Page.Keys) ||
+				definition.Limit != nil || definition.Facet != nil {
+				return fmt.Errorf("query %q has invalid page boundary", definition.Name)
+			}
+			seen := map[string]bool{}
+			for index, key := range definition.Page.Keys {
+				order := definition.OrderBy[index]
+				if strings.TrimSpace(key) == "" || seen[key] || order.Field != key ||
+					(order.Direction != "" && order.Direction != "asc") {
+					return fmt.Errorf("query %q has invalid page boundary", definition.Name)
+				}
+				seen[key] = true
+			}
+		}
 		if definition.Facet != nil {
 			facet := definition.Facet
 			if strings.TrimSpace(facet.As) == "" || (facet.Field == "" && facet.Row == "" && facet.Column == "") ||

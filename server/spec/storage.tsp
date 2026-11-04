@@ -1038,6 +1038,8 @@ namespace Storage {
   model caoState {
     `namespace`: string;
     revision: int64;
+    workflowSubjectRevision: int64;
+    workflowSubjectDigest: string;
     dataRevision: string;
     evaluatedAt: utcDateTime;
     schemaVersion: int64;

@@ -1,5 +1,5 @@
 import { state } from './validator-state.js';
-import { DASHBOARD_QUERY_LIMITS, COMPUTE_FUNCTION_ARITY, NUMERIC_COMPUTE_FUNCTIONS, QUERY_AGGREGATE_FILTER_PREDICATE_KEYS, QUERY_AGGREGATE_KEYS, QUERY_AGGREGATE_VALUE_KEYS, QUERY_COMPUTE_ARGUMENT_KEYS, QUERY_COMPUTE_KEYS, QUERY_TEMPORAL_SERIES_KEYS, QUERY_TEMPORAL_SERIES_MAP_KEYS, QUERY_TEMPORAL_SERIES_MEASURE_KEYS, QUERY_TEMPORAL_SERIES_TREND_KEYS, QUERY_FILTER_KEYS, QUERY_JOIN_FIELD_KEYS, QUERY_JOIN_KEYS, QUERY_JOIN_ON_KEYS, QUERY_JOIN_TYPE_VALUES, QUERY_KEYS, QUERY_PARAMETER_KEYS, QUERY_PARAMETER_TYPE_VALUES, QUERY_MAX_JOINS, QUERY_PREDICATE_KEYS, QUERY_PREDICT_KEYS, QUERY_REDUCER_VALUES, QUERY_NUMERIC_REDUCER_VALUES, QUERY_SELECT_KEYS, PREDICTION_METHODS, INFERRED_FIELD_NAMES, DATASET_AVAILABILITY_VALUES, DATASET_COMPLETENESS_VALUES, DATASET_FRESHNESS_VALUES, DATASET_METADATA_KEYS, ERROR_CODES, LINK_FIELD_NAMES, FILTER_DIMENSION_VALUES, ORDER_BY_KEYS, ORDER_DIRECTION_VALUES, SCOPE_KEYS, QUERY_SOURCE_FIELDS, QUERY_SOURCE_VALUES, TEMPORAL_FIELD_NAMES, TIME_KEYS } from './specification.js';
+import { DASHBOARD_QUERY_LIMITS, COMPUTE_FUNCTION_ARITY, NUMERIC_COMPUTE_FUNCTIONS, QUERY_AGGREGATE_FILTER_PREDICATE_KEYS, QUERY_AGGREGATE_KEYS, QUERY_AGGREGATE_VALUE_KEYS, QUERY_COMPUTE_ARGUMENT_KEYS, QUERY_COMPUTE_KEYS, QUERY_TEMPORAL_SERIES_KEYS, QUERY_TEMPORAL_SERIES_MAP_KEYS, QUERY_TEMPORAL_SERIES_MEASURE_KEYS, QUERY_TEMPORAL_SERIES_TREND_KEYS, QUERY_FILTER_KEYS, QUERY_JOIN_FIELD_KEYS, QUERY_JOIN_KEYS, QUERY_JOIN_ON_KEYS, QUERY_JOIN_TYPE_VALUES, QUERY_KEYS, QUERY_PAGE_COMPARATOR_VALUES, QUERY_PAGE_KEYS, QUERY_PAGE_REVISION_VALUES, QUERY_PARAMETER_KEYS, QUERY_PARAMETER_TYPE_VALUES, QUERY_MAX_JOINS, QUERY_PREDICATE_KEYS, QUERY_PREDICT_KEYS, QUERY_REDUCER_VALUES, QUERY_NUMERIC_REDUCER_VALUES, QUERY_SELECT_KEYS, PREDICTION_METHODS, INFERRED_FIELD_NAMES, DATASET_AVAILABILITY_VALUES, DATASET_COMPLETENESS_VALUES, DATASET_FRESHNESS_VALUES, DATASET_METADATA_KEYS, ERROR_CODES, LINK_FIELD_NAMES, FILTER_DIMENSION_VALUES, ORDER_BY_KEYS, ORDER_DIRECTION_VALUES, SCOPE_KEYS, QUERY_SOURCE_FIELDS, QUERY_SOURCE_VALUES, TEMPORAL_FIELD_NAMES, TIME_KEYS } from './specification.js';
 import { executeDashboardQueries, resolveDashboardQuerySources } from './data/queries/declarative.js';
 import { SIMULATION_DAYS, simulationDaysSource } from './data/queries/simulation-days.js';
 import { compileDashboardViewPayloadQueries } from './data/queries/view-payload-compiler.js';
@@ -942,6 +942,69 @@ function validateQueryClauses(query, queryNode, path, declared, errors) {
             `${clausePath}.direction`
           ));
         }
+      }
+    }
+  }
+
+  if (query.page !== undefined) {
+    const pagePath = `${path}.page`;
+    const pageNode = getValueNodeByKey(queryNode, 'page');
+    if (!isPlainObject(query.page)) {
+      errors.push(createError(
+        ERROR_CODES.missingOrInvalidRequiredField,
+        'page must be a mapping.',
+        pagePath
+      ));
+    } else {
+      validateObjectKeys(pageNode, QUERY_PAGE_KEYS, pagePath, errors);
+      const keys = query.page.keys;
+      if (!Array.isArray(keys) || keys.length === 0 || keys.length > 4
+          || keys.some((field) => typeof field !== 'string' || field.trim().length === 0)
+          || new Set(keys).size !== keys.length) {
+        errors.push(createError(
+          ERROR_CODES.missingOrInvalidRequiredField,
+          'page.keys must contain one to four unique non-empty field names.',
+          `${pagePath}.keys`
+        ));
+      } else {
+        for (const [index, field] of keys.entries()) {
+          requireField(field, `${pagePath}.keys[${index}]`);
+          requireSchemaType(field, `${pagePath}.keys[${index}]`, 'scalar');
+        }
+      }
+      if (typeof query.page.revision !== 'string'
+          || !QUERY_PAGE_REVISION_VALUES.includes(query.page.revision)) {
+        errors.push(createError(
+          ERROR_CODES.nonCanonicalVocabularyOrIdentifier,
+          `page.revision must be one of ${QUERY_PAGE_REVISION_VALUES.join(', ')}.`,
+          `${pagePath}.revision`
+        ));
+      }
+      if (typeof query.page.comparator !== 'string'
+          || !QUERY_PAGE_COMPARATOR_VALUES.includes(query.page.comparator)) {
+        errors.push(createError(
+          ERROR_CODES.nonCanonicalVocabularyOrIdentifier,
+          `page.comparator must be one of ${QUERY_PAGE_COMPARATOR_VALUES.join(', ')}.`,
+          `${pagePath}.comparator`
+        ));
+      }
+      const order = Array.isArray(query['order-by']) ? query['order-by'] : [];
+      if (!Array.isArray(keys) || order.length !== keys.length
+          || order.some((clause, index) => !isPlainObject(clause)
+            || clause.field !== keys[index]
+            || (clause.direction ?? 'asc') !== 'asc')) {
+        errors.push(createError(
+          ERROR_CODES.invalidScopeFilterTimeAggregationOrOrderReference,
+          'page.keys must exactly match an ascending order-by sequence.',
+          pagePath
+        ));
+      }
+      if (query.limit !== undefined || query.facet !== undefined) {
+        errors.push(createError(
+          ERROR_CODES.invalidScopeFilterTimeAggregationOrOrderReference,
+          'a paged query must not declare limit or facet.',
+          pagePath
+        ));
       }
     }
   }

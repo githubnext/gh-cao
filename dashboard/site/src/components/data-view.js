@@ -107,7 +107,7 @@ function resolveGithubEntityLink(row, field, fallbackLabel) {
  *   prepareChartPoints: (points: ChartPoint[], x: Record<string, any> | null, y: Record<string, any> | null, color: Record<string, any> | null, data: unknown, section?: Record<string, any> | null) => ChartPoint[],
  *   toText: (value: unknown) => string,
  *   cardTemplates?: Record<string, { icon: string, 'icon-field'?: string, status?: { field: string, 'fallback-field'?: string, title?: string }, title: TableField, subtitle?: TableField, labels: TableField[], details: TableField[], 'detail-labels'?: string, metrics?: TableField[], timing?: Array<TableField & { icon: string }>, actions?: Array<{ action: string, context: string[], when?: { field: string, equals: unknown } }>, drill?: Record<string, unknown> }>,
- *   continuation?: { token: string, totalRows: number, load: (token: string) => Promise<{ rows: Array<Record<string, unknown>>, continuationToken?: string }> }
+ *   continuation?: { token: string, totalRows?: number, load: (token: string) => Promise<{ rows: Array<Record<string, unknown>>, continuationToken?: string }> }
  * }} DataViewContext
  */
 

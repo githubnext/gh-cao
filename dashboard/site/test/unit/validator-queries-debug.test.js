@@ -48,6 +48,34 @@ afterEach(() => {
 });
 
 describe('validator-queries debug logging', () => {
+  it('accepts only deterministic workflow-subject page boundaries', async () => {
+    const { validateQueries } = await loadValidatorQueriesWithDebug('');
+    const page = {
+      keys: ['id', 'organization', 'repository'],
+      revision: 'workflow-subjects',
+      comparator: 'utf8-bytewise-v1'
+    };
+    const order = page.keys.map((field) => ({ field, direction: 'asc' }));
+    const pageQuery = {
+      ...validQuery,
+      select: page.keys.map((field) => ({ field }))
+    };
+    const validErrors = /** @type {import('../../src/validator.js').ValidationError[]} */ ([]);
+    validateQueries([{ ...pageQuery, page, 'order-by': order }], null, validErrors);
+    expect(validErrors).toEqual([]);
+
+    for (const invalid of [
+      { ...pageQuery, page, 'order-by': order.slice(0, 2) },
+      { ...pageQuery, page, 'order-by': order, limit: 25 },
+      { ...pageQuery, page: { ...page, comparator: 'locale' }, 'order-by': order },
+      { ...pageQuery, page: { ...page, revision: 'canonical' }, 'order-by': order }
+    ]) {
+      const errors = /** @type {import('../../src/validator.js').ValidationError[]} */ ([]);
+      validateQueries([invalid], null, errors);
+      expect(errors.length).toBeGreaterThan(0);
+    }
+  });
+
   it('is disabled by default (no debug output) when the debug query is absent', async () => {
     const { validateQueries, validateViewQueryMaterialization, state, output } =
       await loadValidatorQueriesWithDebug('');
