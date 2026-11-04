@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-04T04:21:11Z",
-      "worker_run_id": "41772363450",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        41772385001,
-        41770630971,
-        41770519889,
-        41769134766,
-        41767575049,
-        41766283738,
-        41765926145,
-        41764487585,
-        41762855512,
-        41761296161,
-        41760350526,
-        41760017583,
-        41759696015,
-        41757991514,
-        41756253487,
-        41754635018,
-        41752868998,
-        41752646229,
-        41751135040,
-        41749770664
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T00:50:11Z to 2026-11-04T04:18:31Z) was within 14 days and contained 15 successful schedule runs and five skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs 172d8fb95fe34402e6f3dc26cee32b9b094d3fbd and 1d5a881bbe66090ab2f56a15e80fbbb621d61870. Trusted Actions job and step metadata verified that only schedule run 41761296161 completed the full build-and-deploy path, below the required five comparable successful runs. It took 151 seconds wall-clock; schedule-freshness queued for 3 seconds and ran for 11 seconds, build ran for 99 seconds, and deploy ran for 30 seconds. docs.yml has no separate dashboard job. Checkout took 31 seconds, dependency installation 19 seconds, Astro documentation generation 15 seconds, dashboard cache restore 4 seconds, Pages artifact upload 19 seconds, and Deploy Pages 26 seconds. The dashboard cache hit was verified because the cache-miss-only lookup and artifact-download steps were skipped. Across the 14 freshness-only successes, workflow wall time had a 12-second median and 14-second nearest-rank p90. With only one comparable full run, the required full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer and Pages-packaging analysis cannot be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-04T04:35:00Z",
       "worker_run_id": "41773532279",
       "category": "artifact transfer and Pages packaging",
@@ -820,6 +792,34 @@
         41816380399
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T10:46:19Z to 2026-11-04T14:31:20Z) was within 14 days and contained 16 successful schedule runs (13 freshness-only and three full build-and-deploy runs) plus four skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs 89e05ae868f49971610bd8030574006e26537924, d229514d5a2b3ff3a52c070501394a8c2ce1be1e, 5cc1a16de2cb9524cbe5c5f272f1e74e799245fd, and 440542eed455af3173bee7e83167048a36f8e23f. Trusted Actions job metadata for the newest schedule, together with retained trusted evidence for the 19 overlapping runs, verified that only schedule runs 41832146243, 41830127720, and 41823569917 completed the full build-and-deploy path, below the required five comparable successful full runs. Their workflow wall times were 178, 144, and 162 seconds (median 162 seconds; nearest-rank p90 178 seconds), build jobs were 129, 92, and 67 seconds (median 92; p90 129), and deploy jobs were 29, 28, and 68 seconds (median 29; p90 68); docs.yml has no separate dashboard job. Initial queue times were 4, 4, and 3 seconds. Across the three full runs, dependency installation took 19, 18, and 11 seconds, Astro documentation generation 15, 13, and 10 seconds, dashboard cache restore 4, 4, and 2 seconds, Pages artifact upload 19, 18, and 14 seconds, and Deploy Pages 25, 25, and 64 seconds. Dashboard cache hits were verified in all three runs because the cache-miss-only lookup and artifact-download steps were skipped. The newest freshness-only run took 15 seconds wall-clock, queued for 4 seconds, ran schedule-freshness for 10 seconds, spent 6 seconds in the freshness check, and skipped build and deploy. With only three comparable full runs, the required minimum sample and repeated artifact-transfer and Pages-packaging evaluation cannot be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-04T14:52:41.952495Z",
+      "worker_run_id": "41851388174",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        41850833180,
+        41848344041,
+        41846100759,
+        41845786857,
+        41843526681,
+        41841082433,
+        41838815257,
+        41836491896,
+        41836209396,
+        41834304816,
+        41832146243,
+        41830127720,
+        41828671818,
+        41825746907,
+        41823569917,
+        41821548720,
+        41821503842,
+        41819804634,
+        41819536735,
+        41818072947
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T11:01:24Z to 2026-11-04T14:46:17Z) was within 14 days and contained 16 successful schedule runs (13 freshness-only and three full build-and-deploy runs) plus four skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs 89e05ae868f49971610bd8030574006e26537924, d229514d5a2b3ff3a52c070501394a8c2ce1be1e, 5cc1a16de2cb9524cbe5c5f272f1e74e799245fd, and 440542eed455af3173bee7e83167048a36f8e23f. Trusted Actions job metadata for the newest schedule, together with retained trusted evidence for the 19 overlapping runs, verified that only schedule runs 41832146243, 41830127720, and 41823569917 completed the full build-and-deploy path, below the required five comparable successful full runs. Their workflow wall times were 178, 144, and 162 seconds (median 162 seconds; nearest-rank p90 178 seconds), build jobs were 129, 92, and 67 seconds (median 92; p90 129), and deploy jobs were 29, 28, and 68 seconds (median 29; p90 68); docs.yml has no separate dashboard job. Initial queue times were 4, 4, and 3 seconds. Across the three full runs, dependency installation took 19, 18, and 11 seconds, Astro documentation generation 15, 13, and 10 seconds, dashboard cache restore 4, 4, and 2 seconds, Pages artifact upload 19, 18, and 14 seconds, and Deploy Pages 25, 25, and 64 seconds. Dashboard cache hits were verified in all three runs because the cache-miss-only lookup and artifact-download steps were skipped. Across the 13 freshness-only successes, workflow wall time had a 15-second median and 20-second nearest-rank p90. The newest run took 20 seconds wall-clock, queued 7 seconds, ran schedule-freshness for 12 seconds, spent 7 seconds in the freshness check, and skipped build and deploy. With only three comparable full runs, the required minimum sample and repeated artifact-transfer and Pages-packaging evaluation cannot be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
