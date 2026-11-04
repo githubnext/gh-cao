@@ -21,7 +21,7 @@ import (
 var (
 	ErrCapacity    = errors.New("native acquisition resource budget exceeded")
 	ErrIdentity    = errors.New("native acquisition evidence identity mismatch")
-	ErrUnsupported = errors.New("native acquisition cannot activate the legacy filesystem projector or trace destinations")
+	ErrUnsupported = errors.New("native acquisition is unsupported by this composition")
 	ErrClaimLost   = errors.New("native acquisition claim expired or superseded")
 	ErrBusy        = errors.New("native acquisition attempt is already claimed")
 )
@@ -90,6 +90,12 @@ type Run struct {
 type Provider interface {
 	Runs(context.Context, string, int64, time.Time, func(Run) error) error
 	Artifacts(context.Context, Run, func(Artifact) error) error
+}
+
+// AttemptProvider resolves a dispatched attempt without substituting the latest
+// run attempt or expanding a historical task into repository-wide discovery.
+type AttemptProvider interface {
+	Attempt(context.Context, Identity) (Run, error)
 }
 
 // Evidence contains only safe projections, never raw sessions or artifact data.

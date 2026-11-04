@@ -22,6 +22,13 @@ func (p nativePipelineProvider) Runs(_ context.Context, _ string, _ int64, _ tim
 	return visit(p.run)
 }
 
+func (p nativePipelineProvider) Attempt(_ context.Context, identity collectnative.Identity) (collectnative.Run, error) {
+	if identity != p.run.Identity {
+		return collectnative.Run{}, collectnative.ErrIdentity
+	}
+	return p.run, nil
+}
+
 func (p nativePipelineProvider) Artifacts(_ context.Context, _ collectnative.Run, visit func(collectnative.Artifact) error) error {
 	return visit(collectnative.Artifact{Name: "agent-usage", Files: map[string][]byte{
 		"aw_info.json": []byte(`{"repository":"octo/api","run_id":303,"run_attempt":1}`),
@@ -106,7 +113,7 @@ func TestNativePipelineTraceAdmissionPrecedesSafeCanonicalPublication(t *testing
 		t.Fatal(err)
 	}
 	interrupted.fail = false
-	if err := collector.Collect(t.Context(), identity.Repository, identity.InstallationID, time.Time{}); err != nil {
+	if err := collector.CollectAttempt(t.Context(), identity); err != nil {
 		t.Fatal(err)
 	}
 	evidence, _, err := second.Acquisition().Pending(t.Context(), identity)

@@ -135,6 +135,38 @@ func readBounded(reader io.Reader, limit int) ([]byte, error) {
 	return content, nil
 }
 
+func (g GitHub) Attempt(ctx context.Context, identity Identity) (Run, error) {
+	if err := identity.Validate(); err != nil {
+		return Run{}, err
+	}
+	content, _, _, err := g.get(ctx, identity.InstallationID, fmt.Sprintf("repos/%s/actions/runs/%d/attempts/%d",
+		identity.Repository, identity.RunID, identity.Attempt))
+	if err != nil {
+		return Run{}, err
+	}
+	var fields map[string]any
+	if err := decode(content, &fields); err != nil {
+		return Run{}, errors.New("invalid native run attempt")
+	}
+	run, err := githubRun(fields, identity.Repository, identity.InstallationID)
+	if err != nil || run.Identity != identity {
+		return Run{}, ErrIdentity
+	}
+	return run, nil
+}
+
+func githubRun(fields map[string]any, repository string, installation int64) (Run, error) {
+	runID, idErr := strconv.ParseInt(scalar(fields["id"]), 10, 64)
+	attempt, attemptErr := strconv.Atoi(scalar(fields["run_attempt"]))
+	identity := Identity{repository, installation, runID, attempt}
+	name := scalar(fields["path"])
+	if idErr != nil || attemptErr != nil || identity.Validate() != nil ||
+		!workflowPath.MatchString(name) || strings.ToLower(scalar(object(fields["repository"])["full_name"])) != repository {
+		return Run{}, ErrIdentity
+	}
+	return Run{Identity: identity, WorkflowPath: name, Fields: fields}, nil
+}
+
 func (g GitHub) Runs(ctx context.Context, repository string, installation int64, since time.Time, visit func(Run) error) error {
 	if !coordinate.MatchString(repository) || installation <= 0 {
 		return ErrIdentity
@@ -196,22 +228,18 @@ func (g GitHub) Runs(ctx context.Context, repository string, installation int64,
 				return errors.New("invalid native run listing")
 			}
 			for _, fields := range result.Runs {
-				runID, idErr := strconv.ParseInt(scalar(fields["id"]), 10, 64)
-				attempt, attemptErr := strconv.Atoi(scalar(fields["run_attempt"]))
-				id := Identity{repository, installation, runID, attempt}
-				name := scalar(fields["path"])
-				if idErr != nil || attemptErr != nil || id.Validate() != nil ||
-					!workflowPath.MatchString(name) || strings.ToLower(scalar(object(fields["repository"])["full_name"])) != repository {
-					return ErrIdentity
+				run, err := githubRun(fields, repository, installation)
+				if err != nil {
+					return err
 				}
-				if seen[runID] {
+				if seen[run.RunID] {
 					continue
 				}
-				seen[runID] = true
+				seen[run.RunID] = true
 				if len(seen) > limits.Runs {
 					return ErrCapacity
 				}
-				if err := visit(Run{Identity: id, WorkflowPath: name, Fields: fields}); err != nil {
+				if err := visit(run); err != nil {
 					return err
 				}
 			}

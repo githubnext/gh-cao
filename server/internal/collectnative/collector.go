@@ -105,23 +105,50 @@ func (c Collector) Collect(ctx context.Context, repository string, installation 
 		if run.Validate() != nil || run.Repository != repository || run.InstallationID != installation || !workflowPath.MatchString(run.WorkflowPath) {
 			return ErrIdentity
 		}
-		claim, err := c.Store.Claim(ctx, run.Identity, c.claimTTL())
-		if err != nil {
-			return err
-		}
-		defer func() {
-			cleanup, stop := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
-			defer stop()
-			// Publication clears the claim. A lost release cannot authorize a
-			// stale publication; database expiry remains the recovery path.
-			_ = c.Store.Release(cleanup, claim)
-		}()
-		evidence, err := c.extract(ctx, run)
-		if err != nil {
-			return err
-		}
-		return c.Store.Publish(ctx, claim, evidence)
+		return c.collectRun(ctx, run)
 	})
+}
+
+func (c Collector) CollectAttempt(ctx context.Context, identity Identity) error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+	if err := identity.Validate(); err != nil {
+		return err
+	}
+	provider, supported := c.Provider.(AttemptProvider)
+	if !supported {
+		return ErrUnsupported
+	}
+	ctx, cancel := context.WithTimeout(ctx, c.timeout())
+	defer cancel()
+	run, err := provider.Attempt(ctx, identity)
+	if err != nil {
+		return err
+	}
+	if run.Identity != identity || !workflowPath.MatchString(run.WorkflowPath) {
+		return ErrIdentity
+	}
+	return c.collectRun(ctx, run)
+}
+
+func (c Collector) collectRun(ctx context.Context, run Run) error {
+	claim, err := c.Store.Claim(ctx, run.Identity, c.claimTTL())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		cleanup, stop := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+		defer stop()
+		// Publication clears the claim. A lost release cannot authorize a
+		// stale publication; database expiry remains the recovery path.
+		_ = c.Store.Release(cleanup, claim)
+	}()
+	evidence, err := c.extract(ctx, run)
+	if err != nil {
+		return err
+	}
+	return c.Store.Publish(ctx, claim, evidence)
 }
 
 func (c Collector) extract(ctx context.Context, run Run) (Evidence, error) {
@@ -277,8 +304,7 @@ func (c Collector) extract(ctx context.Context, run Run) (Evidence, error) {
 	if len(encoded) > c.Limits.defaults().Bytes {
 		return Evidence{}, ErrCapacity
 	}
-	// Exercise the same native raw compaction boundary used for replay; it
-	// preserves the safe session projection without normalization in Go.
+	// Publish the compactor's retained run, not the pre-compaction input.
 	envelope, err := json.Marshal(map[string]any{"schema_version": 5, "kind": "run", "run": fields})
 	if err != nil {
 		return Evidence{}, err
@@ -290,6 +316,13 @@ func (c Collector) extract(ctx context.Context, run Run) (Evidence, error) {
 	if compacted.Len() == 0 {
 		return Evidence{}, errors.New("native compaction discarded owned run evidence")
 	}
+	var retained struct {
+		Run map[string]any `json:"run"`
+	}
+	if err := decode(compacted.Bytes(), &retained); err != nil || retained.Run == nil {
+		return Evidence{}, errors.New("native compaction did not produce one retained run")
+	}
+	evidence.Run = retained.Run
 	return evidence, nil
 }
 

@@ -122,6 +122,12 @@ Archive acquisition and projection MUST enforce explicit byte, entry,
 pagination, attempt and cancellation bounds. Archive paths are logical names,
 not filesystem locations.
 
+Historical run tasks use the native exact-attempt REST lookup. A provider MUST
+verify the returned repository, run, attempt and agentic workflow path before
+claiming or acquiring artifacts. A missing exact-attempt capability MUST fail;
+it MUST NOT substitute the latest attempt or expand the task into repository
+discovery.
+
 The PostgreSQL acquisition adapter owns exact repository/run/attempt claims,
 database expiry, generation/token fencing and enrollment epochs. Only
 authenticated enrollment reconciliation may change scope; a queued collection

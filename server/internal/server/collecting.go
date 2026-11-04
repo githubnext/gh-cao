@@ -95,7 +95,8 @@ func (config *CollectorConfig) Validate() error {
 		return nil
 	}
 	if config.NativeAcquisition {
-		return collectnative.ErrUnsupported
+		return fmt.Errorf("%w: hosted native collection requires durable enrollment, queue and backfill integration",
+			collectnative.ErrUnsupported)
 	}
 	if config.AppID <= 0 {
 		return errors.New("collection requires a GitHub App identifier")
