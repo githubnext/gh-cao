@@ -63,9 +63,8 @@ func (d *HTTPDestination) Create(ctx context.Context, key string, body []byte) e
 	if err != nil {
 		return err
 	}
-	if status != http.StatusOK && status != http.StatusCreated && status != http.StatusNoContent &&
-		status != http.StatusPreconditionFailed {
-		return fmt.Errorf("audit destination create rejected (HTTP %d)", status)
+	if err := createStatusError(status); err != nil {
+		return err
 	}
 	// A duplicate is accepted only if every byte agrees. This also makes a lost
 	// delivery acknowledgement safe to retry on a later invocation.
@@ -86,13 +85,33 @@ func (d *HTTPDestination) Commit(ctx context.Context, stream string, checkpoint 
 	if err != nil {
 		return err
 	}
-	if status == http.StatusPreconditionFailed {
-		return errors.New("audit destination checkpoint conflict; retry from the destination checkpoint")
-	}
-	if status != http.StatusOK && status != http.StatusCreated && status != http.StatusNoContent {
-		return fmt.Errorf("audit destination checkpoint rejected (HTTP %d)", status)
+	if err := commitStatusError(status); err != nil {
+		return err
 	}
 	return d.confirm(ctx, key, body, true)
+}
+
+// createStatusError accepts a precondition failure because the duplicate is
+// verified byte-for-byte by the read-back that follows.
+func createStatusError(status int) error {
+	switch status {
+	case http.StatusOK, http.StatusCreated, http.StatusNoContent, http.StatusPreconditionFailed:
+		return nil
+	}
+	deliveryLog.Printf("destination create rejected: status=%d", status)
+	return fmt.Errorf("audit destination create rejected (HTTP %d)", status)
+}
+
+func commitStatusError(status int) error {
+	switch status {
+	case http.StatusOK, http.StatusCreated, http.StatusNoContent:
+		return nil
+	case http.StatusPreconditionFailed:
+		deliveryLog.Printf("destination checkpoint conflict: status=%d", status)
+		return errors.New("audit destination checkpoint conflict; retry from the destination checkpoint")
+	}
+	deliveryLog.Printf("destination checkpoint rejected: status=%d", status)
+	return fmt.Errorf("audit destination checkpoint rejected (HTTP %d)", status)
 }
 
 func (d *HTTPDestination) confirm(ctx context.Context, key string, expected []byte, checkpoint bool) error {
