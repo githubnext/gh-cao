@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { posix } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
@@ -46,7 +47,7 @@ test("Parquet and session archive conformance has an independent read-only workf
   assert.ok(daily.jobs.report.needs.includes("session-archive"));
 });
 
-test("Parquet CI requires real DuckDB, production local backfill, and the million-event benchmark", () => {
+test("Parquet CI requires real DuckDB, independent local capture, and the million-event benchmark", () => {
   const job = parse(workflow("session-archive.yml")).jobs["session-archive"];
   assert.equal(job.if, undefined);
   assert.equal(job.needs, undefined);
@@ -57,7 +58,9 @@ test("Parquet CI requires real DuckDB, production local backfill, and the millio
   assert.match(install.run, /7a9e36141a71a353f54dfbeed607a5218c3425ce2d417610da08443259a12f7c .*sha256sum --check/);
   assert.match(install.run, /echo "DUCKDB_PATH=\$DUCKDB_PATH" >> "\$GITHUB_ENV"/);
   const integration = job.steps.find(step => step.name === "Verify production capture, Parquet, publication, and authenticated queries");
-  assert.match(integration.run, /-list '\^TestSessionArchiveLocalBackfillIntegration\$' \| grep -Fx TestSessionArchiveLocalBackfillIntegration/);
+  assert.match(integration.run, /-list '\^TestSessionArchiveLocalCaptureIntegration\$' \| grep -Fx TestSessionArchiveLocalCaptureIntegration/);
+  const captureTests = readFileSync(new URL("../../server/internal/server/session_archive_integration_test.go", import.meta.url), "utf8");
+  assert.match(captureTests, /^func TestSessionArchiveLocalCaptureIntegration\(t \*testing\.T\) \{/m);
   assert.match(integration.run, /go -C server test -race -json -count=1/);
   assert.match(integration.run, /\.\/internal\/sessionarchive \.\/internal\/sessionarchiveblob \.\/internal\/collect \.\/internal\/server/);
   assert.match(integration.run, /TestSessionArchive\.\*/);

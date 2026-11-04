@@ -75,7 +75,7 @@ jobs:
         run: |
           set -euo pipefail
           go -C server test ./internal/sessionarchive -list '^TestDuckDBArchiveIntegration$' | grep -Fx TestDuckDBArchiveIntegration
-          go -C server test ./internal/server -list '^TestSessionArchiveLocalBackfillIntegration$' | grep -Fx TestSessionArchiveLocalBackfillIntegration
+          go -C server test ./internal/server -list '^TestSessionArchiveLocalCaptureIntegration$' | grep -Fx TestSessionArchiveLocalCaptureIntegration
           go -C server test -race -json -count=1 -timeout=8m \
             ./internal/sessionarchive ./internal/sessionarchiveblob ./internal/collect ./internal/server \
             -run '^(TestDuckDB.*Integration|TestSessionArchive.*|TestTraceAdmission.*|TestTraceCaptures.*)$' \
