@@ -111,6 +111,53 @@ test('production data worker preserves statistical frames across filtering and c
   });
 });
 
+test('Models & Agents query reads multiple statistical batches in the production worker', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const storage = await import(`${location.origin}/src/data/storage/indexeddb.js`);
+    const { normalize } = await import(`${location.origin}/src/data/normalize/index.js`);
+    const operations = await (await fetch('/dashboard-fragments/operations.json')).json();
+    const composition = operations.queries.find((/** @type {{ name: string }} */ query) =>
+      query.name === 'engines-models-sample-distribution');
+    const rows = Array.from({ length: 2001 }, (_, index) => ({
+      id: `github:run:o/r:${index}`, owner: 'o', repository: 'r', githubRunId: String(index),
+      status: 'completed', conclusion: 'success', startedAt: '2026-10-22T00:00:00Z',
+      agentId: 'copilot', modelId: index < 1000 ? 'model-a' : 'model-b'
+    }));
+    await storage.upsertCanonicalBatch(indexedDB, {
+      ...normalize([]), runs: rows
+    }, { validateRelationships: false });
+    const worker = new Worker(`${location.origin}/src/data-worker.js`, { type: 'module' });
+    try {
+      return await new Promise((resolve, reject) => {
+        worker.onmessage = (event) => {
+          if (event.data.id !== 'statistical-pagination') return;
+          if (event.data.error) reject(new Error(event.data.error));
+          else resolve(event.data.data[composition.name]);
+        };
+        worker.onerror = (event) => reject(new Error(event.message));
+        worker.postMessage({
+          id: 'statistical-pagination', operation: 'load-dashboard-query-sources',
+          sourceNames: [composition.name], queries: [composition],
+          sources: { runs: { rows: [], metadata: {
+            availability: 'available', completeness: 'complete', 'as-of': '2026-10-23T00:00:00Z'
+          } } }
+        });
+      });
+    } finally {
+      worker.terminate();
+    }
+  });
+  expect(result.metadata.availability).toBe('available');
+  const frame = result.metadata['statistical-frame'];
+  expect(frame).toMatchObject({
+    'population-count': 2001, 'selected-count': 2001, 'weight-valid': true
+  });
+  expect(result.rows).toEqual([
+    { summary: 'copilot / model-b', 'sampled-runs': 1001, 'statistical-frame-id': frame['frame-id'] },
+    { summary: 'copilot / model-a', 'sampled-runs': 1000, 'statistical-frame-id': frame['frame-id'] }
+  ]);
+});
+
 test('native IndexedDB persists a large mixed reconciliation across connections', async ({ page }) => {
   test.slow();
   const result = await page.evaluate(async () => {

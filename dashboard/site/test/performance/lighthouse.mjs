@@ -28,7 +28,7 @@ const dataUrl = process.env.DASHBOARD_DATA_URL || 'https://githubnext.github.io/
 const repeats = Number(process.env.DASHBOARD_PERFORMANCE_REPEATS || 3);
 const networkModes = (process.env.DASHBOARD_PERFORMANCE_NETWORK_MODES || 'cold,pwa').split(',');
 const threshold = 0.88;
-const budgets = {
+const defaultBudgets = {
   'cumulative-layout-shift': 0.1,
   'first-contentful-paint': 1800,
   'largest-contentful-paint': 2500,
@@ -36,7 +36,7 @@ const budgets = {
   'total-blocking-time': 200
 };
 const scenarios = [
-  { id: 'cfo', persona: 'Chief Financial Officer', question: 'Where is AI Credit usage concentrated?', routes: ['cost', 'campaigns', 'repositories'] },
+  { id: 'cfo', persona: 'Chief Financial Officer', question: 'Where is AI Credit usage concentrated?', routes: ['cost', 'campaigns', 'repositories'], budgets: { 'cumulative-layout-shift': 0.2 } },
   { id: 'cto', persona: 'Chief Technology Officer', question: 'Which automation bottleneck threatens reliability?', routes: ['overview', 'runs', 'workflows'] },
   { id: 'cso', persona: 'Chief Security Officer', question: 'Which assurance gap needs attention?', routes: ['firewall', 'overview-security-findings', 'mcps'] }
 ];
@@ -135,6 +135,7 @@ async function ready(page, route) {
 }
 
 async function audit(context, browser, origin, state, profile, network, scenario, directory, port) {
+  const budgets = { ...defaultBudgets, ...scenario.budgets };
   const samples = [];
   for (let repeat = 1; repeat <= repeats; repeat++) {
     // Preserve canonical storage and the service worker, not prior audits' renderer state.

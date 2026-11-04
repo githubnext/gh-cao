@@ -273,6 +273,39 @@ describe('independent frozen statistical sampling', () => {
     });
   });
 
+  it.each([999, 1000, 1001, 2000, 2001])('paginates %i indexed statistical candidates without leaking storage metadata', async (count) => {
+    const factory = new IDBFactory();
+    const runs = Array.from({ length: count }, (_, index) => ({
+      id: `github:run:o/r:${String(index).padStart(4, '0')}`,
+      owner: 'o', repository: 'r', githubRunId: String(index),
+      status: 'completed', conclusion: 'success',
+      startedAt: '2026-10-07T00:00:00Z'
+    }));
+    await upsertCanonicalBatch(factory, {
+      ...normalize([]), runs
+    }, { validateRelationships: false });
+    const onLimit = vi.fn();
+    const result = await readCollections(factory, ['runs'], {
+      statisticalRuns: {
+        watermark: fixture.watermark, exact: false, rows: count, bytes: 1 << 20, onLimit
+      }
+    });
+    expect(onLimit).not.toHaveBeenCalled();
+    expect(result.runs).toEqual(runs);
+    expect(result.statisticalRuns).toEqual({ rows: runs, watermark: fixture.watermark });
+    const database = await openCanonicalDatabase(factory);
+    try {
+      const request = database.transaction('runs').objectStore('runs').get(runs[count - 1].id);
+      const stored = await new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      expect(stored._storage.statisticalTimestamp).toBe(Date.parse(runs[0].startedAt));
+    } finally {
+      database.close();
+    }
+  });
+
   it('bounds statistical materialization inside the same multi-store snapshot without limiting exact stores', async () => {
     const factory = new IDBFactory();
     const database = await openCanonicalDatabase(factory);
