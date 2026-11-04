@@ -58,8 +58,7 @@ func (q Queue) EnsureRuns(ctx context.Context) error {
 }
 
 func (q Queue) LeaseRuns(ctx context.Context, consumer string, count int) ([]RunLease, error) {
-	queue, err := q.fencedRunQueue()
-	if err != nil {
+	if _, err := q.fencedRunQueue(); err != nil {
 		return nil, err
 	}
 	var leases []RunLease
@@ -67,16 +66,7 @@ func (q Queue) LeaseRuns(ctx context.Context, consumer string, count int) ([]Run
 		if len(leases) >= count {
 			break
 		}
-		if _, err := queue.PromoteTasks(ctx, delayedRunQueue(stream), stream, time.Now().UTC(), count); err != nil {
-			return leases, err
-		}
-		messages, err := queue.ReadTasks(ctx, operational.QueueRead{
-			Queue: stream, Group: q.group(), Consumer: consumer, Count: count - len(leases),
-		})
-		if err != nil {
-			return leases, err
-		}
-		items, err := q.runLeases(ctx, queue, messages, stream)
+		items, err := q.leaseRunStream(ctx, consumer, stream, count-len(leases))
 		leases = append(leases, items...)
 		if err != nil {
 			return leases, err
@@ -85,9 +75,25 @@ func (q Queue) LeaseRuns(ctx context.Context, consumer string, count int) ([]Run
 	return leases, nil
 }
 
-func (q Queue) ReclaimRuns(ctx context.Context, consumer string, idle time.Duration, count int) ([]RunLease, error) {
+func (q Queue) leaseRunStream(ctx context.Context, consumer, stream string, count int) ([]RunLease, error) {
 	queue, err := q.fencedRunQueue()
 	if err != nil {
+		return nil, err
+	}
+	if _, err := queue.PromoteTasks(ctx, delayedRunQueue(stream), stream, time.Now().UTC(), count); err != nil {
+		return nil, err
+	}
+	messages, err := queue.ReadTasks(ctx, operational.QueueRead{
+		Queue: stream, Group: q.group(), Consumer: consumer, Count: count,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return q.runLeases(ctx, queue, messages, stream)
+}
+
+func (q Queue) ReclaimRuns(ctx context.Context, consumer string, idle time.Duration, count int) ([]RunLease, error) {
+	if _, err := q.fencedRunQueue(); err != nil {
 		return nil, err
 	}
 	var leases []RunLease
@@ -95,19 +101,27 @@ func (q Queue) ReclaimRuns(ctx context.Context, consumer string, idle time.Durat
 		if len(leases) >= count {
 			break
 		}
-		messages, err := queue.ClaimTasks(ctx, operational.QueueRead{
-			Queue: stream, Group: q.group(), Consumer: consumer, Count: count - len(leases),
-		}, idle)
-		if err != nil {
-			return leases, err
-		}
-		items, err := q.runLeases(ctx, queue, messages, stream)
+		items, err := q.reclaimRunStream(ctx, consumer, stream, idle, count-len(leases))
 		leases = append(leases, items...)
 		if err != nil {
 			return leases, err
 		}
 	}
 	return leases, nil
+}
+
+func (q Queue) reclaimRunStream(ctx context.Context, consumer, stream string, idle time.Duration, count int) ([]RunLease, error) {
+	queue, err := q.fencedRunQueue()
+	if err != nil {
+		return nil, err
+	}
+	messages, err := queue.ClaimTasks(ctx, operational.QueueRead{
+		Queue: stream, Group: q.group(), Consumer: consumer, Count: count,
+	}, idle)
+	if err != nil {
+		return nil, err
+	}
+	return q.runLeases(ctx, queue, messages, stream)
 }
 
 func validRunTask(task RunTask, fields operational.TaskFields) bool {

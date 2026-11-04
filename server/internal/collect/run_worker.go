@@ -59,8 +59,10 @@ func (w RunWorker) Run(ctx context.Context) error {
 	if err := w.validate(); err != nil {
 		return err
 	}
+	preferEnumeration := false
 	for ctx.Err() == nil {
-		more, err := w.Step(ctx)
+		more, err := w.step(ctx, preferEnumeration)
+		preferEnumeration = !preferEnumeration
 		if ctx.Err() == nil && w.Publications != nil {
 			count, publishErr := w.Publications.Replay(ctx, 128)
 			more = more || count > 0
@@ -79,23 +81,36 @@ func (w RunWorker) Run(ctx context.Context) error {
 // Step handles one exact attempt or bounded enumeration page. Errors leave a
 // durable lease or replacement; they never imply ACK.
 func (w RunWorker) Step(ctx context.Context) (bool, error) {
+	return w.step(ctx, false)
+}
+
+func (w RunWorker) step(ctx context.Context, preferEnumeration bool) (bool, error) {
 	if err := w.validate(); err != nil {
 		return false, err
 	}
 	if err := w.Queue.EnsureRuns(ctx); err != nil {
 		return false, err
 	}
-	leases, err := w.Queue.ReclaimRuns(ctx, w.Consumer, w.reclaimAfter(), 1)
-	if err != nil {
-		return false, err
+	streams := []string{runTaskStream, runEnumerationStream}
+	if preferEnumeration {
+		streams[0], streams[1] = streams[1], streams[0]
 	}
-	if len(leases) == 0 {
-		leases, err = w.Queue.LeaseRuns(ctx, w.Consumer, 1)
+	for _, stream := range streams {
+		leases, err := w.Queue.reclaimRunStream(ctx, w.Consumer, stream, w.reclaimAfter(), 1)
+		if err != nil {
+			return false, err
+		}
+		if len(leases) == 0 {
+			leases, err = w.Queue.leaseRunStream(ctx, w.Consumer, stream, 1)
+		}
+		if err != nil {
+			return false, err
+		}
+		if len(leases) != 0 {
+			return true, w.process(ctx, leases[0])
+		}
 	}
-	if err != nil || len(leases) == 0 {
-		return false, err
-	}
-	return true, w.process(ctx, leases[0])
+	return false, nil
 }
 
 func (w RunWorker) process(ctx context.Context, lease RunLease) error {

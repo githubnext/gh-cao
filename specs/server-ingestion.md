@@ -153,7 +153,11 @@ advance only through receipt-fenced replacement after every produced exact
 attempt is durable. A retry or replica takeover MUST preserve the original
 window. The cursor holds at most one workflow page, and separate enumeration and
 exact-attempt queue capacities MUST allow acquired work to drain under discovery
-backpressure. Capped or incomplete GitHub searches MUST fail explicitly rather
+backpressure. A running role MUST give both streams scheduling turns, including
+fresh discovery when exact attempts are reclaimable; a continuous exact-attempt
+backlog MUST NOT starve history. Scheduling preference is process-local liveness
+only; shared queue receipts and source claims remain the ownership authority.
+Capped or incomplete GitHub searches MUST fail explicitly rather
 than record completed discovery. Quota exhaustion and admission backpressure
 MUST preserve the failure budget and exact run attempt.
 
