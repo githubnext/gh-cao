@@ -160,6 +160,46 @@ registration and a confined collector deployed with the same reviewed policy.
 It runs only inside effective Activity scope and the frozen cadence. Function or
 collector presence alone grants no execution authority.
 
+A recurring collector SHOULD freeze a bounded acquisition manifest with one or
+more requirements. Each requirement identifies its source, quota pool,
+versioned primitive, exact population scope, and permitted cache lifetime.
+Registration MUST copy that normalized manifest into reviewed policy, and
+execution MUST fail closed when the deployed collector's manifest differs.
+The manifest describes required evidence; it does not grant credentials,
+repository reach, request capacity, archive access, mutation, or publication
+authority.
+
+Hosted collection MUST compile all enabled manifests for one repository under
+the repository lease before invoking their collectors. Identical requirements
+MAY be unioned for planning. When at least two workflows declare the same
+invocation-cacheable GitHub requirement, the repository-confined quota bridge
+MAY return one byte-identical successful REST, Search, artifact, or GraphQL
+response to later collectors in that repository collection. Each collector
+MUST retain its own request ceiling, timeout, proof workspace, starting-evidence
+check, output validation, publication CAS, and failure state.
+Every reusable request MUST identify the exact reviewed requirement that
+produced it. The bridge MUST partition responses by that requirement identity
+and native quota pool. Missing, unknown, or pool-incompatible identities MUST
+remain metered and isolated rather than borrowing another requirement's cache.
+
+The hosted collector MUST keep accepted reusable proof in private PostgreSQL
+storage rather than relying on one worker's filesystem. Proof is partitioned by
+the exact repository/workflow deployment, bounded by file count and bytes,
+restored only into a private invocation workspace, and atomically replaced only
+in the transaction that accepts a valid evidence packet. A failed acquisition,
+proof write, or publication MUST retain both the previous accepted packet and
+the previous database proof. Repository withdrawal MUST erase both the
+canonical evidence and its private proof. Proof bytes are neither a Dashboard
+Language source nor accepted outcome evidence.
+
+Every hosted attempt MUST also append a credential-free daily cost aggregate in
+PostgreSQL. The aggregate separates Core, Search, and GraphQL request counts,
+GraphQL points, exact-response cache hits, quota preflights, wall time, output
+bytes, transport bytes, success/failure counts, and a bounded failure class.
+These private aggregates MAY be exposed to authorized operators for capacity
+calibration; they MUST NOT expose credentials, request bodies, response bodies,
+proof content, or arbitrary stderr.
+
 ### 5.4 Local-only collection
 
 A separately admitted local-only lane MAY query an already published canonical
@@ -189,6 +229,21 @@ One unit MUST be durably consumed before every uncached REST, Search, artifact,
 or GraphQL request. Cached reads consume no new unit. A failed request MAY
 remain counted, but no request may execute before its count is persisted.
 Git transport remains under separate bounded immutable-object controls.
+
+Shared response reuse MUST remain bounded to one repository, installation, API
+origin, policy snapshot, and collection invocation. The bridge MUST validate
+the later collector's endpoint or GraphQL scope before reading the cache. It
+MUST NOT cache transport failures, responses without authoritative quota
+metadata, GraphQL results with errors or unverified point cost, or HTTP server
+errors. Cache saturation MUST reduce reuse rather than fail collection or
+silently widen memory.
+
+Hosted fleet scheduling MUST preserve installation boundaries in addition to
+repository leases. Due repositories SHOULD be interleaved across installations,
+and one worker process MUST NOT run more than one remote Value acquisition at a
+time for the same installation. Global worker parallelism remains bounded, and
+the shared quota services remain authoritative even when multiple worker
+processes or replicas are present.
 
 Hosted collectors MUST keep installation credentials outside the collector
 process and forward requests only through the repository-confined shared quota

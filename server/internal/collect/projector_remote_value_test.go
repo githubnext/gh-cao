@@ -20,6 +20,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/operational"
+	"github.com/githubnext/gh-cao/server/internal/postgresx"
 )
 
 func TestRemoteValueGraphQueryMatchesFrozenReviewedGenerator(t *testing.T) {
@@ -155,6 +156,50 @@ func TestRemoteValueRepositoriesReviewedPolicyCacheAndEnrollment(t *testing.T) {
 	}
 }
 
+func TestRemoteValueTargetsRoundRobinInstallations(t *testing.T) {
+	got := roundRobinRemoteValueTargets([]remoteValueTarget{
+		{Repository: "octo/a", Installation: 1},
+		{Repository: "octo/b", Installation: 1},
+		{Repository: "hub/c", Installation: 2},
+		{Repository: "hub/d", Installation: 2},
+		{Repository: "solo/e", Installation: 3},
+	})
+	want := []remoteValueTarget{
+		{Repository: "octo/a", Installation: 1},
+		{Repository: "hub/c", Installation: 2},
+		{Repository: "solo/e", Installation: 3},
+		{Repository: "octo/b", Installation: 1},
+		{Repository: "hub/d", Installation: 2},
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf("round robin targets=%+v", got)
+	}
+}
+
+func TestRemoteValueAcquisitionPlanSharesOnlyReviewedCommonGitHubRequirements(t *testing.T) {
+	shared := remoteValueRequirement{
+		Source: "github", Pool: "core", Primitive: "github.repository-metadata.v1",
+		Scope: "repository", Cache: "invocation",
+	}
+	plan := compileRemoteValueAcquisitionPlan([]remoteValueEntry{
+		{Workflow: "one", Acquisition: &remoteValueAcquisition{Requirements: []remoteValueRequirement{
+			shared,
+			{Source: "git", Pool: "git", Primitive: "git.commit-inventory.v1", Scope: "source", Cache: "immutable"},
+		}}},
+		{Workflow: "two", Acquisition: &remoteValueAcquisition{Requirements: []remoteValueRequirement{shared}}},
+		{Workflow: "legacy"},
+	})
+	id := remoteValueRequirementID(shared)
+	if id != "f2ef7a7b2549d6403c6be2b24bdb1cd38bc71c94589f1bf8c09ebc0c49c7acb5" {
+		t.Fatalf("cross-runtime requirement ID = %q", id)
+	}
+	if len(plan.Requirements) != 2 || len(plan.Shared["one"]) != 1 || len(plan.Shared["two"]) != 1 ||
+		plan.Shared["one"][id] != shared || plan.Shared["two"][id] != shared ||
+		len(plan.Shared["legacy"]) != 0 {
+		t.Fatalf("compiled acquisition plan = %+v", plan)
+	}
+}
+
 func TestRemoteValueAPIEnforcesEveryResourceAndRequestCap(t *testing.T) {
 	b := volatileBackfill(t)
 	backend := b.Enrollment.Metadata.(operational.GitHubQuotaStore)
@@ -162,6 +207,7 @@ func TestRemoteValueAPIEnforcesEveryResourceAndRequestCap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	search, err := githubquota.New(backend, githubquota.Options{SafetyReserve: 1})
 	if err != nil {
 		t.Fatal(err)
@@ -234,6 +280,82 @@ func TestRemoteValueAPIEnforcesEveryResourceAndRequestCap(t *testing.T) {
 	}
 	if len(requests) != 2 {
 		t.Fatalf("expected exactly two metered upstream calls, got %v", requests)
+	}
+	if total, coreRequests, searchRequests, graphQLRequests, _, _, _, _, _ := api.costUsage(); total != 2 || coreRequests != 1 || searchRequests != 1 || graphQLRequests != 0 {
+		t.Fatalf("request pools were not retained: total=%d core=%d search=%d graphql=%d",
+			total, coreRequests, searchRequests, graphQLRequests)
+	}
+}
+
+func TestRemoteValueAPICoalescesExactReadsAcrossReviewedCollectors(t *testing.T) {
+	b := volatileBackfill(t)
+	quota, err := githubquota.New(b.Enrollment.Metadata.(operational.GitHubQuotaStore),
+		githubquota.Options{SafetyReserve: 1000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reset := time.Now().Add(time.Hour).Truncate(time.Second)
+	if err := quota.Observe(t.Context(), githubquota.BucketID{App: "github-app-1", Installation: 7},
+		githubquota.Observation{Limit: 5000, Remaining: 4000, ResetAt: reset}); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	upstream := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		calls++
+		writer.Header().Set("X-RateLimit-Resource", "core")
+		writer.Header().Set("X-RateLimit-Limit", "5000")
+		writer.Header().Set("X-RateLimit-Remaining", strconv.Itoa(4000-calls))
+		writer.Header().Set("X-RateLimit-Reset", strconv.FormatInt(reset.Unix(), 10))
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(writer, `{"full_name":"octo/api"}`)
+	}))
+	defer upstream.Close()
+	base, _ := url.Parse(upstream.URL)
+	cache := newRemoteValueResponseCache()
+	requirement := remoteValueRequirement{
+		Source: "github", Pool: "core", Primitive: "github.repository-metadata.v1",
+		Scope: "repository", Cache: "invocation",
+	}
+	requirementID := remoteValueRequirementID(requirement)
+	shared := map[string]remoteValueRequirement{requirementID: requirement}
+	first := &remoteValueAPI{client: upstream.Client(), quota: quota, searchQuota: quota,
+		app: "github-app-1", installation: 7, repository: "octo/api",
+		base: base, token: "private-token", max: 1, cache: cache, sharedRequirements: shared}
+	second := &remoteValueAPI{client: upstream.Client(), quota: quota, searchQuota: quota,
+		app: "github-app-1", installation: 7, repository: "octo/api",
+		base: base, token: "private-token", max: 1, cache: cache, sharedRequirements: shared}
+	for _, api := range []*remoteValueAPI{first, second} {
+		content, _, status, err := api.request(t.Context(), "repos/octo/api", requirementID)
+		if err != nil || status != http.StatusOK || string(content) != `{"full_name":"octo/api"}` {
+			t.Fatalf("shared request failed: status=%d content=%s err=%v", status, content, err)
+		}
+	}
+	if calls != 1 {
+		t.Fatalf("exact shared read reached GitHub %d times", calls)
+	}
+	if sent, _ := first.usage(); sent != 1 {
+		t.Fatalf("first collector metered requests = %d", sent)
+	}
+	if sent, _ := second.usage(); sent != 0 {
+		t.Fatalf("cached collector metered requests = %d", sent)
+	}
+	if _, _, _, _, hits, _, _, _, _ := second.costUsage(); hits != 1 {
+		t.Fatalf("cached collector did not retain its cache hit: %d", hits)
+	}
+	other := remoteValueRequirement{
+		Source: "github", Pool: "core", Primitive: "github.pull-metadata-files.v1",
+		Scope: "outputs", Cache: "invocation",
+	}
+	otherID := remoteValueRequirementID(other)
+	isolated := &remoteValueAPI{client: upstream.Client(), quota: quota, searchQuota: quota,
+		app: "github-app-1", installation: 7, repository: "octo/api",
+		base: base, token: "private-token", max: 1, cache: cache,
+		sharedRequirements: map[string]remoteValueRequirement{otherID: other}}
+	if _, _, _, err := isolated.request(t.Context(), "repos/octo/api", otherID); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 2 {
+		t.Fatalf("different reviewed requirements shared one response: calls=%d", calls)
 	}
 }
 
@@ -387,11 +509,19 @@ func TestRemoteValueGraphQLReservesUpperBoundCommitsObservedCost(t *testing.T) {
 	}))
 	defer upstream.Close()
 	base, _ := url.Parse(upstream.URL)
+	requirement := remoteValueRequirement{
+		Source: "github", Pool: "graphql", Primitive: "github.issue-pull-relationships.v1",
+		Scope: "outputs", Cache: "invocation",
+	}
+	requirementID := remoteValueRequirementID(requirement)
+	shared := map[string]remoteValueRequirement{requirementID: requirement}
+	cache := newRemoteValueResponseCache()
 	api := &remoteValueAPI{client: upstream.Client(), quota: quota, searchQuota: quota,
 		app: "github-app-1", installation: 7, repository: "octo/api",
-		base: base, token: "private-installation-token", max: 2}
+		base: base, token: "private-installation-token", max: 2,
+		cache: cache, sharedRequirements: shared}
 	query := remoteValueExpectedGraphQuery("octo/api", []int{5})
-	body, err := api.graphQL(t.Context(), query)
+	body, err := api.graphQL(t.Context(), query, requirementID)
 	if err != nil || !strings.Contains(string(body), `"cost":3`) {
 		t.Fatalf("GraphQL result: %v %s", err, body)
 	}
@@ -405,8 +535,22 @@ func TestRemoteValueGraphQLReservesUpperBoundCommitsObservedCost(t *testing.T) {
 	if sent, _ := api.usage(); sent != 2 {
 		t.Fatalf("GraphQL preflight cost was not accounted: %d", sent)
 	}
-	if _, _, points, unverified, _ := api.costUsage(); points != 3 || unverified != 0 {
-		t.Fatalf("actual GraphQL point cost was not retained: points=%d unverified=%d", points, unverified)
+	if total, coreRequests, _, graphQLRequests, _, _, points, unverified, _ := api.costUsage(); total != 2 || coreRequests != 1 || graphQLRequests != 1 || points != 3 || unverified != 0 {
+		t.Fatalf("actual GraphQL cost was not retained: total=%d core=%d graphql=%d points=%d unverified=%d",
+			total, coreRequests, graphQLRequests, points, unverified)
+	}
+	second := &remoteValueAPI{client: upstream.Client(), quota: quota, searchQuota: quota,
+		app: "github-app-1", installation: 7, repository: "octo/api",
+		base: base, token: "private-installation-token", max: 1,
+		cache: cache, sharedRequirements: shared}
+	if _, err := second.graphQL(t.Context(), query, requirementID); err != nil {
+		t.Fatalf("reviewed GraphQL cache hit failed: %v", err)
+	}
+	if len(paths) != 2 {
+		t.Fatalf("reviewed GraphQL cache hit reached upstream: %v", paths)
+	}
+	if sent, _ := second.usage(); sent != 0 {
+		t.Fatalf("reviewed GraphQL cache hit consumed request grant: %d", sent)
 	}
 	if runtime.GOOS == "linux" {
 		api.max = 3
@@ -425,6 +569,13 @@ func TestRemoteValueGraphQLReservesUpperBoundCommitsObservedCost(t *testing.T) {
 		output, err := command.CombinedOutput()
 		if err != nil || !strings.Contains(string(output), `"cost":3`) || len(paths) != 3 {
 			t.Fatalf("GraphQL gh wrapper bypassed metered host request: %v %s paths=%v", err, output, paths)
+		}
+		command = exec.CommandContext(t.Context(), "node", script, "api", "graphql", "-f", "query="+query) // #nosec G204 -- fixed bridge script and generated test query.
+		command.Env = []string{"PATH=" + os.Getenv("PATH"), "GH_TOKEN=remote-value-proxy-only",
+			"CAO_REMOTE_VALUE_SOCKET=" + socket, "CAO_VALUE_ACQUISITION_REQUIREMENT=" + requirementID}
+		output, err = command.CombinedOutput()
+		if err != nil || !strings.Contains(string(output), `"cost":3`) || len(paths) != 3 {
+			t.Fatalf("reviewed GraphQL gh wrapper cache miss: %v %s paths=%v", err, output, paths)
 		}
 	}
 }
@@ -473,7 +624,7 @@ func TestRemoteValueGraphQLUnknownOrUnverifiableCostFailsClosed(t *testing.T) {
 	if err != nil || state.Reserved != 2*remoteValueGraphPoints {
 		t.Fatalf("unverifiable cost released a shared reservation: %+v %v", state, err)
 	}
-	if _, _, points, unverified, _ := api.costUsage(); points != 0 || unverified != 2 {
+	if _, _, _, _, _, _, points, unverified, _ := api.costUsage(); points != 0 || unverified != 2 {
 		t.Fatalf("unknown GraphQL point cost was reported as zero: points=%d unverified=%d", points, unverified)
 	}
 }
@@ -650,32 +801,11 @@ func TestRemoteValueDefersWithoutHostedServices(t *testing.T) {
 	}
 }
 
-func TestRemoteValueWorkspaceProofPreservedAndWithdrawn(t *testing.T) {
+func TestRemoteValueWorkspaceWithdrawn(t *testing.T) {
 	projector := Projector{Lake: Lake{Directory: t.TempDir()}}
 	root, err := projector.remoteValueWorkspace(t.Context(), "octo/api", "my-workflow")
 	if err != nil {
 		t.Fatal(err)
-	}
-	old := filepath.Join(root, "latest")
-	if err := os.Mkdir(old, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(old, "proof"), []byte("accepted"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	invocation := filepath.Join(root, "attempt")
-	if err := os.Mkdir(invocation, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := copyRemoteValueProof(old, filepath.Join(invocation, "latest"), 1024); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(invocation, "latest", "proof"), []byte("failed"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	content, err := os.ReadFile(filepath.Join(old, "proof")) // #nosec G304 -- fixed proof filename beneath t.TempDir.
-	if err != nil || string(content) != "accepted" {
-		t.Fatalf("failed collector modified previous proof: %s %v", content, err)
 	}
 	if err := projector.ForgetRemoteValueWorkspace(t.Context(), "octo/api"); err != nil {
 		t.Fatal(err)
@@ -697,7 +827,7 @@ func TestRemoteValueWorkspaceRejectsUnconfiguredOrRelativeLake(t *testing.T) {
 	}
 }
 
-func TestRemoteValueProofCopyConfinesFilesAndByteBudget(t *testing.T) {
+func TestRemoteValueProofReadConfinesFilesAndByteBudget(t *testing.T) {
 	for _, scenario := range []string{"nested", "oversized", "symlink"} {
 		t.Run(scenario, func(t *testing.T) {
 			source := t.TempDir()
@@ -707,56 +837,29 @@ func TestRemoteValueProofCopyConfinesFilesAndByteBudget(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(source, "nested", "proof"), []byte("proof"), 0o600); err != nil {
 				t.Fatal(err)
 			}
-			budget := int64(5)
 			switch scenario {
 			case "oversized":
-				budget = 4
+				if err := os.WriteFile(filepath.Join(source, "large"), make([]byte, postgresx.ValueProofFileMax+1), 0o600); err != nil {
+					t.Fatal(err)
+				}
 			case "symlink":
 				if err := os.Symlink(t.TempDir(), filepath.Join(source, "escape")); err != nil {
 					t.Fatal(err)
 				}
 			}
-			destination := filepath.Join(t.TempDir(), "latest")
-			err := copyRemoteValueProof(source, destination, budget)
+			files, err := readRemoteValueProof(source)
 			if scenario != "nested" {
 				if err == nil {
-					t.Fatal("unsafe or oversized proof was copied")
+					t.Fatal("unsafe or oversized proof was accepted")
 				}
 				return
 			}
 			if err != nil {
 				t.Fatal(err)
 			}
-			content, err := os.ReadFile(filepath.Join(destination, "nested", "proof")) // #nosec G304 -- fixed copied proof beneath t.TempDir.
-			if err != nil || string(content) != "proof" {
-				t.Fatalf("nested proof was not preserved: %s %v", content, err)
+			if len(files) != 1 || files[0].Path != "nested/proof" || string(files[0].Content) != "proof" {
+				t.Fatalf("nested proof was not preserved: %+v", files)
 			}
 		})
-	}
-}
-
-func TestRemoteValueCostRetainsBoundedRecentAndTotals(t *testing.T) {
-	directory := t.TempDir()
-	if err := appendRemoteValueCost(directory, remoteValueCost{FailureReason: "private command output"}); err == nil {
-		t.Fatal("unbounded remote Value failure reason was retained")
-	}
-	for range 40 {
-		if err := appendRemoteValueCost(directory, remoteValueCost{
-			APIRequests: 2, PreflightRequests: 1, GraphQLPointsObserved: 3,
-			GraphQLRequestsUnverified: 1, WallMs: 3, OutputBytes: 4, TransportBytes: 5,
-			FailureReason: "timeout",
-		}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	content, err := os.ReadFile(filepath.Join(directory, "collection-cost.json")) // #nosec G304 -- fixed cost filename beneath t.TempDir.
-	if err != nil || !strings.Contains(string(content), `"attempts":40`) ||
-		!strings.Contains(string(content), `"apiRequests":80`) ||
-		!strings.Contains(string(content), `"preflightRequests":40`) ||
-		!strings.Contains(string(content), `"graphqlPointsObserved":120`) ||
-		!strings.Contains(string(content), `"graphqlRequestsUnverified":40`) ||
-		!strings.Contains(string(content), `"transportBytes":200`) ||
-		!strings.Contains(string(content), `"failureReason":"timeout"`) {
-		t.Fatalf("remote Value cost totals lost: %s %v", content, err)
 	}
 }

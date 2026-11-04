@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const MaxEvidencePackets = 32
+const MaxEvidencePackets = 20000
 const MaxEvidenceBytes = 16 << 20
 const MaxEvidenceFacts = 20000
 

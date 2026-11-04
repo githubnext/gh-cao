@@ -4,7 +4,10 @@ import { existsSync, statSync } from 'node:fs';
 import { mkdtemp, readFile, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { refreshFileDiet } from '../skills/add-operational-value/examples/acquire-file-diet.mjs';
+import {
+  fileDietAcquisitionRequirements,
+  refreshFileDiet,
+} from '../skills/add-operational-value/examples/acquire-file-diet.mjs';
 import { readFileDietProof } from '../skills/add-operational-value/examples/daily-file-diet.mjs';
 import { assertValueHistory } from '../../activity/workflow-value-history.mjs';
 import { validateOperationalValueEvidence } from '../../dashboard/site/src/data/model/operational-value-evidence.js';
@@ -17,6 +20,9 @@ export const definition = {
   sourcePath: '.github/workflows/daily-file-diet.md',
   adoption: { commit: '1186030a620f4113f655c156bedf70cf2c164f79', adoptedAt: '2025-11-15T13:36:21Z' },
   evidence: { repositories: ['github/gh-aw'], window: { cadenceDays: 1, maturationDays: 0 } },
+  acquisition: {
+    requirements: fileDietAcquisitionRequirements,
+  },
 };
 
 const executeFile = promisify(execFile);

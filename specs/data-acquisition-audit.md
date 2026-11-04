@@ -267,6 +267,14 @@ The direct activity client retries 403 and 429 responses only when the advertise
 
 ## 7. Recommendations
 
+`gh cao api-cost` now turns the request families in this audit into executable
+capacity scenarios. The built-in Daily File Diet profile distinguishes retained
+incremental work from source-level hard bounds and reports core, Search,
+GraphQL, reviewed-grant, and runner bottlenecks separately. New acquisition
+paths should add a profile or checked-in scenario governed by
+`specs/github-api-capacity.md`; the audit remains the human inventory and the
+simulator provides reproducible arithmetic.
+
 1. **~~Replace fixed completion polling with bounded backoff.~~ (Implemented)** The dashboard builder and publisher now run in one workflow, eliminating the dispatch and completion-polling path.
 2. **Make the activity snapshot the reusable run-data boundary.** Persist a bounded raw gh-aw log cache beside derived AIC data, with repository, time-window, completeness, and credential-scope metadata. Permit consumers to reuse it only when those bounds satisfy their request.
 3. **Increment durable-record collection.** Retain per-repository update watermarks, request only changed issues/comments, and periodically perform a bounded reconciliation scan. Preserve the prior snapshot when completeness cannot be proven.

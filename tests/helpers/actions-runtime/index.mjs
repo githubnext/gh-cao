@@ -113,7 +113,7 @@ export function compile(workspace, workflows) {
   symlinkSync(join(harness, "compile-gh.mjs"), join(bin, "gh"));
   run("git", ["init", "--quiet", "--initial-branch=main"], { cwd: workspace });
   run("git", ["remote", "add", "origin", "https://github.com/simulator/repo-00001.git"], { cwd: workspace });
-  run("git", ["add", ".github"], { cwd: workspace });
+  run("git", ["add", ".github", "activity/value-acquisition.mjs"], { cwd: workspace });
   run("git", ["-c", "user.name=Actions simulator", "-c", "user.email=simulator@example.invalid",
     "commit", "--quiet", "--no-gpg-sign", "-m",
     "Synthetic workflow revision\n\nCo-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>"], { cwd: workspace });
@@ -176,8 +176,10 @@ export function simulate({ workspace, workflow, event, eventName = "repository_d
 
 export function fixture(workspace) {
   mkdirSync(join(workspace, ".github/workflows"), { recursive: true });
+  mkdirSync(join(workspace, "activity"), { recursive: true });
   cpSync(join(root, "tests/fixtures/actions-runtime/sample.md"), join(workspace, ".github/workflows/sample.md"));
   cpSync(join(root, "tests/fixtures/actions-runtime/cao.md"), join(workspace, ".github/workflows/cao.md"));
   cpSync(join(root, "tests/fixtures/actions-runtime/cao.json"), join(workspace, ".github/workflows/cao.json"));
+  cpSync(join(root, "activity/value-acquisition.mjs"), join(workspace, "activity/value-acquisition.mjs"));
   cpSync(join(root, ".github/workflows/shared"), join(workspace, ".github/workflows/shared"), { recursive: true });
 }

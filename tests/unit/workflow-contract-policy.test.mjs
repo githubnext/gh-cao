@@ -387,8 +387,8 @@ test("control workflows deny before activation through one shared admission cont
   assert.match(sharedControl, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7\.0\.1/);
   assert.match(sharedControl, /ref: \$\{\{ github\.workflow_sha \}\}/);
   assert.match(sharedControl, /path: \.cao\n/);
-  assert.match(sharedControl, /sparse-checkout: \.github/);
-  assert.match(sharedControl, /sparse-checkout-cone-mode: true/);
+  assert.match(sharedControl, /sparse-checkout: \|\n\s+\.github\/\n\s+\/activity\/value-acquisition\.mjs/);
+  assert.match(sharedControl, /sparse-checkout-cone-mode: false/);
   assert.match(sharedControl, /fetch-depth: 1/);
   assert.doesNotMatch(sharedControl, /gh api --method GET "repos\/\$\{GITHUB_REPOSITORY\}\/contents\/\.github\/cao\/src/);
   assert.doesNotMatch(sharedControl, /base64\s+(?:-d|--decode)/);

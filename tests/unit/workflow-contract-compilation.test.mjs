@@ -93,7 +93,8 @@ test("clean-room compilation emits the expected GitHub Actions settings", { time
       assert.match(preActivation, /actions: read/);
       assert.match(preActivation, /name: Evaluate Central Agentic Ops admission/);
       assert.match(preActivation, /name: Checkout CAO control modules/);
-      assert.match(preActivation, /sparse-checkout: \.github/);
+      assert.match(preActivation, /sparse-checkout: \|\n\s+\.github\/\n\s+\/activity\/value-acquisition\.mjs/);
+      assert.match(preActivation, /sparse-checkout-cone-mode: false/);
       assert.match(preActivation, /name: Resolve CAO control runtime/);
       assert.match(preActivation, /\.cao\/\.github\/workflows\/shared\/control\.mjs/);
       assert.doesNotMatch(preActivation, /name: Checkout installed CAO control source|\.cao-runtime|# Source: /);

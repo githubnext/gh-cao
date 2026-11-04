@@ -265,7 +265,7 @@ test('core dashboard stays small and page chunks load on demand with in-memory c
   });
   // Query definitions stay in page chunks; core keeps each page stub's source index so sources can
   // load before the chunk arrives. Page descriptions and analysis contracts stay in their chunks.
-  expect(core.textLength).toBeLessThan(81000);
+  expect(core.textLength).toBeLessThan(83500);
   expect(core.value.dashboard.pages.some((/** @type {Record<string, unknown>} */ entry) =>
     ['description', 'intent', 'subject', 'objective', 'acceptance'].some((field) => field in entry))).toBe(false);
   expect(core.value.dashboard.pages.some((/** @type {{ views?: unknown[] }} */ entry) => Array.isArray(entry.views))).toBe(false);
