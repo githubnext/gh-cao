@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-03T22:52:19Z",
-      "worker_run_id": "41734093350",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        41733658881,
-        41731477412,
-        41729222049,
-        41728674060,
-        41727072325,
-        41724788678,
-        41722555922,
-        41720239811,
-        41719631654,
-        41717902074,
-        41715586192,
-        41713252661,
-        41710926653,
-        41710712903,
-        41708710647,
-        41706285193,
-        41704653976,
-        41703992090,
-        41701687404,
-        41700538960
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-03T19:09:00Z to 2026-11-03T22:46:30Z) was within 14 days and contained 17 successful runs (15 freshness-only schedules and two full build-and-deploy runs), two skipped workflow_run callbacks, and one cancelled push. All successful runs used source SHA f5acee05a2a514a651702026e1a57fb4a50a3712; the cancelled push used efef71607f4ed57255b24fd3e5799b45a5342de1 and was excluded. Trusted Actions job metadata verified that only workflow_run 41704653976 and schedule run 41701687404 completed the full build-and-deploy path, below the required five comparable successful runs. Their workflow wall times were 778 and 233 seconds; initial queue times were 4 and 14 seconds; build jobs were 742 and 138 seconds; deploy jobs were 12 and 67 seconds. docs.yml has no separate dashboard job. The remaining successful runs executed schedule-freshness and skipped build and deploy; run 41706285193 also had a long queue/concurrency wait before its six-second freshness job. Because only two comparable full runs remain in the current window, the required timing distributions, bounded artifact-transfer and Pages-packaging step analysis, and current cache hit/miss verification cannot support a complete evaluation or an actionable recommendation meeting the 60-second or 15% threshold. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-03T23:16:06Z",
       "worker_run_id": "41737406934",
       "category": "artifact transfer and Pages packaging",
@@ -778,6 +750,34 @@
         41778046027
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T05:14:33Z to 2026-11-04T08:46:37Z) was within 14 days and contained 16 successful runs (15 freshness-only schedules and one full push build-and-deploy) and four skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs 440542eed455af3173bee7e83167048a36f8e23f and 172d8fb95fe34402e6f3dc26cee32b9b094d3fbd. Trusted Actions job metadata for the newest schedule, together with retained trusted evidence for the overlapping window, verified that only push run 41793921169 completed the full build-and-deploy path, below the required five comparable successful runs. It took 140 seconds wall-clock, queued 3 seconds before build, ran build for 88 seconds, and ran deploy for 45 seconds; docs.yml has no separate dashboard job. Dependency installation took 21 seconds, Astro documentation generation 15 seconds, dashboard cache restore 3 seconds, Pages artifact upload 19 seconds, and Deploy Pages 42 seconds. The dashboard cache hit was verified because cache-miss-only lookup and artifact-download steps were skipped. Across the 15 freshness-only schedules, workflow wall time had a 15-second median and 16-second nearest-rank p90. With only one comparable full run, the required full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer and Pages-packaging analysis cannot be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-04T09:19:33Z",
+      "worker_run_id": "41806134744",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        41806356941,
+        41805932040,
+        41804050048,
+        41802074876,
+        41800155191,
+        41798781008,
+        41798541457,
+        41796383342,
+        41794580910,
+        41793921169,
+        41792810206,
+        41791261989,
+        41790962116,
+        41789406548,
+        41787724894,
+        41786583414,
+        41785429811,
+        41785172575,
+        41782838956,
+        41781272710
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T05:46:14Z to 2026-11-04T09:18:28Z) was within 14 days and contained 16 successful runs (15 freshness-only schedules and one full push build-and-deploy) and four skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs 440542eed455af3173bee7e83167048a36f8e23f and 172d8fb95fe34402e6f3dc26cee32b9b094d3fbd. Trusted Actions job metadata for the two newest schedules, together with retained trusted evidence for the 18 overlapping runs, verified that only push run 41793921169 completed the full build-and-deploy path, below the required five comparable successful runs. It took 140 seconds wall-clock, queued 3 seconds before build, ran build for 88 seconds, and ran deploy for 45 seconds; docs.yml has no separate dashboard job. Dependency installation took 21 seconds, Astro documentation generation 15 seconds, dashboard cache restore 3 seconds, Pages artifact upload 19 seconds, and Deploy Pages 42 seconds. The dashboard cache hit was verified because cache-miss-only lookup and artifact-download steps were skipped. The two newest schedules took 15 seconds wall-clock each, queued 4 seconds each, ran schedule-freshness for 11 and 10 seconds, and skipped build and deploy. With only one comparable full run, the required full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer and Pages-packaging analysis cannot be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
