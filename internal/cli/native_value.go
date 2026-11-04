@@ -72,6 +72,10 @@ func nativeValuePublish(cmd *cobra.Command, args []string) error {
 }
 
 func nativeValueEndpoint(raw string) (*url.URL, bool, error) {
+	return nativeServerEndpoint(raw, "/api/v1/value")
+}
+
+func nativeServerEndpoint(raw, endpoint string) (*url.URL, bool, error) {
 	invalid := errors.New("--server requires an HTTPS base URL without credentials, query, fragment, or ambiguous path (HTTP is allowed only on loopback)")
 	target, err := url.Parse(raw)
 	if err != nil || target.Host == "" || target.Opaque != "" || target.User != nil ||
@@ -99,7 +103,7 @@ func nativeValueEndpoint(raw string) (*url.URL, bool, error) {
 	if base != "" && (path.Clean(base) != base || !strings.HasPrefix(base, "/")) {
 		return nil, false, invalid
 	}
-	target.Path = base + "/api/v1/value"
+	target.Path = base + endpoint
 	return target, local, nil
 }
 

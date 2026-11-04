@@ -10,6 +10,10 @@ import { adaptCachedGhAwJsonl } from '../../dashboard/site/src/data/adapters/gh-
 import { normalize } from '../../dashboard/site/src/data/normalize/index.js';
 import { localValuePlan, retainLocalValues } from '../../activity/local-values.mjs';
 import { workflowValueApiHeadroom } from '../../activity/workflow-value-status.mjs';
+import {
+  compileValueAcquisitionPlan, normalizeValueAcquisition, valueAcquisitionDigest,
+  valueAcquisitionRequirementId,
+} from '../../activity/value-acquisition.mjs';
 
 async function collection(options) {
   return JSON.parse(await readFile(options.output.replace(/\.jsonl$/, '-collections.jsonl'), 'utf8')).workflow_value_collection;
@@ -87,6 +91,15 @@ test('reviewed opt-ins intersect both effective Activity enrollment and explicit
     invalid['control-plane'].campaigns.activity['workflow-values'][0] = { ...entry, 'api-requests': requests };
     assert.throws(() => parsePolicy(JSON.stringify(invalid)));
   }
+  for (const acquisition of [
+    { requirements: [] },
+    { requirements: [{ source: 'github', pool: 'local', primitive: 'github.repository.v1', scope: 'repository', cache: 'invocation' }] },
+    { requirements: [{ source: 'github', pool: 'core', primitive: 'UPPER', scope: 'repository', cache: 'invocation' }] },
+  ]) {
+    const invalid = policy();
+    invalid['control-plane'].campaigns.activity['workflow-values'][0] = { ...entry, acquisition };
+    assert.throws(() => parsePolicy(JSON.stringify(invalid)));
+  }
   const withoutCollector = policy();
   withoutCollector['control-plane'].campaigns.activity['workflow-values'][0] = {
     repository: entry.repository, workflow: entry.workflow, 'api-requests': 1,
@@ -95,6 +108,49 @@ test('reviewed opt-ins intersect both effective Activity enrollment and explicit
   const duplicate = policy();
   duplicate['control-plane'].campaigns.activity['workflow-values'] = [entry, { ...entry, repository: 'ORG/REPO' }];
   assert.throws(() => parsePolicy(JSON.stringify(duplicate)), /duplicate/);
+});
+
+test('acquisition plans canonicalize and union shared repository requirements', () => {
+  const shared = {
+    source: 'github', pool: 'core', primitive: 'github.repository-metadata.v1',
+    scope: 'repository', cache: 'invocation',
+  };
+  const acquisition = normalizeValueAcquisition({ requirements: [
+    { source: 'git', pool: 'git', primitive: 'git.commit-inventory.v1', scope: 'source', cache: 'immutable' },
+    shared,
+  ] });
+  assert.deepEqual(acquisition.requirements.map(({ primitive }) => primitive), [
+    'git.commit-inventory.v1', 'github.repository-metadata.v1',
+  ]);
+  assert.match(valueAcquisitionDigest(acquisition), /^[a-f0-9]{64}$/);
+  assert.equal(valueAcquisitionRequirementId(shared),
+    'f2ef7a7b2549d6403c6be2b24bdb1cd38bc71c94589f1bf8c09ebc0c49c7acb5');
+  assert.deepEqual(compileValueAcquisitionPlan([
+    { repository: 'ORG/REPO', workflow: 'one', acquisition },
+    { repository: 'org/repo', workflow: 'two', acquisition: { requirements: [shared] } },
+  ]), [
+    {
+      repository: 'org/repo', source: 'git', pool: 'git', primitive: 'git.commit-inventory.v1',
+      scope: 'source', cache: 'immutable', workflows: ['one'],
+    },
+    { repository: 'org/repo', ...shared, workflows: ['one', 'two'] },
+  ]);
+});
+
+test('collector acquisition requirements must match the reviewed registration exactly', async t => {
+  const options = await fixture(t);
+  const document = policy();
+  document['control-plane'].campaigns.activity['workflow-values'][0].acquisition = {
+    requirements: [{
+      source: 'github', pool: 'core', primitive: 'github.repository-metadata.v1',
+      scope: 'repository', cache: 'invocation',
+    }],
+  };
+  await writeFile(options.policy, JSON.stringify(document));
+  const result = await runWorkflowValues(options);
+  assert.equal(result.collected, 0);
+  assert.equal(result.failed, 1);
+  assert.match(result.warnings[0], /previous evidence retained/);
 });
 
 test('dogfood File Diet registration pins existing effective Activity scope without adding targets', async () => {
@@ -108,14 +164,31 @@ test('dogfood File Diet registration pins existing effective Activity scope with
       [repository, `GH_AW_GITHUB_READ_PAT_${repository.split('/')[0].toUpperCase()}`]))) };
   assert.deepEqual(activityCollectionPlan(controlSettings(document, auth.controlRepository), auth),
     activityCollectionPlan(controlSettings(before, auth.controlRepository), auth));
-  assert.deepEqual(workflowValueRegistrations(document, ['github/gh-aw']), [{
+  const registrations = workflowValueRegistrations(document, ['github/gh-aw']);
+  assert.equal(registrations.length, 1);
+  assert.deepEqual({ ...registrations[0], acquisition: undefined }, {
     'api-requests': 700,
     repository: 'github/gh-aw', workflow: 'daily-file-diet', collector: '.github/value-collectors/daily-file-diet.mjs',
     evidence: {
       path: '.github/value-evidence/daily-file-diet.jsonl.gz',
       sha256: '9afaf3b49a02c1eda0c634016bae98bf0be0a5c1b63f1ae6c6353b151301d19e',
     },
-  }]);
+    acquisition: undefined,
+  });
+  assert.equal(registrations[0].acquisition.requirements.length, 11);
+  assert.deepEqual(registrations[0].acquisition.requirements
+    .filter(requirement => requirement.source === 'github')
+    .map(requirement => requirement.primitive).toSorted(), [
+    'github.actions-artifact-receipts.v1',
+    'github.actions-run-provenance.v1',
+    'github.issue-pull-relationships.v1',
+    'github.issue-search.v1',
+    'github.issue-timeline.v1',
+    'github.pull-metadata-files.v1',
+    'github.repository-commit-history.v1',
+    'github.repository-metadata.v1',
+    'github.workflow-source-history.v1',
+  ]);
   assert.equal(control.campaigns.dashboard.deploy, false);
   assert.equal(workflowValueApiHeadroom(document, ['github/gh-aw']), 700);
   assert.equal(workflowValueApiHeadroom(document, ['githubnext/gh-cao']), 0);

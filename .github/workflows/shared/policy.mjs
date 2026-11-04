@@ -1,6 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { AuthorityError as PolicyError, narrowLimit, resolveAuthority } from "./authority.mjs";
+import { normalizeValueAcquisition } from "../../../activity/value-acquisition.mjs";
 export { AuthorityError as PolicyError } from "./authority.mjs";
 
 const SCHEMA_URI = "https://raw.githubusercontent.com/githubnext/gh-cao/main/.github/workflows/shared/cao.schema.json";
@@ -821,7 +822,7 @@ function validateOperationPolicies(campaigns, collection = "campaigns") {
       const identities = new Set();
       for (const entry of campaignPolicy["workflow-values"]) {
         assertMapping(entry, `${path}.workflow-values`);
-        assertKeys(entry, ["repository", "workflow", "collector", "evidence", "api-requests", "enabled"], `${path}.workflow-values`);
+        assertKeys(entry, ["repository", "workflow", "collector", "evidence", "api-requests", "enabled", "acquisition"], `${path}.workflow-values`);
         assertString(entry.repository, `${path}.repository`, REPOSITORY_PATTERN);
         assertString(entry.workflow, `${path}.workflow`, SLUG_PATTERN);
         if ("enabled" in entry) assertBoolean(entry.enabled, `${path}.enabled`);
@@ -838,6 +839,16 @@ function validateOperationPolicies(campaigns, collection = "campaigns") {
             throw new PolicyError(`${path}.evidence.path must be a confined reviewed evidence path`);
           }
           assertString(entry.evidence.sha256, `${path}.evidence.sha256`, /^[a-f0-9]{64}$/);
+        }
+        if ("acquisition" in entry) {
+          try {
+            normalizeValueAcquisition(entry.acquisition);
+          } catch (error) {
+            throw new PolicyError(`${path}.acquisition is invalid: ${error.message}`);
+          }
+          if (!("collector" in entry)) {
+            throw new PolicyError(`${path}.acquisition requires a collector`);
+          }
         }
         if (entry.enabled !== false || "collector" in entry) {
           assertString(entry.collector, `${path}.collector`, /^(?!\/)(?!.*(?:^|\/)\.\.?\/)[A-Za-z0-9._/-]+\.mjs$/);

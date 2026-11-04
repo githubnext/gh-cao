@@ -240,6 +240,17 @@ func nativeResolveOperands(value any, supplied map[string]any, container string)
 }
 
 func (c *nativeCatalog) runQuery(ctx context.Context, db *sql.DB, id string, parameters map[string]any, limit int) (map[string]any, error) {
+	return c.runQueryWithEvidenceSelections(ctx, db, id, parameters, limit, nil)
+}
+
+func (c *nativeCatalog) runQueryWithEvidenceSelections(
+	ctx context.Context,
+	db *sql.DB,
+	id string,
+	parameters map[string]any,
+	limit int,
+	evidenceSelections []dashboardquery.EvidenceSelection,
+) (map[string]any, error) {
 	id = strings.TrimSpace(id)
 	if c.index[id] == nil {
 		return nil, nativeErrorf("Unknown dashboard query: %s", id)
@@ -322,16 +333,22 @@ func (c *nativeCatalog) runQuery(ctx context.Context, db *sql.DB, id string, par
 			if err != nil && dailyFailure == nil {
 				dailyFailure = err
 			}
-		case strings.HasPrefix(source, "$"):
+		case source == "$operationalValueEvidence":
 			canonicalRead = true
-			otherCanonicalRead = otherCanonicalRead || source != "$operationalValueEvidence"
-			rows, err = readNativeCollection(ctx, db, strings.TrimPrefix(source, "$"))
-			if err == nil && source == "$operationalValueEvidence" {
+			if evidenceSelections == nil {
+				rows, err = readNativeCollection(ctx, db, "operationalValueEvidence")
+			} else {
+				rows, err = dashboardquery.ReadEvidencePackets(ctx, db, evidenceSelections)
+			}
+			if err == nil {
 				evidenceClocks, err = dashboardquery.OperationalValueEvidenceMetadata(rows)
 				if err == nil {
 					rows, err = dashboardquery.OperationalValueEvidenceRows(rows)
 				}
 			}
+		case strings.HasPrefix(source, "$"):
+			canonicalRead, otherCanonicalRead = true, true
+			rows, err = readNativeCollection(ctx, db, strings.TrimPrefix(source, "$"))
 		case source == "simulation-days":
 			rows = []map[string]any{}
 			for day := 1; day <= 30; day++ {

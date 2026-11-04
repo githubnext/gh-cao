@@ -2,7 +2,7 @@ import { createDebug } from '../../debug.js';
 import { repositoryCoordinateId, workflowCoordinateId } from './ids.js';
 
 const debugEvidence = createDebug('operational-value-evidence');
-export const EVIDENCE_READ_LIMITS = Object.freeze({ packets: 32, bytes: 16 * 1024 * 1024, facts: 20000 });
+export const EVIDENCE_READ_LIMITS = Object.freeze({ packets: 20000, bytes: 16 * 1024 * 1024, facts: 20000 });
 const kinds = new Set(['contract', 'intent-source', 'requirement', 'output', 'output-implementation',
   'output-evidence', 'implementation', 'implementation-evidence', 'implementation-lineage',
   'snapshot', 'snapshot-item', 'quality-check', 'coverage', 'limitation']);

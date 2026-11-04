@@ -94,15 +94,41 @@
         "title": { "field": "overview-title", "title": "Workflow" },
         "status": { "field": "trend-movement", "title": "Compared with goal" },
         "detail-labels": "visible",
-        "labels": [{ "field": "overview-state", "title": "Collection" }, { "field": "overview-evidence", "title": "Evidence" }],
+        "labels": [
+          { "field": "value-scope", "title": "Scope" },
+          { "field": "overview-state", "title": "Collection" },
+          { "field": "overview-evidence", "title": "Evidence" }
+        ],
         "details": [
+          { "field": "workflow-role", "title": "Workflow role" },
+          { "field": "campaign-name", "title": "Campaign" },
           { "field": "trend-label", "title": "Observed change" },
           { "field": "trend-measure", "title": "Measure" },
-          { "field": "overview-reason", "title": "Collection reason" }
+          { "field": "overview-reason", "title": "Collection reason" },
+          { "field": "attention-reason", "title": "Review basis" }
         ],
         "timing": [
           { "field": "overview-captured", "type": "temporal", "format": "human-friendly-timestamp", "title": "Evidence captured", "icon": "clock" },
           { "field": "overview-cutoff", "type": "temporal", "format": "human-friendly-timestamp", "title": "Evidence through", "icon": "calendar" }
+        ]
+      },
+      {
+        "id": "campaign-value-overview",
+        "icon": "goal",
+        "title": { "field": "campaign-name", "title": "Campaign" },
+        "status": { "field": "campaign-value-status", "title": "Value review" },
+        "detail-labels": "visible",
+        "labels": [
+          { "field": "value-deployments", "title": "Value deployments" },
+          { "field": "value-repositories", "title": "Repositories" }
+        ],
+        "details": [
+          { "field": "configured-deployments", "title": "Configured" },
+          { "field": "current-evidence-deployments", "title": "Current retained results" },
+          { "field": "unconfigured-deployments", "title": "Unconfigured" },
+          { "field": "deferred-deployments", "title": "Deferred" },
+          { "field": "failed-deployments", "title": "Failed" },
+          { "field": "review-deployments", "title": "Need review" }
         ]
       },
       {

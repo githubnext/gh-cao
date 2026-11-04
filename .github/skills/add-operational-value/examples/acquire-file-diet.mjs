@@ -21,6 +21,59 @@ const eligible = value => value.startsWith("pkg/") && value.endsWith(".go") && !
 const isInstant = value => typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(value)
   && Number.isFinite(Date.parse(value));
 
+const acquisition = {
+  repositoryMetadata: { source: "github", pool: "core", primitive: "github.repository-metadata.v1",
+    scope: "repository", cache: "invocation" },
+  workflowSourceHistory: { source: "github", pool: "core", primitive: "github.workflow-source-history.v1",
+    scope: "daily-file-diet", cache: "invocation" },
+  issueSearch: { source: "github", pool: "search", primitive: "github.issue-search.v1",
+    scope: "daily-file-diet-outputs", cache: "invocation" },
+  issueTimeline: { source: "github", pool: "core", primitive: "github.issue-timeline.v1",
+    scope: "daily-file-diet-outputs", cache: "invocation" },
+  issuePullRelationships: { source: "github", pool: "graphql", primitive: "github.issue-pull-relationships.v1",
+    scope: "daily-file-diet-outputs", cache: "invocation" },
+  actionsRunProvenance: { source: "github", pool: "core", primitive: "github.actions-run-provenance.v1",
+    scope: "daily-file-diet-outputs", cache: "invocation" },
+  actionsArtifactReceipts: { source: "github", pool: "core", primitive: "github.actions-artifact-receipts.v1",
+    scope: "daily-file-diet-outputs", cache: "invocation" },
+  pullMetadataFiles: { source: "github", pool: "core", primitive: "github.pull-metadata-files.v1",
+    scope: "daily-file-diet-outputs", cache: "invocation" },
+  repositoryCommitHistory: { source: "github", pool: "core", primitive: "github.repository-commit-history.v1",
+    scope: "daily-file-diet-snapshots", cache: "invocation" },
+  commitInventory: { source: "git", pool: "git", primitive: "git.commit-inventory.v1",
+    scope: "daily-file-diet-go-files", cache: "immutable" },
+  blobMeasurement: { source: "git", pool: "git", primitive: "git.blob-measurement.v1",
+    scope: "daily-file-diet-go-files", cache: "immutable" },
+};
+
+export const fileDietAcquisitionRequirements = Object.freeze(Object.values(acquisition));
+
+export function fileDietAcquisitionRequirement(endpoint, query) {
+  if (query || endpoint === "graphql") return acquisition.issuePullRelationships;
+  if (endpoint.startsWith("search/issues?")) return acquisition.issueSearch;
+  if (/^repos\/[\w.-]+\/[\w.-]+$/.test(endpoint)) return acquisition.repositoryMetadata;
+  if (/^repos\/[\w.-]+\/[\w.-]+\/commits\?path=/.test(endpoint)
+    || /^repos\/[\w.-]+\/[\w.-]+\/commits\/[a-f0-9]+$/.test(endpoint)) {
+    return acquisition.workflowSourceHistory;
+  }
+  if (/^repos\/[\w.-]+\/[\w.-]+\/commits\?until=/.test(endpoint)) {
+    return acquisition.repositoryCommitHistory;
+  }
+  if (/^repos\/[\w.-]+\/[\w.-]+\/issues\/\d+\/timeline\?/.test(endpoint)) {
+    return acquisition.issueTimeline;
+  }
+  if (/^repos\/[\w.-]+\/[\w.-]+\/actions\/runs\/\d+$/.test(endpoint)) {
+    return acquisition.actionsRunProvenance;
+  }
+  if (/^repos\/[\w.-]+\/[\w.-]+\/actions\/(?:runs\/\d+\/artifacts|artifacts\/\d+(?:\/zip)?)\b/.test(endpoint)) {
+    return acquisition.actionsArtifactReceipts;
+  }
+  if (/^repos\/[\w.-]+\/[\w.-]+\/pulls\/\d+(?:\/files\?)?/.test(endpoint)) {
+    return acquisition.pullMetadataFiles;
+  }
+  throw new Error(`Daily File Diet GitHub request lacks an acquisition requirement: ${endpoint}`);
+}
+
 export function acquireFileDietHistory(request, until, previous = null) {
   assert.ok(isInstant(until) && Date.parse(until) <= Date.now(), "A valid, non-future UTC cutoff is required");
   if (previous) {
@@ -262,7 +315,9 @@ export function refreshFileDiet({ endAt, previous, output, scratch }) {
   try {
     const prior = previous ? readFileDietProof(previous) : null;
     if (prior) assert.ok(Date.parse(prior.proof.until) <= Date.parse(endAt), "Cannot refresh to a historical endpoint");
-    const request = githubReader(path.join(work, "requests"));
+    const request = githubReader(path.join(work, "requests"), execFileSync, {
+      requirementFor: fileDietAcquisitionRequirement,
+    });
     const proof = acquireFileDietHistory(request, endAt, prior?.proof);
     if (prior) {
       assert.deepEqual(proof.adoption, prior.proof.adoption, "Frozen adoption identity changed");
