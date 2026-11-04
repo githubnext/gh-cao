@@ -2,6 +2,41 @@ import { assert, authoritativeDashboard, buildPresenterModuleUrl, expect, expect
 
 registerSmokeRoutes();
 
+for (const width of [1440, 390]) {
+  test(`Skills is a non-experimental Data destination at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.setContent(`
+      <div id="root"></div>
+      <script type="module">
+        import { renderDashboard } from ${JSON.stringify(buildPresenterModuleUrl())};
+        document.querySelector('#root').append(renderDashboard({
+          document: ${JSON.stringify(authoritativeDashboard)},
+          sources: {}
+        }));
+      </script>
+    `);
+    const dataSection = page.locator('.primary-nav [data-nav-section="Data"]');
+    const skillsLink = dataSection.getByRole('link', { name: 'Skills', exact: true, includeHidden: true });
+    await expect(skillsLink).toHaveCount(1);
+    await expect(skillsLink.locator('.experimental-page-label')).toHaveCount(0);
+    await expect(page.locator('.primary-nav [data-nav-section="Experimental"] a[href="#page-skills"]')).toHaveCount(0);
+
+    if (width < 600) {
+      await page.getByRole('button', { name: 'Select view', exact: true }).click();
+      const mobileSkills = page.locator('.mobile-nav-menu-list').getByRole('link', { name: 'Skills', exact: true });
+      await expect(mobileSkills.locator('.experimental-page-label')).toHaveCount(0);
+      await mobileSkills.click();
+    } else {
+      await dataSection.locator('summary').click();
+      await skillsLink.click();
+    }
+
+    await expect(page).toHaveURL(/#page-skills$/);
+    await expect(page.getByRole('heading', { name: 'Skills', exact: true, level: 1 })).toBeVisible();
+    await expect(page.locator('.title-area [data-page-experimental]')).toBeHidden();
+  });
+}
+
 test('Simulators exposes its database-size tab and bounded scenario inputs', async ({ page }) => {
   await page.setContent(`
     <div id="root"></div>
@@ -1101,7 +1136,7 @@ test('clean navigation preserves the Overview decision hierarchy across desktop 
   await expect(cleanNavigation).toHaveText(['Overview', 'Marketplace']);
   await expect(data.locator('summary')).toHaveText('Data');
   await data.locator('summary').click();
-  await expect(data.getByRole('link')).toHaveText(['Repositories', 'Workflows', 'Campaigns', 'Runs', 'Issues', 'Cost', 'Value', 'Friction', 'Models & Agents', 'Firewall', 'MCPs', 'Memory']);
+  await expect(data.getByRole('link')).toHaveText(['Repositories', 'Workflows', 'Campaigns', 'Runs', 'Issues', 'Cost', 'Value', 'Friction', 'Models & Agents', 'Firewall', 'MCPs', 'Skills', 'Memory']);
   await expect(data.getByRole('link', { name: 'Value', exact: true })).toHaveCount(1);
   await expect(data.getByRole('link', { name: 'Friction', exact: true })).toHaveCount(1);
   await expect(evolutionSection.locator('summary')).toHaveText('Evolution');
@@ -1155,7 +1190,6 @@ test('clean navigation preserves the Overview decision hierarchy across desktop 
   await expect(experimentalSection.getByRole('link')).toHaveText([
     'Workflow wizard',
     'Model routing',
-    'Skills',
     'Steering',
     'Simulators'
   ]);

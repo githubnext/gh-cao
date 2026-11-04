@@ -1291,9 +1291,11 @@ async function readStatisticalRuns(transaction, options, budget) {
     while (!limited) {
       budget.checkpoint?.();
       const records = await requestResult(index.getAll(range, Math.min(1000, options.rows - selected.size + 1)));
+      // Canonicalization in append removes the storage metadata used by the index key.
+      const nextRange = records.length === 1000 ? keyOf(records.at(-1), range) : null;
       append(records);
-      if (limited || records.length < 1000) break;
-      range = keyOf(records.at(-1), range);
+      if (limited || !nextRange) break;
+      range = nextRange;
     }
   };
   const start = watermark - 7 * 86400000;
