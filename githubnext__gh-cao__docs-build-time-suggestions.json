@@ -1,35 +1,7 @@
 {
-  "source_sha": "7096abf1c47e52030d3351347f18527f66b4bd5a",
-  "next_category": "artifact transfer and Pages packaging",
+  "source_sha": "eedc5d8b4080c14ed3533be31f70a1b60b50b671",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-04T07:53:43.843340Z",
-      "worker_run_id": "41795017827",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        41794580910,
-        41793921169,
-        41792810206,
-        41791261989,
-        41790962116,
-        41789406548,
-        41787724894,
-        41786583414,
-        41785429811,
-        41785172575,
-        41782838956,
-        41781272710,
-        41779763416,
-        41778261316,
-        41778046027,
-        41776721902,
-        41775162346,
-        41773698244,
-        41772385001,
-        41770630971
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T04:01:21Z to 2026-11-04T07:46:30Z) was within 14 days and contained 17 successful runs (16 schedules and one push) and three skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs 440542eed455af3173bee7e83167048a36f8e23f and 172d8fb95fe34402e6f3dc26cee32b9b094d3fbd. Trusted Actions job metadata for the two new runs, together with retained trusted evidence for the 18 overlapping runs, verified that only push run 41793921169 completed the full build-and-deploy path, below the required five comparable successful runs. It took 140 seconds wall-clock, queued 2 seconds before build, ran build for 88 seconds, and ran deploy for 45 seconds; docs.yml has no separate dashboard job. Dependency installation took 21 seconds, Astro documentation generation 15 seconds, dashboard cache restore 3 seconds, Pages artifact upload 19 seconds, and Deploy Pages 42 seconds. The dashboard cache hit was verified because cache-miss-only lookup and artifact-download steps were skipped. The newest schedule took 10 seconds wall-clock, queued 2 seconds, ran schedule-freshness for 6 seconds, and skipped build and deploy. With only one comparable full run, the required full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer and Pages-packaging analysis cannot be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
     {
       "evaluated_at": "2026-11-04T08:20:28.761098Z",
       "worker_run_id": "41798337999",
@@ -778,6 +750,34 @@
         41858591272
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T15:31:15Z to 2026-11-04T18:46:23Z) was within 14 days and contained 15 successful runs (11 freshness-only schedules and four full build-and-deploy runs: three schedules and one push) plus five skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs ae51cd7ed2bb4986f349a83e9bf180bdfc53c196, e1e4345b0d0f0f387d4a3e10af339fe78911359e, 2005f614b14aee5ef14a96c57686ff78c02e3e72, 19539daebf95b00f28f3c8db3021ce1e45235c56, and 89e05ae868f49971610bd8030574006e26537924. Trusted Actions job and step metadata verified only four comparable successful full runs, below the required five. Their workflow wall times were 140, 512, 267, and 360 seconds (median 313.5; nearest-rank p90 512), initial queue times were 3, 3, 3, and 4 seconds (median 3; p90 4), build jobs were 85, 98, 200, and 325 seconds (median 149; p90 325), and deploy jobs were 34, 136, 45, and 26 seconds (median 39.5; p90 136); docs.yml has no separate dashboard job. Pages artifact uploads took 18, 19, 18, and 19 seconds, while Deploy Pages took 30, 133, 43, and 23 seconds. Dashboard cache hits were verified in all four full runs because cache-miss-only lookup and artifact-download steps were skipped. Run 41880380295 had a 263-second gap between build completion and deploy start, and runs 41865610349 and 41863474842 remained disclosed metadata-finalization outliers. With only four comparable full runs, the required minimum sample and a complete artifact-transfer and Pages-packaging evaluation cannot be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-04T19:18:00Z",
+      "worker_run_id": "41894733268",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        41893860001,
+        41893403635,
+        41893367265,
+        41892903924,
+        41890388232,
+        41888006983,
+        41887977733,
+        41887924869,
+        41885797707,
+        41885386579,
+        41882899771,
+        41880380295,
+        41878191013,
+        41875953858,
+        41875278665,
+        41874380866,
+        41873415199,
+        41870827348,
+        41868200175,
+        41867989161
+      ],
+      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-04T16:30:56Z to 2026-11-04T19:07:25Z) was within 14 days and contained 12 successful runs (five full build-and-deploy runs and seven freshness-only schedules), seven skipped workflow_run callbacks, and one cancelled push. The cancelled run was excluded. The five comparable full publications were four schedules and one push across five source revisions. Full workflow wall time had a 267-second median and 512-second nearest-rank p90; initial queue time was 4 seconds median/p90; execution after queue was 263 seconds median and 507 seconds p90. Build jobs were 98 seconds median and 325 seconds p90; deploy jobs were 45 seconds median and 136 seconds p90; docs.yml has no separate dashboard job. Dashboard cache restore was 3 seconds median and 4 seconds p90, Pages artifact upload was 19 seconds median/p90, and Deploy Pages was 43 seconds median and 133 seconds p90. Cache hits were verified from trusted metadata in all five runs because cache-miss-only dashboard lookup/download steps were skipped; bounded logs for run 41892903924 also verified exact npm and dashboard cache hits and a 107,340,051-byte Pages artifact upload. Run 41880380295 had a disclosed 263-second gap between build completion and deploy start; runs 41875953858 and 41874380866 had disclosed checkout outliers of 136 and 254 seconds. Artifact upload is only 7% of median execution and no correctness-preserving workflow change is evidenced to remove the required full Pages package or the variable GitHub Pages deployment service time. No actionable non-duplicate recommendation met the 60-second or 15% threshold. Advanced next_category to scheduling, concurrency, and avoidable rebuilds."
     }
   ]
 }
