@@ -17,10 +17,12 @@ import (
 
 func TestValueEvidenceIndexedScopeAndBudgets(t *testing.T) {
 	file := "../../../dashboard/site/test/fixtures/operational-value-evidence.jsonl"
-	populations := []int{1, 100, 2000}
+	populations := []int{1, 33, 100, 2000}
+	fixture := true
 	if retained := os.Getenv("CAO_VALUE_EVIDENCE_FILE"); retained != "" {
 		file = retained
 		populations = []int{1, 100, 200}
+		fixture = false
 	}
 	content, err := os.ReadFile(file) // #nosec G703 -- fixed fixture or explicit operator-selected benchmark evidence, never request input.
 	if err != nil {
@@ -119,13 +121,20 @@ func TestValueEvidenceIndexedScopeAndBudgets(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if population > 32 {
-				err = store.WithReadTransaction(t.Context(), func(ctx context.Context, reader dashboardstore.Reader) error {
-					_, _, err := reader.ExecuteSQLPlan(ctx, definitions, []string{"operational-value-evidence"})
-					return err
-				})
+			admissible := population == 1 || fixture && population <= 100
+			err = store.WithReadTransaction(t.Context(), func(ctx context.Context, reader dashboardstore.Reader) error {
+				sources, _, err := reader.ExecuteSQLPlan(ctx, definitions, []string{"operational-value-evidence"})
+				if err == nil && admissible && len(sources["operational-value-evidence"].Rows) != population*len(target["facts"].([]any)) {
+					t.Fatal("unscoped Value evidence lost packets")
+				}
+				return err
+			})
+			if admissible && err != nil {
+				t.Fatal("admissible unscoped Value evidence rejected", err)
+			}
+			if population == 2000 {
 				if err == nil {
-					t.Fatal("unscoped population bypassed packet admission budget")
+					t.Fatal("unscoped population bypassed fact or byte admission budget")
 				}
 				if _, err := store.State(t.Context()); err != nil {
 					t.Fatal("rejected Value work prevented an ordinary core state read", err)

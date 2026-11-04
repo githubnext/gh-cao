@@ -629,8 +629,7 @@
         { "as": "attention-reason", "function": "if", "args": [{ "field": "worse-movement" }, { "value": "Measured outcome worsened" }, { "field": "state-attention-reason" }] },
         { "as": "review-value", "function": "if", "args": [{ "field": "needs-review" }, { "value": 1 }, { "value": 0 }] }
       ],
-      "order-by": [{ "field": "overview-title", "direction": "asc" }],
-      "limit": 10000
+      "order-by": [{ "field": "overview-title", "direction": "asc" }]
     },
     {
       "name": "value-campaign-deployments",
@@ -674,8 +673,7 @@
         { "as": "encoded-campaign", "function": "url-encode", "args": [{ "field": "campaign" }] },
         { "as": "campaign-value-href", "function": "concat", "args": [{ "value": "#page-campaign-value?campaign=" }, { "field": "encoded-campaign" }] }
       ],
-      "order-by": [{ "field": "review-deployments", "direction": "desc" }, { "field": "campaign-name", "direction": "asc" }],
-      "limit": 1000
+      "order-by": [{ "field": "review-deployments", "direction": "desc" }, { "field": "campaign-name", "direction": "asc" }]
     },
     {
       "name": "value-standalone-overview",

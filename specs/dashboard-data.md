@@ -3262,7 +3262,7 @@ report ID from that canonical identity before expansion; generated links and
 agent calls SHALL NOT require a second `report` argument. Queries still match
 the complete snapshot identity after the bounded packet read.
 
-Local/browser packet reads SHALL admit at most 32 packets, 16 MiB of packet
+Local/browser packet reads SHALL admit at most 20,000 packets, 16 MiB of packet
 data and 20,000 facts before expansion, without raising ordinary query limits.
 Reads SHALL observe cancellation and reject over-budget populations explicitly;
 an unscoped fleet list may require a narrower workflow/report. This gate is not
@@ -3271,6 +3271,9 @@ cost. PostgreSQL SHALL bind the same scoped parent identities before typed fact
 joins and SQL resource statistics, including scoped capture/cutoff metadata; it
 retains its ordinary transaction/query admission limits. Neither navigation nor archive inspection
 may acquire missing GitHub evidence.
+Value deployment and campaign coverage queries SHALL NOT apply presentation
+row limits before aggregating or reporting coverage; exceeded query budgets
+SHALL report unavailable rather than a silently shortened cohort.
 
 ## 31.3 Workflow Value collection health
 
