@@ -55,7 +55,7 @@ func ResolvePagePlan(definitions []Definition, output string) (*PagePlan, error)
 		return nil, err
 	}
 	if len(found) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // An output without a reachable page boundary is intentionally unpaged.
 	}
 	if len(found) != 1 {
 		return nil, fmt.Errorf("paginated query %q reaches more than one page boundary", output)

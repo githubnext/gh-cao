@@ -460,7 +460,7 @@ func workflowSubjectScopedSQL(relation query.SQLRelation, name, namespace string
 	case "$operationalValueEvidence":
 		column, exists := relation.Columns["workflowId"]
 		if !exists {
-			return query.SQLRelation{}, errors.New("Value evidence source has no workflow identity")
+			return query.SQLRelation{}, errors.New("value evidence source has no workflow identity")
 		}
 		filter = column.Expression + " IN (SELECT id FROM (" + subquery + ") visible)"
 	case "$operationalValues":
