@@ -52,6 +52,10 @@ type ScopeReader interface {
 	CurrentScope(context.Context, string) (EnrollmentScope, error)
 }
 
+type PublicationConsumer interface {
+	Replay(context.Context, int) (int, error)
+}
+
 // Destination must durably admit approved content (or an explicit source gap)
 // before returning. Admission is retried after any crash before safe publication;
 // implementations must be idempotent on repository, run and exact attempt.

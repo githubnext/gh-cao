@@ -80,18 +80,18 @@ func (task Task) lockKey() string {
 	return task.Repository
 }
 
-// RunTask is one durable historical workflow-run item. Key is the stable
-// repository/run/attempt identity; it is not a claim that run artifacts have
-// been parsed or collected.
+// RunTask durably admits an exact historical attempt or a bounded enumeration
+// page. An enumeration never grants scope or implies artifact acquisition.
 type RunTask struct {
-	Key            string    `json:"key"`
-	Repository     string    `json:"repository"`
-	InstallationID int64     `json:"installationId"`
-	RunID          int64     `json:"runId"`
-	Attempt        int       `json:"attempt"`
-	CreatedAt      time.Time `json:"createdAt,omitempty"`
-	EnqueuedAt     time.Time `json:"enqueuedAt"`
-	ScopeEpoch     int64     `json:"scopeEpoch,omitempty"`
+	Key            string          `json:"key"`
+	Repository     string          `json:"repository"`
+	InstallationID int64           `json:"installationId"`
+	RunID          int64           `json:"runId"`
+	Attempt        int             `json:"attempt"`
+	CreatedAt      time.Time       `json:"createdAt,omitempty"`
+	EnqueuedAt     time.Time       `json:"enqueuedAt"`
+	ScopeEpoch     int64           `json:"scopeEpoch,omitempty"`
+	Enumeration    *RunEnumeration `json:"enumeration,omitempty"`
 	// Failures counts processing failures, never GitHub run attempts.
 	Failures  int       `json:"failures,omitempty"`
 	NotBefore time.Time `json:"notBefore,omitempty"`
@@ -166,11 +166,15 @@ func (q Queue) EnqueueRun(ctx context.Context, task RunTask) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if task.InstallationID <= 0 || task.RunID <= 0 || task.Attempt <= 0 || task.ScopeEpoch < 0 {
+	if task.InstallationID <= 0 || task.ScopeEpoch < 0 ||
+		task.Enumeration == nil && (task.RunID <= 0 || task.Attempt <= 0) {
 		return false, errors.New("run tasks require an installation, run id, positive attempt, and non-negative enrollment epoch")
 	}
 	task.Repository = repository
 	task.Key = runTaskKey(task)
+	if task.Enumeration != nil && !validRunEnumeration(task) {
+		return false, errors.New("invalid native historical enumeration")
+	}
 	if task.EnqueuedAt.IsZero() {
 		task.EnqueuedAt = time.Now().UTC()
 	}
@@ -179,7 +183,7 @@ func (q Queue) EnqueueRun(ctx context.Context, task RunTask) (bool, error) {
 		return false, err
 	}
 	return q.Tasks.EnqueueUniqueTask(
-		ctx, runTaskStream, task.Key, q.MaxLength,
+		ctx, runTaskQueue(task), task.Key, q.MaxLength,
 		operational.TaskFields{Key: task.Key, Repository: repository, Task: string(payload)},
 	)
 }
@@ -190,6 +194,9 @@ func runTaskIdentity(repository string, runID int64, attempt int) string {
 
 func runTaskKey(task RunTask) string {
 	key := runTaskIdentity(task.Repository, task.RunID, task.Attempt)
+	if task.Enumeration != nil {
+		key = task.Repository + ":enumeration:window:" + strconv.Itoa(task.Enumeration.WindowDays)
+	}
 	if task.ScopeEpoch > 0 {
 		key += ":epoch:" + strconv.FormatInt(task.ScopeEpoch, 10)
 	}

@@ -85,9 +85,10 @@ type Backfill struct {
 	RunEnumerator WorkflowRunEnumerator
 	// AcquisitionScopes selects epoch-bound native historical admission.
 	// Nil preserves the separate legacy producer's queue/cursor contract.
-	AcquisitionScopes collectnative.ScopeReader
-	Quota             RunQuotaService
-	QuotaApp          string
+	AcquisitionScopes  collectnative.ScopeReader
+	NativePublications NativePublicationStore
+	Quota              RunQuotaService
+	QuotaApp           string
 	// WindowDays is opt-in; zero preserves unbounded historical enumeration.
 	WindowDays       int
 	ReconstructScope bool
@@ -106,6 +107,8 @@ type BackfillState struct {
 	Repositories        int    `json:"repositories"`
 	QueuedRepositories  int    `json:"queuedRepositories"`
 	QueuedRunTasks      int    `json:"queuedRunTasks"`
+	QueuedEnumerations  int    `json:"queuedEnumerations,omitempty"`
+	NativePublications  int    `json:"nativePublications,omitempty"`
 	EnumerationFailures int    `json:"enumerationFailures,omitempty"`
 	LakeReplayed        bool   `json:"lakeReplayed"`
 	Revision            int64  `json:"revision,omitempty"`
@@ -128,6 +131,9 @@ func (b Backfill) Run(ctx context.Context) (result BackfillState, err error) {
 	if b.WindowDays > 0 {
 		b.runBefore, _ = time.Parse(time.RFC3339Nano, state.StartedAt)
 		b.runAfter = b.runBefore.Add(-time.Duration(b.WindowDays) * 24 * time.Hour)
+	}
+	if b.AcquisitionScopes != nil || b.NativePublications != nil {
+		return b.runNative(ctx, state)
 	}
 	populated, err := b.Lake.Populated()
 	if err != nil {
@@ -212,6 +218,10 @@ func (b Backfill) Run(ctx context.Context) (result BackfillState, err error) {
 // Replay repopulates from the evidence lake alone. It issues no GitHub
 // requests and is the normal recovery path.
 func (b Backfill) Replay(ctx context.Context) (ingest.Result, error) {
+	if b.AcquisitionScopes != nil || b.NativePublications != nil {
+		result, _, err := b.replayNative(ctx)
+		return result, err
+	}
 	populated, err := b.Lake.Populated()
 	if err != nil {
 		return ingest.Result{}, err
@@ -230,7 +240,6 @@ type enrolledRepository struct {
 	name           string
 	pushedAt       time.Time
 	installationID int64
-	scopeEpoch     int64
 }
 
 func (b Backfill) enumerate(ctx context.Context) ([]enrolledRepository, int, int, error) {
@@ -341,6 +350,9 @@ type pendingRunTask struct {
 func (b Backfill) enqueueHistoricalRuns(
 	ctx context.Context, repositories []enrolledRepository,
 ) (queued, failures int, err error) {
+	if b.AcquisitionScopes != nil {
+		return b.enqueueNativeHistory(ctx, repositories)
+	}
 	if b.RunEnumerator == nil {
 		return 0, 0, errors.New("historical backfill requires workflow-run enumeration")
 	}
@@ -361,19 +373,6 @@ func (b Backfill) enqueueHistoricalRuns(
 				continue
 			}
 		}
-		if b.AcquisitionScopes != nil {
-			scope, err := b.AcquisitionScopes.CurrentScope(ctx, repository.name)
-			if errors.Is(err, collectnative.ErrIdentity) {
-				continue
-			}
-			if err != nil {
-				return queued, failures, err
-			}
-			if scope.Repository != repository.name || scope.InstallationID != repository.installationID || scope.Epoch <= 0 {
-				return queued, failures, collectnative.ErrIdentity
-			}
-			repository.scopeEpoch = scope.Epoch
-		}
 		if _, ok := seen[identity]; ok {
 			continue
 		}
@@ -386,14 +385,8 @@ func (b Backfill) enqueueHistoricalRuns(
 		}
 		return active[first].pushedAt.After(active[second].pushedAt)
 	})
-	var ensureErr error
-	if b.AcquisitionScopes != nil {
-		ensureErr = b.Queue.EnsureRuns(ctx)
-	} else {
-		ensureErr = b.Queue.Ensure(ctx)
-	}
-	if ensureErr != nil {
-		return 0, 0, ensureErr
+	if err := b.Queue.Ensure(ctx); err != nil {
+		return 0, 0, err
 	}
 	backfillLog.Printf("historical run enumeration started repositories=%d", len(active))
 
@@ -480,7 +473,6 @@ func (b Backfill) enqueueHistoricalRuns(
 			enqueued, enqueueErr := b.Queue.EnqueueRun(ctx, RunTask{
 				Repository: pending.repository.name, InstallationID: pending.repository.installationID,
 				RunID: pending.run.ID, Attempt: attempt, CreatedAt: pending.run.CreatedAt,
-				ScopeEpoch: pending.repository.scopeEpoch,
 			})
 			if enqueueErr != nil {
 				return queued, failures, enqueueErr
@@ -644,11 +636,7 @@ func reconcileCollectionQuota(ctx context.Context, quota RunQuotaService, bucket
 }
 
 func runBackfillCursorField(repository enrolledRepository) string {
-	field := strconv.FormatInt(repository.installationID, 10) + ":" + repository.name
-	if repository.scopeEpoch > 0 {
-		field += ":epoch:" + strconv.FormatInt(repository.scopeEpoch, 10)
-	}
-	return field
+	return strconv.FormatInt(repository.installationID, 10) + ":" + repository.name
 }
 
 func parseRunBackfillCursor(value string) (runBackfillCursor, error) {

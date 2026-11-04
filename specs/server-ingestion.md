@@ -142,7 +142,20 @@ not equivalent. The PostgreSQL operational adapter supplies this contract.
 Processing failure counts MUST remain separate from the GitHub run attempt;
 claim contention and shutdown MUST NOT spend the failure budget. Workers MUST
 persist the safe publication intent before ACK, so another process can recover
-and activate it after either a pre-ACK or post-ACK crash.
+and activate it after either a pre-ACK or post-ACK crash. A running native role
+MUST drain pending publication intents even when no collection task remains.
+
+Native historical discovery is an explicit task kind, never an exact-attempt
+fallback. Admission MUST persist immutable inclusive UTC bounds before querying
+GitHub; an unset lower retention window admits all available history through
+that frozen upper bound. Workflow enumeration and per-workflow run cursors MUST
+advance only through receipt-fenced replacement after every produced exact
+attempt is durable. A retry or replica takeover MUST preserve the original
+window. The cursor holds at most one workflow page, and separate enumeration and
+exact-attempt queue capacities MUST allow acquired work to drain under discovery
+backpressure. Capped or incomplete GitHub searches MUST fail explicitly rather
+than record completed discovery. Quota exhaustion and admission backpressure
+MUST preserve the failure budget and exact run attempt.
 
 The PostgreSQL acquisition adapter owns exact repository/run/attempt claims,
 database expiry, generation/token fencing and enrollment epochs. Only
@@ -195,8 +208,11 @@ partial source metadata, not success-shaped defaults or inferred zeroes.
 adapters are independently executable, but `CollectorConfig.NativeAcquisition`
 still fails closed. The historical run consumer is available through the
 fenced queue/native acquisition boundary, but is not activated by the hosted
-composition. The native enrollment authority and atomic shared-trace withdrawal
-are available as owned adapters, but the hosted enrollment/queue/backfill lifecycle, complete
+composition. The existing backfill API has a native, paginated cold-start and
+publication-replay branch with no lake access; legacy backfill remains separate.
+Native enrollment, immutable historical discovery and atomic shared-trace
+withdrawal are integrated behind these owned boundaries, but the hosted
+composition and repository/webhook lifecycle, complete
 inventory/Value replacement and session archive are not yet integrated with this
 boundary. Native Actions job-log/legacy audit extraction is also unavailable;
 `legacy-audit-unavailable` is explicit evidence, not a parity claim. The existing

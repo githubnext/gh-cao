@@ -1878,6 +1878,11 @@ not authorize cross-repository evidence access.
   objects; frozen statistical bundles become unavailable. Operational indexes
   cannot grant native scope, and reenrollment does not reapprove withdrawn
   traces. These are shared durable boundaries, not filesystem caches.
+  The existing backfill API can use paginated native enrollment and publication
+  recovery without a lake. Historical queries freeze their window before API
+  access and carry workflow/run-page cursors through receipt-fenced queue
+  replacement. Separate discovery/attempt capacities permit work to drain;
+  running native roles also replay orphaned publication intents after ACK.
   The service is not yet a selectable hosted acquisition profile:
   `CollectorConfig.NativeAcquisition` rejects activation until enrollment,
   queue/backfill, inventory and enabled destinations are integrated without the

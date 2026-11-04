@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
+	"github.com/githubnext/gh-cao/server/internal/githubquota"
+	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
 // RunAttemptCollector returns success only after durable safe-evidence
@@ -20,6 +22,9 @@ type RunAttemptCollector interface {
 type RunWorker struct {
 	Queue              Queue
 	Collector          RunAttemptCollector
+	Discovery          collectnative.RunDiscovery
+	Scopes             collectnative.ScopeReader
+	Publications       collectnative.PublicationConsumer
 	Consumer           string
 	AcquisitionTimeout time.Duration
 	ReclaimAfter       time.Duration
@@ -56,6 +61,11 @@ func (w RunWorker) Run(ctx context.Context) error {
 	}
 	for ctx.Err() == nil {
 		more, err := w.Step(ctx)
+		if ctx.Err() == nil && w.Publications != nil {
+			count, publishErr := w.Publications.Replay(ctx, 128)
+			more = more || count > 0
+			err = errors.Join(err, publishErr)
+		}
 		if err != nil && ctx.Err() == nil {
 			workerLog.Printf("historical run processing deferred")
 		}
@@ -66,8 +76,8 @@ func (w RunWorker) Run(ctx context.Context) error {
 	return ctx.Err()
 }
 
-// Step handles at most one exact attempt, allowing bounded shutdown and fair
-// reclaim. Errors leave a durable lease or replacement; they never imply ACK.
+// Step handles one exact attempt or bounded enumeration page. Errors leave a
+// durable lease or replacement; they never imply ACK.
 func (w RunWorker) Step(ctx context.Context) (bool, error) {
 	if err := w.validate(); err != nil {
 		return false, err
@@ -93,21 +103,40 @@ func (w RunWorker) process(ctx context.Context, lease RunLease) error {
 		return w.Queue.DeferRun(ctx, lease)
 	}
 	acquire, cancel := context.WithTimeout(ctx, w.timeout())
-	err := w.Collector.CollectScopedAttempt(acquire, collectnative.ScopedAttempt{
-		Identity: collectnative.Identity{
-			Repository: lease.Task.Repository, InstallationID: lease.Task.InstallationID,
-			RunID: lease.Task.RunID, Attempt: lease.Task.Attempt,
-		},
-		Epoch: lease.Task.ScopeEpoch,
-	})
+	var next *RunEnumeration
+	var err error
+	if lease.Task.Enumeration != nil {
+		next, err = w.enumerate(acquire, lease.Task)
+	} else {
+		err = w.Collector.CollectScopedAttempt(acquire, collectnative.ScopedAttempt{
+			Identity: collectnative.Identity{
+				Repository: lease.Task.Repository, InstallationID: lease.Task.InstallationID,
+				RunID: lease.Task.RunID, Attempt: lease.Task.Attempt,
+			},
+			Epoch: lease.Task.ScopeEpoch,
+		})
+	}
 	cancel()
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
 	if err == nil {
+		if next != nil {
+			lease.Task.Enumeration, lease.Task.Failures = next, 0
+			lease.Task.NotBefore = time.Time{}
+			return w.Queue.replaceRun(ctx, lease, false)
+		}
 		return w.Queue.CompleteRun(ctx, lease)
 	}
-	if errors.Is(err, collectnative.ErrBusy) {
+	if errors.Is(err, collectnative.ErrBusy) || errors.Is(err, operational.ErrCapacity) {
+		return errors.Join(err, w.Queue.DeferRun(ctx, lease))
+	}
+	var unavailable *githubquota.UnavailableError
+	if errors.As(err, &unavailable) {
+		lease.Task.NotBefore = unavailable.RetryAt
+		if !lease.Task.NotBefore.After(time.Now().UTC()) {
+			lease.Task.NotBefore = time.Now().UTC().Add(time.Minute)
+		}
 		return errors.Join(err, w.Queue.DeferRun(ctx, lease))
 	}
 	return errors.Join(err, w.Queue.RetryRun(ctx, lease))

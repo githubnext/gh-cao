@@ -319,3 +319,6 @@ func (a Acquisition) Pending(ctx context.Context, identity collectnative.Identit
 	}
 	return evidence, digest, tx.Commit()
 }
+func (a Acquisition) State(ctx context.Context) (State, error) {
+	return a.store.State(ctx)
+}

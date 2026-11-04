@@ -177,35 +177,48 @@ func enterpriseClient(httpClient *http.Client, config Config) (*github.Client, e
 // ListInstallations enumerates every installation of the App. It is used for
 // cold start, repository-list reconciliation, and explicit repair.
 func (c *Client) ListInstallations(ctx context.Context) ([]Installation, error) {
-	options := &github.ListOptions{PerPage: 100}
 	var installations []Installation
-	for {
-		page, response, err := c.appClient.Apps.ListInstallations(ctx, options)
+	for page := 1; page != 0; {
+		items, next, err := c.ListInstallationsPage(ctx, page)
 		if err != nil {
-			return nil, fmt.Errorf("list GitHub App installations: %w", err)
+			return nil, err
 		}
-		for _, installation := range page {
-			if !installation.GetSuspendedAt().IsZero() {
-				continue
-			}
-			if installation.GetID() <= 0 {
-				return nil, errors.New("GitHub App enumeration returned an invalid installation")
-			}
-			installations = append(installations, Installation{
-				ID:      installation.GetID(),
-				Account: installation.GetAccount().GetLogin(),
-			})
-		}
-		if response == nil || response.NextPage == 0 {
-			break
-		}
-		if response.NextPage <= options.Page {
-			return nil, errors.New("GitHub App enumeration returned a non-advancing page")
-		}
-		options.Page = response.NextPage
+		installations = append(installations, items...)
+		page = next
 	}
 	appLog.Printf("enumerated installations count=%d", len(installations))
 	return installations, nil
+}
+
+// ListInstallationsPage gives bounded coordinators control of pagination.
+func (c *Client) ListInstallationsPage(ctx context.Context, page int) ([]Installation, int, error) {
+	if page <= 0 {
+		return nil, 0, errors.New("GitHub App enumeration requires a positive page")
+	}
+	items, response, err := c.appClient.Apps.ListInstallations(ctx, &github.ListOptions{PerPage: 100, Page: page})
+	if err != nil {
+		return nil, 0, fmt.Errorf("list GitHub App installations: %w", err)
+	}
+	var installations []Installation
+	for _, installation := range items {
+		if !installation.GetSuspendedAt().IsZero() {
+			continue
+		}
+		if installation.GetID() <= 0 {
+			return nil, 0, errors.New("GitHub App enumeration returned an invalid installation")
+		}
+		installations = append(installations, Installation{
+			ID: installation.GetID(), Account: installation.GetAccount().GetLogin(),
+		})
+	}
+	next := 0
+	if response != nil {
+		next = response.NextPage
+	}
+	if next != 0 && next <= page {
+		return nil, 0, errors.New("GitHub App enumeration returned a non-advancing page")
+	}
+	return installations, next, nil
 }
 
 // ListRepositories enumerates the repositories one installation covers.
