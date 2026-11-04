@@ -1,35 +1,7 @@
 {
   "source_sha": "eedc5d8b4080c14ed3533be31f70a1b60b50b671",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-04T08:20:28.761098Z",
-      "worker_run_id": "41798337999",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        41798541457,
-        41796383342,
-        41794580910,
-        41793921169,
-        41792810206,
-        41791261989,
-        41790962116,
-        41789406548,
-        41787724894,
-        41786583414,
-        41785429811,
-        41785172575,
-        41782838956,
-        41781272710,
-        41779763416,
-        41778261316,
-        41778046027,
-        41776721902,
-        41775162346,
-        41773698244
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T04:31:18Z to 2026-11-04T08:18:52Z) was within 14 days and contained 16 successful runs (15 schedules and one push) and four skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs 440542eed455af3173bee7e83167048a36f8e23f and 172d8fb95fe34402e6f3dc26cee32b9b094d3fbd. Trusted Actions job metadata for the seven newly observed successful runs, together with retained trusted evidence for the 13 overlapping runs, verified that only push run 41793921169 completed the full build-and-deploy path, below the required five comparable successful runs. It took 140 seconds wall-clock, queued 3 seconds before build, ran build for 88 seconds, and ran deploy for 45 seconds; docs.yml has no separate dashboard job. Dependency installation took 21 seconds, Astro documentation generation 15 seconds, dashboard cache restore 3 seconds, Pages artifact upload 19 seconds, and Deploy Pages 42 seconds. The dashboard cache hit was verified because cache-miss-only lookup and artifact-download steps were skipped. Across the 15 freshness-only schedules, workflow wall time had a 15-second median and 16-second nearest-rank p90. With only one comparable full run, the required full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer and Pages-packaging analysis cannot be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
     {
       "evaluated_at": "2026-11-04T08:32:00Z",
       "worker_run_id": "41800142326",
@@ -778,6 +750,34 @@
         41867989161
       ],
       "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-04T16:30:56Z to 2026-11-04T19:07:25Z) was within 14 days and contained 12 successful runs (five full build-and-deploy runs and seven freshness-only schedules), seven skipped workflow_run callbacks, and one cancelled push. The cancelled run was excluded. The five comparable full publications were four schedules and one push across five source revisions. Full workflow wall time had a 267-second median and 512-second nearest-rank p90; initial queue time was 4 seconds median/p90; execution after queue was 263 seconds median and 507 seconds p90. Build jobs were 98 seconds median and 325 seconds p90; deploy jobs were 45 seconds median and 136 seconds p90; docs.yml has no separate dashboard job. Dashboard cache restore was 3 seconds median and 4 seconds p90, Pages artifact upload was 19 seconds median/p90, and Deploy Pages was 43 seconds median and 133 seconds p90. Cache hits were verified from trusted metadata in all five runs because cache-miss-only dashboard lookup/download steps were skipped; bounded logs for run 41892903924 also verified exact npm and dashboard cache hits and a 107,340,051-byte Pages artifact upload. Run 41880380295 had a disclosed 263-second gap between build completion and deploy start; runs 41875953858 and 41874380866 had disclosed checkout outliers of 136 and 254 seconds. Artifact upload is only 7% of median execution and no correctness-preserving workflow change is evidenced to remove the required full Pages package or the variable GitHub Pages deployment service time. No actionable non-duplicate recommendation met the 60-second or 15% threshold. Advanced next_category to scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-11-04T19:33:23Z",
+      "worker_run_id": "41897387771",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        41897733996,
+        41895297197,
+        41893860001,
+        41893403635,
+        41893367265,
+        41892903924,
+        41890388232,
+        41888006983,
+        41887977733,
+        41887924869,
+        41885797707,
+        41885386579,
+        41882899771,
+        41880380295,
+        41878191013,
+        41875953858,
+        41875278665,
+        41874380866,
+        41873415199,
+        41870827348
+      ],
+      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-04T16:46:28Z to 2026-11-04T19:31:33Z) was within 14 days and contained 13 successful runs (six full build-and-deploy runs and seven freshness-only schedules), six skipped workflow_run callbacks, and one cancelled push; the cancelled run was excluded. The six comparable full publications were five schedules and one push across six source revisions. Full workflow wall time had a 223-second median and 512-second nearest-rank p90; initial queue time was 3 seconds median/p90; execution after queue was 219 seconds median and 507 seconds p90. Build jobs were 94.5 seconds median and 325 seconds p90; deploy jobs were 39.5 seconds median and 136 seconds p90; docs.yml has no separate dashboard job. Dashboard cache hits were verified in all six runs because cache-miss-only lookup and artifact-download steps were skipped. Four schedule publications ran at distinct revisions with no matching docs push run in the bounded window, while all 20 recent cao-dashboard.yml completions were skipped and therefore did not provide a newer successful dashboard snapshot. This corroborates the exact-HEAD scheduled freshness defect, but open campaign issue #19765 already represents the same stable work: Skip documentation rebuilds when only path-excluded files changed. No equivalent issue was created. Advanced next_category to dependency installation and caching."
     }
   ]
 }
