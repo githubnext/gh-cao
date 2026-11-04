@@ -302,3 +302,61 @@ func TestRebuildMultipleIDsSortedAndUnrelatedEventsIgnored(t *testing.T) {
 		t.Fatalf("%+v", result)
 	}
 }
+
+func TestClassifyAssignsClassificationAndCounters(t *testing.T) {
+	now := observed
+	options := Options{Grace: DefaultGrace, Now: now}
+	complete := &lifecycle{Finding: Finding{FirstSeenAt: now.Add(-3 * time.Hour)}, completed: 1}
+	recent := &lifecycle{Finding: Finding{FirstSeenAt: now.Add(-time.Minute)}}
+	stale := &lifecycle{Finding: Finding{FirstSeenAt: now.Add(-3 * time.Hour)}}
+	untimed := &lifecycle{}
+	uncertain := &lifecycle{Finding: Finding{FirstSeenAt: now.Add(-3 * time.Hour), Issues: []string{"clock_uncertain"}}}
+
+	result := Result{TailReached: true}
+	for _, entry := range []*lifecycle{complete, recent, stale, untimed, uncertain} {
+		classify(&result, entry, options)
+	}
+	want := []string{"terminal_observed", "pending", "missing_terminal", "unknown", "unknown"}
+	for i, entry := range []*lifecycle{complete, recent, stale, untimed, uncertain} {
+		if entry.Classification != want[i] {
+			t.Errorf("entry %d classification = %q, want %q", i, entry.Classification, want[i])
+		}
+	}
+	if result.Completed != 1 || result.Pending != 1 || result.MissingTerminal != 1 {
+		t.Fatalf("counters = %+v", result)
+	}
+
+	partial := Result{TailReached: false}
+	open := &lifecycle{Finding: Finding{FirstSeenAt: now.Add(-3 * time.Hour)}}
+	classify(&partial, open, options)
+	if open.Classification != "unknown" || partial.MissingTerminal != 0 {
+		t.Fatalf("incomplete tail must stay unknown: %q %+v", open.Classification, partial)
+	}
+	gap := Result{TailReached: true, Issues: []string{"history_gap"}}
+	open = &lifecycle{Finding: Finding{FirstSeenAt: now.Add(-3 * time.Hour)}}
+	classify(&gap, open, options)
+	if open.Classification != "unknown" {
+		t.Fatalf("history gap must stay unknown: %q", open.Classification)
+	}
+}
+
+func TestOverallStatus(t *testing.T) {
+	issueFinding := []Finding{{Issues: []string{"duplicate_start"}}}
+	cases := []struct {
+		name   string
+		result Result
+		want   string
+	}{
+		{"clean", Result{HistoryComplete: true}, "ok"},
+		{"missing terminal", Result{HistoryComplete: true, MissingTerminal: 1}, "attention"},
+		{"finding with issues", Result{HistoryComplete: true, Findings: issueFinding}, "attention"},
+		{"finding without issues", Result{HistoryComplete: true, Findings: []Finding{{}}}, "ok"},
+		{"partial history", Result{HistoryComplete: false}, "incomplete"},
+		{"result issues override attention", Result{HistoryComplete: true, MissingTerminal: 2, Issues: []string{"selected_suffix"}}, "incomplete"},
+	}
+	for _, tc := range cases {
+		if got := overallStatus(tc.result); got != tc.want {
+			t.Errorf("%s: status = %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}
