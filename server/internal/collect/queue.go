@@ -91,6 +91,7 @@ type RunTask struct {
 	Attempt        int       `json:"attempt"`
 	CreatedAt      time.Time `json:"createdAt,omitempty"`
 	EnqueuedAt     time.Time `json:"enqueuedAt"`
+	ScopeEpoch     int64     `json:"scopeEpoch,omitempty"`
 	// Failures counts processing failures, never GitHub run attempts.
 	Failures  int       `json:"failures,omitempty"`
 	NotBefore time.Time `json:"notBefore,omitempty"`
@@ -165,11 +166,11 @@ func (q Queue) EnqueueRun(ctx context.Context, task RunTask) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if task.InstallationID <= 0 || task.RunID <= 0 || task.Attempt <= 0 {
-		return false, errors.New("run tasks require an installation, run id, and positive attempt")
+	if task.InstallationID <= 0 || task.RunID <= 0 || task.Attempt <= 0 || task.ScopeEpoch < 0 {
+		return false, errors.New("run tasks require an installation, run id, positive attempt, and non-negative enrollment epoch")
 	}
 	task.Repository = repository
-	task.Key = runTaskIdentity(repository, task.RunID, task.Attempt)
+	task.Key = runTaskKey(task)
 	if task.EnqueuedAt.IsZero() {
 		task.EnqueuedAt = time.Now().UTC()
 	}
@@ -185,6 +186,14 @@ func (q Queue) EnqueueRun(ctx context.Context, task RunTask) (bool, error) {
 
 func runTaskIdentity(repository string, runID int64, attempt int) string {
 	return repository + ":" + strconv.FormatInt(runID, 10) + ":" + strconv.Itoa(attempt)
+}
+
+func runTaskKey(task RunTask) string {
+	key := runTaskIdentity(task.Repository, task.RunID, task.Attempt)
+	if task.ScopeEpoch > 0 {
+		key += ":epoch:" + strconv.FormatInt(task.ScopeEpoch, 10)
+	}
+	return key
 }
 
 // EnqueueDelivery atomically deduplicates a GitHub delivery and durably

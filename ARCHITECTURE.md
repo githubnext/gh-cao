@@ -1871,7 +1871,13 @@ not authorize cross-repository evidence access.
   authoritative routing queries through the Go SQL engine, then commits the
   graph, revision and consumed intent atomically. Approved trace admission can
   use a private PostgreSQL object/ledger transaction and completes before safe
-  publication. These are shared durable boundaries, not filesystem caches.
+  publication. Native historical tasks bind their admission epoch and use
+  receipt-fenced queue acknowledgement. A bounded database ownership transaction
+  serializes authenticated enrollment changes and atomically withdraws safe
+  intents, canonical evidence, daily contributions and configured shared trace
+  objects; frozen statistical bundles become unavailable. Operational indexes
+  cannot grant native scope, and reenrollment does not reapprove withdrawn
+  traces. These are shared durable boundaries, not filesystem caches.
   The service is not yet a selectable hosted acquisition profile:
   `CollectorConfig.NativeAcquisition` rejects activation until enrollment,
   queue/backfill, inventory and enabled destinations are integrated without the

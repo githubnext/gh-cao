@@ -11,7 +11,7 @@ import (
 // RunAttemptCollector returns success only after durable safe-evidence
 // publication. It must not enroll a task's repository or discover other runs.
 type RunAttemptCollector interface {
-	CollectAttempt(context.Context, collectnative.Identity) error
+	CollectScopedAttempt(context.Context, collectnative.ScopedAttempt) error
 }
 
 // RunWorker consumes historical admission through the native exact-attempt
@@ -93,9 +93,12 @@ func (w RunWorker) process(ctx context.Context, lease RunLease) error {
 		return w.Queue.DeferRun(ctx, lease)
 	}
 	acquire, cancel := context.WithTimeout(ctx, w.timeout())
-	err := w.Collector.CollectAttempt(acquire, collectnative.Identity{
-		Repository: lease.Task.Repository, InstallationID: lease.Task.InstallationID,
-		RunID: lease.Task.RunID, Attempt: lease.Task.Attempt,
+	err := w.Collector.CollectScopedAttempt(acquire, collectnative.ScopedAttempt{
+		Identity: collectnative.Identity{
+			Repository: lease.Task.Repository, InstallationID: lease.Task.InstallationID,
+			RunID: lease.Task.RunID, Attempt: lease.Task.Attempt,
+		},
+		Epoch: lease.Task.ScopeEpoch,
 	})
 	cancel()
 	if ctx.Err() != nil {

@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"github.com/githubnext/gh-cao/server/internal/adxtrace"
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/model"
 )
 
@@ -41,11 +42,24 @@ func (s traceStorage) Transaction(ctx context.Context, action func(adxtrace.Obje
 	if action == nil {
 		return errors.New("trace transaction requires an action")
 	}
+	if mutation, ok := ctx.Value(enrollmentTraceTransactionKey{}).(*enrollmentMutation); ok {
+		if mutation.store != s.store {
+			return collectnative.ErrUnsupported
+		}
+		return s.transact(ctx, mutation.tx, action)
+	}
 	tx, err := s.store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := s.transact(ctx, tx, action); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (s traceStorage) transact(ctx context.Context, tx *sql.Tx, action func(adxtrace.Objects) error) error {
 	var locked bool
 	if err := tx.QueryRowContext(ctx, `SELECT pg_try_advisory_xact_lock(
 		hashtextextended(current_schema() || ':trace:' || $1 || ':' || $2,0))`,
@@ -59,10 +73,7 @@ func (s traceStorage) Transaction(ctx context.Context, action func(adxtrace.Obje
 		VALUES($1,0,'','epoch',$2) ON CONFLICT(namespace) DO NOTHING`, s.store.namespace, model.SchemaVersion); err != nil {
 		return err
 	}
-	if err := action(traceObjects{s, ctx, tx}); err != nil {
-		return err
-	}
-	return tx.Commit()
+	return action(traceObjects{s, ctx, tx})
 }
 
 func (o traceObjects) Read(key string, limit int64) ([]byte, error) {

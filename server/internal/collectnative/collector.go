@@ -30,6 +30,28 @@ type Store interface {
 	Release(context.Context, Claim) error
 }
 
+// ScopedStore fences a dispatched request against its admission-time epoch,
+// not the repository's possibly newer enrollment at execution time.
+type ScopedStore interface {
+	Store
+	ClaimAtEpoch(context.Context, Identity, int64, time.Duration) (Claim, error)
+}
+
+type ScopedAttempt struct {
+	Identity
+	Epoch int64
+}
+
+type EnrollmentScope struct {
+	Repository     string
+	InstallationID int64
+	Epoch          int64
+}
+
+type ScopeReader interface {
+	CurrentScope(context.Context, string) (EnrollmentScope, error)
+}
+
 // Destination must durably admit approved content (or an explicit source gap)
 // before returning. Admission is retried after any crash before safe publication;
 // implementations must be idempotent on repository, run and exact attempt.
@@ -110,6 +132,20 @@ func (c Collector) Collect(ctx context.Context, repository string, installation 
 }
 
 func (c Collector) CollectAttempt(ctx context.Context, identity Identity) error {
+	return c.collectAttempt(ctx, identity, 0)
+}
+
+func (c Collector) CollectScopedAttempt(ctx context.Context, request ScopedAttempt) error {
+	if request.Epoch <= 0 {
+		return ErrIdentity
+	}
+	if _, ok := c.Store.(ScopedStore); !ok {
+		return ErrUnsupported
+	}
+	return c.collectAttempt(ctx, request.Identity, request.Epoch)
+}
+
+func (c Collector) collectAttempt(ctx context.Context, identity Identity, epoch int64) error {
 	if err := c.Validate(); err != nil {
 		return err
 	}
@@ -122,7 +158,13 @@ func (c Collector) CollectAttempt(ctx context.Context, identity Identity) error 
 	}
 	ctx, cancel := context.WithTimeout(ctx, c.timeout())
 	defer cancel()
-	claim, err := c.Store.Claim(ctx, identity, c.claimTTL())
+	var claim Claim
+	var err error
+	if epoch > 0 {
+		claim, err = c.Store.(ScopedStore).ClaimAtEpoch(ctx, identity, epoch, c.claimTTL())
+	} else {
+		claim, err = c.Store.Claim(ctx, identity, c.claimTTL())
+	}
 	if err != nil {
 		return err
 	}

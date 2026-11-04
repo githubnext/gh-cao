@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
@@ -82,8 +83,11 @@ type Backfill struct {
 	Lake          Lake
 	Enumerator    Enumerator
 	RunEnumerator WorkflowRunEnumerator
-	Quota         RunQuotaService
-	QuotaApp      string
+	// AcquisitionScopes selects epoch-bound native historical admission.
+	// Nil preserves the separate legacy producer's queue/cursor contract.
+	AcquisitionScopes collectnative.ScopeReader
+	Quota             RunQuotaService
+	QuotaApp          string
 	// WindowDays is opt-in; zero preserves unbounded historical enumeration.
 	WindowDays       int
 	ReconstructScope bool
@@ -226,6 +230,7 @@ type enrolledRepository struct {
 	name           string
 	pushedAt       time.Time
 	installationID int64
+	scopeEpoch     int64
 }
 
 func (b Backfill) enumerate(ctx context.Context) ([]enrolledRepository, int, int, error) {
@@ -356,6 +361,19 @@ func (b Backfill) enqueueHistoricalRuns(
 				continue
 			}
 		}
+		if b.AcquisitionScopes != nil {
+			scope, err := b.AcquisitionScopes.CurrentScope(ctx, repository.name)
+			if errors.Is(err, collectnative.ErrIdentity) {
+				continue
+			}
+			if err != nil {
+				return queued, failures, err
+			}
+			if scope.Repository != repository.name || scope.InstallationID != repository.installationID || scope.Epoch <= 0 {
+				return queued, failures, collectnative.ErrIdentity
+			}
+			repository.scopeEpoch = scope.Epoch
+		}
 		if _, ok := seen[identity]; ok {
 			continue
 		}
@@ -368,8 +386,14 @@ func (b Backfill) enqueueHistoricalRuns(
 		}
 		return active[first].pushedAt.After(active[second].pushedAt)
 	})
-	if err := b.Queue.Ensure(ctx); err != nil {
-		return 0, 0, err
+	var ensureErr error
+	if b.AcquisitionScopes != nil {
+		ensureErr = b.Queue.EnsureRuns(ctx)
+	} else {
+		ensureErr = b.Queue.Ensure(ctx)
+	}
+	if ensureErr != nil {
+		return 0, 0, ensureErr
 	}
 	backfillLog.Printf("historical run enumeration started repositories=%d", len(active))
 
@@ -456,6 +480,7 @@ func (b Backfill) enqueueHistoricalRuns(
 			enqueued, enqueueErr := b.Queue.EnqueueRun(ctx, RunTask{
 				Repository: pending.repository.name, InstallationID: pending.repository.installationID,
 				RunID: pending.run.ID, Attempt: attempt, CreatedAt: pending.run.CreatedAt,
+				ScopeEpoch: pending.repository.scopeEpoch,
 			})
 			if enqueueErr != nil {
 				return queued, failures, enqueueErr
@@ -619,7 +644,11 @@ func reconcileCollectionQuota(ctx context.Context, quota RunQuotaService, bucket
 }
 
 func runBackfillCursorField(repository enrolledRepository) string {
-	return strconv.FormatInt(repository.installationID, 10) + ":" + repository.name
+	field := strconv.FormatInt(repository.installationID, 10) + ":" + repository.name
+	if repository.scopeEpoch > 0 {
+		field += ":epoch:" + strconv.FormatInt(repository.scopeEpoch, 10)
+	}
+	return field
 }
 
 func parseRunBackfillCursor(value string) (runBackfillCursor, error) {

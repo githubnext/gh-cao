@@ -26,7 +26,21 @@ type Acquisition struct{ store *Store }
 
 func (s *Store) Acquisition() Acquisition { return Acquisition{store: s} }
 
-var _ collectnative.Store = Acquisition{}
+var _ collectnative.ScopedStore = Acquisition{}
+
+func (a Acquisition) CurrentScope(ctx context.Context, repository string) (collectnative.EnrollmentScope, error) {
+	scope := collectnative.EnrollmentScope{Repository: repository}
+	if (collectnative.Identity{Repository: repository, InstallationID: 1, RunID: 1, Attempt: 1}).Validate() != nil {
+		return scope, collectnative.ErrIdentity
+	}
+	err := a.store.db.QueryRowContext(ctx, `SELECT installation_id,epoch FROM cao_acquisition_scopes
+		WHERE namespace=$1 AND repository=$2 AND installation_id>0`, a.store.namespace, repository).
+		Scan(&scope.InstallationID, &scope.Epoch)
+	if errors.Is(err, sql.ErrNoRows) {
+		return scope, collectnative.ErrIdentity
+	}
+	return scope, err
+}
 
 type AcquisitionPublication struct {
 	Identity collectnative.Identity
@@ -133,6 +147,17 @@ func (a Acquisition) owned(ctx context.Context, tx *sql.Tx, identity collectnati
 }
 
 func (a Acquisition) Claim(ctx context.Context, identity collectnative.Identity, ttl time.Duration) (collectnative.Claim, error) {
+	return a.claim(ctx, identity, 0, ttl)
+}
+
+func (a Acquisition) ClaimAtEpoch(ctx context.Context, identity collectnative.Identity, epoch int64, ttl time.Duration) (collectnative.Claim, error) {
+	if epoch <= 0 {
+		return collectnative.Claim{}, collectnative.ErrIdentity
+	}
+	return a.claim(ctx, identity, epoch, ttl)
+}
+
+func (a Acquisition) claim(ctx context.Context, identity collectnative.Identity, epoch int64, ttl time.Duration) (collectnative.Claim, error) {
 	if identity.Validate() != nil || ttl < time.Millisecond || ttl > time.Hour {
 		return collectnative.Claim{}, collectnative.ErrIdentity
 	}
@@ -150,6 +175,9 @@ func (a Acquisition) Claim(ctx context.Context, identity collectnative.Identity,
 	claim.Epoch, err = a.owned(ctx, tx, identity, true)
 	if err != nil {
 		return claim, err
+	}
+	if epoch > 0 && claim.Epoch != epoch {
+		return claim, collectnative.ErrClaimLost
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_attempts WHERE namespace=$1 AND repository=$2
 		AND coalesce(published_at,created_at) < clock_timestamp()-interval '30 days'

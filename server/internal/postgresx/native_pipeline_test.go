@@ -55,6 +55,114 @@ func (s *interruptedNativeTrace) Transaction(ctx context.Context, callback func(
 	})
 }
 
+func TestNativeEnrollmentWithdrawsTraceAndCanonicalEvidenceAtomically(t *testing.T) {
+	first, config := testutil.PostgresWithConfig(t, t.Context(), "CAO_TEST_POSTGRES_URL")
+	second, err := postgresx.NewConfig(t.Context(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = second.Close() })
+	sink := &sharedTraceSink{digests: map[string]bool{}}
+	authority, trace, err := first.NativeEnrollmentWithTrace(t.Context(), sharedTraceConfig(), "native-withdrawal", sink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, peerTrace, err := second.NativeEnrollmentWithTrace(t.Context(), sharedTraceConfig(), "native-withdrawal", sink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity := acquisitionIdentity()
+	if err := authority.WithMutation(t.Context(), func(ctx context.Context) error {
+		return authority.Enroll(ctx, identity.InstallationID, []string{identity.Repository, "z/other"})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	scope, err := authority.CurrentScope(t.Context(), identity.Repository)
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := time.Now().Add(-72 * time.Hour).UTC().Format(time.RFC3339)
+	provider := nativePipelineProvider{run: collectnative.Run{Identity: identity, WorkflowPath: ".github/workflows/test.lock.yml",
+		Fields: map[string]any{"status": "completed", "conclusion": "success", "created_at": at, "updated_at": at}}}
+	collector := collectnative.Collector{Provider: provider, Store: first.Acquisition(),
+		Destinations: []collectnative.Destination{collectnative.TraceDestination{Admission: trace}}}
+	t.Setenv("PATH", "/nonexistent")
+	if err := collector.CollectScopedAttempt(t.Context(), collectnative.ScopedAttempt{Identity: identity, Epoch: scope.Epoch}); err != nil {
+		t.Fatal(err)
+	}
+	if count, err := second.Acquisition().Replay(t.Context(), 1); err != nil || count != 1 {
+		t.Fatalf("canonical publication: %d %v", count, err)
+	}
+	c := sharedTraceConfig()
+	if err := c.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	storage, err := second.TraceStorage("native-withdrawal", c.MaxSpoolBytes, c.MaxEntries)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertTraceObjects := func(expected int) {
+		t.Helper()
+		if err := storage.Transaction(t.Context(), func(objects adxtrace.Objects) error {
+			entries, err := objects.List()
+			if err != nil {
+				return err
+			}
+			count := 0
+			for _, entry := range entries {
+				if strings.HasSuffix(entry.Key, ".trace") {
+					count++
+				}
+			}
+			if count != expected {
+				t.Fatalf("approved trace objects=%d, expected %d", count, expected)
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	assertTraceObjects(1)
+	// Force a later source CAS failure, after the first repository's trace and
+	// canonical deletions. The independent primitive emulates a competing writer.
+	err = authority.WithMutation(t.Context(), func(ctx context.Context) error {
+		if _, err := authority.Withdraw(ctx, identity.InstallationID, []string{identity.Repository, "z/other"}); err != nil {
+			return err
+		}
+		return second.Acquisition().SetEnrollment(ctx, "z/other", identity.InstallationID+1)
+	})
+	if !errors.Is(err, collectnative.ErrClaimLost) {
+		t.Fatalf("changed source snapshot was overwritten: %v", err)
+	}
+	assertTraceObjects(1)
+	if _, err := authority.CurrentScope(t.Context(), identity.Repository); err != nil {
+		t.Fatalf("failed transaction withdrew source authority: %v", err)
+	}
+	if err := authority.WithMutation(t.Context(), func(ctx context.Context) error {
+		_, err := authority.Withdraw(ctx, identity.InstallationID, []string{identity.Repository})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	assertTraceObjects(0)
+	if _, err := authority.CurrentScope(t.Context(), identity.Repository); !errors.Is(err, collectnative.ErrIdentity) {
+		t.Fatalf("withdrawn native source remained authorized: %v", err)
+	}
+	if err := peerTrace.CaptureSession(t.Context(), identity.Repository, "303", int64(identity.Attempt), time.Now(),
+		[]byte("{\"type\":\"session.format\",\"data\":{\"version\":1}}\n"), ""); err == nil {
+		t.Fatal("separate replica admitted content after durable withdrawal")
+	}
+	if err := authority.WithMutation(t.Context(), func(ctx context.Context) error {
+		return authority.Enroll(ctx, identity.InstallationID, []string{identity.Repository})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := peerTrace.CaptureSession(t.Context(), identity.Repository, "303", int64(identity.Attempt), time.Now(),
+		[]byte("{\"type\":\"session.format\",\"data\":{\"version\":1}}\n"), ""); err == nil {
+		t.Fatal("reenrollment implicitly reapproved the withdrawn trace destination")
+	}
+}
+
 func TestNativePipelineTraceAdmissionPrecedesSafeCanonicalPublication(t *testing.T) {
 	first, config := testutil.PostgresWithConfig(t, t.Context(), "CAO_TEST_POSTGRES_URL")
 	second, err := postgresx.NewConfig(t.Context(), config)

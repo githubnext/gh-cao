@@ -23,8 +23,8 @@ import (
 
 type runAttemptFunc func(context.Context, collectnative.Identity) error
 
-func (f runAttemptFunc) CollectAttempt(ctx context.Context, identity collectnative.Identity) error {
-	return f(ctx, identity)
+func (f runAttemptFunc) CollectScopedAttempt(ctx context.Context, request collectnative.ScopedAttempt) error {
+	return f(ctx, request.Identity)
 }
 
 func nativeRunQueue(t *testing.T) (Queue, string, string) {
@@ -57,7 +57,7 @@ func nativeRunQueue(t *testing.T) (Queue, string, string) {
 }
 
 func historicalNativeTask() RunTask {
-	return RunTask{Repository: "octo/api", InstallationID: 7, RunID: 303, Attempt: 3}
+	return RunTask{Repository: "octo/api", InstallationID: 7, RunID: 303, Attempt: 3, ScopeEpoch: 1}
 }
 
 type historicalNativeProvider struct {
@@ -120,7 +120,7 @@ func TestNativeRunWorkerCrashAfterPublicationRecoversInAnotherProcess(t *testing
 	recorded := time.Now().Add(-72 * time.Hour).UTC().Format(time.RFC3339)
 	collector := collectnative.Collector{Provider: historicalNativeProvider{recorded}, Store: canonical.Acquisition()}
 	t.Setenv("PATH", "/nonexistent")
-	task.Key = runTaskIdentity(task.Repository, task.RunID, task.Attempt)
+	task.Key = runTaskKey(task)
 	original := RunLease{Task: task}
 	interrupted := errors.New("process lost after publication before ACK")
 	faultQueue := queue
@@ -289,18 +289,19 @@ func TestNativeRunQueueRejectsForeignAndMalformedEnvelopes(t *testing.T) {
 	queue, _, _ := nativeRunQueue(t)
 	for _, fields := range []operational.TaskFields{
 		{Repository: "octo/api", Task: "{", Key: "octo/api:303:3"},
-		{Repository: "octo/other", Task: `{"repository":"octo/api","installationId":7,"runId":303,"attempt":3,"key":"octo/api:303:3"}`, Key: "octo/api:303:3"},
-		{Repository: "octo/api", Task: `{"repository":"octo/api","installationId":7,"runId":303,"attempt":3,"key":"octo/api:303:3"}`, Key: "octo/api:303:2"},
+		{Repository: "octo/other", Task: `{"repository":"octo/api","installationId":7,"runId":303,"attempt":3,"scopeEpoch":1,"key":"octo/api:303:3:epoch:1"}`, Key: "octo/api:303:3:epoch:1"},
+		{Repository: "octo/api", Task: `{"repository":"octo/api","installationId":7,"runId":303,"attempt":3,"scopeEpoch":1,"key":"octo/api:303:3:epoch:1"}`, Key: "octo/api:303:2:epoch:1"},
+		{Repository: "octo/api", Task: `{"repository":"octo/api","installationId":7,"runId":303,"attempt":3,"key":"octo/api:303:3"}`, Key: "octo/api:303:3"},
 	} {
 		if _, err := queue.Tasks.EnqueueTask(t.Context(), operational.EnqueueRequest{Queue: runTaskStream, Fields: fields}); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if leases, err := queue.LeaseRuns(t.Context(), "worker", 3); err != nil || len(leases) != 0 {
+	if leases, err := queue.LeaseRuns(t.Context(), "worker", 4); err != nil || len(leases) != 0 {
 		t.Fatalf("foreign or malformed envelope was executable: %v %v", leases, err)
 	}
 	stats, err := queue.Tasks.QueueStats(t.Context(), runDeadLetterStream, "")
-	if err != nil || stats.Length != 3 {
+	if err != nil || stats.Length != 4 {
 		t.Fatalf("invalid task did not leave explicit durable evidence: %v %v", stats, err)
 	}
 }

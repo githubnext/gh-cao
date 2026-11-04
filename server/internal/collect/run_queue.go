@@ -70,8 +70,8 @@ func (q Queue) ReclaimRuns(ctx context.Context, consumer string, idle time.Durat
 func validRunTask(task RunTask, fields operational.TaskFields) bool {
 	repository, err := NormalizeRepository(task.Repository)
 	return err == nil && task.Repository == repository && fields.Repository == repository &&
-		task.InstallationID > 0 && task.RunID > 0 && task.Attempt > 0 && task.Failures >= 0 &&
-		task.Key == runTaskIdentity(repository, task.RunID, task.Attempt) && fields.Key == task.Key
+		task.InstallationID > 0 && task.RunID > 0 && task.Attempt > 0 && task.Failures >= 0 && task.ScopeEpoch > 0 &&
+		task.Key == runTaskKey(task) && fields.Key == task.Key
 }
 
 func (q Queue) runLeases(ctx context.Context, queue operational.FencedTaskQueue, messages []operational.TaskMessage) ([]RunLease, error) {

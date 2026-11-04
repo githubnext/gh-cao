@@ -124,6 +124,10 @@ not filesystem locations.
 
 Historical run tasks use the native exact-attempt REST lookup. Acquisition MUST
 obtain an enrollment-fenced exact-attempt claim before the provider lookup.
+A native task MUST carry its admission-time enrollment epoch. Exact-attempt
+claims MUST compare that epoch atomically before provider lookup, rather than
+retargeting a previously admitted task to a newer enrollment. Native task
+deduplication and historical cursor identities MUST include the epoch.
 A provider MUST verify the returned repository, run, attempt and agentic workflow
 path before acquiring artifacts. A missing exact-attempt capability MUST fail;
 it MUST NOT substitute the latest attempt or expand the task into repository
@@ -149,12 +153,33 @@ durable publication intent, not a local cache or proof of canonical activation.
 Unconsumed intents MUST NOT expire through ordinary consumed-evidence cleanup.
 Capacity exhaustion MUST reject work instead of evicting pending intents.
 
+The native enrollment authority uses a bounded PostgreSQL ownership transaction
+for authenticated reconciliation. Cancellation, transaction expiry or loss of
+the owning process MUST prevent a resumed callback from publishing membership.
+Operational membership sets and installation mappings are indexes and
+checkpoints, not authorization sources for native ingestion. Missing indexes
+MUST NOT hide source-owned installations; displaced indexes after rollback MUST
+NOT grant repository scope. Predicted, uncommitted epochs MUST NOT escape into
+task admission.
+
+Ownership changes MUST atomically invalidate claims, pending safe evidence,
+the withdrawn repository's canonical graph and its daily contributions. Frozen
+statistical bundles MUST become explicitly unavailable, not retain withdrawn
+evidence or silently substitute live detail. Unrelated canonical repositories
+MUST remain intact.
+
 Configured content destinations MUST complete approved durable admission before
 safe evidence is published. Raw sessions MUST NOT enter ordinary acquisition
 rows, canonical rows or operational records. Native trace admission reuses the
 existing policy, redaction, exact-attempt identity, source-gap, sampling and
 immutable delivery contracts. Shared trace storage uses PostgreSQL transactions,
 not process mutexes or a shared filesystem.
+When shared trace admission participates in native enrollment, its withdrawal
+tombstone and approved-object deletion MUST commit in the same PostgreSQL
+transaction as source ownership and canonical erasure. A later source failure
+MUST roll all destinations back. Separately committed or filesystem trace
+destinations cannot participate in this boundary. Reenrollment MUST NOT
+implicitly reapprove a previously withdrawn trace destination.
 
 Canonical publication MUST atomically verify the current enrollment epoch and
 exact evidence digest, insert the owning canonical graph, advance its revision
@@ -170,7 +195,8 @@ partial source metadata, not success-shaped defaults or inferred zeroes.
 adapters are independently executable, but `CollectorConfig.NativeAcquisition`
 still fails closed. The historical run consumer is available through the
 fenced queue/native acquisition boundary, but is not activated by the hosted
-composition. The hosted enrollment/queue/backfill lifecycle, complete
+composition. The native enrollment authority and atomic shared-trace withdrawal
+are available as owned adapters, but the hosted enrollment/queue/backfill lifecycle, complete
 inventory/Value replacement and session archive are not yet integrated with this
 boundary. Native Actions job-log/legacy audit extraction is also unavailable;
 `legacy-audit-unavailable` is explicit evidence, not a parity claim. The existing
