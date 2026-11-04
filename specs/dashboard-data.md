@@ -766,7 +766,7 @@ Conformance for this increment is declared in
 [`tests/contracts/statistical-sampling.json`](../tests/contracts/statistical-sampling.json).
 `npm run test:conformance:statistical-sampling` SHALL execute all declared suites:
 Activity publication, IndexedDB worker and native Chromium, shared Go sampler
-and CLI, SQLite query and live-backfill HTTP boundaries, real PostgreSQL bundle
+and CLI, SQLite query and external-refresh HTTP boundaries, real PostgreSQL bundle
 lifecycle, and the bounded TLA+ model
 [`StatisticalSampling.tla`](tla/StatisticalSampling.tla). It requires an isolated
 `POSTGRES_URL` with schema-creation permission and `TLA2TOOLS_JAR`; missing tools,
@@ -823,25 +823,20 @@ The default local profile is loopback-only. The separate hosted profile requires
 GitHub OAuth and explicit organization/team authorization; neither profile
 grants database access to clients.
 
-Local SQLite serving outside the internal canvas MAY refresh recent GitHub
-evidence using the operator's local token. The deployed snapshot MUST remain
-attached read-only through native SQLite `ATTACH DATABASE`; a separate local
-delta SHALL hold upserts and deletion markers, without copying historical
-records. Requests MUST use query-only transactions over the merged view.
-The delta MUST be bound to the snapshot's canonical content revision and
-incompatible bases MUST fail closed without deleting local evidence.
-Refresh scope MUST come exclusively from repositories in that snapshot, never
-token reach or expanded control-plane authority. Collection SHALL reuse the
-Activity pipeline and canonical ingestion, including winning-attempt and
-run-linked replacement semantics. Publication MUST atomically activate a
-successfully ingested staged local delta, reject concurrent stale writers, and
-notify revision subscribers; incomplete repository collection and failed
-ingestion MUST preserve previously committed evidence and remain explicit.
-Credentials MUST NOT be stored in SQLite or exposed to clients. Backfill MUST
-have bounded scope, lookback, run count, and execution deadlines, be canceled
-and joined on shutdown, and support offline serving of both snapshot and local
-data without GitHub requests. Local refresh MUST NOT change hosted PostgreSQL,
-OAuth, webhook, collection-authority, or internal canvas contracts.
+Local SQLite serving SHALL open only the selected canonical database read-only.
+Creation, normalization, backfill, retention, and repair SHALL remain owned by
+the `cao-activity` JavaScript pipeline, outside the Go server lifecycle.
+The server MUST NOT acquire GitHub evidence, resolve acquisition credentials,
+launch ingestion runtimes, create a writable overlay, or mutate canonical
+records or bookkeeping for local SQLite serving. Previously created overlay
+files SHALL remain untouched and MUST NOT be automatically attached.
+Requests MUST use consistent query-only transactions through the existing
+native canonical query boundary. External canonical commits SHALL invalidate
+stale query state and notify revision subscribers. Startup MAY download and
+verify an already-published SQLite snapshot; that is artifact acquisition, not
+evidence collection or local backfill. These boundaries apply equally to
+ordinary local and internal canvas serving and MUST NOT change hosted
+PostgreSQL, OAuth, webhook, or collection-authority contracts.
 
 The optional hosted OIDC admission gate MAY publish early Run evidence only
 after verified identity, policy approval and durable decision resolution.

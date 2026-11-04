@@ -38,20 +38,20 @@ accepted. SQL comes only from generated trusted definitions, never request text.
 
 ## Local persistent server
 
-Use `cao-dashboard serve` with the ordinary SQLite snapshot/overlay and local
-GitHub credentials. `CAO_SESSION_ARCHIVE_ENABLED` is the independent opt-in.
+Use `cao-dashboard serve` with the ordinary read-only SQLite snapshot.
+`CAO_SESSION_ARCHIVE_ENABLED` is the independent opt-in.
 The `CAO_SESSION_ARCHIVE_*` configuration owns a separate private archive
 directory, namespace, exact repository allowlist, durable-storage approval,
 content policy, runtime path, and budgets. Refer to
 `internal/sessionarchive/config.go` for the complete validated configuration.
 No existing ADX export environment variables are required.
 
-Keep every archive repository within the SQLite snapshot's collection scope.
-The existing backfill visits those repositories; capture occurs before
-normalization and temporary cleanup. Failed archive admission leaves the
-attempt eligible for retry. A successfully admitted trace survives cleanup of
-the ordinary collection workspace. `--backfill=false` permits offline archive
-reads and maintenance, not new acquisition.
+Keep every archive repository within the SQLite snapshot's inventory.
+Local serving reads and maintains independently captured archive evidence; it
+does not start GitHub acquisition or SQLite backfill. Approved evidence must be
+captured by a separately authorized producer before its collection workspace
+is removed. Hosted co-resident workers retain their independent acquisition
+and pre-normalization capture lifecycle.
 
 Read access requires `CAO_SESSION_ARCHIVE_READ_APPROVED=true` in addition to
 the ordinary loopback bearer capability. Treat that capability as granting

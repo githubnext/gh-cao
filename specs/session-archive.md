@@ -18,7 +18,7 @@ The archive is independently default-off, private, additional analytics:
 Existing PostgreSQL schemas, canonical queries, ingestion, retention, and
 operational-state storage MUST remain unchanged. The archive MUST NOT use
 PostgreSQL as a catalog, outbox, staging service, receipt store, or source of
-full traces. Dashboard SQLite/overlay, IndexedDB, JSONL publication, and ordinary
+full traces. Dashboard SQLite, IndexedDB, JSONL publication, and ordinary
 dashboard query behavior MUST remain unchanged. There is no frontend or
 automatic cross-store join.
 
@@ -31,8 +31,9 @@ establishes outcome acceptance, canonical Value freshness, or Git evidence.
 
 Archive enablement MUST NOT grant acquisition authority. Capture receives the
 existing authorized visit to `usage/aw_session.jsonl`, before session evidence
-normalization, compaction, or temporary-workspace cleanup. Local acquisition is
-bounded by the immutable SQLite snapshot's exact repository scope; co-resident
+normalization, compaction, or temporary-workspace cleanup. Local archive access is
+bounded by the SQLite snapshot's exact repository scope; the local Go server
+MUST NOT start SQLite evidence collection or backfill. Co-resident
 hosted acquisition is bounded by existing collection enrollment and policy.
 Archive configuration further narrows that scope to exact repositories.
 

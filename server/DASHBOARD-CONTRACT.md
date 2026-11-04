@@ -11,7 +11,7 @@ npm run test:integration:dashboard-contract
 
 The first starts the real local Go application in the test process. The second
 builds and starts a **separate `cao-dashboard serve` process**, explicitly
-selecting `--sqlite`, a disposable local overlay, and `--backfill=false`.
+selecting a disposable canonical snapshot with `--sqlite`.
 Both run the same deterministic, labelled synthetic scenario through numeric
 loopback HTTP using the simulator's endpoint-allowlisted `LocalTransport`.
 The subprocess gets an isolated home and an allowlisted environment without
@@ -38,8 +38,8 @@ is **not** a dashboard rendering or browser test.
 The scenarios assert that sparse/partial evidence does not become a successful
 conclusion or zero cost and that source completeness/freshness remain unknown;
 an absent daily projection stays explicitly unavailable, not an empty success.
-A synthetic local-overlay commit advances the canonical revision and rejects an
-old pagination cursor. Deliberately invalidating the disposable overlay's schema
+A test-owned external snapshot commit advances the canonical revision and rejects an
+old pagination cursor. Deliberately invalidating the disposable snapshot's schema
 version produces HTTP 503 on canonical and query reads, with no fixture fallback;
 restoring it recovers ordinary reads. Finally, canceling an already established
 revision stream reports request cancellation while a subsequent query succeeds.
@@ -47,7 +47,7 @@ All fault writes are test-owned fixture operations, not a new public write API.
 
 The fast scenario runs in the ordinary Go simulator suite; the binary-building
 transport scenario is opt-in through its dedicated command. Both clean up their
-temporary snapshots, overlays, listeners and processes. Synthetic results are
+temporary snapshots, listeners and processes. Synthetic results are
 development evidence only: neither test proves PostgreSQL role isolation,
 remote transport/TLS/OAuth behavior, in-flight SQL cancellation, remote outage
 recovery or restart durability. Real-backend contract checks and hosted checks

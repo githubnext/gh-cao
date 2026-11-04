@@ -25,9 +25,9 @@ func TestServeSQLiteFlagValidation(t *testing.T) {
 		want string
 	}{
 		{"empty", []string{"--sqlite="}, "--sqlite requires"},
-		{"empty-overlay", []string{"--sqlite-overlay="}, "--sqlite-overlay requires"},
-		{"zero-backfill", []string{"--backfill-interval=0"}, "--backfill-interval must be positive"},
-		{"backfill-postgres", []string{"--backfill", "--postgres-url=postgres://localhost/test"}, "none of the others"},
+		{"removed-overlay", []string{"--sqlite-overlay=local.sqlite"}, "unknown flag: --sqlite-overlay"},
+		{"removed-backfill", []string{"--backfill"}, "unknown flag: --backfill"},
+		{"removed-backfill-interval", []string{"--backfill-interval=1m"}, "unknown flag: --backfill-interval"},
 		{"postgres", []string{"--sqlite=local.sqlite", "--postgres-url=postgres://localhost/test"}, "none of the others"},
 		{"redis", []string{"--sqlite=local.sqlite", "--redis-url=redis://localhost"}, "none of the others"},
 		{"source", []string{"--sqlite=local.sqlite", "--source=deployed"}, "none of the others"},
@@ -99,7 +99,6 @@ func sqliteServeTestArgs(t *testing.T) []string {
 		t.Fatal(err)
 	}
 	return []string{
-		"--backfill=false",
 		"--site=" + site,
 		"--access-token=" + localSQLiteTestToken,
 		"--database-queries=" + filepath.Join(root, "data/queries/database.json"),
@@ -114,6 +113,8 @@ func TestServeSQLiteDefaultStartup(t *testing.T) {
 	t.Setenv("CAO_POSTGRES_URL", "invalid-unused-postgres")
 	t.Setenv("CAO_REDIS_URL", "invalid-unused-redis")
 	t.Setenv("OTEL_SDK_DISABLED", "true")
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("GH_TOKEN", "unused-local-credential")
 	content := sqliteDownloadFixture(t)
 	baseArgs := sqliteServeTestArgs(t)
 	for _, test := range []struct {
@@ -152,6 +153,9 @@ func TestServeSQLiteDefaultStartup(t *testing.T) {
 					t.Fatal(err)
 				}
 				if err := os.WriteFile(cache, content, 0o600); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(cache+".local.sqlite", []byte("legacy delta must remain untouched"), 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -252,6 +256,18 @@ func TestServeSQLiteDefaultStartup(t *testing.T) {
 			}
 			if _, err := os.Stat(cache); err != nil {
 				t.Fatalf("snapshot was not persisted: %v", err)
+			}
+			stored, err := os.ReadFile(cache) // #nosec G304 -- test-owned snapshot cache.
+			if err != nil || string(stored) != string(content) {
+				t.Fatal("serving modified the published snapshot")
+			}
+			if test.cached {
+				legacy, err := os.ReadFile(cache + ".local.sqlite") // #nosec G304 -- test-owned legacy overlay.
+				if err != nil || string(legacy) != "legacy delta must remain untouched" {
+					t.Fatal("serving changed the legacy overlay")
+				}
+			} else if _, err := os.Stat(cache + ".local.sqlite"); !os.IsNotExist(err) {
+				t.Fatalf("read-only serving created a writable overlay: %v", err)
 			}
 		})
 	}

@@ -452,8 +452,9 @@ The independently default-off Parquet session archive
 approved analytics without changing PostgreSQL schemas, queries, ingestion,
 retention, or operational state. It reuses the existing approved `adxtrace`
 projection and the authorized pre-normalization acquisition visit. Local
-SQLite backfill supplies only snapshot-declared repositories; co-resident
-hosted workers supply only enrolled authorized repositories. Archive scope
+SQLite archive access is limited to snapshot-declared repositories and does not
+start collection; co-resident hosted workers supply only enrolled authorized
+repositories. Archive scope
 further narrows those visits. Multiple enabled destinations intersect admitted
 metadata-cache membership and fan out capture/withdrawal without another
 collector. Failed admission cannot commit an acquisition-cache skip.
@@ -833,33 +834,14 @@ webhook, or hosted execution capabilities. Query result caching is disabled;
 in-place commits change the revision and notify active subscriptions. Snapshot
 quality remains unknown without stronger evidence. This default local mode
 does not introduce a hosted SQLite backend or a fallback from PostgreSQL.
-Outside the internal canvas profile, SQLite's native `ATTACH DATABASE` links the
-read-only snapshot to a writable local delta (`--sqlite-overlay`, default
-snapshot path plus `.local.sqlite`). The shared overlay SQL in
-`internal/dashboardquery/overlay.sql` unions historical records with local
-upserts and deletion markers without copying snapshot records. Every HTTP
-request remains query-only. The overlay is bound to the snapshot's canonical
-content revision; a different base requires another overlay and never silently
-discards the previous delta.
-
-Local background backfill uses `GH_TOKEN`, `GITHUB_TOKEN`, or the local `gh`
-login, never a hosted App identity. It refreshes only repositories present in the
-deployed snapshot (at most 10,000), with no token-driven inventory expansion,
-rollout changes, webhooks, or hosted collector authority. Per-repository run
-watermarks overlap one day and include older unfinished runs within 30 days;
-collection is capped at 10,000 runs and five minutes per repository, and 30
-minutes per pass. The existing Activity collector/compactor and canonical
-ingester read the attached history while writing a staged copy of only the
-local delta. Failed repositories are discarded and reported independently;
-failed ingestion never changes committed data. Successful publication swaps
-local rows and tombstones transactionally, rejects a stale concurrent generation,
-and broadcasts the revision. Private per-pass evidence is removed afterward.
-Backfill starts asynchronously and repeats five minutes after each pass;
-`--backfill-interval` changes that delay and `--backfill=false` provides offline
-serving while retaining local data. Missing credentials/tools or failed refreshes
-are explicit and retry without blocking snapshot serving or claiming complete
-quality. Application shutdown cancels and joins this local work. The internal
-canvas and read-only constructor remain snapshot-only.
+SQLite creation, normalization, backfill, and maintenance belong to the
+JavaScript `cao-activity` pipeline, not the Go server. Local serving does not
+look up GitHub credentials, launch acquisition or ingestion tools, create a
+writable delta, or attach previous `.local.sqlite` overlays. Existing overlay
+files are left unchanged. Ordinary and internal canvas serving both read only
+the selected canonical snapshot; externally committed changes are observed
+through the same native query and revision-subscription boundaries.
+This does not change the separate hosted PostgreSQL collector or its runtimes.
 
 Its fixed local evaluator profile admits 500,000 input/intermediate rows and
 50 million operations with 1 GiB working-source and 2 GiB / 2 million live

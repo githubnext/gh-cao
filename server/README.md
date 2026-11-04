@@ -377,41 +377,18 @@ or `DASHBOARD_DATA_URL` when set. `--sqlite PATH` selects another cache and has 
 same download-if-missing behavior. Database service environment variables alone
 do not change this local default.
 
-The downloaded snapshot stays **read-only**. SQLite's native `ATTACH DATABASE`
-links it to a separate writable delta, defaulting to the snapshot path plus
-`.local.sqlite`; `--sqlite-overlay PATH` selects another local file. Only schema
-metadata is copied, not the pre-indexed records. Queries read the union, with
-local upserts and deletion markers taking precedence over the snapshot.
+The selected snapshot stays **read-only**. SQLite creation, normalization,
+backfill, and maintenance remain in the JavaScript `cao-activity` pipeline.
+The Go server only serves the existing canonical database: it does not look up
+GitHub credentials, run collection or ingestion tools, or create a writable
+overlay. Node.js, npm, `gh`, and Activity runtime files are not needed for this
+local serving path. Externally committed database changes refresh query results
+and notify active revision subscribers.
 
-Local backfill starts in the background immediately and repeats five minutes
-after each pass finishes (`--backfill-interval` changes the delay). It uses
-`GH_TOKEN`, then `GITHUB_TOKEN`, then `gh auth token --hostname github.com`.
-Install Node.js and the `gh aw` extension for collection and canonical ingestion.
-The runtime catalog is resolved relative to `--database-queries`; keep the
-repository's Activity runtime alongside those query definitions.
-Missing tools or credentials and collection/ingestion failures are reported
-explicitly without preventing the committed dashboard data from being served.
-The token is passed only to the GitHub collection subprocess, never stored in
-SQLite or sent to the browser.
-
-Refresh scope is exclusively the repositories already declared in the deployed
-snapshot, capped at 10,000 repositories. Credential access never adds targets or
-changes rollout policy. Collection uses each repository's latest retained run
-with a one-day overlap and includes older unfinished runs, within a bounded
-30-day window. Each repository invocation collects at most 10,000 runs with a
-five-minute deadline; a pass has a 30-minute deadline. This is recent evidence
-refresh, not an exhaustive historical archive or a completeness guarantee.
-Successful repository collections use the existing Activity compactor and
-canonical ingester against a staged copy of **only the local delta**. Failed
-repository collections are discarded and reported; they do not block successful
-repositories. Failed ingestion leaves committed data unchanged. Successful
-publication is atomic, rejects concurrent stale writers, and notifies active
-revision subscribers. The private per-pass evidence directory is removed on
-completion or failure. Shutdown cancels collection and ingestion.
-
-Use `--backfill=false` for offline serving without GitHub requests. Existing
-local deltas remain visible. The internal Copilot canvas profile continues to
-serve its verified snapshot without enabling this backfill.
+The former `--sqlite-overlay`, `--backfill`, and `--backfill-interval` options
+are no longer supported. Previously created `.local.sqlite` files are preserved
+but are not attached or merged. Ordinary local and internal Copilot canvas
+serving use the same read-only boundary.
 
 Use `--download-sqlite` to explicitly refresh the cache, even when it exists.
 Its optional URL overrides `DASHBOARD_DATA_URL` and accepts any GitHub Pages site,
@@ -444,10 +421,6 @@ An unbuilt `--site` fails before downloading. Stop any existing snapshot users
 before refreshing; symlink destinations and existing SQLite journal sidecars
 are rejected rather than risking corruption. Checkpoint a locally modified
 snapshot with its owning tool, or select a different `--sqlite` path.
-An overlay is bound to the snapshot's canonical content revision. After replacing
-the snapshot with different data, choose a new `--sqlite-overlay` file. A
-mismatched overlay fails closed and is preserved, rather than applying stale
-overrides to a different base or silently deleting local evidence.
 
 For offline startup, use plain `serve` with an existing default cache, or select
 another existing snapshot:
@@ -455,7 +428,6 @@ another existing snapshot:
 ```bash
 go -C server run ./cmd/cao-dashboard serve \
   --sqlite ../.cao/gh-aw-logs.sqlite \
-  --backfill=false \
   --listen 127.0.0.1:8443
 ```
 

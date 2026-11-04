@@ -456,26 +456,21 @@ evidence. Preparation reuses Activity normalization and the production Dashboard
 build; it does not simulate GitHub collection, Actions permissions or Pages
 infrastructure. Relative Go server paths resolve from `server/`.
 
-### Local SQLite overlay and backfill
+### Read-only local SQLite serving
 
-Local `dashboard:local` serving keeps the downloaded snapshot read-only. Go
-attaches it to a separate writable delta (default: the snapshot path plus
-`.local.sqlite`; choose another file with `--sqlite-overlay PATH`). Queries read
-the union, where local upserts and deletion markers take precedence. The overlay
-is bound to the snapshot's canonical content revision; after replacing the
-snapshot with different data, choose a new overlay file. A mismatched overlay
-fails closed and is preserved rather than applied to the wrong base.
+Local `dashboard:local` serving opens the selected canonical snapshot read-only.
+SQLite creation, normalization, backfill, and maintenance remain in the
+JavaScript `cao-activity` pipeline. The Go server does not collect GitHub evidence,
+look up acquisition credentials, launch ingestion tools, or create a writable
+delta. Serving a cached snapshot needs neither GitHub access nor Node.js, npm,
+`gh`, or Activity runtime assets.
 
-A background backfill starts with the server and repeats five minutes after each
-pass (`--backfill-interval` changes the delay). It authenticates with `GH_TOKEN`,
-`GITHUB_TOKEN`, or the local `gh` login, and requires Node.js and the `gh aw`
-extension. It refreshes only repositories already present in the snapshot (at
-most 10,000); credentials never add targets or change rollout policy. Each
-repository collection is capped at 10,000 runs and five minutes, and a pass at 30
-minutes. This is a recent-evidence refresh, not an exhaustive archive. Failed
-repositories are reported independently and failed ingestion leaves committed
-data unchanged. Use `--backfill=false` for offline serving; existing local data
-stays visible. The Copilot canvas profile remains snapshot-only.
+The former `--sqlite-overlay`, `--backfill`, and `--backfill-interval` options
+are no longer supported. Existing `.local.sqlite` files remain untouched but
+are not automatically attached. Refresh the published snapshot through Activity,
+then use `--download-sqlite` to fetch it. External canonical database commits
+invalidate stale query state and notify active revision subscribers. The
+Copilot canvas uses the same read-only serving boundary.
 
 SQLite initialization failures stop startup rather than falling back to IndexedDB.
 The [Copilot canvas](agent-plugin.md#open-a-copilot-canvas) also uses Go/SQLite;
@@ -487,7 +482,7 @@ need to exercise browser IndexedDB.
 > [!WARNING]
 > **Experimental:** The session archive is a proposed, default-off analytics store. Passing its interface does not mean either deployment scenario has met its acceptance gates.
 
-The Go server can optionally archive unified agent sessions as private, immutable Parquet evidence. It is separate from the dashboard SQLite/PostgreSQL data, has no frontend, and never joins automatically with dashboard queries. Existing dashboard queries, overlays, and IndexedDB behavior don't change.
+The Go server can optionally archive unified agent sessions as private, immutable Parquet evidence. It is separate from the dashboard SQLite/PostgreSQL data, has no frontend, and never joins automatically with dashboard queries. Archive enablement does not change canonical ingestion, dashboard queries, or IndexedDB behavior.
 
 | Scenario | Storage | Query engine |
 | --- | --- | --- |
