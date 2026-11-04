@@ -1983,6 +1983,13 @@ describe('presenter built-in and custom pages', () => {
     });
 
     const page = await activatePage(rendered, 'skills');
+    expect(page?.hasAttribute('data-page-experimental')).toBe(false);
+    expect(/** @type {HTMLElement} */ (rendered.querySelector('.title-area [data-page-experimental]')).hidden).toBe(true);
+    const navigationLinks = rendered.querySelectorAll('[data-nav-page-id="skills"]');
+    expect(navigationLinks.length).toBeGreaterThan(0);
+    for (const link of navigationLinks) {
+      expect(link.querySelector('.experimental-page-label')).toBeNull();
+    }
     expect(page?.querySelectorAll('[data-chart-widget="horizontal-bar"]')).toHaveLength(2);
     expect(page?.querySelector('[data-view-id="skills-workflow-inventory"] table')).not.toBeNull();
     expect(page?.querySelector('[data-view-id="skills-workflow-inventory"] [data-mobile-card-list] [data-card-drill]')?.getAttribute('href'))

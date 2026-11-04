@@ -2064,7 +2064,7 @@
       "title": "Skills",
       "navigation-label": "Skills",
       "icon": "tools",
-      "experimental": true,
+      "experimental": false,
       "description": "Identify skill-usage patterns that require workflow-level CAO investigation.",
       "views": [
         {

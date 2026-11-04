@@ -1008,7 +1008,7 @@
       "subject": "Retained skill invocation observations in the selected scope and horizon.",
       "objective": "Locate skill-usage evidence for workflow-level investigation.",
       "acceptance": "Count observed invocations by skill and workflow, retain drill-down identity and disclose coverage. Invocation volume is not proof of skill quality, success or operational value.",
-      "experimental": true,
+      "experimental": false,
       "parameters": [],
       "queries": [
         "skill-invocations-by-skill",

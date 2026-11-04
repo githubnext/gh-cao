@@ -104,6 +104,14 @@ test("dashboard build uses GitHub Actions repository and server URL for the chro
     assert.ok(dashboard.dashboard.navigation.some(
       (section) => section.label === "Data" && section.pages.includes("friction"),
     ));
+    assert.equal(dashboard.dashboard.pages.find((page) => page.id === "skills")?.experimental, false);
+    assert.equal(catalog.pages.find((page) => page.id === "skills")?.experimental, false);
+    assert.ok(dashboard.dashboard.navigation.some(
+      (section) => section.label === "Data" && section.experimental !== true && section.pages.includes("skills"),
+    ));
+    assert.ok(!document.dashboard.navigation.some(
+      (section) => section.experimental === true && section.pages.includes("skills"),
+    ));
     assert.deepEqual(catalog, agentCatalog({
       ...document,
       dashboard: {
