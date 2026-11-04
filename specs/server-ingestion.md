@@ -305,11 +305,14 @@ A collection task acquires evidence for exactly one repository.
 
 - A worker MUST lease a task before collecting and MUST NOT collect a repository
   that another worker holds.
-- A worker MUST bound each collection with a timeout, an output size cap, and a
-  working directory it owns and removes.
-- A worker MUST pass an explicit GitHub API rate-limit reserve to the collection
-  subprocess so the subprocess fails closed rather than exhausting the
-  installation.
+- A worker MUST bound each collection with a timeout and an output size cap.
+  The legacy filesystem collector MUST own and remove its working directory.
+  Native acquisition MUST instead use bounded in-memory processing and the
+  durable handoff in section 2.4, without staging an evidence directory.
+- A legacy collection subprocess MUST receive an explicit GitHub API
+  rate-limit reserve. Native provider requests MUST reserve and reconcile the
+  existing shared installation quota directly. Both paths MUST fail closed
+  rather than exhaust the installation.
 - On failure a worker MUST retry with bounded attempts and jittered backoff, and
   MUST dead-letter a task that exhausts them. A failed task MUST NOT corrupt or
   partially replace a repository's existing evidence.
@@ -320,7 +323,13 @@ A collection task acquires evidence for exactly one repository.
 
 ## 6. The evidence lake
 
-Collected evidence MUST be persisted in a durable **evidence lake**.
+Collected evidence MUST be durably replayable. The legacy filesystem collector
+persists it in an **evidence lake** with the directory obligations below.
+The native boundary in section 2.4 instead persists safe, exact-attempt
+publication intents in PostgreSQL. Those intents are not an Activity directory,
+a local overlay, or approved-content trace storage. Native hosted activation
+MUST remain rejected until cold start, retention and scope erasure satisfy their
+contracts using that shared durable representation.
 
 - The lake MUST use the Activity snapshot directory layout: compacted run shards
   under `gh-aw-logs-runs/`, record shards under `gh-aw-logs-records/`, a
@@ -354,13 +363,19 @@ Collected evidence MUST be persisted in a durable **evidence lake**.
 
 ## 7. Projection
 
-Projection converts the evidence lake into the current canonical PostgreSQL
-dataset.
+Projection converts retained evidence into the current canonical PostgreSQL
+dataset. Native publication remains subject to section 2.4's activation gate.
 
-- Projection MUST reuse the Actions profile's ingestion implementation over the
-  evidence lake directory. An implementation MUST NOT define a second projector.
-- Projection MUST be coalesced: an implementation MUST collapse collections that
-  complete within a configured debounce window into one replacement.
+- Projection MUST preserve the Actions profile's canonical mapping. The legacy
+  filesystem collector MUST reuse its ingestion implementation over the evidence
+  lake directory. The native Go adapter MUST satisfy the independent-oracle and
+  production-query equivalence requirements in sections 2.2 and 2.4; it MUST NOT
+  introduce alternate canonical semantics.
+- Legacy full-dataset projection MUST coalesce collections that complete within
+  a configured debounce window into one replacement. Native publication MUST
+  process bounded pending batches under its exact digest and epoch fences.
+  Snapshot replacement and native publication MUST NOT be interleaved as
+  compatibility paths.
 - A replacement MUST commit all current sources, source documents, diagnostics,
   revision state, and evaluation time in one PostgreSQL transaction. A failed
   projection MUST leave the previously committed dataset serving.
@@ -368,10 +383,11 @@ dataset.
   rather than commit a dataset known to be inconsistent.
 - On successful activation the implementation MUST increment the revision and
   notify connected clients through the existing revision channel.
-- Projection MUST short-circuit when the lake's content-addressed data revision
-  already matches the current dataset. A collection re-enumerates a window and
-  usually adds nothing, so rewriting an identical dataset would be the dominant
-  steady-state cost. An explicit operator rebuild MAY bypass this short-circuit.
+- Legacy projection MUST short-circuit when the lake's content-addressed data
+  revision already matches the current dataset. Native publication MUST NOT
+  reactivate a consumed digest in the same enrollment epoch. An explicit operator
+  rebuild MAY bypass the unchanged-evidence short-circuit, but MUST NOT bypass
+  current scope, retention, identity or publication fences.
 - PostgreSQL MUST be the only dashboard entity and query store. Operational
   adapters MAY hold projection coordination and health state, but MUST NOT hold entity rows,
   canonical source documents, query indexes, persistent query projections, or
