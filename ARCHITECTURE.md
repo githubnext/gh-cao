@@ -1863,6 +1863,22 @@ not authorize cross-repository evidence access.
   Locally source-built images are not admitted through the package workflow's vulnerability scans,
   hardening check, SBOM, or artifact attestations; those guarantees continue
   to apply only to published packages.
+- The independently executable native collection service in
+  `server/internal/collectnative/` acquires scoped Actions artifacts, projects
+  metadata-only sessions and compacts JSONL without subprocesses or Activity
+  files. PostgreSQL owns exact-attempt acquisition leases, scope epochs and
+  bounded safe publication intents. Canonical projection executes the embedded
+  authoritative routing queries through the Go SQL engine, then commits the
+  graph, revision and consumed intent atomically. Approved trace admission can
+  use a private PostgreSQL object/ledger transaction and completes before safe
+  publication. These are shared durable boundaries, not filesystem caches.
+  The service is not yet a selectable hosted acquisition profile:
+  `CollectorConfig.NativeAcquisition` rejects activation until enrollment,
+  queue/backfill, inventory and enabled destinations are integrated without the
+  legacy filesystem projector. Native legacy job/audit acquisition is explicitly
+  unavailable. Existing hosted/container collection and session archive still
+  use the legacy path; shared trace storage does not relax ADX's single-exporter
+  activation restriction. See `specs/server-ingestion.md` section 2.4.
 - Browsers and external clients never receive Redis or Postgres endpoints or
   credentials. Dashboard source replacement is transactional in Postgres; a
   failed replacement leaves the previous committed data available. An empty

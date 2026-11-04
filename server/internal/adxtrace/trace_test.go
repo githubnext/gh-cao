@@ -159,7 +159,7 @@ func drain(t *testing.T, w *Worker) {
 func stateFor(t *testing.T, w *Worker) ledger {
 	t.Helper()
 	var result ledger
-	if err := w.spool.locked(t.Context(), func(_ *os.Root, state *ledger) error {
+	if err := w.spool.locked(t.Context(), func(_ Objects, state *ledger) error {
 		content, err := json.Marshal(state)
 		if err != nil {
 			return err

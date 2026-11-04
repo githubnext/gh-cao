@@ -25,6 +25,7 @@ type Policy struct {
 
 type Config struct {
 	Enabled        bool
+	SharedStorage  bool
 	Directory      string
 	DurableStorage bool
 	Repositories   []string
@@ -49,6 +50,13 @@ func FromEnv(get func(string) string) (Config, error) {
 		return c, errors.New("CAO_ADX_TRACES_ENABLED must be true or false")
 	}
 	c.Enabled, c.Directory = true, get("CAO_ADX_TRACE_DIRECTORY")
+	switch get("CAO_ADX_TRACE_STORAGE") {
+	case "", "filesystem":
+	case "postgres":
+		c.SharedStorage = true
+	default:
+		return Config{}, errors.New("trace storage must be filesystem or postgres")
+	}
 	if value := get("CAO_ADX_TRACE_MINING_ENABLED"); value != "" && value != "false" {
 		if value != "true" {
 			return Config{}, errors.New("CAO_ADX_TRACE_MINING_ENABLED must be true or false")
@@ -116,10 +124,13 @@ func (c *Config) Validate() error {
 	if !c.Enabled {
 		return nil
 	}
-	if runtime.GOOS == "windows" {
+	if !c.SharedStorage && runtime.GOOS == "windows" {
 		return errors.New("unified trace spooling requires a POSIX host")
 	}
-	if c.Directory == "" || !c.DurableStorage {
+	if c.SharedStorage && c.Directory != "" {
+		return errors.New("shared trace storage cannot use a local spool directory")
+	}
+	if !c.SharedStorage && (c.Directory == "" || !c.DurableStorage) {
 		return errors.New("traces require an explicitly confirmed private durable spool")
 	}
 	if c.Mode != "full" && c.Mode != "sample" {
@@ -209,7 +220,7 @@ func readPrivateFile(path string, limit int64) ([]byte, error) {
 		return nil, err
 	}
 	defer func() { _ = root.Close() }()
-	return readBounded(root, base(path), limit)
+	return readPrivateObject(root, base(path), limit)
 }
 
 func policyDigest(p Policy) string {

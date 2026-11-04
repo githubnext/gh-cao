@@ -1,0 +1,6493 @@
+{
+  "queries": [
+    {
+      "name": "audits",
+      "stores": [
+        "runs",
+        "audits"
+      ],
+      "from": "$audits",
+      "joins": [
+        {
+          "source": "$runs",
+          "type": "left",
+          "on": [
+            {
+              "left": "runId",
+              "right": "id"
+            }
+          ],
+          "fields": [
+            {
+              "field": "owner",
+              "as": "organization"
+            },
+            {
+              "field": "repository",
+              "as": "repository"
+            },
+            {
+              "field": "workflowPath",
+              "as": "workflow"
+            },
+            {
+              "field": "githubRunId",
+              "as": "_github-run-id"
+            },
+            {
+              "field": "attempt",
+              "as": "run-attempt"
+            },
+            {
+              "field": "runLink",
+              "as": "run-link"
+            },
+            {
+              "field": "engine",
+              "as": "engine"
+            },
+            {
+              "field": "engineVersion",
+              "as": "engine-version"
+            },
+            {
+              "field": "requestedModel",
+              "as": "requested-model"
+            },
+            {
+              "field": "resolvedModel",
+              "as": "resolved-model"
+            },
+            {
+              "field": "modelId",
+              "as": "model-id"
+            },
+            {
+              "field": "rolloutMode",
+              "as": "rollout-mode"
+            },
+            {
+              "field": "ghAwVersion",
+              "as": "gh-aw-version"
+            },
+            {
+              "field": "conclusion",
+              "as": "run-conclusion"
+            },
+            {
+              "field": "agentId",
+              "as": "agent-id"
+            },
+            {
+              "field": "agentVersion",
+              "as": "agent-version"
+            },
+            {
+              "field": "agentRuntime",
+              "as": "agent-runtime"
+            },
+            {
+              "field": "organizationLink",
+              "as": "organization-link"
+            },
+            {
+              "field": "repositoryLink",
+              "as": "repository-link"
+            },
+            {
+              "field": "workflowLink",
+              "as": "workflow-link"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "run",
+          "function": "concat",
+          "args": [
+            {
+              "field": "_github-run-id"
+            }
+          ]
+        },
+        {
+          "as": "_target-coordinate",
+          "function": "concat",
+          "args": [
+            {
+              "field": "targetOrganization"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "field": "targetRepository"
+            }
+          ]
+        },
+        {
+          "as": "_target-organization-missing",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "targetOrganization"
+            },
+            {
+              "value": null
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "_target-repository-missing",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "targetRepository"
+            },
+            {
+              "value": null
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "_target-repo",
+          "function": "if",
+          "args": [
+            {
+              "field": "_target-organization-missing"
+            },
+            {
+              "value": null
+            },
+            {
+              "field": "_target-coordinate"
+            }
+          ]
+        },
+        {
+          "as": "target-repo",
+          "function": "if",
+          "args": [
+            {
+              "field": "_target-repository-missing"
+            },
+            {
+              "value": null
+            },
+            {
+              "field": "_target-repo"
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "routingStage",
+          "as": "routing-stage"
+        },
+        {
+          "field": "routingSchema",
+          "as": "routing-schema"
+        },
+        {
+          "field": "routingStatus",
+          "as": "routing-status"
+        },
+        {
+          "field": "routingGoal",
+          "as": "routing-goal"
+        },
+        {
+          "field": "routingConfiguredMode",
+          "as": "routing-configured-mode"
+        },
+        {
+          "field": "routingMode",
+          "as": "routing-mode"
+        },
+        {
+          "field": "routingSelectedModel",
+          "as": "routing-selected-model"
+        },
+        {
+          "field": "routingSelectedEffort",
+          "as": "routing-selected-effort"
+        },
+        {
+          "field": "routingRequestedModel",
+          "as": "routing-requested-model"
+        },
+        {
+          "field": "routingRequestedEffort",
+          "as": "routing-requested-effort"
+        },
+        {
+          "field": "routingAppliedEffort",
+          "as": "routing-applied-effort"
+        },
+        {
+          "field": "routingTaskType",
+          "as": "routing-task-type"
+        },
+        {
+          "field": "routingScope",
+          "as": "routing-scope"
+        },
+        {
+          "field": "routingComplexity",
+          "as": "routing-complexity"
+        },
+        {
+          "field": "routingPurpose",
+          "as": "routing-purpose"
+        },
+        {
+          "field": "routingAgentName",
+          "as": "routing-agent-name"
+        },
+        {
+          "field": "routingAgentId",
+          "as": "routing-agent-id"
+        },
+        {
+          "field": "routingRouted",
+          "as": "routing-routed"
+        },
+        {
+          "field": "routingOutcome",
+          "as": "routing-outcome"
+        },
+        {
+          "field": "routingRouterVersion",
+          "as": "routing-router-version"
+        },
+        {
+          "field": "routingAwfVersion",
+          "as": "routing-awf-version"
+        },
+        {
+          "field": "routingClassifierModel",
+          "as": "routing-classifier-model"
+        },
+        {
+          "field": "routingClassifierEffort",
+          "as": "routing-classifier-effort"
+        },
+        {
+          "field": "routingClassifierAttempts",
+          "as": "routing-classifier-attempts"
+        },
+        {
+          "field": "routingLatencyMs",
+          "as": "routing-latency-ms"
+        },
+        {
+          "field": "routingDegraded",
+          "as": "routing-degraded"
+        },
+        {
+          "field": "routingDegradedReason",
+          "as": "routing-degraded-reason"
+        },
+        {
+          "field": "routingEnabled",
+          "as": "routing-enabled"
+        },
+        {
+          "field": "routingSubstitution",
+          "as": "routing-substitution"
+        },
+        {
+          "field": "routingEffectiveModel",
+          "as": "routing-effective-model"
+        },
+        {
+          "field": "routingSteeringType",
+          "as": "routing-steering-type"
+        },
+        {
+          "field": "routingSteeringThreshold",
+          "as": "routing-steering-threshold"
+        },
+        {
+          "field": "routingMaxCredits",
+          "as": "routing-max-credits"
+        },
+        {
+          "field": "routingSessionClock",
+          "as": "routing-session-clock"
+        },
+        {
+          "field": "routingDeviations",
+          "as": "routing-deviations"
+        },
+        {
+          "field": "routingInventoryComplete",
+          "as": "routing-inventory-complete"
+        },
+        {
+          "field": "resolutionRole",
+          "as": "resolution-role"
+        },
+        {
+          "field": "resolutionConfiguredModel",
+          "as": "resolution-configured-model"
+        },
+        {
+          "field": "resolutionResolvedModel",
+          "as": "resolution-resolved-model"
+        },
+        {
+          "field": "id"
+        },
+        {
+          "field": "organization"
+        },
+        {
+          "field": "repository"
+        },
+        {
+          "field": "workflow"
+        },
+        {
+          "field": "run"
+        },
+        {
+          "field": "run-attempt"
+        },
+        {
+          "field": "id",
+          "as": "event"
+        },
+        {
+          "field": "timestamp",
+          "as": "event-timestamp"
+        },
+        {
+          "field": "source",
+          "as": "event-source"
+        },
+        {
+          "field": "type",
+          "as": "event-type"
+        },
+        {
+          "field": "summary",
+          "as": "event-summary"
+        },
+        {
+          "field": "status",
+          "as": "event-status"
+        },
+        {
+          "field": "code"
+        },
+        {
+          "field": "correlationId",
+          "as": "correlation-id"
+        },
+        {
+          "field": "payloadRef",
+          "as": "payload-ref"
+        },
+        {
+          "field": "name"
+        },
+        {
+          "field": "activationSource",
+          "as": "activation-source"
+        },
+        {
+          "field": "measurementState",
+          "as": "measurement-state"
+        },
+        {
+          "field": "component"
+        },
+        {
+          "field": "phase"
+        },
+        {
+          "field": "model",
+          "as": "telemetry-model"
+        },
+        {
+          "field": "provider"
+        },
+        {
+          "field": "effort"
+        },
+        {
+          "field": "sourceEngine",
+          "as": "telemetry-engine"
+        },
+        {
+          "field": "durationMs",
+          "as": "duration-ms"
+        },
+        {
+          "field": "exitCode",
+          "as": "exit-code"
+        },
+        {
+          "field": "httpStatus",
+          "as": "http-status"
+        },
+        {
+          "field": "method"
+        },
+        {
+          "field": "direction"
+        },
+        {
+          "field": "requestBytes",
+          "as": "request-bytes"
+        },
+        {
+          "field": "responseBytes",
+          "as": "response-bytes"
+        },
+        {
+          "field": "premiumRequests",
+          "as": "premium-requests"
+        },
+        {
+          "field": "totalCostUsd",
+          "as": "total-cost-usd"
+        },
+        {
+          "field": "totalAic",
+          "as": "total-aic"
+        },
+        {
+          "field": "errorsCount",
+          "as": "errors-count"
+        },
+        {
+          "field": "permissionDenialsCount",
+          "as": "permission-denials-count"
+        },
+        {
+          "field": "resource"
+        },
+        {
+          "field": "resetAt",
+          "as": "rate-limit-reset-at"
+        },
+        {
+          "field": "rateLimit",
+          "as": "limit"
+        },
+        {
+          "field": "remaining"
+        },
+        {
+          "field": "used"
+        },
+        {
+          "field": "requestAttempt",
+          "as": "request-attempt"
+        },
+        {
+          "field": "delayMs",
+          "as": "delay-ms"
+        },
+        {
+          "field": "threshold"
+        },
+        {
+          "field": "value"
+        },
+        {
+          "field": "transport"
+        },
+        {
+          "field": "required"
+        },
+        {
+          "field": "scope"
+        },
+        {
+          "field": "digest"
+        },
+        {
+          "field": "totalEvents",
+          "as": "total-events"
+        },
+        {
+          "field": "linkedInvocations",
+          "as": "linked-invocations"
+        },
+        {
+          "field": "aic"
+        },
+        {
+          "field": "inputTokens",
+          "as": "input-tokens"
+        },
+        {
+          "field": "outputTokens",
+          "as": "output-tokens"
+        },
+        {
+          "field": "cacheReadTokens",
+          "as": "cache-read-tokens"
+        },
+        {
+          "field": "cacheWriteTokens",
+          "as": "cache-write-tokens"
+        },
+        {
+          "field": "reasoningTokens",
+          "as": "reasoning-tokens"
+        },
+        {
+          "field": "totalTokens",
+          "as": "total-tokens"
+        },
+        {
+          "field": "turns"
+        },
+        {
+          "field": "toolCalls",
+          "as": "tool-calls"
+        },
+        {
+          "field": "eventsTruncated",
+          "as": "events-truncated"
+        },
+        {
+          "field": "decision"
+        },
+        {
+          "field": "sourceSequence",
+          "as": "source-sequence"
+        },
+        {
+          "field": "observedAt",
+          "as": "observed-at"
+        },
+        {
+          "field": "run-link"
+        },
+        {
+          "field": "engine"
+        },
+        {
+          "field": "engine-version"
+        },
+        {
+          "field": "requested-model"
+        },
+        {
+          "field": "resolved-model"
+        },
+        {
+          "field": "model-id"
+        },
+        {
+          "field": "rollout-mode"
+        },
+        {
+          "field": "gh-aw-version"
+        },
+        {
+          "field": "run-conclusion"
+        },
+        {
+          "field": "agent-id"
+        },
+        {
+          "field": "agent-version"
+        },
+        {
+          "field": "agent-runtime"
+        },
+        {
+          "field": "organization-link"
+        },
+        {
+          "field": "repository-link"
+        },
+        {
+          "field": "workflow-link"
+        },
+        {
+          "field": "target-repo"
+        },
+        {
+          "field": "targetOrganization",
+          "as": "target-organization"
+        },
+        {
+          "field": "targetRepository",
+          "as": "target-repository"
+        },
+        {
+          "field": "targetWorkflowPath",
+          "as": "target-workflow-path"
+        },
+        {
+          "field": "optimizerRunAttempt",
+          "as": "optimizer-run-attempt"
+        },
+        {
+          "field": "optimizerWorkflowPath",
+          "as": "optimizer-workflow-path"
+        },
+        {
+          "field": "optimizerWorkflowName",
+          "as": "optimizer-workflow-name"
+        },
+        {
+          "field": "claimRunId",
+          "as": "claim-run-id"
+        },
+        {
+          "field": "claimRunAttempt",
+          "as": "claim-run-attempt"
+        },
+        {
+          "field": "actor"
+        },
+        {
+          "field": "opportunityId",
+          "as": "opportunity-id"
+        },
+        {
+          "field": "opportunityKind",
+          "as": "opportunity-kind"
+        },
+        {
+          "field": "assignmentRunId",
+          "as": "assignment-run"
+        },
+        {
+          "field": "experimentId",
+          "as": "experiment"
+        },
+        {
+          "field": "evidenceWindowStart",
+          "as": "evidence-window-start"
+        },
+        {
+          "field": "evidenceWindowEnd",
+          "as": "evidence-window-end"
+        },
+        {
+          "field": "evidenceState",
+          "as": "evidence-state"
+        },
+        {
+          "field": "evidenceConfidence",
+          "as": "evidence-confidence"
+        },
+        {
+          "field": "costGrain",
+          "as": "cost-grain"
+        },
+        {
+          "field": "interventionId",
+          "as": "intervention-id"
+        },
+        {
+          "field": "lifecycleObservationId",
+          "as": "lifecycle-observation-id"
+        },
+        {
+          "field": "previousInterventionState",
+          "as": "previous-intervention-state"
+        },
+        {
+          "field": "interventionState",
+          "as": "intervention-state"
+        },
+        {
+          "field": "previousRecommendationDisposition",
+          "as": "previous-recommendation-disposition"
+        },
+        {
+          "field": "recommendationDisposition",
+          "as": "recommendation-disposition"
+        },
+        {
+          "field": "supersedesInterventionId",
+          "as": "supersedes-intervention-id"
+        },
+        {
+          "field": "supersededByInterventionId",
+          "as": "superseded-by-intervention-id"
+        },
+        {
+          "field": "recommendationChurnCount",
+          "as": "recommendation-churn-count"
+        },
+        {
+          "field": "recommendationChurnRate",
+          "as": "recommendation-churn-rate"
+        },
+        {
+          "field": "controlVariant",
+          "as": "control-variant"
+        },
+        {
+          "field": "optimizedVariant",
+          "as": "optimized-variant"
+        },
+        {
+          "field": "proposedSavingsAic",
+          "as": "proposed-savings-aic"
+        },
+        {
+          "field": "missingReason",
+          "as": "missing-reason"
+        },
+        {
+          "field": "implementationChangeId",
+          "as": "implementation-change-id"
+        },
+        {
+          "field": "implementationPullRequestUrl",
+          "as": "implementation-pull-request-url"
+        },
+        {
+          "field": "acceptedAt",
+          "as": "accepted-at"
+        },
+        {
+          "field": "implementationStartedAt",
+          "as": "implementation-started-at"
+        },
+        {
+          "field": "implementationCompletedAt",
+          "as": "implementation-completed-at"
+        },
+        {
+          "field": "rejectedAt",
+          "as": "rejected-at"
+        },
+        {
+          "field": "supersededAt",
+          "as": "superseded-at"
+        },
+        {
+          "field": "runId",
+          "as": "canonical-run-id"
+        },
+        {
+          "field": "routingBaselineModel"
+        },
+        {
+          "field": "routingBaselineComplete"
+        },
+        {
+          "field": "routingBaselineMainRequests"
+        },
+        {
+          "field": "eligibleChoices"
+        },
+        {
+          "field": "catalogueOverlap"
+        }
+      ]
+    },
+    {
+      "name": "routing-session-observations",
+      "subject": "Read metadata-only unified-session routing evidence.",
+      "objective": "Keep routing analytics independent of native logs and inferred run totals.",
+      "acceptance": "Only recognized session events contribute; event clocks remain absent when unrecorded.",
+      "from": "audits",
+      "filter": {
+        "predicates": [
+          {
+            "field": "event-type",
+            "in": [
+              "session.format",
+              "workflow.info",
+              "workflow.job_result",
+              "agent.execution",
+              "firewall.model_routing",
+              "firewall.token_usage",
+              "usage.report",
+              "firewall.steering",
+              "firewall.upstream_error",
+              "model.config",
+              "model.baseline_estimate",
+              "model.resolution",
+              "model_routing.outcome",
+              "model_endpoint.mismatch",
+              "session.collection",
+              "session.collection_warning",
+              "subagent.request",
+              "subagent.started",
+              "subagent.configured",
+              "subagent.completed",
+              "subagent.failed",
+              "subagent.model_unavailable"
+            ]
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "record-clock",
+          "function": "timestamp",
+          "args": [
+            {
+              "field": "event-timestamp"
+            }
+          ]
+        },
+        {
+          "as": "event-clock",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "routing-session-clock"
+            },
+            {
+              "field": "record-clock"
+            }
+          ]
+        },
+        {
+          "as": "routing-run-key",
+          "function": "concat",
+          "args": [
+            {
+              "field": "organization"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "field": "repository"
+            },
+            {
+              "value": ":"
+            },
+            {
+              "field": "run"
+            }
+          ]
+        },
+        {
+          "as": "agent-phase",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "phase"
+            },
+            {
+              "value": "agent"
+            }
+          ]
+        },
+        {
+          "as": "proxy-selection",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-stage"
+            },
+            {
+              "value": "selection"
+            }
+          ]
+        },
+        {
+          "as": "proxy-failure",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-stage"
+            },
+            {
+              "value": "failure"
+            }
+          ]
+        },
+        {
+          "as": "has-agent-name",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "routing-agent-name"
+            },
+            {
+              "value": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-session-attempts",
+      "from": "routing-session-observations",
+      "subject": "Identify available session files and their earliest recorded clocks.",
+      "objective": "Keep rerun attempts from multiplying routing denominators.",
+      "acceptance": "Attempt order is only a tie-breaker after the recorded session clock.",
+      "aggregate": {
+        "by": [
+          "routing-run-key",
+          "run-attempt"
+        ],
+        "values": [
+          {
+            "field": "event-clock",
+            "as": "session-clock",
+            "reducer": "min"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-session-order",
+      "from": "routing-session-attempts",
+      "subject": "Order duplicate run sessions by run time and attempt.",
+      "objective": "Keep the latest file for each repository/run identity.",
+      "acceptance": "Only one attempt contributes to routing facts.",
+      "window": [
+        {
+          "operation": "row-number",
+          "field": "run-attempt",
+          "as": "session-position",
+          "groupby": [
+            "routing-run-key"
+          ],
+          "order-by": [
+            {
+              "field": "session-clock",
+              "direction": "desc"
+            },
+            {
+              "field": "run-attempt",
+              "direction": "desc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-latest-sessions",
+      "from": "routing-session-order",
+      "subject": "Retain one authoritative session attempt per run.",
+      "objective": "Avoid mixing picks or accounting from reruns.",
+      "acceptance": "Duplicate attempts remain available in session coverage.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "session-position",
+            "equals": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-session-events",
+      "from": "routing-session-observations",
+      "subject": "Read routing metadata from the latest session file per run.",
+      "objective": "Deduplicate rerun attempts before any metric.",
+      "acceptance": "Earlier attempts never add cost or change the selected pick.",
+      "joins": [
+        {
+          "source": "routing-latest-sessions",
+          "type": "inner",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            },
+            {
+              "left": "run-attempt",
+              "right": "run-attempt"
+            }
+          ],
+          "fields": [
+            {
+              "field": "session-clock",
+              "as": "session-clock"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-run-facts",
+      "subject": "Collect per-session source facts without interpreting absence as success.",
+      "objective": "Resolve routing states and coverage from runner and proxy evidence.",
+      "acceptance": "Agent-phase proxy selection wins over failure and harness status; untimed observations keep unknown time.",
+      "from": "routing-session-events",
+      "aggregate": {
+        "by": [
+          "routing-run-key",
+          "organization",
+          "repository",
+          "workflow",
+          "run"
+        ],
+        "values": [
+          {
+            "field": "event-clock",
+            "as": "run-clock",
+            "reducer": "min"
+          },
+          {
+            "field": "run-link",
+            "as": "run-link",
+            "reducer": "unique"
+          },
+          {
+            "field": "engine",
+            "as": "engine",
+            "reducer": "unique"
+          },
+          {
+            "field": "event",
+            "as": "workflow-info-count",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "workflow.info"
+                },
+                {
+                  "field": "required",
+                  "equals": true
+                }
+              ]
+            }
+          },
+          {
+            "field": "event-status",
+            "as": "session-format",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "session.format"
+                }
+              ]
+            }
+          },
+          {
+            "field": "event",
+            "as": "selection-count",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "firewall.model_routing"
+                },
+                {
+                  "field": "routing-stage",
+                  "equals": "selection"
+                },
+                {
+                  "field": "phase",
+                  "equals": "agent"
+                }
+              ]
+            }
+          },
+          {
+            "field": "event",
+            "as": "failure-count",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "firewall.model_routing"
+                },
+                {
+                  "field": "routing-stage",
+                  "equals": "failure"
+                },
+                {
+                  "field": "phase",
+                  "equals": "agent"
+                }
+              ]
+            }
+          },
+          {
+            "field": "event",
+            "as": "local-effort-failures",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "firewall.model_routing"
+                },
+                {
+                  "field": "routing-stage",
+                  "equals": "failure"
+                },
+                {
+                  "field": "code",
+                  "equals": "unsupported_reasoning_effort"
+                }
+              ]
+            }
+          },
+          {
+            "field": "event",
+            "as": "proxy-record-count",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "firewall.model_routing"
+                },
+                {
+                  "field": "phase",
+                  "equals": "agent"
+                }
+              ]
+            }
+          },
+          {
+            "field": "event",
+            "as": "agent-accounting-count",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "firewall.token_usage"
+                },
+                {
+                  "field": "phase",
+                  "equals": "agent"
+                }
+              ]
+            }
+          },
+          {
+            "field": "event",
+            "as": "subagent-count",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "in": [
+                    "subagent.started",
+                    "subagent.request",
+                    "subagent.configured",
+                    "subagent.completed",
+                    "subagent.failed",
+                    "subagent.model_unavailable"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "field": "routing-status",
+            "as": "harness-status",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "workflow.info"
+                }
+              ]
+            }
+          },
+          {
+            "field": "routing-enabled",
+            "as": "configured-enabled",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "model.config"
+                }
+              ]
+            }
+          },
+          {
+            "field": "routing-selected-model",
+            "as": "harness-model",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "workflow.info"
+                }
+              ]
+            }
+          },
+          {
+            "field": "telemetry-model",
+            "as": "workflow-model",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "workflow.info"
+                }
+              ]
+            }
+          },
+          {
+            "field": "routing-selected-effort",
+            "as": "harness-effort",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "workflow.info"
+                }
+              ]
+            }
+          },
+          {
+            "field": "routing-mode",
+            "as": "harness-mode",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "workflow.info"
+                }
+              ]
+            }
+          },
+          {
+            "field": "routing-awf-version",
+            "as": "session-awf-version",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "workflow.info"
+                }
+              ]
+            }
+          },
+          {
+            "field": "routing-goal",
+            "as": "configured-goal",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "model.config"
+                }
+              ]
+            }
+          },
+          {
+            "field": "routing-configured-mode",
+            "as": "configured-routing-mode",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "model.config"
+                }
+              ]
+            }
+          },
+          {
+            "field": "routing-max-credits",
+            "as": "configured-max-credits",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "model.config"
+                }
+              ]
+            }
+          },
+          {
+            "field": "event-status",
+            "as": "agent-result",
+            "reducer": "unique",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "workflow.job_result"
+                },
+                {
+                  "field": "name",
+                  "equals": "agent"
+                },
+                {
+                  "field": "event-status",
+                  "in": [
+                    "success",
+                    "failure",
+                    "cancelled",
+                    "skipped"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "field": "event",
+            "as": "warnings",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "session.collection_warning"
+                }
+              ]
+            }
+          },
+          {
+            "field": "canonical-run-id",
+            "as": "canonical-run-id",
+            "reducer": "unique"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-ordered-selections",
+      "subject": "Order proxy selections within each session.",
+      "objective": "Use the last selection by normalized clock and file order.",
+      "acceptance": "Harness and advisory picks never override proxy selections.",
+      "from": "routing-session-events",
+      "filter": {
+        "predicates": [
+          {
+            "field": "event-type",
+            "equals": "firewall.model_routing"
+          },
+          {
+            "field": "routing-stage",
+            "equals": "selection"
+          },
+          {
+            "field": "phase",
+            "equals": "agent"
+          }
+        ]
+      },
+      "window": [
+        {
+          "operation": "row-number",
+          "field": "source-sequence",
+          "as": "selection-position",
+          "groupby": [
+            "routing-run-key"
+          ],
+          "order-by": [
+            {
+              "field": "event-timestamp",
+              "direction": "desc"
+            },
+            {
+              "field": "source-sequence",
+              "direction": "desc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-selections",
+      "subject": "Retain one authoritative proxy pick per run.",
+      "objective": "Avoid multiplying requests or run counts after re-selection.",
+      "acceptance": "One row per identified run uses the final proxy selection.",
+      "from": "routing-ordered-selections",
+      "filter": {
+        "predicates": [
+          {
+            "field": "selection-position",
+            "equals": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-resolved-runs",
+      "subject": "Resolve routing state, pick and label cells from unified sessions.",
+      "objective": "Distinguish selected, failed, harness-only, configured, inferred and unknown evidence.",
+      "acceptance": "Proxy evidence wins; configuration conflicts are visible; missing picks and time remain unknown.",
+      "from": "routing-run-facts",
+      "joins": [
+        {
+          "source": "routing-selections",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "routing-selected-model",
+              "as": "proxy-model"
+            },
+            {
+              "field": "routing-selected-effort",
+              "as": "proxy-effort"
+            },
+            {
+              "field": "routing-goal",
+              "as": "proxy-goal"
+            },
+            {
+              "field": "routing-mode",
+              "as": "proxy-mode"
+            },
+            {
+              "field": "routing-configured-mode",
+              "as": "proxy-configured-mode"
+            },
+            {
+              "field": "routing-task-type",
+              "as": "routing-task-type"
+            },
+            {
+              "field": "routing-scope",
+              "as": "routing-scope"
+            },
+            {
+              "field": "routing-complexity",
+              "as": "routing-complexity"
+            },
+            {
+              "field": "routing-latency-ms",
+              "as": "routing-latency-ms"
+            },
+            {
+              "field": "routing-degraded",
+              "as": "routing-degraded"
+            },
+            {
+              "field": "routing-classifier-attempts",
+              "as": "routing-classifier-attempts"
+            },
+            {
+              "field": "routing-classifier-model",
+              "as": "routing-classifier-model"
+            },
+            {
+              "field": "routing-classifier-effort",
+              "as": "routing-classifier-effort"
+            },
+            {
+              "field": "routing-schema",
+              "as": "routing-schema"
+            },
+            {
+              "field": "routing-awf-version",
+              "as": "proxy-awf-version"
+            },
+            {
+              "field": "routing-router-version",
+              "as": "routing-router-version"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "observed-at",
+          "function": "iso-timestamp",
+          "args": [
+            {
+              "field": "run-clock"
+            }
+          ]
+        },
+        {
+          "as": "routing-awf-version",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "session-awf-version"
+            },
+            {
+              "field": "proxy-awf-version"
+            }
+          ]
+        },
+        {
+          "as": "routing-mode",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "proxy-mode"
+            },
+            {
+              "field": "harness-mode"
+            }
+          ]
+        },
+        {
+          "as": "routing-goal",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "proxy-goal"
+            },
+            {
+              "field": "configured-goal"
+            }
+          ]
+        },
+        {
+          "as": "routing-configured-mode",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "proxy-configured-mode"
+            },
+            {
+              "field": "configured-routing-mode"
+            }
+          ]
+        },
+        {
+          "as": "has-selection",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "selection-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "has-failure",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "failure-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "has-harness",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "harness-status"
+            },
+            {
+              "value": null
+            }
+          ]
+        },
+        {
+          "as": "has-usage",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "agent-accounting-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "no-proxy",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "proxy-record-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "usage-state",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-usage"
+            },
+            {
+              "value": "unrouted_inferred"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "inferred-state",
+          "function": "if",
+          "args": [
+            {
+              "field": "no-proxy"
+            },
+            {
+              "field": "usage-state"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "enabled",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "configured-enabled"
+            },
+            {
+              "value": true
+            }
+          ]
+        },
+        {
+          "as": "disabled",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "configured-enabled"
+            },
+            {
+              "value": false
+            }
+          ]
+        },
+        {
+          "as": "enabled-state",
+          "function": "if",
+          "args": [
+            {
+              "field": "enabled"
+            },
+            {
+              "value": "configured_unrecorded"
+            },
+            {
+              "field": "inferred-state"
+            }
+          ]
+        },
+        {
+          "as": "configured-state",
+          "function": "if",
+          "args": [
+            {
+              "field": "disabled"
+            },
+            {
+              "value": "unrouted"
+            },
+            {
+              "field": "enabled-state"
+            }
+          ]
+        },
+        {
+          "as": "reported-state",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-harness"
+            },
+            {
+              "field": "configured-state"
+            },
+            {
+              "value": "harness_reported"
+            }
+          ]
+        },
+        {
+          "as": "failure-state",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-failure"
+            },
+            {
+              "value": "selection_failed"
+            },
+            {
+              "field": "reported-state"
+            }
+          ]
+        },
+        {
+          "as": "routing-state",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-selection"
+            },
+            {
+              "value": "selected"
+            },
+            {
+              "field": "failure-state"
+            }
+          ]
+        },
+        {
+          "as": "observed-pick-model",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-selection"
+            },
+            {
+              "field": "proxy-model"
+            },
+            {
+              "field": "harness-model"
+            }
+          ]
+        },
+        {
+          "as": "observed-pick-effort",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-selection"
+            },
+            {
+              "field": "proxy-effort"
+            },
+            {
+              "field": "harness-effort"
+            }
+          ]
+        },
+        {
+          "as": "pick-model",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "observed-pick-model"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "pick-effort",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "observed-pick-effort"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "pick",
+          "function": "concat",
+          "args": [
+            {
+              "field": "pick-model"
+            },
+            {
+              "value": " / "
+            },
+            {
+              "field": "pick-effort"
+            }
+          ]
+        },
+        {
+          "as": "has-proxy-decision",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-selection"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "has-failure"
+            }
+          ]
+        },
+        {
+          "as": "has-decision",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-harness"
+            },
+            {
+              "field": "has-proxy-decision"
+            },
+            {
+              "value": true
+            }
+          ]
+        },
+        {
+          "as": "configuration-conflict",
+          "function": "if",
+          "args": [
+            {
+              "field": "disabled"
+            },
+            {
+              "field": "has-decision"
+            },
+            {
+              "value": false
+            }
+          ]
+        },
+        {
+          "as": "unknown-pick-model",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "pick-model"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "unknown-pick-effort",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "pick-effort"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "unknown-pick",
+          "function": "if",
+          "args": [
+            {
+              "field": "unknown-pick-model"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "unknown-pick-effort"
+            }
+          ]
+        },
+        {
+          "as": "routing-key-encoded",
+          "function": "url-encode",
+          "args": [
+            {
+              "field": "routing-run-key"
+            }
+          ]
+        },
+        {
+          "as": "routing-href",
+          "function": "concat",
+          "args": [
+            {
+              "value": "#page-routing-run?routing-run="
+            },
+            {
+              "field": "routing-key-encoded"
+            }
+          ]
+        },
+        {
+          "as": "routing-dashboard-link",
+          "function": "dashboard-link",
+          "args": [
+            {
+              "field": "run-link"
+            },
+            {
+              "field": "routing-href"
+            },
+            {
+              "field": "run"
+            }
+          ]
+        }
+      ],
+      "filter": {
+        "predicates": [
+          {
+            "field": "workflow-info-count",
+            "gte": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-filter-candidates",
+      "from": "routing-aggregates",
+      "subject": "Apply one run-level scope before every routing metric and event join.",
+      "objective": "Filter complete sessions, never fragments of their evidence.",
+      "acceptance": "Unknown run time is excluded from a bounded range; blank filters retain all known values.",
+      "parameters": [
+        {
+          "name": "routing-filter-workflow",
+          "type": "string"
+        },
+        {
+          "name": "routing-filter-repository",
+          "type": "string"
+        },
+        {
+          "name": "routing-filter-engine",
+          "type": "string"
+        },
+        {
+          "name": "routing-filter-state",
+          "type": "string"
+        },
+        {
+          "name": "routing-filter-goal",
+          "type": "string"
+        },
+        {
+          "name": "routing-filter-mode",
+          "type": "string"
+        },
+        {
+          "name": "routing-filter-awf",
+          "type": "string"
+        },
+        {
+          "name": "routing-filter-start",
+          "type": "string"
+        },
+        {
+          "name": "routing-filter-end",
+          "type": "string"
+        }
+      ],
+      "compute": [
+        {
+          "as": "full-repository",
+          "function": "concat",
+          "args": [
+            {
+              "field": "organization"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "field": "repository"
+            }
+          ]
+        },
+        {
+          "as": "all-workflows",
+          "function": "equals-any",
+          "args": [
+            {
+              "value": ""
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "same-workflow",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "workflow"
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "include-workflow",
+          "function": "if",
+          "args": [
+            {
+              "field": "all-workflows"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "same-workflow"
+            }
+          ]
+        },
+        {
+          "as": "all-repositories",
+          "function": "equals-any",
+          "args": [
+            {
+              "value": ""
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "same-repository",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "full-repository"
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "include-repository",
+          "function": "if",
+          "args": [
+            {
+              "field": "all-repositories"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "same-repository"
+            }
+          ]
+        },
+        {
+          "as": "all-engines",
+          "function": "equals-any",
+          "args": [
+            {
+              "value": ""
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "same-engine",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "engine"
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "include-engine",
+          "function": "if",
+          "args": [
+            {
+              "field": "all-engines"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "same-engine"
+            }
+          ]
+        },
+        {
+          "as": "all-states",
+          "function": "equals-any",
+          "args": [
+            {
+              "value": ""
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "same-state",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-state"
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "include-state",
+          "function": "if",
+          "args": [
+            {
+              "field": "all-states"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "same-state"
+            }
+          ]
+        },
+        {
+          "as": "all-goals",
+          "function": "equals-any",
+          "args": [
+            {
+              "value": ""
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "same-goal",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-goal"
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "include-goal",
+          "function": "if",
+          "args": [
+            {
+              "field": "all-goals"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "same-goal"
+            }
+          ]
+        },
+        {
+          "as": "all-modes",
+          "function": "equals-any",
+          "args": [
+            {
+              "value": ""
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "same-mode",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-mode"
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "include-mode",
+          "function": "if",
+          "args": [
+            {
+              "field": "all-modes"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "same-mode"
+            }
+          ]
+        },
+        {
+          "as": "all-awf",
+          "function": "equals-any",
+          "args": [
+            {
+              "value": ""
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "same-awf",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-awf-version"
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "include-awf",
+          "function": "if",
+          "args": [
+            {
+              "field": "all-awf"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "same-awf"
+            }
+          ]
+        },
+        {
+          "as": "all-starts",
+          "function": "equals-any",
+          "args": [
+            {
+              "value": ""
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "start-clock",
+          "function": "timestamp",
+          "args": [
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "start-before",
+          "function": "difference",
+          "args": [
+            {
+              "field": "start-clock"
+            },
+            {
+              "value": 1
+            }
+          ]
+        },
+        {
+          "as": "after-start",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "run-clock"
+            },
+            {
+              "field": "start-before"
+            }
+          ]
+        },
+        {
+          "as": "include-start",
+          "function": "if",
+          "args": [
+            {
+              "field": "all-starts"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "after-start"
+            }
+          ]
+        },
+        {
+          "as": "all-ends",
+          "function": "equals-any",
+          "args": [
+            {
+              "value": ""
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "end-clock",
+          "function": "timestamp",
+          "args": [
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "before-end",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "end-clock"
+            },
+            {
+              "field": "run-clock"
+            }
+          ]
+        },
+        {
+          "as": "include-end",
+          "function": "if",
+          "args": [
+            {
+              "field": "all-ends"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "before-end"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-runs",
+      "from": "routing-resolved-runs",
+      "compute": [
+        {
+          "as": "full-repository",
+          "function": "concat",
+          "args": [
+            {
+              "field": "organization"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "field": "repository"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-events",
+      "from": "routing-session-events",
+      "subject": "Retain all evidence belonging to scoped identified runs.",
+      "objective": "Filter event metrics by the resolved run rather than by individual event clocks.",
+      "acceptance": "State, pick and accounting are computed before the scope is applied.",
+      "joins": [
+        {
+          "source": "routing-runs",
+          "type": "inner",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "routing-state",
+              "as": "run-routing-state"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-phase-sources",
+      "subject": "Choose one nonoverlapping accounting source per run and phase.",
+      "objective": "Prefer proxy token usage over usage reports.",
+      "acceptance": "Snapshot totals and cumulative totalAic never enter additive cost.",
+      "from": "routing-events",
+      "aggregate": {
+        "by": [
+          "routing-run-key",
+          "phase"
+        ],
+        "values": [
+          {
+            "field": "event",
+            "as": "proxy-usage-count",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "firewall.token_usage"
+                }
+              ]
+            }
+          },
+          {
+            "field": "event",
+            "as": "report-usage-count",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "usage.report"
+                }
+              ]
+            }
+          },
+          {
+            "field": "event",
+            "as": "proxy-source-count",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "session.collection"
+                },
+                {
+                  "field": "name",
+                  "equals": "token-usage.jsonl"
+                },
+                {
+                  "field": "event-status",
+                  "equals": "collected"
+                }
+              ]
+            }
+          },
+          {
+            "field": "event",
+            "as": "report-source-count",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "event-type",
+                  "equals": "session.collection"
+                },
+                {
+                  "field": "name",
+                  "in": [
+                    "agent_usage.json",
+                    "usage.json",
+                    "usage.jsonl",
+                    "usage-report.jsonl"
+                  ]
+                },
+                {
+                  "field": "event-status",
+                  "equals": "collected"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-accounting-candidates",
+      "subject": "Read nonoverlapping per-response accounting records.",
+      "objective": "Expose recorded credits and token classes without repricing unknown usage.",
+      "acceptance": "Each phase uses proxy accounting when present and usage.report otherwise; absent AIC is counted.",
+      "from": "routing-events",
+      "joins": [
+        {
+          "source": "routing-phase-sources",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            },
+            {
+              "left": "phase",
+              "right": "phase"
+            }
+          ],
+          "fields": [
+            {
+              "field": "proxy-usage-count",
+              "as": "proxy-usage-count"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "has-proxy-accounting",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "proxy-usage-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "accounting-identity",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "correlation-id"
+            },
+            {
+              "field": "event"
+            }
+          ]
+        },
+        {
+          "as": "accounting-source",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-proxy-accounting"
+            },
+            {
+              "value": "firewall.token_usage"
+            },
+            {
+              "value": "usage.report"
+            }
+          ]
+        },
+        {
+          "as": "selected-accounting",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "event-type"
+            },
+            {
+              "field": "accounting-source"
+            }
+          ]
+        },
+        {
+          "as": "unknown-aic",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "aic"
+            },
+            {
+              "value": null
+            }
+          ]
+        },
+        {
+          "as": "unknown-aic-count",
+          "function": "if",
+          "args": [
+            {
+              "field": "unknown-aic"
+            },
+            {
+              "value": 1
+            },
+            {
+              "value": 0
+            }
+          ]
+        }
+      ],
+      "window": [
+        {
+          "operation": "row-number",
+          "field": "source-sequence",
+          "as": "accounting-position",
+          "groupby": [
+            "routing-run-key",
+            "phase",
+            "event-type",
+            "accounting-identity"
+          ],
+          "order-by": [
+            {
+              "field": "event-timestamp",
+              "direction": "desc"
+            },
+            {
+              "field": "source-sequence",
+              "direction": "desc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-accounting",
+      "subject": "Select the authoritative accounting source for each phase.",
+      "objective": "Exclude overlapping usage reports and snapshots.",
+      "acceptance": "Every accounting row contributes at most once.",
+      "from": "routing-accounting-candidates",
+      "filter": {
+        "predicates": [
+          {
+            "field": "selected-accounting",
+            "equals": true
+          },
+          {
+            "field": "accounting-position",
+            "equals": 1
+          },
+          {
+            "field": "phase",
+            "in": [
+              "agent",
+              "detection",
+              "evals"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-request-candidates",
+      "subject": "Keep per-request routing decisions separate from accounting.",
+      "objective": "Join routed outcomes by run, phase and request ID.",
+      "acceptance": "Rejected requests establish local zero cost; other unmatched requests retain unknown cost.",
+      "from": "routing-events",
+      "filter": {
+        "predicates": [
+          {
+            "field": "event-type",
+            "equals": "firewall.model_routing"
+          },
+          {
+            "field": "routing-stage",
+            "equals": "request"
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "request-identity",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "correlation-id"
+            },
+            {
+              "field": "event"
+            }
+          ]
+        }
+      ],
+      "window": [
+        {
+          "operation": "row-number",
+          "field": "source-sequence",
+          "as": "request-position",
+          "groupby": [
+            "routing-run-key",
+            "phase",
+            "request-identity"
+          ],
+          "order-by": [
+            {
+              "field": "event-timestamp",
+              "direction": "desc"
+            },
+            {
+              "field": "source-sequence",
+              "direction": "desc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-request-records",
+      "from": "routing-request-candidates",
+      "subject": "Retain the latest record for each request identity.",
+      "objective": "Avoid duplicate request joins and overlapping totals.",
+      "acceptance": "Requests without IDs remain independent, not falsely correlated.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "request-position",
+            "equals": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-subagent-candidates",
+      "subject": "Read engine-reported sub-agent request ownership.",
+      "objective": "Use exact request-ID ownership before falling back to unsplit traffic.",
+      "acceptance": "Only request identities can assign exact ownership; advisory outcomes never assign credits.",
+      "from": "routing-events",
+      "filter": {
+        "predicates": [
+          {
+            "field": "event-type",
+            "equals": "subagent.request"
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "subagent-identity",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "correlation-id"
+            },
+            {
+              "field": "event"
+            }
+          ]
+        }
+      ],
+      "window": [
+        {
+          "operation": "row-number",
+          "field": "source-sequence",
+          "as": "subagent-position",
+          "groupby": [
+            "routing-run-key",
+            "phase",
+            "subagent-identity"
+          ],
+          "order-by": [
+            {
+              "field": "event-timestamp",
+              "direction": "desc"
+            },
+            {
+              "field": "source-sequence",
+              "direction": "desc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-subagent-requests",
+      "from": "routing-subagent-candidates",
+      "subject": "Retain one sub-agent observation per request identity.",
+      "objective": "Keep exact ownership joins unique.",
+      "acceptance": "Missing identities do not match unrelated requests.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "subagent-position",
+            "equals": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-exact-accounting",
+      "subject": "Attribute each accounting record to exactly one traffic bucket.",
+      "objective": "Keep detection, evals, classifier, exact sub-agent, main, unsplit and unattributed credits distinct.",
+      "acceptance": "Detection and evals use phase, missing purpose is never agent by default, and snapshot credits are excluded.",
+      "from": "routing-accounting",
+      "joins": [
+        {
+          "source": "routing-request-records",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            },
+            {
+              "left": "phase",
+              "right": "phase"
+            },
+            {
+              "left": "correlation-id",
+              "right": "correlation-id"
+            }
+          ],
+          "fields": [
+            {
+              "field": "event",
+              "as": "request-event"
+            },
+            {
+              "field": "routing-routed",
+              "as": "request-routed"
+            },
+            {
+              "field": "routing-deviations",
+              "as": "request-deviations"
+            },
+            {
+              "field": "routing-outcome",
+              "as": "request-outcome"
+            },
+            {
+              "field": "routing-requested-model",
+              "as": "request-model"
+            },
+            {
+              "field": "routing-requested-effort",
+              "as": "request-effort"
+            }
+          ]
+        },
+        {
+          "source": "routing-subagent-requests",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            },
+            {
+              "left": "phase",
+              "right": "phase"
+            },
+            {
+              "left": "correlation-id",
+              "right": "correlation-id"
+            }
+          ],
+          "fields": [
+            {
+              "field": "routing-agent-name",
+              "as": "exact-agent-name"
+            }
+          ]
+        },
+        {
+          "source": "routing-run-facts",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "subagent-count",
+              "as": "subagent-count"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "exact-owner",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "routing-agent-name"
+            },
+            {
+              "field": "exact-agent-name"
+            }
+          ]
+        },
+        {
+          "as": "no-exact-owner",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "exact-owner"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-correlation-usage-candidates",
+      "from": "routing-exact-accounting",
+      "subject": "Find accounting records without exact sub-agent ownership.",
+      "objective": "Correlate only fully recorded token quartets in file order.",
+      "acceptance": "Missing token classes never match by model alone.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "phase",
+            "equals": "agent"
+          },
+          {
+            "field": "no-exact-owner",
+            "equals": true
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "token-quartet",
+          "function": "sum",
+          "args": [
+            {
+              "field": "input-tokens"
+            },
+            {
+              "field": "output-tokens"
+            },
+            {
+              "field": "cache-read-tokens"
+            },
+            {
+              "field": "cache-write-tokens"
+            }
+          ]
+        },
+        {
+          "as": "is-classifier",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-purpose"
+            },
+            {
+              "value": "routing_classification"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-correlation-usage",
+      "from": "routing-correlation-usage-candidates",
+      "subject": "Order unmatched accounting within model and token quartet.",
+      "objective": "Match each engine-reported request at most once.",
+      "acceptance": "Classifier, incomplete and already-exact requests are excluded.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "token-quartet",
+            "gte": 0
+          },
+          {
+            "field": "is-classifier",
+            "equals": false
+          }
+        ]
+      },
+      "window": [
+        {
+          "operation": "row-number",
+          "field": "source-sequence",
+          "as": "correlation-position",
+          "groupby": [
+            "routing-run-key",
+            "telemetry-model",
+            "input-tokens",
+            "output-tokens",
+            "cache-read-tokens",
+            "cache-write-tokens"
+          ],
+          "order-by": [
+            {
+              "field": "source-sequence",
+              "direction": "asc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-correlation-subagent-candidates",
+      "from": "routing-subagent-requests",
+      "subject": "Exclude engine requests already matched by proxy request ID.",
+      "objective": "Prevent exact and correlated ownership from claiming the same request.",
+      "acceptance": "Only engine requests with a complete quartet and a definition name can correlate.",
+      "joins": [
+        {
+          "source": "routing-accounting",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            },
+            {
+              "left": "phase",
+              "right": "phase"
+            },
+            {
+              "left": "correlation-id",
+              "right": "correlation-id"
+            }
+          ],
+          "fields": [
+            {
+              "field": "event",
+              "as": "exact-accounting-event"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "token-quartet",
+          "function": "sum",
+          "args": [
+            {
+              "field": "input-tokens"
+            },
+            {
+              "field": "output-tokens"
+            },
+            {
+              "field": "cache-read-tokens"
+            },
+            {
+              "field": "cache-write-tokens"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-correlation-subagents",
+      "from": "routing-correlation-subagent-candidates",
+      "subject": "Order unmatched engine requests within each model/token quartet.",
+      "objective": "Produce deterministic one-to-one correlated ownership.",
+      "acceptance": "Correlation is labelled separately from exact evidence.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "exact-accounting-event",
+            "equals": null
+          },
+          {
+            "field": "token-quartet",
+            "gte": 0
+          },
+          {
+            "field": "phase",
+            "equals": "agent"
+          }
+        ]
+      },
+      "window": [
+        {
+          "operation": "row-number",
+          "field": "source-sequence",
+          "as": "correlation-position",
+          "groupby": [
+            "routing-run-key",
+            "telemetry-model",
+            "input-tokens",
+            "output-tokens",
+            "cache-read-tokens",
+            "cache-write-tokens"
+          ],
+          "order-by": [
+            {
+              "field": "source-sequence",
+              "direction": "asc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-correlated-accounting",
+      "from": "routing-correlation-usage",
+      "subject": "Join proxy usage with unmatched engine requests by model, quartet and occurrence.",
+      "objective": "Use the spec's correlated sub-agent attribution without duplicating credits.",
+      "acceptance": "Each engine request and accounting record participates at most once.",
+      "joins": [
+        {
+          "source": "routing-correlation-subagents",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            },
+            {
+              "left": "telemetry-model",
+              "right": "telemetry-model"
+            },
+            {
+              "left": "input-tokens",
+              "right": "input-tokens"
+            },
+            {
+              "left": "output-tokens",
+              "right": "output-tokens"
+            },
+            {
+              "left": "cache-read-tokens",
+              "right": "cache-read-tokens"
+            },
+            {
+              "left": "cache-write-tokens",
+              "right": "cache-write-tokens"
+            },
+            {
+              "left": "correlation-position",
+              "right": "correlation-position"
+            }
+          ],
+          "fields": [
+            {
+              "field": "routing-agent-name",
+              "as": "correlated-owner"
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "routing-run-key"
+        },
+        {
+          "field": "event"
+        },
+        {
+          "field": "correlated-owner"
+        }
+      ]
+    },
+    {
+      "name": "routing-attributed-accounting",
+      "from": "routing-exact-accounting",
+      "subject": "Assign every accounting record to exactly one exclusive bucket.",
+      "objective": "Keep exact and correlated sub-agent ownership distinct.",
+      "acceptance": "Phase wins over purpose; missing ownership remains unsplit or unattributed.",
+      "joins": [
+        {
+          "source": "routing-correlated-accounting",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            },
+            {
+              "left": "event",
+              "right": "event"
+            }
+          ],
+          "fields": [
+            {
+              "field": "correlated-owner",
+              "as": "correlated-owner"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "agent-name",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "exact-owner"
+            },
+            {
+              "field": "correlated-owner"
+            }
+          ]
+        },
+        {
+          "as": "unknown-agent",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "agent-name"
+            },
+            {
+              "value": null
+            }
+          ]
+        },
+        {
+          "as": "unknown-request",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "request-event"
+            },
+            {
+              "value": null
+            }
+          ]
+        },
+        {
+          "as": "has-subagents",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "subagent-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "is-subagent-purpose",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-purpose"
+            },
+            {
+              "value": "subagent"
+            }
+          ]
+        },
+        {
+          "as": "is-agent-purpose",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-purpose"
+            },
+            {
+              "value": "agent"
+            }
+          ]
+        },
+        {
+          "as": "matched-bucket",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-subagents"
+            },
+            {
+              "value": "agent_unsplit"
+            },
+            {
+              "value": "main_agent"
+            }
+          ]
+        },
+        {
+          "as": "request-bucket",
+          "function": "if",
+          "args": [
+            {
+              "field": "unknown-request"
+            },
+            {
+              "value": "unattributed"
+            },
+            {
+              "field": "matched-bucket"
+            }
+          ]
+        },
+        {
+          "as": "subagent-bucket",
+          "function": "if",
+          "args": [
+            {
+              "field": "is-subagent-purpose"
+            },
+            {
+              "value": "agent_unsplit"
+            },
+            {
+              "field": "request-bucket"
+            }
+          ]
+        },
+        {
+          "as": "purpose-bucket",
+          "function": "if",
+          "args": [
+            {
+              "field": "is-agent-purpose"
+            },
+            {
+              "value": "main_agent"
+            },
+            {
+              "field": "subagent-bucket"
+            }
+          ]
+        },
+        {
+          "as": "subagent-attribution",
+          "function": "if",
+          "args": [
+            {
+              "field": "no-exact-owner"
+            },
+            {
+              "value": "subagent_correlated"
+            },
+            {
+              "value": "subagent_exact"
+            }
+          ]
+        },
+        {
+          "as": "ownership-bucket",
+          "function": "if",
+          "args": [
+            {
+              "field": "unknown-agent"
+            },
+            {
+              "field": "purpose-bucket"
+            },
+            {
+              "field": "subagent-attribution"
+            }
+          ]
+        },
+        {
+          "as": "classifier",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-purpose"
+            },
+            {
+              "value": "routing_classification"
+            }
+          ]
+        },
+        {
+          "as": "classifier-bucket",
+          "function": "if",
+          "args": [
+            {
+              "field": "classifier"
+            },
+            {
+              "value": "classifier"
+            },
+            {
+              "field": "ownership-bucket"
+            }
+          ]
+        },
+        {
+          "as": "evals",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "phase"
+            },
+            {
+              "value": "evals"
+            }
+          ]
+        },
+        {
+          "as": "phase-bucket",
+          "function": "if",
+          "args": [
+            {
+              "field": "evals"
+            },
+            {
+              "value": "evals"
+            },
+            {
+              "field": "classifier-bucket"
+            }
+          ]
+        },
+        {
+          "as": "detection",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "phase"
+            },
+            {
+              "value": "detection"
+            }
+          ]
+        },
+        {
+          "as": "bucket",
+          "function": "if",
+          "args": [
+            {
+              "field": "detection"
+            },
+            {
+              "value": "detection"
+            },
+            {
+              "field": "phase-bucket"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-joined-requests",
+      "subject": "Inspect per-request deviations and outcomes against proxy picks.",
+      "objective": "Keep requests without accounting visible and never invent a deviation cause.",
+      "acceptance": "Unmatched requests have unknown cost; each request retains its own requested and selected model.",
+      "from": "routing-request-records",
+      "joins": [
+        {
+          "source": "routing-accounting",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            },
+            {
+              "left": "phase",
+              "right": "phase"
+            },
+            {
+              "left": "correlation-id",
+              "right": "correlation-id"
+            }
+          ],
+          "fields": [
+            {
+              "field": "aic",
+              "as": "accounted-aic"
+            },
+            {
+              "field": "event",
+              "as": "accounting-event"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "missing-accounting",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "accounting-event"
+            },
+            {
+              "value": null
+            }
+          ]
+        },
+        {
+          "as": "failed-request",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-outcome"
+            },
+            {
+              "value": "failed"
+            }
+          ]
+        },
+        {
+          "as": "failed-unaccounted",
+          "function": "if",
+          "args": [
+            {
+              "field": "missing-accounting"
+            },
+            {
+              "field": "failed-request"
+            },
+            {
+              "value": false
+            }
+          ]
+        }
+      ],
+      "order-by": [
+        {
+          "field": "event-timestamp",
+          "direction": "desc"
+        }
+      ]
+    },
+    {
+      "name": "routing-unaccounted-failures",
+      "from": "routing-joined-requests",
+      "subject": "Count failed requests lacking accounting per run.",
+      "objective": "Recognize only unambiguous AWF-local effort failures.",
+      "acceptance": "A run-level effort failure cannot assign zero to multiple failed requests.",
+      "aggregate": {
+        "by": [
+          "routing-run-key"
+        ],
+        "values": [
+          {
+            "field": "event",
+            "as": "failed-unaccounted-count",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "failed-unaccounted",
+                  "equals": true
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-deviations",
+      "from": "routing-joined-requests",
+      "subject": "Resolve explicit local zero costs and preserve all other unknown request costs.",
+      "objective": "Avoid partial-cost comparisons based on missing accounting.",
+      "acceptance": "Only guard rejection or an unambiguous local effort failure establishes zero AIC.",
+      "joins": [
+        {
+          "source": "routing-unaccounted-failures",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "failed-unaccounted-count",
+              "as": "failed-unaccounted-count"
+            }
+          ]
+        },
+        {
+          "source": "routing-run-facts",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "local-effort-failures",
+              "as": "local-effort-failures"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "only-unaccounted-failure",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "failed-unaccounted-count"
+            },
+            {
+              "value": 1
+            }
+          ]
+        },
+        {
+          "as": "has-local-failure",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "local-effort-failures"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "unambiguous-local-failure",
+          "function": "if",
+          "args": [
+            {
+              "field": "only-unaccounted-failure"
+            },
+            {
+              "field": "has-local-failure"
+            },
+            {
+              "value": false
+            }
+          ]
+        },
+        {
+          "as": "local-code",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "code"
+            },
+            {
+              "value": "unsupported_reasoning_effort"
+            }
+          ]
+        },
+        {
+          "as": "local-evidence",
+          "function": "if",
+          "args": [
+            {
+              "field": "local-code"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "unambiguous-local-failure"
+            }
+          ]
+        },
+        {
+          "as": "local-failure",
+          "function": "if",
+          "args": [
+            {
+              "field": "failed-request"
+            },
+            {
+              "field": "local-evidence"
+            },
+            {
+              "value": false
+            }
+          ]
+        },
+        {
+          "as": "guard-rejection",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "routing-outcome"
+            },
+            {
+              "value": "rejected"
+            }
+          ]
+        },
+        {
+          "as": "zero-local-cost",
+          "function": "if",
+          "args": [
+            {
+              "field": "guard-rejection"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "local-failure"
+            }
+          ]
+        },
+        {
+          "as": "local-cost",
+          "function": "if",
+          "args": [
+            {
+              "field": "zero-local-cost"
+            },
+            {
+              "value": 0
+            },
+            {
+              "value": null
+            }
+          ]
+        },
+        {
+          "as": "request-aic",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "accounted-aic"
+            },
+            {
+              "field": "local-cost"
+            }
+          ]
+        },
+        {
+          "as": "unknown-request-cost",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "request-aic"
+            },
+            {
+              "value": null
+            }
+          ]
+        },
+        {
+          "as": "unknown-request-count",
+          "function": "if",
+          "args": [
+            {
+              "field": "unknown-request-cost"
+            },
+            {
+              "value": 1
+            },
+            {
+              "value": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-phase-usage",
+      "from": "routing-accounting",
+      "subject": "Sum nonoverlapping accounting per run and phase.",
+      "objective": "Establish complete costs only with known response values.",
+      "acceptance": "Unknown response costs remain counted.",
+      "aggregate": {
+        "by": [
+          "routing-run-key",
+          "phase"
+        ],
+        "values": [
+          {
+            "field": "aic",
+            "as": "recorded-aic",
+            "reducer": "sum"
+          },
+          {
+            "field": "aic",
+            "as": "known-responses",
+            "reducer": "count"
+          },
+          {
+            "field": "unknown-aic-count",
+            "as": "unknown-responses",
+            "reducer": "sum"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-request-coverage",
+      "from": "routing-deviations",
+      "subject": "Count requests whose cost remains unknown.",
+      "objective": "Exclude incomplete runs from distribution comparisons.",
+      "acceptance": "Unmatched nonlocal requests cannot be treated as free.",
+      "aggregate": {
+        "by": [
+          "routing-run-key",
+          "phase"
+        ],
+        "values": [
+          {
+            "field": "unknown-request-count",
+            "as": "unknown-requests",
+            "reducer": "sum"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-phase-costs",
+      "from": "routing-phase-sources",
+      "subject": "Evaluate accounting completeness using collected source receipts and request joins.",
+      "objective": "Exclude partial costs from medians and comparisons.",
+      "acceptance": "A complete phase has its selected accounting source, no missing AIC and no unaccounted nonlocal requests.",
+      "joins": [
+        {
+          "source": "routing-phase-usage",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            },
+            {
+              "left": "phase",
+              "right": "phase"
+            }
+          ],
+          "fields": [
+            {
+              "field": "recorded-aic",
+              "as": "recorded-aic"
+            },
+            {
+              "field": "unknown-responses",
+              "as": "unknown-responses"
+            },
+            {
+              "field": "known-responses",
+              "as": "known-responses"
+            }
+          ]
+        },
+        {
+          "source": "routing-request-coverage",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            },
+            {
+              "left": "phase",
+              "right": "phase"
+            }
+          ],
+          "fields": [
+            {
+              "field": "unknown-requests",
+              "as": "unknown-requests"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "has-proxy",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "proxy-usage-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "has-report",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "report-usage-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "any-source-count",
+          "function": "sum",
+          "args": [
+            {
+              "field": "proxy-source-count"
+            },
+            {
+              "field": "report-source-count"
+            }
+          ]
+        },
+        {
+          "as": "report-or-empty-source",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-report"
+            },
+            {
+              "field": "report-source-count"
+            },
+            {
+              "field": "any-source-count"
+            }
+          ]
+        },
+        {
+          "as": "accounting-source-count",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-proxy"
+            },
+            {
+              "field": "proxy-source-count"
+            },
+            {
+              "field": "report-or-empty-source"
+            }
+          ]
+        },
+        {
+          "as": "source-present",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "accounting-source-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "missing-responses",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "unknown-responses"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "missing-requests",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "unknown-requests"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "missing-count",
+          "function": "sum",
+          "args": [
+            {
+              "field": "missing-responses"
+            },
+            {
+              "field": "missing-requests"
+            }
+          ]
+        },
+        {
+          "as": "all-values-known",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "missing-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "complete",
+          "function": "if",
+          "args": [
+            {
+              "field": "source-present"
+            },
+            {
+              "field": "all-values-known"
+            },
+            {
+              "value": false
+            }
+          ]
+        },
+        {
+          "as": "known-sum",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "recorded-aic"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "complete-aic",
+          "function": "if",
+          "args": [
+            {
+              "field": "complete"
+            },
+            {
+              "field": "known-sum"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-agent-costs",
+      "from": "routing-phase-costs",
+      "subject": "Select complete or explicitly partial agent-phase costs.",
+      "objective": "Keep detection and evals out of agent-phase comparisons.",
+      "acceptance": "Classifier remains part of agent-phase cost.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "phase",
+            "equals": "agent"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-detection-costs",
+      "from": "routing-phase-costs",
+      "subject": "Retain detection-phase cost completeness separately.",
+      "objective": "Do not count detection as classifier or agent traffic.",
+      "acceptance": "Missing detection evidence remains unknown, not zero.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "phase",
+            "equals": "detection"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-cost-runs",
+      "from": "routing-resolved-runs",
+      "subject": "Attach accounting completeness to identified routing runs.",
+      "objective": "Provide comparable costs only for complete runs.",
+      "acceptance": "An absent cost stays unknown and never inherits aggregate run AIC.",
+      "joins": [
+        {
+          "source": "routing-runs",
+          "type": "inner",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": []
+        },
+        {
+          "source": "routing-agent-costs",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "complete-aic",
+              "as": "complete-aic"
+            },
+            {
+              "field": "complete",
+              "as": "cost-complete"
+            },
+            {
+              "field": "missing-count",
+              "as": "missing-cost-records"
+            }
+          ]
+        },
+        {
+          "source": "routing-detection-costs",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "complete-aic",
+              "as": "detection-aic"
+            },
+            {
+              "field": "complete",
+              "as": "detection-complete"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "run-cost-complete",
+          "function": "if",
+          "args": [
+            {
+              "field": "cost-complete"
+            },
+            {
+              "field": "detection-complete"
+            },
+            {
+              "value": false
+            }
+          ]
+        },
+        {
+          "as": "run-aic",
+          "function": "sum",
+          "args": [
+            {
+              "field": "complete-aic"
+            },
+            {
+              "field": "detection-aic"
+            }
+          ]
+        },
+        {
+          "as": "budget-use",
+          "function": "quotient",
+          "args": [
+            {
+              "field": "run-aic"
+            },
+            {
+              "field": "configured-max-credits"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-run-summary",
+      "from": "routing-runs",
+      "subject": "Keep the selected Run's compact routing and baseline evidence visible.",
+      "objective": "Preserve the comparison when shorter-lived Audit detail expires.",
+      "acceptance": "Retained aggregate costs and baseline evidence survive Audit expiry; absent phase details stay unknown.",
+      "joins": [
+        {
+          "source": "routing-cost-runs",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "cost-complete",
+              "as": "cost-complete"
+            },
+            {
+              "field": "missing-cost-records",
+              "as": "missing-cost-records"
+            },
+            {
+              "field": "detection-aic",
+              "as": "detection-aic"
+            },
+            {
+              "field": "run-aic",
+              "as": "run-aic"
+            },
+            {
+              "field": "budget-use",
+              "as": "budget-use"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-weekly-cost-totals",
+      "from": "routing-runs",
+      "subject": "Summarize complete agent-phase costs by UTC ISO week and routing state.",
+      "objective": "Expose trends without including partial costs.",
+      "acceptance": "Untimed runs cannot enter time buckets.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "run-clock",
+            "gte": 0
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "week",
+          "function": "date-bucket",
+          "args": [
+            {
+              "field": "observed-at"
+            },
+            {
+              "value": "week"
+            }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": [
+          "week",
+          "routing-state"
+        ],
+        "values": [
+          {
+            "field": "run",
+            "as": "runs",
+            "reducer": "count"
+          },
+          {
+            "field": "complete-aic",
+            "as": "complete-runs",
+            "reducer": "count"
+          },
+          {
+            "field": "complete-aic",
+            "as": "observed-median",
+            "reducer": "median"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-weekly-accounting-cost",
+      "from": "routing-weekly-cost-totals",
+      "subject": "Gate weekly medians by complete sample size.",
+      "objective": "Keep sparse weeks from implying meaningful cost trends.",
+      "acceptance": "Weeks below the configurable minimum display insufficient data.",
+      "parameters": [
+        {
+          "name": "minimum-sample",
+          "type": "number"
+        }
+      ],
+      "compute": [
+        {
+          "as": "cost-series",
+          "function": "concat",
+          "args": [
+            {
+              "value": "Agent-phase accounting: "
+            },
+            {
+              "field": "routing-state"
+            }
+          ]
+        },
+        {
+          "as": "sample-floor",
+          "function": "difference",
+          "args": [
+            {
+              "value": 10
+            },
+            {
+              "value": 1
+            }
+          ]
+        },
+        {
+          "as": "enough-samples",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "complete-runs"
+            },
+            {
+              "field": "sample-floor"
+            }
+          ]
+        },
+        {
+          "as": "median-aic",
+          "function": "if",
+          "args": [
+            {
+              "field": "enough-samples"
+            },
+            {
+              "field": "observed-median"
+            },
+            {
+              "value": null
+            }
+          ]
+        },
+        {
+          "as": "sample-status",
+          "function": "if",
+          "args": [
+            {
+              "field": "enough-samples"
+            },
+            {
+              "value": "observational"
+            },
+            {
+              "value": "insufficient data"
+            }
+          ]
+        }
+      ],
+      "order-by": [
+        {
+          "field": "week",
+          "direction": "asc"
+        }
+      ]
+    },
+    {
+      "name": "routing-resolutions",
+      "from": "routing-session-events",
+      "subject": "Read runner-written configured-model resolutions for scoped routing runs.",
+      "objective": "Explain what each workflow role's configured model resolved to before the engine launched.",
+      "acceptance": "Only model.resolution facts from latest scoped attempts contribute; missing or unsafe values and failed null resolutions remain unknown.",
+      "joins": [
+        {
+          "source": "routing-runs",
+          "type": "inner",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "run-clock",
+              "as": "run-clock"
+            },
+            {
+              "field": "observed-at",
+              "as": "run-observed-at"
+            },
+            {
+              "field": "full-repository",
+              "as": "full-repository"
+            },
+            {
+              "field": "routing-dashboard-link",
+              "as": "routing-dashboard-link"
+            },
+            {
+              "field": "routing-state",
+              "as": "run-routing-state"
+            }
+          ]
+        }
+      ],
+      "filter": {
+        "predicates": [
+          {
+            "field": "event-type",
+            "equals": "model.resolution"
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "resolution-engine",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "telemetry-engine"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "resolution-role-label",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "resolution-role"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "configured-model",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "resolution-configured-model"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "resolved-model-label",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "resolution-resolved-model"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "resolution-provider",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "provider"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "resolution-status",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "event-status"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "failed-resolution",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "event-status"
+            },
+            {
+              "value": "failed"
+            }
+          ]
+        },
+        {
+          "as": "failure-cause",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "code"
+            },
+            {
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "as": "resolution-cause",
+          "function": "if",
+          "args": [
+            {
+              "field": "failed-resolution"
+            },
+            {
+              "field": "failure-cause"
+            },
+            {
+              "field": "code"
+            }
+          ]
+        },
+        {
+          "as": "unknown-resolved-model",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "resolution-resolved-model"
+            },
+            {
+              "value": null
+            }
+          ]
+        },
+        {
+          "as": "untimed",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "run-clock"
+            },
+            {
+              "value": null
+            }
+          ]
+        },
+        {
+          "as": "configured-to-resolved",
+          "function": "concat",
+          "args": [
+            {
+              "field": "configured-model"
+            },
+            {
+              "value": " → "
+            },
+            {
+              "field": "resolved-model-label"
+            }
+          ]
+        },
+        {
+          "as": "workflow-key",
+          "function": "concat",
+          "args": [
+            {
+              "field": "full-repository"
+            },
+            {
+              "value": ":"
+            },
+            {
+              "field": "workflow"
+            }
+          ]
+        },
+        {
+          "as": "resolution-actor",
+          "function": "concat",
+          "args": [
+            {
+              "field": "resolution-engine"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "field": "resolution-role-label"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "field": "resolution-provider"
+            }
+          ]
+        },
+        {
+          "as": "resolution-series",
+          "function": "concat",
+          "args": [
+            {
+              "field": "workflow-key"
+            },
+            {
+              "value": " | "
+            },
+            {
+              "field": "resolution-actor"
+            },
+            {
+              "value": " | "
+            },
+            {
+              "field": "configured-model"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-health-totals",
+      "from": "routing-runs",
+      "subject": "Count routed runs and their selection, failure, adherence, outcome and cost evidence per repository and workflow.",
+      "objective": "Answer whether routing is on and working from one row per routed workflow.",
+      "acceptance": "Only selected, selection_failed, harness_reported and configured_unrecorded runs contribute; runs without evidence stay out of each denominator.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "routing-state",
+            "in": [
+              "selected",
+              "selection_failed",
+              "harness_reported",
+              "configured_unrecorded"
+            ]
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "has-routing-failure",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "failure-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "failure-or-fallback",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-routing-failure"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "routing-degraded"
+            }
+          ]
+        },
+        {
+          "as": "adherence-known",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "flagged-requests"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "no-deviation",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "deviated-requests"
+            },
+            {
+              "value": 0
+            }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": [
+          "full-repository",
+          "workflow",
+          "baseline-model"
+        ],
+        "values": [
+          {
+            "field": "paired-main-aic",
+            "as": "paired-main-aic",
+            "reducer": "sum"
+          },
+          {
+            "field": "paired-baseline-aic",
+            "as": "paired-baseline-aic",
+            "reducer": "sum"
+          },
+          {
+            "field": "run",
+            "as": "routed-runs",
+            "reducer": "count"
+          },
+          {
+            "field": "run",
+            "as": "selected-runs",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "routing-state",
+                  "equals": "selected"
+                }
+              ]
+            }
+          },
+          {
+            "field": "run",
+            "as": "failure-runs",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "failure-or-fallback",
+                  "equals": true
+                }
+              ]
+            }
+          },
+          {
+            "field": "run",
+            "as": "adherence-known-runs",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "adherence-known",
+                  "equals": true
+                }
+              ]
+            }
+          },
+          {
+            "field": "run",
+            "as": "followed-runs",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "adherence-known",
+                  "equals": true
+                },
+                {
+                  "field": "no-deviation",
+                  "equals": true
+                }
+              ]
+            }
+          },
+          {
+            "field": "agent-result",
+            "as": "known-outcomes",
+            "reducer": "count"
+          },
+          {
+            "field": "run",
+            "as": "successes",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "agent-result",
+                  "equals": "success"
+                }
+              ]
+            }
+          },
+          {
+            "field": "complete-aic",
+            "as": "complete-runs",
+            "reducer": "count"
+          },
+          {
+            "field": "complete-aic",
+            "as": "median-aic",
+            "reducer": "median"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-health",
+      "subject": "Show routing health shares per repository and workflow.",
+      "objective": "Tell whether routing is on and working from selection, failure or fallback, pick adherence, known outcomes and complete cost.",
+      "acceptance": "A zero denominator or no complete cost is unknown, never zero; unknown job outcomes are excluded from the success rate.",
+      "from": "routing-health-totals",
+      "compute": [
+        {
+          "as": "estimated-cost-vs-baseline",
+          "function": "quotient",
+          "args": [
+            {
+              "field": "paired-main-aic"
+            },
+            {
+              "field": "paired-baseline-aic"
+            }
+          ]
+        },
+        {
+          "as": "estimated-cost-percent",
+          "function": "format-percent",
+          "args": [
+            {
+              "field": "estimated-cost-vs-baseline"
+            }
+          ]
+        },
+        {
+          "as": "selected-share",
+          "function": "quotient",
+          "args": [
+            {
+              "field": "selected-runs"
+            },
+            {
+              "field": "routed-runs"
+            }
+          ]
+        },
+        {
+          "as": "failure-share",
+          "function": "quotient",
+          "args": [
+            {
+              "field": "failure-runs"
+            },
+            {
+              "field": "routed-runs"
+            }
+          ]
+        },
+        {
+          "as": "followed-share",
+          "function": "quotient",
+          "args": [
+            {
+              "field": "followed-runs"
+            },
+            {
+              "field": "adherence-known-runs"
+            }
+          ]
+        },
+        {
+          "as": "success-rate",
+          "function": "quotient",
+          "args": [
+            {
+              "field": "successes"
+            },
+            {
+              "field": "known-outcomes"
+            }
+          ]
+        },
+        {
+          "as": "selected-percent",
+          "function": "format-percent",
+          "args": [
+            {
+              "field": "selected-share"
+            }
+          ]
+        },
+        {
+          "as": "failure-percent",
+          "function": "format-percent",
+          "args": [
+            {
+              "field": "failure-share"
+            }
+          ]
+        },
+        {
+          "as": "followed-percent",
+          "function": "format-percent",
+          "args": [
+            {
+              "field": "followed-share"
+            }
+          ]
+        },
+        {
+          "as": "success-percent",
+          "function": "format-percent",
+          "args": [
+            {
+              "field": "success-rate"
+            }
+          ]
+        }
+      ],
+      "order-by": [
+        {
+          "field": "routed-runs",
+          "direction": "desc"
+        },
+        {
+          "field": "full-repository",
+          "direction": "asc"
+        },
+        {
+          "field": "workflow",
+          "direction": "asc"
+        }
+      ]
+    },
+    {
+      "name": "routing-weekly-models",
+      "from": "routing-runs",
+      "subject": "Count proxy-selected runs by UTC ISO week and picked model.",
+      "objective": "Show what the router chooses over time.",
+      "acceptance": "Only selected runs with a known pick model and a recorded run clock contribute; an unrecorded effort does not exclude a run.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "routing-state",
+            "equals": "selected"
+          },
+          {
+            "field": "unknown-pick-model",
+            "equals": false
+          },
+          {
+            "field": "run-clock",
+            "gte": 0
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "week",
+          "function": "date-bucket",
+          "args": [
+            {
+              "field": "observed-at"
+            },
+            {
+              "value": "week"
+            }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": [
+          "week",
+          "pick-model"
+        ],
+        "values": [
+          {
+            "field": "run",
+            "as": "runs",
+            "reducer": "count"
+          }
+        ]
+      },
+      "order-by": [
+        {
+          "field": "week",
+          "direction": "asc"
+        },
+        {
+          "field": "pick-model",
+          "direction": "asc"
+        }
+      ]
+    },
+    {
+      "name": "routing-weekly-paired-totals",
+      "from": "routing-runs",
+      "subject": "Weekly paired complete main-request costs by baseline model.",
+      "objective": "Compare routing cost trends with each named baseline using identical main-request populations.",
+      "acceptance": "Only timed runs with complete positive baseline estimates and matching known main-request costs contribute to both medians.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "paired",
+            "equals": true
+          },
+          {
+            "field": "run-clock",
+            "gte": 0
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "week",
+          "function": "date-bucket",
+          "args": [
+            {
+              "field": "observed-at"
+            },
+            {
+              "value": "week"
+            }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": [
+          "week",
+          "baseline-model"
+        ],
+        "values": [
+          {
+            "field": "run",
+            "as": "complete-runs",
+            "reducer": "count"
+          },
+          {
+            "field": "paired-main-aic",
+            "as": "observed-main-median",
+            "reducer": "median"
+          },
+          {
+            "field": "paired-baseline-aic",
+            "as": "baseline-estimate-median",
+            "reducer": "median"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-weekly-paired-cost",
+      "from": "routing-weekly-paired-totals",
+      "subject": "Paired main-request samples that meet the chosen evidence floor.",
+      "objective": "Avoid changing routing policy based on insufficient paired evidence.",
+      "acceptance": "Observed and estimated series share the same complete-run count and configurable minimum sample.",
+      "parameters": [
+        {
+          "name": "minimum-sample",
+          "type": "number"
+        }
+      ],
+      "compute": [
+        {
+          "as": "sample-floor",
+          "function": "difference",
+          "args": [
+            {
+              "value": 10
+            },
+            {
+              "value": 1
+            }
+          ]
+        },
+        {
+          "as": "enough-samples",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "complete-runs"
+            },
+            {
+              "field": "sample-floor"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-weekly-main-observed",
+      "from": "routing-weekly-paired-cost",
+      "subject": "Observed main-request AIC for the same eligible runs as each baseline.",
+      "objective": "Identify weeks when routed main-request costs exceed the matching baseline estimate.",
+      "acceptance": "Observed medians exclude classifier and sub-agent costs and remain unknown below the paired sample floor.",
+      "compute": [
+        {
+          "as": "cost-series",
+          "function": "concat",
+          "args": [
+            {
+              "value": "Main requests observed (baseline: "
+            },
+            {
+              "field": "baseline-model"
+            },
+            {
+              "value": ")"
+            }
+          ]
+        },
+        {
+          "as": "median-aic",
+          "function": "if",
+          "args": [
+            {
+              "field": "enough-samples"
+            },
+            {
+              "field": "observed-main-median"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-weekly-baseline-estimate",
+      "from": "routing-weekly-paired-cost",
+      "subject": "Explicitly estimated baseline AIC for paired main-agent requests.",
+      "objective": "Show the named counterfactual against which owners can assess routing goal or mode.",
+      "acceptance": "The series is labelled estimated, separates baseline models and uses exactly the observed series' eligible runs.",
+      "compute": [
+        {
+          "as": "cost-series",
+          "function": "concat",
+          "args": [
+            {
+              "value": "Baseline estimate (estimated, main requests): "
+            },
+            {
+              "field": "baseline-model"
+            }
+          ]
+        },
+        {
+          "as": "median-aic",
+          "function": "if",
+          "args": [
+            {
+              "field": "enough-samples"
+            },
+            {
+              "field": "baseline-estimate-median"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-weekly-cost",
+      "from": "routing-weekly-accounting-cost",
+      "union": [
+        "routing-weekly-main-observed",
+        "routing-weekly-baseline-estimate"
+      ],
+      "subject": "Compare the same main-agent requests to an explicitly estimated baseline.",
+      "objective": "Change routing goal or mode when paired observed cost exceeds the named baseline.",
+      "acceptance": "Keep agent-phase accounting separate, baseline models distinct and sparse weeks as gaps.",
+      "order-by": [
+        {
+          "field": "week",
+          "direction": "asc"
+        },
+        {
+          "field": "cost-series",
+          "direction": "asc"
+        }
+      ]
+    },
+    {
+      "name": "routing-failure-problems",
+      "from": "routing-runs",
+      "subject": "Runs whose routing failure codes require investigation.",
+      "objective": "Investigate routing configuration or execution failures before changing rollout.",
+      "acceptance": "Emit one row per run with recorded routing failure identifiers, excluding upstream errors handled by their own kind.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "routing-failure-codes",
+            "gte": ""
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "problem-kind",
+          "function": "literal",
+          "args": [
+            {
+              "value": "routing failure"
+            }
+          ]
+        },
+        {
+          "as": "problem-cause",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "routing-failure-codes"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "routing-run-key"
+        },
+        {
+          "field": "problem-kind"
+        },
+        {
+          "field": "problem-cause"
+        }
+      ]
+    },
+    {
+      "name": "routing-deviation-problems",
+      "from": "routing-runs",
+      "subject": "Runs whose requests deviated from the routing pick.",
+      "objective": "Investigate why requests did not follow the selected model or effort.",
+      "acceptance": "Emit one row per run with distinct recorded deviation causes, without inferring causes from model names.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "routing-deviation-codes",
+            "gte": ""
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "problem-kind",
+          "function": "literal",
+          "args": [
+            {
+              "value": "deviation"
+            }
+          ]
+        },
+        {
+          "as": "problem-cause",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "routing-deviation-codes"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "routing-run-key"
+        },
+        {
+          "field": "problem-kind"
+        },
+        {
+          "field": "problem-cause"
+        }
+      ]
+    },
+    {
+      "name": "routing-resolution-problems",
+      "from": "routing-runs",
+      "subject": "Runs whose configured models could not be resolved.",
+      "objective": "Correct model aliases or restore catalogue availability for failed resolutions.",
+      "acceptance": "Emit one row per run with recorded resolution failure causes, not absence of resolution evidence.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "routing-resolution-codes",
+            "gte": ""
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "problem-kind",
+          "function": "literal",
+          "args": [
+            {
+              "value": "resolution failure"
+            }
+          ]
+        },
+        {
+          "as": "problem-cause",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "routing-resolution-codes"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "routing-run-key"
+        },
+        {
+          "field": "problem-kind"
+        },
+        {
+          "field": "problem-cause"
+        }
+      ]
+    },
+    {
+      "name": "routing-upstream-problems",
+      "from": "routing-runs",
+      "subject": "Provider-rejected requests with distinct upstream error codes.",
+      "objective": "Correct model or effort settings rejected by the provider.",
+      "acceptance": "Emit one upstream-error row per run with distinct safe codes or unknown, never a duplicate generic routing failure.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "routing-upstream-codes",
+            "gte": ""
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "problem-kind",
+          "function": "literal",
+          "args": [
+            {
+              "value": "upstream error"
+            }
+          ]
+        },
+        {
+          "as": "problem-cause",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "routing-upstream-codes"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "routing-run-key"
+        },
+        {
+          "field": "problem-kind"
+        },
+        {
+          "field": "problem-cause"
+        }
+      ]
+    },
+    {
+      "name": "routing-candidate-problems",
+      "from": "routing-runs",
+      "subject": "Runs whose full eligible pool contains choices the router cannot rank.",
+      "objective": "Review allowed models when the router cannot rank the complete eligible pool.",
+      "acceptance": "Emit one row only when both pool counters are known and overlap is below eligibility, displaying the observed ratio.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "candidate-coverage",
+            "gte": ""
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "problem-kind",
+          "function": "literal",
+          "args": [
+            {
+              "value": "candidates not rankable"
+            }
+          ]
+        },
+        {
+          "as": "problem-cause",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "candidate-coverage"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "routing-run-key"
+        },
+        {
+          "field": "problem-kind"
+        },
+        {
+          "field": "problem-cause"
+        }
+      ]
+    },
+    {
+      "name": "routing-problems",
+      "from": "routing-failure-problems",
+      "union": [
+        "routing-deviation-problems",
+        "routing-resolution-problems",
+        "routing-upstream-problems",
+        "routing-candidate-problems"
+      ],
+      "subject": "List routing failures, deviations and resolution failures with one row per run and kind.",
+      "objective": "Show what needs attention and link each problem to its run page.",
+      "acceptance": "Time is the run's recorded observation time and stays unknown without a run clock; untimed rows sort after timed rows.",
+      "joins": [
+        {
+          "source": "routing-runs",
+          "type": "inner",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "run",
+              "as": "run"
+            },
+            {
+              "field": "full-repository",
+              "as": "full-repository"
+            },
+            {
+              "field": "workflow",
+              "as": "workflow"
+            },
+            {
+              "field": "run-clock",
+              "as": "run-clock"
+            },
+            {
+              "field": "observed-at",
+              "as": "observed-at"
+            },
+            {
+              "field": "routing-dashboard-link",
+              "as": "routing-dashboard-link"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "untimed",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "run-clock"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ],
+      "order-by": [
+        {
+          "field": "untimed",
+          "direction": "asc"
+        },
+        {
+          "field": "run-clock",
+          "direction": "desc"
+        },
+        {
+          "field": "run",
+          "direction": "desc"
+        },
+        {
+          "field": "problem-kind",
+          "direction": "asc"
+        }
+      ]
+    },
+    {
+      "name": "routing-candidate-coverage",
+      "from": "routing-selections",
+      "compute": [
+        {
+          "as": "eligible-known",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "eligibleChoices"
+            },
+            {
+              "value": -1
+            }
+          ]
+        },
+        {
+          "as": "overlap-known",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "catalogueOverlap"
+            },
+            {
+              "value": -1
+            }
+          ]
+        },
+        {
+          "as": "unranked-choices",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "eligibleChoices"
+            },
+            {
+              "field": "catalogueOverlap"
+            }
+          ]
+        },
+        {
+          "as": "known-overlap",
+          "function": "if",
+          "args": [
+            {
+              "field": "overlap-known"
+            },
+            {
+              "field": "unranked-choices"
+            },
+            {
+              "value": false
+            }
+          ]
+        },
+        {
+          "as": "coverage-problem",
+          "function": "if",
+          "args": [
+            {
+              "field": "eligible-known"
+            },
+            {
+              "field": "known-overlap"
+            },
+            {
+              "value": false
+            }
+          ]
+        },
+        {
+          "as": "coverage-label",
+          "function": "concat",
+          "args": [
+            {
+              "field": "catalogueOverlap"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "field": "eligibleChoices"
+            }
+          ]
+        },
+        {
+          "as": "candidate-coverage",
+          "function": "if",
+          "args": [
+            {
+              "field": "coverage-problem"
+            },
+            {
+              "field": "coverage-label"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-ingestion-failure-candidates",
+      "subject": "Read routing failures, upstream errors, steering and exit 78 evidence.",
+      "objective": "Keep execution failures separate from the routing selection state.",
+      "acceptance": "A failure after selection never rewrites selected state; free-form error and steering text are absent.",
+      "from": "routing-events",
+      "compute": [
+        {
+          "as": "failure-event",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "event-type"
+            },
+            {
+              "value": "firewall.steering"
+            },
+            {
+              "value": "firewall.upstream_error"
+            },
+            {
+              "value": "subagent.failed"
+            },
+            {
+              "value": "subagent.model_unavailable"
+            },
+            {
+              "value": "model_endpoint.mismatch"
+            }
+          ]
+        },
+        {
+          "as": "upstream-error",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "name"
+            },
+            {
+              "value": "UPSTREAM_ERROR_RESPONSE"
+            }
+          ]
+        },
+        {
+          "as": "exit-78",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "exit-code"
+            },
+            {
+              "value": 78
+            }
+          ]
+        },
+        {
+          "as": "failure-evidence",
+          "function": "if",
+          "args": [
+            {
+              "field": "failure-event"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "proxy-failure"
+            }
+          ]
+        },
+        {
+          "as": "upstream-evidence",
+          "function": "if",
+          "args": [
+            {
+              "field": "upstream-error"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "failure-evidence"
+            }
+          ]
+        },
+        {
+          "as": "failure-row",
+          "function": "if",
+          "args": [
+            {
+              "field": "exit-78"
+            },
+            {
+              "value": true
+            },
+            {
+              "field": "upstream-evidence"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-ingestion-failures",
+      "subject": "Show recorded failure and steering events.",
+      "objective": "Retain failure evidence independently of selected state.",
+      "acceptance": "Only explicit identifiers and counters are shown.",
+      "from": "routing-ingestion-failure-candidates",
+      "filter": {
+        "predicates": [
+          {
+            "field": "failure-row",
+            "equals": true
+          }
+        ]
+      },
+      "order-by": [
+        {
+          "field": "event-timestamp",
+          "direction": "desc"
+        }
+      ]
+    },
+    {
+      "name": "routing-ingestion-resolution-failure-records",
+      "from": "routing-resolutions",
+      "subject": "Retain failed configured-model resolutions with their runs.",
+      "objective": "Link each failed resolution to its contributing run.",
+      "acceptance": "Failed resolved models stay unknown; causes are never inferred.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "resolution-status",
+            "equals": "failed"
+          }
+        ]
+      },
+      "order-by": [
+        {
+          "field": "run-clock",
+          "direction": "desc"
+        },
+        {
+          "field": "run",
+          "direction": "desc"
+        }
+      ]
+    },
+    {
+      "name": "routing-ingestion-pick-adherence",
+      "from": "routing-deviations",
+      "subject": "Count agent-phase requests with a routed flag and those that deviated, per run.",
+      "objective": "Decide whether each run followed the proxy pick without guessing for runs that lack request evidence.",
+      "acceptance": "Only agent-phase requests flagged as_selected or deviated contribute; runs without such requests have no row and stay unknown.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "phase",
+            "equals": "agent"
+          },
+          {
+            "field": "routing-routed",
+            "in": [
+              "as_selected",
+              "deviated"
+            ]
+          }
+        ]
+      },
+      "aggregate": {
+        "by": [
+          "routing-run-key"
+        ],
+        "values": [
+          {
+            "field": "event",
+            "as": "flagged-requests",
+            "reducer": "count"
+          },
+          {
+            "field": "event",
+            "as": "deviated-requests",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "routing-routed",
+                  "equals": "deviated"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-event-failure-problems",
+      "from": "routing-ingestion-failures",
+      "subject": "Summarize recorded routing failures per run.",
+      "objective": "Give the Problems view one routing-failure row per run.",
+      "acceptance": "Causes are the distinct recorded codes, or the event type when an event records no code.",
+      "compute": [
+        {
+          "as": "is-upstream",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "event-type"
+            },
+            {
+              "value": "firewall.upstream_error"
+            }
+          ]
+        },
+        {
+          "as": "problem-kind",
+          "function": "if",
+          "args": [
+            {
+              "field": "is-upstream"
+            },
+            {
+              "value": "upstream error"
+            },
+            {
+              "value": "routing failure"
+            }
+          ]
+        },
+        {
+          "as": "missing-code-label",
+          "function": "if",
+          "args": [
+            {
+              "field": "is-upstream"
+            },
+            {
+              "value": "unknown"
+            },
+            {
+              "field": "event-type"
+            }
+          ]
+        },
+        {
+          "as": "problem-cause-item",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "code"
+            },
+            {
+              "field": "missing-code-label"
+            }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": [
+          "routing-run-key",
+          "problem-kind"
+        ],
+        "values": [
+          {
+            "field": "problem-cause-item",
+            "as": "problem-cause",
+            "reducer": "distinct-list"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-event-deviation-problems",
+      "from": "routing-deviations",
+      "subject": "Summarize agent-phase requests that deviated from the pick per run.",
+      "objective": "Give the Problems view one deviation row per run.",
+      "acceptance": "Causes are the distinct deviated axes, or deviated when a request records no axes.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "phase",
+            "equals": "agent"
+          },
+          {
+            "field": "routing-routed",
+            "equals": "deviated"
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "problem-kind",
+          "function": "literal",
+          "args": [
+            {
+              "value": "deviation"
+            }
+          ]
+        },
+        {
+          "as": "problem-cause-item",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "routing-deviations"
+            },
+            {
+              "value": "deviated"
+            }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": [
+          "routing-run-key",
+          "problem-kind"
+        ],
+        "values": [
+          {
+            "field": "problem-cause-item",
+            "as": "problem-cause",
+            "reducer": "distinct-list"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-event-resolution-problems",
+      "from": "routing-ingestion-resolution-failure-records",
+      "subject": "Summarize failed configured-model resolutions per run.",
+      "objective": "Give the Problems view one resolution-failure row per run.",
+      "acceptance": "Causes are the distinct recorded resolution causes; roles are records, not runs.",
+      "compute": [
+        {
+          "as": "problem-kind",
+          "function": "literal",
+          "args": [
+            {
+              "value": "resolution failure"
+            }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": [
+          "routing-run-key",
+          "problem-kind"
+        ],
+        "values": [
+          {
+            "field": "resolution-cause",
+            "as": "problem-cause",
+            "reducer": "distinct-list"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-baseline-main-responses",
+      "from": "routing-exact-accounting",
+      "subject": "Read the as-selected proxy requests covered by a complete T-UAS-081 estimate.",
+      "objective": "Pair the producer's main-request population without treating unknown purpose as main-agent traffic in general accounting.",
+      "acceptance": "A complete producer estimate attests that as-selected requests do not match declared sub-agents; the request count and every observed AIC must also match.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "phase",
+            "equals": "agent"
+          },
+          {
+            "field": "request-routed",
+            "equals": "as_selected"
+          },
+          {
+            "field": "routing-purpose",
+            "in": [
+              null,
+              "agent"
+            ]
+          },
+          {
+            "field": "no-exact-owner",
+            "equals": true
+          }
+        ]
+      },
+      "window": [
+        {
+          "operation": "row-number",
+          "field": "source-sequence",
+          "as": "baseline-response-position",
+          "groupby": [
+            "routing-run-key",
+            "correlation-id"
+          ],
+          "order-by": [
+            {
+              "field": "source-sequence",
+              "direction": "desc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-main-cost",
+      "from": "routing-baseline-main-responses",
+      "subject": "Match complete main-agent responses to the baseline request population.",
+      "objective": "Never compare classifier or sub-agent costs to main-agent-only estimates.",
+      "acceptance": "Every main response must have known AIC and match the producer's main-request count.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "baseline-response-position",
+            "equals": 1
+          }
+        ]
+      },
+      "aggregate": {
+        "by": [
+          "routing-run-key"
+        ],
+        "values": [
+          {
+            "field": "event",
+            "as": "main-responses",
+            "reducer": "count"
+          },
+          {
+            "field": "aic",
+            "as": "known-main-responses",
+            "reducer": "count"
+          },
+          {
+            "field": "aic",
+            "as": "recorded-main-aic",
+            "reducer": "sum"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-baseline-estimates",
+      "from": "routing-session-events",
+      "subject": "Read the producer's counterfactual baseline estimate.",
+      "objective": "Keep incomplete or absent estimates out of paired comparisons.",
+      "acceptance": "Baseline evidence is never repriced or inferred by the dashboard.",
+      "filter": {
+        "predicates": [
+          {
+            "field": "event-type",
+            "equals": "model.baseline_estimate"
+          }
+        ]
+      },
+      "aggregate": {
+        "by": [
+          "routing-run-key"
+        ],
+        "values": [
+          {
+            "field": "routingBaselineModel",
+            "as": "baseline-model",
+            "reducer": "unique"
+          },
+          {
+            "field": "routingBaselineComplete",
+            "as": "baseline-complete",
+            "reducer": "unique"
+          },
+          {
+            "field": "routingBaselineMainRequests",
+            "as": "baseline-main-requests",
+            "reducer": "unique"
+          },
+          {
+            "field": "aic",
+            "as": "baseline-aic",
+            "reducer": "unique"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-generic-failure-codes",
+      "from": "routing-event-failure-problems",
+      "filter": {
+        "predicates": [
+          {
+            "field": "problem-kind",
+            "equals": "routing failure"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-upstream-failure-codes",
+      "from": "routing-event-failure-problems",
+      "filter": {
+        "predicates": [
+          {
+            "field": "problem-kind",
+            "equals": "upstream error"
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-ingestion-costs",
+      "from": "routing-cost-runs",
+      "subject": "Compact each session into its owning Run at ingestion.",
+      "objective": "Keep overview work proportional to runs rather than model requests.",
+      "acceptance": "Accounting, attribution and problem codes use the shared declarative definitions, never JavaScript query callbacks.",
+      "joins": [
+        {
+          "source": "routing-main-cost",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "main-responses",
+              "as": "main-responses"
+            },
+            {
+              "field": "known-main-responses",
+              "as": "known-main-responses"
+            },
+            {
+              "field": "recorded-main-aic",
+              "as": "recorded-main-aic"
+            }
+          ]
+        },
+        {
+          "source": "routing-baseline-estimates",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "baseline-model",
+              "as": "baseline-model"
+            },
+            {
+              "field": "baseline-complete",
+              "as": "baseline-complete"
+            },
+            {
+              "field": "baseline-main-requests",
+              "as": "baseline-main-requests"
+            },
+            {
+              "field": "baseline-aic",
+              "as": "baseline-aic"
+            }
+          ]
+        },
+        {
+          "source": "routing-ingestion-pick-adherence",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "flagged-requests",
+              "as": "flagged-requests"
+            },
+            {
+              "field": "deviated-requests",
+              "as": "deviated-requests"
+            }
+          ]
+        },
+        {
+          "source": "routing-generic-failure-codes",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "problem-cause",
+              "as": "routing-failure-codes"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "routing-ingestion-aggregate",
+      "from": "routing-ingestion-costs",
+      "subject": "Retain one routing decision record per run.",
+      "objective": "Let workflow owners compare costs and act on recorded problems.",
+      "acceptance": "Problem kinds keep distinct identifier-only codes and missing costs remain unknown.",
+      "joins": [
+        {
+          "source": "routing-candidate-coverage",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "candidate-coverage",
+              "as": "candidate-coverage"
+            }
+          ]
+        },
+        {
+          "source": "routing-upstream-failure-codes",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "problem-cause",
+              "as": "routing-upstream-codes"
+            }
+          ]
+        },
+        {
+          "source": "routing-event-deviation-problems",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "problem-cause",
+              "as": "routing-deviation-codes"
+            }
+          ]
+        },
+        {
+          "source": "routing-event-resolution-problems",
+          "type": "left",
+          "on": [
+            {
+              "left": "routing-run-key",
+              "right": "routing-run-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "problem-cause",
+              "as": "routing-resolution-codes"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "known-main-count",
+          "function": "difference",
+          "args": [
+            {
+              "field": "main-responses"
+            },
+            {
+              "field": "known-main-responses"
+            }
+          ]
+        },
+        {
+          "as": "known-main-cost",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "known-main-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "matched-main-count",
+          "function": "difference",
+          "args": [
+            {
+              "field": "main-responses"
+            },
+            {
+              "field": "baseline-main-requests"
+            }
+          ]
+        },
+        {
+          "as": "matching-main-cost",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "matched-main-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "complete-main-cost",
+          "function": "if",
+          "args": [
+            {
+              "field": "matching-main-cost"
+            },
+            {
+              "field": "known-main-cost"
+            },
+            {
+              "value": false
+            }
+          ]
+        },
+        {
+          "as": "main-aic",
+          "function": "if",
+          "args": [
+            {
+              "field": "complete-main-cost"
+            },
+            {
+              "field": "recorded-main-aic"
+            },
+            {
+              "value": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "routingFields": {
+    "routingState": "routing-state",
+    "routingSelectedModel": "pick-model",
+    "routingSelectedEffort": "pick-effort",
+    "routingGoal": "routing-goal",
+    "routingConfiguredMode": "routing-configured-mode",
+    "routingMode": "routing-mode",
+    "routingStatus": "harness-status",
+    "routingAwfVersion": "routing-awf-version",
+    "routingSessionClock": "run-clock",
+    "routingSelectionCount": "selection-count",
+    "routingFailureCount": "failure-count",
+    "routingDegraded": "routing-degraded",
+    "routingConfigurationConflict": "configuration-conflict",
+    "routingWarnings": "warnings",
+    "routingAgentResult": "agent-result",
+    "routingFlaggedRequests": "flagged-requests",
+    "routingDeviatedRequests": "deviated-requests",
+    "routingCompleteAic": "complete-aic",
+    "routingMainAic": "main-aic",
+    "routingBaselineModel": "baseline-model",
+    "routingBaselineAic": "baseline-aic",
+    "routingBaselineComplete": "baseline-complete",
+    "routingFailureCodes": "routing-failure-codes",
+    "routingDeviationCodes": "routing-deviation-codes",
+    "routingResolutionCodes": "routing-resolution-codes",
+    "routingUpstreamCodes": "routing-upstream-codes",
+    "routingCandidateCoverage": "candidate-coverage",
+    "routingTaskType": "routing-task-type",
+    "routingScope": "routing-scope",
+    "routingComplexity": "routing-complexity"
+  },
+  "prunedFields": {
+    "runs": [
+      "aic",
+      "number",
+      "intentionalFailure",
+      "tokenUsage",
+      "ambientContext",
+      "workingSet",
+      "behaviorFingerprint",
+      "taskDomain",
+      "comparison",
+      "agenticAssessments",
+      "graders",
+      "context",
+      "data",
+      "logsPayload",
+      "logsPath",
+      "auditPath",
+      "repositoryFullName"
+    ],
+    "repositories": [
+      "fullName"
+    ],
+    "workflows": [
+      "ghAwMetadata",
+      "ghAwManifest",
+      "campaign",
+      "campaignName",
+      "campaignIcon",
+      "campaignReadmePath",
+      "campaignAiCreditAllowance",
+      "campaignWorkerCount",
+      "campaignInventoryWarnings",
+      "ghAwVersionLabel"
+    ],
+    "tools": [
+      "isSkill"
+    ],
+    "skills": [
+      "isSkill"
+    ],
+    "issues": [
+      "issueState",
+      "issueClosed",
+      "issueStateReason",
+      "issueClosedAt",
+      "issueStatusObservedAt"
+    ],
+    "audits": [
+      "targetRepo"
+    ],
+    "graderObservations": [
+      "sourceGraderId",
+      "resultTimestamp"
+    ],
+    "evalObservations": [
+      "sourceEvalId",
+      "resultTimestamp",
+      "answer",
+      "requestedModel",
+      "resolvedModel"
+    ]
+  },
+  "transient": [
+    "routingBaselineModel",
+    "routingBaselineComplete",
+    "routingBaselineMainRequests",
+    "eligibleChoices",
+    "catalogueOverlap"
+  ]
+}

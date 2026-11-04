@@ -46,6 +46,56 @@ CREATE TABLE IF NOT EXISTS cao_state (
   PRIMARY KEY (namespace)
 );
 
+CREATE TABLE IF NOT EXISTS cao_acquisition_scopes (
+  namespace TEXT NOT NULL,
+  repository TEXT NOT NULL,
+  installation_id BIGINT NOT NULL,
+  epoch BIGINT NOT NULL,
+  PRIMARY KEY (namespace, repository),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (repository ~ '^[a-z0-9][a-z0-9-]*/[a-z0-9._-]+$' AND octet_length(repository) <= 256),
+  CHECK (installation_id >= 0 AND epoch > 0)
+);
+
+CREATE TABLE IF NOT EXISTS cao_acquisition_attempts (
+  namespace TEXT NOT NULL,
+  repository TEXT NOT NULL,
+  run_id BIGINT NOT NULL,
+  attempt BIGINT NOT NULL,
+  epoch BIGINT NOT NULL,
+  generation BIGINT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  token TEXT,
+  lease_until TIMESTAMPTZ,
+  digest TEXT,
+  content BYTEA,
+  published_at TIMESTAMPTZ,
+  consumed_digest TEXT,
+  PRIMARY KEY (namespace, repository, run_id, attempt),
+  FOREIGN KEY (namespace, repository) REFERENCES cao_acquisition_scopes(namespace, repository) ON DELETE CASCADE,
+  CHECK (run_id > 0 AND attempt > 0 AND epoch > 0 AND generation > 0),
+  CHECK ((token IS NULL) = (lease_until IS NULL)),
+  CHECK (token IS NULL OR token ~ '^[a-f0-9]{32}$'),
+  CHECK (digest IS NULL OR digest ~ '^[a-f0-9]{64}$'),
+  CHECK (consumed_digest IS NULL OR consumed_digest ~ '^[a-f0-9]{64}$'),
+  CHECK ((digest IS NULL) = (content IS NULL) AND (digest IS NULL) = (published_at IS NULL)),
+  CHECK (octet_length(content) <= 33554432)
+);
+
+CREATE INDEX IF NOT EXISTS cao_acquisition_pending ON cao_acquisition_attempts (namespace, repository, run_id, attempt) WHERE digest IS DISTINCT FROM consumed_digest;
+
+CREATE TABLE IF NOT EXISTS cao_trace_objects (
+  namespace TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  key TEXT NOT NULL,
+  content BYTEA NOT NULL,
+  PRIMARY KEY (namespace, destination, key),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (octet_length(destination) BETWEEN 1 AND 512),
+  CHECK (key ~ '^(ledger[.]json|[a-f0-9]{64}[.](trace|dataset|mining))$'),
+  CHECK (octet_length(content) <= 134217728)
+);
+
 CREATE TABLE IF NOT EXISTS cao_value_publications (
   namespace TEXT NOT NULL,
   packet_id TEXT NOT NULL,

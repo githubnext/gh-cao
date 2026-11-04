@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
@@ -30,6 +31,10 @@ const defaultQueueMaxLength = 200_000
 // ingests snapshots published by the Activity workflow and performs no GitHub
 // collection of its own.
 type CollectorConfig struct {
+	// NativeAcquisition requests the distributed acquisition boundary. Canonical
+	// activation is gated until projection and trace admission accept its durable
+	// handoff without the legacy filesystem lake.
+	NativeAcquisition bool
 	// AppID and PrivateKeyPEM authenticate the GitHub App whose installations
 	// define ingestion scope.
 	AppID         int64
@@ -88,6 +93,9 @@ type CollectorConfig struct {
 func (config *CollectorConfig) Validate() error {
 	if config == nil {
 		return nil
+	}
+	if config.NativeAcquisition {
+		return collectnative.ErrUnsupported
 	}
 	if config.AppID <= 0 {
 		return errors.New("collection requires a GitHub App identifier")

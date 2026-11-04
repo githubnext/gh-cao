@@ -92,6 +92,20 @@ func newTraceWorker(ctx context.Context, config Config, collector *Collector) (*
 		return nil, err
 	}
 	namespace := adxtrace.Namespace(config.ADX.Endpoint, config.ADX.Database)
+	if config.ADXTraces.SharedStorage {
+		database, ok := config.Database.(*postgresx.Store)
+		if !ok || database == nil {
+			return nil, errors.New("shared trace admission requires canonical PostgreSQL")
+		}
+		storage, err := database.TraceStorage(namespace, config.ADXTraces.MaxSpoolBytes, config.ADXTraces.MaxEntries)
+		if err != nil {
+			return nil, err
+		}
+		if config.ADXTraces.MiningEnabled {
+			return adxtrace.NewShared(ctx, *config.ADXTraces, namespace, client, storage, database)
+		}
+		return adxtrace.NewShared(ctx, *config.ADXTraces, namespace, client, storage)
+	}
 	if config.ADXTraces.MiningEnabled {
 		database, ok := config.Database.(*postgresx.Store)
 		if !ok || database == nil {

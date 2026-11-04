@@ -6,6 +6,11 @@ GRANT USAGE ON SCHEMA :"schema" TO :"runtime";
 REVOKE ALL ON :"schema".cao_contract, :"schema".cao_state FROM PUBLIC, :"runtime";
 GRANT SELECT ON :"schema".cao_contract TO :"runtime";
 GRANT SELECT, INSERT, UPDATE ON :"schema".cao_state TO :"runtime";
+REVOKE ALL ON :"schema".cao_acquisition_scopes, :"schema".cao_acquisition_attempts,
+    :"schema".cao_trace_objects FROM PUBLIC, :"runtime";
+GRANT SELECT, INSERT, UPDATE, DELETE ON
+    :"schema".cao_acquisition_scopes, :"schema".cao_acquisition_attempts,
+    :"schema".cao_trace_objects TO :"runtime";
 REVOKE ALL ON :"schema".cao_daily_contract, :"schema".daily_run_counts,
     :"schema".run_count_contributions, :"schema".daily_run_count_state FROM PUBLIC, :"runtime";
 GRANT SELECT ON :"schema".cao_daily_contract TO :"runtime";

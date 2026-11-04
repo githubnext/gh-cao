@@ -125,6 +125,27 @@ export async function $onEmit(context) {
       'PRIMARY KEY (namespace, id)',
       'CHECK (octet_length(id) <= 512)',
       'CHECK (octet_length(etag) <= 4096 AND octet_length(upstream_etag) <= 4096)'
+    ] : table.name === 'cao_acquisition_scopes' ? [
+      'PRIMARY KEY (namespace, repository)',
+      'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
+      "CHECK (repository ~ '^[a-z0-9][a-z0-9-]*/[a-z0-9._-]+$' AND octet_length(repository) <= 256)",
+      'CHECK (installation_id >= 0 AND epoch > 0)'
+    ] : table.name === 'cao_acquisition_attempts' ? [
+      'PRIMARY KEY (namespace, repository, run_id, attempt)',
+      'FOREIGN KEY (namespace, repository) REFERENCES cao_acquisition_scopes(namespace, repository) ON DELETE CASCADE',
+      'CHECK (run_id > 0 AND attempt > 0 AND epoch > 0 AND generation > 0)',
+      'CHECK ((token IS NULL) = (lease_until IS NULL))',
+      "CHECK (token IS NULL OR token ~ '^[a-f0-9]{32}$')",
+      "CHECK (digest IS NULL OR digest ~ '^[a-f0-9]{64}$')",
+      "CHECK (consumed_digest IS NULL OR consumed_digest ~ '^[a-f0-9]{64}$')",
+      'CHECK ((digest IS NULL) = (content IS NULL) AND (digest IS NULL) = (published_at IS NULL))',
+      'CHECK (octet_length(content) <= 33554432)'
+    ] : table.name === 'cao_trace_objects' ? [
+      'PRIMARY KEY (namespace, destination, key)',
+      'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
+      'CHECK (octet_length(destination) BETWEEN 1 AND 512)',
+      "CHECK (key ~ '^(ledger[.]json|[a-f0-9]{64}[.](trace|dataset|mining))$')",
+      'CHECK (octet_length(content) <= 134217728)'
     ] : table.name === 'cao_value_proof_files' ? [
       'PRIMARY KEY (namespace, repository, workflow, path)',
       'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
@@ -169,6 +190,7 @@ export async function $onEmit(context) {
     statements.push(`CREATE TABLE IF NOT EXISTS ${table.name} (\n${table.columns.map((c) => `  ${c.name} ${c.sql}${c.required ? ' NOT NULL' : ''}`).join(',\n')},\n  ${constraints.join(',\n  ')}\n);`);
     if (table.name === 'cao_repository_lifecycle') statements.push('CREATE INDEX IF NOT EXISTS cao_repository_lifecycle_coordinate ON cao_repository_lifecycle (namespace, owner, name);');
     if (table.name === 'cao_github_resources') statements.push('CREATE INDEX IF NOT EXISTS cao_github_resources_expiry ON cao_github_resources (namespace, validated_at, id);');
+    if (table.name === 'cao_acquisition_attempts') statements.push('CREATE INDEX IF NOT EXISTS cao_acquisition_pending ON cao_acquisition_attempts (namespace, repository, run_id, attempt) WHERE digest IS DISTINCT FROM consumed_digest;');
     if (table.name === 'cao_value_collection_costs') {
       statements.push('CREATE INDEX IF NOT EXISTS cao_value_collection_costs_recent ON cao_value_collection_costs (namespace, day DESC, repository, workflow);');
       statements.push('CREATE INDEX IF NOT EXISTS cao_value_collection_costs_installation ON cao_value_collection_costs (namespace, installation_id, day DESC);');

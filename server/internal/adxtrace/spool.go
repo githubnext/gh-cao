@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -53,12 +52,13 @@ type spool struct {
 	namespace   string
 	fingerprint string
 	mu          sync.Mutex
+	storage     Storage
 }
 
 func parent(path string) string { return filepath.Dir(path) }
 func base(path string) string   { return filepath.Base(path) }
 
-func readBounded(root *os.Root, name string, limit int64) ([]byte, error) {
+func readPrivateObject(root *os.Root, name string, limit int64) ([]byte, error) {
 	file, err := root.Open(name)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func readBounded(root *os.Root, name string, limit int64) ([]byte, error) {
 	return content, nil
 }
 
-func atomicWrite(root *os.Root, name string, content []byte) (err error) {
+func writePrivateObject(root *os.Root, name string, content []byte) (err error) {
 	file, err := root.OpenFile(name+".tmp", os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return err
@@ -106,12 +106,15 @@ func atomicWrite(root *os.Root, name string, content []byte) (err error) {
 	return directory.Sync()
 }
 
-func newSpool(ctx context.Context, config Config, namespace string) (*spool, error) {
+func newSpool(ctx context.Context, config Config, namespace string, stores ...Storage) (*spool, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 	if !config.Enabled || namespace == "" {
 		return nil, errors.New("trace spool requires enabled configuration and destination identity")
+	}
+	if len(stores) > 1 || config.SharedStorage != (len(stores) == 1 && stores[0] != nil) {
+		return nil, errors.New("trace storage must match the explicitly selected backend")
 	}
 	policy, err := json.Marshal(config.Policy)
 	if err != nil {
@@ -122,13 +125,15 @@ func newSpool(ctx context.Context, config Config, namespace string) (*spool, err
 	}
 	// The dedicated directory must already exist so a typo cannot create
 	// sensitive data on a different, possibly transient, mount.
-	info, err := os.Lstat(config.Directory)
-	if err != nil || !info.IsDir() || info.Mode().Perm()&0077 != 0 {
-		return nil, errors.New("trace spool must be an existing private directory")
-	}
-	config.Directory, err = filepath.Abs(config.Directory)
-	if err != nil {
-		return nil, err
+	if !config.SharedStorage {
+		info, err := os.Lstat(config.Directory)
+		if err != nil || !info.IsDir() || info.Mode().Perm()&0077 != 0 {
+			return nil, errors.New("trace spool must be an existing private directory")
+		}
+		config.Directory, err = filepath.Abs(config.Directory)
+		if err != nil {
+			return nil, err
+		}
 	}
 	identity, _ := json.Marshal(struct {
 		Namespace, Policy, Mode, Seed string
@@ -140,13 +145,21 @@ func newSpool(ctx context.Context, config Config, namespace string) (*spool, err
 	}{namespace, policyDigest(config.Policy), config.Mode, config.Seed, config.SampleCount,
 		config.Repositories, config.MaxTraceBytes, config.FrameDelay, config.MiningEnabled})
 	s := &spool{config: config, namespace: namespace, fingerprint: digest(identity)}
-	if err := s.locked(ctx, func(root *os.Root, state *ledger) error { return s.save(root, state) }); err != nil {
+	if len(stores) == 1 {
+		s.storage = stores[0]
+	}
+	if err := s.locked(ctx, func(root Objects, state *ledger) error { return s.save(root, state) }); err != nil {
 		return nil, err
 	}
 	return s, nil
 }
 
-func (s *spool) locked(ctx context.Context, action func(*os.Root, *ledger) error) error {
+func (s *spool) locked(ctx context.Context, action func(Objects, *ledger) error) error {
+	if s.storage != nil {
+		return s.storage.Transaction(ctx, func(objects Objects) error {
+			return s.withObjects(objects, action)
+		})
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := ctx.Err(); err != nil {
@@ -168,6 +181,10 @@ func (s *spool) locked(ctx context.Context, action func(*os.Root, *ledger) error
 	if err := tryLockTrace(lock); err != nil {
 		return err
 	}
+	return s.withObjects(localObjects{root}, action)
+}
+
+func (s *spool) withObjects(root Objects, action func(Objects, *ledger) error) error {
 	state := ledger{Version: ContractVersion, Fingerprint: s.fingerprint,
 		Records: map[string]*record{}, Frames: map[string]*frame{}, Withdrawn: map[string]bool{}, Datasets: map[string]*dataset{}}
 	content, err := readBounded(root, "ledger.json", 64<<20)
@@ -195,7 +212,7 @@ func (s *spool) locked(ctx context.Context, action func(*os.Root, *ledger) error
 	}
 	// Only this process can own the file lock. Temporary/orphan files are
 	// uncommitted writes, never an alternative source of authority.
-	entries, err := fs.ReadDir(root.FS(), ".")
+	entries, err := root.List()
 	if err != nil {
 		return err
 	}
@@ -214,7 +231,7 @@ func (s *spool) locked(ctx context.Context, action func(*os.Root, *ledger) error
 		}
 	}
 	for _, entry := range entries {
-		name := entry.Name()
+		name := entry.Key
 		if strings.HasSuffix(name, ".tmp") || (strings.HasSuffix(name, ".trace") || strings.HasSuffix(name, ".dataset") || strings.HasSuffix(name, ".mining")) && !referenced[name] {
 			if err := root.Remove(name); err != nil {
 				return err
@@ -226,7 +243,7 @@ func (s *spool) locked(ctx context.Context, action func(*os.Root, *ledger) error
 	return action(root, &state)
 }
 
-func (s *spool) save(root *os.Root, state *ledger) error {
+func (s *spool) save(root Objects, state *ledger) error {
 	if len(state.Records)+len(state.Frames)+len(state.Datasets) > s.config.MaxEntries {
 		return ErrCapacity
 	}
@@ -238,16 +255,12 @@ func (s *spool) save(root *os.Root, state *ledger) error {
 		return ErrCapacity
 	}
 	var bytes int64
-	entries, err := fs.ReadDir(root.FS(), ".")
+	entries, err := root.List()
 	if err != nil {
 		return err
 	}
 	for _, entry := range entries {
-		info, err := entry.Info()
-		if err != nil || !info.Mode().IsRegular() {
-			return errors.New("invalid spool entry")
-		}
-		bytes += info.Size()
+		bytes += entry.Bytes
 	}
 	// Account for the atomic replacement's peak, including the old ledger.
 	if bytes+int64(len(content)) > s.config.MaxSpoolBytes {
@@ -257,7 +270,7 @@ func (s *spool) save(root *os.Root, state *ledger) error {
 }
 
 func (s *spool) admit(ctx context.Context, e Evidence, reason string, now time.Time) error {
-	return s.locked(ctx, func(root *os.Root, state *ledger) error {
+	return s.locked(ctx, func(root Objects, state *ledger) error {
 		if state.Withdrawn[e.Repository] {
 			return errors.New("trace repository is withdrawn")
 		}
@@ -328,16 +341,12 @@ func (s *spool) admit(ctx context.Context, e Evidence, reason string, now time.T
 				return errors.New("trace projection exceeds bounded expansion")
 			}
 			var bytes int64
-			entries, err := fs.ReadDir(root.FS(), ".")
+			entries, err := root.List()
 			if err != nil {
 				return err
 			}
 			for _, entry := range entries {
-				info, err := entry.Info()
-				if err != nil {
-					return err
-				}
-				bytes += info.Size()
+				bytes += entry.Bytes
 			}
 			if bytes+int64(len(content))+(1<<20) > s.config.MaxSpoolBytes {
 				return ErrCapacity
@@ -369,7 +378,7 @@ func (s *spool) frameID(repository, day string) string {
 	return digest([]byte(s.namespace + "\x00" + repository + "\x00" + day))
 }
 
-func readEvidence(root *os.Root, r *record, maxBytes int64) (Evidence, error) {
+func readEvidence(root Objects, r *record, maxBytes int64) (Evidence, error) {
 	content, err := readBounded(root, r.File, maxBytes*4)
 	if err != nil {
 		return Evidence{}, err
@@ -388,7 +397,7 @@ func (s *spool) withdraw(ctx context.Context, repository string) error {
 	if !slices.Contains(s.config.Repositories, repository) {
 		return errors.New("withdrawal is outside trace scope")
 	}
-	return s.locked(ctx, func(root *os.Root, state *ledger) error {
+	return s.locked(ctx, func(root Objects, state *ledger) error {
 		state.Withdrawn[repository] = true
 		var remove []string
 		for _, r := range state.Records {
@@ -424,18 +433,14 @@ func (s *spool) withdraw(ctx context.Context, repository string) error {
 	})
 }
 
-func (s *spool) reserve(root *os.Root, additional int64) error {
-	entries, err := fs.ReadDir(root.FS(), ".")
+func (s *spool) reserve(root Objects, additional int64) error {
+	entries, err := root.List()
 	if err != nil {
 		return err
 	}
 	var bytes int64
 	for _, entry := range entries {
-		info, err := entry.Info()
-		if err != nil || !info.Mode().IsRegular() {
-			return errors.New("invalid spool file")
-		}
-		bytes += info.Size()
+		bytes += entry.Bytes
 	}
 	if additional < 0 || bytes+additional+(1<<20) > s.config.MaxSpoolBytes {
 		return ErrCapacity

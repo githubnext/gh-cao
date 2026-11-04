@@ -142,6 +142,10 @@ func runtimeSQLSource(name string, source model.Source) (query.SQLRelation, erro
 	if !exists || !table.runtime {
 		return query.SQLRelation{}, errors.New("runtime SQL source is not explicitly registered")
 	}
+	return typedRowsSQLSource(name, table, source)
+}
+
+func typedRowsSQLSource(name string, table entityTable, source model.Source) (query.SQLRelation, error) {
 	if len(source.Rows) > query.MaxInputRows {
 		return query.SQLRelation{}, fmt.Errorf("query %q exceeds max input rows", name)
 	}

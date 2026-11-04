@@ -1043,6 +1043,39 @@ namespace Storage {
     schemaVersion: int64;
   }
 
+  /** Private native acquisition scope epochs. Not an independent enrollment authority. */
+  model caoAcquisitionScopes {
+    `namespace`: string;
+    repository: string;
+    installationId: int64;
+    epoch: int64;
+  }
+
+  /** Fenced exact-attempt safe evidence and pending publication; never raw artifacts or canonical rows. */
+  model caoAcquisitionAttempts {
+    `namespace`: string;
+    repository: string;
+    runId: int64;
+    attempt: int64;
+    epoch: int64;
+    generation: int64;
+    createdAt: utcDateTime;
+    token?: string;
+    leaseUntil?: utcDateTime;
+    digest?: string;
+    content?: bytes;
+    publishedAt?: utcDateTime;
+    consumedDigest?: string;
+  }
+
+  /** Private approved trace objects and transactional delivery ledger; never a query source. */
+  model caoTraceObjects {
+    `namespace`: string;
+    destination: string;
+    key: string;
+    content: bytes;
+  }
+
   /** Ownership and retry identity only; measured evidence remains in the typed canonical tables. */
   model caoValuePublications {
     `namespace`: string;

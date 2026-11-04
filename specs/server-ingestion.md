@@ -82,16 +82,22 @@ A deployment MUST select exactly one acquisition profile.
 Both profiles MUST produce identical canonical records for the same observation
 window and the same underlying GitHub activity.
 
-- The collector profile MUST acquire logs with the same `gh aw logs --audit`
-  invocation and compact them with the same `activity/cao.mjs` commands the
-  Actions profile uses.
+- The legacy filesystem collector MUST acquire logs with the same
+  `gh aw logs --audit` invocation and compact them with the same
+  `activity/cao.mjs` commands the Actions profile uses. A native acquisition
+  adapter MAY replace those subprocesses under the boundary in section 2.4;
+  that does not waive source coverage, canonical equivalence or activation gates.
 - The collector profile MUST reconstruct retained operational-value observations
   with a native Go implementation conforming to
   `specs/operational-value-history.md`, using the same campaign adapter contract,
   retention window, historical campaign selection, and installation-scoped
   GitHub credentials as the Actions profile.
-- An implementation MUST NOT maintain a second implementation of the canonical
-  mapping, the shard format, or the payload-hash manifest.
+- Native adapters MUST preserve the authoritative canonical mapping rather than
+  define alternate semantics. They MUST compare native records with the Activity
+  adapter/normalizer using independent fixture oracles. Routing aggregation MUST
+  execute the authoritative Dashboard Language queries through the production
+  Go query engine. The shard format and payload-hash manifest remain shared
+  contracts, not separately invented native formats.
 - A conforming implementation MUST provide a profile equivalence test that
   asserts identical canonical records from an Actions-published directory and a
   server-collected evidence lake covering the same window.
@@ -105,6 +111,52 @@ background work to stop only after the HTTP host has drained. The external
 host MUST NOT bypass CAO's webhook verification or independently infer
 collection scope from requests. The mutual-exclusion, enrollment, durable
 admission, and recovery requirements in this document remain unchanged.
+
+### 2.4 Native acquisition and publication boundary
+
+The native Go service under `server/internal/collectnative/` replaces workflow
+artifact acquisition, metadata-only session extraction and raw JSONL compaction
+without running Node, `cao-activity`, `gh-aw` or another subprocess. Its provider
+uses installation-scoped GitHub APIs and the existing shared quota service.
+Archive acquisition and projection MUST enforce explicit byte, entry,
+pagination, attempt and cancellation bounds. Archive paths are logical names,
+not filesystem locations.
+
+The PostgreSQL acquisition adapter owns exact repository/run/attempt claims,
+database expiry, generation/token fencing and enrollment epochs. Only
+authenticated enrollment reconciliation may change scope; a queued collection
+task MUST NOT enroll its own repository. Transfer, withdrawal and reenrollment
+MUST invalidate prior claims and pending publications. Safe evidence is a
+durable publication intent, not a local cache or proof of canonical activation.
+Unconsumed intents MUST NOT expire through ordinary consumed-evidence cleanup.
+Capacity exhaustion MUST reject work instead of evicting pending intents.
+
+Configured content destinations MUST complete approved durable admission before
+safe evidence is published. Raw sessions MUST NOT enter ordinary acquisition
+rows, canonical rows or operational records. Native trace admission reuses the
+existing policy, redaction, exact-attempt identity, source-gap, sampling and
+immutable delivery contracts. Shared trace storage uses PostgreSQL transactions,
+not process mutexes or a shared filesystem.
+
+Canonical publication MUST atomically verify the current enrollment epoch and
+exact evidence digest, insert the owning canonical graph, advance its revision
+and consume the intent. Failure or cancellation MUST roll back all four.
+Separate replicas may enumerate bounded pending batches and replay them without
+GitHub credentials, Activity caches or local files. Older attempts MUST NOT
+replace a newer canonical attempt. Canonical run partitions MUST use recorded
+run time, not restart/replay time; linked-detail retention remains enforced.
+Acquisition gaps MUST remain visible as untimed `collection.coverage` audits and
+partial source metadata, not success-shaped defaults or inferred zeroes.
+
+**Current activation limit:** this service and its PostgreSQL canonical/trace
+adapters are independently executable, but `CollectorConfig.NativeAcquisition`
+still fails closed. The hosted enrollment/queue/backfill lifecycle, complete
+inventory/Value replacement and session archive are not yet integrated with this
+boundary. Native Actions job-log/legacy audit extraction is also unavailable;
+`legacy-audit-unavailable` is explicit evidence, not a parity claim. The existing
+hosted collector, container and CLI remain the legacy filesystem implementation.
+Passing native service tests MUST NOT be represented as distributed hosted
+collector activation or complete profile equivalence.
 
 ## 3. Enrollment
 
