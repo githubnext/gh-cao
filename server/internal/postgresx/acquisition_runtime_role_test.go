@@ -51,7 +51,9 @@ func TestNativeAcquisitionAndTraceRuntimeRole(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	for _, table := range []string{"cao_acquisition_scopes", "cao_acquisition_attempts", "cao_trace_objects"} {
+	for _, table := range []string{"cao_acquisition_scopes", "cao_acquisition_attempts", "cao_acquisition_outcomes",
+		"cao_acquisition_value_hints", "cao_acquisition_inventory_config", "cao_acquisition_inventory",
+		"cao_archive_sources", "cao_trace_objects"} {
 		for _, privilege := range []string{"TRUNCATE", "TRIGGER", "REFERENCES"} {
 			var allowed bool
 			if err := store.db.QueryRowContext(t.Context(), `SELECT has_table_privilege(current_user,$1,$2)`,

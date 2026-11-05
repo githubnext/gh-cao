@@ -12,6 +12,18 @@ import (
 // Scope erasure is part of the ownership transaction, never a later snapshot
 // replacement that could remove a newly enrolled owner's publication.
 func (s *Store) eraseNativeRepository(ctx context.Context, tx *sql.Tx, repository string) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_outcomes WHERE namespace=$1 AND repository=$2`,
+		s.namespace, repository); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_value_hints WHERE namespace=$1 AND repository=$2`,
+		s.namespace, repository); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_inventory WHERE namespace=$1 AND repository=$2`,
+		s.namespace, repository); err != nil {
+		return err
+	}
 	rows, err := tx.QueryContext(ctx, `SELECT id FROM repositories
 		WHERE namespace=$1 AND lower(owner || '/' || name)=$2 LIMIT 257`, s.namespace, repository)
 	if err != nil {

@@ -286,12 +286,27 @@ test('native collection private storage retains fenced intents and bounded appro
   assert.match(attempts, /consumed_digest TEXT/);
   assert.match(attempts, /octet_length\(content\) <= 33554432/);
   assert.match(sql, /cao_acquisition_pending[\s\S]*?WHERE digest IS DISTINCT FROM consumed_digest/);
+  const outcomes = definition('cao_acquisition_outcomes');
+  assert.match(outcomes, /PRIMARY KEY \(namespace, repository, url\)/);
+  assert.match(outcomes, /FOREIGN KEY \(namespace, repository\) REFERENCES cao_acquisition_scopes/);
+  assert.match(outcomes, /CHECK \(epoch > 0\)/);
+  assert.match(outcomes, /octet_length\(content\) BETWEEN 1 AND 32768/);
+  const hints = definition('cao_acquisition_value_hints');
+  assert.match(hints, /PRIMARY KEY \(namespace, repository\)/);
+  assert.match(hints, /FOREIGN KEY \(namespace, repository\) REFERENCES cao_acquisition_scopes/);
+  assert.match(hints, /CHECK \(epoch > 0 AND dirty >= 0 AND processed >= 0 AND processed <= dirty\)/);
+  const archive = definition('cao_archive_sources');
+  assert.match(archive, /PRIMARY KEY \(namespace, destination, repository, installation_id, epoch\)/);
+  assert.match(archive, /FOREIGN KEY \(namespace\) REFERENCES cao_state\(namespace\) ON DELETE CASCADE/);
+  assert.doesNotMatch(archive, /REFERENCES cao_acquisition_scopes/);
+  assert.match(archive, /CHECK \(NOT cleanup_pending OR withdrawn\)/);
+  assert.match(sql, /cao_archive_source_cleanup[\s\S]*?WHERE cleanup_pending/);
   const traces = definition('cao_trace_objects');
   assert.match(traces, /PRIMARY KEY \(namespace, destination, key\)/);
   assert.match(traces, /FOREIGN KEY \(namespace\) REFERENCES cao_state\(namespace\) ON DELETE CASCADE/);
   assert.match(traces, /octet_length\(content\) <= 134217728/);
   const bindings = readFileSync(new URL('../internal/postgresx/schema.gen.go', import.meta.url), 'utf8');
-  assert.doesNotMatch(bindings, /"\$?(?:caoAcquisitionScopes|caoAcquisitionAttempts|caoTraceObjects|cao_acquisition_scopes|cao_acquisition_attempts|cao_trace_objects)"\s*:/);
+  assert.doesNotMatch(bindings, /"\$?(?:caoAcquisitionScopes|caoAcquisitionAttempts|caoAcquisitionOutcomes|caoAcquisitionValueHints|caoArchiveSources|caoTraceObjects|cao_acquisition_scopes|cao_acquisition_attempts|cao_acquisition_outcomes|cao_acquisition_value_hints|cao_archive_sources|cao_trace_objects)"\s*:/);
 });
 
 test('live webhook counters are typed process projections without physical storage', () => {

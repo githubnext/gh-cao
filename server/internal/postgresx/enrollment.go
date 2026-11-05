@@ -377,6 +377,13 @@ func (a nativeEnrollment) flush(ctx context.Context, mutation *enrollmentMutatio
 		if err != nil {
 			return err
 		}
+		if current.Epoch > 0 {
+			if err := mutation.tx.QueryRowContext(ctx, `SELECT installation_id,epoch FROM cao_acquisition_scopes
+				WHERE namespace=$1 AND repository=$2 FOR UPDATE`, a.store.namespace, repository).
+				Scan(&current.InstallationID, &current.Epoch); err != nil {
+				return err
+			}
+		}
 		if current != change.previous {
 			return collectnative.ErrClaimLost
 		}
@@ -384,6 +391,9 @@ func (a nativeEnrollment) flush(ctx context.Context, mutation *enrollmentMutatio
 			continue
 		}
 		if current.InstallationID > 0 {
+			if err := a.store.withdrawArchiveSources(ctx, mutation.tx, repository); err != nil {
+				return err
+			}
 			if a.trace != nil {
 				if err := a.trace.WithdrawRepository(ctx, repository); err != nil {
 					if errors.Is(err, adxtrace.ErrBusy) {

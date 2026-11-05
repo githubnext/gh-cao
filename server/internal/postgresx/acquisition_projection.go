@@ -40,6 +40,13 @@ func (a Acquisition) Activate(ctx context.Context, publication AcquisitionPublic
 	if epoch != publication.Epoch {
 		return false, collectnative.ErrClaimLost
 	}
+	if a.inventoryDigest != "" {
+		if err := a.inventoryReady(ctx, tx, collectnative.EnrollmentScope{
+			Repository: identity.Repository, InstallationID: identity.InstallationID, Epoch: epoch,
+		}, a.inventoryDigest); err != nil {
+			return false, err
+		}
+	}
 	var digest string
 	var consumed sql.NullString
 	var content []byte
@@ -77,6 +84,9 @@ func (a Acquisition) Activate(ctx context.Context, publication AcquisitionPublic
 	changed := previous <= identity.Attempt
 	if changed {
 		if err := a.store.projectAcquisition(ctx, tx, &projection, published); err != nil {
+			return false, err
+		}
+		if err := a.replayOutcomes(ctx, tx, publication, projection.RunID, published); err != nil {
 			return false, err
 		}
 	}

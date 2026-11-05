@@ -22,11 +22,25 @@ const (
 
 // Acquisition owns private safe evidence in the canonical database, independent
 // of derived canonical replacement and operational cache eviction.
-type Acquisition struct{ store *Store }
+type Acquisition struct {
+	store           *Store
+	inventoryDigest string
+}
 
 func (s *Store) Acquisition() Acquisition { return Acquisition{store: s} }
 
 var _ collectnative.ScopedStore = Acquisition{}
+
+// RequireInventory selects the hosted activation contract. Component producers
+// remain usable independently, but this consumer cannot publish without the
+// exact reviewed inventory and current source epochs in its writer transaction.
+func (a Acquisition) RequireInventory(snapshot collectnative.InventorySnapshot) (Acquisition, error) {
+	if err := snapshot.Validate(); err != nil {
+		return Acquisition{}, err
+	}
+	a.inventoryDigest = snapshot.Digest
+	return a, nil
+}
 
 func (a Acquisition) CurrentScope(ctx context.Context, repository string) (collectnative.EnrollmentScope, error) {
 	scope := collectnative.EnrollmentScope{Repository: repository}
@@ -120,11 +134,26 @@ func (a Acquisition) SetEnrollment(ctx context.Context, repository string, insta
 		return err
 	}
 	if previous != installation || installation == 0 {
+		if err := a.store.withdrawArchiveSources(ctx, tx, repository); err != nil {
+			return err
+		}
 		if _, err := tx.ExecContext(ctx, `UPDATE cao_acquisition_scopes SET installation_id=$3,epoch=epoch+1
 			WHERE namespace=$1 AND repository=$2`, a.store.namespace, repository, installation); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_attempts WHERE namespace=$1 AND repository=$2`,
+			a.store.namespace, repository); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_outcomes WHERE namespace=$1 AND repository=$2`,
+			a.store.namespace, repository); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_value_hints WHERE namespace=$1 AND repository=$2`,
+			a.store.namespace, repository); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_inventory WHERE namespace=$1 AND repository=$2`,
 			a.store.namespace, repository); err != nil {
 			return err
 		}
