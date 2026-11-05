@@ -264,11 +264,15 @@ single-reader slot without waiting for publication.
 
 The dedicated `Parquet and Session Archive CI` workflow
 (`.github/workflows/session-archive.yml`) runs real production paths with a
-checksum-verified runtime and rejects skipped conformance. Its
+checksum-verified runtime and rejects skipped conformance. A dedicated PostgreSQL
+service also exercises native archive authority against canonical storage; each
+test creates and removes an isolated schema. Its
 `Real DuckDB session archive` job runs on relevant pull requests, main pushes,
 and the daily full suite. To require the same
 runtime locally, set `DUCKDB_PATH` and
 `CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1` when running archive integration tests.
+Set `CAO_TEST_POSTGRES_URL` to a test PostgreSQL database whose role can create
+schemas to include the native authority integration test without skips.
 Run the fixed 1,048,576-event test with
 `CAO_SESSION_ARCHIVE_BENCHMARK=1` and the same required runtime, selecting
 `^TestDuckDBArchiveMillionEventBenchmark$`. Its sampled heap/temp figures are

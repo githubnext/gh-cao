@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"maps"
+	"math"
 	"path"
 	"slices"
 	"strconv"
@@ -261,6 +262,8 @@ func enrichEngineAudit(ctx context.Context, fields map[string]any, files map[str
 	return gaps, nil
 }
 
+const maxEngineCounter = min(9007199254740991, math.MaxInt)
+
 func engineCounter(value any) int {
 	n, ok := number(value)
 	// Aggregated structured usage is already validated and held as float64
@@ -271,14 +274,18 @@ func engineCounter(value any) int {
 	case int:
 		n, ok = float64(value), true
 	}
-	if !ok || n < 0 || n > 9007199254740991 || n != float64(int(n)) {
+	if !ok || n < 0 || n > maxEngineCounter || n != math.Trunc(n) {
 		return 0
 	}
-	return int(n)
+	counter, err := strconv.Atoi(strconv.FormatFloat(n, 'f', 0, 64))
+	if err != nil {
+		return 0
+	}
+	return counter
 }
 
 func addEngineCounter(total *int, value int) error {
-	if value < 0 || value > 9007199254740991-*total {
+	if *total < 0 || *total > maxEngineCounter || value < 0 || value > maxEngineCounter-*total {
 		return ErrCapacity
 	}
 	*total += value

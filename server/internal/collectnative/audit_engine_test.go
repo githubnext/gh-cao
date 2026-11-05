@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -14,6 +15,33 @@ import (
 	"testing"
 	"time"
 )
+
+func TestEngineCounterBounds(t *testing.T) {
+	for _, value := range []any{
+		json.Number("-1"), json.Number("1.5"), json.Number("9007199254740992"),
+		json.Number("9223372036854775807"), json.Number("18446744073709551615"),
+		math.NaN(), math.Inf(1), math.Inf(-1), float64(maxEngineCounter) + 1,
+	} {
+		if got := engineCounter(value); got != 0 {
+			t.Fatalf("invalid counter %v admitted as %d", value, got)
+		}
+	}
+	for _, value := range []any{json.Number("42"), json.Number("4.2e1"), float64(42), 42} {
+		if got := engineCounter(value); got != 42 {
+			t.Fatalf("valid counter %v changed to %d", value, got)
+		}
+	}
+	if got := engineCounter(json.Number(fmt.Sprint(maxEngineCounter))); got != maxEngineCounter {
+		t.Fatalf("maximum counter changed to %d", got)
+	}
+	total := maxEngineCounter - 1
+	if err := addEngineCounter(&total, 1); err != nil || total != maxEngineCounter {
+		t.Fatalf("valid aggregate rejected: total=%d err=%v", total, err)
+	}
+	if err := addEngineCounter(&total, 1); !errors.Is(err, ErrCapacity) || total != maxEngineCounter {
+		t.Fatalf("overflow changed aggregate: total=%d err=%v", total, err)
+	}
+}
 
 func TestNativeEnginePinnedPrimaryAndDebugMetrics(t *testing.T) {
 	// github/gh-aw@v1.0.1 copilot_events_jsonl_test.go full session:
