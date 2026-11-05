@@ -138,6 +138,10 @@ The single campaign selected for historical operational-value reconstruction in 
 
 An experimental hosted-server mode, enabled with `serve-hosted --experimental --hosted-cli-actions`, in which step-up administrators queue declared `cao` actions. A separate `execute-cli` process runs each queued action with a single-use, repository-scoped GitHub App installation token that is revoked when the command finishes. Executor replicas coordinate through a durable, fenced PostgreSQL queue lease. See the [hosted CLI actions specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-hosted-cli.md).
 
+## Keyset page
+
+A bounded page of a declarative query output, selected by an ordered stable key rather than an offset. For Value workflow lists the key is the exact stored `(repositoryId, path, id)` tuple under the `utf8-bytewise-v1` comparator, and the keyset predicate is pushed into the canonical read. The boundary reads one extra key to report `has-more` and never computes a fleet-wide total count. Its continuation token binds the resolved query plan and the `workflow-subject-revision`, so an identity-stale continuation fails closed and restarts at page one. See the Dashboard Language Data Specification, Value workflow lists.
+
 ## Live authority
 
 The control repository's exclusive right to admit a `live` worker for a campaign and target, decided solely from `.github/workflows/cao.json` at the exact workflow SHA. A target repository's files cannot widen, narrow, or veto this decision.
