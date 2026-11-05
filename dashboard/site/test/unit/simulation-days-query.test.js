@@ -163,7 +163,7 @@ describe('simulation-days intrinsic query source', () => {
     expect(page.views[0]).toMatchObject({
       mark: 'table',
       data: { source: 'simulator-database-summary' },
-      encoding: { columns: [{ field: 'table' }, { field: 'bytes' }] }
+      encoding: { columns: [{ field: 'table' }, { field: 'bytes', unit: 'bytes', title: 'Estimated size after 30 days' }] }
     });
     expect(validateDashboardDocument(authoritativeDashboardSource)).toMatchObject({ ok: true });
   });

@@ -119,7 +119,7 @@ describe('additive daily run outcome counts', () => {
     expect(receipt.run.inputTokens).toBeUndefined();
     expect(receipt.run.status).toBe('completed');
     expect(CANONICAL_SCHEMA_VERSION).toBe(36);
-    expect(DATABASE_VERSION).toBe(48);
+    expect(DATABASE_VERSION).toBe(49);
     expect(ENTITY_STORES).not.toContain('dailyRunCounts');
     expect(ENTITY_STORES).not.toContain('runCountContributions');
   });

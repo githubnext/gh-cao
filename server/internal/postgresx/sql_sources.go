@@ -90,6 +90,8 @@ func (r *readTransaction) operationalValueEvidenceSQLSource(selections ...query.
 	delete(columns, "packetId")
 	projections := make([]string, 1, 10)
 	projections[0] = "f.*"
+	projections = append(projections, "p.workflow_id AS __workflow_id")
+	columns["workflowId"] = query.SQLColumn{Expression: "t.__workflow_id", Presence: "TRUE", Kind: query.SQLText}
 	for logical, physical := range map[string]string{
 		"report-id": "id", "workflow": "workflow", "workflow-path": "source_path", "observed-at": "observed_at",
 		"window-start": "window_start", "window-end": "window_end", "contract-digest": "contract_digest",

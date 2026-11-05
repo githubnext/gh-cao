@@ -69,8 +69,9 @@ func (s traceStorage) transact(ctx context.Context, tx *sql.Tx, action func(adxt
 	if !locked {
 		return adxtrace.ErrBusy
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO cao_state(namespace,revision,data_revision,evaluated_at,schema_version)
-		VALUES($1,0,'','epoch',$2) ON CONFLICT(namespace) DO NOTHING`, s.store.namespace, model.SchemaVersion); err != nil {
+	if _, err := tx.ExecContext(ctx, `INSERT INTO cao_state
+		(namespace,revision,workflow_subject_revision,workflow_subject_digest,data_revision,evaluated_at,schema_version)
+		VALUES($1,0,0,'','','epoch',$2) ON CONFLICT(namespace) DO NOTHING`, s.store.namespace, model.SchemaVersion); err != nil {
 		return err
 	}
 	return action(traceObjects{s, ctx, tx})

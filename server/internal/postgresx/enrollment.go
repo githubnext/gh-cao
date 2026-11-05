@@ -423,6 +423,9 @@ func (a nativeEnrollment) flush(ctx context.Context, mutation *enrollmentMutatio
 			return err
 		}
 	}
+	if err := a.store.reconcileWorkflowSubject(ctx, mutation.tx); err != nil {
+		return err
+	}
 	_, err := mutation.tx.ExecContext(ctx, `UPDATE cao_state SET revision=revision+1 WHERE namespace=$1`, a.store.namespace)
 	return err
 }

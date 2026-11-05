@@ -204,6 +204,9 @@ func (a Acquisition) PublishInventory(ctx context.Context, claim collectnative.I
 		a.store.namespace, claim.Scope.Repository, claim.Scope.InstallationID, claim.Scope.Epoch, claim.Generation, content, evidence.ObservedAt); err != nil {
 		return err
 	}
+	if err := a.store.reconcileWorkflowSubject(ctx, tx); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `UPDATE cao_state SET revision=revision+1,evaluated_at=greatest(evaluated_at,$2)
 		WHERE namespace=$1`, a.store.namespace, evidence.ObservedAt); err != nil {
 		return err

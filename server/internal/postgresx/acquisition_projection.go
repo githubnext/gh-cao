@@ -103,7 +103,7 @@ func (s *Store) projectAcquisition(ctx context.Context, tx *sql.Tx, projection *
 		return err
 	}
 	run := projection.Collections["runs"][0]
-	if err := s.invocationParents(ctx, tx, run, published); err != nil {
+	if _, err := s.invocationParents(ctx, tx, run, published); err != nil {
 		return err
 	}
 	rebindAcquisitionParents(projection, run["repositoryId"].(string), run["workflowId"].(string))
@@ -202,6 +202,9 @@ func (s *Store) projectAcquisition(ctx context.Context, tx *sql.Tx, projection *
 		return err
 	}
 	if err := s.capInvocationRuns(ctx, tx); err != nil {
+		return err
+	}
+	if err := s.reconcileWorkflowSubject(ctx, tx); err != nil {
 		return err
 	}
 	_, err := tx.ExecContext(ctx, `UPDATE cao_state SET revision=revision+1,evaluated_at=greatest(evaluated_at,$2)

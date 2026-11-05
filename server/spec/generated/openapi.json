@@ -5488,6 +5488,9 @@
               "$ref": "#/components/schemas/OrderField"
             }
           },
+          "page": {
+            "$ref": "#/components/schemas/QueryPageBoundary"
+          },
           "limit": {
             "type": "integer",
             "format": "int32"
@@ -5635,6 +5638,36 @@
               {
                 "type": "null"
               }
+            ]
+          }
+        }
+      },
+      "QueryPageBoundary": {
+        "type": "object",
+        "required": [
+          "keys",
+          "revision",
+          "comparator"
+        ],
+        "properties": {
+          "keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 4
+          },
+          "revision": {
+            "type": "string",
+            "enum": [
+              "workflow-subjects"
+            ]
+          },
+          "comparator": {
+            "type": "string",
+            "enum": [
+              "utf8-bytewise-v1"
             ]
           }
         }

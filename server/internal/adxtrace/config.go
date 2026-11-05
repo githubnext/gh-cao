@@ -11,7 +11,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/githubnext/gh-cao/server/internal/logger"
 )
+
+var configLog = logger.New("cao:adxtrace")
 
 type Policy struct {
 	Version         string `json:"version"`
@@ -153,6 +157,26 @@ func (c *Config) Validate() error {
 	if c.Mode == "sample" && (len(c.Seed) < 16 || c.SampleCount < 0 || c.SampleCount > 100000) {
 		return errors.New("sampling requires a recorded seed of at least 16 bytes and a bounded sample count")
 	}
+	c.applyBudgetDefaults()
+	if c.MiningEnabled && (!c.Policy.MiningApproved || c.MiningInterval < time.Minute || c.MiningInterval > 24*time.Hour) {
+		return errors.New("mining requires explicit evidence approval and a 1m-24h refresh interval")
+	}
+	if c.MaxTraceBytes < 1024 || c.MaxTraceBytes > 32<<20 ||
+		c.MaxSpoolBytes < 2*c.MaxTraceBytes || c.MaxSpoolBytes > 1<<40 ||
+		c.MaxEntries < 1 || c.MaxEntries > 100000 ||
+		c.Retention < 24*time.Hour || c.Retention > 365*24*time.Hour ||
+		c.FrameDelay < time.Hour || c.FrameDelay > 7*24*time.Hour || c.Retention <= c.FrameDelay {
+		return errors.New("invalid trace resource or retention budgets")
+	}
+	if err := c.Policy.validate(); err != nil {
+		return err
+	}
+	configLog.Printf("trace configuration validated: mode=%s repositories=%d mining=%t events=%d", c.Mode, len(c.Repositories), c.MiningEnabled, len(c.Policy.Events))
+	return nil
+}
+
+// applyBudgetDefaults fills every unset resource budget with its documented default.
+func (c *Config) applyBudgetDefaults() {
 	if c.MaxTraceBytes == 0 {
 		c.MaxTraceBytes = 8 << 20
 	}
@@ -171,21 +195,15 @@ func (c *Config) Validate() error {
 	if c.MiningInterval == 0 {
 		c.MiningInterval = 5 * time.Minute
 	}
-	if c.MiningEnabled && (!c.Policy.MiningApproved || c.MiningInterval < time.Minute || c.MiningInterval > 24*time.Hour) {
-		return errors.New("mining requires explicit evidence approval and a 1m-24h refresh interval")
-	}
-	if c.MaxTraceBytes < 1024 || c.MaxTraceBytes > 32<<20 ||
-		c.MaxSpoolBytes < 2*c.MaxTraceBytes || c.MaxSpoolBytes > 1<<40 ||
-		c.MaxEntries < 1 || c.MaxEntries > 100000 ||
-		c.Retention < 24*time.Hour || c.Retention > 365*24*time.Hour ||
-		c.FrameDelay < time.Hour || c.FrameDelay > 7*24*time.Hour || c.Retention <= c.FrameDelay {
-		return errors.New("invalid trace resource or retention budgets")
-	}
-	if !c.Policy.ContentApproved || !c.Policy.RightsApproved || c.Policy.Version == "" ||
-		len(c.Policy.Version) > 100 || len(c.Policy.Events) == 0 || len(c.Policy.Events) > 256 {
+}
+
+// validate requires approvals, a versioned closed event policy and bounded redaction patterns.
+func (p Policy) validate() error {
+	if !p.ContentApproved || !p.RightsApproved || p.Version == "" ||
+		len(p.Version) > 100 || len(p.Events) == 0 || len(p.Events) > 256 {
 		return errors.New("trace content and rights approval and a versioned closed event policy are required")
 	}
-	for event, fields := range c.Policy.Events {
+	for event, fields := range p.Events {
 		if !eventName.MatchString(event) || len(fields) > 256 {
 			return errors.New("invalid trace event policy")
 		}
@@ -195,10 +213,10 @@ func (c *Config) Validate() error {
 			}
 		}
 	}
-	if len(c.Policy.RedactPatterns) > 32 {
+	if len(p.RedactPatterns) > 32 {
 		return errors.New("too many trace redaction patterns")
 	}
-	for _, pattern := range c.Policy.RedactPatterns {
+	for _, pattern := range p.RedactPatterns {
 		if len(pattern) > 4096 {
 			return errors.New("trace redaction pattern is too large")
 		}

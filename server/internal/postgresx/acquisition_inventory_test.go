@@ -96,6 +96,9 @@ func TestNativeInventoryPostgresReplicaFencesAndReadiness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if state.WorkflowSubjectRevision <= 0 || !strings.HasPrefix(state.WorkflowSubjectDigest, "sha256:") {
+		t.Fatalf("native inventory omitted workflow-subject identity: %+v", state)
+	}
 	var workers sync.WaitGroup
 	for _, store := range []Acquisition{a, b} {
 		workers.Go(func() {
@@ -106,8 +109,21 @@ func TestNativeInventoryPostgresReplicaFencesAndReadiness(t *testing.T) {
 	}
 	workers.Wait()
 	after, err := second.State(t.Context())
-	if err != nil || after.Revision != state.Revision {
+	if err != nil || after.Revision != state.Revision ||
+		after.WorkflowSubjectRevision != state.WorkflowSubjectRevision || after.WorkflowSubjectDigest != state.WorkflowSubjectDigest {
 		t.Fatalf("idempotent publication advanced revision: %+v %+v %v", state, after, err)
+	}
+	refresh, err := a.BeginInventoryRefresh(t.Context(), scope, snapshot.Digest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.PublishInventory(t.Context(), refresh, evidence); err != nil {
+		t.Fatal(err)
+	}
+	refreshed, err := first.State(t.Context())
+	if err != nil || refreshed.Revision != state.Revision+1 ||
+		refreshed.WorkflowSubjectRevision != state.WorkflowSubjectRevision || refreshed.WorkflowSubjectDigest != state.WorkflowSubjectDigest {
+		t.Fatalf("unchanged inventory topology invalidated workflow-subject pages: %+v %+v %v", state, refreshed, err)
 	}
 	results, _, err := second.ExecuteSQLPlan(t.Context(), []query.Definition{
 		{Name: "campaigns", From: "$campaigns"}, {Name: "repositories", From: "$repositories"}, {Name: "workflows", From: "$workflows"},

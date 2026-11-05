@@ -451,99 +451,34 @@
       "name": "value-workflow-topology",
       "subject": "Canonical workflow deployment topology for Value grouping.",
       "objective": "Classify exact workflow identities as campaign workers, orchestrators or standalone workflows without copying topology into evidence.",
-      "acceptance": "Campaign and role come only from canonical workflow inventory. Missing topology remains unknown.",
-      "from": "workflows",
+      "acceptance": "Campaign and role come only from canonical workflow inventory. The inventory identity is the paged subject grain.",
+      "from": "workflow-subject-topology",
       "compute": [
         { "as": "repository-coordinate", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
         { "as": "workflow-route", "function": "concat", "args": [{ "field": "repository-coordinate" }, { "value": ":" }, { "field": "workflow" }] },
         { "as": "workflow-label", "function": "coalesce", "args": [{ "field": "workflow-name" }, { "field": "workflow" }] }
       ],
       "select": [
+        { "field": "repositoryId" }, { "field": "path" }, { "field": "id" },
         { "field": "workflow-route" }, { "field": "repository-coordinate" }, { "field": "workflow-label" },
-        { "field": "workflow-role" }, { "field": "campaign" }, { "field": "campaign-name" }, { "field": "campaign-icon" }
-      ]
-    },
-    {
-      "name": "value-health-subjects",
-      "subject": "Value subjects observed through authoritative collection decisions.",
-      "objective": "Keep enabled, disabled and unconfigured deployments visible even before evidence exists.",
-      "acceptance": "A collection decision supplies subject identity, not campaign topology or outcome attainment.",
-      "from": "value-collection-health",
-      "compute": [
-        { "as": "repository-coordinate", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
-        { "as": "workflow-label", "function": "coalesce", "args": [{ "field": "workflow" }, { "field": "workflow-path" }] },
-        { "as": "subject-priority", "function": "literal", "args": [{ "value": 2 }] },
-        { "as": "subject-marker", "function": "literal", "args": [{ "value": 1 }] }
+        { "field": "workflow-label", "as": "declared-workflow-label" },
+        { "field": "workflow-role", "as": "declared-workflow-role" },
+        { "field": "campaign", "as": "declared-campaign" },
+        { "field": "campaign-name", "as": "declared-campaign-name" },
+        { "field": "campaign-icon", "as": "declared-campaign-icon" }
       ],
-      "select": [
-        { "field": "workflow-route" }, { "field": "repository-coordinate" }, { "field": "workflow-label" },
-        { "field": "subject-priority" }, { "field": "subject-marker" }
+      "order-by": [
+        { "field": "repositoryId", "direction": "asc" },
+        { "field": "path", "direction": "asc" },
+        { "field": "id", "direction": "asc" }
       ]
-    },
-    {
-      "name": "value-headline-subjects",
-      "subject": "Value subjects observed through retained native or rich evidence.",
-      "objective": "Keep published outcomes visible when collection-health publication is absent.",
-      "acceptance": "Evidence supplies subject identity but cannot infer registration.",
-      "from": "value-headlines",
-      "compute": [
-        { "as": "subject-priority", "function": "literal", "args": [{ "value": 1 }] },
-        { "as": "subject-marker", "function": "literal", "args": [{ "value": 1 }] }
-      ],
-      "select": [
-        { "field": "workflow-route" }, { "field": "repository-coordinate" }, { "field": "workflow-label" },
-        { "field": "subject-priority" }, { "field": "subject-marker" }
-      ]
-    },
-    {
-      "name": "value-topology-subjects",
-      "subject": "Declared workflow subjects without required collection or evidence observations.",
-      "objective": "Make every canonical campaign and standalone workflow visible with unknown Value configuration when health is missing.",
-      "acceptance": "Inventory presence does not imply registration, evidence, successful collection or measurable Value.",
-      "from": "value-workflow-topology",
-      "compute": [
-        { "as": "subject-priority", "function": "literal", "args": [{ "value": 0 }] },
-        { "as": "subject-marker", "function": "literal", "args": [{ "value": 1 }] }
-      ],
-      "select": [
-        { "field": "workflow-route" }, { "field": "repository-coordinate" }, { "field": "workflow-label" },
-        { "field": "subject-priority" }, { "field": "subject-marker" }
-      ]
-    },
-    {
-      "name": "value-subject-candidates",
-      "subject": "All exact workflow deployment identities observed by inventory, collection health or accepted evidence.",
-      "objective": "Build one universal subject population without losing evidence-only or inventory-only deployments.",
-      "acceptance": "Identity union is not evidence aggregation. Each route is selected once in the next query.",
-      "from": "value-health-subjects",
-      "union": ["value-headline-subjects", "value-topology-subjects"]
-    },
-    {
-      "name": "value-subject-order",
-      "subject": "Deterministic subject identity selection across inventory, health and evidence sources.",
-      "objective": "Prefer authoritative collection identity, then evidence identity, then declaration-only identity.",
-      "acceptance": "Exactly one selected identity per workflow route without changing topology or outcome facts.",
-      "from": "value-subject-candidates",
-      "window": [{
-        "operation": "change", "field": "subject-marker", "as": "older-subject-candidate", "mode": "absolute",
-        "groupby": ["workflow-route"],
-        "order-by": [{ "field": "subject-priority", "direction": "desc" }, { "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow-label", "direction": "asc" }]
-      }]
-    },
-    {
-      "name": "value-subjects",
-      "subject": "One universal Value subject per exact repository and workflow deployment.",
-      "objective": "Provide the stable subject grain for all, campaign, standalone and review projections.",
-      "acceptance": "One row per workflow route. Missing health, topology or evidence remains missing after joins.",
-      "from": "value-subject-order",
-      "filter": { "predicates": [{ "field": "older-subject-candidate", "equals": "unknown" }] }
     },
     {
       "name": "value-workflow-overview",
       "subject": "One universal row per repository and workflow deployment with topology, collection health and current Value evidence.",
       "objective": "Compare campaign and standalone Value subjects through one honest card contract.",
-      "acceptance": "Missing topology is unclassified, missing health is unknown and missing evidence is unavailable. None becomes zero or inferred success.",
-      "from": "value-subjects",
+      "acceptance": "Every canonical workflow remains visible. Missing health is unknown and missing evidence is unavailable; neither becomes zero or inferred success.",
+      "from": "value-workflow-topology",
       "joins": [
         {
           "source": "value-collection-health", "type": "left",
@@ -571,17 +506,6 @@
             { "field": "headline-trend-measure", "as": "headline-trend-measure" },
             { "field": "headline-evidence", "as": "headline-evidence" },
             { "field": "headline-href", "as": "headline-href" }
-          ]
-        },
-        {
-          "source": "value-workflow-topology", "type": "left",
-          "on": [{ "left": "workflow-route", "right": "workflow-route" }],
-          "fields": [
-            { "field": "workflow-role", "as": "declared-workflow-role" },
-            { "field": "workflow-label", "as": "declared-workflow-label" },
-            { "field": "campaign", "as": "declared-campaign" },
-            { "field": "campaign-name", "as": "declared-campaign-name" },
-            { "field": "campaign-icon", "as": "declared-campaign-icon" }
           ]
         }
       ],
@@ -632,19 +556,88 @@
       "order-by": [{ "field": "overview-title", "direction": "asc" }]
     },
     {
-      "name": "value-campaign-deployments",
+      "name": "value-campaign-complete-topology",
+      "subject": "Complete canonical campaign workflow topology.",
+      "objective": "Provide unpaged workflow routes for complete campaign coverage aggregation.",
+      "acceptance": "Every canonical workflow remains at its exact repository and workflow identity.",
+      "from": "workflows",
+      "compute": [
+        { "as": "repository-coordinate", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
+        { "as": "workflow-route", "function": "concat", "args": [{ "field": "repository-coordinate" }, { "value": ":" }, { "field": "workflow" }] },
+        { "as": "campaign-missing", "function": "equals-any", "args": [{ "field": "campaign" }, { "value": null }] }
+      ]
+    },
+    {
+      "name": "value-campaign-complete-deployments",
+      "subject": "Complete canonical campaign workflow deployment population with collection and current evidence state.",
+      "objective": "Keep campaign coverage aggregates complete while workflow card lists use request-scoped subject pages.",
+      "acceptance": "Every declared campaign workflow is included once. Missing health or evidence remains explicit and no paged cohort is used.",
+      "from": "value-campaign-complete-topology",
+      "joins": [
+        {
+          "source": "value-collection-health", "type": "left",
+          "on": [{ "left": "workflow-route", "right": "workflow-route" }],
+          "fields": [
+            { "field": "registration", "as": "collection-registration" },
+            { "field": "collection-state", "as": "collection-state" }
+          ]
+        },
+        {
+          "source": "value-headlines", "type": "left",
+          "on": [{ "left": "workflow-route", "right": "workflow-route" }],
+          "fields": [
+            { "field": "headline-id", "as": "headline-id" },
+            { "field": "headline-trend-movement", "as": "headline-trend-movement" }
+          ]
+        }
+      ],
+      "compute": [
+        { "as": "registration", "function": "coalesce", "args": [{ "field": "collection-registration" }, { "value": "unknown" }] },
+        { "as": "overview-state", "function": "coalesce", "args": [{ "field": "collection-state" }, { "value": "unknown" }] },
+        { "as": "headline-missing", "function": "equals-any", "args": [{ "field": "headline-id" }, { "value": null }] },
+        { "as": "configured-registration", "function": "equals-any", "args": [{ "field": "registration" }, { "value": "enabled" }, { "value": "disabled" }] },
+        { "as": "configured-value", "function": "if", "args": [{ "field": "configured-registration" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "unconfigured-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "unconfigured" }] },
+        { "as": "unconfigured-value", "function": "if", "args": [{ "field": "unconfigured-state" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "deferred-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "deferred" }] },
+        { "as": "deferred-value", "function": "if", "args": [{ "field": "deferred-state" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "failed-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "failed" }] },
+        { "as": "failed-value", "function": "if", "args": [{ "field": "failed-state" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "current-evidence-value", "function": "if", "args": [{ "field": "headline-missing" }, { "value": 0 }, { "value": 1 }] },
+        { "as": "worse-movement", "function": "equals-any", "args": [{ "field": "headline-trend-movement" }, { "value": "Worse" }] },
+        { "as": "attention-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "unconfigured" }, { "value": "deferred" }, { "value": "failed" }] },
+        { "as": "state-or-missing-review", "function": "if", "args": [{ "field": "attention-state" }, { "value": true }, { "field": "headline-missing" }] },
+        { "as": "needs-review", "function": "if", "args": [{ "field": "worse-movement" }, { "value": true }, { "field": "state-or-missing-review" }] },
+        { "as": "review-value", "function": "if", "args": [{ "field": "needs-review" }, { "value": 1 }, { "value": 0 }] }
+      ],
+      "filter": { "predicates": [{ "field": "campaign-missing", "equals": false }] },
+      "select": [
+        { "field": "workflow-route" },
+        { "field": "repository-coordinate" },
+        { "field": "campaign" },
+        { "field": "campaign-name" },
+        { "field": "campaign-icon" },
+        { "field": "configured-value" },
+        { "field": "current-evidence-value" },
+        { "field": "unconfigured-value" },
+        { "field": "deferred-value" },
+        { "field": "failed-value" },
+        { "field": "review-value" }
+      ]
+    },
+    {
+      "name": "value-campaign-coverage-deployments",
       "subject": "Universal Value deployments grouped under a declared campaign.",
-      "objective": "Support campaign coverage and workflow drilldown without creating a separate evidence system.",
+      "objective": "Support complete campaign coverage without creating a separate evidence system.",
       "acceptance": "Only rows with canonical campaign context are included. Unclassified deployments remain visible in All and Needs review.",
-      "from": "value-workflow-overview",
-      "filter": { "predicates": [{ "field": "value-scope", "equals": "Campaign" }] }
+      "from": "value-campaign-complete-deployments"
     },
     {
       "name": "value-campaign-totals",
       "subject": "Campaign Value coverage and attention summary over exact workflow deployments.",
       "objective": "Aggregate campaign coverage and attention counts before presentation fields are derived.",
       "acceptance": "Counts describe deployment coverage and attention only. They do not average native outcomes or create a campaign score.",
-      "from": "value-campaign-deployments",
+      "from": "value-campaign-coverage-deployments",
       "aggregate": {
         "by": ["campaign", "campaign-name", "campaign-icon"],
         "values": [
@@ -674,6 +667,14 @@
         { "as": "campaign-value-href", "function": "concat", "args": [{ "value": "#page-campaign-value?campaign=" }, { "field": "encoded-campaign" }] }
       ],
       "order-by": [{ "field": "review-deployments", "direction": "desc" }, { "field": "campaign-name", "direction": "asc" }]
+    },
+    {
+      "name": "value-campaign-deployments",
+      "subject": "Paged exact Value deployments for one declared campaign.",
+      "objective": "Support campaign workflow drilldown through the bounded universal workflow card path.",
+      "acceptance": "Only rows with canonical campaign context are included. Every row preserves its exact collection and evidence state.",
+      "from": "value-workflow-overview",
+      "filter": { "predicates": [{ "field": "value-scope", "equals": "Campaign" }] }
     },
     {
       "name": "value-standalone-overview",

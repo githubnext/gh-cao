@@ -77,6 +77,10 @@ func TestNativeAcquisitionAtomicCanonicalHandoff(t *testing.T) {
 	if first, second := <-changed, <-changed; first == second {
 		t.Fatal("concurrent consumers did not publish exactly one canonical revision")
 	}
+	state, err := second.State(t.Context())
+	if err != nil || state.WorkflowSubjectRevision <= 0 || !strings.HasPrefix(state.WorkflowSubjectDigest, "sha256:") {
+		t.Fatalf("native publication did not advance workflow-subject identity: %+v %v", state, err)
+	}
 	if _, _, err := a.Pending(t.Context(), identity); err == nil {
 		t.Fatal("canonical publication did not consume its safe-evidence digest")
 	}
@@ -117,6 +121,18 @@ func TestNativeAcquisitionAtomicCanonicalHandoff(t *testing.T) {
 		if source.Metadata["completeness"] != "partial" {
 			t.Fatal("native acquisition invented complete coverage")
 		}
+	}
+	authority := second.NativeEnrollment()
+	if err := authority.WithMutation(t.Context(), func(ctx context.Context) error {
+		_, err := authority.Withdraw(ctx, identity.InstallationID, []string{identity.Repository})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	withdrawn, err := first.State(t.Context())
+	if err != nil || withdrawn.WorkflowSubjectRevision != state.WorkflowSubjectRevision+1 ||
+		withdrawn.WorkflowSubjectDigest == state.WorkflowSubjectDigest {
+		t.Fatalf("native withdrawal did not invalidate workflow-subject pages: %+v %+v %v", state, withdrawn, err)
 	}
 }
 

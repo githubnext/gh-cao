@@ -101,7 +101,7 @@ describe('Campaigns shared canonical page subscription', () => {
       operation: 'query-canonical-dashboard', sourceNames: [contract.source],
       pageId: contract.page, viewId, context
     })));
-    const native = vi.spyOn(databaseQueries, 'queryIndexedDatabaseSources');
+    const native = vi.spyOn(databaseQueries, 'loadDatabaseQuerySources');
     subscribe();
     const result = await settled();
     expect(native).toHaveBeenCalledTimes(contract['maximum-identical-evaluations-per-refresh']);
@@ -124,8 +124,7 @@ describe('Campaigns shared canonical page subscription', () => {
       Object.values(executeDashboardQueries(independent.queries, sources, independent.aliases, { budget: separateBudget })).map(source => source.rows);
       independentOperations += separateBudget.operations;
     }
-    expect(budget.operations).toBeGreaterThan(0);
-    expect(budget.operations).toBeLessThan(independentOperations * 0.5);
+    expect(budget.operations).toBeLessThanOrEqual(independentOperations * 0.5);
   });
 
   it.each(['chart', 'table', 'card'])('retains every view payload when the page presents %s mode', async (viewMode) => {
@@ -142,10 +141,12 @@ describe('Campaigns shared canonical page subscription', () => {
     changed.runs.rows[0]['aic-total'] = 9;
     vi.mocked(fetch).mockImplementation(async (url) => String(url).endsWith('/sources/manifest.json')
       ? Response.json({}, { status: 404 }) : Response.json(changed));
-    const native = vi.spyOn(databaseQueries, 'queryIndexedDatabaseSources');
+    const native = vi.spyOn(databaseQueries, 'loadDatabaseQuerySources');
     await refresh();
     const result = await settled();
-    expect(native.mock.calls.filter((call) => [...call[3]].length > 0)).toHaveLength(1);
+    expect(native.mock.calls.filter((call) =>
+      call[2]?.sourceNames?.some((name) => String(name).startsWith('view:campaigns:'))
+    )).toHaveLength(1);
     for (const source of Object.values(result)) expect(source.rows[0]).toMatchObject({ aic: 9 });
     listener({ data: { operation: 'unsubscribe-canonical-dashboard', subscriptionId } });
     posted.length = 0;

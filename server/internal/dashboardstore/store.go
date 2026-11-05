@@ -11,14 +11,29 @@ import (
 )
 
 type State struct {
-	Ready        bool
-	Revision     int64
-	DataRevision string
-	EvaluatedAt  time.Time
-	Counts       map[string]int
+	Ready                   bool
+	Revision                int64
+	WorkflowSubjectRevision int64
+	WorkflowSubjectDigest   string
+	DataRevision            string
+	EvaluatedAt             time.Time
+	Counts                  map[string]int
 }
 
-type Page struct{ Offset, Limit int }
+type KeysetPage struct {
+	Boundary   string
+	PlanDigest string
+	Revision   string
+	Comparator string
+	Keys       []string
+	After      []string
+}
+
+type Page struct {
+	Offset int
+	Limit  int
+	Keyset *KeysetPage
+}
 
 type ResourceLimits struct {
 	MaxInputRows    int

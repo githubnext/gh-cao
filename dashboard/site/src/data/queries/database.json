@@ -510,6 +510,70 @@
     ]
   },
   {
+    "name": "workflow-subject-page",
+    "stores": ["workflows"],
+    "from": "$workflows",
+    "select": [
+      { "field": "repositoryId" },
+      { "field": "path" },
+      { "field": "id" },
+      { "field": "name" },
+      { "field": "role" },
+      { "field": "campaignId" },
+      { "field": "workflowLink" }
+    ],
+    "order-by": [
+      { "field": "repositoryId", "direction": "asc" },
+      { "field": "path", "direction": "asc" },
+      { "field": "id", "direction": "asc" }
+    ],
+    "page": {
+      "keys": ["repositoryId", "path", "id"],
+      "revision": "workflow-subjects",
+      "comparator": "utf8-bytewise-v1"
+    }
+  },
+  {
+    "name": "workflow-subject-topology",
+    "stores": ["repositories", "workflows", "campaigns"],
+    "from": "workflow-subject-page",
+    "joins": [
+      {
+        "source": "$repositories",
+        "type": "left",
+        "on": [{ "left": "repositoryId", "right": "id" }],
+        "fields": [
+          { "field": "owner", "as": "organization" },
+          { "field": "name", "as": "repository" }
+        ]
+      },
+      {
+        "source": "$campaigns",
+        "type": "left",
+        "on": [{ "left": "campaignId", "right": "id" }],
+        "fields": [
+          { "field": "slug", "as": "campaign" },
+          { "field": "name", "as": "campaign-name" },
+          { "field": "icon", "as": "campaign-icon" }
+        ]
+      }
+    ],
+    "select": [
+      { "field": "repositoryId" },
+      { "field": "path" },
+      { "field": "id" },
+      { "field": "organization" },
+      { "field": "repository" },
+      { "field": "path", "as": "workflow" },
+      { "field": "name", "as": "workflow-name" },
+      { "field": "role", "as": "workflow-role" },
+      { "field": "campaign" },
+      { "field": "campaign-name" },
+      { "field": "campaign-icon" },
+      { "field": "workflowLink", "as": "workflow-link" }
+    ]
+  },
+  {
     "name": "workflows",
     "stores": ["repositories", "workflows", "campaigns"],
     "from": "$workflows",

@@ -4,6 +4,23 @@ import { SWIMLANE_LAYOUT, chartSeriesClassName, groupChartSeries, listChartSerie
 import { buildChartPoints } from '../../src/components/view-data.js';
 
 describe('chart element helpers', () => {
+  it('uses declared byte and compact count units consistently on chart axes', () => {
+    const points = [
+      { x: '2026-08-29', y: 1_000_000_000, color: null },
+      { x: '2026-08-30', y: 500_000_000, color: null }
+    ];
+    const bytes = renderChartWidget('line', points, [], null, 'Size', {
+      name: 'Bytes', symbol: 'B', significant: 1, format: 'bytes'
+    });
+    const count = renderChartWidget('line', points, [], null, 'Count', {
+      name: 'Modeled count', symbol: 'count', significant: 0.01, format: 'compact-number'
+    });
+    expect([...bytes.querySelectorAll('.line-chart-y-labels span')].map((tick) => tick.textContent))
+      .toEqual(['1.0 GB', '500 MB', '0 B']);
+    expect([...count.querySelectorAll('.line-chart-y-labels span')].map((tick) => tick.textContent))
+      .toEqual(['1B', '500M', '0']);
+  });
+
   it('retains missing window results as gaps and plots negative changes below zero', () => {
     const rows = [
       { 'observed-at': '2026-08-01T00:00:00Z', delta: 1 },

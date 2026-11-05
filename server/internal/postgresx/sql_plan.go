@@ -52,6 +52,30 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 	metadata := map[string]model.Metadata{}
 	retrievedAt := time.Now().UTC().Format(time.RFC3339Nano)
 	definitions = frozenStatisticalDefinitions(definitions)
+	var keysetPlan *query.PagePlan
+	var keysetPage *SQLPage
+	for output, page := range options.Pages {
+		if page.Keyset == nil {
+			continue
+		}
+		if keysetPlan != nil {
+			return nil, model.Metrics{}, errors.New("one query request may contain only one keyset page")
+		}
+		resolved, err := query.ResolvePagePlan(definitions, output)
+		if err != nil {
+			return nil, model.Metrics{}, err
+		}
+		if resolved == nil || resolved.Boundary != page.Keyset.Boundary ||
+			resolved.Comparator != page.Keyset.Comparator || len(resolved.Keys) != len(page.Keyset.Keys) {
+			return nil, model.Metrics{}, fmt.Errorf("invalid or stale continuation token for %q", output)
+		}
+		for index, key := range resolved.Keys {
+			if key.Output != page.Keyset.Keys[index] {
+				return nil, model.Metrics{}, fmt.Errorf("invalid or stale continuation token for %q", output)
+			}
+		}
+		keysetPlan, keysetPage = resolved, &page
+	}
 	valueSelections := query.OperationalValueEvidenceSelections(definitions, requested)
 	measurementSelections := query.SourceEqualities(definitions, requested, "workflow-value-measurements",
 		"$operationalValues", "id", "workflow-route")
@@ -131,6 +155,12 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 		if err != nil {
 			return query.SQLRelation{}, err
 		}
+		if keysetPlan != nil && name == keysetPlan.Root {
+			relation, err = workflowSubjectPageSQL(relation, *keysetPage)
+			if err != nil {
+				return query.SQLRelation{}, err
+			}
+		}
 		if name == "$operationalValueEvidence" {
 			relation = r.operationalValueEvidenceSQLSource(valueSelections...)
 		}
@@ -147,6 +177,12 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 			}
 			relation.SQL = "(SELECT * FROM " + relation.SQL + " WHERE " + strings.Join(predicates, " OR ") + ") AS t"
 		}
+		if keysetPage != nil {
+			relation, err = workflowSubjectScopedSQL(relation, name, r.store.namespace, *keysetPage)
+			if err != nil {
+				return query.SQLRelation{}, err
+			}
+		}
 		value, err := r.rootMetadata(ctx, name, valueSelections...)
 		if err != nil {
 			return query.SQLRelation{}, err
@@ -157,7 +193,12 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 		}
 		return r.scopeSQLRelation(name, relation, options.Repositories)
 	}
-	plan, err := query.CompileSQL(definitions, requested, resolve)
+	var plan query.SQLPlan
+	if keysetPlan != nil {
+		plan, err = query.CompileSQLPage(definitions, requested, resolve, keysetPlan.Boundary, keysetPage.Limit)
+	} else {
+		plan, err = query.CompileSQL(definitions, requested, resolve)
+	}
 	if err != nil {
 		return nil, model.Metrics{}, err
 	}
@@ -249,7 +290,11 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 		if page.Offset > size.rows {
 			return nil, metrics, fmt.Errorf("invalid or stale continuation token for %q", name)
 		}
-		statement, args, fields, err := plan.OutputStatement(name, page.Offset, page.Limit)
+		outputLimit := page.Limit
+		if page.Keyset != nil {
+			outputLimit++
+		}
+		statement, args, fields, err := plan.OutputStatement(name, page.Offset, outputLimit)
 		if err != nil {
 			return nil, metrics, err
 		}
@@ -314,7 +359,12 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 			}
 		}
 		if paginated {
-			composed["total-row-count"] = size.rows
+			if page.Keyset == nil {
+				composed["total-row-count"] = size.rows
+			} else {
+				composed["workflow-subject-revision"] = page.Keyset.Revision
+				composed["continuation-comparator"] = page.Keyset.Comparator
+			}
 			if composed["availability"] == "unavailable" {
 				composed["total-row-count"] = 0
 			}
@@ -374,6 +424,97 @@ func (r *readTransaction) scopeSQLRelation(
 	return relation, nil
 }
 
+func workflowSubjectPageSQL(relation query.SQLRelation, page SQLPage) (query.SQLRelation, error) {
+	if page.Keyset == nil || page.Limit <= 0 || page.Limit > 32 ||
+		len(page.Keyset.Keys) != 3 || (len(page.Keyset.After) != 0 && len(page.Keyset.After) != 3) {
+		return query.SQLRelation{}, errors.New("invalid workflow subject page")
+	}
+
+	predicate := ""
+	if len(page.Keyset.After) != 0 {
+		predicate = ` WHERE (t.repository_id COLLATE "C",coalesce(t.path,'') COLLATE "C",t.id COLLATE "C") >
+			({}::text COLLATE "C",{}::text COLLATE "C",{}::text COLLATE "C")`
+		relation.Params = append(relation.Params, page.Keyset.After[0], page.Keyset.After[1], page.Keyset.After[2])
+	}
+	relation.SQL = `(SELECT * FROM ` + relation.SQL + predicate +
+		` ORDER BY t.repository_id COLLATE "C",coalesce(t.path,'') COLLATE "C",t.id COLLATE "C" LIMIT {}) AS t`
+	relation.Params = append(relation.Params, page.Limit+1)
+	relation.Order = "t.ordinal"
+	return relation, nil
+}
+
+func workflowSubjectScopedSQL(relation query.SQLRelation, name, namespace string, page SQLPage) (query.SQLRelation, error) {
+	if page.Keyset == nil {
+		return relation, nil
+	}
+	if name != "$repositories" && name != "$campaigns" &&
+		name != "$workflowValueCollections" && name != "$operationalValueEvidence" && name != "$operationalValues" {
+		return relation, nil
+	}
+	predicate := ""
+	if len(page.Keyset.After) != 0 {
+		if len(page.Keyset.After) != 3 {
+			return query.SQLRelation{}, errors.New("invalid workflow subject scope")
+		}
+		predicate = ` AND (w.repository_id COLLATE "C",coalesce(w.path,'') COLLATE "C",w.id COLLATE "C") >
+			({}::text COLLATE "C",{}::text COLLATE "C",{}::text COLLATE "C")`
+	}
+	subquery := `SELECT w.id,w.repository_id,w.campaign_id,coalesce(w.path,'') AS path,
+			r.owner||'/'||r.name||':'||coalesce(w.path,'') AS workflow_route
+		FROM workflows w JOIN repositories r ON r.namespace=w.namespace AND r.id=w.repository_id
+		WHERE w.namespace={}` + predicate +
+		` ORDER BY w.repository_id COLLATE "C",coalesce(w.path,'') COLLATE "C",w.id COLLATE "C" LIMIT {}`
+	params := []any{namespace}
+	if len(page.Keyset.After) != 0 {
+		params = append(params, page.Keyset.After[0], page.Keyset.After[1], page.Keyset.After[2])
+	}
+	params = append(params, page.Limit)
+	filter := ""
+	switch name {
+	case "$repositories":
+		column, exists := relation.Columns["id"]
+		if !exists {
+			return query.SQLRelation{}, errors.New("repository source has no identity")
+		}
+		filter = column.Expression + " IN (SELECT repository_id FROM (" + subquery + ") visible)"
+	case "$campaigns":
+		column, exists := relation.Columns["id"]
+		if !exists {
+			return query.SQLRelation{}, errors.New("campaign source has no identity")
+		}
+		filter = column.Expression + " IN (SELECT campaign_id FROM (" + subquery + ") visible WHERE campaign_id IS NOT NULL)"
+	case "$workflowValueCollections":
+		column, exists := relation.Columns["workflowId"]
+		if !exists {
+			return query.SQLRelation{}, errors.New("workflow collection source has no workflow identity")
+		}
+		filter = column.Expression + " IN (SELECT id FROM (" + subquery + ") visible)"
+	case "$operationalValueEvidence":
+		column, exists := relation.Columns["workflowId"]
+		if !exists {
+			return query.SQLRelation{}, errors.New("value evidence source has no workflow identity")
+		}
+		filter = column.Expression + " IN (SELECT id FROM (" + subquery + ") visible)"
+	case "$operationalValues":
+		repository, repositoryExists := relation.Columns["repositoryId"]
+		workflow, workflowExists := relation.Columns["workflow"]
+		slug, slugExists := relation.Columns["workflow-slug"]
+		if !repositoryExists || !workflowExists || !slugExists {
+			return query.SQLRelation{}, errors.New("native Value source has no workflow identity")
+		}
+		filter = repository.Expression + `=visible.repository_id AND
+			(visible.path=coalesce(` + workflow.Expression + `,'') OR
+			 visible.path='.github/workflows/' || coalesce(` + slug.Expression + `,'') || '.md')`
+		relation.SQL = "(SELECT source.* FROM (" + subquery + ") visible JOIN LATERAL (SELECT * FROM " +
+			relation.SQL + " WHERE " + filter + ") source ON TRUE) AS t"
+		relation.Params = append(params, relation.Params...)
+		return relation, nil
+	}
+	relation.SQL = "(SELECT * FROM " + relation.SQL + " WHERE " + filter + ") AS t"
+	relation.Params = append(relation.Params, params...)
+	return relation, nil
+}
+
 func (r *readTransaction) rootMetadata(ctx context.Context, name string, valueSelections ...query.SourceEquality) (model.Metadata, error) {
 	if name == dailySource || name == "$dailyRunCounts" {
 		return r.dailyMetadata(ctx)
@@ -409,8 +550,13 @@ func (r *readTransaction) rootMetadata(ctx context.Context, name string, valueSe
 	}
 	value := model.Metadata{"source-id": name, "source-kind": "canonical", "availability": availability, "completeness": completeness, "freshness": freshness}
 	var evaluated time.Time
-	if err := r.tx.QueryRowContext(ctx, "SELECT evaluated_at FROM cao_state WHERE namespace=$1", r.store.namespace).Scan(&evaluated); err != nil {
+	var workflowSubjectRevision int64
+	if err := r.tx.QueryRowContext(ctx, "SELECT evaluated_at,workflow_subject_revision FROM cao_state WHERE namespace=$1", r.store.namespace).
+		Scan(&evaluated, &workflowSubjectRevision); err != nil {
 		return nil, err
+	}
+	if name == "$workflows" {
+		value["workflow-subject-revision"] = workflowSubjectRevision
 	}
 	for field, instant := range map[string]sql.NullTime{"as-of": asOf, "retrieved-at": retrieved} {
 		value[field] = evaluated.UTC().Format(time.RFC3339Nano)

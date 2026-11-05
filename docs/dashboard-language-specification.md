@@ -310,7 +310,8 @@ Language keys and enumerated values use canonical kebab-case. Human-readable tit
 | Tooltip | `label`, `description`, `icon` |
 | `defaults` | `scope`, `time`, `filters` |
 | Unit definition | `name`, `symbol`, `significant`, `format` |
-| Query definition | `name`, `subject`, `objective`, `acceptance`, `description`, `parameters`, `from`, `union`, `time`, `joins`, `filter`, `compute`, `temporal-series`, `aggregate`, `predict`, `select`, `order-by`, `limit`, `facet` |
+| Query definition | `name`, `subject`, `objective`, `acceptance`, `description`, `parameters`, `from`, `union`, `time`, `joins`, `filter`, `compute`, `temporal-series`, `aggregate`, `predict`, `select`, `order-by`, `page`, `limit`, `facet` |
+| Query `page` | `keys`, `revision`, `comparator` |
 | Query `facet` | `field`, `row`, `column`, `as` |
 | Chart facet field | `field`, `type`, `title`, `format` |
 | Query parameter | `name`, `type` |
@@ -823,7 +824,7 @@ return the untransformed observations.
 
 #### 5.5.5 Normative Query Requirements
 
-- **DLS-QUERY-001:** `queries`, when present, **MUST** be a non-empty sequence of mappings. Each query **MUST** declare a `name` matching the canonical identifier pattern in **DLS-DOC-005**, a non-empty `subject` describing what its data is about or intended to show, and one `from` input; **MAY** declare non-empty `objective` and `acceptance` semantic annotations, `description`, `parameters`, `union`, `time`, `joins`, `filter`, `compute`, `temporal-series`, `aggregate`, `predict`, `window`, `select`, `order-by`, `limit`, and `facet`; and **MUST NOT** declare any other key. The combined `subject`, `objective`, and `acceptance` of each query **MUST NOT** exceed 512 Unicode characters. Query execution **MUST** treat semantic annotations as inert metadata.
+- **DLS-QUERY-001:** `queries`, when present, **MUST** be a non-empty sequence of mappings. Each query **MUST** declare a `name` matching the canonical identifier pattern in **DLS-DOC-005**, a non-empty `subject` describing what its data is about or intended to show, and one `from` input; **MAY** declare non-empty `objective` and `acceptance` semantic annotations, `description`, `parameters`, `union`, `time`, `joins`, `filter`, `compute`, `temporal-series`, `aggregate`, `predict`, `window`, `select`, `order-by`, `page`, `limit`, and `facet`; and **MUST NOT** declare any other key. The combined `subject`, `objective`, and `acceptance` of each query **MUST NOT** exceed 512 Unicode characters. Query execution **MUST** treat semantic annotations as inert metadata.
 - **DLS-QUERY-002:** A query `name` **MUST** be unique among queries and **MUST NOT** shadow a Section 5.1 database table or registered Section 5.4 runtime source. A declared query name **MAY** be used wherever a view selects data.
 - **DLS-QUERY-003:** `from`, every `union[]`, and every `joins[].source` **MUST** name one Section 5.1 database table, registered Section 5.4 runtime source, built-in `simulation-days` source, or query declared earlier in the sequence. Forward references, self references, and cycles **MUST** be rejected. `union`, when present, **MUST** be a non-empty sequence; its rows are appended in declaration order, fields from every unioned table, runtime source, or query are available to later clauses, and a field absent from one row has a null value for query operations.
 - **DLS-QUERY-004:** Clause execution order **MUST** be `from`, then `union` in declaration order, then `joins` in declaration order, then `filter`, `compute` in declaration order, `temporal-series`, `aggregate`, `predict` in declaration order, `window` in declaration order, `select`, `order-by`, `limit`, and finally `facet`.
@@ -851,9 +852,11 @@ return the untransformed observations.
 - **DLS-QUERY-026:** `temporal-series` **MUST** declare valid scalar `time` and `series` fields and at least one bounded `measures` or `maps` entry. It **MUST** emit only finite numeric values with valid timestamps, preserve deterministic order, remain within **DLS-QUERY-013** limits, execute in the data Web Worker, and expose the statically known tidy output fields defined in Section 5.5.3.
 - **DLS-QUERY-027:** `parameters`, when present, **MUST** be a non-empty sequence of mappings containing exactly a unique canonical `name` and a `type` of `number`, `string`, or `boolean`. A parameter reference **MUST** contain exactly `parameter` naming one parameter declared by the same query. Version 0.1.0 permits parameter references as query predicate `equals`, `gte`, or `lt` operands and as computed-field arguments. A parameter **MUST NOT** alter query topology or output schema.
 - **DLS-QUERY-028:** Before query execution, the presenter **MUST** resolve every parameter reference to one finite number, string, or Boolean value supplied by the active page form. A computed-field parameter reference resolves as a literal computed argument. A missing, structured, non-finite, undeclared, or type-incompatible value **MUST** fail the page projection closed and **MUST NOT** execute a broader query with the predicate or computation removed.
-- **DLS-QUERY-029:** A named-query agent transport **MAY** invoke a parameterized query by identifier with explicitly supplied scalar operands. It **MUST** discover parameter declarations through the query's transitive dependencies, validate each supplied value against its declared type and any bound page-form constraints, reject missing or unexpected operands, and substitute only scalar values into the reviewed query before executing through the bounded query engine. Parameter input **MUST NOT** alter query topology or execute authored scripts. A synthetic input such as `simulation-days` **MUST** remain labeled as modeled rather than measured evidence.
-- **DLS-QUERY-030:** A `window` **MUST** contain one to eight entries with unique `as` names and valid input fields; `rolling` and `change` require numeric inputs, while `previous` and `row-number` accept scalar inputs; each entry **MUST** declare `operation`, `field`, `as`, and a non-empty `order-by`, and **MAY** declare `groupby`. The available fields of each entry include outputs of earlier entries but not later ones. Rolling entries **MUST** specify a positive integer `frame`, **MAY** specify `reducer` and `alignment`, and **MUST NOT** specify change-only fields. Change entries **MAY** specify `mode`; `rate` **MUST** specify a temporal `time-field` and a valid `unit`, and other change modes **MUST NOT** specify these fields.
-- **DLS-QUERY-031:** Window evaluation **MUST** follow the Section 5.5.4 observation, partition, stable ordering, alignment, missing-value, division-by-zero, and elapsed-time rules. It **MUST** preserve input row order and count, and append only finite numbers or null. Window calculations **MUST** execute within the same cancellation and row-operation budgets as other declarative queries.
+- **DLS-QUERY-029:** A named-query transport **MAY** invoke a parameterized query by identifier. It **MUST** resolve transitive declarations, validate supplied scalar operands and page-form constraints, reject missing or unexpected operands, and execute the reviewed query through the bounded engine. Operands **MUST NOT** alter query topology or execute scripts; synthetic inputs **MUST** remain labeled as modeled evidence.
+- **DLS-QUERY-030:** A `window` **MUST** contain one to eight entries with unique `as` names, valid inputs, `operation`, `field`, `as`, and non-empty `order-by`; it **MAY** declare `groupby`. Entries see earlier outputs only. `rolling` and `change` require numeric inputs; `previous` and `row-number` accept scalars. `rolling` requires a positive `frame` and may declare `reducer` and `alignment`. `change` may declare `mode`; only `rate` requires temporal `time-field` and valid `unit`.
+- **DLS-QUERY-031:** Window evaluation **MUST** follow Section 5.5.4, preserve row order and count, emit only finite numbers or null, and use ordinary cancellation and operation budgets.
+- **DLS-QUERY-032:** `page` **MUST** contain exactly `keys`, `revision`, and `comparator`. Its one to four unique scalar `keys` **MUST** match ascending `order-by`; `revision` is `workflow-subjects`, `comparator` is `utf8-bytewise-v1`, and `limit` or `facet` is forbidden.
+- **DLS-QUERY-033:** A request **MUST** reach at most one paged dependency, execute it before consumers, and follow the bounded fail-closed continuation contract in `specs/dashboard-data.md`.
 
 ### 5.6 Parameterized Page Forms
 
@@ -1020,9 +1023,9 @@ Entity counts are obtained with `count` or `distinct-count`; they are not stored
 
 ### 7.2.1 Units
 
-Without a declared unit or format, presenters round floating-point values to at most three fractional digits for display. This does not alter stored values or query results; declared unit significance and formats retain their own precision rules.
+Without a unit or format, presenters display at most three fractional digits without altering stored values or query results. Declared units retain their precision rules.
 
-A dashboard may declare reusable units in `dashboard.units`. A field definition selects one declared unit by setting `unit` to its identifier. The unit `name` is its human-readable name, `symbol` is the compact label appended to presented values, and `significant` is the smallest presentation increment. Presenters round a unit-bearing value to the nearest multiple of `significant`, with halfway cases rounded away from zero, without changing the value used for filtering, aggregation, or ordering. The decimal places implied by `significant` are retained. The optional `format` selects a defined presentation format and defaults to ordinary numeric formatting when omitted. For example:
+A field's `unit` selects a reusable `dashboard.units` identifier. Each unit declares a human-readable `name`, compact `symbol`, and presentation increment `significant`. Presenters retain the decimal places implied by `significant`; rounding and symbol rules are defined below. Optional `format` selects a presentation format; omission uses ordinary numeric formatting. For example:
 
 ```yaml
 units:
@@ -1041,14 +1044,26 @@ units:
     symbol: s
     significant: 1
     format: duration
+  bytes:
+    name: Bytes
+    symbol: B
+    significant: 1
+    format: bytes
+  count:
+    name: Modeled count
+    symbol: count
+    significant: 0.01
+    format: compact-number
 ```
 
-The AIC definition uses a significance of `2`. Its `aicc` format divides the rounded AIC value by `100` and presents the result as US currency through the browser internationalization API. The `number` format presents the rounded numeric value without appending the unit symbol. The `duration` format interprets values as seconds and presents compact cascading components. It presents values below one minute as seconds (`45s`), values below one hour as minutes and seconds (`1m 30s`), values below one day as hours and minutes (`1h 23m`), and longer values as days and hours (`1d 3h`). The lower component is retained when zero, and components below the selected precision are omitted. The `usd` format presents US dollars with a dollar sign, two fractional digits when fewer are needed, and no more than three fractional digits. Values requiring more than three fractional digits are rounded upward at the third fractional digit.
+The `duration` format interprets values as seconds: below one minute, seconds (`45s`); below one hour, minutes and seconds (`1m 30s`); below one day, hours and minutes (`1h 23m`); otherwise, days and hours (`1d 3h`). The lower component is retained even when zero; finer components are omitted. Currency formats follow DLS-UNIT-004–005.
+
+The `bytes` format uses decimal units (`B`, `KB`, `MB`, `GB`, `TB`, `PB`, `EB`), with one fractional digit below ten scaled units and whole units otherwise. English `compact-number` examples include `100K`, `50M`, `31T`; fractional rates retain significant digits. Column titles and measure labels identify the quantity. Neither format converts modeled AI Credits into currency. Table cells expose the exact numeric value and unit name in a hover title and accessible label.
 
 - **DLS-UNIT-001:** A field `unit`, when present, **MUST** reference exactly one unit declared by `dashboard.units`.
 - **DLS-UNIT-002:** Unit formatting **MUST** affect presentation only and **MUST NOT** change filtering, aggregation, ordering, limiting, source data, or provenance.
 - **DLS-UNIT-003:** For a unit without `format`, a presenter **MUST** append the declared `symbol` to a unit-bearing value and round it to the nearest multiple of `significant`, with halfway cases rounded away from zero. A `number` unit **MUST** apply the same rounding without appending the symbol.
-- **DLS-UNIT-004:** `format`, when present, **MUST** be `aicc`, `duration`, `number`, or `usd`. An `aicc` unit **MUST** declare `name: AICc($)` and `significant: 2`. A presenter **MUST** round its AIC value to the declared significance, divide it by `100`, and present the result as `USD` currency using the browser internationalization API. A `duration` unit **MUST** declare `symbol: s` and `significant: 1`. A presenter **MUST** round its value to the nearest whole second with halfway cases rounded away from zero, preserve the sign, and present its absolute components using the compact cascading form defined above. Component suffixes are intrinsic to these formats, so the presenter **MUST NOT** append another `symbol`.
+- **DLS-UNIT-004:** `format`, when present, **MUST** be `aicc`, `duration`, `number`, `usd`, `bytes`, or `compact-number`. An `aicc` unit **MUST** declare `name: AICc($)` and `significant: 2`; presenters **MUST** round AIC to that significance, divide by `100`, and format as `USD` through the browser internationalization API. A `duration` unit **MUST** declare `symbol: s` and `significant: 1`; presenters **MUST** round to whole seconds with halfway cases away from zero, preserve the sign, and display absolute components as above. A `bytes` unit **MUST** declare `symbol: B` and `significant: 1` and **MUST** scale its rounded value by powers of 1,000 as above. A `compact-number` unit **MUST** apply its significance before displaying at most three significant digits in English compact notation. Both formats **MUST** retain signs and expose exact numeric values and unit names in table cells. Presenters **MUST NOT** append another `symbol` to `aicc`, `duration`, `bytes`, or `compact-number`.
 - **DLS-UNIT-005:** A `usd` unit **MUST** declare `symbol: USD` and `significant: 0.001`. A presenter **MUST** prefix its value with the dollar sign, retain at least two and no more than three fractional digits, and round upward at the third fractional digit. The currency marker is intrinsic to this format, so the presenter **MUST NOT** append another `symbol`.
 
 ### 7.3 Aggregates

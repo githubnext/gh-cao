@@ -290,7 +290,6 @@ describe('dashboard view query contracts', () => {
       pages: [
         'wizard',
         'model-routing',
-        'skills',
         'steering',
         'simulators'
       ]

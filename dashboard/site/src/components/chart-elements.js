@@ -1853,6 +1853,7 @@ function compactAxisLabel(value) {
  * @param {{ name: string, symbol: string, significant: number, format?: string } | null} unit
  */
 function formatChartAxisTick(value, unit) {
+  if (unit?.format === 'bytes' || unit?.format === 'compact-number') return formatNumber(value, unit);
   if (Math.abs(value) < 10_000) return formatNumber(value, unit);
   if (unit?.format === 'aicc') {
     return new Intl.NumberFormat('en-US', {

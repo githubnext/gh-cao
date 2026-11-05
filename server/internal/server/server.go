@@ -3,9 +3,11 @@ package server
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1669,12 +1671,19 @@ func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, al
 		app: a, allowCollectionHealth: allowCollectionHealth,
 	}
 	pages := map[string]dashboardstore.Page{}
+	requestedSet := make(map[string]bool, len(requested))
+	for _, name := range requested {
+		requestedSet[name] = true
+	}
 	for name, page := range input.Pagination {
-		offset, err := paginationOffset(name, strconv.FormatInt(active.Revision, 10), page)
+		planned, err := paginationPage(name, active, definitions, page)
 		if err != nil {
 			return queryResponse{}, http.StatusBadRequest, err
 		}
-		pages[name] = dashboardstore.Page{Offset: offset, Limit: page.Limit}
+		pages[name] = planned
+		if planned.Keyset != nil && !requestedSet[planned.Keyset.Boundary] {
+			requested = append(requested, planned.Keyset.Boundary)
+		}
 	}
 	sources, metrics, err := loader.ExecuteSQLPlan(definitions, requested, pages)
 	if err != nil {
@@ -1686,7 +1695,48 @@ func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, al
 		if !ok {
 			continue
 		}
-		offset := pages[name].Offset
+		page := pages[name]
+		if page.Keyset != nil {
+			boundary, ok := sources[page.Keyset.Boundary]
+			if !ok {
+				return queryResponse{}, http.StatusBadRequest,
+					fmt.Errorf("paged query %q omitted boundary %q", name, page.Keyset.Boundary)
+			}
+			hasMore := len(boundary.Rows) > page.Limit
+			if hasMore {
+				anchor := boundary.Rows[page.Limit-1]
+				key := make([]string, len(page.Keyset.Keys))
+				for index, field := range page.Keyset.Keys {
+					value, ok := anchor[field].(string)
+					if !ok {
+						return queryResponse{}, http.StatusBadRequest,
+							fmt.Errorf("paged query %q does not retain string key %q", name, field)
+					}
+					key[index] = value
+				}
+				source.ContinuationToken = encodeKeysetContinuationToken(keysetContinuationCursor{
+					Version: 3, Source: name, Boundary: page.Keyset.Boundary,
+					PlanDigest: page.Keyset.PlanDigest, Revision: page.Keyset.Revision,
+					Comparator: page.Keyset.Comparator, Key: key,
+				})
+				if len(source.Rows) > page.Limit {
+					metrics.OutputRows -= len(source.Rows) - page.Limit
+					source.Rows = source.Rows[:page.Limit]
+				}
+			}
+			delete(source.Metadata, "total-row-count")
+			source.Metadata["page-size"] = page.Limit
+			source.Metadata["page-row-count"] = len(source.Rows)
+			source.Metadata["has-more"] = hasMore
+			source.Metadata["row-count"] = len(source.Rows)
+			sources[name] = source
+			if !requestedSet[page.Keyset.Boundary] {
+				metrics.OutputRows -= len(boundary.Rows)
+				delete(sources, page.Keyset.Boundary)
+			}
+			continue
+		}
+		offset := page.Offset
 		total, _ := source.Metadata["total-row-count"].(int)
 		end := offset + len(source.Rows)
 		if end < total {
@@ -1701,6 +1751,65 @@ func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, al
 		Revision: active.Revision, HealthRevision: healthRevision,
 		EvaluatedAt: evaluatedAt, Sources: sources, Metrics: metrics,
 	}, http.StatusOK, nil
+}
+
+type keysetContinuationCursor struct {
+	Version    int      `json:"version"`
+	Source     string   `json:"source"`
+	Boundary   string   `json:"boundary"`
+	PlanDigest string   `json:"planDigest"`
+	Revision   string   `json:"revision"`
+	Comparator string   `json:"comparator"`
+	Key        []string `json:"key"`
+}
+
+func paginationPage(name string, state dashboardstore.State, definitions []query.Definition, page paginationRequest) (dashboardstore.Page, error) {
+	plan, err := query.ResolvePagePlan(definitions, name)
+	if err != nil {
+		return dashboardstore.Page{}, err
+	}
+	if plan == nil {
+		offset, err := paginationOffset(name, strconv.FormatInt(state.Revision, 10), page)
+		return dashboardstore.Page{Offset: offset, Limit: page.Limit}, err
+	}
+	if page.Limit <= 0 || page.Limit > 32 {
+		return dashboardstore.Page{}, fmt.Errorf("pagination limit for %q is invalid", name)
+	}
+	revision := strconv.FormatInt(state.WorkflowSubjectRevision, 10)
+	planDigest := keysetPlanDigest(definitions, plan)
+	cursor := keysetContinuationCursor{}
+	if page.ContinuationToken != "" {
+		data, err := base64.RawURLEncoding.DecodeString(page.ContinuationToken)
+		if err != nil || json.Unmarshal(data, &cursor) != nil ||
+			cursor.Version != 3 || cursor.Source != name || cursor.Boundary != plan.Boundary ||
+			cursor.PlanDigest != planDigest || cursor.Revision != revision ||
+			cursor.Comparator != plan.Comparator || len(cursor.Key) != len(plan.Keys) {
+			return dashboardstore.Page{}, fmt.Errorf("invalid or stale continuation token for %q", name)
+		}
+	}
+	keys := make([]string, len(plan.Keys))
+	for index, key := range plan.Keys {
+		keys[index] = key.Output
+	}
+	return dashboardstore.Page{Limit: page.Limit, Keyset: &dashboardstore.KeysetPage{
+		Boundary: plan.Boundary, PlanDigest: planDigest, Revision: revision, Comparator: plan.Comparator,
+		Keys: keys, After: cursor.Key,
+	}}, nil
+}
+
+func keysetPlanDigest(definitions []query.Definition, plan *query.PagePlan) string {
+	content, _ := json.Marshal(struct {
+		Output      string             `json:"output"`
+		Boundary    string             `json:"boundary"`
+		Definitions []query.Definition `json:"definitions"`
+	}{plan.Output, plan.Boundary, definitions})
+	digest := sha256.Sum256(content)
+	return "sha256:" + hex.EncodeToString(digest[:])
+}
+
+func encodeKeysetContinuationToken(cursor keysetContinuationCursor) string {
+	content, _ := json.Marshal(cursor)
+	return base64.RawURLEncoding.EncodeToString(content)
 }
 
 func (a *App) queryPlan(input queryRequest) ([]query.Definition, []string) {

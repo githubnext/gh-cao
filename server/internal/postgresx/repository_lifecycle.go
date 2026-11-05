@@ -85,8 +85,9 @@ func (s *Store) UpdateRepositoryLifecycle(ctx context.Context, githubID int64, r
 	if _, err = tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || ':' || $1, 0))`, s.namespace); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO cao_state(namespace,revision,data_revision,evaluated_at,schema_version)
-		VALUES($1,0,'','epoch',$2) ON CONFLICT(namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
+	if _, err = tx.ExecContext(ctx, `INSERT INTO cao_state
+		(namespace,revision,workflow_subject_revision,workflow_subject_digest,data_revision,evaluated_at,schema_version)
+		VALUES($1,0,0,'','','epoch',$2) ON CONFLICT(namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
 		return err
 	}
 	if _, err = tx.ExecContext(ctx, `INSERT INTO cao_repository_lifecycle(namespace,id,owner,name,lifecycle,changed_at)

@@ -31,7 +31,10 @@ export const MAX_CLI_ACTIONS = 20;
 export const MAX_CLI_ACTION_ARGUMENTS = 10;
 export const MAX_CLI_ACTION_COMMAND_LENGTH = 1000;
 
-export const QUERY_KEYS = ['name', 'subject', 'objective', 'acceptance', 'description', 'parameters', 'from', 'union', 'time', 'joins', 'filter', 'compute', 'temporal-series', 'aggregate', 'predict', 'window', 'select', 'order-by', 'limit', 'facet'];
+export const QUERY_KEYS = ['name', 'subject', 'objective', 'acceptance', 'description', 'parameters', 'from', 'union', 'time', 'joins', 'filter', 'compute', 'temporal-series', 'aggregate', 'predict', 'window', 'select', 'order-by', 'page', 'limit', 'facet'];
+export const QUERY_PAGE_KEYS = ['keys', 'revision', 'comparator'];
+export const QUERY_PAGE_REVISION_VALUES = ['workflow-subjects'];
+export const QUERY_PAGE_COMPARATOR_VALUES = ['utf8-bytewise-v1'];
 export const FACET_FIELD_KEYS = ['field', 'type', 'title', 'format'];
 export const QUERY_PARAMETER_KEYS = ['name', 'type'];
 export const QUERY_PARAMETER_TYPE_VALUES = ['number', 'string', 'boolean'];
@@ -64,7 +67,7 @@ export const SITE_CALLOUT_VISIBILITY_KEYS = ['source', 'field', 'equals', 'older
 export const TOOLTIP_KEYS = ['label', 'description', 'icon'];
 export const DEFAULTS_KEYS = ['scope', 'time', 'filters'];
 export const UNIT_DEFINITION_KEYS = ['name', 'symbol', 'significant', 'format'];
-export const UNIT_FORMAT_VALUES = ['aicc', 'duration', 'number', 'usd'];
+export const UNIT_FORMAT_VALUES = ['aicc', 'duration', 'number', 'usd', 'bytes', 'compact-number'];
 export const NAVIGATION_SECTION_KEYS = ['label', 'pages', 'experimental', 'placement'];
 export const NAVIGATION_INDICATOR_KEYS = ['label', 'any'];
 export const BUILT_IN_PAGE_KEYS = ['id', 'kind', 'page', 'title', 'navigation-label', 'navigation-indicator', 'description', 'intent', 'subject', 'objective', 'acceptance', 'icon', 'class-name', 'experimental', 'filter-bar', 'view-mode-control', 'pull-refresh', 'mode-indicator', 'query-binding', 'requires', 'form', 'definition'];
@@ -749,8 +752,26 @@ export const SYNTHETIC_SOURCE_FIELDS = {
   ...GITHUB_QUERY_SOURCE_FIELDS
 };
 
-export const QUERY_SOURCE_VALUES = [...TABLE_VALUES, ...SERVER_SOURCE_VALUES, ...Object.keys(SYNTHETIC_SOURCE_FIELDS)];
-export const QUERY_SOURCE_FIELDS = { ...TABLE_FIELDS, ...SERVER_SOURCE_FIELDS, ...SYNTHETIC_SOURCE_FIELDS };
+export const DATABASE_QUERY_SOURCE_FIELDS = {
+  'workflow-subject-topology': [
+    'repositoryId', 'path', 'id', 'organization', 'repository', 'workflow',
+    'workflow-name', 'workflow-role', 'campaign', 'campaign-name', 'campaign-icon',
+    'workflow-link'
+  ]
+};
+
+export const QUERY_SOURCE_VALUES = [
+  ...TABLE_VALUES,
+  ...SERVER_SOURCE_VALUES,
+  ...Object.keys(DATABASE_QUERY_SOURCE_FIELDS),
+  ...Object.keys(SYNTHETIC_SOURCE_FIELDS)
+];
+export const QUERY_SOURCE_FIELDS = {
+  ...TABLE_FIELDS,
+  ...SERVER_SOURCE_FIELDS,
+  ...DATABASE_QUERY_SOURCE_FIELDS,
+  ...SYNTHETIC_SOURCE_FIELDS
+};
 
 export const TEMPORAL_FIELD_NAMES = [
   'date',

@@ -219,6 +219,35 @@ func (r *reader) State(ctx context.Context) (dashboardstore.State, error) {
 	}
 	digest := hash.Sum(nil)
 	state.DataRevision = "sha256:" + hex.EncodeToString(digest)
+	workflowHash := sha256.New()
+	rows, err = r.tx.QueryContext(ctx, `SELECT coalesce(json_extract(value,'$.repositoryId'),''),
+		coalesce(json_extract(value,'$.path'),''),coalesce(json_extract(value,'$.id'),'')
+		FROM __idb_records WHERE database_name=? AND store_name='workflows'
+		ORDER BY 1 COLLATE BINARY,2 COLLATE BINARY,3 COLLATE BINARY`, dashboardquery.DatabaseName)
+	if err != nil {
+		return state, err
+	}
+	if err := func() error {
+		defer func() { _ = rows.Close() }()
+		for rows.Next() {
+			var repositoryID, path, id string
+			if err := rows.Scan(&repositoryID, &path, &id); err != nil {
+				return err
+			}
+			for _, value := range []string{repositoryID, path, id} {
+				_, _ = fmt.Fprintf(workflowHash, "%d:%s", len(value), value)
+			}
+		}
+		return rows.Err()
+	}(); err != nil {
+		return state, err
+	}
+	workflowDigest := workflowHash.Sum(nil)
+	state.WorkflowSubjectDigest = "sha256:" + hex.EncodeToString(workflowDigest)
+	state.WorkflowSubjectRevision = int64(binary.BigEndian.Uint64(workflowDigest[:8]) & ((1 << 53) - 1))
+	if state.WorkflowSubjectRevision == 0 {
+		state.WorkflowSubjectRevision = 1
+	}
 	// Revision crosses the JSON boundary, so keep it exactly representable.
 	state.Revision = int64(binary.BigEndian.Uint64(digest[:8]) & ((1 << 53) - 1))
 	if state.Revision == 0 {

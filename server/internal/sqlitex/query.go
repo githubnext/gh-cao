@@ -2,6 +2,7 @@ package sqlitex
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -52,6 +53,23 @@ func (r *reader) ExecuteSQLPlanWithOptions(ctx context.Context, definitions []qu
 	if len(order) > query.MaxPlanQueries {
 		return nil, metrics, errors.New("local query exceeds max plan queries")
 	}
+	var keysetPage *dashboardstore.Page
+	for output, page := range options.Pages {
+		if page.Keyset == nil {
+			continue
+		}
+		if keysetPage != nil {
+			return nil, metrics, errors.New("one query request may contain only one keyset page")
+		}
+		plan, err := query.ResolvePagePlan(definitions, output)
+		if err != nil {
+			return nil, metrics, err
+		}
+		if plan == nil || plan.Boundary != page.Keyset.Boundary || plan.Comparator != page.Keyset.Comparator {
+			return nil, metrics, fmt.Errorf("invalid or stale continuation token for %q", output)
+		}
+		keysetPage = &page
+	}
 	executionDefinitions, fields := projectSnapshotPlan(definitions, requested, order)
 	var valueSelections []dashboardquery.EvidenceSelection
 	for _, selection := range query.OperationalValueEvidenceSelections(definitions, requested) {
@@ -66,6 +84,23 @@ func (r *reader) ExecuteSQLPlanWithOptions(ctx context.Context, definitions []qu
 	state, err := r.State(ctx)
 	if err != nil {
 		return nil, metrics, err
+	}
+	var workflowScope *workflowSubjectScope
+	if keysetPage != nil {
+		scope, err := readWorkflowSubjectScope(ctx, r.tx, *keysetPage)
+		if err != nil {
+			return nil, metrics, err
+		}
+		workflowScope = &scope
+		valueSelections = nil
+		measurementSelections = nil
+		if len(scope.routes) == 0 {
+			scope.routes = []string{"invalid"}
+		}
+		for _, route := range scope.routes {
+			valueSelections = append(valueSelections, dashboardquery.EvidenceSelection{Field: "workflow-route", Value: route})
+			measurementSelections = append(measurementSelections, dashboardquery.EvidenceSelection{Field: "workflow-route", Value: route})
+		}
 	}
 	roots := map[string]model.Metadata{}
 	cache := map[string][]map[string]any{}
@@ -118,7 +153,7 @@ func (r *reader) ExecuteSQLPlanWithOptions(ctx context.Context, definitions []qu
 		if _, exists := cache[name]; exists {
 			return nil
 		}
-		source, err := r.source(ctx, name, state, options, fields[name], valueSelections, measurementSelections, usesMeasurements)
+		source, err := r.source(ctx, name, state, options, fields[name], valueSelections, measurementSelections, workflowScope, usesMeasurements)
 		if err != nil {
 			return err
 		}
@@ -191,8 +226,17 @@ func (r *reader) ExecuteSQLPlanWithOptions(ctx context.Context, definitions []qu
 			if page.Offset < 0 || page.Offset > total || page.Limit <= 0 || page.Limit > query.MaxOutputRows {
 				return nil, metrics, fmt.Errorf("invalid or stale page for %q", name)
 			}
-			rows = rows[page.Offset:min(page.Offset+page.Limit, total)]
-			metadata["total-row-count"] = total
+			limit := page.Limit
+			if page.Keyset != nil {
+				limit++
+			}
+			rows = rows[page.Offset:min(page.Offset+limit, total)]
+			if page.Keyset == nil {
+				metadata["total-row-count"] = total
+			} else {
+				metadata["workflow-subject-revision"] = page.Keyset.Revision
+				metadata["continuation-comparator"] = page.Keyset.Comparator
+			}
 		} else if total > query.MaxOutputRows {
 			return nil, metrics, fmt.Errorf("query %q exceeds max output rows", name)
 		}
@@ -221,7 +265,146 @@ func snapshotInputs(definition query.Definition) []string {
 	return inputs
 }
 
-func (r *reader) source(ctx context.Context, name string, state dashboardstore.State, options dashboardstore.ExecutionOptions, fields snapshotFields, valueSelections, measurementSelections []dashboardquery.EvidenceSelection, usesMeasurements bool) (model.Source, error) {
+func keysetPageFromOptions(options dashboardstore.ExecutionOptions) *dashboardstore.Page {
+	for _, page := range options.Pages {
+		if page.Keyset != nil {
+			copy := page
+			return &copy
+		}
+	}
+	return nil
+}
+
+func readWorkflowSubjectPage(
+	ctx context.Context,
+	tx *sql.Tx,
+	projected []string,
+	page dashboardstore.Page,
+) ([]map[string]any, error) {
+	if page.Keyset == nil || page.Limit <= 0 || page.Limit > 32 ||
+		len(page.Keyset.Keys) != 3 || (len(page.Keyset.After) != 0 && len(page.Keyset.After) != 3) {
+		return nil, errors.New("invalid workflow subject page")
+	}
+	statement := `SELECT value FROM __idb_records
+		WHERE database_name=? AND store_name='workflows'`
+	args := []any{dashboardquery.DatabaseName}
+	if len(page.Keyset.After) != 0 {
+		statement += ` AND (
+			json_extract(value,'$.repositoryId') COLLATE BINARY,
+			coalesce(json_extract(value,'$.path'),'') COLLATE BINARY,
+			json_extract(value,'$.id') COLLATE BINARY
+		) > (? COLLATE BINARY,? COLLATE BINARY,? COLLATE BINARY)`
+		args = append(args, page.Keyset.After[0], page.Keyset.After[1], page.Keyset.After[2])
+	}
+	statement += ` ORDER BY
+		json_extract(value,'$.repositoryId') COLLATE BINARY,
+		coalesce(json_extract(value,'$.path'),'') COLLATE BINARY,
+		json_extract(value,'$.id') COLLATE BINARY LIMIT ?`
+	args = append(args, page.Limit+1)
+	rows, err := tx.QueryContext(ctx, statement, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	result := []map[string]any{}
+	for rows.Next() {
+		var content string
+		if err := rows.Scan(&content); err != nil {
+			return nil, err
+		}
+		var record map[string]any
+		if err := json.Unmarshal([]byte(content), &record); err != nil {
+			return nil, err
+		}
+		if len(projected) != 0 {
+			selected := make(map[string]any, len(projected))
+			for _, field := range projected {
+				if value, present := record[field]; present {
+					selected[field] = value
+				}
+			}
+			record = selected
+		}
+		result = append(result, record)
+	}
+	return result, rows.Err()
+}
+
+type workflowSubjectScope struct {
+	routes              []string
+	collectionRecordIDs []string
+	repositoryIDs       []string
+	campaignIDs         []string
+}
+
+func readWorkflowSubjectScope(
+	ctx context.Context,
+	tx *sql.Tx,
+	page dashboardstore.Page,
+) (workflowSubjectScope, error) {
+	workflows, err := readWorkflowSubjectPage(ctx, tx, []string{"id", "repositoryId", "campaignId", "path"}, page)
+	if err != nil {
+		return workflowSubjectScope{}, err
+	}
+	if len(workflows) > page.Limit {
+		workflows = workflows[:page.Limit]
+	}
+	scope := workflowSubjectScope{repositoryIDs: make([]string, 0, len(workflows))}
+	seen := map[string]bool{}
+	for _, workflow := range workflows {
+		repositoryID, _ := workflow["repositoryId"].(string)
+		if repositoryID != "" && !seen[repositoryID] {
+			seen[repositoryID] = true
+			scope.repositoryIDs = append(scope.repositoryIDs, repositoryID)
+		}
+		campaignID, _ := workflow["campaignId"].(string)
+		if campaignID != "" && !seen["campaign:"+campaignID] {
+			seen["campaign:"+campaignID] = true
+			scope.campaignIDs = append(scope.campaignIDs, campaignID)
+		}
+	}
+	repositories, err := dashboardquery.ReadCollectionRecords(
+		ctx, tx, "repositories", scope.repositoryIDs, []string{"id", "owner", "name"}, maxSnapshotWorkingBytes,
+	)
+	if err != nil {
+		return workflowSubjectScope{}, err
+	}
+	coordinates := make(map[string]string, len(repositories))
+	for _, repository := range repositories {
+		id, _ := repository["id"].(string)
+		owner, _ := repository["owner"].(string)
+		name, _ := repository["name"].(string)
+		if id != "" && owner != "" && name != "" {
+			coordinates[id] = owner + "/" + name
+		}
+	}
+	scope.routes = make([]string, 0, len(workflows))
+	scope.collectionRecordIDs = make([]string, 0, len(workflows))
+	for _, workflow := range workflows {
+		repositoryID, _ := workflow["repositoryId"].(string)
+		path, _ := workflow["path"].(string)
+		coordinate := coordinates[repositoryID]
+		if coordinate == "" || path == "" {
+			continue
+		}
+		scope.routes = append(scope.routes, coordinate+":"+path)
+		slug := strings.TrimSuffix(strings.TrimPrefix(path, ".github/workflows/"), ".md")
+		scope.collectionRecordIDs = append(scope.collectionRecordIDs,
+			"workflow-value-collection:"+model.EncodeCoordinate(strings.ToLower(coordinate)+":"+slug))
+	}
+	return scope, nil
+}
+
+func (r *reader) source(
+	ctx context.Context,
+	name string,
+	state dashboardstore.State,
+	options dashboardstore.ExecutionOptions,
+	fields snapshotFields,
+	valueSelections, measurementSelections []dashboardquery.EvidenceSelection,
+	workflowScope *workflowSubjectScope,
+	usesMeasurements bool,
+) (model.Source, error) {
 	if name == "$statisticalMembership" {
 		quality := r.store.metadata["$runs"]
 		watermark, _ := quality["as-of"].(string)
@@ -363,10 +546,24 @@ func (r *reader) source(ctx context.Context, name string, state dashboardstore.S
 		var rows []map[string]any
 		var err error
 		switch {
+		case collection == "repositories" && workflowScope != nil:
+			rows, err = dashboardquery.ReadCollectionRecords(
+				ctx, r.tx, collection, workflowScope.repositoryIDs, projected, maxSnapshotWorkingBytes,
+			)
+		case collection == "campaigns" && workflowScope != nil:
+			rows, err = dashboardquery.ReadCollectionRecords(
+				ctx, r.tx, collection, workflowScope.campaignIDs, projected, maxSnapshotWorkingBytes,
+			)
 		case collection == "operationalValueEvidence":
 			rows, err = dashboardquery.ReadEvidencePackets(ctx, r.tx, valueSelections)
+		case collection == "workflowValueCollections" && workflowScope != nil:
+			rows, err = dashboardquery.ReadCollectionRecords(
+				ctx, r.tx, collection, workflowScope.collectionRecordIDs, projected, maxSnapshotWorkingBytes,
+			)
 		case collection == "operationalValues" && usesMeasurements:
 			rows, err = dashboardquery.ReadMeasurements(ctx, r.tx, measurementSelections)
+		case collection == "workflows" && keysetPageFromOptions(options) != nil:
+			rows, err = readWorkflowSubjectPage(ctx, r.tx, projected, *keysetPageFromOptions(options))
 		default:
 			rows, err = dashboardquery.ReadCollectionFields(ctx, r.tx, collection, projected, maxSnapshotInputRows, maxSnapshotWorkingBytes)
 		}
@@ -382,6 +579,9 @@ func (r *reader) source(ctx context.Context, name string, state dashboardstore.S
 		}
 		for key, value := range r.store.metadata[name] {
 			metadata[key] = value
+		}
+		if name == "$workflows" {
+			metadata["workflow-subject-revision"] = state.WorkflowSubjectRevision
 		}
 		if collection == "operationalValueEvidence" {
 			metadata["evidence-packets-read"] = len(rows)

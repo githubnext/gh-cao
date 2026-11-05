@@ -111,8 +111,9 @@ function metadata(record) {
  * @param {string} storeName
  * @param {Record<string, unknown>[]} records
  * @param {Record<string, unknown>[]} [removed]
+ * @param {{ onExisting?: (incoming: Record<string, unknown>[], previous: Array<Record<string, unknown> | undefined>) => Promise<void> | void }} [options]
  */
-export async function writeAccountedRecords(transaction, storeName, records, removed = []) {
+export async function writeAccountedRecords(transaction, storeName, records, removed = [], options = {}) {
   const store = transaction.objectStore(storeName);
   const shards = transaction.objectStore(STORAGE_SHARD_STORE);
   const unique = new Map();
@@ -144,6 +145,7 @@ export async function writeAccountedRecords(transaction, storeName, records, rem
   const incoming = [...unique.values()];
   const previous = await Promise.all(incoming.map((record) =>
     result(store.get(/** @type {IDBValidKey} */ (record.id)))));
+  await options.onExisting?.(incoming, previous);
   /** @type {Map<string, Shard>} */
   const deltas = new Map();
   /** @type {string[]} */

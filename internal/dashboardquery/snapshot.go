@@ -15,7 +15,8 @@ import (
 )
 
 const DatabaseName = "gh-aw-cao-dashboard-data"
-const DatabaseVersion = 48
+const DatabaseVersion = 49
+const workflowSubjectStateRecordKey = `"workflow-subject-state"`
 
 // ReadDailyRunCounts reads only the independently retained aggregate store.
 // An absent store is unavailable, not an authoritative empty history.
@@ -167,6 +168,23 @@ func ReadCollectionFields(ctx context.Context, db SnapshotReader, collection str
 	return readCollectionFields(ctx, db, collection, fields, maxRows, maxBytes, "", nil)
 }
 
+// ReadCollectionRecords reads exact canonical primary keys without scanning the
+// rest of the collection.
+func ReadCollectionRecords(ctx context.Context, db SnapshotReader, collection string, recordIDs []string, fields []string, maxBytes int64) ([]map[string]any, error) {
+	if len(recordIDs) == 0 {
+		return []map[string]any{}, nil
+	}
+	placeholders := make([]string, len(recordIDs))
+	selection := make([]any, len(recordIDs))
+	for index, id := range recordIDs {
+		placeholders[index] = "?"
+		key, _ := json.Marshal(id)
+		selection[index] = string(key)
+	}
+	return readCollectionFields(ctx, db, collection, fields, len(recordIDs), maxBytes,
+		" AND record_key IN ("+strings.Join(placeholders, ",")+")", selection)
+}
+
 // ReadStatisticalRunCandidates resolves the recorded canonical Run clock and
 // materializes only terminal Runs that can belong to its seven-day frame.
 // Terminal rows without a parseable execution clock remain in the bounded
@@ -211,6 +229,10 @@ func ReadStatisticalRunCandidates(ctx context.Context, db SnapshotReader, waterm
 }
 
 func readCollectionFields(ctx context.Context, db SnapshotReader, collection string, fields []string, maxRows int, maxBytes int64, where string, selection []any) (result []map[string]any, err error) {
+	if collection == "transactions" {
+		where = " AND record_key<>?" + where
+		selection = append([]any{workflowSubjectStateRecordKey}, selection...)
+	}
 	contentSQL := "value"
 	args := []any{}
 	if fields != nil {

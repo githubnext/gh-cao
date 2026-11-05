@@ -19,7 +19,13 @@ import {
 const debug = createDebug('data:indexeddb');
 
 export const DATABASE_NAME = 'gh-aw-cao-dashboard-data';
-export const DATABASE_VERSION = 48;
+export const DATABASE_VERSION = 49;
+const WORKFLOW_SUBJECT_STATE_ID = 'workflow-subject-state';
+
+/** @param {string} storeName @param {Record<string, unknown>} record */
+function isPublicCanonicalRecord(storeName, record) {
+  return storeName !== TRANSACTION_STORE || record.id !== WORKFLOW_SUBJECT_STATE_ID;
+}
 /** @type {Set<(versions: { oldVersion: number, newVersion: number }) => void>} */
 const upgradeListeners = new Set();
 
@@ -72,7 +78,11 @@ export const CANONICAL_DATABASE_SCHEMA = /** @type {Record<
  },
  workflows: {
    keyPath: 'id',
-   indexes: { byRepository: 'repositoryId', byCampaign: 'campaignId' }
+   indexes: {
+     byRepository: 'repositoryId',
+     byCampaign: 'campaignId',
+     bySubject: '_storage.workflowSubject'
+   }
  },
  runs: {
    keyPath: 'id',
@@ -233,8 +243,7 @@ const monotonicNow = () => globalThis.performance?.now() ?? Date.now();
 export function prepareCanonicalRecord(storeName, record) {
   const indexes = Object.keys(CANONICAL_DATABASE_SCHEMA[storeName]?.indexes ?? {})
     .filter((name) => Object.hasOwn(CANONICAL_QUERY_INDEX_FIELDS, name));
-  if (indexes.length === 0) return withStorageMetadata(storeName, record);
-  return withStorageMetadata(storeName, {
+  const stored = withStorageMetadata(storeName, indexes.length === 0 ? record : {
     ...record,
     _queryKeys: Object.fromEntries(indexes.flatMap((name) => {
       const values = CANONICAL_QUERY_INDEX_FIELDS[name].map((field) => record[field] ?? null);
@@ -242,6 +251,35 @@ export function prepareCanonicalRecord(storeName, record) {
         ? [[name, JSON.stringify(values)]] : [];
     }))
   });
+  if (storeName !== 'workflows') return stored;
+  return {
+    ...stored,
+    _storage: {
+      ...stored._storage,
+      workflowSubject: utf8BytewiseTupleKey([
+        record.repositoryId,
+        record.path ?? '',
+        record.id
+      ])
+    }
+  };
+}
+
+/**
+ * Maps bytes to code units 1-256 and reserves NUL as a tuple separator, so
+ * IndexedDB string ordering matches the declared UTF-8 bytewise tuple order.
+ * @param {unknown[]} values
+ */
+function utf8BytewiseTupleKey(values) {
+  const encoder = new TextEncoder();
+  let key = '';
+  for (const value of values) {
+    for (const byte of encoder.encode(String(value ?? ''))) {
+      key += String.fromCharCode(byte + 1);
+    }
+    key += '\0';
+  }
+  return key;
 }
 
 /**
@@ -713,11 +751,17 @@ export async function upsertCanonicalBatchWithConnection(database, batch, option
       options.signal?.throwIfAborted();
       const boundedRecords = records.slice(offset, offset + batchSize)
         .map((record) => pruneCanonicalRecord(storeName, record));
-      const transaction = readwriteTransaction(database, [storeName, STORAGE_SHARD_STORE]);
+      const transaction = readwriteTransaction(database, [
+        storeName, STORAGE_SHARD_STORE, ...(storeName === 'workflows' ? [TRANSACTION_STORE] : [])
+      ]);
       const done = transactionDone(transaction);
       try {
-        await writeAccountedRecords(transaction, storeName,
-          boundedRecords.map((record) => prepareCanonicalRecord(storeName, record)));
+        const prepared = boundedRecords.map((record) => prepareCanonicalRecord(storeName, record));
+        await writeAccountedRecords(transaction, storeName, prepared, [], {
+          onExisting: storeName === 'workflows'
+            ? (incoming, previous) => updateWorkflowSubjectRevision(transaction, incoming, [], previous)
+            : undefined
+        });
         commitTransaction(transaction);
         await done;
       } catch (error) {
@@ -731,6 +775,34 @@ export async function upsertCanonicalBatchWithConnection(database, batch, option
     }
   }
   return { committedBatches, committedRecords };
+}
+
+/**
+ * Advances topology revision only when a workflow identity tuple is inserted,
+ * removed, or changed. Enrichment and display metadata updates keep cursors valid.
+ * @param {IDBTransaction} transaction
+ * @param {Record<string, unknown>[]} records
+ * @param {Record<string, unknown>[]} [removed]
+ * @param {Array<Record<string, unknown> | undefined>} [previous]
+ */
+async function updateWorkflowSubjectRevision(transaction, records, removed = [], previous = []) {
+  const changed = removed.length > 0 || records.some((record, index) => {
+    const existing = previous[index];
+    return !existing
+      || existing.repositoryId !== record.repositoryId
+      || (existing.path ?? '') !== (record.path ?? '')
+      || existing.id !== record.id;
+  });
+  if (!changed) return;
+  const transactions = transaction.objectStore(TRANSACTION_STORE);
+  const current = await requestResult(transactions.get(WORKFLOW_SUBJECT_STATE_ID));
+  const revision = Number.isSafeInteger(current?.revision) ? Number(current.revision) + 1 : 1;
+  transactions.put({
+    id: WORKFLOW_SUBJECT_STATE_ID,
+    kind: 'workflow-subject-state',
+    createdAt: new Date().toISOString(),
+    revision
+  });
 }
 
 /**
@@ -1123,7 +1195,10 @@ export async function readCollections(indexedDB, storeNames, options = {}) {
           }
           const store = transaction.objectStore(storeName);
           const bounds = options.bounds;
-          if (!bounds?.stores.has(storeName)) return requestResult(store.getAll());
+          if (!bounds?.stores.has(storeName)) {
+            return requestResult(store.getAll()).then((records) =>
+              records.filter((record) => isPublicCanonicalRecord(storeName, record)));
+          }
           /** @type {Promise<Record<string, unknown>[]>} */
           const result = new Promise((resolve, reject) => {
             /** @type {Record<string, unknown>[]} */
@@ -1138,6 +1213,7 @@ export async function readCollections(indexedDB, storeNames, options = {}) {
                   options.checkpoint?.();
                   for (const record of request.result) {
                     const row = canonicalRecord(record);
+                    if (!isPublicCanonicalRecord(storeName, row)) continue;
                     bytes += encoder.encode(JSON.stringify(row)).byteLength;
                     if (rows.length >= bounds.rows || bytes > bounds.bytes) {
                       bounds.onLimit();
@@ -1291,9 +1367,11 @@ async function readStatisticalRuns(transaction, options, budget) {
     while (!limited) {
       budget.checkpoint?.();
       const records = await requestResult(index.getAll(range, Math.min(1000, options.rows - selected.size + 1)));
+      // Canonicalization in append removes the storage metadata used by the index key.
+      const nextRange = records.length === 1000 ? keyOf(records.at(-1), range) : null;
       append(records);
-      if (limited || records.length < 1000) break;
-      range = keyOf(records.at(-1), range);
+      if (limited || !nextRange) break;
+      range = nextRange;
     }
   };
   const start = watermark - 7 * 86400000;
@@ -1330,9 +1408,12 @@ export async function countCollections(indexedDB, storeNames) {
       : await (async () => {
           const transaction = database.transaction([...storeNames]);
           const done = transactionDone(transaction);
-          const values = await Promise.all(storeNames.map((storeName) =>
-            requestResult(transaction.objectStore(storeName).count())
-          ));
+          const values = await Promise.all(storeNames.map(async (storeName) => {
+            const store = transaction.objectStore(storeName);
+            const count = await requestResult(store.count());
+            if (storeName !== TRANSACTION_STORE) return count;
+            return count - (await requestResult(store.get(WORKFLOW_SUBJECT_STATE_ID)) ? 1 : 0);
+          }));
           await done;
           return values;
         })();
@@ -1356,6 +1437,7 @@ export async function readCollection(indexedDB, storeName) {
   const database = await openCanonicalDatabase(indexedDB);
   try {
     return (await requestResult(database.transaction(storeName).objectStore(storeName).getAll()))
+      .filter((record) => isPublicCanonicalRecord(storeName, record))
       .map((record) => canonicalRecord(record));
   } finally {
     database.close();
@@ -1846,6 +1928,69 @@ export async function readIndex(indexedDB, storeName, indexName, key) {
 }
 
 /**
+ * Reads one physical workflow identity page in UTF-8/IndexedDB key order.
+ * @param {IDBFactory} indexedDB
+ * @param {{ limit: number, after?: string[], expectedRevision?: string | number }} page
+ */
+export async function readWorkflowSubjectPage(indexedDB, page) {
+  if (!Number.isSafeInteger(page.limit) || page.limit <= 0 || page.limit > 32 ||
+      (page.after !== undefined && (!Array.isArray(page.after) || page.after.length !== 3 ||
+        page.after.some((value) => typeof value !== 'string')))) {
+    throw new TypeError('Invalid workflow subject page.');
+  }
+  const database = await openCanonicalDatabase(indexedDB);
+  try {
+    const transaction = database.transaction(['workflows', TRANSACTION_STORE]);
+    const done = transactionDone(transaction);
+    const state = await requestResult(transaction.objectStore(TRANSACTION_STORE).get(WORKFLOW_SUBJECT_STATE_ID));
+    const revision = Number.isSafeInteger(state?.revision) ? Number(state.revision) : 0;
+    if (page.expectedRevision !== undefined && String(revision) !== String(page.expectedRevision)) {
+      throw new TypeError('Workflow topology changed while reading a subject page.');
+    }
+    const index = transaction.objectStore('workflows').index('bySubject');
+    const range = page.after
+      ? globalThis.IDBKeyRange.lowerBound(utf8BytewiseTupleKey(page.after), true)
+      : undefined;
+    /** @type {Record<string, unknown>[]} */
+    const rows = [];
+    await new Promise((resolve, reject) => {
+      const request = index.openCursor(range, 'next');
+      request.onerror = () => reject(request.error ?? new Error('Workflow subject cursor failed'));
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor || rows.length >= page.limit + 1) {
+          resolve(undefined);
+          return;
+        }
+        rows.push(canonicalRecord(cursor.value));
+        cursor.continue();
+      };
+    });
+    await done;
+    return {
+      rows,
+      revision
+    };
+  } finally {
+    database.close();
+  }
+}
+
+/** @param {IDBFactory} indexedDB */
+export async function readWorkflowSubjectRevision(indexedDB) {
+  const database = await openCanonicalDatabase(indexedDB);
+  try {
+    const transaction = database.transaction(TRANSACTION_STORE);
+    const done = transactionDone(transaction);
+    const state = await requestResult(transaction.objectStore(TRANSACTION_STORE).get(WORKFLOW_SUBJECT_STATE_ID));
+    await done;
+    return Number.isSafeInteger(state?.revision) ? Number(state.revision) : 0;
+  } finally {
+    database.close();
+  }
+}
+
+/**
  * Replaces retained canonical records with the supplied batch.
  *
  * Records are written in bounded transactions so a constrained browser reports
@@ -1909,7 +2054,9 @@ export async function replaceCanonicalBatch(indexedDB, batch, options = {}) {
       const records = batch[storeName] ?? [];
       const retained = new Set(records.map((record) => String(record.id)));
       // Evict first so reclaimed space is available to the writes that follow.
-      const removal = readwriteTransaction(database, [storeName, STORAGE_SHARD_STORE]);
+      const removal = readwriteTransaction(database, [
+        storeName, STORAGE_SHARD_STORE, ...(storeName === 'workflows' ? [TRANSACTION_STORE] : [])
+      ]);
       const removalDone = transactionDone(removal);
       const removalStore = removal.objectStore(storeName);
       const knownDeleted = recordsToDelete?.[storeName];
@@ -1958,7 +2105,11 @@ export async function replaceCanonicalBatch(indexedDB, batch, options = {}) {
         }
         const removed = (await Promise.all(removedIds.map((id) => requestResult(removalStore.get(id)))))
           .filter((record) => record !== undefined);
-        await writeAccountedRecords(removal, storeName, [], removed);
+        await writeAccountedRecords(removal, storeName, [], removed, {
+          onExisting: storeName === 'workflows'
+            ? () => updateWorkflowSubjectRevision(removal, [], removed)
+            : undefined
+        });
         commitTransaction(removal);
         await removalDone;
         committedBatches += 1;
@@ -1982,11 +2133,17 @@ export async function replaceCanonicalBatch(indexedDB, batch, options = {}) {
       const changedRecords = recordsToWrite[storeName];
       for (let offset = 0; offset < changedRecords.length; offset += batchSize) {
         const boundedRecords = changedRecords.slice(offset, offset + batchSize);
-        const transaction = readwriteTransaction(database, [storeName, STORAGE_SHARD_STORE]);
+        const transaction = readwriteTransaction(database, [
+          storeName, STORAGE_SHARD_STORE, ...(storeName === 'workflows' ? [TRANSACTION_STORE] : [])
+        ]);
         const done = transactionDone(transaction);
         try {
-          await writeAccountedRecords(transaction, storeName,
-            boundedRecords.map((record) => prepareCanonicalRecord(storeName, record)));
+          const prepared = boundedRecords.map((record) => prepareCanonicalRecord(storeName, record));
+          await writeAccountedRecords(transaction, storeName, prepared, [], {
+            onExisting: storeName === 'workflows'
+              ? (incoming, previous) => updateWorkflowSubjectRevision(transaction, incoming, [], previous)
+              : undefined
+          });
           requestCount += boundedRecords.length;
           commitTransaction(transaction);
           await done;
@@ -2266,7 +2423,8 @@ export async function withCanonicalIngestionLock(indexedDB, task, options = {}) 
 export async function readTransactions(indexedDB) {
   const database = await openCanonicalDatabase(indexedDB);
   try {
-    return await requestResult(database.transaction(TRANSACTION_STORE).objectStore(TRANSACTION_STORE).getAll());
+    return (await requestResult(database.transaction(TRANSACTION_STORE).objectStore(TRANSACTION_STORE).getAll()))
+      .filter((record) => isPublicCanonicalRecord(TRANSACTION_STORE, record));
   } finally {
     database.close();
   }

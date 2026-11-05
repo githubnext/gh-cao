@@ -2,6 +2,41 @@ import { assert, authoritativeDashboard, buildPresenterModuleUrl, expect, expect
 
 registerSmokeRoutes();
 
+for (const width of [1440, 390]) {
+  test(`Skills is a non-experimental Data destination at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.setContent(`
+      <div id="root"></div>
+      <script type="module">
+        import { renderDashboard } from ${JSON.stringify(buildPresenterModuleUrl())};
+        document.querySelector('#root').append(renderDashboard({
+          document: ${JSON.stringify(authoritativeDashboard)},
+          sources: {}
+        }));
+      </script>
+    `);
+    const dataSection = page.locator('.primary-nav [data-nav-section="Data"]');
+    const skillsLink = dataSection.getByRole('link', { name: 'Skills', exact: true, includeHidden: true });
+    await expect(skillsLink).toHaveCount(1);
+    await expect(skillsLink.locator('.experimental-page-label')).toHaveCount(0);
+    await expect(page.locator('.primary-nav [data-nav-section="Experimental"] a[href="#page-skills"]')).toHaveCount(0);
+
+    if (width < 600) {
+      await page.getByRole('button', { name: 'Select view', exact: true }).click();
+      const mobileSkills = page.locator('.mobile-nav-menu-list').getByRole('link', { name: 'Skills', exact: true });
+      await expect(mobileSkills.locator('.experimental-page-label')).toHaveCount(0);
+      await mobileSkills.click();
+    } else {
+      await dataSection.locator('summary').click();
+      await skillsLink.click();
+    }
+
+    await expect(page).toHaveURL(/#page-skills$/);
+    await expect(page.getByRole('heading', { name: 'Skills', exact: true, level: 1 })).toBeVisible();
+    await expect(page.locator('.title-area [data-page-experimental]')).toBeHidden();
+  });
+}
+
 test('Simulators exposes its database-size tab and bounded scenario inputs', async ({ page }) => {
   await page.setContent(`
     <div id="root"></div>
@@ -21,37 +56,51 @@ test('Simulators exposes its database-size tab and bounded scenario inputs', asy
   await expect(simulator.getByRole('slider', { name: 'Skipped runs (%)' })).toHaveAttribute('min', '1');
 });
 
-test('Simulators binds slider values to a recomputed 30-day table', async ({ page }) => {
-  await page.setContent(`
-    <div id="root"></div>
-    <script type="module">
-      import { renderDashboard } from ${JSON.stringify(buildPresenterModuleUrl())};
-      import { loadCanonicalDashboardPage } from '/src/data-processor.js';
-      const documentModel = ${JSON.stringify(authoritativeDashboard)};
-      window.location.hash = '#page-simulators';
-      document.querySelector('#root').append(renderDashboard({
-        document: documentModel,
-        sources: {},
-        loadPageSources: (pageId, options) => pageId === 'simulators'
-          ? loadCanonicalDashboardPage(
-              ['simulator-database-summary'],
-              documentModel.dashboard,
-              undefined,
-              { pageId, queryContext: options.queryContext }
-            )
-          : Promise.resolve({})
-      }));
-    </script>
-  `);
-  const simulator = page.locator('[data-page-id="simulators"]');
-  const table = simulator.getByRole('table');
-  await expect(table.getByRole('row', { name: 'Total 890880000' })).toBeVisible();
-  await simulator.getByRole('slider', { name: 'Repositories' }).fill('2000');
-  await expect(table.getByRole('row', { name: 'Total 1781760000' })).toBeVisible();
-  await simulator.getByRole('slider', { name: 'Skipped runs (%)' }).fill('50');
-  await expect(table.getByRole('row', { name: 'Total 1228800000' })).toBeVisible();
-  await expect(table.getByRole('row', { name: 'Run summaries 307200000' })).toBeVisible();
-});
+for (const width of [1440, 390]) {
+  test(`Simulators renders readable units and recomputes sliders at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.setContent(`
+      <div id="root"></div>
+      <script type="module">
+        import { renderDashboard } from ${JSON.stringify(buildPresenterModuleUrl())};
+        import { loadCanonicalDashboardPage } from '/src/data-processor.js';
+        const documentModel = ${JSON.stringify(authoritativeDashboard)};
+        window.location.hash = '#page-simulators';
+        document.querySelector('#root').append(renderDashboard({
+          document: documentModel,
+          sources: {},
+          loadPageSources: (pageId, options) => pageId.startsWith('simulator')
+            ? loadCanonicalDashboardPage(
+                pageId === 'simulators' ? ['simulator-database-summary']
+                  : ['simulator-pr-summary', 'simulator-pr-inputs'],
+                documentModel.dashboard,
+                undefined,
+                { pageId, queryContext: options.queryContext }
+              )
+            : Promise.resolve({})
+        }));
+      </script>
+    `);
+    const simulator = page.locator('[data-page-id="simulators"]');
+    const table = simulator.getByRole('table');
+    await expect(table.getByRole('row', { name: /^Total 891 MB/ })).toBeVisible();
+    await expect(table.locator('[data-sort-value="890880000"] span')).toHaveAttribute('title', '890,880,000 Bytes');
+    await simulator.getByRole('slider', { name: 'Repositories' }).fill('2000');
+    await expect(table.getByRole('row', { name: /^Total 1.8 GB/ })).toBeVisible();
+    await simulator.getByRole('slider', { name: 'Skipped runs (%)' }).fill('50');
+    await expect(table.getByRole('row', { name: /^Total 1.2 GB/ })).toBeVisible();
+    await expect(table.getByRole('row', { name: /^Run summaries 307 MB/ })).toBeVisible();
+
+    await simulator.getByRole('link', { name: 'Pull request', exact: true }).click();
+    const pullRequests = page.locator('[data-page-id="simulator-pull-request"]');
+    const totals = pullRequests.locator('[data-view-id="simulator-pr-totals"]');
+    await expect(totals.getByRole('row', { name: /^AI Credits \(AIC\) 50M/ })).toBeVisible();
+    await pullRequests.getByRole('slider', { name: 'Duration (days)' }).fill('31');
+    await expect(totals.locator('[data-sort-value="1550000000"]')).toHaveText('1.55B');
+    await expect(totals.locator('[data-sort-value="1550000000"] span'))
+      .toHaveAttribute('title', '1,550,000,000 Modeled count');
+  });
+}
 
 test('mobile shell keeps Overview navigation in the hamburger menu', async ({ page }) => {
   const presenterModuleUrl = buildPresenterModuleUrl();
@@ -1101,7 +1150,7 @@ test('clean navigation preserves the Overview decision hierarchy across desktop 
   await expect(cleanNavigation).toHaveText(['Overview', 'Marketplace']);
   await expect(data.locator('summary')).toHaveText('Data');
   await data.locator('summary').click();
-  await expect(data.getByRole('link')).toHaveText(['Repositories', 'Workflows', 'Campaigns', 'Runs', 'Issues', 'Cost', 'Value', 'Friction', 'Models & Agents', 'Firewall', 'MCPs', 'Memory']);
+  await expect(data.getByRole('link')).toHaveText(['Repositories', 'Workflows', 'Campaigns', 'Runs', 'Issues', 'Cost', 'Value', 'Friction', 'Models & Agents', 'Firewall', 'MCPs', 'Skills', 'Memory']);
   await expect(data.getByRole('link', { name: 'Value', exact: true })).toHaveCount(1);
   await expect(data.getByRole('link', { name: 'Friction', exact: true })).toHaveCount(1);
   await expect(evolutionSection.locator('summary')).toHaveText('Evolution');
@@ -1155,7 +1204,6 @@ test('clean navigation preserves the Overview decision hierarchy across desktop 
   await expect(experimentalSection.getByRole('link')).toHaveText([
     'Workflow wizard',
     'Model routing',
-    'Skills',
     'Steering',
     'Simulators'
   ]);

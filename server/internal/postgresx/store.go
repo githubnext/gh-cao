@@ -284,8 +284,10 @@ func (s *Store) State(ctx context.Context) (state State, err error) {
 
 func (r *readTransaction) State(ctx context.Context) (State, error) {
 	state := State{Counts: map[string]int{}}
-	err := r.tx.QueryRowContext(ctx, `SELECT revision, data_revision, evaluated_at FROM cao_state WHERE namespace = $1`,
-		r.store.namespace).Scan(&state.Revision, &state.DataRevision, &state.EvaluatedAt)
+	err := r.tx.QueryRowContext(ctx, `SELECT revision, workflow_subject_revision, workflow_subject_digest,
+		data_revision, evaluated_at FROM cao_state WHERE namespace = $1`,
+		r.store.namespace).Scan(&state.Revision, &state.WorkflowSubjectRevision, &state.WorkflowSubjectDigest,
+		&state.DataRevision, &state.EvaluatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return state, nil
 	}
