@@ -15,6 +15,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/query"
 )
@@ -38,6 +39,8 @@ type valueProofPublication struct {
 	workflow   string
 	files      []ValueProofFile
 	updatedAt  time.Time
+	scope      *collectnative.EnrollmentScope
+	previous   string
 }
 
 func valueFactKey(fact map[string]any) string {
@@ -272,12 +275,6 @@ func (s *Store) ReadOperationalValue(ctx context.Context, repository, workflow s
 		return nil, ErrValueInvalid
 	}
 	repository = strings.ToLower(repository)
-	path := ".github/workflows/" + workflow + ".md"
-	identity := model.Row{
-		"repository": repository, "sourcePath": path,
-		"repositoryId": "repository:" + evidenceComponent(repository),
-		"workflowId":   "workflow:" + evidenceComponent(repository+":"+path),
-	}
 	connection, err := pgx.ConnectConfig(ctx, s.config.Copy())
 	if err != nil {
 		return nil, err
@@ -288,7 +285,24 @@ func (s *Store) ReadOperationalValue(ctx context.Context, repository, workflow s
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback(context.WithoutCancel(ctx)) }()
-	known, err := valueParentKnown(ctx, tx, s.namespace, identity)
+	row, err := readLatestValuePacket(ctx, tx, s.namespace, repository, workflow)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return row, nil
+}
+
+func readLatestValuePacket(ctx context.Context, tx pgx.Tx, namespace, repository, workflow string) (model.Row, error) {
+	path := ".github/workflows/" + workflow + ".md"
+	identity := model.Row{
+		"repository": repository, "sourcePath": path,
+		"repositoryId": "repository:" + evidenceComponent(repository),
+		"workflowId":   "workflow:" + evidenceComponent(repository+":"+path),
+	}
+	known, err := valueParentKnown(ctx, tx, namespace, identity)
 	if err != nil {
 		return nil, err
 	}
@@ -300,19 +314,12 @@ func (s *Store) ReadOperationalValue(ctx context.Context, repository, workflow s
 		LEFT JOIN cao_value_publications p ON p.namespace=e.namespace AND p.packet_id=e.id
 		WHERE e.namespace=$1 AND e.repository_id=$2 AND e.workflow_id=$3
 		ORDER BY e.observed_at DESC,p.published_at DESC NULLS LAST,e.id LIMIT 1`,
-		s.namespace, identity["repositoryId"], identity["workflowId"]).Scan(&id); errors.Is(err, pgx.ErrNoRows) {
+		namespace, identity["repositoryId"], identity["workflowId"]).Scan(&id); errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrValueNotFound
 	} else if err != nil {
 		return nil, err
 	}
-	row, err := readValuePacket(ctx, tx, s.namespace, id)
-	if err != nil {
-		return nil, err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return nil, err
-	}
-	return row, nil
+	return readValuePacket(ctx, tx, namespace, id)
 }
 
 // PublishOperationalValue publishes measured facts, not an evaluator or report.
@@ -370,6 +377,11 @@ func (s *Store) publishOperationalValue(
 			args = append(args, s.namespace)
 		}
 		if _, err := tx.Exec(ctx, lock, args...); err != nil {
+			return ValuePublication{}, err
+		}
+	}
+	if proof != nil && proof.scope != nil {
+		if err := s.fenceValuePublication(ctx, tx, row, proof); err != nil {
 			return ValuePublication{}, err
 		}
 	}

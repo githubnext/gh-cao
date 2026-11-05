@@ -118,11 +118,13 @@ CREATE TABLE IF NOT EXISTS cao_acquisition_inventory_config (
   source_sha TEXT NOT NULL,
   policy_sha TEXT NOT NULL,
   snapshot_digest TEXT NOT NULL,
+  content BYTEA,
   PRIMARY KEY (namespace),
   FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
   CHECK (source_repository ~ '^[a-z0-9][a-z0-9-]*/[a-z0-9._-]+$' AND octet_length(source_repository) <= 256),
   CHECK (source_sha ~ '^[a-f0-9]{40}$' AND policy_sha ~ '^[a-f0-9]{40}$'),
-  CHECK (snapshot_digest ~ '^[a-f0-9]{64}$')
+  CHECK (snapshot_digest ~ '^[a-f0-9]{64}$'),
+  CHECK (content IS NULL OR octet_length(content) BETWEEN 1 AND 16777216)
 );
 
 CREATE TABLE IF NOT EXISTS cao_acquisition_inventory (

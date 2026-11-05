@@ -1089,13 +1089,14 @@ namespace Storage {
     retryAt?: utcDateTime;
   }
 
-  /** Immutable reviewed source metadata shared by native inventory replicas. */
+  /** Immutable reviewed source document and provenance shared by native inventory replicas. */
   model caoAcquisitionInventoryConfig {
     `namespace`: string;
     sourceRepository: string;
     sourceSha: string;
     policySha: string;
     snapshotDigest: string;
+    content?: bytes;
   }
 
   /** Source-epoch-fenced inventory reservations and the last published bounded snapshot. */

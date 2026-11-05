@@ -46,6 +46,18 @@ func (s *Store) eraseNativeRepository(ctx context.Context, tx *sql.Tx, repositor
 	if len(ids) > 256 {
 		return collectnative.ErrCapacity
 	}
+	for _, statement := range []string{
+		`DELETE FROM cao_value_proof_files WHERE namespace=$1 AND repository=$2`,
+		`DELETE FROM cao_value_publications p USING operational_value_evidence e
+			WHERE p.namespace=$1 AND e.namespace=p.namespace AND e.id=p.packet_id AND e.repository=$2`,
+		`DELETE FROM operational_value_evidence_facts f USING operational_value_evidence e
+			WHERE f.namespace=$1 AND e.namespace=f.namespace AND e.id=f.packet_id AND e.repository=$2`,
+		`DELETE FROM operational_value_evidence WHERE namespace=$1 AND repository=$2`,
+	} {
+		if _, err := tx.ExecContext(ctx, statement, s.namespace, repository); err != nil {
+			return err
+		}
+	}
 	for _, source := range tableNames() {
 		table := entityTables[source]
 		if source == "$repositories" || source == "$workflows" || source == "$runs" || !table.canonical {

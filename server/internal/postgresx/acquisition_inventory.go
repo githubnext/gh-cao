@@ -28,11 +28,17 @@ func (a Acquisition) PinInventoryConfiguration(ctx context.Context, snapshot col
 	defer func() { _ = tx.Rollback() }()
 	p := snapshot.Provenance
 	if _, err := tx.ExecContext(ctx, `INSERT INTO cao_acquisition_inventory_config
-		(namespace,source_repository,source_sha,policy_sha,snapshot_digest) VALUES($1,$2,$3,$4,$5)
-		ON CONFLICT(namespace) DO NOTHING`, a.store.namespace, p.SourceRepository, p.SourceSHA, p.PolicySHA, snapshot.Digest); err != nil {
+		(namespace,source_repository,source_sha,policy_sha,snapshot_digest,content) VALUES($1,$2,$3,$4,$5,$6)
+		ON CONFLICT(namespace) DO NOTHING`, a.store.namespace, p.SourceRepository, p.SourceSHA, p.PolicySHA,
+		snapshot.Digest, snapshot.Bytes()); err != nil {
 		return err
 	}
 	if err := a.inventoryConfiguration(ctx, tx, snapshot.Digest, &p); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE cao_acquisition_inventory_config SET content=$3
+		WHERE namespace=$1 AND snapshot_digest=$2 AND content IS NULL`,
+		a.store.namespace, snapshot.Digest, snapshot.Bytes()); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -52,9 +58,9 @@ func (a Acquisition) ReplaceInventoryConfiguration(ctx context.Context, expected
 	defer func() { _ = tx.Rollback() }()
 	p := snapshot.Provenance
 	result, err := tx.ExecContext(ctx, `UPDATE cao_acquisition_inventory_config
-		SET source_repository=$3,source_sha=$4,policy_sha=$5,snapshot_digest=$6
+		SET source_repository=$3,source_sha=$4,policy_sha=$5,snapshot_digest=$6,content=$7
 		WHERE namespace=$1 AND snapshot_digest=$2`, a.store.namespace, expected,
-		p.SourceRepository, p.SourceSHA, p.PolicySHA, snapshot.Digest)
+		p.SourceRepository, p.SourceSHA, p.PolicySHA, snapshot.Digest, snapshot.Bytes())
 	if err != nil {
 		return err
 	}
@@ -64,6 +70,25 @@ func (a Acquisition) ReplaceInventoryConfiguration(ctx context.Context, expected
 		return collectnative.ErrClaimLost
 	}
 	return tx.Commit()
+}
+
+// LoadInventoryConfiguration restores only the explicitly selected reviewed
+// deployment. It never chooses another snapshot or derives policy from targets.
+func (a Acquisition) LoadInventoryConfiguration(ctx context.Context, expected string) (collectnative.InventorySnapshot, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	var provenance collectnative.InventoryProvenance
+	var content []byte
+	err := a.store.db.QueryRowContext(ctx, `SELECT source_repository,source_sha,policy_sha,content
+		FROM cao_acquisition_inventory_config WHERE namespace=$1 AND snapshot_digest=$2`,
+		a.store.namespace, expected).Scan(&provenance.SourceRepository, &provenance.SourceSHA, &provenance.PolicySHA, &content)
+	if errors.Is(err, sql.ErrNoRows) {
+		return collectnative.InventorySnapshot{}, collectnative.ErrClaimLost
+	}
+	if err != nil {
+		return collectnative.InventorySnapshot{}, err
+	}
+	return collectnative.NewInventorySnapshot(content, expected, provenance)
 }
 
 func (a Acquisition) inventoryConfiguration(ctx context.Context, tx *sql.Tx, digest string, expected *collectnative.InventoryProvenance) error {

@@ -121,6 +121,10 @@ func NewInventorySnapshot(content []byte, expected string, provenance InventoryP
 
 func (s InventorySnapshot) ControlRepository() string { return s.controlRepository }
 
+// Bytes returns a copy of the exact reviewed document, preserving its digest
+// across deployment provisioning and replica restarts.
+func (s InventorySnapshot) Bytes() []byte { return bytes.Clone(s.content) }
+
 func (s InventorySnapshot) document() (inventorySnapshotDocument, error) {
 	// Recheck exported provenance/digest too: mutation must not change the
 	// deployment identity without changing and revalidating its immutable bytes.

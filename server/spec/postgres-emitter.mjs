@@ -156,7 +156,8 @@ export async function $onEmit(context) {
       'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
       "CHECK (source_repository ~ '^[a-z0-9][a-z0-9-]*/[a-z0-9._-]+$' AND octet_length(source_repository) <= 256)",
       "CHECK (source_sha ~ '^[a-f0-9]{40}$' AND policy_sha ~ '^[a-f0-9]{40}$')",
-      "CHECK (snapshot_digest ~ '^[a-f0-9]{64}$')"
+      "CHECK (snapshot_digest ~ '^[a-f0-9]{64}$')",
+      'CHECK (content IS NULL OR octet_length(content) BETWEEN 1 AND 16777216)'
     ] : table.name === 'cao_acquisition_inventory' ? [
       'PRIMARY KEY (namespace, repository)',
       'FOREIGN KEY (namespace, repository) REFERENCES cao_acquisition_scopes(namespace, repository) ON DELETE CASCADE',
