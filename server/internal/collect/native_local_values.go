@@ -108,7 +108,7 @@ func (p Projector) CollectNativeLocalValues(ctx context.Context) error {
 	if err := writeNativeValueInputs(workspace, inputs); err != nil {
 		return err
 	}
-	root, err := filepath.Abs(p.CatalogRoot)
+	root, err := p.nativeLocalValueRoot()
 	if err != nil {
 		return err
 	}

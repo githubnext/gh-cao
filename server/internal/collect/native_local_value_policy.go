@@ -9,7 +9,7 @@ import (
 )
 
 func (p Projector) resolvedNativeValuePolicy(ctx context.Context) ([]byte, error) {
-	root, err := filepath.Abs(p.CatalogRoot)
+	root, err := p.nativeLocalValueRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -24,4 +24,14 @@ func (p Projector) resolvedNativeValuePolicy(ctx context.Context) ([]byte, error
 		return nil, err
 	}
 	return snapshot.Document, nil
+}
+
+func (p Projector) nativeLocalValueRoot() (string, error) {
+	root, err := filepath.Abs(p.CatalogRoot)
+	if err != nil {
+		return "", err
+	}
+	// Node resolves the module's real path before its argv/import.meta entrypoint
+	// check. Preserve that identity through catalog aliases such as macOS /var.
+	return filepath.EvalSymlinks(root)
 }

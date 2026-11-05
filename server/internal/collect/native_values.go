@@ -21,6 +21,17 @@ type NativeValueService struct {
 	Projector Projector
 }
 
+func nativeValueCatalog(root string) (string, error) {
+	if root == "" {
+		return "", collectnative.ErrUnsupported
+	}
+	resolved, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Abs(resolved)
+}
+
 func (s NativeValueService) Validate() error {
 	p := s.Projector
 	if p.Data == nil || !p.Data.Open() || p.State == nil || p.Leases == nil ||
@@ -56,6 +67,11 @@ func (s NativeValueService) RunValues(ctx context.Context) error {
 	if err := s.Validate(); err != nil {
 		return err
 	}
+	root, err := nativeValueCatalog(s.Projector.CatalogRoot)
+	if err != nil {
+		return err
+	}
+	s.Projector.CatalogRoot = root
 	lifetime, cancel := context.WithCancel(ctx)
 	defer cancel()
 	remote := make(chan struct{})

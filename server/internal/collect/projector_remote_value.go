@@ -37,6 +37,11 @@ func (p Projector) CollectScopedRemoteValues(ctx context.Context, scope collectn
 	if err := p.nativeValueCurrent(ctx); err != nil {
 		return err
 	}
+	root, err := nativeValueCatalog(p.CatalogRoot)
+	if err != nil {
+		return err
+	}
+	p.CatalogRoot = root
 	return p.CollectRemoteValues(ctx, scope.Repository)
 }
 

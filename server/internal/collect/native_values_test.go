@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
@@ -92,5 +94,26 @@ func TestNativeValuePlanTracksComposedPolicyAuthority(t *testing.T) {
 	}
 	if projector.RemoteValuePlan.loaded {
 		t.Fatal("native authority was cached by entry-profile bytes")
+	}
+}
+
+func TestNativeValueCatalogAliasRunsTheProductionWorkerEntrypoint(t *testing.T) {
+	root, err := filepath.Abs("../../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	alias := filepath.Join(t.TempDir(), "catalog")
+	if err := os.Symlink(root, alias); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := nativeValueCatalog(alias)
+	if err != nil {
+		t.Fatal(err)
+	}
+	command := exec.CommandContext(t.Context(), "node", filepath.Join(resolved, "activity", "workflow-values.mjs"), "--worker") // #nosec G204 -- fixed reviewed runtime and invalid-input fixture.
+	command.Stdin = strings.NewReader("{}")
+	output, err := command.CombinedOutput()
+	if err == nil || !strings.Contains(string(output), remoteValueFailurePrefix) {
+		t.Fatalf("production worker silently skipped its entrypoint through a catalog alias: %v: %s", err, output)
 	}
 }
