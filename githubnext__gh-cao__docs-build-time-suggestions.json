@@ -3,13 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-05T01:31:26Z",
-      "worker_run_id": "41948783916",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. The current 14-day evidence window, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded reusable-dashboard step analysis, and cache hit/miss verification could not be established. No recommendation was made; reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-05T02:22:24Z",
       "worker_run_id": "41954438094",
       "category": "reusable dashboard generation",
@@ -694,6 +687,34 @@
         41995103581
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-05T08:31:19Z to 2026-11-05T12:22:59Z) was within 14 days and contained 17 successful runs (16 freshness-only schedules and one full workflow_run publication) plus three skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 4bd5dbde5225b80341a8f89799e4e43cd830c870. Trusted Actions job and step metadata verified that every successful schedule ran only schedule-freshness and skipped build and deploy. Only workflow_run 42015706128 completed build and deploy, below the required five comparable successful full runs. It took 117 seconds wall-clock, queued 3 seconds before the first job, ran build for 77 seconds, and ran deploy for 9 seconds; docs.yml has no separate dashboard job. Its dashboard cache hit was verified because the cache-miss lookup and artifact-download steps were skipped; checkout took 24 seconds, dependency installation 15 seconds, Astro documentation generation 10 seconds, dashboard cache restore 2 seconds, Pages artifact upload 12 seconds, and Deploy Pages 6 seconds. Required full-workflow and dashboard/build/deploy median and p90 distributions and a complete reusable-dashboard-generation evaluation cannot be established. No suggestion was made; reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-05T12:37:51Z",
+      "worker_run_id": "42028294595",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        42028075934,
+        42027212000,
+        42026611741,
+        42026243416,
+        42023705697,
+        42021604222,
+        42019591935,
+        42017535608,
+        42015706128,
+        42015502375,
+        42013445978,
+        42011304668,
+        42009361516,
+        42009119519,
+        42007230456,
+        42005102235,
+        42003030708,
+        42001341916,
+        42000900862,
+        41999021741
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-05T09:01:45Z to 2026-11-05T12:33:12Z) was within 14 days and contained 16 successful runs (15 freshness-only schedules and one full workflow_run publication) plus four skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 4bd5dbde5225b80341a8f89799e4e43cd830c870. Trusted Actions job metadata verified newest schedule 42028075934 queued for 4 seconds, ran schedule-freshness for 9 seconds with a 5-second freshness check, and skipped build and deploy; retained trusted evidence from the overlapping preceding evaluation verified the same freshness-only outcome for the other schedules. Only workflow_run 42015706128 completed build and deploy, below the required five comparable successful full runs. It took 117 seconds wall-clock, queued 3 seconds, ran build for 77 seconds, and ran deploy for 9 seconds; docs.yml has no separate dashboard job. Its dashboard cache hit was verified because cache-miss lookup and artifact-download steps were skipped. Required full-workflow and dashboard/build/deploy median and p90 distributions and a complete reusable-dashboard-generation evaluation cannot be established. No suggestion was made; reusable dashboard generation remains the next category."
     }
   ]
 }
