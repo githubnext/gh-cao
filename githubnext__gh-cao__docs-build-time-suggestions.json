@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-04T22:31:00Z",
-      "worker_run_id": "41925534273",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        41923718782,
-        41923249377,
-        41921445352,
-        41919076620,
-        41916798303,
-        41914504053,
-        41913835326,
-        41912118595,
-        41909739592,
-        41907347378,
-        41907331504,
-        41907317997,
-        41905065293,
-        41904730218,
-        41902607641,
-        41900122308,
-        41897733996,
-        41895297197,
-        41893860001,
-        41893403635
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T19:04:38Z to 2026-11-04T22:16:07Z) was within 14 days and contained 13 successful runs (two full build-and-deploy publications and 11 freshness-only schedules), six skipped workflow_run callbacks, and one cancelled schedule; the cancelled run was excluded. The two comparable full publications were schedule run 41895297197 and push run 41907317997 across two source revisions, below the required five. Their workflow wall times were 136 and 142 seconds (median 139; nearest-rank p90 142), initial queue times were 4 seconds for both, build jobs were 89 and 105 seconds (median 97; p90 105), and deploy jobs were 29 and 28 seconds (median 28.5; p90 29); docs.yml has no separate dashboard job. Dashboard cache restore took 3 and 4 seconds, and cache hits were verified in both full runs because cache-miss-only lookup and artifact-download steps were skipped. Trusted job metadata for newest schedule run 41923718782 verified a 10-second schedule-freshness job, a 6-second freshness check, and skipped build and deploy. With only two comparable successful full runs, the required minimum sample and repeated reusable-dashboard-generation evaluation cannot be established. No suggestion was made; reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-04T22:50:00Z",
       "worker_run_id": "41928597005",
       "category": "reusable dashboard generation",
@@ -778,6 +750,13 @@
         41969822798
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-05T04:46:01Z to 2026-11-05T08:46:45Z) was within 14 days and contained 16 successful freshness-only schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 4bd5dbde5225b80341a8f89799e4e43cd830c870. Trusted Actions job metadata verified that every successful run executed only schedule-freshness and skipped both build and deploy. Freshness-only workflow wall time had median 18.5 seconds and nearest-rank p90 21 seconds; initial queue time had median 3 seconds and p90 4 seconds; schedule-freshness jobs had median 14 seconds and p90 16 seconds. The window contained zero successful full build-and-deploy publications, below the required five comparable successful runs. Full-workflow execution, dashboard/build/deploy median and p90 distributions, repeated reusable-dashboard-generation costs, and current dashboard cache hit/miss effectiveness therefore cannot be evaluated. No suggestion was made; reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-05T09:32:20Z",
+      "worker_run_id": "42002829127",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. The current 14-day evidence window, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded reusable-dashboard step analysis, and cache hit/miss verification could not be established. No recommendation was made; reusable dashboard generation remains the next category."
     }
   ]
 }
