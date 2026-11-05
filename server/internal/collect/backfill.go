@@ -87,6 +87,7 @@ type Backfill struct {
 	// Nil preserves the separate legacy producer's queue/cursor contract.
 	AcquisitionScopes  collectnative.ScopeReader
 	NativePublications NativePublicationStore
+	NativeInventory    NativeInventoryPreparation
 	Quota              RunQuotaService
 	QuotaApp           string
 	// WindowDays is opt-in; zero preserves unbounded historical enumeration.

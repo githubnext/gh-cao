@@ -44,6 +44,7 @@ type Task struct {
 	Scope            *ScopeChange    `json:"scope,omitempty"`
 	Traceparent      string          `json:"traceparent,omitempty"`
 	Outcome          *mining.Outcome `json:"outcome,omitempty"`
+	ScopeEpoch       int64           `json:"scopeEpoch,omitempty"`
 }
 
 type ScopeChange struct {
@@ -92,6 +93,7 @@ type RunTask struct {
 	EnqueuedAt     time.Time       `json:"enqueuedAt"`
 	ScopeEpoch     int64           `json:"scopeEpoch,omitempty"`
 	Enumeration    *RunEnumeration `json:"enumeration,omitempty"`
+	Observation    string          `json:"observation,omitempty"`
 	// Failures counts processing failures, never GitHub run attempts.
 	Failures  int       `json:"failures,omitempty"`
 	NotBefore time.Time `json:"notBefore,omitempty"`
@@ -101,6 +103,7 @@ type RunTask struct {
 type Lease struct {
 	Task      Task
 	MessageID string
+	Receipt   string
 }
 
 // Queue is the durable, debounced collection queue.
@@ -166,7 +169,7 @@ func (q Queue) EnqueueRun(ctx context.Context, task RunTask) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if task.InstallationID <= 0 || task.ScopeEpoch < 0 ||
+	if task.InstallationID <= 0 || task.ScopeEpoch < 0 || !validRunObservation(task.Observation) ||
 		task.Enumeration == nil && (task.RunID <= 0 || task.Attempt <= 0) {
 		return false, errors.New("run tasks require an installation, run id, positive attempt, and non-negative enrollment epoch")
 	}
@@ -199,6 +202,9 @@ func runTaskKey(task RunTask) string {
 	}
 	if task.ScopeEpoch > 0 {
 		key += ":epoch:" + strconv.FormatInt(task.ScopeEpoch, 10)
+	}
+	if task.Observation != "" {
+		key += ":observation:" + task.Observation
 	}
 	return key
 }

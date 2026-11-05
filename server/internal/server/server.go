@@ -104,6 +104,9 @@ type Config struct {
 	SessionArchive     *sessionarchive.Config
 	SessionArchiveBlob *sessionarchiveblob.Config
 	SessionArchiveRead *SessionArchiveReadAccess
+	// SessionArchiveAuthority is mandatory for native hosted archive privacy.
+	// It must share the source enrollment transaction's durable epoch ledger.
+	SessionArchiveAuthority sessionarchive.NativeAuthority
 	// RateLimits overrides inbound request rate limits; the zero value keeps
 	// the production defaults.
 	RateLimits RateLimitConfig
@@ -394,7 +397,9 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 			return nil, err
 		}
 		app.adxTraces = worker
-		app.Collector().runner.Traces = worker
+		if app.Collector().native == nil {
+			app.Collector().runner.Traces = worker
+		}
 	}
 	if err := app.configureSessionArchive(ctx); err != nil {
 		return nil, fmt.Errorf("configure session archive: %w", err)

@@ -114,6 +114,8 @@ func TestGitHubNativePipelineWithoutExecutables(t *testing.T) {
 			_, _ = w.Write([]byte(`{"artifacts":[{"id":100,"name":"usage","expired":false,"workflow_run":{"id":303}}]}`))
 		case "/repos/octo/api/actions/artifacts/100/zip":
 			_, _ = w.Write(archive)
+		case "/repos/octo/api/actions/runs/303/attempts/1/jobs":
+			_, _ = w.Write([]byte(`{"total_count":0,"jobs":[]}`))
 		default:
 			t.Errorf("unexpected acquisition endpoint %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -128,7 +130,7 @@ func TestGitHubNativePipelineWithoutExecutables(t *testing.T) {
 	if err := collector.Collect(t.Context(), "octo/api", 7, since); err != nil {
 		t.Fatal(err)
 	}
-	if len(store.published) != 1 || calls.Load() != 4 {
+	if len(store.published) != 1 || calls.Load() != 5 {
 		t.Fatalf("native runtime did not execute all three stages: publications=%d calls=%d", len(store.published), calls.Load())
 	}
 	evidence := store.published[0]

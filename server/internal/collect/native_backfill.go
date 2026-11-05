@@ -23,6 +23,62 @@ type NativeScopeEnumerator interface {
 	ListInstallationsPage(context.Context, int) ([]githubapp.Installation, int, error)
 }
 
+type NativeInventoryPreparation interface {
+	NativeInventoryRefresher
+	ControlRepository() string
+	EnsureReady(context.Context, collectnative.EnrollmentScope) error
+}
+
+func (b Backfill) prepareNativeInventory(ctx context.Context, repositories []enrolledRepository) (int, error) {
+	if b.NativeInventory == nil {
+		return 0, nil
+	}
+	control, err := b.AcquisitionScopes.CurrentScope(ctx, b.NativeInventory.ControlRepository())
+	if err != nil {
+		return 0, fmt.Errorf("native inventory control scope: %w", err)
+	}
+	failures := 0
+	refresh := func(scope collectnative.EnrollmentScope) error {
+		refreshErr := b.NativeInventory.RefreshInventory(ctx, scope)
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if refreshErr != nil {
+			failures++
+			backfillLog.Printf("native inventory refresh deferred repository=%s", scope.Repository)
+		}
+		// A failed refresh may reuse valid retained evidence while its durable
+		// generation stays pending. This precheck never replaces Activate's fence.
+		if readyErr := b.NativeInventory.EnsureReady(ctx, scope); readyErr != nil {
+			return errors.Join(readyErr, refreshErr)
+		}
+		return nil
+	}
+	if err := refresh(control); err != nil {
+		return failures, err
+	}
+	var unavailable []error
+	for _, repository := range repositories {
+		if repository.name == control.Repository {
+			continue
+		}
+		scope, err := b.AcquisitionScopes.CurrentScope(ctx, repository.name)
+		if errors.Is(err, collectnative.ErrIdentity) {
+			continue
+		}
+		if err != nil {
+			return failures, err
+		}
+		if err := refresh(scope); err != nil {
+			unavailable = append(unavailable, fmt.Errorf("native inventory repository %s: %w", scope.Repository, err))
+		}
+		if ctx.Err() != nil {
+			return failures, ctx.Err()
+		}
+	}
+	return failures, errors.Join(unavailable...)
+}
+
 func (b Backfill) replayNative(ctx context.Context) (ingest.Result, int, error) {
 	if b.NativePublications == nil || b.AcquisitionScopes == nil {
 		return ingest.Result{}, 0, fmt.Errorf("%w: native replay requires durable publication and scope adapters", collectnative.ErrUnsupported)
@@ -175,6 +231,17 @@ func (b Backfill) runNative(ctx context.Context, state BackfillState) (BackfillS
 		return b.fail(ctx, state, err)
 	}
 	state.Installations, state.Repositories = len(listed), len(repositories)
+	if b.NativeInventory != nil {
+		state.Phase = "inventory"
+		if err := b.publish(ctx, state); err != nil {
+			return b.fail(ctx, state, err)
+		}
+		failures, err := b.prepareNativeInventory(ctx, repositories)
+		state.EnumerationFailures += failures
+		if err != nil {
+			return b.fail(ctx, state, err)
+		}
+	}
 	state.Phase = "replaying"
 	if err := b.publish(ctx, state); err != nil {
 		return b.fail(ctx, state, err)

@@ -208,21 +208,81 @@ run time, not restart/replay time; linked-detail retention remains enforced.
 Acquisition gaps MUST remain visible as untimed `collection.coverage` audits and
 partial source metadata, not success-shaped defaults or inferred zeroes.
 
-**Current activation limit:** this service and its PostgreSQL canonical/trace
-adapters are independently executable, but `CollectorConfig.NativeAcquisition`
-still fails closed. The historical run consumer is available through the
-fenced queue/native acquisition boundary, but is not activated by the hosted
-composition. The existing backfill API has a native, paginated cold-start and
-publication-replay branch with no lake access; legacy backfill remains separate.
-Native enrollment, immutable historical discovery and atomic shared-trace
-withdrawal are integrated behind these owned boundaries, but the hosted
-composition and repository/webhook lifecycle, complete
-inventory/Value replacement and session archive are not yet integrated with this
-boundary. Native Actions job-log/legacy audit extraction is also unavailable;
-`legacy-audit-unavailable` is explicit evidence, not a parity claim. The existing
-hosted collector, container and CLI remain the legacy filesystem implementation.
-Passing native service tests MUST NOT be represented as distributed hosted
-collector activation or complete profile equivalence.
+**Current activation limit:** native hosted assembly exists behind the public
+configuration gate, including authenticated enrollment, webhook admission,
+receipt-fenced workers, immutable historical discovery, inventory preparation,
+publication replay and repository/backfill lifecycle integration. Its
+PostgreSQL canonical writer verifies the exact inventory snapshot's readiness
+inside the activation transaction. Native session archive and shared trace
+destinations use their scoped durable admission and enrollment authority.
+`CollectorConfig.NativeAcquisition` still fails closed: complete engine/debug
+audit parity and Value coexistence are not established. Executable gated assembly
+and service tests are not permission to enable this profile.
+
+Native Actions job acquisition uses the exact-attempt jobs endpoint
+and scoped job-log downloads with shared quota observations, credential-free
+signed redirects, cancellation and hard resource limits. Runner output is
+ephemeral: only job metadata and allowlisted annotation classes/locations survive,
+and runner stdout is never counted again as agent usage. The collector also
+projects exact-attempt `usage-activity-summary/v1`, reported token-usage counters
+and cumulative AIC, safe-output manifests and execution-state audit findings.
+Structured `agent_output.json` reports retain missing-tool/data identifiers,
+timestamps and noop occurrences, but not free-text reasons, context or messages;
+noop text loss is explicit as `agent-report-text-unavailable`. Immutable
+`github_api_calls` counts only `github_rate_limits.jsonl` response-header entries,
+not rate-limit probes or the collector's own calls. Invalid, ambiguous,
+wrong-attempt or over-budget sources cannot publish partial report/accounting
+results.
+Unified sessions replace legacy event projections, not immutable aggregates.
+Unpriced legacy usage does not infer a model price or a zero AIC total.
+
+Native startup-model analysis follows `github/gh-aw@v1.0.1`
+`audit_model_resolution.go` and `audit_model_availability.go`. The full pinned
+run `39499464895` session, stdio and same-run reflection fixtures now produce the
+upstream high/configuration `model_unavailable` finding and its high-priority
+model recommendation. Native acquisition downloads the `agent` artifact as well
+as `usage`, and admits its `agent-stdio.log` and `awf-reflect.json` members only
+with same-archive exact-attempt identity. The pinned Copilot/routed upload's
+`runtime/aw_info.json` is an explicit sibling-layout identity source; metadata in
+another artifact never binds an otherwise unidentified archive.
+
+Attribution requires a failed run, a nonzero single agent execution, no native
+agent activity, role-specific harness refusal or model-resolution error, and
+complete unambiguous provider inventory excluding the exact requested model.
+Router traffic and harness wrapper state do not establish native continuation.
+Continued, successful, optional-agent or unproven-stop resolution failures produce
+the low `model_resolution_failed` advisory, not a causal model-unavailability
+finding. Missing, incomplete or contradictory reflection produces
+`model_availability_unknown`; a recorded `unsupported_endpoint` cause produces
+`model_endpoint_unsupported` without reclassifying the model as absent. The
+legacy Pi startup-line fallback applies only when no failed resolution was
+recorded. Provider aliases, exact model selectors and per-role stop evidence
+remain distinct. Raw log/reflection text is never persisted; descriptions retain
+validated identifiers only. Ambiguous or invalid sources produce stable coverage
+classifications; byte, line, entry and role/log comparison limits reject excess
+work instead of successful truncation. Invalid sessions cannot publish partial
+causal findings or be reinterpreted as missing evidence.
+
+The remaining default audit parity boundary is concrete, not an unspecified
+missing collector. The following inventory is pinned to `github/gh-aw@v1.0.1`;
+it excludes optional cross-run/baseline comparisons and custom graders:
+
+| Upstream owner and required inputs | Remaining native limitation |
+|---|---|
+| `logs_metrics.go:extractLogMetrics`, `audit_report.go:buildAuditMetrics`: primary `events.jsonl`, engine-specific agent logs, inferred fallback metrics and their precedence | Native does not implement the complete Copilot/Claude/Codex/Pi or behavior-defined engine metric/debug parsers. Structured token counters and safe unified-session events do not establish equivalent turns, tool sequences, warnings, engine errors or estimated legacy cost. `high_token_usage` (>50,000 tokens), `many_iterations` (>10 turns) and complete immutable metric totals therefore lack parity. Runner stdout must not become an agent-metric fallback. |
+| `audit_report.go:extractAuditErrors`, `extractPreAgentStepErrors`, and `audit_report_analysis.go` | Allowlisted Actions annotation classes/locations and execution-state `workflow_failed`/`workflow_timeout` findings exist. Native does not reconstruct upstream engine/pre-agent validation issues, failure descriptions or the `multiple_errors` (>5 validation issues) rule. A successful conclusion alone cannot establish the upstream `workflow_succeeded` narrative or recovery of failed delegated work. |
+| `audit_threat_detection.go` and `audit_threat_detection_session.go`: detection job conclusion, execution-start evidence, unified `detection.result`, legacy verdict/result fallback | `threat_detection_job_failed` and `threat_detected` are not reconstructed. Observed detection session events retain `threat-detection-audit-unavailable`; absence of a parsed verdict is never evidence of a safe result. Detection-model usage must remain separate from agent usage. |
+| `audit_report_analysis.go:generateToolingFindings`, `generateFirewallFindings`; `logs_metrics.go`, raw MCP/gateway, access, policy and firewall adapters | Structured missing-tool/data reports and usage-summary counters are supported, but raw MCP startup failures, complete network evidence/precedence and `mcp_server_failures`, `tools_not_available`, `blocked_network_requests` findings/recommendations are not fully reconstructed. Summary availability must not imply these rule families were evaluated. Noop free-text loss remains explicit. |
+| `token_usage_declared_subagents.go`, `token_usage_subagent*.go`, `audit_subagent_model.go`: declared models, session invocation lineage and per-model requests | Safe unified sub-agent events exist, but complete declared/observed-model attribution and `subagent_model_not_observed`, `subagent_model_unavailable`, `subagent_failed` findings and failure-recovery recommendations are not implemented. Alias fallback is not a delegation failure. |
+| `audit_analysis_fanout.go`, `audit_expanded.go`: usage-summary friction/ledger/integrity/steering, raw work-queue evidence, tool timings, prompt/session and safe-output chain analysis | Working-set and selected structured counters are supported, not the complete expanded audit. Existing `legacy-friction-unavailable`, `legacy-ledger-unavailable`, `legacy-integrity-unavailable` and `legacy-steering-unavailable` gaps identify observed unsupported summary sections. Complete MCP health, policy/redaction, queue, session/prompt and temporary-target chain reports are not reconstructed. |
+| `audit_agentic_analysis.go`, `observability_insights.go`, `drain3_integration.go`, `audit_report.go:buildAuditNarrative` | The six `agentic_*` assessment findings, domain/behavior assessments, execution/actuation/capability/network/privacy insights, Drain3 template/anomaly/stage insights, and corresponding default recommendations are not reproduced. These consume the preceding metric, tooling, network, safe-output and context inputs; zero-filled substitutes are not parity. |
+| `audit_report_analysis.go:generateRecommendations` and the Activity audit normalizer | Only startup-model recommendations currently accompany supported execution/model findings. The rest of the default failure, cost, iteration, tooling, network, sub-agent, success and assessment recommendations are absent. Immutable high/medium counts include findings, recommendations and insights together; they MUST remain null while `legacy-audit-unavailable` is present, even when a supported high finding exists. |
+
+`legacy-audit-unavailable` and narrower source gaps remain explicit evidence, not
+a complete-audit or profile-parity claim. The publicly enabled hosted collector,
+container and CLI remain on the legacy implementation. Passing native service or
+gated-assembly tests MUST NOT be represented as publicly activated distributed
+collection or complete profile equivalence.
 
 ## 3. Enrollment
 

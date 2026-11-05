@@ -123,13 +123,7 @@ func (w RunWorker) process(ctx context.Context, lease RunLease) error {
 	if lease.Task.Enumeration != nil {
 		next, err = w.enumerate(acquire, lease.Task)
 	} else {
-		err = w.Collector.CollectScopedAttempt(acquire, collectnative.ScopedAttempt{
-			Identity: collectnative.Identity{
-				Repository: lease.Task.Repository, InstallationID: lease.Task.InstallationID,
-				RunID: lease.Task.RunID, Attempt: lease.Task.Attempt,
-			},
-			Epoch: lease.Task.ScopeEpoch,
-		})
+		err = w.collectAttempt(acquire, lease.Task)
 	}
 	cancel()
 	if ctx.Err() != nil {
@@ -143,7 +137,7 @@ func (w RunWorker) process(ctx context.Context, lease RunLease) error {
 		}
 		return w.Queue.CompleteRun(ctx, lease)
 	}
-	if errors.Is(err, collectnative.ErrBusy) || errors.Is(err, operational.ErrCapacity) {
+	if errors.Is(err, collectnative.ErrBusy) || errors.Is(err, collectnative.ErrClaimLost) || errors.Is(err, operational.ErrCapacity) {
 		return errors.Join(err, w.Queue.DeferRun(ctx, lease))
 	}
 	var unavailable *githubquota.UnavailableError
@@ -155,4 +149,25 @@ func (w RunWorker) process(ctx context.Context, lease RunLease) error {
 		return errors.Join(err, w.Queue.DeferRun(ctx, lease))
 	}
 	return errors.Join(err, w.Queue.RetryRun(ctx, lease))
+}
+
+func (w RunWorker) collectAttempt(ctx context.Context, task RunTask) error {
+	if w.Scopes != nil {
+		scope, err := w.Scopes.CurrentScope(ctx, task.Repository)
+		if errors.Is(err, collectnative.ErrIdentity) || err == nil &&
+			(scope.InstallationID != task.InstallationID || scope.Epoch != task.ScopeEpoch) {
+			workerLog.Printf("obsolete native attempt acknowledged")
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return w.Collector.CollectScopedAttempt(ctx, collectnative.ScopedAttempt{
+		Identity: collectnative.Identity{
+			Repository: task.Repository, InstallationID: task.InstallationID,
+			RunID: task.RunID, Attempt: task.Attempt,
+		},
+		Epoch: task.ScopeEpoch,
+	})
 }

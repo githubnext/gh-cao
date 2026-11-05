@@ -275,6 +275,7 @@ func (c Collector) extract(ctx context.Context, run Run) (Evidence, error) {
 							return err
 						}
 					}
+					files[artifact.Name+"/"+name] = content
 				}
 				continue
 			}
@@ -328,6 +329,11 @@ func (c Collector) extract(ctx context.Context, run Run) (Evidence, error) {
 			return Evidence{}, err
 		}
 	}
+	jobGaps, err := acquireJobs(ctx, c.Provider, run, fields, c.Limits, &bytesUsed)
+	if err != nil {
+		return Evidence{}, err
+	}
+	evidence.Gaps = append(evidence.Gaps, jobGaps...)
 	if len(sessions) > 1 {
 		evidence.Gaps = append(evidence.Gaps, "ambiguous-session")
 	} else if len(sessions) == 1 {
@@ -348,6 +354,11 @@ func (c Collector) extract(ctx context.Context, run Run) (Evidence, error) {
 	if err := supplementArtifacts(fields, session, files, run.Identity); err != nil {
 		evidence.Gaps = append(evidence.Gaps, "invalid-supplement")
 	}
+	auditGaps, err := enrichAudit(ctx, fields, files, run.Identity, c.Limits)
+	if err != nil {
+		return Evidence{}, err
+	}
+	evidence.Gaps = append(evidence.Gaps, auditGaps...)
 	if session != nil {
 		fields["cao_unified_session"] = session
 	}
@@ -405,10 +416,20 @@ func artifactIdentity(files map[string][]byte, name string) (map[string]any, err
 			return info, nil
 		}
 		if directory == "." {
-			return nil, ErrIdentity
+			break
 		}
 		directory = path.Dir(directory)
 	}
+	// Pinned Copilot/routed agent archives stage identity at runtime/aw_info.json,
+	// beside rather than above their logs. Never borrow another archive's identity.
+	if content, present := files["runtime/aw_info.json"]; present {
+		var info map[string]any
+		if err := decode(content, &info); err != nil || info == nil {
+			return nil, ErrIdentity
+		}
+		return info, nil
+	}
+	return nil, ErrIdentity
 }
 
 func supplementArtifacts(run, session map[string]any, files map[string][]byte, identity Identity) error {

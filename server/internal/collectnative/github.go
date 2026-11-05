@@ -121,6 +121,9 @@ func (g GitHub) get(ctx context.Context, installation int64, endpoint string) ([
 		return nil, nil, response.StatusCode, fmt.Errorf("native acquisition API status %d", response.StatusCode)
 	}
 	content, err := readBounded(response.Body, g.Limits.defaults().Bytes)
+	if ctx.Err() != nil {
+		return nil, nil, 0, ctx.Err()
+	}
 	return content, response.Header.Clone(), response.StatusCode, err
 }
 
@@ -255,7 +258,7 @@ func artifactName(name string) bool {
 	if len(name) > 256 || !artifactIdentifier.MatchString(name) {
 		return false
 	}
-	for _, suffix := range []string{"usage", "experiment", "experiments", "graders", "evals"} {
+	for _, suffix := range []string{"usage", "agent", "experiment", "experiments", "graders", "evals", "safe-outputs-items", "agent_output.json"} {
 		if name == suffix || strings.HasSuffix(name, "-"+suffix) {
 			return true
 		}
@@ -328,13 +331,21 @@ func (g GitHub) Artifacts(ctx context.Context, run Run, visit func(Artifact) err
 }
 
 func (g GitHub) archive(ctx context.Context, run Run, id int64) ([]byte, error) {
-	content, headers, status, err := g.get(ctx, run.InstallationID, fmt.Sprintf("repos/%s/actions/artifacts/%d/zip", run.Repository, id))
+	return g.download(ctx, run.InstallationID, fmt.Sprintf("repos/%s/actions/artifacts/%d/zip", run.Repository, id))
+}
+
+func (g GitHub) download(ctx context.Context, installation int64, endpoint string) ([]byte, error) {
+	content, headers, status, err := g.get(ctx, installation, endpoint)
 	if err != nil || status == http.StatusOK {
 		return content, err
 	}
+	return g.signedDownload(ctx, headers)
+}
+
+func (g GitHub) signedDownload(ctx context.Context, headers http.Header) ([]byte, error) {
 	location, err := url.Parse(headers.Get("Location"))
 	if err != nil || location.Scheme != "https" || location.Host == "" || location.User != nil || location.Fragment != "" {
-		return nil, errors.New("invalid native artifact download redirect")
+		return nil, errors.New("invalid native signed download redirect")
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, location.String(), nil)
 	if err != nil {
@@ -347,13 +358,17 @@ func (g GitHub) archive(ctx context.Context, run Run, id int64) ([]byte, error) 
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		return nil, errors.New("native artifact download transport failed")
+		return nil, errors.New("native signed download transport failed")
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("native artifact download status %d", response.StatusCode)
+		return nil, fmt.Errorf("native signed download status %d", response.StatusCode)
 	}
-	return readBounded(response.Body, g.Limits.defaults().Bytes)
+	content, err := readBounded(response.Body, g.Limits.defaults().Bytes)
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	return content, err
 }
 
 func unpack(ctx context.Context, archive []byte, limits Limits) (map[string][]byte, int, error) {
@@ -407,8 +422,14 @@ func unpack(ctx context.Context, archive []byte, limits Limits) (map[string][]by
 		}
 		total += len(value)
 		switch path.Base(name) {
-		case "aw_info.json", "aw_session.jsonl", "assignments.json", "grader_results.json", "grader_manifest.json", "evals.jsonl":
+		case "aw_info.json", "aw_session.jsonl", "assignments.json", "grader_results.json", "grader_manifest.json", "evals.jsonl",
+			"token-usage.jsonl", "safe-output-items.jsonl", "agent_output.json", "github_rate_limits.jsonl",
+			"agent-stdio.log", "awf-reflect.json":
 			files[name] = value
+		case "summary.json":
+			if path.Base(path.Dir(name)) == "activity" {
+				files[name] = value
+			}
 		}
 	}
 	return files, total, nil

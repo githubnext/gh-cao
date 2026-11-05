@@ -18,6 +18,17 @@ type RunEnumeration struct {
 	Before             time.Time `json:"before"`
 }
 
+func validRunObservation(value string) bool {
+	if value == "" || value == "completed" {
+		return true
+	}
+	if len(value) > 64 || len(value) <= len("repair:") || value[:len("repair:")] != "repair:" {
+		return false
+	}
+	at, err := time.Parse(time.RFC3339, value[len("repair:"):])
+	return err == nil && at.Location() == time.UTC && at.Format(time.RFC3339) == value[len("repair:"):]
+}
+
 func validRunEnumeration(task RunTask) bool {
 	e := task.Enumeration
 	if e == nil || task.RunID != 0 || task.Attempt != 0 || task.ScopeEpoch <= 0 ||
@@ -141,7 +152,8 @@ func (w RunWorker) enumerate(ctx context.Context, task RunTask) (*RunEnumeration
 				return nil, collectnative.ErrIdentity
 			}
 			tasks = append(tasks, RunTask{Repository: scope.Repository, InstallationID: scope.InstallationID,
-				ScopeEpoch: scope.Epoch, RunID: run.RunID, Attempt: run.Attempt, CreatedAt: run.CreatedAt})
+				ScopeEpoch: scope.Epoch, RunID: run.RunID, Attempt: run.Attempt, CreatedAt: run.CreatedAt,
+				Observation: task.Observation})
 		}
 	}
 	if err != nil {

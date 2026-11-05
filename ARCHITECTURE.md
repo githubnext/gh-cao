@@ -449,7 +449,7 @@ collection, widen policy or replace ordinary dashboard readiness.
 The independently default-off Parquet session archive
 (`server/internal/sessionarchive/`, `server/internal/sessionarchiveblob/`,
 `specs/session-archive.md`, and `server/SESSION-ARCHIVE.md`) adds private full
-approved analytics without changing PostgreSQL schemas, queries, ingestion,
+approved analytics without changing canonical PostgreSQL schemas, queries, ingestion,
 retention, or operational state. It reuses the existing approved `adxtrace`
 projection and the authorized pre-normalization acquisition visit. Local
 SQLite archive access is limited to snapshot-declared repositories and does not
@@ -472,6 +472,29 @@ preserves bounded replay fences. Retention and recovery grace are independent
 of disposable source caches and dashboard detail; logical exclusion is not
 physical erasure. Publisher retries, maintenance and shutdown belong to the
 existing server's tracked lifecycle, not PostgreSQL archive state.
+
+An explicitly selected native hosted producer instead writes and verifies
+bounded Zstandard Parquet in Go memory from the generated logical event schema.
+It uses the same Blob lease, immutable-object reservations, manifests, replay
+fences, reader horizons and conditional pointer publication, with metadata-only
+admission receipts and no POSIX cache, process lock, DuckDB or other subprocess.
+Only complete durable publication acknowledges an exact-attempt capture;
+unacknowledged input remains eligible for authorized reacquisition. Its
+destination acceptance binding is distinct from legacy DuckDB acceptance.
+Native server selection additionally requires an explicit PG-backed source
+privacy authority (`sessionarchive.NativeAuthority`). Its bounded metadata-only
+registration/withdrawal outbox is enlisted in source enrollment transactions,
+not used as a physical archive catalog or content store. Dispatch-time source
+epochs fence admission; source-tagged Blob membership and locked final-delivery
+authorization deny withdrawn/old epochs immediately at the committed PG
+boundary. Blob cleanup remains independently retried, with permanent source
+tombstones and conservative physical retirement. This is not a cross-backend
+transaction: failed or stale publication cannot acknowledge acquisition, and
+pending cleanup cannot authorize old content after reenrollment.
+The boundary does not activate the distributed collector or permit multiple ADX
+exporters. Native collector selection remains fail-closed pending real PG
+enrollment/read-lock/outbox composition, Azure acceptance, and the complete
+integration gates. The separately selected legacy archive is unchanged.
 
 Local trusted queries read authorized Parquet directly without persistent
 DuckDB event tables. Hosted trusted ADX queries require verified external-table
@@ -1883,13 +1906,27 @@ not authorize cross-repository evidence access.
   access and carry workflow/run-page cursors through receipt-fenced queue
   replacement. Separate discovery/attempt capacities permit work to drain;
   running native roles also replay orphaned publication intents after ACK.
+  The gated hosted composition now selects this boundary for admission, workers,
+  rebuild, cold start and explicit repository repair without constructing a
+  filesystem lake, Runner or Projector. Source-bound immutable inventory bytes
+  replace packaged inventory paths; PostgreSQL pins the reviewed digest and
+  checks current target/control inventory inside canonical activation.
+  Webhook/control deliveries carry source epochs and fresh queue receipts.
+  Independent safe-output dispositions survive run reprojection, while durable
+  Value invalidations remain hints, not acquired Value evidence.
+  Native archive admission binds the original dispatch epoch before lossy
+  normalization. Its PostgreSQL metadata-only privacy ledger withdraws visibility
+  with source ownership and durably retries epoch-specific Blob retirement;
+  physical Blob deletion is deliberately not a cross-backend transaction.
+  Shared trace withdrawal still commits with source enrollment, and does not
+  relax ADX's single-exporter activation restriction.
   The service is not yet a selectable hosted acquisition profile:
-  `CollectorConfig.NativeAcquisition` rejects activation until enrollment,
-  queue/backfill, inventory and enabled destinations are integrated without the
-  legacy filesystem projector. Native legacy job/audit acquisition is explicitly
-  unavailable. Existing hosted/container collection and session archive still
-  use the legacy path; shared trace storage does not relax ADX's single-exporter
-  activation restriction. See `specs/server-ingestion.md` section 2.4.
+  `CollectorConfig.NativeAcquisition` continues to reject public activation
+  until complete default engine/debug audit parity and Value coexistence are
+  established. Gated-assembly tests with real PostgreSQL and no executable PATH
+  are integration evidence, not proof of complete profile equivalence. Existing
+  hosted/container defaults remain the separate legacy producer.
+  See `specs/server-ingestion.md` section 2.4.
 - Browsers and external clients never receive Redis or Postgres endpoints or
   credentials. Dashboard source replacement is transactional in Postgres; a
   failed replacement leaves the previous committed data available. An empty

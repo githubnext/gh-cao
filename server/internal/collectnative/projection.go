@@ -227,10 +227,16 @@ func ProjectCanonical(ctx context.Context, evidence Evidence, published time.Tim
 	}
 	metadata := object(session["run"])
 	for _, name := range []string{"engine_id", "agent_version", "cli_version", "firewall_version", "gateway_version",
-		"model", "requested_model", "resolved_model", "safe_outputs", "safe_items_count", "token_usage_summary"} {
+		"model", "requested_model", "resolved_model", "safe_outputs", "safe_items_count"} {
 		if value, present := metadata[name]; present {
 			input[name] = value
 		}
+	}
+	if summary := object(metadata["token_usage_summary"]); summary != nil {
+		combined := map[string]any{}
+		merge(combined, object(input["token_usage_summary"]))
+		merge(combined, summary)
+		input["token_usage_summary"] = combined
 	}
 	owner, name, _ := strings.Cut(i.Repository, "/")
 	sourcePath := strings.TrimSuffix(strings.ToLower(text(input["workflow_path"])), ".lock.yml") + ".md"
@@ -255,11 +261,18 @@ func ProjectCanonical(ctx context.Context, evidence Evidence, published time.Tim
 		run["completedAt"] = run["updatedAt"]
 	}
 	for from, to := range map[string]string{"head_branch": "branch", "head_sha": "headSha", "engine_id": "engineId",
-		"firewall_version": "firewallVersion", "gateway_version": "gatewayVersion"} {
+		"firewall_version": "firewallVersion", "gateway_version": "gatewayVersion",
+		"engine_version": "engineVersion", "agent_runtime": "agentRuntime", "duration": "duration"} {
 		putText(run, to, input[from])
 	}
 	putText(run, "requestedModel", input["requested_model"], input["model"])
-	putText(run, "resolvedModel", input["resolved_model"], input["model"])
+	dominant := dominantLegacyModel(object(input["token_usage_summary"]))
+	if run["modelId"] == "auto" && input["model_id"] == nil {
+		if dominant != "" {
+			run["modelId"] = dominant
+		}
+	}
+	putText(run, "resolvedModel", input["resolved_model"], input["model"], dominant)
 	usage := object(input["token_usage_summary"])
 	for from, to := range map[string]string{"total_aic": "aicTotal", "total_input_tokens": "inputTokens",
 		"total_output_tokens": "outputTokens", "total_cache_read_tokens": "cacheReadTokens",
@@ -272,6 +285,13 @@ func ProjectCanonical(ctx context.Context, evidence Evidence, published time.Tim
 		run[field] = nil
 	}
 	run["safeItemsCount"] = canonicalNumber(input["safe_items_count"])
+	run["actionMinutes"] = canonicalNumber(input["action_minutes"])
+	run["githubApiCalls"] = canonicalNumber(input["github_api_calls"])
+	run["errorCount"] = canonicalNumber(input["error_count"])
+	legacyAggregates(run, input)
+	if slices.Contains(persisted.Gaps, "legacy-audit-unavailable") {
+		run["highPriorityAuditItems"], run["mediumPriorityAuditItems"] = nil, nil
+	}
 	started, completed := eventClock(first(input["started_at"], input["created_at"])), eventClock(run["completedAt"])
 	if started != "" && completed != "" {
 		start, _ := time.Parse(time.RFC3339Nano, started)

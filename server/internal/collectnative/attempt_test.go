@@ -47,6 +47,8 @@ func TestGitHubNativeExactHistoricalAttempt(t *testing.T) {
 					_, _ = w.Write([]byte(`{"artifacts":[{"id":100,"name":"usage","workflow_run":{"id":303}}]}`))
 				case "/repos/octo/api/actions/artifacts/100/zip":
 					_, _ = w.Write(archive)
+				case "/repos/octo/api/actions/runs/303/attempts/2/jobs":
+					_, _ = w.Write([]byte(`{"total_count":0,"jobs":[]}`))
 				default:
 					t.Errorf("exact-attempt task expanded into another acquisition endpoint: %s", r.URL.Path)
 					w.WriteHeader(http.StatusNotFound)

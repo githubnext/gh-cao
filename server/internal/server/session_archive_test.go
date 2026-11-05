@@ -9,9 +9,27 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 )
+
+func TestSessionArchiveNativeBoundaryRejectsLegacyFallback(t *testing.T) {
+	service := &sessionArchiveService{backend: &sessionArchiveProbe{}}
+	if err := service.CaptureSession(t.Context(), "octo/api", "123", 1, time.Now(), []byte("must-not-persist"), ""); !errors.Is(err, collectnative.ErrUnsupported) {
+		t.Fatal("native collector silently selected a legacy archive")
+	}
+	native := &nativeSessionArchive{}
+	if err := native.Capture(t.Context(), "octo/api", "/must-not-read", "/must-not-read"); !errors.Is(err, collectnative.ErrUnsupported) {
+		t.Fatal("native archive selected a legacy acquisition workspace")
+	}
+	if err := native.PrepareCache(t.Context(), "octo/api", "/must-not-read", "/must-not-write"); !errors.Is(err, collectnative.ErrUnsupported) {
+		t.Fatal("native archive selected a metadata cache")
+	}
+	var _ sessionArchiveBackend = (*nativeSessionArchive)(nil)
+	var _ collectnative.SessionTraceAdmission = (*sessionArchiveService)(nil)
+}
 
 type sessionArchiveProbe struct {
 	query     func(context.Context, sessionArchiveQuery) (sessionArchiveResult, error)

@@ -29,6 +29,10 @@ type retirement struct {
 }
 
 type archiveState struct {
+	SourceFenced          bool                    `json:",omitempty"`
+	WithdrawnSources      []sessionarchive.Source `json:",omitempty"`
+	Producer              string                  `json:",omitempty"`
+	NativeRecords         []nativeRecord          `json:",omitempty"`
 	Manifest              sessionarchive.Manifest
 	Fences                []sessionarchive.Fence
 	WithdrawnRepositories []string
@@ -45,6 +49,7 @@ type pointer struct {
 }
 
 type reader struct {
+	source  *sessionarchive.Source
 	members []sessionarchive.Member
 	cancel  context.CancelFunc
 }
@@ -54,6 +59,7 @@ type fileVerifier interface {
 }
 
 type Archive struct {
+	native    bool
 	config    Config
 	converter fileVerifier
 	blob      *blobClient
@@ -168,6 +174,9 @@ func (a *Archive) load(ctx context.Context) error {
 		if err := a.validateState(state); err != nil {
 			return err
 		}
+		if (state.Producer == "native") != a.native || (state.Producer != "" && state.Producer != "native") {
+			return errors.New("archive producer profile does not match durable state")
+		}
 	}
 	a.active, a.etag, a.state = active, etag, state
 	return nil
@@ -217,6 +226,9 @@ func (a *Archive) ready() error {
 func (a *Archive) save(ctx context.Context, state archiveState, horizon time.Time) error {
 	if err := a.ready(); err != nil {
 		return err
+	}
+	if a.native {
+		state.Producer = "native"
 	}
 	// Immutable state history is deliberately retained for recovery, not
 	// silently expired. Stop before its explicit initial 4 GiB ceiling
@@ -314,7 +326,10 @@ func (a *Archive) validateState(state archiveState) error {
 	if len(state.Pending)+len(state.Manifest.Files)+len(state.Retired) > a.config.MaxFiles*3 {
 		return ErrCapacity
 	}
-	entries := len(state.Manifest.Members) + len(state.WithdrawnRepositories)
+	entries := len(state.Manifest.Members) + len(state.WithdrawnRepositories) + len(state.NativeRecords) + len(state.WithdrawnSources)
+	if err := a.validateNativeRecords(state); err != nil {
+		return err
+	}
 	for _, repository := range state.WithdrawnRepositories {
 		if !a.config.authorized(a.config.Namespace, repository) {
 			return ErrScope
@@ -434,6 +449,31 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 	defer cancel()
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.native {
+		return errors.New("native archive cannot publish local staging files")
+	}
+	return a.publish(ctx, candidate, a.uploadFile, nil, nil)
+}
+
+func (a *Archive) uploadFile(ctx context.Context, file sessionarchive.File) error {
+	if err := a.converter.Verify(ctx, file.Path, file); err != nil {
+		return ErrIntegrity
+	}
+	handle, err := os.Open(file.Path)
+	if err != nil {
+		return errors.New("archive staging file is unavailable")
+	}
+	defer func() { _ = handle.Close() }()
+	info, err := handle.Stat()
+	if err != nil || !info.Mode().IsRegular() || info.Size() != file.Bytes {
+		return ErrIntegrity
+	}
+	return a.blob.immutable(ctx, objectKey(file), handle, file.Bytes, file.Digest)
+}
+
+// The caller holds the lease owner's mutex. Both producer profiles share the
+// same reservations, immutable-object verification, fences and pointer CAS.
+func (a *Archive) publish(ctx context.Context, candidate sessionarchive.Manifest, upload func(context.Context, sessionarchive.File) error, records []nativeRecord, withdrawnSource *sessionarchive.Source) error {
 	if err := a.ready(); err != nil {
 		return err
 	}
@@ -456,6 +496,12 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 		}
 	}
 	next := a.state
+	if withdrawnSource != nil {
+		next.WithdrawnSources = append(slices.Clone(next.WithdrawnSources), *withdrawnSource)
+	}
+	if records != nil {
+		next.NativeRecords = records
+	}
 	next.Manifest = normalized
 	next.Fences = slices.Clone(a.state.Fences)
 	withdrawing, published := false, false
@@ -509,8 +555,13 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 			continue
 		}
 		withdrawing = withdrawing || !replaced
-		next.Fences = mergeFence(next.Fences, sessionarchive.Fence{Namespace: old.Namespace, Repository: old.Repository,
-			RunID: old.RunID, Attempt: old.Attempt, Versions: []string{old.Version}, Withdrawn: !replaced})
+		retiredSource := withdrawnSource != nil && slices.ContainsFunc(a.state.NativeRecords, func(r nativeRecord) bool {
+			return r.Member == old && r.Source == *withdrawnSource
+		})
+		if !retiredSource {
+			next.Fences = mergeFence(next.Fences, sessionarchive.Fence{Namespace: old.Namespace, Repository: old.Repository,
+				RunID: old.RunID, Attempt: old.Attempt, Versions: []string{old.Version}, Withdrawn: !replaced})
+		}
 		if r := a.reader.Load(); r != nil {
 			for _, m := range r.members {
 				if memberKey(m) == memberKey(old) && !replaced {
@@ -568,21 +619,7 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 			a.failLease()
 			return err
 		}
-		if err := a.converter.Verify(ctx, file.Path, file); err != nil {
-			return ErrIntegrity
-		}
-		handle, err := os.Open(file.Path)
-		if err != nil {
-			return errors.New("archive staging file is unavailable")
-		}
-		info, err := handle.Stat()
-		if err != nil || !info.Mode().IsRegular() || info.Size() != file.Bytes {
-			_ = handle.Close()
-			return ErrIntegrity
-		}
-		err = a.blob.immutable(ctx, objectKey(file), handle, file.Bytes, file.Digest)
-		_ = handle.Close()
-		if err != nil {
+		if err := upload(ctx, file); err != nil {
 			return err
 		}
 		if a.verifyADX {
@@ -705,6 +742,7 @@ func (a *Archive) WithdrawRepository(ctx context.Context, repository string) err
 		}
 	}
 	next.Manifest.Members = slices.DeleteFunc(next.Manifest.Members, func(m sessionarchive.Member) bool { return m.Repository == repository })
+	next.NativeRecords = slices.DeleteFunc(slices.Clone(next.NativeRecords), func(r nativeRecord) bool { return r.Member.Repository == repository })
 	if len(next.Fences)+len(next.Manifest.Members) > a.config.MaxMembers {
 		a.failLease()
 		return ErrCapacity
@@ -723,11 +761,25 @@ func (a *Archive) Status() sessionarchive.Status {
 	defer a.mu.Unlock()
 	status := sessionarchive.Status{Enabled: a.config.Enabled, Generation: a.active.Generation,
 		ActiveTraces: len(a.state.Manifest.Members)}
+	for _, record := range a.state.NativeRecords {
+		if record.Gap != "" {
+			status.Gaps++
+		}
+	}
 	for _, f := range a.state.Manifest.Files {
 		status.ArchiveBytes += f.Bytes
 	}
 	for _, f := range a.state.Pending {
 		status.StagingBytes += f.Bytes
+	}
+	if a.native {
+		staged := map[string]bool{}
+		for _, f := range a.state.Pending {
+			for _, m := range f.Members {
+				staged[memberKey(m)] = true
+			}
+		}
+		status.StagedTraces = len(staged)
 	}
 	for _, r := range a.state.Retired {
 		status.ArchiveBytes += r.Bytes

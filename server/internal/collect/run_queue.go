@@ -129,6 +129,7 @@ func validRunTask(task RunTask, fields operational.TaskFields) bool {
 	return err == nil && task.Repository == repository && fields.Repository == repository &&
 		task.InstallationID > 0 && (task.Enumeration != nil && validRunEnumeration(task) ||
 		task.Enumeration == nil && task.RunID > 0 && task.Attempt > 0) && task.Failures >= 0 && task.ScopeEpoch > 0 &&
+		validRunObservation(task.Observation) &&
 		task.Key == runTaskKey(task) && fields.Key == task.Key
 }
 
@@ -161,7 +162,10 @@ func (q Queue) CompleteRun(ctx context.Context, lease RunLease) error {
 	if err != nil {
 		return err
 	}
-	return queue.CompleteTaskFenced(ctx, runTaskQueue(lease.Task), q.group(), lease.MessageID, lease.Receipt)
+	if err := queue.CompleteTaskFenced(ctx, runTaskQueue(lease.Task), q.group(), lease.MessageID, lease.Receipt); err != nil {
+		return err
+	}
+	return q.nativeHealth(ctx, true, false)
 }
 
 // RetryRun atomically replaces a failed lease, keeping the GitHub attempt
@@ -169,10 +173,16 @@ func (q Queue) CompleteRun(ctx context.Context, lease RunLease) error {
 func (q Queue) RetryRun(ctx context.Context, lease RunLease) error {
 	lease.Task.Failures++
 	if lease.Task.Failures >= q.maxAttempts() {
-		return q.replaceRun(ctx, lease, true)
+		if err := q.replaceRun(ctx, lease, true); err != nil {
+			return err
+		}
+		return q.nativeHealth(ctx, false, true)
 	}
 	lease.Task.NotBefore = time.Now().UTC().Add(backoff(lease.Task.Failures))
-	return q.replaceRun(ctx, lease, false)
+	if err := q.replaceRun(ctx, lease, false); err != nil {
+		return err
+	}
+	return q.nativeHealth(ctx, false, false)
 }
 
 // DeferRun does not charge claim contention or an early delivery as a failure.

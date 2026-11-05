@@ -29,10 +29,25 @@ func (p *Projection) runEvents(input map[string]any, at string) {
 			row["type"] = "eval.result"
 		case "safe_output.created":
 			row["type"] = "safe_output.result"
+		case "tool.call":
+			row["type"] = "mcp.tool_call"
+		case "tool.result", "tool.error":
+			row["type"] = "tool.execution_complete"
+		case "audit.skill_activation":
+			row["type"] = "skill.invoked"
+		case "net_allowed", "net_blocked":
+			row["type"] = "firewall.http_access"
 		}
 		collection := canonicalKind(text(row["type"]), source, fields)
 		if collection == "issues" {
 			merge(row, issueFields(text(fields["correlationId"]), fields))
+		}
+		if collection == "tools" {
+			name := firstText(fields["mcpTool"], fields["toolName"], summary, "unknown")
+			row["toolType"], row["name"] = "mcp", name
+			if bashTool.MatchString(name) {
+				row["toolType"] = "bash"
+			}
 		}
 		if source != "agent" || kind != "agent.session" || status != "completed" || summary != "" {
 			p.add(collection, id, at, row)
@@ -77,6 +92,12 @@ func (p *Projection) runEvents(input map[string]any, at string) {
 				Type  string `json:"type"`
 				Usage any    `json:"tokenUsage"`
 			}{"usage", usage}, nil)
+	}
+	if value, present := input["working_set"]; present {
+		emit("workflow_run_working_set", closed, "Working set measured", "observed", "gh-aw-logs", struct {
+			Type  string `json:"type"`
+			Value any    `json:"value"`
+		}{"working-set", value}, nil)
 	}
 	for index, candidate := range array(object(input["graders"])["results"]) {
 		record := object(candidate)
@@ -142,6 +163,7 @@ func (p *Projection) runEvents(input map[string]any, at string) {
 			delete(p.Collections["audits"][before], "payloadRef")
 		}
 	}
+	p.legacyEvents(input, closed, emit)
 	for index, candidate := range array(input["safe_outputs"]) {
 		record := object(candidate)
 		fields := map[string]any{"payloadRef": firstText(record["sessionPayloadRef"], "gh-aw-logs-shards#L1")}
@@ -172,6 +194,12 @@ func (p *Projection) runEvents(input map[string]any, at string) {
 				Type  string `json:"type"`
 				Count any    `json:"count"`
 			}{"safe-outputs", count}, nil)
+	}
+	for _, candidate := range array(input["actions_annotations"]) {
+		record := object(candidate)
+		fields := map[string]any{"code": record["code"], "payloadRef": fmt.Sprintf("actions/job/%s#L%s",
+			scalar(record["job_id"]), scalar(record["line"]))}
+		emit("actions.annotation", firstText(record["timestamp"], closed), text(record["title"]), "observed", "actions", record, fields)
 	}
 }
 

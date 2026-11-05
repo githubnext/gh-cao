@@ -30,6 +30,8 @@ var coordinate = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*/[a-z0-9._-]+$`)
 var workflowPath = regexp.MustCompile(`^\.github/workflows/[A-Za-z0-9_.-]+\.lock\.yml$`)
 var artifactIdentifier = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
 
+func IsAgenticWorkflowPath(value string) bool { return workflowPath.MatchString(value) }
+
 type Identity struct {
 	Repository     string `json:"repository"`
 	InstallationID int64  `json:"installationId"`

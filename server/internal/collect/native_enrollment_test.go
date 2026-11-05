@@ -63,7 +63,22 @@ func TestNativeEnrollmentFencesQueuedEpochAndErasesCanonicalGraph(t *testing.T) 
 		t.Fatalf("canonical publication: %d %v", count, err)
 	}
 	nativeCanonicalCount(t, data, "$runs", 1)
-	nativeCanonicalCount(t, data, "$audits", 2)
+	coverage, _, err := data.ExecuteSQLPlan(t.Context(), []query.Definition{{Name: "coverage", From: "$audits"}}, []string{"coverage"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	missing := map[string]bool{"audit-summary-unavailable": true, "job-logs-unavailable": true,
+		"legacy-audit-unavailable": true, "session-unavailable": true}
+	if len(coverage["coverage"].Rows) != len(missing) {
+		t.Fatalf("native acquisition coverage lost or invented source classes: %v", coverage)
+	}
+	for _, row := range coverage["coverage"].Rows {
+		code, _ := row["code"].(string)
+		if !missing[code] || row["type"] != "collection.coverage" || row["status"] != "unavailable" || row["timestamp"] != nil {
+			t.Fatalf("missing source was hidden or became a timed success-shaped audit: %v", row)
+		}
+		delete(missing, code)
+	}
 	removed, err := enrollment.RemoveRepositories(t.Context(), task.InstallationID, []string{task.Repository})
 	if err != nil || len(removed) != 1 {
 		t.Fatalf("authoritative withdrawal: %v %v", removed, err)
