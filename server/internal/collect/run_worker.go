@@ -129,6 +129,10 @@ func (w RunWorker) process(ctx context.Context, lease RunLease) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
+	if errors.Is(err, errObsoleteRunEnumeration) {
+		workerLog.Printf("obsolete native enumeration acknowledged")
+		return w.Queue.CompleteRun(ctx, lease)
+	}
 	if err == nil {
 		if next != nil {
 			lease.Task.Enumeration, lease.Task.Failures = next, 0

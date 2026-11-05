@@ -18,6 +18,8 @@ type RunEnumeration struct {
 	Before             time.Time `json:"before"`
 }
 
+var errObsoleteRunEnumeration = errors.New("obsolete native enumeration scope")
+
 func validRunObservation(value string) bool {
 	if value == "" || value == "completed" {
 		return true
@@ -101,11 +103,14 @@ func (w RunWorker) enumerationScope(ctx context.Context, task RunTask) (collectn
 		return collectnative.EnrollmentScope{}, collectnative.ErrUnsupported
 	}
 	scope, err := w.Scopes.CurrentScope(ctx, task.Repository)
+	if errors.Is(err, collectnative.ErrIdentity) {
+		return collectnative.EnrollmentScope{}, errObsoleteRunEnumeration
+	}
 	if err != nil {
 		return collectnative.EnrollmentScope{}, err
 	}
 	if scope.Repository != task.Repository || scope.InstallationID != task.InstallationID || scope.Epoch != task.ScopeEpoch {
-		return collectnative.EnrollmentScope{}, collectnative.ErrClaimLost
+		return collectnative.EnrollmentScope{}, errObsoleteRunEnumeration
 	}
 	return scope, nil
 }
@@ -121,6 +126,9 @@ func (w RunWorker) enumerate(ctx context.Context, task RunTask) (*RunEnumeration
 	if e.WorkflowID == 0 {
 		var workflows []int64
 		workflows, next, err = w.Discovery.DiscoveryWorkflows(ctx, scope, e.Page)
+		if _, scopeErr := w.enumerationScope(ctx, task); scopeErr != nil {
+			return nil, errors.Join(err, scopeErr)
+		}
 		if err == nil && len(workflows) > runBackfillPageSize {
 			err = collectnative.ErrCapacity
 		}
@@ -143,6 +151,9 @@ func (w RunWorker) enumerate(ctx context.Context, task RunTask) (*RunEnumeration
 	} else {
 		var runs []collectnative.DiscoveredRun
 		runs, next, err = w.Discovery.DiscoveryRuns(ctx, scope, e.WorkflowID, e.After, e.Before, e.Page)
+		if _, scopeErr := w.enumerationScope(ctx, task); scopeErr != nil {
+			return nil, errors.Join(err, scopeErr)
+		}
 		if err == nil && len(runs) > runBackfillPageSize {
 			err = collectnative.ErrCapacity
 		}

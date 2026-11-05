@@ -30,6 +30,11 @@ func TestNativeValuePreparationMergesImportsHealthAndPreservesProof(t *testing.T
 	if err != nil || revision != state.Revision+1 {
 		t.Fatalf("preparation publication: %d %v", revision, err)
 	}
+	prepared, err := store.State(t.Context())
+	if err != nil || prepared.WorkflowSubjectRevision != state.WorkflowSubjectRevision ||
+		prepared.WorkflowSubjectDigest != state.WorkflowSubjectDigest {
+		t.Fatalf("health-only preparation invalidated workflow identity: %+v %+v %v", state, prepared, err)
+	}
 	assertNativeValueProof(t, store, "durable")
 	inputs, err := store.ReadNativeValueInputs(t.Context(), []string{scope.Repository})
 	if err != nil || inputs.Revision != revision || len(inputs.Collections) != 1 ||
@@ -181,6 +186,11 @@ func TestNativeValuePreparationCreatesOnlyReviewedStructuralWorkflowParents(t *t
 	if _, err := store.PublishNativeValuePreparation(t.Context(), state.Revision,
 		[]collectnative.EnrollmentScope{scope}, []model.Row{health}, []model.Row{evidencePacket(t)}); err != nil {
 		t.Fatalf("reviewed registered workflow could not precede its first run: %v", err)
+	}
+	prepared, err := store.State(t.Context())
+	if err != nil || prepared.WorkflowSubjectRevision != state.WorkflowSubjectRevision+1 ||
+		prepared.WorkflowSubjectDigest == state.WorkflowSubjectDigest {
+		t.Fatalf("reviewed structural workflow did not invalidate subject cursors: %+v %+v %v", state, prepared, err)
 	}
 	inputs, err := store.ReadNativeValueInputs(t.Context(), []string{scope.Repository})
 	if err != nil || len(inputs.Inventory["workflows"].Rows) != 1 || len(inputs.Collections) != 1 {

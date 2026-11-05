@@ -104,13 +104,16 @@ func (s *Store) PublishNativeValuePreparation(
 	if err := writer.preserveCollectionDecisions(ctx); err != nil {
 		return 0, err
 	}
+	topologyChanged := false
 	for _, row := range collections {
 		if err := validateWorkflowValueCollection(row); err != nil {
 			return 0, err
 		}
-		if err := writer.nativeValueHealthParent(ctx, row); err != nil {
+		created, err := writer.nativeValueHealthParent(ctx, row)
+		if err != nil {
 			return 0, err
 		}
+		topologyChanged = topologyChanged || created
 		if _, err := tx.Exec(ctx, `DELETE FROM workflow_value_collections WHERE namespace=$1 AND id=$2`, s.namespace, row["id"]); err != nil {
 			return 0, err
 		}
@@ -180,6 +183,16 @@ func (s *Store) PublishNativeValuePreparation(
 		}
 	}
 	if len(collections)+len(packets) > 0 {
+		if topologyChanged {
+			digest, err := workflowSubjectDigestPGX(ctx, tx, s.namespace)
+			if err != nil {
+				return 0, err
+			}
+			if _, err := tx.Exec(ctx, `UPDATE cao_state SET workflow_subject_revision=workflow_subject_revision+1,
+				workflow_subject_digest=$2 WHERE namespace=$1 AND workflow_subject_digest<>$2`, s.namespace, digest); err != nil {
+				return 0, err
+			}
+		}
 		if err := tx.QueryRow(ctx, `UPDATE cao_state SET revision=revision+1,evaluated_at=greatest(evaluated_at,$2)
 			WHERE namespace=$1 RETURNING revision`, s.namespace, time.Now().UTC()).Scan(&revision); err != nil {
 			return 0, err
@@ -191,29 +204,29 @@ func (s *Store) PublishNativeValuePreparation(
 	return revision, nil
 }
 
-func (w *Writer) nativeValueHealthParent(ctx context.Context, row model.Row) error {
+func (w *Writer) nativeValueHealthParent(ctx context.Context, row model.Row) (bool, error) {
 	known, err := valueParentKnown(ctx, w.tx, w.store.namespace, row)
 	if err != nil || known {
-		return err
+		return false, err
 	}
 	// A reviewed registration may precede the first observed workflow/run.
 	// Preserve only its structural filename parent, never invent an observed
 	// unconfigured workflow from ingestion enrollment alone.
 	if row["registration"] == "unconfigured" {
-		return ErrValueParentMissing
+		return false, ErrValueParentMissing
 	}
 	var repositoryKnown bool
 	if err := w.tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM repositories WHERE namespace=$1
 		AND id=$2 AND lower(owner || '/' || name)=$3)`, w.store.namespace,
 		row["repositoryId"], row["repository"]).Scan(&repositoryKnown); err != nil {
-		return err
+		return false, err
 	}
 	if !repositoryKnown {
-		return ErrValueParentMissing
+		return false, ErrValueParentMissing
 	}
 	if err := w.Append(ctx, "$workflows", model.Row{"id": row["workflowId"], "repositoryId": row["repositoryId"],
 		"path": row["sourcePath"], "state": "unknown"}); err != nil {
-		return err
+		return false, err
 	}
-	return w.Flush(ctx)
+	return true, w.Flush(ctx)
 }

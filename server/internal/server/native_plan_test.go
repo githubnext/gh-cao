@@ -2,10 +2,13 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
@@ -92,6 +95,88 @@ func TestWorkflowKeysetPaginationAnchorsOnBoundaryRows(t *testing.T) {
 	if err != nil || status != http.StatusOK || len(second.Sources["visible"].Rows) != 1 ||
 		second.Sources["visible"].Rows[0]["id"] != "workflow-2" {
 		t.Fatalf("deep keyset page did not resume from the boundary anchor: %+v %d %v", second, status, err)
+	}
+}
+
+func TestNativeValuePreparationInvalidatesWorkflowCursorOnlyForNewParents(t *testing.T) {
+	store := integrationDatabase(t)
+	const repositoryID = "repository:octo%2Fexample"
+	seedDatabase(t, store, map[string]model.Source{
+		"$repositories": {Rows: []model.Row{{"id": repositoryID, "owner": "octo", "name": "example"}}},
+		"$workflows": {Rows: []model.Row{
+			{"id": "workflow-y", "repositoryId": repositoryID, "path": ".github/workflows/y.md"},
+			{"id": "workflow-z", "repositoryId": repositoryID, "path": ".github/workflows/z.md"},
+		}},
+	})
+	authority := store.NativeEnrollment()
+	if err := authority.WithMutation(t.Context(), func(ctx context.Context) error {
+		return authority.Enroll(ctx, 7, []string{"octo/example"})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	scope, err := authority.CurrentScope(t.Context(), "octo/example")
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile("../../../dashboard/site/test/fixtures/workflow-value-collection.jsonl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var envelope struct {
+		Row model.Row `json:"workflow_value_collection"`
+	}
+	if err := json.Unmarshal(content, &envelope); err != nil {
+		t.Fatal(err)
+	}
+	envelope.Row["repositoryId"] = repositoryID
+	envelope.Row["workflowId"] = "workflow:octo%2Fexample%3A.github%2Fworkflows%2Fverify-bugs.md"
+	definitions := []query.Definition{{
+		Name: "workflow-subjects", From: "$workflows",
+		Select:  []query.SelectedField{{Field: "repositoryId"}, {Field: "path"}, {Field: "id"}},
+		OrderBy: []query.OrderField{{Field: "repositoryId"}, {Field: "path"}, {Field: "id"}},
+		Page: &query.PageBoundary{
+			Keys: []string{"repositoryId", "path", "id"}, Revision: "workflow-subjects", Comparator: "utf8-bytewise-v1",
+		},
+	}}
+	app := &App{database: store}
+	input := queryRequest{Queries: definitions, SourceNames: []string{"workflow-subjects"},
+		Pagination: map[string]paginationRequest{"workflow-subjects": {Limit: 1}}}
+	first, status, err := app.executeQuery(t.Context(), input, false)
+	if err != nil || status != http.StatusOK || first.Sources["workflow-subjects"].ContinuationToken == "" {
+		t.Fatalf("initial workflow cursor: %+v %d %v", first, status, err)
+	}
+	state, err := store.State(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	revision, err := store.PublishNativeValuePreparation(t.Context(), state.Revision,
+		[]collectnative.EnrollmentScope{scope}, []model.Row{envelope.Row}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.Pagination["workflow-subjects"] = paginationRequest{
+		Limit: 1, ContinuationToken: first.Sources["workflow-subjects"].ContinuationToken,
+	}
+	if _, _, err := app.executeQuery(t.Context(), input, false); err == nil || !strings.Contains(err.Error(), "stale") {
+		t.Fatalf("new workflow before the anchor did not invalidate its cursor: %v", err)
+	}
+	input.Pagination["workflow-subjects"] = paginationRequest{Limit: 1}
+	fresh, status, err := app.executeQuery(t.Context(), input, false)
+	if err != nil || status != http.StatusOK || len(fresh.Sources["workflow-subjects"].Rows) != 1 ||
+		fresh.Sources["workflow-subjects"].Rows[0]["path"] != envelope.Row["sourcePath"] {
+		t.Fatalf("new structural workflow was omitted: %+v %d %v", fresh, status, err)
+	}
+	if _, err := store.PublishNativeValuePreparation(t.Context(), revision,
+		[]collectnative.EnrollmentScope{scope}, []model.Row{envelope.Row}, nil); err != nil {
+		t.Fatal(err)
+	}
+	input.Pagination["workflow-subjects"] = paginationRequest{
+		Limit: 1, ContinuationToken: fresh.Sources["workflow-subjects"].ContinuationToken,
+	}
+	next, status, err := app.executeQuery(t.Context(), input, false)
+	if err != nil || status != http.StatusOK || len(next.Sources["workflow-subjects"].Rows) != 1 ||
+		next.Sources["workflow-subjects"].Rows[0]["path"] != ".github/workflows/y.md" {
+		t.Fatalf("health-only update invalidated a valid workflow cursor: %+v %d %v", next, status, err)
 	}
 }
 

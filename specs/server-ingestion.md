@@ -160,6 +160,11 @@ only; shared queue receipts and source claims remain the ownership authority.
 Capped or incomplete GitHub searches MUST fail explicitly rather
 than record completed discovery. Quota exhaustion and admission backpressure
 MUST preserve the failure budget and exact run attempt.
+Discovery MUST recheck its enrollment epoch after provider acquisition and before
+publishing child tasks or a cursor. Definitively withdrawn, transferred or
+superseded enumeration epochs MUST be receipt-fenced acknowledged without
+advancing discovery; transient scope-read errors and claim contention MUST remain
+recoverable rather than being mistaken for obsolete authority.
 
 The PostgreSQL acquisition adapter owns exact repository/run/attempt claims,
 database expiry, generation/token fencing and enrollment epochs. Only
