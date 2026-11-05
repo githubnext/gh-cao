@@ -129,6 +129,19 @@ func TestGatedNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing
 	if collector.lake.Directory != "" || collector.runner.CatalogRoot != "" || collector.projector.State != nil {
 		t.Fatal("native hosted assembly constructed the legacy filesystem pipeline")
 	}
+	replicaConfig := config
+	replicaConfig.NativeInventory = nil
+	replicaConfig.NativeInventoryDigest = snapshot.Digest
+	replica, err := newNativeCollector(t.Context(), services, operational.Capabilities(), data, replicaConfig, quota, queue)
+	if err != nil || replica == nil || replica.config.NativeInventory == nil ||
+		replica.config.NativeInventory.Digest != snapshot.Digest {
+		t.Fatalf("replica could not restore reviewed configuration without local files: %v", err)
+	}
+	valueConfig := replicaConfig
+	valueConfig.NativeValues = true
+	if _, err := newNativeCollector(t.Context(), services, operational.Capabilities(), data, valueConfig, quota, queue); err == nil || !strings.Contains(err.Error(), "requires Node") {
+		t.Fatalf("selected Value execution silently ignored its missing Node dependency: %v", err)
+	}
 	if _, err := collector.Rebuild(t.Context()); err != nil {
 		t.Fatal("native cold-start assembly:", err)
 	}

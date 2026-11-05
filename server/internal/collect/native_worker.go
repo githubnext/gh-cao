@@ -27,6 +27,10 @@ type NativeValueInvalidator interface {
 	InvalidateValue(context.Context, collectnative.EnrollmentScope) error
 }
 
+type NativeValueRuntime interface {
+	RunValues(context.Context) error
+}
+
 type NativeOutcomeRecorder interface {
 	RecordOutcome(context.Context, collectnative.EnrollmentScope, mining.Outcome) error
 }
@@ -93,6 +97,12 @@ func (w NativeWorker) Run(ctx context.Context) error {
 		go func() { inventoryDone <- w.retryInventory(lifetime, retryer) }()
 		defer func() { cancel(); <-inventoryDone }()
 	}
+	var valueDone chan error
+	if runtime, ok := w.Values.(NativeValueRuntime); ok {
+		valueDone = make(chan error, 1)
+		go func() { valueDone <- runtime.RunValues(lifetime) }()
+		defer func() { cancel(); <-valueDone }()
+	}
 	var nextRefresh time.Time
 	for ctx.Err() == nil {
 		select {
@@ -107,6 +117,12 @@ func (w NativeWorker) Run(ctx context.Context) error {
 			inventoryDone <- err
 			if err == nil {
 				return errors.New("native inventory retry role stopped unexpectedly")
+			}
+			return err
+		case err := <-valueDone:
+			valueDone <- err
+			if err == nil {
+				return errors.New("native Value role stopped unexpectedly")
 			}
 			return err
 		default:

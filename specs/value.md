@@ -200,6 +200,25 @@ These private aggregates MAY be exposed to authorized operators for capacity
 calibration; they MUST NOT expose credentials, request bodies, response bodies,
 proof content, or arbitrary stderr.
 
+The native hosted acquisition profile MAY separately select this existing Value
+execution lane with `CollectorConfig.NativeValues`. That selection retains the
+reviewed Node collector programs and their catalog and policy assets; it does
+not make them dependencies of native run acquisition, canonical projection or
+trace admission. An unselected Value execution lane MUST NOT inspect those
+assets or start a Node process.
+
+Selected native remote invocations MUST restore the starting packet and proof
+from one PostgreSQL snapshot pinned to their original installation and enrollment
+epoch. Private per-invocation scratch and local transport sockets are disposable
+implementation details, never recovery or coordination authorities. Publication
+MUST check that same epoch and starting packet under the canonical writer
+transaction before replacing packet and proof together. An identical committed
+packet/proof retry MAY succeed idempotently; it MUST NOT replace different proof.
+Withdrawal MUST erase private proof and publication ownership with the canonical
+graph, and reenrollment MUST NOT let an old invocation read or publish against
+the new owner's proof. Concurrent invalidations MUST remain pending when an
+invocation acknowledges only its original dirty generation.
+
 ### 5.4 Local-only collection
 
 A separately admitted local-only lane MAY query an already published canonical

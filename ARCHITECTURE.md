@@ -1908,12 +1908,22 @@ not authorize cross-repository evidence access.
   running native roles also replay orphaned publication intents after ACK.
   The gated hosted composition now selects this boundary for admission, workers,
   rebuild, cold start and explicit repository repair without constructing a
-  filesystem lake, Runner or Projector. Source-bound immutable inventory bytes
-  replace packaged inventory paths; PostgreSQL pins the reviewed digest and
-  checks current target/control inventory inside canonical activation.
+  filesystem lake, Runner or legacy projection lifecycle. Source-bound immutable
+  inventory bytes replace packaged inventory paths; PostgreSQL retains the exact
+  reviewed document so a replica can restore it by its explicitly selected
+  digest, and checks current target/control inventory inside canonical activation.
   Webhook/control deliveries carry source epochs and fresh queue receipts.
   Independent safe-output dispositions survive run reprojection, while durable
   Value invalidations remain hints, not acquired Value evidence.
+  The separately selected `NativeValues` lane reuses reviewed Node Value
+  programs and therefore still requires its catalog and policy assets. Its
+  private invocation scratch is disposable: PostgreSQL restores the original
+  source-epoch-bound packet/proof snapshot, fences publication against that
+  starting packet, and erases private proof/publication ownership atomically on
+  withdrawal. Those selected-feature dependencies are not dependencies of native
+  run acquisition, projection or trace admission. The existing remote Value
+  transport remains Linux-only; local query execution has its separate owned
+  canonical PostgreSQL boundary.
   Native archive admission binds the original dispatch epoch before lossy
   normalization. Its PostgreSQL metadata-only privacy ledger withdraws visibility
   with source ownership and durably retries epoch-specific Blob retirement;

@@ -23,6 +23,7 @@ type nativeCollection struct {
 	collector   collectnative.Collector
 	worker      collect.NativeWorker
 	archive     *sessionArchiveService
+	values      *collect.NativeValueService
 }
 
 // Keep native assembly separate from the legacy lake/Runner/Projector: none of
@@ -50,14 +51,25 @@ func newNativeCollector(ctx context.Context, services operational.OperationalSer
 	collector.reporter = collect.Reporter{Enrollment: enrollment, Queue: queue, Backfill: backfill,
 		Metrics: services.IngestionMetrics, Data: data}
 	if config.AdmitOnly {
-		if len(config.PrivateKeyPEM) != 0 || config.Workers != 0 || config.RecoverDeliveries {
+		if len(config.PrivateKeyPEM) != 0 || config.Workers != 0 || config.RecoverDeliveries || config.NativeValues {
 			return nil, errors.New("native admission must not hold App credentials, run workers or replay App deliveries")
 		}
 		return collector, nil
 	}
 	if config.NativeInventory == nil {
-		return nil, fmt.Errorf("%w: native collection requires immutable reviewed inventory bytes and provenance",
-			collectnative.ErrUnsupported)
+		if config.NativeInventoryDigest == "" {
+			return nil, fmt.Errorf("%w: native collection requires immutable reviewed inventory bytes or its provisioned digest",
+				collectnative.ErrUnsupported)
+		}
+		snapshot, err := acquisition.LoadInventoryConfiguration(ctx, config.NativeInventoryDigest)
+		if err != nil {
+			return nil, fmt.Errorf("load selected native inventory: %w", err)
+		}
+		config.NativeInventory = &snapshot
+		collector.config = config
+	}
+	if config.NativeInventoryDigest != "" && config.NativeInventory.Digest != config.NativeInventoryDigest {
+		return nil, errors.New("native inventory bytes differ from the selected reviewed digest")
 	}
 	if err := config.NativeInventory.Validate(); err != nil {
 		return nil, err
@@ -94,6 +106,25 @@ func newNativeCollector(ctx context.Context, services operational.OperationalSer
 		ScopeRefresher: collect.ScopeRefresher{Client: client, Quota: quota, QuotaApp: quotaApp, RepositoryLimit: config.InventoryLimit},
 		Runs: collect.RunWorker{Collector: native, Discovery: provider, Scopes: enrollment.Authority,
 			Publications: strict, AcquisitionTimeout: config.CollectionTimeout}}
+	if config.NativeValues {
+		search, err := githubquota.New(services.GitHubQuota, githubquota.Options{SafetyReserve: 1})
+		if err != nil {
+			return nil, err
+		}
+		values := &collect.NativeValueService{Projector: collect.Projector{
+			Data: data, State: services.State, Leases: services.Leases, Enrollment: enrollment,
+			CatalogRoot: config.CatalogRoot, PolicyPath: config.PolicyPath, NodeBinary: config.NodeBinary,
+			GitHubAPIURL: config.BaseURL, Tokens: client, QuotaApp: quotaApp,
+			RemoteQuota: quota, RemoteSearchQuota: search, RemoteValuePlan: &collect.RemoteValuePlanCache{},
+			RemoteHTTP: &http.Client{Transport: config.Transport, Timeout: 65 * time.Second,
+				CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
+			MinInterval: config.MinProjectionInterval, InventoryRepositoryLimit: config.InventoryLimit,
+		}}
+		if err := values.Validate(); err != nil {
+			return nil, fmt.Errorf("configure selected native Value lane: %w", err)
+		}
+		native.values, native.worker.Values = values, values
+	}
 	collector.client = client
 	collector.backfill.Enumerator = client
 	collector.backfill.NativeInventory = inventory
@@ -130,4 +161,7 @@ func (c *Collector) nativeAuthority(authority collectnative.EnrollmentAuthority)
 	c.reporter.Backfill = c.backfill
 	c.native.worker.Enrollment = c.enrollment
 	c.native.worker.Runs.Scopes = authority
+	if c.native.values != nil {
+		c.native.values.Projector.Enrollment = c.enrollment
+	}
 }

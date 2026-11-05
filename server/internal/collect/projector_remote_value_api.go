@@ -103,6 +103,7 @@ type remoteValueAPI struct {
 	max                int
 	cache              *remoteValueResponseCache
 	sharedRequirements map[string]remoteValueRequirement
+	authorize          func(context.Context) error
 	mu                 sync.Mutex
 	used               int
 	sent               int
@@ -631,6 +632,12 @@ func remoteValueScopedSearch(expression, repository string) bool {
 
 func (a *remoteValueAPI) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("X-Content-Type-Options", "nosniff")
+	if a.authorize != nil {
+		if err := a.authorize(request.Context()); err != nil {
+			http.Error(writer, "remote Value source is no longer current", http.StatusForbidden)
+			return
+		}
+	}
 	if request.Method == http.MethodPost && request.URL.Path == "/graphql" {
 		if request.Header.Get("Content-Type") != "application/json" {
 			http.Error(writer, "unsupported remote Value GraphQL body", http.StatusForbidden)
@@ -699,7 +706,9 @@ func (a *remoteValueAPI) listen(ctx context.Context) (string, func(), error) {
 	if err != nil {
 		return "", nil, err
 	}
-	server := &http.Server{Handler: a, ReadHeaderTimeout: 5 * time.Second}
+	server := &http.Server{Handler: a, ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout: 65 * time.Second, WriteTimeout: 70 * time.Second,
+		BaseContext: func(net.Listener) context.Context { return ctx }}
 	go func() { _ = server.Serve(listener) }()
 	return "@" + name, func() {
 		_ = server.Close()

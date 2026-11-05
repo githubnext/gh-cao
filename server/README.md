@@ -3377,6 +3377,21 @@ span ID.
 
 ### Collection settings
 
+The deployed collection profile below remains the legacy Activity-backed
+profile. The native distributed assembly is **not publicly activatable yet**:
+`CAO_COLLECT_NATIVE=true` fails closed while complete audit parity and the
+selected-feature integration gates are unfinished; it does not fall back to
+Activity collection.
+
+Native run acquisition, projection and approved trace destinations use Go and
+shared PostgreSQL fences, without Node, Activity files or filesystem coordination.
+Optional `NativeValues` retains reviewed Node programs/catalog/composed policy,
+bounded disposable scratch and PostgreSQL-authoritative packet/proof recovery.
+Publication rechecks composed policy and source ownership; withdrawal atomically
+erases private proof. Remote Value retains its Linux-only socket transport.
+Inventory digests select exact provisioned reviewed bytes, not broader authority.
+See `ARCHITECTURE.md` and `specs/value.md` for the feature-specific boundaries.
+
 | Setting | Meaning |
 |---|---|
 | `CAO_COLLECT_APP_ID` | GitHub App identifier; unset selects the default profile |
@@ -3394,6 +3409,9 @@ span ID.
 | `CAO_COLLECT_RECOVER_DELIVERIES` | replay failed webhook deliveries to close gaps |
 | `CAO_COLLECT_QUEUE_MAX_LENGTH` | admission backpressure limit for outstanding collection tasks (default 200 000); tasks are never trimmed |
 | `CAO_COLLECT_ADMIT_ONLY` | admit deliveries without collecting; requires no private key |
+| `CAO_COLLECT_NATIVE` | reserved fail-closed native assembly selection; currently rejected by public activation validation |
+| `CAO_COLLECT_NATIVE_VALUES` | separately selects existing reviewed Value execution; requires native selection and its explicit Node/catalog/policy dependencies |
+| `CAO_COLLECT_NATIVE_INVENTORY_DIGEST` | exact digest of reviewed inventory bytes already provisioned in the shared PostgreSQL namespace; requires native selection |
 
 ### Admission-only front ends
 

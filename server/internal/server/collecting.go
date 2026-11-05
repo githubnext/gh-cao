@@ -37,6 +37,12 @@ type CollectorConfig struct {
 	// NativeInventory is the immutable reviewed source contract, not a path or
 	// an ingestion-scope grant. Replicas pin its digest in PostgreSQL.
 	NativeInventory *collectnative.InventorySnapshot
+	// NativeInventoryDigest selects a previously provisioned shared document
+	// instead of requiring a local inventory file on every replica.
+	NativeInventoryDigest string
+	// NativeValues separately selects the existing reviewed Value execution
+	// lane. Only this feature requires Node, CatalogRoot and PolicyPath.
+	NativeValues bool
 	// AppID and PrivateKeyPEM authenticate the GitHub App whose installations
 	// define ingestion scope.
 	AppID         int64
@@ -99,6 +105,9 @@ func (config *CollectorConfig) Validate() error {
 	if config.NativeAcquisition {
 		return fmt.Errorf("%w: hosted native activation requires complete engine/debug audit parity and Value coexistence",
 			collectnative.ErrUnsupported)
+	}
+	if config.NativeValues || config.NativeInventoryDigest != "" || config.NativeInventory != nil {
+		return errors.New("native inventory and Value features require native acquisition")
 	}
 	if config.AppID <= 0 {
 		return errors.New("collection requires a GitHub App identifier")
