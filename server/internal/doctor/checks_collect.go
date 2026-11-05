@@ -32,6 +32,18 @@ func (d Doctor) checkCollectionProfile(context.Context) Check {
 		detail("sourceDirectory", presence(d.getenv("CAO_SOURCE_DIRECTORY"))),
 		detail("admitOnly", fmt.Sprint(profile.admitOnly)),
 	}
+	var native server.CollectorConfig
+	if err := native.ApplyNativeEnvironment(d.getenv); err != nil {
+		return failed(id, areaCollect, title, err)
+	}
+	if !profile.collecting && (native.NativeAcquisition || native.NativeValues || native.NativeInventoryDigest != "") {
+		return Check{
+			ID: id, Area: areaCollect, Title: title, Status: StatusFail,
+			Summary: "native collection features require CAO_COLLECT_APP_ID",
+			Details: details,
+			Remedy:  "configure the collection App identifier or unset native collection features",
+		}
+	}
 	if profile.conflict {
 		return Check{
 			ID: id, Area: areaCollect, Title: title, Status: StatusFail,
@@ -67,7 +79,27 @@ func (d Doctor) checkCollectionSettings(context.Context) Check {
 			Remedy:  "set CAO_COLLECT_APP_ID to the numeric App identifier",
 		}
 	}
-	keySource, keyPresent, keyErr := d.privateKeySource()
+	config := server.CollectorConfig{
+		AppID:             appID,
+		AdmitOnly:         profile.admitOnly,
+		LakeDirectory:     d.getenv("CAO_COLLECT_LAKE_DIRECTORY"),
+		CatalogRoot:       d.getenv("CAO_COLLECT_CATALOG_ROOT"),
+		ControlRepository: d.getenv("CAO_COLLECT_CONTROL_REPOSITORY"),
+		PolicyPath:        d.getenv("CAO_POLICY_PATH"),
+		StaticInventoryPath: d.getenv(
+			"CAO_COLLECT_STATIC_INVENTORY",
+		),
+		Workers:           intEnv(d.getenv("CAO_COLLECT_WORKERS")),
+		RecoverDeliveries: envTruthy(d.getenv("CAO_COLLECT_RECOVER_DELIVERIES")),
+	}
+	if err := config.ApplyNativeEnvironment(d.getenv); err != nil {
+		return failed(id, areaCollect, title, err)
+	}
+	keySource, keyPresent := "absent", false
+	var keyErr error
+	if !config.NativeAcquisition || !config.AdmitOnly {
+		keySource, keyPresent, keyErr = d.privateKeySource()
+	}
 	details := []Detail{
 		detail("appId", fmt.Sprint(appID)),
 		detail("admitOnly", fmt.Sprint(profile.admitOnly)),
@@ -91,23 +123,8 @@ func (d Doctor) checkCollectionSettings(context.Context) Check {
 	}
 	// A placeholder stands in for the key: Validate only tests for presence,
 	// so the real bytes are never read here.
-	var placeholder []byte
 	if keyPresent {
-		placeholder = []byte("configured")
-	}
-	config := server.CollectorConfig{
-		AppID:             appID,
-		AdmitOnly:         profile.admitOnly,
-		PrivateKeyPEM:     placeholder,
-		LakeDirectory:     d.getenv("CAO_COLLECT_LAKE_DIRECTORY"),
-		CatalogRoot:       d.getenv("CAO_COLLECT_CATALOG_ROOT"),
-		ControlRepository: d.getenv("CAO_COLLECT_CONTROL_REPOSITORY"),
-		PolicyPath:        d.getenv("CAO_POLICY_PATH"),
-		StaticInventoryPath: d.getenv(
-			"CAO_COLLECT_STATIC_INVENTORY",
-		),
-		Workers:           intEnv(d.getenv("CAO_COLLECT_WORKERS")),
-		RecoverDeliveries: envTruthy(d.getenv("CAO_COLLECT_RECOVER_DELIVERIES")),
+		config.PrivateKeyPEM = []byte("configured")
 	}
 	if err := config.Validate(); err != nil {
 		return Check{
@@ -656,6 +673,9 @@ func (d Doctor) checkLake(context.Context) Check {
 	if profile.admitOnly {
 		return skipped(id, areaCollect, title, "admission-only collection holds no evidence lake")
 	}
+	if envTruthy(d.getenv("CAO_COLLECT_NATIVE")) {
+		return skipped(id, areaCollect, title, "native collection stores durable evidence in PostgreSQL, not an Activity lake")
+	}
 	directory := d.getenv("CAO_COLLECT_LAKE_DIRECTORY")
 	if directory == "" {
 		return Check{
@@ -711,6 +731,9 @@ func (d Doctor) checkLake(context.Context) Check {
 // a time to live, so a held lock is information rather than a fault.
 func (d Doctor) checkProjectionLock(ctx context.Context) Check {
 	const id, title = "collect.projection", "Ingestion lock"
+	if d.profile().collecting && envTruthy(d.getenv("CAO_COLLECT_NATIVE")) {
+		return skipped(id, areaCollect, title, "native publication uses PostgreSQL attempt/source fences, not the legacy projection lock")
+	}
 	if skip, ok := d.storeUnavailable(id, areaCollect, title); ok {
 		return skip
 	}
@@ -768,6 +791,25 @@ func (d Doctor) checkTooling(context.Context) Check {
 	profile := d.profile()
 	if !profile.collecting || profile.admitOnly {
 		return skipped(id, areaRuntime, title, "this process does not run the collection CLI")
+	}
+	var config server.CollectorConfig
+	if err := config.ApplyNativeEnvironment(d.getenv); err != nil {
+		return failed(id, areaRuntime, title, err)
+	}
+	if config.NativeAcquisition {
+		if !config.NativeValues {
+			return Check{ID: id, Area: areaRuntime, Title: title, Status: StatusPass,
+				Summary: "native Go collection requires no Node, gh or Activity CLI"}
+		}
+		values := collect.NativeValueService{Projector: collect.Projector{
+			CatalogRoot: d.getenv("CAO_COLLECT_CATALOG_ROOT"), PolicyPath: d.getenv("CAO_POLICY_PATH"),
+			NodeBinary: d.getenv("CAO_COLLECT_NODE_BINARY"),
+		}}
+		if err := values.ValidateRuntime(); err != nil {
+			return failed(id, areaRuntime, title, err)
+		}
+		return Check{ID: id, Area: areaRuntime, Title: title, Status: StatusPass,
+			Summary: "selected Value execution has Node and reviewed policy/catalog assets; native collection needs no Activity CLI"}
 	}
 	node := orDefault(d.getenv("CAO_COLLECT_NODE_BINARY"), "node")
 	gh := orDefault(d.getenv("CAO_COLLECT_GH_BINARY"), "gh")

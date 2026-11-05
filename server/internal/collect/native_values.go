@@ -39,6 +39,16 @@ func (s NativeValueService) Validate() error {
 		p.RemoteQuota == nil || p.RemoteSearchQuota == nil || p.Tokens == nil {
 		return collectnative.ErrUnsupported
 	}
+	return s.ValidateRuntime()
+}
+
+// ValidateRuntime checks only the selected Value lane's deployed dependencies,
+// without opening credentials, executing programs or requiring backend handles.
+func (s NativeValueService) ValidateRuntime() error {
+	p := s.Projector
+	if p.CatalogRoot == "" || p.PolicyPath == "" {
+		return errors.New("selected native Value execution requires its reviewed catalog and policy")
+	}
 	if _, err := exec.LookPath(p.node()); err != nil {
 		return fmt.Errorf("selected native Value execution requires Node: %w", err)
 	}

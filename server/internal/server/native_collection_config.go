@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +12,31 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
 )
 
-func nativeCollectorSettingsFromEnv(config *CollectorConfig) error {
+// ApplyNativeEnvironment reads non-secret native feature settings through the
+// supplied lookup so runtime configuration and diagnostics use the same rules.
+func (config *CollectorConfig) ApplyNativeEnvironment(lookup func(string) string) error {
+	for _, field := range []struct {
+		name  string
+		value *bool
+	}{
+		{"CAO_COLLECT_NATIVE", &config.NativeAcquisition},
+		{"CAO_COLLECT_NATIVE_VALUES", &config.NativeValues},
+	} {
+		value, err := collectorFeatureBoolWithLookup(field.name, lookup)
+		if err != nil {
+			return err
+		}
+		*field.value = value
+	}
+	config.NativeInventoryDigest = strings.TrimSpace(lookup("CAO_COLLECT_NATIVE_INVENTORY_DIGEST"))
+	if !config.NativeAcquisition {
+		return nil
+	}
+	admitOnly, err := collectorFeatureBoolWithLookup("CAO_COLLECT_ADMIT_ONLY", lookup)
+	if err != nil {
+		return err
+	}
+	config.AdmitOnly = admitOnly
 	for _, field := range []struct {
 		name  string
 		value *int
@@ -27,7 +50,7 @@ func nativeCollectorSettingsFromEnv(config *CollectorConfig) error {
 		{"CAO_COLLECT_MAX_STORAGE_MB", &config.MaxStorageMB},
 		{"CAO_COLLECT_REQUEST_TIMEOUT_MINUTES", &config.RequestTimeoutMinutes},
 	} {
-		if raw := strings.TrimSpace(os.Getenv(field.name)); raw != "" {
+		if raw := strings.TrimSpace(lookup(field.name)); raw != "" {
 			value, err := strconv.Atoi(raw)
 			if err != nil {
 				return fmt.Errorf("%s must be an integer", field.name)
@@ -43,7 +66,7 @@ func nativeCollectorSettingsFromEnv(config *CollectorConfig) error {
 		{"CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL", &config.RepositoryRefreshInterval},
 		{"CAO_COLLECT_TIMEOUT", &config.CollectionTimeout},
 	} {
-		if raw := strings.TrimSpace(os.Getenv(field.name)); raw != "" {
+		if raw := strings.TrimSpace(lookup(field.name)); raw != "" {
 			value, err := time.ParseDuration(raw)
 			if err != nil {
 				return fmt.Errorf("%s must be a Go duration", field.name)
@@ -51,7 +74,7 @@ func nativeCollectorSettingsFromEnv(config *CollectorConfig) error {
 			*field.value = value
 		}
 	}
-	recover, err := collectorFeatureBool("CAO_COLLECT_RECOVER_DELIVERIES")
+	recover, err := collectorFeatureBoolWithLookup("CAO_COLLECT_RECOVER_DELIVERIES", lookup)
 	if err != nil {
 		return err
 	}

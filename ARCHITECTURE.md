@@ -1940,7 +1940,9 @@ not authorize cross-repository evidence access.
   missing evidence still produces honest partial/unavailable results. Optional
   Value dependencies are validated only when selected. Public-constructor tests
   exercise real PostgreSQL, replica restoration and worker execution without an
-  executable PATH or legacy files. Existing hosted/container defaults remain
+  executable PATH or legacy files. Doctor shares native setting and selected
+  Value dependency validation, and does not probe legacy lakes or projection
+  locks for native deployments. Existing hosted/container defaults remain
   the separate legacy producer.
   See `specs/server-ingestion.md` section 2.4.
 - Browsers and external clients never receive Redis or Postgres endpoints or

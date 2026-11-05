@@ -117,10 +117,8 @@ func CollectorConfigFromEnv() (*CollectorConfig, error) {
 		RecoverDeliveries:         envBool("CAO_COLLECT_RECOVER_DELIVERIES"),
 		RepositoryRefreshInterval: envStrictDuration("CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL"),
 	}
-	if native {
-		if err := nativeCollectorSettingsFromEnv(config); err != nil {
-			return nil, err
-		}
+	if err := config.ApplyNativeEnvironment(os.Getenv); err != nil {
+		return nil, err
 	}
 	if err := config.Validate(); err != nil {
 		return nil, err
@@ -129,7 +127,11 @@ func CollectorConfigFromEnv() (*CollectorConfig, error) {
 }
 
 func collectorFeatureBool(name string) (bool, error) {
-	raw := strings.TrimSpace(os.Getenv(name))
+	return collectorFeatureBoolWithLookup(name, os.Getenv)
+}
+
+func collectorFeatureBoolWithLookup(name string, lookup func(string) string) (bool, error) {
+	raw := strings.TrimSpace(lookup(name))
 	if raw == "" {
 		return false, nil
 	}
