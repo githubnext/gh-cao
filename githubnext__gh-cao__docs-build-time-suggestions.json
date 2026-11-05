@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-04T20:00:00Z",
-      "worker_run_id": "41900535520",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        41900122308,
-        41897733996,
-        41895297197,
-        41893860001,
-        41893403635,
-        41893367265,
-        41892903924,
-        41890388232,
-        41888006983,
-        41887977733,
-        41887924869,
-        41885797707,
-        41885386579,
-        41882899771,
-        41880380295,
-        41878191013,
-        41875953858,
-        41875278665,
-        41874380866,
-        41873415199
-      ],
-      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-04T17:01:35Z to 2026-11-04T19:46:19Z) was within 14 days and contained 13 successful runs (six full build-and-deploy runs and seven freshness-only schedules), six skipped workflow_run callbacks, and one cancelled push; the cancelled run was excluded. The six comparable full publications were five schedules and one push across six source revisions. Full workflow wall time had a 223-second median and 512-second nearest-rank p90; initial queue time was 4 seconds median/p90; execution after queue was 219.5 seconds median and 509 seconds p90. Build jobs were 94.5 seconds median and 325 seconds p90; deploy jobs were 39.5 seconds median and 136 seconds p90; docs.yml has no separate dashboard job. Trusted logs verified npm cache hits in all six runs for the same approximately 298 MiB setup-node cache key. Set up Node.js took 4.5 seconds median and 7 seconds p90; npm ci still installed 845 packages and took 20.5 seconds median and 23 seconds p90, making the combined dependency phase 25 seconds median and 27 seconds p90. This is about 11% of median execution and below both actionability thresholds; caching node_modules or skipping npm ci would also weaken clean-install correctness. No actionable non-duplicate recommendation met the 60-second or 15% threshold. Advanced next_category to Astro documentation generation."
-    },
-    {
       "evaluated_at": "2026-11-04T20:21:43Z",
       "worker_run_id": "41905291930",
       "category": "Astro documentation generation",
@@ -778,6 +750,34 @@
         41955710932
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-05T02:30:55Z to 2026-11-05T06:36:13Z) was within 14 days and contained 16 successful schedule runs plus four skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 4bd5dbde5225b80341a8f89799e4e43cd830c870. Trusted Actions job and step metadata verified that every successful schedule ran only schedule-freshness and skipped both build and deploy. The window therefore contained zero successful full build-and-deploy publications, below the required five comparable successful runs. Full-workflow and dashboard/build/deploy median and p90 distributions, repeated reusable-dashboard-generation costs, and current dashboard cache hit/miss effectiveness cannot be evaluated. No suggestion was made; reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-05T06:53:23Z",
+      "worker_run_id": "41983066929",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41982592203,
+        41981490389,
+        41980073247,
+        41977718187,
+        41976043127,
+        41974546200,
+        41973006298,
+        41972770704,
+        41971372137,
+        41969822798,
+        41968316602,
+        41967000742,
+        41966799174,
+        41965205800,
+        41963641320,
+        41962083870,
+        41960782764,
+        41959258989,
+        41958952980,
+        41957327548
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-05T02:46:07Z to 2026-11-05T06:46:00Z) was within 14 days and contained 16 successful freshness-only schedule runs and four skipped workflow_run callbacks. Trusted Actions job metadata verified that every successful run executed only schedule-freshness and skipped both build and deploy; no run completed a full build-and-deploy publication. There were no cancelled or failed runs in this window. With zero comparable successful full publications, the required minimum of five was not met, so full-workflow execution, dashboard/build/deploy median and p90 distributions, reusable-dashboard step costs, and current dashboard cache hit/miss effectiveness could not be evaluated. No suggestion was made; reusable dashboard generation remains the next category."
     }
   ]
 }
