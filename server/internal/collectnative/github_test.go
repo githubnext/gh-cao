@@ -144,8 +144,9 @@ func TestGitHubNativePipelineWithoutExecutables(t *testing.T) {
 	if err != nil || bytes.Contains(content, []byte("PRIVATE_")) {
 		t.Fatalf("raw content escaped safe projection: %v", err)
 	}
-	if !slices.Contains(evidence.Gaps, "legacy-audit-unavailable") {
-		t.Fatal("missing legacy audit parity was represented as complete evidence")
+	if slices.Contains(evidence.Gaps, "legacy-audit-unavailable") ||
+		!slices.Contains(evidence.Gaps, "job-logs-unavailable") {
+		t.Fatal("default audit retained a blanket gap or lost source-specific coverage")
 	}
 }
 

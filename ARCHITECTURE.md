@@ -1906,7 +1906,7 @@ not authorize cross-repository evidence access.
   access and carry workflow/run-page cursors through receipt-fenced queue
   replacement. Separate discovery/attempt capacities permit work to drain;
   running native roles also replay orphaned publication intents after ACK.
-  The gated hosted composition now selects this boundary for admission, workers,
+  The opt-in hosted composition selects this boundary for admission, workers,
   rebuild, cold start and explicit repository repair without constructing a
   filesystem lake, Runner or legacy projection lifecycle. Source-bound immutable
   inventory bytes replace packaged inventory paths; PostgreSQL retains the exact
@@ -1930,13 +1930,18 @@ not authorize cross-repository evidence access.
   physical Blob deletion is deliberately not a cross-backend transaction.
   Shared trace withdrawal still commits with source enrollment, and does not
   relax ADX's single-exporter activation restriction.
-  The service is not yet a selectable hosted acquisition profile:
-  `CollectorConfig.NativeAcquisition` continues to reject public activation
-  until complete default engine/debug audit parity is established. Optional
-  Value dependencies are validated only when that lane is selected.
-  Gated-assembly tests with real PostgreSQL and no executable PATH
-  are integration evidence, not proof of complete profile equivalence. Existing
-  hosted/container defaults remain the separate legacy producer.
+  `CollectorConfig.NativeAcquisition` explicitly selects the hosted native
+  profile; environment deployments use `CAO_COLLECT_NATIVE=true` and an exact
+  provisioned inventory digest. `Acquisition.PinInventoryConfiguration` provisions
+  reviewed bytes once; replacement requires an explicit expected-digest CAS.
+  Default audit adapters cover Copilot, Claude, Codex, Pi and Gemini. Unsupported
+  custom engines, expanded-report requests, external baselines, training and
+  intelligence semantics reject rather than lose findings. Source-specific
+  missing evidence still produces honest partial/unavailable results. Optional
+  Value dependencies are validated only when selected. Public-constructor tests
+  exercise real PostgreSQL, replica restoration and worker execution without an
+  executable PATH or legacy files. Existing hosted/container defaults remain
+  the separate legacy producer.
   See `specs/server-ingestion.md` section 2.4.
 - Browsers and external clients never receive Redis or Postgres endpoints or
   credentials. Dashboard source replacement is transactional in Postgres; a

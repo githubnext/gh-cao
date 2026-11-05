@@ -30,7 +30,7 @@ func TestNativeStructuredAgentReportsAndGitHubUsage(t *testing.T) {
 	}
 	audit := object(fields["audit"])
 	if len(array(audit["missing_tools"])) != 2 || len(array(audit["missing_data"])) != 1 ||
-		len(array(audit["noops"])) != 1 || len(array(audit["key_findings"])) != 1 ||
+		len(array(audit["noops"])) != 1 || !slices.Equal(modelAuditCodes(array(audit["key_findings"])), []string{"workflow_failed", "tools_not_available"}) ||
 		fields["github_api_calls"] != 2 {
 		t.Fatal("structured reports, basic findings or response-only API accounting were lost")
 	}
@@ -88,7 +88,8 @@ func TestNativeAuditPinnedModelResolutionNeedsStopEvidence(t *testing.T) {
 		Store: &testEvidenceStore{}}
 	evidence, err := collector.extract(t.Context(), nativeRun())
 	if err != nil || slices.Contains(evidence.Gaps, "model-resolution-audit-unavailable") ||
-		!slices.Contains(evidence.Gaps, "legacy-audit-unavailable") {
+		slices.Contains(evidence.Gaps, "legacy-audit-unavailable") ||
+		!slices.Contains(evidence.Gaps, "job-logs-unavailable") {
 		t.Fatalf("supported partial model evidence was not handled: %+v %v", evidence.Gaps, err)
 	}
 	serialized, _, _ := evidence.Bytes()
@@ -137,8 +138,8 @@ func TestNativeAuditSessionGapsValidateEntireExactAttempt(t *testing.T) {
 		"{\"type\":\"detection.result\",\"data\":{\"conclusion\":\"success\"}}\n")
 	gaps, err := enrichAuditReports(t.Context(), map[string]any{},
 		map[string][]byte{"usage/aw_session.jsonl": content}, testIdentity(), Limits{})
-	if err != nil || !slices.Equal(gaps, []string{"threat-detection-audit-unavailable"}) {
-		t.Fatalf("unsupported audit classes hidden: %v %v", gaps, err)
+	if err != nil || len(gaps) != 0 {
+		t.Fatalf("supported detection was marked unavailable: %v %v", gaps, err)
 	}
 	for _, limits := range []Limits{{Bytes: 4}, {Entries: 1}, {LineBytes: 4}} {
 		if _, err := enrichAuditReports(t.Context(), map[string]any{},

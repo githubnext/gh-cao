@@ -1,11 +1,8 @@
 package server
 
 import (
-	"errors"
 	"strings"
 	"testing"
-
-	"github.com/githubnext/gh-cao/server/internal/collectnative"
 )
 
 func TestNativeCollectionEnvironmentSelectionFailsClosed(t *testing.T) {
@@ -17,8 +14,9 @@ func TestNativeCollectionEnvironmentSelectionFailsClosed(t *testing.T) {
 	}
 	t.Setenv("CAO_COLLECT_APP_ID", "7")
 	t.Setenv("CAO_COLLECT_ADMIT_ONLY", "true")
-	if config, err := CollectorConfigFromEnv(); config != nil || !errors.Is(err, collectnative.ErrUnsupported) {
-		t.Fatalf("public activation bypassed the remaining audit gate: %+v %v", config, err)
+	if config, err := CollectorConfigFromEnv(); err != nil || config == nil ||
+		!config.NativeAcquisition || !config.AdmitOnly || config.NativeValues {
+		t.Fatalf("explicit native admission required legacy dependencies: %+v %v", config, err)
 	}
 }
 

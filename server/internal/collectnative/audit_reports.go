@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"regexp"
 )
 
@@ -21,7 +22,13 @@ func enrichAuditReports(ctx context.Context, fields map[string]any, files map[st
 			if err != nil {
 				return err
 			}
-			fields["audit"] = reports
+			existing := object(fields["audit"])
+			if existing != nil {
+				maps.Copy(existing, reports)
+				fields["audit"] = existing
+			} else {
+				fields["audit"] = reports
+			}
 			fields["missing_tool_count"] = len(array(reports["missing_tools"]))
 			fields["missing_data_count"] = len(array(reports["missing_data"]))
 			if len(array(reports["noops"])) > 0 {
@@ -65,7 +72,7 @@ func enrichAuditReports(ctx context.Context, fields map[string]any, files map[st
 			gaps = append(gaps, "ambiguous-"+source.gap)
 		case len(names) == 1:
 			if err := source.read(files[names[0]]); err != nil {
-				if errors.Is(err, ErrCapacity) || ctx.Err() != nil {
+				if errors.Is(err, ErrCapacity) || errors.Is(err, ErrUnsupported) || ctx.Err() != nil {
 					return nil, err
 				}
 				gaps = append(gaps, "invalid-"+source.gap)
@@ -105,6 +112,7 @@ func agentAuditReports(ctx context.Context, content []byte, identity Identity, l
 		return nil, ErrCapacity
 	}
 	reports := map[string]any{"missing_tools": []any{}, "missing_data": []any{}, "noops": []any{}}
+	inputs := transientAuditReports{}
 	for _, raw := range document.Items {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -125,6 +133,9 @@ func agentAuditReports(ctx context.Context, content []byte, identity Identity, l
 		case "noop":
 			key = "noops"
 		default:
+			if unsupportedAuditReport(text(item["type"])) {
+				return nil, ErrUnsupported
+			}
 			continue
 		}
 		retained := map[string]any{}
@@ -140,7 +151,9 @@ func agentAuditReports(ctx context.Context, content []byte, identity Identity, l
 		// Reports may quote arbitrary prompts in reason/context/alternatives
 		// and noop messages. Preserve occurrence, not those free-text bodies.
 		reports[key] = append(array(reports[key]), retained)
+		inputs.items = append(inputs.items, item)
 	}
+	reports["native_reports"] = inputs
 	return reports, nil
 }
 
@@ -150,9 +163,6 @@ func auditSessionSourceGaps(ctx context.Context, content []byte, identity Identi
 		var event map[string]any
 		if decode(raw, &event) != nil || event == nil || !matches(event, identity) || !matches(object(event["data"]), identity) {
 			return errors.New("invalid native audit session")
-		}
-		if event["type"] == "detection.result" {
-			gaps = append(gaps, "threat-detection-audit-unavailable")
 		}
 		return nil
 	})

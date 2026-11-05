@@ -1,6 +1,8 @@
 package server
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -14,13 +16,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/githubnext/gh-cao/server/internal/collect"
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
-	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	operationalpostgres "github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	"github.com/githubnext/gh-cao/server/internal/query"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
@@ -48,7 +49,7 @@ func hostedNativeInventory(t *testing.T) collectnative.InventorySnapshot {
 	return snapshot
 }
 
-func TestGatedNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing.T) {
+func TestNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing.T) {
 	data, pgconfig := testutil.PostgresWithConfig(t, t.Context(), "CAO_TEST_POSTGRES_URL", "POSTGRES_URL")
 	endpoint, err := url.Parse(pgconfig.ConnString())
 	if err != nil {
@@ -62,9 +63,29 @@ func TestGatedNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing
 		t.Fatal(err)
 	}
 	defer func() { _ = operational.Close() }()
-	services := operational.OperationalServices()
-	quota, err := githubquota.New(services.GitHubQuota, githubquota.Options{SafetyReserve: 10})
+	session, err := os.ReadFile("../../../dashboard/site/test/fixtures/unified-telemetry-session.jsonl")
 	if err != nil {
+		t.Fatal(err)
+	}
+	session = []byte(strings.ReplaceAll(string(session), "2026-10-15T10:00:", time.Now().UTC().Format("2006-01-02T15:04:")))
+	var artifact bytes.Buffer
+	writer := zip.NewWriter(&artifact)
+	for _, file := range []struct {
+		name    string
+		content []byte
+	}{
+		{"aw_info.json", []byte(`{"repository":"octo/api","run_id":303,"run_attempt":"1","engine_id":"copilot"}`)},
+		{"aw_session.jsonl", session},
+	} {
+		entry, err := writer.Create(file.name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := entry.Write(file.content); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writer.Close(); err != nil {
 		t.Fatal(err)
 	}
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +116,9 @@ func TestGatedNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing
 				"repository": map[string]any{"full_name": "octo/api"}, "status": "completed", "conclusion": "success",
 				"created_at": time.Now().UTC().Format(time.RFC3339)})
 		case "/repos/octo/api/actions/runs/303/artifacts":
-			_, _ = w.Write([]byte(`{"total_count":0,"artifacts":[]}`))
+			_, _ = w.Write([]byte(`{"total_count":1,"artifacts":[{"id":100,"name":"usage","expired":false,"workflow_run":{"id":303}}]}`))
+		case "/repos/octo/api/actions/artifacts/100/zip":
+			_, _ = w.Write(artifact.Bytes())
 		case "/repos/octo/api/actions/runs/303/attempts/1/jobs":
 			_, _ = w.Write([]byte(`{"total_count":0,"jobs":[]}`))
 		case "/repos/github/gh-aw/releases/latest":
@@ -117,12 +140,8 @@ func TestGatedNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing
 		PrivateKeyPEM: pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}),
 		BaseURL:       api.URL + "/api/v3/", ControlRepository: "octo/api",
 		LakeDirectory: "/must-not-read", CatalogRoot: "/must-not-read", PolicyPath: "/must-not-read", StaticInventoryPath: "/must-not-read"}
-	queue := collect.Queue{Tasks: services.Queue, Admission: services.Admission, Metadata: services.Collection,
-		Leases: services.Leases, Deliveries: services.Deliveries, Metrics: services.IngestionMetrics, MaxLength: 100}
 	t.Setenv("PATH", "/nonexistent")
-	// This exercises the real composition below its explicit public activation
-	// gate, not a claim of full N01 audit or Value profile equivalence.
-	collector, err := newNativeCollector(t.Context(), services, operational.Capabilities(), data, config, quota, queue)
+	collector, err := NewCollector(t.Context(), operational, data, config, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,14 +151,14 @@ func TestGatedNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing
 	replicaConfig := config
 	replicaConfig.NativeInventory = nil
 	replicaConfig.NativeInventoryDigest = snapshot.Digest
-	replica, err := newNativeCollector(t.Context(), services, operational.Capabilities(), data, replicaConfig, quota, queue)
+	replica, err := NewCollector(t.Context(), operational, data, replicaConfig, "")
 	if err != nil || replica == nil || replica.config.NativeInventory == nil ||
 		replica.config.NativeInventory.Digest != snapshot.Digest {
 		t.Fatalf("replica could not restore reviewed configuration without local files: %v", err)
 	}
 	valueConfig := replicaConfig
 	valueConfig.NativeValues = true
-	if _, err := newNativeCollector(t.Context(), services, operational.Capabilities(), data, valueConfig, quota, queue); err == nil || !strings.Contains(err.Error(), "requires Node") {
+	if _, err := NewCollector(t.Context(), operational, data, valueConfig, ""); err == nil || !strings.Contains(err.Error(), "requires Node") {
 		t.Fatalf("selected Value execution silently ignored its missing Node dependency: %v", err)
 	}
 	if _, err := collector.Rebuild(t.Context()); err != nil {
@@ -163,11 +182,18 @@ func TestGatedNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing
 	ticker := time.NewTicker(20 * time.Millisecond)
 	defer ticker.Stop()
 	for {
-		rows, _, err := data.ExecuteSQLPlan(ctx, []query.Definition{{Name: "native-runs", From: "$runs"}}, []string{"native-runs"})
+		rows, _, err := data.ExecuteSQLPlan(ctx, []query.Definition{{
+			Name: "native-runs", From: "$runs", Select: []query.SelectedField{
+				{Field: "id"}, {Field: "inputTokens"}, {Field: "outputTokens"},
+			},
+		}}, []string{"native-runs"})
 		if err != nil {
 			t.Fatal(err)
 		}
 		if len(rows["native-runs"].Rows) == 1 {
+			if row := rows["native-runs"].Rows[0]; fmt.Sprint(row["inputTokens"]) != "12" || fmt.Sprint(row["outputTokens"]) != "3" {
+				t.Fatalf("public native N01/N02/N03 did not preserve canonical session usage: %+v", row)
+			}
 			break
 		}
 		select {
@@ -176,12 +202,14 @@ func TestGatedNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing
 		case <-ticker.C:
 		}
 	}
-	admission, err := newNativeCollector(t.Context(), services, operational.Capabilities(), data,
-		CollectorConfig{NativeAcquisition: true, AppID: 42, AdmitOnly: true}, quota, queue)
+	admission, err := NewCollector(t.Context(), operational, data,
+		CollectorConfig{NativeAcquisition: true, AppID: 42, AdmitOnly: true}, "")
 	if err != nil || admission.client != nil || admission.native.inventory != nil || admission.runner.CatalogRoot != "" {
 		t.Fatalf("native admission acquired worker credentials/files: %v", err)
 	}
-	if _, err := NewCollector(t.Context(), operational, data, config, ""); !errors.Is(err, collectnative.ErrUnsupported) {
-		t.Fatalf("assembly test bypassed the public audit activation gate: %v", err)
+	unsupported := config
+	unsupported.MaxStorageMB = 1
+	if _, err := NewCollector(t.Context(), operational, data, unsupported, ""); !errors.Is(err, collectnative.ErrUnsupported) {
+		t.Fatalf("public native profile silently ignored a legacy-only option: %v", err)
 	}
 }

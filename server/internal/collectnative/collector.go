@@ -76,9 +76,13 @@ type Collector struct {
 	Timeout      time.Duration
 	ClaimTTL     time.Duration
 	Destinations []Destination
+	Audit        AuditRequest
 }
 
 func (c Collector) Validate() error {
+	if err := c.Audit.Validate(); err != nil {
+		return err
+	}
 	if c.Provider == nil || c.Store == nil {
 		return errors.New("native acquisition requires a provider and durable evidence store")
 	}
@@ -229,7 +233,7 @@ func (c Collector) extract(ctx context.Context, run Run) (Evidence, error) {
 			}
 		}
 	}
-	evidence := Evidence{Version: 1, Identity: run.Identity, Run: fields, Gaps: []string{"legacy-audit-unavailable"}}
+	evidence := Evidence{Version: 1, Identity: run.Identity, Run: fields}
 	files := map[string][]byte{}
 	bytesUsed := 0
 	artifacts := 0
@@ -266,6 +270,9 @@ func (c Collector) extract(ctx context.Context, run Run) (Evidence, error) {
 				}
 				if strings.EqualFold(scalar(info["repository"]), run.Repository) &&
 					scalar(info["run_id"]) == strconv.FormatInt(run.RunID, 10) && scalar(info["run_attempt"]) == strconv.Itoa(run.Attempt) {
+					if err := validateAuditEngine(info["engine_id"]); err != nil {
+						return err
+					}
 					context, err := recordedContext(object(info["context"]))
 					if err != nil {
 						return err

@@ -81,7 +81,7 @@ func (p *Projection) runEvents(input map[string]any, at string) {
 				Errors  any    `json:"errorCount,omitempty"`
 			}{"failure", input["failure_kind"], input["error_count"]}, nil)
 	}
-	if usage := input["token_usage_summary"]; usage != nil {
+	if usage := first(input["token_usage_summary"], input["token_usage"]); usage != nil {
 		total := canonicalNumber(object(usage)["total_aic"])
 		summary := "unknown"
 		if total != nil {

@@ -68,16 +68,21 @@ func TestNativeEnrollmentFencesQueuedEpochAndErasesCanonicalGraph(t *testing.T) 
 		t.Fatal(err)
 	}
 	missing := map[string]bool{"audit-summary-unavailable": true, "job-logs-unavailable": true,
-		"legacy-audit-unavailable": true, "session-unavailable": true}
-	if len(coverage["coverage"].Rows) != len(missing) {
-		t.Fatalf("native acquisition coverage lost or invented source classes: %v", coverage)
-	}
+		"session-unavailable": true, "agentic-tool-metrics-unavailable": true}
+	sawSuccess := false
 	for _, row := range coverage["coverage"].Rows {
 		code, _ := row["code"].(string)
+		if row["type"] == "audit.finding" && code == "workflow_succeeded" {
+			sawSuccess = true
+			continue
+		}
 		if !missing[code] || row["type"] != "collection.coverage" || row["status"] != "unavailable" || row["timestamp"] != nil {
 			t.Fatalf("missing source was hidden or became a timed success-shaped audit: %v", row)
 		}
 		delete(missing, code)
+	}
+	if len(missing) != 0 || !sawSuccess {
+		t.Fatalf("native acquisition lost source coverage or the valid success finding: missing=%v success=%t", missing, sawSuccess)
 	}
 	removed, err := enrollment.RemoveRepositories(t.Context(), task.InstallationID, []string{task.Repository})
 	if err != nil || len(removed) != 1 {

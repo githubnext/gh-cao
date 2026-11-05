@@ -289,7 +289,9 @@ func ProjectCanonical(ctx context.Context, evidence Evidence, published time.Tim
 	run["githubApiCalls"] = canonicalNumber(input["github_api_calls"])
 	run["errorCount"] = canonicalNumber(input["error_count"])
 	legacyAggregates(run, input)
-	if slices.Contains(persisted.Gaps, "legacy-audit-unavailable") {
+	// Any incomplete acquisition source makes full-list totals unknowable.
+	// This also conservatively handles evidence carrying the retired legacy gap.
+	if len(persisted.Gaps) > 0 {
 		run["highPriorityAuditItems"], run["mediumPriorityAuditItems"] = nil, nil
 	}
 	started, completed := eventClock(first(input["started_at"], input["created_at"])), eventClock(run["completedAt"])

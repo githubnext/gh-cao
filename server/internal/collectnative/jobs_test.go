@@ -136,8 +136,8 @@ func TestNativeJobAcquisitionSignedLogsAndDestinationOrdering(t *testing.T) {
 	if scalar(usage["total_input_tokens"]) != "30" || scalar(usage["total_aic"]) != "0.9" {
 		t.Fatal("runner stdout was counted as usage or deduplication/cumulative AIC was lost")
 	}
-	if !slices.Contains(evidence.Gaps, "legacy-audit-unavailable") {
-		t.Fatal("bounded subset falsely claimed complete legacy audit parity")
+	if slices.Contains(evidence.Gaps, "legacy-audit-unavailable") {
+		t.Fatal("supported default audit retained the retired blanket gap")
 	}
 }
 
@@ -391,7 +391,7 @@ func TestNativeLegacyAuditCanonicalActivityOracle(t *testing.T) {
 				"status": "completed", "conclusion": "timed_out", "created_at": "2026-10-15T10:00:00Z",
 				"started_at": "2026-10-15T10:00:00Z", "updated_at": "2026-10-15T10:01:01Z"}
 			gaps, err := enrichAudit(t.Context(), fields, files, testIdentity(), Limits{})
-			if err != nil || len(gaps) != 0 {
+			if err != nil || !slices.Equal(gaps, []string{"legacy-engine-fallback-unavailable", "agentic-tool-metrics-unavailable"}) {
 				t.Fatalf("valid summary not acquired: %v %v", gaps, err)
 			}
 			if unified {

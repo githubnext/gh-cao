@@ -129,10 +129,36 @@ func acquireJobs(ctx context.Context, provider Provider, run Run, fields map[str
 	if err != nil {
 		return nil, err
 	}
+	validationGaps, err := acquireValidation(ctx, provider, run, fields, limits, bytesUsed)
+	if err != nil {
+		return nil, err
+	}
+	gaps = append(gaps, validationGaps...)
 	if len(jobs) == 0 {
 		gaps = append(gaps, "job-logs-unavailable")
 	}
-	fields["job_details"] = jobs
+	jobDetails := make([]any, len(jobs))
+	for i, job := range jobs {
+		jobDetails[i] = job
+	}
+	fields["job_details"] = jobDetails
+	if len(jobs) > 0 {
+		failed := 0
+		for _, job := range jobs {
+			switch job["conclusion"] {
+			case "failure", "timed_out", "cancelled":
+				failed++
+			}
+		}
+		// Pinned parseJobsAPIResponses counts failed jobs, not runner log
+		// annotations, agent tool errors, or arbitrary lines containing ERROR.
+		if failed > 0 {
+			fields["error_count"] = json.Number(strconv.Itoa(failed))
+		} else {
+			// RunData.error_count is omitempty at the pinned producer boundary.
+			delete(fields, "error_count")
+		}
+	}
 	if len(annotations) > 0 {
 		fields["actions_annotations"] = annotations
 	}
@@ -151,6 +177,9 @@ func enrichAudit(ctx context.Context, fields map[string]any, files map[string][]
 		var info map[string]any
 		if decode(files[name], &info) != nil {
 			continue
+		}
+		if err := validateAuditEngine(info["engine_id"]); err != nil {
+			return nil, err
 		}
 		for native, retained := range map[string]string{"engine_id": "engine_id", "engine_name": "engine",
 			"agent_version": "agent_version", "cli_version": "cli_version", "model": "model", "agent_runtime": "agent_runtime",
@@ -253,6 +282,16 @@ func enrichAudit(ctx context.Context, fields map[string]any, files map[string][]
 		return nil, err
 	}
 	gaps = append(gaps, reportGaps...)
+	gatewayGaps, err := enrichGatewayAudit(ctx, fields, files, identity, limits)
+	if err != nil {
+		return nil, err
+	}
+	gaps = append(gaps, gatewayGaps...)
+	engineGaps, err := enrichEngineAudit(ctx, fields, files, identity, limits)
+	if err != nil {
+		return nil, err
+	}
+	gaps = append(gaps, engineGaps...)
 	start, err := time.Parse(time.RFC3339Nano, text(fields["started_at"]))
 	end, endErr := time.Parse(time.RFC3339Nano, text(fields["updated_at"]))
 	if err == nil && endErr == nil && !end.Before(start) {
@@ -279,19 +318,81 @@ func enrichAudit(ctx context.Context, fields map[string]any, files map[string][]
 	}
 	findings = append(findings, modelFindings...)
 	gaps = append(gaps, modelGaps...)
+	detectionFindings, detectionGaps, err := detectionAuditFindings(ctx, fields, files, identity, limits)
+	if err != nil {
+		return nil, err
+	}
+	findings = append(findings, detectionFindings...)
+	gaps = append(gaps, detectionGaps...)
+	networkGaps, err := enrichNetworkAudit(ctx, fields, files, limits)
+	if err != nil {
+		return nil, err
+	}
+	gaps = append(gaps, networkGaps...)
+	privacyGaps, err := enrichPrivacyAudit(ctx, fields, files, limits)
+	if err != nil {
+		return nil, err
+	}
+	gaps = append(gaps, privacyGaps...)
+	if err := finishValidation(ctx, fields, files, limits); err != nil {
+		return nil, err
+	}
+	defaultFindings, defaultRecommendations := defaultAuditFindings(fields)
+	findings = append(findings, defaultFindings...)
+	subagentFindings, subagentRecommendations, subagentGaps, err := subagentAuditFindings(ctx, fields, files, identity, limits)
+	if err != nil {
+		return nil, err
+	}
+	findings = append(findings, subagentFindings...)
+	defaultRecommendations = append(defaultRecommendations, subagentRecommendations...)
+	gaps = append(gaps, subagentGaps...)
+	// Match the pinned failure recommendation's critical-finding trigger.
+	critical := fields["conclusion"] == "failure"
+	for _, finding := range findings {
+		critical = critical || object(finding)["severity"] == "critical"
+	}
+	recommendations = append(recommendations, defaultRecommendations...)
+	if critical {
+		recommendations = append([]any{auditRecommendation("high",
+			"Review error logs to identify root cause of failure",
+			"Understanding failure causes helps prevent recurrence")}, recommendations...)
+	}
+	if fields["conclusion"] == "success" && len(array(object(fields["audit"])["errors"])) == 0 {
+		title := "Workflow Completed Successfully"
+		if engineCounter(object(fields["audit"])["subagent_failure_count"]) > 0 {
+			title = "Parent Workflow Completed Successfully"
+		}
+		findings = append(findings, auditFinding("workflow_succeeded", "success", "info", title, title))
+		if len(recommendations) == 0 {
+			recommendations = append(recommendations, auditRecommendation("low", "Monitor workflow performance over time",
+				"Tracking metrics helps identify trends and optimization opportunities"))
+		}
+	}
+	agenticFindings, agenticRecommendations, insights, agenticGaps, err := agenticAudit(ctx, fields, files, identity, limits)
+	if err != nil {
+		return nil, err
+	}
+	findings = append(findings, agenticFindings...)
+	recommendations = append(recommendations, agenticRecommendations...)
+	gaps = append(gaps, agenticGaps...)
 	if len(findings) > 0 {
 		audit := object(fields["audit"])
 		if audit == nil {
 			audit = map[string]any{}
 		}
 		audit["key_findings"] = findings
-		if len(recommendations) > 0 {
-			audit["recommendations"] = recommendations
-		}
 		fields["audit"] = audit
 	}
-	// A partial finding list cannot establish a zero count for missing classes.
-	// The collection gap remains even when supported summary evidence is present.
+	if len(recommendations) > 0 {
+		object(fields["audit"])["recommendations"] = recommendations
+	}
+	if len(insights) > 0 {
+		object(fields["audit"])["observability_insights"] = insights
+	}
+	delete(object(fields["audit"]), "native_tools")
+	delete(object(fields["audit"]), "native_reports")
+	// Source-specific gaps remain distinct from executing the supported default
+	// audit. Projection must not turn a partial finding list into complete totals.
 	return gaps, nil
 }
 
@@ -363,7 +464,7 @@ func applyAuditSummary(ctx context.Context, fields, summary map[string]any, limi
 			return errors.New("invalid audit summary section")
 		}
 	}
-	for _, declaration := range [][2]string{{"gateway", "tool_calls"}, {"skills", "items"}, {"safe_outputs", "items"}} {
+	for _, declaration := range [][2]string{{"gateway", "tool_calls"}, {"gateway", "tools"}, {"gateway", "servers"}, {"skills", "items"}, {"safe_outputs", "items"}} {
 		if value := object(summary[declaration[0]])[declaration[1]]; value != nil {
 			if _, ok := value.([]any); !ok {
 				return errors.New("invalid audit summary items")
@@ -404,7 +505,7 @@ func applyAuditSummary(ctx context.Context, fields, summary map[string]any, limi
 		staged["firewall_analysis"] = result
 	}
 	if gateway := object(summary["gateway"]); gateway != nil {
-		calls := []map[string]any{}
+		calls := []any{}
 		for _, candidate := range array(gateway["tool_calls"]) {
 			if err := step(); err != nil {
 				return err
@@ -414,7 +515,19 @@ func applyAuditSummary(ctx context.Context, fields, summary map[string]any, limi
 			if err != nil || call == nil {
 				return errors.New("invalid gateway summary")
 			}
-			retained["input_size"], retained["output_size"] = retained["request_size"], retained["response_size"]
+			for _, key := range []string{"tool_call_id", "server_name", "tool_name"} {
+				if value := call[key]; value != nil && value != "" && !auditReportName.MatchString(text(value)) {
+					return errors.New("invalid gateway summary identity")
+				}
+			}
+			if !safeGatewayStatus(call["outcome"]) {
+				return errors.New("invalid gateway summary outcome")
+			}
+			if value := call["timestamp"]; value != nil && value != "" && eventClock(value) == "" {
+				return errors.New("invalid gateway summary timestamp")
+			}
+			retained["input_size"] = first(retained["request_size"], json.Number("0"))
+			retained["output_size"] = first(retained["response_size"], json.Number("0"))
 			delete(retained, "request_size")
 			delete(retained, "response_size")
 			for native, target := range map[string]string{"tool_call_id": "tool_call_id", "timestamp": "timestamp",
@@ -423,9 +536,33 @@ func applyAuditSummary(ctx context.Context, fields, summary map[string]any, limi
 					retained[target] = value
 				}
 			}
+			if duration, err := gatewayDuration(call["duration_ms"]); err != nil {
+				return err
+			} else if duration != "" {
+				retained["duration"] = duration
+			}
 			calls = append(calls, retained)
 		}
-		staged["mcp_tool_usage"] = map[string]any{"tool_calls": calls}
+		usage := map[string]any{"tool_calls": calls}
+		for _, section := range []string{"tools", "servers"} {
+			rows := []any{}
+			for _, candidate := range array(gateway[section]) {
+				if err := step(); err != nil {
+					return err
+				}
+				row, err := safeGatewaySummary(object(candidate), section == "tools")
+				if err != nil {
+					return err
+				}
+				rows = append(rows, row)
+			}
+			target := section
+			if section == "tools" {
+				target = "summary"
+			}
+			usage[target] = rows
+		}
+		staged["mcp_tool_usage"] = usage
 	}
 	if skills := object(summary["skills"]); skills != nil {
 		items := []map[string]any{}

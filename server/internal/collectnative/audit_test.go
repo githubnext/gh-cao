@@ -17,7 +17,7 @@ func TestNativeAuditPinnedSummaryAndAccounting(t *testing.T) {
 	files := map[string][]byte{"usage/activity/summary.json": jobFixture(t, "usage-activity-summary.json"),
 		"usage/token-usage.jsonl": jobFixture(t, "token-usage.jsonl")}
 	gaps, err := enrichAudit(t.Context(), fields, files, testIdentity(), Limits{})
-	if err != nil || len(gaps) != 0 {
+	if err != nil || !slices.Equal(gaps, []string{"legacy-engine-fallback-unavailable", "agentic-tool-metrics-unavailable"}) {
 		t.Fatalf("supported structured evidence failed: %v %v", gaps, err)
 	}
 	content, _ := json.Marshal(fields)

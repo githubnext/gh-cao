@@ -208,16 +208,23 @@ run time, not restart/replay time; linked-detail retention remains enforced.
 Acquisition gaps MUST remain visible as untimed `collection.coverage` audits and
 partial source metadata, not success-shaped defaults or inferred zeroes.
 
-**Current activation limit:** native hosted assembly exists behind the public
-configuration gate, including authenticated enrollment, webhook admission,
+**Explicit native activation:** `CollectorConfig.NativeAcquisition` selects the
+distributed hosted profile, including authenticated enrollment, webhook admission,
 receipt-fenced workers, immutable historical discovery, inventory preparation,
 publication replay and repository/backfill lifecycle integration. Its
 PostgreSQL canonical writer verifies the exact inventory snapshot's readiness
 inside the activation transaction. Native session archive and shared trace
 destinations use their scoped durable admission and enrollment authority.
-`CollectorConfig.NativeAcquisition` still fails closed: complete engine/debug
-audit parity and Value coexistence are not established. Executable gated assembly
-and service tests are not permission to enable this profile.
+Environment deployments MUST explicitly select `CAO_COLLECT_NATIVE=true` and,
+for workers, the exact reviewed inventory digest already provisioned through
+`Acquisition.PinInventoryConfiguration`. Programmatic callers MAY provide the
+immutable reviewed bytes directly. Replacing the shared configuration MUST use
+the explicit expected-digest CAS; replicas MUST NOT choose a newer configuration
+implicitly. Native activation MUST NOT require an Activity directory, Node or a
+local inventory file. Optional existing Node Value execution is separately
+selected and retains its explicit catalog/policy/runtime dependencies. Native
+selection MUST reject unsupported legacy limits and malformed settings rather
+than silently ignore them or fall back to the legacy producer.
 
 Native Actions job acquisition uses the exact-attempt jobs endpoint
 and scoped job-log downloads with shared quota observations, credential-free
@@ -263,26 +270,166 @@ classifications; byte, line, entry and role/log comparison limits reject excess
 work instead of successful truncation. Invalid sessions cannot publish partial
 causal findings or be reinterpreted as missing evidence.
 
-The remaining default audit parity boundary is concrete, not an unspecified
-missing collector. The following inventory is pinned to `github/gh-aw@v1.0.1`;
+Native default audit analysis additionally consumes transient Copilot
+`events.jsonl` and admitted agent logs. Primary Copilot events own token/turn
+metrics over debug logs; explicit shutdown model metrics, including zero,
+override per-event fallback usage and exclude cache tokens. Without events,
+Copilot session results and timestamped debug response blocks provide tokens,
+turns and reported costs. Output-only Responses API wire histories establish
+tool stubs without recounting repeated history or a later matching input.
+Claude top-level result snapshots replace earlier snapshots in the
+same session, exclude child results and include cache tokens. Without result
+entries, Claude mixed text uses maximum per-line generic usage and the first
+positive reported cost, including numeric-string and relaxed-JSON forms. Codex native
+JSON/JSONL counters deduplicate exact turns within session scope, merge partial
+snapshots with explicit zero/overflow semantics and distinguish cache-inclusive
+input. Codex legacy thinking transitions, incremental inline token counts,
+immediate-next-line pretty totals and trace totals retain structured snapshot
+precedence, including explicit zero. Embedded tool-result JSON is excluded from
+both structured and legacy agent metrics. Pi message, turn and agent-end snapshots replace each message's usage
+instead of counting it repeatedly; compaction and explicit usage entries retain
+their own identities. Gemini sums per-model stats across responses. Across raw files,
+tokens sum and turns take the maximum; Actions runner logs, detection logs and
+baseline directories cannot contribute agent usage. A raw total never
+fabricates structured input/output tokens or AIC. Structured proxy usage may
+backfill a zero raw total. Audit-only fallback tries the five known engine
+parsers in pinned registry order, using tokens + 100,000×turns +
+1,000×distinct-tools; ties retain the first parser. Recovered audit metrics never
+rewrite immutable Run accounting. Truly unavailable inferred turns remain
+explicit as `legacy-engine-fallback-unavailable`.
+
+The independent pinned Copilot fixtures establish 805,343 tokens/two turns
+from primary events and 3,325 tokens/two turns from debug responses. Supported
+default rules now produce `high_token_usage`, `many_iterations`,
+`mcp_server_failures`, `tools_not_available` and
+`blocked_network_requests`, with failure, iteration, tooling and network
+recommendations in upstream order. High token usage is a performance finding,
+not the cost-category trigger for a cost recommendation. Exact-attempt job
+metadata supplies immutable `error_count` as the number of failed, timed-out or
+cancelled jobs, with upstream zero omission; annotation volume and arbitrary
+agent error text are not that counter or a source of validation issues.
+Exact-attempt workflow log ZIPs provide step boundaries: qualifying Actions
+errors produce one validation issue per step file, not per annotation. Agent
+tool-result annotations are excluded. Failure-only fallback uses admitted agent
+stdio, then the last nonempty workflow step. More than five issues produces
+`multiple_errors`. Only stable validation classes and hashed step locations
+survive; arbitrary excerpts do not.
+
+Raw Squid access logs take precedence over usage-summary firewall counts.
+Codex `--allow-domains` warnings contribute one blocked request per distinct
+domain, additively to raw access counts. Internal Squid placeholder entries are
+excluded; private destinations are not silently filtered. Domain-only counts
+and findings survive, never URLs, user agents or raw lines. Admitted
+`redacted-urls.log` inputs yield unique-domain counts and the info-level
+“Sensitive destinations were redacted” insight; the redacted names never
+survive. Ambiguous source selections remain gaps.
+
+Versioned unified subagent lifecycle events supply grouped `subagent_failed`
+findings and failure-recovery recommendations. A complete, deduplicated
+`subagent.model_unavailable` descriptor supplies a medium tooling warning,
+not a failed invocation or evidence of model traffic. A successful parent
+with observed child failures gets the parent-success narrative without
+discarding the child failures. Declared-model reconciliation uses the complete
+pinned builtin alias map, bounded custom aliases, provider and dated-model
+normalization, patterns and parent-model inheritance. Latest source/session
+scope, SDK accounting snapshot replacement, grouped effective models and Pi
+dispatch/event/result or legacy tool completion establish invocation evidence.
+Zero-usage failed Pi responses do not establish served-model traffic.
+`subagent_model_not_observed` distinguishes successful/incomplete invocations
+without matching served models from failed invocations and missing global usage.
+Native trace identity can bridge an unidentified unified invocation to SDK
+metrics only through unique matching tool-call starts, compatible names,
+timestamps, native indices and persisted paths; collisions never establish a link.
+
+Raw `gateway.jsonl` owns MCP summaries and server counters over usage-summary
+fallback, preferring the artifact root over `mcp-logs/`. Only absent gateway logs
+permit `rpc-messages.jsonl` fallback, preferring `mcp-logs/` there. RPC legacy
+`type` and production `rpc-message/v2` events share server-scoped request IDs.
+Sequential aggregate timing/error pairing remains distinct from the pinned
+two-pass individual-call pairing. Filter and guard-policy events are not tool
+calls. Safe byte/timing counters survive; payloads and error messages do not.
+Matching usage tools may backfill missing numeric sizes/timings, never add stale
+tools or replace raw call/error counts. Summary calls backfill only an empty raw
+call list. Tool cardinality, assessments and Drain3 consume the same merged map.
+
+The six pinned `agentic_*` assessments and their recommendations consume
+admitted immutable turns, tool cardinality, safe outputs, workflow domain,
+friction and delegated context. Execution, actuation, capability, network and
+privacy observability insights consume their corresponding admitted inputs.
+Unknown tool metrics remain an explicit gap, not fabricated zero tools.
+Default per-run Drain3 template, anomaly-count and stage-sequence insights use
+the pinned embedded plan/finish baselines, masks, insertion order and thresholds.
+An independent upstream Go oracle verifies the one/two/three-anomaly fixtures.
+Training, custom weights and cross-run baseline comparisons remain outside
+this default contract. Tool/command names and report text used for clustering
+are transient, nonserializable inputs and are removed before evidence admission.
+
+Detection findings consume normalized job conclusions, same-attempt execution
+markers, collector-versioned unified detection results and legacy verdict/log
+fallback. Unified results own verdicts, while absent outcome fields may inherit
+the usage result. Required verdict flags must all be booleans; missing verdicts
+never establish safety. Failed, cancelled, warning and not-started detection
+outcomes produce `threat_detection_job_failed`; categorized verdicts or the
+allowlisted uncategorized threat reason produce `threat_detected`.
+Contradictory or invalid streams produce coverage gaps instead of partial
+verdicts. Acquisition admits these members only with same-archive identity.
+Raw events, debug blocks, prompts, MCP error messages and detection reasons
+remain ephemeral; PostgreSQL publication retains safe findings and honest
+partial coverage, not raw logs or completeness inferred from a subset of findings.
+
+The following default audit coverage inventory is pinned to `github/gh-aw@v1.0.1`;
 it excludes optional cross-run/baseline comparisons and custom graders:
 
-| Upstream owner and required inputs | Remaining native limitation |
+| Upstream owner and required inputs | Covered semantics and exact remaining limitation |
 |---|---|
-| `logs_metrics.go:extractLogMetrics`, `audit_report.go:buildAuditMetrics`: primary `events.jsonl`, engine-specific agent logs, inferred fallback metrics and their precedence | Native does not implement the complete Copilot/Claude/Codex/Pi or behavior-defined engine metric/debug parsers. Structured token counters and safe unified-session events do not establish equivalent turns, tool sequences, warnings, engine errors or estimated legacy cost. `high_token_usage` (>50,000 tokens), `many_iterations` (>10 turns) and complete immutable metric totals therefore lack parity. Runner stdout must not become an agent-metric fallback. |
-| `audit_report.go:extractAuditErrors`, `extractPreAgentStepErrors`, and `audit_report_analysis.go` | Allowlisted Actions annotation classes/locations and execution-state `workflow_failed`/`workflow_timeout` findings exist. Native does not reconstruct upstream engine/pre-agent validation issues, failure descriptions or the `multiple_errors` (>5 validation issues) rule. A successful conclusion alone cannot establish the upstream `workflow_succeeded` narrative or recovery of failed delegated work. |
-| `audit_threat_detection.go` and `audit_threat_detection_session.go`: detection job conclusion, execution-start evidence, unified `detection.result`, legacy verdict/result fallback | `threat_detection_job_failed` and `threat_detected` are not reconstructed. Observed detection session events retain `threat-detection-audit-unavailable`; absence of a parsed verdict is never evidence of a safe result. Detection-model usage must remain separate from agent usage. |
-| `audit_report_analysis.go:generateToolingFindings`, `generateFirewallFindings`; `logs_metrics.go`, raw MCP/gateway, access, policy and firewall adapters | Structured missing-tool/data reports and usage-summary counters are supported, but raw MCP startup failures, complete network evidence/precedence and `mcp_server_failures`, `tools_not_available`, `blocked_network_requests` findings/recommendations are not fully reconstructed. Summary availability must not imply these rule families were evaluated. Noop free-text loss remains explicit. |
-| `token_usage_declared_subagents.go`, `token_usage_subagent*.go`, `audit_subagent_model.go`: declared models, session invocation lineage and per-model requests | Safe unified sub-agent events exist, but complete declared/observed-model attribution and `subagent_model_not_observed`, `subagent_model_unavailable`, `subagent_failed` findings and failure-recovery recommendations are not implemented. Alias fallback is not a delegation failure. |
-| `audit_analysis_fanout.go`, `audit_expanded.go`: usage-summary friction/ledger/integrity/steering, raw work-queue evidence, tool timings, prompt/session and safe-output chain analysis | Working-set and selected structured counters are supported, not the complete expanded audit. Existing `legacy-friction-unavailable`, `legacy-ledger-unavailable`, `legacy-integrity-unavailable` and `legacy-steering-unavailable` gaps identify observed unsupported summary sections. Complete MCP health, policy/redaction, queue, session/prompt and temporary-target chain reports are not reconstructed. |
-| `audit_agentic_analysis.go`, `observability_insights.go`, `drain3_integration.go`, `audit_report.go:buildAuditNarrative` | The six `agentic_*` assessment findings, domain/behavior assessments, execution/actuation/capability/network/privacy insights, Drain3 template/anomaly/stage insights, and corresponding default recommendations are not reproduced. These consume the preceding metric, tooling, network, safe-output and context inputs; zero-filled substitutes are not parity. |
-| `audit_report_analysis.go:generateRecommendations` and the Activity audit normalizer | Only startup-model recommendations currently accompany supported execution/model findings. The rest of the default failure, cost, iteration, tooling, network, sub-agent, success and assessment recommendations are absent. Immutable high/medium counts include findings, recommendations and insights together; they MUST remain null while `legacy-audit-unavailable` is present, even when a supported high finding exists. |
+| `logs_metrics.go:extractLogMetrics`, `audit_report.go:buildAuditMetrics`: primary `events.jsonl`, engine-specific agent logs, inferred fallback metrics and their precedence | Copilot events/session/debug and wire stubs, Claude snapshots/mixed-text fallback, Codex native/legacy metrics and embedded-result exclusion, Pi snapshots and Gemini stats supply accounting and audit-only inference. Reported costs retain engine-specific snapshot/first-positive/additive semantics; no price is invented. An independent executable built from unmodified pinned Copilot, Claude and Codex parsers verifies tokens, turns, costs and exact tool counts. An encountered nonempty engine declaration outside these five builtin IDs fails with `ErrUnsupported`, even without raw logs or with otherwise parseable primary events; it is not guessed or downgraded to a coverage gap. Missing engine identity remains a source-specific gap when raw log metrics require it. |
+| `audit_report.go:extractAuditErrors`, `extractPreAgentStepErrors`, and `audit_report_analysis.go` | Exact-attempt job counters, workflow step ZIP acquisition/grouping, failure-only fallback, tool-result annotation exclusion and `multiple_errors` now exist. Success and delegated-failure recovery narratives are supported. Free-text descriptions/excerpts are deliberately discarded because they are not canonical audit fields; their absence is not an excuse to omit canonical code/title/severity. |
+| `audit_threat_detection.go` and `audit_threat_detection_session.go`: detection job conclusion, execution-start evidence, unified `detection.result`, legacy verdict/result fallback | Native now produces `threat_detection_job_failed` and `threat_detected` from these inputs; the obsolete blanket detection gap is removed. Unidentified legacy archives are rejected, not bound using metadata from another archive. Invalid/ambiguous streams remain explicit gaps; native rejects malformed tails instead of upstream's best-effort line skipping. Detection-model usage remains separate from agent usage. |
+| `audit_report_analysis.go:generateToolingFindings`, `generateFirewallFindings`; `logs_metrics.go`, raw MCP/gateway, access and firewall adapters | Startup MCP failures, structured missing-tool reports, raw access precedence, additive agent firewall warnings and summary fallback produce the pinned tooling/network findings and recommendations. Gateway and legacy/v2 RPC adapters now preserve safe tool/server counts, sizes and timing with the raw/summary precedence above. Error-only zero-call tools still count as distinct types. Missing/invalid raw acquisition remains an explicit gap, not evidence that summary counters evaluate every source. |
+| `token_usage_declared_subagents.go`, `token_usage_subagent*.go`, `audit_subagent_model.go`: declared models, session invocation lineage and per-model requests | Lifecycle failures, model-unavailable warnings, recovery, alias/inheritance/pattern-aware served-model reconciliation, `subagent_model_not_observed`, Pi attribution, latest-session selection, SDK snapshots and strict native identity bridging are supported. All 61 builtin aliases are independently compared with the pinned map. Invocation proof never follows a name-only or ambiguous identity guess. Raw model attribution does not invent structured token/credit accounting. |
+| `audit_analysis_fanout.go`, `audit_expanded.go`: usage-summary friction/ledger/integrity/steering, raw work-queue evidence, prompt/session and safe-output chain reports | Working-set and selected structured counters plus count-only redaction analysis are supported. `legacy-friction-unavailable`, `legacy-ledger-unavailable`, `legacy-integrity-unavailable` and `legacy-steering-unavailable` identify observed unsupported sections. Expanded queue, firewall-policy, prompt/session and temporary-target chain report bodies are not reconstructed and are not the smaller default canonical finding/insight projection. Unsupported intelligence declarations remain rejected; these sources must never be treated as evaluated, empty or complete. |
+| `audit_agentic_analysis.go`, `observability_insights.go`, `drain3_integration.go`, `audit_report.go:buildAuditNarrative` | All six assessment rules, execution/actuation/capability/network/privacy insights, default per-run Drain3 insights and corresponding recommendations consume the admitted engine, merged-tool, network and model-attribution inputs above. Focused fixtures cover the formerly discrepant gateway tools, legacy counters and declared models; unknown inputs remain gaps rather than zero-filled substitutions. |
+| `audit_report_analysis.go:generateRecommendations` and the Activity audit normalizer | Startup-model, failure/critical, iteration, missing-tool/MCP, raw/summary network, subagent recovery, success and assessment recommendations are supported in pinned order. High token usage is not the cost-category trigger. Immutable high/medium counts include findings, recommendations and insights together. Any acquisition gap conservatively keeps both totals null, even when supported high findings exist. A gap-free supported audit can expose its complete totals, including measured zero. |
 
-`legacy-audit-unavailable` and narrower source gaps remain explicit evidence, not
-a complete-audit or profile-parity claim. The publicly enabled hosted collector,
-container and CLI remain on the legacy implementation. Passing native service or
-gated-assembly tests MUST NOT be represented as publicly activated distributed
-collection or complete profile equivalence.
+**Default audit capability contract:** successful supported native audit execution
+supersedes the unconditional `legacy-audit-unavailable` marker; new evidence MUST
+NOT carry that retired blanket gap. Existing saved evidence carrying it remains
+conservatively projected with null high/medium totals. Missing, invalid,
+ambiguous or unavailable sources retain their narrower coverage rows. Removing
+the blanket marker MUST NOT remove those rows or make their totals complete.
+
+The zero-valued `Collector.Audit` request selects only this pinned default per-run
+canonical finding/recommendation/insight projection. `AuditRequest.Validate`
+rejects an explicit expanded-report or training request, a nonempty external
+baseline selector, or any non-nil custom-weight declaration (including an empty
+map) with `ErrUnsupported` before acquisition. These options are capability
+checks, not a new public configuration surface or authority to acquire another
+run. Builtin embedded Drain3 baselines and startup model baseline estimates are
+part of default analysis, not external-baseline requests.
+
+An admitted exact-attempt `aw_info.json` declaring an engine other than
+`copilot`, `claude`, `codex`, `pi` or `gemini` explicitly rejects acquisition.
+Malformed non-string engine declarations also reject. Ordinary missing-tool,
+missing-data and noop reports remain supported. An encountered otherwise
+unrecognized `agent_output.json` item type in the reserved `report_*`,
+`*_report` or exact `intelligence` namespace rejects with `ErrUnsupported`,
+including after a valid report prefix; this error MUST propagate rather than
+become `invalid-agent-reports` or publish that prefix. Ordinary non-report safe
+outputs are not additional audit requests. Campaign intelligence declarations
+remain rejected by native inventory storage.
+
+Merely observing optional friction/ledger/integrity/steering source sections
+does not request an expanded report: default analysis still executes, retaining
+the corresponding explicit section gaps. Historical comparison directories
+are excluded from the default audited-run input selection, not interpreted as
+an implicit baseline request. Expanded report bodies, baseline comparisons,
+training and custom weights MUST NOT be silently accepted or advertised as
+evaluated by default acquisition.
+
+Public native activation selects only this supported default capability
+contract. It MUST NOT be represented as expanded-profile equivalence, nor waive
+unsupported intelligence rejection, source ownership, inventory readiness,
+approved trace admission or selected-feature dependency checks.
 
 ## 3. Enrollment
 
@@ -448,8 +595,8 @@ persists it in an **evidence lake** with the directory obligations below.
 The native boundary in section 2.4 instead persists safe, exact-attempt
 publication intents in PostgreSQL. Those intents are not an Activity directory,
 a local overlay, or approved-content trace storage. Native hosted activation
-MUST remain rejected until cold start, retention and scope erasure satisfy their
-contracts using that shared durable representation.
+MUST enforce cold start, retention and scope erasure through that shared durable
+representation, and reject backends unable to satisfy those contracts.
 
 - The lake MUST use the Activity snapshot directory layout: compacted run shards
   under `gh-aw-logs-runs/`, record shards under `gh-aw-logs-records/`, a
@@ -484,7 +631,8 @@ contracts using that shared durable representation.
 ## 7. Projection
 
 Projection converts retained evidence into the current canonical PostgreSQL
-dataset. Native publication remains subject to section 2.4's activation gate.
+dataset. Native publication remains subject to section 2.4's capability and
+ownership contract.
 
 - Projection MUST preserve the Actions profile's canonical mapping. The legacy
   filesystem collector MUST reuse its ingestion implementation over the evidence

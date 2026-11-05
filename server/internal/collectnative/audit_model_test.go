@@ -65,8 +65,9 @@ func TestNativeModelAuditPinnedStartupAndCanonicalOracle(t *testing.T) {
 		t.Fatal("upstream model finding classification/identifiers changed")
 	}
 	if slices.Contains(evidence.Gaps, "model-resolution-audit-unavailable") ||
-		!slices.Contains(evidence.Gaps, "legacy-audit-unavailable") {
-		t.Fatal("supported model rule was dropped or full parity inferred")
+		slices.Contains(evidence.Gaps, "legacy-audit-unavailable") ||
+		!slices.Contains(evidence.Gaps, "job-logs-unavailable") {
+		t.Fatal("supported model rule or honest source-specific coverage was lost")
 	}
 	projection, err := ProjectCanonical(t.Context(), evidence, time.Now(), Limits{})
 	if err != nil {
@@ -87,7 +88,9 @@ const run=JSON.parse(raw);
 run.audit={key_findings:[
  {code:'workflow_failed',category:'error',severity:'critical',title:'Workflow Failed'},
  {code:'model_unavailable',category:'configuration',severity:'high',title:'Model Unavailable'}
-], recommendations:[{priority:'high',action:'Replace the unavailable model pin with a model advertised by the same provider, verify endpoint compatibility, and recompile the workflow'}]};
+], recommendations:[
+ {priority:'high',action:'Review error logs to identify root cause of failure'},
+ {priority:'high',action:'Replace the unavailable model pin with a model advertised by the same provider, verify endpoint compatibility, and recompile the workflow'}]};
 const audits=normalize(adaptCachedGhAwJsonl(JSON.stringify({schema_version:5,kind:'run',run})).observations).audits
  .filter(row=>['audit.finding','audit.recommendation'].includes(row.type));
 for(const row of audits) delete row.sequence;
@@ -287,6 +290,8 @@ func TestGitHubNativeModelAuditUsesExactAttemptAgentArchive(t *testing.T) {
 					_, _ = w.Write(archives[parts[len(parts)-2]])
 				case "/repos/octo/api/actions/runs/303/attempts/1/jobs":
 					_, _ = w.Write([]byte(`{"total_count":0,"jobs":[]}`))
+				case "/repos/octo/api/actions/runs/303/attempts/1/logs":
+					w.WriteHeader(http.StatusNotFound)
 				default:
 					t.Errorf("unexpected acquisition endpoint %s", r.URL.Path)
 					w.WriteHeader(http.StatusNotFound)

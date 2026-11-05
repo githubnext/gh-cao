@@ -258,7 +258,7 @@ func artifactName(name string) bool {
 	if len(name) > 256 || !artifactIdentifier.MatchString(name) {
 		return false
 	}
-	for _, suffix := range []string{"usage", "agent", "experiment", "experiments", "graders", "evals", "safe-outputs-items", "agent_output.json"} {
+	for _, suffix := range []string{"usage", "agent", "agent_outputs", "detection", "threat-detection.log", "experiment", "experiments", "graders", "evals", "safe-outputs-items", "agent_output.json"} {
 		if name == suffix || strings.HasSuffix(name, "-"+suffix) {
 			return true
 		}
@@ -372,6 +372,10 @@ func (g GitHub) signedDownload(ctx context.Context, headers http.Header) ([]byte
 }
 
 func unpack(ctx context.Context, archive []byte, limits Limits) (map[string][]byte, int, error) {
+	return unpackSelected(ctx, archive, limits, nil)
+}
+
+func unpackSelected(ctx context.Context, archive []byte, limits Limits, include func(string) bool) (map[string][]byte, int, error) {
 	// Reject excessive central-directory cardinality before archive/zip allocates
 	// per-member objects. ZIP64 is intentionally unsupported for bounded evidence.
 	end := bytes.LastIndex(archive, []byte{'P', 'K', 5, 6})
@@ -421,13 +425,28 @@ func unpack(ctx context.Context, archive []byte, limits Limits) (map[string][]by
 			return nil, 0, errors.Join(readErr, closeErr)
 		}
 		total += len(value)
+		if include != nil {
+			if include(name) {
+				files[name] = value
+			}
+			continue
+		}
 		switch path.Base(name) {
 		case "aw_info.json", "aw_session.jsonl", "assignments.json", "grader_results.json", "grader_manifest.json", "evals.jsonl",
 			"token-usage.jsonl", "safe-output-items.jsonl", "agent_output.json", "github_rate_limits.jsonl",
-			"agent-stdio.log", "awf-reflect.json":
+			"agent-stdio.log", "awf-reflect.json", "events.jsonl", "agent-session.jsonl", "gateway.jsonl", "rpc-messages.jsonl",
+			"detection_result.json", "detection.log", "redacted-urls.log":
 			files[name] = value
+		case "execution.json":
+			if path.Base(path.Dir(name)) == "detection" {
+				files[name] = value
+			}
 		case "summary.json":
 			if path.Base(path.Dir(name)) == "activity" {
+				files[name] = value
+			}
+		default:
+			if engineLogPath(name) || firewallLogPath(name) {
 				files[name] = value
 			}
 		}

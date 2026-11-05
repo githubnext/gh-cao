@@ -110,7 +110,10 @@ func TestNativeModelAuditPostgresPublicationPreservesPartialEvidence(t *testing.
 		if row["type"] == "audit.finding" && row["code"] == "model_unavailable" && row["status"] == "high" {
 			found = true
 		}
-		if row["type"] == "collection.coverage" && row["code"] == "legacy-audit-unavailable" {
+		if row["code"] == "legacy-audit-unavailable" {
+			t.Fatal("native default audit retained the retired blanket gap")
+		}
+		if row["type"] == "collection.coverage" && row["code"] == "job-logs-unavailable" {
 			partial = true
 		}
 	}
