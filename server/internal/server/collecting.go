@@ -32,7 +32,7 @@ const defaultQueueMaxLength = 200_000
 // collection of its own.
 type CollectorConfig struct {
 	// NativeAcquisition requests the distributed acquisition boundary. Activation
-	// remains gated until default audit parity and Value coexistence are complete.
+	// remains gated until default engine/debug audit parity is complete.
 	NativeAcquisition bool
 	// NativeInventory is the immutable reviewed source contract, not a path or
 	// an ingestion-scope grant. Replicas pin its digest in PostgreSQL.
@@ -103,7 +103,7 @@ func (config *CollectorConfig) Validate() error {
 		return nil
 	}
 	if config.NativeAcquisition {
-		return fmt.Errorf("%w: hosted native activation requires complete engine/debug audit parity and Value coexistence",
+		return fmt.Errorf("%w: hosted native activation requires complete engine/debug audit parity",
 			collectnative.ErrUnsupported)
 	}
 	if config.NativeValues || config.NativeInventoryDigest != "" || config.NativeInventory != nil {

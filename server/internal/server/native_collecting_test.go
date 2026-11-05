@@ -182,6 +182,6 @@ func TestGatedNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing
 		t.Fatalf("native admission acquired worker credentials/files: %v", err)
 	}
 	if _, err := NewCollector(t.Context(), operational, data, config, ""); !errors.Is(err, collectnative.ErrUnsupported) {
-		t.Fatalf("assembly test bypassed the public audit/Value activation gate: %v", err)
+		t.Fatalf("assembly test bypassed the public audit activation gate: %v", err)
 	}
 }

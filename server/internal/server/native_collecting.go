@@ -31,7 +31,10 @@ type nativeCollection struct {
 func newNativeCollector(ctx context.Context, services operational.OperationalServices, capabilities operational.Capabilities,
 	data *postgresx.Store, config CollectorConfig, quota *githubquota.Service, queue collect.Queue,
 ) (*Collector, error) {
-	if data == nil || capabilities.Collection.Scope != operational.ScopeDeployment ||
+	if err := config.validateNative(); err != nil {
+		return nil, err
+	}
+	if data == nil || !data.Open() || capabilities.Collection.Scope != operational.ScopeDeployment ||
 		capabilities.Collection.Persistence != operational.PersistenceRestart {
 		return nil, fmt.Errorf("%w: native collection requires durable deployment-scoped PostgreSQL ownership and queue receipts",
 			collectnative.ErrUnsupported)

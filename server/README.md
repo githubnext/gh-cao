@@ -3379,9 +3379,9 @@ span ID.
 
 The deployed collection profile below remains the legacy Activity-backed
 profile. The native distributed assembly is **not publicly activatable yet**:
-`CAO_COLLECT_NATIVE=true` fails closed while complete audit parity and the
-selected-feature integration gates are unfinished; it does not fall back to
-Activity collection.
+`CAO_COLLECT_NATIVE=true` fails closed while complete audit parity is unfinished;
+it does not fall back to Activity collection. Optional Value dependencies are
+validated separately when selected.
 
 Native run acquisition, projection and approved trace destinations use Go and
 shared PostgreSQL fences, without Node, Activity files or filesystem coordination.
@@ -3390,6 +3390,9 @@ bounded disposable scratch and PostgreSQL-authoritative packet/proof recovery.
 Publication rechecks composed policy and source ownership; withdrawal atomically
 erases private proof. Remote Value retains its Linux-only socket transport.
 Inventory digests select exact provisioned reviewed bytes, not broader authority.
+Native mode rejects legacy run-count/storage/request-minute options rather than
+ignoring them; its discovery contract is bounded and `CAO_COLLECT_TIMEOUT`
+bounds collection.
 See `ARCHITECTURE.md` and `specs/value.md` for the feature-specific boundaries.
 
 | Setting | Meaning |

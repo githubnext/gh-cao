@@ -72,6 +72,12 @@ func CollectorConfigFromEnv() (*CollectorConfig, error) {
 		return nil, errors.New("CAO_COLLECT_APP_ID must be a positive GitHub App identifier")
 	}
 	admitOnly := envBool("CAO_COLLECT_ADMIT_ONLY")
+	if native {
+		admitOnly, err = collectorFeatureBool("CAO_COLLECT_ADMIT_ONLY")
+		if err != nil {
+			return nil, err
+		}
+	}
 	var privateKey []byte
 	if !admitOnly {
 		key, err := collectorPrivateKey()
@@ -110,6 +116,11 @@ func CollectorConfigFromEnv() (*CollectorConfig, error) {
 		CollectionTimeout:         envDuration("CAO_COLLECT_TIMEOUT"),
 		RecoverDeliveries:         envBool("CAO_COLLECT_RECOVER_DELIVERIES"),
 		RepositoryRefreshInterval: envStrictDuration("CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL"),
+	}
+	if native {
+		if err := nativeCollectorSettingsFromEnv(config); err != nil {
+			return nil, err
+		}
 	}
 	if err := config.Validate(); err != nil {
 		return nil, err

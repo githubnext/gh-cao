@@ -1932,8 +1932,9 @@ not authorize cross-repository evidence access.
   relax ADX's single-exporter activation restriction.
   The service is not yet a selectable hosted acquisition profile:
   `CollectorConfig.NativeAcquisition` continues to reject public activation
-  until complete default engine/debug audit parity and Value coexistence are
-  established. Gated-assembly tests with real PostgreSQL and no executable PATH
+  until complete default engine/debug audit parity is established. Optional
+  Value dependencies are validated only when that lane is selected.
+  Gated-assembly tests with real PostgreSQL and no executable PATH
   are integration evidence, not proof of complete profile equivalence. Existing
   hosted/container defaults remain the separate legacy producer.
   See `specs/server-ingestion.md` section 2.4.
