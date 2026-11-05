@@ -3530,6 +3530,11 @@ IndexedDB writes
 
 SHOULD occur in a Web Worker.
 
+Optional shard-size HEAD probes MUST have bounded concurrency and a bounded
+overall wait. A missing, unsupported, or stalled size probe MUST NOT block the
+shard download or completion of the import; byte and time estimates may remain
+unknown while file and stage progress remains determinate.
+
 The main thread SHOULD remain available for:
 
 ```text
