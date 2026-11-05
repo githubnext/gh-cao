@@ -449,7 +449,7 @@ collection, widen policy or replace ordinary dashboard readiness.
 The independently default-off Parquet session archive
 (`server/internal/sessionarchive/`, `server/internal/sessionarchiveblob/`,
 `specs/session-archive.md`, and `server/SESSION-ARCHIVE.md`) adds private full
-approved analytics without changing PostgreSQL schemas, queries, ingestion,
+approved analytics without changing canonical PostgreSQL schemas, queries, ingestion,
 retention, or operational state. It reuses the existing approved `adxtrace`
 projection and the authorized pre-normalization acquisition visit. Local
 SQLite archive access is limited to snapshot-declared repositories and does not
@@ -472,6 +472,29 @@ preserves bounded replay fences. Retention and recovery grace are independent
 of disposable source caches and dashboard detail; logical exclusion is not
 physical erasure. Publisher retries, maintenance and shutdown belong to the
 existing server's tracked lifecycle, not PostgreSQL archive state.
+
+An explicitly selected native hosted producer instead writes and verifies
+bounded Zstandard Parquet in Go memory from the generated logical event schema.
+It uses the same Blob lease, immutable-object reservations, manifests, replay
+fences, reader horizons and conditional pointer publication, with metadata-only
+admission receipts and no POSIX cache, process lock, DuckDB or other subprocess.
+Only complete durable publication acknowledges an exact-attempt capture;
+unacknowledged input remains eligible for authorized reacquisition. Its
+destination acceptance binding is distinct from legacy DuckDB acceptance.
+Native server selection additionally requires an explicit PG-backed source
+privacy authority (`sessionarchive.NativeAuthority`). Its bounded metadata-only
+registration/withdrawal outbox is enlisted in source enrollment transactions,
+not used as a physical archive catalog or content store. Dispatch-time source
+epochs fence admission; source-tagged Blob membership and locked final-delivery
+authorization deny withdrawn/old epochs immediately at the committed PG
+boundary. Blob cleanup remains independently retried, with permanent source
+tombstones and conservative physical retirement. This is not a cross-backend
+transaction: failed or stale publication cannot acknowledge acquisition, and
+pending cleanup cannot authorize old content after reenrollment.
+The boundary does not activate the distributed collector or permit multiple ADX
+exporters. Native collector selection remains fail-closed pending real PG
+enrollment/read-lock/outbox composition, Azure acceptance, and the complete
+integration gates. The separately selected legacy archive is unchanged.
 
 Local trusted queries read authorized Parquet directly without persistent
 DuckDB event tables. Hosted trusted ADX queries require verified external-table
@@ -1863,6 +1886,65 @@ not authorize cross-repository evidence access.
   Locally source-built images are not admitted through the package workflow's vulnerability scans,
   hardening check, SBOM, or artifact attestations; those guarantees continue
   to apply only to published packages.
+- The independently executable native collection service in
+  `server/internal/collectnative/` acquires scoped Actions artifacts, projects
+  metadata-only sessions and compacts JSONL without subprocesses or Activity
+  files. PostgreSQL owns exact-attempt acquisition leases, scope epochs and
+  bounded safe publication intents. Canonical projection executes the embedded
+  authoritative routing queries through the Go SQL engine, then commits the
+  graph, revision and consumed intent atomically. Approved trace admission can
+  use a private PostgreSQL object/ledger transaction and completes before safe
+  publication. Native historical tasks bind their admission epoch and use
+  receipt-fenced queue acknowledgement. A bounded database ownership transaction
+  serializes authenticated enrollment changes and atomically withdraws safe
+  intents, canonical evidence, daily contributions and configured shared trace
+  objects; frozen statistical bundles become unavailable. Operational indexes
+  cannot grant native scope, and reenrollment does not reapprove withdrawn
+  traces. These are shared durable boundaries, not filesystem caches.
+  The existing backfill API can use paginated native enrollment and publication
+  recovery without a lake. Historical queries freeze their window before API
+  access and carry workflow/run-page cursors through receipt-fenced queue
+  replacement. Separate discovery/attempt capacities permit work to drain;
+  running native roles also replay orphaned publication intents after ACK.
+  The opt-in hosted composition selects this boundary for admission, workers,
+  rebuild, cold start and explicit repository repair without constructing a
+  filesystem lake, Runner or legacy projection lifecycle. Source-bound immutable
+  inventory bytes replace packaged inventory paths; PostgreSQL retains the exact
+  reviewed document so a replica can restore it by its explicitly selected
+  digest, and checks current target/control inventory inside canonical activation.
+  Webhook/control deliveries carry source epochs and fresh queue receipts.
+  Independent safe-output dispositions survive run reprojection, while durable
+  Value invalidations remain hints, not acquired Value evidence.
+  The separately selected `NativeValues` lane reuses reviewed Node Value
+  programs and therefore still requires its catalog and policy assets. Its
+  private invocation scratch is disposable: PostgreSQL restores the original
+  source-epoch-bound packet/proof snapshot, fences publication against that
+  starting packet, and erases private proof/publication ownership atomically on
+  withdrawal. Those selected-feature dependencies are not dependencies of native
+  run acquisition, projection or trace admission. The existing remote Value
+  transport remains Linux-only; local query execution has its separate owned
+  canonical PostgreSQL boundary.
+  Native archive admission binds the original dispatch epoch before lossy
+  normalization. Its PostgreSQL metadata-only privacy ledger withdraws visibility
+  with source ownership and durably retries epoch-specific Blob retirement;
+  physical Blob deletion is deliberately not a cross-backend transaction.
+  Shared trace withdrawal still commits with source enrollment, and does not
+  relax ADX's single-exporter activation restriction.
+  `CollectorConfig.NativeAcquisition` explicitly selects the hosted native
+  profile; environment deployments use `CAO_COLLECT_NATIVE=true` and an exact
+  provisioned inventory digest. `Acquisition.PinInventoryConfiguration` provisions
+  reviewed bytes once; replacement requires an explicit expected-digest CAS.
+  Default audit adapters cover Copilot, Claude, Codex, Pi and Gemini. Unsupported
+  custom engines, expanded-report requests, external baselines, training and
+  intelligence semantics reject rather than lose findings. Source-specific
+  missing evidence still produces honest partial/unavailable results. Optional
+  Value dependencies are validated only when selected. Public-constructor tests
+  exercise real PostgreSQL, replica restoration and worker execution without an
+  executable PATH or legacy files. Doctor shares native setting and selected
+  Value dependency validation, and does not probe legacy lakes or projection
+  locks for native deployments. Existing hosted/container defaults remain
+  the separate legacy producer.
+  See `specs/server-ingestion.md` section 2.4.
 - Browsers and external clients never receive Redis or Postgres endpoints or
   credentials. Dashboard source replacement is transactional in Postgres; a
   failed replacement leaves the previous committed data available. An empty

@@ -126,12 +126,30 @@ func (p Projector) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sh
 	if p.PolicyPath == "" || p.CatalogRoot == "" {
 		return nil, zero, errors.New("reviewed remote Value policy and catalog are required")
 	}
-	content, err := readLocalValueFile(ctx, p.PolicyPath, 1<<20)
+	config := operationalvalue.Config{
+		Root: p.CatalogRoot, NodeBinary: p.node(),
+		Environment: collectionEnvironment(p.GitHubAPIURL), WorkerTimeout: 30 * time.Second,
+	}
+	var content []byte
+	var registrations []operationalvalue.WorkflowRegistration
+	var err error
+	native := p.Enrollment.Authority != nil
+	if native {
+		var snapshot operationalvalue.WorkflowPolicySnapshot
+		snapshot, err = operationalvalue.ResolveWorkflowPolicy(ctx, config, p.PolicyPath)
+		content, registrations = snapshot.Document, snapshot.Registrations
+	} else {
+		content, err = readLocalValueFile(ctx, p.PolicyPath, 1<<20)
+	}
 	if err != nil {
 		return nil, zero, err
 	}
 	digest := sha256.Sum256(content)
 	cache := p.RemoteValuePlan
+	if native {
+		// Profile imports can change without changing the entry profile.
+		cache = nil
+	}
 	if cache != nil {
 		cache.mu.Lock()
 		defer cache.mu.Unlock()
@@ -141,12 +159,11 @@ func (p Projector) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sh
 	}
 	// The production policy runtime validates the entire document and applies
 	// Activity enablement, global scope and explicit Activity repository scope.
-	registrations, err := operationalvalue.WorkflowRegistrations(ctx, operationalvalue.Config{
-		Root: p.CatalogRoot, NodeBinary: p.node(),
-		Environment: collectionEnvironment(p.GitHubAPIURL), WorkerTimeout: 30 * time.Second,
-	}, p.PolicyPath)
-	if err != nil {
-		return nil, zero, err
+	if !native {
+		registrations, err = operationalvalue.WorkflowRegistrations(ctx, config, p.PolicyPath)
+		if err != nil {
+			return nil, zero, err
+		}
 	}
 	if len(registrations) > 1000 {
 		return nil, zero, errors.New("reviewed workflow Value registration limit exceeded")
@@ -190,7 +207,14 @@ func (p Projector) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sh
 	}
 	// A policy edit during the runtime subprocess must not cache the plan
 	// under a digest belonging to the older policy.
-	current, err := readLocalValueFile(ctx, p.PolicyPath, 1<<20)
+	var current []byte
+	if native {
+		var snapshot operationalvalue.WorkflowPolicySnapshot
+		snapshot, err = operationalvalue.ResolveWorkflowPolicy(ctx, config, p.PolicyPath)
+		current = snapshot.Document
+	} else {
+		current, err = readLocalValueFile(ctx, p.PolicyPath, 1<<20)
+	}
 	if err != nil {
 		return nil, zero, err
 	}

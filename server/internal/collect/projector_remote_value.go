@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 )
@@ -25,6 +26,38 @@ import (
 var ErrRemoteValueDeferred = errors.New("remote Value acquisition deferred")
 
 const remoteValueFailurePrefix = "CAO_WORKFLOW_VALUE_FAILURE "
+
+// CollectScopedRemoteValues preserves the separately selected reviewed Value
+// runtime without giving native run acquisition a Node or evidence-lake dependency.
+func (p Projector) CollectScopedRemoteValues(ctx context.Context, scope collectnative.EnrollmentScope) error {
+	if p.Enrollment.Authority == nil || p.Data == nil {
+		return collectnative.ErrUnsupported
+	}
+	p.nativeValueScope = &scope
+	if err := p.nativeValueCurrent(ctx); err != nil {
+		return err
+	}
+	root, err := nativeValueCatalog(p.CatalogRoot)
+	if err != nil {
+		return err
+	}
+	p.CatalogRoot = root
+	return p.CollectRemoteValues(ctx, scope.Repository)
+}
+
+func (p Projector) nativeValueCurrent(ctx context.Context) error {
+	if p.nativeValueScope == nil {
+		return nil
+	}
+	current, err := p.Enrollment.Authority.CurrentScope(ctx, p.nativeValueScope.Repository)
+	if err != nil {
+		return err
+	}
+	if current != *p.nativeValueScope {
+		return collectnative.ErrClaimLost
+	}
+	return nil
+}
 
 // CollectRemoteValues works on one exact enrolled repository. The caller owns
 // the per-repository lease and durable dirty hint. This method never holds the
@@ -93,7 +126,14 @@ func (p Projector) collectRemoteValue(
 ) (resultErr error) {
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Minute)
 	defer cancel()
-	previous, err := p.Data.ReadOperationalValue(ctx, repository, entry.Workflow)
+	var previous model.Row
+	var restored []postgresx.ValueProofFile
+	var err error
+	if p.nativeValueScope != nil {
+		previous, restored, err = p.Data.Acquisition().ReadValue(ctx, *p.nativeValueScope, entry.Workflow)
+	} else {
+		previous, err = p.Data.ReadOperationalValue(ctx, repository, entry.Workflow)
+	}
 	switch {
 	case errors.Is(err, postgresx.ErrValueParentMissing):
 		return fmt.Errorf("%w: canonical workflow parent has not been projected", ErrRemoteValueDeferred)
@@ -102,17 +142,26 @@ func (p Projector) collectRemoteValue(
 	case err != nil:
 		return err
 	}
-	root, err := p.remoteValueWorkspace(ctx, repository, entry.Workflow)
-	if err != nil {
-		return err
+	var root string
+	if p.nativeValueScope == nil {
+		root, err = p.remoteValueWorkspace(ctx, repository, entry.Workflow)
+		if err != nil {
+			return err
+		}
 	}
-	work, err := os.MkdirTemp(root, ".invocation-")
+	work, err := os.MkdirTemp(root, "cao-value-invocation-")
 	if err != nil {
 		return err
 	}
 	defer func() { _ = os.RemoveAll(work) }()
-	if err := restoreRemoteValueProof(ctx, p.Data, repository, entry.Workflow, filepath.Join(work, "latest")); err != nil {
-		return err
+	if p.nativeValueScope != nil {
+		if err := writeRemoteValueProof(restored, filepath.Join(work, "latest")); err != nil {
+			return err
+		}
+	} else {
+		if err := restoreRemoteValueProof(ctx, p.Data, repository, entry.Workflow, filepath.Join(work, "latest")); err != nil {
+			return err
+		}
 	}
 	bin := filepath.Join(work, "bin")
 	if err := os.Mkdir(bin, 0o700); err != nil {
@@ -135,6 +184,7 @@ func (p Projector) collectRemoteValue(
 		app: p.QuotaApp, installation: installation, repository: repository, collector: entry.Collector,
 		base: base, token: token, max: entry.APIRequests, cache: cache,
 		sharedRequirements: sharedRequirements,
+		authorize:          p.nativeValueCurrent,
 	}
 	socket, closeAPI, err := api.listen(ctx)
 	if err != nil {
@@ -232,6 +282,13 @@ func (p Projector) collectRemoteValue(
 	if err != nil {
 		return err
 	}
+	if p.nativeValueScope != nil {
+		if err := p.remoteValueRegistrationCurrent(ctx, repository, installation, entry, policyDigest); err != nil {
+			return err
+		}
+		_, err := p.Data.Acquisition().PublishValue(ctx, *p.nativeValueScope, previous, envelope.Packet, proof, time.Now().UTC())
+		return err
+	}
 	return p.Enrollment.withMutationLock(ctx, func(locked context.Context) error {
 		if err := p.remoteValueRegistrationCurrent(locked, repository, installation, entry, policyDigest); err != nil {
 			return err
@@ -301,6 +358,9 @@ func remoteValuePacketCurrent(start, current model.Row) bool {
 func (p Projector) remoteValueRegistrationCurrent(
 	ctx context.Context, repository string, installation int64, entry remoteValueEntry, digest [sha256.Size]byte,
 ) error {
+	if err := p.nativeValueCurrent(ctx); err != nil {
+		return err
+	}
 	enrolled, err := p.Enrollment.Enrolled(ctx, repository)
 	if err != nil {
 		return err
@@ -450,8 +510,15 @@ func restoreRemoteValueProof(
 	ctx context.Context, store *postgresx.Store, repository, workflow, destination string,
 ) error {
 	files, err := store.ReadValueProof(ctx, repository, workflow)
-	if err != nil || len(files) == 0 {
+	if err != nil {
 		return err
+	}
+	return writeRemoteValueProof(files, destination)
+}
+
+func writeRemoteValueProof(files []postgresx.ValueProofFile, destination string) error {
+	if len(files) == 0 {
+		return nil
 	}
 	if err := os.Mkdir(destination, 0o700); err != nil {
 		return err

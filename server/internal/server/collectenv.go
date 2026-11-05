@@ -49,9 +49,21 @@ func classifyCollectorProfile(rawAppID string) collectorProfile {
 //
 //nolint:nilnil // a nil config with a nil error is the documented "Actions profile selected" result.
 func CollectorConfigFromEnv() (*CollectorConfig, error) {
+	native, err := collectorFeatureBool("CAO_COLLECT_NATIVE")
+	if err != nil {
+		return nil, err
+	}
+	values, err := collectorFeatureBool("CAO_COLLECT_NATIVE_VALUES")
+	if err != nil {
+		return nil, err
+	}
+	inventoryDigest := strings.TrimSpace(os.Getenv("CAO_COLLECT_NATIVE_INVENTORY_DIGEST"))
 	rawAppID := strings.TrimSpace(os.Getenv("CAO_COLLECT_APP_ID"))
 	profile := classifyCollectorProfile(rawAppID)
 	if profile == collectorProfileActionsSnapshot {
+		if native || values || inventoryDigest != "" {
+			return nil, errors.New("native collection features require CAO_COLLECT_APP_ID")
+		}
 		collectEnvLog.Printf("collector profile resolved profile=%s", profile)
 		return nil, nil
 	}
@@ -60,6 +72,12 @@ func CollectorConfigFromEnv() (*CollectorConfig, error) {
 		return nil, errors.New("CAO_COLLECT_APP_ID must be a positive GitHub App identifier")
 	}
 	admitOnly := envBool("CAO_COLLECT_ADMIT_ONLY")
+	if native {
+		admitOnly, err = collectorFeatureBool("CAO_COLLECT_ADMIT_ONLY")
+		if err != nil {
+			return nil, err
+		}
+	}
 	var privateKey []byte
 	if !admitOnly {
 		key, err := collectorPrivateKey()
@@ -70,6 +88,9 @@ func CollectorConfigFromEnv() (*CollectorConfig, error) {
 	}
 	collectEnvLog.Printf("collector profile resolved profile=%s admit_only=%t", profile, admitOnly)
 	config := &CollectorConfig{
+		NativeAcquisition:         native,
+		NativeValues:              values,
+		NativeInventoryDigest:     inventoryDigest,
 		AppID:                     appID,
 		AdmitOnly:                 admitOnly,
 		PrivateKeyPEM:             privateKey,
@@ -96,10 +117,29 @@ func CollectorConfigFromEnv() (*CollectorConfig, error) {
 		RecoverDeliveries:         envBool("CAO_COLLECT_RECOVER_DELIVERIES"),
 		RepositoryRefreshInterval: envStrictDuration("CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL"),
 	}
+	if err := config.ApplyNativeEnvironment(os.Getenv); err != nil {
+		return nil, err
+	}
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 	return config, nil
+}
+
+func collectorFeatureBool(name string) (bool, error) {
+	return collectorFeatureBoolWithLookup(name, os.Getenv)
+}
+
+func collectorFeatureBoolWithLookup(name string, lookup func(string) string) (bool, error) {
+	raw := strings.TrimSpace(lookup(name))
+	if raw == "" {
+		return false, nil
+	}
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, fmt.Errorf("%s must be a boolean", name)
+	}
+	return value, nil
 }
 
 // collectorPrivateKey prefers a mounted secret file, then a single-line base64

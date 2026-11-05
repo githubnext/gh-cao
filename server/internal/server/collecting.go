@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
@@ -30,6 +31,17 @@ const defaultQueueMaxLength = 200_000
 // ingests snapshots published by the Activity workflow and performs no GitHub
 // collection of its own.
 type CollectorConfig struct {
+	// NativeAcquisition selects distributed Go acquisition and publication.
+	NativeAcquisition bool
+	// NativeInventory is the immutable reviewed source contract, not a path or
+	// an ingestion-scope grant. Replicas pin its digest in PostgreSQL.
+	NativeInventory *collectnative.InventorySnapshot
+	// NativeInventoryDigest selects a previously provisioned shared document
+	// instead of requiring a local inventory file on every replica.
+	NativeInventoryDigest string
+	// NativeValues separately selects the existing reviewed Value execution
+	// lane. Only this feature requires Node, CatalogRoot and PolicyPath.
+	NativeValues bool
 	// AppID and PrivateKeyPEM authenticate the GitHub App whose installations
 	// define ingestion scope.
 	AppID         int64
@@ -88,6 +100,12 @@ type CollectorConfig struct {
 func (config *CollectorConfig) Validate() error {
 	if config == nil {
 		return nil
+	}
+	if config.NativeAcquisition {
+		return config.validateNative()
+	}
+	if config.NativeValues || config.NativeInventoryDigest != "" || config.NativeInventory != nil {
+		return errors.New("native inventory and Value features require native acquisition")
 	}
 	if config.AppID <= 0 {
 		return errors.New("collection requires a GitHub App identifier")
@@ -157,6 +175,7 @@ type Collector struct {
 	backfill      collect.Backfill
 	reporter      collect.Reporter
 	replayer      collect.DeliveryReplayer
+	native        *nativeCollection
 }
 
 var _ Reconciler = (*Collector)(nil)
@@ -212,6 +231,9 @@ func NewCollector(
 		Tasks: services.Queue, Admission: services.Admission, Metadata: services.Collection,
 		Leases: services.Leases, Deliveries: services.Deliveries, Metrics: services.IngestionMetrics,
 		MaxLength: int64(config.QueueMaxLength),
+	}
+	if config.NativeAcquisition {
+		return newNativeCollector(ctx, services, capabilities, data, config, quota, queue)
 	}
 	if config.AdmitOnly {
 		// Erasure is enqueued rather than performed, because this process has
@@ -341,6 +363,10 @@ func (c *Collector) Rebuild(ctx context.Context) (ingest.Result, error) {
 	if c.config.AdmitOnly {
 		return ingest.Result{}, ErrAdmitOnly
 	}
+	if c.native != nil {
+		state, err := c.runBackfill(ctx)
+		return ingest.Result{Revision: state.Revision}, err
+	}
 	if c.volatile {
 		state, err := c.runBackfill(ctx)
 		return ingest.Result{Revision: state.Revision}, err
@@ -372,7 +398,7 @@ func (c *Collector) Reconcile(ctx context.Context, event GitHubWebhook) (ingest.
 		}
 		return ingest.Result{}, err
 	}
-	if c.config.AdmitOnly {
+	if c.config.AdmitOnly || c.native != nil {
 		// Admission is complete; a collection worker projects.
 		return ingest.Result{}, nil
 	}
@@ -410,7 +436,11 @@ func (c *Collector) Start(ctx context.Context, onProjection func(revision int64)
 }
 
 func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(revision int64), launch func(func())) error {
-	if err := c.queue.Ensure(startupCtx); err != nil {
+	ensure := c.queue.Ensure
+	if c.native != nil {
+		ensure = c.queue.EnsureRuns
+	}
+	if err := ensure(startupCtx); err != nil {
 		return err
 	}
 	if c.config.AdmitOnly {
@@ -424,7 +454,7 @@ func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(rev
 				return
 			}
 			serverLog.Printf("cold start failed")
-			if !c.volatile || c.RecoveryReady() {
+			if c.native == nil && (!c.volatile || c.RecoveryReady()) {
 				return
 			}
 			timer := time.NewTimer(30 * time.Second)
@@ -437,17 +467,8 @@ func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(rev
 		}
 	})
 	for index := 0; index < c.config.Workers; index++ {
-		worker := collect.Worker{
-			Queue:          c.queue,
-			Runner:         c.runner,
-			Projector:      c.projector,
-			Enrollment:     c.enrollment,
-			ScopeRefresher: c.scopeRefresher(),
-			Discovery:      c.RepositoryDiscovery(),
-			Consumer:       fmt.Sprintf("%s-%d", c.consumer(), index),
-			Project:        true,
-			OnProjection:   onProjection,
-		}
+		worker := c.Worker(fmt.Sprintf("%s-%d", c.consumer(), index))
+		worker.OnProjection = onProjection
 		launch(func() {
 			if c.volatile {
 				select {
@@ -528,6 +549,11 @@ var ErrAdmitOnly = errors.New(
 
 // Worker builds a standalone collection worker for the collect role.
 func (c *Collector) Worker(consumer string) collect.Worker {
+	if c.native != nil {
+		worker := c.native.worker
+		worker.Consumer = consumer
+		return collect.Worker{Native: &worker}
+	}
 	return collect.Worker{
 		Queue: c.queue, Runner: c.runner, Projector: c.projector,
 		Enrollment: c.enrollment, Consumer: consumer, Project: true,
@@ -543,6 +569,9 @@ func (c *Collector) scopeRefresher() collect.ScopeRefresher {
 }
 
 func (c *Collector) RepositoryDiscovery() collect.RepositoryDiscovery {
+	if c.native != nil {
+		return collect.RepositoryDiscovery{Native: &c.native.worker}
+	}
 	return collect.RepositoryDiscovery{Client: c.client, Enrollment: c.enrollment,
 		Queue: c.queue, State: c.projector.State, Leases: c.enrollment.Leases,
 		Interval: c.config.RepositoryRefreshInterval}

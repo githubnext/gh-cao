@@ -3377,6 +3377,24 @@ span ID.
 
 ### Collection settings
 
+Legacy Activity-backed collection remains the default. Explicitly select
+distributed Go collection with `CAO_COLLECT_NATIVE=true` and the exact reviewed
+inventory digest provisioned in PostgreSQL. Unsupported audit/intelligence
+requests reject, never fall back to Activity. Optional Value dependencies are
+validated only when selected.
+
+Native run acquisition, projection and approved trace destinations use Go and
+shared PostgreSQL fences, without Node, Activity files or filesystem coordination.
+Optional `NativeValues` retains reviewed Node programs/catalog/composed policy,
+bounded disposable scratch and PostgreSQL-authoritative packet/proof recovery.
+Publication rechecks composed policy and source ownership; withdrawal atomically
+erases private proof. Remote Value retains its Linux-only socket transport.
+Inventory digests select exact provisioned reviewed bytes, not broader authority.
+Native mode rejects legacy run-count/storage/request-minute options rather than
+ignoring them; its discovery contract is bounded and `CAO_COLLECT_TIMEOUT`
+bounds collection.
+See `ARCHITECTURE.md` and `specs/value.md` for the feature-specific boundaries.
+
 | Setting | Meaning |
 |---|---|
 | `CAO_COLLECT_APP_ID` | GitHub App identifier; unset selects the default profile |
@@ -3394,6 +3412,9 @@ span ID.
 | `CAO_COLLECT_RECOVER_DELIVERIES` | replay failed webhook deliveries to close gaps |
 | `CAO_COLLECT_QUEUE_MAX_LENGTH` | admission backpressure limit for outstanding collection tasks (default 200 000); tasks are never trimmed |
 | `CAO_COLLECT_ADMIT_ONLY` | admit deliveries without collecting; requires no private key |
+| `CAO_COLLECT_NATIVE` | explicitly selects distributed Go collection; legacy remains the default |
+| `CAO_COLLECT_NATIVE_VALUES` | separately selects existing reviewed Value execution; requires native selection and its explicit Node/catalog/policy dependencies |
+| `CAO_COLLECT_NATIVE_INVENTORY_DIGEST` | exact digest of reviewed inventory bytes already provisioned in the shared PostgreSQL namespace; requires native selection |
 
 ### Admission-only front ends
 

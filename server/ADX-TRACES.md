@@ -44,7 +44,7 @@ Read through the generated `cao_` functions, never sum raw append-only tables.
 Producer omission, unsupported format, absent artifacts, identity conflicts,
 redaction and lack of source coverage attestation remain explicit.
 
-One private, existing durable filesystem directory holds immutable approved
+By default, one private, existing durable filesystem directory holds immutable approved
 payloads, dataset files and an atomic fsync-backed ledger. An OS file lock
 serializes acquisition, delivery and offline administration across restart
 overlap. Atomic replacement accounts for peak space; uncommitted temporary and
@@ -53,6 +53,24 @@ Use an owner-only dedicated encrypted volume with suitable durable rename/fsync
 semantics on a POSIX host; Windows trace spooling is not supported. An ephemeral container directory or network mount with unreliable
 locking is unsuitable. The operator confirmation is not a storage durability
 probe. Directory permissions are `0700`, file permissions `0600`.
+
+Explicit `CAO_ADX_TRACE_STORAGE=postgres` instead stores the approved objects and
+their ledger in private `cao_trace_objects` rows, scoped to the canonical
+namespace and destination. Directory configuration is rejected in this mode.
+A transaction-scoped PostgreSQL advisory lock serializes admission, delivery,
+withdrawal and recovery across separate instances. Callback failure rolls back
+both object and ledger changes; process loss releases the lock. Remote delivery
+can succeed before a local rollback, so retries still use immutable versions,
+digest verification and data-before-ready ordering. The existing byte and entry
+ceilings apply to shared storage as well. These are approved durable objects,
+not an Activity cache or a raw-session lake.
+
+The native acquisition service can call `CaptureSession` after verifying the
+adjacent artifact identity, before lossy metadata extraction. A failed durable
+capture prevents safe acquisition publication and remains eligible for retry.
+This storage/destination capability does **not** remove the hosted collector's
+native-activation gate or the canonical ADX exporter's single-replica restriction.
+The session archive remains a separate filesystem destination.
 
 ## Activation
 
@@ -75,8 +93,9 @@ Set these in the existing host's private deployment environment:
 | Variable | Contract |
 | --- | --- |
 | `CAO_ADX_TRACES_ENABLED` | Explicit `true`; unset/`false` performs no trace policy/file/client/worker activity |
-| `CAO_ADX_TRACE_DIRECTORY` | Existing dedicated private durable spool directory |
-| `CAO_ADX_TRACE_DURABLE_STORAGE` | `true` only after verifying storage suitability |
+| `CAO_ADX_TRACE_STORAGE` | Explicit `postgres` for shared transactional storage; unset/`filesystem` retains the legacy private spool |
+| `CAO_ADX_TRACE_DIRECTORY` | Existing dedicated private durable spool directory for filesystem mode; forbidden for PostgreSQL mode |
+| `CAO_ADX_TRACE_DURABLE_STORAGE` | `true` only after verifying filesystem storage suitability; not required for PostgreSQL mode |
 | `CAO_ADX_TRACE_REPOSITORIES` | Exact lowercase `owner/repository` names, comma separated |
 | `CAO_ADX_TRACE_POLICY` | Private versioned policy JSON file |
 | `CAO_ADX_TRACE_MODE` | Explicit `full` or `sample`; identical approved trace fidelity |
@@ -84,9 +103,9 @@ Set these in the existing host's private deployment environment:
 | `CAO_ADX_TRACE_SEED` | Predeclared seed, at least 16 bytes in sample mode; record before observing outcomes |
 | `CAO_ADX_TRACE_FRAME_DELAY` | Grace after UTC day end, default `24h`, allowed `1h` to `168h` |
 | `CAO_ADX_TRACE_MAX_BYTES` | Source and approved-event-content eligibility ceiling, default 8 MiB, range 1 KiB to 32 MiB |
-| `CAO_ADX_TRACE_SPOOL_BYTES` | Peak private directory budget, default 256 MiB, at least twice the trace ceiling, at most 1 TiB |
+| `CAO_ADX_TRACE_SPOOL_BYTES` | Private filesystem/shared-object budget, default 256 MiB, at least twice the trace ceiling, at most 1 TiB |
 | `CAO_ADX_TRACE_MAX_ENTRIES` | Total retained record/frame/dataset entries, default 10,000, maximum 100,000; includes no-replay tombstones |
-| `CAO_ADX_TRACE_RETENTION` | Local evidence lifetime, default `168h`, range `24h` to `8760h`, greater than frame delay |
+| `CAO_ADX_TRACE_RETENTION` | Private evidence lifetime, default `168h`, range `24h` to `8760h`, greater than frame delay |
 | `CAO_ADX_TRACE_MINING_ENABLED` | Separate explicit `true` for existing canonical episode/outcome evidence; also requires policy `miningApproved: true` |
 | `CAO_ADX_TRACE_MINING_INTERVAL` | Per-selected-trace refresh interval, default `5m`, range `1m` to `24h`; no additional GitHub acquisition |
 

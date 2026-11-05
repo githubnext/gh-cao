@@ -125,6 +125,60 @@ export async function $onEmit(context) {
       'PRIMARY KEY (namespace, id)',
       'CHECK (octet_length(id) <= 512)',
       'CHECK (octet_length(etag) <= 4096 AND octet_length(upstream_etag) <= 4096)'
+    ] : table.name === 'cao_acquisition_scopes' ? [
+      'PRIMARY KEY (namespace, repository)',
+      'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
+      "CHECK (repository ~ '^[a-z0-9][a-z0-9-]*/[a-z0-9._-]+$' AND octet_length(repository) <= 256)",
+      'CHECK (installation_id >= 0 AND epoch > 0)'
+    ] : table.name === 'cao_acquisition_attempts' ? [
+      'PRIMARY KEY (namespace, repository, run_id, attempt)',
+      'FOREIGN KEY (namespace, repository) REFERENCES cao_acquisition_scopes(namespace, repository) ON DELETE CASCADE',
+      'CHECK (run_id > 0 AND attempt > 0 AND epoch > 0 AND generation > 0)',
+      'CHECK ((token IS NULL) = (lease_until IS NULL))',
+      "CHECK (token IS NULL OR token ~ '^[a-f0-9]{32}$')",
+      "CHECK (digest IS NULL OR digest ~ '^[a-f0-9]{64}$')",
+      "CHECK (consumed_digest IS NULL OR consumed_digest ~ '^[a-f0-9]{64}$')",
+      'CHECK ((digest IS NULL) = (content IS NULL) AND (digest IS NULL) = (published_at IS NULL))',
+      'CHECK (octet_length(content) <= 33554432)'
+    ] : table.name === 'cao_acquisition_outcomes' ? [
+      'PRIMARY KEY (namespace, repository, url)',
+      'FOREIGN KEY (namespace, repository) REFERENCES cao_acquisition_scopes(namespace, repository) ON DELETE CASCADE',
+      'CHECK (epoch > 0)',
+      'CHECK (octet_length(url) BETWEEN 1 AND 2048)',
+      'CHECK (octet_length(content) BETWEEN 1 AND 32768)'
+    ] : table.name === 'cao_acquisition_value_hints' ? [
+      'PRIMARY KEY (namespace, repository)',
+      'FOREIGN KEY (namespace, repository) REFERENCES cao_acquisition_scopes(namespace, repository) ON DELETE CASCADE',
+      'CHECK (epoch > 0 AND dirty >= 0 AND processed >= 0 AND processed <= dirty)',
+      "CHECK (attempt_day IS NULL OR attempt_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')"
+    ] : table.name === 'cao_acquisition_inventory_config' ? [
+      'PRIMARY KEY (namespace)',
+      'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
+      "CHECK (source_repository ~ '^[a-z0-9][a-z0-9-]*/[a-z0-9._-]+$' AND octet_length(source_repository) <= 256)",
+      "CHECK (source_sha ~ '^[a-f0-9]{40}$' AND policy_sha ~ '^[a-f0-9]{40}$')",
+      "CHECK (snapshot_digest ~ '^[a-f0-9]{64}$')",
+      'CHECK (content IS NULL OR octet_length(content) BETWEEN 1 AND 16777216)'
+    ] : table.name === 'cao_acquisition_inventory' ? [
+      'PRIMARY KEY (namespace, repository)',
+      'FOREIGN KEY (namespace, repository) REFERENCES cao_acquisition_scopes(namespace, repository) ON DELETE CASCADE',
+      'CHECK (installation_id > 0 AND epoch > 0 AND generation > 0)',
+      'CHECK (published_generation >= 0 AND published_generation <= generation)',
+      "CHECK (snapshot_digest ~ '^[a-f0-9]{64}$')",
+      'CHECK ((content IS NULL) = (observed_at IS NULL))',
+      'CHECK (octet_length(content) <= 16777216)'
+    ] : table.name === 'cao_archive_sources' ? [
+      'PRIMARY KEY (namespace, destination, repository, installation_id, epoch)',
+      'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
+      "CHECK (repository ~ '^[a-z0-9][a-z0-9-]*/[a-z0-9._-]+$' AND octet_length(repository) <= 256)",
+      'CHECK (octet_length(destination) BETWEEN 1 AND 512)',
+      'CHECK (installation_id > 0 AND epoch > 0)',
+      'CHECK (NOT cleanup_pending OR withdrawn)'
+    ] : table.name === 'cao_trace_objects' ? [
+      'PRIMARY KEY (namespace, destination, key)',
+      'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
+      'CHECK (octet_length(destination) BETWEEN 1 AND 512)',
+      "CHECK (key ~ '^(ledger[.]json|[a-f0-9]{64}[.](trace|dataset|mining))$')",
+      'CHECK (octet_length(content) <= 134217728)'
     ] : table.name === 'cao_value_proof_files' ? [
       'PRIMARY KEY (namespace, repository, workflow, path)',
       'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
@@ -166,9 +220,14 @@ export async function $onEmit(context) {
       "CHECK (completeness IN ('complete','partial','unknown'))",
       "CHECK (freshness IN ('current','stale','unknown'))"
     ];
-    statements.push(`CREATE TABLE IF NOT EXISTS ${table.name} (\n${table.columns.map((c) => `  ${c.name} ${c.sql}${c.required ? ' NOT NULL' : ''}`).join(',\n')},\n  ${constraints.join(',\n  ')}\n);`);
+    statements.push(`CREATE TABLE IF NOT EXISTS ${table.name} (\n${table.columns.map((c) => `  ${c.name} ${c.sql}${c.required ? ' NOT NULL' : ''}${table.name === 'cao_acquisition_inventory' && c.name === 'published_generation' ? ' DEFAULT 0' : ''}`).join(',\n')},\n  ${constraints.join(',\n  ')}\n);`);
     if (table.name === 'cao_repository_lifecycle') statements.push('CREATE INDEX IF NOT EXISTS cao_repository_lifecycle_coordinate ON cao_repository_lifecycle (namespace, owner, name);');
     if (table.name === 'cao_github_resources') statements.push('CREATE INDEX IF NOT EXISTS cao_github_resources_expiry ON cao_github_resources (namespace, validated_at, id);');
+    if (table.name === 'cao_acquisition_attempts') statements.push('CREATE INDEX IF NOT EXISTS cao_acquisition_pending ON cao_acquisition_attempts (namespace, repository, run_id, attempt) WHERE digest IS DISTINCT FROM consumed_digest;');
+    if (table.name === 'cao_archive_sources') {
+      statements.push('CREATE INDEX IF NOT EXISTS cao_archive_source_repository ON cao_archive_sources (namespace, repository);');
+      statements.push('CREATE INDEX IF NOT EXISTS cao_archive_source_cleanup ON cao_archive_sources (namespace, destination, repository, installation_id, epoch) WHERE cleanup_pending;');
+    }
     if (table.name === 'cao_value_collection_costs') {
       statements.push('CREATE INDEX IF NOT EXISTS cao_value_collection_costs_recent ON cao_value_collection_costs (namespace, day DESC, repository, workflow);');
       statements.push('CREATE INDEX IF NOT EXISTS cao_value_collection_costs_installation ON cao_value_collection_costs (namespace, installation_id, day DESC);');

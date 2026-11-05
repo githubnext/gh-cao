@@ -16,6 +16,8 @@ import (
 const DuckDBVersion = "v1.4.3"
 
 type Config struct {
+	// NativeProducer selects file-free hosted Blob publication, never POSIX fallback.
+	NativeProducer                                  bool
 	Enabled, DurableStorage                         bool
 	Directory, Namespace, DuckDBPath                string
 	Repositories                                    []string
@@ -27,33 +29,48 @@ type Config struct {
 
 func FromEnv(get func(string) string) (Config, error) {
 	var c Config
+	var err error
 	if value := get("CAO_SESSION_ARCHIVE_ENABLED"); value == "" || value == "false" {
 		return c, nil
 	} else if value != "true" {
 		return c, errors.New("CAO_SESSION_ARCHIVE_ENABLED must be true or false")
 	}
 	c.Enabled, c.DurableStorage = true, get("CAO_SESSION_ARCHIVE_DURABLE_STORAGE") == "true"
+	switch get("CAO_SESSION_ARCHIVE_PRODUCER") {
+	case "", "legacy":
+	case "native":
+		c.NativeProducer = true
+	default:
+		return Config{}, errors.New("session archive producer must be legacy or native")
+	}
 	c.Directory, c.Namespace, c.DuckDBPath = get("CAO_SESSION_ARCHIVE_DIRECTORY"), get("CAO_SESSION_ARCHIVE_NAMESPACE"), get("CAO_SESSION_ARCHIVE_DUCKDB")
 	c.Repositories = strings.Split(get("CAO_SESSION_ARCHIVE_REPOSITORIES"), ",")
 	if mode := get("CAO_SESSION_ARCHIVE_MODE"); mode != "" && mode != "full" {
 		return Config{}, errors.New("session archive currently supports full capture only; sampled capture is unavailable")
 	}
-	path := get("CAO_SESSION_ARCHIVE_POLICY")
-	info, err := os.Lstat(path)
-	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() > 1<<20 {
-		return Config{}, errors.New("session archive policy must be a private bounded regular file")
-	}
-	root, err := os.OpenRoot(filepath.Dir(path))
-	if err != nil {
-		return Config{}, err
-	}
-	defer func() { _ = root.Close() }()
-	content, err := privateRead(root, filepath.Base(path), 1<<20)
-	if err != nil {
-		return Config{}, err
-	}
-	if err := decode(content, &c.Policy); err != nil {
-		return Config{}, err
+	if c.NativeProducer {
+		content := []byte(get("CAO_SESSION_ARCHIVE_POLICY_JSON"))
+		if len(content) > 1<<20 || decode(content, &c.Policy) != nil {
+			return Config{}, errors.New("native session archive requires a bounded approved JSON policy")
+		}
+	} else {
+		path := get("CAO_SESSION_ARCHIVE_POLICY")
+		info, err := os.Lstat(path)
+		if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() > 1<<20 {
+			return Config{}, errors.New("session archive policy must be a private bounded regular file")
+		}
+		root, err := os.OpenRoot(filepath.Dir(path))
+		if err != nil {
+			return Config{}, err
+		}
+		defer func() { _ = root.Close() }()
+		content, err := privateRead(root, filepath.Base(path), 1<<20)
+		if err != nil {
+			return Config{}, err
+		}
+		if err := decode(content, &c.Policy); err != nil {
+			return Config{}, err
+		}
 	}
 	for _, field := range []struct {
 		name string
@@ -98,13 +115,17 @@ func validIdentity(namespace, repository, run string, attempt int64) bool {
 
 func (c Config) traceConfig() adxtrace.Config {
 	return adxtrace.Config{Enabled: c.Enabled, DurableStorage: c.DurableStorage, Directory: c.Directory,
-		Repositories: c.Repositories, Policy: c.Policy, Mode: "full", MaxTraceBytes: c.MaxTraceBytes,
+		SharedStorage: c.NativeProducer,
+		Repositories:  c.Repositories, Policy: c.Policy, Mode: "full", MaxTraceBytes: c.MaxTraceBytes,
 		MaxSpoolBytes: c.MaxStagingBytes, MaxEntries: c.MaxEntries}
 }
 
 func (c *Config) Validate() error {
 	if !c.Enabled {
 		return nil
+	}
+	if c.NativeProducer && (c.Directory != "" || c.DuckDBPath != "" || c.DurableStorage) {
+		return errors.New("native session archive cannot select local storage or a DuckDB subprocess")
 	}
 	if c.MaxTraceBytes == 0 {
 		c.MaxTraceBytes = 8 << 20

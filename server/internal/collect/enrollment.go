@@ -11,11 +11,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
@@ -38,6 +40,9 @@ var ErrEnrollmentMutationBusy = errors.New("enrollment mutation is already in pr
 type Enrollment struct {
 	Metadata operational.CollectionMetadata
 	Leases   operational.LeaseStore
+	// Authority selects native durable ingestion ownership. Metadata remains
+	// an operational index/checkpoint adapter, not native scope authority.
+	Authority collectnative.EnrollmentAuthority
 }
 
 // Coverage summarizes enrollment for status reporting.
@@ -109,6 +114,13 @@ func validRepositorySegment(value string) bool {
 func (e Enrollment) withMutationLock(
 	ctx context.Context, mutate func(context.Context) error,
 ) error {
+	if e.Authority != nil {
+		if err := e.Authority.WithMutation(ctx, mutate); errors.Is(err, collectnative.ErrBusy) {
+			return ErrEnrollmentMutationBusy
+		} else {
+			return err
+		}
+	}
 	token, err := operationToken()
 	if err != nil {
 		return err
@@ -217,6 +229,11 @@ func (e Enrollment) addRepositories(ctx context.Context, installationID int64, r
 		}
 		transferred += count
 	}
+	if e.Authority != nil {
+		if err := e.Authority.Enroll(ctx, installationID, normalized); err != nil {
+			return err
+		}
+	}
 	enrollmentLog.Printf("enrolled repositories installation=%d count=%d transferred=%d",
 		installationID, len(normalized), transferred)
 	return nil
@@ -284,6 +301,9 @@ func (e Enrollment) RemoveRepositoriesBefore(
 func (e Enrollment) removeRepositories(
 	ctx context.Context, installationID int64, repositories []string,
 ) ([]string, error) {
+	if e.Authority != nil {
+		return e.removeNativeRepositories(ctx, installationID, repositories)
+	}
 	removed := make([]string, 0, len(repositories))
 	stale := 0
 	for _, repository := range repositories {
@@ -368,7 +388,14 @@ func (e Enrollment) RepositoriesForInstallation(ctx context.Context, installatio
 	var names []string
 	cursor := ""
 	for {
-		repositories, next, err := e.Metadata.ScanMembers(ctx, installationRepositoriesKey(installationID), cursor, 500)
+		var repositories []string
+		var next string
+		var err error
+		if e.Authority != nil {
+			repositories, next, err = e.Authority.ScanRepositories(ctx, installationID, cursor, 500)
+		} else {
+			repositories, next, err = e.Metadata.ScanMembers(ctx, installationRepositoriesKey(installationID), cursor, 500)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -389,6 +416,10 @@ func (e Enrollment) Enrolled(ctx context.Context, repository string) (bool, erro
 	if err != nil {
 		return false, err
 	}
+	if e.Authority != nil {
+		installation, err := e.InstallationFor(ctx, name)
+		return installation > 0, err
+	}
 	return e.Metadata.HasMember(ctx, repositoriesKey, name)
 }
 
@@ -397,6 +428,13 @@ func (e Enrollment) InstallationFor(ctx context.Context, repository string) (int
 	name, err := NormalizeRepository(repository)
 	if err != nil {
 		return 0, err
+	}
+	if e.Authority != nil {
+		scope, err := e.Authority.CurrentScope(ctx, name)
+		if errors.Is(err, collectnative.ErrIdentity) {
+			return 0, nil
+		}
+		return scope.InstallationID, err
 	}
 	value, err := e.Metadata.ReadAttribute(ctx, repositoryInstallations, name)
 	if err != nil || value == "" {
@@ -412,7 +450,17 @@ func (e Enrollment) Coverage(ctx context.Context) (Coverage, error) {
 	if err != nil {
 		return Coverage{}, err
 	}
-	repositories, err := e.Metadata.MemberCount(ctx, repositoriesKey)
+	var repositories int64
+	if e.Authority != nil {
+		identifiers, scanErr := e.Installations(ctx)
+		if scanErr != nil {
+			return Coverage{}, scanErr
+		}
+		installations = int64(len(identifiers))
+		repositories, err = e.Authority.RepositoryCount(ctx)
+	} else {
+		repositories, err = e.Metadata.MemberCount(ctx, repositoriesKey)
+	}
 	if err != nil {
 		return Coverage{}, err
 	}
@@ -423,6 +471,13 @@ func (e Enrollment) Coverage(ctx context.Context) (Coverage, error) {
 func (e Enrollment) Installations(ctx context.Context) ([]int64, error) {
 	cursor := ""
 	var identifiers []int64
+	if e.Authority != nil {
+		var err error
+		identifiers, err = e.Authority.Installations(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
 	for {
 		members, next, err := e.Metadata.ScanMembers(ctx, installationsKey, cursor, 500)
 		if err != nil {
@@ -436,7 +491,8 @@ func (e Enrollment) Installations(ctx context.Context) ([]int64, error) {
 			identifiers = append(identifiers, identifier)
 		}
 		if next == "0" || next == "" {
-			return identifiers, nil
+			sort.Slice(identifiers, func(i, j int) bool { return identifiers[i] < identifiers[j] })
+			return slices.Compact(identifiers), nil
 		}
 		cursor = next
 	}
@@ -446,13 +502,52 @@ func (e Enrollment) KnownInstallation(ctx context.Context, installation int64) (
 	if installation <= 0 {
 		return false, errors.New("invalid installation identifier")
 	}
+	if e.Authority != nil {
+		known, err := e.Authority.HasInstallation(ctx, installation)
+		if err != nil || known {
+			return known, err
+		}
+	}
 	return e.Metadata.HasMember(ctx, installationsKey, strconv.FormatInt(installation, 10))
 }
 
 // ScanRepositories walks enrolled repositories by cursor so cold start over a
 // very large enrollment set is resumable and never blocks Redis.
 func (e Enrollment) ScanRepositories(ctx context.Context, cursor string, count int) ([]string, string, error) {
+	if e.Authority != nil {
+		if cursor == "0" {
+			cursor = ""
+		}
+		names, next, err := e.Authority.ScanRepositories(ctx, 0, cursor, count)
+		if next == "" {
+			next = "0"
+		}
+		return names, next, err
+	}
 	return e.Metadata.ScanMembers(ctx, repositoriesKey, cursor, count)
+}
+
+func (e Enrollment) removeNativeRepositories(ctx context.Context, installationID int64, repositories []string) ([]string, error) {
+	removed, err := e.Authority.Withdraw(ctx, installationID, repositories)
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range repositories {
+		if installationID > 0 {
+			if err := e.Metadata.RemoveMembers(ctx, installationRepositoriesKey(installationID), name); err != nil {
+				return nil, err
+			}
+		}
+	}
+	for _, name := range removed {
+		if err := e.Metadata.RemoveMembers(ctx, repositoriesKey, name); err != nil {
+			return nil, err
+		}
+		if err := e.Metadata.DeleteAttribute(ctx, repositoryInstallations, name); err != nil {
+			return nil, err
+		}
+	}
+	return removed, nil
 }
 
 func installationRepositoriesKey(installationID int64) string {

@@ -355,8 +355,9 @@ type TaskFields struct {
 }
 
 type TaskMessage struct {
-	ID     string
-	Fields TaskFields
+	ID      string
+	Fields  TaskFields
+	Receipt string
 }
 
 type EnqueueRequest struct {
@@ -401,6 +402,17 @@ type TaskQueue interface {
 	PromoteTasks(context.Context, string, string, time.Time, int) (int64, error)
 	DelayedDepth(context.Context, string) (int64, error)
 	QueueStats(context.Context, string, string) (QueueStats, error)
+}
+
+var ErrTaskLeaseLost = errors.New("task lease was completed or reclaimed")
+
+// FencedTaskQueue issues a fresh opaque receipt on every delivery and reclaim.
+// Completion and replacement atomically reject a missing or superseded receipt.
+// Backends without this contract must not emulate it with a separate lease read.
+type FencedTaskQueue interface {
+	TaskQueue
+	CompleteTaskFenced(context.Context, string, string, string, string) error
+	ReplaceTaskFenced(context.Context, Replacement, string) error
 }
 
 type DeliveryAdmissionStore interface {

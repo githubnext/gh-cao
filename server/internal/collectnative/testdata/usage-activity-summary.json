@@ -1,0 +1,23 @@
+{
+  "schema": "usage-activity-summary/v1",
+  "firewall": {
+    "total_requests": 5,
+    "allowed_requests": 3,
+    "blocked_requests": 2,
+    "requests_by_domain": {"api.github.com": {"allowed": 3, "blocked": 0}, "blocked.example": {"allowed": 0, "blocked": 2}},
+    "raw": "PRIVATE_FIREWALL"
+  },
+  "gateway": {
+    "total_calls": 2,
+    "tool_calls": [
+      {"tool_call_id": "read-1", "timestamp": "2026-10-15T10:01:00Z", "server_name": "github", "tool_name": "get_issue", "request_size": 5, "response_size": 17, "duration_ms": 10, "outcome": "success", "output": "PRIVATE_TOOL_OUTPUT"},
+      {"tool_call_id": "read-2", "timestamp": "2026-10-15T10:02:00Z", "server_name": "github", "tool_name": "get_pull_request", "request_size": 9, "response_size": 23, "duration_ms": 15, "outcome": "error"}
+    ]
+  },
+  "skills": {"items": [{"name": "review", "invocation_count": 3, "failed_count": 1, "first_timestamp": "2026-10-15T10:03:00Z", "content": "PRIVATE_SKILL"}]},
+  "safe_outputs": {
+    "total_items": 1,
+    "items": [{"type": "create_issue", "repo": "octo/target", "number": 41, "url": "https://github.com/octo/target/issues/41", "provider": "github", "timestamp": "2026-10-15T10:04:00Z", "body": "PRIVATE_ISSUE"}]
+  },
+  "unknown": "PRIVATE_SUMMARY"
+}
