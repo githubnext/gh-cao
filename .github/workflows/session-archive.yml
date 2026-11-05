@@ -56,7 +56,6 @@ jobs:
           --health-retries 12
     env:
       CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB: "1"
-      CAO_TEST_POSTGRES_URL: postgres://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_archive_test?sslmode=disable
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -85,6 +84,8 @@ jobs:
           "$DUCKDB_PATH" --version
       - name: Verify production capture, Parquet, publication, and authenticated queries
         shell: bash
+        env:
+          CAO_TEST_POSTGRES_URL: postgres://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_archive_test?sslmode=disable
         run: |
           set -euo pipefail
           go -C server test ./internal/sessionarchive -list '^TestDuckDBArchiveIntegration$' | grep -Fx TestDuckDBArchiveIntegration
