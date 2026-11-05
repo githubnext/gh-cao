@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-04T16:32:33Z",
-      "worker_run_id": "41867710190",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        41867989161,
-        41865610349,
-        41863474842,
-        41861125524,
-        41858591272,
-        41856155449,
-        41855758890,
-        41853460657,
-        41850833180,
-        41848344041,
-        41846100759,
-        41845786857,
-        41843526681,
-        41841082433,
-        41838815257,
-        41836491896,
-        41836209396,
-        41834304816,
-        41832146243,
-        41830127720
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T12:32:17Z to 2026-11-04T16:31:14Z) was within 14 days and contained 17 successful schedule runs (15 freshness-only and two full build-and-deploy runs) plus three skipped workflow_run callbacks; there were no failed or cancelled runs, and all but run 41830127720 used source SHA 89e05ae868f49971610bd8030574006e26537924. Trusted Actions job and step metadata verified that only schedule runs 41832146243 and 41830127720 completed the full path, below the required five comparable successful runs. Their workflow wall times were 178 and 144 seconds, initial queue times were 4 and 4 seconds, build jobs were 129 and 92 seconds, and deploy jobs were 29 and 28 seconds; docs.yml has no separate dashboard job. Pages artifact uploads took 19 and 18 seconds and Deploy Pages took 25 seconds in both runs. Dashboard cache hits were verified in both runs because the cache-miss-only lookup and artifact-download steps were skipped. Across the 15 freshness-only successes, workflow metadata wall time had a 16-second median and 848-second nearest-rank p90; runs 41865610349 and 41863474842 were disclosed metadata-finalization outliers because their jobs finished in about 15 seconds while the run records remained open for 14 and 19 minutes. With only two comparable full runs, the required minimum sample, full workflow and dashboard/build/deploy median and p90 distributions, and repeated artifact-transfer and Pages-packaging evaluation cannot be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-04T16:48:00Z",
       "worker_run_id": "41871539729",
       "category": "artifact transfer and Pages packaging",
@@ -476,7 +448,7 @@
         41897733996,
         41895297197
       ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T19:16:10Z to 2026-11-04T22:46:34Z) was within 14 days and contained 15 successful runs (13 freshness-only schedules and two full build-and-deploy publications), four skipped workflow_run callbacks, and one cancelled schedule; the cancelled run was excluded. The two full publications were push run 41907317997 at source a19872d3939b084a99a40a017d1fa4c59b0f491a and schedule run 41895297197 at source eedc5d8b4080c14ed3533be31f70a1b60b50b671, with workflow wall times of 142 and 136 seconds, build jobs of 105 and 89 seconds, and deploy jobs of 28 and 29 seconds; docs.yml has no separate dashboard job. Trusted job metadata verified that all 13 other successful schedules ran only schedule-freshness and skipped build and deploy. With only two successful full publications\u2014and only one for each trigger and source revision\u2014the required minimum of five comparable successful runs was not met, so the reusable-dashboard-generation category, full workflow and dashboard/build/deploy median and p90 distributions, repeated step costs, and current cache effectiveness cannot be evaluated completely. No suggestion was made; reusable dashboard generation remains the next category."
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T19:16:10Z to 2026-11-04T22:46:34Z) was within 14 days and contained 15 successful runs (13 freshness-only schedules and two full build-and-deploy publications), four skipped workflow_run callbacks, and one cancelled schedule; the cancelled run was excluded. The two full publications were push run 41907317997 at source a19872d3939b084a99a40a017d1fa4c59b0f491a and schedule run 41895297197 at source eedc5d8b4080c14ed3533be31f70a1b60b50b671, with workflow wall times of 142 and 136 seconds, build jobs of 105 and 89 seconds, and deploy jobs of 28 and 29 seconds; docs.yml has no separate dashboard job. Trusted job metadata verified that all 13 other successful schedules ran only schedule-freshness and skipped build and deploy. With only two successful full publications—and only one for each trigger and source revision—the required minimum of five comparable successful runs was not met, so the reusable-dashboard-generation category, full workflow and dashboard/build/deploy median and p90 distributions, repeated step costs, and current cache effectiveness cannot be evaluated completely. No suggestion was made; reusable dashboard generation remains the next category."
     },
     {
       "evaluated_at": "2026-11-04T23:17:04.044837Z",
@@ -778,6 +750,34 @@
         41936280998
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T23:45:58Z to 2026-11-05T03:46:25Z) was within 14 days and contained 17 successful runs (15 freshness-only schedules and two full build-and-deploy publications) plus three skipped workflow_run callbacks; there were no failed or cancelled runs. Only workflow_run 41948106730 and schedule 41936280998 completed build and deploy successfully, below the required five comparable successful full runs. Their workflow wall times were 127 and 164 seconds, initial queue times were 4 and 3 seconds, build jobs were 94 and 97 seconds, and deploy jobs were 13 and 45 seconds; docs.yml has no separate dashboard job. Retained trusted job evidence verified dashboard cache hits in both full runs because cache-miss-only lookup and artifact-download steps were skipped. New trusted job metadata verified latest schedule 41963641320 was freshness-only: 16 seconds workflow wall time, 4 seconds initial queue, an 11-second schedule-freshness job with an 8-second freshness check, and skipped build/deploy. Required successful full-workflow and dashboard/build/deploy median and p90 distributions and a complete reusable-dashboard-generation evaluation cannot be established. No suggestion was made; reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-05T04:19:48Z",
+      "worker_run_id": "41966837411",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41967000742,
+        41966799174,
+        41965205800,
+        41963641320,
+        41962083870,
+        41960782764,
+        41959258989,
+        41958952980,
+        41957327548,
+        41955710932,
+        41954617441,
+        41953752727,
+        41952440484,
+        41950713544,
+        41949087452,
+        41948106730,
+        41947525514,
+        41945639681,
+        41944196767,
+        41942599572
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-05T00:36:36Z to 2026-11-05T04:18:50Z) was within 14 days and contained 17 successful runs (16 freshness-only schedules and one full build-and-deploy workflow_run publication) plus three skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 4bd5dbde5225b80341a8f89799e4e43cd830c870. Only workflow_run 41948106730 completed build and deploy successfully, below the required five comparable successful full runs. It took 127 seconds wall-clock, queued 4 seconds before the first job, ran build for 94 seconds, and ran deploy for 13 seconds; docs.yml has no separate dashboard job. Trusted job and step metadata verified a dashboard cache hit because the cache-miss lookup and artifact-download steps were skipped; dependency installation took 18 seconds, Astro documentation generation 13 seconds, dashboard cache restore 3 seconds, Pages artifact upload 17 seconds, and Deploy Pages 9 seconds. The two newest schedules were freshness-only and skipped build/deploy. Required successful full-workflow and dashboard/build/deploy median and p90 distributions and a complete reusable-dashboard-generation evaluation cannot be established. No suggestion was made; reusable dashboard generation remains the next category."
     }
   ]
 }
