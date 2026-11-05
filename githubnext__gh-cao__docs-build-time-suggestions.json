@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-04T18:58:24.247165Z",
-      "worker_run_id": "41891805654",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        41890388232,
-        41888006983,
-        41887977733,
-        41887924869,
-        41885797707,
-        41885386579,
-        41882899771,
-        41880380295,
-        41878191013,
-        41875953858,
-        41875278665,
-        41874380866,
-        41873415199,
-        41870827348,
-        41868200175,
-        41867989161,
-        41865610349,
-        41863474842,
-        41861125524,
-        41858591272
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-04T15:31:15Z to 2026-11-04T18:46:23Z) was within 14 days and contained 15 successful runs (11 freshness-only schedules and four full build-and-deploy runs: three schedules and one push) plus five skipped workflow_run callbacks; there were no failed or cancelled runs. The window spans source SHAs ae51cd7ed2bb4986f349a83e9bf180bdfc53c196, e1e4345b0d0f0f387d4a3e10af339fe78911359e, 2005f614b14aee5ef14a96c57686ff78c02e3e72, 19539daebf95b00f28f3c8db3021ce1e45235c56, and 89e05ae868f49971610bd8030574006e26537924. Trusted Actions job and step metadata verified only four comparable successful full runs, below the required five. Their workflow wall times were 140, 512, 267, and 360 seconds (median 313.5; nearest-rank p90 512), initial queue times were 3, 3, 3, and 4 seconds (median 3; p90 4), build jobs were 85, 98, 200, and 325 seconds (median 149; p90 325), and deploy jobs were 34, 136, 45, and 26 seconds (median 39.5; p90 136); docs.yml has no separate dashboard job. Pages artifact uploads took 18, 19, 18, and 19 seconds, while Deploy Pages took 30, 133, 43, and 23 seconds. Dashboard cache hits were verified in all four full runs because cache-miss-only lookup and artifact-download steps were skipped. Run 41880380295 had a 263-second gap between build completion and deploy start, and runs 41865610349 and 41863474842 remained disclosed metadata-finalization outliers. With only four comparable full runs, the required minimum sample and a complete artifact-transfer and Pages-packaging evaluation cannot be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-04T19:18:00Z",
       "worker_run_id": "41894733268",
       "category": "artifact transfer and Pages packaging",
@@ -778,6 +750,34 @@
         41949087452
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-05T01:31:23Z to 2026-11-05T05:17:07Z) was within 14 days and contained 16 successful schedule runs plus four skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 4bd5dbde5225b80341a8f89799e4e43cd830c870. Trusted Actions run metadata and the workflow freshness contract show that the window contained zero successful full build-and-deploy publications, below the required five comparable successful runs. Required full-workflow and dashboard/build/deploy median and p90 distributions, repeated reusable-dashboard-generation step costs, and current dashboard cache hit/miss effectiveness therefore cannot be evaluated. No suggestion was made; reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-05T05:53:13Z",
+      "worker_run_id": "41976481446",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        41976043127,
+        41974546200,
+        41973006298,
+        41972770704,
+        41971372137,
+        41969822798,
+        41968316602,
+        41967000742,
+        41966799174,
+        41965205800,
+        41963641320,
+        41962083870,
+        41960782764,
+        41959258989,
+        41958952980,
+        41957327548,
+        41955710932,
+        41954617441,
+        41953752727,
+        41952440484
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-05T02:01:43Z to 2026-11-05T05:46:03Z) was within 14 days and contained 16 successful schedule runs plus four skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 4bd5dbde5225b80341a8f89799e4e43cd830c870. Trusted Actions job metadata verified that the three newest successful schedules ran only schedule-freshness and skipped both build and deploy; retained evidence from the immediately preceding overlapping window verified the same for the other successful schedules. The window therefore contained zero successful full build-and-deploy publications, below the required five comparable successful runs. Required full-workflow and dashboard/build/deploy median and p90 distributions, repeated reusable-dashboard-generation step costs, and current dashboard cache hit/miss effectiveness cannot be evaluated. No suggestion was made; reusable dashboard generation remains the next category."
     }
   ]
 }
