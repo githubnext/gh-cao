@@ -136,7 +136,7 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 			}
 		}
 		cached, err := readDashboardLogCache(shard, repository)
-		if err != nil && !(len(workflowIDs) == 0 && errors.Is(err, os.ErrNotExist)) {
+		if err != nil && (len(workflowIDs) != 0 || !errors.Is(err, os.ErrNotExist)) {
 			return nil, err
 		}
 		runs = mergeDashboardCachedRuns(runs, workflows, cached, options.count)

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/internal/dashboardquery"
+
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/query"
@@ -39,7 +40,7 @@ func TestLocalDashboardCoverageSurvivesCanonicalQueryBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, name := range []string{"dailyRunCounts", "runCountContributions", "dailyRunCountState"} {
-		if _, err := db.Exec(`INSERT INTO __idb_stores VALUES(?,?,'id')`, dashboardquery.DatabaseName, name); err != nil {
+		if _, err := db.ExecContext(t.Context(), `INSERT INTO __idb_stores VALUES(?,?,'id')`, dashboardquery.DatabaseName, name); err != nil {
 			t.Fatal(err)
 		}
 		for _, record := range batch[name] {
@@ -51,11 +52,11 @@ func TestLocalDashboardCoverageSurvivesCanonicalQueryBoundary(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := db.Exec(`INSERT INTO __idb_records VALUES(?,?,?,?)`, dashboardquery.DatabaseName, name, string(key), string(value)); err != nil {
+			if _, err := db.ExecContext(t.Context(), `INSERT INTO __idb_records VALUES(?,?,?,?)`, dashboardquery.DatabaseName, name, string(key), string(value)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := db.Exec(`DELETE FROM __idb_stores WHERE database_name=? AND name='campaigns'`, dashboardquery.DatabaseName); err != nil {
+		if _, err := db.ExecContext(t.Context(), `DELETE FROM __idb_stores WHERE database_name=? AND name='campaigns'`, dashboardquery.DatabaseName); err != nil {
 			t.Fatal(err)
 		}
 	}

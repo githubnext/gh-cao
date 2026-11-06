@@ -67,9 +67,10 @@ func TestDashboardDailyCountsGoldenCases(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if scenario.State == "missing" {
+			switch scenario.State {
+			case "missing":
 				_, err = db.Exec(`DELETE FROM __idb_records WHERE store_name='dailyRunCountState'`)
-			} else if scenario.State == "null" {
+			case "null":
 				_, err = db.Exec(`UPDATE __idb_records SET value=json_set(value,'$.status',null) WHERE store_name='dailyRunCountState'`)
 			}
 			if err != nil {
