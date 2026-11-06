@@ -163,7 +163,7 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 		"runLimitPerAcquisition": options.count, "maximumDisplayedRunsPerRepository": options.count * 2,
 		"workflowLimitPerRepository": 1000,
 		"availability":               "available", "completeness": "partial",
-		"coverage": "Bounded recent gh-aw runs and usage. Campaign policy, queue backlog, detailed tool/session events, accepted outcomes and Operational Value are not collected.",
+		"coverage": "Bounded recent gh-aw runs, usage and partial daily observations. Campaign policy, queue backlog, detailed tool/session events, accepted outcomes and Operational Value are not collected.",
 		"counts":   map[string]int{"repositories": len(batch["repositories"]), "workflows": len(batch["workflows"]), "runs": len(batch["runs"])},
 	}
 	batch["transactions"] = []map[string]any{metadata}
@@ -260,12 +260,7 @@ func mergeDashboardCachedRuns(runs []map[string]any, workflows []dashboardWorkfl
 		id := nativeScalar(run["databaseId"])
 		seen[id] = true
 		if fresh := cached.Runs[id]; fresh != nil && nativeTimestamp(fresh["updatedAt"]) >= nativeTimestamp(run["updatedAt"]) {
-			merged := make(map[string]any, len(fresh)+1)
-			for key, value := range fresh {
-				merged[key] = value
-			}
-			merged["workflowDatabaseId"] = run["workflowDatabaseId"]
-			runs[index] = merged
+			runs[index] = mergeDashboardRunListing(run, fresh)
 		}
 	}
 	ids := make([]string, 0, len(cached.Enriched))
@@ -299,13 +294,28 @@ func mergeDashboardCachedRuns(runs []map[string]any, workflows []dashboardWorkfl
 			}
 		}
 		if fresh := cached.Runs[id]; fresh != nil {
-			for key, value := range fresh {
-				run[key] = value
-			}
+			run = mergeDashboardRunListing(run, fresh)
 		}
 		runs = append(runs, run)
 	}
 	return runs
+}
+
+func mergeDashboardRunListing(run, fresh map[string]any) map[string]any {
+	merged := make(map[string]any, len(run)+len(fresh))
+	for key, value := range run {
+		merged[key] = value
+	}
+	if fresh["attempt"] != nil && nativeScalar(fresh["attempt"]) != nativeScalar(run["attempt"]) {
+		for _, key := range []string{"startedAt", "status", "conclusion", "updatedAt"} {
+			delete(merged, key)
+		}
+	}
+	for key, value := range fresh {
+		merged[key] = value
+	}
+	merged["workflowDatabaseId"] = run["workflowDatabaseId"]
+	return merged
 }
 
 func dashboardCoordinate(value string) string {

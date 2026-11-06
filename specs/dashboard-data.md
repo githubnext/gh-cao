@@ -849,12 +849,18 @@ workflow, and repository-scoped Run identities; fresh Actions observations MUST
 take precedence over cached status and mismatched-attempt enrichment MUST NOT
 be attached. Unknown usage MUST NOT become zero or a guessed engine/model.
 The profile MUST preserve partial acquisition coverage and unavailable sources,
-MUST NOT synthesize the daily projection or infer campaign/rollout authority,
+MUST reconcile the canonical daily projection in the same publication transaction
+using the receipts, classification and retention contract in §72.2, MUST NOT
+infer complete upstream history or campaign/rollout authority,
 and MUST NOT modify or migrate an ordinary Activity snapshot. Publication MUST
 be atomic and failed collection MUST preserve the previous projection.
 The existing read-only Go query/server and revision-subscription contracts
 SHALL serve this projection unchanged. This exception does not authorize
 server-side acquisition, a hosted fallback, or a browser ingestion path.
+Its packaged dashboard SHALL expose only views supported by this acquisition
+profile. Daily observations SHALL remain explicitly partial, exclude undated
+Runs, and retain aggregate provenance; unsupported fleet views SHALL NOT be
+advertised as local operations.
 
 The optional hosted OIDC admission gate MAY publish early Run evidence only
 after verified identity, policy approval and durable decision resolution.

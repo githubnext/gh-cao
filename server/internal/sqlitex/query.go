@@ -521,6 +521,13 @@ func (r *reader) source(
 				}
 			}
 		}
+		localMetadata, err := dashboardquery.LocalDashboardMetadata(ctx, r.tx)
+		if err != nil {
+			return model.Source{}, err
+		}
+		for key, value := range localMetadata {
+			metadata[key] = value
+		}
 		result := make([]model.Row, len(rows))
 		for index, row := range rows {
 			result[index] = model.Row(row)

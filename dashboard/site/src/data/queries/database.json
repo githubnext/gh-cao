@@ -574,6 +574,26 @@
     ]
   },
   {
+    "name": "workflow-identities",
+    "stores": ["repositories", "workflows"],
+    "from": "$workflows",
+    "joins": [{
+      "source": "$repositories", "type": "left",
+      "on": [{ "left": "repositoryId", "right": "id" }],
+      "fields": [
+        { "field": "owner", "as": "organization" },
+        { "field": "name", "as": "repository" }
+      ]
+    }],
+    "select": [
+      { "field": "id" },
+      { "field": "organization" }, { "field": "repository" },
+      { "field": "path", "as": "workflow" },
+      { "field": "name", "as": "workflow-name" },
+      { "field": "state", "as": "registration" }
+    ]
+  },
+  {
     "name": "workflows",
     "stores": ["repositories", "workflows", "campaigns"],
     "from": "$workflows",

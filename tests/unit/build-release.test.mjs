@@ -26,6 +26,7 @@ function fixture(t) {
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 const args = process.argv.slice(2);
+if (process.env.CAO_DASHBOARD_PROFILE !== "immediate") throw new Error("release must select the immediate dashboard profile");
 const output = args[args.indexOf("--") + 1];
 mkdirSync(output, { recursive: true });
 writeFileSync(join(output, "index.html"), "<html></html>");

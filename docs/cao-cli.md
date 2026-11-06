@@ -61,16 +61,23 @@ the session. The count caps each repository's recent-run lookup and usage sample
 separately (maximum 1000 each); their deduplicated union contains at most twice
 that count. It is not a guarantee of complete history.
 
-The landing page is **Immediate operations**, a declarative short-session view
-backed by the existing run query, canonical SQLite and revision subscriptions,
-not browser IndexedDB. It does not require the long-running daily projection.
+The landing page remains the standard **Overview**, with the existing factory
+header and observed runtime-health station. The shared Runs page presents recent
+executions and daily observations through canonical SQLite and revision subscriptions,
+not browser IndexedDB. Its local daily projection reconciles observed logical
+Runs by UTC execution-start day in the same atomic publication transaction.
+Replays and reruns do not double count, and compact receipts retain observations
+independently of the 48-hour detail window under the canonical three-week
+retention policy. Undated evidence is excluded and reported as incomplete;
+whole-day counts are partial observations, not exhaustive or exact sub-day totals.
 It combines fresh Actions
 status with available cached gh-aw usage, execution identity, model, revision,
 and failure metadata. Only agentic `.lock.yml` workflows are included.
 **Coverage is partial:** campaign policy, fleet queue backlog, detailed session
-events, accepted outcomes, and Operational Value are not collected. Views that
-require those sources remain unavailable; successful executions are not
-verified outcomes. The daily-count projection is not synthesized.
+events, accepted outcomes, and Operational Value are not collected. The packaged
+dashboard exposes only Overview, recent runs, repositories, workflow inventory and daily
+observations, not fleet pages requiring those missing sources. Successful
+executions are not verified outcomes.
 
 The snapshot and per-repository caches are retained in the user's cache directory,
 keyed by exact repository scope. `--cache-dir PATH` selects another private

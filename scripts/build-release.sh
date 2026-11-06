@@ -41,7 +41,7 @@ if [[ -e "$bundle" || -L "$bundle" ]]; then
 fi
 mkdir -p "$bundle"
 trap 'rm -rf -- "$bundle"' EXIT
-CAO_VERSION="$version" npm --prefix dashboard/site run build -- "$bundle/site" "$root/.github/workflows/cao.json"
+CAO_VERSION="$version" CAO_DASHBOARD_PROFILE=immediate npm --prefix dashboard/site run build -- "$bundle/site" "$root/.github/workflows/cao.json"
 for platform in "${platforms[@]}"; do
   goos="${platform%-*}"
   goarch="${platform#*-}"

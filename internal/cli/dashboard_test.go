@@ -41,8 +41,9 @@ func dashboardTestGH(t *testing.T, now time.Time) ghExecutor {
 		case "run list":
 			return encode([]map[string]any{
 				{"databaseId": 123, "workflowDatabaseId": 42, "workflowName": "Agent", "attempt": 1,
-					"createdAt": now.Add(-time.Hour).Format(time.RFC3339Nano), "updatedAt": now.Format(time.RFC3339Nano),
-					"status": "in_progress", "conclusion": "", "displayTitle": "Agent work", "event": "schedule",
+					"createdAt": now.Add(-time.Hour).Format(time.RFC3339Nano), "startedAt": now.Add(-time.Hour).Format(time.RFC3339Nano),
+					"updatedAt": now.Format(time.RFC3339Nano),
+					"status":    "in_progress", "conclusion": "", "displayTitle": "Agent work", "event": "schedule",
 					"url": "https://github.com/" + repository + "/actions/runs/123"},
 				{"databaseId": 124, "workflowDatabaseId": 43, "attempt": 1, "createdAt": now.Format(time.RFC3339Nano)},
 			})

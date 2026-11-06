@@ -134,8 +134,33 @@ test("dashboard build uses an explicit packaged CAO version rather than the sour
       commitSha: "0123456789abcdef0123456789abcdef01234567",
       caoVersion: "v1.2.3",
     });
+
     const index = await readFile(path.join(root, "output", "index.html"), "utf8");
     assert.ok(index.includes('<meta name="cao-version" content="v1.2.3">'));
+  } finally {
+    await rm(root, { force: true, recursive: true });
+  }
+});
+
+test("immediate build exposes only supported pages and their reviewed query dependencies", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "dashboard-immediate-build-"));
+  try {
+    await buildDashboardSite({
+      destination: path.join(root, "output"),
+      controlSettings: { campaigns: { activity: {} } },
+      profile: "immediate",
+    });
+    const document = JSON.parse(await readFile(path.join(root, "output/dashboard.json"), "utf8"));
+    assert.deepEqual(document.dashboard.pages.map((page) => page.id),
+      ["overview", "repositories", "workflows", "runs"]);
+    assert.equal(document.dashboard.pages[0].title, "Overview");
+    assert.equal(document.dashboard["data-status"], undefined);
+    assert.equal(document.dashboard.callouts, undefined);
+    const queries = JSON.parse(await readFile(path.join(root, "output/src/agent/queries.generated.json"), "utf8"));
+    assert.ok(queries.some((query) => query.name === "repository-run-inventory"));
+    assert.ok(queries.some((query) => query.name === "runs-daily-conclusions"));
+    assert.ok(!queries.some((query) => query.name === "issue-repository-totals"));
+    assert.equal(document.dashboard.repository, undefined);
   } finally {
     await rm(root, { force: true, recursive: true });
   }

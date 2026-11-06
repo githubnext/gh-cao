@@ -753,6 +753,7 @@ export const SYNTHETIC_SOURCE_FIELDS = {
 };
 
 export const DATABASE_QUERY_SOURCE_FIELDS = {
+  'workflow-identities': ['id', 'organization', 'repository', 'workflow', 'workflow-name', 'registration'],
   'workflow-subject-topology': [
     'repositoryId', 'path', 'id', 'organization', 'repository', 'workflow',
     'workflow-name', 'workflow-role', 'campaign', 'campaign-name', 'campaign-icon',

@@ -875,8 +875,13 @@ projection in the user's scope-keyed cache, not an Activity database, browser
 database, hosted store, or writable server overlay. Its native adapter projects
 only observed repository/workflow/run facts; the ordinary declarative database
 queries, Go evaluator, HTTP handler, and revision subscriptions serve them.
-It never fabricates campaign policy, daily counts, queue backlog, accepted
-outcomes, or uncollected event evidence. Collection coverage remains partial.
+It reconciles the canonical daily Run projection with compact receipts in the
+same transaction, independently of the rolling detail window. Replay, attempt
+corrections and UTC-week retention follow the shared daily contract. Counts
+describe partial admitted observations, not complete upstream history.
+It never fabricates campaign policy, queue backlog, accepted outcomes, or
+uncollected event evidence. The packaged immediate dashboard exposes only
+supported recent-run, repository, workflow and daily-observation views.
 
 One local collection lock serializes refreshes. A successful transaction replaces
 only that profile's projection and observation metadata; failed acquisition

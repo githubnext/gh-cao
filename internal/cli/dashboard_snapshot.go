@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	_ "modernc.org/sqlite"
 
@@ -132,7 +133,11 @@ func publishDashboardSnapshot(ctx context.Context, cache string, batch map[strin
 			return errors.New("local dashboard schema changed; select a new --cache-dir (existing database is not migrated)")
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM __idb_records WHERE database_name=?`, dashboardquery.DatabaseName); err != nil {
+	if err := reconcileDashboardDailyCounts(ctx, tx, batch["runs"], time.Now().UTC()); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM __idb_records WHERE database_name=?
+		AND store_name NOT IN ('dailyRunCounts','runCountContributions','dailyRunCountState')`, dashboardquery.DatabaseName); err != nil {
 		return err
 	}
 	for store, records := range batch {

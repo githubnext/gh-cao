@@ -1,9 +1,9 @@
 {
-  "page": "immediate-operations",
-  "view": "immediate-runs",
+  "page": "runs",
+  "view": "runs-runs-source",
   "source": "runs-table",
-  "sources": ["runs-table", "dashboard-data-freshness"],
-  "fields": ["run", "run-status", "run-conclusion", "repository-coordinate", "workflow", "engine", "resolved-model", "started-at"],
+  "sources": ["runs-table"],
+  "fields": ["run", "run-status", "run-conclusion", "repository-coordinate", "workflow", "rollout-mode", "engine", "engine-version", "requested-model", "resolved-model", "started-at"],
   "batch": {
     "campaigns": [], "domains": [], "tools": [], "skills": [], "friction": [], "audits": [], "issues": [], "operationalValues": [], "marketplacePackages": [],
     "repositories": [{ "id": "repository:octo%2Fapi", "owner": "octo", "name": "api" }],

@@ -142,7 +142,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 			line := scanner.Text()
 			const marker = "serving local dashboard at "
 			if _, address, found := strings.Cut(line, marker); found {
-				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard: %s#page-immediate-operations\nSnapshot: %s\nCoverage: bounded recent activity; uncollected evidence is unavailable.\n", address, filepath.Join(cache, "gh-aw-logs.sqlite"))
+				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard: %s#page-overview\nSnapshot: %s\nCoverage: bounded recent activity; uncollected evidence is unavailable.\n", address, filepath.Join(cache, "gh-aw-logs.sqlite"))
 			} else {
 				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), line)
 			}
