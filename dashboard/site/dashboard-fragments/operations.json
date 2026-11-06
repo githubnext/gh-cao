@@ -1488,15 +1488,12 @@
     {
       "name": "grader-observed-maxima",
       "subject": "Find each workflow-scoped grader's maximum retained value in the selected data.",
-      "objective": "Provide an observed normalization denominator and its retained measurement count without mixing grader identities or claiming a theoretical maximum.",
-      "acceptance": "Group by canonical grader ID. Ignore missing values; preserve zero and negative maxima. Count non-null measurements, including zero and negative values; evidence volume is not confidence or coverage.",
+      "objective": "Provide an observed normalization denominator without mixing grader identities or claiming a theoretical maximum.",
+      "acceptance": "Group by canonical grader identity, not display name; ignore missing values and preserve zero or negative maxima without substituting a denominator.",
       "from": "grader-observations",
       "aggregate": {
         "by": ["grader-id"],
-        "values": [
-          { "field": "value", "as": "max-grader-value", "reducer": "max" },
-          { "field": "value", "as": "grader-measurement-count", "reducer": "count" }
-        ]
+        "values": [{ "field": "value", "as": "max-grader-value", "reducer": "max" }]
       }
     },
     {
@@ -1510,10 +1507,7 @@
           "source": "grader-observed-maxima",
           "type": "left",
           "on": [{ "left": "grader-id", "right": "grader-id" }],
-          "fields": [
-            { "field": "max-grader-value", "as": "max-grader-value" },
-            { "field": "grader-measurement-count", "as": "grader-measurement-count" }
-          ]
+          "fields": [{ "field": "max-grader-value", "as": "max-grader-value" }]
         }
       ],
       "compute": [
@@ -1550,8 +1544,8 @@
     {
       "name": "grader-value-scatter",
       "subject": "Plot timed grader observations with a defined value-to-observed-maximum ratio.",
-      "objective": "Show relative grader measurements at their recorded observation times, sized by the retained measurement count behind each observed maximum.",
-      "acceptance": "Keep eligible observations and run links. Size by non-null retained measurements for the canonical grader, not native magnitude or confidence. Missing ratios/times stay in the ledger, not the plot. Ratios are not eval answers or verified gains.",
+      "objective": "Show relative grader measurements at their recorded observation times.",
+      "acceptance": "Keep each eligible observation and its run link; omit missing ratios or observation times from the plot while retaining those records in the native-value ledger. Ratios are not eval answers or evidence of improvement.",
       "from": "grader-normalized-observations",
       "filter": {
         "predicates": [
@@ -2871,21 +2865,21 @@
       "id": "graders",
       "kind": "custom",
       "intent": "Compare normalized grader values over time and inspect their native evidence.",
-      "subject": "Run-linked grader measurements by workflow.",
-      "objective": "Compare value/observed-maximum over time, with circle area showing retained measurement volume and a native-evidence ledger.",
-      "acceptance": "Omit missing values or zero maxima. Size by non-null measurements for the canonical grader in selected data, not confidence or native magnitude. Preserve identities, native values/status, units and times. Unknown is not pass/fail; historical observations are not current verdicts or verified gains.",
+      "subject": "Run-linked grader results and native metric evidence grouped by workflow.",
+      "objective": "Show each grader value relative to its observed maximum while keeping the native-value ledger available for evidence review.",
+      "acceptance": "Plot time against value divided by the maximum for that grader in the selected data; missing values and zero maxima do not produce points. Preserve grader identity, native values/status, units and times; unknown is not pass/fail. Historical observations are not current verdicts or verified gains.",
       "title": "Graders",
       "icon": "checklist",
       "experimental": true,
-      "description": "Compare relative grader values, with circle area showing retained measurement counts, not confidence, and inspect native evidence in the ledger.",
+      "description": "Compare grader values over time relative to each grader's observed maximum, then inspect native measurements in the ledger.",
       "views": [
         {
           "id": "graders-value-scatter",
           "title": "Grader values relative to observed maximum",
           "subject": "Timed grader observations normalized by each grader's maximum in the selected data.",
-          "objective": "Compare relative measurements and retained measurement volume, and follow a point to its producing run.",
-          "acceptance": "Preserve timestamps and value/max ratios without connecting, clustering or clamping. Omit missing ratios and zero maxima. Size by non-null retained measurements for the canonical grader, including zero/negative values, not native magnitude or confidence. Ratios are not verdicts or verified gains.",
-          "description": "Each point is value / maximum observed value for the same grader and workflow. Circle area shows non-null retained measurements for that grader in the selected data, not statistical confidence. Zero or missing maxima are not plotted. Ratios are not eval answers or proof of improvement.",
+          "objective": "Compare relative measurements and follow a point to its producing run.",
+          "acceptance": "Preserve each point's timestamp and value/max ratio without connecting or clamping values; omit missing ratios and zero maxima. Normalization is not an eval answer or proof of improvement.",
+          "description": "Each point is value / maximum observed value for the same grader and workflow. Zero or missing maxima are not plotted. Ratios are not eval answers or proof of improvement.",
           "data": { "source": "grader-value-scatter" },
           "mark": "chart",
           "chart": "scatter",
@@ -2895,7 +2889,6 @@
           "encoding": {
             "x": { "field": "observed-at", "type": "temporal", "title": "Observed at", "format": "human-friendly-timestamp" },
             "y": { "field": "normalized-value", "type": "quantitative", "title": "Value / observed maximum" },
-            "value": { "field": "grader-measurement-count", "type": "quantitative", "title": "Retained grader measurements" },
             "color": { "field": "grader-series", "type": "nominal", "title": "Grader" },
             "href": { "field": "run-link", "type": "nominal" }
           }

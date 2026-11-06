@@ -21,7 +21,6 @@
       "view": "graders-value-scatter",
       "x": "observed-at",
       "y": "normalized-value",
-      "value": "grader-measurement-count",
       "color": "grader-series",
       "href": "run-link"
     }

@@ -4,7 +4,7 @@ registerSmokeRoutes();
 
 for (const scenario of [
   { pageId: 'indexing', viewId: 'indexing-workflow-runs', legend: 'Ingestion entries on shard day', values: ['3', '1'] },
-  { pageId: 'graders', viewId: 'graders-value-scatter', legend: 'Retained grader measurements', values: ['2', '1'] }
+  { pageId: 'workflow-runs', viewId: 'workflow-run-duration-cost', legend: 'AI Credits', values: ['2', '1'] }
 ]) {
   test(`${scenario.pageId} scatter uses production queries for size evidence and refreshes on mobile`, async ({ page }) => {
     await page.evaluate(async ({ pageId, viewId }) => {
@@ -12,10 +12,12 @@ for (const scenario of [
       const { renderDataView } = await import(`${location.origin}/src/components/data-view.js`);
       const { buildChartPoints, toViewText } = await import(`${location.origin}/src/components/view-data.js`);
       const { chartStyles } = await import(`${location.origin}/src/styles-charts.js`);
-      const fragment = await fetch(`${location.origin}/dashboard-fragments/operations.json`).then((response) => response.json());
+      const fragment = await fetch(`${location.origin}/dashboard-fragments/${pageId === 'indexing' ? 'operations' : 'workflow-runs'}.json`).then((response) => response.json());
       const pageModel = fragment.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === pageId);
       const view = pageModel.views.find((/** @type {{ id: string }} */ candidate) => candidate.id === viewId);
-      const compiled = compileDashboardViewPayloadQueries(pageModel, pageId, { queries: fragment.queries, viewId });
+      const compiled = compileDashboardViewPayloadQueries(pageModel, pageId, {
+        queries: fragment.queries, viewId, routeParameters: { workflow: 'octo/api:worker' }
+      });
       const worker = new Worker(`${location.origin}/src/data-worker.js`, { type: 'module' });
       const style = document.createElement('style');
       style.textContent = chartStyles;
@@ -41,17 +43,17 @@ for (const scenario of [
         id: `transaction-${index}`, kind: 'ingest-normalized-jsonl', rawRuns: runs,
         payloadScope: `gh-aw-logs-runs/2026-11-0${index < 3 ? 1 : 2}-0000-0123456789abcdef.jsonl`
       }));
-      const measurements = [2, 4, 10].map((value, index) => ({
-        'grader-id': index < 2 ? 'quality:worker' : 'quality:other',
-        grader: 'quality', value, workflow: index < 2 ? 'worker' : 'other',
-        'observed-at': `2026-11-01T0${index}:00:00Z`, organization: 'octo', repository: 'api',
-        run: String(index)
+      const runs = [2, 1, 4].map((value, index) => ({
+        'aic-total': value, duration: '1h', 'action-minutes': 10 + index, workflow: 'worker',
+        'started-at': `2026-11-01T0${index}:00:00Z`, organization: 'octo', repository: 'api',
+        run: String(index), 'run-conclusion': 'success',
+        'run-link': `https://github.com/octo/api/actions/runs/${index}`
       }));
       const send = () => worker.postMessage({
         id: 1, operation: 'execute-dashboard-queries', queries: compiled.queries, sourceNames: compiled.aliases,
         sources: {
           transactions: { source: 'transactions', rows: transactions, metadata },
-          'grader-observations': { source: 'grader-observations', rows: measurements, metadata }
+          runs: { source: 'runs', rows: runs, metadata }
         }
       });
       send();
@@ -59,7 +61,7 @@ for (const scenario of [
       refresh.textContent = 'Refresh size evidence';
       refresh.onclick = () => {
         if (pageId === 'indexing') transactions.push({ ...transactions[0], id: 'transaction-new' });
-        else measurements.push({ ...measurements[0], run: 'new', value: 8 });
+        else runs.push({ ...runs[0], run: 'new', 'aic-total': 3 });
         send();
       };
       document.body.append(refresh);
@@ -131,6 +133,10 @@ test('bubble charts preserve value ratios, accessible legends, and worker refres
   const points = page.locator('.scatter-chart-point');
   const legend = page.getByRole('list', { name: 'AI credits size legend' });
   await expect(points).toHaveCount(3);
+  expect(await points.evaluateAll((circles) => circles.map((circle) => {
+    const style = getComputedStyle(circle);
+    return { fill: style.fillOpacity, stroke: style.strokeOpacity };
+  }))).toEqual(Array(3).fill({ fill: '0.4', stroke: '1' }));
   await expect(legend).toBeVisible();
   await expect(legend).toContainText('16');
   expect(await points.evaluateAll((circles) => circles.map((circle) => Number(circle.getAttribute('r'))).sort((a, b) => a - b))).toEqual([1, 2, 4]);

@@ -1092,11 +1092,11 @@
     {
       "id": "graders",
       "title": "Graders",
-      "description": "Compare relative grader values, with circle area showing retained measurement counts, not confidence, and inspect native evidence in the ledger.",
+      "description": "Compare grader values over time relative to each grader's observed maximum, then inspect native measurements in the ledger.",
       "intent": "Compare normalized grader values over time and inspect their native evidence.",
-      "subject": "Run-linked grader measurements by workflow.",
-      "objective": "Compare value/observed-maximum over time, with circle area showing retained measurement volume and a native-evidence ledger.",
-      "acceptance": "Omit missing values or zero maxima. Size by non-null measurements for the canonical grader in selected data, not confidence or native magnitude. Preserve identities, native values/status, units and times. Unknown is not pass/fail; historical observations are not current verdicts or verified gains.",
+      "subject": "Run-linked grader results and native metric evidence grouped by workflow.",
+      "objective": "Show each grader value relative to its observed maximum while keeping the native-value ledger available for evidence review.",
+      "acceptance": "Plot time against value divided by the maximum for that grader in the selected data; missing values and zero maxima do not produce points. Preserve grader identity, native values/status, units and times; unknown is not pass/fail. Historical observations are not current verdicts or verified gains.",
       "experimental": true,
       "parameters": [],
       "queries": [
@@ -3405,7 +3405,7 @@
       "id": "workflow-runs",
       "subject": "Project canonical runs into route-addressable workflow run evidence.",
       "objective": "Trace retained runs and recorded failure evidence for a selected workflow route.",
-      "acceptance": "Preserve workflow route, run identity, start/end, status, conclusion, failure fields, mode, engine/model metadata, and run link; missing failure details do not prove success or rule out incomplete import.",
+      "acceptance": "Preserve workflow route, run identity, timing, recorded Actions minutes and AI Credits, status, conclusion, failure fields, mode, engine/model metadata, and run link; missing failure details do not prove success or rule out incomplete import.",
       "description": "Workflow runs with a stable repository and workflow route key.",
       "parameters": [
         {
@@ -6629,8 +6629,8 @@
     {
       "id": "grader-observed-maxima",
       "subject": "Find each workflow-scoped grader's maximum retained value in the selected data.",
-      "objective": "Provide an observed normalization denominator and its retained measurement count without mixing grader identities or claiming a theoretical maximum.",
-      "acceptance": "Group by canonical grader ID. Ignore missing values; preserve zero and negative maxima. Count non-null measurements, including zero and negative values; evidence volume is not confidence or coverage.",
+      "objective": "Provide an observed normalization denominator without mixing grader identities or claiming a theoretical maximum.",
+      "acceptance": "Group by canonical grader identity, not display name; ignore missing values and preserve zero or negative maxima without substituting a denominator.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -6668,8 +6668,8 @@
     {
       "id": "grader-value-scatter",
       "subject": "Plot timed grader observations with a defined value-to-observed-maximum ratio.",
-      "objective": "Show relative grader measurements at their recorded observation times, sized by the retained measurement count behind each observed maximum.",
-      "acceptance": "Keep eligible observations and run links. Size by non-null retained measurements for the canonical grader, not native magnitude or confidence. Missing ratios/times stay in the ledger, not the plot. Ratios are not eval answers or verified gains.",
+      "objective": "Show relative grader measurements at their recorded observation times.",
+      "acceptance": "Keep each eligible observation and its run link; omit missing ratios or observation times from the plot while retaining those records in the native-value ledger. Ratios are not eval answers or evidence of improvement.",
       "description": "",
       "parameters": [],
       "sources": [

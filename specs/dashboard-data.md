@@ -2057,11 +2057,6 @@ changes the maximum. Missing values, zero or missing maxima, and invalid
 timestamps SHALL produce no plotted point; the native ledger SHALL retain
 those observations. Ratios SHALL NOT be clamped or inverted for lower-is-better
 graders, including when negative maxima produce ratios greater than one.
-Circle area SHALL show the count of non-null retained measurements for that
-canonical grader in the selected data, including zero and negative measurements.
-This count SHALL be computed with the observed maximum and joined through the
-same canonical grader identity. It describes evidence volume, not statistical
-confidence, native metric magnitude, distinct runs, or upstream completeness.
 An `experimentAssignments`, `graderObservations`, or `evalObservations` record
 MUST reference a definition (`experiments`, `graders`, or `evals` respectively)
 whose `workflowId` equals the `workflowId` of the Run named by the record's

@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import contract from '../fixtures/scatter-value-contract.json' with { type: 'json' };
+import workflowContract from '../fixtures/workflow-run-cost-contract.json' with { type: 'json' };
+import workflowFragment from '../../dashboard-fragments/workflow-runs.json' with { type: 'json' };
+import operationsFragment from '../../dashboard-fragments/operations.json' with { type: 'json' };
 import { validateDashboardDocument } from '../../src/validator.js';
 import { compileDashboardViewPayloadQueries } from '../../src/data/queries/view-payload-compiler.js';
 import { processDataRequest } from '../../src/data-worker.js';
@@ -45,6 +48,35 @@ function render(view, source) {
 }
 
 describe('scatter value encoding', () => {
+  it('uses recorded Actions minutes and AI Credits in the production workflow view, not grader sizes', () => {
+    const page = workflowFragment.pages.find((page) => page.id === workflowContract.page);
+    const view = page?.views.find((view) => typeof view !== 'string' && view.id === workflowContract.view);
+    if (!page || !view || typeof view === 'string' || !('encoding' in view) || !view.encoding) throw new Error('Workflow bubble view is missing');
+    expect(view.data).toEqual({ source: workflowContract.source, 'route-field': workflowContract['route-field'] });
+    for (const channel of ['x', 'y', 'value', 'color', 'href']) {
+      expect(Reflect.get(view.encoding, channel)?.field).toBe(Reflect.get(workflowContract, channel));
+    }
+    const compiled = compileDashboardViewPayloadQueries(page, page.id, {
+      queries: workflowFragment.queries, viewId: view.id,
+      routeParameters: { workflow: 'octo/api:worker' }
+    });
+    const sources = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
+      operation: 'execute-dashboard-queries', queries: compiled.queries, sourceNames: compiled.aliases,
+      sources: { runs: { source: 'runs', rows: [...rows.map((row) => ({
+        ...row, duration: '1h', 'action-minutes': 10 + Number(row.run),
+        organization: 'octo', repository: 'api', workflow: 'worker'
+      })), { ...rows[0], organization: 'octo', repository: 'api', workflow: 'other' }], metadata } }
+    }));
+    const source = sources[compiled.aliases[0]];
+    expect(source.rows.map((row) => row['aic-total'])).toEqual([16, 4, 1]);
+    expect(source.rows.map((row) => row['action-minutes'])).toEqual([12, 11, 10]);
+    expect(render(view, source).querySelectorAll('.scatter-chart-point')).toHaveLength(3);
+    const graders = operationsFragment.pages.find((page) => page.id === 'graders');
+    const graderView = graders?.views.find((view) => view.id === 'graders-value-scatter');
+    if (!graderView || !('encoding' in graderView)) throw new Error('Grader scatter view is missing');
+    expect(graderView.encoding).not.toHaveProperty('value');
+  });
+
   it('validates the declarative contract', () => {
     expect(validateDashboardDocument(JSON.stringify(contract))).toMatchObject({ ok: true });
   });

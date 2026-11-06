@@ -130,6 +130,7 @@ export const chartStyles = `.chart-widget { min-height: 230px; display: grid; pl
 .area-chart-point { stroke-width: 5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .line-chart-point { stroke-width: var(--chart-point-size, 4px); stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .dot-chart-point, .scatter-chart-point { fill: var(--canvas); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.scatter-chart-point { fill-opacity: .4; }
 .dot-chart-reference { stroke-width: 1; stroke-dasharray: 4 3; opacity: .72; vector-effect: non-scaling-stroke; }
 .line-chart-window-band { fill: var(--accent); opacity: .055; }
 .line-chart-temporal-marker line { stroke: var(--purple); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
