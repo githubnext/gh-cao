@@ -1404,6 +1404,13 @@ function renderChartView(context, facetPanel = false) {
   const reference = isPlainObject(encoding?.reference) && typeof encoding.reference.field === 'string' ? encoding.reference : null;
   const href = isPlainObject(encoding?.href) && typeof encoding.href.field === 'string' ? encoding.href : null;
   const chartType = typeof view.chart === 'string' ? view.chart : x?.type === 'temporal' ? 'line' : 'bar';
+  const scatterValue = chartType === 'scatter' && isPlainObject(encoding?.value) && typeof encoding.value.field === 'string'
+    ? {
+      field: encoding.value.field,
+      title: fieldTitle(encoding.value),
+      unit: fieldUnit(encoding.value, context.units ?? {})
+    }
+    : null;
   const value = chartType === 'heatmap' ? color : y;
   const series = chartType === 'heatmap' ? y : color;
   /** @param {Array<Record<string, unknown>>} chartRows @returns {ChartPoint[]} */
@@ -1437,7 +1444,7 @@ function renderChartView(context, facetPanel = false) {
       : weight
         ? buildChartPoints(pageId, title, chartRows, x, value, series, href?.field ?? null, weight)
         : buildChartPoints(pageId, title, chartRows, x, value, series, href?.field ?? null);
-    return facetPanel ? chartPoints : chartSection
+    return facetPanel || scatterValue ? chartPoints : chartSection
       ? prepareChartPoints(chartPoints, x, value, series, view.data, chartSection)
       : prepareChartPoints(chartPoints, x, value, series, view.data);
   };
@@ -1462,7 +1469,8 @@ function renderChartView(context, facetPanel = false) {
       null,
       chartType === 'treemap' && isPlainObject(view.treemap) ? view.treemap : {},
       null,
-      chartType === 'scatter' && isPlainObject(view.scatter) ? view.scatter : {}
+      { ...(chartType === 'scatter' && isPlainObject(view.scatter) ? view.scatter : {}),
+        ...(scatterValue ? { value: scatterValue } : {}) }
     );
     const chartLegend = (color || yDefinitions.length > 1) && !['heatmap', 'pie', 'swimlane'].includes(chartType)
       ? renderChartLegend(chartSeries, chartType)
@@ -1484,7 +1492,7 @@ function renderChartView(context, facetPanel = false) {
     };
   };
 
-  const clustering = chartType === 'scatter' && view.scatter?.cluster !== false && points.length > MAX_RENDERED_SCATTER_POINTS
+  const clustering = chartType === 'scatter' && !scatterValue && view.scatter?.cluster !== false && points.length > MAX_RENDERED_SCATTER_POINTS
     ? processScatterPoints(points.flatMap(({ key, x: pointX, y: pointY, color: pointColor, link }) => pointY == null ? [] : [{
         key,
         x: pointX,

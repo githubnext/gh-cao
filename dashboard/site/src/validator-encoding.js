@@ -449,11 +449,27 @@ function validateChartEncoding(encodingNode, encoding, chart, sourceName, path, 
   }
 
   if (encoding.value !== undefined) {
-    errors.push(createError(
-      ERROR_CODES.missingOrInvalidRequiredField,
-      'chart views must not encode value.',
-      `${path}.value`
-    ));
+    if (chart !== 'scatter') {
+      errors.push(createError(
+        ERROR_CODES.missingOrInvalidRequiredField,
+        'value encoding is supported only by scatter charts and metrics.',
+        `${path}.value`
+      ));
+    } else {
+      validateFieldDefinition(getValueNodeByKey(encodingNode, 'value'), encoding.value, sourceName, `${path}.value`, aggregateOutputIds, errors);
+      if (isPlainObject(encoding.value) && encoding.value.type !== 'quantitative') {
+        errors.push(createError(ERROR_CODES.invalidScopeFilterTimeAggregationOrOrderReference,
+          'scatter value encoding must declare type quantitative.', `${path}.value.type`));
+      }
+      for (const channel of ['x', 'y', 'color', 'value']) {
+        const definition = encoding[channel];
+        if (isPlainObject(definition) && definition.aggregate !== undefined && definition.aggregate !== 'none') {
+          errors.push(createError(ERROR_CODES.invalidScopeFilterTimeAggregationOrOrderReference,
+            'bubble chart fields must use query-produced values; declare aggregation in dashboard.queries.',
+            `${path}.${channel}.aggregate`));
+        }
+      }
+    }
   }
 
   if (encoding.columns !== undefined) {

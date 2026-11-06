@@ -2046,8 +2046,8 @@ describe('presenter built-in and custom pages', () => {
         'indexing-ingestion-runs': {
           source: 'indexing-ingestion-runs',
           rows: [
-            { 'shard-day': '2026-09-01', 'workflow-runs': 6, 'run-count-status': 'Reported run count' },
-            { 'shard-day': '2026-09-02', 'workflow-runs': 8, 'run-count-status': 'Reported run count' }
+            { 'shard-day': '2026-09-01', 'workflow-runs': 6, 'shard-entry-count': 1, 'run-count-status': 'Reported run count' },
+            { 'shard-day': '2026-09-02', 'workflow-runs': 8, 'shard-entry-count': 1, 'run-count-status': 'Reported run count' }
           ],
           metadata
         },
@@ -2109,6 +2109,7 @@ describe('presenter built-in and custom pages', () => {
       expect(page?.querySelector('[data-view-id="ingestion-storage"]')?.textContent).toContain('Storage engine unknown');
       expect(page?.querySelector('[data-view-id="indexing-size"]')).toBeNull();
       expect(page?.querySelectorAll('[data-chart-widget="scatter"] .scatter-chart-point')).toHaveLength(2);
+      expect(page?.querySelector('.chart-legend-size')?.getAttribute('aria-label')).toBe('Ingestion entries on shard day size legend');
       expect(page?.querySelectorAll('[data-view-id="github-api-usage"] [data-chart-widget="line"]')).toHaveLength(1);
       expect(page?.querySelector('[data-view-id="github-api-usage"]')?.textContent).toContain('collector/123/core');
       expect(page?.querySelectorAll('[data-chart-widget="horizontal-bar"]')).toHaveLength(2);

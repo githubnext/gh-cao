@@ -1092,11 +1092,11 @@
     {
       "id": "graders",
       "title": "Graders",
-      "description": "Compare grader values over time relative to each grader's observed maximum, then inspect native measurements in the ledger.",
+      "description": "Compare relative grader values, with circle area showing retained measurement counts, not confidence, and inspect native evidence in the ledger.",
       "intent": "Compare normalized grader values over time and inspect their native evidence.",
-      "subject": "Run-linked grader results and native metric evidence grouped by workflow.",
-      "objective": "Show each grader value relative to its observed maximum while keeping the native-value ledger available for evidence review.",
-      "acceptance": "Plot time against value divided by the maximum for that grader in the selected data; missing values and zero maxima do not produce points. Preserve grader identity, native values/status, units and times; unknown is not pass/fail. Historical observations are not current verdicts or verified gains.",
+      "subject": "Run-linked grader measurements by workflow.",
+      "objective": "Compare value/observed-maximum over time, with circle area showing retained measurement volume and a native-evidence ledger.",
+      "acceptance": "Omit missing values or zero maxima. Size by non-null measurements for the canonical grader in selected data, not confidence or native magnitude. Preserve identities, native values/status, units and times. Unknown is not pass/fail; historical observations are not current verdicts or verified gains.",
       "experimental": true,
       "parameters": [],
       "queries": [
@@ -6011,14 +6011,34 @@
       }
     },
     {
-      "id": "indexing-ingestion-runs",
-      "subject": "Show retained ingestion transactions at the activity date encoded in their shard filename.",
-      "objective": "Compare reported run counts by source shard activity date, independently of import time.",
-      "acceptance": "Preserve every dated transaction, including coincident dates, all kinds, and zero counts, without grouping, limits, or page filters. Omit missing or invalid shard dates; never substitute import time. Missing counts use labeled zero-position placeholders, not measured zeroes.",
+      "id": "indexing-shard-entry-counts",
+      "subject": "Count retained ingestion entries for each valid shard activity date.",
+      "objective": "Expose coincident ingestion density as circle area without changing individual run counts.",
+      "acceptance": "Count dated transaction identities across all kinds, including zero and unavailable run counts. This is retained ingestion evidence, not distinct runs, bytes, or upstream coverage.",
       "description": "",
       "parameters": [],
       "sources": [
         "indexing-shard-dates"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "transactions"
+        ]
+      }
+    },
+    {
+      "id": "indexing-ingestion-runs",
+      "subject": "Show retained ingestion transactions at the activity date encoded in their shard filename.",
+      "objective": "Compare reported run counts by source shard activity date, independently of import time, and expose coincident ingestion density.",
+      "acceptance": "Preserve all dated transactions without grouping, limits or page filters. Size by retained entries on the shard day, not distinct runs or coverage. Never substitute import time. Missing run counts remain labeled zero-position placeholders, not measured zeroes.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "indexing-shard-dates",
+        "indexing-shard-entry-counts"
       ],
       "used-by-pages": [
         "indexing"
@@ -6609,8 +6629,8 @@
     {
       "id": "grader-observed-maxima",
       "subject": "Find each workflow-scoped grader's maximum retained value in the selected data.",
-      "objective": "Provide an observed normalization denominator without mixing grader identities or claiming a theoretical maximum.",
-      "acceptance": "Group by canonical grader identity, not display name; ignore missing values and preserve zero or negative maxima without substituting a denominator.",
+      "objective": "Provide an observed normalization denominator and its retained measurement count without mixing grader identities or claiming a theoretical maximum.",
+      "acceptance": "Group by canonical grader ID. Ignore missing values; preserve zero and negative maxima. Count non-null measurements, including zero and negative values; evidence volume is not confidence or coverage.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -6648,8 +6668,8 @@
     {
       "id": "grader-value-scatter",
       "subject": "Plot timed grader observations with a defined value-to-observed-maximum ratio.",
-      "objective": "Show relative grader measurements at their recorded observation times.",
-      "acceptance": "Keep each eligible observation and its run link; omit missing ratios or observation times from the plot while retaining those records in the native-value ledger. Ratios are not eval answers or evidence of improvement.",
+      "objective": "Show relative grader measurements at their recorded observation times, sized by the retained measurement count behind each observed maximum.",
+      "acceptance": "Keep eligible observations and run links. Size by non-null retained measurements for the canonical grader, not native magnitude or confidence. Missing ratios/times stay in the ledger, not the plot. Ratios are not eval answers or verified gains.",
       "description": "",
       "parameters": [],
       "sources": [

@@ -615,6 +615,7 @@ describe('unified evaluation evidence', () => {
     const points = sources[contract.graders.scatter.query].rows;
     expect(points.map((row) => row['normalized-value'])).toEqual([0.5, 1, 2, 1, 1]);
     expect(points.map((row) => row['max-grader-value'])).toEqual([4, 4, -4, -4, 100]);
+    expect(points.map((row) => row[contract.graders.scatter.value])).toEqual([2, 2, 2, 2, 1]);
     expect(points.every((row) => typeof row['observed-at'] === 'string')).toBe(true);
     expect(sources[contract.graders.query].rows).toHaveLength(8);
     expect(sources['grader-normalized-observations'].rows.filter((row) => row['normalized-value'] === null))

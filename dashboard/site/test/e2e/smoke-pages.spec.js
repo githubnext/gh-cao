@@ -222,8 +222,8 @@ test('Ingestion shows daily run counts, shard activity dates and retained transa
         'indexing-ingestion-runs': {
           source: 'indexing-ingestion-runs',
           rows: [
-            { 'shard-day': '2026-09-11', 'workflow-runs': 6050, 'run-count-status': 'Reported run count' },
-            { 'shard-day': '2026-09-12', 'workflow-runs': 6950, 'run-count-status': 'Reported run count' }
+            { 'shard-day': '2026-09-11', 'workflow-runs': 6050, 'shard-entry-count': 1, 'run-count-status': 'Reported run count' },
+            { 'shard-day': '2026-09-12', 'workflow-runs': 6950, 'shard-entry-count': 1, 'run-count-status': 'Reported run count' }
           ],
           metadata
         },
