@@ -153,12 +153,14 @@ test("immediate build preserves the full normal dashboard and rich query contrac
     const document = JSON.parse(await readFile(path.join(root, "output/dashboard.json"), "utf8"));
     const ids = document.dashboard.pages.map((page) => page.id);
     assert.ok(ids.length > 50);
+    assert.ok(!ids.includes("configuration"));
+    assert.ok(!ids.includes("indexing"));
     for (const id of ["overview", "repositories", "workflows", "runs", "issues", "friction", "firewall", "skills", "experiments", "evals", "graders"]) {
       assert.ok(ids.includes(id), `missing normal page ${id}`);
     }
     assert.equal(document.dashboard.pages.find((page) => page.id === "overview").title, "Overview");
     assert.ok(document.dashboard["data-status"]);
-    assert.ok(document.dashboard.callouts);
+    assert.equal(document.dashboard.callouts, undefined);
     const queries = JSON.parse(await readFile(path.join(root, "output/src/agent/queries.generated.json"), "utf8"));
     assert.ok(queries.some((query) => query.name === "repository-run-inventory"));
     assert.ok(queries.some((query) => query.name === "runs-daily-conclusions"));

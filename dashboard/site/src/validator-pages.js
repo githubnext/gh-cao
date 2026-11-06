@@ -168,11 +168,17 @@ export function validatePage(page, pageNode, path, pageIds, errors) {
     if (!isPlainObject(page.requires)) {
       errors.push(createError(ERROR_CODES.missingOrInvalidRequiredField, 'page requires must be a mapping.', requiresPath));
     } else {
-      validateObjectKeys(getValueNodeByKey(pageNode, 'requires'), ['capability'], requiresPath, errors);
-      if (page.requires.capability !== 'cli-queue' && page.requires.capability !== 'admin') {
+      validateObjectKeys(getValueNodeByKey(pageNode, 'requires'), ['capability', 'source', 'message'], requiresPath, errors);
+      if (page.requires.capability === undefined && page.requires.source === undefined) {
+        errors.push(createError(ERROR_CODES.missingOrInvalidRequiredField,
+          'page requires must declare a capability or source.', requiresPath));
+      }
+      if (page.requires.capability !== undefined && page.requires.capability !== 'cli-queue' && page.requires.capability !== 'admin') {
         errors.push(createError(ERROR_CODES.nonCanonicalVocabularyOrIdentifier,
           'page requires capability must be cli-queue or admin.', `${requiresPath}.capability`));
       }
+      if (page.requires.source !== undefined) validateSource(page.requires.source, `${requiresPath}.source`, errors);
+      validateOptionalStringField(page.requires.message, `${requiresPath}.message`, errors);
     }
   }
   validateOptionalStringField(page['navigation-label'], `${path}.navigation-label`, errors);

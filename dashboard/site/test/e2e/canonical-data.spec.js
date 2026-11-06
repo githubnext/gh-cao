@@ -534,7 +534,7 @@ for (const width of [1200, 390]) {
       const processor = await import(`${location.origin}/src/data-processor.js`);
       const chunks = await import(`${location.origin}/src/dashboard-chunks.js`);
       let sources = {};
-      for (const selected of input.dashboard.pages.filter((page) => ['overview', 'repositories', 'workflows', 'runs'].includes(page.id ?? ''))) {
+      for (const selected of input.dashboard.pages.filter((page) => ['overview', 'repositories', 'workflows', 'runs', 'cost'].includes(page.id ?? ''))) {
         const names = chunks.dashboardPageAllSourceNames({
           languageVersion: input['language-version'], dashboard: input.dashboard
         }, selected.id ?? '', 'all');
@@ -550,7 +550,7 @@ for (const width of [1200, 390]) {
     await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
     await expect(page.locator('[data-view-id="overview-header"] #agent-factory-heading')).toBeVisible();
     await expect(page.locator('[data-view-id="overview-floor"]')).toContainText('Factory health');
-    for (const id of ['repositories', 'workflows', 'runs']) {
+    for (const id of ['repositories', 'workflows', 'runs', 'cost']) {
       if (width < 768) await page.getByRole('button', { name: 'Select view', exact: true }).click();
       await page.locator(`a[href="#page-${id}"]:visible`).first().click();
       const active = page.locator(`#page-${id}`);
@@ -567,9 +567,23 @@ for (const width of [1200, 390]) {
         await selectLocalDashboardMode(page, 'table', width);
         await expect(active.locator('[data-view-id="runs-runs-source"]')).toContainText('octo/api');
       }
+      if (id === 'cost') {
+        await expect(active.locator('[data-section-id="cost-estimates"]')).toHaveCount(0);
+        await expect(active.locator('[data-view-id="cost-by-repository"]')).toContainText('All costs shown are estimates.');
+      }
     }
     expect(await page.locator('a[href="#page-campaigns"]').count()).toBeGreaterThan(0);
+    for (const link of await page.locator('a[href="#page-campaigns"]').all()) {
+      await expect(link).toHaveAttribute('aria-disabled', 'true');
+    }
+    await page.evaluate(() => { window.location.hash = 'page-campaigns'; });
+    await expect(page.locator('#page-campaigns')).toContainText('Campaign information is unavailable.');
     await expect(page.locator('a[href="#page-immediate-operations"]')).toHaveCount(0);
+    for (const id of ['configuration', 'indexing']) {
+      await expect(page.locator(`a[href="#page-${id}"]`)).toHaveCount(0);
+      await page.evaluate((id) => { window.location.hash = `page-${id}`; }, id);
+      await expect(page.locator('.dashboard-page:visible')).toHaveAttribute('data-page-id', 'overview');
+    }
   });
 }
 

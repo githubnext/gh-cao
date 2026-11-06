@@ -1,5 +1,6 @@
 {
   "description": "Inspect bounded recent gh-aw logs and available rich evidence without a control-plane installation.",
+  "excluded-pages": ["configuration", "indexing"],
   "query-source-aliases": {
     "workflows": "workflow-identities",
     "workflow-subject-topology": "workflow-subject-identities",

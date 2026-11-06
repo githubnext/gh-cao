@@ -331,7 +331,7 @@ Language keys and enumerated values use canonical kebab-case. Human-readable tit
 | Query `select` entry | `field`, `as` |
 | Built-in page | `id`, `kind`, `page`, `title`, `navigation-label`, `navigation-indicator`, `description`, `intent`, `subject`, `objective`, `acceptance`, `icon`, `class-name`, `experimental`, `filter-bar`, `view-mode-control`, `pull-refresh`, `mode-indicator`, `query-binding`, `requires`, `form`, `definition` |
 | Custom page | `id`, `kind`, `title`, `navigation-label`, `navigation-indicator`, `description`, `intent`, `subject`, `objective`, `acceptance`, `icon`, `class-name`, `experimental`, `filter-bar`, `view-mode-control`, `pull-refresh`, `mode-indicator`, `query-binding`, `requires`, `form`, `route`, `views`, `sections` |
-| Page `requires` | `capability` |
+| Page `requires` | `capability`, `source`, `message` |
 | Page `form` | `title`, `description`, `update`, `fields` |
 | Form `update` | `strategy`, `delay-ms` |
 | Form field | `id`, `label`, `description`, `control`, `default`, `min`, `max`, `step`, `options` |
@@ -1354,20 +1354,23 @@ An enabled view sharing a source still loads its own dependencies. A satisfied
 hosted prerequisite does not grant permissions: unauthorized or unavailable
 runtime sources retain their normal explicit failure states.
 
-Any page may declare `requires: { capability: cli-queue }` or
-`requires: { capability: admin }`. The mapping accepts only the required
-`capability` key. `cli-queue` uses the same explicit transport capability as CLI
-actions; `admin` requires the server-issued administrator capability from an
-authorized hosted administrator session with current
-step-up assurance. Neither is inferred from URL parameters, the data backend
-type, or credential reach. Without the capability, the presenter omits
-the page from desktop and mobile navigation and route activation, and source
-selection excludes its queries and pagination. A direct link falls back to
-the default available page without loading the unsupported page. Requirements
-remain in lazy page stubs. Commands and command-output pages require `cli-queue`;
-published static dashboards and hosted backends without the local
-queue do not expose them. Governance requires `admin`, independently of CLI queue
-availability. These presentation gates grant no execution authority.
+Pages may declare `requires` with `capability` (`cli-queue` or `admin`),
+`source` (a registered source or declared query), and optional `message`.
+`cli-queue` uses explicit CLI-action transport capability. `admin` requires the
+server-issued capability from an authorized administrator session with current
+step-up assurance. URL parameters, backend type and credential reach grant neither.
+Without the capability, desktop/mobile navigation and routes omit the page;
+queries and pagination are excluded. Direct links fall back to the default
+available page without loading it. Commands and command-output require
+`cli-queue`; Governance requires `admin`, independently of queue availability.
+
+A source requirement enables navigation only for non-empty, available query
+results, including partial evidence. Missing, empty or unavailable results
+disable links; direct routes show `message` without loading page queries or
+chunks. Shell queries and lazy stubs preserve prerequisites. Dashboard-owned,
+abort-scoped background subscriptions refresh navigation and active gated pages
+on revisions. Combined capability and source requirements must both hold.
+These presentation gates grant no data access or execution authority.
 
 A table or list encoding may declare row `actions`. A `copy-prompt` action materializes an intent as an icon-and-label button and may reference a row-placed `gh agent-task create --from-file -` CLI action by `action` ID. In canvas CLI-action mode the prompt preview then starts an agent task after explicit approval; in other modes it retains the clipboard control. A `cli-action` action references a dashboard CLI action by `action` ID and is rendered only in canvas CLI-action mode; its `context` fields provide validated scalar values for `{{field}}` tokens in the declared command. Each action declares `level: explore | propose | operate` independently of presentation, and may declare a concrete `verb` and canonical Octicon `icon`; omitted icons resolve from the semantic level and verb. Existing actions without a level migrate as `propose` for prompts and `operate` for CLI commands. The dashboard's `cli-actions` declarations use the same `level` and optional `verb` keys; an explicit row action may override the referenced command's level. An `explore` CLI command must be a supported read-only operation without optional boolean arguments; this is a safety validation, not a rule for inferring level. The `label` may be omitted to use `Investigate` or `Propose fix`; operational actions must supply a concrete label. Each action has a non-empty `presentation` and a non-empty `context` sequence of unique source fields. An action may use `when` with a source field and scalar `equals` value to limit the action to rows whose field has the same scalar type and value. Activating a prompt action opens a modal preview containing the complete prompt; opening the preview does not write to the clipboard or start a task. Activating a CLI action opens the same per-run command approval used by dashboard-level CLI actions. The prompt contains the intent followed by only the available scalar values selected by `context`, serialized as an ordered JSON object and explicitly identified as untrusted data. Link objects contribute only their HTTPS `href`. Authors do not interpolate row values into prompt intents, and undeclared row fields are not copied.
 

@@ -46,14 +46,19 @@ it('preserves normal pages, navigation, templates and drill-downs with local acq
   const context = { languageVersion: immediate['language-version'], dashboard: immediate.dashboard };
   const validation = validateDashboardDocument(JSON.stringify(immediate));
   expect(validation, JSON.stringify(validation)).toMatchObject({ ok: true });
-  expect(immediate.dashboard.pages).toEqual(document.dashboard.pages);
-  expect(immediate.dashboard.navigation).toEqual(document.dashboard.navigation);
+  expect(immediate.dashboard.pages).toEqual(document.dashboard.pages.filter(
+    (/** @type {{ id: string }} */ page) => !profile['excluded-pages'].includes(page.id)));
+  expect((immediate.dashboard.navigation ?? []).flatMap((section) => section.pages)).not.toContain('configuration');
+  expect((immediate.dashboard.navigation ?? []).flatMap((section) => section.pages)).not.toContain('indexing');
+  expect(document.dashboard.pages.some((/** @type {{ id: string }} */ page) => page.id === 'configuration')).toBe(true);
+  expect(document.dashboard.pages.some((/** @type {{ id: string }} */ page) => page.id === 'indexing')).toBe(true);
   expect(immediate.dashboard['card-templates']).toEqual(document.dashboard['card-templates']);
   const overview = immediate.dashboard.pages.find((page) => page.id === 'overview');
   expect(overview?.title).toBe('Overview');
   expect(overview?.['class-name']).toBe('dashboard-overview-page');
   expect(immediate.dashboard['data-status']).toEqual(document.dashboard['data-status']);
-  expect(immediate.dashboard.callouts).toEqual(document.dashboard.callouts);
+  expect(immediate.dashboard.callouts ?? []).toEqual(document.dashboard.callouts.filter(
+    (/** @type {{ ['navigation-page']: string }} */ callout) => !profile['excluded-pages'].includes(callout['navigation-page'])));
   const names = immediate.dashboard.pages.flatMap((page) =>
     dashboardPageAllSourceNames(context, page.id ?? '', 'all'));
   const dependencies = resolveDashboardQuerySources(immediate.dashboard.queries, names);

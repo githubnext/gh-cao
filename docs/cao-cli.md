@@ -75,8 +75,9 @@ available artifact sets, including audit evidence. The existing production
 gh-aw adapter and canonical normalizer hydrate jobs, sessions, tool calls,
 firewall domains, skills, friction, safe outputs, experiments, evals and graders
 when their evidence is available. Only agentic `.lock.yml` workflows are included.
-The **full normal dashboard** remains available, including repository, workflow
-and run drill-downs. **Coverage is partial:** missing artifacts, campaign policy,
+The normal operational dashboard remains available, including repository, workflow
+and run drill-downs. Settings and Ingestion pages are excluded in immediate mode;
+Campaigns is disabled until campaign inventory is available. **Coverage is partial:** missing artifacts, campaign policy,
 fleet queue backlog, accepted outcomes and Operational Value remain explicitly
 unavailable rather than being hidden or represented as healthy zeros.
 Successful executions are not verified outcomes.

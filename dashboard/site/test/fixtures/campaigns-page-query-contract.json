@@ -1,5 +1,9 @@
 {
   "page": "campaigns",
+  "requires": {
+    "source": "campaign-navigation-availability",
+    "message": "Campaign information is unavailable. Collect campaign inventory to enable this view."
+  },
   "query-binding": "page",
   "source": "campaign-inventory",
   "views": ["campaigns-dispatches", "campaigns-repository-coverage", "campaigns-inventory"],
