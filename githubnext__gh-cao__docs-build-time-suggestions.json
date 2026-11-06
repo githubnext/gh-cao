@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-06T09:19:39.772017Z",
-      "worker_run_id": "42193740513",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        42194014902,
-        42193691276,
-        42191914475,
-        42190061958,
-        42188232891,
-        42187023907,
-        42186807277,
-        42184763744,
-        42184606099,
-        42183221509,
-        42183203642,
-        42183018055,
-        42181383178,
-        42179956501,
-        42179574039,
-        42178134492,
-        42176477442,
-        42175541780,
-        42174388978,
-        42171908471
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T06:02:04Z to 2026-11-06T09:18:26Z) was within 14 days and contained 16 successful runs plus four skipped workflow_run callbacks; there were no failed or cancelled runs. Only three successful full build-and-deploy publications were available (runs 42188232891, 42184606099, and 42183203642), below the required five comparable successful runs. Their wall times were 170, 147, and 142 seconds (descriptive median 147 seconds and nearest-rank p90 170 seconds, not treated as a sufficient evaluation); they spanned one schedule and two push triggers across three source revisions. Trusted job and step metadata verified dashboard cache hits in all three because Restore cached CAO Dashboard succeeded while both cache-miss lookup and artifact-download steps were skipped. docs.yml has no separate dashboard job. The other 13 successful runs were freshness-only schedules; one 78-second run was a disclosed queue outlier, while the remaining freshness-only wall times were 10-15 seconds. Because fewer than five comparable full publications were present, required full-workflow and dashboard/build/deploy median and p90 distributions and a complete reusable-dashboard-generation evaluation could not be established. No suggestion was made; reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-06T09:32:44Z",
       "worker_run_id": "42195427030",
       "category": "reusable dashboard generation",
@@ -777,6 +749,13 @@
         42241504328
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T15:16:29Z to 2026-11-06T19:11:31Z) was within 14 days and contained 16 successful freshness-only schedule runs plus four skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 0934632ae6f6fa4154273b6fbeb07186cd93ac77. The 16 successful schedules had workflow wall-time median 21 seconds and nearest-rank p90 24 seconds. Trusted Actions job and step metadata for the newest successful run verified a 3-second initial queue, an 18-second schedule-freshness job with a 14-second freshness check, and skipped build and deploy; retained trusted evidence from the overlapping preceding evaluation covers the remaining runs. The window contained zero successful full build-and-deploy publications, below the required five comparable successful publications. docs.yml has no separate dashboard job. Full-publication execution, dashboard/build/deploy median and p90 distributions, reusable-dashboard-generation step costs, and current dashboard cache hit/miss effectiveness therefore cannot be evaluated. No suggestion was made; reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-06T19:29:55Z",
+      "worker_run_id": "42279750299",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. In accordance with the resource-limit policy, no further API or model work was attempted. The current 14-day evidence window, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded reusable-dashboard-generation step analysis, and cache hit/miss verification could not be established. No recommendation was made; reusable dashboard generation remains the next category."
     }
   ]
 }
