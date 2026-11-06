@@ -515,18 +515,10 @@ func (a *App) configureSessionArchive(ctx context.Context) error {
 		repositories: slices.Clone(config.Repositories), read: read,
 	}
 	if collector := a.Collector(); collector != nil {
-		if config.NativeProducer {
-			if collector.native == nil {
-				return errors.New("native session archive requires assembled native collection")
-			}
-			collector.native.archive = a.sessionArchive
-		} else {
-			if collector.runner.Traces == nil {
-				collector.runner.Traces = a.sessionArchive
-			} else {
-				collector.runner.Traces = collect.TraceCaptures{collector.runner.Traces, a.sessionArchive}
-			}
+		if collector.native == nil {
+			return errors.New("native session archive requires assembled native collection")
 		}
+		collector.native.archive = a.sessionArchive
 	}
 	return nil
 }

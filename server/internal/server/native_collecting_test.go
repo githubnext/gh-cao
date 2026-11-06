@@ -17,6 +17,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -139,14 +140,14 @@ func TestNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing.T) {
 	config := CollectorConfig{NativeAcquisition: true, NativeInventory: &snapshot, AppID: 42, Workers: 1, WindowDays: 7,
 		PrivateKeyPEM: pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}),
 		BaseURL:       api.URL + "/api/v3/", ControlRepository: "octo/api",
-		LakeDirectory: "/must-not-read", CatalogRoot: "/must-not-read", PolicyPath: "/must-not-read", StaticInventoryPath: "/must-not-read"}
+		CatalogRoot: "/must-not-read", PolicyPath: "/must-not-read"}
 	t.Setenv("PATH", "/nonexistent")
 	collector, err := NewCollector(t.Context(), operational, data, config, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if collector.lake.Directory != "" || collector.runner.CatalogRoot != "" || collector.projector.State != nil {
-		t.Fatal("native hosted assembly constructed the legacy filesystem pipeline")
+	if collector.native == nil || collector.native.inventory == nil || collector.native.worker.Runs.Collector == nil {
+		t.Fatal("native hosted assembly omitted the acquisition worker")
 	}
 	replicaConfig := config
 	replicaConfig.NativeInventory = nil
@@ -158,8 +159,14 @@ func TestNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing.T) {
 	}
 	valueConfig := replicaConfig
 	valueConfig.NativeValues = true
-	if _, err := NewCollector(t.Context(), operational, data, valueConfig, ""); err == nil || !strings.Contains(err.Error(), "requires Node") {
-		t.Fatalf("selected Value execution silently ignored its missing Node dependency: %v", err)
+	valueConfig.CatalogRoot, err = filepath.Abs("../../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	valueConfig.PolicyPath = filepath.Join(valueConfig.CatalogRoot, ".github", "workflows", "cao.json")
+	valueCollector, err := NewCollector(t.Context(), operational, data, valueConfig, "")
+	if err != nil || valueCollector.native.values == nil {
+		t.Fatalf("selected Go Value execution required Node or omitted the worker: %v", err)
 	}
 	if _, err := collector.Rebuild(t.Context()); err != nil {
 		t.Fatal("native cold-start assembly:", err)
@@ -204,8 +211,9 @@ func TestNativeHostedAssemblyRunsWithoutLegacyFilesOrExecutables(t *testing.T) {
 	}
 	admission, err := NewCollector(t.Context(), operational, data,
 		CollectorConfig{NativeAcquisition: true, AppID: 42, AdmitOnly: true}, "")
-	if err != nil || admission.client != nil || admission.native.inventory != nil || admission.runner.CatalogRoot != "" {
-		t.Fatalf("native admission acquired worker credentials/files: %v", err)
+	if err != nil || admission.native == nil || admission.client != nil ||
+		admission.native.inventory != nil || admission.native.worker.Client != nil {
+		t.Fatalf("native admission acquired worker credentials or inventory: %v", err)
 	}
 	unsupported := config
 	unsupported.MaxStorageMB = 1

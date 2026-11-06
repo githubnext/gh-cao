@@ -3,8 +3,6 @@ package operationalvalue
 import (
 	"context"
 	"encoding/json"
-	"io"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,99 +57,103 @@ func TestLocalCollectionHealthNeedsNeitherCollectorNorCredential(t *testing.T) {
 	}
 }
 
-func TestLocalRuntimeCancellationOwnsDescendantsAndStripsCredentials(t *testing.T) {
-	directory := t.TempDir()
-	started, leaked := filepath.Join(directory, "started"), filepath.Join(directory, "leaked")
-	marker, _ := json.Marshal(started)
-	target, _ := json.Marshal(leaked)
-	child := `require("node:fs").writeFileSync(` + string(marker) + `,"ready");
-		setTimeout(()=>require("node:fs").writeFileSync(` + string(target) + `,"leaked"),500);
-		setInterval(()=>{},1000)`
-	childSource, _ := json.Marshal(child)
-	source := `if(process.env.GH_TOKEN || process.env.GITHUB_TOKEN || process.env.CAO_OPERATIONAL_VALUE_GH_TOKEN)
-		throw new Error("credentials crossed local boundary");
-		require("node:child_process").spawn(process.execPath,["-e",` + string(childSource) + `]);
-		setInterval(()=>{},1000)`
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	done := make(chan error, 1)
-	go func() {
-		done <- runLocalRuntime(ctx, Config{Root: directory, WorkerTimeout: 5 * time.Second,
-			Environment: []string{"PATH=" + os.Getenv("PATH"), "GH_TOKEN=test-only", "GITHUB_TOKEN=test-only",
-				"CAO_OPERATIONAL_VALUE_GH_TOKEN=test-only"}},
-			[]string{"-e", source})
-	}()
-	deadline := time.Now().Add(3 * time.Second)
-	for {
-		if _, err := os.Stat(started); err == nil {
-			break
-		}
-		select {
-		case err := <-done:
-			t.Fatalf("local child did not start with credentials removed: %v", err)
-		default:
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("local runtime did not start within its bounded deadline")
-		}
-		time.Sleep(10 * time.Millisecond)
+func TestHostedHealthPreservesActualAttemptAcrossPreparation(t *testing.T) {
+	root := t.TempDir()
+	policy := filepath.Join(root, "cao.json")
+	content := `{"version":1,"gh-aw-version":"v0.93.1","control-plane":{
+		"scope":{"allowed-repositories":["org/repo"]},"activity":{"repositories":["org/repo"]},
+		"campaigns":{"activity":{"workflow-values":[
+			{"repository":"org/repo","workflow":"worker","collector":"reviewed.mjs"}]}}}}`
+	if err := os.WriteFile(policy, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
 	}
-	cancel()
-	if err := <-done; err == nil {
-		t.Fatal("canceled local work must report failure")
+	snapshot := filepath.Join(root, "transport")
+	if err := os.MkdirAll(snapshot, 0o700); err != nil {
+		t.Fatal(err)
 	}
-	time.Sleep(600 * time.Millisecond)
-	if _, err := os.Stat(leaked); !os.IsNotExist(err) {
-		t.Fatal("a descendant survived local runtime cancellation")
+	if err := os.WriteFile(filepath.Join(snapshot, "inventory-sources.json"),
+		[]byte(`{"repositories":{"rows":[]},"workflows":{"rows":[]}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	config := Config{Root: root, Repositories: []string{"org/repo"}, NodeBinary: "/nonexistent-node"}
+	if err := WriteCollectionHealth(t.Context(), config, policy, snapshot); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(snapshot, "gh-aw-logs-shards", "workflow-values-collections.jsonl")
+	data, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var envelope struct {
+		Record model.Row `json:"workflow_value_collection"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		t.Fatal(err)
+	}
+	attempted := time.Now().UTC().Truncate(time.Millisecond)
+	record, err := CollectionAttempt(envelope.Record, attempted, "available", "captured")
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelopeData, err := json.Marshal(map[string]any{
+		"schema_version": 2, "kind": "workflow_value_collection",
+		"workflow_value_collection": record,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, append(envelopeData, '\n'), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteCollectionHealth(t.Context(), config, policy, snapshot); err != nil {
+		t.Fatal(err)
+	}
+	data, err = os.ReadFile(file)
+	if err != nil || json.Unmarshal(data, &envelope) != nil ||
+		envelope.Record["state"] != "available" || envelope.Record["reasonCode"] != "captured" ||
+		envelope.Record["lastAttemptAt"] != optimizerTime(attempted) {
+		t.Fatalf("preparation concealed a real collector attempt: %v %s", err, data)
 	}
 }
 
 func TestHostedSnapshotQueriesCanonicalDataWithoutSQLite(t *testing.T) {
 	root := t.TempDir()
-	activity := filepath.Join(root, "activity")
-	if err := os.MkdirAll(activity, 0o700); err != nil {
+	policy := filepath.Join(root, "cao.json")
+	if err := os.WriteFile(policy, []byte(`{"version":1,"gh-aw-version":"v0.93.1",
+		"control-plane":{"scope":{"allowed-repositories":["githubnext/gh-cao"]},
+		"activity":{"repositories":["githubnext/gh-cao"]}}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	script := `import { connect } from "node:net";
-import { writeFile } from "node:fs/promises";
-const args = process.argv.slice(2);
-if (args.includes("--database")) throw new Error("hosted execution received a SQLite database");
-const output = args[args.indexOf("--output") + 1];
-const socket = connect(process.env.CAO_DASHBOARD_QUERY_SOCKET);
-let response = "";
-socket.setEncoding("utf8");
-socket.on("data", chunk => response += chunk);
-const done = new Promise((resolve, reject) => {
-  socket.on("end", resolve);
-  socket.on("error", reject);
-});
-socket.end(JSON.stringify({schemaVersion: 1, queries: [{name:"rows", from:"runs"}], requested:["rows"]}));
-await done;
-const parsed = JSON.parse(response);
-if (parsed.sources.rows.rows[0].repository !== "api") throw new Error("canonical rows unavailable");
-await writeFile(output, JSON.stringify({schema_version:2,kind:"operational_value",operational_value:{
-  timestamp:"2026-01-01T00:00:00Z",repository:"octo/api",campaign:"optimization",
-  campaign_id:"campaign:optimization",value_id:"worker.efficiency",value:1
-}}) + "\n");
-console.log(JSON.stringify({values:1,warnings:[]}));`
-	if err := os.WriteFile(filepath.Join(activity, "local-values.mjs"), []byte(script), 0o600); err != nil {
+	snapshot := filepath.Join(root, "snapshot")
+	if err := os.MkdirAll(snapshot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(snapshot, "inventory-sources.json"),
+		[]byte(`{"repositories":{"rows":[]},"workflows":{"rows":[]}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	observed, _ := time.Parse(time.RFC3339, "2026-11-05T20:00:00Z")
+	config := Config{Root: root, Repositories: []string{"githubnext/gh-cao"},
+		NodeBinary: "/nonexistent-node", ObservedAt: observed}
+	if err := WriteCollectionHealth(t.Context(), config, policy, snapshot); err != nil {
 		t.Fatal(err)
 	}
 	output := filepath.Join(t.TempDir(), "operational-values.jsonl")
 	queries := 0
-	err := ComputeHostedSnapshot(t.Context(), Config{
-		Root: root, NodeBinary: "node", Output: output,
-		Environment: []string{"PATH=" + os.Getenv("PATH")}, WorkerTimeout: 10 * time.Second,
-	}, "unused-policy", "unused-snapshot", output,
+	err := ComputeHostedSnapshot(t.Context(), config, policy, snapshot, output,
 		func(_ context.Context, definitions []query.Definition, requested []string) (map[string]model.Source, error) {
 			queries++
-			if len(definitions) != 1 || definitions[0].Name != "rows" ||
-				len(requested) != 1 || requested[0] != "rows" {
+			if len(definitions) != 1 || definitions[0].Name != "optimization-repository-efficiency" ||
+				len(definitions[0].Joins) != 1 || definitions[0].Aggregate == nil ||
+				len(requested) != 1 || requested[0] != "optimization-repository-efficiency" {
 				t.Fatalf("unexpected canonical query: %#v %#v", definitions, requested)
 			}
-			return map[string]model.Source{"rows": {
-				Source: "rows", Rows: []model.Row{{"repository": "api"}},
-				Metadata: model.Metadata{"availability": "available"},
+			return map[string]model.Source{requested[0]: {
+				Source: requested[0], Rows: []model.Row{{"owner": "githubnext", "repository": "gh-cao",
+					"declaredWorkflowPath": ".github/workflows/worker.md", "concludedRuns": 3,
+					"successfulRuns": 3, "successfulRunsWithAic": 3, "aicPerSuccessfulRun": 2.5,
+					"failedRuns": 0, "cancelledRuns": 0}},
+				Metadata: model.Metadata{"availability": "available", "canonical-revision": int64(42)},
 			}}, nil
 		})
 	if err != nil {
@@ -159,6 +161,17 @@ console.log(JSON.stringify({values:1,warnings:[]}));`
 	}
 	if queries != 1 {
 		t.Fatalf("canonical query count = %d, want 1", queries)
+	}
+	rows, err := ReadMeasurements(output)
+	if err != nil || len(rows) != 3 || rows[0]["repository"] != "githubnext/gh-cao" ||
+		rows[0]["value"] != json.Number("2.5") ||
+		rows[0]["evidence-digest"] != "33fb3591bb9abb77f977f73e85b162b3d9035554e4374334698e82fc5978d136" {
+		t.Fatalf("hosted result is not a canonical native assessment: %+v %v", rows, err)
+	}
+	for _, row := range rows {
+		if row["coverage-status"] != "unknown" || row["evaluator-digest"] == nil {
+			t.Fatalf("hosted Value promoted unverified coverage: %+v", row)
+		}
 	}
 	if _, err := os.Stat(output); err != nil {
 		t.Fatal(err)
@@ -171,44 +184,177 @@ console.log(JSON.stringify({values:1,warnings:[]}));`
 	}); err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestHostedQueryBridgeRejectsOversizedRequests(t *testing.T) {
-	queries := 0
-	bridge, err := startHostedQueryBridge(t.Context(),
-		func(context.Context, []query.Definition, []string) (map[string]model.Source, error) {
-			queries++
-			return map[string]model.Source{}, nil
-		})
-	if err != nil {
+	missingOutput := filepath.Join(t.TempDir(), "missing.jsonl")
+	if err := ComputeHostedSnapshot(t.Context(), config, policy, snapshot, missingOutput,
+		func(_ context.Context, definitions []query.Definition, requested []string) (map[string]model.Source, error) {
+			return map[string]model.Source{requested[0]: {Metadata: model.Metadata{
+				"availability": "available", "canonical-revision": int64(42),
+			}}}, nil
+		}); err != nil {
 		t.Fatal(err)
 	}
-	defer bridge.Close()
-	connection, err := (&net.Dialer{}).DialContext(t.Context(), "unix", bridge.path)
-	if err != nil {
-		t.Fatal(err)
+	missing, err := ReadMeasurements(missingOutput)
+	if err != nil || len(missing) != 3 {
+		t.Fatalf("missing canonical opportunity was not evaluated: %+v %v", missing, err)
 	}
-	if _, err := connection.Write([]byte(strings.Repeat(" ", hostedQueryRequestBytes+1))); err != nil {
-		_ = connection.Close()
-		t.Fatal(err)
-	}
-	if unix, ok := connection.(*net.UnixConn); ok {
-		if err := unix.CloseWrite(); err != nil {
-			_ = connection.Close()
-			t.Fatal(err)
+	for _, row := range missing {
+		if row["value"] != nil || row["maturity-status"] != "unavailable" ||
+			row["missing-reason"] != "no-eligible-opportunities" {
+			t.Fatalf("missing opportunities became a fabricated zero: %+v", row)
 		}
 	}
-	content, err := io.ReadAll(connection)
-	_ = connection.Close()
+	if err := ComputeHostedSnapshot(t.Context(), config, policy, snapshot,
+		filepath.Join(t.TempDir(), "unavailable.jsonl"),
+		func(_ context.Context, definitions []query.Definition, requested []string) (map[string]model.Source, error) {
+			return map[string]model.Source{requested[0]: {Metadata: model.Metadata{
+				"availability": "unavailable", "canonical-revision": int64(42),
+			}}}, nil
+		}); err == nil {
+		t.Fatal("unavailable canonical query produced a current Value result")
+	}
+}
+
+func TestHostedDependabotWithoutJSReportsMissingEvidence(t *testing.T) {
+	tests := []struct {
+		name, campaign, repository string
+		missing                    bool
+	}{
+		{"enabled", `"dependabot":{"targets":{"github/gh-aw":{"mode":"live"}},"workers":{"update-planner":{"workflow":"dependabot-update-planner"}}}`, "github/gh-aw", true},
+		{"disabled campaign", `"dependabot":{"enabled":false,"targets":{"github/gh-aw":{"mode":"live"}},"workers":{"update-planner":{"workflow":"dependabot-update-planner"}}}`, "github/gh-aw", false},
+		{"disabled worker", `"dependabot":{"targets":{"github/gh-aw":{"mode":"live"}},"workers":{"update-planner":{"workflow":"dependabot-update-planner","enabled":false}}}`, "github/gh-aw", false},
+		{"out of scope", `"dependabot":{"targets":{"github/gh-aw":{"mode":"live"}},"workers":{"update-planner":{"workflow":"dependabot-update-planner"}}}`, "githubnext/gh-cao", false},
+		{"remote registration alone", "", "github/gh-aw", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := t.TempDir()
+			campaigns := `"activity":{"workflow-values":[{"repository":"github/gh-aw","workflow":"daily-file-diet",` +
+				`"collector":".github/value-collectors/daily-file-diet.mjs"}]}`
+			if tt.campaign != "" {
+				campaigns += "," + tt.campaign
+			}
+			policy := filepath.Join(root, "cao.json")
+			content := `{"version":1,"gh-aw-version":"v0.93.1","control-plane":{` +
+				`"scope":{"allowed-repositories":["github/gh-aw","githubnext/gh-cao"]},` +
+				`"activity":{"repositories":["github/gh-aw","githubnext/gh-cao"]},` +
+				`"campaigns":{` + campaigns + `}}}`
+			if err := os.WriteFile(policy, []byte(content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			snapshot := filepath.Join(root, "snapshot")
+			if err := os.MkdirAll(snapshot, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(snapshot, "inventory-sources.json"),
+				[]byte(`{"repositories":{"rows":[]},"workflows":{"rows":[]}}`), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			observed, _ := time.Parse(time.RFC3339, "2026-11-05T20:00:00Z")
+			config := Config{Root: root, Repositories: []string{tt.repository},
+				NodeBinary: "/nonexistent-node", ObservedAt: observed}
+			if err := WriteCollectionHealth(t.Context(), config, policy, snapshot); err != nil {
+				t.Fatal(err)
+			}
+			output := filepath.Join(root, "values.jsonl")
+			queries := 0
+			if err := ComputeHostedSnapshot(t.Context(), config, policy, snapshot, output,
+				func(_ context.Context, definitions []query.Definition, requested []string) (map[string]model.Source, error) {
+					queries++
+					return map[string]model.Source{requested[0]: {
+						Source: requested[0],
+						Rows: []model.Row{{"declaredWorkflowPath": ".github/workflows/worker.md",
+							"concludedRuns": 3, "successfulRuns": 3, "successfulRunsWithAic": 3,
+							"aicPerSuccessfulRun": 2.5, "failedRuns": 0, "cancelledRuns": 0}},
+						Metadata: model.Metadata{"availability": "available", "canonical-revision": int64(42)},
+					}}, nil
+				}); err != nil {
+				t.Fatal(err)
+			}
+			if queries != 1 {
+				t.Fatalf("canonical query count = %d, want 1", queries)
+			}
+			rows, err := ReadMeasurements(output)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := 3
+			if tt.missing {
+				want += 3
+			}
+			if len(rows) != want {
+				t.Fatalf("assessments = %d, want %d: %+v", len(rows), want, rows)
+			}
+			for _, row := range rows {
+				if row["campaign"] != "dependabot" {
+					if row["value"] == nil {
+						t.Fatalf("supported Optimization was not evaluated: %+v", row)
+					}
+					continue
+				}
+				if row["value"] != nil || row["maturity-status"] != "unavailable" ||
+					row["coverage-status"] != "missing" ||
+					row["missing-reason"] != "remote-acquisition-unavailable" ||
+					row["measurement-kind"] != "snapshot" ||
+					row["evidence-digest"] != nil || row["rollup-numerator"] != nil {
+					t.Fatalf("unsupported Dependabot became a successful assessment: %+v", row)
+				}
+			}
+		})
+	}
+}
+
+func TestHostedLocalEvaluationHonorsCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := ComputeHostedSnapshot(ctx, Config{}, "unused", "unused", "unused",
+		func(context.Context, []query.Definition, []string) (map[string]model.Source, error) {
+			t.Fatal("canceled hosted Value evaluation queried the canonical database")
+			return nil, nil
+		}); err == nil {
+		t.Fatal("canceled hosted Value evaluation succeeded")
+	}
+}
+
+func TestHostedPinnedOptimizationAdapterMatchesReviewedSource(t *testing.T) {
+	root, err := filepath.Abs("../../..")
 	if err != nil {
 		t.Fatal(err)
 	}
-	var response hostedQueryResponse
-	if err := json.Unmarshal(content, &response); err != nil {
+	if err := verifyHostedLocalAdapters(root, nil); err != nil {
+		t.Fatalf("checked-in JS oracle changed without a Go evaluator review: %v", err)
+	}
+}
+
+func TestHostedReviewedEvidenceImportUsesPinnedOriginalPacket(t *testing.T) {
+	root, err := filepath.Abs("../../..")
+	if err != nil {
 		t.Fatal(err)
 	}
-	if queries != 0 || !strings.Contains(response.Error, "byte budget") {
-		t.Fatalf("oversized request response = %#v, queries = %d", response, queries)
+	snapshot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(snapshot, "inventory-sources.json"),
+		[]byte(`{"repositories":{"rows":[]},"workflows":{"rows":[]}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	policy := filepath.Join(root, ".github", "workflows", "cao.json")
+	if err := WriteCollectionHealth(t.Context(),
+		Config{Root: root, NodeBinary: "/nonexistent-node", Repositories: []string{"github/gh-aw"}},
+		policy, snapshot); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(snapshot, "gh-aw-logs-shards", "workflow-values.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var envelope struct {
+		SchemaVersion int       `json:"schema_version"`
+		Kind          string    `json:"kind"`
+		Packet        model.Row `json:"operational_value_evidence"`
+	}
+	if err := json.Unmarshal(content, &envelope); err != nil || envelope.SchemaVersion != 2 ||
+		envelope.Kind != "operational_value_evidence" ||
+		envelope.Packet["repository"] != "github/gh-aw" ||
+		envelope.Packet["workflow"] != "daily-file-diet" {
+		t.Fatalf("pinned reviewed evidence was not imported: %v %v", err, envelope.Packet)
 	}
 }
 

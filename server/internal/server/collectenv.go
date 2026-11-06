@@ -71,12 +71,15 @@ func CollectorConfigFromEnv() (*CollectorConfig, error) {
 	if err != nil || appID <= 0 {
 		return nil, errors.New("CAO_COLLECT_APP_ID must be a positive GitHub App identifier")
 	}
-	admitOnly := envBool("CAO_COLLECT_ADMIT_ONLY")
-	if native {
-		admitOnly, err = collectorFeatureBool("CAO_COLLECT_ADMIT_ONLY")
-		if err != nil {
-			return nil, err
-		}
+	if !native {
+		return nil, errors.New("App-backed collection requires CAO_COLLECT_NATIVE=true; the filesystem collector is retired")
+	}
+	if err := rejectRetiredCollectorEnvironment(os.Getenv); err != nil {
+		return nil, err
+	}
+	admitOnly, err := collectorFeatureBool("CAO_COLLECT_ADMIT_ONLY")
+	if err != nil {
+		return nil, err
 	}
 	var privateKey []byte
 	if !admitOnly {
@@ -96,13 +99,9 @@ func CollectorConfigFromEnv() (*CollectorConfig, error) {
 		PrivateKeyPEM:             privateKey,
 		BaseURL:                   strings.TrimSpace(os.Getenv("CAO_COLLECT_GITHUB_API_URL")),
 		UploadURL:                 strings.TrimSpace(os.Getenv("CAO_COLLECT_GITHUB_UPLOAD_URL")),
-		LakeDirectory:             strings.TrimSpace(os.Getenv("CAO_COLLECT_LAKE_DIRECTORY")),
 		CatalogRoot:               strings.TrimSpace(os.Getenv("CAO_COLLECT_CATALOG_ROOT")),
 		ControlRepository:         strings.TrimSpace(os.Getenv("CAO_COLLECT_CONTROL_REPOSITORY")),
 		PolicyPath:                strings.TrimSpace(os.Getenv("CAO_POLICY_PATH")),
-		StaticInventoryPath:       strings.TrimSpace(os.Getenv("CAO_COLLECT_STATIC_INVENTORY")),
-		NodeBinary:                strings.TrimSpace(os.Getenv("CAO_COLLECT_NODE_BINARY")),
-		GitHubBinary:              strings.TrimSpace(os.Getenv("CAO_COLLECT_GH_BINARY")),
 		Consumer:                  strings.TrimSpace(os.Getenv("CAO_COLLECT_CONSUMER")),
 		WindowDays:                envInt("CAO_COLLECT_WINDOW_DAYS"),
 		RunLimit:                  envInt("CAO_COLLECT_RUN_LIMIT"),

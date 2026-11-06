@@ -1865,24 +1865,16 @@ not authorize cross-repository evidence access.
   Host-neutral source builds use `server/Dockerfile` with explicit version and
   revision build arguments; deployment promotion and rollback belong to the
   application host. The source build
-  produces a lean admission-only dashboard target and a collector target with
-  Node, GitHub CLI, a checksum-verified policy-pinned gh-aw binary, and the
-  Activity projection catalog. The collector target also generates a
-  deterministic control-plane inventory from the exact checked-out source and
-  packages only that inventory plus the shared policy resolver required at
-  runtime; it does not restore a second editable campaign catalog. Before each
-  canonical ingestion replacement, a private collection role resolves the reviewed deployment
-  policy, overlays the exact operational enrollment set, and uses a short-lived
-  installation token for the control repository to enrich and retain
-  `control-settings.json`, `control-plane-inventory.json`, and
-  `inventory-sources.json` in the evidence lake. The first activation fails
-  closed without valid campaign inventory; a later transient refresh failure
-  may retain the previous valid inventory. The internet-facing dashboard holds
-  the webhook secret but no collection private key. Unexposed collector and
-  idempotent backfill services hold the read-only GitHub App key and share a
-  persistent evidence volume. The collection profile leaves
-  `CAO_SOURCE_DIRECTORY` unset, while one verified activity artifact remains an
-  external read-only recovery volume for rollback to the snapshot profile.
+  produces a lean admission-only dashboard target and a private Go collector
+  target with Git for the reviewed Value Git transport, but no Node, GitHub CLI,
+  gh-aw or Activity projection catalog. PostgreSQL retains the exact reviewed
+  inventory configuration and source-epoch-bound evidence; collector and
+  backfill roles share these durable stores rather than an evidence volume.
+  The internet-facing dashboard holds the webhook secret but no collection
+  private key. Unexposed collector and idempotent backfill services hold the
+  read-only GitHub App key. The collection profile leaves
+  `CAO_SOURCE_DIRECTORY` unset; a separately selected Actions snapshot profile
+  can still mount a verified activity artifact read-only.
   Locally source-built images are not admitted through the package workflow's vulnerability scans,
   hardening check, SBOM, or artifact attestations; those guarantees continue
   to apply only to published packages.
@@ -1915,15 +1907,17 @@ not authorize cross-repository evidence access.
   Webhook/control deliveries carry source epochs and fresh queue receipts.
   Independent safe-output dispositions survive run reprojection, while durable
   Value invalidations remain hints, not acquired Value evidence.
-  The separately selected `NativeValues` lane reuses reviewed Node Value
-  programs and therefore still requires its catalog and policy assets. Its
+  The separately selected `NativeValues` lane evaluates the reviewed Value
+  policy and supported collector in Go, using Git only for its declared Git
+  acquisition requirements. Optimization uses the canonical PostgreSQL query
+  boundary; Dependabot remote-lifecycle measurements remain explicitly
+  unavailable in this lane, never synthetic zero. Its
   private invocation scratch is disposable: PostgreSQL restores the original
   source-epoch-bound packet/proof snapshot, fences publication against that
   starting packet, and erases private proof/publication ownership atomically on
   withdrawal. Those selected-feature dependencies are not dependencies of native
-  run acquisition, projection or trace admission. The existing remote Value
-  transport remains Linux-only; local query execution has its separate owned
-  canonical PostgreSQL boundary.
+  run acquisition, projection or trace admission; local query execution has
+  its separate owned canonical PostgreSQL boundary.
   Native archive admission binds the original dispatch epoch before lossy
   normalization. Its PostgreSQL metadata-only privacy ledger withdraws visibility
   with source ownership and durably retries epoch-specific Blob retirement;
@@ -1942,8 +1936,10 @@ not authorize cross-repository evidence access.
   exercise real PostgreSQL, replica restoration and worker execution without an
   executable PATH or legacy files. Doctor shares native setting and selected
   Value dependency validation, and does not probe legacy lakes or projection
-  locks for native deployments. Existing hosted/container defaults remain
-  the separate legacy producer.
+  locks for native deployments. App-backed collection without native selection
+  now fails at startup; only the no-App Actions snapshot profile remains the
+  default. Unsupported Value collector registrations fail closed rather than
+  launching the former JavaScript runtime.
   See `specs/server-ingestion.md` section 2.4.
 - Browsers and external clients never receive Redis or Postgres endpoints or
   credentials. Dashboard source replacement is transactional in Postgres; a

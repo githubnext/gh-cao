@@ -7,9 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
@@ -97,7 +95,7 @@ func TestNativeValuePlanTracksComposedPolicyAuthority(t *testing.T) {
 	}
 }
 
-func TestNativeValueCatalogAliasRunsTheProductionWorkerEntrypoint(t *testing.T) {
+func TestNativeValueCatalogAliasResolvesToReviewedRoot(t *testing.T) {
 	root, err := filepath.Abs("../../..")
 	if err != nil {
 		t.Fatal(err)
@@ -110,10 +108,7 @@ func TestNativeValueCatalogAliasRunsTheProductionWorkerEntrypoint(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	command := exec.CommandContext(t.Context(), "node", filepath.Join(resolved, "activity", "workflow-values.mjs"), "--worker") // #nosec G204 -- fixed reviewed runtime and invalid-input fixture.
-	command.Stdin = strings.NewReader("{}")
-	output, err := command.CombinedOutput()
-	if err == nil || !strings.Contains(string(output), remoteValueFailurePrefix) {
-		t.Fatalf("production worker silently skipped its entrypoint through a catalog alias: %v: %s", err, output)
+	if resolved != root {
+		t.Fatalf("catalog alias must resolve to reviewed root: got %q want %q", resolved, root)
 	}
 }

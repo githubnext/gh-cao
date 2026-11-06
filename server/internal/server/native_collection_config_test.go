@@ -12,9 +12,9 @@ import (
 func TestNativeCollectionConfigurationHasFeatureSpecificDependencies(t *testing.T) {
 	config := CollectorConfig{NativeAcquisition: true, AppID: 7, PrivateKeyPEM: []byte("validated by App adapter"),
 		ControlRepository: "octo/api", NativeInventoryDigest: strings.Repeat("a", 64),
-		LakeDirectory: "/must-not-read", CatalogRoot: "/must-not-read", PolicyPath: "/must-not-read"}
+		CatalogRoot: "/must-not-read", PolicyPath: "/must-not-read"}
 	if err := config.validateNative(); err != nil || config.QueueMaxLength != defaultQueueMaxLength {
-		t.Fatalf("native-only configuration required Activity files: %v", err)
+		t.Fatalf("native configuration required Value files without Value enabled: %v", err)
 	}
 	admission := CollectorConfig{NativeAcquisition: true, AppID: 7, AdmitOnly: true}
 	if err := admission.validateNative(); err != nil {

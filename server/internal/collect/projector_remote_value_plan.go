@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/operationalvalue"
 )
@@ -126,10 +125,7 @@ func (p Projector) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sh
 	if p.PolicyPath == "" || p.CatalogRoot == "" {
 		return nil, zero, errors.New("reviewed remote Value policy and catalog are required")
 	}
-	config := operationalvalue.Config{
-		Root: p.CatalogRoot, NodeBinary: p.node(),
-		Environment: collectionEnvironment(p.GitHubAPIURL), WorkerTimeout: 30 * time.Second,
-	}
+	config := operationalvalue.Config{Root: p.CatalogRoot}
 	var content []byte
 	var registrations []operationalvalue.WorkflowRegistration
 	var err error
@@ -205,8 +201,7 @@ func (p Projector) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sh
 			entries = append(entries, entry)
 		}
 	}
-	// A policy edit during the runtime subprocess must not cache the plan
-	// under a digest belonging to the older policy.
+	// A policy edit during resolution must not cache the older policy digest.
 	var current []byte
 	if native {
 		var snapshot operationalvalue.WorkflowPolicySnapshot
@@ -229,7 +224,7 @@ func (p Projector) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sh
 
 // RemoteValueRepositories returns only reviewed, enabled, API-bound remote
 // registrations that remain enrolled. It never acquires an App token or calls
-// GitHub, and the policy runtime subprocess runs only when policy bytes change.
+// GitHub; policy resolution does not invoke a subprocess.
 func (p Projector) RemoteValueRepositories(ctx context.Context) ([]string, error) {
 	targets, err := p.RemoteValueTargets(ctx)
 	if err != nil {

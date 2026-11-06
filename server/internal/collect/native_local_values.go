@@ -27,7 +27,7 @@ type nativeLocalValueProgress struct {
 	CompletedAt time.Time         `json:"completedAt"`
 }
 
-// CollectNativeLocalValues is the optional Node/catalog Value coexistence lane.
+// CollectNativeLocalValues is the Go-native hosted Value preparation lane.
 // PostgreSQL owns input, accepted evidence and publication. Scratch contains
 // only bounded per-invocation transport files and is never a recovery source.
 func (p Projector) CollectNativeLocalValues(ctx context.Context) error {
@@ -92,7 +92,11 @@ func (p Projector) CollectNativeLocalValues(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	workspace, err := os.MkdirTemp(".", ".native-local-value-")
+	root, err := p.nativeLocalValueRoot()
+	if err != nil {
+		return err
+	}
+	workspace, err := os.MkdirTemp(root, ".native-local-value-")
 	if err != nil {
 		return err
 	}
@@ -108,12 +112,7 @@ func (p Projector) CollectNativeLocalValues(ctx context.Context) error {
 	if err := writeNativeValueInputs(workspace, inputs); err != nil {
 		return err
 	}
-	root, err := p.nativeLocalValueRoot()
-	if err != nil {
-		return err
-	}
-	config := operationalvalue.Config{Root: root, NodeBinary: p.node(), Repositories: repositories,
-		Environment: collectionEnvironment(p.GitHubAPIURL), WorkerTimeout: 30 * time.Second}
+	config := operationalvalue.Config{Root: root, Repositories: repositories, WorkerTimeout: 30 * time.Second}
 	if err := operationalvalue.WriteCollectionHealth(ctx, config, policyPath, workspace); err != nil {
 		return err
 	}
@@ -228,12 +227,6 @@ func (p Projector) computeNativeLocalValues(
 	output := filepath.Join(workspace, "operational-values.jsonl")
 	config.WorkerTimeout = 2 * time.Minute
 	var retained []model.Row
-	retainedScope := make([]string, 0, len(enrolled))
-	for _, repository := range enrolled {
-		if !slices.Contains(selected, repository) {
-			retainedScope = append(retainedScope, repository)
-		}
-	}
 	err := p.Data.WithReadTransaction(ctx, func(readCtx context.Context, reader postgresx.NativeReader) error {
 		state, err := reader.State(readCtx)
 		if err != nil {
@@ -242,14 +235,14 @@ func (p Projector) computeNativeLocalValues(
 		if state.Revision != expectedRevision {
 			return postgresx.ErrOperationalValueRevisionStale
 		}
-		// Disabled/out-of-policy repositories keep accepted history. The runtime
-		// receives only its reviewed plan scope, never all ingestion enrollment.
-		if len(retainedScope) != 0 {
+		// The evaluator writes only new observations. Preserve previous accepted
+		// history for all enrolled repositories, including the selected scope.
+		if len(enrolled) != 0 {
 			cutoff := time.Now().UTC().Add(-operationalvalue.DefaultRetention).Format(time.RFC3339Nano)
 			sources, _, err := reader.ExecuteSQLPlanWithOptions(readCtx, []query.Definition{{
 				Name: "retained", From: "$operationalValues",
 				Filter: &query.Filter{Predicates: []query.Predicate{{Field: "timestamp", GTE: cutoff}}},
-			}}, []string{"retained"}, postgresx.SQLExecutionOptions{Repositories: retainedScope})
+			}}, []string{"retained"}, postgresx.SQLExecutionOptions{Repositories: enrolled})
 			if err != nil {
 				return err
 			}
@@ -287,10 +280,27 @@ func (p Projector) computeNativeLocalValues(
 			return 0, errors.New("native local Value combined history exceeds its row budget")
 		}
 	}
+	// A repeated evaluation of the same frozen interval replaces, rather than
+	// accumulates, the old assessment for that exact evaluator and window.
+	updated := make(map[string]bool, len(rows))
+	key := func(row model.Row) string {
+		return strings.Join([]string{textValue(row["campaign"]), textValue(row["repository"]),
+			textValue(row["valueId"]), textValue(row["evaluator-digest"]),
+			textValue(row["window-start"]), textValue(row["window-end"])}, "\x00")
+	}
+	for _, row := range rows {
+		updated[key(row)] = true
+	}
+	kept := retained[:0]
+	for _, row := range retained {
+		if !updated[key(row)] {
+			kept = append(kept, row)
+		}
+	}
 	if err := p.nativeLocalPolicyCurrent(ctx, policy); err != nil {
 		return 0, err
 	}
-	state, err := p.Data.ReplaceOperationalValues(ctx, expectedRevision, append(retained, rows...))
+	state, err := p.Data.ReplaceOperationalValues(ctx, expectedRevision, append(kept, rows...))
 	return state.Revision, err
 }
 

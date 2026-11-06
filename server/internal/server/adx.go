@@ -94,46 +94,22 @@ func newTraceWorker(ctx context.Context, config Config, collector *Collector) (*
 		return nil, err
 	}
 	namespace := adxtrace.Namespace(config.ADX.Endpoint, config.ADX.Database)
-	if collector.native != nil {
-		database, ok := config.Database.(*postgresx.Store)
-		if !ok || database == nil || !config.ADXTraces.SharedStorage {
-			return nil, errors.New("native trace admission requires PostgreSQL shared storage and atomic enrollment withdrawal")
-		}
-		var readers []sessionexport.MiningReader
-		if config.ADXTraces.MiningEnabled {
-			readers = append(readers, database)
-		}
-		authority, worker, err := database.NativeEnrollmentWithTrace(ctx, *config.ADXTraces, namespace, client, readers...)
-		if err != nil {
-			return nil, err
-		}
-		collector.nativeAuthority(authority)
-		collector.native.collector.Destinations = append(collector.native.collector.Destinations,
-			collectnative.TraceDestination{Admission: worker})
-		return worker, nil
+	database, ok := config.Database.(*postgresx.Store)
+	if !ok || database == nil || !config.ADXTraces.SharedStorage {
+		return nil, errors.New("native trace admission requires PostgreSQL shared storage and atomic enrollment withdrawal")
 	}
-	if config.ADXTraces.SharedStorage {
-		database, ok := config.Database.(*postgresx.Store)
-		if !ok || database == nil {
-			return nil, errors.New("shared trace admission requires canonical PostgreSQL")
-		}
-		storage, err := database.TraceStorage(namespace, config.ADXTraces.MaxSpoolBytes, config.ADXTraces.MaxEntries)
-		if err != nil {
-			return nil, err
-		}
-		if config.ADXTraces.MiningEnabled {
-			return adxtrace.NewShared(ctx, *config.ADXTraces, namespace, client, storage, database)
-		}
-		return adxtrace.NewShared(ctx, *config.ADXTraces, namespace, client, storage)
-	}
+	var readers []sessionexport.MiningReader
 	if config.ADXTraces.MiningEnabled {
-		database, ok := config.Database.(*postgresx.Store)
-		if !ok || database == nil {
-			return nil, errors.New("trace mining requires canonical PostgreSQL")
-		}
-		return adxtrace.New(ctx, *config.ADXTraces, namespace, client, database)
+		readers = append(readers, database)
 	}
-	return adxtrace.New(ctx, *config.ADXTraces, namespace, client)
+	authority, worker, err := database.NativeEnrollmentWithTrace(ctx, *config.ADXTraces, namespace, client, readers...)
+	if err != nil {
+		return nil, err
+	}
+	collector.nativeAuthority(authority)
+	collector.native.collector.Destinations = append(collector.native.collector.Destinations,
+		collectnative.TraceDestination{Admission: worker})
+	return worker, nil
 }
 
 func (a *App) ADXTraceStatus() adxtrace.Status {

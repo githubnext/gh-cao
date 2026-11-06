@@ -3,7 +3,6 @@ package collect
 import (
 	"context"
 	"path/filepath"
-	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/operationalvalue"
 )
@@ -17,9 +16,8 @@ func (p Projector) resolvedNativeValuePolicy(ctx context.Context) ([]byte, error
 	if err != nil {
 		return nil, err
 	}
-	snapshot, err := operationalvalue.ResolveWorkflowPolicy(ctx, operationalvalue.Config{
-		Root: root, NodeBinary: p.node(), Environment: collectionEnvironment(""), WorkerTimeout: 30 * time.Second,
-	}, policy)
+	snapshot, err := operationalvalue.ResolveWorkflowPolicy(ctx,
+		operationalvalue.Config{Root: root}, policy)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +29,6 @@ func (p Projector) nativeLocalValueRoot() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// Node resolves the module's real path before its argv/import.meta entrypoint
-	// check. Preserve that identity through catalog aliases such as macOS /var.
+	// Canonicalize aliases before resolving confined reviewed evidence files.
 	return filepath.EvalSymlinks(root)
 }

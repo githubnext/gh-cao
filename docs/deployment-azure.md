@@ -87,9 +87,9 @@ digests, and locks the version-plus-config-hash tags against writes and deletes.
 It then deploys the full template with separate Functions, provisioning, and
 ingestion digest parameters, not those tags. After deployment it reads back the
 configured digest references for all three targets before starting either job;
-missing, mismatched, or additional job containers fail closed. Regenerate
-`server/azure/main.json` from the current Bicep source before planning: apply
-rejects templates without the three digest parameters before any Azure call.
+missing, mismatched, or additional job containers fail closed. Regenerate `server/azure/main.json` from the reviewed Bicep sources before
+planning, then review the exact compiled template. Apply rejects templates
+without the three image digest parameters before any Azure call.
 New managed-identity Key Vault grants can take time to propagate. Apply retries
 the exact reviewed ARM request at most three times only when every nested
 failure is the recognized job secret-fetch error in the ingestion or
@@ -988,23 +988,44 @@ You configure traces for orchestrators and workers separately, in the control re
 
 ## Using the optional collection profile
 
-By default, the server serves the data that the Activity workflow publishes and doesn't collect anything itself. To have Azure collect the data instead, set the `collectorImage` parameter. The `server/azure/collector.bicep` template then adds:
+By default, the server serves the data that the Activity workflow publishes and
+doesn't collect anything itself. To have Azure collect instead, set
+`collectorImage` to an image built from the reviewed `collector-runtime` Docker
+target and supply `collectorNativeInventoryDigest` at deployment. The
+authoritative `server/azure/main.bicep` and `server/azure/collector.bicep`
+sources compile to `server/azure/main.json`. The optional module adds:
 
 - Workers and backfill in the same private Container Apps environment as ingestion.
-- A fixed number of collection workers sharing the PostgreSQL operational queue. Set `collectorWorkerReplicas` to the required replica count; the default is `1`.
+- A fixed number of native Go collection workers sharing the same deployment-scoped PostgreSQL operational queue as the Function App. Set `collectorWorkerReplicas` to the required replica count; the default is `1`.
 - A backfill job.
 - A user-assigned managed identity with access to Key Vault and `AcrPull` on this deployment's registry. Build the collector image into that registry.
-- An Azure Files share for collected evidence. The SKU is set by `collectorLakeStorageSku` (default `Premium_LRS`).
 
-The optional evidence lake requires a separate file-storage account with shared
-access across workers and evidence-retention settings; Functions runtime storage
-has different access requirements. With collection disabled, the baseline
-creates only one storage account. It never creates a second Insights component
+No evidence lake or Azure Files mount is used by native acquisition. The
+baseline and optional collector do not create an additional Insights component
 or workspace.
 
-The collection profile requires these parameters: `collectorGithubAppId`, `collectorPrivateKey`, `githubWebhookSecret`, `githubAdminUsers`, and `collectorControlRepository`.
+The collection profile requires `collectorGithubAppId`, `collectorPrivateKey`,
+`githubWebhookSecret`, `githubAdminUsers`, `collectorControlRepository`, and
+`collectorNativeInventoryDigest`. Provision the exact immutable reviewed
+inventory bytes using `Acquisition.PinInventoryConfiguration` in the shared
+canonical PostgreSQL dataset namespace (`azure-dashboard` by default)
+**before starting workers**; the Azure template does not generate or
+provision that snapshot, and this guide does not provide an automated
+inventory-provisioning command.
+Supply its lowercase SHA-256 digest, not a local inventory path or an
+automatically discovered inventory. A missing digest fails optional-module
+parameter validation; an invalid, unprovisioned, or mismatched digest fails
+worker startup rather than using another snapshot or falling back to Actions.
+The image must include `/app/cao-dashboard` and
+`/app/queries/database.json`. The separate Value lane is not enabled by
+this template (`CAO_COLLECT_NATIVE_VALUES` is unset).
 
-In this profile, the Function App only admits webhooks (`CAO_COLLECT_ADMIT_ONLY=true`). It verifies and deduplicates deliveries to `POST /api/github/webhook`, then queues the work. It never holds the app's private key.
+In this profile the Function App selects `CAO_COLLECT_NATIVE=true` but only
+admits webhooks (`CAO_COLLECT_ADMIT_ONLY=true`). It verifies and deduplicates
+deliveries to `POST /api/github/webhook`, then queues the work in PostgreSQL.
+It never holds the app's private key or requires inventory bytes. Workers and
+backfill select native acquisition with the same operational namespace and
+the exact reviewed digest.
 
 The approved ingress path must also permit GitHub webhook delivery. Disabled
 public access or client-only allow rules can block it; do not widen access just
