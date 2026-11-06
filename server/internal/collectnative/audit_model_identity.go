@@ -10,7 +10,7 @@ import (
 
 // Pinned gh-aw v1.0.1 model_identity.go and workflow/data/model_aliases.json.
 //
-//go:embed testdata/gh-aw-v1.0.1-model-aliases.json
+//go:embed gh-aw-v1.0.1-model-aliases.json
 var nativeModelAliases []byte
 
 var nativeModelDate = regexp.MustCompile(`-[0-9]{4}(?:-[0-9]{2}-[0-9]{2}|[0-9]{4})$`)
