@@ -33,13 +33,14 @@ Build dashboard experiences declaratively first. Use JavaScript only for interac
 Use `dashboard/site/src/reactive.js` for state-driven updates:
 
 - `state` owns mutable local state; use its functional setter when the next value depends on the current value.
-- `derived` computes values from reactive dependencies. Dispose it when its owner is removed.
+- `derived` computes values from reactive dependencies. Pass `{ signal }` or call `dispose()` when its owner is removed.
 - `effect` performs the smallest DOM update needed from reactive state. Stop the handle when work is complete or the owner is removed.
 - `render(root, update, { signal }?)` renders reactive output into an isolated shadow tree and morphs it into an owned root with the fewest mutations, preserving focus, scroll position, and control state without hand-written diffing. Prefer it over a raw `effect` plus `replaceChildren` whenever a component's entire visible output is a function of its reactive state, as in `dashboard/site/src/components/animated-number.js`, `factory-station.js`, and `factory-header.js`.
-- `onCleanup` removes listeners, observers, timers, and other resources created by an effect.
+- `onCleanup` removes listeners, observers, timers, and other resources created by an effect. It throws when called outside a running effect or `render` update.
+- `untracked` reads state without subscribing the running effect, so bookkeeping reads do not widen its dependencies.
 - `batch` groups related writes so dependents observe one consistent final state.
 - Pass an `AbortSignal` to effects whose lifetime follows a page, view, request, or asynchronous operation. Use `createFactoryScope()` from `dashboard/site/src/components/factory-elements.js` to obtain that signal and bind it to detachment of an owned root instead of writing a bespoke `MutationObserver`/`wasConnected` pair; every new element should stop its effects and requests once its root leaves the document.
-- Use stable keyed rendering from `dashboard/site/src/dom.js` for changing collections; do not rebuild an entire view when only state or list membership changed.
+- Use stable keyed rendering from `dashboard/site/src/dom.js` for changing collections; do not rebuild an entire view when only state or list membership changed. `keyed` caches one node per key and never re-invokes `renderItem` for an existing key, so item content that changes must be bound reactively inside the node or carried by a new key. Set `items`, then call `render()` from an effect, as `reactive-grid.js` does.
 - Do not put source derivation, querying, or business rules in effects. Perform those operations in Dashboard Language or the data worker and react only to their results.
 
 ## DOM ownership
