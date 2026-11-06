@@ -726,7 +726,7 @@ func writeUnavailableDependabotValue(output *bytes.Buffer, observed time.Time) e
 			"adoption_at": adoptionAt, "evaluation_mode": "baseline-comparable",
 			"workflow_slug": "dependabot-update-planner", "workflow_name": "Dependabot / Update Planner",
 			"evaluator_digest": dependabotEvaluator,
-			"cadence_days": 7, "window_start": optimizerTime(end.Add(-cadence)),
+			"cadence_days":     7, "window_start": optimizerTime(end.Add(-cadence)),
 			"window_end": optimizerTime(end), "measurement_kind": "snapshot",
 			"coverage_status": "missing", "missing_reason": "remote-acquisition-unavailable",
 		}

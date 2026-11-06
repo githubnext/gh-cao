@@ -338,6 +338,24 @@ func TestNativeFileDietGitScopeAndNoAmbientCredentials(t *testing.T) {
 	}
 }
 
+func TestNativeFileDietLegacyRunReferenceRequiresExactGitHubURL(t *testing.T) {
+	valid := "<!-- gh-aw-agentic-workflow: Daily File Diet, workflow_id: daily-file-diet, id: 42, run: https://github.com/github/gh-aw/actions/runs/42 -->"
+	reference, err := fileDietReferenceFor(valid)
+	if err != nil || reference == nil || *reference.RunID != "42" {
+		t.Fatalf("valid legacy File Diet run reference rejected: reference=%+v err=%v", reference, err)
+	}
+
+	for _, runURL := range []string{
+		"https://attacker.example/https://github.com/github/gh-aw/actions/runs/42",
+		"https://github.com/github/gh-aw/actions/runs/42.attacker.example",
+	} {
+		body := "<!-- gh-aw-agentic-workflow: Daily File Diet, workflow_id: daily-file-diet, id: 42, run: " + runURL + " -->"
+		if _, err := fileDietReferenceFor(body); err == nil {
+			t.Errorf("accepted a non-exact legacy run URL: %q", runURL)
+		}
+	}
+}
+
 func TestNativeFileDietHistoricalSeed(t *testing.T) {
 	if os.Getenv("CAO_TEST_REMOTE_VALUE_GIT") != "1" {
 		t.Skip("set CAO_TEST_REMOTE_VALUE_GIT=1 to fetch the frozen public historical proof")
