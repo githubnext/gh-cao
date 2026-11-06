@@ -48,7 +48,7 @@ func readDashboardStatus(ctx context.Context, cache string, repositories []strin
 	filename := filepath.Join(cache, "gh-aw-logs.sqlite")
 	info, err := os.Lstat(filename)
 	if err != nil {
-		return nil, fmt.Errorf("no local dashboard snapshot; run gh cao dashboard or gh cao dashboard refresh: %w", err)
+		return nil, fmt.Errorf("no local dashboard snapshot; run gh cao dashboard: %w", err)
 	}
 	if !info.Mode().IsRegular() {
 		return nil, errors.New("dashboard database must be a regular file")
@@ -167,22 +167,4 @@ func publishDashboardSnapshot(ctx context.Context, cache string, batch map[strin
 		}
 	}
 	return tx.Commit()
-}
-
-func requireDashboardRun(ctx context.Context, cache, repository, id string) (err error) {
-	if _, err := readDashboardStatus(ctx, cache, []string{repository}); err != nil {
-		return err
-	}
-	db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
-	if err != nil {
-		return err
-	}
-	defer func() { err = errors.Join(err, db.Close()) }()
-	key, _ := json.Marshal("github:run:" + repository + ":" + id)
-	var content string
-	if err := db.QueryRowContext(ctx, `SELECT value FROM __idb_records WHERE database_name=? AND store_name='runs' AND record_key=?`,
-		dashboardquery.DatabaseName, string(key)).Scan(&content); err != nil {
-		return errors.New("run is not present in the selected repository snapshot; refresh before operating")
-	}
-	return nil
 }

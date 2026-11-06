@@ -911,10 +911,10 @@ preserves the previous database. The CLI refreshes outside the server lifecycle
 and closes its owned server on interruption or expiry. Release binaries embed
 their platform's existing `cao-dashboard` executable and built site; extraction
 is private and temporary, with no install-time Node, Go, service, or container.
-Source builds select existing server/site paths explicitly. Maintenance and
-prompt commands share the exact cache scope; explicit cancel/rerun commands
-require one repository and an observed run and use the local operator's GitHub
-permissions. They grant no rollout authority or browser/hosted CLI execution.
+Source builds select existing server/site paths explicitly. The command only
+serves the dashboard, with automatic collection and refresh; it has no
+subcommands or remote run mutations and grants no rollout authority or
+browser/hosted CLI execution.
 
 Its fixed local evaluator profile admits 500,000 input/intermediate rows and
 50 million operations with 1 GiB working-source and 2 GiB / 2 million live
