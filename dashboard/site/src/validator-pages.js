@@ -1,4 +1,5 @@
 import { state } from './validator-state.js';
+import { DATABASE_QUERY_SOURCE_TABLES } from './specification.js';
 import { BUILT_IN_PAGE_KEYS, BUILT_IN_PAGE_VALUES, CUSTOM_PAGE_KEYS, BUILT_IN_PAGE_DATA_STATE_KEYS, BUILT_IN_PAGE_DEFINITION_KEYS, ERROR_CODES, IDENTIFIER_PATTERN, NAVIGATION_INDICATOR_KEYS, NAVIGATION_SECTION_KEYS, PAGE_ROUTE_KEYS, PAGE_ROUTE_TITLE_FORMAT_VALUES, PAGE_ROUTE_TAB_KEYS, MAX_PAGE_ROUTE_TABS, PAGE_ICON_VALUES, PAGE_KIND_VALUES, PAGE_SECTION_KEYS, PAGE_SECTION_LAYOUT_VALUES, QUERY_SOURCE_VALUES, TOOLTIP_KEYS, BUILT_IN_PAGE_REQUIRED_SOURCES, BUILT_IN_PAGE_REQUIRED_FIELDS, VIEW_ELEMENT_VALUES } from './specification.js';
 import { validateView, validateViewFilterBar, validateViewDataArguments, validateListDrill, validateTableActions, validateProgressiveDisclosure, validateGraphicalLayout, validatePageForm } from './validator-views.js';
 import { validateSource, sourceFieldNames, validateSourceSequence } from './validator-queries.js';
@@ -545,6 +546,10 @@ function validateBuiltInPageDefinition(pageName, definition, path, errors) {
     );
   }
 
+  for (const [source, table] of Object.entries(DATABASE_QUERY_SOURCE_TABLES)) {
+    const fields = sourceFieldCoverage.get(source);
+    if (fields) sourceFieldCoverage.set(table, new Set([...(sourceFieldCoverage.get(table) ?? []), ...fields]));
+  }
   for (const sourceName of BUILT_IN_PAGE_REQUIRED_SOURCES[pageName]) {
     if (!sourceFieldCoverage.has(sourceName)) {
       errors.push(createError(

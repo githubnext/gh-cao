@@ -55,6 +55,9 @@ func TestLocalDashboardCoverageSurvivesCanonicalQueryBoundary(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
+		if _, err := db.Exec(`DELETE FROM __idb_stores WHERE database_name=? AND name='campaigns'`, dashboardquery.DatabaseName); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
@@ -67,7 +70,8 @@ func TestLocalDashboardCoverageSurvivesCanonicalQueryBoundary(t *testing.T) {
 	err = store.WithReadTransaction(t.Context(), func(ctx context.Context, reader dashboardstore.Reader) error {
 		result, _, err := reader.ExecuteSQLPlan(ctx, []query.Definition{
 			{Name: "local-runs", From: "$runs"}, {Name: "local-daily", From: "daily-run-counts"},
-		}, []string{"local-runs", "local-daily"})
+			{Name: "missing-policy", From: "$campaigns"},
+		}, []string{"local-runs", "local-daily", "missing-policy"})
 		if err != nil {
 			return err
 		}
@@ -80,6 +84,12 @@ func TestLocalDashboardCoverageSurvivesCanonicalQueryBoundary(t *testing.T) {
 		}
 		if result["local-daily"].Metadata["aggregate-coverage"] != "bounded-gh-aw-observations" {
 			t.Fatalf("lost local daily aggregate provenance: %+v", result["local-daily"])
+		}
+		if result["missing-policy"].Metadata["availability"] != "unavailable" || len(result["missing-policy"].Rows) != 0 {
+			t.Fatalf("uncollected campaign policy became healthy zero evidence: %+v", result["missing-policy"])
+		}
+		if _, _, err := reader.ExecuteSQLPlan(ctx, []query.Definition{{Name: "unknown", From: "not-registered"}}, []string{"unknown"}); err == nil {
+			t.Fatal("unknown source was silently converted to unavailable")
 		}
 		return nil
 	})

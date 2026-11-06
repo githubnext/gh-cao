@@ -41,24 +41,26 @@ it('serves the shared run table through the canonical worker without fleet sourc
   }
 });
 
-it('exposes only executable immediate views and preserves canonical daily observations through the worker', async () => {
+it('preserves normal pages, navigation, templates and drill-downs with local acquisition queries', async () => {
   const immediate = composeImmediateDashboard(document, profile);
   const context = { languageVersion: immediate['language-version'], dashboard: immediate.dashboard };
   const validation = validateDashboardDocument(JSON.stringify(immediate));
   expect(validation, JSON.stringify(validation)).toMatchObject({ ok: true });
-  expect(immediate.dashboard.pages.map((page) => page.id))
-    .toEqual(['overview', 'repositories', 'workflows', 'runs']);
-  expect(immediate.dashboard.pages[0].title).toBe('Overview');
-  expect(immediate.dashboard.pages[0]['class-name']).toBe('dashboard-overview-page');
-  expect(immediate.dashboard.pages[3]).toEqual(document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'runs'));
-  expect(immediate.dashboard).not.toHaveProperty('data-status');
-  expect(immediate.dashboard).not.toHaveProperty('callouts');
+  expect(immediate.dashboard.pages).toEqual(document.dashboard.pages);
+  expect(immediate.dashboard.navigation).toEqual(document.dashboard.navigation);
+  expect(immediate.dashboard['card-templates']).toEqual(document.dashboard['card-templates']);
+  const overview = immediate.dashboard.pages.find((page) => page.id === 'overview');
+  expect(overview?.title).toBe('Overview');
+  expect(overview?.['class-name']).toBe('dashboard-overview-page');
+  expect(immediate.dashboard['data-status']).toEqual(document.dashboard['data-status']);
+  expect(immediate.dashboard.callouts).toEqual(document.dashboard.callouts);
   const names = immediate.dashboard.pages.flatMap((page) =>
     dashboardPageAllSourceNames(context, page.id ?? '', 'all'));
   const dependencies = resolveDashboardQuerySources(immediate.dashboard.queries, names);
   expect(dependencies).toContain('daily-run-counts');
-  expect(dependencies).not.toContain('$campaigns');
-  expect(dependencies).not.toContain('dashboard-ingestion-health');
+  expect(dependencies).toContain('campaigns');
+  expect(dependencies).toContain('tools');
+  expect(dependencies).toContain('audits');
   vi.stubGlobal('crypto', webcrypto);
   vi.stubGlobal('indexedDB', new IDBFactory());
   vi.stubGlobal('IDBKeyRange', IDBKeyRange);
@@ -67,7 +69,7 @@ it('exposes only executable immediate views and preserves canonical daily observ
   batch.runs[0].startedAt = now;
   batch.runs[0].createdAt = now;
   await upsertCanonicalBatch(indexedDB, batch);
-  for (const page of immediate.dashboard.pages) {
+  for (const page of immediate.dashboard.pages.filter((page) => page.id === 'runs')) {
     const sources = dashboardPageAllSourceNames(context, page.id ?? '', 'all');
     const payload = compileDashboardViewPayloadQueries(page, page.id ?? '', {
       queries: immediate.dashboard.queries, sourceNames: sources
@@ -75,7 +77,7 @@ it('exposes only executable immediate views and preserves canonical daily observ
     const result = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (await processDataRequest({
       operation: 'query-canonical-dashboard',
       sourceNames: payload.aliases,
-      context: { queries: [...immediate.dashboard.queries, ...payload.queries], pages: immediate.dashboard.pages }
+      context: { queries: [...(immediate.dashboard.queries ?? []), ...payload.queries], pages: immediate.dashboard.pages }
     }));
     for (const name of payload.aliases) {
       expect(result[name].metadata.availability).toBe('available');

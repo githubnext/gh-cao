@@ -857,10 +857,27 @@ be atomic and failed collection MUST preserve the previous projection.
 The existing read-only Go query/server and revision-subscription contracts
 SHALL serve this projection unchanged. This exception does not authorize
 server-side acquisition, a hosted fallback, or a browser ingestion path.
-Its packaged dashboard SHALL expose only views supported by this acquisition
-profile. Daily observations SHALL remain explicitly partial, exclude undated
-Runs, and retain aggregate provenance; unsupported fleet views SHALL NOT be
-advertised as local operations.
+Its acquisition SHALL request rich gh-aw artifacts and reuse the production
+cached/raw-log adapter and canonical normalizer for available jobs, sessions,
+tools, domains, skills, friction, safe outputs, experiments, evals and graders.
+It SHALL select exact observed remote workflow identities without requiring
+local workflow files. Reaching its shared acquisition budget MAY publish
+collected partial evidence only with an explicit limit report; cancellation
+and real acquisition or normalization errors SHALL preserve the prior snapshot.
+Normalization SHALL have explicit input, output and execution bounds and SHALL
+have no exposed filesystem, process or network authority. Raw artifact reads
+SHALL be confined to selected matching-attempt run directories and SHALL reject
+symlinks, nonregular files and oversized input.
+Its packaged dashboard SHALL preserve the standard landing page, normal pages,
+navigation, templates, controls and drill-downs. Intrinsic `workflow-identities`
+and `overview-run-identities` sources MAY supply the corresponding table shapes
+without campaign joins; absent campaign/rollout fields SHALL stay unknown.
+Valid uncollected canonical sources in a verified local snapshot SHALL return
+typed unavailable evidence rather than failing independent page queries or
+fabricating zero counts. Unknown sources and real query/storage errors SHALL
+still fail. Daily observations SHALL remain explicitly partial, exclude undated
+Runs, and retain aggregate provenance; visible fleet maintenance views SHALL
+NOT grant local rollout, dispatch or hosted execution authority.
 
 The optional hosted OIDC admission gate MAY publish early Run evidence only
 after verified identity, policy approval and durable decision resolution.

@@ -6,6 +6,7 @@
     "cao": "activity/cao.mjs"
   },
   "scripts": {
+    "generate:dashboard-ingest": "node scripts/generate-dashboard-ingest.mjs",
     "postinstall": "node dashboard/site/scripts/prepare-terminal.mjs",
     "install:gh-aw": "GH_AW_VERSION=$(node .github/workflows/shared/control.mjs compiler-version .github/workflows/cao.json) && curl -sL https://raw.githubusercontent.com/github/gh-aw/main/install-gh-aw.sh | bash -s -- \"$GH_AW_VERSION\"",
     "dashboard:local": "CAO_MARKETPLACE_POLICY_PATH=\"${CAO_MARKETPLACE_POLICY_PATH:-$PWD/.github/workflows/cao.json}\" go -C server run ./cmd/cao-dashboard serve",

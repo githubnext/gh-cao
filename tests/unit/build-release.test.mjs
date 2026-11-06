@@ -22,6 +22,8 @@ function fixture(t) {
   mkdirSync(join(directory, "scripts"));
   const fixtureScript = join(directory, "scripts/build-release.sh");
   writeFileSync(fixtureScript, readFileSync(script));
+  writeFileSync(join(directory, "scripts/generate-dashboard-ingest.mjs"),
+    'if (process.argv[2] !== "--check") throw new Error("release must check the embedded normalizer");\n');
   writeFileSync(join(bin, "npm"), `#!/usr/bin/env node
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

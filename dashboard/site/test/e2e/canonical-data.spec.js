@@ -505,23 +505,25 @@ test('Evals renders persisted artifact answers from the real data worker after r
 
 /** @param {import('@playwright/test').Page} page @param {'chart'|'table'} mode @param {number} width */
 async function selectLocalDashboardMode(page, mode, width) {
+  const active = page.locator('.dashboard-page:visible');
+  await expect(active).toHaveAttribute('data-view-mode', /^(chart|cards|table)$/);
   if (width >= 768) {
     await page.locator(`[data-view-mode-value="${mode}"]:visible`).click();
+    await expect(active).toHaveAttribute('data-view-mode', mode);
     return;
   }
   const toggle = page.locator('.mobile-view-mode-toggle');
-  const nextMode = mode === 'chart' ? 'Cards' : 'Chart';
   for (let attempt = 0; attempt < 3; attempt++) {
-    const before = await toggle.getAttribute('aria-label');
-    if (before === `Switch to ${nextMode} view`) return;
+    const before = await active.getAttribute('data-view-mode');
+    if (before === mode) return;
     await toggle.click();
-    await expect(toggle).not.toHaveAttribute('aria-label', before ?? '');
+    await expect(active).not.toHaveAttribute('data-view-mode', before ?? '');
   }
-  await expect(toggle).toHaveAttribute('aria-label', `Switch to ${nextMode} view`);
+  await expect(active).toHaveAttribute('data-view-mode', mode);
 }
 
 for (const width of [1200, 390]) {
-  test(`Immediate profile navigates supported daily and inventory views at ${width}px`, async ({ page }) => {
+  test(`Local acquisition preserves normal navigation and daily views at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     const document = composeImmediateDashboard(authoritativeDashboard, immediateProfile);
     await page.evaluate(async ({ input, batch }) => {
@@ -532,7 +534,7 @@ for (const width of [1200, 390]) {
       const processor = await import(`${location.origin}/src/data-processor.js`);
       const chunks = await import(`${location.origin}/src/dashboard-chunks.js`);
       let sources = {};
-      for (const selected of input.dashboard.pages) {
+      for (const selected of input.dashboard.pages.filter((page) => ['overview', 'repositories', 'workflows', 'runs'].includes(page.id ?? ''))) {
         const names = chunks.dashboardPageAllSourceNames({
           languageVersion: input['language-version'], dashboard: input.dashboard
         }, selected.id ?? '', 'all');
@@ -546,7 +548,7 @@ for (const width of [1200, 390]) {
       window.document.body.append(presenter.renderDashboard({ document: input, sources }));
     }, { input: document, batch: structuredClone(immediateContract.batch) });
     await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
-    await expect(page.locator('[data-view-id="overview-header"] #agent-factory-heading')).toHaveText('Your factory is humming.');
+    await expect(page.locator('[data-view-id="overview-header"] #agent-factory-heading')).toBeVisible();
     await expect(page.locator('[data-view-id="overview-floor"]')).toContainText('Factory health');
     for (const id of ['repositories', 'workflows', 'runs']) {
       if (width < 768) await page.getByRole('button', { name: 'Select view', exact: true }).click();
@@ -554,9 +556,11 @@ for (const width of [1200, 390]) {
       const active = page.locator(`#page-${id}`);
       await expect(active).toBeVisible();
       await expect(active).not.toContainText('data query failed');
-      await expect(active).not.toContainText('data source is unavailable');
       if (id === 'repositories') await expect(active).toContainText('octo/api');
-      if (id === 'workflows') await expect(active).toContainText('Agent');
+      if (id === 'workflows') {
+        await selectLocalDashboardMode(page, 'table', width);
+        await expect(active).toContainText('Agent');
+      }
       if (id === 'runs') {
         await selectLocalDashboardMode(page, 'chart', width);
         await expect(active.locator('[data-view-id="runs-last-week"] svg:visible').first()).toBeVisible();
@@ -564,7 +568,7 @@ for (const width of [1200, 390]) {
         await expect(active.locator('[data-view-id="runs-runs-source"]')).toContainText('octo/api');
       }
     }
-    await expect(page.locator('a[href="#page-campaigns"]')).toHaveCount(0);
+    expect(await page.locator('a[href="#page-campaigns"]').count()).toBeGreaterThan(0);
     await expect(page.locator('a[href="#page-immediate-operations"]')).toHaveCount(0);
   });
 }

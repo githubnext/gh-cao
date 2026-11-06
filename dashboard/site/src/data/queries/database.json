@@ -585,12 +585,126 @@
         { "field": "name", "as": "repository" }
       ]
     }],
+    "compute": [
+      { "as": "_active", "function": "equals-any", "args": [{ "field": "state" }, { "value": "active" }] },
+      { "as": "_disabled", "function": "equals-any", "args": [{ "field": "state" }, { "value": "disabled" }] },
+      { "as": "_inactive", "function": "if", "args": [{ "field": "_disabled" }, { "value": "false" }, { "value": "unknown" }] },
+      { "as": "workflow-active", "function": "if", "args": [{ "field": "_active" }, { "value": "true" }, { "field": "_inactive" }] },
+      { "as": "gh-aw-version-label", "function": "coalesce", "args": [{ "field": "ghAwVersion" }, { "value": "unknown" }] },
+      { "as": "campaign", "function": "literal", "args": [{ "value": null }] },
+      { "as": "campaign-name", "function": "literal", "args": [{ "value": null }] },
+      { "as": "campaign-icon", "function": "literal", "args": [{ "value": null }] },
+      { "as": "campaign-readme-path", "function": "literal", "args": [{ "value": null }] },
+      { "as": "campaign-aic-allowance", "function": "literal", "args": [{ "value": null }] },
+      { "as": "campaign-worker-count", "function": "literal", "args": [{ "value": null }] },
+      { "as": "campaign-inventory-warnings", "function": "literal", "args": [{ "value": null }] }
+    ],
     "select": [
       { "field": "id" },
       { "field": "organization" }, { "field": "repository" },
       { "field": "path", "as": "workflow" },
       { "field": "name", "as": "workflow-name" },
-      { "field": "state", "as": "registration" }
+      { "field": "githubId", "as": "workflow-id" },
+      { "field": "workflow-active" },
+      { "field": "registryState", "as": "workflow-registry-state" },
+      { "field": "admissionStatus", "as": "admission-status" },
+      { "field": "admissionReason", "as": "admission-reason" },
+      { "field": "createdAt", "as": "created-at" },
+      { "field": "updatedAt", "as": "updated-at" },
+      { "field": "campaign" },
+      { "field": "campaign-name" },
+      { "field": "campaign-icon" },
+      { "field": "campaign-readme-path" },
+      { "field": "role", "as": "workflow-role" },
+      { "field": "rolloutMode", "as": "rollout-mode" },
+      { "field": "maxAiCredits", "as": "max-ai-credits" },
+      { "field": "observedAt", "as": "observed-at" },
+      { "field": "ghAwVersion", "as": "gh-aw-version" },
+      { "field": "ghAwCurrentVersion", "as": "gh-aw-current-version" },
+      { "field": "gh-aw-version-label" },
+      { "field": "ghAwUpdateState", "as": "gh-aw-update-state" },
+      { "field": "sourceKind", "as": "workflow-source-kind" },
+      { "field": "sourceCoordinate", "as": "workflow-source" },
+      { "field": "sourceVersion", "as": "workflow-source-version" },
+      { "field": "sourceCurrentVersion", "as": "workflow-source-current-version" },
+      { "field": "sourceUpdateState", "as": "workflow-source-update-state" },
+      { "field": "campaign-aic-allowance" },
+      { "field": "campaign-worker-count" },
+      { "field": "campaign-inventory-warnings" },
+      { "field": "inventoryReady", "as": "inventory-ready" },
+      { "field": "organizationLink", "as": "organization-link" },
+      { "field": "repositoryLink", "as": "repository-link" },
+      { "field": "workflowLink", "as": "workflow-link" },
+      { "field": "externalLink", "as": "external-link" }
+    ]
+  },
+  {
+    "name": "workflow-subject-identities",
+    "stores": ["repositories", "workflows"],
+    "from": "workflow-subject-page",
+    "joins": [{
+      "source": "$repositories", "type": "left",
+      "on": [{ "left": "repositoryId", "right": "id" }],
+      "fields": [
+        { "field": "owner", "as": "organization" },
+        { "field": "name", "as": "repository" }
+      ]
+    }],
+    "compute": [
+      { "as": "campaign", "function": "literal", "args": [{ "value": null }] },
+      { "as": "campaign-name", "function": "literal", "args": [{ "value": null }] },
+      { "as": "campaign-icon", "function": "literal", "args": [{ "value": null }] }
+    ],
+    "select": [
+      { "field": "repositoryId" },
+      { "field": "path" },
+      { "field": "id" },
+      { "field": "organization" },
+      { "field": "repository" },
+      { "field": "path", "as": "workflow" },
+      { "field": "name", "as": "workflow-name" },
+      { "field": "role", "as": "workflow-role" },
+      { "field": "campaign" },
+      { "field": "campaign-name" },
+      { "field": "campaign-icon" },
+      { "field": "workflowLink", "as": "workflow-link" }
+    ]
+  },
+  {
+    "name": "overview-run-identities",
+    "stores": ["workflows", "runs"],
+    "from": "$runs",
+    "joins": [{
+      "source": "$workflows", "type": "left",
+      "on": [{ "left": "workflowId", "right": "id" }],
+      "fields": [
+        { "field": "path", "as": "_workflow-path" },
+        { "field": "name", "as": "workflow-name" },
+        { "field": "role", "as": "workflow-role" }
+      ]
+    }],
+    "compute": [
+      { "as": "workflow", "function": "coalesce", "args": [{ "field": "workflowPath" }, { "field": "_workflow-path" }] },
+      { "as": "run", "function": "concat", "args": [{ "field": "githubRunId" }] },
+      { "as": "campaign", "function": "literal", "args": [{ "value": null }] },
+      { "as": "campaign-name", "function": "literal", "args": [{ "value": null }] }
+    ],
+    "select": [
+      { "field": "id" },
+      { "field": "owner", "as": "organization" },
+      { "field": "repository" },
+      { "field": "workflow" },
+      { "field": "workflow-name" },
+      { "field": "workflow-role" },
+      { "field": "campaign" },
+      { "field": "campaign-name" },
+      { "field": "run" },
+      { "field": "targetRepository", "as": "target-repository" },
+      { "field": "event" },
+      { "field": "startedAt", "as": "started-at" },
+      { "field": "status", "as": "run-status" },
+      { "field": "conclusion", "as": "run-conclusion" },
+      { "field": "rolloutMode", "as": "rollout-mode" }
     ]
   },
   {

@@ -4,6 +4,8 @@ go 1.27.3
 
 require (
 	github.com/cli/go-gh/v2 v2.16.1
+	github.com/dop251/goja v0.0.0-20261105002551-2413f2132ac8
+	github.com/dop251/goja_nodejs v0.0.0-20260918173711-b481721df8a2
 	github.com/github/gh-aw v0.92.0
 	github.com/githubnext/gh-cao/internal/dashboardquery v0.0.0
 	github.com/spf13/cobra v1.10.2
@@ -36,10 +38,13 @@ require (
 	github.com/cli/shurcooL-graphql v0.0.4 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.11.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
+	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
+	github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/henvic/httpretty v0.2.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

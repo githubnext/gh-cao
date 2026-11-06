@@ -62,7 +62,7 @@ separately (maximum 1000 each); their deduplicated union contains at most twice
 that count. It is not a guarantee of complete history.
 
 The landing page remains the standard **Overview**, with the existing factory
-header and observed runtime-health station. The shared Runs page presents recent
+header, factory stations, normal navigation and drill-downs. The shared Runs page presents recent
 executions and daily observations through canonical SQLite and revision subscriptions,
 not browser IndexedDB. Its local daily projection reconciles observed logical
 Runs by UTC execution-start day in the same atomic publication transaction.
@@ -70,14 +70,16 @@ Replays and reruns do not double count, and compact receipts retain observations
 independently of the 48-hour detail window under the canonical three-week
 retention policy. Undated evidence is excluded and reported as incomplete;
 whole-day counts are partial observations, not exhaustive or exact sub-day totals.
-It combines fresh Actions
-status with available cached gh-aw usage, execution identity, model, revision,
-and failure metadata. Only agentic `.lock.yml` workflows are included.
-**Coverage is partial:** campaign policy, fleet queue backlog, detailed session
-events, accepted outcomes, and Operational Value are not collected. The packaged
-dashboard exposes only Overview, recent runs, repositories, workflow inventory and daily
-observations, not fleet pages requiring those missing sources. Successful
-executions are not verified outcomes.
+It combines fresh Actions status with cached gh-aw evidence and requests all
+available artifact sets, including audit evidence. The existing production
+gh-aw adapter and canonical normalizer hydrate jobs, sessions, tool calls,
+firewall domains, skills, friction, safe outputs, experiments, evals and graders
+when their evidence is available. Only agentic `.lock.yml` workflows are included.
+The **full normal dashboard** remains available, including repository, workflow
+and run drill-downs. **Coverage is partial:** missing artifacts, campaign policy,
+fleet queue backlog, accepted outcomes and Operational Value remain explicitly
+unavailable rather than being hidden or represented as healthy zeros.
+Successful executions are not verified outcomes.
 
 The snapshot and per-repository caches are retained in the user's cache directory,
 keyed by exact repository scope. `--cache-dir PATH` selects another private
@@ -86,8 +88,22 @@ an existing `.github/aw/logs` artifact cache is reused automatically, or select
 it with `--logs-dir PATH`. Existing gh-aw artifacts and matching cached JSONL
 records are reused by the same gh-aw collector. Only profile-owned artifact
 caches receive the 256 MiB storage budget; existing external gh-aw caches are
-not pruned by this command. Cache files can contain private repository evidence;
-protect directory ACLs on Windows, where POSIX mode bits are not sufficient.
+not pruned by this command.
+Collection selects exact remote workflow IDs from the recent Actions inventory,
+so it does not depend on workflow files in the current folder. Its rich-run
+budget is shared across those observed workflows under one two-minute deadline;
+reaching this acquisition limit is reported and publishes partial collected evidence.
+Refresh reuses analyses and artifacts, but fetches fresh run-discovery lists
+rather than replaying a stale open-ended cached listing. Older profile-owned
+run directories may be pruned to enforce the artifact budget; external caches
+are never pruned. Canonical parsing runs inside the native CLI, without invoking
+gh-aw's optional Node-based Markdown report parsers.
+Artifact normalization reads only selected matching-attempt run directories,
+rejects symlinks and nonregular files, and limits each admitted file to 16 MiB
+and each repository's artifact input to 32 MiB. Oversized or malformed evidence
+fails the refresh rather than publishing a truncated success. Cache files can
+contain private repository evidence; protect directory ACLs on Windows, where
+POSIX mode bits are not sufficient.
 A failed refresh preserves the previous database and is
 reported rather than replacing it with empty data.
 

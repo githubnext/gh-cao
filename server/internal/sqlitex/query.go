@@ -537,9 +537,35 @@ func (r *reader) source(
 	if postgresx.IsRuntimeSource(name) && options.Runtime != nil {
 		return options.Runtime(ctx, name)
 	}
+	if postgresx.IsRuntimeSource(name) && options.Runtime == nil {
+		localMetadata, err := dashboardquery.LocalDashboardMetadata(ctx, r.tx)
+		if err != nil {
+			return model.Source{}, err
+		}
+		if localMetadata != nil {
+			metadata := model.Metadata{"source-id": name, "availability": "unavailable",
+				"query-diagnostic": "This hosted operational service is not configured for local observation."}
+			for key, value := range localMetadata {
+				metadata[key] = value
+			}
+			return model.Source{Source: name, Rows: []model.Row{}, Metadata: metadata}, nil
+		}
+	}
 	collection := strings.TrimPrefix(name, "$")
 	if strings.HasPrefix(name, "$") && canonicalCollection(collection) {
 		if _, declared := state.Counts[name]; !declared {
+			localMetadata, err := dashboardquery.LocalDashboardMetadata(ctx, r.tx)
+			if err != nil {
+				return model.Source{}, err
+			}
+			if localMetadata != nil {
+				metadata := model.Metadata{"source-id": name, "availability": "unavailable",
+					"query-diagnostic": "This evidence was not collected in the bounded local observation."}
+				for key, value := range localMetadata {
+					metadata[key] = value
+				}
+				return model.Source{Source: name, Rows: []model.Row{}, Metadata: metadata}, nil
+			}
 			return model.Source{}, fmt.Errorf("canonical SQLite source %q is not present in the snapshot", name)
 		}
 		var projected []string

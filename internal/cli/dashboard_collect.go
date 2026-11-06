@@ -14,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	ghaw "github.com/github/gh-aw/pkg/cli"
 )
 
 var dashboardRunID = regexp.MustCompile(`^[1-9][0-9]{0,18}$`)
@@ -28,32 +26,23 @@ type dashboardWorkflow struct {
 }
 
 type dashboardRepositoryEvidence struct {
-	Repository string
-	Workflows  []dashboardWorkflow
-	Runs       []map[string]any
-	Enriched   map[string]map[string]any
+	Repository  string
+	Workflows   []dashboardWorkflow
+	Runs        []map[string]any
+	Enriched    map[string]map[string]any
+	Directory   string
+	SafeOutputs []map[string]any
+	GithubID    string
 }
 
 type dashboardLogRequest struct {
 	Repository, Directory, Cache, StartDate string
 	Count                                   int
 	ManagedCache                            bool
+	WorkflowIDs                             []string
 }
 
 type dashboardLogsCollector func(context.Context, dashboardLogRequest) error
-
-func embeddedDashboardLogs(ctx context.Context, request dashboardLogRequest) error {
-	budget := 0
-	if request.ManagedCache {
-		budget = 256
-	}
-	return ghaw.DownloadWorkflowLogs(ctx, ghaw.LogsDownloadOptions{
-		RepoOverride: "github.com/" + request.Repository, Count: request.Count,
-		StartDate: request.StartDate, OutputDir: request.Directory, CachedJSONL: request.Cache,
-		TimeoutMinutes: 2, MaxGitHubAPIRateLimit: -1000, MaxStorageMB: budget, MaxStorageMBSet: true,
-		ArtifactSets: []string{"usage"}, SuppressRender: true,
-	})
-}
 
 func collectDashboard(ctx context.Context, repositories []string, cache string, options dashboardOptions, gh ghExecutor, logs dashboardLogsCollector) (map[string]any, error) {
 	if err := prepareDashboardCache(cache); err != nil {
@@ -76,16 +65,17 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 	evidence := make([]dashboardRepositoryEvidence, 0, len(repositories))
 	for _, repository := range repositories {
 		target := "github.com/" + repository
-		identity, _, err := gh(ctx, "repo", "view", target, "--json", "nameWithOwner,url")
+		identity, _, err := gh(ctx, "repo", "view", target, "--json", "nameWithOwner,url,id")
 		if err != nil {
 			return nil, fmt.Errorf("cannot access %s; previous snapshot preserved", repository)
 		}
 		var resolved struct {
 			Name string `json:"nameWithOwner"`
 			URL  string `json:"url"`
+			ID   string `json:"id"`
 		}
 		if json.Unmarshal([]byte(identity), &resolved) != nil || !strings.EqualFold(resolved.Name, repository) ||
-			!strings.EqualFold(resolved.URL, "https://github.com/"+repository) {
+			!strings.EqualFold(resolved.URL, "https://github.com/"+repository) || resolved.ID == "" {
 			return nil, errors.New("repository lookup did not resolve the exact requested github.com repository")
 		}
 		inventory, _, err := gh(ctx, "workflow", "list", "--repo", target, "--all", "--limit", "1000", "--json", "id,name,path,state")
@@ -106,11 +96,9 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 		if err := json.Unmarshal([]byte(raw), &runs); err != nil || runs == nil {
 			return nil, errors.New("GitHub runs response is not a valid run list")
 		}
-		hasAgenticWorkflow := slices.ContainsFunc(workflows, func(workflow dashboardWorkflow) bool {
-			return strings.HasPrefix(workflow.Path, ".github/workflows/") && strings.HasSuffix(workflow.Path, ".lock.yml")
-		})
-		if len(runs) == 0 || !hasAgenticWorkflow {
-			evidence = append(evidence, dashboardRepositoryEvidence{repository, workflows, nil, nil})
+		workflowIDs := dashboardObservedWorkflowIDs(workflows, runs)
+		if len(workflowIDs) == 0 {
+			evidence = append(evidence, dashboardRepositoryEvidence{Repository: repository, Workflows: workflows, Runs: runs, GithubID: resolved.ID})
 			continue
 		}
 		directory := filepath.Join(cache, "logs", dashboardCoordinate(repository))
@@ -141,7 +129,11 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
-		err = logs(ctx, dashboardLogRequest{repository, directory, shard, cutoff.Format("2006-01-02"), options.count, managedCache})
+		err = logs(ctx, dashboardLogRequest{
+			Repository: repository, Directory: directory, Cache: shard,
+			StartDate: cutoff.Format("2006-01-02"), Count: options.count,
+			ManagedCache: managedCache, WorkflowIDs: workflowIDs,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("gh-aw log collection failed for %s; verify authentication and API quota; previous snapshot preserved", repository)
 		}
@@ -150,11 +142,23 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 			return nil, err
 		}
 		runs = mergeDashboardCachedRuns(runs, workflows, cached, options.count)
-		evidence = append(evidence, dashboardRepositoryEvidence{repository, workflows, runs, cached.Enriched})
+		evidence = append(evidence, dashboardRepositoryEvidence{
+			Repository: repository, Workflows: workflows, Runs: runs, Enriched: cached.Enriched,
+			Directory: directory, SafeOutputs: cached.SafeOutputs,
+			GithubID: resolved.ID,
+		})
 	}
 	batch, err := projectDashboardEvidence(evidence, cutoff, now)
 	if err != nil {
 		return nil, err
+	}
+	batch, err = hydrateDashboardEvidence(ctx, evidence, batch, now)
+	if err != nil {
+		return nil, fmt.Errorf("hydrate canonical gh-aw evidence; previous snapshot preserved: %w", err)
+	}
+	counts := map[string]int{}
+	for store, rows := range batch {
+		counts[store] = len(rows)
 	}
 	metadata := map[string]any{
 		"id": "local-dashboard", "kind": "local-dashboard", "createdAt": now.Format(time.RFC3339Nano),
@@ -163,8 +167,8 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 		"runLimitPerAcquisition": options.count, "maximumDisplayedRunsPerRepository": options.count * 2,
 		"workflowLimitPerRepository": 1000,
 		"availability":               "available", "completeness": "partial",
-		"coverage": "Bounded recent gh-aw runs, usage and partial daily observations. Campaign policy, queue backlog, detailed tool/session events, accepted outcomes and Operational Value are not collected.",
-		"counts":   map[string]int{"repositories": len(batch["repositories"]), "workflows": len(batch["workflows"]), "runs": len(batch["runs"])},
+		"coverage": "Bounded recent gh-aw logs and available session, tool, firewall, skill, friction, safe-output, experiment, eval and grader evidence; partial daily observations. Missing artifacts, campaign policy, queue backlog, accepted outcomes and Operational Value remain unavailable.",
+		"counts":   counts,
 	}
 	batch["transactions"] = []map[string]any{metadata}
 	if err := publishDashboardSnapshot(ctx, cache, batch); err != nil {
@@ -174,8 +178,9 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 }
 
 type dashboardCachedLogs struct {
-	Enriched map[string]map[string]any
-	Runs     map[string]map[string]any
+	Enriched    map[string]map[string]any
+	Runs        map[string]map[string]any
+	SafeOutputs []map[string]any
 }
 
 func readDashboardLogCache(filename, repository string) (result dashboardCachedLogs, err error) {
@@ -197,20 +202,31 @@ func readDashboardLogCache(filename, repository string) (result dashboardCachedL
 			continue
 		}
 		var envelope struct {
-			Version int              `json:"schema_version"`
-			Kind    string           `json:"kind"`
-			Run     map[string]any   `json:"run"`
-			Request map[string]any   `json:"request"`
-			Payload []map[string]any `json:"payload"`
+			Version    int              `json:"schema_version"`
+			Kind       string           `json:"kind"`
+			Run        map[string]any   `json:"run"`
+			Request    map[string]any   `json:"request"`
+			Payload    []map[string]any `json:"payload"`
+			SafeOutput map[string]any   `json:"safe_output"`
 		}
 		if err := json.Unmarshal(scanner.Bytes(), &envelope); err != nil {
 			return result, errors.New("gh-aw cache contains malformed JSONL")
 		}
-		if envelope.Kind != "run" && envelope.Kind != "workflow_runs" {
+		if envelope.Kind != "run" && envelope.Kind != "workflow_runs" && envelope.Kind != "safe_output_item" {
 			continue
 		}
 		if envelope.Version != 2 && envelope.Version != 4 && envelope.Version != 5 {
 			return result, errors.New("gh-aw cache uses an unsupported run schema version")
+		}
+		if envelope.Kind == "safe_output_item" {
+			if !dashboardRunID.MatchString(nativeScalar(envelope.SafeOutput["run_id"])) {
+				return result, errors.New("gh-aw safe output contains an invalid GitHub run ID")
+			}
+			result.SafeOutputs = append(result.SafeOutputs, envelope.SafeOutput)
+			if len(result.SafeOutputs) > 10000 {
+				return result, errors.New("gh-aw cache exceeds the retained safe-output budget")
+			}
+			continue
 		}
 		if envelope.Kind == "workflow_runs" {
 			if !strings.EqualFold(nativeText(envelope.Request["repository"]), repository) ||
@@ -341,7 +357,7 @@ func projectDashboardEvidence(evidence []dashboardRepositoryEvidence, cutoff, no
 		}
 		repositoryID := "repository:" + dashboardCoordinate(source.Repository)
 		batch["repositories"] = append(batch["repositories"], map[string]any{
-			"id": repositoryID, "owner": parts[0], "name": parts[1], "observedAt": observed,
+			"id": repositoryID, "githubId": source.GithubID, "owner": parts[0], "name": parts[1], "observedAt": observed,
 			"provenance": map[string]any{"source": "local-dashboard", "sourceId": source.Repository, "observedAt": observed},
 		})
 		workflows := map[string]dashboardWorkflow{}
@@ -356,8 +372,11 @@ func projectDashboardEvidence(evidence []dashboardRepositoryEvidence, cutoff, no
 			path := strings.TrimSuffix(strings.ToLower(workflow.Path), ".lock.yml") + ".md"
 			batch["workflows"] = append(batch["workflows"], map[string]any{
 				"id": "workflow:" + dashboardCoordinate(source.Repository+":"+path), "repositoryId": repositoryID,
-				"name": workflow.Name, "path": path, "state": workflow.State, "observedAt": observed,
-				"provenance": map[string]any{"source": "local-dashboard", "sourceId": workflow.Path, "observedAt": observed},
+				"githubId": workflow.ID, "name": workflow.Name, "path": path, "state": workflow.State, "observedAt": observed,
+				"organizationLink": "https://github.com/" + parts[0],
+				"repositoryLink":   "https://github.com/" + source.Repository,
+				"workflowLink":     "https://github.com/" + source.Repository + "/actions/workflows/" + filepath.Base(workflow.Path),
+				"provenance":       map[string]any{"source": "local-dashboard", "sourceId": workflow.Path, "observedAt": observed},
 			})
 		}
 		for _, raw := range source.Runs {
@@ -400,57 +419,8 @@ func projectDashboardEvidence(evidence []dashboardRepositoryEvidence, cutoff, no
 			if raw["status"] == "completed" {
 				run["completedAt"] = raw["updatedAt"]
 			}
-			enriched := source.Enriched[id]
-			if enriched != nil && nativeScalar(enriched["run_attempt"]) == nativeScalar(attempt) {
-				projectDashboardUsage(run, enriched)
-			}
 			batch["runs"] = append(batch["runs"], run)
 		}
 	}
 	return batch, nil
-}
-
-func projectDashboardUsage(run, enriched map[string]any) {
-	for from, to := range map[string]string{
-		"agent_id": "agentId", "engine_id": "engineId", "agent_version": "agentVersion",
-		"resolved_model":  "resolvedModel",
-		"requested_model": "requestedModel", "cli_version": "ghAwVersion",
-		"engine": "engine", "engine_version": "engineVersion", "agent_runtime": "agentRuntime",
-		"firewall_version": "firewallVersion", "gateway_version": "gatewayVersion",
-		"duration": "duration", "action_minutes": "actionMinutes", "aic": "aicTotal",
-		"classification": "classification", "failure_kind": "failureKind",
-		"failure_job": "failureJob", "failure_step": "failureStep", "failure_message": "failureMessage",
-		"error_count": "errorCount", "safe_items_count": "safeItemsCount", "github_api_calls": "githubApiCalls",
-	} {
-		if value, ok := enriched[from]; ok && value != nil {
-			run[to] = value
-		}
-	}
-	summary := nativeObject(enriched["token_usage_summary"])
-	if len(summary) == 0 {
-		summary = nativeObject(enriched["token_usage"])
-	}
-	for from, to := range map[string]string{
-		"total_aic": "aicTotal", "total_input_tokens": "inputTokens", "total_output_tokens": "outputTokens",
-		"total_cache_read_tokens": "cacheReadTokens", "total_cache_write_tokens": "cacheWriteTokens",
-		"total_reasoning_tokens": "reasoningTokens",
-	} {
-		if value, ok := summary[from]; ok && value != nil {
-			run[to] = value
-		}
-	}
-	// Missing cost/model/identity evidence stays missing, never a zero or an
-	// inferred default engine. Ordinary canonical queries own all derivations.
-	if _, ok := run["agentId"]; !ok {
-		if value, exists := run["engineId"]; exists {
-			run["agentId"] = value
-		}
-	}
-	if value, exists := run["resolvedModel"]; exists {
-		run["modelId"] = value
-	} else if value, exists := enriched["model_id"]; exists && value != nil {
-		run["modelId"] = value
-	} else if value, exists := enriched["model"]; exists && value != nil {
-		run["modelId"] = value
-	}
 }

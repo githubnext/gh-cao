@@ -32,7 +32,7 @@ func dashboardTestGH(t *testing.T, now time.Time) ghExecutor {
 			if len(args) > 2 && args[2] != "--json" {
 				repository = strings.TrimPrefix(args[2], "github.com/")
 			}
-			return encode(map[string]any{"nameWithOwner": repository, "url": "https://github.com/" + repository})
+			return encode(map[string]any{"nameWithOwner": repository, "url": "https://github.com/" + repository, "id": "R_" + repository})
 		}
 		switch args[0] + " " + args[1] {
 		case "workflow list":
@@ -138,10 +138,10 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 		t.Fatalf("repository-scoped IDs collided or ordinary Actions were counted: %v %v", runs, err)
 	}
 	for _, run := range runs {
-		if run["status"] != "in_progress" || run["aicTotal"] != 2.5 || run["modelId"] != "observed" {
+		if run["status"] != "in_progress" || run["aicTotal"] != 2.5 || run["resolvedModel"] != "observed" {
 			t.Fatalf("current GitHub state must win over cached enrichment: %v", run)
 		}
-		if _, exists := run["outputTokens"]; exists {
+		if run["outputTokens"] != nil {
 			t.Fatal("missing usage was fabricated")
 		}
 	}
@@ -275,18 +275,26 @@ func TestDashboardCachedUsageUnionIsBoundedAndAttemptSafe(t *testing.T) {
 	if len(merged) != 2 {
 		t.Fatalf("usage sample was unbounded or not combined with active work: %v", merged)
 	}
-	batch, err := projectDashboardEvidence([]dashboardRepositoryEvidence{{"octo/api", workflows, merged, cached.Enriched}}, now.Add(-48*time.Hour), now)
+	evidence := []dashboardRepositoryEvidence{{Repository: "octo/api", Workflows: workflows, Runs: merged, Enriched: cached.Enriched}}
+	batch, err := projectDashboardEvidence(evidence, now.Add(-48*time.Hour), now)
+	if err == nil {
+		batch, err = hydrateDashboardEvidence(t.Context(), evidence, batch, now)
+	}
 	if err != nil || len(batch["runs"]) != 2 {
 		t.Fatalf("usage union did not project: %v %v", batch, err)
 	}
-	if _, exists := batch["runs"][0]["aicTotal"]; exists {
+	byID := map[string]map[string]any{}
+	for _, run := range batch["runs"] {
+		byID[nativeScalar(run["githubRunId"])] = run
+	}
+	if byID["1"]["aicTotal"] != nil {
 		t.Fatal("usage from a previous run attempt was attached")
 	}
-	if batch["runs"][1]["aicTotal"] != 5.0 {
+	if byID["2"]["aicTotal"] != 5.0 {
 		t.Fatal("cached completed usage was discarded")
 	}
 	raw[0]["attempt"] = "invalid"
-	if _, err := projectDashboardEvidence([]dashboardRepositoryEvidence{{"octo/api", workflows, raw, nil}}, now.Add(-48*time.Hour), now); err == nil {
+	if _, err := projectDashboardEvidence([]dashboardRepositoryEvidence{{Repository: "octo/api", Workflows: workflows, Runs: raw}}, now.Add(-48*time.Hour), now); err == nil {
 		t.Fatal("invalid attempt accepted")
 	}
 }

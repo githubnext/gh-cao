@@ -140,6 +140,14 @@ func publishDashboardSnapshot(ctx context.Context, cache string, batch map[strin
 		AND store_name NOT IN ('dailyRunCounts','runCountContributions','dailyRunCountState')`, dashboardquery.DatabaseName); err != nil {
 		return err
 	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM __idb_stores WHERE database_name=?
+		AND name NOT IN ('dailyRunCounts','runCountContributions','dailyRunCountState')`, dashboardquery.DatabaseName); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM __idb_indexes WHERE database_name=?
+		AND store_name NOT IN ('dailyRunCounts','runCountContributions','dailyRunCountState')`, dashboardquery.DatabaseName); err != nil {
+		return err
+	}
 	for store, records := range batch {
 		if _, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO __idb_stores VALUES(?,?,'"id"')`, dashboardquery.DatabaseName, store); err != nil {
 			return err

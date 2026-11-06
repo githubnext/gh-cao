@@ -869,19 +869,40 @@ This does not change the separate hosted PostgreSQL collector or its runtimes.
 `gh cao dashboard` is a separately selected native operator acquisition profile
 for investigations lasting at most 48 hours. It resolves the current repository
 or up to 20 exact `--repo` selections, calls the embedded pinned gh-aw log collector
-with its normal artifact/JSONL cache semantics, and combines that usage with fresh
+with all available artifact sets, audit evidence and its normal artifact/JSONL
+cache semantics, and combines that evidence with fresh
 bounded GitHub workflow/run reads. It owns a separate private canonical SQLite
 projection in the user's scope-keyed cache, not an Activity database, browser
-database, hosted store, or writable server overlay. Its native adapter projects
-only observed repository/workflow/run facts; the ordinary declarative database
+database, hosted store, or writable server overlay. Its trusted generated
+ingestion bundle reuses `gh-aw-logs.js` and the canonical normalizer in a bounded
+pure-Go JavaScript runtime. No filesystem, process or network APIs are exposed
+to that runtime; it normalizes supplied evidence, never executes dashboard
+queries on the browser main thread. Selected matching-attempt artifact reads
+use an OS-rooted directory boundary, reject symlinks/nonregular files, and admit
+at most 16 MiB per file and 32 MiB per repository. Encoded input/output and
+execution have explicit 128 MiB / 64 MiB and 30-second bounds.
+`npm run generate:dashboard-ingest` regenerates the compressed embedded bundle;
+release checks reject stale artifacts.
+Acquisition names exact remote workflow IDs from the observed Actions inventory,
+not local lock files. Its shared count and two-minute limits produce explicitly
+reported partial coverage. Analyses and artifacts are reusable, but discovery
+lists are refreshed. Optional Node-based Markdown report parsing is disabled;
+canonical parsing uses the embedded runtime above.
+The ordinary declarative database
 queries, Go evaluator, HTTP handler, and revision subscriptions serve them.
 It reconciles the canonical daily Run projection with compact receipts in the
 same transaction, independently of the rolling detail window. Replay, attempt
 corrections and UTC-week retention follow the shared daily contract. Counts
 describe partial admitted observations, not complete upstream history.
 It never fabricates campaign policy, queue backlog, accepted outcomes, or
-uncollected event evidence. The packaged immediate dashboard exposes only
-supported recent-run, repository, workflow and daily-observation views.
+uncollected event evidence. The packaged local dashboard preserves all normal
+pages, navigation, templates, controls and drill-downs, with the standard
+Overview landing page. Intrinsic workflow/run source variants avoid requiring
+uncollected campaign enrichment. Valid missing canonical sources in an explicit
+local snapshot produce typed unavailable results; unknown sources, corrupt
+evidence and execution errors still fail. Available cached jobs, sessions,
+tools, domains, skills, friction, safe outputs, experiments, evals and graders
+hydrate their ordinary canonical stores instead of a separate UI projection.
 
 One local collection lock serializes refreshes. A successful transaction replaces
 only that profile's projection and observation metadata; failed acquisition

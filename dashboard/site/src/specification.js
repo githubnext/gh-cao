@@ -753,12 +753,24 @@ export const SYNTHETIC_SOURCE_FIELDS = {
 };
 
 export const DATABASE_QUERY_SOURCE_FIELDS = {
-  'workflow-identities': ['id', 'organization', 'repository', 'workflow', 'workflow-name', 'registration'],
+  'workflow-identities': TABLE_FIELDS.workflows,
+  'overview-run-identities': TABLE_FIELDS['overview-runs'],
   'workflow-subject-topology': [
     'repositoryId', 'path', 'id', 'organization', 'repository', 'workflow',
     'workflow-name', 'workflow-role', 'campaign', 'campaign-name', 'campaign-icon',
     'workflow-link'
+  ],
+  'workflow-subject-identities': [
+    'repositoryId', 'path', 'id', 'organization', 'repository', 'workflow',
+    'workflow-name', 'workflow-role', 'campaign', 'campaign-name', 'campaign-icon',
+    'workflow-link'
   ]
+};
+
+/** @type {Record<string, string>} */
+export const DATABASE_QUERY_SOURCE_TABLES = {
+  'workflow-identities': 'workflows',
+  'overview-run-identities': 'overview-runs'
 };
 
 export const QUERY_SOURCE_VALUES = [
