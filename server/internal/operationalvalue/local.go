@@ -253,13 +253,13 @@ func CollectionAttempt(previous model.Row, at time.Time, state, reason string) (
 	if previous["registration"] != "enabled" || !valueRepositoryPattern.MatchString(textField(previous, "repository")) ||
 		!valueWorkflowPattern.MatchString(textField(previous, "workflow")) ||
 		!sha256Fingerprint.MatchString(textField(previous, "policyDigest")) {
-		return nil, errors.New("Value collection attempt has no reviewed registration")
+		return nil, errors.New("value collection attempt has no reviewed registration")
 	}
 	at = at.UTC().Truncate(time.Millisecond)
 	if previousAt := textField(previous, "lastAttemptAt"); previousAt != "" {
 		prior, err := time.Parse(time.RFC3339Nano, previousAt)
 		if err != nil || at.Before(prior) {
-			return nil, errors.New("Value collection attempt precedes retained attempt")
+			return nil, errors.New("value collection attempt precedes retained attempt")
 		}
 	}
 	record := make(model.Row, len(previous))

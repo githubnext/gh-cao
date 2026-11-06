@@ -122,7 +122,7 @@ func fileDietReplay(proof fileDietProof, measured fileDietMeasurements) (fileDie
 		proof.Adoption.At != "2025-11-15T13:36:21Z" ||
 		len(proof.Snapshots) == 0 || proof.Snapshots[0].At != proof.Adoption.At ||
 		proof.Snapshots[len(proof.Snapshots)-1].At != proof.Until {
-		return result, errors.New("File Diet frozen adoption or snapshot cutoff changed")
+		return result, errors.New("file Diet frozen adoption or snapshot cutoff changed")
 	}
 	root := "https://github.com/" + dailyFileDietRepository
 	adopted := root + "/blob/" + proof.Adoption.Commit + "/.github/workflows"
@@ -170,7 +170,7 @@ func fileDietReplay(proof fileDietProof, measured fileDietMeasurements) (fileDie
 				issue.Receipt.HeadSHA != issue.Run.Validation.HeadSHA ||
 				fileDietRawBytesDigest([]byte(issue.Receipt.Content)) != issue.Receipt.EntrySHA256 ||
 				issue.Receipt.Digest != "sha256:"+issue.Receipt.ArchiveSHA256 {
-				return result, errors.New("File Diet applied receipt is not verified")
+				return result, errors.New("file Diet applied receipt is not verified")
 			}
 			var source struct {
 				Type     string `json:"type"`
@@ -186,7 +186,7 @@ func fileDietReplay(proof fileDietProof, measured fileDietMeasurements) (fileDie
 				source.Repo != dailyFileDietRepository && source.Repo != "githubnext/gh-aw" ||
 				source.URL != fmt.Sprintf("https://github.com/%s/issues/%d", source.Repo, source.Number) ||
 				source.Metadata != nil && source.Metadata.NodeID != issue.ID {
-				return result, errors.New("File Diet creation receipt does not identify output")
+				return result, errors.New("file Diet creation receipt does not identify output")
 			}
 			receipt[issue.Number] = true
 		}
@@ -202,7 +202,7 @@ func fileDietReplay(proof fileDietProof, measured fileDietMeasurements) (fileDie
 			pull.Graph.ID != pull.ID || pull.Graph.State != "MERGED" ||
 			pull.Graph.MergeCommit == nil || *pull.Graph.MergeCommit != *pull.MergeSHA ||
 			pull.Graph.MergedAt == nil || *pull.Graph.MergedAt != *pull.MergedAt {
-			return result, errors.New("File Diet accepted implementation revision mismatch or not merged")
+			return result, errors.New("file Diet accepted implementation revision mismatch or not merged")
 		}
 		linked := []fileDietIssue{}
 		lineage := []fileDietLineage{}
@@ -626,11 +626,11 @@ func fileDietExport(ledger fileDietLedger) (model.Row, error) {
 	for _, event := range ledger.Events {
 		if !accepted[event.ID] || !fileDietTime(event.At).Before(fileDietTime(proof.Until)) ||
 			fileDietTime(event.At).Before(fileDietTime(proof.Adoption.At)) {
-			return nil, errors.New("File Diet contribution lacks eligible output trail")
+			return nil, errors.New("file Diet contribution lacks eligible output trail")
 		}
 	}
 	if len(facts) > 20000 || len(fileDietEncodeJSON(packet)) > 8<<20 {
-		return nil, errors.New("File Diet evidence packet exceeds publication byte budget")
+		return nil, errors.New("file Diet evidence packet exceeds publication byte budget")
 	}
 	return packet, nil
 }

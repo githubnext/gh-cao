@@ -8,11 +8,8 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/collect"
 )
 
-func fakeStat(present map[string]bool) func(string) (os.FileInfo, error) {
+func fakeStat() func(string) (os.FileInfo, error) {
 	return func(path string) (os.FileInfo, error) {
-		if present[path] {
-			return nil, nil
-		}
 		return nil, os.ErrNotExist
 	}
 }
@@ -68,7 +65,7 @@ func TestClassifyQueueBacklogPassesWhenNoMaximumIsConfigured(t *testing.T) {
 }
 
 func TestResolvePrivateKeySourceReportsAbsentWhenNothingIsConfigured(t *testing.T) {
-	result := resolvePrivateKeySource(fakeStat(nil), "", "", "")
+	result := resolvePrivateKeySource(fakeStat(), "", "", "")
 	if result.label != "absent" || result.present || result.err != nil {
 		t.Fatalf("result = %+v, want label=absent present=false err=nil", result)
 	}
@@ -91,7 +88,7 @@ func TestResolvePrivateKeySourcePrefersFileOverInline(t *testing.T) {
 }
 
 func TestResolvePrivateKeySourceReportsUnreadableFile(t *testing.T) {
-	result := resolvePrivateKeySource(fakeStat(nil), "/etc/cao/missing.pem", "", "")
+	result := resolvePrivateKeySource(fakeStat(), "/etc/cao/missing.pem", "", "")
 	if result.label != "file (unreadable)" || result.present || result.err == nil {
 		t.Fatalf("result = %+v, want label=file (unreadable) present=false non-nil err", result)
 	}
@@ -114,7 +111,7 @@ func TestResolvePrivateKeySourceRejectsADirectory(t *testing.T) {
 }
 
 func TestResolvePrivateKeySourceReportsInlineWhenNoFileIsConfigured(t *testing.T) {
-	result := resolvePrivateKeySource(fakeStat(nil), "", "", "inline-value")
+	result := resolvePrivateKeySource(fakeStat(), "", "", "inline-value")
 	if result.label != "inline environment variable (configured)" || !result.present || result.err != nil {
 		t.Fatalf("result = %+v, want label=inline environment variable (configured) present=true err=nil", result)
 	}
@@ -124,7 +121,7 @@ func TestResolvePrivateKeySourceReportsInlineWhenNoFileIsConfigured(t *testing.T
 }
 
 func TestResolvePrivateKeySourceReportsBase64BeforeInline(t *testing.T) {
-	result := resolvePrivateKeySource(fakeStat(nil), "", "base64-value", "inline-value")
+	result := resolvePrivateKeySource(fakeStat(), "", "base64-value", "inline-value")
 	if result.label != "base64 environment variable (configured)" || !result.present || result.err != nil {
 		t.Fatalf("result = %+v, want label=base64 environment variable (configured) present=true err=nil", result)
 	}

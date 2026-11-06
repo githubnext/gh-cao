@@ -72,7 +72,7 @@ func CollectorConfigFromEnv() (*CollectorConfig, error) {
 		return nil, errors.New("CAO_COLLECT_APP_ID must be a positive GitHub App identifier")
 	}
 	if !native {
-		return nil, errors.New("App-backed collection requires CAO_COLLECT_NATIVE=true; the filesystem collector is retired")
+		return nil, errors.New("app-backed collection requires CAO_COLLECT_NATIVE=true; the filesystem collector is retired")
 	}
 	if err := rejectRetiredCollectorEnvironment(os.Getenv); err != nil {
 		return nil, err

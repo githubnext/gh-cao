@@ -229,7 +229,7 @@ func (p Projector) collectRemoteValue(
 	}
 	outputBytes = int64(len(output))
 	if outputBytes > 8<<20 {
-		return errors.New("File Diet output exceeds its evidence byte budget")
+		return errors.New("file Diet output exceeds its evidence byte budget")
 	}
 	if err := p.remoteValueRegistrationCurrent(ctx, repository, installation, entry, policyDigest); err != nil {
 		return err
@@ -386,42 +386,6 @@ func (p Projector) ForgetRemoteValueWorkspace(ctx context.Context, repository st
 			if err := os.RemoveAll(directory); err != nil {
 				return err
 			}
-		}
-	}
-	return nil
-}
-
-func restoreRemoteValueProof(
-	ctx context.Context, store *postgresx.Store, repository, workflow, destination string,
-) error {
-	files, err := store.ReadValueProof(ctx, repository, workflow)
-	if err != nil {
-		return err
-	}
-	return writeRemoteValueProof(files, destination)
-}
-
-func writeRemoteValueProof(files []postgresx.ValueProofFile, destination string) error {
-	if len(files) == 0 {
-		return nil
-	}
-	if err := os.Mkdir(destination, 0o700); err != nil {
-		return err
-	}
-	root, err := os.OpenRoot(destination)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = root.Close() }()
-	for _, file := range files {
-		parent := filepath.Dir(file.Path)
-		if parent != "." {
-			if err := root.MkdirAll(parent, 0o700); err != nil {
-				return err
-			}
-		}
-		if err := root.WriteFile(file.Path, file.Content, 0o600); err != nil {
-			return err
 		}
 	}
 	return nil

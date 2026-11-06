@@ -80,7 +80,7 @@ func TestHostedHealthPreservesActualAttemptAcrossPreparation(t *testing.T) {
 		t.Fatal(err)
 	}
 	file := filepath.Join(snapshot, "gh-aw-logs-shards", "workflow-values-collections.jsonl")
-	data, err := os.ReadFile(file)
+	data, err := os.ReadFile(file) // #nosec G304 -- file is under this test's TempDir.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestHostedHealthPreservesActualAttemptAcrossPreparation(t *testing.T) {
 	if err := WriteCollectionHealth(t.Context(), config, policy, snapshot); err != nil {
 		t.Fatal(err)
 	}
-	data, err = os.ReadFile(file)
+	data, err = os.ReadFile(file) // #nosec G304 -- file is under this test's TempDir.
 	if err != nil || json.Unmarshal(data, &envelope) != nil ||
 		envelope.Record["state"] != "available" || envelope.Record["reasonCode"] != "captured" ||
 		envelope.Record["lastAttemptAt"] != optimizerTime(attempted) {
@@ -309,7 +309,7 @@ func TestHostedLocalEvaluationHonorsCancellation(t *testing.T) {
 	if err := ComputeHostedSnapshot(ctx, Config{}, "unused", "unused", "unused",
 		func(context.Context, []query.Definition, []string) (map[string]model.Source, error) {
 			t.Fatal("canceled hosted Value evaluation queried the canonical database")
-			return nil, nil
+			return map[string]model.Source{}, nil
 		}); err == nil {
 		t.Fatal("canceled hosted Value evaluation succeeded")
 	}
@@ -341,7 +341,7 @@ func TestHostedReviewedEvidenceImportUsesPinnedOriginalPacket(t *testing.T) {
 		policy, snapshot); err != nil {
 		t.Fatal(err)
 	}
-	content, err := os.ReadFile(filepath.Join(snapshot, "gh-aw-logs-shards", "workflow-values.jsonl"))
+	content, err := os.ReadFile(filepath.Join(snapshot, "gh-aw-logs-shards", "workflow-values.jsonl")) // #nosec G304 -- snapshot is a test-owned TempDir.
 	if err != nil {
 		t.Fatal(err)
 	}

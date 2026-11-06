@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -287,7 +286,7 @@ func fileDietReadGzip(files map[string][]byte, filename string) ([]byte, error) 
 	defer func() { _ = reader.Close() }()
 	decoded, err := io.ReadAll(io.LimitReader(reader, fileDietProofLimit+1))
 	if err != nil || len(decoded) > fileDietProofLimit {
-		return nil, errors.New("File Diet archive exceeds its decoded size budget")
+		return nil, errors.New("file Diet archive exceeds its decoded size budget")
 	}
 	return decoded, nil
 }
@@ -314,7 +313,7 @@ func fileDietLoadProof(files map[string][]byte) (fileDietArchive, error) {
 		proof.Adoption.At != "2025-11-15T13:36:21Z" ||
 		!fileDietTime(proof.Adoption.At).Before(fileDietTime(proof.Until)) ||
 		fileDietTime(proof.ObservedAt).Before(fileDietTime(proof.Until)) {
-		return result, errors.New("File Diet proof identity or frozen adoption changed")
+		return result, errors.New("file Diet proof identity or frozen adoption changed")
 	}
 	issues, issueNumbers, pulls, pullNumbers := map[string]bool{}, map[int]bool{}, map[string]bool{}, map[int]bool{}
 	for _, issue := range proof.Issues {
@@ -350,7 +349,7 @@ func fileDietLoadProof(files map[string][]byte) (fileDietArchive, error) {
 			fileDietRawDigest(raw) != partition.SHA256 ||
 			fileDietRawDigest(envelope.Files) != envelope.InventoryDigest ||
 			envelope.Commit != partition.Commit {
-			return result, errors.New("File Diet inventory partition digest mismatch")
+			return result, errors.New("file Diet inventory partition digest mismatch")
 		}
 		var inventory fileDietInventory
 		if err := json.Unmarshal(raw, &inventory); err != nil {
@@ -374,7 +373,7 @@ func fileDietLoadProof(files map[string][]byte) (fileDietArchive, error) {
 		result.inventories[partition.Commit] = inventory
 	}
 	if len(measurements) != proof.UniqueBlobs {
-		return result, errors.New("File Diet unique blob count changed")
+		return result, errors.New("file Diet unique blob count changed")
 	}
 	result.rawProof, result.files = proofRaw, files
 	return result, nil
@@ -407,7 +406,7 @@ func fileDietSeed(ctx context.Context, workspace string) (fileDietArchive, error
 	for _, entry := range tree {
 		name := strings.TrimPrefix(entry.path, fileDietHistoricalPath+"/")
 		if entry.mode != "100644" || entry.kind != "blob" ||
-			!(name == "proof.json.gz" || fileDietInventoryName.MatchString(name)) ||
+			name != "proof.json.gz" && !fileDietInventoryName.MatchString(name) ||
 			len(files) >= postgresx.ValueProofMaxFiles {
 			return fileDietArchive{}, errors.New("historical File Diet proof contains unreviewed content")
 		}
@@ -448,7 +447,7 @@ func fileDietRestore(files []postgresx.ValueProofFile) (fileDietArchive, error) 
 func fileDietArchiveProof(value any) ([]byte, error) {
 	content := fileDietEncodeJSON(value)
 	if len(content) == 0 || len(content)+1 > fileDietProofLimit {
-		return nil, errors.New("File Diet proof exceeds decoded byte budget")
+		return nil, errors.New("file Diet proof exceeds decoded byte budget")
 	}
 	var output bytes.Buffer
 	writer := gzip.NewWriter(&output)
@@ -459,12 +458,4 @@ func fileDietArchiveProof(value any) ([]byte, error) {
 		return nil, err
 	}
 	return output.Bytes(), nil
-}
-
-func fileDietSHA(content string) bool {
-	if len(content) != sha256.Size*2 {
-		return false
-	}
-	_, err := hex.DecodeString(content)
-	return err == nil
 }

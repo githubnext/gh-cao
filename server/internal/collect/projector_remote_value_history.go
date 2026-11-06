@@ -17,6 +17,8 @@ import (
 
 const fileDietSourcePath = ".github/workflows/daily-file-diet.md"
 
+var errFileDietReferenceNotFound = errors.New("file Diet tracking reference not found")
+
 var (
 	fileDietCommentPattern = regexp.MustCompile(`(?s)<!--(.*?)-->`)
 	fileDietPathPattern    = regexp.MustCompile(`pkg/[\w./-]+\.go\b`)
@@ -124,7 +126,7 @@ func fileDietReferenceFor(body string) (*fileDietReference, error) {
 		candidate := &candidates[index]
 		if !strings.EqualFold(candidate.Repository, dailyFileDietRepository) &&
 			!strings.EqualFold(candidate.Repository, "githubnext/gh-aw") {
-			return nil, errors.New("File Diet producer outside reviewed repository")
+			return nil, errors.New("file Diet producer outside reviewed repository")
 		}
 		if runID != "" && runID != *candidate.RunID ||
 			attempt != 0 && candidate.Attempt != nil && attempt != *candidate.Attempt {
@@ -139,10 +141,10 @@ func fileDietReferenceFor(body string) (*fileDietReference, error) {
 		}
 	}
 	if workflowID != "" && workflowID != dailyFileDietWorkflow {
-		return nil, nil
+		return nil, errFileDietReferenceNotFound
 	}
 	if selected == nil && workflowID != dailyFileDietWorkflow && trackerID != dailyFileDietWorkflow {
-		return nil, nil
+		return nil, errFileDietReferenceNotFound
 	}
 	if selected == nil {
 		selected = &fileDietReference{Repository: dailyFileDietRepository, Marker: "tracking-only"}
@@ -230,7 +232,7 @@ func fileDietNormalizeGraph(entity fileDietGraphEntity, observed string) (fileDi
 	}
 	for _, event := range entity.TimelineItems.Nodes {
 		if !fileDietInstant(event.CreatedAt) {
-			return fileDietGraph{}, errors.New("File Diet graph event lacks timestamp")
+			return fileDietGraph{}, errors.New("file Diet graph event lacks timestamp")
 		}
 		kind := map[string]string{
 			"ClosedEvent": "closed", "ReopenedEvent": "reopened",
@@ -303,7 +305,7 @@ func fileDietGraphs(ctx context.Context, read fileDietRead, numbers []int) (map[
 			}
 			graph, err := fileDietNormalizeGraph(entity, time.Now().UTC().Truncate(time.Millisecond).Format("2006-01-02T15:04:05.000Z"))
 			if err != nil || graph.Number != number {
-				return nil, errors.New("File Diet graph identity changed")
+				return nil, errors.New("file Diet graph identity changed")
 			}
 			graphs[number] = graph
 		}
@@ -379,7 +381,7 @@ func fileDietReadTimeline(ctx context.Context, read fileDietRead, number int, un
 				continue
 			}
 			if !fileDietInstant(row.CreatedAt) {
-				return result, errors.New("File Diet timeline event lacks a timestamp")
+				return result, errors.New("file Diet timeline event lacks a timestamp")
 			}
 			if !fileDietTime(row.CreatedAt).Before(fileDietTime(until)) {
 				continue
@@ -444,7 +446,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 	var proof fileDietProof
 	cutoff := fileDietTime(until)
 	if cutoff.IsZero() || cutoff.After(time.Now()) || cutoff.Format(time.RFC3339) != until {
-		return proof, errors.New("File Diet requires a valid non-future UTC cutoff")
+		return proof, errors.New("file Diet requires a valid non-future UTC cutoff")
 	}
 	if previous != nil && (!fileDietInstant(previous.Until) || fileDietTime(previous.Until).After(cutoff)) {
 		return proof, errors.New("previous File Diet proof follows requested cutoff")
@@ -460,7 +462,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 		}](ctx, read, "repos/"+name, "")
 		if err != nil || got.ID <= 0 || got.FullName != dailyFileDietRepository ||
 			identity.ID != 0 && identity.ID != got.ID {
-			return proof, errors.New("File Diet repository alias does not identify declared target")
+			return proof, errors.New("file Diet repository alias does not identify declared target")
 		}
 		identity = got
 	}
@@ -477,7 +479,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 	source += "&until=" + until + "&per_page=100"
 	commits, err := fileDietReadJSON[[]fileDietCommit](ctx, read, source, "")
 	if err != nil || len(commits) >= 100 || previous == nil && len(commits) == 0 {
-		return proof, errors.New("File Diet workflow source history is absent or truncated")
+		return proof, errors.New("file Diet workflow source history is absent or truncated")
 	}
 	if previous != nil {
 		proof.Adoption = previous.Adoption
@@ -513,7 +515,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 			} `json:"parents"`
 		}](ctx, read, "repos/"+dailyFileDietRepository+"/commits/"+oldest.SHA, "")
 		if err != nil || len(introduction.Parents) != 1 {
-			return proof, errors.New("File Diet workflow adoption identity is incomplete")
+			return proof, errors.New("file Diet workflow adoption identity is incomplete")
 		}
 		added := map[string]bool{}
 		for _, file := range introduction.Files {
@@ -522,7 +524,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 			}
 		}
 		if !added[fileDietSourcePath] || !added[strings.TrimSuffix(fileDietSourcePath, ".md")+".lock.yml"] {
-			return proof, errors.New("File Diet workflow adoption identity is incomplete")
+			return proof, errors.New("file Diet workflow adoption identity is incomplete")
 		}
 		proof.Adoption = fileDietAdoption{Commit: oldest.SHA,
 			At: oldest.Commit.Committer.Date, BaselineCommit: introduction.Parents[0].SHA}
@@ -532,7 +534,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 	}
 	if proof.Adoption.Commit != "1186030a620f4113f655c156bedf70cf2c164f79" ||
 		proof.Adoption.At != "2025-11-15T13:36:21Z" {
-		return proof, errors.New("File Diet frozen adoption changed")
+		return proof, errors.New("file Diet frozen adoption changed")
 	}
 	discoveryStart := proof.Adoption.At
 	field := "created"
@@ -571,7 +573,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 			}](ctx, read, endpoint, "")
 			if err != nil || batch.IncompleteResults || batch.TotalCount >= 1000 || batch.Items == nil ||
 				total >= 0 && total != batch.TotalCount {
-				return proof, errors.New("File Diet issue search coverage is incomplete")
+				return proof, errors.New("file Diet issue search coverage is incomplete")
 			}
 			total = batch.TotalCount
 			count += len(batch.Items)
@@ -592,7 +594,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 			}
 		}
 		if count != total {
-			return proof, errors.New("File Diet issue search coverage was truncated")
+			return proof, errors.New("file Diet issue search coverage was truncated")
 		}
 		proof.Discovery = append(proof.Discovery, fileDietDiscovery{query, total, true})
 	}
@@ -612,6 +614,9 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 			continue
 		}
 		ref, err := fileDietReferenceFor(item.Body)
+		if errors.Is(err, errFileDietReferenceNotFound) {
+			continue
+		}
 		if err != nil {
 			return proof, err
 		}
@@ -620,7 +625,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 		}
 	}
 	if len(issueNumbers) == 0 || len(issueNumbers) > 200 {
-		return proof, errors.New("File Diet tracked output collection budget exceeded or no outputs found")
+		return proof, errors.New("file Diet tracked output collection budget exceeded or no outputs found")
 	}
 	numbers := make([]int, 0, len(issueNumbers))
 	for number := range issueNumbers {
@@ -644,7 +649,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 		item := newlySelected[number]
 		ref, err := fileDietReferenceFor(item.Body)
 		if err != nil || ref == nil {
-			return proof, errors.New("File Diet output tracking changed")
+			return proof, errors.New("file Diet output tracking changed")
 		}
 		run := fileDietRun{Unavailable: json.RawMessage("null")}
 		var artifacts json.RawMessage = []byte("null")
@@ -688,7 +693,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 					strings.Split(producer.Path, "@")[0] != ".github/workflows/daily-file-diet.lock.yml" ||
 					!validFileDietSHA(producer.HeadSHA) ||
 					ref.Attempt != nil && producer.RunAttempt != *ref.Attempt {
-					return proof, errors.New("File Diet producer run does not match workflow, repository, revision or attempt")
+					return proof, errors.New("file Diet producer run does not match workflow, repository, revision or attempt")
 				}
 				run.Validation = &fileDietValidation{"verified-run-reference", producer.HeadSHA,
 					producer.RunAttempt, fileDietSourcePath, producer.CreatedAt, producer.HTMLURL,
@@ -738,6 +743,9 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 			continue
 		}
 		ref, err := fileDietReferenceFor(item.Body)
+		if errors.Is(err, errFileDietReferenceNotFound) {
+			continue
+		}
 		if err != nil {
 			return proof, err
 		}
@@ -872,7 +880,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 		}
 	}
 	if len(cutoffs) == 4096 {
-		return proof, errors.New("File Diet snapshot cadence exceeds bounded collection")
+		return proof, errors.New("file Diet snapshot cadence exceeds bounded collection")
 	}
 	cutoffs = append(cutoffs, cutoff)
 	for _, at := range cutoffs {

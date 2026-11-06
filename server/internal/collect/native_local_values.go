@@ -309,8 +309,8 @@ func nativeLocalValueRetainedRows(retained, rows []model.Row) []model.Row {
 	}
 	kept := retained[:0]
 	for _, row := range retained {
-		if !updated[key(row)] && !(nativeLocalValueLegacyDependabotMissing(row) &&
-			legacyReplacements[nativeLocalValueWindowKey(row)]) {
+		if !updated[key(row)] && (!nativeLocalValueLegacyDependabotMissing(row) ||
+			!legacyReplacements[nativeLocalValueWindowKey(row)]) {
 			kept = append(kept, row)
 		}
 	}

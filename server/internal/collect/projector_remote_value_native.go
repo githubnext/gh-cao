@@ -97,7 +97,7 @@ func fileDietRequirement(endpoint, query string) (remoteValueRequirement, error)
 	case fileDietPullEndpoint.MatchString(endpoint):
 		return lookup("github.pull-metadata-files.v1")
 	}
-	return remoteValueRequirement{}, errors.New("File Diet GitHub request has no reviewed acquisition requirement")
+	return remoteValueRequirement{}, errors.New("file Diet GitHub request has no reviewed acquisition requirement")
 }
 
 type nativeFileDietReader struct {
@@ -132,7 +132,7 @@ func (r *nativeFileDietReader) read(ctx context.Context, endpoint, query string,
 			if status == http.StatusNotFound && fileDietRunEndpoint.MatchString(endpoint) {
 				value = []byte(fmt.Sprintf(`{"unavailable":{"status":404,"endpoint":%q,"reason":"Producer run is no longer available"}}`, endpoint))
 			} else {
-				return nil, fmt.Errorf("File Diet GitHub evidence unavailable (HTTP %d)", status)
+				return nil, fmt.Errorf("file Diet GitHub evidence unavailable (HTTP %d)", status)
 			}
 		}
 	}
@@ -144,7 +144,7 @@ func (r *nativeFileDietReader) read(ctx context.Context, endpoint, query string,
 		decoder := json.NewDecoder(bytes.NewReader(value))
 		decoder.UseNumber()
 		if err := decoder.Decode(&payload); err != nil || payload == nil {
-			return nil, errors.New("File Diet GitHub response is not complete JSON")
+			return nil, errors.New("file Diet GitHub response is not complete JSON")
 		}
 		if query != "" {
 			var graph struct {
@@ -153,7 +153,7 @@ func (r *nativeFileDietReader) read(ctx context.Context, endpoint, query string,
 			}
 			if err := json.Unmarshal(value, &graph); err != nil || len(graph.Data) == 0 ||
 				bytes.Equal(graph.Data, []byte("null")) || len(graph.Errors) != 0 {
-				return nil, errors.New("File Diet GraphQL response is incomplete")
+				return nil, errors.New("file Diet GraphQL response is incomplete")
 			}
 		}
 	}

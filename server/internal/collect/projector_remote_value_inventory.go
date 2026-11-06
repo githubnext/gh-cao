@@ -137,7 +137,7 @@ func fileDietAcquireInventories(
 		newFiles[revision] = files
 	}
 	if len(blobs)+len(newBlobs) > 50000 {
-		return result, errors.New("File Diet native blob measurement budget exceeded")
+		return result, errors.New("file Diet native blob measurement budget exceeded")
 	}
 	newSHA := make([]string, 0, len(newBlobs))
 	for blob := range newBlobs {
@@ -237,7 +237,7 @@ func fileDietBuildProofFiles(
 		size += int64(len(content))
 		if len(content) > postgresx.ValueProofFileMax || size > postgresx.ValueProofMaxBytes ||
 			len(files) > postgresx.ValueProofMaxFiles {
-			return nil, errors.New("File Diet retained proof exceeds PostgreSQL file budget")
+			return nil, errors.New("file Diet retained proof exceeds PostgreSQL file budget")
 		}
 		projection = append(projection, postgresx.ValueProofFile{Path: "report/proof/" + name, Content: content})
 	}

@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/sha1"
+	"crypto/sha1" // #nosec G505 -- test fixture uses Git's SHA-1 object format.
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -23,7 +24,7 @@ func testFileDietSHA(character string) string { return strings.Repeat(character,
 
 func TestNativeFileDietBlobBatchIsBoundedAndVerified(t *testing.T) {
 	content := []byte("first\nsecond\n")
-	sum := sha1.Sum(append([]byte(fmt.Sprintf("blob %d\x00", len(content))), content...))
+	sum := sha1.Sum(append([]byte(fmt.Sprintf("blob %d\x00", len(content))), content...)) // #nosec G401 -- validates Git's SHA-1 blob object identifier.
 	sha := fmt.Sprintf("%x", sum)
 	packet := append([]byte(fmt.Sprintf("%s blob %d\n", sha, len(content))), content...)
 	packet = append(packet, '\n')
@@ -199,7 +200,7 @@ func TestNativeFileDietRequiresFrozenManifestAndScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	instrument, err := os.ReadFile(filepath.Join(root, ".github", "skills", "add-operational-value",
-		"examples", "acquire-file-diet.mjs"))
+		"examples", "acquire-file-diet.mjs")) // #nosec G304 -- reads a fixed reviewed source under the repository root.
 	if err != nil || fileDietRawBytesDigest(instrument) != fileDietAcquisitionInstrumentSHA {
 		t.Fatalf("reviewed acquisition instrument changed without the native equivalent: %v", err)
 	}
@@ -333,8 +334,8 @@ func TestNativeFileDietGitScopeAndNoAmbientCredentials(t *testing.T) {
 	if _, err := parseFileDietTree([]byte("120000 blob "+testFileDietSHA("a")+"\tpkg/link.go\x00"), "docs/", 1); err == nil {
 		t.Fatal("out-of-scope immutable Git tree admitted")
 	}
-	if _, err := fileDietReferenceFor("<!-- gh-aw-workflow-id: another -->"); err != nil {
-		t.Fatal(err)
+	if _, err := fileDietReferenceFor("<!-- gh-aw-workflow-id: another -->"); !errors.Is(err, errFileDietReferenceNotFound) {
+		t.Fatalf("unrelated tracking marker was not treated as absent: %v", err)
 	}
 }
 

@@ -80,16 +80,18 @@ func dependabotValueCutoff(at time.Time) time.Time {
 	if at.Before(adoption.Add(period)) {
 		return time.Time{}
 	}
-	return adoption.Add(time.Duration(at.Sub(adoption)/period) * period)
+	elapsedNanos := at.Sub(adoption).Nanoseconds()
+	periodNanos := period.Nanoseconds()
+	return adoption.Add(time.Duration(elapsedNanos / periodNanos * periodNanos))
 }
 
 func dependabotValueTime(value string, observed time.Time) (time.Time, error) {
 	if value == "" || !strings.HasSuffix(value, "Z") {
-		return time.Time{}, errors.New("Dependabot lifecycle timestamp missing or not UTC")
+		return time.Time{}, errors.New("dependabot lifecycle timestamp missing or not UTC")
 	}
 	at, err := time.Parse(time.RFC3339Nano, value)
 	if err != nil || at.After(observed) {
-		return time.Time{}, errors.New("Dependabot lifecycle timestamp malformed or in the future")
+		return time.Time{}, errors.New("dependabot lifecycle timestamp malformed or in the future")
 	}
 	return at, nil
 }
@@ -119,24 +121,25 @@ type dependabotValueEvent struct {
 func dependabotValueRecord(record dependabotValueLifecycle, observed time.Time, pull bool) (dependabotValueEvent, error) {
 	created, err := dependabotValueTime(record.CreatedAt, observed)
 	if err != nil || record.Number <= 0 {
-		return dependabotValueEvent{}, errors.New("Dependabot lifecycle record lacks an authoritative identity or creation")
+		return dependabotValueEvent{}, errors.New("dependabot lifecycle record lacks an authoritative identity or creation")
 	}
 	event := dependabotValueEvent{created: created}
 	terminal := []*string{record.FixedAt, record.DismissedAt, record.AutoDismissedAt}
-	if pull {
+	switch {
+	case pull:
 		if record.User == nil || record.User.Login != "dependabot[bot]" ||
 			len(record.PullRequest) == 0 || bytes.Equal(record.PullRequest, []byte("null")) ||
 			(record.State != "open" && record.State != "closed") {
 			return event, errors.New("search result is not a Dependabot-authored pull request")
 		}
 		terminal = []*string{record.ClosedAt}
-	} else if record.SecurityAdvisory == nil ||
+	case record.SecurityAdvisory == nil ||
 		(record.SecurityAdvisory.Severity != "critical" && record.SecurityAdvisory.Severity != "high" &&
 			record.SecurityAdvisory.Severity != "medium" && record.SecurityAdvisory.Severity != "low") ||
 		(record.State != "open" && record.State != "fixed" &&
-			record.State != "dismissed" && record.State != "auto_dismissed") {
-		return event, errors.New("Dependabot alert lacks a valid severity or state")
-	} else {
+			record.State != "dismissed" && record.State != "auto_dismissed"):
+		return event, errors.New("dependabot alert lacks a valid severity or state")
+	default:
 		event.severity = record.SecurityAdvisory.Severity
 	}
 	for _, value := range terminal {
@@ -145,14 +148,14 @@ func dependabotValueRecord(record dependabotValueLifecycle, observed time.Time, 
 		}
 		ended, err := dependabotValueTime(*value, observed)
 		if err != nil || ended.Before(created) {
-			return event, errors.New("Dependabot lifecycle terminal timestamp is invalid")
+			return event, errors.New("dependabot lifecycle terminal timestamp is invalid")
 		}
 		if event.ended.IsZero() || ended.Before(event.ended) {
 			event.ended = ended
 		}
 	}
 	if (record.State == "open") != event.ended.IsZero() {
-		return event, errors.New("Dependabot lifecycle state contradicts its terminal timestamp")
+		return event, errors.New("dependabot lifecycle state contradicts its terminal timestamp")
 	}
 	return event, nil
 }
@@ -192,18 +195,18 @@ func dependabotValueNext(headers http.Header, base *url.URL, endpoint string) (s
 		if err != nil || next != "" || target.User != nil || target.Fragment != "" ||
 			target.Scheme != base.Scheme || target.Host != base.Host ||
 			target.Path != strings.TrimSuffix(base.Path, "/")+"/"+current.Path {
-			return "", errors.New("Dependabot pagination link escaped reviewed endpoint")
+			return "", errors.New("dependabot pagination link escaped reviewed endpoint")
 		}
 		query, err := url.ParseQuery(target.RawQuery)
 		if err != nil || len(query["after"]) != 1 || query.Get("after") == "" ||
 			query.Get("after") == current.Query().Get("after") {
-			return "", errors.New("Dependabot pagination link lacks a new cursor")
+			return "", errors.New("dependabot pagination link lacks a new cursor")
 		}
 		expected := current.Query()
 		expected.Del("after")
 		query.Del("after")
 		if query.Encode() != expected.Encode() {
-			return "", errors.New("Dependabot pagination link changed reviewed selection")
+			return "", errors.New("dependabot pagination link changed reviewed selection")
 		}
 		next = current.Path + "?" + target.RawQuery
 	}
@@ -221,18 +224,18 @@ func dependabotValueReadAlerts(ctx context.Context, api *remoteValueAPI, observe
 			return nil, err
 		}
 		if status != http.StatusOK {
-			return nil, fmt.Errorf("Dependabot alerts API returned status %d", status)
+			return nil, fmt.Errorf("dependabot alerts API returned status %d", status)
 		}
 		var rows []dependabotValueLifecycle
 		if err := json.Unmarshal(body, &rows); err != nil || rows == nil || len(rows) > 100 {
-			return nil, errors.New("Dependabot alert page is malformed")
+			return nil, errors.New("dependabot alert page is malformed")
 		}
 		next, err := dependabotValueNext(headers, api.base, endpoint)
 		if err != nil {
 			return nil, err
 		}
 		if next != "" && len(rows) != 100 || page == 100 && next != "" {
-			return nil, errors.New("Dependabot alert pagination is incomplete")
+			return nil, errors.New("dependabot alert pagination is incomplete")
 		}
 		for _, row := range rows {
 			if seen[row.Number] {
@@ -253,7 +256,7 @@ func dependabotValueReadAlerts(ctx context.Context, api *remoteValueAPI, observe
 		}
 		endpoint = next
 	}
-	return nil, errors.New("Dependabot alert pagination is incomplete")
+	return nil, errors.New("dependabot alert pagination is incomplete")
 }
 
 func dependabotValueReadPulls(ctx context.Context, api *remoteValueAPI, observed, cutoff time.Time) ([]dependabotValueEvent, error) {
@@ -270,7 +273,7 @@ func dependabotValueReadPulls(ctx context.Context, api *remoteValueAPI, observed
 			return nil, err
 		}
 		if status != http.StatusOK {
-			return nil, fmt.Errorf("Dependabot PR search returned status %d", status)
+			return nil, fmt.Errorf("dependabot PR search returned status %d", status)
 		}
 		var response struct {
 			TotalCount        *int                       `json:"total_count"`
@@ -281,15 +284,15 @@ func dependabotValueReadPulls(ctx context.Context, api *remoteValueAPI, observed
 			*response.TotalCount < 0 || *response.TotalCount > 1000 ||
 			response.IncompleteResults == nil || *response.IncompleteResults ||
 			response.Items == nil || len(response.Items) > 100 {
-			return nil, errors.New("Dependabot PR search is incomplete or malformed")
+			return nil, errors.New("dependabot PR search is incomplete or malformed")
 		}
 		if expected < 0 {
 			expected = *response.TotalCount
 		} else if expected != *response.TotalCount {
-			return nil, errors.New("Dependabot PR search total changed during pagination")
+			return nil, errors.New("dependabot PR search total changed during pagination")
 		}
 		if len(response.Items) != min(100, expected-len(events)) {
-			return nil, errors.New("Dependabot PR search page was truncated")
+			return nil, errors.New("dependabot PR search page was truncated")
 		}
 		for _, row := range response.Items {
 			if seen[row.Number] {
@@ -298,7 +301,7 @@ func dependabotValueReadPulls(ctx context.Context, api *remoteValueAPI, observed
 			seen[row.Number] = true
 			event, err := dependabotValueRecord(row, observed, true)
 			if err != nil || event.created.After(cutoff) {
-				return nil, errors.New("Dependabot PR search returned an invalid author, lifecycle or cutoff")
+				return nil, errors.New("dependabot PR search returned an invalid author, lifecycle or cutoff")
 			}
 			events = append(events, event)
 		}
@@ -306,7 +309,7 @@ func dependabotValueReadPulls(ctx context.Context, api *remoteValueAPI, observed
 			return events, nil
 		}
 	}
-	return nil, errors.New("Dependabot PR search exceeded ten pages")
+	return nil, errors.New("dependabot PR search exceeded ten pages")
 }
 
 func dependabotValueCounts(alerts, pulls []dependabotValueEvent, cutoff time.Time) [3]int {
@@ -407,7 +410,7 @@ func dependabotValuePacket(metric dependabotValueMetric, previous model.Row, cut
 	}
 	encoded, err := json.Marshal(packet)
 	if err != nil || len(encoded) > (8<<20)-1024 || len(facts) > 20000 {
-		return nil, errors.New("Dependabot evidence packet exceeds its byte budget")
+		return nil, errors.New("dependabot evidence packet exceeds its byte budget")
 	}
 	return packet, nil
 }
@@ -457,11 +460,12 @@ func (p Projector) collectDependabotValue(
 			resultErr = errors.Join(resultErr, err)
 		}
 		state := "available"
-		if resultErr != nil {
+		switch {
+		case resultErr != nil:
 			state, reason = "failed", nativeRemoteValueFailure(ctx, resultErr)
-		} else if outputBytes == 4 {
+		case outputBytes == 4:
 			reason = "not-due"
-		} else {
+		default:
 			reason = "captured"
 		}
 		if err := p.RecordNativeValueAttempt(costCtx, repository, entry.Workflow, started, state, reason); err != nil {
@@ -480,7 +484,7 @@ func (p Projector) collectDependabotValue(
 		return err
 	}
 	observed := time.Now().UTC().Truncate(time.Microsecond)
-	packets, proof, skipped, err := acquireNativeDependabotValue(ctx, api, previous, observed)
+	packets, skipped, err := acquireNativeDependabotValue(ctx, api, previous, observed)
 	if err != nil {
 		return err
 	}
@@ -496,33 +500,33 @@ func (p Projector) collectDependabotValue(
 		outputBytes += int64(len(content))
 	}
 	if outputBytes > (8<<20)-1024 {
-		return errors.New("Dependabot evidence batch exceeds its byte budget")
+		return errors.New("dependabot evidence batch exceeds its byte budget")
 	}
 	if err := p.remoteValueRegistrationCurrent(ctx, repository, installation, entry, policyDigest); err != nil {
 		return err
 	}
-	_, err = p.Data.Acquisition().PublishValueBatch(ctx, *p.nativeValueScope, previous, packets, proof, time.Now().UTC())
+	_, err = p.Data.Acquisition().PublishValueBatch(ctx, *p.nativeValueScope, previous, packets, nil, time.Now().UTC())
 	return err
 }
 
-func acquireNativeDependabotValue(ctx context.Context, api *remoteValueAPI, previous []model.Row, observed time.Time) ([]model.Row, []postgresx.ValueProofFile, bool, error) {
+func acquireNativeDependabotValue(ctx context.Context, api *remoteValueAPI, previous []model.Row, observed time.Time) ([]model.Row, bool, error) {
 	cutoff := dependabotValueCutoff(observed)
 	if cutoff.IsZero() {
-		return nil, nil, true, nil
+		return nil, true, nil
 	}
 	if len(previous) != 0 && len(previous) != len(dependabotValueMetrics) {
-		return nil, nil, false, errors.New("incomplete retained Dependabot metric batch")
+		return nil, false, errors.New("incomplete retained Dependabot metric batch")
 	}
 	starting := make(map[string]model.Row, len(previous))
 	complete := len(previous) == len(dependabotValueMetrics)
 	var retainedCutoff string
 	for _, packet := range previous {
 		if packet == nil {
-			return nil, nil, false, errors.New("retained Dependabot metric is missing")
+			return nil, false, errors.New("retained Dependabot metric is missing")
 		}
 		facts, ok := packet["facts"].([]any)
 		if !ok {
-			return nil, nil, false, errors.New("retained Dependabot facts are malformed")
+			return nil, false, errors.New("retained Dependabot facts are malformed")
 		}
 		var metricID string
 		var contract map[string]any
@@ -530,12 +534,12 @@ func acquireNativeDependabotValue(ctx context.Context, api *remoteValueAPI, prev
 		for _, item := range facts {
 			row, ok := item.(map[string]any)
 			if !ok {
-				return nil, nil, false, errors.New("retained Dependabot fact is malformed")
+				return nil, false, errors.New("retained Dependabot fact is malformed")
 			}
 			switch row["fact-kind"] {
 			case "contract":
 				if contract != nil {
-					return nil, nil, false, errors.New("retained Dependabot contract is duplicated")
+					return nil, false, errors.New("retained Dependabot contract is duplicated")
 				}
 				contract = row
 				metricID, _ = row["metric-id"].(string)
@@ -545,7 +549,7 @@ func acquireNativeDependabotValue(ctx context.Context, api *remoteValueAPI, prev
 					row["items-available"] == false && row["value"] != nil {
 					value, err := strconv.Atoi(fmt.Sprint(row["value"]))
 					if err != nil || value < 0 {
-						return nil, nil, false, errors.New("retained Dependabot snapshot is not a native count")
+						return nil, false, errors.New("retained Dependabot snapshot is not a native count")
 					}
 					latest = true
 				}
@@ -553,7 +557,7 @@ func acquireNativeDependabotValue(ctx context.Context, api *remoteValueAPI, prev
 				coverageEnd, err := time.Parse(time.RFC3339Nano, fmt.Sprint(row["end-at"]))
 				coverageStart, startErr := time.Parse(time.RFC3339Nano, fmt.Sprint(row["at"]))
 				if err != nil || startErr != nil {
-					return nil, nil, false, errors.New("retained Dependabot coverage is malformed")
+					return nil, false, errors.New("retained Dependabot coverage is malformed")
 				}
 				if row["end-at"] == packet["windowEnd"] && row["coverage-status"] == "complete" &&
 					row["fact-id"] == "cutoff:"+fmt.Sprint(packet["windowEnd"]) &&
@@ -563,7 +567,7 @@ func acquireNativeDependabotValue(ctx context.Context, api *remoteValueAPI, prev
 			}
 		}
 		if metricID == "" || starting[metricID] != nil {
-			return nil, nil, false, errors.New("retained Dependabot metric identity is invalid")
+			return nil, false, errors.New("retained Dependabot metric identity is invalid")
 		}
 		var known bool
 		for _, metric := range dependabotValueMetrics {
@@ -574,37 +578,37 @@ func acquireNativeDependabotValue(ctx context.Context, api *remoteValueAPI, prev
 				if packet["contractDigest"] != digest || !bytes.Equal(frozenBytes, retainedBytes) ||
 					packet["id"] != "operational-value-evidence:"+url.QueryEscape(dependabotValueRepository+":"+dependabotValueWorkflow+":"+metric.id+":"+dependabotValueVersion) ||
 					packet["windowStart"] != dependabotValueAdoption {
-					return nil, nil, false, errors.New("retained Dependabot contract changed")
+					return nil, false, errors.New("retained Dependabot contract changed")
 				}
 				known = true
 				break
 			}
 		}
 		if !known {
-			return nil, nil, false, errors.New("retained Dependabot metric is not frozen")
+			return nil, false, errors.New("retained Dependabot metric is not frozen")
 		}
 		starting[metricID] = packet
 		parsed, err := time.Parse(time.RFC3339Nano, fmt.Sprint(packet["windowEnd"]))
 		if err != nil || parsed.After(cutoff) ||
 			retainedCutoff != "" && retainedCutoff != fmt.Sprint(packet["windowEnd"]) {
-			return nil, nil, false, errors.New("retained Dependabot cutoff is invalid")
+			return nil, false, errors.New("retained Dependabot cutoff is invalid")
 		}
 		retainedCutoff = fmt.Sprint(packet["windowEnd"])
 		complete = complete && !parsed.Before(cutoff) && latest && coverage
 	}
 	if retainedCutoff == cutoff.Format(time.RFC3339) && !complete {
-		return nil, nil, false, errors.New("retained Dependabot cutoff is incomplete; immutable evidence cannot be refreshed")
+		return nil, false, errors.New("retained Dependabot cutoff is incomplete; immutable evidence cannot be refreshed")
 	}
 	if complete {
-		return nil, nil, true, nil
+		return nil, true, nil
 	}
 	alerts, err := dependabotValueReadAlerts(ctx, api, observed)
 	if err != nil {
-		return nil, nil, false, err
+		return nil, false, err
 	}
 	pulls, err := dependabotValueReadPulls(ctx, api, observed, cutoff)
 	if err != nil {
-		return nil, nil, false, err
+		return nil, false, err
 	}
 	counts := dependabotValueCounts(alerts, pulls, cutoff)
 	packets := make([]model.Row, 0, len(dependabotValueMetrics))
@@ -612,14 +616,14 @@ func acquireNativeDependabotValue(ctx context.Context, api *remoteValueAPI, prev
 	for i, metric := range dependabotValueMetrics {
 		packet, err := dependabotValuePacket(metric, starting[metric.id], cutoff, observed, counts[i])
 		if err != nil {
-			return nil, nil, false, err
+			return nil, false, err
 		}
 		content, _ := json.Marshal(packet)
 		size += len(content)
 		if size > (8<<20)-1024 {
-			return nil, nil, false, errors.New("Dependabot metric batch exceeds its byte budget")
+			return nil, false, errors.New("dependabot metric batch exceeds its byte budget")
 		}
 		packets = append(packets, packet)
 	}
-	return packets, nil, false, nil
+	return packets, false, nil
 }

@@ -33,13 +33,17 @@ var dependabotMetrics = []struct {
 		"774112c80afca79b272669e30a75dc5b1216191f9345e6e14970863bb617652a"},
 }
 
+var errDependabotEvidenceUnavailable = errors.New("dependabot evidence unavailable")
+
 func dependabotCutoff(observed time.Time) (time.Time, bool) {
 	adoption, _ := time.Parse(time.RFC3339, dependabotAdoption)
 	period := 7 * 24 * time.Hour
 	if observed.Before(adoption.Add(period)) {
 		return time.Time{}, false
 	}
-	return adoption.Add(observed.Sub(adoption) / period * period), true
+	elapsedNanos := observed.Sub(adoption).Nanoseconds()
+	periodNanos := period.Nanoseconds()
+	return adoption.Add(time.Duration(elapsedNanos / periodNanos * periodNanos)), true
 }
 
 func reviewedDependabotEvidence(reviewed valuePolicy) bool {
@@ -83,11 +87,11 @@ func readDependabotSnapshot(
 		return nil, errors.New("hosted Dependabot canonical query did not return its source")
 	}
 	if source.Metadata["availability"] != "available" || len(source.Rows) == 0 {
-		return nil, nil
+		return nil, errDependabotEvidenceUnavailable
 	}
 	var result dependabotSnapshot
 	var captured bool
-	seen := [3][3]bool{}
+	seen := make(map[string]map[string]bool, len(dependabotMetrics))
 	for _, row := range source.Rows {
 		id := textField(row, "report-id")
 		index := -1
@@ -97,8 +101,11 @@ func readDependabotSnapshot(
 				break
 			}
 		}
-		if index < 0 {
+		if index < 0 || index >= len(dependabotMetrics) {
 			return nil, errors.New("unreviewed Dependabot metric packet in canonical query")
+		}
+		if seen[id] == nil {
+			seen[id] = make(map[string]bool, 3)
 		}
 		capture, err := time.Parse(time.RFC3339Nano, textField(row, "observed-at"))
 		if err != nil || capture.Before(cutoff) || capture.After(time.Now()) ||
@@ -107,49 +114,50 @@ func readDependabotSnapshot(
 		}
 		end, err := time.Parse(time.RFC3339Nano, textField(row, "window-end"))
 		if err != nil || !end.Equal(cutoff) || captured && !result.capture.Equal(capture) {
-			return nil, errors.New("Dependabot evidence packets disagree on their capture or cutoff")
+			return nil, errors.New("dependabot evidence packets disagree on their capture or cutoff")
 		}
 		captured, result.capture = true, capture
 		if textField(row, "contract-digest") != dependabotMetrics[index].digest {
-			return nil, errors.New("Dependabot evidence changed its frozen contract digest")
+			return nil, errors.New("dependabot evidence changed its frozen contract digest")
 		}
 		switch textField(row, "fact-kind") {
 		case "contract":
-			if seen[index][0] || textField(row, "fact-id") != "contract" ||
+			if seen[id]["contract"] || textField(row, "fact-id") != "contract" ||
 				textField(row, "metric-id") != dependabotMetrics[index].id ||
 				textField(row, "metric-name") != dependabotMetrics[index].name ||
 				textField(row, "metric-unit") != dependabotMetrics[index].unit ||
 				textField(row, "snapshot-id") != dependabotMetrics[index].id ||
 				textField(row, "metric-direction") != "decrease" ||
 				textField(row, "metric-version") != "dependabot-lifecycle-v1" {
-				return nil, errors.New("Dependabot evidence changed its frozen metric contract")
+				return nil, errors.New("dependabot evidence changed its frozen metric contract")
 			}
-			seen[index][0] = true
+			seen[id]["contract"] = true
 		case "snapshot":
 			at, err := time.Parse(time.RFC3339Nano, textField(row, "at"))
 			value, valid := safeValueCount(row["value"])
-			if seen[index][1] || textField(row, "fact-id") != factID ||
+			if seen[id]["snapshot"] || textField(row, "fact-id") != factID ||
 				err != nil || !at.Equal(cutoff) || !valid ||
 				row["items-available"] != false {
-				return nil, errors.New("Dependabot snapshot is not a complete native count")
+				return nil, errors.New("dependabot snapshot is not a complete native count")
 			}
-			result.values[index], seen[index][1] = value, true
+			result.values[index], seen[id]["snapshot"] = value, true
 		case "coverage":
 			start, startErr := time.Parse(time.RFC3339Nano, textField(row, "at"))
 			end, endErr := time.Parse(time.RFC3339Nano, textField(row, "end-at"))
-			if seen[index][2] || textField(row, "fact-id") != factID ||
+			if seen[id]["coverage"] || textField(row, "fact-id") != factID ||
 				startErr != nil || endErr != nil || !start.Equal(cutoff.Add(-7*24*time.Hour)) ||
 				!end.Equal(cutoff) || row["coverage-status"] != "complete" {
-				return nil, errors.New("Dependabot evidence is missing complete cutoff coverage")
+				return nil, errors.New("dependabot evidence is missing complete cutoff coverage")
 			}
-			seen[index][2] = true
+			seen[id]["coverage"] = true
 		default:
 			return nil, errors.New("unexpected Dependabot fact in scoped cutoff query")
 		}
 	}
-	for _, kinds := range seen {
-		if !kinds[0] || !kinds[1] || !kinds[2] {
-			return nil, nil
+	for _, metric := range dependabotMetrics {
+		id := identity + url.QueryEscape(dependabotRepository+":"+dependabotWorkflow+":"+metric.id+":dependabot-lifecycle-v1")
+		if !seen[id]["contract"] || !seen[id]["snapshot"] || !seen[id]["coverage"] {
+			return nil, errDependabotEvidenceUnavailable
 		}
 	}
 	if result.values[1] > result.values[0] {
@@ -180,7 +188,7 @@ func writeDependabotValue(
 	if remote {
 		var err error
 		snapshot, err = readDependabotSnapshot(ctx, cutoff, execute)
-		if err != nil {
+		if err != nil && !errors.Is(err, errDependabotEvidenceUnavailable) {
 			return err
 		}
 	}

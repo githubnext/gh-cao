@@ -68,12 +68,12 @@ func TestDependabotValuePacketsReachProductionPostgresQuery(t *testing.T) {
 		}
 	})
 	observed := time.Now().UTC().Truncate(time.Microsecond)
-	packets, proof, skipped, err := acquireNativeDependabotValue(t.Context(), api, nil, observed)
+	packets, skipped, err := acquireNativeDependabotValue(t.Context(), api, nil, observed)
 	if err != nil || skipped || len(packets) != 3 || *calls != 2 {
 		t.Fatalf("complete empty lifecycles were not accepted: packets=%d skipped=%v calls=%d err=%v",
 			len(packets), skipped, *calls, err)
 	}
-	if _, err := data.Acquisition().PublishValueBatch(t.Context(), scope, nil, packets, proof, time.Now()); err != nil {
+	if _, err := data.Acquisition().PublishValueBatch(t.Context(), scope, nil, packets, nil, time.Now()); err != nil {
 		t.Fatalf("native Dependabot packets rejected by production canonical writer: %v", err)
 	}
 	restored, _, err := data.Acquisition().ReadValueBatch(t.Context(), scope, dependabotValueWorkflow)
@@ -405,7 +405,7 @@ func TestDependabotValuePaginationAndMalformedEvidence(t *testing.T) {
 					t.Errorf("unreviewed request: %s", request.URL)
 				}
 			})
-			_, _, _, err := acquireNativeDependabotValue(t.Context(), api, nil, observed)
+			_, _, err := acquireNativeDependabotValue(t.Context(), api, nil, observed)
 			if (err != nil) != testcase.wantErr || *calls > 2 {
 				t.Fatalf("acquisition error=%v, calls=%d", err, *calls)
 			}
@@ -434,7 +434,7 @@ func TestDependabotValueSearchPreflightUsesReviewedBudget(t *testing.T) {
 	}
 	api.searchQuota = fresh
 	observed, _ := time.Parse(time.RFC3339, "2026-09-25T00:00:00Z")
-	if packets, _, skipped, err := acquireNativeDependabotValue(t.Context(), api, nil, observed); err != nil || skipped || len(packets) != 3 || *calls != 3 {
+	if packets, skipped, err := acquireNativeDependabotValue(t.Context(), api, nil, observed); err != nil || skipped || len(packets) != 3 || *calls != 3 {
 		t.Fatalf("Search-quota preflight was omitted from the reviewed API budget: packets=%d skipped=%v calls=%d err=%v",
 			len(packets), skipped, *calls, err)
 	}
@@ -558,7 +558,7 @@ func TestDependabotValuePacketsPreserveOnlyAcquiredWindows(t *testing.T) {
 			_, _ = fmt.Fprint(writer, `[]`)
 		}
 	})
-	first, _, skipped, err := acquireNativeDependabotValue(t.Context(), api, nil, observed)
+	first, skipped, err := acquireNativeDependabotValue(t.Context(), api, nil, observed)
 	if err != nil || skipped || len(first) != 3 {
 		t.Fatalf("first collection: %v skip=%v packets=%d", err, skipped, len(first))
 	}
@@ -587,11 +587,11 @@ process.stdout.write(JSON.stringify(validateOperationalValueEvidence(JSON.parse(
 		}
 	}
 	startCalls := *calls
-	if _, _, skipped, err := acquireNativeDependabotValue(t.Context(), api, first, observed); err != nil || !skipped || *calls != startCalls {
+	if _, skipped, err := acquireNativeDependabotValue(t.Context(), api, first, observed); err != nil || !skipped || *calls != startCalls {
 		t.Fatalf("complete same cutoff reread GitHub: %v, %v, %d", err, skipped, *calls)
 	}
 	next := observed.Add(21 * 24 * time.Hour)
-	second, _, skipped, err := acquireNativeDependabotValue(t.Context(), api, first, next)
+	second, skipped, err := acquireNativeDependabotValue(t.Context(), api, first, next)
 	if err != nil || skipped {
 		t.Fatalf("new cutoff: %v, %v", err, skipped)
 	}
@@ -604,7 +604,7 @@ process.stdout.write(JSON.stringify(validateOperationalValueEvidence(JSON.parse(
 		}
 	}
 	partial := append([]model.Row(nil), first[:2]...)
-	if _, _, _, err := acquireNativeDependabotValue(t.Context(), api, partial, next); err == nil {
+	if _, _, err := acquireNativeDependabotValue(t.Context(), api, partial, next); err == nil {
 		t.Fatal("incomplete prior batch was treated as zero")
 	}
 	malformed := append([]model.Row(nil), first...)
@@ -621,7 +621,7 @@ process.stdout.write(JSON.stringify(validateOperationalValueEvidence(JSON.parse(
 	facts[1] = snapshot
 	altered["facts"] = facts
 	malformed[0] = altered
-	if _, _, _, err := acquireNativeDependabotValue(t.Context(), api, malformed, observed); err == nil {
+	if _, _, err := acquireNativeDependabotValue(t.Context(), api, malformed, observed); err == nil {
 		t.Fatal("malformed same-cutoff snapshot was reused")
 	}
 }

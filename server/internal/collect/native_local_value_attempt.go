@@ -46,7 +46,7 @@ func (p Projector) RecordNativeValueAttempt(
 		}
 	}
 	if selected == nil || selected.Collector == "" {
-		return errors.New("Value attempt lacks an enabled reviewed registration")
+		return errors.New("value attempt lacks an enabled reviewed registration")
 	}
 	scope, err := p.Enrollment.Authority.CurrentScope(ctx, repository)
 	if err != nil {

@@ -56,7 +56,7 @@ func fileDietHistoryPreserved(previous, next model.Row) error {
 		!fileDietTime(fmt.Sprint(next["observedAt"])).After(fileDietTime(fmt.Sprint(previous["observedAt"]))) ||
 		fileDietTime(fmt.Sprint(next["windowStart"])).After(fileDietTime(fmt.Sprint(previous["windowStart"]))) ||
 		fileDietTime(fmt.Sprint(next["windowEnd"])).Before(fileDietTime(fmt.Sprint(previous["windowEnd"]))) {
-		return errors.New("File Diet frozen contract, capture or history conflict")
+		return errors.New("file Diet frozen contract, capture or history conflict")
 	}
 	newFacts := map[string]map[string]any{}
 	for _, item := range next["facts"].([]any) {
@@ -79,7 +79,7 @@ func fileDietHistoryPreserved(previous, next model.Row) error {
 		if kind == "contract" {
 			for _, field := range []string{"outputs-available", "repository-state-available", "checks-available"} {
 				if old[field] == true && value[field] != true {
-					return errors.New("File Diet evidence availability was revoked")
+					return errors.New("file Diet evidence availability was revoked")
 				}
 				delete(left, field)
 				delete(right, field)
@@ -89,7 +89,7 @@ func fileDietHistoryPreserved(previous, next model.Row) error {
 		}
 		if kind == "output" || kind == "implementation" {
 			if old["origin"] != value["origin"] &&
-				!(old["origin"] == "corroborated" && value["origin"] == "receipt-verified") {
+				(old["origin"] != "corroborated" || value["origin"] != "receipt-verified") {
 				return errors.New("accepted File Diet origin changed")
 			}
 			delete(left, "origin")
@@ -160,7 +160,7 @@ func (p Projector) acquireNativeDailyFileDiet(
 		return nil, nil, false, err
 	}
 	if current.Adoption != prior.proof.Adoption {
-		return nil, nil, false, errors.New("File Diet frozen adoption changed")
+		return nil, nil, false, errors.New("file Diet frozen adoption changed")
 	}
 	if err := fileDietCollectReceipts(ctx, reader.read, &current, prior); err != nil {
 		return nil, nil, false, err
@@ -197,7 +197,7 @@ func (p Projector) acquireNativeDailyFileDiet(
 	if !strings.EqualFold(fmt.Sprint(packet["repository"]), entry.Repository) ||
 		packet["workflow"] != entry.Workflow || fileDietTime(fmt.Sprint(packet["observedAt"])).After(time.Now()) ||
 		fileDietTime(fmt.Sprint(packet["windowEnd"])).After(observedAt) {
-		return nil, nil, false, errors.New("File Diet evidence exceeds reviewed identity or capture cutoff")
+		return nil, nil, false, errors.New("file Diet evidence exceeds reviewed identity or capture cutoff")
 	}
 	if err := fileDietHistoryPreserved(previous, packet); err != nil {
 		return nil, nil, false, err

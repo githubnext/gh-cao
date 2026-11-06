@@ -328,7 +328,7 @@ func readBoundedValueFile(path string, limit int64) ([]byte, error) {
 
 func validateValuePolicy(document orderedObject, policy *valuePolicy) error {
 	if policy.Version != 1 || !valueGHAWPattern.MatchString(policy.GHAW) || document.object("control-plane") == nil {
-		return errors.New("Value requires a reviewed version 1 control policy")
+		return errors.New("value requires a reviewed version 1 control policy")
 	}
 	if _, ok := document.get("extends"); ok {
 		return errors.New("unresolved policy profile")
@@ -362,13 +362,13 @@ func validateValuePolicy(document orderedObject, policy *valuePolicy) error {
 		}
 	}
 	if _, exists := control.get("activity"); !exists || len(policy.Control.Activity.Repositories) == 0 {
-		return errors.New("Value requires explicit Activity repository scope")
+		return errors.New("value requires explicit Activity repository scope")
 	}
 	if err := allowedPolicyKeys(control.object("activity"), "repositories", "public-only"); err != nil {
 		return err
 	}
 	if _, ok := control.object("activity").get("repositories"); !ok {
-		return errors.New("Activity repositories must be explicitly reviewed")
+		return errors.New("activity repositories must be explicitly reviewed")
 	}
 	if value, exists := control.object("activity").get("public-only"); exists {
 		if _, ok := value.(bool); !ok {
@@ -397,7 +397,7 @@ func validateValuePolicy(document orderedObject, policy *valuePolicy) error {
 	}
 	for _, repository := range policy.Control.Activity.Repositories {
 		if !valuePolicyInScope(policy, policy.Control.Activity.Repositories, repository) {
-			return errors.New("Activity repository lies outside reviewed scope")
+			return errors.New("activity repository lies outside reviewed scope")
 		}
 	}
 	for name := range policy.Control.Campaigns {
@@ -462,13 +462,14 @@ func validateValuePolicy(document orderedObject, policy *valuePolicy) error {
 			}
 			metadata := raw.object("evidence")
 			if len(metadata) != 2 || !valueEvidencePattern.MatchString(evidence.Path) ||
-				!confinedValuePath(evidence.Path) || !(strings.HasSuffix(evidence.Path, ".jsonl") || strings.HasSuffix(evidence.Path, ".jsonl.gz")) ||
+				!confinedValuePath(evidence.Path) ||
+				(!strings.HasSuffix(evidence.Path, ".jsonl") && !strings.HasSuffix(evidence.Path, ".jsonl.gz")) ||
 				!sha256Fingerprint.MatchString(evidence.SHA256) {
 				return errors.New("invalid reviewed Value evidence import")
 			}
 		}
 		if len(entry.Acquisition) != 0 && entry.Collector == "" {
-			return errors.New("Value acquisition requires a reviewed collector")
+			return errors.New("value acquisition requires a reviewed collector")
 		}
 		if len(entry.Acquisition) != 0 {
 			if err := validateValueAcquisition(raw.object("acquisition")); err != nil {

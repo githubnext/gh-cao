@@ -89,7 +89,7 @@ func fileDietAppliedReceipt(content string, issue fileDietIssue) (fileDietReceip
 
 func fileDietZIPReceipt(content []byte) (string, error) {
 	if len(content) > 2<<20 {
-		return "", errors.New("File Diet receipt archive exceeds its byte budget")
+		return "", errors.New("file Diet receipt archive exceeds its byte budget")
 	}
 	reader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
 	if err != nil {
@@ -99,13 +99,13 @@ func fileDietZIPReceipt(content []byte) (string, error) {
 	for _, file := range reader.File {
 		if file.Name == "safe-output-items.jsonl" {
 			if selected != nil || file.UncompressedSize64 > 64<<10 || !file.Mode().IsRegular() {
-				return "", errors.New("File Diet receipt ZIP contains ambiguous or oversized safe output")
+				return "", errors.New("file Diet receipt ZIP contains ambiguous or oversized safe output")
 			}
 			selected = file
 		}
 	}
 	if selected == nil {
-		return "", errors.New("File Diet receipt ZIP lacks its applied safe output")
+		return "", errors.New("file Diet receipt ZIP lacks its applied safe output")
 	}
 	input, err := selected.Open()
 	if err != nil {
@@ -114,7 +114,7 @@ func fileDietZIPReceipt(content []byte) (string, error) {
 	defer func() { _ = input.Close() }()
 	decoded, err := io.ReadAll(io.LimitReader(input, 64<<10+1))
 	if err != nil || len(decoded) > 64<<10 {
-		return "", errors.New("File Diet receipt exceeds its decoded byte budget")
+		return "", errors.New("file Diet receipt exceeds its decoded byte budget")
 	}
 	return string(decoded), nil
 }
@@ -168,7 +168,7 @@ func fileDietCollectReceipts(
 				continue
 			}
 			if issue.Reference.RunID == nil || issue.Run.Validation == nil || artifact.ID <= 0 {
-				return errors.New("File Diet receipt lacks verified producer identity")
+				return errors.New("file Diet receipt lacks verified producer identity")
 			}
 			endpoint := fmt.Sprintf("repos/%s/actions/artifacts/%d", dailyFileDietRepository, artifact.ID)
 			var metadata struct {
@@ -192,11 +192,11 @@ func fileDietCollectReceipts(
 				metadata.Digest != artifact.Digest ||
 				strconv.FormatInt(metadata.WorkflowRun.ID, 10) != *issue.Reference.RunID ||
 				metadata.WorkflowRun.HeadSHA != issue.Run.Validation.HeadSHA {
-				return errors.New("File Diet receipt metadata identity mismatch")
+				return errors.New("file Diet receipt metadata identity mismatch")
 			}
 			content, err := read(ctx, endpoint+"/zip", "", true)
 			if err != nil || "sha256:"+fileDietRawBytesDigest(content) != metadata.Digest {
-				return errors.New("File Diet receipt archive digest mismatch")
+				return errors.New("file Diet receipt archive digest mismatch")
 			}
 			text, err := fileDietZIPReceipt(content)
 			if err != nil {

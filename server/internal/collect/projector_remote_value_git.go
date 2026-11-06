@@ -3,7 +3,7 @@ package collect
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
+	"crypto/sha1" // #nosec G505 -- Git repository object IDs use SHA-1 by design.
 	"encoding/hex"
 	"errors"
 	"fmt"
