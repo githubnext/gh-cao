@@ -88,12 +88,22 @@ describe('Campaigns shared canonical page subscription', () => {
   it('uses the same declarative binding and one dependency graph as Repository overview', () => {
     const repository = context.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === 'repository-detail');
     expect(page['query-binding']).toBe(contract['query-binding']);
+    expect(page.requires).toEqual(contract.requires);
     expect(repository['query-binding']).toBe(contract['query-binding']);
     expect(page.definition.views.map((/** @type {{ id: string }} */ view) => view.id)).toEqual(contract.views);
     const compiled = compileDashboardViewPayloadQueries(page, contract.page, { queries: context.queries });
     expect(compiled.queries.filter(query => String(query.name).endsWith(`:dependency:${contract['shared-dependency']}`))).toHaveLength(1);
     expect(compiled.aliases).toEqual(contract.views.map(viewId => `view:campaigns:${viewId}:campaign-inventory`));
     expect(page.definition.views[2].data['partial-source']).toBe('campaign-inventory-preview');
+  });
+
+  it('resolves the bounded navigation prerequisite through the production worker', async () => {
+    const sources = /** @type {Record<string, Source>} */ (await processDataRequest({
+      operation: 'query-canonical-dashboard', sourceNames: [contract.requires.source], context
+    }));
+    expect(sources[contract.requires.source].rows).toHaveLength(1);
+    expect(sources[contract.requires.source].rows[0]).toHaveProperty('campaign');
+    expect(sources[contract.requires.source].metadata.availability).toBe('available');
   });
 
   it('evaluates once and preserves all three independent view payloads and metadata', async () => {

@@ -9,6 +9,7 @@ import { validateEnumeratedFilterValue, validateEnumeratedMetadataValue, validat
 import { resolveReusablePageViews } from './validator-state.js';
 import { createDebug } from './debug.js';
 import { validFacetDefinition } from './data/queries/facet.js';
+import { DATABASE_QUERY_SOURCE_TABLES } from './specification.js';
 
 /** @typedef {import('./validator.js').ValidationError} ValidationError */
 
@@ -174,6 +175,7 @@ export function validateQueries(queries, queriesNode, errors) {
       for (const input of inputs) {
         if (typeof input !== 'string') continue;
         if (QUERY_SOURCE_VALUES.includes(input)) tables.add(input);
+        if (DATABASE_QUERY_SOURCE_TABLES[input]) tables.add(DATABASE_QUERY_SOURCE_TABLES[input]);
         for (const table of state.declaredQueryTables.get(input) ?? []) tables.add(table);
       }
       state.declaredQueryTables.set(name, tables);

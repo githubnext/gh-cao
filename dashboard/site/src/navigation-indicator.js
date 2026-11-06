@@ -1,4 +1,5 @@
 import { createDebug } from './debug.js';
+import { pageRequiredSource } from './view-availability.js';
 
 const debugNavigationIndicator = createDebug('navigation-indicator');
 
@@ -48,8 +49,8 @@ export function navigationIndicatorSourceNames(pages) {
  */
 export function navigationIndicatorSourceNamesForPage(page) {
   const indicator = navigationIndicator(page);
-  if (!indicator) return [];
-  return indicator.sources;
+  const required = pageRequiredSource(page);
+  return [...(indicator?.sources ?? []), ...(required ? [required] : [])];
 }
 
 /** @param {unknown} value @returns {value is Record<string, unknown>} */

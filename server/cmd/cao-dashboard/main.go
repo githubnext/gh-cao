@@ -695,6 +695,7 @@ func newServeCommand() *cobra.Command {
 	mcpContract := cmd.Flags().String("mcp-contract", "../dashboard/site/src/agent/mcp-contract.json", "shared MCP tool contract")
 	mcpEnabled := cmd.Flags().Bool("mcp-enabled", false, "serve the read-only MCP endpoint at /mcp")
 	canvasConfigPath := cmd.Flags().String("canvas-config", "", "private local Copilot adapter configuration; stdin owns the host lifetime")
+	exitOnStdinClose := cmd.Flags().Bool("exit-on-stdin-close", false, "stop local SQLite serving when the owning CLI closes stdin")
 	cmd.MarkFlagsMutuallyExclusive("sqlite", "postgres-url")
 	cmd.MarkFlagsMutuallyExclusive("sqlite", "redis-url")
 	cmd.MarkFlagsMutuallyExclusive("sqlite", "source")
@@ -735,6 +736,9 @@ func newServeCommand() *cobra.Command {
 		if canvas != nil && !localSQLite {
 			return errors.New("canvas integration requires local SQLite serving")
 		}
+		if *exitOnStdinClose && !localSQLite {
+			return errors.New("--exit-on-stdin-close requires local SQLite serving")
+		}
 		snapshotPath := strings.TrimSpace(*sqlitePath)
 		if localSQLite {
 			if snapshotPath == "" {
@@ -764,7 +768,7 @@ func newServeCommand() *cobra.Command {
 		commandLog.Printf("serve flags parsed tls=%t source_ingestion=%t", *cert != "", *source != "")
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
-		if canvas != nil {
+		if canvas != nil || *exitOnStdinClose {
 			go func() {
 				_, _ = io.Copy(io.Discard, cmd.InOrStdin())
 				stop()

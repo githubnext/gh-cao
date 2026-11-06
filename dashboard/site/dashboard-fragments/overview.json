@@ -1651,20 +1651,6 @@
       "navigation-label": "Cost",
       "icon": "credit-card",
       "description": "Identify the strongest concentration of observed AI Credit usage for investigation.",
-      "sections": [
-        {
-          "id": "cost-estimates",
-          "title": "Cost estimates",
-          "description": "All costs shown are estimates. Review your billing dashboard for precise numbers.",
-          "layout": "full",
-          "views": [
-            "cost-by-repository",
-            "cost-by-workflow",
-            "cost-per-workflow-run",
-            "engines-models-aic-insights"
-          ]
-        }
-      ],
       "views": [
         {
           "id": "cost-by-repository",
@@ -1672,7 +1658,7 @@
           "subject": "Compare observed AI Credit cost across repositories in the selected scope and time window.",
           "objective": "Identify repositories whose cost merits closer inspection.",
           "acceptance": "Any unusual repository cost is checked against fresh run evidence, without inferring value from cost alone.",
-          "description": "The share of observed AI Credit cost attributed to each repository.",
+          "description": "All costs shown are estimates. Review your billing dashboard for precise numbers. The share of observed AI Credit cost attributed to each repository.",
           "data": {
             "source": "cost-by-repository"
           },

@@ -9,6 +9,9 @@ import { readCanonicalBatch } from '../../src/data/storage/indexeddb.js';
 import { createSqliteIndexedDB, SqliteIDBKeyRange } from '../../src/data/storage/sqlite-indexeddb.js';
 import { normalizedActivityShards } from './normalized-shard.js';
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
+import immediateContract from '../fixtures/local-dashboard-contract.json' with { type: 'json' };
+import immediateProfile from '../../dashboard-fragments/immediate-profile.json' with { type: 'json' };
+import { composeImmediateDashboard } from '../../../report/compose-immediate-dashboard.mjs';
 
 const siteRoot = fileURLToPath(new URL('../..', import.meta.url));
 const databaseName = 'gh-aw-cao-dashboard-data';
@@ -499,6 +502,90 @@ test('Evals renders persisted artifact answers from the real data worker after r
   await expect(chart).toBeVisible();
   expect(await chart.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
 });
+
+/** @param {import('@playwright/test').Page} page @param {'chart'|'table'} mode @param {number} width */
+async function selectLocalDashboardMode(page, mode, width) {
+  const active = page.locator('.dashboard-page:visible');
+  await expect(active).toHaveAttribute('data-view-mode', /^(chart|cards|table)$/);
+  if (width >= 768) {
+    await page.locator(`[data-view-mode-value="${mode}"]:visible`).click();
+    await expect(active).toHaveAttribute('data-view-mode', mode);
+    return;
+  }
+  const toggle = page.locator('.mobile-view-mode-toggle');
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const before = await active.getAttribute('data-view-mode');
+    if (before === mode) return;
+    await toggle.click();
+    await expect(active).not.toHaveAttribute('data-view-mode', before ?? '');
+  }
+  await expect(active).toHaveAttribute('data-view-mode', mode);
+}
+
+for (const width of [1200, 390]) {
+  test(`Local acquisition preserves normal navigation and daily views at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    const document = composeImmediateDashboard(authoritativeDashboard, immediateProfile);
+    await page.evaluate(async ({ input, batch }) => {
+      const storage = await import(`${location.origin}/src/data/storage/indexeddb.js`);
+      batch.runs[0].startedAt = new Date().toISOString();
+      batch.runs[0].createdAt = batch.runs[0].startedAt;
+      await storage.upsertCanonicalBatch(indexedDB, batch);
+      const processor = await import(`${location.origin}/src/data-processor.js`);
+      const chunks = await import(`${location.origin}/src/dashboard-chunks.js`);
+      let sources = {};
+      for (const selected of input.dashboard.pages.filter((page) => ['overview', 'repositories', 'workflows', 'runs', 'cost'].includes(page.id ?? ''))) {
+        const names = chunks.dashboardPageAllSourceNames({
+          languageVersion: input['language-version'], dashboard: input.dashboard
+        }, selected.id ?? '', 'all');
+        const payload = await processor.loadCanonicalDashboardPage(names, input.dashboard, undefined, {
+          pageId: selected.id
+        });
+        sources = { ...sources, ...payload };
+      }
+      const presenter = await import(`${location.origin}/src/presenter.js`);
+      window.history.replaceState(null, '', '#page-overview');
+      window.document.body.append(presenter.renderDashboard({ document: input, sources }));
+    }, { input: document, batch: structuredClone(immediateContract.batch) });
+    await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
+    await expect(page.locator('[data-view-id="overview-header"] #agent-factory-heading')).toBeVisible();
+    await expect(page.locator('[data-view-id="overview-floor"]')).toContainText('Factory health');
+    for (const id of ['repositories', 'workflows', 'runs', 'cost']) {
+      if (width < 768) await page.getByRole('button', { name: 'Select view', exact: true }).click();
+      await page.locator(`a[href="#page-${id}"]:visible`).first().click();
+      const active = page.locator(`#page-${id}`);
+      await expect(active).toBeVisible();
+      await expect(active).not.toContainText('data query failed');
+      if (id === 'repositories') await expect(active).toContainText('octo/api');
+      if (id === 'workflows') {
+        await selectLocalDashboardMode(page, 'table', width);
+        await expect(active).toContainText('Agent');
+      }
+      if (id === 'runs') {
+        await selectLocalDashboardMode(page, 'chart', width);
+        await expect(active.locator('[data-view-id="runs-last-week"] svg:visible').first()).toBeVisible();
+        await selectLocalDashboardMode(page, 'table', width);
+        await expect(active.locator('[data-view-id="runs-runs-source"]')).toContainText('octo/api');
+      }
+      if (id === 'cost') {
+        await expect(active.locator('[data-section-id="cost-estimates"]')).toHaveCount(0);
+        await expect(active.locator('[data-view-id="cost-by-repository"]')).toContainText('All costs shown are estimates.');
+      }
+    }
+    expect(await page.locator('a[href="#page-campaigns"]').count()).toBeGreaterThan(0);
+    for (const link of await page.locator('a[href="#page-campaigns"]').all()) {
+      await expect(link).toHaveAttribute('aria-disabled', 'true');
+    }
+    await page.evaluate(() => { window.location.hash = 'page-campaigns'; });
+    await expect(page.locator('#page-campaigns')).toContainText('Campaign information is unavailable.');
+    await expect(page.locator('a[href="#page-immediate-operations"]')).toHaveCount(0);
+    for (const id of ['configuration', 'indexing']) {
+      await expect(page.locator(`a[href="#page-${id}"]`)).toHaveCount(0);
+      await page.evaluate((id) => { window.location.hash = `page-${id}`; }, id);
+      await expect(page.locator('.dashboard-page:visible')).toHaveAttribute('data-page-id', 'overview');
+    }
+  });
+}
 
 test('data worker returns only the canonical payload requested by a view', async ({ page }) => {
   const result = await page.evaluate(async () => {

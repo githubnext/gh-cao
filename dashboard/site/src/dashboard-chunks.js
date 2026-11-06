@@ -2,7 +2,7 @@ import { resolveDashboardQuerySources } from './data/queries/declarative.js';
 import { elementLoadsSourcesAsync } from './components/ui-elements.js';
 import { navigationIndicatorSourceNames } from './navigation-indicator.js';
 import { createDebug } from './debug.js';
-import { dashboardDataBackend, pageCapabilityAvailable, viewBackendAvailable } from './view-availability.js';
+import { dashboardDataBackend, pageCapabilityAvailable, pageRequiredSource, viewBackendAvailable } from './view-availability.js';
 import { dashboardViewSourceNames as getViewSources, viewDataSourceNames } from './view-filter-contract.js';
 
 const debugDashboardChunks = createDebug('dashboard-chunks');
@@ -412,7 +412,11 @@ export function splitDashboardDocument(source, options = {}) {
   });
   const status = isPlainObject(document.dashboard['data-status']) ? document.dashboard['data-status'] : {};
   const statusSources = [status['freshness-source'], status['health-source']].filter((name) => typeof name === 'string');
-  const shellQueries = new Set(resolveDashboardQuerySources(queryDefinitions, [...calloutSources, ...statusSources]));
+  const prerequisiteSources = document.dashboard.pages.filter(pageCapabilityAvailable).flatMap((page) => {
+    const source = pageRequiredSource(page);
+    return source ? [source] : [];
+  });
+  const shellQueries = new Set(resolveDashboardQuerySources(queryDefinitions, [...calloutSources, ...statusSources, ...prerequisiteSources]));
   const shellDefinitions = queryDefinitions.filter((query) => shellQueries.has(query.name ?? ''));
   if (shellDefinitions.length) dashboard.queries = shellDefinitions;
   else delete dashboard.queries;

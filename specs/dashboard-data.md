@@ -825,8 +825,8 @@ GitHub OAuth and explicit organization/team authorization; neither profile
 grants database access to clients.
 
 Local SQLite serving SHALL open only the selected canonical database read-only.
-Creation, normalization, backfill, retention, and repair SHALL remain owned by
-the `cao-activity` JavaScript pipeline, outside the Go server lifecycle.
+Ordinary Activity creation, normalization, backfill, retention, and repair SHALL
+remain owned by the `cao-activity` JavaScript pipeline, outside the Go server lifecycle.
 The server MUST NOT acquire GitHub evidence, resolve acquisition credentials,
 launch ingestion runtimes, create a writable overlay, or mutate canonical
 records or bookkeeping for local SQLite serving. Previously created overlay
@@ -838,6 +838,48 @@ verify an already-published SQLite snapshot; that is artifact acquisition, not
 evidence collection or local backfill. These boundaries apply equally to
 ordinary local and internal canvas serving and MUST NOT change hosted
 PostgreSQL, OAuth, webhook, or collection-authority contracts.
+
+The explicitly selected `gh cao dashboard` operator profile MAY create and
+refresh a separate private canonical SQLite projection through its native
+acquisition adapter, outside the Go server. It MUST select the current verified
+GitHub.com repository or an explicit bounded list of exact repositories, retain
+at most a 48-hour recent window, and serve for at most 48 hours per invocation.
+The adapter MUST use the pinned gh-aw collector and canonical repository,
+workflow, and repository-scoped Run identities; fresh Actions observations MUST
+take precedence over cached status and mismatched-attempt enrichment MUST NOT
+be attached. Unknown usage MUST NOT become zero or a guessed engine/model.
+The profile MUST preserve partial acquisition coverage and unavailable sources,
+MUST reconcile the canonical daily projection in the same publication transaction
+using the receipts, classification and retention contract in §72.2, MUST NOT
+infer complete upstream history or campaign/rollout authority,
+and MUST NOT modify or migrate an ordinary Activity snapshot. Publication MUST
+be atomic and failed collection MUST preserve the previous projection.
+The existing read-only Go query/server and revision-subscription contracts
+SHALL serve this projection unchanged. This exception does not authorize
+server-side acquisition, a hosted fallback, or a browser ingestion path.
+Its acquisition SHALL request rich gh-aw artifacts and reuse the production
+cached/raw-log adapter and canonical normalizer for available jobs, sessions,
+tools, domains, skills, friction, safe outputs, experiments, evals and graders.
+It SHALL select exact observed remote workflow identities without requiring
+local workflow files. Reaching its shared acquisition budget MAY publish
+collected partial evidence only with an explicit limit report; cancellation
+and real acquisition or normalization errors SHALL preserve the prior snapshot.
+Normalization SHALL have explicit input, output and execution bounds and SHALL
+have no exposed filesystem, process or network authority. Raw artifact reads
+SHALL be confined to selected matching-attempt run directories and SHALL reject
+symlinks, nonregular files and oversized input.
+Its packaged dashboard SHALL preserve the standard landing page and normal
+operational navigation, templates, controls and drill-downs. Settings and
+Ingestion SHALL be omitted; Campaigns SHALL require available campaign inventory.
+Intrinsic `workflow-identities`
+and `overview-run-identities` sources MAY supply the corresponding table shapes
+without campaign joins; absent campaign/rollout fields SHALL stay unknown.
+Valid uncollected canonical sources in a verified local snapshot SHALL return
+typed unavailable evidence rather than failing independent page queries or
+fabricating zero counts. Unknown sources and real query/storage errors SHALL
+still fail. Daily observations SHALL remain explicitly partial, exclude undated
+Runs, and retain aggregate provenance; visible fleet maintenance views SHALL
+NOT grant local rollout, dispatch or hosted execution authority.
 
 The optional hosted OIDC admission gate MAY publish early Run evidence only
 after verified identity, policy approval and durable decision resolution.
