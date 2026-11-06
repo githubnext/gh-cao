@@ -1,94 +1,16 @@
 package doctor
 
 import (
-	"errors"
 	"os"
-	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
 )
 
-// fakeLookPath and fakeStat are the injected probes for missingTooling. A
-// map keyed by the name/path a real exec.LookPath or os.Stat call would
-// receive lets each test describe exactly which dependencies are present
-// without touching the real PATH or filesystem.
-func fakeLookPath(present map[string]bool) func(string) (string, error) {
-	return func(name string) (string, error) {
-		if present[name] {
-			return "/usr/bin/" + name, nil
-		}
-		return "", errors.New("not found")
-	}
-}
-
-func fakeStat(present map[string]bool) func(string) (os.FileInfo, error) {
+func fakeStat() func(string) (os.FileInfo, error) {
 	return func(path string) (os.FileInfo, error) {
-		if present[path] {
-			return nil, nil
-		}
-		return nil, errors.New("not found")
-	}
-}
-
-func TestMissingToolingReportsNothingWhenEverythingIsAvailable(t *testing.T) {
-	lookup := toolingLookup{
-		lookPath: fakeLookPath(map[string]bool{"node": true, "gh": true}),
-		stat:     fakeStat(map[string]bool{"/catalog/activity/cao.mjs": true}),
-	}
-	missing := missingTooling(lookup, "node", "gh", "/catalog/activity/cao.mjs")
-	if len(missing) != 0 {
-		t.Fatalf("expected no missing tooling, got %v", missing)
-	}
-}
-
-func TestMissingToolingReportsEachAbsentDependency(t *testing.T) {
-	lookup := toolingLookup{
-		lookPath: fakeLookPath(map[string]bool{}),
-		stat:     fakeStat(map[string]bool{}),
-	}
-	missing := missingTooling(lookup, "node", "gh", "/catalog/activity/cao.mjs")
-	want := []string{"node", "gh", "activity/cao.mjs"}
-	if !slices.Equal(missing, want) {
-		t.Fatalf("missing = %v, want %v", missing, want)
-	}
-}
-
-func TestMissingToolingReportsCatalogRootWhenScriptPathIsEmpty(t *testing.T) {
-	lookup := toolingLookup{
-		lookPath: fakeLookPath(map[string]bool{"node": true, "gh": true}),
-		stat:     fakeStat(map[string]bool{}),
-	}
-	missing := missingTooling(lookup, "node", "gh", "")
-	want := []string{"catalog root"}
-	if !slices.Equal(missing, want) {
-		t.Fatalf("missing = %v, want %v", missing, want)
-	}
-}
-
-func TestMissingToolingReportsOnlyTheScriptWhenBinariesArePresent(t *testing.T) {
-	lookup := toolingLookup{
-		lookPath: fakeLookPath(map[string]bool{"node": true, "gh": true}),
-		stat:     fakeStat(map[string]bool{}),
-	}
-	missing := missingTooling(lookup, "node", "gh", "/catalog/activity/cao.mjs")
-	want := []string{"activity/cao.mjs"}
-	if !slices.Equal(missing, want) {
-		t.Fatalf("missing = %v, want %v", missing, want)
-	}
-}
-
-func TestMissingToolingReportsOnlyMissingBinariesWhenScriptIsPresent(t *testing.T) {
-	lookup := toolingLookup{
-		lookPath: fakeLookPath(map[string]bool{"gh": true}),
-		stat:     fakeStat(map[string]bool{"/catalog/activity/cao.mjs": true}),
-	}
-	missing := missingTooling(lookup, "node", "gh", "/catalog/activity/cao.mjs")
-	want := []string{"node"}
-	if !slices.Equal(missing, want) {
-		t.Fatalf("missing = %v, want %v", missing, want)
+		return nil, os.ErrNotExist
 	}
 }
 
@@ -143,7 +65,7 @@ func TestClassifyQueueBacklogPassesWhenNoMaximumIsConfigured(t *testing.T) {
 }
 
 func TestResolvePrivateKeySourceReportsAbsentWhenNothingIsConfigured(t *testing.T) {
-	result := resolvePrivateKeySource(fakeStat(nil), "", "", "")
+	result := resolvePrivateKeySource(fakeStat(), "", "", "")
 	if result.label != "absent" || result.present || result.err != nil {
 		t.Fatalf("result = %+v, want label=absent present=false err=nil", result)
 	}
@@ -166,7 +88,7 @@ func TestResolvePrivateKeySourcePrefersFileOverInline(t *testing.T) {
 }
 
 func TestResolvePrivateKeySourceReportsUnreadableFile(t *testing.T) {
-	result := resolvePrivateKeySource(fakeStat(nil), "/etc/cao/missing.pem", "", "")
+	result := resolvePrivateKeySource(fakeStat(), "/etc/cao/missing.pem", "", "")
 	if result.label != "file (unreadable)" || result.present || result.err == nil {
 		t.Fatalf("result = %+v, want label=file (unreadable) present=false non-nil err", result)
 	}
@@ -189,7 +111,7 @@ func TestResolvePrivateKeySourceRejectsADirectory(t *testing.T) {
 }
 
 func TestResolvePrivateKeySourceReportsInlineWhenNoFileIsConfigured(t *testing.T) {
-	result := resolvePrivateKeySource(fakeStat(nil), "", "", "inline-value")
+	result := resolvePrivateKeySource(fakeStat(), "", "", "inline-value")
 	if result.label != "inline environment variable (configured)" || !result.present || result.err != nil {
 		t.Fatalf("result = %+v, want label=inline environment variable (configured) present=true err=nil", result)
 	}
@@ -199,7 +121,7 @@ func TestResolvePrivateKeySourceReportsInlineWhenNoFileIsConfigured(t *testing.T
 }
 
 func TestResolvePrivateKeySourceReportsBase64BeforeInline(t *testing.T) {
-	result := resolvePrivateKeySource(fakeStat(nil), "", "base64-value", "inline-value")
+	result := resolvePrivateKeySource(fakeStat(), "", "base64-value", "inline-value")
 	if result.label != "base64 environment variable (configured)" || !result.present || result.err != nil {
 		t.Fatalf("result = %+v, want label=base64 environment variable (configured) present=true err=nil", result)
 	}
@@ -323,47 +245,6 @@ func TestClassifyBackfillStatePassesWhenComplete(t *testing.T) {
 	}
 }
 
-func TestClassifyLakePopulationWarnsWhenEmpty(t *testing.T) {
-	classification := classifyLakePopulation(false, 0, 0)
-	if classification.status != StatusWarn {
-		t.Fatalf("status = %v, want %v", classification.status, StatusWarn)
-	}
-	if classification.reason != lakePopulationReasonEmpty {
-		t.Fatalf("reason = %v, want %v", classification.reason, lakePopulationReasonEmpty)
-	}
-	if classification.remedy == "" {
-		t.Fatal("expected a remedy for an unpopulated evidence lake")
-	}
-}
-
-func TestClassifyLakePopulationPassesWhenPopulated(t *testing.T) {
-	classification := classifyLakePopulation(true, 4096, 3)
-	if classification.status != StatusPass {
-		t.Fatalf("status = %v, want %v", classification.status, StatusPass)
-	}
-	if classification.reason != lakePopulationReasonPopulated {
-		t.Fatalf("reason = %v, want %v", classification.reason, lakePopulationReasonPopulated)
-	}
-	if classification.remedy != "" {
-		t.Fatalf("expected no remedy for a populated evidence lake, got %q", classification.remedy)
-	}
-	if !strings.Contains(classification.summary, "3 run shards") {
-		t.Fatalf("summary = %q, want it to mention the run shard count", classification.summary)
-	}
-}
-
-func TestClassifyLakePopulationIgnoresSizeWhenEmpty(t *testing.T) {
-	// A reported size alongside an unpopulated lake must not flip the
-	// classification to pass; Populated() is the sole authority here.
-	classification := classifyLakePopulation(false, 4096, 3)
-	if classification.status != StatusWarn {
-		t.Fatalf("status = %v, want %v", classification.status, StatusWarn)
-	}
-	if classification.reason != lakePopulationReasonEmpty {
-		t.Fatalf("reason = %v, want %v", classification.reason, lakePopulationReasonEmpty)
-	}
-}
-
 func TestClassifyBudgetHeadroomWarnsOnParkedBeforeLow(t *testing.T) {
 	// A parked installation alongside a low one must not mask the parked
 	// classification; parked is checked first, matching the prior inline
@@ -434,64 +315,5 @@ func TestClassifyBudgetHeadroomPassesWhenHealthy(t *testing.T) {
 	}
 	if !strings.Contains(classification.summary, "2 installations") {
 		t.Fatalf("summary = %q, want it to mention the installation count", classification.summary)
-	}
-}
-
-func TestClassifyDirectorySizeReadFailureReportsNoneForNilError(t *testing.T) {
-	if got := classifyDirectorySizeReadFailure(nil); got != directorySizeReadFailureNone {
-		t.Fatalf("classification = %v, want %v", got, directorySizeReadFailureNone)
-	}
-}
-
-func TestClassifyDirectorySizeReadFailureReportsMissingForNotExist(t *testing.T) {
-	_, err := os.ReadDir(filepath.Join(t.TempDir(), "does-not-exist"))
-	if err == nil {
-		t.Fatal("expected a not-exist error from os.ReadDir")
-	}
-	if got := classifyDirectorySizeReadFailure(err); got != directorySizeReadFailureMissing {
-		t.Fatalf("classification = %v, want %v", got, directorySizeReadFailureMissing)
-	}
-}
-
-func TestClassifyDirectorySizeReadFailureReportsOtherForUnrelatedError(t *testing.T) {
-	if got := classifyDirectorySizeReadFailure(errors.New("permission denied")); got != directorySizeReadFailureOther {
-		t.Fatalf("classification = %v, want %v", got, directorySizeReadFailureOther)
-	}
-}
-
-func TestDirectorySizeReportsZeroForMissingDirectory(t *testing.T) {
-	files, bytes := directorySize(filepath.Join(t.TempDir(), "does-not-exist"))
-	if files != 0 || bytes != 0 {
-		t.Fatalf("files=%d bytes=%d, want 0, 0 for a missing directory", files, bytes)
-	}
-}
-
-func TestDirectorySizeCountsFilesAndBytesSkippingSubdirectories(t *testing.T) {
-	directory := t.TempDir()
-	if err := os.WriteFile(filepath.Join(directory, "a.txt"), []byte("hello"), 0o600); err != nil {
-		t.Fatalf("write first file: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(directory, "b.txt"), []byte("worldwide"), 0o600); err != nil {
-		t.Fatalf("write second file: %v", err)
-	}
-	if err := os.Mkdir(filepath.Join(directory, "subdir"), 0o700); err != nil {
-		t.Fatalf("make subdirectory: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(directory, "subdir", "c.txt"), []byte("ignored"), 0o600); err != nil {
-		t.Fatalf("write nested file: %v", err)
-	}
-	files, bytes := directorySize(directory)
-	if files != 2 {
-		t.Fatalf("files = %d, want 2 (subdirectory entries must be skipped)", files)
-	}
-	if want := int64(len("hello") + len("worldwide")); bytes != want {
-		t.Fatalf("bytes = %d, want %d", bytes, want)
-	}
-}
-
-func TestDirectorySizeReportsZeroForEmptyDirectory(t *testing.T) {
-	files, bytes := directorySize(t.TempDir())
-	if files != 0 || bytes != 0 {
-		t.Fatalf("files=%d bytes=%d, want 0, 0 for an empty directory", files, bytes)
 	}
 }

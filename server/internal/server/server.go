@@ -400,9 +400,6 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 			return nil, err
 		}
 		app.adxTraces = worker
-		if app.Collector().native == nil {
-			app.Collector().runner.Traces = worker
-		}
 	}
 	if err := app.configureSessionArchive(ctx); err != nil {
 		return nil, fmt.Errorf("configure session archive: %w", err)

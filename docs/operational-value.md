@@ -147,16 +147,16 @@ capture. Ordinary Activity projection and bounded local Value remain
 independent. The default Actions profile has no inbound webhook receiver and
 continues its existing scheduled collection.
 
-The hosted worker keeps the installation token outside the collector process.
-Its repository-confined API bridge admits REST/core, search and GraphQL
+The hosted Go worker keeps the installation token out of policy, packets and
+private proof. Its repository-confined API bridge admits REST/core, search and GraphQL
 requests against the same shared installation quota used by Activity; GraphQL
 is limited to the reviewed File Diet query shape and its points are accounted
 separately from the reviewed API request count. Unsupported query shapes fail
 closed rather than extending a registration's authority. Missing
 quota evidence, exhausted capacity, changed policy/enrollment, incomplete
 collection or superseded accepted evidence defers publication. On success
-only the validated original packet is atomically published to PostgreSQL.
-Private per-pair proof retains the last 30 attempts' API request count, wall
+only validated original packets are atomically published to PostgreSQL.
+File Diet's private per-pair proof retains the last 30 attempts' API request count, wall
 time and received/output bytes, including failures, plus cumulative observed
 GraphQL points and the number of requests whose point cost could not be
 verified. An unknown point cost is not reported as zero; quota preflight is
@@ -174,7 +174,7 @@ invalid result leaves previous evidence and its capture/cutoff timestamps intact
 it is not a fresh success or zero. Explicit operator evaluation and one-time
 publication remain separate, subject to their existing authority and budgets.
 
-Collector subprocess failures cross runtime boundaries only as bounded categories:
+Collector failures cross runtime boundaries only as bounded categories:
 `api-budget`, `budget-unavailable`, `timeout`, `output-budget`, or
 `collector-failed`. Worker markers cannot supply `output-budget`; that category
 is owned by the host enforcing its output limits. Unknown markers and raw stderr
@@ -218,12 +218,34 @@ retime either clock.
 
 The control policy explicitly lists the same six repositories previously
 collected from `scope.allowed-repositories`; this pins Activity enrollment
-without adding targets or activating Daily File Diet itself. Only the exact
-File Diet pair is registered for recurring Value acquisition.
+without adding targets or activating Daily File Diet itself. Only the File Diet and Dependabot Update Planner pairs in `github/gh-aw` are
+registered for recurring Value acquisition.
 Registration is visible after the collector and policy are reviewed and
 deployed together. Its reviewed `api-requests: 700` ceiling allows Activity to
 refresh it automatically only when that full grant fits above ordinary
 collection's protected reserve.
+
+### Dependabot lifecycle collector
+
+The separately reviewed `dependabot-update-planner` registration covers only
+`github/gh-aw`. Its Go collector follows bounded alert `after` cursors for
+closed and open Dependabot security-alert lifecycles (at most 100 pages) and Dependabot-authored pull-request search
+results (at most ten pages) through the installation's shared Core and Search
+quotas. At 100 records per page, the reviewed ceiling is 111 metered
+requests (100 alert pages, ten search pages, and one optional Search-quota
+preflight); exceeding either bound, the search-result cap, or the timeout is
+missing evidence, not an empty queue. The installation needs Dependabot-alert
+and pull-request read permissions for that repository; lacking either defers
+collection without changing accepted observations.
+
+Three packets, one for each frozen metric, commit atomically with the private
+proof after complete acquisition. The local Go evaluator queries only those
+canonical packets for the aligned seven-day cutoff. It emits numeric open
+alert, critical/high-alert, and Dependabot PR counts when all three are
+complete, including genuine zeroes; otherwise it emits missing measurements
+and preserves earlier accepted captures. This registration does not change
+the Dependabot campaign's rollout mode or grant another repository access.
+
 It does not override `campaigns.dashboard.deploy: false`:
 this repository intentionally disables standalone Pages deployment because
 Documentation Pages owns the combined site. The existing publication chain is

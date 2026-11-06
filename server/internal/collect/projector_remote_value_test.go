@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -18,7 +17,6 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
-	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 )
@@ -52,66 +50,6 @@ process.stdout.write(graphQuery("octo/api", [5, 23]));`
 	}
 }
 
-func TestRemoteValuePublicationRejectsChangedStartingPacket(t *testing.T) {
-	initial := model.Row{"id": "proof", "observedAt": "2026-01-01T00:00:00Z", "facts": []any{"one"}}
-	same := model.Row{"facts": []any{"one"}, "id": "proof", "observedAt": "2026-01-01T00:00:00Z"}
-	if !remoteValuePacketCurrent(initial, same) || !remoteValuePacketCurrent(nil, nil) {
-		t.Fatal("unchanged previous proof was rejected")
-	}
-	for _, current := range []model.Row{nil,
-		{"id": "new-proof", "observedAt": "2026-01-02T00:00:00Z", "facts": []any{"one"}},
-		{"id": "proof", "observedAt": "2026-01-01T00:00:00Z", "facts": []any{"different"}},
-	} {
-		if remoteValuePacketCurrent(initial, current) {
-			t.Fatalf("stale collector proof was accepted: %v", current)
-		}
-	}
-	if remoteValuePacketCurrent(nil, initial) {
-		t.Fatal("concurrently published initial proof was accepted")
-	}
-}
-
-func TestRemoteValueFailureUsesOnlyBoundedWorkerDiagnostic(t *testing.T) {
-	for _, testCase := range []struct {
-		name, stderr, reason, message string
-	}{
-		{
-			name: "timeout",
-			stderr: "private command output\n" + remoteValueFailurePrefix +
-				`{"reasonCode":"timeout","detail":"collector command timed out (SIGTERM)"}` + "\n",
-			reason: "timeout", message: "remote Value collector command timed out; previous evidence retained",
-		},
-		{
-			name: "api budget",
-			stderr: remoteValueFailurePrefix +
-				`{"reasonCode":"api-budget","detail":"collector exhausted its reviewed API request grant"}` + "\n",
-			reason:  "api-budget",
-			message: "remote Value collector exhausted its reviewed API request grant; previous evidence retained",
-		},
-		{
-			name:   "malformed marker",
-			stderr: remoteValueFailurePrefix + `{"reasonCode":"secret-output"}` + "\nprivate command output\n",
-			reason: "collector-failed", message: "remote Value collector failed; previous evidence retained",
-		},
-		{
-			name:   "raw stderr",
-			stderr: "private command output\n",
-			reason: "collector-failed", message: "remote Value collector failed; previous evidence retained",
-		},
-	} {
-		t.Run(testCase.name, func(t *testing.T) {
-			reason := remoteValueFailureReason([]byte(testCase.stderr))
-			if reason != testCase.reason {
-				t.Fatalf("reason = %q, want %q", reason, testCase.reason)
-			}
-			message := remoteValueFailureError(reason).Error()
-			if message != testCase.message || strings.Contains(message, "private command output") {
-				t.Fatalf("safe diagnostic = %q, want %q", message, testCase.message)
-			}
-		})
-	}
-}
-
 func TestRemoteValueRepositoriesReviewedPolicyCacheAndEnrollment(t *testing.T) {
 	b := volatileBackfill(t)
 	root, err := filepath.Abs(filepath.Join("..", "..", ".."))
@@ -140,8 +78,13 @@ func TestRemoteValueRepositoriesReviewedPolicyCacheAndEnrollment(t *testing.T) {
 			t.Fatalf("reviewed registered repository = %v, %v", names, err)
 		}
 	}
-	if !projector.RemoteValuePlan.loaded || len(projector.RemoteValuePlan.entries) != 1 ||
-		projector.RemoteValuePlan.entries[0].APIRequests != 700 {
+	foundFileDiet := false
+	for _, entry := range projector.RemoteValuePlan.entries {
+		if entry.Workflow == dailyFileDietWorkflow {
+			foundFileDiet = entry.APIRequests == 700
+		}
+	}
+	if !projector.RemoteValuePlan.loaded || !foundFileDiet {
 		t.Fatal("reviewed API-bound registration was not cached")
 	}
 	disabled := strings.Replace(string(policy), `"api-requests": 700,`, `"api-requests": 700, "enabled": false,`, 1)
@@ -151,8 +94,14 @@ func TestRemoteValueRepositoriesReviewedPolicyCacheAndEnrollment(t *testing.T) {
 	if err := os.WriteFile(path, []byte(disabled), 0o600); err != nil { // #nosec G703 -- fixed filename beneath t.TempDir.
 		t.Fatal(err)
 	}
-	if names, err := projector.RemoteValueRepositories(t.Context()); err != nil || len(names) != 0 {
-		t.Fatalf("stale policy cache admitted disabled registration: %v, %v", names, err)
+	if names, err := projector.RemoteValueRepositories(t.Context()); err != nil ||
+		!slices.Equal(names, []string{"github/gh-aw"}) {
+		t.Fatalf("disabling File Diet suppressed the independent registration: %v, %v", names, err)
+	}
+	for _, entry := range projector.RemoteValuePlan.entries {
+		if entry.Workflow == dailyFileDietWorkflow {
+			t.Fatal("stale policy cache admitted disabled File Diet registration")
+		}
 	}
 }
 
@@ -552,32 +501,6 @@ func TestRemoteValueGraphQLReservesUpperBoundCommitsObservedCost(t *testing.T) {
 	if sent, _ := second.usage(); sent != 0 {
 		t.Fatalf("reviewed GraphQL cache hit consumed request grant: %d", sent)
 	}
-	if runtime.GOOS == "linux" {
-		api.max = 3
-		socket, closeAPI, err := api.listen(t.Context())
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer closeAPI()
-		script := filepath.Join(t.TempDir(), "gh")
-		if err := os.WriteFile(script, []byte(remoteValueGH), 0o600); err != nil {
-			t.Fatal(err)
-		}
-		command := exec.CommandContext(t.Context(), "node", script, "api", "graphql", "-f", "query="+query) // #nosec G204 -- fixed bridge script and generated test query.
-		command.Env = []string{"PATH=" + os.Getenv("PATH"), "GH_TOKEN=remote-value-proxy-only",
-			"CAO_REMOTE_VALUE_SOCKET=" + socket}
-		output, err := command.CombinedOutput()
-		if err != nil || !strings.Contains(string(output), `"cost":3`) || len(paths) != 3 {
-			t.Fatalf("GraphQL gh wrapper bypassed metered host request: %v %s paths=%v", err, output, paths)
-		}
-		command = exec.CommandContext(t.Context(), "node", script, "api", "graphql", "-f", "query="+query) // #nosec G204 -- fixed bridge script and generated test query.
-		command.Env = []string{"PATH=" + os.Getenv("PATH"), "GH_TOKEN=remote-value-proxy-only",
-			"CAO_REMOTE_VALUE_SOCKET=" + socket, "CAO_VALUE_ACQUISITION_REQUIREMENT=" + requirementID}
-		output, err = command.CombinedOutput()
-		if err != nil || !strings.Contains(string(output), `"cost":3`) || len(paths) != 3 {
-			t.Fatalf("reviewed GraphQL gh wrapper cache miss: %v %s paths=%v", err, output, paths)
-		}
-	}
 }
 
 func TestRemoteValueGraphQLUnknownOrUnverifiableCostFailsClosed(t *testing.T) {
@@ -719,78 +642,6 @@ func TestRemoteValueArtifactRedirectRejectsOtherDestinations(t *testing.T) {
 	}
 	if attempted != 3 {
 		t.Fatalf("only initial governed API requests may be attempted, got %d", attempted)
-	}
-}
-
-func TestRemoteValueGHWrapperRejectsGraphQLWithoutToken(t *testing.T) {
-	directory := t.TempDir()
-	script := filepath.Join(directory, "gh")
-	if err := os.WriteFile(script, []byte(remoteValueGH), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	command := exec.CommandContext(t.Context(), "node", script, "api", "graphql", "-f", "query=query{}") // #nosec G204 -- fixed bridge script beneath t.TempDir.
-	command.Env = []string{"PATH=" + os.Getenv("PATH"),
-		"CAO_REMOTE_VALUE_SOCKET=" + filepath.Join(directory, "missing.sock")}
-	output, err := command.CombinedOutput()
-	if err == nil || !strings.Contains(string(output), "remote Value API unavailable") {
-		t.Fatalf("GraphQL request bypassed the unavailable quota proxy: %v %s", err, output)
-	}
-}
-
-func TestRemoteValueGHWrapperUsesHostQuotaAndKeepsTokenPrivate(t *testing.T) {
-	if runtime.GOOS != "linux" {
-		t.Skip("remote Value authenticated API confinement requires Linux")
-	}
-	b := volatileBackfill(t)
-	quota, err := githubquota.New(b.Enrollment.Metadata.(operational.GitHubQuotaStore),
-		githubquota.Options{SafetyReserve: 1})
-	if err != nil {
-		t.Fatal(err)
-	}
-	reset := time.Now().Add(time.Hour)
-	if err := quota.Observe(t.Context(), githubquota.BucketID{App: "github-app-1", Installation: 7},
-		githubquota.Observation{Limit: 5000, Remaining: 4000, ResetAt: reset}); err != nil {
-		t.Fatal(err)
-	}
-	calls := 0
-	upstream := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		calls++
-		if request.Header.Get("Authorization") != "Bearer private-installation-token" {
-			t.Error("App credential was not used exclusively by the Go proxy")
-		}
-		writer.Header().Set("X-RateLimit-Resource", "core")
-		writer.Header().Set("X-RateLimit-Limit", "5000")
-		writer.Header().Set("X-RateLimit-Remaining", "3999")
-		writer.Header().Set("X-RateLimit-Reset", strconv.FormatInt(reset.Unix(), 10))
-		_, _ = io.WriteString(writer, `{"id":42}`)
-	}))
-	defer upstream.Close()
-	base, _ := url.Parse(upstream.URL)
-	api := &remoteValueAPI{client: upstream.Client(), quota: quota, searchQuota: quota,
-		app: "github-app-1", installation: 7, repository: "octo/api",
-		base: base, token: "private-installation-token", max: 1}
-	directory := t.TempDir()
-	socket, closeAPI, err := api.listen(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer closeAPI()
-	script := filepath.Join(directory, "gh")
-	if err := os.WriteFile(script, []byte(remoteValueGH), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	command := exec.CommandContext(t.Context(), "node", script, "api", "repos/octo/api") // #nosec G204 -- fixed bridge script beneath t.TempDir.
-	command.Env = []string{"PATH=" + os.Getenv("PATH"), "GH_TOKEN=remote-value-proxy-only",
-		"CAO_REMOTE_VALUE_SOCKET=" + socket}
-	content, err := command.CombinedOutput()
-	if err != nil || string(content) != `{"id":42}` || calls != 1 {
-		t.Fatalf("confined request: output=%s calls=%d err=%v", content, calls, err)
-	}
-	denied := exec.CommandContext(t.Context(), "node", script, "api", "repos/octo/api") // #nosec G204 -- fixed bridge script beneath t.TempDir.
-	denied.Env = command.Env
-	content, err = denied.CombinedOutput()
-	if err == nil || calls != 1 {
-		t.Fatalf("request cap bypassed: output=%s calls=%d err=%v", content, calls, err)
 	}
 }
 

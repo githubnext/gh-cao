@@ -164,7 +164,8 @@ test('dogfood File Diet registration pins existing effective Activity scope with
       [repository, `GH_AW_GITHUB_READ_PAT_${repository.split('/')[0].toUpperCase()}`]))) };
   assert.deepEqual(activityCollectionPlan(controlSettings(document, auth.controlRepository), auth),
     activityCollectionPlan(controlSettings(before, auth.controlRepository), auth));
-  const registrations = workflowValueRegistrations(document, ['github/gh-aw']);
+  const registrations = workflowValueRegistrations(document, ['github/gh-aw'])
+    .filter(registration => registration.workflow === 'daily-file-diet');
   assert.equal(registrations.length, 1);
   assert.deepEqual({ ...registrations[0], acquisition: undefined }, {
     'api-requests': 700,
@@ -190,11 +191,11 @@ test('dogfood File Diet registration pins existing effective Activity scope with
     'github.workflow-source-history.v1',
   ]);
   assert.equal(control.campaigns.dashboard.deploy, false);
-  assert.equal(workflowValueApiHeadroom(document, ['github/gh-aw']), 700);
+  assert.equal(workflowValueApiHeadroom(document, ['github/gh-aw']), 811);
   assert.equal(workflowValueApiHeadroom(document, ['githubnext/gh-cao']), 0);
   const disabled = structuredClone(document);
   disabled['control-plane'].campaigns.activity['workflow-values'][0].enabled = false;
-  assert.equal(workflowValueApiHeadroom(disabled, ['github/gh-aw']), 0);
+  assert.equal(workflowValueApiHeadroom(disabled, ['github/gh-aw']), 111);
 });
 
 test('reviewed remote collection uses reserved capacity after ordinary Activity reaches its floor', async t => {

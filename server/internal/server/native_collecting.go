@@ -116,7 +116,7 @@ func newNativeCollector(ctx context.Context, services operational.OperationalSer
 		}
 		values := &collect.NativeValueService{Projector: collect.Projector{
 			Data: data, State: services.State, Leases: services.Leases, Enrollment: enrollment,
-			CatalogRoot: config.CatalogRoot, PolicyPath: config.PolicyPath, NodeBinary: config.NodeBinary,
+			CatalogRoot: config.CatalogRoot, PolicyPath: config.PolicyPath,
 			GitHubAPIURL: config.BaseURL, Tokens: client, QuotaApp: quotaApp,
 			RemoteQuota: quota, RemoteSearchQuota: search, RemoteValuePlan: &collect.RemoteValuePlanCache{},
 			RemoteHTTP: &http.Client{Transport: config.Transport, Timeout: 65 * time.Second,

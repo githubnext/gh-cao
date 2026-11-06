@@ -51,7 +51,7 @@ func focusedTestStore(store operational.Store) focusedOperationalStore {
 	}
 }
 
-func TestFocusedServicesComposeApplicationAndCollector(t *testing.T) {
+func TestFocusedServicesComposeApplicationAndValidateCollection(t *testing.T) {
 	store := focusedTestStore(redisx.NewStore(emptyRedisClient{}, "focused-services"))
 	app, err := New(t.Context(), store, Config{
 		Database: constructorDatabase(), SiteDirectory: t.TempDir(),
@@ -63,21 +63,9 @@ func TestFocusedServicesComposeApplicationAndCollector(t *testing.T) {
 	if app.services != store.services {
 		t.Fatal("application substituted the selected focused services")
 	}
-	collector, err := NewCollector(t.Context(), store, constructorDatabase(), CollectorConfig{
-		AppID: 1, AdmitOnly: true,
-	}, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if collector.enrollment.Metadata != store.services.Collection ||
-		collector.enrollment.Leases != store.services.Leases ||
-		collector.queue.Tasks != store.services.Queue ||
-		collector.queue.Admission != store.services.Admission ||
-		collector.queue.Deliveries != store.services.Deliveries ||
-		collector.queue.Metrics != store.services.IngestionMetrics ||
-		collector.backfill.StateStore != store.services.State ||
-		collector.reporter.Metrics != store.services.IngestionMetrics {
-		t.Fatal("collector substituted focused collection services")
+	if err := operational.ValidateOperationalServices(store.Capabilities(), store.services,
+		operational.Requirements{SingleProcess: true, AllowVolatile: true, Collection: true}); err != nil {
+		t.Fatalf("focused collection services were rejected: %v", err)
 	}
 }
 
@@ -95,9 +83,8 @@ func TestCollectorRejectsMissingFocusedServices(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			store := focusedTestStore(redisx.NewStore(emptyRedisClient{}, "missing-focused-services"))
 			remove(&store.services)
-			_, err := NewCollector(t.Context(), store, constructorDatabase(), CollectorConfig{
-				AppID: 1, AdmitOnly: true,
-			}, "")
+			err := operational.ValidateOperationalServices(store.Capabilities(), store.services,
+				operational.Requirements{SingleProcess: true, AllowVolatile: true, Collection: true})
 			if !errors.Is(err, operational.ErrUnsupported) {
 				t.Fatalf("incomplete collector services accepted: %v", err)
 			}

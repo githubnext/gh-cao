@@ -2734,12 +2734,13 @@ The Dockerfile includes the base `cao.json` policy. Configure a reviewed
 credentials through the host's secret manager.
 
 The `dashboard-runtime` target contains the public server without collection
-tools. The `collector-runtime` target adds Node, the GitHub CLI, a
-checksum-verified policy-pinned gh-aw binary, the Activity projection catalog,
-a deterministic source-bound control-plane inventory, and the shared policy
-resolver. Deploy standalone collection roles without public ingress, keep the
-collection App private key out of admission-only web replicas, and share a
-persistent evidence volume between collector and backfill roles.
+tools. The `collector-runtime` target adds Git for the reviewed Value Git
+transport, not Node, the GitHub CLI, gh-aw, or the Activity projection catalog.
+It packages the reviewed policy and SHA-256-pinned Value evidence; selected
+Value deployments can use `/app` as `CAO_COLLECT_CATALOG_ROOT` and
+`/app/.github/workflows/cao.json` as `CAO_POLICY_PATH`.
+Deploy collectors without public ingress; keep the App key out of admission-only
+replicas. Collection and backfill share PostgreSQL, not a filesystem volume.
 
 The external artifact volume is authoritative input, not checked-in deployment
 data. Before the first start, populate an unattached staging volume with a
@@ -3377,18 +3378,21 @@ span ID.
 
 ### Collection settings
 
-Legacy Activity-backed collection remains the default. Explicitly select
-distributed Go collection with `CAO_COLLECT_NATIVE=true` and the exact reviewed
-inventory digest provisioned in PostgreSQL. Unsupported audit/intelligence
-requests reject, never fall back to Activity. Optional Value dependencies are
-validated only when selected.
+The Actions-published snapshot remains the default when `CAO_COLLECT_APP_ID`
+is unset. App-backed collection requires `CAO_COLLECT_NATIVE=true`, an exact
+reviewed inventory digest provisioned in PostgreSQL, and a durable
+deployment-scoped operational store. The old filesystem collector is retired;
+an App identifier without native selection fails at startup. Unsupported
+audit/intelligence requests reject rather than fall back to Activity. Optional
+Value dependencies are validated only when selected.
 
-Native run acquisition, projection and approved trace destinations use Go and
-shared PostgreSQL fences, without Node, Activity files or filesystem coordination.
-Optional `NativeValues` retains reviewed Node programs/catalog/composed policy,
-bounded disposable scratch and PostgreSQL-authoritative packet/proof recovery.
-Publication rechecks composed policy and source ownership; withdrawal atomically
-erases private proof. Remote Value retains its Linux-only socket transport.
+Native run acquisition, projection, approved trace destinations and optional
+`NativeValues` use Go and shared PostgreSQL fences, without Node, Activity
+files or filesystem coordination. The selected Value lane evaluates reviewed
+policy and supported collectors in Go; its bounded disposable Git workspace
+is not an evidence store. PostgreSQL owns packet/proof recovery, publication
+rechecks composed policy and source ownership, and withdrawal atomically erases
+private proof. Unsupported collector registrations fail closed.
 Inventory digests select exact provisioned reviewed bytes, not broader authority.
 Native mode rejects legacy run-count/storage/request-minute options rather than
 ignoring them; its discovery contract is bounded and `CAO_COLLECT_TIMEOUT`
@@ -3399,11 +3403,9 @@ See `ARCHITECTURE.md` and `specs/value.md` for the feature-specific boundaries.
 |---|---|
 | `CAO_COLLECT_APP_ID` | GitHub App identifier; unset selects the default profile |
 | `CAO_COLLECT_PRIVATE_KEY` / `CAO_COLLECT_PRIVATE_KEY_BASE64` / `CAO_COLLECT_PRIVATE_KEY_FILE` | App private key as inline PEM, single-line standard base64, or a mounted PEM file |
-| `CAO_COLLECT_LAKE_DIRECTORY` | evidence lake directory, shared by workers |
-| `CAO_COLLECT_CATALOG_ROOT` | directory containing `activity/cao.mjs` |
-| `CAO_COLLECT_CONTROL_REPOSITORY` | control repository used for inventory discovery |
-| `CAO_COLLECT_STATIC_INVENTORY` | source-bound control-plane inventory packaged with the collector |
-| `CAO_POLICY_PATH` | reviewed base policy or deployment profile resolved before inventory discovery |
+| `CAO_COLLECT_CATALOG_ROOT` | reviewed catalog root for the separately selected Go Value lane |
+| `CAO_COLLECT_CONTROL_REPOSITORY` | reviewed inventory's control repository |
+| `CAO_POLICY_PATH` | reviewed policy for the separately selected Go Value lane |
 | `CAO_COLLECT_WORKERS` | in-process workers; zero when workers scale separately |
 | `CAO_COLLECT_RATE_LIMIT_FLOOR` | requests reserved per installation |
 | `CAO_COLLECT_PROJECTION_INTERVAL` | minimum interval between projections (default 5 minutes) |
@@ -3412,9 +3414,13 @@ See `ARCHITECTURE.md` and `specs/value.md` for the feature-specific boundaries.
 | `CAO_COLLECT_RECOVER_DELIVERIES` | replay failed webhook deliveries to close gaps |
 | `CAO_COLLECT_QUEUE_MAX_LENGTH` | admission backpressure limit for outstanding collection tasks (default 200 000); tasks are never trimmed |
 | `CAO_COLLECT_ADMIT_ONLY` | admit deliveries without collecting; requires no private key |
-| `CAO_COLLECT_NATIVE` | explicitly selects distributed Go collection; legacy remains the default |
-| `CAO_COLLECT_NATIVE_VALUES` | separately selects existing reviewed Value execution; requires native selection and its explicit Node/catalog/policy dependencies |
+| `CAO_COLLECT_NATIVE` | required for App-backed collection; unset with no App identifier preserves the Actions snapshot profile |
+| `CAO_COLLECT_NATIVE_VALUES` | separately selects Go Value execution; requires native selection and its explicit catalog/policy dependencies |
 | `CAO_COLLECT_NATIVE_INVENTORY_DIGEST` | exact digest of reviewed inventory bytes already provisioned in the shared PostgreSQL namespace; requires native selection |
+
+With App-backed collection, the retired `CAO_COLLECT_LAKE_DIRECTORY`,
+`CAO_COLLECT_STATIC_INVENTORY`, `CAO_COLLECT_GH_BINARY`, and
+`CAO_COLLECT_NODE_BINARY` settings are rejected rather than silently ignored.
 
 ### Admission-only front ends
 

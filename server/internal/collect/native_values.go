@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -14,9 +13,8 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
 )
 
-// NativeValueService is a separately selected execution lane for existing
-// reviewed Value programs. Only that lane needs Node/catalog/policy assets;
-// native acquisition never stages an Activity lake for it.
+// NativeValueService is a separately selected execution lane for reviewed
+// Value programs. Native acquisition never stages an Activity lake for it.
 type NativeValueService struct {
 	Projector Projector
 }
@@ -42,29 +40,26 @@ func (s NativeValueService) Validate() error {
 	return s.ValidateRuntime()
 }
 
-// ValidateRuntime checks only the selected Value lane's deployed dependencies,
-// without opening credentials, executing programs or requiring backend handles.
+// ValidateRuntime checks only the selected Value lane's deployed policy,
+// without opening credentials or requiring backend handles.
 func (s NativeValueService) ValidateRuntime() error {
 	p := s.Projector
 	if p.CatalogRoot == "" || p.PolicyPath == "" {
 		return errors.New("selected native Value execution requires its reviewed catalog and policy")
 	}
-	if _, err := exec.LookPath(p.node()); err != nil {
-		return fmt.Errorf("selected native Value execution requires Node: %w", err)
+	root, err := os.Stat(p.CatalogRoot)
+	if err != nil {
+		return fmt.Errorf("selected native Value execution requires its reviewed catalog: %w", err)
 	}
-	for _, path := range []string{
-		p.PolicyPath,
-		filepath.Join(p.CatalogRoot, "activity", "local-values.mjs"),
-		filepath.Join(p.CatalogRoot, "activity", "workflow-values.mjs"),
-		filepath.Join(p.CatalogRoot, ".github", "workflows", "shared", "policy.mjs"),
-	} {
-		info, err := os.Stat(path)
-		if err != nil {
-			return fmt.Errorf("selected native Value execution requires deployed policy/catalog assets: %w", err)
-		}
-		if !info.Mode().IsRegular() {
-			return errors.New("selected native Value policy/catalog asset is not a regular file")
-		}
+	if !root.IsDir() {
+		return errors.New("selected native Value catalog is not a directory")
+	}
+	info, err := os.Stat(p.PolicyPath)
+	if err != nil {
+		return fmt.Errorf("selected native Value execution requires its reviewed policy: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		return errors.New("selected native Value policy is not a regular file")
 	}
 	return nil
 }

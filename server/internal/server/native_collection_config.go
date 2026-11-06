@@ -32,6 +32,9 @@ func (config *CollectorConfig) ApplyNativeEnvironment(lookup func(string) string
 	if !config.NativeAcquisition {
 		return nil
 	}
+	if err := rejectRetiredCollectorEnvironment(lookup); err != nil {
+		return err
+	}
 	admitOnly, err := collectorFeatureBoolWithLookup("CAO_COLLECT_ADMIT_ONLY", lookup)
 	if err != nil {
 		return err
@@ -79,6 +82,15 @@ func (config *CollectorConfig) ApplyNativeEnvironment(lookup func(string) string
 		return err
 	}
 	config.RecoverDeliveries = recover
+	return nil
+}
+
+func rejectRetiredCollectorEnvironment(lookup func(string) string) error {
+	for _, name := range []string{"CAO_COLLECT_LAKE_DIRECTORY", "CAO_COLLECT_STATIC_INVENTORY", "CAO_COLLECT_GH_BINARY", "CAO_COLLECT_NODE_BINARY"} {
+		if strings.TrimSpace(lookup(name)) != "" {
+			return fmt.Errorf("%s is unsupported by native collection", name)
+		}
+	}
 	return nil
 }
 

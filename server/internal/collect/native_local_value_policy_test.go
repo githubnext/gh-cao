@@ -68,7 +68,11 @@ func TestNativeLocalValuesTracksComposedBasePolicyAuthority(t *testing.T) {
 	}
 	result, _, err := p.Data.ExecuteSQLPlan(t.Context(),
 		[]query.Definition{{Name: "health", From: "$workflowValueCollections"}}, []string{"health"})
-	if err != nil || len(result["health"].Rows) != 1 || result["health"].Rows[0]["reasonCode"] != "activity-disabled" {
+	disabled := false
+	for _, row := range result["health"].Rows {
+		disabled = disabled || row["repository"] == "octo/example" && row["reasonCode"] == "activity-disabled"
+	}
+	if err != nil || len(result["health"].Rows) != 2 || !disabled {
 		t.Fatalf("changed composed authority did not refresh collection health: %+v %v", result, err)
 	}
 }
@@ -89,13 +93,13 @@ func TestNativeLocalValuesCanonicalizesCatalogAliases(t *testing.T) {
 		t.Fatalf("native runtime did not canonicalize the configured catalog: %q %v", canonical, err)
 	}
 	if err := p.CollectNativeLocalValues(t.Context()); err != nil {
-		t.Fatalf("catalog alias skipped a real Node entrypoint: %v", err)
+		t.Fatalf("catalog alias skipped Go-native Value evaluation: %v", err)
 	}
 	results, _, err := p.Data.ExecuteSQLPlan(t.Context(), []query.Definition{
 		{Name: "values", From: "$operationalValues"},
 		{Name: "health", From: "$workflowValueCollections"},
 	}, []string{"values", "health"})
-	if err != nil || len(results["values"].Rows) == 0 || len(results["health"].Rows) != 1 {
+	if err != nil || len(results["values"].Rows) == 0 || len(results["health"].Rows) != 2 {
 		t.Fatalf("aliased runtime returned success without computing and publishing: %+v %v", results, err)
 	}
 	if _, err := p.Data.ReadOperationalValue(t.Context(), "octo/example", "verify-bugs"); err != nil {
