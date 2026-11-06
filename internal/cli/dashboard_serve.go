@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -111,8 +113,14 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	}
 	ctx, cancel := context.WithTimeout(ctx, options.duration)
 	defer cancel()
+	actionsConfig, stopActions, err := startDashboardActionAdapter(ctx, repositories, cache)
+	if err != nil {
+		return err
+	}
+	defer stopActions()
 	child := exec.CommandContext(ctx, server, "serve", "--sqlite", filepath.Join(cache, "gh-aw-logs.sqlite"),
 		"--site", site, "--listen", options.listen, "--exit-on-stdin-close",
+		"--canvas-config", actionsConfig,
 		"--database-queries", filepath.Join(site, "src/data/queries/database.json"),
 		"--dashboard-queries", filepath.Join(site, "src/agent/queries.generated.json"),
 		"--agent-catalog", filepath.Join(site, "src/agent/catalog.generated.json"),
@@ -124,7 +132,28 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	}
 	child.Cancel = stdin.Close
 	child.WaitDelay = 10 * time.Second
-	child.Stdout = cmd.OutOrStdout()
+	serverOutput, serverOutputWriter := io.Pipe()
+	child.Stdout = serverOutputWriter
+	defer func() { _ = serverOutput.Close(); _ = serverOutputWriter.Close() }()
+	addressDone := make(chan error, 1)
+	readAddress := func() {
+		maintenance := "enabled; every command requires approval in the terminal."
+		if runtime.GOOS == "windows" {
+			maintenance = "copy-only; trusted native terminal approval is unavailable on Windows."
+		}
+		scanner := bufio.NewScanner(serverOutput)
+		for scanner.Scan() {
+			var ready struct {
+				URL string `json:"url"`
+			}
+			if json.Unmarshal(scanner.Bytes(), &ready) == nil && ready.URL != "" {
+				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard: %s/?local-preview=operator#page-overview\nSnapshot: %s\nMaintenance: %s\nCoverage: bounded recent activity; uncollected evidence is unavailable.\n", ready.URL, filepath.Join(cache, "gh-aw-logs.sqlite"), maintenance)
+			} else {
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), scanner.Text())
+			}
+		}
+		addressDone <- scanner.Err()
+	}
 	stderr, stderrWriter := io.Pipe()
 	child.Stderr = stderrWriter
 	defer func() { _ = stderr.Close(); _ = stderrWriter.Close() }()
@@ -132,6 +161,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		_ = stdin.Close()
 		return fmt.Errorf("cannot start the local Go dashboard server: %w", err)
 	}
+	go readAddress()
 	defer func() { _ = stdin.Close() }()
 	type serverResult struct {
 		err      error
@@ -157,10 +187,14 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		err := child.Wait()
 		expected := ctx.Err() != nil
 		cancel()
+		_ = serverOutputWriter.Close()
 		_ = stderrWriter.Close()
 		serverDone <- serverResult{err, expected}
 	}()
 	finish := func(result serverResult) error {
+		if err := <-addressDone; err != nil {
+			return fmt.Errorf("read local dashboard address: %w", err)
+		}
 		if err := <-outputDone; err != nil {
 			return fmt.Errorf("read local dashboard server output: %w", err)
 		}

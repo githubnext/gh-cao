@@ -66,6 +66,9 @@ func TestCommandReferenceCoversRegisteredOperatorCommands(t *testing.T) {
 		documented[strings.Fields(match[1])[0]] = true
 	}
 	for _, command := range NewRootCommand("test").Commands() {
+		if command.Hidden {
+			continue
+		}
 		if !documented[command.Name()] {
 			t.Errorf("registered operator command %q missing from command reference", command.Name())
 		}

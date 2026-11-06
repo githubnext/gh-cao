@@ -42,7 +42,7 @@ export function parseGraderArtifacts(files, context, session) {
   const output = document(file);
   if (!Array.isArray(output.results) || (output.run !== undefined
       && (!output.run || typeof output.run !== 'object' || Array.isArray(output.run)
-        || (output.run.id !== undefined && String(output.run.id) !== context.runId)
+        || (output.run.id !== undefined && output.run.id !== '' && String(output.run.id) !== context.runId)
         || (output.run.attempt !== undefined && Number(output.run.attempt) !== context.attempt)))) {
     throw new TypeError('Grader artifact run identity or results are invalid');
   }
@@ -63,7 +63,10 @@ export function parseGraderArtifacts(files, context, session) {
   const events = [
     { type: 'session.format', data: { version: 1 } },
     ...(manifest ? [{ type: 'grader.manifest', data: manifest }] : []),
-    { type: 'grader.result', data: output }
+    { type: 'grader.result', data: {
+      ...output,
+      ...(output.run ? { run: { ...output.run, id: context.runId } } : {})
+    } }
   ];
   const projected = parseUnifiedSessionDocument(
     events.map((event) => JSON.stringify(event)).join('\n'), file.path, context

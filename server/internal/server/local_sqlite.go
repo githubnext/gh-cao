@@ -54,6 +54,13 @@ func NewLocalSQLiteApp(ctx context.Context, path string, config Config) (*App, e
 	}
 	app.ownedOperational = store
 	app.ownedDatabase = database
+	if config.Canvas != nil && config.Canvas.OperatorActions != nil {
+		if err := app.enableOperatorActions(ctx); err != nil {
+			_ = store.Close()
+			_ = database.Close()
+			return nil, err
+		}
+	}
 	return app, nil
 }
 

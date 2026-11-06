@@ -76,10 +76,13 @@ gh-aw adapter and canonical normalizer hydrate jobs, sessions, tool calls,
 firewall domains, skills, friction, safe outputs, experiments, evals and graders
 when their evidence is available. Only agentic `.lock.yml` workflows are included.
 The normal operational dashboard remains available, including repository, workflow
-and run drill-downs. Settings and Ingestion pages are excluded in immediate mode;
-Campaigns is disabled until campaign inventory is available. **Coverage is partial:** missing artifacts, campaign policy,
-fleet queue backlog, accepted outcomes and Operational Value remain explicitly
-unavailable rather than being hidden or represented as healthy zeros.
+and run drill-downs. The immediate profile audits every page, view and query against
+its acquisition capabilities and removes unsupported views and their unused queries.
+Settings, Ingestion and control-plane-only views are excluded. Rich artifact views
+remain available, with explicit partial or unavailable evidence when artifacts are
+missing. Campaign policy, fleet queue backlog, accepted outcomes and Operational
+Value are not inferred from run success. **Coverage is partial:** uncollected
+evidence must never appear as healthy zeros.
 Successful executions are not verified outcomes.
 
 The snapshot and per-repository caches are retained in the user's cache directory,
@@ -109,9 +112,19 @@ A failed refresh preserves the previous database and is
 reported rather than replacing it with empty data.
 
 `gh cao dashboard` only serves the dashboard; it has no subcommands.
-Collection and refresh happen automatically while it is running. The command
-does not mutate remote runs or enable hosted execution or browser CLI-action
-endpoints.
+Collection and refresh happen automatically while it is running. Maintenance
+controls use a separate private, durable command queue, not the canonical snapshot.
+They accept only declared gh-aw maintenance actions for the exact `--repo` scope,
+require pull-request publication, and ask for approval in the owning terminal
+before **each** execution. The pinned gh-aw maintenance commands run inside the
+native CLI using the operator's GitHub CLI identity; credentials never reach the
+read-only Go dashboard host. Closing output only detaches; canceling a command
+terminates its owned process tree. Retries require fresh terminal approval.
+Without a trusted interactive terminal, execution fails closed. Native approval
+is currently supported on Unix; Windows cannot execute these actions.
+No maintenance command runs merely because the dashboard starts, and this mode
+does not mutate remote runs, dispatch workflows, change rollout policy or enable
+hosted execution.
 
 For source development, build the server and site and pass both
 `--server-executable PATH` and `--site PATH`. Release builds package these assets

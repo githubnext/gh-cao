@@ -17,6 +17,17 @@ const maxBufferedLine = 8 * 1024
 
 const suppressedOutput = "[REDACTED]\n[Output suppressed after an overlong credential-shaped span.]\n"
 
+// CommandOutput applies the shared bounded, cross-frame credential redaction
+// before native operator output enters the durable command queue.
+type CommandOutput struct{ sink *outputSink }
+
+func NewCommandOutput(ctx context.Context, queue operational.CLICommandQueue, lease operational.CLICommandLease, id int64) *CommandOutput {
+	return &CommandOutput{sink: newOutputSink(ctx, queue, lease, id)}
+}
+
+func (o *CommandOutput) Write(stream string, data []byte) { o.sink.write(stream, data) }
+func (o *CommandOutput) Close()                           { o.sink.close() }
+
 // outputSink redacts each stream before line/size framing. Neither a frame
 // boundary nor an interleaved write from the other stream ends a credential.
 type outputSink struct {

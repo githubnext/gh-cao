@@ -104,6 +104,31 @@ afterEach(() => {
 });
 
 describe("dashboard app page-chunk debug logging", () => {
+  it.each([false, true])("gates native actions on queue authority without a canvas editing socket: %s", async (available) => {
+    const previousUrl = window.location.href;
+    window.history.replaceState(null, "", "?local-preview=operator#page-overview");
+    const socket = vi.fn();
+    vi.stubGlobal("WebSocket", socket);
+    vi.stubGlobal("__CLI_QUEUE__", available);
+    vi.stubGlobal("__LOCAL_CLI_QUEUE__", available);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify(stubDashboardSchema({ id: "overview" })), { status: 200 }
+    )));
+    try {
+      vi.resetModules();
+      await (await import("../../src/dashboard-app.js")).startDashboardApp();
+      expect(startup.startDashboardData).toHaveBeenCalled();
+      expect(socket).not.toHaveBeenCalled();
+      const { setDeclaredCliActions } = await import("../../src/components/cli-actions.js");
+      expect(setDeclaredCliActions).toHaveBeenCalledWith(expect.any(Array), expect.objectContaining({
+        canExecute: available
+      }));
+    } finally {
+      window.history.replaceState(null, "", previousUrl);
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("does not start the application merely by importing its shared module", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
