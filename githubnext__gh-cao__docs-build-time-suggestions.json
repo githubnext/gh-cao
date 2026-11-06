@@ -3,13 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-06T05:31:53Z",
-      "worker_run_id": "42168682598",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. In accordance with the resource-limit policy, no further API or model work was attempted. The current 14-day evidence window, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded reusable-dashboard-generation step analysis, and cache hit/miss verification could not be established. No recommendation was made; reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-06T05:52:35.068000Z",
       "worker_run_id": "42170691488",
       "category": "reusable dashboard generation",
@@ -756,6 +749,34 @@
         42212636251
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T11:45:47Z to 2026-11-06T15:31:42Z) was within 14 days and contained 16 successful freshness-only schedule runs plus four skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 0934632ae6f6fa4154273b6fbeb07186cd93ac77. The 16 successful schedules had workflow wall-time median 15 seconds and nearest-rank p90 19 seconds. Trusted Actions job and step metadata for the newest run verified a 3-second initial queue, a 13-second schedule-freshness job with a 9-second freshness check, and skipped build and deploy; retained trusted evidence from overlapping preceding evaluations covers the remaining runs. The window contained zero successful full build-and-deploy publications, below the required five comparable successful publications. docs.yml has no separate dashboard job. Full-publication execution, dashboard/build/deploy median and p90 distributions, reusable-dashboard-generation step costs, and current dashboard cache hit/miss effectiveness therefore cannot be evaluated. No suggestion was made; reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-06T15:52:18Z",
+      "worker_run_id": "42246504919",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        42246059142,
+        42243824398,
+        42241504328,
+        42239141502,
+        42236818618,
+        42234619826,
+        42233567769,
+        42232601374,
+        42232264369,
+        42230255476,
+        42228150735,
+        42226109700,
+        42224117260,
+        42222138228,
+        42220209362,
+        42218640366,
+        42218366711,
+        42217129619,
+        42216813494,
+        42214562361
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T12:01:51Z to 2026-11-06T15:46:07Z) was within 14 days and contained 16 successful freshness-only schedule runs plus four skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 0934632ae6f6fa4154273b6fbeb07186cd93ac77. Trusted Actions metadata verified that build and deploy were skipped in every successful run; docs.yml has no separate dashboard job. The 16 successful schedules had workflow wall-time median 15.5 seconds and nearest-rank p90 19 seconds, initial queue median 3 seconds and p90 4 seconds, execution median 11.5 seconds and p90 14 seconds, and freshness-check step median 8 seconds and p90 10 seconds. The window contained zero successful full build-and-deploy publications, below the required five comparable successful publications. Full-publication execution, dashboard/build/deploy median and p90 distributions, reusable-dashboard-generation step costs, and current dashboard cache hit/miss effectiveness therefore cannot be evaluated. No suggestion was made; reusable dashboard generation remains the next category."
     }
   ]
 }
