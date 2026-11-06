@@ -443,6 +443,15 @@ func (c *nativeCatalog) runQueryWithEvidenceSelections(
 	for field, value := range aggregateMetadata[id] {
 		metadata[field] = value
 	}
+	if canonicalRead {
+		localMetadata, err := dashboardquery.LocalDashboardMetadata(ctx, db)
+		if err != nil {
+			return nil, err
+		}
+		for field, value := range localMetadata {
+			metadata[field] = value
+		}
+	}
 	if len(resolved) > 0 {
 		values := map[string]any{}
 		for _, parameter := range resolved {

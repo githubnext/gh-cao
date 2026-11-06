@@ -19,6 +19,17 @@ function fixture(t) {
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const bin = join(directory, "bin");
   mkdirSync(bin);
+  mkdirSync(join(directory, "scripts"));
+  const fixtureScript = join(directory, "scripts/build-release.sh");
+  writeFileSync(fixtureScript, readFileSync(script));
+  writeFileSync(join(bin, "npm"), `#!/usr/bin/env node
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+const args = process.argv.slice(2);
+const output = args[args.indexOf("--") + 1];
+mkdirSync(output, { recursive: true });
+writeFileSync(join(output, "index.html"), "<html></html>");
+`, { mode: 0o755 });
   const log = join(directory, "go.jsonl");
   writeFileSync(join(bin, "go"), `#!/usr/bin/env node
 import { appendFileSync, writeFileSync } from "node:fs";
@@ -29,7 +40,7 @@ if (RELEASE_BUILD_FAIL === GOOS + "-" + GOARCH) process.exit(2);
 writeFileSync(args[args.indexOf("-o") + 1], GOOS + "-" + GOARCH);
 `, { mode: 0o755 });
   const output = join(directory, "release binaries");
-  const run = (args, extraEnv = {}) => spawnSync("bash", [script, ...args], {
+  const run = (args, extraEnv = {}) => spawnSync("bash", [fixtureScript, ...args], {
     cwd: root,
     encoding: "utf8",
     env: {
@@ -48,8 +59,17 @@ test("release builder embeds the exact tag in every platform binary and seals ch
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(readdirSync(output).sort(), [...platforms, "checksums.txt"].sort());
   const builds = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line));
-  assert.equal(builds.length, platforms.length);
-  for (const [index, build] of builds.entries()) {
+  assert.equal(builds.length, platforms.length * 2);
+  for (const [index, build] of builds.filter((entry) => entry.args[0] === "build").entries()) {
+    const server = builds[index * 2];
+    assert.deepEqual(server.args, [
+      "-C", "server", "build", "-mod=readonly", "-trimpath", "-ldflags=-s -w -X main.version=v1.2.3",
+      "-o", join(dirname(log), "dashboard/local-assets/bundle", `cao-dashboard${build.GOOS === "windows" ? ".exe" : ""}`),
+      "./cmd/cao-dashboard",
+    ]);
+    assert.equal(server.GOOS, build.GOOS);
+    assert.equal(server.GOARCH, build.GOARCH);
+    assert.equal(server.CGO_ENABLED, "0");
     const suffix = `${build.GOOS}-${build.GOARCH}${build.GOOS === "windows" ? ".exe" : ""}`;
     assert.equal(`gh-cao-${suffix}`, platforms[index]);
     assert.deepEqual(
@@ -102,7 +122,7 @@ test("release builder stops on compilation failure without sealing partial artif
   const { log, output, run } = fixture(t);
   const result = run(["v1.2.3", output], { RELEASE_BUILD_FAIL: "linux-amd64" });
   assert.notEqual(result.status, 0);
-  assert.equal(readFileSync(log, "utf8").trim().split("\n").length, 3);
+  assert.equal(readFileSync(log, "utf8").trim().split("\n").length, 5);
   assert.equal(existsSync(join(output, "checksums.txt")), false);
   assert.equal(existsSync(join(output, "gh-cao-windows-amd64.exe")), false);
 });

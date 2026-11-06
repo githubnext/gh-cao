@@ -34,6 +34,14 @@ platforms=(
   windows-arm64
 )
 assets=()
+bundle="$root/dashboard/local-assets/bundle"
+if [[ -e "$bundle" || -L "$bundle" ]]; then
+  echo "Release bundle staging directory already exists: $bundle" >&2
+  exit 1
+fi
+mkdir -p "$bundle"
+trap 'rm -rf -- "$bundle"' EXIT
+CAO_VERSION="$version" npm --prefix dashboard/site run build -- "$bundle/site" "$root/.github/workflows/cao.json"
 for platform in "${platforms[@]}"; do
   goos="${platform%-*}"
   goarch="${platform#*-}"
@@ -42,6 +50,14 @@ for platform in "${platforms[@]}"; do
     suffix=".exe"
   fi
   asset="gh-cao-${platform}${suffix}"
+  # Each extension embeds only its own platform's existing server executable.
+  rm -f -- "$bundle/cao-dashboard" "$bundle/cao-dashboard.exe"
+  CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go -C server build \
+    -mod=readonly \
+    -trimpath \
+    -ldflags="-s -w -X main.version=${version}" \
+    -o "$bundle/cao-dashboard${suffix}" \
+    ./cmd/cao-dashboard
   echo "Building gh-cao ${version} for ${platform}"
   CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build \
     -mod=readonly \

@@ -1,0 +1,19 @@
+{
+  "page": "immediate-operations",
+  "view": "immediate-runs",
+  "source": "runs-table",
+  "sources": ["runs-table", "dashboard-data-freshness"],
+  "fields": ["run", "run-status", "run-conclusion", "repository-coordinate", "workflow", "engine", "resolved-model", "started-at"],
+  "batch": {
+    "campaigns": [], "domains": [], "tools": [], "skills": [], "friction": [], "audits": [], "issues": [], "operationalValues": [], "marketplacePackages": [],
+    "repositories": [{ "id": "repository:octo%2Fapi", "owner": "octo", "name": "api" }],
+    "workflows": [{ "id": "workflow:octo%2Fapi%3A.github%2Fworkflows%2Fagent.md", "repositoryId": "repository:octo%2Fapi", "name": "Agent", "path": ".github/workflows/agent.md" }],
+    "runs": [{
+      "id": "github:run:octo/api:123", "githubRunId": "123", "attempt": 1,
+      "owner": "octo", "repository": "api", "repositoryFullName": "octo/api", "workflowPath": ".github/workflows/agent.md",
+      "repositoryId": "repository:octo%2Fapi", "workflowId": "workflow:octo%2Fapi%3A.github%2Fworkflows%2Fagent.md",
+      "status": "in_progress", "createdAt": "2026-09-24T00:00:00Z", "startedAt": "2026-09-24T00:01:00Z",
+      "runLink": "https://github.com/octo/api/actions/runs/123"
+    }]
+  }
+}

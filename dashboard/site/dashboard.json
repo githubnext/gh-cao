@@ -1430,6 +1430,7 @@
     "dashboard-fragments/campaign-problems.json",
     "dashboard-fragments/campaign-insights.json",
     "dashboard-fragments/inventory.json",
+    "dashboard-fragments/immediate-operations.json",
     "dashboard-fragments/operations.json",
     "dashboard-fragments/model-routing.json",
     "dashboard-fragments/simulators.json",

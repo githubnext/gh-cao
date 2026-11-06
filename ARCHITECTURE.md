@@ -857,7 +857,7 @@ webhook, or hosted execution capabilities. Query result caching is disabled;
 in-place commits change the revision and notify active subscriptions. Snapshot
 quality remains unknown without stronger evidence. This default local mode
 does not introduce a hosted SQLite backend or a fallback from PostgreSQL.
-SQLite creation, normalization, backfill, and maintenance belong to the
+Ordinary Activity SQLite creation, normalization, backfill, and maintenance belong to the
 JavaScript `cao-activity` pipeline, not the Go server. Local serving does not
 look up GitHub credentials, launch acquisition or ingestion tools, create a
 writable delta, or attach previous `.local.sqlite` overlays. Existing overlay
@@ -865,6 +865,29 @@ files are left unchanged. Ordinary and internal canvas serving both read only
 the selected canonical snapshot; externally committed changes are observed
 through the same native query and revision-subscription boundaries.
 This does not change the separate hosted PostgreSQL collector or its runtimes.
+
+`gh cao dashboard` is a separately selected native operator acquisition profile
+for investigations lasting at most 48 hours. It resolves the current repository
+or up to 20 exact `--repo` selections, calls the embedded pinned gh-aw log collector
+with its normal artifact/JSONL cache semantics, and combines that usage with fresh
+bounded GitHub workflow/run reads. It owns a separate private canonical SQLite
+projection in the user's scope-keyed cache, not an Activity database, browser
+database, hosted store, or writable server overlay. Its native adapter projects
+only observed repository/workflow/run facts; the ordinary declarative database
+queries, Go evaluator, HTTP handler, and revision subscriptions serve them.
+It never fabricates campaign policy, daily counts, queue backlog, accepted
+outcomes, or uncollected event evidence. Collection coverage remains partial.
+
+One local collection lock serializes refreshes. A successful transaction replaces
+only that profile's projection and observation metadata; failed acquisition
+preserves the previous database. The CLI refreshes outside the server lifecycle
+and closes its owned server on interruption or expiry. Release binaries embed
+their platform's existing `cao-dashboard` executable and built site; extraction
+is private and temporary, with no install-time Node, Go, service, or container.
+Source builds select existing server/site paths explicitly. Maintenance and
+prompt commands share the exact cache scope; explicit cancel/rerun commands
+require one repository and an observed run and use the local operator's GitHub
+permissions. They grant no rollout authority or browser/hosted CLI execution.
 
 Its fixed local evaluator profile admits 500,000 input/intermediate rows and
 50 million operations with 1 GiB working-source and 2 GiB / 2 million live

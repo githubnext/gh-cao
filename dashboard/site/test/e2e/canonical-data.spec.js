@@ -9,6 +9,7 @@ import { readCanonicalBatch } from '../../src/data/storage/indexeddb.js';
 import { createSqliteIndexedDB, SqliteIDBKeyRange } from '../../src/data/storage/sqlite-indexeddb.js';
 import { normalizedActivityShards } from './normalized-shard.js';
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
+import immediateContract from '../fixtures/immediate-operations-contract.json' with { type: 'json' };
 
 const siteRoot = fileURLToPath(new URL('../..', import.meta.url));
 const databaseName = 'gh-aw-cao-dashboard-data';
@@ -499,6 +500,38 @@ test('Evals renders persisted artifact answers from the real data worker after r
   await expect(chart).toBeVisible();
   expect(await chart.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
 });
+
+for (const width of [1200, 390]) {
+  test(`Immediate mode renders canonical run evidence without fleet setup at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    const result = await page.evaluate(async (contract) => {
+      const storage = await import(`${location.origin}/src/data/storage/indexeddb.js`);
+      await storage.upsertCanonicalBatch(indexedDB, contract.batch);
+      const processor = await import(`${location.origin}/src/data-processor.js`);
+      const input = await fetch(`${location.origin}/dashboard.json`).then((response) => response.json());
+      const selected = input.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === contract.page);
+      const payload = await processor.loadCanonicalDashboardPage([contract.source], input.dashboard, undefined, {
+        pageId: contract.page, viewId: contract.view
+      });
+      const presenter = await import(`${location.origin}/src/presenter.js`);
+      window.history.replaceState(null, '', `#page-${contract.page}`);
+      document.body.append(presenter.renderDashboard({
+        document: {
+          ...input,
+          dashboard: { ...input.dashboard, pages: [selected], navigation: [{ pages: [contract.page] }], callouts: undefined }
+        },
+        sources: payload
+      }));
+      return { names: Object.keys(payload), rows: Object.values(payload)[0].rows };
+    }, immediateContract);
+    expect(result.names).toEqual([`view:${immediateContract.page}:${immediateContract.view}:${immediateContract.source}`]);
+    expect(result.rows).toHaveLength(1);
+    await expect(page.getByRole('heading', { name: 'Immediate operations', exact: true })).toBeVisible();
+    await expect(page.locator(`[data-view-id="${immediateContract.view}"]`)).toBeVisible();
+    await expect(page.locator(`[data-view-id="${immediateContract.view}"]`)).toContainText('octo/api');
+    await expect(page.locator('p[data-page-description]')).toHaveText('Inspect recent activity immediately without setup or long-running fleet history.');
+  });
+}
 
 test('data worker returns only the canonical payload requested by a view', async ({ page }) => {
   const result = await page.evaluate(async () => {

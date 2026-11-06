@@ -580,6 +580,13 @@ func (r *reader) source(
 		for key, value := range r.store.metadata[name] {
 			metadata[key] = value
 		}
+		localMetadata, err := dashboardquery.LocalDashboardMetadata(ctx, r.tx)
+		if err != nil {
+			return model.Source{}, err
+		}
+		for key, value := range localMetadata {
+			metadata[key] = value
+		}
 		if name == "$workflows" {
 			metadata["workflow-subject-revision"] = state.WorkflowSubjectRevision
 		}

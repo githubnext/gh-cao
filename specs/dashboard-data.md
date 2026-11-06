@@ -825,8 +825,8 @@ GitHub OAuth and explicit organization/team authorization; neither profile
 grants database access to clients.
 
 Local SQLite serving SHALL open only the selected canonical database read-only.
-Creation, normalization, backfill, retention, and repair SHALL remain owned by
-the `cao-activity` JavaScript pipeline, outside the Go server lifecycle.
+Ordinary Activity creation, normalization, backfill, retention, and repair SHALL
+remain owned by the `cao-activity` JavaScript pipeline, outside the Go server lifecycle.
 The server MUST NOT acquire GitHub evidence, resolve acquisition credentials,
 launch ingestion runtimes, create a writable overlay, or mutate canonical
 records or bookkeeping for local SQLite serving. Previously created overlay
@@ -838,6 +838,23 @@ verify an already-published SQLite snapshot; that is artifact acquisition, not
 evidence collection or local backfill. These boundaries apply equally to
 ordinary local and internal canvas serving and MUST NOT change hosted
 PostgreSQL, OAuth, webhook, or collection-authority contracts.
+
+The explicitly selected `gh cao dashboard` operator profile MAY create and
+refresh a separate private canonical SQLite projection through its native
+acquisition adapter, outside the Go server. It MUST select the current verified
+GitHub.com repository or an explicit bounded list of exact repositories, retain
+at most a 48-hour recent window, and serve for at most 48 hours per invocation.
+The adapter MUST use the pinned gh-aw collector and canonical repository,
+workflow, and repository-scoped Run identities; fresh Actions observations MUST
+take precedence over cached status and mismatched-attempt enrichment MUST NOT
+be attached. Unknown usage MUST NOT become zero or a guessed engine/model.
+The profile MUST preserve partial acquisition coverage and unavailable sources,
+MUST NOT synthesize the daily projection or infer campaign/rollout authority,
+and MUST NOT modify or migrate an ordinary Activity snapshot. Publication MUST
+be atomic and failed collection MUST preserve the previous projection.
+The existing read-only Go query/server and revision-subscription contracts
+SHALL serve this projection unchanged. This exception does not authorize
+server-side acquisition, a hosted fallback, or a browser ingestion path.
 
 The optional hosted OIDC admission gate MAY publish early Run evidence only
 after verified identity, policy approval and durable decision resolution.
