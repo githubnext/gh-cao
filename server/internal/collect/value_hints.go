@@ -112,6 +112,9 @@ func (w Worker) withRemoteValueHint(ctx context.Context, repository string, upda
 }
 
 func (w Worker) collectRemoteValue(ctx context.Context, repository string, now time.Time) error {
+	if w.Projector.Enrollment.Authority != nil {
+		return w.collectNativeRemoteValue(ctx, repository, now)
+	}
 	hint, err := w.Projector.readRemoteValueHint(ctx, repository)
 	if err != nil {
 		return err

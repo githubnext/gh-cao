@@ -8,9 +8,11 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/adxingest"
 	"github.com/githubnext/gh-cao/server/internal/adxtrace"
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
+	"github.com/githubnext/gh-cao/server/internal/sessionexport"
 )
 
 func resolveADXConfig(config Config) (adxingest.Config, error) {
@@ -92,14 +94,22 @@ func newTraceWorker(ctx context.Context, config Config, collector *Collector) (*
 		return nil, err
 	}
 	namespace := adxtrace.Namespace(config.ADX.Endpoint, config.ADX.Database)
-	if config.ADXTraces.MiningEnabled {
-		database, ok := config.Database.(*postgresx.Store)
-		if !ok || database == nil {
-			return nil, errors.New("trace mining requires canonical PostgreSQL")
-		}
-		return adxtrace.New(ctx, *config.ADXTraces, namespace, client, database)
+	database, ok := config.Database.(*postgresx.Store)
+	if !ok || database == nil || !config.ADXTraces.SharedStorage {
+		return nil, errors.New("native trace admission requires PostgreSQL shared storage and atomic enrollment withdrawal")
 	}
-	return adxtrace.New(ctx, *config.ADXTraces, namespace, client)
+	var readers []sessionexport.MiningReader
+	if config.ADXTraces.MiningEnabled {
+		readers = append(readers, database)
+	}
+	authority, worker, err := database.NativeEnrollmentWithTrace(ctx, *config.ADXTraces, namespace, client, readers...)
+	if err != nil {
+		return nil, err
+	}
+	collector.nativeAuthority(authority)
+	collector.native.collector.Destinations = append(collector.native.collector.Destinations,
+		collectnative.TraceDestination{Admission: worker})
+	return worker, nil
 }
 
 func (a *App) ADXTraceStatus() adxtrace.Status {

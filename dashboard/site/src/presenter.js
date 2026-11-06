@@ -31,7 +31,7 @@ import { DASHBOARD_RENDER_EVENT, emitDashboardDebugEvent } from './debug-events.
 import { dashboardFormDefaultValues, dashboardViewAliasName } from './data/queries/view-payload-compiler.js';
 import { dashboardHorizonHours, formatDashboardHorizon, formatDashboardHorizonHours, resolveDashboardHorizon } from './horizon.js';
 import { sourceContinuation } from './data/continuation.js';
-import { renderDashboardNavigation, enableDashboardNavigation, syncDashboardNavigationIndicators, syncMobileViewModeToggle } from './components/dashboard-navigation.js';
+import { renderDashboardNavigation, enableDashboardNavigation, syncDashboardNavigationIndicators, syncDashboardNavigationAvailability, syncMobileViewModeToggle } from './components/dashboard-navigation.js';
 import { renderDashboardHeader, renderRouteBreadcrumbs } from './components/dashboard-header.js';
 import { renderAccountMenu } from './components/account-menu.js';
 import { renderDashboardFooter } from './components/dashboard-footer.js';
@@ -44,7 +44,7 @@ import { enablePullRefresh } from './components/pull-refresh.js';
 import { resolveModeIndicator } from './components/mode-indicator.js';
 import { createDebug } from './debug.js';
 import { navigationIndicatorSourceNames } from './navigation-indicator.js';
-import { dashboardDataBackend, pageCapabilityAvailable, viewBackendAvailable, viewBackendHidden, viewBackendUnavailableMessage } from './view-availability.js';
+import { dashboardDataBackend, pageCapabilityAvailable, pageRequiredSource, pageSourceAvailable, viewBackendAvailable, viewBackendHidden, viewBackendUnavailableMessage } from './view-availability.js';
 import { dashboardViewSourceNames as getViewSources, normalizeViewFilters, viewDataSourceNames, viewFilterControls, viewFilterSourceNames } from './view-filter-contract.js';
 import { captureCardFilterState, renderCardFilterBar, restoreCardFilterState } from './components/card-filter-bar.js';
 
@@ -80,11 +80,11 @@ import {
  */
 
 /**
- * @typedef {{ id: string, kind: 'built-in', page: string, title?: string, ['navigation-label']?: string, ['navigation-indicator']?: Record<string, unknown>, description?: string, icon?: string, ['class-name']?: string, experimental?: boolean, ['filter-bar']?: boolean, ['view-mode-control']?: boolean, ['pull-refresh']?: boolean, ['mode-indicator']?: boolean, ['query-binding']?: 'view'|'page', form?: Record<string, unknown>, chunk?: string, ['source-names']?: string[], ['lazy-source-names']?: string[], ['table-source-names']?: string[], definition?: { views?: Array<unknown>, sections?: PresentablePageSection[], ['data-state']?: Record<string, boolean> } }} PresentableBuiltInPage
+ * @typedef {{ id: string, kind: 'built-in', page: string, title?: string, ['navigation-label']?: string, ['navigation-indicator']?: Record<string, unknown>, description?: string, requires?: { capability?: 'cli-queue'|'admin', source?: string, message?: string }, icon?: string, ['class-name']?: string, experimental?: boolean, ['filter-bar']?: boolean, ['view-mode-control']?: boolean, ['pull-refresh']?: boolean, ['mode-indicator']?: boolean, ['query-binding']?: 'view'|'page', form?: Record<string, unknown>, chunk?: string, ['source-names']?: string[], ['lazy-source-names']?: string[], ['table-source-names']?: string[], definition?: { views?: Array<unknown>, sections?: PresentablePageSection[], ['data-state']?: Record<string, boolean> } }} PresentableBuiltInPage
  */
 
 /**
- * @typedef {{ id: string, kind: 'custom', title?: string, ['navigation-label']?: string, ['navigation-indicator']?: Record<string, unknown>, description?: string, icon?: string, ['class-name']?: string, experimental?: boolean, ['filter-bar']?: boolean, ['view-mode-control']?: boolean, ['pull-refresh']?: boolean, ['mode-indicator']?: boolean, ['retain-on-navigation']?: boolean, ['query-binding']?: 'view'|'page', form?: Record<string, unknown>, chunk?: string, ['source-names']?: string[], ['lazy-source-names']?: string[], ['table-source-names']?: string[], route?: { ['hash-query-parameter']?: string, ['navigation-page']?: string, ['availability-view']?: string, ['availability-message']?: string, ['partial-message']?: string, ['title-format']?: 'title-case', breadcrumbs?: import('./components/dashboard-header.js').RouteBreadcrumb[] }, views: unknown[], sections?: PresentablePageSection[] }} PresentableCustomPage
+ * @typedef {{ id: string, kind: 'custom', title?: string, ['navigation-label']?: string, ['navigation-indicator']?: Record<string, unknown>, description?: string, requires?: { capability?: 'cli-queue'|'admin', source?: string, message?: string }, icon?: string, ['class-name']?: string, experimental?: boolean, ['filter-bar']?: boolean, ['view-mode-control']?: boolean, ['pull-refresh']?: boolean, ['mode-indicator']?: boolean, ['retain-on-navigation']?: boolean, ['query-binding']?: 'view'|'page', form?: Record<string, unknown>, chunk?: string, ['source-names']?: string[], ['lazy-source-names']?: string[], ['table-source-names']?: string[], route?: { ['hash-query-parameter']?: string, ['navigation-page']?: string, ['availability-view']?: string, ['availability-message']?: string, ['partial-message']?: string, ['title-format']?: 'title-case', breadcrumbs?: import('./components/dashboard-header.js').RouteBreadcrumb[] }, views: unknown[], sections?: PresentablePageSection[] }} PresentableCustomPage
  */
 
 /**
@@ -238,6 +238,7 @@ export function renderDashboard(input) {
   const overviewPage = pages.find((page) => page.id === 'overview');
   const initialPageHref = initialPage ? `#page-${encodeURIComponent(initialPage.id)}` : '#main-content';
   const dashboardOwner = new AbortController();
+  const navigationSources = state(sources);
   const appShell = renderDashboardFrame({
     navigation: sidebar,
     header: renderDashboardHeader({
@@ -266,6 +267,7 @@ export function renderDashboard(input) {
   });
   enableDashboardNavigation(root);
   syncDashboardNavigationIndicators(root, pages, sources);
+  syncDashboardNavigationAvailability(root, pages, sources);
   restoreDashboardTheme(root);
   enableHorizonOutsideClickDismissal(root, dashboardHorizon.collapse);
   root.addEventListener('dashboard-time-window-change', (event) => {
@@ -446,6 +448,15 @@ export function renderDashboard(input) {
         };
         return renderedPage instanceof Promise ? renderedPage.then(annotate) : annotate(renderedPage);
       };
+      if (!pageSourceAvailable(resolvedPage(), navigationSources.get())) {
+        const page = resolvedPage();
+        const unavailable = renderPagePlaceholder(page);
+        unavailable.removeAttribute('data-page-pending');
+        unavailable.dataset.pagePrerequisiteUnavailable = 'true';
+        unavailable.append(renderCustomViewState(pageId, getPageTitle(page), pageRequiredSource(page) ?? '', 'unavailable',
+          [], 'h2', page.requires?.message ?? 'Required data is unavailable.'));
+        return unavailable;
+      }
       const page = resolvedPage();
       return input.loadPageSources?.prepare && page && !dashboardPageIsLoaded(page)
         ? input.loadPageSources.prepare(pageId).then(() => {
@@ -462,7 +473,13 @@ export function renderDashboard(input) {
       isPlainObject(query) && typeof query.name === 'string' ? [query.name] : []
     )))
   );
-  enableNavigationIndicatorUpdates(root, pages, input.loadPageSources, dashboardOwner.signal);
+  enableNavigationIndicatorUpdates(root, pages, input.loadPageSources, dashboardOwner.signal, (next) => {
+    const changed = pages.filter((page) => pageSourceAvailable(page, navigationSources.get()) !== pageSourceAvailable(page, next))
+      .map((page) => page.id);
+    navigationSources.set(next);
+    syncDashboardNavigationAvailability(root, pages, next);
+    if (changed.length) root.dispatchEvent(new CustomEvent('dashboard-page-availability-change', { detail: changed }));
+  });
   dashboardDisposals.set(root, () => {
     dashboardOwner.abort();
     disposeNavigation();
@@ -476,17 +493,23 @@ export function renderDashboard(input) {
  * @param {Array<PresentableBuiltInPage | PresentableCustomPage>} pages
  * @param {PageSourceLoader | undefined} loadPageSources
  * @param {AbortSignal} signal
+ * @param {(sources: Record<string, LogicalSourceInput>) => void} onUpdate
  */
-function enableNavigationIndicatorUpdates(root, pages, loadPageSources, signal) {
+function enableNavigationIndicatorUpdates(root, pages, loadPageSources, signal, onUpdate) {
   const sourceNames = navigationIndicatorSourceNames(pages);
   if (!loadPageSources?.subscribeBackgroundSources || sourceNames.length === 0) return;
   if (signal.aborted) return;
   // The loader resolves the first snapshot; later snapshots arrive through onUpdate.
+  const update = (/** @type {Record<string, LogicalSourceInput>} */ sources) => {
+    if (signal.aborted) return;
+    syncDashboardNavigationIndicators(root, pages, sources);
+    onUpdate(sources);
+  };
   void loadPageSources.subscribeBackgroundSources(sourceNames, {
     signal,
-    onUpdate: (sources) => syncDashboardNavigationIndicators(root, pages, sources)
+    onUpdate: update
   })
-    .then((sources) => syncDashboardNavigationIndicators(root, pages, sources))
+    .then(update)
     .catch((error) => {
       if (signal.aborted || error?.name === 'AbortError') return;
       debugNavigation('indicator update failed', {
@@ -2009,6 +2032,14 @@ export function enableDashboardPageNavigation(root, dashboardTitle = '', renderP
     if (!populationDeferred) restoreScroll(page);
   };
 
+  root.addEventListener('dashboard-page-availability-change', (event) => {
+    if (!(event instanceof CustomEvent) || !Array.isArray(event.detail)) return;
+    for (const page of pages) {
+      if (event.detail.includes(page.dataset.pageId)) page.setAttribute('data-page-pending', '');
+    }
+    if (!event.detail.includes(activePageId)) return;
+    activate(activePageId, routeFromHash()?.parameters);
+  }, { signal: navigationOwner.signal });
   const initialRoute = routeFromHash();
   const initialPageId = availableIds.has(defaultPageId) ? defaultPageId : pages[0].dataset.pageId ?? '';
   activate(initialRoute?.pageId ?? initialPageId, initialRoute?.parameters);
@@ -2131,6 +2162,7 @@ export function enableDashboardPageNavigation(root, dashboardTitle = '', renderP
     const link = event.target.closest('[data-nav-page-id], [data-mobile-nav-page-id]');
     if (!(link instanceof HTMLAnchorElement)) return;
     event.preventDefault();
+    if (link.getAttribute('aria-disabled') === 'true') return;
     // Current route tabs already show the active view; sidebar links remain navigable.
     if (link.getAttribute('aria-current') === 'page' && link.closest('[data-route-tabs]')) return;
     pendingNavigationDirection = undefined;

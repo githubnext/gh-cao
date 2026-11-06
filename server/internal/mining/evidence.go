@@ -131,6 +131,35 @@ func (o Outcome) Validate() error {
 	return nil
 }
 
+// Merge keeps the original observation clock on replay and refuses to choose
+// between contradictory dispositions at the same upstream update clock.
+func (o Outcome) Merge(next Outcome) (Outcome, error) {
+	if err := o.Validate(); err != nil {
+		return Outcome{}, err
+	}
+	if err := next.Validate(); err != nil {
+		return Outcome{}, err
+	}
+	if o.Repository != next.Repository || o.URL != next.URL || o.PullRequest != next.PullRequest {
+		return Outcome{}, errors.New("outcome observation ownership mismatch")
+	}
+	if next.UpdatedAt.Before(o.UpdatedAt) {
+		return o, nil
+	}
+	if next.UpdatedAt.After(o.UpdatedAt) {
+		return next, nil
+	}
+	if o.State != next.State || o.StateReason != next.StateReason || o.Merged != next.Merged ||
+		(o.CloseActor != "" && next.CloseActor != "" && o.CloseActor != next.CloseActor) {
+		return Outcome{}, errors.New("conflicting same-time outcome observations")
+	}
+	if o.CloseActor != "" || next.CloseActor == "" {
+		return o, nil
+	}
+	next.ObservedAt = o.ObservedAt
+	return next, nil
+}
+
 func (m Membership) Validate() error {
 	if m.Repository == "" || m.Attempt < 1 || m.ObservedAt.IsZero() ||
 		strings.TrimSpace(m.Context.EpisodeID) == "" || len(m.Context.EpisodeID) > 2048 {

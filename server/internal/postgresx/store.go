@@ -45,8 +45,9 @@ func (s *Store) Open() bool { return s != nil && s.db != nil }
 type NativeReader = dashboardstore.Reader
 
 type readTransaction struct {
-	store *Store
-	tx    *sql.Tx
+	store              *Store
+	tx                 *sql.Tx
+	publicationSources map[string]model.Source
 }
 
 var _ dashboardstore.Store = (*Store)(nil)

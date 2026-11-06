@@ -110,21 +110,24 @@ func (s *Store) beginInvocation(ctx context.Context) (*sql.Tx, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err = tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock_shared(712083241,17484)`); err != nil {
-		_ = tx.Rollback()
-		return nil, err
-	}
-	if _, err = tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || ':' || $1,0))`, s.namespace); err != nil {
-		_ = tx.Rollback()
-		return nil, err
-	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO cao_state
-		(namespace,revision,workflow_subject_revision,workflow_subject_digest,data_revision,evaluated_at,schema_version)
-		VALUES($1,0,0,'','','epoch',$2) ON CONFLICT(namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
+	if err := s.lockInvocation(ctx, tx); err != nil {
 		_ = tx.Rollback()
 		return nil, err
 	}
 	return tx, nil
+}
+
+func (s *Store) lockInvocation(ctx context.Context, tx *sql.Tx) error {
+	if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock_shared(712083241,17484)`); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || ':' || $1,0))`, s.namespace); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx, `INSERT INTO cao_state
+		(namespace,revision,workflow_subject_revision,workflow_subject_digest,data_revision,evaluated_at,schema_version)
+		VALUES($1,0,0,'','','epoch',$2) ON CONFLICT(namespace) DO NOTHING`, s.namespace, model.SchemaVersion)
+	return err
 }
 
 func (s *Store) invocationParents(ctx context.Context, tx *sql.Tx, run model.Row, now time.Time) (bool, error) {
@@ -187,6 +190,16 @@ func workflowSubjectDigestSQL(ctx context.Context, tx *sql.Tx, namespace string)
 		return "", err
 	}
 	return "sha256:" + hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func (s *Store) reconcileWorkflowSubject(ctx context.Context, tx *sql.Tx) error {
+	digest, err := workflowSubjectDigestSQL(ctx, tx, s.namespace)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE cao_state SET workflow_subject_revision=workflow_subject_revision+1,
+		workflow_subject_digest=$2 WHERE namespace=$1 AND workflow_subject_digest<>$2`, s.namespace, digest)
+	return err
 }
 
 func partialInvocationQuality(ctx context.Context, tx *sql.Tx, namespace, source string) error {

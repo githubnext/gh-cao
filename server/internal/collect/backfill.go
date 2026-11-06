@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
@@ -82,8 +83,13 @@ type Backfill struct {
 	Lake          Lake
 	Enumerator    Enumerator
 	RunEnumerator WorkflowRunEnumerator
-	Quota         RunQuotaService
-	QuotaApp      string
+	// AcquisitionScopes selects epoch-bound native historical admission.
+	// Nil preserves the separate legacy producer's queue/cursor contract.
+	AcquisitionScopes  collectnative.ScopeReader
+	NativePublications NativePublicationStore
+	NativeInventory    NativeInventoryPreparation
+	Quota              RunQuotaService
+	QuotaApp           string
 	// WindowDays is opt-in; zero preserves unbounded historical enumeration.
 	WindowDays       int
 	ReconstructScope bool
@@ -102,6 +108,8 @@ type BackfillState struct {
 	Repositories        int    `json:"repositories"`
 	QueuedRepositories  int    `json:"queuedRepositories"`
 	QueuedRunTasks      int    `json:"queuedRunTasks"`
+	QueuedEnumerations  int    `json:"queuedEnumerations,omitempty"`
+	NativePublications  int    `json:"nativePublications,omitempty"`
 	EnumerationFailures int    `json:"enumerationFailures,omitempty"`
 	LakeReplayed        bool   `json:"lakeReplayed"`
 	Revision            int64  `json:"revision,omitempty"`
@@ -124,6 +132,9 @@ func (b Backfill) Run(ctx context.Context) (result BackfillState, err error) {
 	if b.WindowDays > 0 {
 		b.runBefore, _ = time.Parse(time.RFC3339Nano, state.StartedAt)
 		b.runAfter = b.runBefore.Add(-time.Duration(b.WindowDays) * 24 * time.Hour)
+	}
+	if b.AcquisitionScopes != nil || b.NativePublications != nil {
+		return b.runNative(ctx, state)
 	}
 	populated, err := b.Lake.Populated()
 	if err != nil {
@@ -208,6 +219,10 @@ func (b Backfill) Run(ctx context.Context) (result BackfillState, err error) {
 // Replay repopulates from the evidence lake alone. It issues no GitHub
 // requests and is the normal recovery path.
 func (b Backfill) Replay(ctx context.Context) (ingest.Result, error) {
+	if b.AcquisitionScopes != nil || b.NativePublications != nil {
+		result, _, err := b.replayNative(ctx)
+		return result, err
+	}
 	populated, err := b.Lake.Populated()
 	if err != nil {
 		return ingest.Result{}, err
@@ -336,6 +351,9 @@ type pendingRunTask struct {
 func (b Backfill) enqueueHistoricalRuns(
 	ctx context.Context, repositories []enrolledRepository,
 ) (queued, failures int, err error) {
+	if b.AcquisitionScopes != nil {
+		return b.enqueueNativeHistory(ctx, repositories)
+	}
 	if b.RunEnumerator == nil {
 		return 0, 0, errors.New("historical backfill requires workflow-run enumeration")
 	}

@@ -57,6 +57,7 @@ type hostedCLI struct {
 	context  hostedcli.TemplateContext
 	control  string
 	reposURL string
+	local    *LocalOperatorActionsConfig
 }
 
 // EnableHostedCLIActions opts this hosted app into admitting dashboard CLI
@@ -164,6 +165,15 @@ func writeHostedCLIError(response http.ResponseWriter, err error) {
 // assured OAuth step-up. Every hosted CLI route, including reads, exposes
 // operator commands and output.
 func (a *App) authorizeHostedCLI(response http.ResponseWriter, request *http.Request) (oauthSession, bool) {
+	if a.hostedCLI.local != nil {
+		if request.Context().Value(localCanvasContextKey{}) != true ||
+			!a.authorized(request) ||
+			(request.Method != http.MethodGet && request.Header.Get("Origin") != "http://"+request.Host) {
+			writeError(response, http.StatusForbidden, "Local command capability and same-origin approval are required.")
+			return oauthSession{}, false
+		}
+		return oauthSession{Login: "local"}, true
+	}
 	session, ok := request.Context().Value(oauthSessionContextKey{}).(oauthSession)
 	if !ok || !a.adminAuthorized(request) {
 		a.writeAdminDenied(response, request, "Administrator access is required for CLI actions.")
@@ -239,6 +249,9 @@ func idempotencyKey(request *http.Request, body string) string {
 // the requester can write to the single target repository with their own
 // OAuth token. The executor re-checks permission before it runs.
 func (a *App) admit(ctx context.Context, session oauthSession, request hostedcli.Request) (operational.CLICommandInvocation, error) {
+	if a.hostedCLI.local != nil {
+		return a.admitOperatorAction(request)
+	}
 	if session.GitHubID <= 0 || session.Login == "" {
 		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "A verified requester account identity is required. Sign in again before submitting CLI actions.")
 	}
@@ -265,6 +278,12 @@ func (a *App) requireRepositoryWrite(request *http.Request, session oauthSession
 	command, err := a.hostedCLI.queue.Detail(request.Context(), id)
 	if err != nil {
 		return err
+	}
+	if a.hostedCLI.local != nil {
+		if !a.hostedCLI.local.allows(command.Repository) {
+			return cliFailure(http.StatusForbidden, "The command is outside the selected repository scope.")
+		}
+		return nil
 	}
 	if !a.requesterCanWrite(request.Context(), session.AccessToken, command.Repository) {
 		a.auditCLIRejected(request, session, command.ActionID, cliFailure(http.StatusForbidden, ""))

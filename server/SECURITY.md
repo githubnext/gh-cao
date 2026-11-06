@@ -474,7 +474,9 @@ read-only. Never populate a live attached artifact volume or treat a placeholder
 as deployment data.
 
 Use the private `collector-runtime` target for standalone collection and
-backfill roles, with a persistent evidence volume and no public ingress.
+backfill roles, with PostgreSQL-backed evidence and no public ingress. Its
+Git executable is confined to the reviewed Value Git acquisition transport;
+the Go server does not launch Node.
 Admission-only web replicas must not receive the collection App private key.
 
 Official package scans, hardening checks, SBOMs, and attestations apply to

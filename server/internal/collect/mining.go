@@ -121,18 +121,12 @@ func (l Lake) recordMining(ctx context.Context, repository string, memberships [
 			continue
 		}
 		previous, exists := outcomes[o.URL]
-		if exists && o.UpdatedAt.Equal(previous.UpdatedAt) {
-			if o.State != previous.State || o.StateReason != previous.StateReason || o.Merged != previous.Merged ||
-				(o.CloseActor != "" && previous.CloseActor != "" && o.CloseActor != previous.CloseActor) {
-				return errors.New("conflicting same-time outcome observations")
+		if exists {
+			merged, err := previous.Merge(o)
+			if err != nil {
+				return err
 			}
-			// Replays and API repair must not move the original observation clock.
-			if previous.CloseActor != "" || o.CloseActor == "" {
-				continue
-			}
-			o.ObservedAt = previous.ObservedAt
-		} else if exists && o.UpdatedAt.Before(previous.UpdatedAt) {
-			continue
+			o = merged
 		}
 		outcomes[o.URL] = o
 	}

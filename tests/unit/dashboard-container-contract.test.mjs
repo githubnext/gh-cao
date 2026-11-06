@@ -32,14 +32,10 @@ test("server and native CLI builds require the CA-compromise-patched Go toolchai
 
 test("dashboard image is multi-stage, non-root, versioned, and health checked", async () => {
   const dockerfile = await text("server/Dockerfile");
-  const dockerignore = await text(".dockerignore");
-  const policy = JSON.parse(await text(".github/workflows/cao.json"));
-  const ghAwVersion = policy["gh-aw-version"];
 
   assert.match(dockerfile, /FROM node:24-alpine@sha256:[0-9a-f]{64} AS dashboard-build/);
   assert.match(dockerfile, /FROM golang:1\.27\.3-alpine@sha256:[0-9a-f]{64} AS server-build/);
   assert.match(dockerfile, /FROM alpine:3\.22@sha256:[0-9a-f]{64} AS dashboard-runtime/);
-  assert.match(dockerfile, /FROM node:24-alpine@sha256:[0-9a-f]{64} AS collector-runtime/);
   assert.match(dockerfile, /ARG CAO_PROFILE=cao\.json/);
   assert.match(dockerfile, /ARG VERSION=dev/);
   assert.match(dockerfile, /ARG REVISION=unknown/);
@@ -53,32 +49,22 @@ test("dashboard image is multi-stage, non-root, versioned, and health checked", 
   assert.match(dockerfile, /CMD \["sh", "-c"/);
   assert.doesNotMatch(dockerfile, /CMD \["CMD-SHELL"/);
   assert.match(dockerfile, /ENTRYPOINT \["\/app\/cao-dashboard"\]/);
-  assert.match(dockerfile, new RegExp(`ARG GH_AW_VERSION=${ghAwVersion.replaceAll(".", "\\.")}`));
-  assert.match(dockerfile, /github\/gh-aw\/releases\/download\/\$\{GH_AW_VERSION\}\/linux-\$\{TARGETARCH\}/);
-  assert.match(dockerfile, /sha256sum -c -/);
-  assert.match(dockerfile, /\/app\/\.local\/share\/gh\/extensions\/gh-aw\/gh-aw/);
-  assert.match(dockerfile, /\/workspace\/activity\/ \/app\/catalog\/activity\//);
-  assert.match(dockerfile, /REPORT_INVENTORY_STATIC=true/);
-  assert.match(
-    dockerfile,
-    /\/tmp\/control-plane-inventory\.json \/app\/catalog\/control-plane-inventory\.json/,
-  );
-  assert.match(
-    dockerfile,
-    /\/workspace\/\.github\/workflows\/shared\/control\.mjs \/app\/catalog\/\.github\/workflows\/shared\/control\.mjs/,
-  );
-  assert.match(
-    dockerfile,
-    /\/workspace\/\.github\/workflows\/shared\/policy\.mjs \/app\/catalog\/\.github\/workflows\/shared\/policy\.mjs/,
-  );
-  assert.match(
-    dockerfile,
-    /\/workspace\/\.github\/workflows\/\*\.lock\.yml \/app\/catalog\/\.github\/workflows\//,
-  );
-  assert.match(dockerignore, /^!\.github\/workflows\/\*\.lock\.yml$/m);
-  assert.match(dockerfile, /\/workspace\/dashboard\/site\/node_modules\/yaml\/ \/app\/catalog\/node_modules\/yaml\//);
-  assert.match(dockerfile, /VOLUME \["\/app\/evidence"\]/);
   assert.match(dockerfile, /FROM dashboard-runtime AS final/);
+});
+
+test("collector image contains the Go worker, reviewed policy and Git without a Node runtime or lake", async () => {
+  const dockerfile = await text("server/Dockerfile");
+  const collector = dockerfile.split(/(?=^FROM )/m).find((stage) => stage.includes(" AS collector-runtime"));
+  assert.ok(collector);
+  assert.match(collector, /^FROM alpine:3\.22@sha256:[0-9a-f]{64} AS collector-runtime$/m);
+  assert.match(collector, /apk add --no-cache ca-certificates git/);
+  assert.match(collector, /COPY --from=server-build --chown=cao:cao \/out\/cao-dashboard \/app\/cao-dashboard/);
+  assert.match(collector, /\/workspace\/\.github\/workflows\/cao\.json \/app\/\.github\/workflows\/cao\.json/);
+  assert.match(collector, /\/workspace\/\.github\/value-evidence\/daily-file-diet\.jsonl\.gz \/app\/\.github\/value-evidence\/daily-file-diet\.jsonl\.gz/);
+  assert.match(collector, /\/workspace\/dashboard\/site\/src\/data\/queries\/database\.json \/app\/queries\/database\.json/);
+  assert.match(collector, /USER 65532:65532/);
+  assert.match(collector, /CMD \["collect", "--database-queries", "\/app\/queries\/database\.json"\]/);
+  assert.doesNotMatch(collector, /\bnode\b|github-cli|gh-aw|\/app\/evidence|VOLUME|HEALTHCHECK|\/app\/site/);
 });
 
 test("Hosted CLI relay exports a separate source-bound static artifact", async () => {

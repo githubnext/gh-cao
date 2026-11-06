@@ -107,6 +107,17 @@ describe('unified evaluation evidence', () => {
     }
   });
 
+  it.each(['', undefined])('binds an unspecified grader run ID to verified artifact context: %s', (id) => {
+    const batch = normalize(adaptGhAwLogs(artifactInput([{
+      path: 'usage/graders/grader_results.json',
+      content: JSON.stringify({
+        version: 2, run: { id }, results: [{ id: 'loops', value: 0, status: 'pass', source: 'builtin' }]
+      })
+    }])).observations);
+    expect(batch.graderObservations).toMatchObject([{ value: 0, runId: batch.runs[0].id }]);
+    expect(relationshipErrors(batch)).toEqual([]);
+  });
+
   it.each(['browser', 'sqlite'])('retains split graders idempotently through the %s worker query boundary', async (backend) => {
     const directory = backend === 'sqlite' ? mkdtempSync(join(tmpdir(), 'cao-graders-')) : null;
     if (directory) onTestFinished(() => rmSync(directory, { recursive: true, force: true }));

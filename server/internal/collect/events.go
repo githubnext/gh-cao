@@ -52,6 +52,9 @@ type Intent struct {
 	Lifecycle      string
 	Outcome        *mining.Outcome
 	ValueRefresh   bool
+	RunID          int64
+	RunAttempt     int
+	WorkflowPath   string
 }
 
 type webhookEnvelope struct {
@@ -73,6 +76,9 @@ type webhookEnvelope struct {
 		DefaultBranch string `json:"default_branch"`
 	} `json:"repository"`
 	WorkflowRun struct {
+		ID         int64  `json:"id"`
+		Attempt    int    `json:"run_attempt"`
+		Path       string `json:"path"`
 		Status     string `json:"status"`
 		Conclusion string `json:"conclusion"`
 	} `json:"workflow_run"`
@@ -279,6 +285,9 @@ func parseWorkflowRunEvent(envelope webhookEnvelope) (Intent, error) {
 		InstallationID: envelope.Installation.ID,
 		Reason:         "workflow_run",
 		ValueRefresh:   true,
+		RunID:          envelope.WorkflowRun.ID,
+		RunAttempt:     envelope.WorkflowRun.Attempt,
+		WorkflowPath:   envelope.WorkflowRun.Path,
 	}, nil
 }
 
@@ -385,6 +394,9 @@ func (a Admitter) Admit(ctx context.Context, event string, payload []byte) (Admi
 	if err != nil {
 		return Admission{}, err
 	}
+	if a.Enrollment.Authority != nil {
+		return a.admitNativeEvent(ctx, intent, "", 0)
+	}
 	if isScopeIntent(intent.Kind) {
 		return a.queueScope(ctx, intent, "", 0)
 	}
@@ -405,6 +417,9 @@ func (a Admitter) AdmitDelivery(
 	intent, err := ParseEvent(event, payload)
 	if err != nil {
 		return Admission{}, err
+	}
+	if a.Enrollment.Authority != nil {
+		return a.admitNativeEvent(ctx, intent, delivery, deliveryTTL)
 	}
 	if isScopeIntent(intent.Kind) {
 		return a.queueScope(ctx, intent, delivery, deliveryTTL)

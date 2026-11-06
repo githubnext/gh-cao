@@ -22,7 +22,7 @@ var cacheLog = logger.New("cao:adxtrace")
 // never commits the CLI cache write, so retries reacquire the authorized artifact.
 func (w *Worker) PrepareCache(ctx context.Context, repository, sourcePrefix, targetPrefix string) error {
 	known := map[string]bool{}
-	if err := w.spool.locked(ctx, func(_ *os.Root, state *ledger) error {
+	if err := w.spool.locked(ctx, func(_ Objects, state *ledger) error {
 		for _, r := range state.Records {
 			if r.Repository == repository && r.State != "source-gap" {
 				known[r.RunID+":"+strconv.FormatInt(r.Attempt, 10)] = true
@@ -66,7 +66,7 @@ func PrepareCaptureCache(ctx context.Context, scoped bool, sourcePrefix, targetP
 			return err
 		}
 		cacheLog.Printf("prepared capture cache file: scoped=%t dropped_runs=%d bytes=%d", scoped, dropped, len(content))
-		if err := atomicWrite(target, entry.Name(), content); err != nil {
+		if err := writePrivateObject(target, entry.Name(), content); err != nil {
 			return err
 		}
 	}

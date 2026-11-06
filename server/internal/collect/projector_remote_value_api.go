@@ -7,12 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"path"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -87,9 +85,8 @@ func remoteValueExpectedGraphQuery(repository string, numbers []int) string {
 		strings.Join(parts, "\n") + " } }"
 }
 
-// The collector never receives an installation credential. Its confined gh
-// executable speaks to this private Unix socket; the host reserves each API
-// request against the shared installation buckets before forwarding it.
+// The native collector calls this provider directly. The host reserves each
+// API request against the shared installation buckets before forwarding it.
 type remoteValueAPI struct {
 	client             *http.Client
 	quota              *githubquota.Service
@@ -103,6 +100,7 @@ type remoteValueAPI struct {
 	max                int
 	cache              *remoteValueResponseCache
 	sharedRequirements map[string]remoteValueRequirement
+	authorize          func(context.Context) error
 	mu                 sync.Mutex
 	used               int
 	sent               int
@@ -631,6 +629,12 @@ func remoteValueScopedSearch(expression, repository string) bool {
 
 func (a *remoteValueAPI) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("X-Content-Type-Options", "nosniff")
+	if a.authorize != nil {
+		if err := a.authorize(request.Context()); err != nil {
+			http.Error(writer, "remote Value source is no longer current", http.StatusForbidden)
+			return
+		}
+	}
 	if request.Method == http.MethodPost && request.URL.Path == "/graphql" {
 		if request.Header.Get("Content-Type") != "application/json" {
 			http.Error(writer, "unsupported remote Value GraphQL body", http.StatusForbidden)
@@ -685,60 +689,6 @@ func (a *remoteValueAPI) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	writer.WriteHeader(status)
 	_, _ = writer.Write(content) // #nosec G705 -- only JSON or ZIP with nosniff, never upstream-selected HTML.
 }
-
-func (a *remoteValueAPI) listen(ctx context.Context) (string, func(), error) {
-	if runtime.GOOS != "linux" {
-		return "", nil, errors.New("remote Value authenticated API confinement requires Linux abstract Unix sockets")
-	}
-	nonce, err := operationToken()
-	if err != nil {
-		return "", nil, err
-	}
-	name := "cao-remote-value-" + nonce
-	listener, err := (&net.ListenConfig{}).Listen(ctx, "unix", "@"+name)
-	if err != nil {
-		return "", nil, err
-	}
-	server := &http.Server{Handler: a, ReadHeaderTimeout: 5 * time.Second}
-	go func() { _ = server.Serve(listener) }()
-	return "@" + name, func() {
-		_ = server.Close()
-		_ = listener.Close()
-	}, nil
-}
-
-// The CLI supports one REST GET or the reviewed bounded GraphQL query.
-// Other flags, pagination and mutation paths cannot escape host admission.
-const remoteValueGH = `#!/usr/bin/env node
-const http = require('node:http');
-const args = process.argv.slice(2);
-const graph = args.length === 4 && args[0] === 'api' && args[1] === 'graphql'
-  && args[2] === '-f' && args[3].startsWith('query=');
-const rest = args.length === 2 && args[0] === 'api' && /^(?:repos\/|search\/)/.test(args[1]);
-if (!graph && !rest) {
-  process.stderr.write('remote Value gh API command unsupported\n');
-  process.exit(1);
-}
-const body = graph ? JSON.stringify({query: args[3].slice('query='.length)}) : '';
-const requirement = process.env.CAO_VALUE_ACQUISITION_REQUIREMENT || '';
-const headers = graph ? {'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body)} : {};
-if (/^[a-f0-9]{64}$/.test(requirement)) headers['X-CAO-Value-Acquisition-Requirement'] = requirement;
-const request = http.request({socketPath: process.env.CAO_REMOTE_VALUE_SOCKET.replace(/^@/, '\0'),
-  path: graph ? '/graphql' : '/api?endpoint=' + encodeURIComponent(args[1]),
-  method: graph ? 'POST' : 'GET', timeout: 65000,
-  headers}, response => {
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    process.stderr.write('remote Value API failed (HTTP ' + response.statusCode + ')\n');
-    response.resume();
-    process.exitCode = 1;
-    return;
-  }
-  response.pipe(process.stdout);
-});
-request.on('error', () => { process.stderr.write('remote Value API unavailable\n'); process.exitCode = 1; });
-request.on('timeout', () => request.destroy());
-request.end(body);
-`
 
 func remoteValueAPIBase(raw string) (*url.URL, error) {
 	if raw == "" {

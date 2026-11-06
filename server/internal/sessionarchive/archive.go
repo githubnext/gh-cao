@@ -63,6 +63,9 @@ type Archive struct {
 func Open(c Config) (*Archive, error) { return OpenWithPublisher(c, nil) }
 
 func OpenWithPublisher(c Config, publisher Publisher) (_ *Archive, err error) {
+	if c.NativeProducer {
+		return nil, errors.New("native session archive requires its explicit hosted Blob producer")
+	}
 	if err := c.Validate(); err != nil {
 		return nil, err
 	}

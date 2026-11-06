@@ -115,9 +115,18 @@ const routeUrl = (origin, state, route, eager = false) => (
   `${origin}/${state}/?online=1${eager ? '&debug-eager-ingest=1' : ''}#page-${route}`
 );
 
-async function ready(page, route) {
+async function ready(page, route, state) {
   const active = page.locator(`[data-page-id="${route}"]`);
   await active.waitFor({ state: 'visible', timeout: 180_000 });
+  await page.waitForFunction((selector) => {
+    const active = document.querySelector(selector);
+    return active && (active.querySelector('[data-view-id]')
+      || active.getAttribute('data-page-prerequisite-unavailable') === 'true');
+  }, `[data-page-id="${route}"]`, { timeout: 180_000 });
+  if (state === 'empty' && await active.getAttribute('data-page-prerequisite-unavailable') === 'true') {
+    await active.locator('[data-view-state="unavailable"]').waitFor({ state: 'visible' });
+    return;
+  }
   await active.locator('[data-view-id]').first().waitFor({ state: 'attached' });
   await scrollRenderedViewsIntoView(active);
   await page.waitForFunction((selector) => {
@@ -163,7 +172,7 @@ async function audit(context, browser, origin, state, profile, network, scenario
       if (network === 'cold' && !result.lhr.audits['network-requests'].details.items.some((item) => (
         item.url.includes('/src/main.js') && item.transferSize > 0
       ))) throw new Error('The cold audit did not measure an uncached application transfer.');
-      await ready(page, scenario.routes[0]);
+      await ready(page, scenario.routes[0], state);
       if (errors.length) throw new Error(`${state} audit page errors: ${errors.join('; ')}`);
       const repeatRoot = join(directory, String(repeat));
       await mkdir(repeatRoot, { recursive: true });
@@ -247,16 +256,16 @@ async function main() {
               for (const route of scenario.routes) {
                 const started = performance.now();
                 await page.evaluate((route) => { location.hash = `page-${route}`; }, route);
-                await ready(page, route);
+                await ready(page, route, state);
                 states[state].journeys.push({ profile, route, durationMs: performance.now() - started });
                 const table = page.locator(`[data-page-id="${route}"] [data-view-mode-value="table"]`);
-                if (await table.isVisible()) { await table.click(); await ready(page, route); }
+                if (await table.isVisible()) { await table.click(); await ready(page, route, state); }
               }
             } finally {
               await context.tracing.stop({ path: join(directory, 'playwright-trace.zip') });
             }
             await page.goto(routeUrl(origin, state, scenario.routes[0]), { waitUntil: 'domcontentloaded' });
-            await ready(page, scenario.routes[0]);
+            await ready(page, scenario.routes[0], state);
             await page.screenshot({ path: join(directory, 'dashboard.png'), fullPage: true });
             for (const network of networkModes) {
               const result = await audit(context, browser, origin, state, profile, network, scenario, join(directory, network), port);

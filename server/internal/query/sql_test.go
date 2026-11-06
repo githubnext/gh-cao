@@ -31,6 +31,7 @@ func TestCompileRelationalSQLDAG(t *testing.T) {
 		{Name: "totals", From: "selected", Aggregate: &Aggregate{By: []string{"owner"}, Values: []AggregateValue{{Field: "double", As: "total", Reducer: "sum"}}},
 			Select: []SelectedField{{Field: "owner"}, {Field: "total"}}, OrderBy: []OrderField{{Field: "total", Direction: "desc"}}},
 	}
+
 	plan, err := CompileSQL(definitions, []string{"totals"}, sqlTestResolver)
 	if err != nil {
 		t.Fatal(err)
@@ -45,6 +46,37 @@ func TestCompileRelationalSQLDAG(t *testing.T) {
 	for _, step := range plan.Steps {
 		if step.Operation == "filter" && step.Weight != 1 {
 			t.Fatal("filter must charge unfiltered input")
+		}
+	}
+}
+
+func TestCompileSQLPageSeparatesBoundaryLookaheadFromConsumers(t *testing.T) {
+	definitions := []Definition{
+		{Name: "boundary", From: "facts"},
+		{Name: "visible", From: "boundary", Filter: &Filter{Predicates: []Predicate{{Field: "id", Equals: "second"}}}},
+	}
+	plan, err := CompileSQLPage(definitions, []string{"boundary", "visible"}, sqlTestResolver, "boundary", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var bounded SQLStep
+	for _, step := range plan.Steps {
+		if step.Operation == "page" {
+			bounded = step
+		}
+	}
+	if bounded.Relation == "" || plan.Outputs["boundary"].SQL == SQLIdentifier(bounded.Relation) {
+		t.Fatalf("boundary output discarded lookahead or downstream page was unbounded: %+v", plan)
+	}
+	if !strings.Contains(plan.CTEs, "FROM "+SQLIdentifier(bounded.Relation)) {
+		t.Fatalf("downstream filter bypassed the bounded page: %s", plan.CTEs)
+	}
+	for _, testcase := range []struct {
+		boundary string
+		limit    int
+	}{{"", 1}, {"missing", 1}, {"boundary", 0}, {"boundary", 33}} {
+		if _, err := CompileSQLPage(definitions, []string{"visible"}, sqlTestResolver, testcase.boundary, testcase.limit); err == nil {
+			t.Fatalf("invalid page accepted: %+v", testcase)
 		}
 	}
 }

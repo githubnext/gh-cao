@@ -4,14 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
+	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/server"
 )
 
@@ -31,6 +29,18 @@ func (d Doctor) checkCollectionProfile(context.Context) Check {
 		detail("collectAppId", presence(d.getenv("CAO_COLLECT_APP_ID"))),
 		detail("sourceDirectory", presence(d.getenv("CAO_SOURCE_DIRECTORY"))),
 		detail("admitOnly", fmt.Sprint(profile.admitOnly)),
+	}
+	var native server.CollectorConfig
+	if err := native.ApplyNativeEnvironment(d.getenv); err != nil {
+		return failed(id, areaCollect, title, err)
+	}
+	if !profile.collecting && (native.NativeAcquisition || native.NativeValues || native.NativeInventoryDigest != "") {
+		return Check{
+			ID: id, Area: areaCollect, Title: title, Status: StatusFail,
+			Summary: "native collection features require CAO_COLLECT_APP_ID",
+			Details: details,
+			Remedy:  "configure the collection App identifier or unset native collection features",
+		}
 	}
 	if profile.conflict {
 		return Check{
@@ -67,13 +77,29 @@ func (d Doctor) checkCollectionSettings(context.Context) Check {
 			Remedy:  "set CAO_COLLECT_APP_ID to the numeric App identifier",
 		}
 	}
-	keySource, keyPresent, keyErr := d.privateKeySource()
+	config := server.CollectorConfig{
+		AppID:             appID,
+		CatalogRoot:       d.getenv("CAO_COLLECT_CATALOG_ROOT"),
+		ControlRepository: d.getenv("CAO_COLLECT_CONTROL_REPOSITORY"),
+		PolicyPath:        d.getenv("CAO_POLICY_PATH"),
+		Workers:           intEnv(d.getenv("CAO_COLLECT_WORKERS")),
+	}
+	if err := config.ApplyNativeEnvironment(d.getenv); err != nil {
+		return failed(id, areaCollect, title, err)
+	}
+	if !config.NativeAcquisition {
+		return failed(id, areaCollect, title, config.Validate())
+	}
+	keySource, keyPresent := "absent", false
+	var keyErr error
+	if !config.AdmitOnly {
+		keySource, keyPresent, keyErr = d.privateKeySource()
+	}
 	details := []Detail{
 		detail("appId", fmt.Sprint(appID)),
 		detail("admitOnly", fmt.Sprint(profile.admitOnly)),
 		detail("privateKey", keySource),
 		detail("webhookSecret", presence(d.getenv("CAO_GITHUB_WEBHOOK_SECRET"))),
-		detail("lakeDirectory", presence(d.getenv("CAO_COLLECT_LAKE_DIRECTORY"))),
 		detail("catalogRoot", presence(d.getenv("CAO_COLLECT_CATALOG_ROOT"))),
 		detail("controlRepository", presence(d.getenv("CAO_COLLECT_CONTROL_REPOSITORY"))),
 		detail("workers", orDefault(d.getenv("CAO_COLLECT_WORKERS"), "0")),
@@ -91,23 +117,8 @@ func (d Doctor) checkCollectionSettings(context.Context) Check {
 	}
 	// A placeholder stands in for the key: Validate only tests for presence,
 	// so the real bytes are never read here.
-	var placeholder []byte
 	if keyPresent {
-		placeholder = []byte("configured")
-	}
-	config := server.CollectorConfig{
-		AppID:             appID,
-		AdmitOnly:         profile.admitOnly,
-		PrivateKeyPEM:     placeholder,
-		LakeDirectory:     d.getenv("CAO_COLLECT_LAKE_DIRECTORY"),
-		CatalogRoot:       d.getenv("CAO_COLLECT_CATALOG_ROOT"),
-		ControlRepository: d.getenv("CAO_COLLECT_CONTROL_REPOSITORY"),
-		PolicyPath:        d.getenv("CAO_POLICY_PATH"),
-		StaticInventoryPath: d.getenv(
-			"CAO_COLLECT_STATIC_INVENTORY",
-		),
-		Workers:           intEnv(d.getenv("CAO_COLLECT_WORKERS")),
-		RecoverDeliveries: envTruthy(d.getenv("CAO_COLLECT_RECOVER_DELIVERIES")),
+		config.PrivateKeyPEM = []byte("configured")
 	}
 	if err := config.Validate(); err != nil {
 		return Check{
@@ -122,6 +133,39 @@ func (d Doctor) checkCollectionSettings(context.Context) Check {
 	return Check{
 		ID: id, Area: areaCollect, Title: title, Status: classification.status,
 		Summary: classification.summary, Details: details, Remedy: classification.remedy,
+	}
+}
+
+// checkCollectionStorage verifies the durable canonical store needed by
+// native admission, acquisition, and publication.
+func (d Doctor) checkCollectionStorage(context.Context) Check {
+	const id, title = "collect.storage", "Collection storage"
+	if !d.profile().collecting {
+		return skipped(id, areaCollect, title, "collection is not configured; this server runs the Actions profile")
+	}
+	if d.Backend != "" && d.Backend != "postgres" {
+		return failed(id, areaCollect, title,
+			fmt.Errorf("native collection requires PostgreSQL operational storage, not %s", d.Backend))
+	}
+	if err := operational.CheckStore(d.Store); err != nil {
+		return failed(id, areaCollect, title,
+			fmt.Errorf("native collection requires durable PostgreSQL operational storage: %w", err))
+	}
+	capability := d.Store.Capabilities().Collection
+	if capability.Scope != operational.ScopeDeployment || capability.Persistence != operational.PersistenceRestart {
+		return failed(id, areaCollect, title,
+			fmt.Errorf("%w: native collection requires durable deployment-scoped PostgreSQL operational storage", operational.ErrUnsupported))
+	}
+	if d.Postgres == nil || !d.Postgres.Open() {
+		return Check{
+			ID: id, Area: areaCollect, Title: title, Status: StatusFail,
+			Summary: "native collection requires an open, durable deployment-scoped PostgreSQL store",
+			Remedy:  "configure and open the deployment's PostgreSQL dashboard store before starting collection",
+		}
+	}
+	return Check{
+		ID: id, Area: areaCollect, Title: title, Status: StatusPass,
+		Summary: "native collection uses the deployment's PostgreSQL store",
 	}
 }
 
@@ -440,7 +484,7 @@ func classifyBackfillState(state collect.BackfillState) backfillClassification {
 		return backfillClassification{
 			status:  StatusWarn,
 			summary: "cold start has never run in this namespace",
-			remedy:  "run `cao-dashboard backfill` so an empty database is repopulated from installations and the evidence lake",
+			remedy:  "run `cao-dashboard backfill` to enumerate installations and enqueue native acquisition",
 			reason:  backfillReasonNeverRun,
 		}
 	}
@@ -476,7 +520,6 @@ func (d Doctor) checkBackfill(ctx context.Context) Check {
 		detail("installations", fmt.Sprint(state.Installations)),
 		detail("repositories", fmt.Sprint(state.Repositories)),
 		detail("queuedRepositories", fmt.Sprint(state.QueuedRepositories)),
-		detail("lakeReplayed", fmt.Sprint(state.LakeReplayed)),
 		detail("startedAt", orDefault(state.StartedAt, "(never)")),
 		detail("completedAt", orDefault(state.CompletedAt, "(not completed)")),
 	}
@@ -604,198 +647,33 @@ func classifyBudgetHeadroom(rateLimits []collect.Headroom, floor int) budgetHead
 	}
 }
 
-// lakePopulationReason names why checkLake reached its status, stable across
-// summary wording changes so it is useful to log without exposing the
-// reported byte and run-shard counts.
-type lakePopulationReason string
-
-const (
-	lakePopulationReasonEmpty     lakePopulationReason = "empty"
-	lakePopulationReasonPopulated lakePopulationReason = "populated"
-)
-
-// lakePopulationClassification is the status, summary, and remedy
-// classifyLakePopulation derives from the evidence lake's populated flag and
-// reported byte and run-shard counts.
-type lakePopulationClassification struct {
-	status  Status
-	summary string
-	remedy  string
-	reason  lakePopulationReason
-}
-
-// classifyLakePopulation decides the collect.lake check's outcome from the
-// lake's populated flag and reported size alone. It is a pure function so
-// the empty-versus-populated distinction is testable without a real
-// directory tree on disk.
-func classifyLakePopulation(populated bool, totalBytes int64, runShards int) lakePopulationClassification {
-	if !populated {
-		return lakePopulationClassification{
-			status:  StatusWarn,
-			summary: "the evidence lake holds no replayable evidence",
-			remedy:  "until it is populated, a cold start must re-collect from GitHub rather than replay locally",
-			reason:  lakePopulationReasonEmpty,
-		}
-	}
-	return lakePopulationClassification{
-		status: StatusPass,
-		summary: fmt.Sprintf("%s of replayable evidence across %d run shards",
-			humanBytes(totalBytes), runShards),
-		reason: lakePopulationReasonPopulated,
-	}
-}
-
-// checkLake inspects the evidence lake, which is what makes a cold start a
-// local replay instead of a full re-collection from GitHub.
-func (d Doctor) checkLake(context.Context) Check {
-	const id, title = "collect.lake", "Evidence lake"
-	profile := d.profile()
-	if !profile.collecting {
-		return skipped(id, areaCollect, title, "collection is not configured")
-	}
-	if profile.admitOnly {
-		return skipped(id, areaCollect, title, "admission-only collection holds no evidence lake")
-	}
-	directory := d.getenv("CAO_COLLECT_LAKE_DIRECTORY")
-	if directory == "" {
-		return Check{
-			ID: id, Area: areaCollect, Title: title, Status: StatusFail,
-			Summary: "no evidence lake directory is configured",
-			Remedy:  "set CAO_COLLECT_LAKE_DIRECTORY to a durable absolute path",
-		}
-	}
-	lake := collect.Lake{Directory: directory}
-	if err := lake.Validate(); err != nil {
-		return Check{
-			ID: id, Area: areaCollect, Title: title, Status: StatusFail,
-			Summary: "the evidence lake directory is not usable: " + err.Error(),
-			Details: []Detail{detail("directory", directory)},
-			Remedy:  "the lake must be an absolute path on durable storage",
-		}
-	}
-	info, err := os.Stat(directory)
-	if err != nil {
-		return Check{
-			ID: id, Area: areaCollect, Title: title, Status: StatusFail,
-			Summary: "the evidence lake directory could not be read: " + err.Error(),
-			Details: []Detail{detail("directory", directory)},
-			Remedy:  "confirm the volume is mounted and writable by this process",
-		}
-	}
-	shards, shardBytes := directorySize(lake.ShardDirectory())
-	runs, runBytes := directorySize(lake.RunsDirectory())
-	records, recordBytes := directorySize(lake.RecordsDirectory())
-	details := []Detail{
-		detail("directory", directory),
-		detail("mode", info.Mode().Perm().String()),
-		detail("shardFiles", fmt.Sprint(shards)),
-		detail("runFiles", fmt.Sprint(runs)),
-		detail("recordFiles", fmt.Sprint(records)),
-		detail("size", humanBytes(shardBytes+runBytes+recordBytes)),
-		detail("manifest", filePresence(lake.ManifestPath())),
-		detail("inventory", filePresence(lake.InventoryPath())),
-	}
-	populated, err := lake.Populated()
-	if err != nil {
-		return failed(id, areaCollect, title, err)
-	}
-	classification := classifyLakePopulation(populated, shardBytes+runBytes+recordBytes, runs)
-	doctorLog.Printf("evidence lake classified status=%s reason=%s", classification.status, classification.reason)
-	return Check{
-		ID: id, Area: areaCollect, Title: title, Status: classification.status,
-		Summary: classification.summary, Details: details, Remedy: classification.remedy,
-	}
-}
-
-// checkProjectionLock reports whether an ingestion is in flight. The lock has
-// a time to live, so a held lock is information rather than a fault.
-func (d Doctor) checkProjectionLock(ctx context.Context) Check {
-	const id, title = "collect.projection", "Ingestion lock"
-	if skip, ok := d.storeUnavailable(id, areaCollect, title); ok {
-		return skip
-	}
-	held, err := d.Store.OperationalServices().Leases.LockHeld(ctx, "projection")
-	if err != nil {
-		return failed(id, areaCollect, title, err)
-	}
-	if held {
-		return Check{
-			ID: id, Area: areaCollect, Title: title, Status: StatusPass,
-			Summary: "an ingestion currently holds the lock",
-			Details: []Detail{detail("held", "true")},
-		}
-	}
-	return Check{
-		ID: id, Area: areaCollect, Title: title, Status: StatusPass,
-		Summary: "no ingestion is in flight",
-		Details: []Detail{detail("held", "false")},
-	}
-}
-
-// toolingLookup are the PATH and filesystem probes missingTooling needs,
-// injected so the missing-tool detection is testable without depending on
-// which binaries or files happen to exist on the test runner.
-type toolingLookup struct {
-	lookPath func(string) (string, error)
-	stat     func(string) (os.FileInfo, error)
-}
-
-// missingTooling reports which collection-tooling dependencies (Node, gh, and
-// the activity CLI script) are unavailable, using the injected lookup. It is
-// a pure function so every combination of missing tool is testable without
-// touching the real PATH or filesystem.
-func missingTooling(lookup toolingLookup, node, gh, script string) []string {
-	var missing []string
-	if _, err := lookup.lookPath(node); err != nil {
-		missing = append(missing, "node")
-	}
-	if _, err := lookup.lookPath(gh); err != nil {
-		missing = append(missing, "gh")
-	}
-	if script == "" {
-		missing = append(missing, "catalog root")
-	} else if _, err := lookup.stat(script); err != nil {
-		missing = append(missing, "activity/cao.mjs")
-	}
-	return missing
-}
-
-// checkTooling confirms the external programs collection shells out to are
-// actually present, which is the difference between a working collector and
-// one that fails on its first task.
+// checkTooling checks only the optional Value lane's selected dependencies.
+// Native acquisition itself does not need the selected Value dependencies.
 func (d Doctor) checkTooling(context.Context) Check {
-	const id, title = "runtime.tooling", "Collection tooling"
+	const id, title = "runtime.tooling", "Value runtime dependencies"
 	profile := d.profile()
 	if !profile.collecting || profile.admitOnly {
-		return skipped(id, areaRuntime, title, "this process does not run the collection CLI")
+		return skipped(id, areaRuntime, title, "this process does not execute native Value")
 	}
-	node := orDefault(d.getenv("CAO_COLLECT_NODE_BINARY"), "node")
-	gh := orDefault(d.getenv("CAO_COLLECT_GH_BINARY"), "gh")
-	catalog := d.getenv("CAO_COLLECT_CATALOG_ROOT")
-	script := ""
-	if catalog != "" {
-		script = filepath.Join(catalog, "activity", "cao.mjs")
+	var config server.CollectorConfig
+	if err := config.ApplyNativeEnvironment(d.getenv); err != nil {
+		return failed(id, areaRuntime, title, err)
 	}
-	details := []Detail{
-		detail("node", binaryPresence(node)),
-		detail("gh", binaryPresence(gh)),
-		detail("activityCli", orDefault(filePresence(script), "(no catalog root configured)")),
+	if !config.NativeAcquisition {
+		return failed(id, areaRuntime, title, config.Validate())
 	}
-	missing := missingTooling(toolingLookup{lookPath: exec.LookPath, stat: os.Stat}, node, gh, script)
-	doctorLog.Printf("collection tooling checked missing_count=%d", len(missing))
-	if len(missing) > 0 {
-		return Check{
-			ID: id, Area: areaRuntime, Title: title, Status: StatusFail,
-			Summary: "collection tooling is missing: " + strings.Join(missing, ", "),
-			Details: details,
-			Remedy:  "collection shells out to these; without them every task fails at the first step",
-		}
+	if !config.NativeValues {
+		return Check{ID: id, Area: areaRuntime, Title: title, Status: StatusPass,
+			Summary: "native Go collection requires no Node or Activity CLI"}
 	}
-	return Check{
-		ID: id, Area: areaRuntime, Title: title, Status: StatusPass,
-		Summary: "node, gh, and the activity CLI are all available",
-		Details: details,
+	values := collect.NativeValueService{Projector: collect.Projector{
+		CatalogRoot: d.getenv("CAO_COLLECT_CATALOG_ROOT"), PolicyPath: d.getenv("CAO_POLICY_PATH"),
+	}}
+	if err := values.ValidateRuntime(); err != nil {
+		return failed(id, areaRuntime, title, err)
 	}
+	return Check{ID: id, Area: areaRuntime, Title: title, Status: StatusPass,
+		Summary: "selected Go Value execution has reviewed policy/catalog assets"}
 }
 
 func presence(value string) string {
@@ -818,79 +696,4 @@ func intEnv(value string) int {
 		return 0
 	}
 	return parsed
-}
-
-func filePresence(path string) string {
-	if strings.TrimSpace(path) == "" {
-		return ""
-	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return "missing"
-	}
-	return fmt.Sprintf("present (%s, modified %s)", humanBytes(info.Size()),
-		info.ModTime().UTC().Format(time.RFC3339))
-}
-
-func binaryPresence(name string) string {
-	resolved, err := exec.LookPath(name)
-	if err != nil {
-		return name + " (not found)"
-	}
-	return resolved
-}
-
-// directorySizeReadFailure classifies why directorySize's os.ReadDir call did
-// not return entries, so an unreadable lake directory is diagnosable without
-// logging the directory path itself.
-type directorySizeReadFailure string
-
-const (
-	directorySizeReadFailureNone    directorySizeReadFailure = "none"
-	directorySizeReadFailureMissing directorySizeReadFailure = "missing"
-	directorySizeReadFailureOther   directorySizeReadFailure = "other"
-)
-
-// classifyDirectorySizeReadFailure distinguishes a directory that does not
-// exist, which is the unpopulated-lake state checkLake already reports, from
-// any other read failure, such as a permissions error, which is worth
-// surfacing as a diagnostic. It is a pure function extracted from
-// directorySize so this distinction is testable against constructed errors
-// without touching the filesystem.
-func classifyDirectorySizeReadFailure(err error) directorySizeReadFailure {
-	switch {
-	case err == nil:
-		return directorySizeReadFailureNone
-	case os.IsNotExist(err):
-		return directorySizeReadFailureMissing
-	default:
-		return directorySizeReadFailureOther
-	}
-}
-
-// directorySize counts the files and bytes in one lake directory. A missing
-// directory reports zero rather than an error, because an unpopulated lake is
-// a state the caller reports, not a failure to observe it. Any other read
-// failure, such as a permissions error, is logged so it is diagnosable
-// without being promoted to a check failure.
-func directorySize(directory string) (files int, bytes int64) {
-	entries, err := os.ReadDir(directory)
-	if failure := classifyDirectorySizeReadFailure(err); failure != directorySizeReadFailureNone {
-		if failure == directorySizeReadFailureOther {
-			doctorLog.Printf("lake directory read failed")
-		}
-		return 0, 0
-	}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		info, err := entry.Info()
-		if err != nil {
-			continue
-		}
-		files++
-		bytes += info.Size()
-	}
-	return files, bytes
 }

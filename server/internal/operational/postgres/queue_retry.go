@@ -51,6 +51,17 @@ func selectDue(records []record, delayed string, at time.Time, count int) ([]due
 }
 
 func (s *Store) ReplaceTask(ctx context.Context, r operational.Replacement) error {
+	return s.replaceTask(ctx, r, "")
+}
+
+func (s *Store) ReplaceTaskFenced(ctx context.Context, r operational.Replacement, receipt string) error {
+	if receipt == "" {
+		return operational.ErrTaskLeaseLost
+	}
+	return s.replaceTask(ctx, r, receipt)
+}
+
+func (s *Store) replaceTask(ctx context.Context, r operational.Replacement, receipt string) error {
 	if r.Destination == "" && !r.Due.IsZero() {
 		r.Destination = r.Source
 	}
@@ -72,6 +83,11 @@ func (s *Store) ReplaceTask(ctx context.Context, r operational.Replacement) erro
 		}
 	}
 	return s.transact(ctx, func(t *transaction) error {
+		if receipt != "" {
+			if err := t.checkTaskReceipt(r.Source, r.Group, r.ID, receipt); err != nil {
+				return err
+			}
+		}
 		value, err := t.get(key{"lease", leaseName(r.Source, r.Group), r.ID})
 		if err != nil || value == nil {
 			return err

@@ -462,7 +462,7 @@ func TestDeployAzureBuildAllowlist(t *testing.T) {
 			t.Fatalf("unsafe build input allowed: %s", name)
 		}
 	}
-	for _, name := range []string{"server/Dockerfile", "server/go.mod", "server/azure/empty-data/gh-aw-logs-runs/empty.jsonl", "dashboard/site/package-lock.json", "dashboard/site/manifest.webmanifest", "internal/dashboardquery/query.go", ".github/workflows/shared/policy.mjs", "activity/actions-log.mjs", "server/azure/provision.sh"} {
+	for _, name := range []string{"server/Dockerfile", "server/go.mod", "server/internal/collectnative/gh-aw-v1.0.1-model-aliases.json", "server/azure/empty-data/gh-aw-logs-runs/empty.jsonl", "dashboard/site/package-lock.json", "dashboard/site/manifest.webmanifest", "internal/dashboardquery/query.go", ".github/workflows/shared/policy.mjs", "activity/actions-log.mjs", "server/azure/provision.sh"} {
 		if !deployAzureBuildFileAllowed(name) {
 			t.Fatalf("required build input excluded: %s", name)
 		}

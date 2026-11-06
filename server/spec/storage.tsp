@@ -1045,6 +1045,94 @@ namespace Storage {
     schemaVersion: int64;
   }
 
+  /** Private native acquisition scope epochs. Not an independent enrollment authority. */
+  model caoAcquisitionScopes {
+    `namespace`: string;
+    repository: string;
+    installationId: int64;
+    epoch: int64;
+  }
+
+  /** Fenced exact-attempt safe evidence and pending publication; never raw artifacts or canonical rows. */
+  model caoAcquisitionAttempts {
+    `namespace`: string;
+    repository: string;
+    runId: int64;
+    attempt: int64;
+    epoch: int64;
+    generation: int64;
+    createdAt: utcDateTime;
+    token?: string;
+    leaseUntil?: utcDateTime;
+    digest?: string;
+    content?: bytes;
+    publishedAt?: utcDateTime;
+    consumedDigest?: string;
+  }
+
+  /** Epoch-bound independent dispositions, including observations received before safe-output attribution. */
+  model caoAcquisitionOutcomes {
+    `namespace`: string;
+    repository: string;
+    url: string;
+    epoch: int64;
+    observedAt: utcDateTime;
+    content: bytes;
+  }
+
+  /** Durable Value invalidations are hints, not acquisition or acceptance authority. */
+  model caoAcquisitionValueHints {
+    `namespace`: string;
+    repository: string;
+    epoch: int64;
+    dirty: int64;
+    processed: int64;
+    attemptDay?: string;
+    retryAt?: utcDateTime;
+  }
+
+  /** Immutable reviewed source document and provenance shared by native inventory replicas. */
+  model caoAcquisitionInventoryConfig {
+    `namespace`: string;
+    sourceRepository: string;
+    sourceSha: string;
+    policySha: string;
+    snapshotDigest: string;
+    content?: bytes;
+  }
+
+  /** Source-epoch-fenced inventory reservations and the last published bounded snapshot. */
+  model caoAcquisitionInventory {
+    `namespace`: string;
+    repository: string;
+    installationId: int64;
+    epoch: int64;
+    generation: int64;
+    publishedGeneration: int64 = 0;
+    snapshotDigest: string;
+    observedAt?: utcDateTime;
+    content?: bytes;
+  }
+
+  /** Permanent metadata-only archive privacy fences and durable epoch-specific cleanup. */
+  model caoArchiveSources {
+    `namespace`: string;
+    destination: string;
+    repository: string;
+    installationId: int64;
+    epoch: int64;
+    withdrawn: boolean;
+    cleanupPending: boolean;
+  }
+
+  /** Private approved trace objects and transactional delivery ledger; never a query source. */
+  model caoTraceObjects {
+    `namespace`: string;
+    destination: string;
+    key: string;
+    content: bytes;
+  }
+
   /** Ownership and retry identity only; measured evidence remains in the typed canonical tables. */
   model caoValuePublications {
     `namespace`: string;

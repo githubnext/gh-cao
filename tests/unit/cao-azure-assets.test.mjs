@@ -158,6 +158,17 @@ test("Azure asset manifest records the source revision and every file digest", (
   }
 });
 
+test("Azure asset selection preserves runtime model aliases while excluding test fixtures", () => {
+  const tracked = git("ls-tree", "-r", "--name-only", "--full-tree", revision).split("\n").filter(Boolean);
+  const aliases = "server/internal/collectnative/gh-aw-v1.0.1-model-aliases.json";
+  const fixture = "server/internal/collectnative/testdata/fixture.json";
+  const selected = selectAzureAssetFiles([...tracked, aliases, fixture]);
+  assert.ok(selected.includes(aliases));
+  assert.ok(!selected.includes(fixture));
+  const source = readFileSync(path.join(root, "server/internal/collectnative/audit_model_identity.go"), "utf8");
+  assert.match(source, /^\/\/go:embed gh-aw-v1\.0\.1-model-aliases\.json$/m);
+});
+
 test("Azure asset selection fails closed on credentials or policy inside allowlisted directories", () => {
   const tracked = git("ls-tree", "-r", "--name-only", "--full-tree", revision).split("\n").filter(Boolean);
   for (const leaked of [

@@ -4,8 +4,8 @@
 // default deployment stays exactly as it is: a Function App serving the
 // dashboard from snapshots published by the Activity workflow.
 //
-// The workers run the same binary as the server in the `collect` role and
-// share the durable PostgreSQL operational queue with the Function App.
+// The workers run native Go acquisition in the `collect` role and share the
+// durable PostgreSQL operational queue with the Function App.
 
 @description('Location for the collection workers.')
 param location string
@@ -39,10 +39,6 @@ param keyVaultName string
 @description('Key Vault secret that stores the PostgreSQL URL.')
 param postgresUrlSecretName string = 'cao-postgres-runtime-url'
 
-@description('Size of the evidence lake file share, in gibibytes.')
-@minValue(100)
-param lakeQuotaGigabytes int = 1024
-
 @minValue(1)
 @description('Maximum bytes retained in the disposable operational cache.')
 param operationalCacheMaxBytes int = 33554432
@@ -66,8 +62,13 @@ param operationalProtectedMaxEntries int = 200000
 @description('Operational PostgreSQL namespace shared with the Function App.')
 param operationalNamespace string
 
-@description('Control repository used for logical source discovery.')
+@description('Control repository named by the reviewed inventory.')
 param controlRepository string
+
+@minLength(64)
+@maxLength(64)
+@description('Exact provisioned lowercase SHA-256 digest of immutable reviewed inventory bytes. The workers fail startup if this digest is not in their shared PostgreSQL namespace.')
+param nativeInventoryDigest string
 
 @description('GitHub App identifier whose installations define ingestion scope.')
 param githubAppId string
@@ -88,25 +89,10 @@ param otlpLogsEnabled bool = false
 @description('Whether the parent provisioned the cao-otel-headers Key Vault secret.')
 param otlpHeadersEnabled bool = false
 
-@description('Evidence lake file share tier. Premium is provisioned SSD; Standard is IOPS-throttled by share size.')
-@allowed([
-  'Premium_LRS'
-  'Premium_ZRS'
-  'Standard_LRS'
-  'Standard_ZRS'
-])
-param lakeStorageSku string = 'Premium_LRS'
-
 @description('Bound on the collection task and dead-letter streams.')
 @minValue(1000)
 param queueMaxLength int = 200000
 
-// Premium file shares are provisioned SSD and live in a FileStorage account;
-// Standard shares live in a general-purpose account. The lake is many small
-// per-repository shards, so it is metadata-operation bound rather than
-// throughput bound, and Standard share IOPS scale only with provisioned size.
-var lakePremium = startsWith(lakeStorageSku, 'Premium')
-var lakeStorageAccountName = '${toLower(take(replace(namePrefix, '-', ''), 7))}lake${uniqueString(resourceGroup().id, namePrefix)}'
 resource collectorIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: '${namePrefix}-collector-identity'
   location: location
@@ -144,78 +130,6 @@ var registries = [
     identity: collectorIdentity.id
   }
 ]
-
-// The evidence lake is retained collected evidence, not a cache: cold start
-// replays it without contacting GitHub. It is shared by every worker and by
-// the projector, so it lives on a file share rather than in container storage.
-resource lakeAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
-  name: lakeStorageAccountName
-  location: location
-  tags: tags
-  kind: lakePremium ? 'FileStorage' : 'StorageV2'
-  sku: {
-    name: lakeStorageSku
-  }
-  properties: {
-    accessTier: lakePremium ? 'Premium' : 'Hot'
-    minimumTlsVersion: 'TLS1_2'
-    supportsHttpsTrafficOnly: true
-    allowBlobPublicAccess: false
-    allowCrossTenantReplication: false
-    publicNetworkAccess: 'Enabled'
-    networkAcls: {
-      bypass: 'AzureServices'
-      defaultAction: 'Allow'
-    }
-    encryption: {
-      requireInfrastructureEncryption: true
-      keySource: 'Microsoft.Storage'
-      services: {
-        file: {
-          enabled: true
-          keyType: 'Account'
-        }
-      }
-    }
-  }
-}
-
-resource lakeFileService 'Microsoft.Storage/storageAccounts/fileServices@2023-05-01' = {
-  parent: lakeAccount
-  name: 'default'
-  properties: {
-    // The lake is retained evidence that cold start replays, so an accidental
-    // share deletion must be recoverable.
-    shareDeleteRetentionPolicy: {
-      enabled: true
-      days: 30
-    }
-  }
-}
-
-resource lakeShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-05-01' = {
-  parent: lakeFileService
-  name: 'evidence-lake'
-  properties: {
-    // A premium share provisions IOPS and throughput from its quota, so the
-    // quota is a performance setting there rather than only a ceiling.
-    shareQuota: lakePremium ? max(lakeQuotaGigabytes, 100) : lakeQuotaGigabytes
-    enabledProtocols: 'SMB'
-  }
-}
-
-resource lakeStorage 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
-  parent: environment
-  name: 'evidence-lake'
-  properties: {
-    azureFile: {
-      accountName: lakeAccount.name
-      shareName: lakeShare.name
-      accessMode: 'ReadWrite'
-      accountKey: lakeAccount.listKeys().keys[0].value
-    }
-  }
-}
 
 var collectionBaseEnvironment = [
   {
@@ -267,16 +181,16 @@ var collectionBaseEnvironment = [
     value: githubAppId
   }
   {
+    name: 'CAO_COLLECT_NATIVE'
+    value: 'true'
+  }
+  {
+    name: 'CAO_COLLECT_NATIVE_INVENTORY_DIGEST'
+    value: nativeInventoryDigest
+  }
+  {
     name: 'CAO_COLLECT_PRIVATE_KEY'
     secretRef: 'cao-collect-private-key'
-  }
-  {
-    name: 'CAO_COLLECT_LAKE_DIRECTORY'
-    value: '/evidence'
-  }
-  {
-    name: 'CAO_COLLECT_CATALOG_ROOT'
-    value: '/app/catalog'
   }
   {
     name: 'CAO_COLLECT_CONTROL_REPOSITORY'
@@ -359,19 +273,6 @@ resource collectors 'Microsoft.App/containerApps@2024-03-01' = {
             cpu: json('1.0')
             memory: '2Gi'
           }
-          volumeMounts: [
-            {
-              volumeName: 'evidence'
-              mountPath: '/evidence'
-            }
-          ]
-        }
-      ]
-      volumes: [
-        {
-          name: 'evidence'
-          storageType: 'AzureFile'
-          storageName: lakeStorage.name
         }
       ]
       scale: {
@@ -420,19 +321,6 @@ resource backfill 'Microsoft.App/jobs@2024-03-01' = {
             cpu: json('1.0')
             memory: '2Gi'
           }
-          volumeMounts: [
-            {
-              volumeName: 'evidence'
-              mountPath: '/evidence'
-            }
-          ]
-        }
-      ]
-      volumes: [
-        {
-          name: 'evidence'
-          storageType: 'AzureFile'
-          storageName: lakeStorage.name
         }
       ]
     }

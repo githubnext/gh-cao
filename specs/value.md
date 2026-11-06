@@ -200,6 +200,39 @@ These private aggregates MAY be exposed to authorized operators for capacity
 calibration; they MUST NOT expose credentials, request bodies, response bodies,
 proof content, or arbitrary stderr.
 
+The native hosted acquisition profile MAY separately select Value execution
+with `CollectorConfig.NativeValues`. That lane MUST resolve the reviewed
+catalog and policy and execute supported acquisition and local computation in
+Go; it MUST reject unsupported collector registrations rather than invoke a
+Node program. Git subprocesses MAY be used only for reviewed Git transport
+requirements. An unselected Value execution lane MUST NOT inspect its catalog
+or policy assets.
+
+The Go hosted local evaluator supports the reviewed Optimization canonical-query
+measurement and consumes Dependabot lifecycle evidence only after the separately
+registered, quota-admitted Go remote collector publishes three complete
+cutoff-aligned metric packets atomically. The Dependabot collector is restricted
+to `github/gh-aw`, at most 100 alert pages and ten pull-request search pages,
+with a reviewed ceiling of 111 requests per attempt, including one optional
+Search-quota preflight. It MUST reject incomplete
+pagination, inaccessible evidence and malformed lifecycles, preserving all
+previously accepted packets and proof. A selected Dependabot measurement
+without three complete packets for its cutoff MUST publish explicit
+missing/unavailable measurements, not omit them or infer zero. The separate
+Actions snapshot pipeline retains its own reviewed collector.
+
+Selected native remote invocations MUST restore the starting packet and proof
+from one PostgreSQL snapshot pinned to their original installation and enrollment
+epoch. Private per-invocation scratch and local transport sockets are disposable
+implementation details, never recovery or coordination authorities. Publication
+MUST check that same epoch and starting packet under the canonical writer
+transaction before replacing packet and proof together. An identical committed
+packet/proof retry MAY succeed idempotently; it MUST NOT replace different proof.
+Withdrawal MUST erase private proof and publication ownership with the canonical
+graph, and reenrollment MUST NOT let an old invocation read or publish against
+the new owner's proof. Concurrent invalidations MUST remain pending when an
+invocation acknowledges only its original dirty generation.
+
 ### 5.4 Local-only collection
 
 A separately admitted local-only lane MAY query an already published canonical

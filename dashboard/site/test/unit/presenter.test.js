@@ -16,6 +16,7 @@ import { authoritativeDashboard as builtInDashboardDocument } from '../authorita
 import { DashboardServerError } from '../../src/remote-data-backend.js';
 import { resetSourceStore } from '../../src/source-store.js';
 import { HORIZON_FILTER_STORAGE_KEY } from '../../src/components/filter-bar.js';
+import { navigationIndicatorSourceNames } from '../../src/navigation-indicator.js';
 
 const campaignDashboardDocuments = campaignDashboardSources.map((source) => JSON.parse(source));
 const authoritativeDashboardDocument = composeDashboardDocuments(
@@ -98,7 +99,7 @@ function renderDashboard(input) {
       operation: 'execute-dashboard-queries',
       queries: [...executableQueries, ...compiled.queries],
       sources,
-      sourceNames: compiled.aliases
+      sourceNames: [...compiled.aliases, ...navigationIndicatorSourceNames([payload])]
     }));
   }
   return renderDashboardView({ ...input, document: resolvedDocument, sources });

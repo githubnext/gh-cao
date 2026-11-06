@@ -254,7 +254,8 @@ test('TypeSpec excludes pruned payload copies and lifecycle aliases', () => {
 
 test('generated SQL contains no JSON or serialized document columns', () => {
   const sql = readFileSync(new URL('../internal/postgresx/schema.sql', import.meta.url), 'utf8');
-  assert.doesNotMatch(sql, /\bJSONB?\b|\b(?:payload|record_json|document)\s+(?:TEXT|BYTEA)\b/i);
+  const declarations = sql.replace(/'(?:[^']|'')*'/g, "''");
+  assert.doesNotMatch(declarations, /\bJSONB?\b|\b(?:payload|record_json|document)\s+(?:TEXT|BYTEA)\b/i);
   assert.match(sql, /present_fields BIT VARYING NOT NULL/);
   assert.match(sql, /REFERENCES runs\(namespace, id, run_at\) DEFERRABLE INITIALLY DEFERRED/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS runs \([\s\S]*?\) PARTITION BY RANGE \(run_at\);/);
@@ -266,6 +267,46 @@ test('generated SQL contains no JSON or serialized document columns', () => {
   assert.doesNotMatch(sql, /\brow_count\b/, 'retained collection counts must be computed, not persisted');
   assert.doesNotMatch(sql, /\bis_skill\b/);
   assert.doesNotMatch(sql, /CREATE TABLE IF NOT EXISTS (?:collection_health|github_quota_usage|webhook_status|simulation_days|marketplace_packages)\b/);
+});
+
+test('native collection private storage retains fenced intents and bounded approved trace objects', () => {
+  const sql = readFileSync(new URL('../internal/postgresx/schema.sql', import.meta.url), 'utf8');
+  const definition = (name) => {
+    const body = sql.match(new RegExp(`CREATE TABLE IF NOT EXISTS ${name} \\(\\n([\\s\\S]*?)\\n\\);`));
+    assert.ok(body, `missing private native storage ${name}`);
+    return body[1];
+  };
+  assert.match(definition('cao_acquisition_scopes'), /PRIMARY KEY \(namespace, repository\)/);
+  assert.match(definition('cao_acquisition_scopes'), /installation_id >= 0 AND epoch > 0/);
+  const attempts = definition('cao_acquisition_attempts');
+  assert.match(attempts, /PRIMARY KEY \(namespace, repository, run_id, attempt\)/);
+  assert.match(attempts, /FOREIGN KEY \(namespace, repository\) REFERENCES cao_acquisition_scopes/);
+  assert.match(attempts, /generation > 0/);
+  assert.match(attempts, /\(token IS NULL\) = \(lease_until IS NULL\)/);
+  assert.match(attempts, /consumed_digest TEXT/);
+  assert.match(attempts, /octet_length\(content\) <= 33554432/);
+  assert.match(sql, /cao_acquisition_pending[\s\S]*?WHERE digest IS DISTINCT FROM consumed_digest/);
+  const outcomes = definition('cao_acquisition_outcomes');
+  assert.match(outcomes, /PRIMARY KEY \(namespace, repository, url\)/);
+  assert.match(outcomes, /FOREIGN KEY \(namespace, repository\) REFERENCES cao_acquisition_scopes/);
+  assert.match(outcomes, /CHECK \(epoch > 0\)/);
+  assert.match(outcomes, /octet_length\(content\) BETWEEN 1 AND 32768/);
+  const hints = definition('cao_acquisition_value_hints');
+  assert.match(hints, /PRIMARY KEY \(namespace, repository\)/);
+  assert.match(hints, /FOREIGN KEY \(namespace, repository\) REFERENCES cao_acquisition_scopes/);
+  assert.match(hints, /CHECK \(epoch > 0 AND dirty >= 0 AND processed >= 0 AND processed <= dirty\)/);
+  const archive = definition('cao_archive_sources');
+  assert.match(archive, /PRIMARY KEY \(namespace, destination, repository, installation_id, epoch\)/);
+  assert.match(archive, /FOREIGN KEY \(namespace\) REFERENCES cao_state\(namespace\) ON DELETE CASCADE/);
+  assert.doesNotMatch(archive, /REFERENCES cao_acquisition_scopes/);
+  assert.match(archive, /CHECK \(NOT cleanup_pending OR withdrawn\)/);
+  assert.match(sql, /cao_archive_source_cleanup[\s\S]*?WHERE cleanup_pending/);
+  const traces = definition('cao_trace_objects');
+  assert.match(traces, /PRIMARY KEY \(namespace, destination, key\)/);
+  assert.match(traces, /FOREIGN KEY \(namespace\) REFERENCES cao_state\(namespace\) ON DELETE CASCADE/);
+  assert.match(traces, /octet_length\(content\) <= 134217728/);
+  const bindings = readFileSync(new URL('../internal/postgresx/schema.gen.go', import.meta.url), 'utf8');
+  assert.doesNotMatch(bindings, /"\$?(?:caoAcquisitionScopes|caoAcquisitionAttempts|caoAcquisitionOutcomes|caoAcquisitionValueHints|caoArchiveSources|caoTraceObjects|cao_acquisition_scopes|cao_acquisition_attempts|cao_acquisition_outcomes|cao_acquisition_value_hints|cao_archive_sources|cao_trace_objects)"\s*:/);
 });
 
 test('live webhook counters are typed process projections without physical storage', () => {

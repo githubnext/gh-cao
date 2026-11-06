@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -49,6 +50,37 @@ func (w *Worker) Capture(ctx context.Context, repository, logs, shardPrefix stri
 	return CaptureEvidence(ctx, w.spool.config, repository, logs, shardPrefix, w.now, func(e Evidence, reason string) error {
 		return w.spool.admit(ctx, e, reason, e.CapturedAt)
 	})
+}
+
+// CaptureSession admits an already identity-checked, exact-attempt session.
+// The acquisition adapter must verify the adjacent aw_info before this call.
+// Approval, redaction, immutable versions and source-gap semantics are shared
+// with Capture; no Activity lake or artifact directory is consulted.
+func (w *Worker) CaptureSession(ctx context.Context, repository, runID string, attempt int64, completed time.Time, content []byte, gap string) error {
+	if !slices.Contains(w.spool.config.Repositories, repository) {
+		return nil
+	}
+	if _, err := strconv.ParseUint(runID, 10, 64); err != nil || runID == "0" || attempt <= 0 || completed.IsZero() {
+		return errors.New("native trace admission requires exact completed-run identity")
+	}
+	switch gap {
+	case "", "missing-session", "ambiguous-session", "artifact-identity-gap":
+	default:
+		return errors.New("invalid native trace source-gap classification")
+	}
+	at := w.now()
+	c := candidate{run: runID, attempt: attempt, day: completed.UTC().Format(time.DateOnly)}
+	e := Evidence{ID: digest([]byte(fmt.Sprintf("%s\x00%s\x00%d", repository, runID, attempt))),
+		Repository: repository, RunID: runID, Attempt: attempt, Day: c.day, CapturedAt: at,
+		PolicyDigest: policyDigest(w.spool.config.Policy)}
+	if gap == "" {
+		if int64(len(content)) > w.spool.config.MaxTraceBytes {
+			gap = "size-exclusion"
+		} else {
+			e, gap = projectCandidate(w.spool.config, repository, c, content, at, e)
+		}
+	}
+	return w.spool.admit(ctx, e, gap, at)
 }
 
 // CaptureEvidence shares the authorized acquisition and artifact identity checks

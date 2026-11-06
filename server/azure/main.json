@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.48.1.52935",
-      "templateHash": "10401505667316468141"
+      "templateHash": "17295245798372953389"
     }
   },
   "parameters": {
@@ -395,7 +395,14 @@
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Control repository used for logical source discovery, in OWNER/REPOSITORY form."
+        "description": "Control repository named by the reviewed inventory, in OWNER/REPOSITORY form."
+      }
+    },
+    "collectorNativeInventoryDigest": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Exact lowercase SHA-256 digest of immutable reviewed inventory bytes already provisioned in the shared PostgreSQL namespace. Required when collectorImage is set; an absent or unprovisioned digest prevents the workers from starting."
       }
     },
     "collectorWorkerReplicas": {
@@ -404,19 +411,6 @@
       "minValue": 1,
       "metadata": {
         "description": "Fixed number of PostgreSQL-backed collection workers."
-      }
-    },
-    "collectorLakeStorageSku": {
-      "type": "string",
-      "defaultValue": "Premium_LRS",
-      "allowedValues": [
-        "Premium_LRS",
-        "Premium_ZRS",
-        "Standard_LRS",
-        "Standard_ZRS"
-      ],
-      "metadata": {
-        "description": "Evidence lake file share tier. Premium is provisioned SSD; Standard is IOPS-throttled by share size."
       }
     },
     "adxEnabled": {
@@ -782,7 +776,7 @@
           "linuxFxVersion": "[format('DOCKER|{0}/{1}{2}', reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer, parameters('functionImageRepository'), variables('functionImageSelector'))]",
           "appCommandLine": "azure-functions",
           "acrUseManagedIdentityCreds": true,
-          "appSettings": "[concat(createArray(createObject('name', 'FUNCTIONS_EXTENSION_VERSION', 'value', '~4'), createObject('name', 'FUNCTIONS_WORKER_RUNTIME', 'value', 'custom'), createObject('name', 'WEBSITES_PORT', 'value', '8080'), createObject('name', 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'value', 'false'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject('name', 'AzureWebJobsStorage__accountName', 'value', parameters('storageAccountName')), createObject('name', 'AzureWebJobsStorage__credential', 'value', 'managedidentity'), createObject('name', 'CAO_DASHBOARD_HOSTING', 'value', 'azure-functions'), createObject('name', 'CAO_POLICY_PATH', 'value', '.github/workflows/cao.azure.json'), createObject('name', 'CAO_DATABASE_QUERIES', 'value', '/app/queries/database.json'), createObject('name', 'CAO_AZURE_ALLOWED_HOSTS', 'value', join(parameters('allowedHosts'), ',')), createObject('name', 'CAO_AZURE_REQUIRE_HTTPS', 'value', 'true'), createObject('name', 'REDIS_NAMESPACE', 'value', 'azure-dashboard'), createObject('name', 'CAO_OPERATIONAL_NAMESPACE', 'value', 'azure-dashboard-operational'), createObject('name', 'CAO_OPERATIONAL_CACHE_MAX_BYTES', 'value', string(parameters('operationalCacheMaxBytes'))), createObject('name', 'CAO_OPERATIONAL_CACHE_MAX_VALUE_BYTES', 'value', string(parameters('operationalCacheMaxValueBytes'))), createObject('name', 'CAO_OPERATIONAL_CACHE_MAX_ENTRIES', 'value', string(parameters('operationalCacheMaxEntries'))), createObject('name', 'CAO_OPERATIONAL_PROTECTED_MAX_BYTES', 'value', string(parameters('operationalProtectedMaxBytes'))), createObject('name', 'CAO_OPERATIONAL_PROTECTED_MAX_ENTRIES', 'value', string(parameters('operationalProtectedMaxEntries'))), createObject('name', 'CAO_POSTGRES_URL', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/{1})', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri, parameters('postgresUrlSecretName'))), createObject('name', 'CAO_POSTGRES_RUN_RETENTION_DAYS', 'value', string(parameters('postgresRunRetentionDays'))), createObject('name', 'CAO_POSTGRES_LINKED_RETENTION_DAYS', 'value', string(parameters('postgresRunRetentionDays'))), createObject('name', 'CAO_GITHUB_CLIENT_ID', 'value', parameters('githubClientId')), createObject('name', 'CAO_GITHUB_CLIENT_SECRET', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/github-oauth-client-secret)', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri)), createObject('name', 'CAO_GITHUB_REDIRECT_URL', 'value', variables('githubRedirectUri')), createObject('name', 'CAO_GITHUB_ALLOWED_ORGS', 'value', join(parameters('githubAllowedOrganizations'), ',')), createObject('name', 'CAO_GITHUB_ALLOWED_TEAMS', 'value', join(parameters('githubAllowedTeams'), ',')), createObject('name', 'CAO_GITHUB_ALLOWED_USERS', 'value', join(parameters('githubAllowedUsers'), ',')), createObject('name', 'CAO_SESSION_SECRET', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/cao-session-secret)', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri))), variables('otlpEnvironment'), if(not(parameters('otlpLogsEnabled')), createArray(), createArray(createObject('name', 'DEBUG', 'value', 'cao:server,cao:telemetry'))), if(not(variables('otlpHeadersEnabled')), createArray(), createArray(createObject('name', 'OTEL_EXPORTER_OTLP_HEADERS', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/cao-otel-headers)', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri)))), if(empty(parameters('previousSessionSecret')), createArray(), createArray(createObject('name', 'CAO_SESSION_SECRET_PREVIOUS', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/cao-session-secret-previous)', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri)))), if(not(variables('collectionEnabled')), createArray(), createArray(createObject('name', 'CAO_GITHUB_WEBHOOK_SECRET', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/cao-github-webhook-secret)', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri)), createObject('name', 'CAO_GITHUB_ADMIN_USERS', 'value', join(parameters('githubAdminUsers'), ',')), createObject('name', 'CAO_COLLECT_APP_ID', 'value', parameters('collectorGithubAppId')), createObject('name', 'CAO_COLLECT_ADMIT_ONLY', 'value', 'true'), createObject('name', 'CAO_COLLECT_CONTROL_REPOSITORY', 'value', parameters('collectorControlRepository')))))]"
+          "appSettings": "[concat(createArray(createObject('name', 'FUNCTIONS_EXTENSION_VERSION', 'value', '~4'), createObject('name', 'FUNCTIONS_WORKER_RUNTIME', 'value', 'custom'), createObject('name', 'WEBSITES_PORT', 'value', '8080'), createObject('name', 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'value', 'false'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject('name', 'AzureWebJobsStorage__accountName', 'value', parameters('storageAccountName')), createObject('name', 'AzureWebJobsStorage__credential', 'value', 'managedidentity'), createObject('name', 'CAO_DASHBOARD_HOSTING', 'value', 'azure-functions'), createObject('name', 'CAO_POLICY_PATH', 'value', '.github/workflows/cao.azure.json'), createObject('name', 'CAO_DATABASE_QUERIES', 'value', '/app/queries/database.json'), createObject('name', 'CAO_AZURE_ALLOWED_HOSTS', 'value', join(parameters('allowedHosts'), ',')), createObject('name', 'CAO_AZURE_REQUIRE_HTTPS', 'value', 'true'), createObject('name', 'REDIS_NAMESPACE', 'value', 'azure-dashboard'), createObject('name', 'CAO_OPERATIONAL_NAMESPACE', 'value', 'azure-dashboard-operational'), createObject('name', 'CAO_OPERATIONAL_CACHE_MAX_BYTES', 'value', string(parameters('operationalCacheMaxBytes'))), createObject('name', 'CAO_OPERATIONAL_CACHE_MAX_VALUE_BYTES', 'value', string(parameters('operationalCacheMaxValueBytes'))), createObject('name', 'CAO_OPERATIONAL_CACHE_MAX_ENTRIES', 'value', string(parameters('operationalCacheMaxEntries'))), createObject('name', 'CAO_OPERATIONAL_PROTECTED_MAX_BYTES', 'value', string(parameters('operationalProtectedMaxBytes'))), createObject('name', 'CAO_OPERATIONAL_PROTECTED_MAX_ENTRIES', 'value', string(parameters('operationalProtectedMaxEntries'))), createObject('name', 'CAO_POSTGRES_URL', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/{1})', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri, parameters('postgresUrlSecretName'))), createObject('name', 'CAO_POSTGRES_RUN_RETENTION_DAYS', 'value', string(parameters('postgresRunRetentionDays'))), createObject('name', 'CAO_POSTGRES_LINKED_RETENTION_DAYS', 'value', string(parameters('postgresRunRetentionDays'))), createObject('name', 'CAO_GITHUB_CLIENT_ID', 'value', parameters('githubClientId')), createObject('name', 'CAO_GITHUB_CLIENT_SECRET', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/github-oauth-client-secret)', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri)), createObject('name', 'CAO_GITHUB_REDIRECT_URL', 'value', variables('githubRedirectUri')), createObject('name', 'CAO_GITHUB_ALLOWED_ORGS', 'value', join(parameters('githubAllowedOrganizations'), ',')), createObject('name', 'CAO_GITHUB_ALLOWED_TEAMS', 'value', join(parameters('githubAllowedTeams'), ',')), createObject('name', 'CAO_GITHUB_ALLOWED_USERS', 'value', join(parameters('githubAllowedUsers'), ',')), createObject('name', 'CAO_SESSION_SECRET', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/cao-session-secret)', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri))), variables('otlpEnvironment'), if(not(parameters('otlpLogsEnabled')), createArray(), createArray(createObject('name', 'DEBUG', 'value', 'cao:server,cao:telemetry'))), if(not(variables('otlpHeadersEnabled')), createArray(), createArray(createObject('name', 'OTEL_EXPORTER_OTLP_HEADERS', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/cao-otel-headers)', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri)))), if(empty(parameters('previousSessionSecret')), createArray(), createArray(createObject('name', 'CAO_SESSION_SECRET_PREVIOUS', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/cao-session-secret-previous)', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri)))), if(not(variables('collectionEnabled')), createArray(), createArray(createObject('name', 'CAO_GITHUB_WEBHOOK_SECRET', 'value', format('@Microsoft.KeyVault(SecretUri={0}secrets/cao-github-webhook-secret)', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri)), createObject('name', 'CAO_GITHUB_ADMIN_USERS', 'value', join(parameters('githubAdminUsers'), ',')), createObject('name', 'CAO_COLLECT_APP_ID', 'value', parameters('collectorGithubAppId')), createObject('name', 'CAO_COLLECT_NATIVE', 'value', 'true'), createObject('name', 'CAO_COLLECT_ADMIT_ONLY', 'value', 'true'), createObject('name', 'CAO_COLLECT_CONTROL_REPOSITORY', 'value', parameters('collectorControlRepository')))))]"
         }
       },
       "dependsOn": [
@@ -1411,14 +1405,14 @@
           "controlRepository": {
             "value": "[parameters('collectorControlRepository')]"
           },
+          "nativeInventoryDigest": {
+            "value": "[parameters('collectorNativeInventoryDigest')]"
+          },
           "githubAppId": {
             "value": "[parameters('collectorGithubAppId')]"
           },
           "workerReplicas": {
             "value": "[parameters('collectorWorkerReplicas')]"
-          },
-          "lakeStorageSku": {
-            "value": "[parameters('collectorLakeStorageSku')]"
           },
           "applicationInsightsConnectionString": {
             "value": "[reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString]"
@@ -1440,7 +1434,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.48.1.52935",
-              "templateHash": "6349869892450546943"
+              "templateHash": "2327320549105080117"
             }
           },
           "parameters": {
@@ -1504,14 +1498,6 @@
                 "description": "Key Vault secret that stores the PostgreSQL URL."
               }
             },
-            "lakeQuotaGigabytes": {
-              "type": "int",
-              "defaultValue": 1024,
-              "minValue": 100,
-              "metadata": {
-                "description": "Size of the evidence lake file share, in gibibytes."
-              }
-            },
             "operationalCacheMaxBytes": {
               "type": "int",
               "defaultValue": 33554432,
@@ -1561,7 +1547,15 @@
             "controlRepository": {
               "type": "string",
               "metadata": {
-                "description": "Control repository used for logical source discovery."
+                "description": "Control repository named by the reviewed inventory."
+              }
+            },
+            "nativeInventoryDigest": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "metadata": {
+                "description": "Exact provisioned lowercase SHA-256 digest of immutable reviewed inventory bytes. The workers fail startup if this digest is not in their shared PostgreSQL namespace."
               }
             },
             "githubAppId": {
@@ -1602,19 +1596,6 @@
                 "description": "Whether the parent provisioned the cao-otel-headers Key Vault secret."
               }
             },
-            "lakeStorageSku": {
-              "type": "string",
-              "defaultValue": "Premium_LRS",
-              "allowedValues": [
-                "Premium_LRS",
-                "Premium_ZRS",
-                "Standard_LRS",
-                "Standard_ZRS"
-              ],
-              "metadata": {
-                "description": "Evidence lake file share tier. Premium is provisioned SSD; Standard is IOPS-throttled by share size."
-              }
-            },
             "queueMaxLength": {
               "type": "int",
               "defaultValue": 200000,
@@ -1625,8 +1606,6 @@
             }
           },
           "variables": {
-            "lakePremium": "[startsWith(parameters('lakeStorageSku'), 'Premium')]",
-            "lakeStorageAccountName": "[format('{0}lake{1}', toLower(take(replace(parameters('namePrefix'), '-', ''), 7)), uniqueString(resourceGroup().id, parameters('namePrefix')))]",
             "collectionBaseEnvironment": [
               {
                 "name": "CAO_POSTGRES_URL",
@@ -1677,16 +1656,16 @@
                 "value": "[parameters('githubAppId')]"
               },
               {
+                "name": "CAO_COLLECT_NATIVE",
+                "value": "true"
+              },
+              {
+                "name": "CAO_COLLECT_NATIVE_INVENTORY_DIGEST",
+                "value": "[parameters('nativeInventoryDigest')]"
+              },
+              {
                 "name": "CAO_COLLECT_PRIVATE_KEY",
                 "secretRef": "cao-collect-private-key"
-              },
-              {
-                "name": "CAO_COLLECT_LAKE_DIRECTORY",
-                "value": "/evidence"
-              },
-              {
-                "name": "CAO_COLLECT_CATALOG_ROOT",
-                "value": "/app/catalog"
               },
               {
                 "name": "CAO_COLLECT_CONTROL_REPOSITORY",
@@ -1719,82 +1698,6 @@
               "name": "[format('{0}-collector-identity', parameters('namePrefix'))]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]"
-            },
-            {
-              "type": "Microsoft.Storage/storageAccounts",
-              "apiVersion": "2023-05-01",
-              "name": "[variables('lakeStorageAccountName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "kind": "[if(variables('lakePremium'), 'FileStorage', 'StorageV2')]",
-              "sku": {
-                "name": "[parameters('lakeStorageSku')]"
-              },
-              "properties": {
-                "accessTier": "[if(variables('lakePremium'), 'Premium', 'Hot')]",
-                "minimumTlsVersion": "TLS1_2",
-                "supportsHttpsTrafficOnly": true,
-                "allowBlobPublicAccess": false,
-                "allowCrossTenantReplication": false,
-                "publicNetworkAccess": "Enabled",
-                "networkAcls": {
-                  "bypass": "AzureServices",
-                  "defaultAction": "Allow"
-                },
-                "encryption": {
-                  "requireInfrastructureEncryption": true,
-                  "keySource": "Microsoft.Storage",
-                  "services": {
-                    "file": {
-                      "enabled": true,
-                      "keyType": "Account"
-                    }
-                  }
-                }
-              }
-            },
-            {
-              "type": "Microsoft.Storage/storageAccounts/fileServices",
-              "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', variables('lakeStorageAccountName'), 'default')]",
-              "properties": {
-                "shareDeleteRetentionPolicy": {
-                  "enabled": true,
-                  "days": 30
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', variables('lakeStorageAccountName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
-              "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}/{2}', variables('lakeStorageAccountName'), 'default', 'evidence-lake')]",
-              "properties": {
-                "shareQuota": "[if(variables('lakePremium'), max(parameters('lakeQuotaGigabytes'), 100), parameters('lakeQuotaGigabytes'))]",
-                "enabledProtocols": "SMB"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts/fileServices', variables('lakeStorageAccountName'), 'default')]"
-              ]
-            },
-            {
-              "type": "Microsoft.App/managedEnvironments/storages",
-              "apiVersion": "2024-03-01",
-              "name": "[format('{0}/{1}', parameters('environmentName'), 'evidence-lake')]",
-              "properties": {
-                "azureFile": {
-                  "accountName": "[variables('lakeStorageAccountName')]",
-                  "shareName": "evidence-lake",
-                  "accessMode": "ReadWrite",
-                  "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('lakeStorageAccountName')), '2023-05-01').keys[0].value]"
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', variables('lakeStorageAccountName'))]",
-                "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', variables('lakeStorageAccountName'), 'default', 'evidence-lake')]"
-              ]
             },
             {
               "type": "Microsoft.App/containerApps",
@@ -1837,20 +1740,7 @@
                       "resources": {
                         "cpu": "[json('1.0')]",
                         "memory": "2Gi"
-                      },
-                      "volumeMounts": [
-                        {
-                          "volumeName": "evidence",
-                          "mountPath": "/evidence"
-                        }
-                      ]
-                    }
-                  ],
-                  "volumes": [
-                    {
-                      "name": "evidence",
-                      "storageType": "AzureFile",
-                      "storageName": "evidence-lake"
+                      }
                     }
                   ],
                   "scale": {
@@ -1861,7 +1751,6 @@
               },
               "dependsOn": [
                 "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-collector-identity', parameters('namePrefix')))]",
-                "[resourceId('Microsoft.App/managedEnvironments/storages', parameters('environmentName'), 'evidence-lake')]",
                 "[resourceId('Microsoft.Resources/deployments', 'collector-roles')]"
               ]
             },
@@ -1912,27 +1801,13 @@
                       "resources": {
                         "cpu": "[json('1.0')]",
                         "memory": "2Gi"
-                      },
-                      "volumeMounts": [
-                        {
-                          "volumeName": "evidence",
-                          "mountPath": "/evidence"
-                        }
-                      ]
-                    }
-                  ],
-                  "volumes": [
-                    {
-                      "name": "evidence",
-                      "storageType": "AzureFile",
-                      "storageName": "evidence-lake"
+                      }
                     }
                   ]
                 }
               },
               "dependsOn": [
                 "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-collector-identity', parameters('namePrefix')))]",
-                "[resourceId('Microsoft.App/managedEnvironments/storages', parameters('environmentName'), 'evidence-lake')]",
                 "[resourceId('Microsoft.Resources/deployments', 'collector-roles')]"
               ]
             },

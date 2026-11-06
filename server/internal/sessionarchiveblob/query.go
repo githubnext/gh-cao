@@ -334,6 +334,9 @@ func (r *Reader) Deliver(deliver func() error) error {
 	if a.reader.Load() != r.pinned {
 		return context.Canceled
 	}
+	if r.pinned.source != nil && slices.Contains(a.state.WithdrawnSources, *r.pinned.source) {
+		return ErrWithdrawn
+	}
 	for _, m := range r.pinned.members {
 		if slices.Contains(a.state.WithdrawnRepositories, m.Repository) {
 			return ErrWithdrawn
@@ -350,7 +353,18 @@ func (r *Reader) Deliver(deliver func() error) error {
 	return deliver()
 }
 
-func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repository, runID string, attempt int64) (context.Context, uint64, []sessionarchive.File, []sessionarchive.Member, *Reader, error) {
+func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repository, runID string, attempt int64, sources ...*sessionarchive.Source) (context.Context, uint64, []sessionarchive.File, []sessionarchive.Member, *Reader, error) {
+	var source *sessionarchive.Source
+	if len(sources) > 1 {
+		return nil, 0, nil, nil, nil, ErrScope
+	}
+	if len(sources) == 1 {
+		source = sources[0]
+	}
+	return a.pinSource(ctx, scope, repository, runID, attempt, source)
+}
+
+func (a *Archive) pinSource(ctx context.Context, scope sessionarchive.Scope, repository, runID string, attempt int64, source *sessionarchive.Source) (context.Context, uint64, []sessionarchive.File, []sessionarchive.Member, *Reader, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, 0, nil, nil, nil, err
 	}
@@ -368,12 +382,30 @@ func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repositor
 	if slices.Contains(a.state.WithdrawnRepositories, repository) {
 		return nil, 0, nil, nil, nil, ErrWithdrawn
 	}
+	if a.state.SourceFenced && source == nil {
+		return nil, 0, nil, nil, nil, ErrScope
+	}
+	if source != nil && (!a.state.SourceFenced || source.Validate() != nil || source.Repository != repository ||
+		slices.Contains(a.state.WithdrawnSources, *source)) {
+		return nil, 0, nil, nil, nil, ErrWithdrawn
+	}
 	// Exactly one in-flight query keeps the supported initial profile bounded.
 	if a.reader.Load() != nil {
 		return nil, 0, nil, nil, nil, ErrCapacity
 	}
+	selected := map[sessionarchive.Member]bool{}
+	if source != nil {
+		for _, record := range a.state.NativeRecords {
+			if record.Source == *source && record.Gap == "" {
+				selected[record.Member] = true
+			}
+		}
+	}
 	var members []sessionarchive.Member
 	for _, m := range a.state.Manifest.Members {
+		if source != nil && !selected[m] {
+			continue
+		}
 		if m.Repository == repository && (runID == "" || m.RunID == runID && m.Attempt == attempt) {
 			members = append(members, m)
 		}
@@ -404,6 +436,10 @@ func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repositor
 	}
 	queryCtx, cancel := context.WithTimeout(ctx, a.config.QueryTimeout)
 	pinned := &reader{members: members, cancel: cancel}
+	if source != nil {
+		copy := *source
+		pinned.source = &copy
+	}
 	a.reader.Store(pinned)
 	generation := a.active.Generation
 	return queryCtx, generation, files, members, &Reader{archive: a, pinned: pinned, ctx: queryCtx}, nil
@@ -423,10 +459,18 @@ func (a *Archive) Timeline(ctx context.Context, scope sessionarchive.Scope, requ
 
 // ReadTimeline retains withdrawal protection until the caller closes its reader.
 func (a *Archive) ReadTimeline(ctx context.Context, scope sessionarchive.Scope, request sessionarchive.TimelineRequest) (_ uint64, _ []sessionarchive.Event, _ *Reader, err error) {
+	return a.readTimelineSource(ctx, scope, request, nil)
+}
+
+func (n *Native) ReadTimelineAt(ctx context.Context, scope sessionarchive.Scope, source sessionarchive.Source, request sessionarchive.TimelineRequest) (uint64, []sessionarchive.Event, *Reader, error) {
+	return n.readTimelineSource(ctx, scope, request, &source)
+}
+
+func (a *Archive) readTimelineSource(ctx context.Context, scope sessionarchive.Scope, request sessionarchive.TimelineRequest, source *sessionarchive.Source) (_ uint64, _ []sessionarchive.Event, _ *Reader, err error) {
 	if request.RunID == "" || request.Attempt < 1 || request.Limit < 1 || request.Limit > 4096 {
 		return 0, nil, nil, sessionarchive.ErrLimit
 	}
-	queryCtx, generation, files, members, reader, err := a.pin(ctx, scope, request.Repository, request.RunID, request.Attempt)
+	queryCtx, generation, files, members, reader, err := a.pin(ctx, scope, request.Repository, request.RunID, request.Attempt, source)
 	if err != nil {
 		return generation, nil, nil, err
 	}
@@ -494,10 +538,18 @@ func (a *Archive) Summaries(ctx context.Context, scope sessionarchive.Scope, rep
 
 // ReadSummaries retains withdrawal protection until the caller closes its reader.
 func (a *Archive) ReadSummaries(ctx context.Context, scope sessionarchive.Scope, repository string, limit int) (_ uint64, _ []sessionarchive.Summary, _ *Reader, err error) {
+	return a.readSummariesSource(ctx, scope, repository, limit, nil)
+}
+
+func (n *Native) ReadSummariesAt(ctx context.Context, scope sessionarchive.Scope, source sessionarchive.Source, repository string, limit int) (uint64, []sessionarchive.Summary, *Reader, error) {
+	return n.readSummariesSource(ctx, scope, repository, limit, &source)
+}
+
+func (a *Archive) readSummariesSource(ctx context.Context, scope sessionarchive.Scope, repository string, limit int, source *sessionarchive.Source) (_ uint64, _ []sessionarchive.Summary, _ *Reader, err error) {
 	if limit < 1 || limit > 4096 {
 		return 0, nil, nil, sessionarchive.ErrLimit
 	}
-	queryCtx, generation, files, members, reader, err := a.pin(ctx, scope, repository, "", 0)
+	queryCtx, generation, files, members, reader, err := a.pin(ctx, scope, repository, "", 0, source)
 	if err != nil {
 		return generation, nil, nil, err
 	}

@@ -21,6 +21,7 @@ type InstallationEnumerator interface {
 // RepositoryDiscovery repairs missed scope webhooks without enumerating runs.
 // Workers perform quota-governed repository enumeration through ordinary tasks.
 type RepositoryDiscovery struct {
+	Native     *NativeWorker
 	Client     InstallationEnumerator
 	Enrollment Enrollment
 	Queue      Queue
@@ -49,6 +50,9 @@ func (d RepositoryDiscovery) Refresh(ctx context.Context) (DiscoveryResult, erro
 }
 
 func (d RepositoryDiscovery) refresh(ctx context.Context, force bool) (result DiscoveryResult, err error) {
+	if d.Native != nil {
+		return d.Native.ReconcileResult(ctx)
+	}
 	if d.Client == nil || d.State == nil || d.Leases == nil {
 		return result, errors.New("repository discovery requires App enumeration and operational state")
 	}

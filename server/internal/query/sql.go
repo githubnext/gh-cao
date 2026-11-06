@@ -69,8 +69,22 @@ type sqlCompiler struct {
 // Structured SQL values are wire projections only; this compiler creates no
 // stored JSON documents and has no row-evaluator fallback.
 func CompileSQL(definitions []Definition, requested []string, resolve SQLSourceResolver) (SQLPlan, error) {
+	return compileSQL(definitions, requested, resolve, "", 0)
+}
+
+// CompileSQLPage keeps boundary lookahead in the boundary output, but prevents
+// downstream consumers from deriving rows from outside the requested page.
+func CompileSQLPage(definitions []Definition, requested []string, resolve SQLSourceResolver, boundary string, limit int) (SQLPlan, error) {
+	if boundary == "" || limit <= 0 || limit > 32 {
+		return SQLPlan{}, errors.New("invalid SQL page boundary")
+	}
+	return compileSQL(definitions, requested, resolve, boundary, limit)
+}
+
+func compileSQL(definitions []Definition, requested []string, resolve SQLSourceResolver, boundary string, limit int) (SQLPlan, error) {
 	compiler := sqlCompiler{}
 	relations := map[string]SQLRelation{}
+	var boundaryOutput SQLRelation
 	load := func(name string) error {
 		if relations[name].SQL != "" {
 			return nil
@@ -96,14 +110,25 @@ func CompileSQL(definitions []Definition, requested []string, resolve SQLSourceR
 			return fmt.Errorf("query %q: %w", definition.Name, err)
 		}
 		relations[definition.Name] = relation
+		if definition.Name == boundary {
+			boundaryOutput = relation
+			relation.SQL += " ORDER BY " + relation.Order + " LIMIT " + compiler.bind(limit)
+			relations[definition.Name] = compiler.materialize(relation, definition.Name, "page", 0)
+		}
 		return nil
 	})
 	if err != nil {
 		return SQLPlan{}, err
 	}
+	if boundary != "" && boundaryOutput.SQL == "" {
+		return SQLPlan{}, errors.New("SQL page boundary is unavailable")
+	}
 	outputs := make(map[string]SQLRelation, len(requested))
 	for _, name := range requested {
 		outputs[name] = relations[name]
+		if name == boundary {
+			outputs[name] = boundaryOutput
+		}
 	}
 	if compiler.err != nil {
 		return SQLPlan{}, compiler.err

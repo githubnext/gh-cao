@@ -60,18 +60,26 @@ test('fast collection preserves Value history and publishes a deferred decision 
   });
   const result = JSON.parse(output);
   assert.equal(result.imported, 1);
-  assert.equal(result.deferred, 1);
+  assert.equal(result.deferred, 2);
   assert.equal(readFileSync(path.join(shards, 'operational-values-example.jsonl'), 'utf8'), 'retained evidence\n');
-  const evidence = JSON.parse(readFileSync(path.join(shards, 'workflow-values-example.jsonl'), 'utf8'));
-  assert.equal(evidence.operational_value_evidence.observedAt, '2026-10-18T12:05:52.580Z');
-  assert.equal(evidence.operational_value_evidence.windowEnd, '2026-10-18T11:54:09Z');
-  const health = JSON.parse(readFileSync(path.join(shards, 'workflow-values-example-collections.jsonl'), 'utf8'));
-  assert.equal(health.workflow_value_collection.repository, 'github/gh-aw');
-  assert.equal(health.workflow_value_collection.workflow, 'daily-file-diet');
-  assert.equal(health.workflow_value_collection.registration, 'enabled');
-  assert.equal(health.workflow_value_collection.state, 'deferred');
-  assert.equal(health.workflow_value_collection.reasonCode, 'fast-mode');
-  assert.equal(health.workflow_value_collection.lastAttemptAt, undefined);
+  const evidence = readFileSync(path.join(shards, 'workflow-values-example.jsonl'), 'utf8')
+    .trim().split('\n').map(line => JSON.parse(line));
+  assert.equal(evidence.length, 1);
+  const dailyFileDiet = evidence.find(envelope =>
+    envelope.operational_value_evidence.workflow === 'daily-file-diet').operational_value_evidence;
+  assert.equal(dailyFileDiet.observedAt, '2026-10-18T12:05:52.580Z');
+  assert.equal(dailyFileDiet.windowEnd, '2026-10-18T11:54:09Z');
+  const collections = readFileSync(path.join(shards, 'workflow-values-example-collections.jsonl'), 'utf8')
+    .trim().split('\n').map(line => JSON.parse(line).workflow_value_collection);
+  assert.equal(collections.length, 2);
+  assert.ok(collections.every(collection => collection.state === 'deferred' && collection.reasonCode === 'fast-mode'));
+  const health = collections.find(collection => collection.workflow === 'daily-file-diet');
+  assert.equal(health.repository, 'github/gh-aw');
+  assert.equal(health.registration, 'enabled');
+  assert.equal(health.state, 'deferred');
+  assert.equal(health.reasonCode, 'fast-mode');
+  assert.equal(health.lastAttemptAt, undefined);
+  assert.equal(collections.find(collection => collection.workflow === 'dependabot-update-planner').reasonCode, 'fast-mode');
   assert.equal(JSON.parse(readFileSync(path.join(shards, 'workflow-value-local.json'), 'utf8'))[0].eligible, false);
 });
 
@@ -92,9 +100,9 @@ test('ordinary Activity leaves the reviewed Value grant above its protected API 
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const output = path.join(directory, 'capacity');
   for (const [repositories, base, expected] of [
-    [['github/gh-aw'], '2000', 'log-floor=-2700\nvalue-reserve=2000\n'],
+    [['github/gh-aw'], '2000', 'log-floor=-2811\nvalue-reserve=2000\n'],
     [['githubnext/gh-cao'], '2000', 'log-floor=-2000\nvalue-reserve=2000\n'],
-    [['github/gh-aw'], '100', 'log-floor=-800\nvalue-reserve=100\n'],
+    [['github/gh-aw'], '100', 'log-floor=-911\nvalue-reserve=100\n'],
     [['githubnext/gh-cao'], '100', 'log-floor=-100\nvalue-reserve=100\n'],
   ]) {
     writeFileSync(output, '');

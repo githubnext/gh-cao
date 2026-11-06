@@ -4634,6 +4634,25 @@
       }
     },
     {
+      "id": "campaign-navigation-availability",
+      "subject": "Detect available campaign inventory for dashboard navigation.",
+      "objective": "Enable Campaigns only when collected campaign information is present.",
+      "acceptance": "Return at most one canonical campaign identity; missing or empty inventory does not enable Campaigns, and partial inventory does not imply complete campaign coverage.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "campaigns"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "campaigns"
+        ]
+      }
+    },
+    {
       "id": "audit-event-summary-buckets",
       "subject": "Aggregate high- and medium-severity audit events with the same severity and summary by workflow.",
       "objective": "Select recurring high- or medium-severity audit summaries for run-level investigation.",

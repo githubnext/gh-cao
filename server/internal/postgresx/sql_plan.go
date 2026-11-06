@@ -80,6 +80,33 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 	measurementSelections := query.SourceEqualities(definitions, requested, "workflow-value-measurements",
 		"$operationalValues", "id", "workflow-route")
 	resolve := func(name string) (query.SQLRelation, error) {
+		if source, exists := r.publicationSources[name]; exists {
+			// Publication-only inputs retain ingestion facts until the existing
+			// declarative routing aggregate has run. They are never query roots
+			// exposed to ordinary dashboard callers or a persisted JSON source.
+			if name != "$runs" && name != "$audits" {
+				return query.SQLRelation{}, errors.New("unsupported native publication source")
+			}
+			table := entityTables[name]
+			table.columns = append([]entityColumn(nil), table.columns...)
+			if name == "$audits" {
+				for _, field := range []struct{ field, kind, sql string }{
+					{"routingBaselineModel", "", "TEXT"}, {"routingBaselineComplete", "boolean", "BOOLEAN"},
+					{"routingBaselineMainRequests", "numeric", "NUMERIC"}, {"eligibleChoices", "numeric", "NUMERIC"},
+					{"catalogueOverlap", "numeric", "NUMERIC"},
+				} {
+					found := false
+					for _, column := range table.columns {
+						found = found || column.field == field.field
+					}
+					if !found {
+						table.columns = append(table.columns, entityColumn{field: field.field, name: field.field, kind: field.kind, sql: field.sql})
+					}
+				}
+			}
+			metadata[name] = source.Metadata
+			return typedRowsSQLSource(name, table, source)
+		}
 		if strings.HasPrefix(name, statisticalSnapshotPrefix) {
 			if len(options.Repositories) > 0 {
 				return query.SQLRelation{}, fmt.Errorf("hosted local Value cannot query unscoped statistical source %q", name)
@@ -166,7 +193,12 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 		}
 		return r.scopeSQLRelation(name, relation, options.Repositories)
 	}
-	plan, err := query.CompileSQL(definitions, requested, resolve)
+	var plan query.SQLPlan
+	if keysetPlan != nil {
+		plan, err = query.CompileSQLPage(definitions, requested, resolve, keysetPlan.Boundary, keysetPage.Limit)
+	} else {
+		plan, err = query.CompileSQL(definitions, requested, resolve)
+	}
 	if err != nil {
 		return nil, model.Metrics{}, err
 	}

@@ -207,19 +207,30 @@ func (r Reporter) Snapshot(ctx context.Context) (Status, error) {
 		return status, err
 	}
 	status.Coverage = coverage
-	if status.QueueDepth, err = r.Queue.Depth(ctx); err != nil {
-		return status, err
-	}
-	if status.PendingTasks, err = r.Queue.Pending(ctx); err != nil {
-		return status, err
-	}
-	if oldest, pendingErr := r.Queue.OldestPendingAge(ctx); pendingErr != nil {
-		return status, pendingErr
-	} else if oldest > 0 {
-		status.OldestPending = oldest.String()
-	}
-	if status.DeadLetters, err = r.Queue.DeadLetters(ctx); err != nil {
-		return status, err
+	if r.Enrollment.Authority != nil {
+		native, err := r.Queue.nativeStatus(ctx)
+		if err != nil {
+			return status, err
+		}
+		status.QueueDepth, status.PendingTasks, status.DeadLetters = native.depth, native.pending, native.dead
+		if native.oldest > 0 {
+			status.OldestPending = native.oldest.String()
+		}
+	} else {
+		if status.QueueDepth, err = r.Queue.Depth(ctx); err != nil {
+			return status, err
+		}
+		if status.PendingTasks, err = r.Queue.Pending(ctx); err != nil {
+			return status, err
+		}
+		if oldest, pendingErr := r.Queue.OldestPendingAge(ctx); pendingErr != nil {
+			return status, pendingErr
+		} else if oldest > 0 {
+			status.OldestPending = oldest.String()
+		}
+		if status.DeadLetters, err = r.Queue.DeadLetters(ctx); err != nil {
+			return status, err
+		}
 	}
 	counters, events, err := r.Metrics.IngestionHealth(ctx)
 	if err != nil {

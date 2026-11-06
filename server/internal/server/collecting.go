@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
@@ -30,6 +30,17 @@ const defaultQueueMaxLength = 200_000
 // ingests snapshots published by the Activity workflow and performs no GitHub
 // collection of its own.
 type CollectorConfig struct {
+	// NativeAcquisition selects distributed Go acquisition and publication.
+	NativeAcquisition bool
+	// NativeInventory is the immutable reviewed source contract, not a path or
+	// an ingestion-scope grant. Replicas pin its digest in PostgreSQL.
+	NativeInventory *collectnative.InventorySnapshot
+	// NativeInventoryDigest selects a previously provisioned shared document
+	// instead of requiring a local inventory file on every replica.
+	NativeInventoryDigest string
+	// NativeValues separately selects the existing reviewed Value execution
+	// lane. Only this feature requires its reviewed catalog and policy.
+	NativeValues bool
 	// AppID and PrivateKeyPEM authenticate the GitHub App whose installations
 	// define ingestion scope.
 	AppID         int64
@@ -38,20 +49,12 @@ type CollectorConfig struct {
 	UploadURL     string
 	Transport     http.RoundTripper
 
-	// LakeDirectory holds collected evidence in the published snapshot layout.
-	LakeDirectory string
-	// CatalogRoot contains activity/cao.mjs.
+	// CatalogRoot identifies the reviewed Value policy imports when selected.
 	CatalogRoot string
-	// ControlRepository names the control repository for inventory discovery.
+	// ControlRepository names the reviewed inventory's control repository.
 	ControlRepository string
-	// PolicyPath is the reviewed deployment policy resolved for inventory.
+	// PolicyPath is the reviewed Value policy when selected.
 	PolicyPath string
-	// StaticInventoryPath is the source-bound inventory packaged with the
-	// collector image.
-	StaticInventoryPath string
-
-	NodeBinary   string
-	GitHubBinary string
 
 	WindowDays            int
 	RunLimit              int
@@ -79,8 +82,8 @@ type CollectorConfig struct {
 	QueueMaxLength int
 	// AdmitOnly runs the admission half of the profile alone: the process
 	// verifies deliveries and enqueues work, and never collects or projects.
-	// It therefore needs no App private key and no evidence lake, which keeps
-	// the internet-facing front end from holding credentials it cannot use.
+	// It therefore needs no App private key, which keeps the internet-facing
+	// front end from holding credentials it cannot use.
 	AdmitOnly bool
 }
 
@@ -89,74 +92,27 @@ func (config *CollectorConfig) Validate() error {
 	if config == nil {
 		return nil
 	}
-	if config.AppID <= 0 {
-		return errors.New("collection requires a GitHub App identifier")
+	if config.NativeAcquisition {
+		return config.validateNative()
 	}
-	if config.RepositoryRefreshInterval < 0 {
-		return errors.New("repository refresh interval must not be negative")
-	}
-	if config.AdmitOnly {
-		// Admission verifies deliveries against the webhook secret and writes
-		// to Redis. Requiring collection credentials here would place the App
-		// private key in a process that never calls GitHub.
-		if len(config.PrivateKeyPEM) > 0 {
-			return errors.New(
-				"admission-only collection must not be given the App private key; " +
-					"it never calls GitHub")
-		}
-		if config.Workers > 0 {
-			return errors.New("admission-only collection cannot run workers")
-		}
-		if config.RecoverDeliveries {
-			return errors.New("admission-only collection cannot replay deliveries")
-		}
-	} else {
-		if len(config.PrivateKeyPEM) == 0 {
-			return errors.New("collection requires a GitHub App private key")
-		}
-		if strings.TrimSpace(config.LakeDirectory) == "" {
-			return errors.New("collection requires an evidence lake directory")
-		}
-		if strings.TrimSpace(config.CatalogRoot) == "" {
-			return errors.New("collection requires the catalog root containing activity/cao.mjs")
-		}
-		if strings.TrimSpace(config.ControlRepository) == "" {
-			return errors.New("collection requires a control repository for inventory discovery")
-		}
-		if strings.TrimSpace(config.PolicyPath) == "" {
-			return errors.New("collection requires the reviewed control policy path")
-		}
-		if strings.TrimSpace(config.StaticInventoryPath) == "" {
-			return errors.New("collection requires the packaged static control-plane inventory")
-		}
-	}
-	if config.QueueMaxLength <= 0 {
-		config.QueueMaxLength = defaultQueueMaxLength
-	}
-	return nil
+	return fmt.Errorf("%w: hosted collection requires CAO_COLLECT_NATIVE=true; the filesystem collector is retired",
+		collectnative.ErrUnsupported)
 }
 
-// Collector is the assembled collection profile. It satisfies Reconciler, so
-// the existing rebuild and webhook plumbing works unchanged, and additionally
-// satisfies EventAdmitter, so deliveries are queued instead of projected
-// inline.
+// Collector is the assembled native collection profile. It satisfies
+// Reconciler and EventAdmitter so deliveries are queued, not projected inline.
 type Collector struct {
-	volatile      bool
-	bootstrapDone chan struct{}
-	bootstrapOnce sync.Once
-	backfillMu    sync.Mutex
-	config        CollectorConfig
-	client        *githubapp.Client
-	quota         *githubquota.Service
-	enrollment    collect.Enrollment
-	queue         collect.Queue
-	lake          collect.Lake
-	runner        collect.Runner
-	projector     collect.Projector
-	admitter      collect.Admitter
-	backfill      collect.Backfill
-	reporter      collect.Reporter
-	replayer      collect.DeliveryReplayer
+	backfillMu sync.Mutex
+	config     CollectorConfig
+	client     *githubapp.Client
+	quota      *githubquota.Service
+	enrollment collect.Enrollment
+	queue      collect.Queue
+	admitter   collect.Admitter
+	backfill   collect.Backfill
+	reporter   collect.Reporter
+	replayer   collect.DeliveryReplayer
+	native     *nativeCollection
 }
 
 var _ Reconciler = (*Collector)(nil)
@@ -202,189 +158,39 @@ func NewCollector(
 	if err != nil {
 		return nil, fmt.Errorf("configure github quota: %w", err)
 	}
-	searchQuota, err := githubquota.New(services.GitHubQuota, githubquota.Options{SafetyReserve: 1})
-	if err != nil {
-		return nil, fmt.Errorf("configure search quota: %w", err)
-	}
-	quotaApp := "github-app-" + strconv.FormatInt(config.AppID, 10)
-	enrollment := collect.Enrollment{Metadata: services.Collection, Leases: services.Leases}
 	queue := collect.Queue{
 		Tasks: services.Queue, Admission: services.Admission, Metadata: services.Collection,
 		Leases: services.Leases, Deliveries: services.Deliveries, Metrics: services.IngestionMetrics,
 		MaxLength: int64(config.QueueMaxLength),
 	}
-	if config.AdmitOnly {
-		// Erasure is enqueued rather than performed, because this process has
-		// no evidence lake to erase from.
-		backfill := collect.Backfill{StateStore: services.State, Metadata: services.Collection, Quota: quota, QuotaApp: quotaApp}
-		collector := &Collector{
-			volatile:   volatile,
-			config:     config,
-			quota:      quota,
-			enrollment: enrollment,
-			queue:      queue,
-			backfill:   backfill,
-			admitter:   collect.Admitter{Enrollment: enrollment, Queue: queue, Mining: true},
-			reporter: collect.Reporter{
-				Enrollment: enrollment, Queue: queue, Backfill: backfill, Metrics: services.IngestionMetrics, Data: data,
-			},
-		}
-		return collector, nil
-	}
-	client, err := githubapp.New(githubapp.Config{
-		AppID:         config.AppID,
-		PrivateKeyPEM: config.PrivateKeyPEM,
-		BaseURL:       config.BaseURL,
-		UploadURL:     config.UploadURL,
-		Transport:     config.Transport,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if err := client.ValidateRepositoryAccess(ctx, config.ControlRepository); err != nil {
-		return nil, fmt.Errorf("validate repository visibility: %w", err)
-	}
-	lake := collect.Lake{Directory: config.LakeDirectory}
-	if err := lake.Prepare(); err != nil {
-		return nil, err
-	}
-	budget := &githubapp.Budget{Metadata: services.Collection, Store: services.RateLimits, Floor: config.RateLimitFloor}
-	runner := collect.Runner{
-		Lake:                  lake,
-		CatalogRoot:           config.CatalogRoot,
-		NodeBinary:            config.NodeBinary,
-		GitHubBinary:          config.GitHubBinary,
-		GitHubAPIURL:          config.BaseURL,
-		WindowDays:            config.WindowDays,
-		RunLimit:              config.RunLimit,
-		MaxStorageMB:          config.MaxStorageMB,
-		RequestTimeoutMinutes: config.RequestTimeoutMinutes,
-		Timeout:               config.CollectionTimeout,
-		Tokens:                client,
-		Budget:                budget,
-	}
-	if err := runner.Validate(); err != nil {
-		return nil, err
-	}
-	projector := collect.Projector{State: services.State, Leases: services.Leases, Data: data,
-		Lake:              lake,
-		Enrollment:        enrollment,
-		CatalogRoot:       config.CatalogRoot,
-		NodeBinary:        config.NodeBinary,
-		GitHubBinary:      config.GitHubBinary,
-		GitHubAPIURL:      config.BaseURL,
-		Tokens:            client,
-		Budget:            budget,
-		OutcomeClient:     client,
-		Quota:             quota,
-		QuotaApp:          quotaApp,
-		RemoteQuota:       quota,
-		RemoteSearchQuota: searchQuota,
-		RemoteHTTP: &http.Client{Transport: config.Transport, Timeout: 65 * time.Second,
-			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
-		RemoteValuePlan:          &collect.RemoteValuePlanCache{},
-		WindowDays:               config.WindowDays,
-		DatabaseQueriesPath:      databaseQueriesPath,
-		ControlRepository:        config.ControlRepository,
-		PolicyPath:               config.PolicyPath,
-		StaticInventoryPath:      config.StaticInventoryPath,
-		MinInterval:              config.MinProjectionInterval,
-		InventoryRepositoryLimit: config.InventoryLimit,
-	}
-	backfill := collect.Backfill{StateStore: services.State, Metadata: services.Collection, Enrollment: enrollment, Queue: queue,
-		Projector: projector, Lake: lake, Enumerator: client, RunEnumerator: client,
-		Quota: quota, QuotaApp: quotaApp,
-		WindowDays: config.WindowDays,
-	}
-	collector := &Collector{
-		volatile:   volatile,
-		config:     config,
-		client:     client,
-		quota:      quota,
-		enrollment: enrollment,
-		queue:      queue,
-		lake:       lake,
-		runner:     runner,
-		projector:  projector,
-		admitter: collect.Admitter{
-			Enrollment: enrollment, Queue: queue, Mining: true,
-			Projection: projector,
-		},
-		backfill: backfill,
-		reporter: collect.Reporter{
-			Enrollment: enrollment, Queue: queue, Backfill: backfill,
-			Budget: budget, Metrics: services.IngestionMetrics, Data: data,
-		},
-		replayer: collect.DeliveryReplayer{State: services.State, Metadata: services.Collection, Client: client, Enabled: config.RecoverDeliveries},
-	}
-	if volatile {
-		collector.bootstrapDone = make(chan struct{})
-		collector.backfill.ReconstructScope = true
-		collector.backfill.ScopeLimit = config.InventoryLimit
-		if collector.backfill.ScopeLimit <= 0 {
-			collector.backfill.ScopeLimit = 100_000
-		}
-		collector.backfill.ScopeReady = func(ctx context.Context) error {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			collector.bootstrapOnce.Do(func() { close(collector.bootstrapDone) })
-			return nil
-		}
-	}
-	return collector, nil
+	return newNativeCollector(ctx, services, capabilities, data, config, quota, queue)
 }
 
-// Rebuild reprojects the evidence lake. Cold start and recovery both reuse the
-// existing administrative rebuild endpoint through this method.
+// Rebuild starts a native backfill through the existing administrative endpoint.
 func (c *Collector) Rebuild(ctx context.Context) (ingest.Result, error) {
 	if c.config.AdmitOnly {
 		return ingest.Result{}, ErrAdmitOnly
 	}
-	if c.volatile {
-		state, err := c.runBackfill(ctx)
-		return ingest.Result{Revision: state.Revision}, err
-	}
-	populated, err := c.lake.Populated()
-	if err != nil {
-		return ingest.Result{}, err
-	}
-	if populated {
-		return c.projector.Rebuild(ctx)
-	}
-	state, err := c.backfill.Run(ctx)
-	if err != nil {
-		return ingest.Result{}, err
-	}
-	return ingest.Result{Revision: state.Revision}, nil
+	state, err := c.runBackfill(ctx)
+	return ingest.Result{Revision: state.Revision}, err
 }
 
-// Reconcile is the lease-taking path the default profile uses. Collection
-// never needs it because Admit is preferred, but implementing it keeps the
-// Reconciler contract total.
+// Reconcile implements the Reconciler contract for callers that do not use
+// delivery admission directly.
 func (c *Collector) Reconcile(ctx context.Context, event GitHubWebhook) (ingest.Result, error) {
-	if !c.RecoveryReady() {
-		return ingest.Result{}, ErrCollectionBootstrapping
-	}
 	if _, err := c.admitter.Admit(ctx, event.Event, event.Payload); err != nil {
 		if errors.Is(err, collect.ErrNotEnrolled) {
 			return ingest.Result{}, nil
 		}
 		return ingest.Result{}, err
 	}
-	if c.config.AdmitOnly {
-		// Admission is complete; a collection worker projects.
-		return ingest.Result{}, nil
-	}
-	return c.projector.Project(ctx)
+	// Admission is complete; a native collection worker projects.
+	return ingest.Result{}, nil
 }
 
 // Admit queues collection for one verified delivery without taking the global
 // projection lease, so concurrent deliveries never contend.
 func (c *Collector) Admit(ctx context.Context, event GitHubWebhook) (map[string]any, error) {
-	if !c.RecoveryReady() {
-		return nil, ErrCollectionBootstrapping
-	}
 	admission, err := c.admitter.AdmitDelivery(ctx, event.Event, event.Payload, event.Delivery, deliveryTTL)
 	if err != nil {
 		if errors.Is(err, collect.ErrNotEnrolled) {
@@ -410,7 +216,7 @@ func (c *Collector) Start(ctx context.Context, onProjection func(revision int64)
 }
 
 func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(revision int64), launch func(func())) error {
-	if err := c.queue.Ensure(startupCtx); err != nil {
+	if err := c.queue.EnsureRuns(startupCtx); err != nil {
 		return err
 	}
 	if c.config.AdmitOnly {
@@ -424,9 +230,6 @@ func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(rev
 				return
 			}
 			serverLog.Printf("cold start failed")
-			if !c.volatile || c.RecoveryReady() {
-				return
-			}
 			timer := time.NewTimer(30 * time.Second)
 			select {
 			case <-ctx.Done():
@@ -437,25 +240,9 @@ func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(rev
 		}
 	})
 	for index := 0; index < c.config.Workers; index++ {
-		worker := collect.Worker{
-			Queue:          c.queue,
-			Runner:         c.runner,
-			Projector:      c.projector,
-			Enrollment:     c.enrollment,
-			ScopeRefresher: c.scopeRefresher(),
-			Discovery:      c.RepositoryDiscovery(),
-			Consumer:       fmt.Sprintf("%s-%d", c.consumer(), index),
-			Project:        true,
-			OnProjection:   onProjection,
-		}
+		worker := c.Worker(fmt.Sprintf("%s-%d", c.consumer(), index))
+		worker.OnProjection = onProjection
 		launch(func() {
-			if c.volatile {
-				select {
-				case <-ctx.Done():
-					return
-				case <-c.bootstrapDone:
-				}
-			}
 			if err := worker.Run(ctx); err != nil && ctx.Err() == nil {
 				serverLog.Printf("collection worker stopped")
 			}
@@ -463,13 +250,6 @@ func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(rev
 	}
 	if c.config.RecoverDeliveries {
 		launch(func() {
-			if c.volatile {
-				select {
-				case <-ctx.Done():
-					return
-				case <-c.bootstrapDone:
-				}
-			}
 			c.recoverDeliveries(ctx)
 		})
 	}
@@ -477,18 +257,8 @@ func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(rev
 	return nil
 }
 
-var ErrCollectionBootstrapping = errors.New("collection scope is being reconstructed; retry delivery")
-
 func (c *Collector) RecoveryReady() bool {
-	if !c.volatile {
-		return true
-	}
-	select {
-	case <-c.bootstrapDone:
-		return true
-	default:
-		return false
-	}
+	return true
 }
 
 func (c *Collector) runBackfill(ctx context.Context) (collect.BackfillState, error) {
@@ -521,31 +291,20 @@ func (c *Collector) recoverDeliveries(ctx context.Context) {
 	}
 }
 
-// ErrAdmitOnly reports an operation that requires collection credentials and
-// an evidence lake on a process configured to admit deliveries only.
+// ErrAdmitOnly reports an operation that requires collection credentials on a
+// process configured to admit deliveries only.
 var ErrAdmitOnly = errors.New(
 	"this process admits deliveries only; run the collect or backfill role")
 
 // Worker builds a standalone collection worker for the collect role.
 func (c *Collector) Worker(consumer string) collect.Worker {
-	return collect.Worker{
-		Queue: c.queue, Runner: c.runner, Projector: c.projector,
-		Enrollment: c.enrollment, Consumer: consumer, Project: true,
-		ScopeRefresher: c.scopeRefresher(),
-		Discovery:      c.RepositoryDiscovery(),
-	}
-}
-
-func (c *Collector) scopeRefresher() collect.ScopeRefresher {
-	return collect.ScopeRefresher{Client: c.client, Quota: c.quota,
-		QuotaApp:        "github-app-" + strconv.FormatInt(c.config.AppID, 10),
-		RepositoryLimit: c.config.InventoryLimit}
+	worker := c.native.worker
+	worker.Consumer = consumer
+	return collect.Worker{Native: &worker}
 }
 
 func (c *Collector) RepositoryDiscovery() collect.RepositoryDiscovery {
-	return collect.RepositoryDiscovery{Client: c.client, Enrollment: c.enrollment,
-		Queue: c.queue, State: c.projector.State, Leases: c.enrollment.Leases,
-		Interval: c.config.RepositoryRefreshInterval}
+	return collect.RepositoryDiscovery{Native: &c.native.worker}
 }
 
 // Backfill exposes cold start for the backfill role.

@@ -136,10 +136,9 @@ func TestCollectionStatusRequiresHostedAdministrator(t *testing.T) {
 
 func TestProfilesAreMutuallyExclusive(t *testing.T) {
 	collector := &CollectorConfig{
-		AppID:         1,
-		PrivateKeyPEM: []byte("key"),
-		LakeDirectory: t.TempDir(),
-		CatalogRoot:   t.TempDir(),
+		NativeAcquisition: true,
+		AppID:             1,
+		PrivateKeyPEM:     []byte("key"),
 	}
 	t.Run("published snapshots and collection cannot both be configured", func(t *testing.T) {
 		err := validateProfileExclusivity(Config{
@@ -206,8 +205,28 @@ func TestCollectorConfigFromEnvSelectsTheDefaultProfileWhenUnset(t *testing.T) {
 }
 
 func TestCollectorConfigFromEnvFailsClosed(t *testing.T) {
+	t.Run("an App without native acquisition is rejected before reading credentials", func(t *testing.T) {
+		t.Setenv("CAO_COLLECT_APP_ID", "12345")
+		t.Setenv("CAO_COLLECT_NATIVE", "false")
+		if _, err := CollectorConfigFromEnv(); err == nil || !strings.Contains(err.Error(), "CAO_COLLECT_NATIVE=true") {
+			t.Fatalf("expected the retired collector to be rejected explicitly, got %v", err)
+		}
+	})
+	t.Run("retired collector settings are rejected", func(t *testing.T) {
+		for _, name := range []string{"CAO_COLLECT_LAKE_DIRECTORY", "CAO_COLLECT_STATIC_INVENTORY", "CAO_COLLECT_GH_BINARY", "CAO_COLLECT_NODE_BINARY"} {
+			t.Run(name, func(t *testing.T) {
+				t.Setenv("CAO_COLLECT_APP_ID", "12345")
+				t.Setenv("CAO_COLLECT_NATIVE", "true")
+				t.Setenv(name, "/retired")
+				if _, err := CollectorConfigFromEnv(); err == nil || !strings.Contains(err.Error(), name) {
+					t.Fatalf("expected retired setting %s to be rejected, got %v", name, err)
+				}
+			})
+		}
+	})
 	t.Run("an incomplete configuration is rejected", func(t *testing.T) {
 		t.Setenv("CAO_COLLECT_APP_ID", "12345")
+		t.Setenv("CAO_COLLECT_NATIVE", "true")
 		t.Setenv("CAO_COLLECT_PRIVATE_KEY", "")
 		t.Setenv("CAO_COLLECT_PRIVATE_KEY_BASE64", "")
 		t.Setenv("CAO_COLLECT_PRIVATE_KEY_FILE", "")
@@ -224,15 +243,11 @@ func TestCollectorConfigFromEnvFailsClosed(t *testing.T) {
 }
 
 func TestCollectorConfigFromEnvReadsTheCollectionProfile(t *testing.T) {
-	lake := t.TempDir()
-	catalog := t.TempDir()
 	t.Setenv("CAO_COLLECT_APP_ID", "12345")
+	t.Setenv("CAO_COLLECT_NATIVE", "true")
 	t.Setenv("CAO_COLLECT_PRIVATE_KEY", "-----BEGIN PRIVATE KEY-----")
-	t.Setenv("CAO_COLLECT_LAKE_DIRECTORY", lake)
-	t.Setenv("CAO_COLLECT_CATALOG_ROOT", catalog)
+	t.Setenv("CAO_COLLECT_NATIVE_INVENTORY_DIGEST", strings.Repeat("a", 64))
 	t.Setenv("CAO_COLLECT_CONTROL_REPOSITORY", "octo/control")
-	t.Setenv("CAO_POLICY_PATH", "/app/.github/workflows/cao.hosted.json")
-	t.Setenv("CAO_COLLECT_STATIC_INVENTORY", "/app/catalog/control-plane-inventory.json")
 	t.Setenv("CAO_COLLECT_WORKERS", "4")
 	t.Setenv("CAO_COLLECT_PROJECTION_INTERVAL", "90s")
 	t.Setenv("CAO_COLLECT_RECOVER_DELIVERIES", "true")
@@ -256,8 +271,7 @@ func TestCollectorConfigFromEnvReadsTheCollectionProfile(t *testing.T) {
 	if config.RepositoryRefreshInterval.Minutes() != 30 {
 		t.Fatalf("repository refresh interval = %s, want 30m", config.RepositoryRefreshInterval)
 	}
-	if config.PolicyPath != "/app/.github/workflows/cao.hosted.json" ||
-		config.StaticInventoryPath != "/app/catalog/control-plane-inventory.json" {
+	if !config.NativeAcquisition || config.NativeInventoryDigest != strings.Repeat("a", 64) {
 		t.Fatalf("unexpected inventory configuration: %+v", config)
 	}
 }
@@ -333,19 +347,19 @@ func TestCollectorPrivateKeyDecodedContentStillRequiresAValidPEM(t *testing.T) {
 // the App private key would place a credential it cannot use in the
 // internet-facing process.
 func TestAdmitOnlyRefusesCollectionCredentials(t *testing.T) {
-	config := CollectorConfig{AppID: 42, AdmitOnly: true}
+	config := CollectorConfig{NativeAcquisition: true, AppID: 42, AdmitOnly: true}
 	if err := config.Validate(); err != nil {
 		t.Fatalf("admission-only configuration was rejected: %v", err)
 	}
-	withKey := CollectorConfig{AppID: 42, AdmitOnly: true, PrivateKeyPEM: []byte("key")}
+	withKey := CollectorConfig{NativeAcquisition: true, AppID: 42, AdmitOnly: true, PrivateKeyPEM: []byte("key")}
 	if err := withKey.Validate(); err == nil {
 		t.Fatal("admission-only accepted the App private key")
 	}
-	withWorkers := CollectorConfig{AppID: 42, AdmitOnly: true, Workers: 1}
+	withWorkers := CollectorConfig{NativeAcquisition: true, AppID: 42, AdmitOnly: true, Workers: 1}
 	if err := withWorkers.Validate(); err == nil {
 		t.Fatal("admission-only accepted collection workers")
 	}
-	collecting := CollectorConfig{AppID: 42}
+	collecting := CollectorConfig{NativeAcquisition: true, AppID: 42}
 	if err := collecting.Validate(); err == nil {
 		t.Fatal("the collection profile was accepted without a private key")
 	}

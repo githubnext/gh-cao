@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
@@ -82,6 +83,7 @@ type Projector struct {
 	// inventory would silently drop enrolled repositories from the dashboard
 	// while reporting success.
 	InventoryRepositoryLimit int
+	nativeValueScope         *collectnative.EnrollmentScope
 }
 
 // defaultProjectionInterval is the shortest gap between two projections.

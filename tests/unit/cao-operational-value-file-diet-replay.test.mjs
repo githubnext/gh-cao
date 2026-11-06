@@ -95,6 +95,9 @@ test("the real reviewed File Diet collector loads in the isolated worker and reu
   const ledger = JSON.parse(readFileSync(path.join(root, "tests/fixtures/operational-value/file-diet-events.json"), "utf8"));
   const output = path.join(directory, "evidence.jsonl");
   const policy = JSON.parse(readFileSync(path.join(root, ".github/workflows/cao.json"), "utf8"));
+  policy["control-plane"].campaigns.activity["workflow-values"] =
+    policy["control-plane"].campaigns.activity["workflow-values"]
+      .filter((entry) => entry.repository !== definition.repository || entry.workflow === definition.slug);
   const registration = policy["control-plane"].campaigns.activity["workflow-values"]
     .find((entry) => entry.repository === definition.repository && entry.workflow === definition.slug);
   delete registration.evidence;

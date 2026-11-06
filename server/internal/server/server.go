@@ -106,6 +106,9 @@ type Config struct {
 	SessionArchive     *sessionarchive.Config
 	SessionArchiveBlob *sessionarchiveblob.Config
 	SessionArchiveRead *SessionArchiveReadAccess
+	// SessionArchiveAuthority is mandatory for native hosted archive privacy.
+	// It must share the source enrollment transaction's durable epoch ledger.
+	SessionArchiveAuthority sessionarchive.NativeAuthority
 	// RateLimits overrides inbound request rate limits; the zero value keeps
 	// the production defaults.
 	RateLimits RateLimitConfig
@@ -154,6 +157,7 @@ type App struct {
 	cacheError       error
 	githubResources  githubResourceCache
 	hostedCLI        *hostedCLI
+	operatorStore    io.Closer
 	valuePublisher   operationalValuePublisher
 	admission        *admission.Service
 	tokenBroker      *tokenbroker.Service
@@ -396,7 +400,6 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 			return nil, err
 		}
 		app.adxTraces = worker
-		app.Collector().runner.Traces = worker
 	}
 	if err := app.configureSessionArchive(ctx); err != nil {
 		return nil, fmt.Errorf("configure session archive: %w", err)
@@ -482,6 +485,9 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 	}
 	if a.services.Backend != nil {
 		a.startTask(func() { a.runRedisMaintenance(runCtx, redisMaintenanceInterval) })
+	}
+	if a.hostedCLI != nil && a.hostedCLI.local != nil {
+		a.startTask(func() { a.runOperatorCommands(runCtx) })
 	}
 	if a.oauth != nil && (a.config.SourceDirectory != "" || a.Collector() != nil) {
 		a.startTask(func() { a.oauth.runRevocationWorker(runCtx) })
@@ -586,8 +592,11 @@ func (a *App) Stop(ctx context.Context) error {
 	if a.tokenBroker != nil {
 		brokerErr = a.tokenBroker.Close(ctx)
 	}
-	if a.ownedDatabase != nil || a.ownedOperational != nil || a.sessionArchive != nil {
+	if a.ownedDatabase != nil || a.ownedOperational != nil || a.sessionArchive != nil || a.operatorStore != nil {
 		a.closeDatabase.Do(func() {
+			if a.operatorStore != nil {
+				a.closeError = errors.Join(a.closeError, a.operatorStore.Close())
+			}
 			if a.sessionArchive != nil {
 				a.closeError = a.sessionArchive.backend.Close()
 			}
@@ -676,6 +685,7 @@ func (a *App) Serve(ctx context.Context) error {
 		return err
 	}
 	serverLog.Printf("listener ready")
+	a.config.Listen = listener.Addr().String()
 	if a.config.OnListen != nil {
 		if err := a.config.OnListen(listener.Addr().String()); err != nil {
 			_ = listener.Close()
@@ -2073,6 +2083,9 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 	injections := `<meta name="dashboard-data-backend" content="server-http"><meta name="dashboard-storage-backend" content="` + storageBackend + `">`
 	if a.config.Canvas != nil {
 		injections += `<meta name="dashboard-api-base" content="` + a.config.Canvas.Prefix + `/">`
+		if a.config.Canvas.OperatorActions != nil {
+			injections += `<script>globalThis.__CLI_QUEUE__ = true; globalThis.__LOCAL_CLI_QUEUE__ = true;</script>`
+		}
 	}
 	if a.oauth != nil {
 		injections += `<meta name="cao-auth-mode" content="github">`

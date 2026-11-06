@@ -1,9 +1,14 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,6 +19,7 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
+	operationalpostgres "github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	"github.com/githubnext/gh-cao/server/internal/query"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
 )
@@ -43,10 +49,19 @@ func TestPostgresBackfillStress(t *testing.T) {
 	h := newSyntheticBackfill(t, ctx, scenario)
 	h.backfill.Queue.Debounce = time.Hour
 	secret := "synthetic-backfill-webhook-signing-secret"
-	app, err := New(ctx, h.ops, Config{
+	postgresURL := os.Getenv("CAO_POSTGRES_URL")
+	if postgresURL == "" {
+		postgresURL = os.Getenv("POSTGRES_URL")
+	}
+	nativeOps, err := operationalpostgres.New(ctx, postgresURL, service+"-native", operationalpostgres.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = nativeOps.Close() }()
+	app, err := New(ctx, nativeOps, Config{
 		Database: h.data, DatabaseQueriesPath: backfillDatabaseQueries,
 		Listen: "127.0.0.1:0", SiteDirectory: t.TempDir(), AccessToken: testAccessToken,
-		Collector:     &CollectorConfig{AppID: 1, AdmitOnly: true, QueueMaxLength: 5_000_000},
+		Collector:     &CollectorConfig{NativeAcquisition: true, AppID: 1, AdmitOnly: true, QueueMaxLength: 5_000_000},
 		WebhookSecret: secret, QueryCache: QueryCacheConfig{Disabled: true},
 		RateLimits: RateLimitConfig{
 			General: RateLimitPolicy{Capacity: 2_000_000, Window: time.Minute},
@@ -56,12 +71,38 @@ func TestPostgresBackfillStress(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	names := make([]string, repositories)
+	for index := range names {
+		names[index] = fmt.Sprintf("simulator/repo-%05d", index+1)
+	}
+	if err := app.Collector().enrollment.AddRepositories(ctx, 1, names); err != nil {
+		t.Fatal(err)
+	}
 	handler := app.Handler()
 	var active atomic.Bool
 	var overlapping atomic.Int64
 	local := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if request.URL.Path == "/api/github/webhook" && active.Load() {
-			overlapping.Add(1)
+		if request.URL.Path == "/api/github/webhook" {
+			if active.Load() {
+				overlapping.Add(1)
+			}
+			if request.Header.Get("X-GitHub-Event") == "workflow_run" {
+				payload, err := io.ReadAll(request.Body)
+				if err != nil || !validWebhookSignature(payload, request.Header.Get("X-Hub-Signature-256"), []byte(secret)) {
+					http.Error(writer, "invalid simulator delivery", http.StatusBadRequest)
+					return
+				}
+				payload, err = nativeSimulatorRunPayload(payload)
+				if err != nil {
+					http.Error(writer, "invalid simulator workflow", http.StatusBadRequest)
+					return
+				}
+				mac := hmac.New(sha256.New, []byte(secret))
+				_, _ = mac.Write(payload)
+				request.Body = io.NopCloser(bytes.NewReader(payload))
+				request.ContentLength = int64(len(payload))
+				request.Header.Set("X-Hub-Signature-256", "sha256="+hex.EncodeToString(mac.Sum(nil)))
+			}
 		}
 		handler.ServeHTTP(writer, request)
 	}))
@@ -118,6 +159,10 @@ func TestPostgresBackfillStress(t *testing.T) {
 	depth, err := taskQueueLength(ctx, h.backfill.Queue.Tasks, "collect:run-tasks")
 	if err != nil || depth != int64(expected) {
 		t.Fatalf("durable run stream = %d, want %d: %v", depth, expected, err)
+	}
+	nativeStatus, err := app.Collector().reporter.Snapshot(ctx)
+	if err != nil || nativeStatus.QueueDepth == 0 || nativeStatus.Counters["webhookDuplicate"] == 0 {
+		t.Fatalf("native admission lost concurrent simulator work: %+v %v", nativeStatus, err)
 	}
 	backfillReadiness(t, ctx, local, http.StatusOK)
 	traceID := backfillStressSamples(t, ctx, local, scenario, horizon)

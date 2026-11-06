@@ -189,7 +189,7 @@ func (s *Store) AppendValueCollectionCost(ctx context.Context, record ValueColle
 		api_requests,core_requests,search_requests,graphql_requests,cache_hits,preflight_requests,
 		graphql_points_observed,graphql_requests_unverified,
 		wall_ms,max_wall_ms,output_bytes,transport_bytes,last_failure_reason)
-		VALUES($1,$2,$3,$4,$5,$6,1,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$18,$19,$20,$21)
+		VALUES($1,$2,$3,$4,$5,$6,1,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$17,$18,$19,$20)
 		ON CONFLICT(namespace,installation_id,repository,workflow,day) DO UPDATE SET
 		collector=excluded.collector,attempts=cao_value_collection_costs.attempts+1,
 		successes=cao_value_collection_costs.successes+excluded.successes,
@@ -245,7 +245,7 @@ func (s *Store) ValueCollectionCostSource(ctx context.Context, since time.Time, 
 		FROM cao_value_collection_costs WHERE namespace=$1 AND day >= $2
 		GROUP BY day,workflow,last_failure_reason
 		ORDER BY day DESC,workflow,last_failure_reason NULLS FIRST LIMIT $3`,
-		s.namespace, since.UTC(), limit+1)
+		s.namespace, dayStart(since), limit+1)
 	if err != nil {
 		return model.Source{}, err
 	}

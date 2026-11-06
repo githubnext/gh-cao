@@ -226,21 +226,15 @@ param githubWebhookSecret string = ''
 @description('GitHub logins permitted to run administrative operations.')
 param githubAdminUsers array = []
 
-@description('Control repository used for logical source discovery, in OWNER/REPOSITORY form.')
+@description('Control repository named by the reviewed inventory, in OWNER/REPOSITORY form.')
 param collectorControlRepository string = ''
+
+@description('Exact lowercase SHA-256 digest of immutable reviewed inventory bytes already provisioned in the shared PostgreSQL namespace. Required when collectorImage is set; an absent or unprovisioned digest prevents the workers from starting.')
+param collectorNativeInventoryDigest string = ''
 
 @minValue(1)
 @description('Fixed number of PostgreSQL-backed collection workers.')
 param collectorWorkerReplicas int = 1
-
-@description('Evidence lake file share tier. Premium is provisioned SSD; Standard is IOPS-throttled by share size.')
-@allowed([
-  'Premium_LRS'
-  'Premium_ZRS'
-  'Standard_LRS'
-  'Standard_ZRS'
-])
-param collectorLakeStorageSku string = 'Premium_LRS'
 
 @description('Provision an optional paid ADX destination only. Does not enable export, traces, or mining; Azure Functions is not a supported exporter host.')
 param adxEnabled bool = false
@@ -687,9 +681,13 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           value: collectorGithubAppId
         }
         {
+          name: 'CAO_COLLECT_NATIVE'
+          value: 'true'
+        }
+        {
           // The Function App verifies deliveries and enqueues work. It never
           // calls GitHub and never projects, so it is given no App private key
-          // and no evidence lake: the internet-facing front end holds no
+          // or inventory bytes: the internet-facing front end holds no
           // credential it cannot use.
           name: 'CAO_COLLECT_ADMIT_ONLY'
           value: 'true'
@@ -745,9 +743,9 @@ module collection 'collector.bicep' = if (collectionEnabled) {
     operationalProtectedMaxBytes: operationalProtectedMaxBytes
     operationalProtectedMaxEntries: operationalProtectedMaxEntries
     controlRepository: collectorControlRepository
+    nativeInventoryDigest: collectorNativeInventoryDigest
     githubAppId: collectorGithubAppId
     workerReplicas: collectorWorkerReplicas
-    lakeStorageSku: collectorLakeStorageSku
     applicationInsightsConnectionString: insights.properties.ConnectionString
     otlpEnvironment: otlpEnvironment
     otlpLogsEnabled: otlpLogsEnabled

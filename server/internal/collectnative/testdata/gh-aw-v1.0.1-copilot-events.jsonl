@@ -1,0 +1,10 @@
+{"type":"session.start","data":{"sessionId":"accf8264","copilotVersion":"1.0.15"},"id":"test-id","timestamp":"2026-04-02T04:00:00.000Z"}
+{"type":"session.model_change","data":{"newModel":"claude-sonnet-4.6"},"id":"test-id","timestamp":"2026-04-02T04:00:00.000Z"}
+{"type":"user.message","data":{"content":"Do the task","agentMode":"autopilot"},"id":"test-id","timestamp":"2026-04-02T04:00:00.000Z"}
+{"type":"tool.execution_start","data":{"toolCallId":"tc1","toolName":"bash","arguments":{"command":"ls"}},"id":"test-id","timestamp":"2026-04-02T04:00:00.000Z"}
+{"type":"tool.execution_complete","data":{"toolCallId":"tc1","success":true,"model":"claude-sonnet-4.6"},"id":"test-id","timestamp":"2026-04-02T04:00:00.000Z"}
+{"type":"tool.execution_start","data":{"toolCallId":"tc2","toolName":"read_file","arguments":{"path":"main.go"}},"id":"test-id","timestamp":"2026-04-02T04:00:00.000Z"}
+{"type":"tool.execution_complete","data":{"toolCallId":"tc2","success":true,"model":"claude-sonnet-4.6"},"id":"test-id","timestamp":"2026-04-02T04:00:00.000Z"}
+{"type":"user.message","data":{"content":"Now verify","agentMode":"autopilot"},"id":"test-id","timestamp":"2026-04-02T04:00:00.000Z"}
+{"type":"tool.execution_start","data":{"toolCallId":"tc3","toolName":"bash","arguments":{"command":"go test"}},"id":"test-id","timestamp":"2026-04-02T04:00:00.000Z"}
+{"type":"session.shutdown","data":{"shutdownType":"routine","modelMetrics":{"claude-sonnet-4.6":{"requests":{"count":14,"cost":2},"usage":{"inputTokens":799195,"outputTokens":6148,"cacheReadTokens":721116,"cacheWriteTokens":0}}}},"id":"test-id","timestamp":"2026-04-02T04:00:00.000Z"}

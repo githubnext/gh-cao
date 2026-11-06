@@ -79,7 +79,7 @@ func TestDatasetMetadataUpgradeKeepsNonMiningCorpusIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 	drain(t, w)
-	if err := w.spool.locked(t.Context(), func(root *os.Root, state *ledger) error {
+	if err := w.spool.locked(t.Context(), func(root Objects, state *ledger) error {
 		for _, d := range state.Datasets {
 			for _, row := range d.Rows {
 				for _, field := range []string{"MiningVersion", "OutcomeId", "Disposition", "LabelRuleVersion", "LabelCutoff"} {
