@@ -14,6 +14,7 @@ public/cao/
 # Local GitHub CLI extension binary
 /gh-cao
 /gh-cao.exe
+/dashboard/local-assets/bundle/
 
 # Local dashboard preview
 /_activity/

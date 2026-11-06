@@ -521,6 +521,13 @@ func (r *reader) source(
 				}
 			}
 		}
+		localMetadata, err := dashboardquery.LocalDashboardMetadata(ctx, r.tx)
+		if err != nil {
+			return model.Source{}, err
+		}
+		for key, value := range localMetadata {
+			metadata[key] = value
+		}
 		result := make([]model.Row, len(rows))
 		for index, row := range rows {
 			result[index] = model.Row(row)
@@ -530,9 +537,35 @@ func (r *reader) source(
 	if postgresx.IsRuntimeSource(name) && options.Runtime != nil {
 		return options.Runtime(ctx, name)
 	}
+	if postgresx.IsRuntimeSource(name) && options.Runtime == nil {
+		localMetadata, err := dashboardquery.LocalDashboardMetadata(ctx, r.tx)
+		if err != nil {
+			return model.Source{}, err
+		}
+		if localMetadata != nil {
+			metadata := model.Metadata{"source-id": name, "availability": "unavailable",
+				"query-diagnostic": "This hosted operational service is not configured for local observation."}
+			for key, value := range localMetadata {
+				metadata[key] = value
+			}
+			return model.Source{Source: name, Rows: []model.Row{}, Metadata: metadata}, nil
+		}
+	}
 	collection := strings.TrimPrefix(name, "$")
 	if strings.HasPrefix(name, "$") && canonicalCollection(collection) {
 		if _, declared := state.Counts[name]; !declared {
+			localMetadata, err := dashboardquery.LocalDashboardMetadata(ctx, r.tx)
+			if err != nil {
+				return model.Source{}, err
+			}
+			if localMetadata != nil {
+				metadata := model.Metadata{"source-id": name, "availability": "unavailable",
+					"query-diagnostic": "This evidence was not collected in the bounded local observation."}
+				for key, value := range localMetadata {
+					metadata[key] = value
+				}
+				return model.Source{Source: name, Rows: []model.Row{}, Metadata: metadata}, nil
+			}
 			return model.Source{}, fmt.Errorf("canonical SQLite source %q is not present in the snapshot", name)
 		}
 		var projected []string
@@ -578,6 +611,13 @@ func (r *reader) source(
 			"as-of": state.EvaluatedAt.Format("2006-01-02T15:04:05.999999999Z07:00"),
 		}
 		for key, value := range r.store.metadata[name] {
+			metadata[key] = value
+		}
+		localMetadata, err := dashboardquery.LocalDashboardMetadata(ctx, r.tx)
+		if err != nil {
+			return model.Source{}, err
+		}
+		for key, value := range localMetadata {
 			metadata[key] = value
 		}
 		if name == "$workflows" {

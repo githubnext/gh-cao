@@ -251,6 +251,16 @@ func (c *nativeCatalog) runQueryWithEvidenceSelections(
 	limit int,
 	evidenceSelections []dashboardquery.EvidenceSelection,
 ) (map[string]any, error) {
+	localMetadata, err := dashboardquery.LocalDashboardMetadata(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	if localMetadata != nil {
+		c, err = c.localDashboardQueries()
+		if err != nil {
+			return nil, err
+		}
+	}
 	id = strings.TrimSpace(id)
 	if c.index[id] == nil {
 		return nil, nativeErrorf("Unknown dashboard query: %s", id)
@@ -442,6 +452,15 @@ func (c *nativeCatalog) runQueryWithEvidenceSelections(
 	}
 	for field, value := range aggregateMetadata[id] {
 		metadata[field] = value
+	}
+	if canonicalRead {
+		localMetadata, err := dashboardquery.LocalDashboardMetadata(ctx, db)
+		if err != nil {
+			return nil, err
+		}
+		for field, value := range localMetadata {
+			metadata[field] = value
+		}
 	}
 	if len(resolved) > 0 {
 		values := map[string]any{}

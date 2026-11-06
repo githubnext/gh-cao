@@ -678,6 +678,7 @@ func (a *App) Serve(ctx context.Context) error {
 		return err
 	}
 	serverLog.Printf("listener ready")
+	a.config.Listen = listener.Addr().String()
 	if a.config.OnListen != nil {
 		if err := a.config.OnListen(listener.Addr().String()); err != nil {
 			_ = listener.Close()

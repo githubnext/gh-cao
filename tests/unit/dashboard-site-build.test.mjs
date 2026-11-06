@@ -134,8 +134,38 @@ test("dashboard build uses an explicit packaged CAO version rather than the sour
       commitSha: "0123456789abcdef0123456789abcdef01234567",
       caoVersion: "v1.2.3",
     });
+
     const index = await readFile(path.join(root, "output", "index.html"), "utf8");
     assert.ok(index.includes('<meta name="cao-version" content="v1.2.3">'));
+  } finally {
+    await rm(root, { force: true, recursive: true });
+  }
+});
+
+test("immediate build preserves the full normal dashboard and rich query contracts", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "dashboard-immediate-build-"));
+  try {
+    await buildDashboardSite({
+      destination: path.join(root, "output"),
+      controlSettings: { campaigns: { activity: {} }, web: { experimental: true } },
+      profile: "immediate",
+    });
+    const document = JSON.parse(await readFile(path.join(root, "output/dashboard.json"), "utf8"));
+    const ids = document.dashboard.pages.map((page) => page.id);
+    assert.ok(ids.length > 50);
+    assert.ok(!ids.includes("configuration"));
+    assert.ok(!ids.includes("indexing"));
+    for (const id of ["overview", "repositories", "workflows", "runs", "issues", "friction", "firewall", "skills", "experiments", "evals", "graders"]) {
+      assert.ok(ids.includes(id), `missing normal page ${id}`);
+    }
+    assert.equal(document.dashboard.pages.find((page) => page.id === "overview").title, "Overview");
+    assert.ok(document.dashboard["data-status"]);
+    assert.equal(document.dashboard.callouts, undefined);
+    const queries = JSON.parse(await readFile(path.join(root, "output/src/agent/queries.generated.json"), "utf8"));
+    assert.ok(queries.some((query) => query.name === "repository-run-inventory"));
+    assert.ok(queries.some((query) => query.name === "runs-daily-conclusions"));
+    assert.ok(queries.some((query) => query.name === "issue-repository-totals"));
+    assert.equal(document.dashboard.repository, undefined);
   } finally {
     await rm(root, { force: true, recursive: true });
   }

@@ -40,6 +40,8 @@ import { queryCalloutVisibility } from './data/queries/callouts.js';
 const debugIngestion = createDebug('data:ingestion');
 const debugPerformance = createDebug('data:performance');
 const DASHBOARD_SNAPSHOT_TRANSACTION_ID = 'dashboard-snapshot:complete';
+const SHARD_SIZE_PROBE_TIMEOUT_MS = 3_000;
+const SHARD_SIZE_PROBE_CONCURRENCY = 4;
 let nextQueryProgressId = 0;
 
 /** @template T @param {() => T} query @returns {T} */
@@ -1004,7 +1006,7 @@ export function processDataRequest(request, signal) {
         typeof request.id === 'number' ? request.id : undefined
       );
       /** @type {typeof fetch} */
-      const ingestionFetch = (input, init) => fetch(input, { ...init, signal });
+      const ingestionFetch = (input, init) => fetch(input, { ...init, signal: init?.signal ?? signal });
       const activity = sourceUrl.pathname.endsWith('/payload-hashes.json');
       if (!activity) progress.start();
       let changed = false;
@@ -1138,11 +1140,40 @@ export function processDataRequest(request, signal) {
             progress.start();
             progress.reportImportProgress(shardStates.length - pendingShards.length, importSteps, 'files');
           }
-          const measureShards = (/** @type {typeof pendingShards} */ states) => Promise.all(states.map(async (state) => {
-            const response = await ingestionFetch(state.shardUrl, { method: 'HEAD' }).catch(() => null);
-            const contentLength = response?.ok ? Number(response.headers.get('content-length')) : Number.NaN;
-            state.sizeBytes = Number.isFinite(contentLength) && contentLength >= 0 ? contentLength : undefined;
-          }));
+          const measureShards = async (/** @type {typeof pendingShards} */ states) => {
+            if (states.length === 0) return;
+            const controller = new AbortController();
+            const abort = () => controller.abort();
+            if (signal?.aborted) abort();
+            else signal?.addEventListener('abort', abort, { once: true });
+            const timeout = setTimeout(abort, SHARD_SIZE_PROBE_TIMEOUT_MS);
+            let next = 0;
+            try {
+              await Promise.all(Array.from({ length: Math.min(SHARD_SIZE_PROBE_CONCURRENCY, states.length) }, async () => {
+                while (next < states.length && !controller.signal.aborted) {
+                  const state = states[next++];
+                  try {
+                    const response = await ingestionFetch(state.shardUrl, {
+                      method: 'HEAD', signal: controller.signal
+                    });
+                    const length = response.ok ? response.headers.get('content-length') : null;
+                    const size = length === null ? Number.NaN : Number(length);
+                    state.sizeBytes = Number.isFinite(size) && size >= 0 ? size : undefined;
+                  } catch (error) {
+                    debugIngestion({ event: 'shard-size-probe-failed', shard: state.shard.name,
+                      errorName: diagnosticErrorName(error) });
+                  }
+                }
+              }));
+              if (controller.signal.aborted && !signal?.aborted) {
+                debugIngestion({ event: 'shard-size-probe-timed-out', probed: next, total: states.length });
+              }
+              signal?.throwIfAborted();
+            } finally {
+              clearTimeout(timeout);
+              signal?.removeEventListener('abort', abort);
+            }
+          };
           await measureShards(initialPendingShards);
           let workloadBytes = initialPendingShards.every(({ sizeBytes }) => typeof sizeBytes === 'number')
             ? initialPendingShards.reduce((sum, { sizeBytes }) => sum + (sizeBytes ?? 0), 0)
