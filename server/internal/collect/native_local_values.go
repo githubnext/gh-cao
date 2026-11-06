@@ -280,8 +280,18 @@ func (p Projector) computeNativeLocalValues(
 			return 0, errors.New("native local Value combined history exceeds its row budget")
 		}
 	}
-	// A repeated evaluation of the same frozen interval replaces, rather than
-	// accumulates, the old assessment for that exact evaluator and window.
+	kept := nativeLocalValueRetainedRows(retained, rows)
+	if err := p.nativeLocalPolicyCurrent(ctx, policy); err != nil {
+		return 0, err
+	}
+	state, err := p.Data.ReplaceOperationalValues(ctx, expectedRevision, append(kept, rows...))
+	return state.Revision, err
+}
+
+// A repeated evaluation replaces the same frozen interval. The legacy
+// Dependabot missing placeholder predates its evaluator digest; only a
+// complete numeric observation at that exact cutoff may supersede it.
+func nativeLocalValueRetainedRows(retained, rows []model.Row) []model.Row {
 	updated := make(map[string]bool, len(rows))
 	key := func(row model.Row) string {
 		return strings.Join([]string{textValue(row["campaign"]), textValue(row["repository"]),
@@ -291,17 +301,62 @@ func (p Projector) computeNativeLocalValues(
 	for _, row := range rows {
 		updated[key(row)] = true
 	}
+	legacyReplacements := map[string]bool{}
+	for _, row := range rows {
+		if nativeLocalValueCompleteDependabot(row) {
+			legacyReplacements[nativeLocalValueWindowKey(row)] = true
+		}
+	}
 	kept := retained[:0]
 	for _, row := range retained {
-		if !updated[key(row)] {
+		if !updated[key(row)] && !(nativeLocalValueLegacyDependabotMissing(row) &&
+			legacyReplacements[nativeLocalValueWindowKey(row)]) {
 			kept = append(kept, row)
 		}
 	}
-	if err := p.nativeLocalPolicyCurrent(ctx, policy); err != nil {
-		return 0, err
+	return kept
+}
+
+func nativeLocalValueWindowKey(row model.Row) string {
+	cutoff := func(field string) string {
+		value := textValue(row[field])
+		at, err := time.Parse(time.RFC3339Nano, value)
+		if err != nil || !strings.HasSuffix(value, "Z") {
+			return value
+		}
+		return at.UTC().Format(time.RFC3339Nano)
 	}
-	state, err := p.Data.ReplaceOperationalValues(ctx, expectedRevision, append(kept, rows...))
-	return state.Revision, err
+	return strings.Join([]string{textValue(row["campaign"]), textValue(row["repository"]),
+		textValue(row["valueId"]), cutoff("window-start"), cutoff("window-end")}, "\x00")
+}
+
+func nativeLocalValueDependabotMetric(row model.Row) bool {
+	if row["campaign"] != "dependabot" || row["repository"] != dependabotValueRepository ||
+		row["measurement-kind"] != "snapshot" {
+		return false
+	}
+	for _, metric := range dependabotValueMetrics {
+		if row["valueId"] == dependabotValueWorkflow+"."+metric.id {
+			return true
+		}
+	}
+	return false
+}
+
+func nativeLocalValueCompleteDependabot(row model.Row) bool {
+	_, numeric := row["value"].(json.Number)
+	return nativeLocalValueDependabotMetric(row) && numeric &&
+		row["coverage-status"] == "complete" && row["maturity-status"] == "matured" &&
+		row["missing-reason"] == nil && textValue(row["evaluator-digest"]) != "" &&
+		textValue(row["window-start"]) != "" && textValue(row["window-end"]) != ""
+}
+
+func nativeLocalValueLegacyDependabotMissing(row model.Row) bool {
+	return nativeLocalValueDependabotMetric(row) && row["value"] == nil &&
+		row["coverage-status"] == "missing" && row["maturity-status"] == "unavailable" &&
+		row["missing-reason"] == "remote-acquisition-unavailable" &&
+		textValue(row["evaluator-digest"]) == "" &&
+		textValue(row["window-start"]) != "" && textValue(row["window-end"]) != ""
 }
 
 func textValue(value any) string {

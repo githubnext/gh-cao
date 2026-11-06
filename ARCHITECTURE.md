@@ -1910,8 +1910,10 @@ not authorize cross-repository evidence access.
   The separately selected `NativeValues` lane evaluates the reviewed Value
   policy and supported collector in Go, using Git only for its declared Git
   acquisition requirements. Optimization uses the canonical PostgreSQL query
-  boundary; Dependabot remote-lifecycle measurements remain explicitly
-  unavailable in this lane, never synthetic zero. Its
+  boundary; the separately registered Dependabot collector acquires bounded
+  alert and pull-request lifecycles through the shared native quota bridge
+  and publishes three atomic cutoff packets. The local evaluator consumes
+  their canonical facts; incomplete cutoffs remain missing, never zero. Its
   private invocation scratch is disposable: PostgreSQL restores the original
   source-epoch-bound packet/proof snapshot, fences publication against that
   starting packet, and erases private proof/publication ownership atomically on

@@ -126,7 +126,7 @@ func supportedRemoteValueEntries(entries []remoteValueEntry) ([]remoteValueEntry
 	valid := make([]remoteValueEntry, 0, len(entries))
 	var failures error
 	for _, entry := range entries {
-		if err := reviewedDailyFileDiet(entry); err != nil {
+		if err := reviewedRemoteValue(entry); err != nil {
 			failures = errors.Join(failures, fmt.Errorf("%s: %w", entry.Workflow, err))
 			continue
 		}
@@ -140,9 +140,12 @@ func (p Projector) collectRemoteValue(
 	policyDigest [sha256.Size]byte, base *url.URL, cache *remoteValueResponseCache,
 	sharedRequirements map[string]remoteValueRequirement,
 ) (resultErr error) {
+	if entry.Workflow == dependabotValueWorkflow {
+		return p.collectDependabotValue(ctx, repository, installation, entry, policyDigest, base, cache, sharedRequirements)
+	}
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Minute)
 	defer cancel()
-	if err := reviewedDailyFileDiet(entry); err != nil {
+	if err := reviewedRemoteValue(entry); err != nil {
 		return err
 	}
 	if err := p.remoteValueRegistrationCurrent(ctx, repository, installation, entry, policyDigest); err != nil {

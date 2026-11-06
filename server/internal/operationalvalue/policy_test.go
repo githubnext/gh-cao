@@ -98,10 +98,13 @@ func TestGoWorkflowPolicyResolvesCurrentCatalogAndHostedProfile(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(snapshot.Registrations) != 1 ||
+			if len(snapshot.Registrations) != 2 ||
 				snapshot.Registrations[0].Repository != "github/gh-aw" ||
 				snapshot.Registrations[0].Workflow != "daily-file-diet" ||
+				snapshot.Registrations[1].Repository != "github/gh-aw" ||
+				snapshot.Registrations[1].Workflow != "dependabot-update-planner" ||
 				!strings.Contains(string(snapshot.Document), `"git.commit-inventory.v1"`) ||
+				!strings.Contains(string(snapshot.Document), `"github.dependabot-alert-lifecycle.v1"`) ||
 				strings.Contains(string(snapshot.Document), `"extends"`) {
 				t.Fatalf("checked-in reviewed registration was not resolved: %+v", snapshot.Registrations)
 			}

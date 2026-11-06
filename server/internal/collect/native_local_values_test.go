@@ -276,6 +276,67 @@ func TestNativeLocalValueDefinitionsOnlyTranslateCanonicalRoots(t *testing.T) {
 	}
 }
 
+func TestNativeLocalValueNumericDependabotReplacesOnlyMatchingLegacyMissing(t *testing.T) {
+	windowStart, windowEnd := "2026-09-17T08:48:00Z", "2026-09-24T08:48:00Z"
+	newRow := model.Row{
+		"campaign": "dependabot", "repository": dependabotValueRepository,
+		"valueId":          dependabotValueWorkflow + ".open-security-alert-count",
+		"measurement-kind": "snapshot", "coverage-status": "complete",
+		"maturity-status": "matured", "evaluator-digest": "frozen-v1",
+		"window-start": windowStart, "window-end": windowEnd,
+		"value": json.Number("0"), "timestamp": "2026-09-25T00:00:00Z",
+	}
+	old := model.Row{}
+	for field, value := range newRow {
+		old[field] = value
+	}
+	old["value"], old["coverage-status"], old["maturity-status"] = nil, "missing", "unavailable"
+	old["missing-reason"], old["evaluator-digest"] = "remote-acquisition-unavailable", nil
+	old["timestamp"] = "2026-09-24T10:00:00Z"
+	if got := nativeLocalValueRetainedRows([]model.Row{old}, []model.Row{newRow}); len(got) != 0 {
+		t.Fatalf("legacy missing remained beside numeric same-cutoff result: %+v", got)
+	}
+	old["window-start"], old["window-end"] = "2026-09-17T08:48:00.000000Z", "2026-09-24T08:48:00.000000Z"
+	if got := nativeLocalValueRetainedRows([]model.Row{old}, []model.Row{newRow}); len(got) != 0 {
+		t.Fatalf("Postgres timestamp precision prevented same-cutoff replacement: %+v", got)
+	}
+	for _, changed := range []struct {
+		field string
+		value any
+	}{
+		{"window-end", "2026-10-01T08:48:00Z"},
+		{"valueId", dependabotValueWorkflow + ".open-high-critical-alert-count"},
+		{"campaign", "optimization"},
+		{"repository", "octo/other"},
+		{"missing-reason", "incomplete-search"},
+		{"evaluator-digest", "older-frozen-evaluator"},
+	} {
+		mismatch := model.Row{}
+		for field, value := range old {
+			mismatch[field] = value
+		}
+		mismatch[changed.field] = changed.value
+		if got := nativeLocalValueRetainedRows([]model.Row{mismatch}, []model.Row{newRow}); len(got) != 1 {
+			t.Fatalf("unrelated missing assessment removed on %s mismatch: %+v", changed.field, got)
+		}
+	}
+	for _, changed := range []struct {
+		field string
+		value any
+	}{
+		{"value", nil}, {"coverage-status", "partial"}, {"maturity-status", "unavailable"},
+	} {
+		incomplete := model.Row{}
+		for field, value := range newRow {
+			incomplete[field] = value
+		}
+		incomplete[changed.field] = changed.value
+		if got := nativeLocalValueRetainedRows([]model.Row{old}, []model.Row{incomplete}); len(got) != 1 {
+			t.Fatalf("non-numeric/incomplete observation replaced legacy evidence: %+v", got)
+		}
+	}
+}
+
 func TestNativeLocalValueTransportRejectsMalformedEnvelope(t *testing.T) {
 	filename := filepath.Join(t.TempDir(), "evidence.jsonl")
 	content, err := json.Marshal(map[string]any{"schema_version": 2, "kind": "workflow_value_collection",

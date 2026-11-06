@@ -677,7 +677,8 @@ func ComputeHostedSnapshot(
 	if reviewedDependabotLocalValue(reviewed, plan) {
 		for _, repository := range plan.Repositories {
 			if repository == "github/gh-aw" {
-				if err := writeUnavailableDependabotValue(&result, observed); err != nil {
+				if err := writeDependabotValue(ctx, &result, observed,
+					reviewedDependabotEvidence(reviewed), execute); err != nil {
 					return err
 				}
 			}
@@ -715,14 +716,7 @@ func writeUnavailableDependabotValue(output *bytes.Buffer, observed time.Time) e
 		return nil
 	}
 	end := adoption.Add(time.Duration(math.Floor(observed.Sub(adoption).Hours()/cadence.Hours())) * cadence)
-	metrics := []struct {
-		id, name, unit, role string
-	}{
-		{"open-security-alert-count", "Open security alerts", "alerts", "primary"},
-		{"open-high-critical-alert-count", "Open critical/high security alerts", "alerts", "diagnostic"},
-		{"open-dependabot-pr-count", "Open Dependabot pull requests", "pull-requests", "diagnostic"},
-	}
-	for _, metric := range metrics {
+	for _, metric := range dependabotMetrics {
 		record := map[string]any{
 			"timestamp": optimizerTime(observed), "repository": "github/gh-aw",
 			"campaign": "dependabot", "campaign_id": "campaign:dependabot",
@@ -731,6 +725,7 @@ func writeUnavailableDependabotValue(output *bytes.Buffer, observed time.Time) e
 			"metric_direction": "decrease", "maturity_status": "unavailable",
 			"adoption_at": adoptionAt, "evaluation_mode": "baseline-comparable",
 			"workflow_slug": "dependabot-update-planner", "workflow_name": "Dependabot / Update Planner",
+			"evaluator_digest": dependabotEvaluator,
 			"cadence_days": 7, "window_start": optimizerTime(end.Add(-cadence)),
 			"window_end": optimizerTime(end), "measurement_kind": "snapshot",
 			"coverage_status": "missing", "missing_reason": "remote-acquisition-unavailable",
@@ -783,7 +778,7 @@ func verifyHostedLocalAdapters(root string, disabled []string) error {
 			expected := "4c69f080d1e7c1d07ee2201585bacefbdbbba652d75163f7bcaed19d294e1546"
 			name := "optimization-token-optimizer.mjs"
 			if directory.Name() == "dependabot" {
-				expected, name = "fbe6c4fc538c5b96ed6ad34626747938e25072a89180bf2e9236bed873a1a952",
+				expected, name = "bb95c37d4e5a7204f5587f1b7732603f88da9fdf7e50933492bc6af90c97d0b9",
 					"dependabot-update-planner.mjs"
 			}
 			if module.Name() != name || !module.Type().IsRegular() {

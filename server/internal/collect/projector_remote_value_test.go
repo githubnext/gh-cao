@@ -78,8 +78,13 @@ func TestRemoteValueRepositoriesReviewedPolicyCacheAndEnrollment(t *testing.T) {
 			t.Fatalf("reviewed registered repository = %v, %v", names, err)
 		}
 	}
-	if !projector.RemoteValuePlan.loaded || len(projector.RemoteValuePlan.entries) != 1 ||
-		projector.RemoteValuePlan.entries[0].APIRequests != 700 {
+	foundFileDiet := false
+	for _, entry := range projector.RemoteValuePlan.entries {
+		if entry.Workflow == dailyFileDietWorkflow {
+			foundFileDiet = entry.APIRequests == 700
+		}
+	}
+	if !projector.RemoteValuePlan.loaded || !foundFileDiet {
 		t.Fatal("reviewed API-bound registration was not cached")
 	}
 	disabled := strings.Replace(string(policy), `"api-requests": 700,`, `"api-requests": 700, "enabled": false,`, 1)
@@ -89,8 +94,14 @@ func TestRemoteValueRepositoriesReviewedPolicyCacheAndEnrollment(t *testing.T) {
 	if err := os.WriteFile(path, []byte(disabled), 0o600); err != nil { // #nosec G703 -- fixed filename beneath t.TempDir.
 		t.Fatal(err)
 	}
-	if names, err := projector.RemoteValueRepositories(t.Context()); err != nil || len(names) != 0 {
-		t.Fatalf("stale policy cache admitted disabled registration: %v, %v", names, err)
+	if names, err := projector.RemoteValueRepositories(t.Context()); err != nil ||
+		!slices.Equal(names, []string{"github/gh-aw"}) {
+		t.Fatalf("disabling File Diet suppressed the independent registration: %v, %v", names, err)
+	}
+	for _, entry := range projector.RemoteValuePlan.entries {
+		if entry.Workflow == dailyFileDietWorkflow {
+			t.Fatal("stale policy cache admitted disabled File Diet registration")
+		}
 	}
 }
 

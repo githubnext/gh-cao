@@ -209,10 +209,17 @@ requirements. An unselected Value execution lane MUST NOT inspect its catalog
 or policy assets.
 
 The Go hosted local evaluator supports the reviewed Optimization canonical-query
-measurement. A selected Dependabot measurement requiring remote alert and
-pull-request lifecycle evidence that the Go lane cannot acquire MUST publish
-explicit missing/unavailable measurements, not omit them or infer zero. The
-separate Actions snapshot pipeline retains its own reviewed collector.
+measurement and consumes Dependabot lifecycle evidence only after the separately
+registered, quota-admitted Go remote collector publishes three complete
+cutoff-aligned metric packets atomically. The Dependabot collector is restricted
+to `github/gh-aw`, at most 100 alert pages and ten pull-request search pages,
+with a reviewed ceiling of 111 requests per attempt, including one optional
+Search-quota preflight. It MUST reject incomplete
+pagination, inaccessible evidence and malformed lifecycles, preserving all
+previously accepted packets and proof. A selected Dependabot measurement
+without three complete packets for its cutoff MUST publish explicit
+missing/unavailable measurements, not omit them or infer zero. The separate
+Actions snapshot pipeline retains its own reviewed collector.
 
 Selected native remote invocations MUST restore the starting packet and proof
 from one PostgreSQL snapshot pinned to their original installation and enrollment
