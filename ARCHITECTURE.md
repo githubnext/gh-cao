@@ -897,8 +897,10 @@ describe partial admitted observations, not complete upstream history.
 It never fabricates campaign policy, queue backlog, accepted outcomes, or
 uncollected event evidence. The packaged local dashboard preserves normal
 operational pages, navigation, templates, controls and drill-downs, with the
-standard Overview landing page. Settings and Ingestion are omitted; Campaigns
-requires available campaign inventory. Intrinsic workflow/run sources avoid requiring
+standard Overview landing page. Its declarative immediate profile exhaustively
+classifies every page, view and query against the evidence the operator collects;
+unsupported views and unreachable queries are omitted. Settings, Ingestion and
+control-plane-only surfaces are excluded. Intrinsic workflow/run sources avoid requiring
 uncollected campaign enrichment. Valid missing canonical sources in an explicit
 local snapshot produce typed unavailable results; unknown sources, corrupt
 evidence and execution errors still fail. Available cached jobs, sessions,
@@ -913,8 +915,17 @@ their platform's existing `cao-dashboard` executable and built site; extraction
 is private and temporary, with no install-time Node, Go, service, or container.
 Source builds select existing server/site paths explicitly. The command only
 serves the dashboard, with automatic collection and refresh; it has no
-subcommands or remote run mutations and grants no rollout authority or
-browser/hosted CLI execution.
+public subcommands or remote run mutations and grants no rollout authority or
+hosted CLI execution. A private capability-path integration enables only declared
+repository maintenance commands in the selected exact scope, with mandatory
+pull-request publication and trusted terminal approval for every execution.
+The existing operational SQLite command queue owns IDs, idempotency, output,
+cancel/retry and fail-closed recovery, separately from canonical evidence.
+The read-only server owns that queue and proxies validated execution plans to
+the native CLI; only the CLI holds credentials and invokes the embedded gh-aw
+maintenance commands. Subprocess completion must be confirmed before settlement.
+Unix terminal approval is cancellation-scoped; unsupported platforms and missing
+terminals fail closed. Ordinary local serving and hosted administration are unchanged.
 
 Its fixed local evaluator profile admits 500,000 input/intermediate rows and
 50 million operations with 1 GiB working-source and 2 GiB / 2 million live
