@@ -108,24 +108,10 @@ POSIX mode bits are not sufficient.
 A failed refresh preserves the previous database and is
 reported rather than replacing it with empty data.
 
-Maintenance and prompt operations use the same scope and cache:
-
-```bash
-gh cao dashboard status --repo octo/api
-gh cao dashboard refresh --repo octo/api
-gh cao dashboard prompt runs-table --repo octo/api
-gh cao query runs-table --database /PATH/PRINTED/BY/COMMAND/gh-aw-logs.sqlite
-gh cao dashboard run cancel RUN_ID --repo octo/api
-gh cao dashboard run rerun RUN_ID --repo octo/api
-```
-
-Cancel and rerun require one exact repository and an observed run ID, use your
-existing GitHub identity and permissions, and occur only on explicit invocation.
-They do not enable workflows, dispatch new targets, or grant rollout authority.
-Refresh afterward to observe the new state. This profile does not enable
-hosted execution or browser CLI-action endpoints. Prompt rendering uses the
-existing reviewed query contract and bounded evidence preview; it does not
-execute the prompt.
+`gh cao dashboard` only serves the dashboard; it has no subcommands.
+Collection and refresh happen automatically while it is running. The command
+does not mutate remote runs or enable hosted execution or browser CLI-action
+endpoints.
 
 For source development, build the server and site and pass both
 `--server-executable PATH` and `--site PATH`. Release builds package these assets
@@ -483,7 +469,7 @@ to invoke it as `gh cao`.
 | Read-only analysis | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `api-cost`, `mcp` | Native Go with pure-Go SQLite access, hosted server queries where declared, and declarative Dashboard Language evaluation. |
 | Workflow value | `value publish`, `value enable`, `value disable` | Publish prepared evidence to a hosted dashboard, or edit reviewed local policy for recurring collection of one workflow. |
 | Operator evidence | `evidence release` | Native Go; bounded read-only GitHub references, optional provenance verification and development Azure receipt summaries. No Node runtime or checkout required. |
-| On-demand operations | `dashboard`, `dashboard refresh`, `dashboard status`, `dashboard prompt`, `dashboard run cancel`, `dashboard run rerun` | Native Go; bounded recent collection, private canonical SQLite and the existing local server. No policy, Actions, or runtime installation. Explicit run operations use the operator's GitHub permissions. |
+| On-demand dashboard | `dashboard` | Native Go; serve the existing local dashboard with automatic bounded recent collection and a private canonical SQLite cache. No subcommands, remote mutations, policy, Actions, or runtime installation. |
 | Installation diagnostics | `doctor`, `version` | Native Go. `doctor` checks GitHub CLI, gh-aw, authentication, and basic local policy structure and compiler pin. |
 | Workflow-agent evidence APIs | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `mcp` | Supported `node activity/cao.mjs <command>` APIs inside agentic workflows, including their installed runtime dependencies; intentional overlap with operator reads, not deprecated duplicates. |
 | Active ingestion and packaging | `ingest-jsonl`, `compact-jsonl`, `hash-payloads` | Node Actions pipeline: import raw or normalized JSONL into SQLite, compact raw shards per repository, and generate normalized run/record shards plus payload checksums. |

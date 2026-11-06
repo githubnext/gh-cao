@@ -81,7 +81,7 @@ func TestDashboardValidationBeforeCollection(t *testing.T) {
 		{"--repo", "octo/api", "--count", "0"}, {"--repo", "octo/api", "--count", "1001"},
 		{"--repo", "octo/api", "--listen", "0.0.0.0:8080"}, {"--repo", "octo/api", "--refresh", "1s"},
 		{"--repo", "octo/api", "--repo", "octo/web", "--logs-dir", "."},
-		{"--server-executable", "server"}, {"run", "rerun", "--repo", "octo/api", "../123"},
+		{"--server-executable", "server"},
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			gh := func(context.Context, ...string) (string, string, error) {
@@ -208,29 +208,54 @@ func TestDashboardCacheFailsClosed(t *testing.T) {
 	}
 }
 
-func TestDashboardRunOperationIsExplicitAndScoped(t *testing.T) {
-	cache := t.TempDir()
-	options := dashboardOptions{window: dashboardMaximumDuration, count: 2}
-	if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, dashboardTestGH(t, time.Now().Add(-time.Second)), dashboardTestLogs(t)); err != nil {
+func TestDashboardRejectsSubcommandsBeforeCollection(t *testing.T) {
+	for _, args := range [][]string{
+		{"status"}, {"refresh"}, {"prompt", "runs-table"}, {"run"},
+		{"run", "cancel", "123"}, {"run", "rerun", "123"},
+	} {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			gh := func(context.Context, ...string) (string, string, error) {
+				t.Fatal("removed subcommands must not contact GitHub")
+				return "", "", nil
+			}
+			logs := func(context.Context, dashboardLogRequest) error {
+				t.Fatal("removed subcommands must not collect")
+				return nil
+			}
+			cache := t.TempDir()
+			cmd := dashboardCommand("test", gh, logs)
+			cmd.SilenceErrors, cmd.SilenceUsage = true, true
+			cmd.SetOut(&bytes.Buffer{})
+			cmd.SetArgs(append(args, "--repo", "octo/api", "--cache-dir", cache))
+			if err := cmd.ExecuteContext(t.Context()); err == nil {
+				t.Fatal("removed subcommand accepted")
+			}
+			entries, err := os.ReadDir(cache)
+			if err != nil || len(entries) != 0 {
+				t.Fatalf("removed subcommand changed the cache: %v %v", entries, err)
+			}
+		})
+	}
+}
+
+func TestDashboardHelpIsServeOnly(t *testing.T) {
+	cmd := dashboardCommand("test", nil, nil)
+	if len(cmd.Commands()) != 0 {
+		t.Fatal("dashboard must not register subcommands")
+	}
+	output := &bytes.Buffer{}
+	cmd.SetOut(output)
+	cmd.SetArgs([]string{"--help"})
+	if err := cmd.ExecuteContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	calls := [][]string{}
-	gh := func(_ context.Context, args ...string) (string, string, error) {
-		calls = append(calls, args)
-		return "", "", nil
+	if strings.Contains(output.String(), "Available Commands:") || strings.Contains(output.String(), "[command]") {
+		t.Fatalf("dashboard help advertises subcommands: %s", output)
 	}
-	for _, id := range []string{"999", "123"} {
-		cmd := dashboardCommand("test", gh, nil)
-		cmd.SilenceErrors, cmd.SilenceUsage = true, true
-		cmd.SetOut(&bytes.Buffer{})
-		cmd.SetArgs([]string{"run", "cancel", id, "--repo", "octo/api", "--cache-dir", cache})
-		err := cmd.ExecuteContext(t.Context())
-		if id == "999" && err == nil || id == "123" && err != nil {
-			t.Fatalf("run operation id=%s err=%v", id, err)
+	for _, flag := range []string{"--repo", "--refresh", "--listen"} {
+		if !strings.Contains(output.String(), flag) {
+			t.Fatalf("dashboard help lost serving option %s", flag)
 		}
-	}
-	if !reflect.DeepEqual(calls, [][]string{{"run", "cancel", "123", "--repo", "github.com/octo/api"}}) {
-		t.Fatalf("unscoped or implicit mutation: %v", calls)
 	}
 }
 
