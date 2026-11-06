@@ -97,10 +97,6 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 			return nil, errors.New("GitHub runs response is not a valid run list")
 		}
 		workflowIDs := dashboardObservedWorkflowIDs(workflows, runs)
-		if len(workflowIDs) == 0 {
-			evidence = append(evidence, dashboardRepositoryEvidence{Repository: repository, Workflows: workflows, Runs: runs, GithubID: resolved.ID})
-			continue
-		}
 		directory := filepath.Join(cache, "logs", dashboardCoordinate(repository))
 		managedCache := true
 		if options.logs != "" {
@@ -129,16 +125,18 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
-		err = logs(ctx, dashboardLogRequest{
-			Repository: repository, Directory: directory, Cache: shard,
-			StartDate: cutoff.Format("2006-01-02"), Count: options.count,
-			ManagedCache: managedCache, WorkflowIDs: workflowIDs,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("gh-aw log collection failed for %s; verify authentication and API quota; previous snapshot preserved", repository)
+		if len(workflowIDs) > 0 {
+			err = logs(ctx, dashboardLogRequest{
+				Repository: repository, Directory: directory, Cache: shard,
+				StartDate: cutoff.Format("2006-01-02"), Count: options.count,
+				ManagedCache: managedCache, WorkflowIDs: workflowIDs,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("gh-aw log collection failed for %s; verify authentication and API quota; previous snapshot preserved", repository)
+			}
 		}
 		cached, err := readDashboardLogCache(shard, repository)
-		if err != nil {
+		if err != nil && !(len(workflowIDs) == 0 && errors.Is(err, os.ErrNotExist)) {
 			return nil, err
 		}
 		runs = mergeDashboardCachedRuns(runs, workflows, cached, options.count)

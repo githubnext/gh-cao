@@ -323,6 +323,122 @@ func TestDashboardEmptyActivityDoesNotRequireArtifacts(t *testing.T) {
 	}
 }
 
+func TestDashboardRetainsCachedEvidenceWithoutObservedAgenticRuns(t *testing.T) {
+	for _, empty := range []bool{false, true} {
+		t.Run(map[bool]string{false: "nonagentic sample", true: "empty sample"}[empty], func(t *testing.T) {
+			now := time.Now().UTC().Add(-time.Second)
+			cache := t.TempDir()
+			content, err := json.Marshal(map[string]any{
+				"schema_version": 5, "kind": "run", "run": map[string]any{
+					"repository": "octo/api", "run_id": 123, "run_attempt": "1",
+					"workflow_path": ".github/workflows/agent.lock.yml",
+					"created_at":    now.Add(-time.Hour).Format(time.RFC3339Nano),
+					"started_at":    now.Add(-time.Hour).Format(time.RFC3339Nano),
+					"updated_at":    now.Format(time.RFC3339Nano),
+					"status":        "completed", "conclusion": "success",
+					"token_usage_summary": map[string]any{"total_aic": 2.5},
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(cache, dashboardCoordinate("octo/api")+".jsonl"), append(content, '\n'), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			base := dashboardTestGH(t, now)
+			gh := func(ctx context.Context, args ...string) (string, string, error) {
+				if args[0] == "run" {
+					if empty {
+						return "[]", "", nil
+					}
+					content, err := json.Marshal([]map[string]any{{
+						"databaseId": 124, "workflowDatabaseId": 43, "attempt": 1,
+						"createdAt": now.Format(time.RFC3339Nano),
+					}})
+					return string(content), "", err
+				}
+				return base(ctx, args...)
+			}
+			logs := func(context.Context, dashboardLogRequest) error {
+				t.Fatal("no observed agentic workflows must not trigger artifact acquisition")
+				return nil
+			}
+			_, err = collectDashboard(t.Context(), []string{"octo/api"}, cache,
+				dashboardOptions{window: dashboardMaximumDuration, count: 1}, gh, logs)
+			if err != nil {
+				t.Fatal(err)
+			}
+			db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = db.Close() }()
+			runs, err := readNativeCollection(t.Context(), db, "runs")
+			if err != nil || len(runs) != 1 || nativeScalar(runs[0]["githubRunId"]) != "123" || runs[0]["aicTotal"] != 2.5 {
+				t.Fatalf("valid cached run and enrichment were discarded: %v %v", runs, err)
+			}
+		})
+	}
+}
+
+func TestDashboardListenValidation(t *testing.T) {
+	for _, address := range []string{"127.0.0.1:0", "127.0.0.1:65535", "[::1]:8080"} {
+		if err := validateDashboardListen(address); err != nil {
+			t.Fatalf("valid loopback listener %q rejected: %v", address, err)
+		}
+	}
+	for _, address := range []string{
+		"127.0.0.1:http", "127.0.0.1:65536", "127.0.0.1:-1", "127.0.0.1:", "127.0.0.1:+80",
+		"localhost:8080", "0.0.0.0:8080",
+	} {
+		if err := validateDashboardListen(address); err == nil {
+			t.Errorf("invalid loopback listener %q accepted", address)
+		}
+	}
+}
+
+func TestDashboardRejectsInvalidExistingCacheWithoutObservedRuns(t *testing.T) {
+	for _, content := range []string{
+		"{",
+		`{"schema_version":99,"kind":"run","run":{"repository":"octo/api","run_id":123}}`,
+		`{"schema_version":5,"kind":"run","run":{"repository":"other/api","run_id":123}}`,
+	} {
+		t.Run(content, func(t *testing.T) {
+			cache := t.TempDir()
+			base := dashboardTestGH(t, time.Now().UTC().Add(-time.Second))
+			options := dashboardOptions{window: dashboardMaximumDuration, count: 2}
+			if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, base, dashboardTestLogs(t)); err != nil {
+				t.Fatal(err)
+			}
+			filename := filepath.Join(cache, "gh-aw-logs.sqlite")
+			before, err := os.ReadFile(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(cache, dashboardCoordinate("octo/api")+".jsonl"), []byte(content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			gh := func(ctx context.Context, args ...string) (string, string, error) {
+				if args[0] == "run" {
+					return "[]", "", nil
+				}
+				return base(ctx, args...)
+			}
+			logs := func(context.Context, dashboardLogRequest) error {
+				t.Fatal("empty activity must not trigger artifact acquisition")
+				return nil
+			}
+			if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, gh, logs); err == nil {
+				t.Fatal("invalid cached evidence was silently discarded")
+			}
+			after, err := os.ReadFile(filename)
+			if err != nil || !bytes.Equal(before, after) {
+				t.Fatalf("invalid cached evidence changed the previous snapshot: %v", err)
+			}
+		})
+	}
+}
+
 func TestDashboardArtifactCachesKeepExactScopeAndOwnership(t *testing.T) {
 	for _, external := range []bool{false, true} {
 		cache := t.TempDir()

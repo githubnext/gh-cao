@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -22,8 +23,11 @@ import (
 )
 
 func validateDashboardListen(address string) error {
-	host, _, err := net.SplitHostPort(address)
+	host, port, err := net.SplitHostPort(address)
 	if err != nil || net.ParseIP(host) == nil || !net.ParseIP(host).IsLoopback() {
+		return errors.New("--listen must be a numeric loopback address and port")
+	}
+	if _, err := strconv.ParseUint(port, 10, 16); err != nil {
 		return errors.New("--listen must be a numeric loopback address and port")
 	}
 	return nil

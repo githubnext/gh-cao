@@ -868,8 +868,10 @@ Normalization SHALL have explicit input, output and execution bounds and SHALL
 have no exposed filesystem, process or network authority. Raw artifact reads
 SHALL be confined to selected matching-attempt run directories and SHALL reject
 symlinks, nonregular files and oversized input.
-Its packaged dashboard SHALL preserve the standard landing page, normal pages,
-navigation, templates, controls and drill-downs. Intrinsic `workflow-identities`
+Its packaged dashboard SHALL preserve the standard landing page and normal
+operational navigation, templates, controls and drill-downs. Settings and
+Ingestion SHALL be omitted; Campaigns SHALL require available campaign inventory.
+Intrinsic `workflow-identities`
 and `overview-run-identities` sources MAY supply the corresponding table shapes
 without campaign joins; absent campaign/rollout fields SHALL stay unknown.
 Valid uncollected canonical sources in a verified local snapshot SHALL return

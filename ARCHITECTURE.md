@@ -895,9 +895,10 @@ same transaction, independently of the rolling detail window. Replay, attempt
 corrections and UTC-week retention follow the shared daily contract. Counts
 describe partial admitted observations, not complete upstream history.
 It never fabricates campaign policy, queue backlog, accepted outcomes, or
-uncollected event evidence. The packaged local dashboard preserves all normal
-pages, navigation, templates, controls and drill-downs, with the standard
-Overview landing page. Intrinsic workflow/run source variants avoid requiring
+uncollected event evidence. The packaged local dashboard preserves normal
+operational pages, navigation, templates, controls and drill-downs, with the
+standard Overview landing page. Settings and Ingestion are omitted; Campaigns
+requires available campaign inventory. Intrinsic workflow/run sources avoid requiring
 uncollected campaign enrichment. Valid missing canonical sources in an explicit
 local snapshot produce typed unavailable results; unknown sources, corrupt
 evidence and execution errors still fail. Available cached jobs, sessions,
