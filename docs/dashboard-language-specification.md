@@ -1515,53 +1515,10 @@ graphs without inferring behavior from page, view, or source identifiers.
 
 Allowed encoding channels are `value`, `columns`, `x`, `y`, `color`, `section`, `reference`, `href`, and the chart-only `facet`, `row`, and `column` facet channels. `columns` is a non-empty sequence of field definitions. A line chart's `y` channel may be a sequence of two to eight quantitative field definitions, rendered as one named series per field; such a chart does not also encode `color`. Other channels contain one field definition. The `href` channel references one relation-specific link field or one declared `campaign-dashboard-link`, `repository-dashboard-link`, `workflow-dashboard-link`, or `command-dashboard-link` field; it does not select from multiple links. Command dashboard links navigate to local operational history, not canonical evidence. The quantitative `reference` channel is available only to dot charts and renders each distinct value as a horizontal reference line in the corresponding color series. The nominal or ordinal `section` channel is available to horizontal bar charts for section headings and to treemap charts for nested group rectangles, in first-appearance order.
 
-Scatter charts may declare `scatter: { cluster: false }` when every observation must remain individually represented, including observations with identical timestamps and values. `scatter` is a mapping allowed only on scatter charts; its only key, `cluster`, is Boolean and defaults to `true`. An explicit `false` disables both clustering and render-time point sampling, preserving the precise timestamp and value of every query-produced observation. Authors should consider the rendering cost of their retained dataset before disabling reduction.
+#### Scatter charts
 
-#### Value-encoded scatter charts (bubble charts)
-
-A scatter chart may encode a third quantitative measure through `encoding.value`.
-This produces a **bubble chart**: circle **area**, not diameter, is proportional
-to the positive value, using a zero-based scale. The diameter therefore grows
-with the square root of the value. A separate size legend shows representative
-values with matching circle-area ratios; an optional `color` legend remains
-independent. Titles and units on `value` label the size legend, accessible point
-names, and tooltips independently of `y`.
-
-```json
-{
-  "id": "run-cost-and-duration",
-  "mark": "chart",
-  "chart": "scatter",
-  "data": { "source": "runs", "limit": 100 },
-  "encoding": {
-    "x": { "field": "started-at", "type": "temporal" },
-    "y": { "field": "duration", "type": "quantitative", "title": "Duration" },
-    "value": { "field": "aic-total", "type": "quantitative", "title": "AI credits" },
-    "color": { "field": "run-conclusion", "type": "nominal" }
-  }
-}
-```
-
-- **DLS-VIEW-049:** Only scatter charts and metrics **MAY** encode `value`.
-  Scatter `value` **MUST** explicitly declare `type: quantitative` and reference
-  one source field. Bubble chart encodings **MUST** use query-produced values;
-  aggregation belongs in `dashboard.queries`, not `x`, `y`, `color`, or `value`.
-  View ordering, time bucketing, and limits **MUST** execute through the production
-  query boundary, not main-thread source derivation.
-- **DLS-VIEW-050:** A value-encoded scatter chart **MUST** scale circle area
-  proportionally from zero to its largest positive finite size value and
-  **MUST** render a visibly labeled size legend even without `color`. Each plotted
-  observation **MUST** expose its formatted size value in its accessible name and
-  tooltip. Missing, null, non-numeric, non-finite, zero, and negative size values
-  **MUST NOT** become fabricated fixed-size or zero-valued observations; the
-  presenter **MUST** report how many cannot be plotted. If none have a usable
-  size, it **MUST** show an explicit empty state rather than a size legend.
-- **DLS-VIEW-051:** Value-encoded scatter charts **MUST NOT** cluster or sample
-  observations, regardless of `scatter.cluster`, because a cluster would invent
-  a size measure. They preserve coincident observations and original query
-  values. Authors **SHOULD** bound query results with `limit`. Categorical facets
-  retain the existing independent-per-panel scale semantics. Scatter charts
-  without `value` retain their existing fixed-size markers and reduction defaults.
+See [Scatter and bubble charts](dashboard-language-scatter.md) for clustering,
+value encoding, and normative requirements **DLS-VIEW-049–051**.
 
 Chart presenters MUST assign each non-semantic nominal category to a stable palette slot from its identity rather than its row, sort, or visibility position. The shared presenter normalizes the identity with Unicode NFKC, trimming, and lowercase conversion, then applies 32-bit FNV-1a and selects one of the twelve chart palette slots by modulo. This deterministic hash is the fallback for categories not previously observed, including new campaign and repository identities. Semantic status colors override the resulting palette color. The reserved `value` identity represents an ungrouped series and always uses the first palette slot; only an empty identity falls back to its local series position. Marks and legend swatches MUST resolve the same identity through the same mapping.
 
