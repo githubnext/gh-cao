@@ -548,10 +548,19 @@ for (const width of [1200, 390]) {
       window.document.body.append(presenter.renderDashboard({ document: input, sources }));
     }, { input: document, batch: structuredClone(immediateContract.batch) });
     await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
-    await expect(page.locator('[data-view-id="overview-header"] #agent-factory-heading')).toBeVisible();
-    await expect(page.locator('[data-view-id="overview-floor"]')).toContainText('Factory health');
+    await expect(page.locator('[data-view-id="overview-retained-run-count"]')).toContainText('Retained recent runs');
+    await expect(page.locator('[data-view-id="overview-header"], [data-view-id="overview-floor"]')).toHaveCount(0);
+    await expect(page.locator('#page-overview')).toContainText('partial collection');
+    await expect(page.locator('#page-overview')).not.toContainText('Your factory');
+    await expect(page.locator('#page-overview')).not.toContainText(/\d+\/\d+ healthy workflows/);
+    await expect(page.locator('#page-overview')).not.toContainText('Value gains');
     for (const id of ['repositories', 'workflows', 'runs', 'cost']) {
       if (width < 768) await page.getByRole('button', { name: 'Select view', exact: true }).click();
+      else if (!await page.locator(`a[href="#page-${id}"]:visible`).first().isVisible()) {
+        await page.locator('details.nav-section').filter({
+          has: page.locator(`a[href="#page-${id}"]`)
+        }).locator('summary').click();
+      }
       await page.locator(`a[href="#page-${id}"]:visible`).first().click();
       const active = page.locator(`#page-${id}`);
       await expect(active).toBeVisible();
@@ -572,14 +581,8 @@ for (const width of [1200, 390]) {
         await expect(active.locator('[data-view-id="cost-by-repository"]')).toContainText('All costs shown are estimates.');
       }
     }
-    expect(await page.locator('a[href="#page-campaigns"]').count()).toBeGreaterThan(0);
-    for (const link of await page.locator('a[href="#page-campaigns"]').all()) {
-      await expect(link).toHaveAttribute('aria-disabled', 'true');
-    }
-    await page.evaluate(() => { window.location.hash = 'page-campaigns'; });
-    await expect(page.locator('#page-campaigns')).toContainText('Campaign information is unavailable.');
     await expect(page.locator('a[href="#page-immediate-operations"]')).toHaveCount(0);
-    for (const id of ['configuration', 'indexing']) {
+    for (const id of immediateProfile['excluded-pages']) {
       await expect(page.locator(`a[href="#page-${id}"]`)).toHaveCount(0);
       await page.evaluate((id) => { window.location.hash = `page-${id}`; }, id);
       await expect(page.locator('.dashboard-page:visible')).toHaveAttribute('data-page-id', 'overview');

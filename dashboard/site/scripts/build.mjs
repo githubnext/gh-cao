@@ -71,15 +71,13 @@ export async function buildDashboardSite({
     campaignDashboards,
     fileURLToPath(new URL("dashboard.json", siteRoot)),
   );
-  let dashboard = filterExperimentalDashboardViews(
-    JSON.parse(await readFile(dashboardPath, "utf8")),
-    controlSettings.web?.experimental === true,
-  );
+  let dashboard = JSON.parse(await readFile(dashboardPath, "utf8"));
   if (profile === "immediate") {
     dashboard = composeImmediateDashboard(dashboard, JSON.parse(await readFile(
       new URL("dashboard-fragments/immediate-profile.json", siteRoot), "utf8",
     )));
   }
+  dashboard = filterExperimentalDashboardViews(dashboard, controlSettings.web?.experimental === true);
   if (githubRepository && profile !== "immediate") {
     if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\/[A-Za-z0-9._-]+$/.test(githubRepository)
         || githubRepository.includes("..")) {

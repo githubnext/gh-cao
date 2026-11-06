@@ -157,6 +157,7 @@ type App struct {
 	cacheError       error
 	githubResources  githubResourceCache
 	hostedCLI        *hostedCLI
+	operatorStore    io.Closer
 	valuePublisher   operationalValuePublisher
 	admission        *admission.Service
 	tokenBroker      *tokenbroker.Service
@@ -488,6 +489,9 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 	if a.services.Backend != nil {
 		a.startTask(func() { a.runRedisMaintenance(runCtx, redisMaintenanceInterval) })
 	}
+	if a.hostedCLI != nil && a.hostedCLI.local != nil {
+		a.startTask(func() { a.runOperatorCommands(runCtx) })
+	}
 	if a.oauth != nil && (a.config.SourceDirectory != "" || a.Collector() != nil) {
 		a.startTask(func() { a.oauth.runRevocationWorker(runCtx) })
 	}
@@ -591,8 +595,11 @@ func (a *App) Stop(ctx context.Context) error {
 	if a.tokenBroker != nil {
 		brokerErr = a.tokenBroker.Close(ctx)
 	}
-	if a.ownedDatabase != nil || a.ownedOperational != nil || a.sessionArchive != nil {
+	if a.ownedDatabase != nil || a.ownedOperational != nil || a.sessionArchive != nil || a.operatorStore != nil {
 		a.closeDatabase.Do(func() {
+			if a.operatorStore != nil {
+				a.closeError = errors.Join(a.closeError, a.operatorStore.Close())
+			}
 			if a.sessionArchive != nil {
 				a.closeError = a.sessionArchive.backend.Close()
 			}
@@ -2079,6 +2086,9 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 	injections := `<meta name="dashboard-data-backend" content="server-http"><meta name="dashboard-storage-backend" content="` + storageBackend + `">`
 	if a.config.Canvas != nil {
 		injections += `<meta name="dashboard-api-base" content="` + a.config.Canvas.Prefix + `/">`
+		if a.config.Canvas.OperatorActions != nil {
+			injections += `<script>globalThis.__CLI_QUEUE__ = true; globalThis.__LOCAL_CLI_QUEUE__ = true;</script>`
+		}
 	}
 	if a.oauth != nil {
 		injections += `<meta name="cao-auth-mode" content="github">`

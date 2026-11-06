@@ -870,7 +870,9 @@ SHALL be confined to selected matching-attempt run directories and SHALL reject
 symlinks, nonregular files and oversized input.
 Its packaged dashboard SHALL preserve the standard landing page and normal
 operational navigation, templates, controls and drill-downs. Settings and
-Ingestion SHALL be omitted; Campaigns SHALL require available campaign inventory.
+Ingestion SHALL be omitted. The immediate profile MUST classify every page, view
+and query against its declared acquisition capabilities, omit unsupported views,
+and prune their unreachable queries without disabling independent rich evidence.
 Intrinsic `workflow-identities`
 and `overview-run-identities` sources MAY supply the corresponding table shapes
 without campaign joins; absent campaign/rollout fields SHALL stay unknown.
@@ -879,7 +881,13 @@ typed unavailable evidence rather than failing independent page queries or
 fabricating zero counts. Unknown sources and real query/storage errors SHALL
 still fail. Daily observations SHALL remain explicitly partial, exclude undated
 Runs, and retain aggregate provenance; visible fleet maintenance views SHALL
-NOT grant local rollout, dispatch or hosted execution authority.
+NOT grant local rollout, dispatch or hosted execution authority. Separately,
+declared repository maintenance MAY use a private operational command queue
+outside the canonical database. Execution MUST require an exact selected repository,
+pull-request publication, and fresh trusted terminal approval per command.
+Credentials and subprocesses MUST remain in the owning CLI, not the read-only
+query server. Cancellation MUST terminate the owned execution; loss of transport
+MUST NOT be treated as confirmation of process exit or authorize replay.
 
 The optional hosted OIDC admission gate MAY publish early Run evidence only
 after verified identity, policy approval and durable decision resolution.
@@ -2098,8 +2106,9 @@ checks to supplied `evals.jsonl` records when session eval evidence is absent.
 Version-1 and version-2 `grader_results.json` documents SHALL use the same
 allowlisted projection as session grader events, enriched by the adjacent
 `grader_manifest.json`. Collection SHALL verify the artifact's repository,
-run and attempt using `aw_info.json`; supplied result run identities and
-attempts MUST also agree. Session results remain authoritative for duplicate
+run and attempt using `aw_info.json`; nonempty supplied result run identities and
+supplied attempts MUST also agree. An omitted or empty result run ID inherits
+the verified enclosing artifact identity. Session results remain authoritative for duplicate
 IDs; the downstream `graders` artifact MAY supplement them with previously
 unrecorded custom results, without duplicating built-ins. Compact
 `usage/graders/`, named or prefixed `graders` artifacts, and flattened files

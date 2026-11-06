@@ -22,6 +22,7 @@
       import { createDebug } from "./debug.js";
       import { loadDashboardPageChunk, loadDashboardSchema } from "./dashboard-definition.js";
       import { pageCapabilityAvailable } from "./view-availability.js";
+      import { localCliQueueAvailable } from "./backend-mode.js";
 
       /** @typedef {{ name?: string } & Record<string, unknown>} DashboardQueryDefinition */
       /** @typedef {{ 'language-version': string, dashboard: import('./presenter.js').PresentableDashboard }} DashboardSchema */
@@ -223,7 +224,7 @@
       const previewMode = new URLSearchParams(window.location.search).get("local-preview");
       /** @type {WebSocket | undefined} */
       let dashboardSocket;
-      if (previewMode) {
+      if (previewMode && previewMode !== "operator") {
         const dashboardSocketUrl = new URL("./__dashboard_socket", window.location.href);
         dashboardSocketUrl.protocol = dashboardSocketUrl.protocol.replace(/^http/, "ws");
         dashboardSocket = new WebSocket(dashboardSocketUrl);
@@ -272,7 +273,8 @@
       * @param {{ createdAt: string } | null} [snapshot]
       */
       const renderSources = (sources, state = "ready", prepared = false, loadPageSources, retryRefresh, snapshot = null) => {
-        const canExecuteCliActions = previewMode === "canvas" || previewMode === "admin";
+        const canExecuteCliActions = previewMode === "canvas" || previewMode === "admin"
+          || (previewMode === "operator" && localCliQueueAvailable());
         renderedSources = sources;
         renderedSourcesPrepared = prepared;
         renderedPageSourceLoader = loadPageSources;
