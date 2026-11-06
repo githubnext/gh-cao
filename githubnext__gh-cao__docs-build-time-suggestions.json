@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-05T17:31:19Z",
-      "worker_run_id": "42074942374",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        42072988988,
-        42072528852,
-        42070471293,
-        42067943048,
-        42065261302,
-        42063330503,
-        42062983873,
-        42060793532,
-        42058271538,
-        42055786555,
-        42053325137,
-        42052935131,
-        42050743222,
-        42048237438,
-        42045799173,
-        42043569242,
-        42041029282,
-        42038714546,
-        42036427464,
-        42035309778
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-05T13:23:17Z to 2026-11-05T17:16:43Z) was within 14 days and contained 16 successful freshness-only schedule runs plus four skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 4bd5dbde5225b80341a8f89799e4e43cd830c870. Trusted Actions job and step metadata verified the newest successful schedule 42072988988 queued for 3 seconds, ran schedule-freshness for 13 seconds with an 11-second freshness check, and skipped build and deploy; retained trusted evidence from the overlapping preceding evaluation verified the same freshness-only outcome for the remaining schedules. The window contained zero successful full build-and-deploy publications, below the required five comparable successful runs. Full-workflow execution, dashboard/build/deploy median and p90 distributions, repeated reusable-dashboard-generation costs, and current dashboard cache hit/miss effectiveness therefore cannot be evaluated. No suggestion was made; reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-05T17:48:00Z",
       "worker_run_id": "42078125111",
       "category": "reusable dashboard generation",
@@ -757,6 +729,13 @@
         42144357984
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T01:31:04Z to 2026-11-06T05:16:54Z) was within 14 days and contained 16 successful freshness-only schedule runs plus four skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA fbc72a4cda97a4bc7ff4cfe58a0525914baa8837. Freshness-only workflow wall time had median 15 seconds and nearest-rank p90 17 seconds. Trusted Actions job and step metadata verified the two newest schedules queued for 3 seconds, ran schedule-freshness for 13-14 seconds with 10-second freshness checks, and skipped build and deploy; retained trusted evidence from the overlapping preceding evaluation verified the same freshness-only outcome for the remaining schedules. The window contained zero successful full build-and-deploy publications, below the required five comparable successful runs. docs.yml has no separate dashboard job. Full-workflow execution, dashboard/build/deploy median and p90 distributions, repeated reusable-dashboard-generation costs, and current dashboard cache hit/miss effectiveness therefore cannot be evaluated. No suggestion was made; reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-06T05:31:53Z",
+      "worker_run_id": "42168682598",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. In accordance with the resource-limit policy, no further API or model work was attempted. The current 14-day evidence window, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded reusable-dashboard-generation step analysis, and cache hit/miss verification could not be established. No recommendation was made; reusable dashboard generation remains the next category."
     }
   ]
 }
