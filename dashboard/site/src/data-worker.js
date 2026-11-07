@@ -1035,7 +1035,7 @@ export function processDataRequest(request, signal) {
               throw new Error(`Unable to load dashboard inventory sources: ${response.status}`);
             }
             return { response, value: await response.json() };
-          });
+          }, { signal });
           if (inventoryResponse.ok) {
             sources = inventorySources;
             if (typeof request.id === 'number') inFlightDashboardSources.set(request.id, sources);
@@ -1074,11 +1074,17 @@ export function processDataRequest(request, signal) {
             progress.log('No separate inventory metadata was published.');
           }
           progress.log('Checking the published payload identity.');
-          const payloadHashesResponse = await ingestionFetch(payloadHashesUrl, { cache: 'no-store' }).catch(() => null);
+          const payloadHashes = await withRetries(async () => {
+            const response = await ingestionFetch(payloadHashesUrl, { cache: 'no-store' });
+            if (!response.ok) {
+              if (response.status === 404) {
+                throw new Error('Activity shard manifest is missing compacted run-information shards.');
+              }
+              throw new Error(`Unable to load activity shard manifest: ${response.status}`);
+            }
+            return response.json();
+          }, { signal });
           if (signal?.aborted) throw new DashboardQueryCancelledError('data ingestion was cancelled', 'aborted');
-          const payloadHashes = payloadHashesResponse?.ok
-            ? await payloadHashesResponse.json().catch(() => null)
-            : null;
           const runInformationShards = publishedRunInformationShards(payloadHashes);
           const phasedShards = publishedPhasedActivityShards(payloadHashes);
           const shardLimit = eagerIngest ? undefined : debugShardLimit();
@@ -1091,8 +1097,7 @@ export function processDataRequest(request, signal) {
             source: sourceUrl.pathname,
             shardCount,
             shardLimit,
-            eagerIngest,
-            manifestAvailable: payloadHashesResponse?.ok === true
+            eagerIngest
           });
           if (shardCount > 0) {
             progress.log(`Published activity data includes ${shardCount.toLocaleString('en-US')} `
@@ -1215,9 +1220,12 @@ export function processDataRequest(request, signal) {
               index: index + 1,
               shardCount
             });
-            const response = await ingestionFetch(shardUrl);
-            if (!response.ok) throw new Error(`Unable to load activity shard ${shard.name}: ${response.status}`);
-            if (!response.body) throw new Error(`Unable to stream activity shard ${shard.name}`);
+            const response = await withRetries(async () => {
+              const result = await ingestionFetch(shardUrl, { cache: 'no-store' });
+              if (!result.ok) throw new Error(`Unable to load activity shard ${shard.name}: ${result.status}`);
+              if (!result.body) throw new Error(`Unable to stream activity shard ${shard.name}`);
+              return result;
+            }, { signal });
             {
               const contentLengthHeader = response.headers.get('content-length');
               const contentLength = contentLengthHeader === null ? Number.NaN : Number(contentLengthHeader);
