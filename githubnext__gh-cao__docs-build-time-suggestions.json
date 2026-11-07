@@ -3,34 +3,6 @@
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-07T06:53:06.665315Z",
-      "worker_run_id": "42348655578",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        42348449699,
-        42347465993,
-        42346675784,
-        42346540294,
-        42345164245,
-        42344109257,
-        42343077078,
-        42341978979,
-        42341795708,
-        42340940303,
-        42339856949,
-        42339240114,
-        42338817712,
-        42338502212,
-        42338450591,
-        42337821353,
-        42336670207,
-        42336581799,
-        42335513239,
-        42335490131
-      ],
-      "outcome": "complete no-op (duplicate): the latest-20 completed docs.yml window (2026-11-07T03:46:14Z to 2026-11-07T06:46:25Z) was within 14 days and contained 18 successful runs and two skipped workflow_run callbacks; there were no failed or cancelled runs. Six successful full build-and-deploy publications were available (four push, one schedule, and one workflow_run), meeting the five-run minimum; the four push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across all six publications, workflow wall-clock median was 124.5 seconds and nearest-rank p90 215 seconds; initial queue/concurrency time median was 6.5 seconds and p90 82 seconds; execution median was 116 seconds and p90 133 seconds. Build-job median was 89.5 seconds and p90 102 seconds; deploy-job median was 26.5 seconds and p90 33 seconds; docs.yml has no separate dashboard job. Step medians/p90s were checkout 27/33 seconds, dependency installation 16.5/23 seconds, Astro generation 11.5/15 seconds, dashboard cache restore 3/5 seconds, Pages artifact upload 18/20 seconds, and Pages deployment 24/29 seconds. Bounded logs verified six of six exact setup-node npm-cache hits and six of six central-agentic-ops-dashboard cache hits; cache-miss dashboard lookup and artifact-download steps were skipped every time. Scheduling evidence again showed avoidable serialized work: push run 42338502212 arrived 45 seconds after push run 42338450591, waited 82 seconds before starting, and the older run continued for 79 seconds after the newer revision arrived because whole-workflow concurrency remains non-cancelling. Splitting cancellable build concurrency from non-cancellable deploy concurrency could avoid more than 60 seconds during this overlap without cancelling deployment, but open issue #20131 already represents the same stable underlying change. The newer source and timing evidence strengthen but do not materially change that recommendation, so no duplicate issue was created. Confidence is high. Advance to dependency installation and caching."
-    },
-    {
       "evaluated_at": "2026-11-07T07:18:18Z",
       "worker_run_id": "42350491529",
       "category": "dependency installation and caching",
@@ -821,6 +793,13 @@
         42379579961
       ],
       "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T14:00:58Z to 2026-11-07T16:46:19Z) was within 14 days and contained 16 successful runs, three skipped workflow_run callbacks, and one cancelled workflow_run callback; there were no failed runs. Five successful full build-and-deploy publications were available (three push, one schedule, and one workflow_run), meeting the minimum; the three push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across all five publications, workflow wall-clock median was 150 seconds and nearest-rank p90 255 seconds; initial queue/concurrency median was 3 seconds and p90 99 seconds; execution median was 124 seconds and p90 252 seconds. Build-job median was 84 seconds and p90 118 seconds; deploy-job median was 30 seconds and p90 170 seconds; docs.yml has no separate dashboard job. Pages artifact upload took 19 seconds median and 20 seconds p90; Deploy Pages took 27 seconds median and 165 seconds p90. Bounded logs showed final Pages artifacts of 109,944,322 to 111,851,943 bytes and verified five of five exact npm-cache and central-agentic-ops-dashboard cache hits; dashboard restoration took 3 seconds median and 4 seconds p90, while cache-miss lookup and artifact-download steps were skipped every time. Artifact upload is about 15.3% of median execution, but eliminating the required upload is not a valid change, and the evidence identifies no repository-controlled packaging or transfer reduction expected to save at least 18.6 seconds without weakening correctness or deployment safety. Deployment variance is dominated by the required external Deploy Pages action. No actionable, non-duplicate suggestion met the threshold; advance to scheduling, concurrency, and avoidable rebuilds. Confidence is high for step timing, artifact size, and cache-hit evidence and medium for cross-trigger workflow distributions."
+    },
+    {
+      "evaluated_at": "2026-11-07T17:14:31Z",
+      "worker_run_id": "42395107603",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the first bounded docs.yml run-list request returned an API rate-limit error. No current evidence window, five comparable successful runs, workflow/job distributions, step timings, cache-hit verification, or scheduling/concurrency evaluation could be established. The category remains scheduling, concurrency, and avoidable rebuilds for the next authorized evaluation."
     }
   ]
 }
