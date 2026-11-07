@@ -1,14 +1,7 @@
 {
   "source_sha": "847f940213ea1fa7619d8084aa7e1cecc861a26d",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-06T19:29:55Z",
-      "worker_run_id": "42279750299",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: GitHub Actions evidence collection stopped immediately after the GitHub API returned a rate-limit exhaustion response while requesting the latest 20 completed docs.yml runs. In accordance with the resource-limit policy, no further API or model work was attempted. The current 14-day evidence window, at least five comparable successful full build-and-deploy runs, queue-versus-execution timing distributions, dashboard/build/deploy job medians and p90s, bounded reusable-dashboard-generation step analysis, and cache hit/miss verification could not be established. No recommendation was made; reusable dashboard generation remains the next category."
-    },
     {
       "evaluated_at": "2026-11-06T20:18:13.039491Z",
       "worker_run_id": "42286725911",
@@ -820,6 +813,34 @@
         42330847462
       ],
       "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T03:01:26Z to 2026-11-07T05:46:16Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Six successful full build-and-deploy publications were available (four push, one schedule, and one workflow_run), meeting the five-run minimum; the four push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across all six publications, workflow wall-clock median was 124.5 seconds and nearest-rank p90 215 seconds; initial queue median was 3 seconds and p90 82 seconds; execution median was 121 seconds and p90 140 seconds. Build-job median was 89.5 seconds and p90 102 seconds; deploy-job median was 26.5 seconds and p90 33 seconds; docs.yml has no separate dashboard job. Astro documentation generation took 11.5 seconds median and 15 seconds p90 (10-15 second range), only 9.5% of median execution. Bounded logs confirmed npm run docs:build invokes astro build plus documentation validation and integration testing. Trusted Actions step metadata verified six of six dashboard cache hits because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped; a bounded log also recorded a central-agentic-ops-dashboard cache hit. The remaining 11 successful runs were freshness-only and skipped build and deploy. Because the entire Astro step is below both the 60-second threshold and the 15%-of-median-execution threshold (18.2 seconds), no change to Astro generation can meet the required savings on current evidence without moving or omitting correctness checks. No actionable suggestion was made; advance to reusable dashboard generation. Confidence is high for step timing and cache-path evidence and medium for cross-trigger workflow distributions."
+    },
+    {
+      "evaluated_at": "2026-11-07T06:23:59Z",
+      "worker_run_id": "42346529273",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        42346675784,
+        42346540294,
+        42345164245,
+        42344109257,
+        42343077078,
+        42341978979,
+        42341795708,
+        42340940303,
+        42339856949,
+        42339240114,
+        42338817712,
+        42338502212,
+        42338450591,
+        42337821353,
+        42336670207,
+        42336581799,
+        42335513239,
+        42335490131,
+        42334361491,
+        42333286801
+      ],
+      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T03:17:01Z to 2026-11-07T06:22:07Z) was within 14 days and contained 18 successful runs and two skipped workflow_run callbacks; there were no failed or cancelled runs. Six successful full build-and-deploy publications were available (four push, one schedule, and one workflow_run), meeting the five-run minimum; the four push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across all six publications, workflow wall-clock median was 124.5 seconds and nearest-rank p90 215 seconds; initial queue median was 3 seconds and p90 82 seconds; execution median was 121.5 seconds and p90 140 seconds. Build-job median was 89.5 seconds and p90 102 seconds; deploy-job median was 26.5 seconds and p90 33 seconds; docs.yml has no separate dashboard job. Step medians/p90s were checkout 27/33 seconds, dependency installation 16.5/23 seconds, Astro generation 11.5/15 seconds, dashboard cache restore 3/5 seconds, and Pages artifact upload 18/20 seconds. Trusted Actions step metadata verified six of six dashboard cache hits because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped every time. The relevant successful CAO Dashboard run 42335347706 spent 1,083 seconds in its build job, including 995 seconds upgrading activity data, then populated the reusable dashboard cache in a 12-second cache job; subsequent docs publications restored it in 2-5 seconds. Reusable dashboard generation therefore remains effectively decoupled from docs publication. No concrete additional workflow change is supported that would save at least 60 seconds or 15 percent of median execution (18.2 seconds) without weakening freshness or deployment safety. No suggestion was made; advance to artifact transfer and Pages packaging. Confidence is high for the cache-hit and decoupling conclusions and medium for cross-trigger timing distributions."
     }
   ]
 }
