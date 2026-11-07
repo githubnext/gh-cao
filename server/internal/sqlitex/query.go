@@ -65,8 +65,14 @@ func (r *reader) ExecuteSQLPlanWithOptions(ctx context.Context, definitions []qu
 		if err != nil {
 			return nil, metrics, err
 		}
-		if plan == nil || plan.Boundary != page.Keyset.Boundary || plan.Comparator != page.Keyset.Comparator {
+		if plan == nil || plan.Boundary != page.Keyset.Boundary ||
+			plan.Comparator != page.Keyset.Comparator || len(plan.Keys) != len(page.Keyset.Keys) {
 			return nil, metrics, fmt.Errorf("invalid or stale continuation token for %q", output)
+		}
+		for index, key := range plan.Keys {
+			if key.Output != page.Keyset.Keys[index] {
+				return nil, metrics, fmt.Errorf("invalid or stale continuation token for %q", output)
+			}
 		}
 		keysetPage = &page
 	}
