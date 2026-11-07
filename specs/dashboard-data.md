@@ -3251,7 +3251,21 @@ Recurring acquisition SHALL require reviewed registration for an exact
 repository/workflow under `control-plane.campaigns.activity.workflow-values`,
 with a confined repository-local deterministic collector deployed together
 with policy. A collector that issues GitHub API requests SHALL also declare a
-reviewed integer `api-requests` ceiling from 1 through 1,000. The skill SHALL
+reviewed integer `api-requests` ceiling from 1 through 1,000. A registration
+MAY declare `acquisition`, which SHALL require a collector and contain exactly
+`requirements`: one to 64 unique entries, each with exactly `source`, `pool`,
+`primitive`, `scope`, and `cache`. `primitive` and `scope` SHALL be lowercase
+identifiers of at most 160 characters matching
+`^[a-z0-9]+(?:[a-z0-9._:/-]*[a-z0-9])?$`. The permitted combinations are:
+`canonical` with pool `local` and cache `canonical`; `github` with pool `core`,
+`search`, or `graphql` and cache `invocation`; `git` with pool `git` and cache
+`immutable`; and `archive` with pool `archive` and cache `invocation`. Policy
+validation SHALL reject any other field, value, or combination. Requirements
+SHALL be normalized in a deterministic order, so equivalent declarations have
+one digest. For one repository, requirements with identical source, pool,
+primitive, scope, and cache MAY be unioned across workflow registrations. A
+declaration is request-family identity only and SHALL NOT grant or raise the
+`api-requests` ceiling or any execution authority. The skill SHALL
 stage registration automatically only after the
 frozen function and bounded collector pass verification, preserving existing
 registrations and explicit `enabled: false` disables. Function presence alone
