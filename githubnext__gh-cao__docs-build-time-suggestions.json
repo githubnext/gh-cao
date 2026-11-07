@@ -3,13 +3,6 @@
   "next_category": "Astro documentation generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-07T09:16:32.693863Z",
-      "worker_run_id": "42358816187",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: GitHub Actions evidence collection was stopped immediately after the first bounded docs.yml run-list request returned an API rate-limit error. No current evidence window, five comparable successful runs, job distributions, step timings, or cache-hit verification could be established. The category remains artifact transfer and Pages packaging for the next authorized evaluation."
-    },
-    {
       "evaluated_at": "2026-11-07T09:31:07.242126Z",
       "worker_run_id": "42359885637",
       "category": "artifact transfer and Pages packaging",
@@ -800,6 +793,34 @@
         42385146193
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T15:11:11Z to 2026-11-07T18:46:02Z) was within 14 days and contained 16 successful runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Only one successful full build-and-deploy publication was available: workflow_run 42390316893 at source SHA 3d406df041cb02d60e05f23697c0e2cd5c90f082; the other 15 successful runs were freshness-only schedules whose build and deploy jobs were skipped. This is below the required five comparable successful runs, so complete full-workflow and dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification across a sufficient sample, and a complete Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-07T19:15:30.206901Z",
+      "worker_run_id": "42405088318",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        42404241959,
+        42404127273,
+        42402886965,
+        42401688381,
+        42400475822,
+        42400267115,
+        42399137249,
+        42397875101,
+        42396709256,
+        42395454343,
+        42395049525,
+        42394208329,
+        42392940425,
+        42391682542,
+        42390434315,
+        42390316893,
+        42390224819,
+        42389177209,
+        42387932480,
+        42386775123
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T15:31:17Z to 2026-11-07T19:02:29Z) was within 14 days and contained 16 successful runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Only one successful full build-and-deploy publication was available: workflow_run 42390316893 at source SHA 3d406df041cb02d60e05f23697c0e2cd5c90f082. The other 15 successful runs were freshness-only schedules whose build and deploy jobs were skipped. This is below the required five comparable successful runs, so complete full-workflow and dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification across a sufficient sample, and a complete Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
     }
   ]
 }
