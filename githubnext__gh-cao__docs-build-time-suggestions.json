@@ -1,35 +1,7 @@
 {
-  "source_sha": "caf079a1ed1644fdbb65d20d8f9544a461c5cb83",
-  "next_category": "artifact transfer and Pages packaging",
+  "source_sha": "3d406df041cb02d60e05f23697c0e2cd5c90f082",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-07T04:52:01Z",
-      "worker_run_id": "42340062196",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42339856949,
-        42339240114,
-        42338817712,
-        42338502212,
-        42338450591,
-        42337821353,
-        42336670207,
-        42336581799,
-        42335513239,
-        42335490131,
-        42334361491,
-        42333286801,
-        42333153061,
-        42332024646,
-        42330847462,
-        42330840919,
-        42330836980,
-        42329650363,
-        42328640620,
-        42328522309
-      ],
-      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T02:17:49Z to 2026-11-07T04:46:09Z) was within 14 days and contained 16 successful runs, three skipped workflow_run callbacks, and one cancelled schedule run. Seven successful full build-and-deploy publications were available: five push runs, one schedule run, and one workflow_run callback. The five push runs provide the closest like-for-like trigger group; source revisions varied and are disclosed by the evidence run IDs. Across all seven publications, workflow wall-clock median was 125 seconds and nearest-rank p90 215 seconds; initial queue median was 3 seconds and p90 82 seconds (the p90 reflects concurrency waiting in push run 42338502212); execution median was 122 seconds and p90 167 seconds. Build-job median was 89 seconds and p90 102 seconds; deploy-job median was 27 seconds and p90 75 seconds; docs.yml has no separate dashboard job. The push-only group had workflow median 124 seconds, execution median 120 seconds, build median 88 seconds, and deploy median 28 seconds. Step medians across all publications were checkout 25 seconds, dependency installation 17 seconds, Astro generation 12 seconds, dashboard cache restore 3 seconds, Pages artifact upload 18 seconds, and Pages deployment 24 seconds; corresponding p90s were 33, 23, 15, 5, 20, and 72 seconds. Trusted step metadata verified seven of seven dashboard cache hits because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. Artifact upload is stable at 18-20 seconds and represents about 14.8% of median all-run execution (15% of push-only execution), but it is a required Pages publication step and the permitted workflow evidence contains no artifact-size or packaging-stage proof for a concrete change that would remove most of that cost without weakening correctness. Deployment variance is dominated by the external Deploy Pages action (8-72 seconds), with no evidence-backed repository workflow change expected to save at least 60 seconds or 15% reliably. No actionable, non-duplicate suggestion met the threshold; advance to scheduling, concurrency, and avoidable rebuilds."
-    },
     {
       "evaluated_at": "2026-11-07T05:17:12.977744Z",
       "worker_run_id": "42341831500",
@@ -820,6 +792,34 @@
         42369553757
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T11:46:02Z to 2026-11-07T14:46:12Z) was within 14 days and contained fourteen successful runs, five skipped workflow_run callbacks, and one cancelled workflow_run callback; there were no failed runs. Only one successful full build-and-deploy publication was available (push run 42379567653 at source SHA caf079a1ed1644fdbb65d20d8f9544a461c5cb83); the other thirteen successful runs were freshness-only schedules whose build and deploy jobs were skipped. This is below the required five comparable successful full publications, so complete full-workflow and dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache verification across a sufficient sample, and a complete artifact-transfer-and-Pages-packaging evaluation could not be established. Trusted Actions metadata measured the sole full publication at 132 seconds workflow wall-clock, about 4 seconds initial queue, a 94-second build job, and a 28-second deploy job; docs.yml has no separate dashboard job. Its Pages artifact upload took 20 seconds, and its dashboard cache hit was verified because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. The cancelled run was disclosed and excluded from successful timing distributions. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-07T15:15:11Z",
+      "worker_run_id": "42385191508",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42385146193,
+        42384326652,
+        42383753026,
+        42383726809,
+        42383375282,
+        42383129418,
+        42381970482,
+        42380788512,
+        42380446913,
+        42379595472,
+        42379579961,
+        42379567653,
+        42379117964,
+        42379088744,
+        42378433074,
+        42377313769,
+        42376161557,
+        42375832743,
+        42375006010,
+        42373898633
+      ],
+      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T12:45:38Z to 2026-11-07T15:11:13Z) was within 14 days and contained fifteen successful runs, four skipped workflow_run callbacks, and one cancelled workflow_run callback; there were no failed runs. Five successful full build-and-deploy publications were available (four push and one schedule), meeting the minimum; the four push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across all five publications, workflow wall-clock median was 132 seconds and nearest-rank p90 255 seconds; initial queue/concurrency time median was 3 seconds and p90 99 seconds; execution median was 123 seconds and p90 251 seconds. Build-job median was 84 seconds and p90 94 seconds; deploy-job median was 30 seconds and p90 170 seconds; docs.yml has no separate dashboard job. The push-only group had workflow median 127.5 seconds, execution median 121 seconds, build median 86.5 seconds, and deploy median 29 seconds. Pages artifact upload took 19 seconds median and 20 seconds p90; Deploy Pages took 27 seconds median and 165 seconds p90, with the schedule run's external deploy action causing the high tail. Bounded logs showed stable final Pages artifacts of about 111.85 MB. Trusted Actions step metadata verified five of five dashboard cache hits because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped every time; restore took 3 seconds median and 4 seconds p90. Artifact upload is about 15.4% of median execution, but eliminating the required upload is not a valid change, and the permitted evidence identifies no repository-controlled packaging reduction expected to save at least 18.45 seconds without weakening correctness or deployment safety. Deployment variance is dominated by the required external Deploy Pages action. No actionable, non-duplicate suggestion met the threshold; advance to scheduling, concurrency, and avoidable rebuilds. Confidence is high for step timing, artifact size, and cache-hit evidence and medium for cross-trigger workflow distributions."
     }
   ]
 }
