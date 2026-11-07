@@ -238,8 +238,8 @@ func protocolArchive(t *testing.T, s *blobProtocol, endpoint string) *Archive {
 	c.Endpoint = endpoint // Only test construction permits numeric-loopback HTTP.
 	a := &Archive{config: c, converter: protocolVerifier{}, blob: &blobClient{root: endpoint + "/container/archive",
 		http: &http.Client{CheckRedirect: rejectRedirect}},
-		queryHTTP: &http.Client{CheckRedirect: rejectRedirect},
-		now:       func() time.Time { s.mu.Lock(); defer s.mu.Unlock(); return s.now }}
+		queries: &adxQueryClient{config: c, http: &http.Client{CheckRedirect: rejectRedirect}},
+		now:     func() time.Time { s.mu.Lock(); defer s.mu.Unlock(); return s.now }}
 	if err := a.open(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -281,7 +281,7 @@ func TestBlobImmutablePublicationRestartAndOverlap(t *testing.T) {
 	if bytes.Contains(s.objects["manifests/"+a.active.State+".json"], []byte(m.Files[0].Path)) {
 		t.Fatal("private staging path leaked into remote manifest")
 	}
-	competing := &Archive{config: a.config, blob: a.blob, queryHTTP: a.queryHTTP, now: a.now}
+	competing := &Archive{config: a.config, blob: a.blob, queries: a.queries, now: a.now}
 	if err := competing.open(t.Context()); !errors.Is(err, ErrLease) {
 		t.Fatalf("restart overlap was not rejected: %v", err)
 	}
@@ -464,7 +464,7 @@ func TestBlobDefaultOffAndDestinationValidation(t *testing.T) {
 func TestBlobPublicContainerAndRedirectRejected(t *testing.T) {
 	a, s, _ := newProtocol(t)
 	s.public = true
-	if err := a.blob.private(t.Context()); err == nil {
+	if err := a.blob.CheckPrivate(t.Context()); err == nil {
 		t.Fatal("public container accepted")
 	}
 	redirected := false
@@ -475,7 +475,7 @@ func TestBlobPublicContainerAndRedirectRejected(t *testing.T) {
 	}))
 	defer source.Close()
 	b := blobClient{root: source.URL, http: &http.Client{CheckRedirect: rejectRedirect}}
-	if _, _, err := b.get(t.Context(), "object", 4096); err == nil || redirected {
+	if _, _, err := b.Read(t.Context(), "object", 4096); err == nil || redirected {
 		t.Fatal("credential-bearing redirect followed")
 	}
 }

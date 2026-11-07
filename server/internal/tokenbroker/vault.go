@@ -27,7 +27,23 @@ type KeyVault struct {
 	SecretURL  string
 	ClientID   string
 	HTTPClient *http.Client
+	Identity   ManagedIdentityTokenSource
 }
+
+// ManagedIdentityTokenSource supplies a current token for the Key Vault audience.
+// Implementations must honor cancellation, reject stale tokens and sanitize errors.
+type ManagedIdentityTokenSource interface {
+	AccessToken(context.Context) (string, error)
+}
+
+// ManagedIdentity implements the App Service and IMDS credential protocols.
+type ManagedIdentity struct {
+	ClientID   string
+	HTTPClient *http.Client
+}
+
+var _ PrivateKeyReader = KeyVault{}
+var _ ManagedIdentityTokenSource = ManagedIdentity{}
 
 // PrivateKey reads the current secret value without caching credentials or keys.
 func (v KeyVault) PrivateKey(ctx context.Context) ([]byte, error) {
@@ -50,9 +66,16 @@ func (v KeyVault) PrivateKey(ctx context.Context) ([]byte, error) {
 	}
 	client.Jar = nil
 
-	token, err := v.managedIdentityToken(ctx, &client)
+	identity := v.Identity
+	if identity == nil {
+		identity = ManagedIdentity{ClientID: v.ClientID, HTTPClient: &client}
+	}
+	token, err := identity.AccessToken(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if !validIdentityToken(token) {
+		return nil, errors.New("invalid managed identity response")
 	}
 	query := secretURL.Query()
 	query.Set("api-version", "7.4")
@@ -84,7 +107,18 @@ func safeVaultURL(u *url.URL) bool {
 		u.RawQuery == "" && !u.ForceQuery && u.Fragment == "" && u.RawFragment == ""
 }
 
-func (v KeyVault) managedIdentityToken(ctx context.Context, client *http.Client) (string, error) {
+func (v ManagedIdentity) AccessToken(ctx context.Context) (string, error) {
+	client := http.Client{Timeout: 15 * time.Second}
+	if v.HTTPClient != nil {
+		client = *v.HTTPClient
+		if client.Timeout == 0 {
+			client.Timeout = 15 * time.Second
+		}
+	}
+	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	client.Jar = nil
 	endpoint, configured := os.LookupEnv("IDENTITY_ENDPOINT")
 	header := os.Getenv("IDENTITY_HEADER")
 	apiVersion := "2018-02-01"
@@ -117,7 +151,7 @@ func (v KeyVault) managedIdentityToken(ctx context.Context, client *http.Client)
 	} else {
 		request.Header.Set("Metadata", "true")
 	}
-	body, err := vaultRequest(client, request)
+	body, err := vaultRequest(&client, request)
 	if err != nil {
 		return "", errors.New("managed identity request failed")
 	}

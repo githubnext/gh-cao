@@ -132,6 +132,17 @@ Unsupported filesystems or insufficient permissions MUST fail closed. The
 legacy hosted profile additionally requires a persistent private staging volume, one
 Blob lease owner, and conditional active-pointer updates.
 
+Direct Blob and ADX access MUST cross the owned `BlobStore` and `QueryService`
+interfaces. Consumers MUST NOT receive raw HTTP responses or concrete provider
+clients. The composition root selects the production adapters; explicitly
+injected services use the same activation, destination, scope, ownership,
+bounded-result and recovery contracts. `NewWithServices` and
+`NewNativeWithServices` MUST reject missing services and MUST NOT substitute a
+different backend after an adapter failure. Blob contracts preserve immutable
+content verification, conditional ETag/lease pointer publication and explicit
+not-found/conflict errors. Query contracts return complete bounded results or
+an error; protocol fixtures cannot establish real Azure conformance.
+
 The explicit native hosted profile instead owns one Blob lease and conditional
 active-pointer updates, without a POSIX staging volume. It does not relax the
 single-exporter, OAuth, persistent-host lifecycle or real-destination acceptance

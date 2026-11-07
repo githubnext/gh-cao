@@ -7,7 +7,7 @@ LOG_DIR="$STATE_DIR/logs"
 APP_DIR="$STATE_DIR/function-app"
 RUNTIME_ENV="$STATE_DIR/runtime.env"
 RUNTIME_JSON="$STATE_DIR/runtime.json"
-HARNESS_VERSION=4
+HARNESS_VERSION=5
 CORE_TOOLS_VERSION=4.15.1
 CORE_TOOLS_SHA256=9b982efb4047c717c9b1c26beb2269c2ac41b29bf8d21f4df1130c1586cc81cd
 POSTGRES_IMAGE=postgres:16-alpine
@@ -396,7 +396,15 @@ JSON
 {
   "stateDirectory": "$STATE_DIR",
   "applicationDirectory": "$APP_DIR",
-  "baseUrl": "http://127.0.0.1:$function_port"
+  "baseUrl": "http://127.0.0.1:$function_port",
+  "postgresUrl": "$CAO_POSTGRES_URL",
+  "storage": {
+    "account": "$AZURITE_ACCOUNT",
+    "key": "$azurite_key",
+    "blobEndpoint": "http://127.0.0.1:$blob_port/$AZURITE_ACCOUNT",
+    "queueEndpoint": "http://127.0.0.1:$queue_port/$AZURITE_ACCOUNT",
+    "tableEndpoint": "http://127.0.0.1:$table_port/$AZURITE_ACCOUNT"
+  }
 }
 JSON
 
@@ -430,12 +438,10 @@ wait_for_stack() {
 
 test_stack() {
   load_runtime
-  set +e
-  node "$ROOT/tests/integration/azure-local-functions.test.mjs" "$RUNTIME_JSON" \
-    > >(tee "$LOG_DIR/integration-test.log") 2>&1
-  local status=$?
-  set -e
-  return "$status"
+  run_logged "Azure service integration" service-integration-test.log \
+    node "$ROOT/tests/integration/azure-local-services.test.mjs" "$RUNTIME_JSON"
+  run_logged "Azure Functions integration" integration-test.log \
+    node "$ROOT/tests/integration/azure-local-functions.test.mjs" "$RUNTIME_JSON"
 }
 
 logs() {

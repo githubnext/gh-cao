@@ -481,7 +481,7 @@ func TestAzureArchiveConformance(t *testing.T) {
 	if err := a.Maintain(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if err := a.blob.verify(t.Context(), objectKey(corrected), corrected.Digest, corrected.Bytes); err != nil {
+	if err := a.blob.Verify(t.Context(), objectKey(corrected), corrected.Digest, corrected.Bytes); err != nil {
 		t.Fatal("live retirement deleted an object before the persisted recovery grace")
 	}
 	deadline := a.active.ReadersUntil.Add(config.RetirementGrace + time.Second)
@@ -495,10 +495,10 @@ func TestAzureArchiveConformance(t *testing.T) {
 	if err := a.Maintain(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if err := a.blob.verify(t.Context(), objectKey(corrected), corrected.Digest, corrected.Bytes); !isStatus(err, http.StatusNotFound) {
+	if err := a.blob.Verify(t.Context(), objectKey(corrected), corrected.Digest, corrected.Bytes); !isStatus(err, http.StatusNotFound) {
 		t.Fatal("live eligible retired object was not physically deleted")
 	}
-	if err := a.blob.verify(t.Context(), objectKey(original), original.Digest, original.Bytes); err != nil {
+	if err := a.blob.Verify(t.Context(), objectKey(original), original.Digest, original.Bytes); err != nil {
 		t.Fatal("live retirement deleted a currently selected packed file")
 	}
 	t.Log("Azure destination conformance passed; explicit runtime acceptance binding:", config.Acceptance)

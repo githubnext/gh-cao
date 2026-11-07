@@ -112,7 +112,7 @@ func TestAzureNativeArchiveConformance(t *testing.T) {
 	if err := n.Maintain(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if err := n.blob.verify(t.Context(), originalFile.Path, originalFile.Digest, originalFile.Bytes); err != nil {
+	if err := n.blob.Verify(t.Context(), originalFile.Path, originalFile.Digest, originalFile.Bytes); err != nil {
 		t.Fatal("native retirement deleted historical data before conservative grace")
 	}
 	timer := time.NewTimer(time.Until(n.active.ReadersUntil.Add(destination.RetirementGrace + time.Second)))
@@ -125,7 +125,7 @@ func TestAzureNativeArchiveConformance(t *testing.T) {
 	if err := n.Maintain(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if err := n.blob.verify(t.Context(), originalFile.Path, originalFile.Digest, originalFile.Bytes); !isStatus(err, http.StatusNotFound) {
+	if err := n.blob.Verify(t.Context(), originalFile.Path, originalFile.Digest, originalFile.Bytes); !isStatus(err, http.StatusNotFound) {
 		t.Fatal("native eligible object was not physically retired")
 	}
 	t.Log("Native Azure destination conformance passed; explicit runtime acceptance binding:", destination.Acceptance)

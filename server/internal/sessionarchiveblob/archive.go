@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"reflect"
 	"slices"
@@ -62,8 +61,8 @@ type Archive struct {
 	native    bool
 	config    Config
 	converter fileVerifier
-	blob      *blobClient
-	queryHTTP *http.Client
+	blob      BlobStore
+	queries   QueryService
 	verifyADX bool
 	mu        sync.Mutex
 	state     archiveState
@@ -81,6 +80,16 @@ type Archive struct {
 // New acquires the Blob lease only after the explicit activation gate. A
 // disabled configuration returns an inert adapter without credential or I/O.
 func New(ctx context.Context, config Config, converter *sessionarchive.Converter) (*Archive, error) {
+	return newArchive(ctx, config, converter, nil)
+}
+
+// NewWithServices preserves activation and destination gates while selecting
+// explicit adapters. It never substitutes services after an adapter failure.
+func NewWithServices(ctx context.Context, config Config, converter *sessionarchive.Converter, services Services) (*Archive, error) {
+	return newArchive(ctx, config, converter, &services)
+}
+
+func newArchive(ctx context.Context, config Config, converter *sessionarchive.Converter, services *Services) (*Archive, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
@@ -93,10 +102,15 @@ func New(ctx context.Context, config Config, converter *sessionarchive.Converter
 	if converter == nil {
 		return nil, errors.New("hosted archive requires the shared verifying Parquet converter")
 	}
-	a := &Archive{config: config, converter: converter,
-		blob:      &blobClient{root: config.blobRoot(), http: newHTTP(config, "https://storage.azure.com/.default")},
-		queryHTTP: newHTTP(config, "https://kusto.kusto.windows.net/.default"),
-		verifyADX: true, now: time.Now}
+	if services == nil {
+		resolved := azureServices(config)
+		services = &resolved
+	}
+	if err := services.validate(); err != nil {
+		return nil, err
+	}
+	a := &Archive{config: config, converter: converter, blob: services.Blob,
+		queries: services.Queries, verifyADX: true, now: time.Now}
 	if err := a.open(ctx); err != nil {
 		return nil, err
 	}
@@ -104,33 +118,29 @@ func New(ctx context.Context, config Config, converter *sessionarchive.Converter
 }
 
 func (a *Archive) open(ctx context.Context) error {
-	if err := a.blob.private(ctx); err != nil {
+	if err := a.blob.CheckPrivate(ctx); err != nil {
 		return err
 	}
 	initial, _ := json.Marshal(pointer{Version: 1})
-	response, err := a.blob.request(ctx, http.MethodPut, "active.json", "", bytes.NewReader(initial), int64(len(initial)),
-		http.Header{"If-None-Match": {"*"}, "x-ms-blob-type": {"BlockBlob"}})
-	if response != nil {
-		_ = response.Body.Close()
-	}
-	if err != nil && !isStatus(err, http.StatusPreconditionFailed) {
+	err := a.blob.CreatePointer(ctx, initial)
+	if err != nil && !errors.Is(err, ErrObjectExists) {
 		// An ambiguous create must be resolved by the same subsequent read.
-		if _, _, readErr := a.blob.get(ctx, "active.json", 4096); readErr != nil {
+		if _, _, readErr := a.blob.Read(ctx, "active.json", 4096); readErr != nil {
 			return err
 		}
 	}
 	a.lease = uuid.NewString()
-	if err := a.blob.lease(ctx, "acquire", a.lease); err != nil {
+	if err := a.blob.Lease(ctx, "acquire", a.lease); err != nil {
 		return err
 	}
 	if err := a.load(ctx); err != nil {
-		_ = a.blob.lease(ctx, "release", a.lease)
+		_ = a.blob.Lease(ctx, "release", a.lease)
 		return err
 	}
 	// No runtime DDL: prove the preprovisioned external table is the approved
 	// immutable-object partitioned destination before accepting any data.
 	if err := a.verifyTable(ctx); err != nil {
-		_ = a.blob.lease(ctx, "release", a.lease)
+		_ = a.blob.Lease(ctx, "release", a.lease)
 		return err
 	}
 	lifetime, cancel := context.WithCancel(context.WithoutCancel(ctx))
@@ -152,7 +162,7 @@ func decode(data []byte, target any) error {
 }
 
 func (a *Archive) load(ctx context.Context) error {
-	data, etag, err := a.blob.get(ctx, "active.json", 4096)
+	data, etag, err := a.blob.Read(ctx, "active.json", 4096)
 	if err != nil {
 		return err
 	}
@@ -166,7 +176,7 @@ func (a *Archive) load(ctx context.Context) error {
 		if !digestPattern.MatchString(active.State) {
 			return ErrIntegrity
 		}
-		data, _, err = a.blob.get(ctx, "manifests/"+active.State+".json", a.config.MaxStateBytes)
+		data, _, err = a.blob.Read(ctx, "manifests/"+active.State+".json", a.config.MaxStateBytes)
 		if err != nil || digest(data) != active.State || decode(data, &state) != nil ||
 			state.Manifest.Generation != active.Generation {
 			return ErrIntegrity
@@ -192,7 +202,7 @@ func (a *Archive) renew(ctx context.Context) {
 			return
 		case <-ticker.C:
 			step, cancel := context.WithTimeout(ctx, 10*time.Second)
-			err := a.blob.lease(step, "renew", a.lease)
+			err := a.blob.Lease(step, "renew", a.lease)
 			cancel()
 			if err != nil {
 				// Renewal must not wait behind a long conversion or upload.
@@ -239,7 +249,7 @@ func (a *Archive) save(ctx context.Context, state archiveState, horizon time.Tim
 	if err := a.validateState(state); err != nil {
 		return err
 	}
-	if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+	if err := a.blob.Lease(ctx, "renew", a.lease); err != nil {
 		a.failLease()
 		return err
 	}
@@ -248,21 +258,17 @@ func (a *Archive) save(ctx context.Context, state archiveState, horizon time.Tim
 		return ErrCapacity
 	}
 	hash := digest(data)
-	if err := a.blob.immutable(ctx, "manifests/"+hash+".json", bytes.NewReader(data), int64(len(data)), hash); err != nil {
+	if err := a.blob.WriteImmutable(ctx, "manifests/"+hash+".json", bytes.NewReader(data), int64(len(data)), hash); err != nil {
 		return err
 	}
 	next := pointer{Version: 1, State: hash, Generation: state.Manifest.Generation, Revisions: a.active.Revisions + 1,
 		ReadersUntil: maxTime(a.active.ReadersUntil, horizon)}
 	content, _ := json.Marshal(next)
-	response, err := a.blob.request(ctx, http.MethodPut, "active.json", "", bytes.NewReader(content), int64(len(content)),
-		http.Header{"If-Match": {a.etag}, "x-ms-lease-id": {a.lease}, "x-ms-blob-type": {"BlockBlob"}})
-	if response != nil {
-		_ = response.Body.Close()
-	}
+	etag, err := a.blob.ComparePointer(ctx, content, a.etag, a.lease)
 	if err != nil {
 		// CAS may have committed despite a lost acknowledgement. Resolve it
 		// under our still-held lease; never assume success on a failed read.
-		check, etag, readErr := a.blob.get(ctx, "active.json", 4096)
+		check, etag, readErr := a.blob.Read(ctx, "active.json", 4096)
 		var current pointer
 		if readErr == nil && decode(check, &current) == nil &&
 			current.Version == next.Version && current.State == next.State && current.Generation == next.Generation &&
@@ -270,13 +276,12 @@ func (a *Archive) save(ctx context.Context, state archiveState, horizon time.Tim
 			a.active, a.etag, a.state = next, etag, state
 			return nil
 		}
-		if isStatus(err, http.StatusPreconditionFailed) || isStatus(err, http.StatusConflict) {
+		if errors.Is(err, ErrConflict) {
 			a.failLease()
 			return ErrConflict
 		}
 		return err
 	}
-	etag := response.Header.Get("ETag")
 	if etag == "" {
 		a.failLease()
 		return ErrIntegrity
@@ -468,7 +473,7 @@ func (a *Archive) uploadFile(ctx context.Context, file sessionarchive.File) erro
 	if err != nil || !info.Mode().IsRegular() || info.Size() != file.Bytes {
 		return ErrIntegrity
 	}
-	return a.blob.immutable(ctx, objectKey(file), handle, file.Bytes, file.Digest)
+	return a.blob.WriteImmutable(ctx, objectKey(file), handle, file.Bytes, file.Digest)
 }
 
 // The caller holds the lease owner's mutex. Both producer profiles share the
@@ -487,7 +492,7 @@ func (a *Archive) publish(ctx context.Context, candidate sessionarchive.Manifest
 	if normalized.Generation != a.state.Manifest.Generation+1 {
 		return ErrConflict
 	}
-	if err := a.blob.private(ctx); err != nil {
+	if err := a.blob.CheckPrivate(ctx); err != nil {
 		return err
 	}
 	if a.verifyADX {
@@ -610,12 +615,12 @@ func (a *Archive) publish(ctx context.Context, candidate sessionarchive.Manifest
 			if !reflect.DeepEqual(previous, proposed) {
 				return ErrIntegrity
 			}
-			if err := a.blob.verify(ctx, previous.Path, previous.Digest, previous.Bytes); err != nil {
+			if err := a.blob.Verify(ctx, previous.Path, previous.Digest, previous.Bytes); err != nil {
 				return err
 			}
 			continue
 		}
-		if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+		if err := a.blob.Lease(ctx, "renew", a.lease); err != nil {
 			a.failLease()
 			return err
 		}
@@ -658,7 +663,7 @@ func (a *Archive) ResolvePending(ctx context.Context, candidate sessionarchive.M
 	if err != nil {
 		return false, err
 	}
-	if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+	if err := a.blob.Lease(ctx, "renew", a.lease); err != nil {
 		a.failLease()
 		return false, err
 	}
@@ -690,15 +695,12 @@ func (a *Archive) Maintain(ctx context.Context) error {
 		if a.now().Before(r.After) || a.now().Before(a.active.ReadersUntil.Add(a.config.RetirementGrace)) {
 			continue
 		}
-		if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+		if err := a.blob.Lease(ctx, "renew", a.lease); err != nil {
 			a.failLease()
 			return err
 		}
-		response, err := a.blob.request(ctx, http.MethodDelete, r.Key, "", nil, 0, http.Header{})
-		if response != nil {
-			_ = response.Body.Close()
-		}
-		if err != nil && !isStatus(err, http.StatusNotFound) {
+		err := a.blob.Delete(ctx, r.Key)
+		if err != nil && !errors.Is(err, ErrNotFound) {
 			return err
 		}
 		next := a.state
@@ -802,7 +804,7 @@ func (a *Archive) Close() error {
 	<-a.done
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	return a.blob.lease(ctx, "release", a.lease)
+	return a.blob.Lease(ctx, "release", a.lease)
 }
 
 func (a *Archive) String() string {

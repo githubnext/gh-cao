@@ -31,6 +31,14 @@ type Native struct {
 }
 
 func NewNative(ctx context.Context, capture sessionarchive.Config, destination Config) (*Native, error) {
+	return newNative(ctx, capture, destination, nil)
+}
+
+func NewNativeWithServices(ctx context.Context, capture sessionarchive.Config, destination Config, services Services) (*Native, error) {
+	return newNative(ctx, capture, destination, &services)
+}
+
+func newNative(ctx context.Context, capture sessionarchive.Config, destination Config, services *Services) (*Native, error) {
 	if !capture.Enabled || !capture.NativeProducer || !destination.Enabled {
 		return nil, errors.New("native archive requires explicit approved capture and Blob selection")
 	}
@@ -46,10 +54,15 @@ func NewNative(ctx context.Context, capture sessionarchive.Config, destination C
 	if destination.Acceptance != destination.NativeAcceptanceBinding() {
 		return nil, ErrConformance
 	}
-	a := &Archive{native: true, config: destination,
-		blob:      &blobClient{root: destination.blobRoot(), http: newHTTP(destination, "https://storage.azure.com/.default")},
-		queryHTTP: newHTTP(destination, "https://kusto.kusto.windows.net/.default"),
-		verifyADX: true, now: time.Now}
+	if services == nil {
+		resolved := azureServices(destination)
+		services = &resolved
+	}
+	if err := services.validate(); err != nil {
+		return nil, err
+	}
+	a := &Archive{native: true, config: destination, blob: services.Blob,
+		queries: services.Queries, verifyADX: true, now: time.Now}
 	if err := a.open(ctx); err != nil {
 		return nil, err
 	}
@@ -219,7 +232,7 @@ func (n *Native) captureSession(ctx context.Context, source sessionarchive.Sourc
 	if index >= 0 && records[index].Gap == "" && records[index].Member == m {
 		for _, file := range n.state.Manifest.Files {
 			if slices.Contains(file.Members, m) {
-				return n.blob.verify(ctx, file.Path, file.Digest, file.Bytes)
+				return n.blob.Verify(ctx, file.Path, file.Digest, file.Bytes)
 			}
 		}
 		return ErrIntegrity
@@ -268,7 +281,7 @@ func (n *Native) captureSession(ctx context.Context, source sessionarchive.Sourc
 		if f.Digest != file.Digest || f.Bytes != int64(len(data)) || digest(data) != f.Digest {
 			return ErrIntegrity
 		}
-		return n.blob.immutable(ctx, objectKey(f), bytes.NewReader(data), f.Bytes, f.Digest)
+		return n.blob.WriteImmutable(ctx, objectKey(f), bytes.NewReader(data), f.Bytes, f.Digest)
 	}, records, nil)
 }
 

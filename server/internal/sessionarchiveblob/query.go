@@ -18,16 +18,44 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 )
 
-type queryTable struct {
+type QueryResult struct {
 	TableName string
-	Columns   []struct{ ColumnName string }
+	Columns   []QueryColumn
 	Rows      [][]json.RawMessage
+}
+
+type QueryColumn struct{ ColumnName string }
+
+type queryTable = QueryResult
+
+type adxQueryClient struct {
+	config Config
+	http   *http.Client
+}
+
+func (c *adxQueryClient) Query(ctx context.Context, kql string) (QueryResult, error) {
+	return c.execute(ctx, "/v1/rest/query", kql)
+}
+
+func (c *adxQueryClient) Management(ctx context.Context, kql string) (QueryResult, error) {
+	return c.execute(ctx, "/v1/rest/mgmt", kql)
+}
+
+func (a *Archive) query(ctx context.Context, path, kql string) (queryTable, error) {
+	switch path {
+	case "/v1/rest/query":
+		return a.queries.Query(ctx, kql)
+	case "/v1/rest/mgmt":
+		return a.queries.Management(ctx, kql)
+	default:
+		return queryTable{}, ErrQuery
+	}
 }
 
 // query rejects partial results, unrecognized auxiliary tables and server
 // diagnostics. Raw Azure bodies (which may contain credentials or evidence)
 // are never returned to callers.
-func (a *Archive) query(ctx context.Context, path, kql string) (queryTable, error) {
+func (a *adxQueryClient) execute(ctx context.Context, path, kql string) (queryTable, error) {
 	body, err := json.Marshal(map[string]any{"db": a.config.Database, "csl": kql,
 		"properties": map[string]any{"Options": map[string]any{
 			"servertimeout":        fmt.Sprintf("00:%02d:%02d", int(a.config.QueryTimeout/time.Minute), int(a.config.QueryTimeout/time.Second)%60),
@@ -44,7 +72,7 @@ func (a *Archive) query(ctx context.Context, path, kql string) (queryTable, erro
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("x-ms-client-request-id", "cao-archive;"+uuid.NewString())
-	response, err := a.queryHTTP.Do(request)
+	response, err := a.http.Do(request)
 	if err != nil {
 		return queryTable{}, ErrQuery
 	}
@@ -425,7 +453,7 @@ func (a *Archive) pinSource(ctx context.Context, scope sessionarchive.Scope, rep
 	if len(members) == 0 {
 		return nil, a.active.Generation, nil, nil, nil, sessionarchive.ErrNotFound
 	}
-	if err := a.blob.private(ctx); err != nil {
+	if err := a.blob.CheckPrivate(ctx); err != nil {
 		return nil, 0, nil, nil, nil, err
 	}
 	// Persist the worst-case server execution horizon before issuing KQL.
