@@ -6,6 +6,23 @@ import { root, workflow } from "./workflow-contract.helpers.mjs";
 
 // Advisory compliance operation boundaries (UK AI, EU CRA, Dev Practices).
 
+test("Article 14 terminates duplicate readiness work without undeclared update tools", () => {
+  const source = workflow("eu-cra-compliance-article-14-reporting-readiness.md");
+  const compiled = workflow("eu-cra-compliance-article-14-reporting-readiness.lock.yml");
+  const control = workflow("shared/control.md");
+
+  assert.match(control, /When an open issue already represents the same underlying work,[^\n]*otherwise call `noop`/);
+  assert.match(source, /exactly one terminal safe-output call: `create_issue`[^\n]*or `noop`/);
+  assert.match(source, /open campaign-and-worker-owned issue in `SAFE_OUTPUT_REPO`[^\n]*same target's readiness work/);
+  assert.match(source, /even when the target SHA, evidence, or authoritative requirements have changed/);
+  assert.match(source, /`noop` reason,[^\n]*link the existing issue[^\n]*`INCOMPLETE`/);
+  assert.match(source, /do not claim that the existing record is current or that this audit was published/);
+  assert.match(source, /Do not create a duplicate or call `report_missing_tool` merely because updating the existing record is not configured/);
+  assert.doesNotMatch(source, /Use `noop` only for an equivalent current readiness record/);
+  assert.doesNotMatch(source, /^\s+(update-issue|add-comment):/m);
+  assert.match(compiled, /"tools":\["create_issue","noop","report_incomplete","report_missing_data","report_missing_tool"\]/);
+});
+
 test("Advisory preserves UK AI guidance and human-review boundaries", () => {
   const orchestrator = workflow("uk-ai-advisory.md");
   const maintainer = workflow("uk-ai-advisory-campaign-maintainer.md");

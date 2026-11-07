@@ -210,6 +210,8 @@ Material conclusions about CRA scope exclusion, economic-operator role, commerci
 
 Do not put secrets, personal data, exploit details, private advisory or incident content, or confidential regulatory evidence in a safe output. Summarize the gap and identify the access-controlled evidence location instead.
 
-If `correlation_id` is present, include `### Control Plane` with correlation ID, central repository, and control-plane run URL. Use `noop` only for an equivalent current readiness record with no changed evidence or authoritative requirement.
+If `correlation_id` is present, include `### Control Plane` with correlation ID, central repository, and control-plane run URL.
+
+Finish with exactly one terminal safe-output call: `create_issue` for new underlying readiness work, or `noop` when an open campaign-and-worker-owned issue in `SAFE_OUTPUT_REPO` already represents the same target's readiness work. This duplicate-record rule applies even when the target SHA, evidence, or authoritative requirements have changed: this workflow declares no `update_issue` or `add_comment` capability. In the `noop` reason, link the existing issue and identify changed or unverified evidence as `INCOMPLETE`; do not claim that the existing record is current or that this audit was published. Do not create a duplicate or call `report_missing_tool` merely because updating the existing record is not configured. A prose report or diagnostic alone is not a terminal safe output.
 
 {{#runtime-import? .github/cao/eu-cra-compliance.md}}
