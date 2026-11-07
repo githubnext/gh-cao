@@ -11,8 +11,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/model"
 )
+
+var datasetLog = logger.New("cao:adxtrace")
 
 func Namespace(endpoint, database string) string {
 	sum := sha256.Sum256([]byte(endpoint + "\x00" + database))
@@ -67,30 +70,39 @@ func Inspect(ctx context.Context, config Config, namespace string) (Status, erro
 	}
 	status := Status{Stage: "waiting"}
 	err = s.locked(ctx, func(_ Objects, state *ledger) error {
-		status.Frames = len(state.Frames)
-		for _, r := range state.Records {
-			if r.State == "eligible" {
-				status.Eligible++
-			} else {
-				status.Gaps++
-			}
-			if r.Delivered == "" {
-				status.Pending++
-			}
-			if r.Mining != nil && r.Mining.Delivered == "" {
-				status.Pending++
-			}
-			if r.Mining != nil && (r.Mining.State != "ready" || !time.Now().Before(r.Mining.FreshUntil)) {
-				status.Gaps++
-			}
-			if config.MiningEnabled && r.Mining == nil && !r.MiningCheckedAt.IsZero() {
-				status.Gaps++
-			}
-		}
-		status.Degraded = status.Gaps > 0
+		status = summarizeLedger(state, config, time.Now())
 		return nil
 	})
+	if err == nil {
+		datasetLog.Printf("inspected spool: frames=%d eligible=%d gaps=%d pending=%d degraded=%t", status.Frames, status.Eligible, status.Gaps, status.Pending, status.Degraded)
+	}
 	return status, err
+}
+
+// summarizeLedger counts eligible, gap and undelivered items in a ledger.
+func summarizeLedger(state *ledger, config Config, now time.Time) Status {
+	status := Status{Stage: "waiting", Frames: len(state.Frames)}
+	for _, r := range state.Records {
+		if r.State == "eligible" {
+			status.Eligible++
+		} else {
+			status.Gaps++
+		}
+		if r.Delivered == "" {
+			status.Pending++
+		}
+		if r.Mining != nil && r.Mining.Delivered == "" {
+			status.Pending++
+		}
+		if r.Mining != nil && (r.Mining.State != "ready" || !now.Before(r.Mining.FreshUntil)) {
+			status.Gaps++
+		}
+		if config.MiningEnabled && r.Mining == nil && !r.MiningCheckedAt.IsZero() {
+			status.Gaps++
+		}
+	}
+	status.Degraded = status.Gaps > 0
+	return status
 }
 
 // ExportDataset creates a private immutable native-trajectory dataset. It does
