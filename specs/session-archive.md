@@ -15,10 +15,13 @@ The archive is independently default-off, private, additional analytics:
 | Local persistent server | Private immutable Parquet files and filesystem generations | Pinned DuckDB CLI |
 | Hosted persistent server | Private immutable Blob objects and conditionally published generations | Approved generation-bound ADX external-table queries |
 
-Existing PostgreSQL schemas, canonical queries, ingestion, retention, and
+Existing canonical PostgreSQL schemas, canonical queries, ingestion, retention, and
 operational-state storage MUST remain unchanged. The archive MUST NOT use
-PostgreSQL as a catalog, outbox, staging service, receipt store, or source of
-full traces. Dashboard SQLite, IndexedDB, JSONL publication, and ordinary
+PostgreSQL as a physical archive catalog, content staging service, Blob delivery
+receipt store, or source of full traces. The native source-enrollment privacy
+ledger and withdrawal outbox below contain only enrollment/destination metadata,
+never archive contents, manifests, objects, events or run-attempt receipts.
+Dashboard SQLite, IndexedDB, JSONL publication, and ordinary
 dashboard query behavior MUST remain unchanged. There is no frontend or
 automatic cross-store join.
 
@@ -81,11 +84,22 @@ completion-day partitions. Missing completion time MUST remain explicitly
 undated. Publication membership, not a filename or global `DISTINCT`, selects at
 most one active approved projection for each canonical run attempt.
 
-Conversion MUST use the pinned DuckDB v1.4.3 CLI with explicit generated types,
+Legacy local/POSIX conversion MUST use the pinned DuckDB v1.4.3 CLI with explicit generated types,
 not inferred JSON schemas or an embedded DuckDB database. The converter verifies
 the runtime version. Installation MUST verify the release checksum. Subprocess
 memory, concurrency, threads, timeout, result, and temporary-disk budgets apply
 before activation. A subprocess is not an arbitrary-SQL sandbox.
+
+The separately selected native hosted producer uses the pinned Go Parquet
+library in `server/go.mod`, Zstandard compression, and the same generated
+logical event schema. It MUST verify the complete schema, event round trip,
+ordering, counts and immutable digest before publication. Conversion uses
+bounded memory, at most 1024 rows per row group, one compression worker,
+the existing 32768-event and four-times-raw projection limits, and at most
+128 MiB of encoded bytes. Capacity rejection MUST NOT acknowledge a partial
+trace. This profile supports full capture only; sampled capture fails closed.
+It MUST NOT execute DuckDB or consult local files, locks, caches or raw-session
+operational records.
 
 The initial shared implementation enforces these concrete ceilings:
 
@@ -115,8 +129,100 @@ One owner is permitted per archive. Local storage requires a pre-existing
 private POSIX durable directory, owner-only regular files, a whole-life OS
 `flock`, atomic replacement and filesystem durability barriers.
 Unsupported filesystems or insufficient permissions MUST fail closed. The
-hosted profile additionally requires a persistent private staging volume, one
+legacy hosted profile additionally requires a persistent private staging volume, one
 Blob lease owner, and conditional active-pointer updates.
+
+Direct Blob and ADX access MUST cross the owned `BlobStore` and `QueryService`
+interfaces. Consumers MUST NOT receive raw HTTP responses or concrete provider
+clients. The composition root selects the production adapters; explicitly
+injected services use the same activation, destination, scope, ownership,
+bounded-result and recovery contracts. `NewWithServices` and
+`NewNativeWithServices` MUST reject missing services and MUST NOT substitute a
+different backend after an adapter failure. Blob contracts preserve immutable
+content verification, conditional ETag/lease pointer publication and explicit
+not-found/conflict errors. Query contracts return complete bounded results or
+an error; protocol fixtures cannot establish real Azure conformance.
+
+The explicit native hosted profile instead owns one Blob lease and conditional
+active-pointer updates, without a POSIX staging volume. It does not relax the
+single-exporter, OAuth, persistent-host lifecycle or real-destination acceptance
+gates. It reserves bounded immutable-object inventory in Blob before uploading
+the verified approved Parquet bytes, then publishes exact generation membership
+and private metadata-only admission receipts. No successful capture
+acknowledgement precedes durable publication. Before that acknowledgement a
+crash may require authorized exact-attempt reacquisition; the caller MUST NOT
+mark the attempt complete. Partial uploads remain inventoried and are
+deduplicated or conservatively retired on successful retry. A retry resolves
+the durable pointer before selecting another generation. Content is never
+stored in the receipt, manifest, acquisition record or PostgreSQL.
+
+Native receipts record source gaps without acknowledging complete capture;
+complete retries replace gaps, corrections fence old versions, and both
+attempt and repository tombstones override readers and survive restart.
+Retention removes logical membership and preserves permanent bounded fences,
+while physical retirement observes the persisted reader horizon and grace.
+Legacy and native producers MUST NOT open each other's durable profile.
+Native Azure acceptance uses `Config.NativeAcceptanceBinding()`, distinct from
+legacy conversion acceptance. Passing protocol fixtures is not that acceptance.
+The server's `CollectorConfig.NativeAcquisition` remains independently
+fail-closed until enrollment, queue, backfill, inventory, archive, job-log and
+audit integration meet their supported contracts.
+
+### Native source-enrollment privacy authority
+
+The server MUST explicitly receive `sessionarchive.NativeAuthority` backed by
+the same PostgreSQL source enrollment namespace and transaction boundary. Missing
+authority rejects native startup; a process-local implementation, a current-scope
+lookup alone, or a separately committed withdrawal callback is not a substitute.
+The minimal durable record is keyed by namespace, exact destination binding,
+repository and source epoch, with installation ID, withdrawn and cleanup-pending
+flags. It is a bounded permanent privacy registration/outbox, not an archive
+catalog. Reaching capacity MUST reject admission; required rows MUST NOT be
+evicted or deleted by canonical repository erasure.
+
+`Register` MUST commit that metadata under an exact current source installation
+and epoch check **before** any Blob I/O. It MUST NOT infer the dispatch epoch or
+reactivate a withdrawn registration. Every enrollment withdrawal or owner/epoch
+replacement MUST atomically mark every registered old source withdrawn and
+cleanup-pending in its source enrollment transaction. Thus a crash or PG
+connection loss during later Blob I/O cannot lose the cleanup obligation.
+Publication and PostgreSQL are not a cross-backend transaction: capture checks
+current registered source again after Blob publication and MUST NOT acknowledge
+a source that changed while the upload ran.
+
+Every native Blob admission receipt records the explicit dispatch-time source.
+Unscoped capture and querying MUST fail on the source-fenced profile. Legacy
+unscoped native evidence MUST NOT be relabeled with current enrollment. A new
+enrollment may read only freshly admitted matching-epoch evidence; it cannot
+expose a previous epoch while cleanup is pending. A colliding old identity
+requires old-source cleanup before fresh acquisition can replace it.
+
+Native queries MUST first resolve `Current` from authoritative enrollment joined
+to a nonwithdrawn destination/source registration. Missing registration,
+withdrawn scope, or unavailable authority fails closed, without a Blob-only
+fallback. They MUST select exact source-tagged Blob membership before issuing
+ADX queries. Final delivery additionally uses `WithRead` to recheck that same
+source while holding shared source and registration row locks through the
+bounded response callback. Enrollment takes conflicting locks in the same
+source-then-registration order. Loss of that authority transaction MUST cancel
+its callback context; callback cancellation is checked before delivery. This
+does not retract bytes already delivered under a valid preceding authorization.
+
+The existing archive publisher lifecycle drains bounded durable withdrawals.
+`DrainWithdrawals` MUST use shared database claims/locks, retain pending rows on
+callback or acknowledgement failure, and acknowledge only after idempotent
+`WithdrawSource` succeeds. Blob cleanup permanently tombstones the old source,
+revokes its readers, removes only that source's membership and preserves
+immutable-object retirement inventory/grace. The source tombstone also rejects
+a stale uploader resuming after PG disconnection and earlier cleanup. A cleanup
+acknowledgement never reactivates the PG registration. Newer source epochs and
+their approved data MUST remain unaffected by old cleanup retries.
+
+PostgreSQL enrollment-atomic registration/withdrawal, runtime-role grants,
+separate-client read/withdrawal serialization, restart/retry and source-epoch
+conformance remain required deployment evidence in addition to the native Azure
+destination gate. Server/interface tests with explicit probes do not establish
+those database properties.
 
 Publication MUST follow this order:
 
@@ -142,7 +248,9 @@ remain protected, whether expired or withdrawn, and MAY be released only after
 those references are durably cleared. Staging, archive, manifest,
 membership, and replay state each require hard bounds. Reaching a bound MUST
 reject admission/publication or report an explicit gap; it MUST NOT emit a
-truncated ready trace. No archive state belongs in PostgreSQL.
+truncated ready trace. Physical archive catalog, content staging and Blob
+delivery receipts MUST NOT move into PostgreSQL; the metadata-only source
+privacy ledger/outbox is the explicit native enrollment exception.
 
 The server owns publication retries and maintenance within its existing tracked
 background-task lifecycle. Shutdown cancels and joins publisher/acquisition

@@ -1,6 +1,7 @@
 import { h } from '../dom.js';
 import { createDebug } from '../debug.js';
 import { navigationIndicator } from '../navigation-indicator.js';
+import { pageSourceAvailable } from '../view-availability.js';
 import { agenticWorkflowMark, octicon } from '../octicons.js';
 import { effect, state } from '../reactive.js';
 import { createFactoryScope } from './factory-elements.js';
@@ -191,6 +192,30 @@ export function syncDashboardNavigationIndicators(root, pages, sources) {
   syncMobileNavigationMenuIndicator(root, activeMobileIndicatorLabels);
 }
 
+/**
+ * @param {HTMLElement} root
+ * @param {Array<Record<string, unknown>>} pages
+ * @param {Record<string, { rows?: unknown[], metadata?: Record<string, unknown> } | undefined>} sources
+ */
+export function syncDashboardNavigationAvailability(root, pages, sources) {
+  for (const page of pages) {
+    const available = pageSourceAvailable(page, sources);
+    const id = selectorIdentifier(String(page.id));
+    for (const link of root.querySelectorAll(`[data-nav-page-id="${id}"], [data-mobile-nav-page-id="${id}"]`)) {
+      if (!(link instanceof HTMLAnchorElement)) continue;
+      link.setAttribute('aria-disabled', String(!available));
+      if (available) {
+        link.removeAttribute('tabindex');
+        link.title = link.getAttribute('aria-label') ?? pageTitle(page);
+      } else {
+        link.tabIndex = -1;
+        link.title = typeof page.requires === 'object' && page.requires !== null && 'message' in page.requires
+          ? String(page.requires.message) : 'Required data is unavailable.';
+      }
+    }
+  }
+}
+
 /** @param {HTMLElement} root */
 export function enableDashboardNavigation(root) {
   enableSidebarToggle(root);
@@ -214,6 +239,7 @@ function enableSidebarKeyboardNavigation(root) {
     .map((item) => /** @type {HTMLElement} */ (item))
     .filter((item) => (!item.closest('.nav-section') || item.matches('.nav-section-toggle')
         || /** @type {HTMLDetailsElement | null} */ (item.closest('.nav-section'))?.open)
+      && item.getAttribute('aria-disabled') !== 'true'
       && getComputedStyle(item).display !== 'none');
   nav.addEventListener('keydown', (event) => {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
@@ -263,7 +289,8 @@ function enableMobileNavigationKeyboard(menu) {
     if (event.altKey || event.ctrlKey || event.metaKey || !menu.open) return;
     const target = event.target;
     if (!(target instanceof HTMLElement) || !target.matches('.mobile-nav-menu > summary, [data-mobile-nav-page-id]')) return;
-    const links = /** @type {HTMLAnchorElement[]} */ ([...menu.querySelectorAll('[data-mobile-nav-page-id]')]);
+    const links = /** @type {HTMLAnchorElement[]} */ ([...menu.querySelectorAll('[data-mobile-nav-page-id]')]
+      .filter((link) => link.getAttribute('aria-disabled') !== 'true'));
     const index = links.indexOf(/** @type {HTMLAnchorElement} */ (target));
     /** @type {HTMLAnchorElement | undefined} */
     let next;

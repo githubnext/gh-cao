@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"reflect"
 	"slices"
@@ -29,6 +28,10 @@ type retirement struct {
 }
 
 type archiveState struct {
+	SourceFenced          bool                    `json:",omitempty"`
+	WithdrawnSources      []sessionarchive.Source `json:",omitempty"`
+	Producer              string                  `json:",omitempty"`
+	NativeRecords         []nativeRecord          `json:",omitempty"`
 	Manifest              sessionarchive.Manifest
 	Fences                []sessionarchive.Fence
 	WithdrawnRepositories []string
@@ -45,6 +48,7 @@ type pointer struct {
 }
 
 type reader struct {
+	source  *sessionarchive.Source
 	members []sessionarchive.Member
 	cancel  context.CancelFunc
 }
@@ -54,10 +58,11 @@ type fileVerifier interface {
 }
 
 type Archive struct {
+	native    bool
 	config    Config
 	converter fileVerifier
-	blob      *blobClient
-	queryHTTP *http.Client
+	blob      BlobStore
+	queries   QueryService
 	verifyADX bool
 	mu        sync.Mutex
 	state     archiveState
@@ -75,6 +80,16 @@ type Archive struct {
 // New acquires the Blob lease only after the explicit activation gate. A
 // disabled configuration returns an inert adapter without credential or I/O.
 func New(ctx context.Context, config Config, converter *sessionarchive.Converter) (*Archive, error) {
+	return newArchive(ctx, config, converter, nil)
+}
+
+// NewWithServices preserves activation and destination gates while selecting
+// explicit adapters. It never substitutes services after an adapter failure.
+func NewWithServices(ctx context.Context, config Config, converter *sessionarchive.Converter, services Services) (*Archive, error) {
+	return newArchive(ctx, config, converter, &services)
+}
+
+func newArchive(ctx context.Context, config Config, converter *sessionarchive.Converter, services *Services) (*Archive, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
@@ -87,10 +102,15 @@ func New(ctx context.Context, config Config, converter *sessionarchive.Converter
 	if converter == nil {
 		return nil, errors.New("hosted archive requires the shared verifying Parquet converter")
 	}
-	a := &Archive{config: config, converter: converter,
-		blob:      &blobClient{root: config.blobRoot(), http: newHTTP(config, "https://storage.azure.com/.default")},
-		queryHTTP: newHTTP(config, "https://kusto.kusto.windows.net/.default"),
-		verifyADX: true, now: time.Now}
+	if services == nil {
+		resolved := azureServices(config)
+		services = &resolved
+	}
+	if err := services.validate(); err != nil {
+		return nil, err
+	}
+	a := &Archive{config: config, converter: converter, blob: services.Blob,
+		queries: services.Queries, verifyADX: true, now: time.Now}
 	if err := a.open(ctx); err != nil {
 		return nil, err
 	}
@@ -98,33 +118,29 @@ func New(ctx context.Context, config Config, converter *sessionarchive.Converter
 }
 
 func (a *Archive) open(ctx context.Context) error {
-	if err := a.blob.private(ctx); err != nil {
+	if err := a.blob.CheckPrivate(ctx); err != nil {
 		return err
 	}
 	initial, _ := json.Marshal(pointer{Version: 1})
-	response, err := a.blob.request(ctx, http.MethodPut, "active.json", "", bytes.NewReader(initial), int64(len(initial)),
-		http.Header{"If-None-Match": {"*"}, "x-ms-blob-type": {"BlockBlob"}})
-	if response != nil {
-		_ = response.Body.Close()
-	}
-	if err != nil && !isStatus(err, http.StatusPreconditionFailed) {
+	err := a.blob.CreatePointer(ctx, initial)
+	if err != nil && !errors.Is(err, ErrObjectExists) {
 		// An ambiguous create must be resolved by the same subsequent read.
-		if _, _, readErr := a.blob.get(ctx, "active.json", 4096); readErr != nil {
+		if _, _, readErr := a.blob.Read(ctx, "active.json", 4096); readErr != nil {
 			return err
 		}
 	}
 	a.lease = uuid.NewString()
-	if err := a.blob.lease(ctx, "acquire", a.lease); err != nil {
+	if err := a.blob.Lease(ctx, "acquire", a.lease); err != nil {
 		return err
 	}
 	if err := a.load(ctx); err != nil {
-		_ = a.blob.lease(ctx, "release", a.lease)
+		_ = a.blob.Lease(ctx, "release", a.lease)
 		return err
 	}
 	// No runtime DDL: prove the preprovisioned external table is the approved
 	// immutable-object partitioned destination before accepting any data.
 	if err := a.verifyTable(ctx); err != nil {
-		_ = a.blob.lease(ctx, "release", a.lease)
+		_ = a.blob.Lease(ctx, "release", a.lease)
 		return err
 	}
 	lifetime, cancel := context.WithCancel(context.WithoutCancel(ctx))
@@ -146,7 +162,7 @@ func decode(data []byte, target any) error {
 }
 
 func (a *Archive) load(ctx context.Context) error {
-	data, etag, err := a.blob.get(ctx, "active.json", 4096)
+	data, etag, err := a.blob.Read(ctx, "active.json", 4096)
 	if err != nil {
 		return err
 	}
@@ -160,13 +176,16 @@ func (a *Archive) load(ctx context.Context) error {
 		if !digestPattern.MatchString(active.State) {
 			return ErrIntegrity
 		}
-		data, _, err = a.blob.get(ctx, "manifests/"+active.State+".json", a.config.MaxStateBytes)
+		data, _, err = a.blob.Read(ctx, "manifests/"+active.State+".json", a.config.MaxStateBytes)
 		if err != nil || digest(data) != active.State || decode(data, &state) != nil ||
 			state.Manifest.Generation != active.Generation {
 			return ErrIntegrity
 		}
 		if err := a.validateState(state); err != nil {
 			return err
+		}
+		if (state.Producer == "native") != a.native || (state.Producer != "" && state.Producer != "native") {
+			return errors.New("archive producer profile does not match durable state")
 		}
 	}
 	a.active, a.etag, a.state = active, etag, state
@@ -183,7 +202,7 @@ func (a *Archive) renew(ctx context.Context) {
 			return
 		case <-ticker.C:
 			step, cancel := context.WithTimeout(ctx, 10*time.Second)
-			err := a.blob.lease(step, "renew", a.lease)
+			err := a.blob.Lease(step, "renew", a.lease)
 			cancel()
 			if err != nil {
 				// Renewal must not wait behind a long conversion or upload.
@@ -218,6 +237,9 @@ func (a *Archive) save(ctx context.Context, state archiveState, horizon time.Tim
 	if err := a.ready(); err != nil {
 		return err
 	}
+	if a.native {
+		state.Producer = "native"
+	}
 	// Immutable state history is deliberately retained for recovery, not
 	// silently expired. Stop before its explicit initial 4 GiB ceiling
 	// (1024 state objects at the 4 MiB hard state limit).
@@ -227,7 +249,7 @@ func (a *Archive) save(ctx context.Context, state archiveState, horizon time.Tim
 	if err := a.validateState(state); err != nil {
 		return err
 	}
-	if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+	if err := a.blob.Lease(ctx, "renew", a.lease); err != nil {
 		a.failLease()
 		return err
 	}
@@ -236,21 +258,17 @@ func (a *Archive) save(ctx context.Context, state archiveState, horizon time.Tim
 		return ErrCapacity
 	}
 	hash := digest(data)
-	if err := a.blob.immutable(ctx, "manifests/"+hash+".json", bytes.NewReader(data), int64(len(data)), hash); err != nil {
+	if err := a.blob.WriteImmutable(ctx, "manifests/"+hash+".json", bytes.NewReader(data), int64(len(data)), hash); err != nil {
 		return err
 	}
 	next := pointer{Version: 1, State: hash, Generation: state.Manifest.Generation, Revisions: a.active.Revisions + 1,
 		ReadersUntil: maxTime(a.active.ReadersUntil, horizon)}
 	content, _ := json.Marshal(next)
-	response, err := a.blob.request(ctx, http.MethodPut, "active.json", "", bytes.NewReader(content), int64(len(content)),
-		http.Header{"If-Match": {a.etag}, "x-ms-lease-id": {a.lease}, "x-ms-blob-type": {"BlockBlob"}})
-	if response != nil {
-		_ = response.Body.Close()
-	}
+	etag, err := a.blob.ComparePointer(ctx, content, a.etag, a.lease)
 	if err != nil {
 		// CAS may have committed despite a lost acknowledgement. Resolve it
 		// under our still-held lease; never assume success on a failed read.
-		check, etag, readErr := a.blob.get(ctx, "active.json", 4096)
+		check, etag, readErr := a.blob.Read(ctx, "active.json", 4096)
 		var current pointer
 		if readErr == nil && decode(check, &current) == nil &&
 			current.Version == next.Version && current.State == next.State && current.Generation == next.Generation &&
@@ -258,13 +276,12 @@ func (a *Archive) save(ctx context.Context, state archiveState, horizon time.Tim
 			a.active, a.etag, a.state = next, etag, state
 			return nil
 		}
-		if isStatus(err, http.StatusPreconditionFailed) || isStatus(err, http.StatusConflict) {
+		if errors.Is(err, ErrConflict) {
 			a.failLease()
 			return ErrConflict
 		}
 		return err
 	}
-	etag := response.Header.Get("ETag")
 	if etag == "" {
 		a.failLease()
 		return ErrIntegrity
@@ -314,7 +331,10 @@ func (a *Archive) validateState(state archiveState) error {
 	if len(state.Pending)+len(state.Manifest.Files)+len(state.Retired) > a.config.MaxFiles*3 {
 		return ErrCapacity
 	}
-	entries := len(state.Manifest.Members) + len(state.WithdrawnRepositories)
+	entries := len(state.Manifest.Members) + len(state.WithdrawnRepositories) + len(state.NativeRecords) + len(state.WithdrawnSources)
+	if err := a.validateNativeRecords(state); err != nil {
+		return err
+	}
 	for _, repository := range state.WithdrawnRepositories {
 		if !a.config.authorized(a.config.Namespace, repository) {
 			return ErrScope
@@ -434,6 +454,31 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 	defer cancel()
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.native {
+		return errors.New("native archive cannot publish local staging files")
+	}
+	return a.publish(ctx, candidate, a.uploadFile, nil, nil)
+}
+
+func (a *Archive) uploadFile(ctx context.Context, file sessionarchive.File) error {
+	if err := a.converter.Verify(ctx, file.Path, file); err != nil {
+		return ErrIntegrity
+	}
+	handle, err := os.Open(file.Path)
+	if err != nil {
+		return errors.New("archive staging file is unavailable")
+	}
+	defer func() { _ = handle.Close() }()
+	info, err := handle.Stat()
+	if err != nil || !info.Mode().IsRegular() || info.Size() != file.Bytes {
+		return ErrIntegrity
+	}
+	return a.blob.WriteImmutable(ctx, objectKey(file), handle, file.Bytes, file.Digest)
+}
+
+// The caller holds the lease owner's mutex. Both producer profiles share the
+// same reservations, immutable-object verification, fences and pointer CAS.
+func (a *Archive) publish(ctx context.Context, candidate sessionarchive.Manifest, upload func(context.Context, sessionarchive.File) error, records []nativeRecord, withdrawnSource *sessionarchive.Source) error {
 	if err := a.ready(); err != nil {
 		return err
 	}
@@ -447,7 +492,7 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 	if normalized.Generation != a.state.Manifest.Generation+1 {
 		return ErrConflict
 	}
-	if err := a.blob.private(ctx); err != nil {
+	if err := a.blob.CheckPrivate(ctx); err != nil {
 		return err
 	}
 	if a.verifyADX {
@@ -456,6 +501,12 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 		}
 	}
 	next := a.state
+	if withdrawnSource != nil {
+		next.WithdrawnSources = append(slices.Clone(next.WithdrawnSources), *withdrawnSource)
+	}
+	if records != nil {
+		next.NativeRecords = records
+	}
 	next.Manifest = normalized
 	next.Fences = slices.Clone(a.state.Fences)
 	withdrawing, published := false, false
@@ -509,8 +560,13 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 			continue
 		}
 		withdrawing = withdrawing || !replaced
-		next.Fences = mergeFence(next.Fences, sessionarchive.Fence{Namespace: old.Namespace, Repository: old.Repository,
-			RunID: old.RunID, Attempt: old.Attempt, Versions: []string{old.Version}, Withdrawn: !replaced})
+		retiredSource := withdrawnSource != nil && slices.ContainsFunc(a.state.NativeRecords, func(r nativeRecord) bool {
+			return r.Member == old && r.Source == *withdrawnSource
+		})
+		if !retiredSource {
+			next.Fences = mergeFence(next.Fences, sessionarchive.Fence{Namespace: old.Namespace, Repository: old.Repository,
+				RunID: old.RunID, Attempt: old.Attempt, Versions: []string{old.Version}, Withdrawn: !replaced})
+		}
 		if r := a.reader.Load(); r != nil {
 			for _, m := range r.members {
 				if memberKey(m) == memberKey(old) && !replaced {
@@ -559,30 +615,16 @@ func (a *Archive) Publish(ctx context.Context, candidate sessionarchive.Manifest
 			if !reflect.DeepEqual(previous, proposed) {
 				return ErrIntegrity
 			}
-			if err := a.blob.verify(ctx, previous.Path, previous.Digest, previous.Bytes); err != nil {
+			if err := a.blob.Verify(ctx, previous.Path, previous.Digest, previous.Bytes); err != nil {
 				return err
 			}
 			continue
 		}
-		if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+		if err := a.blob.Lease(ctx, "renew", a.lease); err != nil {
 			a.failLease()
 			return err
 		}
-		if err := a.converter.Verify(ctx, file.Path, file); err != nil {
-			return ErrIntegrity
-		}
-		handle, err := os.Open(file.Path)
-		if err != nil {
-			return errors.New("archive staging file is unavailable")
-		}
-		info, err := handle.Stat()
-		if err != nil || !info.Mode().IsRegular() || info.Size() != file.Bytes {
-			_ = handle.Close()
-			return ErrIntegrity
-		}
-		err = a.blob.immutable(ctx, objectKey(file), handle, file.Bytes, file.Digest)
-		_ = handle.Close()
-		if err != nil {
+		if err := upload(ctx, file); err != nil {
 			return err
 		}
 		if a.verifyADX {
@@ -621,7 +663,7 @@ func (a *Archive) ResolvePending(ctx context.Context, candidate sessionarchive.M
 	if err != nil {
 		return false, err
 	}
-	if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+	if err := a.blob.Lease(ctx, "renew", a.lease); err != nil {
 		a.failLease()
 		return false, err
 	}
@@ -653,15 +695,12 @@ func (a *Archive) Maintain(ctx context.Context) error {
 		if a.now().Before(r.After) || a.now().Before(a.active.ReadersUntil.Add(a.config.RetirementGrace)) {
 			continue
 		}
-		if err := a.blob.lease(ctx, "renew", a.lease); err != nil {
+		if err := a.blob.Lease(ctx, "renew", a.lease); err != nil {
 			a.failLease()
 			return err
 		}
-		response, err := a.blob.request(ctx, http.MethodDelete, r.Key, "", nil, 0, http.Header{})
-		if response != nil {
-			_ = response.Body.Close()
-		}
-		if err != nil && !isStatus(err, http.StatusNotFound) {
+		err := a.blob.Delete(ctx, r.Key)
+		if err != nil && !errors.Is(err, ErrNotFound) {
 			return err
 		}
 		next := a.state
@@ -705,6 +744,7 @@ func (a *Archive) WithdrawRepository(ctx context.Context, repository string) err
 		}
 	}
 	next.Manifest.Members = slices.DeleteFunc(next.Manifest.Members, func(m sessionarchive.Member) bool { return m.Repository == repository })
+	next.NativeRecords = slices.DeleteFunc(slices.Clone(next.NativeRecords), func(r nativeRecord) bool { return r.Member.Repository == repository })
 	if len(next.Fences)+len(next.Manifest.Members) > a.config.MaxMembers {
 		a.failLease()
 		return ErrCapacity
@@ -723,11 +763,25 @@ func (a *Archive) Status() sessionarchive.Status {
 	defer a.mu.Unlock()
 	status := sessionarchive.Status{Enabled: a.config.Enabled, Generation: a.active.Generation,
 		ActiveTraces: len(a.state.Manifest.Members)}
+	for _, record := range a.state.NativeRecords {
+		if record.Gap != "" {
+			status.Gaps++
+		}
+	}
 	for _, f := range a.state.Manifest.Files {
 		status.ArchiveBytes += f.Bytes
 	}
 	for _, f := range a.state.Pending {
 		status.StagingBytes += f.Bytes
+	}
+	if a.native {
+		staged := map[string]bool{}
+		for _, f := range a.state.Pending {
+			for _, m := range f.Members {
+				staged[memberKey(m)] = true
+			}
+		}
+		status.StagedTraces = len(staged)
 	}
 	for _, r := range a.state.Retired {
 		status.ArchiveBytes += r.Bytes
@@ -750,7 +804,7 @@ func (a *Archive) Close() error {
 	<-a.done
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	return a.blob.lease(ctx, "release", a.lease)
+	return a.blob.Lease(ctx, "release", a.lease)
 }
 
 func (a *Archive) String() string {

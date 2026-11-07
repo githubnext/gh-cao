@@ -155,7 +155,10 @@ func TestErasureRestartRecoveryThroughCanonicalCommit(t *testing.T) {
 				processCtx, cancel := context.WithCancel(ctx)
 				defer cancel()
 				fault := projectionFaultState{StateStore: services.State,
-					beforeSet: func(ctx context.Context, _ string, _ []byte) error {
+					beforeSet: func(ctx context.Context, key string, _ []byte) error {
+						if key != projectionDirtyKey {
+							return nil
+						}
 						if failure == "marker-write" {
 							return errors.New("injected marker failure")
 						}
@@ -165,8 +168,8 @@ func TestErasureRestartRecoveryThroughCanonicalCommit(t *testing.T) {
 						}
 						return nil
 					},
-					afterSet: func(string) {
-						if failure == "cancel-after-marker" {
+					afterSet: func(key string) {
+						if key == projectionDirtyKey && failure == "cancel-after-marker" {
 							cancel()
 						}
 					},

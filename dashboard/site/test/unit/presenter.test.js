@@ -16,6 +16,7 @@ import { authoritativeDashboard as builtInDashboardDocument } from '../authorita
 import { DashboardServerError } from '../../src/remote-data-backend.js';
 import { resetSourceStore } from '../../src/source-store.js';
 import { HORIZON_FILTER_STORAGE_KEY } from '../../src/components/filter-bar.js';
+import { navigationIndicatorSourceNames } from '../../src/navigation-indicator.js';
 
 const campaignDashboardDocuments = campaignDashboardSources.map((source) => JSON.parse(source));
 const authoritativeDashboardDocument = composeDashboardDocuments(
@@ -98,7 +99,7 @@ function renderDashboard(input) {
       operation: 'execute-dashboard-queries',
       queries: [...executableQueries, ...compiled.queries],
       sources,
-      sourceNames: compiled.aliases
+      sourceNames: [...compiled.aliases, ...navigationIndicatorSourceNames([payload])]
     }));
   }
   return renderDashboardView({ ...input, document: resolvedDocument, sources });
@@ -1983,6 +1984,13 @@ describe('presenter built-in and custom pages', () => {
     });
 
     const page = await activatePage(rendered, 'skills');
+    expect(page?.hasAttribute('data-page-experimental')).toBe(false);
+    expect(/** @type {HTMLElement} */ (rendered.querySelector('.title-area [data-page-experimental]')).hidden).toBe(true);
+    const navigationLinks = rendered.querySelectorAll('[data-nav-page-id="skills"]');
+    expect(navigationLinks.length).toBeGreaterThan(0);
+    for (const link of navigationLinks) {
+      expect(link.querySelector('.experimental-page-label')).toBeNull();
+    }
     expect(page?.querySelectorAll('[data-chart-widget="horizontal-bar"]')).toHaveLength(2);
     expect(page?.querySelector('[data-view-id="skills-workflow-inventory"] table')).not.toBeNull();
     expect(page?.querySelector('[data-view-id="skills-workflow-inventory"] [data-mobile-card-list] [data-card-drill]')?.getAttribute('href'))
@@ -2038,8 +2046,8 @@ describe('presenter built-in and custom pages', () => {
         'indexing-ingestion-runs': {
           source: 'indexing-ingestion-runs',
           rows: [
-            { 'shard-day': '2026-09-01', 'workflow-runs': 6, 'run-count-status': 'Reported run count' },
-            { 'shard-day': '2026-09-02', 'workflow-runs': 8, 'run-count-status': 'Reported run count' }
+            { 'shard-day': '2026-09-01', 'workflow-runs': 6, 'shard-entry-count': 1, 'run-count-status': 'Reported run count' },
+            { 'shard-day': '2026-09-02', 'workflow-runs': 8, 'shard-entry-count': 1, 'run-count-status': 'Reported run count' }
           ],
           metadata
         },
@@ -2101,6 +2109,7 @@ describe('presenter built-in and custom pages', () => {
       expect(page?.querySelector('[data-view-id="ingestion-storage"]')?.textContent).toContain('Storage engine unknown');
       expect(page?.querySelector('[data-view-id="indexing-size"]')).toBeNull();
       expect(page?.querySelectorAll('[data-chart-widget="scatter"] .scatter-chart-point')).toHaveLength(2);
+      expect(page?.querySelector('.chart-legend-size')?.getAttribute('aria-label')).toBe('Ingestion entries on shard day size legend');
       expect(page?.querySelectorAll('[data-view-id="github-api-usage"] [data-chart-widget="line"]')).toHaveLength(1);
       expect(page?.querySelector('[data-view-id="github-api-usage"]')?.textContent).toContain('collector/123/core');
       expect(page?.querySelectorAll('[data-chart-widget="horizontal-bar"]')).toHaveLength(2);

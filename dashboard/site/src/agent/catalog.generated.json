@@ -3405,7 +3405,7 @@
       "id": "workflow-runs",
       "subject": "Project canonical runs into route-addressable workflow run evidence.",
       "objective": "Trace retained runs and recorded failure evidence for a selected workflow route.",
-      "acceptance": "Preserve workflow route, run identity, start/end, status, conclusion, failure fields, mode, engine/model metadata, and run link; missing failure details do not prove success or rule out incomplete import.",
+      "acceptance": "Preserve workflow route, run identity, timing, recorded Actions minutes and AI Credits, status, conclusion, failure fields, mode, engine/model metadata, and run link; missing failure details do not prove success or rule out incomplete import.",
       "description": "Workflow runs with a stable repository and workflow route key.",
       "parameters": [
         {
@@ -4630,6 +4630,25 @@
         "backend": "sqlite",
         "requirements": [
           "operational-value-evidence"
+        ]
+      }
+    },
+    {
+      "id": "campaign-navigation-availability",
+      "subject": "Detect available campaign inventory for dashboard navigation.",
+      "objective": "Enable Campaigns only when collected campaign information is present.",
+      "acceptance": "Return at most one canonical campaign identity; missing or empty inventory does not enable Campaigns, and partial inventory does not imply complete campaign coverage.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "campaigns"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "campaigns"
         ]
       }
     },
@@ -5992,14 +6011,34 @@
       }
     },
     {
-      "id": "indexing-ingestion-runs",
-      "subject": "Show retained ingestion transactions at the activity date encoded in their shard filename.",
-      "objective": "Compare reported run counts by source shard activity date, independently of import time.",
-      "acceptance": "Preserve every dated transaction, including coincident dates, all kinds, and zero counts, without grouping, limits, or page filters. Omit missing or invalid shard dates; never substitute import time. Missing counts use labeled zero-position placeholders, not measured zeroes.",
+      "id": "indexing-shard-entry-counts",
+      "subject": "Count retained ingestion entries for each valid shard activity date.",
+      "objective": "Expose coincident ingestion density as circle area without changing individual run counts.",
+      "acceptance": "Count dated transaction identities across all kinds, including zero and unavailable run counts. This is retained ingestion evidence, not distinct runs, bytes, or upstream coverage.",
       "description": "",
       "parameters": [],
       "sources": [
         "indexing-shard-dates"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "transactions"
+        ]
+      }
+    },
+    {
+      "id": "indexing-ingestion-runs",
+      "subject": "Show retained ingestion transactions at the activity date encoded in their shard filename.",
+      "objective": "Compare reported run counts by source shard activity date, independently of import time, and expose coincident ingestion density.",
+      "acceptance": "Preserve all dated transactions without grouping, limits or page filters. Size by retained entries on the shard day, not distinct runs or coverage. Never substitute import time. Missing run counts remain labeled zero-position placeholders, not measured zeroes.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "indexing-shard-dates",
+        "indexing-shard-entry-counts"
       ],
       "used-by-pages": [
         "indexing"

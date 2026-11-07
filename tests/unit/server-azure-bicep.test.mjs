@@ -234,7 +234,8 @@ test('Azure selects PostgreSQL operational storage without Redis', () => {
     assert.equal((collector.match(/registries:\s*registries/g) ?? []).length, 2);
     assert.equal((collector.match(/dependsOn:\s*\[roles\]/g) ?? []).length, 2);
     assert.equal((collector.match(/'--database-queries', '\/app\/queries\/database.json'/g) ?? []).length, 2);
-    assert.match(collector, /name:\s*'CAO_COLLECT_CATALOG_ROOT'\s+value:\s*'\/app\/catalog'/);
+    assert.match(collector, /name:\s*'CAO_COLLECT_NATIVE'\s+value:\s*'true'/);
+    assert.match(collector, /name:\s*'CAO_COLLECT_NATIVE_INVENTORY_DIGEST'\s+value:\s*nativeInventoryDigest/);
     assert.match(collector, /name:\s*'CAO_POSTGRES_RUN_RETENTION_DAYS'/);
   });
 
@@ -270,6 +271,62 @@ test('Azure collection uses fixed PostgreSQL-backed workers', () => {
   assert.match(collector, /maxReplicas:\s*workerReplicas/);
   assert.doesNotMatch(collector, /rules:\s*\[/);
   assert.doesNotMatch(collector, /taskStreamKey|streamKey|consumerGroup/);
+});
+
+test('Azure Bicep and compiled collector select native Go acquisition and require provisioned inventory', () => {
+  assert.match(bicep, /param collectorNativeInventoryDigest string = ''/);
+  assert.match(bicep, /nativeInventoryDigest:\s*collectorNativeInventoryDigest/);
+  assert.match(collector, /@minLength\(64\)\s+@maxLength\(64\)[\s\S]*?param nativeInventoryDigest string/);
+  assert.doesNotMatch(bicep, /collectorLakeStorageSku/);
+  assert.doesNotMatch(collector, /lakeStorageSku|lakeAccount|evidence-lake|CAO_COLLECT_LAKE_DIRECTORY/);
+  assert.match(bicep, /name:\s*'CAO_COLLECT_NATIVE'\s+value:\s*'true'/);
+  assert.equal(generated.variables.collectionEnabled, "[not(empty(parameters('collectorImage')))]");
+  assert.equal(generated.parameters.collectorNativeInventoryDigest.defaultValue, '');
+  const app = resources.find((resource) => resource.type === 'Microsoft.Web/sites');
+  const admission = app.properties.siteConfig.appSettings;
+  assert.match(admission, /if\(not\(variables\('collectionEnabled'\)\), createArray\(\), createArray\(/);
+  assert.match(admission, /'CAO_COLLECT_APP_ID', 'value', parameters\('collectorGithubAppId'\).*?'CAO_COLLECT_NATIVE', 'value', 'true'.*?'CAO_COLLECT_ADMIT_ONLY', 'value', 'true'/);
+  assert.doesNotMatch(admission, /CAO_COLLECT_NATIVE_INVENTORY_DIGEST|CAO_COLLECT_PRIVATE_KEY/);
+
+  const workers = resources.find((resource) => resource.name === 'collection-workers');
+  assert.equal(workers.condition, "[variables('collectionEnabled')]");
+  assert.equal(workers.properties.parameters.nativeInventoryDigest.value,
+    "[parameters('collectorNativeInventoryDigest')]");
+  const template = workers.properties.template;
+  assert.equal(template.parameters.nativeInventoryDigest.minLength, 64);
+  assert.equal(template.parameters.nativeInventoryDigest.maxLength, 64);
+  const environment = Object.fromEntries(template.variables.collectionBaseEnvironment.map(({ name, ...setting }) => [name, setting]));
+  assert.deepEqual(environment.CAO_COLLECT_NATIVE, { value: 'true' });
+  assert.deepEqual(environment.CAO_COLLECT_NATIVE_INVENTORY_DIGEST, {
+    value: "[parameters('nativeInventoryDigest')]",
+  });
+  assert.deepEqual(environment.CAO_COLLECT_APP_ID, { value: "[parameters('githubAppId')]" });
+  assert.deepEqual(environment.CAO_POSTGRES_URL, { secretRef: 'cao-postgres-url' });
+  assert.deepEqual(environment.CAO_OPERATIONAL_NAMESPACE, { value: "[parameters('operationalNamespace')]" });
+  assert.equal(workers.properties.parameters.operationalNamespace.value, 'azure-dashboard-operational');
+  assert.equal(template.resources.filter((resource) => resource.type === 'Microsoft.Storage/storageAccounts').length, 0);
+  for (const role of template.resources.filter((resource) =>
+    ['Microsoft.App/jobs', 'Microsoft.App/containerApps'].includes(resource.type))) {
+    assert.equal(role.properties.template.containers[0].env, "[variables('collectionEnvironment')]");
+    assert.equal(role.properties.template.containers[0].command[0], '/app/cao-dashboard');
+    assert.ok(['collect', 'backfill'].includes(role.properties.template.containers[0].args[0]));
+    assert.equal(role.properties.template.volumes, undefined);
+    assert.equal(role.properties.template.containers[0].volumeMounts, undefined);
+  }
+  for (const retired of ['CAO_COLLECT_LAKE_DIRECTORY', 'CAO_COLLECT_STATIC_INVENTORY', 'CAO_COLLECT_GH_BINARY',
+    'CAO_COLLECT_CATALOG_ROOT', 'collectorLakeStorageSku', 'lakeStorageAccountName', 'evidence-lake']) {
+    assert.doesNotMatch(JSON.stringify(generated), new RegExp(retired));
+  }
+  const runtime = dockerfile.split(' AS collector-runtime\n')[1]?.split('\nFROM ')[0];
+  assert.match(dockerfile, /^FROM alpine:3\.22@sha256:[0-9a-f]{64} AS collector-runtime$/m);
+  assert.match(runtime, /^COPY --from=server-build --chown=cao:cao \/out\/cao-dashboard \/app\/cao-dashboard$/m);
+  assert.match(runtime, /^COPY --from=dashboard-build --chown=cao:cao \/workspace\/dashboard\/site\/src\/data\/queries\/database\.json \/app\/queries\/database\.json$/m);
+  for (const policy of ['cao.json', 'cao.azure.json']) {
+    assert.ok(runtime.includes(`COPY --from=dashboard-build --chown=cao:cao /workspace/.github/workflows/${policy} /app/.github/workflows/${policy}`));
+  }
+  assert.doesNotMatch(runtime, /node:|gh-aw|\/app\/catalog|\/app\/evidence/);
+  assert.match(runtime, /^ENTRYPOINT \["\/app\/cao-dashboard"\]$/m);
+  assert.match(runtime, /^CMD \["collect", "--database-queries", "\/app\/queries\/database\.json"\]$/m);
 });
 
 test('Azure dashboard Bicep does not output secrets or PAT-based configuration', () => {

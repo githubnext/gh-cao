@@ -1,0 +1,231 @@
+{
+  "description": "Inspect bounded recent gh-aw logs and available rich evidence without a control-plane installation. Missing evidence remains unknown; native maintenance requires trusted terminal approval.",
+  "audited-dashboard-sha256": "5dd8b4ff57b737ecd5df75a069b50af7485839f782e49d2f0922ed8f31f161c8",
+  "include-experimental-pages": true,
+  "excluded-pages": [
+    "wizard", "governance", "configuration", "indexing",
+    "campaigns", "memory", "campaign-detail", "campaign-workflows", "campaign-issues",
+    "campaign-repositories", "campaign-reports", "campaign-memory", "campaign-runs",
+    "campaign-problems", "campaign-problem-detail", "campaign-insights",
+    "value-measurement", "workflow-value", "value-report", "value-snapshot",
+    "value", "value-campaigns", "value-standalone", "value-review", "campaign-value",
+    "marketplace", "marketplace-package", "maintenance-campaigns"
+  ],
+  "supported-stores": [
+    "repositories", "workflows", "runs", "dailyRunCounts",
+    "domains", "tools", "skills", "friction", "audits", "issues",
+    "experiments", "experimentAssignments", "graders", "graderObservations", "evals", "evalObservations"
+  ],
+  "supported-external-sources": ["simulation-days", "cli-commands", "cli-command-statuses", "cli-command-summary"],
+  "data-status": {
+    "freshness-source": "dashboard-data-freshness",
+    "stale-after-hours": 24
+  },
+  "included-cli-actions": ["upgrade-repository", "upgrade-target-repository"],
+  "cli-action-overrides": {
+    "upgrade-repository": {
+      "command": "gh aw upgrade --repo {{repository}}",
+      "preview-command": "gh aw upgrade --repo {{repository}}",
+      "description": "Request an Agentic Workflows compiler upgrade for each selected repository. Each native command requires terminal approval and publishes a pull request; unknown compiler versions are not evidence that an upgrade is needed.",
+      "arguments": [
+        {
+          "id": "create-pull-request",
+          "label": "Create pull request",
+          "description": "Required for native maintenance; commands without pull-request publication are rejected.",
+          "type": "boolean",
+          "flag": "--create-pull-request",
+          "default": true
+        },
+        {
+          "id": "pre-releases",
+          "label": "Include pre-releases",
+          "type": "boolean",
+          "flag": "--pre-releases",
+          "default": false
+        }
+      ]
+    },
+    "upgrade-target-repository": {
+      "command": "gh aw upgrade --repo {{repository}}",
+      "preview-command": "gh aw upgrade --repo {{repository}}",
+      "description": "Request a compiler upgrade pull request for this repository after trusted terminal approval.",
+      "arguments": [
+        {
+          "id": "create-pull-request",
+          "label": "Create pull request",
+          "description": "Required for native maintenance; commands without pull-request publication are rejected.",
+          "type": "boolean",
+          "flag": "--create-pull-request",
+          "default": true
+        },
+        {
+          "id": "pre-releases",
+          "label": "Include pre-releases",
+          "type": "boolean",
+          "flag": "--pre-releases",
+          "default": false
+        }
+      ]
+    }
+  },
+  "page-overrides": {
+    "overview": {
+      "intent": "Inspect the bounded recent evidence actually retained for selected repositories.",
+      "subject": "Retained workflow run observations, not fleet health or verified operational value.",
+      "objective": "Choose a run for investigation without inferring the health of unobserved workflows.",
+      "acceptance": "Count only retained run identities. Collection is bounded and partial; missing runs, artifacts, outcomes and workflow health remain unknown. Runtime success and grader observations do not establish verified delivery or value.",
+      "description": "Bounded recent evidence only. Collection is partial; unobserved workflow health, verified delivery and operational value remain unknown. Inspect Runs and Graders for the underlying observations.",
+      "class-name": "immediate-evidence-page",
+      "view-mode-control": false,
+      "views": [
+        {
+          "id": "overview-retained-run-count",
+          "title": "Retained recent runs — partial collection",
+          "description": "Only run identities present in this bounded collection are counted. This is not a count of healthy workflows, a complete run history, or verified delivery.",
+          "data": { "source": "immediate-retained-run-count" },
+          "mark": "metric",
+          "encoding": { "value": { "field": "retained-runs", "type": "quantitative", "aggregate": "max" } },
+          "layout": "full"
+        }
+      ]
+    },
+    "maintenance": {
+      "navigation-indicator": { "label": "compiler updates available", "any": ["maintenance-repository-upgrades"] }
+    }
+  },
+  "view-overrides": {
+    "maintenance/maintenance-repositories": {
+      "description": "Inspect known compiler versions or explicitly request an approved upgrade pull request for selected repositories. Unknown versions never become an upgrade recommendation.",
+      "list": {
+        "style": "entity-cards",
+        "card": "maintenance-repository",
+        "icon": "repo",
+        "action": "upgrade-repository",
+        "action-context": ["repository"]
+      }
+    }
+  },
+  "query-source-aliases": {
+    "workflows": "workflow-identities",
+    "workflow-subject-topology": "workflow-subject-identities",
+    "overview-runs": "overview-run-identities",
+    "outcomes": "immediate-outcomes",
+    "work-items": "immediate-work-items",
+    "work-item-run-observations": "immediate-work-item-run-observations",
+    "work-item-run-times": "immediate-work-item-run-times",
+    "work-item-run-identities": "immediate-work-item-run-identities",
+    "work-item-run-attempts": "immediate-work-item-run-attempts",
+    "work-item-latest-runs": "immediate-work-item-latest-runs",
+    "work-item-run-outcomes": "immediate-work-item-run-outcomes"
+  },
+  "imported-queries": [
+    {
+      "source": "outcomes", "name": "immediate-outcomes",
+      "subject": "Retained normalized safe outputs and their observed workflow identities.",
+      "objective": "Preserve rich report drilldowns without a campaign inventory join.",
+      "acceptance": "Use the production outcomes query with intrinsic workflow identities; absent campaign and issue disposition evidence remains unknown.",
+      "prepend-computed-fields": [
+        { "as": "_issue-href", "function": "if", "args": [{ "field": "is-pull-request" }, { "value": null }, { "field": "correlation-id" }] },
+        { "as": "_pull-request-href", "function": "if", "args": [{ "field": "is-pull-request" }, { "field": "correlation-id" }, { "value": null }] }
+      ],
+      "computed-field-overrides": {
+        "issue-link": { "as": "issue-link", "function": "link", "args": [{ "field": "_issue-href" }, { "value": "View issue" }] },
+        "pull-request-link": { "as": "pull-request-link", "function": "link", "args": [{ "field": "_pull-request-href" }, { "value": "View pull request" }] }
+      }
+    },
+    {
+      "source": "work-item-run-times", "name": "immediate-work-item-run-times",
+      "subject": "Latest observed start per workflow.",
+      "objective": "Bound the lifecycle view to the newest retained run.",
+      "acceptance": "Reuse production grouping over normalized observed run timestamps."
+    },
+    {
+      "source": "work-item-run-identities", "name": "immediate-work-item-run-identities",
+      "subject": "Latest observed run identity per workflow and start time.",
+      "objective": "Disambiguate runs with matching timestamps.",
+      "acceptance": "Reuse production run-number ordering within the selected workflow identity."
+    },
+    {
+      "source": "work-item-run-attempts", "name": "immediate-work-item-run-attempts",
+      "subject": "Latest retained attempt for the latest observed run.",
+      "objective": "Avoid stale-attempt lifecycle evidence.",
+      "acceptance": "Reuse production attempt ordering; absent attempts are not invented."
+    },
+    {
+      "source": "work-item-latest-runs", "name": "immediate-work-item-latest-runs",
+      "subject": "Latest retained run and matching attempt for each workflow.",
+      "objective": "Preserve current observed lifecycle evidence.",
+      "acceptance": "Reuse production identity and attempt joins without campaign records."
+    },
+    {
+      "source": "work-item-run-outcomes", "name": "immediate-work-item-run-outcomes",
+      "subject": "Observed pending safe outputs for a matching run attempt.",
+      "objective": "Retain review signals only when issue state is actually observed.",
+      "acceptance": "Reuse production outcome aggregation; absent issue state does not become an open output."
+    },
+    {
+      "source": "work-items", "name": "immediate-work-items",
+      "subject": "Observed workflow lifecycle within selected repositories.",
+      "objective": "Preserve failure and review drilldowns without campaign or hosted admission requirements.",
+      "acceptance": "Reuse production lifecycle classification over intrinsic workflow identities and observed runs; missing admission, campaign and output state remain unknown.",
+      "excluded-computed-fields": ["_missing-repository-link", "repository-link"],
+      "computed-field-overrides": {
+        "domain": { "as": "domain", "function": "literal", "args": [{ "value": "unknown" }] }
+      }
+    }
+  ],
+  "queries": [
+    {
+      "name": "immediate-retained-run-count",
+      "subject": "Distinct run identities actually retained in the bounded immediate collection.",
+      "objective": "Summarize collected evidence without evaluating unobserved workflows or claiming verified outcomes.",
+      "acceptance": "Count canonical repository-scoped run IDs only. Preserve partial collection metadata; this count is not total history, fleet health, verified delivery or operational value.",
+      "from": "runs",
+      "aggregate": {
+        "values": [{ "field": "id", "as": "retained-runs", "reducer": "distinct-count" }]
+      }
+    },
+    {
+      "name": "maintenance-repository-versions",
+      "subject": "Known compiler evidence for observed remote workflow identities.",
+      "objective": "Keep selected repositories visible even when remote Actions paths are lock YAML rather than local Markdown sources.",
+      "acceptance": "Group observed workflow identities without requiring local source files. Missing compiler versions remain explicitly unavailable, not an upgrade recommendation.",
+      "filter": null
+    },
+    {
+      "name": "immediate-work-item-run-observations",
+      "subject": "Canonical observed run identities with their intrinsic workflow parents.",
+      "objective": "Supply the production latest-run lifecycle contract from public intrinsic logical sources.",
+      "acceptance": "Read runs and workflow-identities through the production query boundary; rename only observed fields, never synthesize admission, provenance or output state.",
+      "from": "runs",
+      "joins": [
+        {
+          "source": "workflow-identities", "type": "inner",
+          "on": [
+            { "left": "organization", "right": "organization" },
+            { "left": "repository", "right": "repository" },
+            { "left": "workflow", "right": "workflow" }
+          ],
+          "fields": [{ "field": "id", "as": "workflowId" }]
+        }
+      ],
+      "compute": [
+        { "as": "_started-at", "function": "coalesce", "args": [{ "field": "started-at" }, { "field": "created-at" }] },
+        { "as": "_started", "function": "timestamp", "args": [{ "field": "_started-at" }] },
+        { "as": "_run-number", "function": "number", "args": [{ "field": "run" }] },
+        { "as": "githubRunId", "function": "number", "args": [{ "field": "run" }] },
+        { "as": "attempt", "function": "coalesce", "args": [{ "field": "run-attempt" }, { "value": null }] },
+        { "as": "title", "function": "coalesce", "args": [{ "field": "run-title" }, { "value": null }] },
+        { "as": "_in-progress", "function": "equals-any", "args": [{ "field": "run-status" }, { "value": "in_progress" }, { "value": "in-progress" }] },
+        { "as": "status", "function": "if", "args": [{ "field": "_in-progress" }, { "value": "in-progress" }, { "field": "run-status" }] },
+        { "as": "conclusion", "function": "coalesce", "args": [{ "field": "run-conclusion" }, { "value": null }] },
+        { "as": "admissionStatus", "function": "coalesce", "args": [{ "field": "admission-status" }, { "value": null }] },
+        { "as": "admissionReason", "function": "coalesce", "args": [{ "field": "admission-reason" }, { "value": null }] },
+        { "as": "failureMessage", "function": "coalesce", "args": [{ "field": "failure-message" }, { "value": null }] },
+        { "as": "completedAt", "function": "coalesce", "args": [{ "field": "ended-at" }, { "value": null }] },
+        { "as": "resourceResetAt", "function": "coalesce", "args": [{ "field": "resource-reset-at" }, { "value": null }] },
+        { "as": "runLink", "function": "coalesce", "args": [{ "field": "run-link" }, { "value": null }] }
+      ]
+    }
+  ]
+}

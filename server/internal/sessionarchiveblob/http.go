@@ -1,6 +1,7 @@
 package sessionarchiveblob
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -67,6 +68,30 @@ type statusError int
 
 func (s statusError) Error() string { return fmt.Sprintf("archive Blob returned HTTP %d", s) }
 
+type blobResponseError struct {
+	status statusError
+	code   string
+}
+
+func (e *blobResponseError) Error() string { return e.status.Error() }
+func (e *blobResponseError) Unwrap() error { return e.status }
+func (e *blobResponseError) Is(target error) bool {
+	return target == ErrObjectExists && int(e.status) == http.StatusConflict && e.code == "BlobAlreadyExists"
+}
+
+func (s statusError) Is(target error) bool {
+	switch target {
+	case ErrObjectExists:
+		return int(s) == http.StatusPreconditionFailed
+	case ErrNotFound:
+		return int(s) == http.StatusNotFound
+	case ErrConflict:
+		return int(s) == http.StatusPreconditionFailed || int(s) == http.StatusConflict
+	default:
+		return false
+	}
+}
+
 func isStatus(err error, status int) bool {
 	var e statusError
 	return errors.As(err, &e) && int(e) == status
@@ -98,12 +123,12 @@ func (b *blobClient) request(ctx context.Context, method, key, query string, bod
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		_ = response.Body.Close()
-		return nil, statusError(response.StatusCode)
+		return nil, &blobResponseError{status: statusError(response.StatusCode), code: response.Header.Get("x-ms-error-code")}
 	}
 	return response, nil
 }
 
-func (b *blobClient) private(ctx context.Context) error {
+func (b *blobClient) CheckPrivate(ctx context.Context) error {
 	u, err := url.Parse(b.root)
 	if err != nil {
 		return ErrScope
@@ -122,7 +147,7 @@ func (b *blobClient) private(ctx context.Context) error {
 	return nil
 }
 
-func (b *blobClient) get(ctx context.Context, key string, max int64) ([]byte, string, error) {
+func (b *blobClient) Read(ctx context.Context, key string, max int64) ([]byte, string, error) {
 	response, err := b.request(ctx, http.MethodGet, key, "", nil, 0, http.Header{})
 	if err != nil {
 		return nil, "", err
@@ -144,7 +169,7 @@ func digest(data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func (b *blobClient) verify(ctx context.Context, key, expected string, size int64) error {
+func (b *blobClient) Verify(ctx context.Context, key, expected string, size int64) error {
 	response, err := b.request(ctx, http.MethodGet, key, "", nil, 0, http.Header{})
 	if err != nil {
 		return err
@@ -158,11 +183,11 @@ func (b *blobClient) verify(ctx context.Context, key, expected string, size int6
 	return nil
 }
 
-func (b *blobClient) immutable(ctx context.Context, key string, body io.Reader, size int64, expected string) error {
+func (b *blobClient) WriteImmutable(ctx context.Context, key string, body io.Reader, size int64, expected string) error {
 	headers := http.Header{"If-None-Match": {"*"}, "x-ms-blob-type": {"BlockBlob"},
 		"Content-Type": {"application/octet-stream"}}
 	response, err := b.request(ctx, http.MethodPut, key, "", body, size, headers)
-	if err != nil && !isStatus(err, http.StatusPreconditionFailed) {
+	if err != nil && !errors.Is(err, ErrObjectExists) {
 		return err
 	}
 	if response != nil {
@@ -170,10 +195,10 @@ func (b *blobClient) immutable(ctx context.Context, key string, body io.Reader, 
 	}
 	// Includes deduplication after an ambiguous upload acknowledgement. Never
 	// trust object names or a caller-provided metadata digest alone.
-	return b.verify(ctx, key, expected, size)
+	return b.Verify(ctx, key, expected, size)
 }
 
-func (b *blobClient) lease(ctx context.Context, action, id string) error {
+func (b *blobClient) Lease(ctx context.Context, action, id string) error {
 	headers := http.Header{"x-ms-lease-action": {action}}
 	if action == "acquire" {
 		headers.Set("x-ms-lease-duration", "60")
@@ -191,4 +216,37 @@ func (b *blobClient) lease(ctx context.Context, action, id string) error {
 		return ErrLease
 	}
 	return nil
+}
+
+func (b *blobClient) CreatePointer(ctx context.Context, data []byte) error {
+	response, err := b.request(ctx, http.MethodPut, "active.json", "", bytes.NewReader(data), int64(len(data)),
+		http.Header{"If-None-Match": {"*"}, "x-ms-blob-type": {"BlockBlob"}})
+	if response != nil {
+		_ = response.Body.Close()
+	}
+	return err
+}
+
+func (b *blobClient) ComparePointer(ctx context.Context, data []byte, etag, lease string) (string, error) {
+	if etag == "" {
+		return "", ErrConflict
+	}
+	if lease == "" {
+		return "", ErrLease
+	}
+	response, err := b.request(ctx, http.MethodPut, "active.json", "", bytes.NewReader(data), int64(len(data)),
+		http.Header{"If-Match": {etag}, "x-ms-lease-id": {lease}, "x-ms-blob-type": {"BlockBlob"}})
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = response.Body.Close() }()
+	return response.Header.Get("ETag"), nil
+}
+
+func (b *blobClient) Delete(ctx context.Context, key string) error {
+	response, err := b.request(ctx, http.MethodDelete, key, "", nil, 0, http.Header{})
+	if response != nil {
+		_ = response.Body.Close()
+	}
+	return err
 }

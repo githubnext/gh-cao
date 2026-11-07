@@ -69,7 +69,7 @@ func Inspect(ctx context.Context, config Config, namespace string) (Status, erro
 		return Status{}, err
 	}
 	status := Status{Stage: "waiting"}
-	err = s.locked(ctx, func(_ *os.Root, state *ledger) error {
+	err = s.locked(ctx, func(_ Objects, state *ledger) error {
 		status = summarizeLedger(state, config, time.Now())
 		return nil
 	})
@@ -136,7 +136,7 @@ func exportDatasetAt(ctx context.Context, config Config, namespace string, speci
 	}
 	config = s.config
 	var path string
-	err = s.locked(ctx, func(root *os.Root, state *ledger) error {
+	err = s.locked(ctx, func(root Objects, state *ledger) error {
 		specContent, err := json.Marshal(spec)
 		if err != nil {
 			return err

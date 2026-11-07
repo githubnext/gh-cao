@@ -10,6 +10,20 @@ function toText(value) {
 }
 
 describe('view formatter helpers', () => {
+  it('formats declared byte and compact count units across metrics and tables', () => {
+    const bytes = { name: 'Bytes', symbol: 'B', significant: 1, format: 'bytes' };
+    const count = { name: 'Modeled count', symbol: 'count', significant: 0.01, format: 'compact-number' };
+    expect(formatNumber(890_880_000, bytes)).toBe('891 MB');
+    expect(formatNumber(8_601_600_000_000, bytes)).toBe('8.6 TB');
+    expect(formatNumber(-1_500, bytes)).toBe('-1.5 KB');
+    expect(formatNumber(100_000, count)).toBe('100K');
+    expect(formatNumber(50_000_000, count)).toBe('50M');
+    expect(formatNumber(1.235, count)).toBe('1.24');
+    expect(formatNumber(-1.235, count)).toBe('-1.24');
+    expect(formatAggregateValue([{ bytes: 890_880_000 }], 'bytes', 'sum', toText, bytes)).toBe('891 MB');
+    expect(formatAggregateValue([{ count: 100_000 }, { count: 50_000 }], 'count', 'sum', toText, count)).toBe('150K');
+  });
+
   it('formats workflow-relative paths without changing other strings', () => {
     expect(formatString('.github/workflows/daily.md', 'workflow-relative-path')).toBe('daily.md');
     expect(formatString('.github/workflows/nested/daily.md', 'workflow-relative-path')).toBe('nested/daily.md');

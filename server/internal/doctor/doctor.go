@@ -129,13 +129,12 @@ func (d Doctor) Run(ctx context.Context) Report {
 		d.checkSourceReads,
 		d.checkCollectionProfile,
 		d.checkCollectionSettings,
+		d.checkCollectionStorage,
 		d.checkEnrollment,
 		d.checkQueue,
 		d.checkBackfill,
 		d.checkBudget,
-		d.checkLake,
 		d.checkTooling,
-		d.checkProjectionLock,
 	)
 
 	for _, run := range checks {
@@ -229,7 +228,7 @@ func redactRedisURL(rawURL string) string {
 func (d Doctor) storeUnavailable(id, area, title string) (Check, bool) {
 	if operational.CheckStore(d.Store) == nil {
 		caps := d.Store.Capabilities()
-		collection := area == areaCollect && id != "collect.projection"
+		collection := area == areaCollect
 		if collection && caps.Collection.Scope == operational.ScopeUnsupported {
 			return skipped(id, area, title, "collection is unsupported by the selected operational backend"), true
 		}

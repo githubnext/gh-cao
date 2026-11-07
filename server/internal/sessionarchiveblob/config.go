@@ -26,6 +26,12 @@ var (
 
 const planVersion = "cao-archive-partition-membership-v1"
 
+// NativeAcceptanceBinding requires separate acceptance of Go-generated Parquet
+// and file-free recovery; legacy DuckDB conformance cannot activate it.
+func (c Config) NativeAcceptanceBinding() string {
+	return digest([]byte("cao-archive-native-parquet-v1\x00" + c.AcceptanceBinding()))
+}
+
 var (
 	ErrDisabled    = errors.New("hosted session archive is disabled")
 	ErrScope       = errors.New("hosted session archive scope is not authorized")

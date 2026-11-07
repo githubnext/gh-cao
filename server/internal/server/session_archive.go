@@ -19,7 +19,9 @@ import (
 	"go.opentelemetry.io/otel/codes"
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/logger"
+	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 	"github.com/githubnext/gh-cao/server/internal/sessionarchiveblob"
 	"github.com/githubnext/gh-cao/server/internal/sqlitex"
@@ -84,25 +86,131 @@ type localSessionArchive struct {
 
 type hostedSessionArchive struct {
 	*sessionarchive.Archive
-	publisher *sessionarchiveblob.Archive
+	publisher hostedArchivePublisher
 	namespace string
 }
 
+type hostedArchiveReader interface {
+	ReadTimeline(context.Context, sessionarchive.Scope, sessionarchive.TimelineRequest) (uint64, []sessionarchive.Event, *sessionarchiveblob.Reader, error)
+	ReadSummaries(context.Context, sessionarchive.Scope, string, int) (uint64, []sessionarchive.Summary, *sessionarchiveblob.Reader, error)
+}
+
+type hostedArchivePublisher interface {
+	sessionarchive.Publisher
+	hostedArchiveReader
+	WithdrawRepository(context.Context, string) error
+	Maintain(context.Context) error
+	Close() error
+}
+
 func (archive *hostedSessionArchive) Query(ctx context.Context, input sessionArchiveQuery) (sessionArchiveResult, error) {
+	return hostedArchiveQuery(ctx, archive.publisher, archive.namespace, input)
+}
+
+type nativeSessionArchive struct {
+	*sessionarchiveblob.Native
+	namespace   string
+	destination string
+	authority   sessionarchive.NativeAuthority
+}
+
+func (*nativeSessionArchive) QueryKinds() []string { return []string{"timeline", "summary"} }
+
+func (archive *nativeSessionArchive) Query(ctx context.Context, input sessionArchiveQuery) (sessionArchiveResult, error) {
+	if archive.authority == nil {
+		return sessionArchiveResult{}, collectnative.ErrUnsupported
+	}
 	if err := input.validate(); err != nil {
 		return sessionArchiveResult{}, err
 	}
+	source, err := archive.authority.Current(ctx, archive.destination, input.Repository)
+	if err != nil {
+		return sessionArchiveResult{}, err
+	}
+	if source.Validate() != nil || source.Repository != input.Repository {
+		return sessionArchiveResult{}, sessionarchive.ErrWithdrawn
+	}
 	scope := sessionarchive.Scope{Namespace: archive.namespace, Repositories: []string{input.Repository}}
+	result := sessionArchiveResult{Kind: input.Kind}
+	var reader *sessionarchiveblob.Reader
+	switch input.Kind {
+	case "timeline":
+		result.Generation, result.Events, reader, err = archive.ReadTimelineAt(ctx, scope, source,
+			sessionarchive.TimelineRequest{Repository: input.Repository, RunID: *input.RunID, Attempt: *input.Attempt, Limit: min(input.rowLimit(), 4096)})
+	case "summary":
+		result.Generation, result.Summary, reader, err = archive.ReadSummariesAt(ctx, scope, source, input.Repository, min(input.rowLimit(), 4096))
+	default:
+		return result, sessionarchive.ErrQuery
+	}
+	if reader != nil {
+		result.reader = &authorizedArchiveReader{inner: reader, authority: archive.authority, destination: archive.destination, source: source, ctx: ctx}
+	}
+	return result, err
+}
+
+type authorizedArchiveReader struct {
+	inner       sessionArchiveReader
+	authority   sessionarchive.NativeAuthority
+	destination string
+	source      sessionarchive.Source
+	ctx         context.Context
+}
+
+func (r *authorizedArchiveReader) Close() error { return r.inner.Close() }
+
+func (r *authorizedArchiveReader) Deliver(deliver func() error) error {
+	return r.authority.WithRead(r.ctx, r.destination, r.source, func(ctx context.Context) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		return r.inner.Deliver(func() error {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			return deliver()
+		})
+	})
+}
+
+func (archive *nativeSessionArchive) Flush(ctx context.Context) error {
+	if archive.authority == nil {
+		return collectnative.ErrUnsupported
+	}
+	if _, err := archive.authority.DrainWithdrawals(ctx, archive.destination, 64, archive.WithdrawSource); err != nil {
+		return err
+	}
+	return archive.Native.Flush(ctx)
+}
+
+func (*nativeSessionArchive) WithdrawRepository(context.Context, string) error {
+	// Bare repository callbacks cannot distinguish a withdrawn source epoch
+	// from a reenrollment. Enrollment must commit the durable PG outbox instead.
+	return collectnative.ErrUnsupported
+}
+
+func (*nativeSessionArchive) PrepareCache(context.Context, string, string, string) error {
+	return collectnative.ErrUnsupported
+}
+
+func (*nativeSessionArchive) Capture(context.Context, string, string, string) error {
+	return collectnative.ErrUnsupported
+}
+
+func hostedArchiveQuery(ctx context.Context, publisher hostedArchiveReader, namespace string, input sessionArchiveQuery) (sessionArchiveResult, error) {
+	if err := input.validate(); err != nil {
+		return sessionArchiveResult{}, err
+	}
+	scope := sessionarchive.Scope{Namespace: namespace, Repositories: []string{input.Repository}}
 	result := sessionArchiveResult{Kind: input.Kind}
 	var reader *sessionarchiveblob.Reader
 	var err error
 	switch input.Kind {
 	case "timeline":
-		result.Generation, result.Events, reader, err = archive.publisher.ReadTimeline(ctx, scope, sessionarchive.TimelineRequest{
+		result.Generation, result.Events, reader, err = publisher.ReadTimeline(ctx, scope, sessionarchive.TimelineRequest{
 			Repository: input.Repository, RunID: *input.RunID, Attempt: *input.Attempt, Limit: min(input.rowLimit(), 4096),
 		})
 	case "summary":
-		result.Generation, result.Summary, reader, err = archive.publisher.ReadSummaries(ctx, scope, input.Repository, min(input.rowLimit(), 4096))
+		result.Generation, result.Summary, reader, err = publisher.ReadSummaries(ctx, scope, input.Repository, min(input.rowLimit(), 4096))
 	default:
 		return sessionArchiveResult{}, sessionarchive.ErrQuery
 	}
@@ -171,6 +279,103 @@ func (archive *sessionArchiveService) PrepareCache(ctx context.Context, reposito
 
 func (archive *sessionArchiveService) Capture(ctx context.Context, repository, logs, prefix string) error {
 	return archive.backend.Capture(ctx, repository, logs, prefix)
+}
+
+// CaptureSession cannot infer a dispatch-time epoch from current enrollment.
+// Native callers must obtain NativeDestination with their original scope.
+func (archive *sessionArchiveService) CaptureSession(ctx context.Context, repository, runID string, attempt int64, completed time.Time, content []byte, gap string) error {
+	return collectnative.ErrUnsupported
+}
+
+// NativeDestination binds the dispatch-time source, never the source that
+// happens to be enrolled when an old queue item is executed.
+func (archive *sessionArchiveService) NativeDestination(scope collectnative.EnrollmentScope) (collectnative.Destination, error) {
+	native, ok := archive.backend.(*nativeSessionArchive)
+	source := sessionarchive.Source{Repository: scope.Repository, InstallationID: scope.InstallationID, Epoch: scope.Epoch}
+	if !ok || native.authority == nil {
+		return nil, collectnative.ErrUnsupported
+	}
+	if err := source.Validate(); err != nil {
+		return nil, err
+	}
+	return &nativeArchiveDestination{archive: native, source: source, enabled: slices.Contains(archive.repositories, source.Repository)}, nil
+}
+
+type nativeArchiveDestination struct {
+	archive *nativeSessionArchive
+	source  sessionarchive.Source
+	enabled bool
+}
+
+func (d *nativeArchiveDestination) Capture(ctx context.Context, run collectnative.Run, content []byte, gap string) error {
+	if run.Repository != d.source.Repository || run.InstallationID != d.source.InstallationID {
+		return collectnative.ErrIdentity
+	}
+	return (collectnative.TraceDestination{Admission: d}).Capture(ctx, run, content, gap)
+}
+
+func (d *nativeArchiveDestination) CaptureSession(ctx context.Context, repository, runID string, attempt int64, completed time.Time, content []byte, gap string) error {
+	if repository != d.source.Repository {
+		return collectnative.ErrIdentity
+	}
+	if !d.enabled {
+		return nil
+	}
+	return d.archive.admit(ctx, d.source, func(ctx context.Context) error {
+		return d.archive.CaptureSessionAt(ctx, d.source, runID, attempt, completed, content, gap)
+	})
+}
+
+func (a *nativeSessionArchive) admit(ctx context.Context, source sessionarchive.Source, capture func(context.Context) error) error {
+	if a.authority == nil {
+		return collectnative.ErrUnsupported
+	}
+	if err := a.authority.Register(ctx, a.destination, source); err != nil {
+		return err
+	}
+	if err := capture(ctx); err != nil {
+		return err
+	}
+	current, err := a.authority.Current(ctx, a.destination, source.Repository)
+	if err != nil {
+		return err
+	}
+	if current != source {
+		return sessionarchive.ErrWithdrawn
+	}
+	return nil
+}
+
+//nolint:contextcheck // Close is the context-free owned Blob lifecycle cleanup.
+func openNativeSessionArchive(ctx context.Context, config sessionarchive.Config, blob sessionarchiveblob.Config, authority sessionarchive.NativeAuthority) (*nativeSessionArchive, error) {
+	if authority == nil {
+		return nil, errors.Join(collectnative.ErrUnsupported,
+			errors.New("native archive requires PG enrollment-atomic source fencing and a durable withdrawal outbox"))
+	}
+	archive, err := sessionarchiveblob.NewNative(ctx, config, blob)
+	if err != nil {
+		return nil, err
+	}
+	if err := archive.RequireSourceFencing(ctx); err != nil {
+		return nil, errors.Join(err, archive.Close())
+	}
+	return &nativeSessionArchive{Native: archive, namespace: config.Namespace,
+		destination: blob.NativeAcceptanceBinding(), authority: authority}, nil
+}
+
+func (a *App) nativeSessionArchiveAuthority(ctx context.Context) (sessionarchive.NativeAuthority, error) {
+	if a.config.SessionArchiveAuthority != nil {
+		return a.config.SessionArchiveAuthority, nil
+	}
+	database, ok := a.database.(*postgresx.Store)
+	if !ok || !database.Open() {
+		return nil, errors.Join(collectnative.ErrUnsupported,
+			errors.New("native session archive requires available canonical PostgreSQL"))
+	}
+	if _, err := database.State(ctx); err != nil {
+		return nil, errors.Join(errors.New("native session archive canonical PostgreSQL is unavailable"), err)
+	}
+	return database.ArchiveAuthority(), nil
 }
 
 func (archive *sessionArchiveService) WithdrawRepository(ctx context.Context, repository string) error {
@@ -254,6 +459,9 @@ func (a *App) configureSessionArchive(ctx context.Context) error {
 		return nil
 	}
 	if database, local := a.database.(*sqlitex.Store); local {
+		if config.NativeProducer {
+			return errors.New("native session archive requires the hosted Blob profile")
+		}
 		if blob.Enabled {
 			return errors.New("local SQLite session archive cannot select hosted Blob/ADX analytics")
 		}
@@ -275,7 +483,24 @@ func (a *App) configureSessionArchive(ctx context.Context) error {
 		}
 	}
 	var backend sessionArchiveBackend
-	if blob.Enabled {
+	if a.config.Collector != nil && a.config.Collector.NativeAcquisition && !config.NativeProducer {
+		return errors.New("native collection requires the native session archive producer; legacy filesystem capture is unsupported")
+	}
+	switch {
+	case config.NativeProducer:
+		if a.config.Collector == nil || !a.config.Collector.NativeAcquisition {
+			return errors.New("native session archive requires explicitly selected native acquisition")
+		}
+		authority, err := a.nativeSessionArchiveAuthority(ctx)
+		if err != nil {
+			return err
+		}
+		archive, err := openNativeSessionArchive(ctx, config, blob, authority)
+		if err != nil {
+			return err
+		}
+		backend = archive
+	case blob.Enabled:
 		converter, err := sessionarchive.NewConverter(sessionarchive.ConverterConfig{
 			DuckDBPath: config.DuckDBPath, Timeout: config.QueryTimeout,
 		})
@@ -291,7 +516,7 @@ func (a *App) configureSessionArchive(ctx context.Context) error {
 			return errors.Join(err, publisher.Close())
 		}
 		backend = &hostedSessionArchive{Archive: archive, publisher: publisher, namespace: config.Namespace}
-	} else {
+	default:
 		archive, err := sessionarchive.Open(config)
 		if err != nil {
 			return err
@@ -303,11 +528,10 @@ func (a *App) configureSessionArchive(ctx context.Context) error {
 		repositories: slices.Clone(config.Repositories), read: read,
 	}
 	if collector := a.Collector(); collector != nil {
-		if collector.runner.Traces == nil {
-			collector.runner.Traces = a.sessionArchive
-		} else {
-			collector.runner.Traces = collect.TraceCaptures{collector.runner.Traces, a.sessionArchive}
+		if collector.native == nil {
+			return errors.New("native session archive requires assembled native collection")
 		}
+		collector.native.archive = a.sessionArchive
 	}
 	return nil
 }

@@ -244,6 +244,12 @@ jobs:
           cache: false
       - name: Check extension
         run: make lint test
+      - name: Setup Node for release asset compilation
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24"
+      - name: Install release dashboard build dependencies
+        run: npm ci && npm ci --prefix dashboard/site
       - name: Build extension release binaries
         env:
           RELEASE_TAG: ${{ needs.resolve-version.outputs.release_tag }}

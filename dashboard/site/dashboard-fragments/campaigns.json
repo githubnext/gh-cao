@@ -1,6 +1,15 @@
 {
   "queries": [
     {
+      "name": "campaign-navigation-availability",
+      "subject": "Detect available campaign inventory for dashboard navigation.",
+      "objective": "Enable Campaigns only when collected campaign information is present.",
+      "acceptance": "Return at most one canonical campaign identity; missing or empty inventory does not enable Campaigns, and partial inventory does not imply complete campaign coverage.",
+      "from": "campaigns",
+      "select": [{ "field": "campaign" }],
+      "limit": 1
+    },
+    {
       "name": "audit-event-summary-buckets",
       "subject": "Aggregate high- and medium-severity audit events with the same severity and summary by workflow.",
       "objective": "Select recurring high- or medium-severity audit summaries for run-level investigation.",
@@ -586,6 +595,10 @@
       "icon": "goal",
       "class-name": "campaigns-page",
       "description": "Identify centrally managed campaigns that require deeper CAO operational review.",
+      "requires": {
+        "source": "campaign-navigation-availability",
+        "message": "Campaign information is unavailable. Collect campaign inventory to enable this view."
+      },
       "mode-indicator": true,
       "query-binding": "page",
       "definition": {

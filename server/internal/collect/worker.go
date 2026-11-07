@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
@@ -17,6 +18,7 @@ var workerLog = logger.New("cao:collect:worker")
 // Worker leases collection tasks, collects one repository at a time, and
 // requests a coalesced projection.
 type Worker struct {
+	Native         *NativeWorker
 	Queue          Queue
 	Runner         Runner
 	Projector      Projector
@@ -110,6 +112,12 @@ func (w Worker) repositoryLockTTL() time.Duration {
 
 // Run processes tasks until the context is cancelled.
 func (w Worker) Run(ctx context.Context) error {
+	if w.Native != nil {
+		return w.Native.Run(ctx)
+	}
+	if w.Enrollment.Authority != nil {
+		return collectnative.ErrUnsupported
+	}
 	if err := w.Runner.Validate(); err != nil {
 		return err
 	}

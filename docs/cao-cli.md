@@ -35,6 +35,103 @@ reference. Request command-specific help with `gh cao COMMAND --help`.
 
 ## Operator evidence
 
+### On-demand local dashboard
+
+For a short investigation, use the installed extension without running setup,
+installing Actions, or creating CAO policy:
+
+```bash
+gh cao dashboard
+gh cao dashboard --repo octo/api
+gh cao dashboard --repo octo/api --repo octo/web
+```
+
+Release binaries embed the pinned gh-aw log collector, the existing Go server,
+and the built dashboard. Only an authenticated GitHub CLI is required at runtime;
+there is no separate gh-aw, Node.js, npm, PostgreSQL, Redis, or container setup.
+The command resolves the current repository when `--repo` is omitted and
+supports up to 20 explicitly named GitHub.com repositories.
+
+Both the recent evidence window and server lifetime default to **48 hours** and
+cannot exceed that bound. The command stays in the foreground, selects an
+available loopback port, prints the access URL, and refreshes every five minutes.
+Ctrl-C closes its server and stops collection. `--listen 127.0.0.1:8443`,
+`--window 12h`, `--duration 2h`, `--refresh 2m`, and `--count 100` narrow or adjust
+the session. The count caps each repository's recent-run lookup and usage sample
+separately (maximum 1000 each); their deduplicated union contains at most twice
+that count. It is not a guarantee of complete history.
+
+The landing page remains the standard **Overview**, with the existing factory
+header, factory stations, normal navigation and drill-downs. The shared Runs page presents recent
+executions and daily observations through canonical SQLite and revision subscriptions,
+not browser IndexedDB. Its local daily projection reconciles observed logical
+Runs by UTC execution-start day in the same atomic publication transaction.
+Replays and reruns do not double count, and compact receipts retain observations
+independently of the 48-hour detail window under the canonical three-week
+retention policy. Undated evidence is excluded and reported as incomplete;
+whole-day counts are partial observations, not exhaustive or exact sub-day totals.
+It combines fresh Actions status with cached gh-aw evidence and requests all
+available artifact sets, including audit evidence. The existing production
+gh-aw adapter and canonical normalizer hydrate jobs, sessions, tool calls,
+firewall domains, skills, friction, safe outputs, experiments, evals and graders
+when their evidence is available. Only agentic `.lock.yml` workflows are included.
+The normal operational dashboard remains available, including repository, workflow
+and run drill-downs. The immediate profile audits every page, view and query against
+its acquisition capabilities and removes unsupported views and their unused queries.
+Settings, Ingestion and control-plane-only views are excluded. Rich artifact views
+remain available, with explicit partial or unavailable evidence when artifacts are
+missing. Campaign policy, fleet queue backlog, accepted outcomes and Operational
+Value are not inferred from run success. **Coverage is partial:** uncollected
+evidence must never appear as healthy zeros.
+Successful executions are not verified outcomes.
+
+The snapshot and per-repository caches are retained in the user's cache directory,
+keyed by exact repository scope. `--cache-dir PATH` selects another private
+directory; do not point it at an existing Activity database. For one repository,
+an existing `.github/aw/logs` artifact cache is reused automatically, or select
+it with `--logs-dir PATH`. Existing gh-aw artifacts and matching cached JSONL
+records are reused by the same gh-aw collector. Only profile-owned artifact
+caches receive the 256 MiB storage budget; existing external gh-aw caches are
+not pruned by this command.
+Collection selects exact remote workflow IDs from the recent Actions inventory,
+so it does not depend on workflow files in the current folder. Its rich-run
+budget is shared across those observed workflows under one two-minute deadline;
+reaching this acquisition limit is reported and publishes partial collected evidence.
+Refresh reuses analyses and artifacts, but fetches fresh run-discovery lists
+rather than replaying a stale open-ended cached listing. Older profile-owned
+run directories may be pruned to enforce the artifact budget; external caches
+are never pruned. Canonical parsing runs inside the native CLI, without invoking
+gh-aw's optional Node-based Markdown report parsers.
+Artifact normalization reads only selected matching-attempt run directories,
+rejects symlinks and nonregular files, and limits each admitted file to 16 MiB
+and each repository's artifact input to 32 MiB. Oversized or malformed evidence
+fails the refresh rather than publishing a truncated success. Cache files can
+contain private repository evidence; protect directory ACLs on Windows, where
+POSIX mode bits are not sufficient.
+A failed refresh preserves the previous database and is
+reported rather than replacing it with empty data.
+
+`gh cao dashboard` only serves the dashboard; it has no subcommands.
+Collection and refresh happen automatically while it is running. Maintenance
+controls use a separate private, durable command queue, not the canonical snapshot.
+They accept only declared gh-aw maintenance actions for the exact `--repo` scope,
+require pull-request publication, and ask for approval in the owning terminal
+before **each** execution. The pinned gh-aw maintenance commands run inside the
+native CLI using the operator's GitHub CLI identity; credentials never reach the
+read-only Go dashboard host. Closing output only detaches; canceling a command
+terminates its owned process tree. Retries require fresh terminal approval.
+Without a trusted interactive terminal, execution fails closed. Native approval
+is currently supported on Unix; Windows cannot execute these actions.
+No maintenance command runs merely because the dashboard starts, and this mode
+does not mutate remote runs, dispatch workflows, change rollout policy or enable
+hosted execution.
+
+For source development, build the server and site and pass both
+`--server-executable PATH` and `--site PATH`. Release builds package these assets
+automatically; source builds deliberately do not fetch or build tools at runtime.
+
+### Release evidence
+
 `gh cao evidence` groups read-only operator evidence collection. The initial
 `release` subcommand reuses existing package/promotion workflow runs and optional
 Azure deployment receipts; it does not build, publish, promote, deploy, change
@@ -385,6 +482,7 @@ to invoke it as `gh cao`.
 | Read-only analysis | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `api-cost`, `mcp` | Native Go with pure-Go SQLite access, hosted server queries where declared, and declarative Dashboard Language evaluation. |
 | Workflow value | `value publish`, `value enable`, `value disable` | Publish prepared evidence to a hosted dashboard, or edit reviewed local policy for recurring collection of one workflow. |
 | Operator evidence | `evidence release` | Native Go; bounded read-only GitHub references, optional provenance verification and development Azure receipt summaries. No Node runtime or checkout required. |
+| On-demand dashboard | `dashboard` | Native Go; serve the existing local dashboard with automatic bounded recent collection and a private canonical SQLite cache. No subcommands, remote mutations, policy, Actions, or runtime installation. |
 | Installation diagnostics | `doctor`, `version` | Native Go. `doctor` checks GitHub CLI, gh-aw, authentication, and basic local policy structure and compiler pin. |
 | Workflow-agent evidence APIs | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `mcp` | Supported `node activity/cao.mjs <command>` APIs inside agentic workflows, including their installed runtime dependencies; intentional overlap with operator reads, not deprecated duplicates. |
 | Active ingestion and packaging | `ingest-jsonl`, `compact-jsonl`, `hash-payloads` | Node Actions pipeline: import raw or normalized JSONL into SQLite, compact raw shards per repository, and generate normalized run/record shards plus payload checksums. |

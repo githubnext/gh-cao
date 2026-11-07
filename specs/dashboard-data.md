@@ -825,8 +825,8 @@ GitHub OAuth and explicit organization/team authorization; neither profile
 grants database access to clients.
 
 Local SQLite serving SHALL open only the selected canonical database read-only.
-Creation, normalization, backfill, retention, and repair SHALL remain owned by
-the `cao-activity` JavaScript pipeline, outside the Go server lifecycle.
+Ordinary Activity creation, normalization, backfill, retention, and repair SHALL
+remain owned by the `cao-activity` JavaScript pipeline, outside the Go server lifecycle.
 The server MUST NOT acquire GitHub evidence, resolve acquisition credentials,
 launch ingestion runtimes, create a writable overlay, or mutate canonical
 records or bookkeeping for local SQLite serving. Previously created overlay
@@ -838,6 +838,56 @@ verify an already-published SQLite snapshot; that is artifact acquisition, not
 evidence collection or local backfill. These boundaries apply equally to
 ordinary local and internal canvas serving and MUST NOT change hosted
 PostgreSQL, OAuth, webhook, or collection-authority contracts.
+
+The explicitly selected `gh cao dashboard` operator profile MAY create and
+refresh a separate private canonical SQLite projection through its native
+acquisition adapter, outside the Go server. It MUST select the current verified
+GitHub.com repository or an explicit bounded list of exact repositories, retain
+at most a 48-hour recent window, and serve for at most 48 hours per invocation.
+The adapter MUST use the pinned gh-aw collector and canonical repository,
+workflow, and repository-scoped Run identities; fresh Actions observations MUST
+take precedence over cached status and mismatched-attempt enrichment MUST NOT
+be attached. Unknown usage MUST NOT become zero or a guessed engine/model.
+The profile MUST preserve partial acquisition coverage and unavailable sources,
+MUST reconcile the canonical daily projection in the same publication transaction
+using the receipts, classification and retention contract in §72.2, MUST NOT
+infer complete upstream history or campaign/rollout authority,
+and MUST NOT modify or migrate an ordinary Activity snapshot. Publication MUST
+be atomic and failed collection MUST preserve the previous projection.
+The existing read-only Go query/server and revision-subscription contracts
+SHALL serve this projection unchanged. This exception does not authorize
+server-side acquisition, a hosted fallback, or a browser ingestion path.
+Its acquisition SHALL request rich gh-aw artifacts and reuse the production
+cached/raw-log adapter and canonical normalizer for available jobs, sessions,
+tools, domains, skills, friction, safe outputs, experiments, evals and graders.
+It SHALL select exact observed remote workflow identities without requiring
+local workflow files. Reaching its shared acquisition budget MAY publish
+collected partial evidence only with an explicit limit report; cancellation
+and real acquisition or normalization errors SHALL preserve the prior snapshot.
+Normalization SHALL have explicit input, output and execution bounds and SHALL
+have no exposed filesystem, process or network authority. Raw artifact reads
+SHALL be confined to selected matching-attempt run directories and SHALL reject
+symlinks, nonregular files and oversized input.
+Its packaged dashboard SHALL preserve the standard landing page and normal
+operational navigation, templates, controls and drill-downs. Settings and
+Ingestion SHALL be omitted. The immediate profile MUST classify every page, view
+and query against its declared acquisition capabilities, omit unsupported views,
+and prune their unreachable queries without disabling independent rich evidence.
+Intrinsic `workflow-identities`
+and `overview-run-identities` sources MAY supply the corresponding table shapes
+without campaign joins; absent campaign/rollout fields SHALL stay unknown.
+Valid uncollected canonical sources in a verified local snapshot SHALL return
+typed unavailable evidence rather than failing independent page queries or
+fabricating zero counts. Unknown sources and real query/storage errors SHALL
+still fail. Daily observations SHALL remain explicitly partial, exclude undated
+Runs, and retain aggregate provenance; visible fleet maintenance views SHALL
+NOT grant local rollout, dispatch or hosted execution authority. Separately,
+declared repository maintenance MAY use a private operational command queue
+outside the canonical database. Execution MUST require an exact selected repository,
+pull-request publication, and fresh trusted terminal approval per command.
+Credentials and subprocesses MUST remain in the owning CLI, not the read-only
+query server. Cancellation MUST terminate the owned execution; loss of transport
+MUST NOT be treated as confirmation of process exit or authorize replay.
 
 The optional hosted OIDC admission gate MAY publish early Run evidence only
 after verified identity, policy approval and durable decision resolution.
@@ -2056,8 +2106,9 @@ checks to supplied `evals.jsonl` records when session eval evidence is absent.
 Version-1 and version-2 `grader_results.json` documents SHALL use the same
 allowlisted projection as session grader events, enriched by the adjacent
 `grader_manifest.json`. Collection SHALL verify the artifact's repository,
-run and attempt using `aw_info.json`; supplied result run identities and
-attempts MUST also agree. Session results remain authoritative for duplicate
+run and attempt using `aw_info.json`; nonempty supplied result run identities and
+supplied attempts MUST also agree. An omitted or empty result run ID inherits
+the verified enclosing artifact identity. Session results remain authoritative for duplicate
 IDs; the downstream `graders` artifact MAY supplement them with previously
 unrecorded custom results, without duplicating built-ins. Compact
 `usage/graders/`, named or prefixed `graders` artifacts, and flattened files
@@ -3200,7 +3251,21 @@ Recurring acquisition SHALL require reviewed registration for an exact
 repository/workflow under `control-plane.campaigns.activity.workflow-values`,
 with a confined repository-local deterministic collector deployed together
 with policy. A collector that issues GitHub API requests SHALL also declare a
-reviewed integer `api-requests` ceiling from 1 through 1,000. The skill SHALL
+reviewed integer `api-requests` ceiling from 1 through 1,000. A registration
+MAY declare `acquisition`, which SHALL require a collector and contain exactly
+`requirements`: one to 64 unique entries, each with exactly `source`, `pool`,
+`primitive`, `scope`, and `cache`. `primitive` and `scope` SHALL be lowercase
+identifiers of at most 160 characters matching
+`^[a-z0-9]+(?:[a-z0-9._:/-]*[a-z0-9])?$`. The permitted combinations are:
+`canonical` with pool `local` and cache `canonical`; `github` with pool `core`,
+`search`, or `graphql` and cache `invocation`; `git` with pool `git` and cache
+`immutable`; and `archive` with pool `archive` and cache `invocation`. Policy
+validation SHALL reject any other field, value, or combination. Requirements
+SHALL be normalized in a deterministic order, so equivalent declarations have
+one digest. For one repository, requirements with identical source, pool,
+primitive, scope, and cache MAY be unioned across workflow registrations. A
+declaration is request-family identity only and SHALL NOT grant or raise the
+`api-requests` ceiling or any execution authority. The skill SHALL
 stage registration automatically only after the
 frozen function and bounded collector pass verification, preserving existing
 registrations and explicit `enabled: false` disables. Function presence alone
@@ -3529,6 +3594,11 @@ IndexedDB writes
 ```
 
 SHOULD occur in a Web Worker.
+
+Optional shard-size HEAD probes MUST have bounded concurrency and a bounded
+overall wait. A missing, unsupported, or stalled size probe MUST NOT block the
+shard download or completion of the import; byte and time estimates may remain
+unknown while file and stage progress remains determinate.
 
 The main thread SHOULD remain available for:
 

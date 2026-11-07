@@ -275,7 +275,7 @@ func traceOutputProofs(trace Evidence) map[string]int {
 	return proofs
 }
 
-func readMining(root *os.Root, m *miningProjection) (miningEvidence, error) {
+func readMining(root Objects, m *miningProjection) (miningEvidence, error) {
 	var e miningEvidence
 	content, err := readBounded(root, m.File, maxMiningBytes)
 	if err != nil {
@@ -307,7 +307,7 @@ func invalidateMining(state *ledger, r *record, now time.Time) []string {
 	return files
 }
 
-func (w *Worker) stepMining(ctx context.Context, root *os.Root, state *ledger) (bool, error) {
+func (w *Worker) stepMining(ctx context.Context, root Objects, state *ledger) (bool, error) {
 	ids := make([]string, 0, len(state.Records))
 	for id := range state.Records {
 		ids = append(ids, id)
@@ -454,7 +454,7 @@ func checkOutcomeProgress(old, next miningEvidence) error {
 	return nil
 }
 
-func removeMiningFiles(root *os.Root, files []string) error {
+func removeMiningFiles(root Objects, files []string) error {
 	for _, file := range files {
 		if err := root.Remove(file); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
@@ -463,7 +463,7 @@ func removeMiningFiles(root *os.Root, files []string) error {
 	return nil
 }
 
-func (w *Worker) deliverMining(ctx context.Context, root *os.Root, state *ledger, r *record) error {
+func (w *Worker) deliverMining(ctx context.Context, root Objects, state *ledger, r *record) error {
 	m := r.Mining
 	e := miningEvidence{CanonicalNamespace: state.MiningNamespace, CanonicalRunID: canonicalRun(r),
 		CanonicalRevision: r.MiningSourceRevision, TraceVersion: r.Version, State: m.State,

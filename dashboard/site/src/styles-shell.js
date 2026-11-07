@@ -183,6 +183,7 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .primary-nav a[aria-current="page"]::before { content: ""; width: 3px; position: absolute; top: 5px; bottom: 5px; left: -16px; border-radius: 0 4px 4px 0; background: var(--accent); }
 .experimental-page-label { display: inline-flex; flex: none; align-items: center; justify-content: center; min-height: 18px; padding: 2px; border: 1px solid color-mix(in srgb, var(--attention) 45%, var(--border)); border-radius: 2em; background: var(--attention-muted); color: var(--attention); font-size: .625rem; font-weight: 600; line-height: 1; white-space: nowrap; }
 .nav-item .experimental-page-label, .mobile-nav-item .experimental-page-label { margin-left: auto; }
+.org-sidebar :is([data-nav-page-id], [data-mobile-nav-page-id])[aria-disabled="true"] { color: var(--fg-muted); cursor: not-allowed; }
 .experimental-page-label .octicon { width: 12px; height: 12px; flex: 0 0 12px; color: inherit; }
 .experimental-page-label[hidden] { display: none; }
 .nav-indicator { width: 8px; height: 8px; flex: 0 0 8px; margin-left: auto; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--canvas-subtle); }

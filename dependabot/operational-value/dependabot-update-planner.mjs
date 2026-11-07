@@ -39,6 +39,24 @@ export const definition = {
     zeroRule: "Complete lifecycle evidence with no alert or pull request open at the cutoff records zero.",
     missingRule: "Inaccessible, truncated, malformed, or incomplete lifecycle evidence records missing rather than zero.",
   },
+  acquisition: {
+    requirements: [
+      {
+        source: "github",
+        pool: "core",
+        primitive: "github.dependabot-alert-lifecycle.v1",
+        scope: "github/gh-aw",
+        cache: "invocation",
+      },
+      {
+        source: "github",
+        pool: "search",
+        primitive: "github.dependabot-pull-request-lifecycle.v1",
+        scope: "github/gh-aw",
+        cache: "invocation",
+      },
+    ],
+  },
   model: {
     architecture: "Problem-first repository-risk measurement independent of gh-aw outputs, recommendations, runs, and engagement.",
     recommendation: "Use total open Dependabot security alerts as the primary outcome and retain critical/high alerts and the Dependabot pull-request queue as separate diagnostics. Count improvement regardless of actor and describe adoption-timed movement as association.",

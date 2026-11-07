@@ -422,6 +422,30 @@
             },
             "repository": "github/gh-aw",
             "workflow": "daily-file-diet"
+          },
+          {
+            "api-requests": 111,
+            "acquisition": {
+              "requirements": [
+                {
+                  "cache": "invocation",
+                  "pool": "core",
+                  "primitive": "github.dependabot-alert-lifecycle.v1",
+                  "scope": "github/gh-aw",
+                  "source": "github"
+                },
+                {
+                  "cache": "invocation",
+                  "pool": "search",
+                  "primitive": "github.dependabot-pull-request-lifecycle.v1",
+                  "scope": "github/gh-aw",
+                  "source": "github"
+                }
+              ]
+            },
+            "collector": "dependabot/operational-value/dependabot-update-planner.mjs",
+            "repository": "github/gh-aw",
+            "workflow": "dependabot-update-planner"
           }
         ]
       }

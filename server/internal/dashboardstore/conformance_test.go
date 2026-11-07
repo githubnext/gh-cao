@@ -229,6 +229,30 @@ func readConformance(t *testing.T, fixture readFixture, backend string) {
 			t.Fatal(err)
 		}
 	})
+	t.Run("keyset-continuation-keys", func(t *testing.T) {
+		definitions := []query.Definition{{
+			Name: "subjects", From: "$workflows",
+			Select:  []query.SelectedField{{Field: "repositoryId"}, {Field: "path"}, {Field: "id"}},
+			OrderBy: []query.OrderField{{Field: "repositoryId"}, {Field: "path"}, {Field: "id"}},
+			Page: &query.PageBoundary{
+				Keys: []string{"repositoryId", "path", "id"}, Revision: "workflow-subjects", Comparator: "utf8-bytewise-v1",
+			},
+		}, {Name: "visible", From: "subjects"}}
+		err := store.WithReadTransaction(t.Context(), func(ctx context.Context, reader dashboardstore.Reader) error {
+			_, _, err := reader.ExecuteSQLPlanWithOptions(ctx, definitions, []string{"visible"}, dashboardstore.ExecutionOptions{
+				Pages: map[string]dashboardstore.Page{"visible": {Limit: 1, Keyset: &dashboardstore.KeysetPage{
+					Boundary: "subjects", Comparator: "utf8-bytewise-v1", Keys: []string{"id", "path", "repositoryId"},
+				}}},
+			})
+			if err == nil || !strings.Contains(err.Error(), "invalid or stale continuation token") {
+				t.Fatalf("mismatched continuation keys were accepted: %v", err)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 	t.Run("cancellation", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()

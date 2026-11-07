@@ -1,0 +1,11 @@
+{
+  "page": "workflow-runs",
+  "view": "workflow-run-duration-cost",
+  "source": "workflow-runs",
+  "route-field": "workflow-route",
+  "x": "started-at",
+  "y": "action-minutes",
+  "value": "aic-total",
+  "color": "run-conclusion",
+  "href": "run-link"
+}

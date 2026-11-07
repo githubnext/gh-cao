@@ -449,7 +449,7 @@ collection, widen policy or replace ordinary dashboard readiness.
 The independently default-off Parquet session archive
 (`server/internal/sessionarchive/`, `server/internal/sessionarchiveblob/`,
 `specs/session-archive.md`, and `server/SESSION-ARCHIVE.md`) adds private full
-approved analytics without changing PostgreSQL schemas, queries, ingestion,
+approved analytics without changing canonical PostgreSQL schemas, queries, ingestion,
 retention, or operational state. It reuses the existing approved `adxtrace`
 projection and the authorized pre-normalization acquisition visit. Local
 SQLite archive access is limited to snapshot-declared repositories and does not
@@ -472,6 +472,29 @@ preserves bounded replay fences. Retention and recovery grace are independent
 of disposable source caches and dashboard detail; logical exclusion is not
 physical erasure. Publisher retries, maintenance and shutdown belong to the
 existing server's tracked lifecycle, not PostgreSQL archive state.
+
+An explicitly selected native hosted producer instead writes and verifies
+bounded Zstandard Parquet in Go memory from the generated logical event schema.
+It uses the same Blob lease, immutable-object reservations, manifests, replay
+fences, reader horizons and conditional pointer publication, with metadata-only
+admission receipts and no POSIX cache, process lock, DuckDB or other subprocess.
+Only complete durable publication acknowledges an exact-attempt capture;
+unacknowledged input remains eligible for authorized reacquisition. Its
+destination acceptance binding is distinct from legacy DuckDB acceptance.
+Native server selection additionally requires an explicit PG-backed source
+privacy authority (`sessionarchive.NativeAuthority`). Its bounded metadata-only
+registration/withdrawal outbox is enlisted in source enrollment transactions,
+not used as a physical archive catalog or content store. Dispatch-time source
+epochs fence admission; source-tagged Blob membership and locked final-delivery
+authorization deny withdrawn/old epochs immediately at the committed PG
+boundary. Blob cleanup remains independently retried, with permanent source
+tombstones and conservative physical retirement. This is not a cross-backend
+transaction: failed or stale publication cannot acknowledge acquisition, and
+pending cleanup cannot authorize old content after reenrollment.
+The boundary does not activate the distributed collector or permit multiple ADX
+exporters. Native collector selection remains fail-closed pending real PG
+enrollment/read-lock/outbox composition, Azure acceptance, and the complete
+integration gates. The separately selected legacy archive is unchanged.
 
 Local trusted queries read authorized Parquet directly without persistent
 DuckDB event tables. Hosted trusted ADX queries require verified external-table
@@ -834,7 +857,7 @@ webhook, or hosted execution capabilities. Query result caching is disabled;
 in-place commits change the revision and notify active subscriptions. Snapshot
 quality remains unknown without stronger evidence. This default local mode
 does not introduce a hosted SQLite backend or a fallback from PostgreSQL.
-SQLite creation, normalization, backfill, and maintenance belong to the
+Ordinary Activity SQLite creation, normalization, backfill, and maintenance belong to the
 JavaScript `cao-activity` pipeline, not the Go server. Local serving does not
 look up GitHub credentials, launch acquisition or ingestion tools, create a
 writable delta, or attach previous `.local.sqlite` overlays. Existing overlay
@@ -842,6 +865,67 @@ files are left unchanged. Ordinary and internal canvas serving both read only
 the selected canonical snapshot; externally committed changes are observed
 through the same native query and revision-subscription boundaries.
 This does not change the separate hosted PostgreSQL collector or its runtimes.
+
+`gh cao dashboard` is a separately selected native operator acquisition profile
+for investigations lasting at most 48 hours. It resolves the current repository
+or up to 20 exact `--repo` selections, calls the embedded pinned gh-aw log collector
+with all available artifact sets, audit evidence and its normal artifact/JSONL
+cache semantics, and combines that evidence with fresh
+bounded GitHub workflow/run reads. It owns a separate private canonical SQLite
+projection in the user's scope-keyed cache, not an Activity database, browser
+database, hosted store, or writable server overlay. Its trusted generated
+ingestion bundle reuses `gh-aw-logs.js` and the canonical normalizer in a bounded
+pure-Go JavaScript runtime. No filesystem, process or network APIs are exposed
+to that runtime; it normalizes supplied evidence, never executes dashboard
+queries on the browser main thread. Selected matching-attempt artifact reads
+use an OS-rooted directory boundary, reject symlinks/nonregular files, and admit
+at most 16 MiB per file and 32 MiB per repository. Encoded input/output and
+execution have explicit 128 MiB / 64 MiB and 30-second bounds.
+`npm run generate:dashboard-ingest` regenerates the compressed embedded bundle;
+release checks reject stale artifacts.
+Acquisition names exact remote workflow IDs from the observed Actions inventory,
+not local lock files. Its shared count and two-minute limits produce explicitly
+reported partial coverage. Analyses and artifacts are reusable, but discovery
+lists are refreshed. Optional Node-based Markdown report parsing is disabled;
+canonical parsing uses the embedded runtime above.
+The ordinary declarative database
+queries, Go evaluator, HTTP handler, and revision subscriptions serve them.
+It reconciles the canonical daily Run projection with compact receipts in the
+same transaction, independently of the rolling detail window. Replay, attempt
+corrections and UTC-week retention follow the shared daily contract. Counts
+describe partial admitted observations, not complete upstream history.
+It never fabricates campaign policy, queue backlog, accepted outcomes, or
+uncollected event evidence. The packaged local dashboard preserves normal
+operational pages, navigation, templates, controls and drill-downs, with the
+standard Overview landing page. Its declarative immediate profile exhaustively
+classifies every page, view and query against the evidence the operator collects;
+unsupported views and unreachable queries are omitted. Settings, Ingestion and
+control-plane-only surfaces are excluded. Intrinsic workflow/run sources avoid requiring
+uncollected campaign enrichment. Valid missing canonical sources in an explicit
+local snapshot produce typed unavailable results; unknown sources, corrupt
+evidence and execution errors still fail. Available cached jobs, sessions,
+tools, domains, skills, friction, safe outputs, experiments, evals and graders
+hydrate their ordinary canonical stores instead of a separate UI projection.
+
+One local collection lock serializes refreshes. A successful transaction replaces
+only that profile's projection and observation metadata; failed acquisition
+preserves the previous database. The CLI refreshes outside the server lifecycle
+and closes its owned server on interruption or expiry. Release binaries embed
+their platform's existing `cao-dashboard` executable and built site; extraction
+is private and temporary, with no install-time Node, Go, service, or container.
+Source builds select existing server/site paths explicitly. The command only
+serves the dashboard, with automatic collection and refresh; it has no
+public subcommands or remote run mutations and grants no rollout authority or
+hosted CLI execution. A private capability-path integration enables only declared
+repository maintenance commands in the selected exact scope, with mandatory
+pull-request publication and trusted terminal approval for every execution.
+The existing operational SQLite command queue owns IDs, idempotency, output,
+cancel/retry and fail-closed recovery, separately from canonical evidence.
+The read-only server owns that queue and proxies validated execution plans to
+the native CLI; only the CLI holds credentials and invokes the embedded gh-aw
+maintenance commands. Subprocess completion must be confirmed before settlement.
+Unix terminal approval is cancellation-scoped; unsupported platforms and missing
+terminals fail closed. Ordinary local serving and hosted administration are unchanged.
 
 Its fixed local evaluator profile admits 500,000 input/intermediate rows and
 50 million operations with 1 GiB working-source and 2 GiB / 2 million live
@@ -1842,27 +1926,84 @@ not authorize cross-repository evidence access.
   Host-neutral source builds use `server/Dockerfile` with explicit version and
   revision build arguments; deployment promotion and rollback belong to the
   application host. The source build
-  produces a lean admission-only dashboard target and a collector target with
-  Node, GitHub CLI, a checksum-verified policy-pinned gh-aw binary, and the
-  Activity projection catalog. The collector target also generates a
-  deterministic control-plane inventory from the exact checked-out source and
-  packages only that inventory plus the shared policy resolver required at
-  runtime; it does not restore a second editable campaign catalog. Before each
-  canonical ingestion replacement, a private collection role resolves the reviewed deployment
-  policy, overlays the exact operational enrollment set, and uses a short-lived
-  installation token for the control repository to enrich and retain
-  `control-settings.json`, `control-plane-inventory.json`, and
-  `inventory-sources.json` in the evidence lake. The first activation fails
-  closed without valid campaign inventory; a later transient refresh failure
-  may retain the previous valid inventory. The internet-facing dashboard holds
-  the webhook secret but no collection private key. Unexposed collector and
-  idempotent backfill services hold the read-only GitHub App key and share a
-  persistent evidence volume. The collection profile leaves
-  `CAO_SOURCE_DIRECTORY` unset, while one verified activity artifact remains an
-  external read-only recovery volume for rollback to the snapshot profile.
+  produces a lean admission-only dashboard target and a private Go collector
+  target with Git for the reviewed Value Git transport, but no Node, GitHub CLI,
+  gh-aw or Activity projection catalog. PostgreSQL retains the exact reviewed
+  inventory configuration and source-epoch-bound evidence; collector and
+  backfill roles share these durable stores rather than an evidence volume.
+  The internet-facing dashboard holds the webhook secret but no collection
+  private key. Unexposed collector and idempotent backfill services hold the
+  read-only GitHub App key. The collection profile leaves
+  `CAO_SOURCE_DIRECTORY` unset; a separately selected Actions snapshot profile
+  can still mount a verified activity artifact read-only.
   Locally source-built images are not admitted through the package workflow's vulnerability scans,
   hardening check, SBOM, or artifact attestations; those guarantees continue
   to apply only to published packages.
+- The independently executable native collection service in
+  `server/internal/collectnative/` acquires scoped Actions artifacts, projects
+  metadata-only sessions and compacts JSONL without subprocesses or Activity
+  files. PostgreSQL owns exact-attempt acquisition leases, scope epochs and
+  bounded safe publication intents. Canonical projection executes the embedded
+  authoritative routing queries through the Go SQL engine, then commits the
+  graph, revision and consumed intent atomically. Approved trace admission can
+  use a private PostgreSQL object/ledger transaction and completes before safe
+  publication. Native historical tasks bind their admission epoch and use
+  receipt-fenced queue acknowledgement. A bounded database ownership transaction
+  serializes authenticated enrollment changes and atomically withdraws safe
+  intents, canonical evidence, daily contributions and configured shared trace
+  objects; frozen statistical bundles become unavailable. Operational indexes
+  cannot grant native scope, and reenrollment does not reapprove withdrawn
+  traces. These are shared durable boundaries, not filesystem caches.
+  The existing backfill API can use paginated native enrollment and publication
+  recovery without a lake. Historical queries freeze their window before API
+  access and carry workflow/run-page cursors through receipt-fenced queue
+  replacement. Separate discovery/attempt capacities permit work to drain;
+  running native roles also replay orphaned publication intents after ACK.
+  The opt-in hosted composition selects this boundary for admission, workers,
+  rebuild, cold start and explicit repository repair without constructing a
+  filesystem lake, Runner or legacy projection lifecycle. Source-bound immutable
+  inventory bytes replace packaged inventory paths; PostgreSQL retains the exact
+  reviewed document so a replica can restore it by its explicitly selected
+  digest, and checks current target/control inventory inside canonical activation.
+  Webhook/control deliveries carry source epochs and fresh queue receipts.
+  Independent safe-output dispositions survive run reprojection, while durable
+  Value invalidations remain hints, not acquired Value evidence.
+  The separately selected `NativeValues` lane evaluates the reviewed Value
+  policy and supported collector in Go, using Git only for its declared Git
+  acquisition requirements. Optimization uses the canonical PostgreSQL query
+  boundary; the separately registered Dependabot collector acquires bounded
+  alert and pull-request lifecycles through the shared native quota bridge
+  and publishes three atomic cutoff packets. The local evaluator consumes
+  their canonical facts; incomplete cutoffs remain missing, never zero. Its
+  private invocation scratch is disposable: PostgreSQL restores the original
+  source-epoch-bound packet/proof snapshot, fences publication against that
+  starting packet, and erases private proof/publication ownership atomically on
+  withdrawal. Those selected-feature dependencies are not dependencies of native
+  run acquisition, projection or trace admission; local query execution has
+  its separate owned canonical PostgreSQL boundary.
+  Native archive admission binds the original dispatch epoch before lossy
+  normalization. Its PostgreSQL metadata-only privacy ledger withdraws visibility
+  with source ownership and durably retries epoch-specific Blob retirement;
+  physical Blob deletion is deliberately not a cross-backend transaction.
+  Shared trace withdrawal still commits with source enrollment, and does not
+  relax ADX's single-exporter activation restriction.
+  `CollectorConfig.NativeAcquisition` explicitly selects the hosted native
+  profile; environment deployments use `CAO_COLLECT_NATIVE=true` and an exact
+  provisioned inventory digest. `Acquisition.PinInventoryConfiguration` provisions
+  reviewed bytes once; replacement requires an explicit expected-digest CAS.
+  Default audit adapters cover Copilot, Claude, Codex, Pi and Gemini. Unsupported
+  custom engines, expanded-report requests, external baselines, training and
+  intelligence semantics reject rather than lose findings. Source-specific
+  missing evidence still produces honest partial/unavailable results. Optional
+  Value dependencies are validated only when selected. Public-constructor tests
+  exercise real PostgreSQL, replica restoration and worker execution without an
+  executable PATH or legacy files. Doctor shares native setting and selected
+  Value dependency validation, and does not probe legacy lakes or projection
+  locks for native deployments. App-backed collection without native selection
+  now fails at startup; only the no-App Actions snapshot profile remains the
+  default. Unsupported Value collector registrations fail closed rather than
+  launching the former JavaScript runtime.
+  See `specs/server-ingestion.md` section 2.4.
 - Browsers and external clients never receive Redis or Postgres endpoints or
   credentials. Dashboard source replacement is transactional in Postgres; a
   failed replacement leaves the previous committed data available. An empty

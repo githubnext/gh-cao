@@ -139,7 +139,7 @@ test("CAO server image supports downstream Compose role selection", async () => 
   assert.ok(dashboardRuntime);
   assert.ok(collectorRuntime);
   assert.match(dashboardRuntime, /RUN apk upgrade --no-cache \\\n    && apk add --no-cache ca-certificates/);
-  assert.match(collectorRuntime, /RUN apk upgrade --no-cache \\\n    && apk add --no-cache ca-certificates github-cli/);
+  assert.match(collectorRuntime, /RUN apk upgrade --no-cache \\\n    && apk add --no-cache ca-certificates git/);
   assert.match(dockerfile, /ENTRYPOINT \["\/app\/cao-dashboard"\]/);
   assert.match(dockerfile, /CMD \["serve-hosted"/);
   assert.match(dockerfile, /VOLUME \["\/app\/source"\]/);
@@ -197,6 +197,7 @@ test("Docker dashboard builder installs production tooling without shipping buil
     assert.match(runtime, /\/workspace\/dashboard\/site\/dist\/ \/app\/site\//);
   }
   const collector = stages.find((stage) => stage.includes(" AS collector-runtime"));
-  assert.match(collector, /control-plane-inventory\.json \/app\/catalog\/control-plane-inventory\.json/);
+  assert.match(collector, /\/workspace\/\.github\/workflows\/cao\.json \/app\/\.github\/workflows\/cao\.json/);
+  assert.doesNotMatch(collector, /node_modules|control-plane-inventory\.json|\/app\/catalog\//);
   assert.doesNotMatch(collector, /COPY .*\/workspace\/dashboard\/site\/node_modules\/ \/app\//);
 });

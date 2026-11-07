@@ -143,22 +143,11 @@ WORKDIR /app
 USER 65532:65532
 ENTRYPOINT ["/bin/sh", "/app/azure/provision.sh"]
 
-FROM dashboard-build AS control-plane-inventory
-
-RUN REPORT_ROOT=/workspace \
-    REPORT_INVENTORY=/tmp/control-plane-inventory.json \
-    REPORT_INVENTORY_STATIC=true \
-    node activity/inventory.mjs
-
-FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS collector-runtime
-
-SHELL ["/bin/ash", "-o", "pipefail", "-c"]
+FROM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8 AS collector-runtime
 
 ARG VERSION=dev
 ARG REVISION=unknown
 ARG CREATED=unknown
-ARG GH_AW_VERSION=v1.0.1
-ARG TARGETARCH
 LABEL org.opencontainers.image.title="Central Agentic Ops collector" \
       org.opencontainers.image.description="Hosted CAO collection worker and backfill runtime" \
       org.opencontainers.image.version="${VERSION}" \
@@ -166,48 +155,25 @@ LABEL org.opencontainers.image.title="Central Agentic Ops collector" \
       org.opencontainers.image.created="${CREATED}" \
       org.opencontainers.image.source="https://github.com/githubnext/gh-cao"
 
-# Keep Alpine packages, CA roots, and the GitHub CLI current on rebuilds.
 # hadolint ignore=DL3018
 RUN apk upgrade --no-cache \
-    && apk add --no-cache ca-certificates github-cli \
+    && apk add --no-cache ca-certificates git \
     && addgroup -S -g 65532 cao \
     && adduser -S -D -H -u 65532 -G cao cao \
-    && mkdir -p /app/catalog /app/evidence /app/.local/share/gh/extensions/gh-aw \
-    && case "${TARGETARCH}" in \
-      amd64) checksum="1888d9faa40e102cbaa784ecb2e646c0e81ac3f1003d1cb3460d3a23908d4938" ;; \
-      arm64) checksum="2bc9a5e212cab7fb02efa91ea362a27c381b1760af37f0effa3e5b3c5e8a6393" ;; \
-      *) echo "Unsupported collector architecture: ${TARGETARCH}" >&2; exit 1 ;; \
-    esac \
-    && wget -q -O /usr/local/bin/gh-aw \
-      "https://github.com/github/gh-aw/releases/download/${GH_AW_VERSION}/linux-${TARGETARCH}" \
-    && echo "${checksum}  /usr/local/bin/gh-aw" | sha256sum -c - \
-    && chmod 0755 /usr/local/bin/gh-aw \
-    && ln -s /usr/local/bin/gh-aw /app/.local/share/gh/extensions/gh-aw/gh-aw \
+    && mkdir -p /app/queries /app/.github/workflows /app/.github/value-evidence \
     && chown -R cao:cao /app
 
-COPY --from=dashboard-runtime --chown=cao:cao /app/ /app/
-COPY --from=dashboard-build --chown=cao:cao /workspace/activity/ /app/catalog/activity/
-COPY --from=dashboard-build --chown=cao:cao /workspace/.github/workflows/shared/control.mjs /app/catalog/.github/workflows/shared/control.mjs
-COPY --from=dashboard-build --chown=cao:cao /workspace/.github/workflows/shared/policy.mjs /app/catalog/.github/workflows/shared/policy.mjs
-COPY --from=dashboard-build --chown=cao:cao /workspace/.github/workflows/shared/authority.mjs /app/catalog/.github/workflows/shared/authority.mjs
-COPY --from=dashboard-build --chown=cao:cao /workspace/.github/workflows/shared/operations.mjs /app/catalog/.github/workflows/shared/operations.mjs
-COPY --from=control-plane-inventory --chown=cao:cao /tmp/control-plane-inventory.json /app/catalog/control-plane-inventory.json
-# gh aw logs discovers agentic workflow names from local compiled workflows
-# before it queries runs, so the collection catalog must retain the lock files.
-COPY --from=dashboard-build --chown=cao:cao /workspace/.github/workflows/*.lock.yml /app/catalog/.github/workflows/
-COPY --from=dashboard-build --chown=cao:cao /workspace/dashboard/report/ /app/catalog/dashboard/report/
-COPY --from=dashboard-build --chown=cao:cao /workspace/dashboard/site/package.json /app/catalog/dashboard/site/package.json
-COPY --from=dashboard-build --chown=cao:cao /workspace/dashboard/site/src/ /app/catalog/dashboard/site/src/
-COPY --from=dashboard-build --chown=cao:cao /workspace/dashboard/site/node_modules/yaml/ /app/catalog/node_modules/yaml/
-COPY --from=dashboard-build --chown=cao:cao /workspace/dependabot/ /app/catalog/dependabot/
-COPY --from=dashboard-build --chown=cao:cao /workspace/optimization/ /app/catalog/optimization/
+COPY --from=server-build --chown=cao:cao /out/cao-dashboard /app/cao-dashboard
+COPY --from=dashboard-build --chown=cao:cao /workspace/dashboard/site/src/data/queries/database.json /app/queries/database.json
+COPY --from=dashboard-build --chown=cao:cao /workspace/.github/workflows/cao.json /app/.github/workflows/cao.json
+COPY --from=dashboard-build --chown=cao:cao /workspace/.github/workflows/cao.azure.json /app/.github/workflows/cao.azure.json
+COPY --from=dashboard-build --chown=cao:cao /workspace/.github/value-evidence/daily-file-diet.jsonl.gz /app/.github/value-evidence/daily-file-diet.jsonl.gz
 
 ENV HOME=/app \
     XDG_CACHE_HOME=/tmp/.cache \
     XDG_CONFIG_HOME=/tmp/.config
 WORKDIR /app
 USER 65532:65532
-VOLUME ["/app/evidence"]
 ENTRYPOINT ["/app/cao-dashboard"]
 CMD ["collect", "--database-queries", "/app/queries/database.json"]
 

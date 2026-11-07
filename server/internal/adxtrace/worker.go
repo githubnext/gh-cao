@@ -43,13 +43,30 @@ type Worker struct {
 }
 
 func New(ctx context.Context, config Config, namespace string, sink Sink, readers ...sessionexport.MiningReader) (*Worker, error) {
+	return newWorker(ctx, config, namespace, sink, nil, readers...)
+}
+
+// NewShared uses the same sampling, immutable-version, withdrawal and receipt
+// protocol as New, with shared transactions instead of a filesystem spool.
+func NewShared(ctx context.Context, config Config, namespace string, sink Sink, storage Storage, readers ...sessionexport.MiningReader) (*Worker, error) {
+	if !config.SharedStorage || storage == nil {
+		return nil, errors.New("shared trace worker requires explicit shared storage")
+	}
+	return newWorker(ctx, config, namespace, sink, storage, readers...)
+}
+
+func newWorker(ctx context.Context, config Config, namespace string, sink Sink, storage Storage, readers ...sessionexport.MiningReader) (*Worker, error) {
 	if sink == nil {
 		return nil, errors.New("trace sink is required")
 	}
 	if len(readers) > 1 || (config.MiningEnabled && (len(readers) != 1 || readers[0] == nil)) || (!config.MiningEnabled && len(readers) != 0) {
 		return nil, errors.New("enabled trace mining requires exactly one canonical reader")
 	}
-	s, err := newSpool(ctx, config, namespace)
+	var stores []Storage
+	if storage != nil {
+		stores = append(stores, storage)
+	}
+	s, err := newSpool(ctx, config, namespace, stores...)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +124,7 @@ func (w *Worker) Run(ctx context.Context) {
 func (w *Worker) Step(ctx context.Context) (more bool, err error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	err = w.spool.locked(ctx, func(root *os.Root, state *ledger) error {
+	err = w.spool.locked(ctx, func(root Objects, state *ledger) error {
 		if err := w.freeze(root, state); err != nil {
 			return err
 		}
@@ -268,7 +285,7 @@ func (w *Worker) selected(state *ledger, r *record) bool {
 	return selected
 }
 
-func (w *Worker) freeze(root *os.Root, state *ledger) error {
+func (w *Worker) freeze(root Objects, state *ledger) error {
 	changed := false
 	for _, r := range state.Records {
 		if r.State != "eligible" || w.now().Sub(r.CapturedAt) < w.spool.config.Retention {
@@ -376,7 +393,7 @@ func (w *Worker) rank(frameID, id string) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-func (w *Worker) deliverRecord(ctx context.Context, root *os.Root, r *record) error {
+func (w *Worker) deliverRecord(ctx context.Context, root Objects, r *record) error {
 	var e Evidence
 	if r.State == "eligible" {
 		var err error

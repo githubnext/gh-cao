@@ -14,9 +14,10 @@ import (
 // LocalCanvasConfig connects the local SQLite host to its owning Copilot
 // process. The adapter only owns integration callbacks, never data or assets.
 type LocalCanvasConfig struct {
-	Prefix          string `json:"prefix"`
-	AdapterURL      string `json:"adapterUrl"`
-	MemoryDirectory string `json:"memoryDirectory,omitempty"`
+	Prefix          string                      `json:"prefix"`
+	AdapterURL      string                      `json:"adapterUrl"`
+	MemoryDirectory string                      `json:"memoryDirectory,omitempty"`
+	OperatorActions *LocalOperatorActionsConfig `json:"operatorActions,omitempty"`
 }
 
 type localCanvasContextKey struct{}
@@ -101,7 +102,7 @@ func (a *App) canvasHandler(next http.Handler) http.Handler {
 		if request.URL.Path == "" {
 			request.URL.Path = "/"
 		}
-		if canvasAdapterPath(request.URL.Path) {
+		if canvasAdapterPath(request.URL.Path) && (config.OperatorActions == nil || !strings.HasPrefix(request.URL.Path, "/__cli_")) {
 			securityHeaders(proxy).ServeHTTP(response, request)
 			return
 		}
@@ -113,7 +114,11 @@ func (a *App) canvasHandler(next http.Handler) http.Handler {
 		if request.URL.Path == "/" || request.URL.Path == "/index.html" {
 			if !request.URL.Query().Has("local-preview") {
 				query := request.URL.Query()
-				query.Set("local-preview", "canvas")
+				mode := "canvas"
+				if config.OperatorActions != nil {
+					mode = "operator"
+				}
+				query.Set("local-preview", mode)
 				http.Redirect(response, request, config.Prefix+"/?"+query.Encode(), http.StatusFound)
 				return
 			}

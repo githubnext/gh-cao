@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -192,6 +193,7 @@ func (s *Store) AdmitDelivery(ctx context.Context, r operational.DeliveryRequest
 type lease struct {
 	Consumer string
 	At       time.Time
+	Receipt  string
 }
 
 func leaseName(queue, group string) string {
@@ -257,13 +259,15 @@ func (t *transaction) read(r operational.QueueRead, idle *time.Duration) ([]oper
 		if err := json.Unmarshal(rec.value, &data); err != nil {
 			return nil, err
 		}
-		if err := t.putJSON(key{"lease", leaseName(r.Queue, r.Group), rec.field}, lease{Consumer: r.Consumer, At: t.now}, time.Time{}); err != nil {
+		receipt := rand.Text()
+		if err := t.putJSON(key{"lease", leaseName(r.Queue, r.Group), rec.field},
+			lease{Consumer: r.Consumer, At: t.now, Receipt: receipt}, time.Time{}); err != nil {
 			return nil, err
 		}
 		if idle == nil {
 			cursor = rec.position
 		}
-		result = append(result, operational.TaskMessage{ID: rec.field, Fields: data.Fields})
+		result = append(result, operational.TaskMessage{ID: rec.field, Fields: data.Fields, Receipt: receipt})
 	}
 	if idle == nil && len(records) > 0 {
 		if err := t.putJSON(groupKey, cursor, time.Time{}); err != nil {
@@ -362,6 +366,33 @@ func (s *Store) CompleteTask(ctx context.Context, queue, group, id string) error
 	return s.transact(ctx, func(t *transaction) error {
 		value, err := t.get(key{"lease", leaseName(queue, group), id})
 		if err != nil || value == nil {
+			return err
+		}
+		return t.complete(queue, id)
+	})
+}
+
+func (t *transaction) checkTaskReceipt(queue, group, id, receipt string) error {
+	if receipt == "" {
+		return operational.ErrTaskLeaseLost
+	}
+	var current lease
+	found, err := t.json(key{"lease", leaseName(queue, group), id}, &current)
+	if err != nil {
+		return err
+	}
+	if !found || current.Receipt != receipt {
+		return operational.ErrTaskLeaseLost
+	}
+	return nil
+}
+
+func (s *Store) CompleteTaskFenced(ctx context.Context, queue, group, id, receipt string) error {
+	if err := names(queue, group, id); err != nil {
+		return err
+	}
+	return s.transact(ctx, func(t *transaction) error {
+		if err := t.checkTaskReceipt(queue, group, id, receipt); err != nil {
 			return err
 		}
 		return t.complete(queue, id)

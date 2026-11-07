@@ -67,7 +67,7 @@ export const SITE_CALLOUT_VISIBILITY_KEYS = ['source', 'field', 'equals', 'older
 export const TOOLTIP_KEYS = ['label', 'description', 'icon'];
 export const DEFAULTS_KEYS = ['scope', 'time', 'filters'];
 export const UNIT_DEFINITION_KEYS = ['name', 'symbol', 'significant', 'format'];
-export const UNIT_FORMAT_VALUES = ['aicc', 'duration', 'number', 'usd'];
+export const UNIT_FORMAT_VALUES = ['aicc', 'duration', 'number', 'usd', 'bytes', 'compact-number'];
 export const NAVIGATION_SECTION_KEYS = ['label', 'pages', 'experimental', 'placement'];
 export const NAVIGATION_INDICATOR_KEYS = ['label', 'any'];
 export const BUILT_IN_PAGE_KEYS = ['id', 'kind', 'page', 'title', 'navigation-label', 'navigation-indicator', 'description', 'intent', 'subject', 'objective', 'acceptance', 'icon', 'class-name', 'experimental', 'filter-bar', 'view-mode-control', 'pull-refresh', 'mode-indicator', 'query-binding', 'requires', 'form', 'definition'];
@@ -753,11 +753,24 @@ export const SYNTHETIC_SOURCE_FIELDS = {
 };
 
 export const DATABASE_QUERY_SOURCE_FIELDS = {
+  'workflow-identities': TABLE_FIELDS.workflows,
+  'overview-run-identities': TABLE_FIELDS['overview-runs'],
   'workflow-subject-topology': [
     'repositoryId', 'path', 'id', 'organization', 'repository', 'workflow',
     'workflow-name', 'workflow-role', 'campaign', 'campaign-name', 'campaign-icon',
     'workflow-link'
+  ],
+  'workflow-subject-identities': [
+    'repositoryId', 'path', 'id', 'organization', 'repository', 'workflow',
+    'workflow-name', 'workflow-role', 'campaign', 'campaign-name', 'campaign-icon',
+    'workflow-link'
   ]
+};
+
+/** @type {Record<string, string>} */
+export const DATABASE_QUERY_SOURCE_TABLES = {
+  'workflow-identities': 'workflows',
+  'overview-run-identities': 'overview-runs'
 };
 
 export const QUERY_SOURCE_VALUES = [

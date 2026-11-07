@@ -113,6 +113,8 @@ func TestValueCollectionCostsAggregateByDayAndExposeBoundedSource(t *testing.T) 
 		row["attempts"] != int64(2) || row["successes"] != int64(1) || row["failures"] != int64(1) ||
 		row["api-requests"] != int64(8) || row["core-requests"] != int64(5) ||
 		row["search-requests"] != int64(2) || row["graphql-requests"] != int64(1) ||
+		row["wall-ms"] != int64(7000) || row["output-bytes"] != int64(120) ||
+		row["transport-bytes"] != int64(230) ||
 		row["max-wall-ms"] != int64(5000) || row["last-failure-reason"] != "timeout" {
 		t.Fatalf("cost row=%+v", row)
 	}

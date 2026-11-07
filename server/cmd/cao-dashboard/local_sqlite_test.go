@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -31,6 +32,7 @@ func TestServeSQLiteFlagValidation(t *testing.T) {
 		{"postgres", []string{"--sqlite=local.sqlite", "--postgres-url=postgres://localhost/test"}, "none of the others"},
 		{"redis", []string{"--sqlite=local.sqlite", "--redis-url=redis://localhost"}, "none of the others"},
 		{"source", []string{"--sqlite=local.sqlite", "--source=deployed"}, "none of the others"},
+		{"stdin-postgres", []string{"--exit-on-stdin-close", "--postgres-url=postgres://localhost/test"}, "requires local SQLite"},
 		{"public", []string{"--sqlite=local.sqlite", "--listen=0.0.0.0:8080"}, "non-loopback"},
 		{"default-public", []string{"--listen=0.0.0.0:8080"}, "non-loopback"},
 		{"download-empty-url", []string{"--download-sqlite="}, "must use HTTP or HTTPS"},
@@ -51,6 +53,67 @@ func TestServeSQLiteFlagValidation(t *testing.T) {
 				t.Fatalf("expected %q, got %v", test.want, err)
 			}
 		})
+	}
+}
+
+func TestServeSQLiteOwnerStdinLifetime(t *testing.T) {
+	t.Setenv("CAO_POLICY_PATH", "")
+	t.Setenv("OTEL_SDK_DISABLED", "true")
+	directory := t.TempDir()
+	path := filepath.Join(directory, "snapshot.sqlite")
+	if err := os.WriteFile(path, sqliteDownloadFixture(t), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	reader, writer := io.Pipe()
+	defer func() { _ = reader.Close(); _ = writer.Close() }()
+	cmd := newServeCommand()
+	cmd.SilenceUsage, cmd.SilenceErrors = true, true
+	cmd.SetIn(reader)
+	listener := newTestListener(t)
+	address := listener.Addr().String()
+	if err := listener.Close(); err != nil {
+		t.Fatal(err)
+	}
+	cmd.SetArgs(append(sqliteServeTestArgs(t), "--sqlite="+path, "--listen="+address, "--exit-on-stdin-close"))
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- cmd.ExecuteContext(ctx) }()
+	client := &http.Client{Timeout: time.Second}
+	defer client.CloseIdleConnections()
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+address+"/api/readiness", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.Header.Set("Authorization", "Bearer "+localSQLiteTestToken)
+		response, err := client.Do(request)
+		if err == nil {
+			_ = response.Body.Close()
+			if response.StatusCode == http.StatusOK {
+				break
+			}
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatal("server did not become ready")
+		case err := <-done:
+			t.Fatalf("server stopped before readiness: %v", err)
+		case <-ticker.C:
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("stdin-owned server shutdown: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatal("server outlived its owner")
 	}
 }
 

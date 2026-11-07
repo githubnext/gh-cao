@@ -1,0 +1,42 @@
+{
+  "language-version": "0.1.0",
+  "dashboard": {
+    "id": "scatter-value-example",
+    "title": "Run cost and duration",
+    "queries": [
+      {
+        "name": "run-bubbles",
+        "subject": "Compare run duration over time, with circle area representing AI credits.",
+        "from": "runs"
+      }
+    ],
+    "pages": [
+      {
+        "id": "bubbles",
+        "kind": "custom",
+        "title": "Run cost and duration",
+        "views": [
+          {
+            "id": "run-bubbles",
+            "title": "Duration and AI credits",
+            "mark": "chart",
+            "chart": "scatter",
+            "data": {
+              "source": "run-bubbles",
+              "query-context": false,
+              "limit": 100,
+              "order-by": [{ "field": "started-at", "direction": "asc" }]
+            },
+            "encoding": {
+              "x": { "field": "started-at", "type": "temporal" },
+              "y": { "field": "duration", "type": "quantitative", "title": "Duration" },
+              "value": { "field": "aic-total", "type": "quantitative", "title": "AI credits" },
+              "color": { "field": "run-conclusion", "type": "nominal" },
+              "href": { "field": "run-link" }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

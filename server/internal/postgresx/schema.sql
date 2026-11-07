@@ -48,6 +48,138 @@ CREATE TABLE IF NOT EXISTS cao_state (
   PRIMARY KEY (namespace)
 );
 
+CREATE TABLE IF NOT EXISTS cao_acquisition_scopes (
+  namespace TEXT NOT NULL,
+  repository TEXT NOT NULL,
+  installation_id BIGINT NOT NULL,
+  epoch BIGINT NOT NULL,
+  PRIMARY KEY (namespace, repository),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (repository ~ '^[a-z0-9][a-z0-9-]*/[a-z0-9._-]+$' AND octet_length(repository) <= 256),
+  CHECK (installation_id >= 0 AND epoch > 0)
+);
+
+CREATE TABLE IF NOT EXISTS cao_acquisition_attempts (
+  namespace TEXT NOT NULL,
+  repository TEXT NOT NULL,
+  run_id BIGINT NOT NULL,
+  attempt BIGINT NOT NULL,
+  epoch BIGINT NOT NULL,
+  generation BIGINT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  token TEXT,
+  lease_until TIMESTAMPTZ,
+  digest TEXT,
+  content BYTEA,
+  published_at TIMESTAMPTZ,
+  consumed_digest TEXT,
+  PRIMARY KEY (namespace, repository, run_id, attempt),
+  FOREIGN KEY (namespace, repository) REFERENCES cao_acquisition_scopes(namespace, repository) ON DELETE CASCADE,
+  CHECK (run_id > 0 AND attempt > 0 AND epoch > 0 AND generation > 0),
+  CHECK ((token IS NULL) = (lease_until IS NULL)),
+  CHECK (token IS NULL OR token ~ '^[a-f0-9]{32}$'),
+  CHECK (digest IS NULL OR digest ~ '^[a-f0-9]{64}$'),
+  CHECK (consumed_digest IS NULL OR consumed_digest ~ '^[a-f0-9]{64}$'),
+  CHECK ((digest IS NULL) = (content IS NULL) AND (digest IS NULL) = (published_at IS NULL)),
+  CHECK (octet_length(content) <= 33554432)
+);
+
+CREATE INDEX IF NOT EXISTS cao_acquisition_pending ON cao_acquisition_attempts (namespace, repository, run_id, attempt) WHERE digest IS DISTINCT FROM consumed_digest;
+
+CREATE TABLE IF NOT EXISTS cao_acquisition_outcomes (
+  namespace TEXT NOT NULL,
+  repository TEXT NOT NULL,
+  url TEXT NOT NULL,
+  epoch BIGINT NOT NULL,
+  observed_at TIMESTAMPTZ NOT NULL,
+  content BYTEA NOT NULL,
+  PRIMARY KEY (namespace, repository, url),
+  FOREIGN KEY (namespace, repository) REFERENCES cao_acquisition_scopes(namespace, repository) ON DELETE CASCADE,
+  CHECK (epoch > 0),
+  CHECK (octet_length(url) BETWEEN 1 AND 2048),
+  CHECK (octet_length(content) BETWEEN 1 AND 32768)
+);
+
+CREATE TABLE IF NOT EXISTS cao_acquisition_value_hints (
+  namespace TEXT NOT NULL,
+  repository TEXT NOT NULL,
+  epoch BIGINT NOT NULL,
+  dirty BIGINT NOT NULL,
+  processed BIGINT NOT NULL,
+  attempt_day TEXT,
+  retry_at TIMESTAMPTZ,
+  PRIMARY KEY (namespace, repository),
+  FOREIGN KEY (namespace, repository) REFERENCES cao_acquisition_scopes(namespace, repository) ON DELETE CASCADE,
+  CHECK (epoch > 0 AND dirty >= 0 AND processed >= 0 AND processed <= dirty),
+  CHECK (attempt_day IS NULL OR attempt_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+);
+
+CREATE TABLE IF NOT EXISTS cao_acquisition_inventory_config (
+  namespace TEXT NOT NULL,
+  source_repository TEXT NOT NULL,
+  source_sha TEXT NOT NULL,
+  policy_sha TEXT NOT NULL,
+  snapshot_digest TEXT NOT NULL,
+  content BYTEA,
+  PRIMARY KEY (namespace),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (source_repository ~ '^[a-z0-9][a-z0-9-]*/[a-z0-9._-]+$' AND octet_length(source_repository) <= 256),
+  CHECK (source_sha ~ '^[a-f0-9]{40}$' AND policy_sha ~ '^[a-f0-9]{40}$'),
+  CHECK (snapshot_digest ~ '^[a-f0-9]{64}$'),
+  CHECK (content IS NULL OR octet_length(content) BETWEEN 1 AND 16777216)
+);
+
+CREATE TABLE IF NOT EXISTS cao_acquisition_inventory (
+  namespace TEXT NOT NULL,
+  repository TEXT NOT NULL,
+  installation_id BIGINT NOT NULL,
+  epoch BIGINT NOT NULL,
+  generation BIGINT NOT NULL,
+  published_generation BIGINT NOT NULL DEFAULT 0,
+  snapshot_digest TEXT NOT NULL,
+  observed_at TIMESTAMPTZ,
+  content BYTEA,
+  PRIMARY KEY (namespace, repository),
+  FOREIGN KEY (namespace, repository) REFERENCES cao_acquisition_scopes(namespace, repository) ON DELETE CASCADE,
+  CHECK (installation_id > 0 AND epoch > 0 AND generation > 0),
+  CHECK (published_generation >= 0 AND published_generation <= generation),
+  CHECK (snapshot_digest ~ '^[a-f0-9]{64}$'),
+  CHECK ((content IS NULL) = (observed_at IS NULL)),
+  CHECK (octet_length(content) <= 16777216)
+);
+
+CREATE TABLE IF NOT EXISTS cao_archive_sources (
+  namespace TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  repository TEXT NOT NULL,
+  installation_id BIGINT NOT NULL,
+  epoch BIGINT NOT NULL,
+  withdrawn BOOLEAN NOT NULL,
+  cleanup_pending BOOLEAN NOT NULL,
+  PRIMARY KEY (namespace, destination, repository, installation_id, epoch),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (repository ~ '^[a-z0-9][a-z0-9-]*/[a-z0-9._-]+$' AND octet_length(repository) <= 256),
+  CHECK (octet_length(destination) BETWEEN 1 AND 512),
+  CHECK (installation_id > 0 AND epoch > 0),
+  CHECK (NOT cleanup_pending OR withdrawn)
+);
+
+CREATE INDEX IF NOT EXISTS cao_archive_source_repository ON cao_archive_sources (namespace, repository);
+
+CREATE INDEX IF NOT EXISTS cao_archive_source_cleanup ON cao_archive_sources (namespace, destination, repository, installation_id, epoch) WHERE cleanup_pending;
+
+CREATE TABLE IF NOT EXISTS cao_trace_objects (
+  namespace TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  key TEXT NOT NULL,
+  content BYTEA NOT NULL,
+  PRIMARY KEY (namespace, destination, key),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (octet_length(destination) BETWEEN 1 AND 512),
+  CHECK (key ~ '^(ledger[.]json|[a-f0-9]{64}[.](trace|dataset|mining))$'),
+  CHECK (octet_length(content) <= 134217728)
+);
+
 CREATE TABLE IF NOT EXISTS cao_value_publications (
   namespace TEXT NOT NULL,
   packet_id TEXT NOT NULL,

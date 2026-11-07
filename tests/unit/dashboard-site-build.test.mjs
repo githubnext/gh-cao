@@ -104,6 +104,14 @@ test("dashboard build uses GitHub Actions repository and server URL for the chro
     assert.ok(dashboard.dashboard.navigation.some(
       (section) => section.label === "Data" && section.pages.includes("friction"),
     ));
+    assert.equal(dashboard.dashboard.pages.find((page) => page.id === "skills")?.experimental, false);
+    assert.equal(catalog.pages.find((page) => page.id === "skills")?.experimental, false);
+    assert.ok(dashboard.dashboard.navigation.some(
+      (section) => section.label === "Data" && section.experimental !== true && section.pages.includes("skills"),
+    ));
+    assert.ok(!document.dashboard.navigation.some(
+      (section) => section.experimental === true && section.pages.includes("skills"),
+    ));
     assert.deepEqual(catalog, agentCatalog({
       ...document,
       dashboard: {
@@ -126,8 +134,53 @@ test("dashboard build uses an explicit packaged CAO version rather than the sour
       commitSha: "0123456789abcdef0123456789abcdef01234567",
       caoVersion: "v1.2.3",
     });
+
     const index = await readFile(path.join(root, "output", "index.html"), "utf8");
     assert.ok(index.includes('<meta name="cao-version" content="v1.2.3">'));
+  } finally {
+    await rm(root, { force: true, recursive: true });
+  }
+});
+
+test("immediate build publishes only audited pages and reachable rich query contracts", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "cao-immediate-build-"));
+  try {
+    await buildDashboardSite({
+      destination: path.join(root, "output"),
+      controlSettings: { campaigns: { activity: {} }, web: { experimental: false } },
+      profile: "immediate",
+    });
+    const document = JSON.parse(await readFile(path.join(root, "output/dashboard.json"), "utf8"));
+    const ids = document.dashboard.pages.map((page) => page.id);
+    assert.equal(ids.length, 46);
+    for (const id of ["configuration", "indexing", "campaigns", "workflow-value", "value", "governance", "wizard", "marketplace", "maintenance-campaigns"]) {
+      assert.ok(!ids.includes(id), `unsupported immediate page ${id}`);
+    }
+    for (const id of ["overview", "repositories", "repository-detail", "workflows", "workflow-detail", "runs", "run-events", "issues", "friction", "firewall", "skills", "experiments", "evals", "graders", "maintenance", "commands", "command"]) {
+      assert.ok(ids.includes(id), `missing normal page ${id}`);
+    }
+    assert.equal(document.dashboard.pages.find((page) => page.id === "overview").title, "Overview");
+    assert.ok(document.dashboard["data-status"]);
+    assert.equal(document.dashboard.callouts, undefined);
+    const queries = JSON.parse(await readFile(path.join(root, "output/src/agent/queries.generated.json"), "utf8"));
+    assert.ok(queries.some((query) => query.name === "repository-run-inventory"));
+    assert.ok(queries.some((query) => query.name === "runs-daily-conclusions"));
+    assert.ok(queries.some((query) => query.name === "issue-repository-totals"));
+    assert.ok(!queries.some((query) => query.from === "collection-health"));
+    assert.ok(!queries.some((query) => query.name === "maintenance-campaign-packages"));
+    assert.ok(!queries.some((query) => query.name === "overview-delivery-summary"));
+    assert.ok(!queries.some((query) => query.name === "overview-workflow-health-summary"));
+    assert.ok(!queries.some((query) => query.name === "overview-header-presentation"));
+    assert.ok(!queries.some((query) => query.name === "overview-value-station"));
+    assert.ok(queries.some((query) => query.name === "immediate-retained-run-count"));
+    assert.deepEqual(document.dashboard["cli-actions"].map((action) => action.id), [
+      "upgrade-repository", "upgrade-target-repository",
+    ]);
+    const catalog = JSON.parse(await readFile(path.join(root, "output/src/agent/catalog.generated.json"), "utf8"));
+    assert.ok(catalog.pages.every((page) => ids.includes(page.id)));
+    assert.ok(catalog.pages.some((page) => page.id === "maintenance"));
+    assert.ok(!catalog.pages.some((page) => page.id === "maintenance-campaigns"));
+    assert.equal(document.dashboard.repository, undefined);
   } finally {
     await rm(root, { force: true, recursive: true });
   }

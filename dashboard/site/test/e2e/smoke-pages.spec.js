@@ -56,37 +56,51 @@ test('Simulators exposes its database-size tab and bounded scenario inputs', asy
   await expect(simulator.getByRole('slider', { name: 'Skipped runs (%)' })).toHaveAttribute('min', '1');
 });
 
-test('Simulators binds slider values to a recomputed 30-day table', async ({ page }) => {
-  await page.setContent(`
-    <div id="root"></div>
-    <script type="module">
-      import { renderDashboard } from ${JSON.stringify(buildPresenterModuleUrl())};
-      import { loadCanonicalDashboardPage } from '/src/data-processor.js';
-      const documentModel = ${JSON.stringify(authoritativeDashboard)};
-      window.location.hash = '#page-simulators';
-      document.querySelector('#root').append(renderDashboard({
-        document: documentModel,
-        sources: {},
-        loadPageSources: (pageId, options) => pageId === 'simulators'
-          ? loadCanonicalDashboardPage(
-              ['simulator-database-summary'],
-              documentModel.dashboard,
-              undefined,
-              { pageId, queryContext: options.queryContext }
-            )
-          : Promise.resolve({})
-      }));
-    </script>
-  `);
-  const simulator = page.locator('[data-page-id="simulators"]');
-  const table = simulator.getByRole('table');
-  await expect(table.getByRole('row', { name: 'Total 890880000' })).toBeVisible();
-  await simulator.getByRole('slider', { name: 'Repositories' }).fill('2000');
-  await expect(table.getByRole('row', { name: 'Total 1781760000' })).toBeVisible();
-  await simulator.getByRole('slider', { name: 'Skipped runs (%)' }).fill('50');
-  await expect(table.getByRole('row', { name: 'Total 1228800000' })).toBeVisible();
-  await expect(table.getByRole('row', { name: 'Run summaries 307200000' })).toBeVisible();
-});
+for (const width of [1440, 390]) {
+  test(`Simulators renders readable units and recomputes sliders at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.setContent(`
+      <div id="root"></div>
+      <script type="module">
+        import { renderDashboard } from ${JSON.stringify(buildPresenterModuleUrl())};
+        import { loadCanonicalDashboardPage } from '/src/data-processor.js';
+        const documentModel = ${JSON.stringify(authoritativeDashboard)};
+        window.location.hash = '#page-simulators';
+        document.querySelector('#root').append(renderDashboard({
+          document: documentModel,
+          sources: {},
+          loadPageSources: (pageId, options) => pageId.startsWith('simulator')
+            ? loadCanonicalDashboardPage(
+                pageId === 'simulators' ? ['simulator-database-summary']
+                  : ['simulator-pr-summary', 'simulator-pr-inputs'],
+                documentModel.dashboard,
+                undefined,
+                { pageId, queryContext: options.queryContext }
+              )
+            : Promise.resolve({})
+        }));
+      </script>
+    `);
+    const simulator = page.locator('[data-page-id="simulators"]');
+    const table = simulator.getByRole('table');
+    await expect(table.getByRole('row', { name: /^Total 891 MB/ })).toBeVisible();
+    await expect(table.locator('[data-sort-value="890880000"] span')).toHaveAttribute('title', '890,880,000 Bytes');
+    await simulator.getByRole('slider', { name: 'Repositories' }).fill('2000');
+    await expect(table.getByRole('row', { name: /^Total 1.8 GB/ })).toBeVisible();
+    await simulator.getByRole('slider', { name: 'Skipped runs (%)' }).fill('50');
+    await expect(table.getByRole('row', { name: /^Total 1.2 GB/ })).toBeVisible();
+    await expect(table.getByRole('row', { name: /^Run summaries 307 MB/ })).toBeVisible();
+
+    await simulator.getByRole('link', { name: 'Pull request', exact: true }).click();
+    const pullRequests = page.locator('[data-page-id="simulator-pull-request"]');
+    const totals = pullRequests.locator('[data-view-id="simulator-pr-totals"]');
+    await expect(totals.getByRole('row', { name: /^AI Credits \(AIC\) 50M/ })).toBeVisible();
+    await pullRequests.getByRole('slider', { name: 'Duration (days)' }).fill('31');
+    await expect(totals.locator('[data-sort-value="1550000000"]')).toHaveText('1.55B');
+    await expect(totals.locator('[data-sort-value="1550000000"] span'))
+      .toHaveAttribute('title', '1,550,000,000 Modeled count');
+  });
+}
 
 test('mobile shell keeps Overview navigation in the hamburger menu', async ({ page }) => {
   const presenterModuleUrl = buildPresenterModuleUrl();
@@ -208,8 +222,8 @@ test('Ingestion shows daily run counts, shard activity dates and retained transa
         'indexing-ingestion-runs': {
           source: 'indexing-ingestion-runs',
           rows: [
-            { 'shard-day': '2026-09-11', 'workflow-runs': 6050, 'run-count-status': 'Reported run count' },
-            { 'shard-day': '2026-09-12', 'workflow-runs': 6950, 'run-count-status': 'Reported run count' }
+            { 'shard-day': '2026-09-11', 'workflow-runs': 6050, 'shard-entry-count': 1, 'run-count-status': 'Reported run count' },
+            { 'shard-day': '2026-09-12', 'workflow-runs': 6950, 'shard-entry-count': 1, 'run-count-status': 'Reported run count' }
           ],
           metadata
         },

@@ -3,6 +3,37 @@ import { describe, expect, it } from 'vitest';
 import { renderCellDisplay } from '../../src/components/cell-display.js';
 
 describe('table cell display helper', () => {
+  it.each([
+    ['bytes', 0, '0 B'],
+    ['bytes', 512, '512 B'],
+    ['bytes', 1_000, '1.0 KB'],
+    ['bytes', 890_880_000, '891 MB'],
+    ['bytes', 1_228_800_000, '1.2 GB'],
+    ['bytes', 8_601_600_000_000, '8.6 TB'],
+    ['compact-number', 0, '0'],
+    ['compact-number', 100_000, '100K'],
+    ['compact-number', 50_000_000, '50M'],
+    ['compact-number', 31_000_000_000_000, '31T'],
+    ['compact-number', -1_234, '-1.23K'],
+    ['compact-number', 0.000278, '0.000278']
+  ])('renders %s value %s as %s while retaining exact accessible text', (format, value, expected) => {
+    const unit = { name: format === 'bytes' ? 'Bytes' : 'Modeled count', symbol: format === 'bytes' ? 'B' : 'count',
+      significant: format === 'bytes' ? 1 : 0.000001, format };
+    const rendered = /** @type {HTMLElement} */ (
+      renderCellDisplay(undefined, value, String, unit, 'quantitative')
+    );
+    expect(rendered.textContent).toBe(expected);
+    expect(rendered.title).toBe(`${value.toLocaleString('en', { maximumSignificantDigits: 21 })} ${unit.name}`);
+    expect(rendered.getAttribute('aria-label')).toBe(`${expected} (${rendered.title})`);
+  });
+
+  it.each(['bytes', 'compact-number'])('keeps absent and invalid %s values distinct from zero', (format) => {
+    const unit = { name: 'Test unit', symbol: 'test', significant: 1, format };
+    for (const value of [null, undefined, '', NaN, Infinity, 'invalid']) {
+      expect(renderCellDisplay(undefined, value, String, unit, 'quantitative')).toBe('');
+    }
+  });
+
   it('DLS-VIEW-004 renders JSON-selected display types through one generic helper', () => {
     /** @param {unknown} value */
     const toText = (value) => value == null || value === '' ? 'unknown' : String(value);

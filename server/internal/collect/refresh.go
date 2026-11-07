@@ -86,19 +86,21 @@ func (r ScopeRefresher) discover(ctx context.Context, enrollment Enrollment, que
 				removed = append(removed, name)
 			}
 		}
-		admitter := Admitter{Queue: queue}
-		if err := admitter.queueErasures(ctx, installationID, removed); err != nil {
-			return err
-		}
-		// Admission precedes publication. Discovery collection tasks check
-		// membership under the same mutation lease before running.
-		for _, name := range repositories {
-			if previousSet[name] {
-				continue
-			}
-			if _, err := queue.Enqueue(ctx, Task{Repository: name, InstallationID: installationID,
-				Reason: "repository-discovery"}); err != nil {
+		if enrollment.Authority == nil {
+			admitter := Admitter{Queue: queue}
+			if err := admitter.queueErasures(ctx, installationID, removed); err != nil {
 				return err
+			}
+			// Legacy tasks are admitted before membership publication. Native
+			// ownership commits its erasure atomically, without file consumers.
+			for _, name := range repositories {
+				if previousSet[name] {
+					continue
+				}
+				if _, err := queue.Enqueue(ctx, Task{Repository: name, InstallationID: installationID,
+					Reason: "repository-discovery"}); err != nil {
+					return err
+				}
 			}
 		}
 		if _, err := enrollment.removeRepositories(ctx, installationID, removed); err != nil {
