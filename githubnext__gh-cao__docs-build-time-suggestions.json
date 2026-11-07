@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-07T01:50:57.248783Z",
-      "worker_run_id": "42325930590",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        42325781800,
-        42324534355,
-        42323168873,
-        42322910275,
-        42321714736,
-        42320470765,
-        42319054311,
-        42318844013,
-        42315717673,
-        42313978396,
-        42313858334,
-        42313837196,
-        42312356308,
-        42310704157,
-        42310197155,
-        42308956192,
-        42307173096,
-        42305320782,
-        42303343111,
-        42302913330
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T22:12:35Z to 2026-11-07T01:46:02Z) was within 14 days and contained 15 successful runs, four skipped workflow_run callbacks, and one cancelled workflow_run callback. Only one successful full build-and-deploy publication was available (push run 42313837196 at source SHA e347bfc3e055291420cc09f0471ce1544b8c6f4d), below the required five comparable successful publications. Trusted Actions job and step metadata measured that publication at 150 seconds workflow wall-clock, about 3 seconds initial queue, a 96-second build job, and a 30-second deploy job; docs.yml has no separate dashboard job. Checkout took 37 seconds, dependency installation 15 seconds, Astro documentation generation 11 seconds, dashboard cache restore 4 seconds, Pages artifact upload 17 seconds, and Pages deployment 26 seconds. The dashboard cache hit was verified because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. The other 14 successful runs were freshness-only schedules with workflow wall-time median 13.5 seconds and nearest-rank p90 18 seconds, initial queue median 3.5 seconds and p90 4 seconds, and schedule-freshness execution median 9 seconds and p90 10 seconds; one disclosed queue outlier took 50 seconds wall-clock. Because fewer than five comparable full publications were present, required complete full-workflow and dashboard/build/deploy median and p90 distributions and a complete reusable-dashboard-generation evaluation could not be established. No suggestion was made; reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-07T02:21:35Z",
       "worker_run_id": "42328579992",
       "category": "reusable dashboard generation",
@@ -820,6 +792,34 @@
         42354884309
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T08:18:00Z to 2026-11-07T11:46:13Z) was within 14 days and contained two successful runs, fifteen failed runs, two skipped workflow_run callbacks, and one cancelled workflow_run callback. Only two successful runs were present, below the required five comparable successful runs. Therefore full-workflow and dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, and cache-hit verification across a sufficient sample could not be established. Failed and cancelled runs were disclosed and excluded from successful timing distributions. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-07T12:20:58.059851Z",
+      "worker_run_id": "42371886591",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42371996975,
+        42371865560,
+        42370676678,
+        42369553757,
+        42368507319,
+        42367445336,
+        42366996399,
+        42366371250,
+        42365314443,
+        42364273675,
+        42363220064,
+        42362916893,
+        42362133283,
+        42361108749,
+        42361004520,
+        42360186170,
+        42360033659,
+        42359015942,
+        42358809776,
+        42357923942
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T09:01:24Z to 2026-11-07T12:20:12Z) was within 14 days and contained four successful runs, thirteen failed runs, two skipped workflow_run callbacks, and one cancelled workflow_run callback. With only four successful runs total, the window cannot contain the required five comparable successful full publications. Therefore full-workflow and dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, and cache-hit verification across a sufficient sample could not be established. Failed and cancelled runs were disclosed and excluded from successful timing distributions. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
