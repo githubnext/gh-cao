@@ -349,6 +349,29 @@ describe('dashboard service worker', () => {
     await expect((await response)?.text()).resolves.toBe('cached manifest');
     expect(fetch).not.toHaveBeenCalled();
   });
+  it('caches refreshed activity shards and reuses them on slow connections', async () => {
+    const { listeners, worker, fetch, entries } = serviceWorkerHarness();
+    const request = new Request('https://example.test/dashboard/gh-aw-logs-runs/logs-1.jsonl', { cache: 'reload' });
+    /** @type {Promise<Response> | undefined} */
+    let response;
+    await dispatchExtendedEvent(listeners.fetch, {
+      request,
+      respondWith: (/** @type {Promise<Response>} */ value) => { response = value; }
+    });
+    await expect((await response)?.text()).resolves.toBe('updated data');
+    expect(fetch.mock.lastCall?.[0]).toHaveProperty('cache', 'reload');
+    await expect(entries.get(String(request))?.clone().text()).resolves.toBe('updated data');
+
+    worker.navigator.connection.effectiveType = '2g';
+    fetch.mockClear();
+    listeners.fetch({
+      request,
+      respondWith: (/** @type {Promise<Response>} */ value) => { response = value; },
+      waitUntil: () => {}
+    });
+    await expect((await response)?.text()).resolves.toBe('updated data');
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it('leaves the server-side data API outside application caches', () => {
     expect(source).toContain("!url.pathname.startsWith('/api/')");
   });
