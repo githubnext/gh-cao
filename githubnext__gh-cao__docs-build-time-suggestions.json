@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-07T04:32:34Z",
-      "worker_run_id": "42338680658",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        42338502212,
-        42338450591,
-        42337821353,
-        42336670207,
-        42336581799,
-        42335513239,
-        42335490131,
-        42334361491,
-        42333286801,
-        42333153061,
-        42332024646,
-        42330847462,
-        42330840919,
-        42330836980,
-        42329650363,
-        42328640620,
-        42328522309,
-        42327095132,
-        42325781800,
-        42324534355
-      ],
-      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T01:31:37Z to 2026-11-07T04:30:32Z) was within 14 days and contained 16 successful runs, three skipped workflow_run callbacks, and one cancelled schedule run. Six successful full build-and-deploy publications were available (four push, one workflow_run, and one schedule) with the same observed build/deploy step topology and successful dashboard-cache path, meeting the five-run minimum while trigger and source-revision differences were disclosed. Workflow wall-clock median was 148 seconds and nearest-rank p90 215 seconds; initial queue median was 3 seconds and p90 82 seconds; execution median was 127 seconds and p90 178 seconds. The build job median was 88.5 seconds and p90 95 seconds; deploy median was 30.5 seconds and p90 77 seconds; docs.yml has no separate dashboard job. Across the six publications, checkout median was 24 seconds (p90 33), dependency installation 17.5 seconds (p90 20), Astro generation 14 seconds (p90 15), dashboard cache restore 3 seconds (p90 4), Pages artifact upload 18 seconds (p90 20), and Pages deployment 26.5 seconds (p90 73). Trusted Actions step metadata verified six of six dashboard cache hits: Restore cached CAO Dashboard succeeded and both cache-miss lookup and artifact-download steps were skipped every time. The relevant CAO Dashboard run 42335347706 spent 1,083 seconds in its build job, including 995 seconds upgrading activity data, then populated the reusable cache in a 12-second cache job; subsequent docs runs restored it in 2-4 seconds. Reusable dashboard generation is therefore already effectively decoupled from docs publication, and no additional concrete change is supported that would save at least 60 seconds or 15 percent of median execution without risking freshness or deployment safety. Confidence is high for the cache-hit conclusion and medium for cross-trigger timing distributions. No suggestion was made; advance to artifact transfer and Pages packaging."
-    },
-    {
       "evaluated_at": "2026-11-07T04:52:01Z",
       "worker_run_id": "42340062196",
       "category": "artifact transfer and Pages packaging",
@@ -820,6 +792,34 @@
         42367445336
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T11:16:00Z to 2026-11-07T14:16:13Z) was within 14 days and contained thirteen successful runs, five skipped workflow_run callbacks, one cancelled workflow_run callback, and one failed schedule run. Only two successful full build-and-deploy publications were available: push run 42379567653 at source SHA caf079a1ed1644fdbb65d20d8f9544a461c5cb83 and schedule run 42368507319 at source SHA 79530075aab1543b84afd622b3fda4417bf5dc31; the other eleven successful runs were freshness-only schedules whose build and deploy jobs were skipped. This is below the required five comparable successful full publications, so complete full-workflow and dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache verification across a sufficient sample, and a complete artifact-transfer-and-Pages-packaging evaluation could not be established. Trusted step metadata did verify dashboard cache hits in both successful publications because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. The failed schedule run completed its build job but failed deployment and was disclosed rather than included as a successful sample. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-07T14:50:51Z",
+      "worker_run_id": "42383275089",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42383129418,
+        42381970482,
+        42380788512,
+        42380446913,
+        42379595472,
+        42379579961,
+        42379567653,
+        42379117964,
+        42379088744,
+        42378433074,
+        42377313769,
+        42376161557,
+        42375832743,
+        42375006010,
+        42373898633,
+        42372800081,
+        42371996975,
+        42371865560,
+        42370676678,
+        42369553757
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T11:46:02Z to 2026-11-07T14:46:12Z) was within 14 days and contained fourteen successful runs, five skipped workflow_run callbacks, and one cancelled workflow_run callback; there were no failed runs. Only one successful full build-and-deploy publication was available (push run 42379567653 at source SHA caf079a1ed1644fdbb65d20d8f9544a461c5cb83); the other thirteen successful runs were freshness-only schedules whose build and deploy jobs were skipped. This is below the required five comparable successful full publications, so complete full-workflow and dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache verification across a sufficient sample, and a complete artifact-transfer-and-Pages-packaging evaluation could not be established. Trusted Actions metadata measured the sole full publication at 132 seconds workflow wall-clock, about 4 seconds initial queue, a 94-second build job, and a 28-second deploy job; docs.yml has no separate dashboard job. Its Pages artifact upload took 20 seconds, and its dashboard cache hit was verified because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. The cancelled run was disclosed and excluded from successful timing distributions. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
