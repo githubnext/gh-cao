@@ -3,34 +3,6 @@
   "next_category": "reusable dashboard generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-06T14:32:49.771574Z",
-      "worker_run_id": "42234371050",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        42234619826,
-        42233567769,
-        42232601374,
-        42232264369,
-        42230255476,
-        42228150735,
-        42226109700,
-        42224117260,
-        42222138228,
-        42220209362,
-        42218640366,
-        42218366711,
-        42217129619,
-        42216813494,
-        42214562361,
-        42212636251,
-        42210836443,
-        42208934653,
-        42207080356,
-        42206393206
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T10:55:54Z to 2026-11-06T14:31:21Z) was within 14 days and contained 16 successful runs plus four skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 0934632ae6f6fa4154273b6fbeb07186cd93ac77. Only one successful full build-and-deploy publication was available (workflow_run 42206393206), below the required five comparable successful runs. Retained trusted Actions job and step metadata showed 112 seconds wall-clock, about 3 seconds initial queue, an 11-second schedule-freshness job, an 80-second build job, and a 10-second deploy job; docs.yml has no separate dashboard job. Checkout took 24 seconds, dependency installation 15 seconds, Astro generation 12 seconds, dashboard cache restore 2 seconds, Pages artifact upload 18 seconds, and deployment 8 seconds. The dashboard cache hit was verified because cache-miss lookup and artifact-download steps were skipped. The other 15 successful runs were freshness-only schedules with wall-time median 14 seconds and nearest-rank p90 17 seconds. Because fewer than five comparable full publications were present, required full-workflow and dashboard/build/deploy median and p90 distributions and a complete reusable-dashboard-generation evaluation could not be established. No suggestion was made; reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-06T14:52:27Z",
       "worker_run_id": "42237286020",
       "category": "reusable dashboard generation",
@@ -820,6 +792,34 @@
         42293633812
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T21:04:13Z to 2026-11-07T00:48:50Z) was within 14 days and contained 16 successful runs, three skipped workflow_run callbacks, and one cancelled workflow_run callback. Only two successful full build-and-deploy publications were available (push 42313837196 at source SHA e347bfc3e055291420cc09f0471ce1544b8c6f4d and workflow_run 42293633812 at source SHA 83f12ba71108396f1b752fe01e64a5e15c4b20fb), below the required five comparable successful publications and not like-for-like by trigger or source revision. Retained trusted Actions job and step evidence measured their workflow wall times at 150 and 132 seconds (descriptive median 141 seconds, nearest-rank p90 150 seconds; insufficient sample), build jobs at 96 and 90 seconds (median 93 seconds, p90 96 seconds), and deploy jobs at 30 and 8 seconds (median 19 seconds, p90 30 seconds); docs.yml has no separate dashboard job. Dashboard cache hits were verified in both publications because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. Fresh trusted metadata for the two newest schedules verified 4-second initial queues, 7-13 second schedule-freshness jobs, 4-8 second freshness checks, and skipped build and deploy. Because fewer than five comparable full publications were present, required complete full-workflow and dashboard/build/deploy distributions and a complete reusable-dashboard-generation evaluation could not be established. No suggestion was made; reusable dashboard generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-07T01:18:30.146254Z",
+      "worker_run_id": "42323092911",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        42323168873,
+        42322910275,
+        42321714736,
+        42320470765,
+        42319054311,
+        42318844013,
+        42315717673,
+        42313978396,
+        42313858334,
+        42313837196,
+        42312356308,
+        42310704157,
+        42310197155,
+        42308956192,
+        42307173096,
+        42305320782,
+        42303343111,
+        42302913330,
+        42301449911,
+        42299355245
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T21:45:40Z to 2026-11-07T01:16:46Z) was within 14 days and contained 15 successful runs, four skipped workflow_run callbacks, and one cancelled workflow_run callback. Only one successful full build-and-deploy publication was available (push 42313837196 at source SHA e347bfc3e055291420cc09f0471ce1544b8c6f4d), below the required five comparable successful publications. Trusted Actions job and step metadata measured that run at 150 seconds workflow wall-clock, about 3 seconds initial queue, a 96-second build job, and a 30-second deploy job; docs.yml has no separate dashboard job. Checkout took 37 seconds, dependency installation 15 seconds, Astro documentation generation 11 seconds, dashboard cache restore 4 seconds, Pages artifact upload 17 seconds, and Pages deployment 26 seconds. The dashboard cache hit was verified because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. The other 14 successful runs were freshness-only schedules with workflow wall-time median 13 seconds and nearest-rank p90 18 seconds, initial queue median 3 seconds and p90 4 seconds, and schedule-freshness execution median 9 seconds and p90 10 seconds; one disclosed queue outlier waited 42 seconds. Because fewer than five comparable full publications were present, required complete full-workflow and dashboard/build/deploy median and p90 distributions and a complete reusable-dashboard-generation evaluation could not be established. No suggestion was made; reusable dashboard generation remains the next category."
     }
   ]
 }
