@@ -1,35 +1,7 @@
 {
   "source_sha": "847f940213ea1fa7619d8084aa7e1cecc861a26d",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-06T18:52:16Z",
-      "worker_run_id": "42274106967",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        42273642920,
-        42271433324,
-        42269716256,
-        42269333585,
-        42267037025,
-        42264616580,
-        42262298343,
-        42260102824,
-        42259508135,
-        42257768175,
-        42255412140,
-        42253129017,
-        42251023061,
-        42250628074,
-        42248454796,
-        42246059142,
-        42243824398,
-        42241504328,
-        42239141502,
-        42236818618
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T14:45:49Z to 2026-11-06T18:46:18Z) was within 14 days and contained 17 successful freshness-only schedule runs plus three skipped workflow_run callbacks; there were no failed or cancelled runs, and all used source SHA 0934632ae6f6fa4154273b6fbeb07186cd93ac77. Trusted Actions job and step metadata verified that build and deploy were skipped in every successful run; docs.yml has no separate dashboard job. The 17 successful schedules had workflow wall-time median 20 seconds and nearest-rank p90 24 seconds, initial queue median 3 seconds and p90 4 seconds, execution median 16 seconds and p90 20 seconds, and freshness-check step median 12 seconds and p90 16 seconds. The window contained zero successful full build-and-deploy publications, below the required five comparable successful publications. Full-publication execution, dashboard/build/deploy median and p90 distributions, reusable-dashboard-generation step costs, and current dashboard cache hit/miss effectiveness therefore cannot be evaluated. No suggestion was made; reusable dashboard generation remains the next category."
-    },
     {
       "evaluated_at": "2026-11-06T19:14:58.707535Z",
       "worker_run_id": "42277485547",
@@ -820,6 +792,34 @@
         42330836980
       ],
       "outcome": "complete no-op (duplicate): the latest-20 completed docs.yml window (2026-11-07T02:46:01Z to 2026-11-07T05:16:03Z) was within 14 days and contained 16 successful runs, three skipped workflow_run callbacks, and one cancelled schedule run. Seven successful full build-and-deploy publications were available: five push runs, one schedule run, and one workflow_run callback; the five push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across all seven publications, workflow wall-clock median was 125 seconds and nearest-rank p90 215 seconds; initial queue median was 3 seconds and p90 82 seconds; execution median was 122 seconds and p90 168 seconds. Build-job median was 89 seconds and p90 102 seconds; deploy-job median was 27 seconds and p90 75 seconds; docs.yml has no separate dashboard job. Step medians/p90s were checkout 25/33 seconds, dependency installation 17/23 seconds, Astro generation 12/15 seconds, dashboard cache restore 3/5 seconds, Pages artifact upload 18/20 seconds, and Pages deployment 24/72 seconds. Trusted Actions step metadata verified seven of seven dashboard cache hits because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. Scheduling evidence again showed avoidable serialized work: push run 42338502212 arrived 45 seconds after push run 42338450591, waited 82 seconds before starting, then executed for 133 seconds because whole-workflow concurrency is non-cancelling. Splitting cancellable build concurrency from non-cancellable deploy concurrency could avoid more than 60 seconds during this overlap without cancelling deployment, but open issue #20131 already represents the same stable underlying change. The newer source and timing evidence strengthen but do not materially change that recommendation, so no duplicate issue was created. Confidence is high. Advance to dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-11-07T05:32:32Z",
+      "worker_run_id": "42342906939",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        42341978979,
+        42341795708,
+        42340940303,
+        42339856949,
+        42339240114,
+        42338817712,
+        42338502212,
+        42338450591,
+        42337821353,
+        42336670207,
+        42336581799,
+        42335513239,
+        42335490131,
+        42334361491,
+        42333286801,
+        42333153061,
+        42332024646,
+        42330847462,
+        42330840919,
+        42330836980
+      ],
+      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T02:46:01Z to 2026-11-07T05:16:03Z) was within 14 days and contained 16 successful runs, three skipped workflow_run callbacks, and one cancelled schedule run, which was excluded. Seven successful full build-and-deploy publications were available (five push, one schedule, one workflow_run); the push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across all seven publications, workflow wall-clock median was 125 seconds and nearest-rank p90 215 seconds; initial queue median was 3 seconds and p90 82 seconds; execution median was 122 seconds and p90 168 seconds. Build-job median was 89 seconds and p90 102 seconds; deploy-job median was 27 seconds and p90 75 seconds; docs.yml has no separate dashboard job, while dashboard cache restore was 3 seconds median and 5 seconds p90. Dependency installation was 17 seconds median and 23 seconds p90, with Node setup/cache restoration 4 seconds median and 6 seconds p90. Bounded trusted logs verified seven of seven setup-node npm-cache hits on the same lockfile-derived key; npm ci still installed 845 packages in 12-23 seconds. Dashboard cache hits were also verified in all seven publications. Existing dependency caching is therefore effective, and npm ci alone is about 13.9% of median execution; the permitted evidence does not support a correctness-preserving workflow change expected to save at least 60 seconds or 15% of median execution. No suggestion was made; advance to Astro documentation generation. Confidence is high for cache-hit and step-timing evidence and medium for cross-trigger workflow distributions."
     }
   ]
 }
