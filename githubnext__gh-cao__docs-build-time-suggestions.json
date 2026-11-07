@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-07T02:52:30Z",
-      "worker_run_id": "42331037809",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        42330847462,
-        42330840919,
-        42330836980,
-        42329650363,
-        42328640620,
-        42328522309,
-        42327095132,
-        42325781800,
-        42324534355,
-        42323168873,
-        42322910275,
-        42321714736,
-        42320470765,
-        42319054311,
-        42318844013,
-        42315717673,
-        42313978396,
-        42313858334,
-        42313837196,
-        42312356308
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T23:30:31Z to 2026-11-07T02:48:52Z) was within 14 days and contained 14 successful runs, four skipped workflow_run callbacks, and two cancelled runs (one schedule and one workflow_run). Only three successful full build-and-deploy publications were available: push run 42330836980 at source SHA b2006ee8b1a4796a1d8127a35dc244fe0d0d4ea7, schedule run 42327095132 at source SHA 95ac582a6639e8c0db04cd8493c6cdb703ddc565, and push run 42313837196 at source SHA e347bfc3e055291420cc09f0471ce1544b8c6f4d. This is below the required five comparable successful publications, and the samples are not like-for-like by trigger or source revision. Their descriptive workflow wall times were 171, 183, and 150 seconds (median 171 seconds, nearest-rank p90 183 seconds; insufficient sample), build jobs were 88, 84, and 96 seconds (median 88 seconds, p90 96 seconds), and deploy jobs were 75, 77, and 30 seconds (median 75 seconds, p90 77 seconds); docs.yml has no separate dashboard job. Trusted step metadata verified dashboard cache hits in all three publications because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. Across the three publications, checkout median was 25 seconds (p90 37), dependency installation median 18 seconds (p90 19), Astro generation median 15 seconds (p90 15), dashboard cache restore median 3 seconds (p90 4), Pages artifact upload median 18 seconds (p90 20), and Pages deployment median 72 seconds (p90 73). The other 11 successful runs were freshness-only schedules and did not execute build or deploy. Because fewer than five comparable full publications were present, required complete full-workflow and dashboard/build/deploy distributions and a complete reusable-dashboard-generation evaluation could not be established. No suggestion was made; reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-07T03:18:38.780837Z",
       "worker_run_id": "42333173668",
       "category": "reusable dashboard generation",
@@ -820,6 +792,34 @@
         42359015942
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T09:16:12Z to 2026-11-07T12:45:49Z) was within 14 days and contained six successful runs, eleven failed runs, two skipped workflow_run callbacks, and one cancelled workflow_run callback. Only one successful full build-and-deploy publication was available (schedule run 42368507319 at source SHA 79530075aab1543b84afd622b3fda4417bf5dc31); the other five successful runs were freshness-only schedules whose build and deploy jobs were skipped. This is below the required five comparable successful full publications, so complete full-workflow and dashboard/build/deploy median and p90 distributions and a complete artifact-transfer-and-Pages-packaging evaluation could not be established. Trusted Actions metadata measured the sole full publication at 155 seconds workflow wall-clock, about 3 seconds initial queue, a 111-second build job, and a 27-second deploy job; docs.yml has no separate dashboard job. Its Pages artifact upload took 18 seconds, and its dashboard cache hit was verified because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. Failed and cancelled runs were disclosed and excluded from successful timing distributions. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-07T13:14:34Z",
+      "worker_run_id": "42375862751",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42375832743,
+        42375006010,
+        42373898633,
+        42372800081,
+        42371996975,
+        42371865560,
+        42370676678,
+        42369553757,
+        42368507319,
+        42367445336,
+        42366996399,
+        42366371250,
+        42365314443,
+        42364273675,
+        42363220064,
+        42362916893,
+        42362133283,
+        42361108749,
+        42361004520,
+        42360186170
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T09:32:46Z to 2026-11-07T13:11:37Z) was within 14 days and contained seven successful runs, nine failed runs, three skipped workflow_run callbacks, and one cancelled workflow_run callback. Only one successful full build-and-deploy publication was available (schedule run 42368507319 at source SHA 79530075aab1543b84afd622b3fda4417bf5dc31); the other six successful runs were freshness-only schedules whose build and deploy jobs were skipped. This is below the required five comparable successful full publications, so complete full-workflow and dashboard/build/deploy median and p90 distributions and a complete artifact-transfer-and-Pages-packaging evaluation could not be established. Trusted Actions metadata measured the sole full publication at 155 seconds workflow wall-clock, about 3 seconds initial queue, a 111-second build job, and a 27-second deploy job; docs.yml has no separate dashboard job. Its Pages artifact upload took 18 seconds, and its dashboard cache hit was verified because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. Failed and cancelled runs were disclosed and excluded from successful timing distributions. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
