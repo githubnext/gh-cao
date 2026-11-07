@@ -8,8 +8,9 @@ The status header gives you the overall shape of the factory right now.
 ## What it shows
 
 - **Work in motion** appears when runs are queued or in progress.
-- The heading classifies the available evidence as idle, humming, needing
-  attention, under strain, or delivering value.
+- The heading classifies the available run evidence as idle, humming, needing
+  attention, or under strain. When grader observations are present, it names
+  those observations without claiming verified repository Value.
 
 Treat the heading as a signal, not a health score. Follow an unexpected state
 into the relevant run, output, or value view before deciding what happened.

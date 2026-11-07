@@ -1744,11 +1744,12 @@ An element that presents counted summary boxes may declare `config.labels`, a ma
 `factory-header` and `factory-floor` are independently loading named elements. Their page shell does not wait for a combined page projection: each declared presentation query is bound to the view separately. An unresolved source places only its dependent widget in a loading state; resolving or refreshing one source updates only widgets that consume that source. A page-level subscription must not emit aliases for independently bound sources it did not request.
 
 The Overview floor shows campaign health, repository coverage, **Issues & PRs**,
-and **Value gains**. The restored issue counter counts retained canonical issue
-and pull request safe-output records and links to Issues. The legacy Value gains
-counter counts observed grader results and links to Graders; its supporting text
-explicitly identifies observations rather than verified improvements. Both
-counters receive bounded, presentation-ready Dashboard Language query results.
+and **Grader observations**. The issue counter counts retained canonical issue and
+pull request safe-output records and links to Issues. The `value-gains` station
+identifier remains for compatibility, but its label names observed grader results
+and links to Graders; these observations are not verified repository Value. The
+shared `factory-floor` element fixes station headings; `config.labels` controls
+counter quantity labels, not headings. Both use bounded Dashboard Language results.
 Missing or unavailable evidence remains unavailable, distinct from an observed
 zero. Four stations form one row on desktop and two rows on narrow screens.
 

@@ -469,6 +469,37 @@ test('dashboard status preserves refresh failure and recovery without the Overvi
   await expect(page).toHaveURL(`${origin}/#page-overview`);
 });
 
+test('transient published manifest and shard failures recover without a refresh error', async ({ page }) => {
+  let manifestAttempts = 0;
+  let shardAttempts = 0;
+  await page.route(`${origin}/payload-hashes.json`, async (route) => {
+    manifestAttempts += 1;
+    if (manifestAttempts === 1) await route.fulfill({ status: 503, body: 'Temporarily unavailable' });
+    else await route.fallback();
+  });
+  await page.route(`${origin}/${shardName}`, async (route) => {
+    if (route.request().method() === 'HEAD') return route.fallback();
+    shardAttempts += 1;
+    if (shardAttempts === 1) await route.fulfill({ status: 404, body: 'Not propagated yet' });
+    else await route.fallback();
+  });
+  await page.addInitScript(() => {
+    document.addEventListener('dashboard-data', (event) => {
+      const detail = /** @type {CustomEvent<{ kind?: string, status?: string }>} */ (event).detail;
+      if (detail?.kind === 'refresh' && detail.status) {
+        document.documentElement.dataset.refreshOutcome = detail.status;
+      }
+    });
+  });
+
+  await page.goto(`${origin}/#page-overview`);
+  await expect(page.locator('html')).toHaveAttribute('data-refresh-outcome', 'completed');
+  expect(manifestAttempts).toBe(2);
+  expect(shardAttempts).toBe(2);
+  await expect(page.locator('[data-notification-id="dashboard:refresh-error"]')).toHaveCount(0);
+  await expect(page.locator('.dashboard-stale')).toHaveCount(0);
+});
+
 test('marketplace page renders canonical package cards after ingestion', async ({ page }, testInfo) => {
   await page.goto(`${origin}/#page-marketplace`);
 

@@ -303,7 +303,7 @@ describe('declarative dashboard queries', () => {
   });
 
   it.each([
-    ['delivering value', { successes: 0, failures: 0, active: 0, graders: 1 }, 'Your factory is delivering value.'],
+    ['grader observations', { successes: 0, failures: 0, active: 0, graders: 1 }, 'Your factory has grader observations.'],
     ['active', { successes: 0, failures: 2, active: 1, graders: 0 }, 'Your factory is humming.'],
     ['under strain', { successes: 1, failures: 2, active: 0, graders: 0 }, 'Your factory is under strain.'],
     ['needs attention', { successes: 2, failures: 1, active: 0, graders: 0 }, 'Your factory needs attention.'],
@@ -458,7 +458,7 @@ describe('declarative dashboard queries', () => {
     );
 
     expect(result['overview-header-presentation'].rows).toEqual([{
-      heading: 'Your factory is delivering value.'
+      heading: 'Your factory has grader observations.'
     }]);
     expect(result['overview-factory-station'].rows).toEqual([{
       value: 1,

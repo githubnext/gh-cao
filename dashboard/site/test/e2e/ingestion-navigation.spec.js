@@ -209,6 +209,11 @@ async function exerciseFirstImport({ context, page }, mobile, upgrade = false, c
   await expect(loader.locator('.first-load-agentic-rider')).toHaveCount(3);
   await expect.poll(() => loader.locator('img').evaluateAll((images) =>
     images.every((image) => /** @type {HTMLImageElement} */ (image).naturalWidth > 0))).toBe(true);
+  expect(await loader.locator('img').evaluateAll((images) =>
+    images.map((image) => new URL(/** @type {HTMLImageElement} */ (image).src).pathname)
+  )).toEqual(['duck', 'octocat', 'copilot'].map((name) => `/src/assets/loaders/${name}.svg`));
+  await expect(importScreen.locator('progress')).toHaveCount(0);
+  await expect(page.locator('.factory-intro-importing')).toHaveCSS('background-image', 'none');
   await expect(importScreen.locator('header')).toBeInViewport({ ratio: 1 });
   await expect(importScreen.getByRole('button', { name: 'Explore data' })).toHaveCount(1);
   await expect(importScreen.locator('.first-load-server-option')).not.toBeVisible();

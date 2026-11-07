@@ -68,5 +68,5 @@ requiring campaign membership. The station links to Workflows; campaign
 navigation remains separate.
 
 The other stations show repository coverage, retained Issues & PRs, and
-observed grader results under Value gains. Observed grader results are not
-verified improvements.
+Grader observations. Observed grader results are not verified improvements
+or repository Value.
