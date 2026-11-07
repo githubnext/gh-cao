@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-06T22:51:45.104590Z",
-      "worker_run_id": "42307460142",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        42307173096,
-        42305320782,
-        42303343111,
-        42302913330,
-        42301449911,
-        42299355245,
-        42297339251,
-        42295307398,
-        42293633812,
-        42293223561,
-        42291112855,
-        42289075341,
-        42286815520,
-        42286622662,
-        42284725207,
-        42283265295,
-        42283246603,
-        42282520750,
-        42280307737,
-        42278096014
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T19:16:00Z to 2026-11-06T22:46:25Z) was within 14 days and contained 17 successful runs plus three skipped workflow_run callbacks; there were no failed or cancelled runs. Only two successful full build-and-deploy publications were available (workflow_run 42293633812 and push 42283246603), below the required five comparable successful publications. Retained trusted Actions job and step evidence from overlapping preceding evaluations measured their workflow wall times at 132 and 116 seconds (descriptive median 124 seconds, nearest-rank p90 132 seconds; insufficient sample), build jobs at 90 and 77 seconds (median 83.5 seconds, p90 90 seconds), and deploy jobs at 8 and 30 seconds (median 19 seconds, p90 30 seconds); docs.yml has no separate dashboard job. Dashboard cache hits were verified in both publications because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. The other 15 successful runs were freshness-only schedules with workflow wall-time median 14 seconds and nearest-rank p90 25 seconds. Fresh trusted metadata for the newest schedule verified a 3-second initial queue, a 10-second schedule-freshness job with a 6-second freshness check, and skipped build and deploy. Because fewer than five comparable full publications were present, required complete full-workflow and dashboard/build/deploy distributions and a complete reusable-dashboard-generation evaluation could not be established. No suggestion was made; reusable dashboard generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-06T23:16:01Z",
       "worker_run_id": "42310373771",
       "category": "reusable dashboard generation",
@@ -820,6 +792,34 @@
       "category": "artifact transfer and Pages packaging",
       "evidence_run_ids": [],
       "outcome": "incomplete: GitHub Actions evidence collection was stopped immediately after the first bounded docs.yml run-list request returned an API rate-limit error. No current evidence window, five comparable successful runs, job distributions, step timings, or cache-hit verification could be established. The category remains artifact transfer and Pages packaging for the next authorized evaluation."
+    },
+    {
+      "evaluated_at": "2026-11-07T09:31:07.242126Z",
+      "worker_run_id": "42359885637",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42359015942,
+        42358809776,
+        42357923942,
+        42356840333,
+        42355828476,
+        42354884309,
+        42354750487,
+        42353698119,
+        42352626224,
+        42351779741,
+        42351628353,
+        42350559817,
+        42350356990,
+        42349492386,
+        42348449699,
+        42347465993,
+        42346675784,
+        42346540294,
+        42345164245,
+        42344109257
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T05:46:04Z to 2026-11-07T09:28:19Z) was within 14 days and contained nine successful runs, seven failed schedule runs, and four skipped workflow_run callbacks; there were no cancelled runs. Only one successful full build-and-deploy publication was available (push run 42351779741 at source SHA f7c3b633d14e9b1ebfbacfeac95da8689252c9eb); the other eight successful runs were freshness-only schedules. This is below the required five comparable successful publications, so complete full-workflow and dashboard/build/deploy median and p90 distributions and a complete artifact-transfer-and-Pages-packaging evaluation could not be established. The seven newer failed schedules are disclosed rather than included as normal successful samples. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
