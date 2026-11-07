@@ -53,7 +53,7 @@ Use `dashboard/site/src/reactive.js` for state-driven updates:
 
 ## Styles and Primer
 
-- Put dashboard component styles in the focused `dashboard/site/src/styles-*.js` modules composed by `styles-primer.js`; `styles.js` remains the shared minified stylesheet entry point. Preserve composition order and keep responsive and accessibility overrides last. Do not add inline styles or element-local style injection for ordinary views.
+- Put dashboard component styles in the focused `dashboard/site/src/styles-*.js` modules composed by `styles-primer.js`; `styles.js` remains the shared minified stylesheet entry point. Toast styles are the exception: `styles-notifications.js` is minified by `notificationStylesheet()` and injected once by `notification-service.js`, not composed into `primerStyles`. Preserve composition order and keep responsive and accessibility overrides last. Do not add inline styles or element-local style injection for ordinary views.
 - Reuse existing classes and CSS custom properties before adding selectors or tokens.
 - Follow the established Primer visual language: system font stack, semantic canvas/foreground/border/accent/status tokens, Octicons, six-pixel control radii, restrained elevation, compact spacing, and visible focus rings.
 - Support light, dark, and explicit dashboard themes through existing semantic tokens. Do not hard-code a color where a token exists.
