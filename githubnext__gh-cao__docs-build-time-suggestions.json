@@ -3,34 +3,6 @@
   "next_category": "Astro documentation generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-07T13:30:58.596535Z",
-      "worker_run_id": "42377102708",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42376161557,
-        42375832743,
-        42375006010,
-        42373898633,
-        42372800081,
-        42371996975,
-        42371865560,
-        42370676678,
-        42369553757,
-        42368507319,
-        42367445336,
-        42366996399,
-        42366371250,
-        42365314443,
-        42364273675,
-        42363220064,
-        42362916893,
-        42362133283,
-        42361108749,
-        42361004520
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T09:44:35Z to 2026-11-07T13:16:11Z) was within 14 days and contained eight successful runs, nine failed runs, two skipped workflow_run callbacks, and one cancelled workflow_run callback. Only one successful full build-and-deploy publication was available (schedule run 42368507319 at source SHA 79530075aab1543b84afd622b3fda4417bf5dc31); the other seven successful runs were freshness-only schedules whose build and deploy jobs were skipped. This is below the required five comparable successful full publications, so complete full-workflow and dashboard/build/deploy median and p90 distributions and a complete artifact-transfer-and-Pages-packaging evaluation could not be established. Trusted Actions metadata measured the sole full publication at 155 seconds workflow wall-clock, about 3 seconds initial queue, a 111-second build job, and a 27-second deploy job; docs.yml has no separate dashboard job. Its Pages artifact upload took 18 seconds, and its dashboard cache hit was verified because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped. Failed and cancelled runs were disclosed and excluded from successful timing distributions. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-07T13:50:20Z",
       "worker_run_id": "42378560918",
       "category": "artifact transfer and Pages packaging",
@@ -821,6 +793,34 @@
         42405351153
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T19:15:56Z to 2026-11-07T23:11:33Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata showed that all 16 successful runs were freshness-only schedules: schedule-freshness succeeded while build and deploy were skipped. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Complete full-workflow and dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification across a sufficient sample, and a complete Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-07T23:31:16.812908Z",
+      "worker_run_id": "42425396732",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        42424438084,
+        42424102332,
+        42423290233,
+        42422140406,
+        42420982679,
+        42419801398,
+        42419445548,
+        42418604423,
+        42417376644,
+        42416228886,
+        42415016432,
+        42413978793,
+        42413823106,
+        42412593559,
+        42411418265,
+        42410182342,
+        42409900044,
+        42408985372,
+        42407760798,
+        42406595533
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T19:31:07Z to 2026-11-07T23:16:06Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. All 16 successful runs were freshness-only: schedule-freshness succeeded while the build and deploy jobs were skipped. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Full-workflow execution, dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, and cache-hit verification for Astro documentation generation could not be established. No suggestion was made; Astro documentation generation remains the next category."
     }
   ]
 }
