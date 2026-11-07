@@ -48,8 +48,14 @@ import SlideshowSnippet from "./SlideshowSnippet.astro";
     dialog.addEventListener("keydown", (event) => {
       if (event.key !== "Tab" || !dialog.open) return;
       const focusable = [...dialog.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      )].filter((element) => !element.hidden && element.getAttribute("aria-hidden") !== "true" && element.offsetParent !== null);
+        'button:not([disabled]), a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )].filter((element) =>
+        element.tabIndex >= 0 &&
+        !element.hidden &&
+        !element.closest("[inert]") &&
+        element.getAttribute("aria-hidden") !== "true" &&
+        element.offsetParent !== null
+      );
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable.at(-1);
