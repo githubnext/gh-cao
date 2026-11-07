@@ -3,34 +3,6 @@
   "next_category": "Astro documentation generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-07T10:30:33.594597Z",
-      "worker_run_id": "42364046562",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42362916893,
-        42362133283,
-        42361108749,
-        42361004520,
-        42360186170,
-        42360033659,
-        42359015942,
-        42358809776,
-        42357923942,
-        42356840333,
-        42355828476,
-        42354884309,
-        42354750487,
-        42353698119,
-        42352626224,
-        42351779741,
-        42351628353,
-        42350559817,
-        42350356990,
-        42349492386
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T07:01:25Z to 2026-11-07T10:21:29Z) was within 14 days and contained four successful runs, eleven failed runs (ten schedules and one push), four skipped workflow_run callbacks, and one cancelled workflow_run callback. Only one successful full build-and-deploy publication was available (push run 42351779741 at source SHA f7c3b633d14e9b1ebfbacfeac95da8689252c9eb); the other three successful runs were freshness-only schedules whose build and deploy jobs were skipped. This is below the required five comparable successful runs, so complete full-workflow and dashboard/build/deploy median and p90 distributions, step-cost analysis, cache verification across a sufficient sample, and a complete artifact-transfer-and-Pages-packaging evaluation could not be established. Failed and cancelled runs were disclosed and excluded from successful timing distributions. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-07T10:50:27.587143Z",
       "worker_run_id": "42365472632",
       "category": "artifact transfer and Pages packaging",
@@ -821,6 +793,34 @@
         42391682542
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T16:31:06Z to 2026-11-07T20:15:48Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. All 16 successful runs were freshness-only schedules: the schedule-freshness job succeeded while build and deploy were skipped. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Complete full-workflow and dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification across a sufficient sample, and a complete Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-07T20:32:14Z",
+      "worker_run_id": "42411296436",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        42411418265,
+        42410182342,
+        42409900044,
+        42408985372,
+        42407760798,
+        42406595533,
+        42405351153,
+        42404241959,
+        42404127273,
+        42402886965,
+        42401688381,
+        42400475822,
+        42400267115,
+        42399137249,
+        42397875101,
+        42396709256,
+        42395454343,
+        42395049525,
+        42394208329,
+        42392940425
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T16:46:05Z to 2026-11-07T20:31:11Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. All 16 successful runs were freshness-only schedules: the schedule-freshness job succeeded while build and deploy were skipped. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Complete full-workflow and dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification across a sufficient sample, and a complete Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
     }
   ]
 }
