@@ -7,7 +7,7 @@ const debugRetry = createDebug('retry');
  *
  * @template T
  * @param {(attempt: number) => Promise<T>} operation
- * @param {{ attempts?: number, delayMs?: number }} [options]
+ * @param {{ attempts?: number, delayMs?: number, signal?: AbortSignal }} [options]
  * @returns {Promise<T>}
  */
 export async function withRetries(operation, options = {}) {
@@ -21,11 +21,13 @@ export async function withRetries(operation, options = {}) {
   }
 
   for (let attempt = 1; ; attempt += 1) {
+    options.signal?.throwIfAborted();
     try {
       const result = await operation(attempt);
       if (attempt > 1) debugRetry({ event: 'succeeded', attempt, attempts });
       return result;
     } catch (error) {
+      if (options.signal?.aborted) throw error;
       const errorName = error instanceof Error ? error.name : 'UnknownError';
       if (attempt >= attempts) {
         debugRetry({ event: 'exhausted', attempt, attempts, errorName });

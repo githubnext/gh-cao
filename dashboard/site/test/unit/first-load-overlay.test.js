@@ -130,6 +130,20 @@ describe('browser first-load presentation', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('loads mascot artwork relative to a dashboard deployed under a subpath', () => {
+    const base = document.createElement('base');
+    base.href = '/gh-cao/';
+    document.head.append(base);
+    try {
+      mountFirstLoadOverlay({ document, signal: owner.signal, retry: vi.fn() });
+      expect([...document.querySelectorAll('.first-load-agentic-rider')].map((image) =>
+        new URL(/** @type {HTMLImageElement} */ (image).src).pathname
+      )).toEqual(['duck', 'octocat', 'copilot'].map((name) => `/gh-cao/src/assets/loaders/${name}.svg`));
+    } finally {
+      base.remove();
+    }
+  });
+
   it('explains the import, reports all preparation stages, and dismisses without cancelling', () => {
     mountFirstLoadOverlay({ document, signal: owner.signal, retry: vi.fn() });
     const dialog = document.querySelector('dialog');
@@ -160,13 +174,21 @@ describe('browser first-load presentation', () => {
     }
     expect(dialog?.querySelector('.first-load-background')?.getAttribute('aria-hidden')).toBe('true');
     expect(dialog?.querySelector('.first-load-background')?.childElementCount).toBe(0);
-    expect(dialog?.querySelector('progress')?.hasAttribute('value')).toBe(false);
+    expect(dialog?.querySelector('progress')).toBeNull();
+    const loader = dialog?.querySelector('.first-load-agentic-loader');
+    expect(loader?.getAttribute('aria-hidden')).toBe('true');
+    expect(loader?.querySelectorAll('.first-load-agentic-rhythm i')).toHaveLength(13);
+    expect([...loader?.querySelectorAll('.first-load-agentic-rider') ?? []].map((image) =>
+      image.className
+    )).toEqual(['first-load-agentic-rider first-load-agentic-rider-duck',
+      'first-load-agentic-rider first-load-agentic-rider-octocat',
+      'first-load-agentic-rider first-load-agentic-rider-copilot']);
+    expect([...loader?.querySelectorAll('img') ?? []].map((image) =>
+      new URL(/** @type {HTMLImageElement} */ (image).src).pathname
+    )).toEqual(['duck', 'octocat', 'copilot'].map((name) => `/src/assets/loaders/${name}.svg`));
     browserFirstLoad.set({ status: 'loading', dismissed: false, completed: 2, total: 5 });
-    expect(dialog?.querySelector('progress')?.getAttribute('value')).toBe('2');
-    expect(dialog?.querySelector('progress')?.getAttribute('aria-label')).toBe('Dashboard import progress');
     expect(dialog?.querySelector('[role="status"]')?.textContent).toContain('Importing activity files');
     browserFirstLoad.set({ status: 'loading', dismissed: false, completed: 2.5, total: 5, stage: 'maintenance' });
-    expect(dialog?.querySelector('progress')?.value).toBe(2.5);
     expect(dialog?.querySelector('[role="status"]')?.textContent).toContain('Applying retention limits');
     browserFirstLoad.set({ status: 'loading', dismissed: false, completed: 3, total: 5, stage: 'inventory' });
     expect(dialog?.querySelector('[role="status"]')?.textContent).toContain('Preparing inventory');
@@ -289,11 +311,13 @@ describe('browser first-load presentation', () => {
     expect(dialog?.querySelector('.first-load-duration')?.hasAttribute('hidden')).toBe(true);
     expect(dialog?.querySelector('.first-load-server-option')?.textContent).toContain('deploy a CAO backend server');
     expect(dialog?.querySelector('progress')).toBeNull();
+    expect(dialog?.querySelector('.first-load-agentic-loader')?.hasAttribute('hidden')).toBe(true);
     const button = [...dialog?.querySelectorAll('button') ?? []].find((candidate) => candidate.textContent === 'Retry import');
     button?.click();
     expect(retry).toHaveBeenCalledOnce();
     browserFirstLoad.set({ status: 'loading', dismissed: false });
     expect(dialog?.querySelector('.first-load-duration')?.hasAttribute('hidden')).toBe(false);
+    expect(dialog?.querySelector('.first-load-agentic-loader')?.hasAttribute('hidden')).toBe(false);
   });
 
   it('restores the selected theme when opening and reopening the body-owned overlay', () => {

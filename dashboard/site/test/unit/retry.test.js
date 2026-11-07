@@ -19,4 +19,17 @@ describe('withRetries', () => {
       .rejects.toThrow('still unavailable');
     expect(operation).toHaveBeenCalledTimes(2);
   });
+
+  it('does not retry after the refresh is cancelled', async () => {
+    const controller = new AbortController();
+    const failure = new DOMException('Refresh cancelled', 'AbortError');
+    const operation = vi.fn().mockImplementation(() => {
+      controller.abort();
+      return Promise.reject(failure);
+    });
+
+    await expect(withRetries(operation, { signal: controller.signal, delayMs: 0 }))
+      .rejects.toBe(failure);
+    expect(operation).toHaveBeenCalledOnce();
+  });
 });

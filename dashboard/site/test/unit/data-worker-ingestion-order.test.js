@@ -199,4 +199,84 @@ describe('canonical dashboard worker ingestion order', () => {
       'https://dashboard.example/payload-hashes.json'
     ]);
   }, 30_000);
+
+  it('recovers from transient manifest and shard failures without accepting a persistently missing shard', async () => {
+    globalThis.self = /** @type {typeof globalThis.self} */ (/** @type {unknown} */ ({
+      addEventListener: () => {},
+      postMessage: () => {}
+    }));
+    vi.resetModules();
+    const { processDataRequest } = await import('../../src/data-worker.js');
+    const shardName = `gh-aw-logs-runs/logs-${'a'.repeat(64)}-${'b'.repeat(16)}.jsonl`;
+    const sourceUrl = 'https://dashboard.example/payload-hashes.json';
+    const shardUrl = `https://dashboard.example/${shardName}`;
+    const normalizedRuns = `${JSON.stringify({
+      kind: 'metadata',
+      schemaVersion: CANONICAL_SCHEMA_VERSION,
+      ingestionVersion: 4,
+      sourceRecords: 0,
+      phase: 'runs',
+      records: 0
+    })}\n`;
+    let manifestAttempts = 0;
+    let shardAttempts = 0;
+    globalThis.fetch = /** @type {typeof fetch} */ (async (input, init) => {
+      const url = String(input);
+      if (url.endsWith('/inventory-sources.json')) return new Response(null, { status: 404 });
+      if (url === sourceUrl) {
+        manifestAttempts += 1;
+        if (manifestAttempts === 1) return new Response(null, { status: 503 });
+        return Response.json({ [shardName]: 'a'.repeat(64) });
+      }
+      if (url === shardUrl && init?.method === 'HEAD') return new Response(null, { status: 200 });
+      if (url === shardUrl) {
+        expect(init?.cache).toBe('reload');
+        shardAttempts += 1;
+        if (shardAttempts === 1) return new Response(null, { status: 404 });
+        return new Response(normalizedRuns);
+      }
+      throw new Error(`Unexpected dashboard request: ${url}`);
+    });
+    const request = {
+      operation: 'load-canonical-dashboard',
+      sourceUrl,
+      sourceNames: [],
+      context: { pages: [], queries: [] },
+      reportActivation: true
+    };
+
+    await expect(processDataRequest(request)).resolves.toMatchObject({ changed: true });
+    expect(manifestAttempts).toBe(2);
+    expect(shardAttempts).toBe(2);
+    const snapshot = await readTransaction(indexedDB, 'dashboard-snapshot:complete');
+    expect(snapshot).toMatchObject({ kind: 'dashboard-snapshot' });
+
+    globalThis.fetch = /** @type {typeof fetch} */ (async (input, init) => {
+      const url = String(input);
+      if (url.endsWith('/inventory-sources.json')) return new Response(null, { status: 404 });
+      if (url === sourceUrl) return Response.json({ [shardName]: 'c'.repeat(64) });
+      if (url === shardUrl && init?.method === 'HEAD') return new Response(null, { status: 200 });
+      if (url === shardUrl) {
+        shardAttempts += 1;
+        return new Response(null, { status: 404 });
+      }
+      throw new Error(`Unexpected dashboard request: ${url}`);
+    });
+    await expect(processDataRequest(request)).rejects.toThrow(`Unable to load activity shard ${shardName}: 404`);
+    expect(shardAttempts).toBe(5);
+    expect(await readTransaction(indexedDB, 'dashboard-snapshot:complete')).toEqual(snapshot);
+
+    let failedManifestAttempts = 0;
+    globalThis.fetch = /** @type {typeof fetch} */ (async (input) => {
+      if (String(input).endsWith('/inventory-sources.json')) return new Response(null, { status: 404 });
+      if (String(input) === sourceUrl) {
+        failedManifestAttempts += 1;
+        return new Response(null, { status: 503 });
+      }
+      throw new Error(`Unexpected dashboard request: ${String(input)}`);
+    });
+    await expect(processDataRequest(request)).rejects.toThrow('Unable to load activity shard manifest: 503');
+    expect(failedManifestAttempts).toBe(3);
+    expect(await readTransaction(indexedDB, 'dashboard-snapshot:complete')).toEqual(snapshot);
+  });
 });
