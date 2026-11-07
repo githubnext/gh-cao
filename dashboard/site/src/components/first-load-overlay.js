@@ -6,6 +6,7 @@ import { createDebug } from '../debug.js';
 import { createCopyControl, createModalDialog } from './ui-primitives.js';
 import { restoreDashboardTheme } from './theme-settings.js';
 import { createFirstLoadMessagePicker, FIRST_LOAD_MESSAGE_INTERVAL_MS } from './first-load-messages.js';
+import { renderAgenticLoader } from './agentic-loader.js';
 import { updateNotificationActions, updateNotificationDetails } from '../notification-service.js';
 
 const debugFirstLoadOverlay = createDebug('first-load-overlay');
@@ -89,6 +90,7 @@ export function mountFirstLoadOverlay({ document, signal: ownerSignal, retry }) 
   }, { signal });
   const status = h('p', { className: 'first-load-status', role: 'status' });
   const progress = h('div', { className: 'first-load-progress' });
+  const loader = renderAgenticLoader();
   const ingestionSubtitle = h('p', { className: 'dashboard-notification-details-subtitle' });
   const ingestionHistory = h('ul', { className: 'dashboard-notification-details', 'aria-label': 'Ingestion progress history' });
   const ingestionActions = h('div', { className: 'dashboard-notification-actions' });
@@ -109,6 +111,7 @@ export function mountFirstLoadOverlay({ document, signal: ownerSignal, retry }) 
     eyebrow,
     title,
     description,
+    loader,
     progress,
     status,
     message,
@@ -232,6 +235,7 @@ export function mountFirstLoadOverlay({ document, signal: ownerSignal, retry }) 
     retryButton.hidden = current.status !== 'failed';
     continuationNote.hidden = current.status === 'failed';
     durationNote.hidden = current.status === 'failed';
+    loader.hidden = current.status !== 'loading';
     if (visible && !dialog.open) {
       restoreDashboardTheme(dialog);
       open();

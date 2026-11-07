@@ -161,6 +161,18 @@ describe('browser first-load presentation', () => {
     expect(dialog?.querySelector('.first-load-background')?.getAttribute('aria-hidden')).toBe('true');
     expect(dialog?.querySelector('.first-load-background')?.childElementCount).toBe(0);
     expect(dialog?.querySelector('progress')?.hasAttribute('value')).toBe(false);
+    const loader = dialog?.querySelector('.first-load-agentic-loader');
+    expect(loader?.getAttribute('aria-hidden')).toBe('true');
+    expect(loader?.querySelectorAll('.first-load-agentic-rhythm i')).toHaveLength(13);
+    expect([...loader?.querySelectorAll('.first-load-agentic-rider') ?? []].map((image) =>
+      image.className
+    )).toEqual(['first-load-agentic-rider first-load-agentic-rider-duck',
+      'first-load-agentic-rider first-load-agentic-rider-octocat',
+      'first-load-agentic-rider first-load-agentic-rider-copilot']);
+    expect([...loader?.querySelectorAll('img') ?? []].every((image) =>
+      /** @type {HTMLImageElement} */ (image).src.startsWith('data:image/svg+xml')
+      || /** @type {HTMLImageElement} */ (image).src.endsWith('.svg')
+    )).toBe(true);
     browserFirstLoad.set({ status: 'loading', dismissed: false, completed: 2, total: 5 });
     expect(dialog?.querySelector('progress')?.getAttribute('value')).toBe('2');
     expect(dialog?.querySelector('progress')?.getAttribute('aria-label')).toBe('Dashboard import progress');
@@ -289,11 +301,13 @@ describe('browser first-load presentation', () => {
     expect(dialog?.querySelector('.first-load-duration')?.hasAttribute('hidden')).toBe(true);
     expect(dialog?.querySelector('.first-load-server-option')?.textContent).toContain('deploy a CAO backend server');
     expect(dialog?.querySelector('progress')).toBeNull();
+    expect(dialog?.querySelector('.first-load-agentic-loader')?.hasAttribute('hidden')).toBe(true);
     const button = [...dialog?.querySelectorAll('button') ?? []].find((candidate) => candidate.textContent === 'Retry import');
     button?.click();
     expect(retry).toHaveBeenCalledOnce();
     browserFirstLoad.set({ status: 'loading', dismissed: false });
     expect(dialog?.querySelector('.first-load-duration')?.hasAttribute('hidden')).toBe(false);
+    expect(dialog?.querySelector('.first-load-agentic-loader')?.hasAttribute('hidden')).toBe(false);
   });
 
   it('restores the selected theme when opening and reopening the body-owned overlay', () => {

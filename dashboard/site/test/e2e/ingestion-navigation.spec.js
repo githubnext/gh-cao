@@ -174,7 +174,8 @@ async function exerciseFirstImport({ context, page }, mobile, upgrade = false, c
     const filePath = join(siteRoot, url.pathname);
     if (existsSync(filePath)) {
       await route.fulfill({
-        contentType: url.pathname.endsWith('.json') ? 'application/json' : 'application/javascript',
+        contentType: url.pathname.endsWith('.json') ? 'application/json'
+          : url.pathname.endsWith('.svg') ? 'image/svg+xml' : 'application/javascript',
         body: readFileSync(filePath)
       });
       return;
@@ -203,6 +204,11 @@ async function exerciseFirstImport({ context, page }, mobile, upgrade = false, c
   };
   await expectTheme(colorScheme);
   await expect(importScreen.locator('header')).toHaveText('Central Agentic Ops');
+  const loader = importScreen.locator('.first-load-agentic-loader');
+  await expect(loader).toBeVisible();
+  await expect(loader.locator('.first-load-agentic-rider')).toHaveCount(3);
+  await expect.poll(() => loader.locator('img').evaluateAll((images) =>
+    images.every((image) => /** @type {HTMLImageElement} */ (image).naturalWidth > 0))).toBe(true);
   await expect(importScreen.locator('header')).toBeInViewport({ ratio: 1 });
   await expect(importScreen.getByRole('button', { name: 'Explore data' })).toHaveCount(1);
   await expect(importScreen.locator('.first-load-server-option')).not.toBeVisible();
@@ -257,6 +263,8 @@ async function exerciseFirstImport({ context, page }, mobile, upgrade = false, c
     getComputedStyle(element, '::before').animationName
   ))).toBe('first-load-grid-breathe');
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(loader.locator('.first-load-agentic-rider').first()).toHaveCSS('animation-name', 'none');
+  await expect(loader.locator('.first-load-agentic-rider').first()).toHaveCSS('opacity', '1');
   await expect.poll(() => importScreen.locator('.first-load-background').evaluate((element) => (
     getComputedStyle(element, '::before').animationName
   ))).toBe('none');
