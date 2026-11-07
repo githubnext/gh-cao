@@ -217,6 +217,18 @@ starlight-toc h2,
   border-radius: 0.5rem;
 }
 
+/* The catalog's scoped input style uses a translucent outline that falls below
+   WCAG 2.2 focus-appearance contrast in the light theme. Keep form controls on
+   the same solid, high-contrast focus treatment as the rest of the site. */
+.catalog-search input:focus-visible {
+  outline: 3px solid #1f6feb !important;
+  outline-offset: 3px !important;
+}
+
+:root[data-theme="dark"] .catalog-search input:focus-visible {
+  outline-color: #79c0ff !important;
+}
+
 :root[data-theme="dark"] :where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"]), .sl-markdown-content table, .sl-markdown-content pre):focus-visible,
 :root[data-theme="dark"] .sl-skip-link:focus-visible,
 :root[data-theme="dark"] #_top:focus-visible,
