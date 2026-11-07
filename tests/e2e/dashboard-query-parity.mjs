@@ -360,7 +360,7 @@ async function executeMcpBackend(factory, dashboardPath, names) {
 }
 
 async function callGoMcp(method, params = {}) {
-  const response = await fetch(`${serverURL}/mcp`, {
+  const request = {
     method: "POST",
     headers: {
       authorization: ["Bearer", accessToken].join(" "),
@@ -383,10 +383,23 @@ async function callGoMcp(method, params = {}) {
         },
       },
     }),
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Go MCP ${method} failed (${response.status}): ${JSON.stringify(body)}`);
-  return body;
+  };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch(`${serverURL}/mcp`, request);
+    const body = await response.json();
+    if (response.status === 429 && attempt === 0) {
+      const retryAfter = Number(response.headers.get("Retry-After"));
+      if (Number.isInteger(retryAfter) && retryAfter >= 1 && retryAfter <= 60) {
+        await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
+        continue;
+      }
+    }
+    if (!response.ok) {
+      throw new Error(`Go MCP ${method} failed (${response.status}): ${JSON.stringify(body)}`);
+    }
+    return body;
+  }
+  throw new Error(`Go MCP ${method} remained rate limited after Retry-After`);
 }
 
 async function callNodeMcp(factory, dashboardDocumentPath, method, params = {}) {
