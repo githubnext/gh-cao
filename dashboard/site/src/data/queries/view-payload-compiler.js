@@ -159,20 +159,25 @@ export function compileDashboardViewPayloadQueries(page, pageId, options = {}) {
         );
       }
       if (isPlainObject(view) && view.mark === 'chart' && chartFacet(view) && !isOptions) {
-        const facetView = view.chart === 'treemap' && useQueryContext && options.queryContext?.orderBy?.length
+        const facetView = (view.chart === 'treemap' || hasScatterValue(view)) && useQueryContext && options.queryContext?.orderBy?.length
           ? { ...view, data: { ...viewData, 'order-by': options.queryContext.orderBy } }
           : view;
         queries.push(...compiled.dependencies, ...compileChartFacetQuery(facetView, query));
-      } else if (isPlainObject(view) && view.mark === 'chart' && view.chart === 'treemap' && !isOptions) {
-        // Treemaps consume ready-to-render rows, never presenter-side ordering or limiting.
+      } else if (isPlainObject(view) && view.mark === 'chart' && (view.chart === 'treemap' || hasScatterValue(view)) && !isOptions) {
+        // These charts consume ready-to-render rows, never presenter-side ordering or limiting.
         const inputName = `${alias}:input`;
         const limit = Number(viewData?.limit);
         const order = useQueryContext && options.queryContext?.orderBy?.length
           ? options.queryContext.orderBy
           : viewData?.['order-by'];
+        const x = isPlainObject(view.encoding) && isPlainObject(view.encoding.x) ? view.encoding.x : null;
         queries.push(...compiled.dependencies, { ...query, name: inputName }, {
           name: alias,
           from: inputName,
+          ...(hasScatterValue(view) && x && typeof x['time-unit'] === 'string'
+            ? { compute: [{ as: x.field, function: 'date-bucket', args: [
+              { field: x.field }, { value: x['time-unit'] }
+            ] }] } : {}),
           ...(Array.isArray(order) ? { 'order-by': order } : {}),
           ...(Number.isSafeInteger(limit) && limit > 0 ? { limit } : {})
         });
@@ -290,7 +295,7 @@ export function resolveDashboardQueryParameters(definitions, values) {
  * @param {unknown} definitions
  */
 function usesNativeSource(view, sourceName, predicates, queryContext, definitions) {
-  if (isPlainObject(view) && chartFacet(view)) return false;
+  if (isPlainObject(view) && (chartFacet(view) || hasScatterValue(view))) return false;
   const declared = Array.isArray(definitions)
     && definitions.some((definition) => isPlainObject(definition) && definition.name === sourceName);
   const data = isPlainObject(view) && isPlainObject(view.data) ? view.data : null;
@@ -304,6 +309,11 @@ function usesNativeSource(view, sourceName, predicates, queryContext, definition
     && predicates.length === 0
     && !(queryContext?.search?.query.trim())
     && !(queryContext?.orderBy?.length);
+}
+
+/** @param {Record<string, unknown>} view */
+function hasScatterValue(view) {
+  return view.chart === 'scatter' && isPlainObject(view.encoding) && isPlainObject(view.encoding.value);
 }
 
 /** @param {string} name @param {unknown} definitions */

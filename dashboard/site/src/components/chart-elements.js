@@ -19,6 +19,7 @@ const MAX_LINE_POINT_SIZE = 6;
 const MIN_LINE_POINT_SIZE = 2;
 const MAX_DOT_POINT_RADIUS = 2.5;
 const MIN_DOT_POINT_RADIUS = 0.5;
+const MAX_SCATTER_VALUE_RADIUS = 4;
 const MIN_RADIUS_POINT_COUNT = 100;
 // Some SVG engines collapse zero-length lines before painting their round caps.
 const NON_SCALING_POINT_LENGTH = 0.001;
@@ -599,7 +600,7 @@ function renderInteractiveChartMark({ className, entryIndex, label, shape, toolt
  * @param {{ at: string, label: string } | null} [temporalMarker]
  * @param {import('./treemap-layout.js').TreemapOptions} [treemapOptions]
  * @param {ChartPlotDomain | null} [plotDomain]
- * @param {{ cluster?: boolean }} [scatterOptions]
+ * @param {{ cluster?: boolean, value?: { field: string, title: string, unit: { name: string, symbol: string, significant: number } | null } }} [scatterOptions]
  * @returns {HTMLElement}
  */
 export function renderChartWidget(chartType, points, series, pieSummary = null, totalLabel = 'Total', unit = null, timeRange = null, referenceField = null, formatCategory = (label) => label, temporalMarker = null, treemapOptions = {}, plotDomain = null, scatterOptions = {}) {
@@ -856,6 +857,30 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
     const isAreaChart = chartType === 'area';
     const isDotChart = chartType === 'dot';
     const isScatterChart = chartType === 'scatter';
+    const valueEncoding = isScatterChart ? scatterOptions.value : undefined;
+    /** @param {ChartPointLike} point */
+    const sizeValue = (point) => {
+      const value = valueEncoding ? point.source?.[valueEncoding.field] : undefined;
+      return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+    };
+    let maximumSizeValue = 0;
+    let unavailableSizeCount = 0;
+    if (valueEncoding) {
+      for (const point of points) {
+        const value = sizeValue(point);
+        if (value === null) unavailableSizeCount += 1;
+        else maximumSizeValue = Math.max(maximumSizeValue, value);
+      }
+    }
+    /** @param {ChartPointLike} point */
+    const pointRadius = (point) => valueEncoding
+      ? MAX_SCATTER_VALUE_RADIUS * Math.sqrt(sizeValue(point) ?? 0) / Math.sqrt(maximumSizeValue)
+      : dotPointRadius;
+    /** @param {ChartPointLike} point */
+    const pointLabel = (point) => chartPointLabel(point, unit, valueEncoding);
+    if (valueEncoding && maximumSizeValue === 0) {
+      return renderChartWidgetEmptyState(chartType, `No positive finite values available for ${valueEncoding.title}. ${formatCount(unavailableSizeCount)} observations not plotted.`);
+    }
     const isLayerBar = chartType === 'bar' && plotDomain !== null;
     const isRuleChart = chartType === 'rule';
     const isPointChart = isDotChart || isScatterChart;
@@ -919,6 +944,7 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
       )
     );
     const plotWidth = LINE_CHART_RIGHT - lineChartLeft;
+    const viewBoxWidth = valueEncoding ? LINE_CHART_RIGHT + MAX_SCATTER_VALUE_RADIUS + 2 : LINE_CHART_RIGHT;
     /** @param {string} value */
     const scaledX = (value) => {
       const time = Date.parse(value);
@@ -967,7 +993,9 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
       chartType,
       {
         'data-line-rendering': showInteractivePoints ? 'rich' : 'compact',
-        style: `--line-chart-left: ${lineChartLeft}%;`
+        style: valueEncoding
+          ? `--line-chart-left: ${(lineChartLeft / viewBoxWidth) * 100}%; --line-chart-right: ${((viewBoxWidth - LINE_CHART_RIGHT) / viewBoxWidth) * 100}%;`
+          : `--line-chart-left: ${lineChartLeft}%;`
       },
       h(
         'div',
@@ -975,7 +1003,7 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
         h(
         'svg',
         {
-          viewBox: '0 0 100 42',
+          viewBox: `0 0 ${viewBoxWidth} 42`,
           role: 'img',
           'aria-label': isAreaChart
             ? `${series.length > 1 ? 'Stacked area' : 'Area'} chart with ${points.length} points`
@@ -1042,6 +1070,7 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
           const coordinates = seriesPoints.map((point, index) => {
             const x = scaledX(point.x);
             const valid = point.y != null && Number.isFinite(point.y)
+              && (!valueEncoding || sizeValue(point) !== null)
               && (!plotDomain?.temporal || isRuleChart || Number.isFinite(Date.parse(point.x)));
             const y = valid
               ? LINE_CHART_BOTTOM - ((/** @type {number} */ (point.y) - minimum) / (maximum - minimum)) * LINE_CHART_HEIGHT
@@ -1050,7 +1079,7 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
           });
           const validCoordinates = coordinates.filter(({ valid }) => valid);
           const hasGaps = validCoordinates.length !== coordinates.length;
-          const renderedCoordinates = isScatterChart && scatterOptions.cluster === false
+          const renderedCoordinates = isScatterChart && (scatterOptions.cluster === false || valueEncoding)
             ? validCoordinates
             : sampleLineCoordinates(validCoordinates, renderedPointLimit);
           const gapPrefix = [];
@@ -1136,10 +1165,10 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
                 className: `${isScatterChart ? 'scatter' : 'dot'}-chart-point ${seriesClassName}`,
                 cx: x,
                 cy: y,
-                r: dotPointRadius,
-                'aria-hidden': plotDomain ? undefined : 'true',
-                ...(plotDomain ? { tabindex: 0, role: 'img', 'aria-label': chartPointLabel(point, unit) } : {})
-              }), point, unit, plotDomain !== null))
+                r: pointRadius(point),
+                'aria-hidden': plotDomain || valueEncoding ? undefined : 'true',
+                ...(plotDomain || valueEncoding ? { tabindex: 0, role: 'img', 'aria-label': pointLabel(point) } : {})
+              }, valueEncoding ? h('title', null, pointLabel(point)) : null), point, unit, plotDomain !== null || valueEncoding !== undefined))
               : []),
             ...(showInteractivePoints ? validCoordinates.map(({ point, x, y }, pointIndex) => {
               const stacked = isAreaChart
@@ -1151,11 +1180,11 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
                 style: `--chart-entry-index: ${pointIndex}`,
                 tabIndex: 0,
                 role: 'img',
-                'aria-label': `${chartPointLabel(point, unit)}${point.highlighted === false ? ' (context)' : point.highlighted ? ' (selected window)' : ''}`,
+                'aria-label': `${pointLabel(point)}${point.highlighted === false ? ' (context)' : point.highlighted ? ' (selected window)' : ''}`,
                 ...(typeof point.key === 'string' && point.key ? { 'data-chart-point-key': point.key } : {}),
                 'data-chart-point-series': seriesName
               },
-              h('title', null, chartPointLabel(point, unit)),
+              h('title', null, pointLabel(point)),
               isAreaChart
                 ? h('line', {
                   className: `area-chart-point ${seriesClassName}`,
@@ -1169,7 +1198,7 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
                     className: `${isScatterChart ? 'scatter' : 'dot'}-chart-point ${seriesClassName}`,
                     cx: x,
                     cy: y,
-                    r: dotPointRadius
+                    r: pointRadius(point)
                   })
                   : h('line', {
                     className: `line-chart-point ${seriesClassName}`,
@@ -1181,8 +1210,8 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
                   }),
               renderChartPointTooltip({
                 transform: `translate(${Math.min(Math.max(x - 21, 1), 57)} ${Math.max(markY - 12, 1)})`,
-                label: chartPointLabel(point, unit)
-              })), point, unit, plotDomain !== null);
+                label: pointLabel(point)
+              })), point, unit, plotDomain !== null || valueEncoding !== undefined);
             }) : [])
           ];
         })
@@ -1201,7 +1230,18 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
           { className: 'chart-axis timeline-chart-axis', 'data-chart-axis': chartType },
           ...timelineTicks.map((value) => h('span', { title: value }, plotDomain && !plotDomain.temporal ? compactAxisLabel(value) : formatTimelineTick(value)))
         )
-        : null
+        : null,
+      valueEncoding ? h('div', { className: 'scatter-size-key' },
+        h('strong', null, `${valueEncoding.title} (circle area)`),
+        h('ul', { className: 'chart-legend chart-legend-size', 'aria-label': `${valueEncoding.title} size legend` },
+          ...[0.25, 0.5, 1].map((fraction) => h('li', null,
+            h('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true' },
+              h('circle', { cx: 5, cy: 5, r: MAX_SCATTER_VALUE_RADIUS * Math.sqrt(fraction) })),
+            h('span', null, formatNumber(maximumSizeValue * fraction, valueEncoding.unit))
+          ))),
+        unavailableSizeCount > 0 ? h('p', { role: 'status' },
+          `${formatCount(unavailableSizeCount)} observations not plotted: ${valueEncoding.title} must be a positive finite number.`) : null
+      ) : null
     );
   }
 
@@ -1217,7 +1257,7 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
     mark.removeAttribute('tabindex');
     mark.removeAttribute('role');
     return svgAnchor({
-      ...externalAnchorAttrs(point.link.href, `${chartPointLabel(point, unit)}: ${point.link.label}`),
+      ...externalAnchorAttrs(point.link.href, `${chartPointLabel(point, unit, chartType === 'scatter' ? scatterOptions.value : undefined)}: ${point.link.label}`),
       ...(point.link.href.startsWith('#') ? { target: undefined, rel: undefined } : {}),
       tabindex: 0,
       className: 'chart-point-link'
@@ -1902,9 +1942,15 @@ function formatTimelineTick(value) {
 /**
  * @param {{ x: string, y: number | null, color: string | null, source?: Record<string, unknown> }} point
  * @param {{ name: string, symbol: string, significant: number } | null} [unit]
+ * @param {{ field: string, title: string, unit: { name: string, symbol: string, significant: number } | null }} [valueEncoding]
  * @returns {string}
  */
-function chartPointLabel(point, unit = null) {
+function chartPointLabel(point, unit = null, valueEncoding) {
   const clusterCount = Number(point.source?.['cluster-count']);
-  return `${point.x}: ${point.y == null ? 'Unavailable' : formatNumber(point.y, unit)}${point.color ? `, ${point.color}` : ''}${clusterCount > 1 ? `, cluster of ${formatNumber(clusterCount, null)} observations` : ''}`;
+  const value = valueEncoding ? point.source?.[valueEncoding.field] : undefined;
+  const valueLabel = valueEncoding
+    ? `, ${valueEncoding.title}: ${typeof value === 'number' && Number.isFinite(value) && value > 0
+      ? formatNumber(value, valueEncoding.unit) : 'Unavailable'}`
+    : '';
+  return `${point.x}: ${point.y == null ? 'Unavailable' : formatNumber(point.y, unit)}${point.color ? `, ${point.color}` : ''}${clusterCount > 1 ? `, cluster of ${formatNumber(clusterCount, null)} observations` : ''}${valueLabel}`;
 }

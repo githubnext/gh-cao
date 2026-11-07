@@ -308,10 +308,12 @@ describe('Ingestion backend contract', () => {
       pageId: 'indexing', viewId: view.id, sourceNames: [view.data.source],
       context: documentInput.dashboard
     }));
-    const rows = sources[view.data.source]?.rows;
-    expect(sources[view.data.source]?.metadata.availability).toBe('available');
+    const payload = Object.values(sources)[0];
+    const rows = payload?.rows;
+    expect(payload?.metadata.availability).toBe('available');
     expect(rows).toHaveLength(count);
     expect(rows.every((row) => row['cluster-count'] === undefined)).toBe(true);
+    expect(rows.every((row, index) => row['shard-entry-count'] === Math.min(2, count - Math.floor(index / 2) * 2))).toBe(true);
     const root = renderDashboard({
       document: {
         ...documentInput,

@@ -127,7 +127,7 @@
       "name": "workflow-runs",
       "subject": "Project canonical runs into route-addressable workflow run evidence.",
       "objective": "Trace retained runs and recorded failure evidence for a selected workflow route.",
-      "acceptance": "Preserve workflow route, run identity, start/end, status, conclusion, failure fields, mode, engine/model metadata, and run link; missing failure details do not prove success or rule out incomplete import.",
+      "acceptance": "Preserve workflow route, run identity, timing, recorded Actions minutes and AI Credits, status, conclusion, failure fields, mode, engine/model metadata, and run link; missing failure details do not prove success or rule out incomplete import.",
       "description": "Workflow runs with a stable repository and workflow route key.",
       "from": "runs",
       "compute": [
@@ -190,6 +190,8 @@
         {
           "field": "ended-at"
         },
+        { "field": "action-minutes" },
+        { "field": "aic-total" },
         {
           "field": "run-status"
         },
@@ -669,6 +671,27 @@
               "field": "run-conclusion",
               "type": "nominal"
             }
+          }
+        },
+        {
+          "id": "workflow-run-duration-cost",
+          "title": "Actions minutes and AI Credits",
+          "subject": "Timed retained runs and recorded AI Credits for the selected workflow.",
+          "objective": "Find runs with high recorded runner time or AI Credits within one workflow and follow their evidence links.",
+          "acceptance": "Preserve individual runs without clustering. Circle area shows positive recorded AI Credits, not confidence or verified value. Missing Actions minutes and cost are not inferred as zero; omitted sizes remain disclosed.",
+          "description": "Recorded Actions minutes over time, with circle area showing AI Credits and color showing conclusion; missing cost is not zero or complete coverage.",
+          "data": { "source": "workflow-runs", "route-field": "workflow-route" },
+          "mark": "chart",
+          "chart": "scatter",
+          "scatter": { "cluster": false },
+          "layout": "full",
+          "empty-message": "No timed runs with recorded Actions minutes and positive AI Credits are available.",
+          "encoding": {
+            "x": { "field": "started-at", "type": "temporal", "format": "human-friendly-timestamp", "title": "Started at" },
+            "y": { "field": "action-minutes", "type": "quantitative", "title": "Recorded Actions minutes" },
+            "value": { "field": "aic-total", "type": "quantitative", "title": "AI Credits", "unit": "aic" },
+            "color": { "field": "run-conclusion", "type": "nominal", "title": "Conclusion" },
+            "href": { "field": "run-link", "type": "nominal" }
           }
         },
         {

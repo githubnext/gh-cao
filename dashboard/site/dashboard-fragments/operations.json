@@ -354,11 +354,33 @@
       ]
     },
     {
+      "name": "indexing-shard-entry-counts",
+      "subject": "Count retained ingestion entries for each valid shard activity date.",
+      "objective": "Expose coincident ingestion density as circle area without changing individual run counts.",
+      "acceptance": "Count dated transaction identities across all kinds, including zero and unavailable run counts. This is retained ingestion evidence, not distinct runs, bytes, or upstream coverage.",
+      "from": "indexing-shard-dates",
+      "filter": {
+        "predicates": [{ "field": "missing-shard-day", "equals": false }]
+      },
+      "aggregate": {
+        "by": ["shard-day"],
+        "values": [{ "field": "id", "as": "shard-entry-count", "reducer": "count" }]
+      }
+    },
+    {
       "name": "indexing-ingestion-runs",
       "subject": "Show retained ingestion transactions at the activity date encoded in their shard filename.",
-      "objective": "Compare reported run counts by source shard activity date, independently of import time.",
-      "acceptance": "Preserve every dated transaction, including coincident dates, all kinds, and zero counts, without grouping, limits, or page filters. Omit missing or invalid shard dates; never substitute import time. Missing counts use labeled zero-position placeholders, not measured zeroes.",
+      "objective": "Compare reported run counts by source shard activity date, independently of import time, and expose coincident ingestion density.",
+      "acceptance": "Preserve all dated transactions without grouping, limits or page filters. Size by retained entries on the shard day, not distinct runs or coverage. Never substitute import time. Missing run counts remain labeled zero-position placeholders, not measured zeroes.",
       "from": "indexing-shard-dates",
+      "joins": [
+        {
+          "source": "indexing-shard-entry-counts",
+          "type": "left",
+          "on": [{ "left": "shard-day", "right": "shard-day" }],
+          "fields": [{ "field": "shard-entry-count", "as": "shard-entry-count" }]
+        }
+      ],
       "filter": {
         "predicates": [{ "field": "missing-shard-day", "equals": false }]
       },
@@ -390,6 +412,7 @@
         { "field": "shard-day" },
         { "field": "rawRuns" },
         { "field": "workflow-runs" },
+        { "field": "shard-entry-count" },
         { "field": "run-count-status" }
       ],
       "order-by": [
@@ -1979,9 +2002,9 @@
           "id": "indexing-workflow-runs",
           "title": "Runs per ingestion",
           "subject": "Track the reported run count of every retained ingestion entry.",
-          "objective": "Identify changes in run volume by the activity date encoded in each source shard filename, not its import time.",
-          "acceptance": "Every transaction with a valid shard activity date is represented without date bucketing or aggregation; unavailable dates are not replaced by import time and unavailable counts are labeled, not inferred as measured zeroes.",
-          "description": "Entries are positioned by the UTC activity date in the source shard filename, not when imported. Entries without a valid shard date are not plotted. Missing run counts are labeled and shown at 0 as placeholders, not measured zeroes. Reported counts are input runs, not distinct retained runs.",
+          "objective": "Identify changes in run volume and coincident ingestion density by the activity date encoded in each source shard filename, not its import time.",
+          "acceptance": "Preserve every dated transaction without bucketing or merging. Size by retained entries on that shard day, not distinct runs or coverage. Never replace absent dates with import time or missing run counts with measured zeroes.",
+          "description": "Entries are positioned by the UTC activity date in the source shard filename, not when imported. Circle area shows retained ingestion entries for the same shard day, highlighting coincident entries without merging them. Entries without a valid shard date are not plotted. Missing run counts are labeled and shown at 0 as placeholders, not measured zeroes. Reported counts are input runs, not distinct retained runs.",
           "data": {
             "source": "indexing-ingestion-runs",
             "query-context": false
@@ -2002,6 +2025,11 @@
               "field": "workflow-runs",
               "type": "quantitative",
               "title": "Ingested runs"
+            },
+            "value": {
+              "field": "shard-entry-count",
+              "type": "quantitative",
+              "title": "Ingestion entries on shard day"
             },
             "color": {
               "field": "run-count-status",

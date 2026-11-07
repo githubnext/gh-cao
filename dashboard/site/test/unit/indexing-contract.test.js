@@ -122,13 +122,17 @@ describe('indexing dashboard', () => {
     });
 
     async function query() {
+      const compiled = compileDashboardViewPayloadQueries(page, 'indexing', {
+        queries: dashboard.queries, viewId: view.id, sourceNames: [source], queryContext
+      });
       const result = /** @type {Record<string, any>} */ (await processDataRequest({
         operation: 'query-canonical-dashboard',
         pageId: 'indexing', viewId: view.id, sourceNames: [source],
         context: dashboard, queryContext
       }));
-      expect(['available', 'empty']).toContain(result[source]?.metadata.availability);
-      return result;
+      const payload = result[compiled.aliases[0]];
+      expect(['available', 'empty']).toContain(payload?.metadata.availability);
+      return { [source]: payload };
     }
 
     it('declares an unbucketed, unaggregated, unbounded scatter independent of page context', () => {
@@ -150,6 +154,7 @@ describe('indexing dashboard', () => {
         encoding: {
           x: { field: 'shard-day', type: 'temporal', title: 'Shard activity date' },
           y: { field: 'workflow-runs', type: 'quantitative' },
+          value: { field: 'shard-entry-count', type: 'quantitative' },
           color: { field: 'run-count-status' }
         }
       });
@@ -176,13 +181,16 @@ describe('indexing dashboard', () => {
         ...entry,
         'shard-day': '2019-12-31',
         'workflow-runs': entry.rawRuns ?? 0,
+        'shard-entry-count': entries.length,
         'run-count-status': entry.rawRuns == null
           ? 'Run count unavailable (shown at 0)' : 'Reported run count'
       })));
       const aliases = compileDashboardViewPayloadQueries(page, 'indexing', {
         queries: dashboard.queries, viewId: view.id, sourceNames: [source], queryContext
       });
-      expect(aliases).toEqual({ aliases: [], queries: [], replacedSources: [] });
+      expect(aliases.aliases).toHaveLength(1);
+      expect(aliases.queries.at(-1)).toMatchObject({ from: `${aliases.aliases[0]}:input` });
+      expect(aliases.queries.at(-1)?.limit).toBeUndefined();
     });
 
     it('does not fall back to import time for undated, structural, or invalid shard filenames', async () => {
@@ -215,7 +223,8 @@ describe('indexing dashboard', () => {
       });
       const updated = await query();
       expect(updated[source].rows).toHaveLength(126);
-      expect(updated[source].rows.at(-1)).toMatchObject({ id: 'new-entry', 'workflow-runs': 8 });
+      expect(updated[source].rows.at(-1)).toMatchObject({ id: 'new-entry', 'workflow-runs': 8, 'shard-entry-count': 1 });
+      expect(updated[source].rows[0]['shard-entry-count']).toBe(125);
     });
 
     it('fails closed when the transaction source cannot be produced', () => {
