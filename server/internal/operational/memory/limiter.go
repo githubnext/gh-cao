@@ -90,7 +90,11 @@ func (s *Store) TakeRateLimitTokens(ctx context.Context, key string, limit int, 
 	if !allowed {
 		result.RetryAfter = time.Duration(math.Ceil((float64(cost)-v.tokens)*millis/float64(limit))) * time.Millisecond
 	}
-	v.updated, v.expires = now, now.Add(time.Duration(period.Milliseconds()*2)*time.Millisecond)
+	// Like the PostgreSQL adapter, never move the refill timestamp backwards.
+	if now.After(v.updated) {
+		v.updated = now
+	}
+	v.expires = now.Add(time.Duration(period.Milliseconds()*2) * time.Millisecond)
 	s.buckets[strings.Clone(key)] = v
 	return result, nil
 }
