@@ -379,6 +379,12 @@ button[data-open-modal]:focus-visible {
   color: #f0f6fc !important;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .mermaid {
+    animation: none !important;
+  }
+}
+
 :root[data-theme="dark"] .sl-markdown-content code:not(:where(.not-content *)) {
   color: #c2c8d3;
 }
