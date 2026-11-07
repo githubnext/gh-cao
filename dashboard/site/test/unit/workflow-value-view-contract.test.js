@@ -14,6 +14,7 @@ import { evidencePacketSelection, readEvidencePackets } from '../../src/data/que
 import { operationalValueEvidenceId, operationalValueEvidenceRows } from '../../src/data/model/operational-value-evidence.js';
 import { workflowValueCollectionId } from '../../src/data/model/workflow-value-collection.js';
 import { measurementSelection, readMeasurements } from '../../src/data/queries/measurement-selection.js';
+import { installSqliteIndexedDB } from '../../src/data/storage/sqlite-indexeddb.js';
 
 const dashboard = authoritativeDashboard.dashboard;
 const repository = resolve('../..');
@@ -172,6 +173,43 @@ function fileLedger(direction = 'decrease') {
 }
 
 describe('native workflow value production contract', () => {
+  it('keeps worker Value cards, health and evidence routes identical over browser and SQLite storage', async () => {
+    const packet = await publish();
+    const health = readFileSync(join(repository, 'dashboard/site/test/fixtures/workflow-value-collection.jsonl'), 'utf8');
+    await ingestCachedGhAwJsonl(indexedDB, health, { now: Date.parse('2026-10-23T14:00:00Z') });
+    const snapshot = packet.facts.find((/** @type {Record<string, unknown>} */ fact) => fact['fact-kind'] === 'snapshot');
+    const pages = [
+      ['value', {}],
+      ['workflow-value', { workflow: contract.route }],
+      ['value-report', { report: packet.id }],
+      ['value-snapshot', { snapshot: `${packet.id}|${snapshot['fact-id']}` }]
+    ];
+    const browser = await Promise.all(pages.map(async ([page, parameters]) =>
+      (await execute(String(page), /** @type {Record<string, string>} */ (parameters))).map(source => source.rows)));
+    expect(browser[0][0][0]['overview-href']).toContain('#page-value-report?report=');
+    expect(browser[1][0][0]['collection-state']).toBe('deferred');
+    expect(browser[1][0][0]['last-attempt-outcome']).toBe('failed');
+    expect(browser[1][0][0]['captured-at']).not.toEqual(browser[1][0][0]['last-attempt-at']);
+    expect(browser[2][0][0]['movement']).toBe('Better');
+    expect(browser[3][1]).toHaveLength(1);
+
+    const browserDatabase = globalThis.indexedDB;
+    const browserKeyRange = globalThis.IDBKeyRange;
+    const sqlite = installSqliteIndexedDB(join(directory, 'value.sqlite'));
+    try {
+      await ingestCachedGhAwJsonl(sqlite, readFileSync(join(directory, 'report-0-evidence.jsonl'), 'utf8'),
+        { now: Date.parse(String(packet.observedAt)) });
+      await ingestCachedGhAwJsonl(sqlite, health, { now: Date.parse('2026-10-23T14:00:00Z') });
+      for (const [index, [page, parameters]] of pages.entries()) {
+        const sources = await execute(String(page), /** @type {Record<string, string>} */ (parameters));
+        expect(sources.map(source => source.rows), String(page)).toEqual(browser[index]);
+      }
+    } finally {
+      globalThis.indexedDB = browserDatabase;
+      globalThis.IDBKeyRange = browserKeyRange;
+    }
+  });
+
   it('bounds compound identity allocation before expanding oversized snapshot histories', async () => {
     const packet = await publish(fileLedger());
     const header = packet.facts.find((/** @type {Record<string, unknown>} */ fact) => fact['fact-kind'] === 'contract');

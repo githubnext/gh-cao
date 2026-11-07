@@ -27,7 +27,7 @@ not stages in a conversion funnel.
 | **Factory health** | The share of all registered workflows across CAO and targeted repositories without current observed runtime failures. | Workflows to investigate failing execution. |
 | **Repositories (coverage station)** | Registered repositories that received a successful worker delivery against the total registered scope. | Repositories for the complete inventory and delivery evidence. |
 | **Issues & PRs** | Retained issue and pull request safe outputs. | Issues for the underlying safe outputs. |
-| **Value gains** | Observed grader results, not verified improvements. | Graders for the retained observations. |
+| **Grader observations** | Observed grader results, not verified improvements or repository Value. | Graders for the retained observations. |
 
 The selected dashboard time range applies before Overview calculates these
 values. The start time is inclusive and the end time is exclusive. Weekly
