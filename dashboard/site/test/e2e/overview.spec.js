@@ -60,7 +60,7 @@ const sources = {
   'overview-value-station': source('overview-value-station', [{
     value: 1, detail: 'Observed grader results', description: '1 observed grader results, not verified improvements'
   }]),
-  'overview-factory-status': source('overview-factory-status', [{ 'factory-heading': 'Your factory is delivering value.' }]),
+  'overview-factory-status': source('overview-factory-status', [{ 'factory-heading': 'Your factory has grader observations.' }]),
   'overview-header-presentation': source('overview-header-presentation', [{ heading: 'Your factory needs attention.' }]),
   'overview-factory-station': source('overview-factory-station', [{
     value: 0.5,
@@ -198,7 +198,7 @@ test('declarative Overview views preserve desktop and mobile behavior', async ({
     const stations = factory.locator('.factory-station');
     await expect(stations).toHaveCount(4);
     await expect(stations.locator(':scope > span:nth-child(2)')).toHaveText([
-      'Factory health', 'Repository coverage', 'Issues & PRs', 'Value gains'
+      'Factory health', 'Repository coverage', 'Issues & PRs', 'Grader observations'
     ]);
     await expect(stations.locator('strong')).toHaveText(['50%', '50%', '5', '1']);
     await expect(stations.nth(2).getByRole('link', { name: '5', exact: true })).toHaveAttribute('href', '#page-issues');

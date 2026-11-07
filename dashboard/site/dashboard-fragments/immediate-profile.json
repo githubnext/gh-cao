@@ -1,6 +1,6 @@
 {
   "description": "Inspect bounded recent gh-aw logs and available rich evidence without a control-plane installation. Missing evidence remains unknown; native maintenance requires trusted terminal approval.",
-  "audited-dashboard-sha256": "5dd8b4ff57b737ecd5df75a069b50af7485839f782e49d2f0922ed8f31f161c8",
+  "audited-dashboard-sha256": "47dea1242ac5cdf490e1a61c8bad1da9849501e98581fcddbfad273553eb5eb7",
   "include-experimental-pages": true,
   "excluded-pages": [
     "wizard", "governance", "configuration", "indexing",

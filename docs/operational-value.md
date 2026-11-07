@@ -61,6 +61,36 @@ See [authentication and command details](cao-cli.md#publish-and-refresh-workflow
 Static dashboards receive the same envelope through Activity publication,
 not a direct database connection.
 
+### Verify publication in each deployment
+
+Use the **same exact repository and workflow** when comparing deployments.
+First confirm that the frozen definition and original packet were validated;
+an evaluation artifact by itself is not a published dashboard result.
+
+- **Pages:** Confirm that the default-branch Activity run accepted the packet
+  and that the subsequent CAO Dashboard build deployed its snapshot. If another
+  workflow owns Pages (as with Documentation Pages), confirm that it mounted
+  that dashboard artifact too. Open **Value** and the workflow report on the
+  deployed site, not a local preview. A completed collector run or dashboard
+  build without a successful deployment does not establish Pages freshness.
+- **Hosted PostgreSQL:** Publish through the authenticated Value API above and
+  confirm that the receipt advanced the canonical revision (`updated: true`)
+  or was an exact idempotent retry (`updated: false`). Open the same workflow's
+  Value card and report on the Go-hosted origin. The active view requeries on
+  committed revisions; the browser must not read the Pages cache if the hosted
+  query fails. Local Go/SQLite can query a downloaded snapshot but cannot
+  accept direct Value publication.
+
+Compare the report identity, native unit and direction, original capture,
+evidence cutoff, collection decision and last actual attempt in both views.
+The decision may be newer than the accepted evidence; matching UI text alone
+does not prove matching snapshot revisions. Missing or partial evidence stays
+unavailable, not zero. Hosted recurring native acquisition is an **additional
+explicit deployment choice**: the documented Azure collector template leaves
+`CAO_COLLECT_NATIVE_VALUES` unset. Do not enable it, broaden Activity scope or
+register every workflow merely to populate the dashboard. Select only verified
+collectors under reviewed exact-pair policy with their required quota admission.
+
 ## Recurring collection after opt-in
 
 The skill designs the measurement once. **Once the frozen function and bounded
