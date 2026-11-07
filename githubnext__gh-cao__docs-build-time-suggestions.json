@@ -1,35 +1,7 @@
 {
   "source_sha": "3d406df041cb02d60e05f23697c0e2cd5c90f082",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-07T05:50:43.128191Z",
-      "worker_run_id": "42344212306",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        42344109257,
-        42343077078,
-        42341978979,
-        42341795708,
-        42340940303,
-        42339856949,
-        42339240114,
-        42338817712,
-        42338502212,
-        42338450591,
-        42337821353,
-        42336670207,
-        42336581799,
-        42335513239,
-        42335490131,
-        42334361491,
-        42333286801,
-        42333153061,
-        42332024646,
-        42330847462
-      ],
-      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T03:01:26Z to 2026-11-07T05:46:16Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Six successful full build-and-deploy publications were available (four push, one schedule, and one workflow_run), meeting the five-run minimum; the four push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across all six publications, workflow wall-clock median was 124.5 seconds and nearest-rank p90 215 seconds; initial queue median was 3 seconds and p90 82 seconds; execution median was 121 seconds and p90 140 seconds. Build-job median was 89.5 seconds and p90 102 seconds; deploy-job median was 26.5 seconds and p90 33 seconds; docs.yml has no separate dashboard job. Astro documentation generation took 11.5 seconds median and 15 seconds p90 (10-15 second range), only 9.5% of median execution. Bounded logs confirmed npm run docs:build invokes astro build plus documentation validation and integration testing. Trusted Actions step metadata verified six of six dashboard cache hits because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped; a bounded log also recorded a central-agentic-ops-dashboard cache hit. The remaining 11 successful runs were freshness-only and skipped build and deploy. Because the entire Astro step is below both the 60-second threshold and the 15%-of-median-execution threshold (18.2 seconds), no change to Astro generation can meet the required savings on current evidence without moving or omitting correctness checks. No actionable suggestion was made; advance to reusable dashboard generation. Confidence is high for step timing and cache-path evidence and medium for cross-trigger workflow distributions."
-    },
     {
       "evaluated_at": "2026-11-07T06:23:59Z",
       "worker_run_id": "42346529273",
@@ -820,6 +792,34 @@
         42376161557
       ],
       "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T13:15:59Z to 2026-11-07T15:45:52Z) was within 14 days and contained fifteen successful runs, four skipped workflow_run callbacks, and one cancelled workflow_run callback; there were no failed runs. Five successful full build-and-deploy publications were available (four push and one schedule), meeting the minimum; the four push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across all five publications, workflow wall-clock median was 132 seconds and nearest-rank p90 255 seconds; initial queue/concurrency time median was 3 seconds and p90 99 seconds; execution median was 124 seconds and p90 252 seconds. Build-job median was 84 seconds and p90 94 seconds; deploy-job median was 30 seconds and p90 170 seconds; docs.yml has no separate dashboard job. Dependency installation took 20 seconds median and 22 seconds p90, while Node setup/cache restoration took 3 seconds median and 4 seconds p90. Bounded trusted logs verified five of five exact setup-node npm-cache hits on the same lockfile-derived key; npm ci still installed 845 packages in 11-22 seconds. Dashboard cache hits were also verified in all five publications because the restore step succeeded and cache-miss lookup/download steps were skipped. Although npm ci is about 16.1% of median execution, eliminating the required clean installation is not correctness-preserving, and the evidence does not support a concrete cache change expected to save at least 18.6 seconds after accounting for cache restore overhead. No actionable, non-duplicate suggestion met the threshold; advance to Astro documentation generation. Confidence is high for cache-hit and step-timing evidence and medium for cross-trigger workflow distributions."
+    },
+    {
+      "evaluated_at": "2026-11-07T16:18:14.957138Z",
+      "worker_run_id": "42390335625",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        42390434315,
+        42390316893,
+        42390224819,
+        42389177209,
+        42387932480,
+        42386775123,
+        42385518047,
+        42385146193,
+        42384326652,
+        42383753026,
+        42383726809,
+        42383375282,
+        42383129418,
+        42381970482,
+        42380788512,
+        42380446913,
+        42379595472,
+        42379579961,
+        42379567653,
+        42379117964
+      ],
+      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T13:54:51Z to 2026-11-07T16:17:27Z) was within 14 days and contained fifteen successful runs, four skipped workflow_run callbacks, and one cancelled workflow_run callback; there were no failed runs. Six successful full build-and-deploy publications were available (four push, one schedule, and one workflow_run), meeting the minimum; the four push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across all six publications, workflow wall-clock median was 141 seconds and nearest-rank p90 255 seconds; initial queue/concurrency time median was 3 seconds and p90 99 seconds; execution median was 126 seconds and p90 252 seconds. Build-job median was 86.5 seconds and p90 118 seconds; deploy-job median was 29 seconds and p90 170 seconds; docs.yml has no separate dashboard job. Astro documentation generation took 13 seconds median and 15 seconds p90 (9-15 second range), about 10.3% of median execution. Bounded logs confirmed npm run docs:build invokes astro build plus documentation validation and integration testing. Trusted Actions step metadata verified six of six dashboard cache hits because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped every time; a bounded log also recorded exact npm and central-agentic-ops-dashboard cache hits. The remaining nine successful runs were freshness-only and skipped build and deploy. Because the entire Astro step is below both the 60-second threshold and the 15%-of-median-execution threshold (18.9 seconds), no Astro-generation change can meet the required savings on current evidence without moving or omitting correctness checks. No actionable, non-duplicate suggestion met the threshold; advance to reusable dashboard generation. Confidence is high for step timing and cache-path evidence and medium for cross-trigger workflow distributions."
     }
   ]
 }
