@@ -32,8 +32,10 @@ describe('styles debug logging', () => {
     const { primerStylesheet } = await loadStylesWithDebug('');
     const css = primerStylesheet();
 
-    expect(css).toContain('.first-load-overlay[open]{display:grid;grid-template-rows:auto 1fr;gap:24px;align-items:center}');
+    expect(css).toContain('.first-load-overlay[open]{display:grid;grid-template-columns:minmax(0, 1fr);grid-template-rows:auto 1fr;gap:24px;align-items:center}');
     expect(css).toContain('.first-load-overlay [hidden]{display:none}');
+    expect(css).toContain('.first-load-agentic-rhythm i:nth-of-type(13)::after{animation-name:first-load-bar-color-13}');
+    expect(css).toContain('.first-load-agentic-rider{position:static;opacity:1}');
     expect(css).toContain('.first-load-brand{display:flex;align-items:center');
     expect(css).toContain('.first-load-browse:focus-visible, .first-load-details:focus-visible{outline:2px solid var(--focus);outline-offset:3px}');
     expect(css).not.toContain('.first-load-close');
