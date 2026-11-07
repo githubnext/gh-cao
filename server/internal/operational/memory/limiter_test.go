@@ -66,3 +66,35 @@ func TestClassifyTokenBucketRequestOversizedLimit(t *testing.T) {
 		t.Fatalf("classifyTokenBucketRequest with oversized limit = %s, want %s", got, tokenBucketRejectedParameter)
 	}
 }
+
+func TestTakeRateLimitTokensClockRegressionDoesNotRefillTwice(t *testing.T) {
+	now := time.Unix(1000, 0)
+	s, err := New(Config{Clock: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	take := func(cost int) bool {
+		t.Helper()
+		r, err := s.TakeRateLimitTokens(t.Context(), "subject", 10, 10*time.Second, cost)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r.Allowed
+	}
+	if !take(10) {
+		t.Fatal("initial full-bucket spend denied")
+	}
+	now = now.Add(5 * time.Second)
+	if !take(5) {
+		t.Fatal("refilled spend denied")
+	}
+	now = now.Add(-5 * time.Second)
+	if take(1) {
+		t.Fatal("empty bucket allowed a token after clock regression")
+	}
+	now = now.Add(5 * time.Second)
+	if take(1) {
+		t.Fatal("clock regression refilled the same elapsed interval twice")
+	}
+}
