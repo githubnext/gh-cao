@@ -17,7 +17,24 @@ The fail-closed policy/authority kernel for the control-plane subset of
   default, exact-target and worker-ceiling narrowing, and narrowing-only dispatch
   requests (widening throws `PolicyException`; expected denials return stable reasons).
 
-No HTTP service, database or container exists yet, so no cloud packaging is included.
+- `HealthServer`: public `/api/health`, `/api/v1/health`, `/api/readiness` on a JDK `HttpServer`,
+  backed by `OperationalProbe`/`DataProbe` contracts. The shipped `Main` has no storage adapter, so it
+  honestly reports unhealthy/not ready. No database, authentication or query API exists yet.
+
+## Run
+
+Configuration (environment, no secrets): `CAO_HOST` (numeric, default `127.0.0.1`), `CAO_PORT` (default
+8080), `CAO_PROBE_TIMEOUT_MS` (3000), `CAO_SHUTDOWN_GRACE_SECONDS` (10). SIGTERM drains and stops.
+
+```sh
+mvn --batch-mode --no-transfer-progress -f experiments/java-backend/pom.xml package
+CAO_PORT=8080 java -jar experiments/java-backend/target/cao-java-backend-0.1.0-SNAPSHOT.jar
+# container (unexecuted proposal; run from experiments/java-backend after package)
+docker build -t cao-java-backend:dev . && docker run --rm -p 127.0.0.1:8080:8080 cao-java-backend:dev
+```
+
+Never expose the listener publicly: it has no authentication. Future PostgreSQL URLs and credentials
+must come from environment-injected secret references; none are baked into the image.
 
 ## Build and test
 
