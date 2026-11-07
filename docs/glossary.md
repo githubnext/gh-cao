@@ -14,6 +14,10 @@ human operator
 		  └─ performs one bounded task using an AI agent and engine
 ```
 
+## Acquisition requirement
+
+A reviewed declaration of a GitHub data source, native Core, Search, or GraphQL quota pool, versioned primitive, exact population scope, and cache lifetime. Workflow registrations for one repository may union identical requirements, and Value collection requests must name one. An exact-response cache hit is valid only for a request that identifies its reviewed requirement and pool; unknown or mismatched identities remain metered. See the [GitHub API capacity specification](https://github.com/githubnext/gh-cao/blob/main/specs/github-api-capacity.md).
+
 ## Action level
 
 The shared `explore`, `propose`, or `operate` classification applied to every dashboard-declared action (CLI action, row action, or generated view prompt) independent of its presentation or executor. `explore` is a read-only investigation, `propose` previews a request such as a prompt that can produce a pull request, and `operate` shows the underlying command and requires explicit per-run confirmation. A separate `ui` level covers native dashboard-local and account-session controls (such as resetting local storage or logging out) that carry no operational or repository authority and never generate an agent prompt or CLI command. See the [Dashboard Language specification](dashboard-language-specification.md#111-syntax-and-view-classes).
