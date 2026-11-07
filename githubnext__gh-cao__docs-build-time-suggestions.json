@@ -1,35 +1,7 @@
 {
-  "source_sha": "f7c3b633d14e9b1ebfbacfeac95da8689252c9eb",
+  "source_sha": "22fe891e1d86482ea94d59203234037c8fb493be",
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-06T21:51:45.188381Z",
-      "worker_run_id": "42299732555",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        42299355245,
-        42297339251,
-        42295307398,
-        42293633812,
-        42293223561,
-        42291112855,
-        42289075341,
-        42286815520,
-        42286622662,
-        42284725207,
-        42283265295,
-        42283246603,
-        42282520750,
-        42280307737,
-        42278096014,
-        42277434785,
-        42275945454,
-        42273642920,
-        42271433324,
-        42269716256
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-06T18:19:56Z to 2026-11-06T21:45:52Z) was within 14 days and contained 17 successful runs plus three skipped workflow_run callbacks; there were no failed or cancelled runs. Only two successful full build-and-deploy publications were available (workflow_run 42293633812 and push 42283246603), below the required five comparable successful publications. Retained trusted Actions job and step evidence from the overlapping preceding evaluation measured their workflow wall times at 132 and 116 seconds (descriptive median 124 seconds, nearest-rank p90 132 seconds; insufficient sample), build jobs at 90 and 77 seconds (median 83.5, p90 90), and deploy jobs at 8 and 30 seconds (median 19, p90 30); docs.yml has no separate dashboard job. Dashboard cache hits were verified in both publications because the restore step succeeded while cache-miss lookup and artifact-download steps were skipped. The remaining successful runs were freshness-only schedules and did not execute build or deploy. Because fewer than five comparable full publications were present, required complete full-workflow and dashboard/build/deploy distributions and a complete reusable-dashboard-generation evaluation could not be established. No suggestion was made; reusable dashboard generation remains the next category."
-    },
     {
       "evaluated_at": "2026-11-06T22:17:47Z",
       "worker_run_id": "42303173133",
@@ -841,6 +813,34 @@
         42338450591
       ],
       "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T04:26:12Z to 2026-11-07T07:35:40Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Five successful full build-and-deploy publications were available (four push and one schedule), meeting the five-run minimum; the four push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across the five publications, workflow wall-clock median was 127 seconds and nearest-rank p90 215 seconds; initial queue/concurrency time median was 3 seconds and p90 82 seconds; execution median was 124 seconds and p90 140 seconds. Build-job median was 90 seconds and p90 102 seconds; deploy-job median was 27 seconds and p90 33 seconds; docs.yml has no separate dashboard job. Step medians/p90s were checkout 28/33 seconds, dependency installation 20/23 seconds, Astro generation 13/15 seconds, dashboard cache restore 3/5 seconds, Pages artifact upload 18/20 seconds, and Pages deployment 24/29 seconds. Trusted Actions step metadata verified five of five dashboard cache hits because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped every time. The relevant successful CAO Dashboard run 42335347706 spent 1,083 seconds in its build job, including 995 seconds upgrading activity data, then populated the reusable cache in a 12-second cache job; subsequent docs publications restored it in 2-5 seconds. Reusable dashboard generation remains effectively decoupled from docs publication, and no additional concrete workflow change is supported that would save at least 60 seconds or 15 percent of median execution (18.6 seconds) without weakening freshness or deployment safety. No suggestion was made; advance to artifact transfer and Pages packaging. Confidence is high for the cache-hit and decoupling conclusions and medium for cross-trigger timing distributions."
+    },
+    {
+      "evaluated_at": "2026-11-07T08:20:59.568970Z",
+      "worker_run_id": "42354824572",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42354750487,
+        42353698119,
+        42352626224,
+        42351779741,
+        42351628353,
+        42350559817,
+        42350356990,
+        42349492386,
+        42348449699,
+        42347465993,
+        42346675784,
+        42346540294,
+        42345164245,
+        42344109257,
+        42343077078,
+        42341978979,
+        42341795708,
+        42340940303,
+        42339856949,
+        42339240114
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T04:37:07Z to 2026-11-07T08:16:18Z) was within 14 days and contained 14 successful runs, four skipped workflow_run callbacks, and two failed schedule runs. Only two successful full build-and-deploy publications were available (push runs 42351779741 at source SHA f7c3b633d14e9b1ebfbacfeac95da8689252c9eb and 42339240114 at source SHA 847f940213ea1fa7619d8084aa7e1cecc861a26d), below the required five comparable successful publications and not like-for-like by source revision. Their descriptive workflow wall times were 127 and 113 seconds (median 120 seconds, nearest-rank p90 127 seconds; insufficient sample), execution times after initial queueing were 123 and 109 seconds (median 116 seconds, p90 123 seconds), build jobs were 92 and 79 seconds (median 85.5 seconds, p90 92 seconds), and deploy jobs were 27 and 26 seconds (median 26.5 seconds, p90 27 seconds); docs.yml has no separate dashboard job. The other 12 successful runs were freshness-only schedules and did not execute build or deploy. Two newer schedule runs completed their build jobs successfully in 76 and 87 seconds but failed during deploy after roughly ten minutes, so they were disclosed and excluded from successful timing distributions. Because fewer than five comparable successful full publications were present, required complete full-workflow and dashboard/build/deploy distributions and a complete artifact-transfer-and-Pages-packaging evaluation could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
