@@ -89,7 +89,6 @@ export function mountFirstLoadOverlay({ document, signal: ownerSignal, retry }) 
     return current.status === 'loading' && !current.dismissed && !current.ingestion;
   }, { signal });
   const status = h('p', { className: 'first-load-status', role: 'status' });
-  const progress = h('div', { className: 'first-load-progress' });
   const loader = renderAgenticLoader();
   const ingestionSubtitle = h('p', { className: 'dashboard-notification-details-subtitle' });
   const ingestionHistory = h('ul', { className: 'dashboard-notification-details', 'aria-label': 'Ingestion progress history' });
@@ -112,7 +111,6 @@ export function mountFirstLoadOverlay({ document, signal: ownerSignal, retry }) 
     title,
     description,
     loader,
-    progress,
     status,
     message,
     ingestionDetails,
@@ -215,14 +213,6 @@ export function mountFirstLoadOverlay({ document, signal: ownerSignal, retry }) 
     return current.total
       ? 'Importing activity files...'
       : 'Preparing the latest activity snapshot...';
-  }, { signal });
-  render(progress, () => {
-    const current = browserFirstLoad.get();
-    if (current.status === 'failed') return [];
-    return h('progress', {
-      'aria-label': 'Dashboard import progress',
-      ...(current.total ? { max: current.total, value: current.completed ?? 0 } : {})
-    });
   }, { signal });
   effect(() => {
     const current = browserFirstLoad.get();
