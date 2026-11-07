@@ -146,9 +146,9 @@ A bounded page of a declarative query output, selected by an ordered stable key 
 
 The control repository's exclusive right to admit a `live` worker for a campaign and target, decided solely from `.github/workflows/cao.json` at the exact workflow SHA. A target repository's files cannot widen, narrow, or veto this decision.
 
-## Local SQLite overlay
+## Local SQLite snapshot
 
-The separate, writable SQLite delta that `dashboard:local` attaches to the read-only deployed snapshot. Queries read the union of both, with local upserts and deletion markers taking precedence. The overlay is bound to the snapshot's canonical content revision; a mismatched overlay fails closed and is preserved rather than applied to a different base. A background backfill writes recent evidence for repositories already in the snapshot into the overlay.
+The verified canonical SQLite file that `dashboard:local` serves through Go. The server opens it read-only: it creates no writable delta, backfills no evidence, and acquires no GitHub credentials. Creation, normalization, and maintenance stay in the JavaScript `cao-activity` pipeline. The former `--sqlite-overlay`, `--backfill`, and `--backfill-interval` options are rejected.
 
 ## Maintenance Governance
 
