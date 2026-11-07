@@ -44,7 +44,7 @@ func restartNative(t *testing.T, previous *Native) *Native {
 	if err := previous.Close(); err != nil {
 		t.Fatal(err)
 	}
-	a := &Archive{native: true, config: previous.config, blob: previous.blob, queryHTTP: previous.queryHTTP, now: previous.now}
+	a := &Archive{native: true, config: previous.config, blob: previous.blob, queries: previous.queries, now: previous.now}
 	if err := a.open(t.Context()); err != nil {
 		t.Fatal(err)
 	}

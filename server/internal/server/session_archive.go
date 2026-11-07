@@ -86,8 +86,21 @@ type localSessionArchive struct {
 
 type hostedSessionArchive struct {
 	*sessionarchive.Archive
-	publisher *sessionarchiveblob.Archive
+	publisher hostedArchivePublisher
 	namespace string
+}
+
+type hostedArchiveReader interface {
+	ReadTimeline(context.Context, sessionarchive.Scope, sessionarchive.TimelineRequest) (uint64, []sessionarchive.Event, *sessionarchiveblob.Reader, error)
+	ReadSummaries(context.Context, sessionarchive.Scope, string, int) (uint64, []sessionarchive.Summary, *sessionarchiveblob.Reader, error)
+}
+
+type hostedArchivePublisher interface {
+	sessionarchive.Publisher
+	hostedArchiveReader
+	WithdrawRepository(context.Context, string) error
+	Maintain(context.Context) error
+	Close() error
 }
 
 func (archive *hostedSessionArchive) Query(ctx context.Context, input sessionArchiveQuery) (sessionArchiveResult, error) {
@@ -183,7 +196,7 @@ func (*nativeSessionArchive) Capture(context.Context, string, string, string) er
 	return collectnative.ErrUnsupported
 }
 
-func hostedArchiveQuery(ctx context.Context, publisher *sessionarchiveblob.Archive, namespace string, input sessionArchiveQuery) (sessionArchiveResult, error) {
+func hostedArchiveQuery(ctx context.Context, publisher hostedArchiveReader, namespace string, input sessionArchiveQuery) (sessionArchiveResult, error) {
 	if err := input.validate(); err != nil {
 		return sessionArchiveResult{}, err
 	}

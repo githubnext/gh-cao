@@ -1,4 +1,4 @@
-name: Local Azure Functions integration
+name: Local Azure services integration
 
 on:
   push:
@@ -9,7 +9,15 @@ on:
       - scripts/azure-local/**
       - server/**
       - tests/integration/azure-local-functions.test.mjs
+      - tests/integration/azure-local-services.test.mjs
+      - tests/unit/server-azure-*.test.mjs
+      - internal/cli/**
+      - internal/azcli/**
+      - go.mod
+      - go.sum
+      - package.json
       - .github/workflows/cao.json
+      - .github/workflows/cao.azure.json
       - "!dashboard/site/**/*.md"
       - "!server/**/*.md"
   workflow_dispatch:
@@ -20,7 +28,7 @@ permissions:
 
 jobs:
   azure-local:
-    name: Functions, Azurite, Redis, and Postgres
+    name: Functions, Storage, Postgres and Azure service contracts
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -34,8 +42,10 @@ jobs:
         with:
           go-version: 1.27.3
           cache: false
+      - name: Prepare Go dependencies before hermetic service tests
+        run: go mod download && go -C server mod download
       - name: Run local Azure integration
-        run: ./scripts/azure-local/azure-local.sh run
+        run: npm run test:integration:azure-services
       - name: Upload local Azure logs
         if: ${{ always() && failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
