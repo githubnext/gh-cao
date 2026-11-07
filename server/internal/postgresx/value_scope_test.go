@@ -2,6 +2,7 @@ package postgresx
 
 import (
 	"encoding/json"
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -9,6 +10,101 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/query"
 )
+
+func valueViewDefinitions(t *testing.T) []query.Definition {
+	t.Helper()
+	content, err := os.ReadFile("../../../dashboard/site/dashboard-fragments/workflow-value.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fragment struct {
+		Queries []query.Definition `json:"queries"`
+	}
+	if err := json.Unmarshal(content, &fragment); err != nil {
+		t.Fatal(err)
+	}
+	return append(canonicalProjectionDefinitions(t), fragment.Queries...)
+}
+
+func TestValueViewsExecuteAgainstHostedEvidence(t *testing.T) {
+	definitions := valueViewDefinitions(t)
+	names := []string{"value-workflow-overview", "value-collection-health", "value-report-summary", "value-review-overview"}
+	reader := &readTransaction{store: &Store{namespace: "value-views"}}
+	if _, err := query.CompileSQL(definitions, names, reader.entitySQLSource); err != nil {
+		t.Fatal(err)
+	}
+
+	store, _ := nativeTestStore(t)
+	packet := evidencePacket(t)
+	health := collectionFixture(t)
+	nativeSeed(t.Context(), t, store, map[string][]model.Row{
+		"$repositories": {
+			{"id": packet["repositoryId"], "owner": "octo", "name": "example"},
+		},
+		"$workflows": {
+			{"id": packet["workflowId"], "repositoryId": packet["repositoryId"],
+				"path": packet["sourcePath"], "name": "Verify bugs", "role": "standalone", "state": "unknown"},
+		},
+		"$operationalValueEvidence": {packet},
+		"$workflowValueCollections": {health},
+	})
+	sources, metrics, err := store.ExecuteSQLPlan(t.Context(), definitions, names)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(metrics.PushedDown, "sql-plan") || len(metrics.FallbackOperations) != 0 {
+		t.Fatalf("Value view queries must execute in hosted SQL: %+v", metrics)
+	}
+	route := "octo/example:.github/workflows/verify-bugs.md"
+	for _, name := range names {
+		if sources[name].Metadata["availability"] == "unavailable" {
+			t.Fatalf("%s is unavailable: %+v", name, sources[name].Metadata)
+		}
+	}
+	var overview model.Row
+	for _, row := range sources["value-workflow-overview"].Rows {
+		if row["workflow-route"] == route {
+			overview = row
+		}
+	}
+	href, _ := overview["overview-href"].(string)
+	if !strings.HasPrefix(href, "#page-value-report?report=") ||
+		overview["overview-state"] != "deferred" || overview["trend-movement"] != "Better" {
+		t.Fatalf("hosted Value card lost the canonical evidence and collection state: %+v", overview)
+	}
+	healthRows := sources["value-collection-health"].Rows
+	if len(healthRows) != 1 || healthRows[0]["workflow-route"] != route ||
+		healthRows[0]["collection-state"] != "deferred" ||
+		healthRows[0]["last-attempt-outcome"] != "failed" {
+		t.Fatalf("collection decision changed the accepted capture clocks: %+v", healthRows)
+	}
+	for projected, original := range map[string]string{
+		"captured-at": "observedAt", "evidence-cutoff": "windowEnd",
+		"checked-at": "observedAt", "last-attempt-at": "lastAttemptAt",
+	} {
+		got, gotErr := evidenceTime(healthRows[0][projected])
+		source := packet
+		if projected == "checked-at" || projected == "last-attempt-at" {
+			source = health
+		}
+		want, wantErr := evidenceTime(source[original])
+		if gotErr != nil || wantErr != nil || !got.Equal(want) {
+			t.Fatalf("hosted %s differs from the accepted evidence: %+v", projected, healthRows[0])
+		}
+	}
+	if healthRows[0]["captured-at"] == healthRows[0]["last-attempt-at"] {
+		t.Fatalf("hosted capture and failed attempt must stay distinct: %+v", healthRows[0])
+	}
+	report := sources["value-report-summary"].Rows
+	if len(report) != 1 || report[0]["movement"] != "Better" ||
+		report[0]["report-href"] != overview["overview-href"] {
+		t.Fatalf("hosted report differs from the Value card: %+v", report)
+	}
+	review := sources["value-review-overview"].Rows
+	if !slices.ContainsFunc(review, func(row model.Row) bool { return row["workflow-route"] == route }) {
+		t.Fatal("deferred collection with a retained result must still need review")
+	}
+}
 
 func TestNativeMeasurementSourceContract(t *testing.T) {
 	reader := &readTransaction{store: &Store{namespace: "measurement-projections"}}

@@ -38,7 +38,7 @@ const STATION_DEFINITIONS = {
   },
   'value-gains': {
     icon: 'trophy',
-    label: 'Value gains',
+    label: 'Grader observations',
     href: '#page-graders',
     format: 'count',
     unavailableDetail: '',

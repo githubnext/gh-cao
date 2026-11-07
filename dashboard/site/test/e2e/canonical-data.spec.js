@@ -553,7 +553,7 @@ for (const width of [1200, 390]) {
     await expect(page.locator('#page-overview')).toContainText('partial collection');
     await expect(page.locator('#page-overview')).not.toContainText('Your factory');
     await expect(page.locator('#page-overview')).not.toContainText(/\d+\/\d+ healthy workflows/);
-    await expect(page.locator('#page-overview')).not.toContainText('Value gains');
+    await expect(page.locator('#page-overview')).not.toContainText('Grader observations');
     for (const id of ['repositories', 'workflows', 'runs', 'cost']) {
       if (width < 768) await page.getByRole('button', { name: 'Select view', exact: true }).click();
       else if (!await page.locator(`a[href="#page-${id}"]:visible`).first().isVisible()) {

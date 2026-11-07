@@ -194,8 +194,8 @@
     },
     {
       "name": "overview-value-station",
-      "subject": "Present the observed grader-result count as the legacy Value gains counter.",
-      "objective": "Restore the Value gains counter while making its observation-count semantics explicit.",
+      "subject": "Present the observed grader-result count separately from repository Value.",
+      "objective": "Label grader observations honestly without implying verified outcome gains.",
       "acceptance": "The count matches overview-value-summary, including zero; grader presence is not proof of improvement and unavailable evidence is not zero.",
       "from": "overview-value-summary",
       "compute": [
@@ -275,7 +275,7 @@
     },
     {
       "name": "overview-factory-status",
-      "subject": "Classify the factory heading from compact run and optional value evidence.",
+      "subject": "Classify the factory heading from compact run and optional grader observations.",
       "objective": "Provide a bounded Overview heading based on observed run counts and optional grader-record presence.",
       "acceptance": "The heading matches the declared run-count and optional grader-presence branches; grader presence is not verified value, and the heading does not authorize any policy change.",
       "from": "overview-run-status-input",
@@ -426,7 +426,7 @@
               "field": "has-value-gains"
             },
             {
-              "value": "Your factory is delivering value."
+              "value": "Your factory has grader observations."
             },
             {
               "field": "active-heading"
