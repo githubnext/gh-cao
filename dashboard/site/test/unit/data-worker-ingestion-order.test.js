@@ -230,7 +230,7 @@ describe('canonical dashboard worker ingestion order', () => {
       }
       if (url === shardUrl && init?.method === 'HEAD') return new Response(null, { status: 200 });
       if (url === shardUrl) {
-        expect(init?.cache).toBe('no-store');
+        expect(init?.cache).toBe('reload');
         shardAttempts += 1;
         if (shardAttempts === 1) return new Response(null, { status: 404 });
         return new Response(normalizedRuns);

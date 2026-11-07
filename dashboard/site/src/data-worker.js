@@ -1221,7 +1221,7 @@ export function processDataRequest(request, signal) {
               shardCount
             });
             const response = await withRetries(async () => {
-              const result = await ingestionFetch(shardUrl, { cache: 'no-store' });
+              const result = await ingestionFetch(shardUrl, { cache: 'reload' });
               if (!result.ok) throw new Error(`Unable to load activity shard ${shard.name}: ${result.status}`);
               if (!result.body) throw new Error(`Unable to stream activity shard ${shard.name}`);
               return result;
