@@ -2,13 +2,17 @@ package tokenbroker
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"regexp"
 	"strings"
 
 	"github.com/githubnext/gh-cao/server/internal/admission"
+	"github.com/githubnext/gh-cao/server/internal/logger"
 )
+
+var brokerLog = logger.New("cao:tokenbroker")
 
 var (
 	stableID = regexp.MustCompile(`^[1-9][0-9]{0,19}$`)
@@ -53,14 +57,44 @@ func (s *Service) authorized(i admission.Identity) bool {
 	}
 	// Read on every operation. A changed or removed mounted policy immediately
 	// denies authority instead of retaining a stale authorization snapshot.
-	f, err := os.Open(s.config.PolicyFile)
+	data, err := readPolicyFile(s.config.PolicyFile)
 	if err != nil {
+		brokerLog.Printf("policy denied: reason=unreadable")
 		return false
+	}
+	rules, err := parseWorkflowRules(data)
+	if err != nil {
+		brokerLog.Printf("policy denied: reason=invalid_policy")
+		return false
+	}
+	if !ruleAllows(rules, i) {
+		brokerLog.Printf("policy denied: reason=no_matching_rule rules=%d", len(rules))
+		return false
+	}
+	return true
+}
+
+var errPolicy = errors.New("invalid token broker policy")
+
+// readPolicyFile reads the mounted policy, rejecting files above the 1 MiB bound.
+func readPolicyFile(path string) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
 	}
 	defer func() { _ = f.Close() }()
 	data, err := io.ReadAll(io.LimitReader(f, (1<<20)+1))
-	if err != nil || len(data) > 1<<20 || uniqueJSON(data) != nil {
-		return false
+	if err != nil || len(data) > 1<<20 {
+		return nil, errPolicy
+	}
+	return data, nil
+}
+
+// parseWorkflowRules strictly decodes the copilot-requests workflow rules and
+// fails closed on duplicate members, unknown shapes, duplicates, or unsafe values.
+func parseWorkflowRules(data []byte) ([]workflowRule, error) {
+	if uniqueJSON(data) != nil {
+		return nil, errPolicy
 	}
 	var root, control, broker, requests map[string]json.RawMessage
 	var workflows []json.RawMessage
@@ -69,9 +103,9 @@ func (s *Service) authorized(i admission.Identity) bool {
 		json.Unmarshal(control["token-broker"], &broker) != nil || len(broker) != 1 ||
 		json.Unmarshal(broker["copilot-requests"], &requests) != nil || len(requests) != 1 ||
 		json.Unmarshal(requests["workflows"], &workflows) != nil || len(workflows) > 128 {
-		return false
+		return nil, errPolicy
 	}
-	allowed := false
+	rules := make([]workflowRule, 0, len(workflows))
 	seen := make(map[workflowRule]bool, len(workflows))
 	for _, raw := range workflows {
 		var rule workflowRule
@@ -80,19 +114,27 @@ func (s *Service) authorized(i admission.Identity) bool {
 			fields["repository-id"] == nil || fields["owner-id"] == nil ||
 			fields["workflow-ref"] == nil || fields["workflow-sha"] == nil ||
 			json.Unmarshal(raw, &rule) != nil || seen[rule] {
-			return false
+			return nil, errPolicy
 		}
 		seen[rule] = true
 		if !stableID.MatchString(rule.RepositoryID) || !stableID.MatchString(rule.OwnerID) ||
 			!validWorkflowRef(rule.WorkflowRef) || !revision.MatchString(rule.WorkflowSHA) {
-			return false
+			return nil, errPolicy
 		}
+		rules = append(rules, rule)
+	}
+	return rules, nil
+}
+
+// ruleAllows reports whether an exact rule matches the verified identity.
+func ruleAllows(rules []workflowRule, i admission.Identity) bool {
+	for _, rule := range rules {
 		if rule.RepositoryID == i.RepositoryID && rule.OwnerID == i.OwnerID &&
 			rule.WorkflowRef == i.WorkflowRef && rule.WorkflowSHA == i.WorkflowSHA {
-			allowed = true
+			return true
 		}
 	}
-	return allowed
+	return false
 }
 
 func validWorkflowRef(value string) bool {
