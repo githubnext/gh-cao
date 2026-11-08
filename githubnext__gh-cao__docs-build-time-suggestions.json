@@ -3,35 +3,6 @@
   "next_category": "Astro documentation generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-07T16:32:56Z",
-      "worker_run_id": "42391492767",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        42391682542,
-        42390434315,
-        42390316893,
-        42390224819,
-        42389177209,
-        42387932480,
-        42386775123,
-        42385518047,
-        42385146193,
-        42384326652,
-        42383753026,
-        42383726809,
-        42383375282,
-        42383129418,
-        42381970482,
-        42380788512,
-        42380446913,
-        42379595472,
-        42379579961,
-        42379567653
-      ],
-      "outcome": "complete suggestion: the latest-20 completed docs.yml window (2026-11-07T14:00:50Z to 2026-11-07T16:31:16Z) was within 14 days and contained 16 successful runs, three skipped workflow_run callbacks, and one cancelled workflow_run callback; there were no failed runs. Six successful full build-and-deploy publications were available (four push, one schedule, and one workflow_run), meeting the minimum; the four push runs are the closest like-for-like trigger group, while revisions varied. Across the six publications, workflow wall-clock median was 141 seconds and nearest-rank p90 255 seconds; initial queue/concurrency median was 3 seconds and p90 99 seconds; execution median was 126 seconds and p90 252 seconds. Build-job median was 86.5 seconds and p90 118 seconds; deploy-job median was 29 seconds and p90 170 seconds; docs.yml has no separate dashboard job. Docs step medians/p90s were checkout 23.5/45 seconds, dependency installation 20/22 seconds, Astro generation 13/15 seconds, dashboard cache restore 3/4 seconds, Pages artifact upload 19.5/20 seconds, and deployment 26/165 seconds. Trusted step metadata verified six of six dashboard cache hits because fallback lookup/download steps were skipped. Reusable-dashboard evidence materially changed: successful CAO Dashboard runs 42387888907 and 42364869581 restored the same 147 MB activity cache key cao-activity-v5-42333124373-1, yet repeated Upgrade fallback activity data for 1,638 and 1,682 seconds and repair for 71 and 72 seconds; an earlier successful producer run spent 995 seconds upgrading another snapshot. A prepared-input cache keyed by the exact restored activity snapshot, transformation contract, and UTC retention epoch can skip repeated normalization and repair on an unchanged snapshot while retaining fail-closed validation. Expected warm-snapshot saving is over 1,600 seconds, far above both actionability thresholds. No equivalent open campaign issue was found. Suggestion fingerprint prepared-dashboard-input-cache-by-activity-snapshot-v1; advance to artifact transfer and Pages packaging. Confidence is high for repeated timings, identical input-cache identity, and docs cache hits; medium-high for net savings pending cache-size and invalidation validation.",
-      "suggestion_fingerprint": "prepared-dashboard-input-cache-by-activity-snapshot-v1"
-    },
-    {
       "evaluated_at": "2026-11-07T16:52:32.659486Z",
       "worker_run_id": "42393169476",
       "category": "artifact transfer and Pages packaging",
@@ -800,6 +771,34 @@
         42422140406
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T22:46:05Z to 2026-11-08T02:46:35Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that the four newly observed successful runs 42439919931, 42438892289, 42438128700, and 42436747691 were freshness-only schedules, with schedule-freshness succeeding while build and deploy were skipped; the remaining 12 successful runs overlap prior bounded evidence with the same verified job result. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Complete full-workflow execution, dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification, and Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-08T03:19:43Z",
+      "worker_run_id": "42442042869",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        42442157259,
+        42442024846,
+        42440961664,
+        42439919931,
+        42438892289,
+        42438128700,
+        42437972850,
+        42436747691,
+        42435652901,
+        42434611774,
+        42433545637,
+        42433339552,
+        42432401574,
+        42431734323,
+        42430708851,
+        42430573771,
+        42428020611,
+        42426707675,
+        42425609186,
+        42424438084
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T23:15:50Z to 2026-11-08T03:18:44Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that all 16 successful runs were freshness-only schedules: schedule-freshness succeeded while build and deploy were skipped. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Full-workflow execution, dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification, and the Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
     }
   ]
 }
