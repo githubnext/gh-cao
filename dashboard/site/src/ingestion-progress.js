@@ -39,7 +39,10 @@ export function startIngestionProgress(target = self, requestId) {
     historyLimit: INGESTION_PROGRESS_HISTORY_LIMIT
   });
   let status = 'Preparing data...';
-  let workloadStartedAt = 0;
+  /** @type {number | undefined} */
+  let workloadStartedAt;
+  /** @type {{ startedAt: number, initialCompleted: number, completed: number, total: number } | undefined} */
+  let importProgress;
   let processedBytes = 0;
   /** @type {number | undefined} */
   let totalBytes;
@@ -48,18 +51,26 @@ export function startIngestionProgress(target = self, requestId) {
   /** @param {string} message */
   const publishLog = (message) => target.postMessage({ type: 'preparation-log', event: { message } });
   const updateStatus = () => {
-    if (workloadStartedAt === 0) {
+    if (workloadStartedAt === undefined && importProgress === undefined) {
       status = 'Preparing data...';
       return;
     }
     const byteProgress = typeof totalBytes === 'number'
       ? `${formatDataSize(processedBytes)}/${formatDataSize(totalBytes)}`
       : formatDataSize(processedBytes);
-    const elapsedMs = Date.now() - workloadStartedAt;
-    const remainingMs = typeof totalBytes === 'number'
-      ? estimateRemainingTime(processedBytes, totalBytes, elapsedMs)
-      : null;
-    const remaining = typeof totalBytes === 'number' && processedBytes >= totalBytes
+    const remainingMs = importProgress
+      ? estimateRemainingTime(
+        importProgress.completed - importProgress.initialCompleted,
+        importProgress.total - importProgress.initialCompleted,
+        Date.now() - importProgress.startedAt
+      )
+      : typeof totalBytes === 'number' && workloadStartedAt !== undefined
+        ? estimateRemainingTime(processedBytes, totalBytes, Date.now() - workloadStartedAt)
+        : null;
+    const finished = importProgress
+      ? importProgress.completed >= importProgress.total
+      : typeof totalBytes === 'number' && processedBytes >= totalBytes;
+    const remaining = finished
       ? '0s remaining'
       : remainingMs === null ? 'Estimating time remaining' : `${formatRemainingTime(remainingMs)} remaining`;
     status = `${byteProgress} · ${remaining}`;
@@ -97,8 +108,7 @@ export function startIngestionProgress(target = self, requestId) {
     /** @param {number | undefined} bytes */
     setWorkload(bytes) {
       totalBytes = typeof bytes === 'number' && Number.isFinite(bytes) && bytes >= 0 ? bytes : undefined;
-      processedBytes = 0;
-      workloadStartedAt = Date.now();
+      workloadStartedAt ??= Date.now();
       updateStatus();
       debugIngestionProgress({ event: 'workload-set', id, totalBytes });
     },
@@ -144,6 +154,12 @@ export function startIngestionProgress(target = self, requestId) {
     /** @param {number} completed @param {number} total @param {'files' | 'maintenance' | 'inventory' | 'queries'} stage */
     reportImportProgress(completed, total, stage) {
       if (!started) return;
+      if (!importProgress) {
+        importProgress = { startedAt: Date.now(), initialCompleted: completed, completed, total };
+      } else {
+        importProgress.completed = completed;
+        importProgress.total = total;
+      }
       publishWorkerLoadingProgress({ id, phase: 'update', completed, total, stage }, target);
     },
     complete() {
@@ -159,7 +175,7 @@ export function startIngestionProgress(target = self, requestId) {
 }
 
 /**
- * Predicts remaining processing time with a linear bytes-to-time model.
+ * Predicts remaining processing time from completed work (bytes or weighted import steps).
  * @param {number} processedBytes
  * @param {number} totalBytes
  * @param {number} elapsedMs

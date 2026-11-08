@@ -93,8 +93,9 @@ async function selectTable(page, mobile) {
  * @param {boolean} mobile
  * @param {boolean} [upgrade]
  * @param {'light'|'dark'} [colorScheme]
+ * @param {boolean} [unknownShardSizes]
  */
-async function exerciseFirstImport({ context, page }, mobile, upgrade = false, colorScheme = 'light') {
+async function exerciseFirstImport({ context, page }, mobile, upgrade = false, colorScheme = 'light', unknownShardSizes = false) {
   await page.emulateMedia({ colorScheme });
   if (mobile) await page.setViewportSize({ width: 390, height: 844 });
   const shardCount = 12;
@@ -141,7 +142,9 @@ async function exerciseFirstImport({ context, page }, mobile, upgrade = false, c
     const shard = /^\/gh-aw-logs-runs\/logs-(\d+)-[a-f0-9]{64}-[a-f0-9]{16}\.jsonl$/.exec(url.pathname);
     if (shard) {
       if (route.request().method() === 'HEAD') {
-        await route.fulfill({ headers: { 'content-length': '512' }, body: '' });
+        await route.fulfill(unknownShardSizes
+          ? { status: 405, body: '' }
+          : { headers: { 'content-length': '512' }, body: '' });
         return;
       }
       requestedShards += 1;
@@ -292,6 +295,9 @@ async function exerciseFirstImport({ context, page }, mobile, upgrade = false, c
   await expect(page.locator('.factory-intro .factory-rhythm')).not.toBeVisible();
   await page.locator('.dashboard-notification-toggle').click();
   await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
+  await expect(page.locator('.dashboard-notification-message', { hasText: /remaining$/ })).toHaveText(
+    / · \d+[smh](?: \d+m)? remaining$/
+  );
   await expect(page.getByRole('button', { name: 'Sync queries', exact: true })).toHaveCount(0);
   await page.locator('.dashboard-notification-toggle').click();
   await navigateToPage(page, 'runs');
@@ -335,4 +341,8 @@ for (const colorScheme of /** @type {const} */ (['light', 'dark'])) {
 
 test('An existing database upgrade immediately reuses the import dialog', async ({ context, page }) => {
   await exerciseFirstImport({ context, page }, false, true);
+});
+
+test('First import estimates remaining time without shard size probes', async ({ context, page }) => {
+  await exerciseFirstImport({ context, page }, false, false, 'light', true);
 });

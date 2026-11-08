@@ -13,6 +13,105 @@ describe('data-worker ingestion progress', () => {
     expect(estimateRemainingTime(1_000_000, 1_000_000, 2_000)).toBeNull();
   });
 
+  it('estimates time from import progress when shard byte sizes are unavailable', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const postMessage = vi.fn();
+    const progress = startIngestionProgress({ postMessage });
+    progress.start();
+    progress.reportImportProgress(0, 7, 'files');
+    progress.setWorkload(undefined);
+    vi.advanceTimersByTime(2_000);
+    expect(postMessage.mock.lastCall?.[0]?.notification.message).toContain('Estimating time remaining');
+
+    progress.update({ bytesProcessed: 0, recordsIngested: 10 });
+    progress.reportImportProgress(1, 7, 'files');
+    vi.advanceTimersByTime(1_000);
+    expect(postMessage.mock.lastCall?.[0]?.notification.message).toBe('0 B · 18s remaining');
+
+    progress.reportImportProgress(3, 7, 'inventory');
+    vi.advanceTimersByTime(1_000);
+    expect(postMessage.mock.lastCall?.[0]?.notification.message).toBe('0 B · 6s remaining');
+    progress.complete();
+  });
+
+  it('excludes reused cached shards from measured import throughput', () => {
+    vi.useFakeTimers();
+    const postMessage = vi.fn();
+    const progress = startIngestionProgress({ postMessage });
+    progress.start();
+    progress.reportImportProgress(4, 7, 'files');
+    progress.setWorkload(undefined);
+    vi.advanceTimersByTime(1_000);
+    expect(postMessage.mock.lastCall?.[0]?.notification.message).toContain('Estimating time remaining');
+
+    progress.reportImportProgress(5, 7, 'files');
+    vi.advanceTimersByTime(1_000);
+    expect(postMessage.mock.lastCall?.[0]?.notification.message).toBe('0 B · 4s remaining');
+    progress.complete();
+  });
+
+  it('assumes similar shard sizes and revises the average time as shards finish', () => {
+    vi.useFakeTimers();
+    const postMessage = vi.fn();
+    const progress = startIngestionProgress({ postMessage });
+    progress.start();
+    progress.reportImportProgress(0, 7, 'files');
+    progress.setWorkload(undefined);
+
+    vi.advanceTimersByTime(1_500);
+    progress.reportImportProgress(1, 7, 'files');
+    vi.advanceTimersByTime(500);
+    expect(postMessage.mock.lastCall?.[0]?.notification.message).toBe('0 B · 12s remaining');
+
+    vi.advanceTimersByTime(7_500);
+    progress.reportImportProgress(2, 7, 'files');
+    vi.advanceTimersByTime(500);
+    expect(postMessage.mock.lastCall?.[0]?.notification.message).toBe('0 B · 25s remaining');
+
+    vi.advanceTimersByTime(500);
+    progress.reportImportProgress(3, 7, 'files');
+    vi.advanceTimersByTime(500);
+    expect(postMessage.mock.lastCall?.[0]?.notification.message).toBe('0 B · 15s remaining');
+    progress.complete();
+  });
+
+  it('keeps estimating through inventory, maintenance, and query preparation after all bytes are processed', () => {
+    vi.useFakeTimers();
+    const postMessage = vi.fn();
+    const progress = startIngestionProgress({ postMessage });
+    progress.start();
+    progress.reportImportProgress(0, 5, 'files');
+    progress.setWorkload(2_048);
+    vi.advanceTimersByTime(2_000);
+    progress.update({ bytesProcessed: 2_048, recordsIngested: 10 });
+    for (const [completed, stage] of /** @type {const} */ ([
+      [2, 'inventory'], [3, 'maintenance'], [4, 'queries']
+    ])) {
+      progress.reportImportProgress(completed, 5, stage);
+      vi.advanceTimersByTime(1_000);
+      const message = postMessage.mock.lastCall?.[0]?.notification.message;
+      expect(message).toMatch(/^2\.0 KB\/2\.0 KB · \d+s remaining$/);
+      expect(message).not.toContain('0s remaining');
+    }
+    progress.complete();
+  });
+
+  it('preserves byte throughput when the records phase expands the workload', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const postMessage = vi.fn();
+    const progress = startIngestionProgress({ postMessage });
+    progress.start();
+    progress.setWorkload(1_024);
+    vi.advanceTimersByTime(2_000);
+    progress.update({ bytesProcessed: 1_024, recordsIngested: 10 });
+    progress.setWorkload(4_096);
+    vi.advanceTimersByTime(1_000);
+    expect(postMessage.mock.lastCall?.[0]?.notification.message).toBe('1.0 KB/4.1 KB · 9s remaining');
+    progress.complete();
+  });
+
   it('immediately reports preparation before the first JSONL record is read', () => {
     vi.useFakeTimers();
     const postMessage = vi.fn();
