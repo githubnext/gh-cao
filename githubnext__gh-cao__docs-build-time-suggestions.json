@@ -3,34 +3,6 @@
   "next_category": "Astro documentation generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-08T10:35:31Z",
-      "worker_run_id": "42471669688",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        42471750532,
-        42470688315,
-        42470414624,
-        42469623463,
-        42468567680,
-        42467513900,
-        42466466858,
-        42466260329,
-        42465366921,
-        42464316821,
-        42463254926,
-        42462368136,
-        42462221608,
-        42461129302,
-        42460114413,
-        42459095354,
-        42458087684,
-        42457962234,
-        42457128625,
-        42456067865
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-08T06:45:54Z to 2026-11-08T10:31:22Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that the four newly observed successful runs 42471750532, 42470688315, 42469623463, and 42468567680 were freshness-only schedules: schedule-freshness succeeded while build and deploy were skipped; newly observed workflow_run 42470414624 was skipped. The remaining 15 runs overlap prior bounded evidence, where successful runs were also verified as freshness-only. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Complete full-workflow execution, dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification across a sufficient sample, and the Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-08T10:46:19Z",
       "worker_run_id": "42472912554",
       "category": "Astro documentation generation",
@@ -799,6 +771,34 @@
         42504116806
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-08T17:16:18Z to 2026-11-08T20:30:54Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that newly observed schedule run 42520479017 was freshness-only: schedule-freshness succeeded while build and deploy were skipped. Prior bounded evidence verified the overlapping runs. Only three successful full build-and-deploy publications were available (push runs 42514583976 and 42513210131 plus workflow_run 42511878233), across different triggers and source revisions, below the required five comparable successful runs. Full-workflow execution, dashboard/build/deploy median and p90 distributions, repeated step-cost analysis across a sufficient sample, cache-hit verification across a sufficient sample, and the Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-08T20:50:54Z",
+      "worker_run_id": "42521946535",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        42521742738,
+        42520479017,
+        42519216652,
+        42518946266,
+        42517953324,
+        42516656969,
+        42515419943,
+        42514583976,
+        42514187922,
+        42513690774,
+        42513210131,
+        42512870963,
+        42511878233,
+        42511645583,
+        42510391981,
+        42509199103,
+        42508998598,
+        42507855524,
+        42506585432,
+        42505364063
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-08T17:31:13Z to 2026-11-08T20:45:46Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that newly observed schedule run 42521742738 was freshness-only: schedule-freshness succeeded while build and deploy were skipped. Prior bounded evidence verified the overlapping runs. Only three successful full build-and-deploy publications were available (push runs 42514583976 and 42513210131 plus workflow_run 42511878233), across different triggers and source revisions, below the required five comparable successful runs. Full-workflow execution, dashboard/build/deploy median and p90 distributions, repeated step-cost analysis across a sufficient sample, cache-hit verification across a sufficient sample, and the Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
     }
   ]
 }
