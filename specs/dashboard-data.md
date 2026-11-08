@@ -1,7 +1,7 @@
 ---
 title: Central Agentic Ops Dashboard Data Architecture Specification
 description: Canonical data model, ingestion, IndexedDB persistence, consistency, recovery, and scale requirements for the gh-cao dashboard.
-version: 1.8.3
+version: 1.8.4
 status: Working Draft
 editors:
   - GitHub Next
@@ -9,7 +9,7 @@ editors:
 
 # Central Agentic Ops Dashboard Data Architecture Specification
 
-**Version:** 1.8.3
+**Version:** 1.8.4
 **Status:** Working Draft
 **Repository:** `githubnext/gh-cao`
 **Target implementation:** Dashboard data subsystem
@@ -838,6 +838,13 @@ verify an already-published SQLite snapshot; that is artifact acquisition, not
 evidence collection or local backfill. These boundaries apply equally to
 ordinary local and internal canvas serving and MUST NOT change hosted
 PostgreSQL, OAuth, webhook, or collection-authority contracts.
+
+The local SQLite query adapter MUST reject, rather than ignore or emulate, an
+execution option that overrides resource limits or requests repository
+scoping; repository-scoped and limit-overridden execution remain hosted
+PostgreSQL capabilities. It MUST also reject a keyset continuation whose
+boundary, comparator, or ordered key outputs differ from the resolved query
+plan as an invalid or stale continuation.
 
 The explicitly selected `gh cao dashboard` operator profile MAY create and
 refresh a separate private canonical SQLite projection through its native
@@ -5162,6 +5169,12 @@ set or enumerate unrelated worker partitions.
 ---
 
 # 74. Change Log
+
+## Version 1.8.4 — Local SQLite unsupported execution options
+
+* Specified that the local SQLite adapter fails closed on resource-limit
+  overrides, repository scoping, and keyset continuations that do not match
+  the resolved plan's boundary, comparator, and ordered keys.
 
 ## Version 1.8.3 — Removed Go row evaluator fallback
 
