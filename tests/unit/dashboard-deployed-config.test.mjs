@@ -8,6 +8,7 @@ import config from "../playwright/configs/dashboard-deployed.config.mjs";
 import {
   activateTableViewMode,
   configureDeployedStorageQuota,
+  DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS,
   DEPLOYED_REFRESH_TIMEOUT_MS,
   DEPLOYED_STORAGE_QUOTA_BYTES,
   deployedDashboardUrl,
@@ -22,10 +23,13 @@ import { authoritativeDashboard } from "../helpers/authoritative-dashboard.mjs";
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 test("deployed dashboard test has enough time for sequential refresh checks", () => {
+  assert.equal(DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS, 900_000);
   assert.equal(DEPLOYED_REFRESH_TIMEOUT_MS, 600_000);
-  assert.equal(config.timeout, 3 * DEPLOYED_REFRESH_TIMEOUT_MS);
+  assert.equal(config.timeout, DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS + 2 * DEPLOYED_REFRESH_TIMEOUT_MS);
+  assert.ok(config.timeout < 50 * 60_000, "test deadline must fit within the integration job");
   const deployedTest = readFileSync(resolve(repositoryRoot, "tests/e2e/dashboard-deployed-refresh.spec.mjs"), "utf8");
-  assert.equal((deployedTest.match(/timeout: DEPLOYED_REFRESH_TIMEOUT_MS/g) ?? []).length, 2);
+  assert.equal((deployedTest.match(/timeout: DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS/g) ?? []).length, 1);
+  assert.equal((deployedTest.match(/timeout: DEPLOYED_REFRESH_TIMEOUT_MS/g) ?? []).length, 1);
 });
 
 test("deployed dashboard quota is bounded and scoped to the tested origin", async () => {

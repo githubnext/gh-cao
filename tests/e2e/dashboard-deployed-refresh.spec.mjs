@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import {
   activateTableViewMode,
   configureDeployedStorageQuota,
+  DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS,
   DEPLOYED_REFRESH_TIMEOUT_MS,
   deployedDashboardUrl as dashboardUrl,
   deployedStorageContext,
@@ -62,7 +63,7 @@ test("deployed dashboard refreshes and renders populated views", async ({ page }
     await page.waitForFunction(() =>
       window.__dashboardTestEvents?.some(({ type, detail }) =>
         type === "dashboard-data" && detail?.status === "completed"
-      ), null, { timeout: DEPLOYED_REFRESH_TIMEOUT_MS });
+      ), null, { timeout: DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS });
     reloading = true;
     try {
       await page.reload({ waitUntil: "domcontentloaded" });
