@@ -1,9 +1,10 @@
 ---
+argument-hint: Dashboard page or view id to migrate
+description: Migrate a CAO dashboard view from published or derived logical-source files to the unified canonical data model. Use when redoing, converting, or moving a dashboard view to the view -> data query -> Web Worker -> view payload architecture.
+metadata:
+    local-path: /home/runner/work/gh-cao/gh-cao/.github/skills/migrate-dashboard-view
 name: migrate-dashboard-view
-description: 'Migrate a CAO dashboard view from published or derived logical-source files to the unified canonical data model. Use when redoing, converting, or moving a dashboard view to the view -> data query -> Web Worker -> view payload architecture.'
-argument-hint: 'Dashboard page or view id to migrate'
 ---
-
 # Migrate Dashboard View
 
 Migrate one view at a time to a request-scoped declarative query over canonical evidence or an explicitly permitted projection, preserving the source-shaped payload expected by the renderer.
