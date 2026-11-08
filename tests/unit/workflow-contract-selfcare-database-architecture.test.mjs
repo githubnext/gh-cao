@@ -101,3 +101,69 @@ test("cloud-architect guide is discoverable, diagram-rich, and preserves evidenc
   assert.match(readFileSync(join(root, "astro.config.mjs"), "utf8"), /link: "\/dashboard-data-architecture\/"/);
   assert.match(readFileSync(join(root, "docs/dashboard-data-model.md"), "utf8"), /dashboard-data-architecture\.md/);
 });
+
+test("database architecture worker maintains the private lake and final Azure mapping without new authority", () => {
+  for (const path of [
+    "specs/session-archive.md", "docs/deployment-azure.md", "server/SESSION-ARCHIVE.md",
+    "server/ADX-INGEST.md", "server/ADX-TRACES.md", "server/azure/main.bicep",
+  ]) {
+    assert.ok(source.includes(path), `missing worker evidence source: ${path}`);
+  }
+  assert.match(source, /at most 30 relevant implementation\/test files/);
+  assert.ok(source.includes("`server/azure/`"));
+  assert.match(source, /Azure service mapping as the final section/);
+  assert.match(source, /authorized artifact visit before normalization/);
+  assert.match(source, /metadata-only PostgreSQL source privacy authority/);
+  assert.match(source, /archive `BlobStore`\/`QueryService` adapters/);
+  assert.match(source, /Functions runtime storage\nis not the session lake/);
+  assert.match(source, /baseline-provisioned, conditionally provisioned,\noperator-managed or unsupported/);
+  assert.match(source, /real destination acceptance gates/);
+  assert.match(source, /without provisioning resources or widening authority/);
+  assert.deepEqual(config["safe-outputs"]["create-pull-request"]["allowed-files"], [guidePath]);
+});
+
+test("architecture guide separates Parquet lake ownership, query engines and activation", () => {
+  const lake = guide.split("### Private agent unified-session data lake\n")[1]?.split("\n## 6.")[0];
+  assert.ok(lake, "missing lake explanation");
+  for (const term of [
+    "usage/aw_session.jsonl", "before lossy normalization", "immutable Zstandard Parquet",
+    "Pinned DuckDB", "Azure Blob Storage", "Azure Data Explorer (ADX/Kusto)",
+    "conditional ETag-bound active pointer", "source-epoch authority",
+    "never archive contents or manifests", "Full-trace-read", "POST CSRF",
+    "Hosted ADX does not\nyet execute `session-query`",
+  ]) {
+    assert.ok(lake.includes(term), `missing lake boundary: ${term}`);
+  }
+  assert.match(lake, /Queries never fall back to dashboard storage/);
+  assert.match(lake, /Logical\nexclusion is not immediate physical erasure/);
+  assert.match(lake, /ADR remains proposed/);
+  assert.match(lake, /real Azure conformance/);
+  assert.match(lake, /native collector,\nwhich remains fail-closed/);
+  const overview = guide.split("\n## 2.")[0];
+  assert.match(overview, /Private unified-session Parquet lake/);
+  assert.match(overview, /no automatic dashboard join or fallback/);
+});
+
+test("Azure mapping is the final guide section and distinguishes resources from activation", () => {
+  const headings = [...guide.matchAll(/^## (.+)$/gm)].map(([, heading]) => heading);
+  assert.equal(headings.at(-1), "13. Azure service mapping");
+  const azure = guide.split("## 13. Azure service mapping\n")[1];
+  for (const service of [
+    "Azure Functions", "PostgreSQL Flexible Server", "Azure Container Apps",
+    "Azure Container Registry", "Azure Key Vault", "Azure Storage account",
+    "Azure Blob Storage", "Azure Data Explorer", "Application Insights",
+    "Log Analytics", "private DNS", "`BlobStore`", "`QueryService`",
+  ]) {
+    assert.ok(azure.includes(service), `missing Azure mapping: ${service}`);
+  }
+  assert.match(azure, /Runtime state only, \*\*not the session lake\*\*/);
+  assert.match(azure, /requires neither Redis nor Azure Service Bus/);
+  assert.match(azure, /GitHub remains the OAuth and membership provider, not Entra/);
+  assert.match(azure, /no external table, exporter or archive activation/);
+  assert.match(azure, /not the Functions platform listener/);
+  assert.match(azure, /host Insights settings alone do not enable Go export/);
+  assert.match(azure, /Managed-identity Key Vault access does not itself authenticate Blob\/ADX/);
+  assert.match(azure, /digest pinning alone is not production/);
+  assert.match(azure, /```mermaid\n/);
+  assert.ok(azure.includes("server/azure/main.bicep"));
+});
