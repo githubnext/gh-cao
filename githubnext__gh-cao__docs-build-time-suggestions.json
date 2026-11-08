@@ -3,34 +3,6 @@
   "next_category": "Astro documentation generation",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-07T16:18:14.957138Z",
-      "worker_run_id": "42390335625",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        42390434315,
-        42390316893,
-        42390224819,
-        42389177209,
-        42387932480,
-        42386775123,
-        42385518047,
-        42385146193,
-        42384326652,
-        42383753026,
-        42383726809,
-        42383375282,
-        42383129418,
-        42381970482,
-        42380788512,
-        42380446913,
-        42379595472,
-        42379579961,
-        42379567653,
-        42379117964
-      ],
-      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-07T13:54:51Z to 2026-11-07T16:17:27Z) was within 14 days and contained fifteen successful runs, four skipped workflow_run callbacks, and one cancelled workflow_run callback; there were no failed runs. Six successful full build-and-deploy publications were available (four push, one schedule, and one workflow_run), meeting the minimum; the four push runs are the closest like-for-like trigger group, while source revisions varied as disclosed by the evidence run IDs. Across all six publications, workflow wall-clock median was 141 seconds and nearest-rank p90 255 seconds; initial queue/concurrency time median was 3 seconds and p90 99 seconds; execution median was 126 seconds and p90 252 seconds. Build-job median was 86.5 seconds and p90 118 seconds; deploy-job median was 29 seconds and p90 170 seconds; docs.yml has no separate dashboard job. Astro documentation generation took 13 seconds median and 15 seconds p90 (9-15 second range), about 10.3% of median execution. Bounded logs confirmed npm run docs:build invokes astro build plus documentation validation and integration testing. Trusted Actions step metadata verified six of six dashboard cache hits because Restore cached CAO Dashboard succeeded while cache-miss lookup and artifact-download steps were skipped every time; a bounded log also recorded exact npm and central-agentic-ops-dashboard cache hits. The remaining nine successful runs were freshness-only and skipped build and deploy. Because the entire Astro step is below both the 60-second threshold and the 15%-of-median-execution threshold (18.9 seconds), no Astro-generation change can meet the required savings on current evidence without moving or omitting correctness checks. No actionable, non-duplicate suggestion met the threshold; advance to reusable dashboard generation. Confidence is high for step timing and cache-path evidence and medium for cross-trigger workflow distributions."
-    },
-    {
       "evaluated_at": "2026-11-07T16:32:56Z",
       "worker_run_id": "42391492767",
       "category": "reusable dashboard generation",
@@ -800,6 +772,34 @@
       "category": "Astro documentation generation",
       "evidence_run_ids": [],
       "outcome": "incomplete: the first bounded request for the latest completed docs.yml runs returned a GitHub Actions API rate-limit error. Per the worker resource-limit policy, evidence collection stopped immediately. No current evidence window, five comparable successful publications, workflow/job median or p90 distributions, step timings, cache-hit verification, or Astro documentation generation evaluation could be established. No suggestion was made; Astro documentation generation remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-08T02:51:28Z",
+      "worker_run_id": "42440104940",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        42439919931,
+        42438892289,
+        42438128700,
+        42437972850,
+        42436747691,
+        42435652901,
+        42434611774,
+        42433545637,
+        42433339552,
+        42432401574,
+        42431734323,
+        42430708851,
+        42430573771,
+        42428020611,
+        42426707675,
+        42425609186,
+        42424438084,
+        42424102332,
+        42423290233,
+        42422140406
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-07T22:46:05Z to 2026-11-08T02:46:35Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that the four newly observed successful runs 42439919931, 42438892289, 42438128700, and 42436747691 were freshness-only schedules, with schedule-freshness succeeding while build and deploy were skipped; the remaining 12 successful runs overlap prior bounded evidence with the same verified job result. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Complete full-workflow execution, dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification, and Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
     }
   ]
 }
