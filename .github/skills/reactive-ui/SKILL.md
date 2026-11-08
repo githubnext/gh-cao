@@ -25,7 +25,7 @@ Build dashboard experiences declaratively first. Use JavaScript only for interac
 - Keep specialized views declarative: they select sources and an element but do not directly query, create, replace, or mutate DOM nodes.
 - Reuse `dashboard/site/src/dom.js`, shared UI primitives, chart elements, badges, formatters, Octicons, and view chrome instead of duplicating markup or behavior.
 - Return one owned root element. Keep selectors and events scoped to that root, preserve semantic HTML and keyboard operation, and expose accessible names and state.
-- Add the element to `EMPTY_AWARE_ELEMENTS` only when it renders honest empty or unavailable states itself.
+- Add the element to `EMPTY_AWARE_ELEMENTS` only when it renders its own honest empty state, and to `UNAVAILABLE_AWARE_ELEMENTS` only when it renders its own unavailable-source state.
 - Use lazy registration for substantial elements that are not needed on every page.
 
 ## Reactive state
@@ -33,10 +33,11 @@ Build dashboard experiences declaratively first. Use JavaScript only for interac
 Use `dashboard/site/src/reactive.js` for state-driven updates:
 
 - `state` owns mutable local state; use its functional setter when the next value depends on the current value.
-- `derived` computes values from reactive dependencies. Dispose it when its owner is removed.
+- `derived` computes values from reactive dependencies. Pass `{ signal }` to bind its lifetime to an `AbortSignal`, or call `dispose()` when its owner is removed.
 - `effect` performs the smallest DOM update needed from reactive state. Stop the handle when work is complete or the owner is removed.
 - `render(root, update, { signal }?)` renders reactive output into an isolated shadow tree and morphs it into an owned root with the fewest mutations, preserving focus, scroll position, and control state without hand-written diffing. Prefer it over a raw `effect` plus `replaceChildren` whenever a component's entire visible output is a function of its reactive state, as in `dashboard/site/src/components/animated-number.js`, `factory-station.js`, and `factory-header.js`.
 - `onCleanup` removes listeners, observers, timers, and other resources created by an effect.
+- `untracked` reads state without subscribing the running effect; use it for bookkeeping reads only.
 - `batch` groups related writes so dependents observe one consistent final state.
 - Pass an `AbortSignal` to effects whose lifetime follows a page, view, request, or asynchronous operation. Use `createFactoryScope()` from `dashboard/site/src/components/factory-elements.js` to obtain that signal and bind it to detachment of an owned root instead of writing a bespoke `MutationObserver`/`wasConnected` pair; every new element should stop its effects and requests once its root leaves the document.
 - Use stable keyed rendering from `dashboard/site/src/dom.js` for changing collections; do not rebuild an entire view when only state or list membership changed.
