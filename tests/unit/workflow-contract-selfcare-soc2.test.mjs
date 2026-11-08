@@ -23,11 +23,11 @@ test("SOC2 worker is registered consistently without expanding target authority"
   assert.equal(controlPolicy["target-authority"].campaigns["self-care"].authority, "githubnext/gh-cao");
   assert.equal(campaign["max-repositories"], 1);
   const workers = Object.values(descriptor.workers);
-  assert.equal(workers.length, 22);
+  assert.equal(workers.length, 23);
   assert.equal(dispatch.imports[0].with.dispatch_max, workers.length);
   assert.equal(dispatch["safe-outputs"]["dispatch-workflow"].max, workers.length);
   assert.deepEqual([...dispatch["safe-outputs"]["dispatch-workflow"].workflows].sort(), workers.sort());
-  assert.equal(dispatch.imports[0].with.worker_credits_per_target, 5500);
+  assert.equal(dispatch.imports[0].with.worker_credits_per_target, 5900);
   assert.equal(dispatch["max-ai-credits"], 200);
 });
 

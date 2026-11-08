@@ -11,6 +11,7 @@
     "dashboard-debug-logging": "self-care-dashboard-debug-logging",
     "dashboard-data-schema": "self-care-dashboard-data-schema",
     "data-acquisition-audit": "self-care-data-acquisition-audit",
+    "database-architecture": "self-care-database-architecture",
     "dashboard-language-refactor": "self-care-dashboard-language-refactor",
     "dashboard-review": "self-care-dashboard-review",
     "docs-build-time-investigator": "self-care-docs-build-time-investigator",

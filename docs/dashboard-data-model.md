@@ -12,6 +12,9 @@ need to understand what a dashboard record represents or how records connect.
 Views query this source-neutral model instead of interpreting upstream formats
 directly.
 
+For deployment topologies, trust boundaries, consistency and recovery, start
+with [Data architecture for cloud architects](dashboard-data-architecture.md).
+
 When changing canonical entities or storage, continue to the
 [Dashboard Data Architecture Specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md),
 then `dashboard/site/src/data/`. See

@@ -1,0 +1,528 @@
+---
+title: Data architecture for cloud architects
+description: Deployment topologies, data lineage, consistency, trust boundaries, capacity, and recovery for the CAO dashboard.
+agent:
+  type: architecture
+  prominent: true
+---
+
+CAO's dashboard is a **rebuildable analytical read model**, not the system of
+record for GitHub activity or the authority for workflow execution. Think of it
+as a CQRS-style read side: source adapters normalize evidence into a canonical
+model, and declarative queries serve bounded projections to the UI. This is a
+mental model, not a claim that CAO implements a general-purpose CQRS framework
+or event-sourcing platform.
+
+This guide translates the working-draft
+[Dashboard Data Architecture Specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md)
+for cloud architects. It explains the documented contracts, not an attestation
+that every deployment satisfies them. The checked-out specification and
+`ARCHITECTURE.md` govern changes; this guide does not supersede them.
+
+## 1. Architecture at a glance
+
+Three boundaries matter: **authority**, **evidence acquisition**, and
+**analytical serving**. They may share a deployment, but not ownership or
+authorization semantics.
+
+```mermaid
+flowchart TB
+  accTitle: Authority and evidence are separate planes
+  accDescr: Reviewed policy admits workflow execution. GitHub supplies evidence to acquisition and the canonical read model. Dashboard observations do not grant execution authority.
+  subgraph control["Control plane"]
+    Policy["Reviewed CAO policy"] --> Admission["Admission and scoped grants"]
+    Admission --> Execution["gh-aw execution and safe outputs"]
+  end
+  subgraph evidence["Evidence plane"]
+    GitHub["GitHub and gh-aw evidence"] --> Acquisition["Authorized acquisition"]
+    Acquisition --> Canonical["Canonical analytical read model"]
+  end
+  subgraph serving["Serving plane"]
+    Canonical --> Queries["Dashboard Language"]
+    Queries --> UX["Bounded view payloads"]
+  end
+  Execution --> GitHub
+```
+
+| Architectural concern | CAO contract | Design implication |
+| --- | --- | --- |
+| System of record | GitHub, gh-aw evidence, and reviewed policy remain external authorities. | Clearing a dashboard projection cannot revoke policy or erase GitHub history. |
+| Anti-corruption layer | Source adapters translate provider-specific formats into canonical observations. | Neither SQL tables nor log schemas become the UI's domain model. |
+| Read-side portability | IndexedDB, local SQLite, and hosted PostgreSQL expose canonical query contracts. | Shared semantics do not imply identical durability, capacity, or query support. |
+| Control-plane isolation | Dashboard facts and computation results grant no execution authority. | Enrollment, dispatch, and mutation require their separate policy and authorization paths. |
+
+**Source:** `ARCHITECTURE.md`, dashboard-data specification Abstract and §§3-5.
+
+## 2. Deployment topology and backend selection
+
+Select the serving topology explicitly. A hosted outage is not permission to
+switch the client to a different data plane.
+
+```mermaid
+flowchart TB
+  accTitle: Three explicitly selected serving topologies
+  accDescr: Pages queries browser IndexedDB through a worker. Local serving queries read-only SQLite through Go. Hosted serving queries PostgreSQL through the same-origin Go handler.
+  Browser["Dashboard client"] --> Selection{"Configured deployment"}
+  Selection -->|Explicit Pages| Worker["Browser data Web Worker"]
+  Worker --> IDB[("Disposable IndexedDB")]
+  Selection -->|Local loopback| Local["Go query handler"]
+  Local --> SQLite[("Read-only canonical SQLite")]
+  Selection -->|Hosted server-http| Hosted["Go handler: UI, OAuth, queries, revisions"]
+  Hosted --> PG[("Canonical PostgreSQL")]
+  Hosted --> Ops["Separate operational services"]
+```
+
+| Topology | Query execution | Persistence and ownership | Appropriate use |
+| --- | --- | --- | --- |
+| Explicit static Pages | Data Web Worker over IndexedDB | Authorized published inputs; disposable, per-browser state | Static evidence distribution where browser ingestion is acceptable |
+| Local/headless | Go over a selected read-only canonical SQLite snapshot | The Activity pipeline owns ordinary snapshot creation, retention, and repair | Operator analysis, CLI consumption, and local development |
+| Hosted | Go over PostgreSQL using bounded, parameterized SQL | Server-side canonical namespace plus separately owned operational state | Authenticated shared dashboards and optionally native acquisition |
+
+Containers, Azure Functions, and external-listener hosts use the **complete
+Go handler on one origin**: HTML, assets, OAuth, query APIs, and revision
+events. The server injects `server-http`; clients never receive database
+credentials. Hosted startup rejects missing dashboard assets, and hosted
+service failures do not fall back to Pages, shard ingestion, or IndexedDB.
+
+Ordinary local SQLite serving is query-only: the Go server does not collect
+GitHub evidence, start an ingestion runtime, or create a writable overlay.
+The separately selected immediate operator CLI can acquire a private bounded
+projection outside that server; it is not a hosted failover mechanism.
+
+**Source:** dashboard-data §5.2 Go server profile; [Deployment](deployment.md).
+
+## 3. Acquisition: batch publication or native collection
+
+Acquisition profile and HTTP hosting are independent design axes. Choose
+**exactly one acquisition writer** for a deployment.
+
+```mermaid
+flowchart LR
+  accTitle: Mutually exclusive acquisition profiles
+  accDescr: The default Actions profile publishes verified artifacts. The optional native collector acquires exact-attempt evidence through durable admission and publication. Both feed the same canonical model, but must not co-write one dataset.
+  GitHub["GitHub evidence"] --> Choice{"One acquisition profile"}
+  Choice -->|Default| Actions["Actions Activity pipeline"]
+  Actions --> Artifact["Immutable dashboard artifact"]
+  Artifact --> Verify["Hash and relationship validation"]
+  Verify --> Snapshot["Canonical snapshot publication"]
+  Choice -->|Explicit native selection| Admission["Enrollment-fenced admission"]
+  Admission --> Queue["Durable receipt-fenced queue"]
+  Queue --> Native["Native exact-attempt acquisition"]
+  Native --> Intent["Durable safe publication intent"]
+  Intent --> Snapshot
+```
+
+The default **Actions profile** publishes inventory, hashes, compact normalized
+run-information JSONL, run-record JSONL, and a SQLite projection for headless
+consumers. Raw Activity JSONL remains in the Activity cache, not the deployed
+browser payload. Browser ingestion reads JSONL and inventory; it does not
+import the SQLite database into IndexedDB.
+
+The optional **native collector profile** requires explicit native selection,
+canonical PostgreSQL, and durable PostgreSQL operational ownership. GitHub
+App configuration alone is insufficient. It uses installation-scoped APIs,
+bounded exact-attempt acquisition, and shared quota services rather than
+shelling out to Activity or gh-aw. Both profiles must produce equivalent
+canonical records for equivalent underlying evidence and observation windows.
+
+This is an **at-least-once delivery and fenced-publication design**, not an
+exactly-once transport guarantee:
+
+```mermaid
+sequenceDiagram
+  accTitle: Crash-safe native publication
+  accDescr: A worker acquires an epoch-bound exact-attempt claim, persists safe evidence before acknowledging its queue receipt, and publication atomically verifies and consumes that intent.
+  participant Q as Durable queue
+  participant W as Native worker
+  participant A as Enrollment and claims
+  participant G as GitHub
+  participant P as Publication transaction
+  Q->>W: Delivery with opaque receipt and enrollment epoch
+  W->>A: Claim exact repository, run, attempt, epoch
+  A-->>W: Fenced acquisition ownership
+  W->>G: Bounded exact-attempt evidence lookup
+  G-->>W: Verified matching-attempt evidence
+  W->>A: Persist safe publication intent
+  W->>Q: ACK with current delivery receipt
+  A->>P: Replay pending intent, including after crash
+  P->>P: Verify epoch and digest, write graph and revision, consume intent
+  Note over A,P: Any publication failure rolls back the atomic transition
+```
+
+Enrollment withdrawal or transfer invalidates obsolete claims and pending
+publication. Missing authority, ambiguous attempts, capacity exhaustion, and
+incomplete acquisition remain errors or explicit coverage gaps, never inferred
+successful collection.
+
+**Source:** [Server Ingestion Specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-ingestion.md),
+§§2, 2.4 and 3-9.
+
+## 4. Data lineage and canonical domain boundaries
+
+The source adapter is the **anti-corruption layer**. Normalization establishes
+identity, provenance, attempt ownership, nullability, and referential integrity
+before downstream consumers see records.
+
+```mermaid
+flowchart LR
+  accTitle: Canonical data lineage
+  accDescr: Provider evidence becomes source-neutral observations, deterministic canonical entities, validated storage, declarative queries, and bounded view payloads.
+  Input["Provider evidence or static SQL export"] --> Adapter["Source adapter"]
+  Adapter --> Normalize["Deterministic normalization"]
+  Normalize --> Integrity["Identity and relationship validation"]
+  Integrity --> Store[("Canonical storage")]
+  Store --> Query["Declarative query plan"]
+  Query --> Payload["View payload and quality metadata"]
+```
+
+The static SQL export is a **versioned interchange contract**, not the local
+SQLite schema and not a browser database connection. An upstream owner exports
+SQL tables or views to JSON before adaptation.
+
+```mermaid
+erDiagram
+  accTitle: Execution lineage and independent Value evidence
+  accDescr: Campaign classification is optional. Repository and Workflow are mandatory parents of Run. Each Run owns six execution record families. Value evidence and collection health have independent repository and workflow relationships.
+  CAMPAIGN o|--o{ WORKFLOW : classifies
+  REPOSITORY ||--o{ WORKFLOW : contains
+  REPOSITORY ||--o{ RUN : executes
+  WORKFLOW ||--o{ RUN : defines
+  RUN ||--o{ DOMAIN : records
+  RUN ||--o{ TOOL : invokes
+  RUN ||--o{ SKILL : activates
+  RUN ||--o{ FRICTION : attributes
+  RUN ||--o{ AUDIT : observes
+  RUN ||--o{ ISSUE : produces
+  REPOSITORY ||--o{ OPERATIONAL_VALUE : measures
+  REPOSITORY ||--o{ VALUE_EVIDENCE : contextualizes
+  WORKFLOW ||--o{ VALUE_EVIDENCE : evaluates
+  REPOSITORY ||--o{ VALUE_COLLECTION : registers
+  WORKFLOW ||--o{ VALUE_COLLECTION : tracks
+```
+
+This is a **bounded-context map**, not the complete physical schema.
+Marketplace and experiment, assignment, grader, and eval evidence extend the
+model; their definitions and observations must preserve their own identity and
+grain. Issue includes both issues and pull requests, distinguished by
+`isPullRequest`. Canonical Audit records are curated execution observations,
+not the separate durable operational audit ledger.
+
+Immutable GitHub IDs are preferred for Repository and Workflow. Current
+publication can require transitional deterministic source-coordinate IDs;
+do not assume every producer already supplies immutable IDs. Run identity is
+repository-scoped GitHub run identity, not a new entity for every retry.
+Newer attempts replace applicable evidence; older attempts must not contaminate
+the winning attempt. Names, display labels, ingestion order, and wall clocks
+are not identity substitutes.
+
+**Source:** dashboard-data §§5.1, 6-12 and 14-19;
+[Data model](dashboard-data-model.md).
+
+## 5. Analytical storage versus operational durability
+
+Two PostgreSQL-backed concerns can share infrastructure without sharing
+contracts, tables, schema lifecycle, or rebuild behavior.
+
+```mermaid
+flowchart TB
+  accTitle: Storage ownership and durability boundaries
+  accDescr: Canonical analytical storage is rebuildable. Focused operational services protect sessions, queues, claims, quotas and audit history. Redis or acknowledged memory are explicit capability-limited alternatives, not analytical stores.
+  Go["Go application composition root"] --> Analytical["Canonical entity and query adapter"]
+  Analytical --> Entities[("Typed canonical PostgreSQL tables")]
+  Go --> Services["Focused operational contracts"]
+  Services --> Durable[("cao_operational_* PostgreSQL tables")]
+  Services --> Alternative["Explicit Redis or acknowledged memory"]
+  Entities --> Rebuild["Rebuild from authorized evidence"]
+  Durable --> Protected["Protected state: queues, sessions, claims, audit"]
+  Alternative --> Capability["Reject unsupported durability or atomicity"]
+```
+
+| Storage concern | Recovery semantics | Important limitation |
+| --- | --- | --- |
+| Canonical PostgreSQL | Rebuildable read model with transactional publication | Fresh incompatible schema must be provisioned and reconstructed; not an authoritative delivery log |
+| Operational PostgreSQL | Deployment-scoped, restart-persistent services | Durability depends on database configuration; accepted work and revocation debt cannot be evicted as cache |
+| Redis alternative | Explicit operational adapter with provider-specific capabilities | Never stores dashboard entities or executes their queries; lacks the PostgreSQL durable audit service |
+| Volatile memory exception | Explicitly acknowledged bounded single-process services | Process-local coordination and restart loss; not native distributed collector ownership |
+
+Hosted PostgreSQL stores query-required native columns, presence information,
+and relational child values, not duplicated JSON/JSONB canonical documents.
+Ordinary local SQLite uses the canonical storage abstraction and transactional
+relational mirrors; it is not a copy of the hosted physical schema.
+
+**Source:** dashboard-data Abstract and §5.2;
+[Server Operational Storage](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
+
+## 6. Consistency, publication, and reactive reads
+
+CAO offers **eventual evidence convergence**, with different atomicity
+boundaries by backend. Later usage, completion, or safe-output observations
+can enrich earlier sparse Run records.
+
+```mermaid
+sequenceDiagram
+  accTitle: Browser phased ingestion and failure recovery
+  accDescr: Inventory and run information can publish before run records. Bounded writes can commit before a later failure, but record-dependent subscribers retain their last complete result until successful retry.
+  participant S as Published sources
+  participant W as Data worker
+  participant D as IndexedDB
+  participant V as Active view
+  S->>W: Inventory and run-information streams
+  W->>D: Validate and commit bounded batches
+  W-->>V: Publish eligible inventory or Run-only results
+  S->>W: Run-record streams
+  W->>D: Commit bounded record batches
+  alt Record phase fails
+    W->>D: Diagnostic failure receipt, no success receipt
+    W-->>V: Keep prior complete record-dependent payload
+    S->>W: Retry failed shard
+  else Record phase succeeds
+    W->>D: Success receipt and maintenance
+    W-->>V: Fresh complete record-dependent result
+  end
+```
+
+Browser canonical stores are **not generation-atomic**. A direct read during
+ingestion can observe intermediate committed batches. Content-addressed
+receipts allow retry and skip only compatible successfully ingested inputs.
+An incomplete record phase never becomes a successful current snapshot.
+
+Hosted PostgreSQL snapshot replacement commits **sources, diagnostics, and
+revision atomically**. Query readers use repeatable-read transactions. Native
+publication additionally fences enrollment and evidence digest in the commit.
+Database errors or cancellation preserve the previous committed state.
+
+```mermaid
+sequenceDiagram
+  accTitle: Reactive query lifecycle
+  accDescr: Views subscribe with an abort-scoped lifetime. Backend revision changes trigger fresh bounded query results. Optional cached results retain their original evaluation time and revision.
+  participant V as Active view
+  participant B as Worker or Go query boundary
+  participant D as Canonical storage
+  V->>B: Subscribe to declared query and scope
+  B->>D: Execute within backend query contract
+  D-->>B: Evidence plus source quality
+  B-->>V: Bounded payload, revision, evaluation metadata
+  D-->>B: Committed data change or external SQLite refresh
+  B-->>V: Re-evaluated payload or explicitly aged cache result
+  V->>B: Abort on navigation or replacement
+  B->>B: Cancel old subscription and requests
+```
+
+All filtering, joins, aggregation, sorting, pagination, and computation belong
+to **Dashboard Language** in the worker or server query engine. UI effects
+synchronize results and interaction state to owned DOM; they do not reconstruct
+relationships or calculate business metrics. Hosted unsupported SQL shapes
+fail closed, rather than executing a Go row-evaluator fallback.
+
+**Source:** dashboard-data §§4, 5.2, 29-35, 43 and 73.
+
+## 7. Cache coherency and evidence freshness
+
+Separate **read-model revision**, **collection completeness**, and
+**cache evaluation time**. A responsive dashboard is not proof of fresh or
+complete evidence.
+
+```mermaid
+flowchart TB
+  accTitle: Authorized cache-aside query results
+  accDescr: Current authorization precedes cache lookup. Eligible cached results retain original evidence metadata and expire five minutes after admission. Misses execute a bounded query; canonical readiness does not use this cache.
+  Request["Query request"] --> Auth["Current authentication and authorization"]
+  Auth --> Key["ETag: contract, parameters, paging, schema, authorization class"]
+  Key --> Hit{"Eligible cache entry?"}
+  Hit -->|Yes| Old["Return original revision and evaluation time"]
+  Hit -->|No| Execute["Execute bounded query"]
+  Execute --> Admit["Optional capacity-bounded cache admission"]
+  Admit --> Fresh["Return evaluated payload"]
+```
+
+The Go query cache is optional cache-aside storage for expensive queries with
+compact outputs. Entries expire **five minutes after admission**, without
+sliding renewal. Their key excludes ingestion revision, and ingestion or data
+egress does not invalidate them. Hits therefore retain the original evidence
+revision and evaluation time; they are not newly evaluated evidence.
+Canonical entity APIs and readiness probes do not use this result cache.
+
+Capacity guards bound output bytes, entries, and adapter-specific accounting.
+Redis has an additional whole-node memory-pressure contract; providers without
+required atomic introspection disable disposable-cache admission and serving,
+not protected operations. Cache pressure must not evict sessions, accepted
+queue work, quota state, or pending revocations.
+
+**Source:** dashboard-data Abstract; server operational storage contracts.
+
+## 8. Retention, aggregates, and statistical evidence
+
+Treat **exact retained detail**, **additive observations**, and **statistical
+samples** as different products. They have distinct population, grain,
+retention, and coverage contracts.
+
+```mermaid
+flowchart TB
+  accTitle: Independent analytical products
+  accDescr: Canonical Runs feed exact detail queries, six daily counters with reconciliation receipts, and an independent statistical frame. These products must not be combined as interchangeable counts.
+  Runs["Reconciled canonical Runs"] --> Detail["Exact retained Run and detail queries"]
+  Runs --> Receipts["One contribution receipt per logical Run"]
+  Receipts --> Daily["daily-run-counts: six UTC counters"]
+  Runs --> Frame["Recorded-watermark statistical frame"]
+  Frame --> Sample["statistical-runs and frame metadata"]
+  Detail --> Incidents["Drill-downs, costs, incident ordering"]
+  Daily --> Health["Explicitly migrated whole-day health queries"]
+  Sample --> Composition["Labelled sample composition"]
+```
+
+| Product | Architect's interpretation | Do not assume |
+| --- | --- | --- |
+| Retained Runs and run-owned detail | Exact queries over currently available evidence | Retention or capacity limits preserve all upstream history |
+| `daily-run-counts` | Six counters for observed logical Runs at UTC day/Repository/Workflow grain | Arbitrary predicates, rollout mode, sub-day totals, distinct counts, tokens, or costs are supported |
+| `statistical-runs` | Deterministic seven-day date/outcome-stratified frame at a recorded watermark | Unweighted sample counts or model shares estimate the population |
+| Operational Value evidence | Independent metric/evidence lifecycle | Runtime success proves accepted outputs or realized business value |
+
+Daily counters are `total`, `successful`, `failed`, `approval`, `pending`, and
+`other`; the five exclusive classes sum to total. Corrections atomically remove
+the old contribution and add the replacement. Replay and attempt changes do
+not add another logical Run. Detail eviction does not subtract surviving
+daily observations. The source retains the current UTC Monday-start week and
+two preceding weeks, with a monotonic retention watermark.
+
+Only explicitly migrated additive health consumers use this persisted daily
+exception. They never union its totals with retained Runs or silently fall
+back to detail. Missing readiness is unavailable, not an empty population.
+Undated executions cannot be assigned to ingestion day.
+
+The statistical layer selects before consumer filtering, with independent
+capacities: PostgreSQL 64,000, SQLite 8,000, IndexedDB 16,000 selected Runs.
+Only PostgreSQL persists frozen evidence bundles and parent closure;
+incremental revisions mark them stale, and complete snapshot publication
+rebuilds them. Browser and SQLite sampling cannot restore expired detail.
+Sampling does not reduce canonical storage or download volume.
+
+**Retention qualification:** the draft contains conflicting summary-retention
+wording: §5 and the opening browser contract retain all available Run summaries,
+while §41 describes a 30-day default. Both describe seven-day run-linked detail
+and 365-day compact Operational Values, with independent Value evidence.
+Do not turn these statements into a guaranteed archive horizon. Verify the
+selected adapter's effective retention and capacity configuration and resolve
+the normative discrepancy before promising historical coverage. This guide
+does not silently choose a new retention policy.
+
+**Source:** dashboard-data §§5.1.1, 37, 41, 72.2 and 73.
+
+## 9. Tenancy, trust boundaries, and least privilege
+
+A database namespace is a **data isolation boundary**, not a grant of
+repository reach. Authentication, user authorization, enrollment, rollout
+policy, and credential scope are cumulative checks.
+
+```mermaid
+flowchart TB
+  accTitle: Hosted trust and privilege boundaries
+  accDescr: Authorized users access only the Go handler. Runtime uses pre-provisioned canonical and operational state. Separate schema owners provision and maintain tables; collection authority is checked independently.
+  User["Dashboard user"] --> OAuth["GitHub OAuth and organization/team authorization"]
+  OAuth --> Handler["Same-origin Go handler"]
+  Handler --> Scope["Authorized query and namespace scope"]
+  Scope --> Canonical[("Canonical read model")]
+  Handler --> Operational[("Protected operational state")]
+  Owner["Separate schema-owner jobs"] -->|Provision and maintain| Canonical
+  Owner -->|Provision and governed audit retention| Operational
+  Enrollment["Authenticated enrollment and scoped acquisition"] --> Canonical
+```
+
+Runtime credentials open pre-provisioned state; they do not own tables,
+perform arbitrary DDL, alter audit triggers, or truncate operational history.
+Canonical bootstrap and UTC partition maintenance are separate operator jobs.
+Non-loopback operational PostgreSQL connections require certificate-chain and
+hostname verification, not encryption alone.
+
+Minimize data **before publication**, not by hiding UI elements. Prompts,
+raw tool arguments/responses, session bodies, and credential-bearing content
+do not belong in ordinary canonical records. Separately approved archive or
+trace destinations have their own admission and erasure contracts. Structured
+telemetry retains safe identifiers, counts, timings, coverage, and provenance.
+
+**Source:** dashboard-data §§5.2, 57-58; server operational storage;
+server ingestion §2.4.
+
+## 10. Resilience, disaster recovery, and capacity planning
+
+Rebuildability is the read model's recovery strategy. It is **not** a backup
+strategy for protected operational state or a guarantee that upstream
+artifacts are retained forever.
+
+```mermaid
+flowchart TB
+  accTitle: Failure-domain-specific recovery
+  accDescr: Browser loss rebuilds from authorized publication. Hosted publication failure keeps prior committed state. Operational state requires durable ownership and database recovery rather than read-model reconstruction.
+  Failure{"Failure domain"} -->|Browser eviction| Inputs["Reload authorized published inputs"]
+  Inputs --> Replay["Deterministic replay and validated receipts"]
+  Failure -->|Ingestion or checksum failure| Prior["Keep last complete result or committed snapshot"]
+  Prior --> Retry["Diagnose and retry failed input"]
+  Failure -->|Incompatible canonical schema| Provision["Owner provisions fresh schema"]
+  Provision --> Rebuild["Rebuild canonical evidence"]
+  Failure -->|Operational database loss| OpsDR["Database recovery and explicit reconciliation"]
+  OpsDR --> Protect["Restore protected ownership before accepting work"]
+```
+
+| Failure or limit | Required behavior | Operator implication |
+| --- | --- | --- |
+| Corrupt/hash-mismatched shard or broken relationship | Reject input; no success-shaped receipt | Alert on phase/source diagnostics and verify authoritative publication |
+| Browser quota exhaustion | Abort failed transaction; reclaim disposable state or oldest complete Run subtrees | Monitor storage diagnostics; never leave orphaned detail |
+| PostgreSQL publication failure | Roll back sources and revision | Preserve the previous committed snapshot; investigate writer/readiness state |
+| Canonical capacity pressure | Evict oldest relationship-complete Run subtrees atomically, or reject if the newest cannot fit | Source coverage becomes partial; protected operational state remains independent |
+| Acquisition quota or queue backpressure | Preserve delivery/attempt ownership and explicit incomplete state | Do not widen credentials or consume accepted work as a cache |
+| Unsupported query or backend capability | Explicit unavailable/error response | Do not silently change query semantics or select another backend |
+
+Hosted canonical limits include **200,000 rows per Run-owned source** and
+**256 MiB combined logical typed-row bytes**. These are admission envelopes,
+not physical PostgreSQL disk, index overhead, peak transaction memory, or RSS
+budgets. Frozen statistical bundles have their separate record/byte envelopes.
+Bounded batches, cancellation, deadlines, pagination, and query-plan budgets
+contain the blast radius; they do not prove throughput.
+
+Define deployment-specific **SLIs/SLOs** for evidence lag, ingestion success,
+query latency, source completeness, queue age, and saturation. The specification
+does not promise a numerical availability SLO, RPO, or RTO. Canonical recovery
+time depends on retained authorized inputs and replay cost; operational RPO/RTO
+depends on the database's durability, backups, and tested restoration. Verify
+real adapter conformance and worker-isolate heap measurements, not only mocks
+or aggregate process memory.
+
+**Source:** dashboard-data §§32-41, 46-59 and 72.10;
+server ingestion §§8-12; server operational storage.
+
+## 11. Architecture review checklist
+
+Before approving a deployment or boundary change, establish:
+
+| Review question | Required evidence |
+| --- | --- |
+| Which acquisition profile owns writes? | Explicit profile selection, enrollment, credential and fencing configuration |
+| Which serving/query backend is selected? | Pages, local SQLite, or hosted `server-http`; no automatic fallback |
+| Where are atomicity and durability promised? | Browser phase/receipt semantics versus PostgreSQL publication and protected-state contracts |
+| What population does each metric describe? | Exact retained evidence, daily observations, or a labelled statistical frame |
+| How is current authorization enforced? | User scope before query/cache lookup; separate enrollment and execution authority |
+| What survives eviction, retention, or rebuild? | Effective retention, coverage metadata, protected state, and tested recovery boundaries |
+| Who provisions and maintains storage? | Separate owner jobs, least-privilege runtime roles, UTC partition readiness |
+| What validation proves backend behavior? | Production-boundary fixtures, real-browser and real-PostgreSQL conformance, failure/cancellation cases |
+
+## 12. Document ownership and maintenance
+
+`self-care-database-architecture` maintains this page as a **SelfCare worker**.
+The existing orchestrator supplies at-most-once-per-rolling-24-hours eligibility;
+the worker has no separate cron and stops while its documentation PR is open.
+It compares current authoritative sources and relevant implementation evidence,
+not just the previous day's commit messages.
+
+Material architectural drift produces at most one documentation-only draft
+PR for human review. Accurate documentation produces a no-op; source conflicts
+remain explicit qualifications rather than invented behavior. A daily check
+does not guarantee a daily PR or a successful run when Actions, credentials,
+policy admission, or required validation are unavailable.
+
+Continue with [Data ingestion](dashboard-data-ingestion.md),
+[Data model](dashboard-data-model.md), and [Dashboard Language](dashboard-language.md).
+For implementation decisions, consult `ARCHITECTURE.md` and the normative
+[data](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md),
+[ingestion](https://github.com/githubnext/gh-cao/blob/main/specs/server-ingestion.md),
+[operational storage](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md),
+and [computation](https://github.com/githubnext/gh-cao/blob/main/specs/computations.md)
+contracts at the revision being changed.
