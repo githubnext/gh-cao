@@ -297,6 +297,7 @@ export default defineConfig({
             { label: "Intelligence", link: "/intelligence/" },
             { label: "Runtime Health", link: "/computation-runtime-health/" },
             { label: "Portfolio Decisions", link: "/computation-intelligence/" },
+            { label: "Data Architecture", link: "/dashboard-data-architecture/" },
             { label: "Data Ingestion", link: "/dashboard-data-ingestion/" },
             { label: "Data Model", link: "/dashboard-data-model/" },
             { label: "Dashboard Language", link: "/dashboard-language/" },

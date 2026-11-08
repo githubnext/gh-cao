@@ -63,9 +63,9 @@ imports:
       campaign: self-care
       role: orchestrator
       read_repository: ${{ github.repository }}
-      dispatch_max: 22
+      dispatch_max: 23
       orchestrator_credits: 200
-      worker_credits_per_target: 5500
+      worker_credits_per_target: 5900
       read_actions: read
       read_contents: read
 
@@ -91,8 +91,8 @@ network:
 
 safe-outputs:
   dispatch-workflow:
-    workflows: [self-care-accessibility-checker, self-care-agent-discoverability, self-care-calesi-design-principles, self-care-cli-consistency, self-care-code-improvement, self-care-dashboard-data-schema, self-care-dashboard-debug-logging, self-care-dashboard-performance, self-care-data-acquisition-audit, self-care-dashboard-language-refactor, self-care-dashboard-review, self-care-docs-build-time-investigator, self-care-docs-maintainer, self-care-documentation-discoverability, self-care-glossary, self-care-open-source-failures, self-care-pages-health, self-care-primer-brand-checker, self-care-reactive-ui-expert, self-care-server-go-logging, self-care-server-soc2, self-care-specs-maintainer]
-    max: 22
+    workflows: [self-care-accessibility-checker, self-care-agent-discoverability, self-care-calesi-design-principles, self-care-cli-consistency, self-care-code-improvement, self-care-dashboard-data-schema, self-care-dashboard-debug-logging, self-care-dashboard-performance, self-care-data-acquisition-audit, self-care-database-architecture, self-care-dashboard-language-refactor, self-care-dashboard-review, self-care-docs-build-time-investigator, self-care-docs-maintainer, self-care-documentation-discoverability, self-care-glossary, self-care-open-source-failures, self-care-pages-health, self-care-primer-brand-checker, self-care-reactive-ui-expert, self-care-server-go-logging, self-care-server-soc2, self-care-specs-maintainer]
+    max: 23
   threat-detection: false
 
 source: githubnext/gh-cao@a4b937e2ee4e540d3ccce1377f8943315670f33d
@@ -122,6 +122,7 @@ The single eligible repository contains the documentation site and dashboard mai
 - `self-care-documentation-discoverability`: audits the deployed `llms.txt` entry point against ten bounded development tasks and maintains one issue for deterministic routing defects.
 - `self-care-glossary`: scans recent merged pull requests and default-branch code changes, then opens one focused draft pull request when repository evidence supports a glossary update.
 - `self-care-data-acquisition-audit`: reviews gh-aw logs, GitHub API access, predownloads, indexing, and caching, then opens one focused draft pull request when the acquisition audit is stale.
+- `self-care-database-architecture`: maintains the diagram-rich cloud-architect data architecture guide against current specifications and implementation boundaries, then opens one documentation-only draft PR for material drift.
 - `self-care-dashboard-language-refactor`: replaces one over-specialized dashboard view with tested reusable subcomponents configured through Dashboard Language and opens one focused draft pull request.
 - `self-care-open-source-failures`: scans the dashboard activity snapshot for clustered failures across represented public projects and files one digest plus focused remediation issues.
 - `self-care-pages-health`: audits every deployed dashboard view under desktop, mobile, and low-bandwidth profiles and opens a focused draft PR with the highest-confidence JavaScript quick wins it can validate.
@@ -134,6 +135,14 @@ The single eligible repository contains the documentation site and dashboard mai
 For a selected `live` target, dispatch every enabled non-cadence-limited worker. Require a matching `worker_workflows` entry with `configured` equal to the workflow ID, `policy_enabled == true` and `eligible == true` in `/tmp/gh-aw/agent/control-precompute.json` before each dispatch; missing or disabled entries are ineligible and must be recorded as skipped, never enabled by the agent. Dispatch `self-care-agent-discoverability`, `self-care-dashboard-data-schema`, `self-care-data-acquisition-audit`, `self-care-docs-maintainer`, `self-care-glossary`, and `self-care-specs-maintainer` only when no run of the respective workflow is in progress or started during the preceding 24 hours. Inspect at most the ten most recent runs of each workflow to make this decision. Dispatch `self-care-documentation-discoverability` only when no run of that workflow is queued, in progress, or started during the preceding seven days. Inspect at most its ten most recent runs. Dispatch `self-care-pages-health` only when no run of that workflow is queued, in progress, or started during the preceding six hours. Inspect at most the 20 most recent Pages Health workflow runs to make this decision. If any run history is unavailable or ambiguous, fail closed by not dispatching the affected cadence-limited worker and record the incomplete cadence check. Never dispatch any worker in review mode or for another repository.
 
 ## Dispatch execution
+
+Dispatch `self-care-database-architecture` only when no run is queued, in
+progress, or started during the preceding 24 hours. Inspect at most its ten
+most recent runs, including failed and cancelled runs. If history is
+unavailable, truncated before the time boundary, or ambiguous, fail closed
+by deferring this worker and recording the incomplete cadence check. Its
+pre-activation check skips while its own guide PR is open. Include its daily
+eligibility and confirmed dispatch/defer reason in `Outcome`.
 
 Dispatch `self-care-server-soc2` only when no run is queued, in progress, or
 started during the preceding 24 hours. Inspect at most its ten most recent

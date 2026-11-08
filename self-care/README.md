@@ -1,6 +1,6 @@
 # SelfCare
 
-SelfCare runs repository-local maintenance for `githubnext/gh-cao`. Its orchestrator registers twenty-two live-only workers and dispatches only enabled workers, including:
+SelfCare runs repository-local maintenance for `githubnext/gh-cao`. Its orchestrator registers twenty-three live-only workers and dispatches only enabled workers, including:
 
 - **Accessibility Checker** audits the rendered documentation site and publishes one prioritized accessibility issue.
 - **Code Improvement** extracts one evidenced duplicated dashboard UI construct into a tested reusable component and opens one focused draft pull request.
@@ -9,6 +9,7 @@ SelfCare runs repository-local maintenance for `githubnext/gh-cao`. Its orchestr
 - **Dashboard Debug Logging** instruments one evidenced dashboard JavaScript subsystem with category-filtered, privacy-preserving diagnostics.
 - **Dashboard Data Schema** verifies the deployed dashboard JSON contracts and opens one focused draft pull request when inferred pseudo schemas change.
 - **Data Acquisition Audit** reviews dashboard acquisition paths and opens one focused draft pull request when the audit is stale.
+- **Database Architecture** maintains the [cloud-architect data guide](../docs/dashboard-data-architecture.md) with accessible Mermaid architecture diagrams, evidence-backed deployment and data-ownership contracts, and explicit source qualifications. It runs at most once per rolling 24 hours through the existing orchestrator, skips while its guide PR is open, and proposes one documentation-only draft PR only for material drift.
 - **Dashboard Language Refactor** replaces one over-specialized dashboard view with tested reusable subcomponents configured through Dashboard Language.
 - **Dashboard Review** assesses dashboard correctness, decision support, efficiency, and usability through deterministic checks and executive browser journeys.
 - **Experimental Views** exercises every editable experimental and Operations view in Chromium and WebKit across data-source shapes and DOM-size stress, then opens one focused draft pull request for the highest-ranked issue.
@@ -23,7 +24,21 @@ SelfCare runs repository-local maintenance for `githubnext/gh-cao`. Its orchestr
 
 The checked-in control policy admits only `githubnext/gh-cao` as a live target, and the target-authority declaration grants this repository's control plane authority for the campaign. The orchestrator rejects every other repository and every non-live candidate; all workers repeat those checks before performing their mission. Open Source Failures selects public project records only from the dashboard's validated activity snapshot; it does not discover or access repositories independently.
 
-The campaign uses `shared/control.md` for policy resolution, target authority, dispatch envelopes, safe-output routing, and correlation. Its dispatch ceiling is twenty-two workflows for its single target; disabled workers remain ineligible.
+The campaign uses `shared/control.md` for policy resolution, target authority, dispatch envelopes, safe-output routing, and correlation. Its dispatch ceiling is twenty-three workflows for its single target; disabled workers remain ineligible.
+
+The Database Architecture worker can change only
+`docs/dashboard-data-architecture.md`. It rechecks current authoritative
+sources rather than relying on a daily cursor, so missed runs do not hide
+drift. The guide uses cloud architecture vocabulary for topology, lineage,
+consistency, cache freshness, tenancy, capacity, backpressure and recovery;
+unresolved specification contradictions remain visible. Accurate content
+produces a no-op, and incomplete evidence or validation blocks publication.
+The worker is explicitly enabled within the existing sole live target; scope,
+the review default, credentials and unrelated worker enablement are unchanged.
+The parent accounts for its additional 400 AI Credit ceiling in the aggregate
+worker estimate. Activation still requires the reviewed policy, sources and
+generated locks on the active control branch, existing credentials and human
+PR review. There is no separate worker cron, automatic merge or deployment.
 
 ## Calesi design-principle enforcement
 

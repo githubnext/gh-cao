@@ -1,4 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+
+const architectureDiagramCount = [...readFileSync(
+  new URL("../../docs/dashboard-data-architecture.md", import.meta.url), "utf8",
+).matchAll(/```mermaid\n/g)].length;
 
 const diagramPages = [
   "activity/",
@@ -10,6 +15,28 @@ const diagramPages = [
 ];
 
 for (const colorScheme of ["light", "dark"]) {
+  for (const width of [390, 1280]) {
+    test(`data architecture diagrams render accessibly at ${width}px in ${colorScheme}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+      expect((await page.goto("dashboard-data-architecture/"))?.ok()).toBe(true);
+      const diagrams = page.locator(".sl-markdown-content .mermaid svg");
+      expect(architectureDiagramCount).toBeGreaterThanOrEqual(10);
+      await expect(diagrams).toHaveCount(architectureDiagramCount);
+      for (const diagram of await diagrams.all()) {
+        await diagram.scrollIntoViewIfNeeded();
+        await expect(diagram).toBeVisible();
+        await expect(diagram.locator(":scope > title")).toHaveText(/\S/);
+        await expect(diagram.locator(":scope > desc")).toHaveText(/\S/);
+        await expect(diagram).toHaveAttribute("aria-labelledby", /\S/);
+        await expect(diagram).toHaveAttribute("aria-describedby", /\S/);
+        await expect(diagram).not.toContainText("Syntax error");
+      }
+      expect(await page.locator("html").evaluate(element => element.scrollWidth))
+        .toBeLessThanOrEqual(width);
+    });
+  }
+
   for (const width of [320, 390, 1024, 1440]) {
     test(`workflow safety diagram renders at ${width}px in ${colorScheme}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 1000 });

@@ -9,6 +9,7 @@ includes:
   - .github/workflows/self-care-calesi-design-principles.md
   - .github/workflows/self-care-cli-consistency.md
   - .github/workflows/self-care-data-acquisition-audit.md
+  - .github/workflows/self-care-database-architecture.md
   - .github/workflows/self-care-dashboard-performance.md
   - .github/workflows/self-care-dashboard-debug-logging.md
   - .github/workflows/self-care-dashboard-data-schema.md

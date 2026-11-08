@@ -289,6 +289,10 @@
           "data-acquisition-audit": {
             "workflow": "self-care-data-acquisition-audit"
           },
+          "database-architecture": {
+            "workflow": "self-care-database-architecture",
+            "enabled": true
+          },
           "dashboard-language-refactor": {
             "workflow": "self-care-dashboard-language-refactor"
           },

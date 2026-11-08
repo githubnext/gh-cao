@@ -26,11 +26,11 @@ test("Calesi registration enables only the worker within the existing target sco
   assert.deepEqual(campaign.targets, { "githubnext/gh-cao": { mode: "live" } });
   assert.equal(controlPolicy["target-authority"].campaigns["self-care"].authority, "githubnext/gh-cao");
   const workers = Object.values(descriptor.workers);
-  assert.equal(workers.length, 22);
+  assert.equal(workers.length, 23);
   assert.equal(dispatch.imports[0].with.dispatch_max, workers.length);
   assert.equal(dispatch["safe-outputs"]["dispatch-workflow"].max, workers.length);
   assert.deepEqual([...dispatch["safe-outputs"]["dispatch-workflow"].workflows].sort(), workers.sort());
-  assert.equal(dispatch.imports[0].with.worker_credits_per_target, 5500);
+  assert.equal(dispatch.imports[0].with.worker_credits_per_target, 5900);
   assert.match(orchestrator, /`worker_workflows` entry with `configured` equal to the workflow ID, `policy_enabled == true` and `eligible == true`/);
   assert.match(orchestrator, /missing or disabled entries are ineligible/);
 });
