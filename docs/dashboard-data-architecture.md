@@ -1,6 +1,6 @@
 ---
 title: Data architecture for cloud architects
-description: Deployment topologies, data lineage, consistency, trust boundaries, capacity, and recovery for the CAO dashboard.
+description: Dashboard and private session-lake data lineage, consistency, trust boundaries, recovery, and Azure service mapping.
 agent:
   type: architecture
   prominent: true
@@ -23,12 +23,14 @@ that every deployment satisfies them. The checked-out specification and
 
 Three boundaries matter: **authority**, **evidence acquisition**, and
 **analytical serving**. They may share a deployment, but not ownership or
-authorization semantics.
+authorization semantics. Analytical evidence has two distinct products: the
+minimized canonical dashboard read model and the independently approved,
+default-off **agent unified-session data lake**.
 
 ```mermaid
 flowchart TB
   accTitle: Authority and evidence are separate planes
-  accDescr: Reviewed policy admits workflow execution. GitHub supplies evidence to acquisition and the canonical read model. Dashboard observations do not grant execution authority.
+  accDescr: Reviewed policy admits workflow execution. Authorized acquisition feeds minimized canonical evidence and, only with separate approval, a private Parquet session lake. Neither analytical product grants execution authority.
   subgraph control["Control plane"]
     Policy["Reviewed CAO policy"] --> Admission["Admission and scoped grants"]
     Admission --> Execution["gh-aw execution and safe outputs"]
@@ -36,10 +38,13 @@ flowchart TB
   subgraph evidence["Evidence plane"]
     GitHub["GitHub and gh-aw evidence"] --> Acquisition["Authorized acquisition"]
     Acquisition --> Canonical["Canonical analytical read model"]
+    Acquisition --> Approval["Separate trace approval and redaction"]
+    Approval --> Lake["Private unified-session Parquet lake"]
   end
   subgraph serving["Serving plane"]
     Canonical --> Queries["Dashboard Language"]
     Queries --> UX["Bounded view payloads"]
+    Lake --> PrivateQueries["Separate authenticated archive queries"]
   end
   Execution --> GitHub
 ```
@@ -49,9 +54,11 @@ flowchart TB
 | System of record | GitHub, gh-aw evidence, and reviewed policy remain external authorities. | Clearing a dashboard projection cannot revoke policy or erase GitHub history. |
 | Anti-corruption layer | Source adapters translate provider-specific formats into canonical observations. | Neither SQL tables nor log schemas become the UI's domain model. |
 | Read-side portability | IndexedDB, local SQLite, and hosted PostgreSQL expose canonical query contracts. | Shared semantics do not imply identical durability, capacity, or query support. |
+| Private session lake | Approved unified-session events live in immutable Parquet, locally or in private Azure Blob Storage. | DuckDB or generation-bound ADX queries use separate content grants; no automatic dashboard join or fallback. |
 | Control-plane isolation | Dashboard facts and computation results grant no execution authority. | Enrollment, dispatch, and mutation require their separate policy and authorization paths. |
 
-**Source:** `ARCHITECTURE.md`, dashboard-data specification Abstract and §§3-5.
+**Source:** `ARCHITECTURE.md`, dashboard-data specification Abstract and §§3-5;
+[Private unified-session archive](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md#status-and-scope).
 
 ## 2. Deployment topology and backend selection
 
@@ -221,15 +228,18 @@ are not identity substitutes.
 ## 5. Analytical storage versus operational durability
 
 Two PostgreSQL-backed concerns can share infrastructure without sharing
-contracts, tables, schema lifecycle, or rebuild behavior.
+contracts, tables, schema lifecycle, or rebuild behavior. The private session
+lake is a third ownership boundary, not another PostgreSQL schema.
 
 ```mermaid
 flowchart TB
   accTitle: Storage ownership and durability boundaries
-  accDescr: Canonical analytical storage is rebuildable. Focused operational services protect sessions, queues, claims, quotas and audit history. Redis or acknowledged memory are explicit capability-limited alternatives, not analytical stores.
+  accDescr: Canonical analytical storage is rebuildable. Focused operational services protect queues, OAuth sessions, claims, quotas and audit history. A separate approved session archive owns private Parquet evidence, not PostgreSQL content or dashboard queries.
   Go["Go application composition root"] --> Analytical["Canonical entity and query adapter"]
   Analytical --> Entities[("Typed canonical PostgreSQL tables")]
   Go --> Services["Focused operational contracts"]
+  Go --> Archive["Separately approved session archive"]
+  Archive --> Parquet[("Private filesystem or Azure Blob Parquet")]
   Services --> Durable[("cao_operational_* PostgreSQL tables")]
   Services --> Alternative["Explicit Redis or acknowledged memory"]
   Entities --> Rebuild["Rebuild from authorized evidence"]
@@ -241,6 +251,7 @@ flowchart TB
 | --- | --- | --- |
 | Canonical PostgreSQL | Rebuildable read model with transactional publication | Fresh incompatible schema must be provisioned and reconstructed; not an authoritative delivery log |
 | Operational PostgreSQL | Deployment-scoped, restart-persistent services | Durability depends on database configuration; accepted work and revocation debt cannot be evicted as cache |
+| Private session lake | Immutable Parquet and fenced generation membership, with independent retention and recovery | Full approved trace evidence is not an OAuth session store, canonical read model, or PostgreSQL archive catalog |
 | Redis alternative | Explicit operational adapter with provider-specific capabilities | Never stores dashboard entities or executes their queries; lacks the PostgreSQL durable audit service |
 | Volatile memory exception | Explicitly acknowledged bounded single-process services | Process-local coordination and restart loss; not native distributed collector ownership |
 
@@ -251,6 +262,91 @@ relational mirrors; it is not a copy of the hosted physical schema.
 
 **Source:** dashboard-data Abstract and §5.2;
 [Server Operational Storage](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
+
+### Private agent unified-session data lake
+
+The **session lake** is the private unified-session archive, not public Activity
+shards or canonical Run detail. Capture reuses the already authorized visit to
+gh-aw's `usage/aw_session.jsonl` **before lossy normalization and cleanup**.
+Versioned content approval, rights review, redaction, exact repository scope,
+and independent destination approval precede capture. Enablement grants no
+additional GitHub acquisition or execution authority.
+
+```mermaid
+flowchart TB
+  accTitle: Private unified-session lake and canonical evidence diverge
+  accDescr: One authorized session-artifact visit feeds minimized canonical records and separately approved complete trace projections. Private Parquet uses local DuckDB or hosted Blob and generation-bound ADX, without joining the dashboard store.
+  Visit["Authorized unified-session artifact visit"] --> Minimize["Safe metadata normalization"]
+  Minimize --> Canonical[("Canonical dashboard storage")]
+  Visit --> Approve["Closed content policy, rights and redaction"]
+  Approve --> Events["Generated typed event projection"]
+  Events --> Producer{"Explicit archive producer"}
+  Producer --> Legacy["Pinned DuckDB conversion"]
+  Legacy --> Local[("Private filesystem Parquet")]
+  Legacy --> Blob[("Private Azure Blob Parquet")]
+  Producer --> Native["Native hosted Go Parquet conversion"]
+  Native --> Blob
+  Local --> DuckDB["Trusted local DuckDB queries"]
+  Blob --> Membership["Pinned generation and exact active membership"]
+  Membership --> ADX["Trusted ADX external-table queries"]
+```
+
+| Archive profile | Physical ownership and publication | Analytical access |
+| --- | --- | --- |
+| Local persistent host | Owner-only durable POSIX directory, whole-life lock, immutable Zstandard Parquet, atomic filesystem generations | Pinned DuckDB CLI reads authorized files; no persistent DuckDB event database |
+| Legacy hosted persistent host | Private durable staging and pinned DuckDB conversion; immutable Blob objects/manifests, one Blob lease, conditional ETag-bound active pointer | Approved ADX external table over exact pinned Blob partitions and projection membership |
+| Explicit native hosted producer | Bounded in-memory Go Parquet conversion; the same Blob ownership/publication boundary, metadata-only admission receipts, no POSIX staging or DuckDB | The same generation-bound ADX access, plus PostgreSQL source-epoch authority and final-delivery read locks |
+
+`server/spec/trace.tsp` owns the closed logical event schema and generated
+physical projection. Rows preserve approved payload structure, event order,
+exact repository/run/attempt identity, lineage, policy/artifact digests and
+recorded omissions. Complete approved capture is not unrestricted raw content
+or a guarantee of complete upstream coverage. The native Parquet producer
+supports full capture only; unsupported sampling fails closed.
+
+Parquet is the retained evidence; **Azure Blob Storage owns hosted objects,
+and Azure Data Explorer (ADX/Kusto) is the external-table query engine**.
+This differs from the separately selected direct ADX canonical-snapshot and
+unified-trace streaming exporters. Those exporters, the Blob archive, and
+Application Insights telemetry are not interchangeable destinations.
+Neither an ADX cluster nor its external table establishes archive publication:
+queries must select the exact pinned object hashes and active projection
+membership before analytical operations.
+
+Capture acknowledges only durable verified publication, not conversion or
+upload alone. Corrections replace active membership; withdrawal and lost
+authorization override pinned reads and preserve replay fences. Archive
+retention is independent of dashboard detail and source caches. Logical
+exclusion is not immediate physical erasure: packed files, reader horizons,
+recovery grace, Blob versions, backups and prior exports require reconciliation.
+The native profile's PostgreSQL registration/withdrawal outbox stores only
+source/destination privacy metadata, **never archive contents or manifests**.
+It is not a cross-backend transaction or permission for a Blob-only read when
+source authority is unavailable.
+
+Archive status and queries use the separate authenticated
+`/api/v1/session-archive/` endpoints. Full-trace-read requires explicit approval;
+hosted readers additionally need a current OAuth session, fresh strong-authentication
+assurance, an exact reader allowlist and POST CSRF protection. Ordinary dashboard
+membership, administrator status, or Blob/ADX credentials alone are insufficient.
+Trusted `timeline` and `summary` queries are bounded; local-only
+Dashboard Language `session-query` uses `archive-events` scalar columns and
+does not expose `PayloadJSON`, joins or arbitrary SQL/KQL. Hosted ADX does not
+yet execute `session-query`. Queries never fall back to dashboard storage.
+
+**Deployment qualification:** the archive is independently default-off and its
+ADR remains proposed pending required acceptance evidence. Persistent
+single-owner hosts are required; the Azure Functions platform-listener profile,
+ephemeral/per-request hosts, standalone collection jobs and multi-replica
+archives are unsupported. Hosted activation requires real Azure conformance
+bound to the approved Blob/ADX destination, not a successful upload, simulator
+or acceptance flag. The native producer does not activate the native collector,
+which remains fail-closed pending its independent integration gates.
+
+**Source:** [Session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md),
+§§1-7; [Archive operator guide](https://github.com/githubnext/gh-cao/blob/main/server/SESSION-ARCHIVE.md);
+`server/internal/sessionarchiveblob/services.go`;
+`server/internal/server/session_archive.go`; [Private archive queries](dashboard-data-ingestion.md#query-the-private-session-archive).
 
 ## 6. Consistency, publication, and reactive reads
 
@@ -499,6 +595,7 @@ Before approving a deployment or boundary change, establish:
 | Which serving/query backend is selected? | Pages, local SQLite, or hosted `server-http`; no automatic fallback |
 | Where are atomicity and durability promised? | Browser phase/receipt semantics versus PostgreSQL publication and protected-state contracts |
 | What population does each metric describe? | Exact retained evidence, daily observations, or a labelled statistical frame |
+| Is private full-session evidence separately approved? | Archive content/read grants, exact scope, fenced Parquet membership, independent retention and real destination acceptance |
 | How is current authorization enforced? | User scope before query/cache lookup; separate enrollment and execution authority |
 | What survives eviction, retention, or rebuild? | Effective retention, coverage metadata, protected state, and tested recovery boundaries |
 | Who provisions and maintains storage? | Separate owner jobs, least-privilege runtime roles, UTC partition readiness |
@@ -517,6 +614,64 @@ PR for human review. Accurate documentation produces a no-op; source conflicts
 remain explicit qualifications rather than invented behavior. A daily check
 does not guarantee a daily PR or a successful run when Actions, credentials,
 policy admission, or required validation are unavailable.
+
+## 13. Azure service mapping
+
+Map **domain services to deployment resources**, not every interface to a new
+Azure product. The experimental `server/azure/main.bicep` baseline composes the
+Go service on Azure Functions with PostgreSQL for both analytical and operational
+adapters. Optional resources and operator-managed analytics remain separate
+decisions; this map neither provisions them nor authorizes production use.
+
+```mermaid
+flowchart TB
+  accTitle: Azure baseline and separately approved lake host
+  accDescr: The baseline hosts one Go handler in Functions and uses private PostgreSQL, Key Vault, ACR and runtime storage. A separately approved persistent lake host uses private Blob and ADX; the Functions runtime storage is not a session lake.
+  Browser["Authorized browser"] --> Functions["Azure Functions: complete Go handler"]
+  Functions --> PG[("PostgreSQL Flexible Server")]
+  Jobs["Container Apps provisioning and ingestion jobs"] --> PG
+  Functions --> KV["Key Vault via managed identity"]
+  Jobs --> KV
+  ACR["Container Registry: reviewed digest-pinned images"] --> Functions
+  ACR --> Jobs
+  Functions --> Runtime[("Functions runtime Storage account")]
+  subgraph optional["Separate operator-approved analytics topology"]
+    Host["Persistent single-owner OAuth host"] --> Blob[("Private session-lake Blob objects")]
+    Host --> ADX["ADX external-table query service"]
+    ADX -->|Exact pinned Parquet membership| Blob
+  end
+```
+
+| Domain responsibility | Azure service mapping | Provisioning and capability boundary |
+| --- | --- | --- |
+| Same-origin UI, OAuth, query APIs and revision events | Azure Functions custom Linux container on an Elastic Premium App Service plan | Baseline hosts the complete Go handler; GitHub remains the OAuth and membership provider, not Entra. No separate frontend or browser database credentials |
+| Canonical entity/query adapter | Azure Database for PostgreSQL Flexible Server | Private delegated subnet and verified TLS; typed canonical tables are a rebuildable read model, not raw-session storage |
+| Focused operational services: OAuth sessions, revocations, queues, leases, quotas, deduplication and durable audit | The same PostgreSQL Flexible Server through the separate operational adapter | `cao_operational_*` tables retain separate lifecycle, atomicity and protected-state bounds. Baseline requires neither Redis nor Azure Service Bus; they are not implied adapter substitutions |
+| Schema ownership and selected snapshot ingestion | Separate manual Azure Container Apps provisioning and ingestion jobs | Distinct identities and owner/runtime credentials; explicit verified snapshot or empty evidence. Jobs do not become archive publishers |
+| Optional collection and backfill | `collector.bicep` Container Apps and backfill job when explicitly configured | Separate enrollment, acquisition profile and durable ownership gates; provisioning a worker does not activate native acquisition or authorize more repositories |
+| Image distribution | Azure Container Registry, managed-identity pulls | Baseline builds/selects Functions, provisioning and ingestion images; digest pinning alone is not production scan, SBOM or provenance assurance |
+| Secret resolution | Azure Key Vault and managed identities with secret-scoped roles | Secrets remain outside policy and browser payloads. Managed-identity Key Vault access does not itself authenticate Blob/ADX archive adapters, which require their separately configured application credentials |
+| Functions platform state | Azure Storage account | Runtime state only, **not the session lake**. A private archive Blob root, content approval, credentials and publication lifecycle are separate operator configuration |
+| Private unified-session lake: `BlobStore` | Private Azure Blob Storage for immutable Parquet, manifests, lease and conditional pointer publication | Operator-managed, independently default-off; not provisioned or enabled by the Functions runtime storage resource. Use an approved persistent single-owner host, not the Functions platform listener |
+| Private lake analytics: `QueryService` | Azure Data Explorer external table over approved Blob Parquet | Real destination-bound conformance, exact generation membership and runtime/setup role separation are mandatory. `adx.bicep` optionally provisions a paid cluster/private endpoint with `adxEnabled=true`, but no external table, exporter or archive activation |
+| Direct canonical-snapshot or unified-trace analytics | Separately selected ADX streaming exporters | Independent scope, approval, durable state and single-exporter gates; not Blob archive queries and not supported on the Functions platform-listener profile |
+| Operational observability | One shared Log Analytics workspace and workspace-backed Application Insights component | Container logs and configured telemetry, not session-lake content or canonical query storage. Go telemetry requires an explicitly configured operator-managed OTLP collector; host Insights settings alone do not enable Go export |
+| Private database/destination connectivity | Virtual network, delegated subnets, private DNS; optional ADX private endpoint | Database, Functions and Container Apps access are separated. ADX needs its own reviewed network/DNS path; a private endpoint is not a data-access grant |
+
+**Provisioning is not activation.** The baseline Storage account cannot be
+relabeled as a lake, and enabling `adxEnabled` does not inject exporter settings,
+grant runtime data roles, install archive external tables or satisfy single-owner
+and acceptance gates. Review backup/retention, cost, network reach, privacy
+cleanup and live adapter evidence for each selected service independently.
+Managed service names alone promise no HA, numerical SLO, RPO/RTO or compliance.
+
+**Source:** [Azure deployment guide](deployment-azure.md#azure-resources) and
+[optional ADX destination](deployment-azure.md#optional-azure-data-explorer-destination);
+`server/azure/main.bicep`, `network.bicep`, `provisioning.bicep`,
+`ingestion.bicep`, `collector.bicep`, `function-roles.bicep`,
+`worker-roles.bicep`, and `adx.bicep`;
+[Operational contracts](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md#contracts-and-composition);
+[Archive service adapters](https://github.com/githubnext/gh-cao/blob/main/server/internal/sessionarchiveblob/services.go).
 
 Continue with [Data ingestion](dashboard-data-ingestion.md),
 [Data model](dashboard-data-model.md), and [Dashboard Language](dashboard-language.md).

@@ -1,7 +1,7 @@
 ---
 name: "SelfCare / Database Architecture"
-description: Keeps the cloud-architect data architecture guide aligned with canonical specifications and implementation boundaries.
-intent: Preserve an accurate, diagram-rich cloud architecture explanation of CAO data ownership, deployment, consistency, security, capacity and recovery through evidence-backed documentation PRs.
+description: Keeps the cloud-architect data architecture guide aligned with canonical, private session-lake and Azure deployment boundaries.
+intent: Preserve an accurate, diagram-rich explanation of CAO data ownership, private unified-session analytics, Azure service mapping, consistency, security, capacity and recovery through evidence-backed documentation PRs.
 on:
   bots: ["github-actions[bot]", "cao-githubnext-gh-aw-cao-write[bot]"]
   workflow_dispatch:
@@ -148,17 +148,24 @@ prompts, tool payloads or sensitive data. Do not spawn agents or sessions.
 1. Freeze the checked-out source SHA with `git rev-parse HEAD`. Read the entire
    guide, `ARCHITECTURE.md`, and the headings plus relevant sections of
    `specs/dashboard-data.md`, `specs/server-ingestion.md`,
-   `specs/server-operational-storage.md`, and `specs/computations.md`.
+   `specs/server-operational-storage.md`, `specs/computations.md`, and
+   `specs/session-archive.md`. Read `docs/deployment-azure.md`,
+   `server/SESSION-ARCHIVE.md`, `server/ADX-INGEST.md`, and
+   `server/ADX-TRACES.md` for operator and activation boundaries.
    Cover every guide section on each review; do not restrict detection to
    changes merged in the preceding day, so missed runs and rejected PRs retry.
 2. Revalidate deployment topology, acquisition exclusivity, canonical lineage,
    logical versus physical schema, analytical versus operational ownership,
    consistency/atomicity, query execution, cache freshness, retention,
    statistical and daily-projection grain, tenancy, security, capacity and
-   recovery. Do not convert proposed phases or illustrative examples into
-   implemented guarantees.
+   recovery. Include the private agent unified-session lake and the final Azure
+   service mapping on every review. Distinguish Parquet evidence, Blob object
+   ownership, generation-bound ADX queries, direct ADX snapshot/trace exporters
+   and Application Insights telemetry. Do not convert proposed phases,
+   provisioned resources or illustrative examples into implemented guarantees.
 3. Inspect at most 30 relevant implementation/test files under
-   `dashboard/site/src/data/`, `server/internal/`, `server/spec/` and `activity/`
+   `dashboard/site/src/data/`, `server/internal/`, `server/spec/`,
+   `server/azure/` and `activity/`
    to verify material changed claims. Trace consumer, owned contract, adapter
    and regression tests before describing a boundary. Normative conflicts
    remain explicit qualifications; do not silently reconcile contradictory
@@ -192,6 +199,39 @@ entity relationships; keep labels readable and diagrams bounded. Update every
 diagram affected by the correction. Cite authoritative source paths and section
 anchors near the corresponding explanation. Preserve explicit partial,
 unavailable, stale, unknown and observational evidence semantics.
+
+Keep the private unified-session lake visible in the executive model, storage
+ownership and lineage diagrams, and its own explanation. Trace the existing
+authorized artifact visit before normalization through content approval and
+redaction to immutable Parquet and fenced publication. Distinguish local pinned
+DuckDB, legacy hosted durable staging, and the native hosted Go producer with
+metadata-only PostgreSQL source privacy authority. Preserve independent scope,
+full-content reader grants, retention/withdrawal/replay semantics, complete-result
+budgets, supported query kinds and real destination acceptance gates. Never
+describe the lake as canonical PostgreSQL, public shards, an OAuth session store,
+a dashboard join/fallback, or a new acquisition authority. Implementation alone
+does not complete the proposed ADR or activate native collection.
+
+Maintain **Azure service mapping as the final section** of the guide, after
+document ownership. Map domain responsibilities and owned interfaces to concrete
+Azure services with a concise table, a bounded accessible topology diagram and
+nearby source citations. Verify `server/azure/main.bicep` and relevant modules,
+operational contracts, archive `BlobStore`/`QueryService` adapters and regression
+tests rather than deriving deployment from service names. Cover the complete Go
+handler, canonical and operational PostgreSQL, owner/runtime jobs, optional
+collection/backfill, ACR, Key Vault/managed identity, Functions runtime storage,
+private lake Blob, ADX, observability and network boundaries.
+
+Label each mapping as baseline-provisioned, conditionally provisioned,
+operator-managed or unsupported for the selected host. Functions runtime storage
+is not the session lake; `adxEnabled` provisions a destination, not exporter or
+archive activation, external tables or runtime data roles. Preserve the persistent
+single-owner archive/exporter restriction and rejection of Functions platform
+listeners, ephemeral/per-request hosts and standalone collection jobs as archive
+hosts. Do not invent Redis/Service Bus substitutions, Entra dashboard sign-in,
+managed-identity archive authentication, automatic Go telemetry export or
+production assurance. Changes to mappings must update affected diagrams and
+qualifications without provisioning resources or widening authority.
 
 Only this guide may change. Do not edit specifications, source code, policy,
 workflows, generated locks/indexes, dependencies, assets, or other documentation.
