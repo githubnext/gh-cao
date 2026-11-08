@@ -1,6 +1,8 @@
 import { isSpuriousAbortAfterSuccessResponse } from "./dashboard-view-assessment.mjs";
 
 export const deployedDashboardUrl = "https://githubnext.github.io/gh-cao/cao/";
+// A fresh profile imports over 600 shards sequentially; CI can exceed ten minutes.
+export const DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS = 900_000;
 export const DEPLOYED_REFRESH_TIMEOUT_MS = 600_000;
 // IndexedDB and the service-worker cache together exceed 2 GiB in the deployed snapshot.
 export const DEPLOYED_STORAGE_QUOTA_BYTES = 4 * 1024 ** 3;
