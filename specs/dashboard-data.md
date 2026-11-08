@@ -3600,6 +3600,17 @@ overall wait. A missing, unsupported, or stalled size probe MUST NOT block the
 shard download or completion of the import; byte and time estimates may remain
 unknown while file and stage progress remains determinate.
 
+Once import work has completed, the browser SHOULD estimate remaining time from
+elapsed time and worker-owned weighted file and stage progress even when shard
+byte sizes are unavailable. Cached shards SHALL be excluded from measured
+throughput. Shards MAY initially be assumed similar in size; the estimated
+average processing time SHALL be recalculated as more shards complete rather
+than remain fixed at the first shard's rate. Discovering additional byte sizes
+between ingestion phases MUST NOT reset observed progress or its elapsed time.
+An estimate MUST account for
+post-shard preparation rather than report zero time solely because all shard
+bytes have been processed.
+
 The main thread SHOULD remain available for:
 
 ```text
