@@ -10,7 +10,11 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/githubnext/gh-cao/server/internal/logger"
 )
+
+var egressLog = logger.New("cao:cliegress")
 
 const (
 	MaxConnections = 32
@@ -78,6 +82,7 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case p.slots <- struct{}{}:
 		defer func() { <-p.slots }()
 	default:
+		egressLog.Printf("tunnel rejected: reason=capacity limit=%d", MaxConnections)
 		http.Error(w, "egress capacity unavailable", http.StatusServiceUnavailable)
 		return
 	}
@@ -87,19 +92,15 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	addresses, err := p.policy.destination(resolveCtx, r.Host, p.lookup)
 	resolveCancel()
 	if err != nil {
+		egressLog.Printf("tunnel rejected: reason=destination_denied")
 		http.Error(w, "egress destination denied or unavailable", http.StatusForbidden)
 		return
 	}
 	dialCtx, dialCancel := context.WithTimeout(ctx, 10*time.Second)
-	var upstream net.Conn
-	for _, address := range addresses {
-		upstream, err = p.dial(dialCtx, "tcp", address)
-		if err == nil || dialCtx.Err() != nil {
-			break
-		}
-	}
+	upstream, err := dialFirst(dialCtx, p.dial, addresses)
 	dialCancel()
 	if err != nil {
+		egressLog.Printf("tunnel rejected: reason=dial_failed addresses=%d", len(addresses))
 		http.Error(w, "egress destination unavailable", http.StatusBadGateway)
 		return
 	}
@@ -137,6 +138,20 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_ = client.Close()
 	_ = upstream.Close()
 	<-done
+}
+
+// dialFirst returns the first successful connection from addresses, stopping
+// early once ctx ends. The last dial error is returned when every attempt fails.
+func dialFirst(ctx context.Context, dial func(context.Context, string, string) (net.Conn, error), addresses []string) (net.Conn, error) {
+	var conn net.Conn
+	var err error
+	for _, address := range addresses {
+		conn, err = dial(ctx, "tcp", address)
+		if err == nil || ctx.Err() != nil {
+			break
+		}
+	}
+	return conn, err
 }
 
 type boundedListener struct {
