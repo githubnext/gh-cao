@@ -78,7 +78,7 @@ var errPolicy = errors.New("invalid token broker policy")
 
 // readPolicyFile reads the mounted policy, rejecting files above the 1 MiB bound.
 func readPolicyFile(path string) ([]byte, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) // #nosec G304 -- operator-configured mounted policy path, never request input.
 	if err != nil {
 		return nil, err
 	}
