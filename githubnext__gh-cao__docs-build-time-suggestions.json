@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-08T22:17:32Z",
-      "worker_run_id": "42529165095",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        42529358794,
-        42529026126,
-        42528065772,
-        42526857872,
-        42525600182,
-        42524543100,
-        42524334889,
-        42523933513,
-        42523052235,
-        42521742738,
-        42520479017,
-        42519216652,
-        42518946266,
-        42517953324,
-        42516656969,
-        42515419943,
-        42514583976,
-        42514187922,
-        42513690774,
-        42513210131
-      ],
-      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-08T19:05:03Z to 2026-11-08T22:16:00Z) was within 14 days and contained 16 successful runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Five comparable successful full publications were available (three schedules and two pushes). Using nearest-rank p90, full workflow execution had median 167s and p90 351s; build jobs had median 94s and p90 121s; deploy jobs had median 30s and p90 225s. Workflow queue time was 0s; build queue median/p90 was 2s/3s and deploy queue median/p90 was 4s/5s. Trusted logs verified npm and central-agentic-ops-dashboard cache hits in all five builds; dashboard restore took 3-5s and artifact fallback was skipped. Three successful related CAO Dashboard builds supplied supporting generation evidence: dashboard build median/p90 was 2,007s/2,034s, dominated by Upgrade fallback activity data at 1,871s/1,921s, while final site assembly was 10s/10s and upload was 17s/18s. The current reusable-generation design already avoids repeating this 24-34 minute generation cost in documentation publications, and the available evidence did not establish a safe additional workflow-only cache change expected to save at least 60s or 15% without risking snapshot freshness or correctness. No suggestion was made; the cycle advanced to artifact transfer and Pages packaging."
-    },
-    {
       "evaluated_at": "2026-11-08T22:31:24Z",
       "worker_run_id": "42530406782",
       "category": "artifact transfer and Pages packaging",
@@ -820,6 +792,34 @@
       "category": "artifact transfer and Pages packaging",
       "evidence_run_ids": [],
       "outcome": "incomplete: GitHub Actions evidence collection was blocked immediately by the GitHub REST API rate limit while requesting the latest 20 completed docs.yml runs. No current run list, comparable successful sample, job/step timings, or cache-hit evidence could be verified, so no timing distribution or recommendation was produced. The category remains artifact transfer and Pages packaging for the next evaluation."
+    },
+    {
+      "evaluated_at": "2026-11-09T09:35:19.549607Z",
+      "worker_run_id": "42594185821",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42594021026,
+        42592812853,
+        42592537031,
+        42590231375,
+        42588353584,
+        42586714752,
+        42585561462,
+        42585346535,
+        42583040391,
+        42581408522,
+        42579874154,
+        42578577074,
+        42578302823,
+        42576681920,
+        42575732479,
+        42573701757,
+        42573412541,
+        42570661135,
+        42569166880,
+        42567763749
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-09T05:31:03Z to 2026-11-09T09:31:20Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that all 16 successful runs were freshness-only: schedule-freshness succeeded while build and deploy were skipped. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Full-workflow and dashboard/build/deploy median and p90 distributions, repeated artifact transfer and Pages packaging cost analysis, step timing analysis, and cache-hit verification across a sufficient current sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
