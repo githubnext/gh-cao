@@ -93,10 +93,13 @@ test("dated closer identity survives without a connected event; truncation stays
 test("fresh reader caches one acquisition, distinguishes deleted runs and surfaces access failures", t => {
   const directory = temporary(t);
   let calls = 0;
-  const read = githubReader(directory, () => { calls++; return '{"id":1}'; });
+  const observed = [];
+  const read = githubReader(directory, () => { calls++; return '{"id":1}'; },
+    { onRequest: requirement => observed.push(requirement) });
   assert.deepEqual(read("repos/github/gh-aw"), { id: 1 });
   assert.deepEqual(read("repos/github/gh-aw"), { id: 1 });
   assert.equal(calls, 1);
+  assert.deepEqual(observed, [null], "Cached reads must not count as new acquisition");
   const failure = code => Object.assign(new Error(`HTTP ${code}`), { stderr: `(HTTP ${code})` });
   const missing = githubReader(path.join(directory, "missing"), () => { throw failure(404); });
   assert.equal(missing("repos/github/gh-aw/actions/runs/42").unavailable.status, 404);
@@ -253,6 +256,84 @@ test("incremental history starts discovery at the retained cutoff and reuses imm
     next,
   ]);
   assert.equal(calls.filter(endpoint => endpoint.startsWith(`repos/${repository}/commits?until=`)).length, 14);
+});
+
+test("mutable implementation graphs use bounded GraphQL batches and reject missing or mismatched aliases", () => {
+  const initial = acquireFileDietHistory(fakeHistory(), "2026-10-18T11:54:09Z");
+  const previous = { ...initial, pulls: Array.from({ length: 11 }, (_, index) =>
+    ({ number: index + 100, mergedAt: null })) };
+  const source = fakeHistory();
+  const queries = [];
+  const request = (endpoint, query) => {
+    if (query) {
+      queries.push(query);
+      return { data: { repository: Object.fromEntries([...query.matchAll(/n(\d+): issueOrPullRequest/g)]
+        .map(([, value]) => {
+          const number = Number(value);
+          const entity = graph(number, number !== 1);
+          if (number !== 1) {
+            entity.state = "OPEN";
+            entity.mergedAt = null;
+            entity.closedAt = null;
+            entity.mergeCommit = null;
+          }
+          return [`n${number}`, entity];
+        })) } };
+    }
+    const pull = endpoint.match(/^repos\/github\/gh-aw\/pulls\/(\d+)(\/files\?)?/);
+    if (pull) return pull[2]
+      ? [{ filename: "pkg/a.go", status: "modified" }]
+      : { node_id: `PR_${pull[1]}`, title: "Refactor", created_at: createdAt, merged_at: null,
+        head: { sha: sha("a") }, base: { sha: sha("b") }, changed_files: 1 };
+    return source(endpoint, query);
+  };
+  const proof = acquireFileDietHistory(request, until, previous);
+  assert.equal(proof.pulls.length, 11);
+  assert.ok(proof.pulls.every(pull => pull.graph.id === pull.id && pull.graph.kind === "PullRequest"));
+  const pullBatches = queries.map(query => [...query.matchAll(/n(\d+): issueOrPullRequest/g)]
+    .map(([, number]) => Number(number))).filter(numbers => numbers.some(number => number >= 100));
+  assert.deepEqual(pullBatches.map(batch => batch.length), [10, 1]);
+  assert.equal(queries.length, 3, "The issue graph and eleven pull graphs need only three requests");
+  assert.throws(() => acquireFileDietHistory((endpoint, query) => {
+    const data = request(endpoint, query);
+    if (query?.includes("n110:")) delete data.data.repository.n110;
+    return data;
+  }, until, previous), /Invalid graph entity identity/);
+  assert.throws(() => acquireFileDietHistory((endpoint, query) => {
+    const data = request(endpoint, query);
+    if (query?.includes("n110:")) data.data.repository.n110 = graph(109, true);
+    return data;
+  }, until, previous), /Implementation graph identity mismatch/);
+});
+
+test("shadow change-scoped issue reads match an unchanged cohort but expose missing relationship hints", () => {
+  const initial = acquireFileDietHistory(fakeHistory(), "2026-10-18T11:54:09Z");
+  const next = "2026-10-19T02:00:00Z";
+  const calls = [];
+  const source = fakeHistory();
+  const candidate = acquireFileDietHistory((endpoint, query) => {
+    calls.push(endpoint);
+    return source(endpoint, query);
+  }, next, initial, { shadowIncremental: true });
+  assert.equal(candidate.issues[0], initial.issues[0]);
+  assert.ok(candidate.discovery.every(item => !item.complete),
+    "Search-only shadow evidence must never claim complete discovery");
+  assert.ok(!calls.some(endpoint => endpoint.includes("/issues/1/timeline?")));
+  assert.ok(!calls.includes("graphql"));
+  const changed = (endpoint, query) => {
+    if (query) {
+      const current = graph();
+      current.timelineItems.nodes.push({ __typename: "ReopenedEvent", createdAt: "2026-02-02T00:00:00Z" });
+      return { data: { repository: { n1: current } } };
+    }
+    return source(endpoint, query);
+  };
+  const full = acquireFileDietHistory(changed, next, initial);
+  const missed = acquireFileDietHistory(changed, next, initial, { shadowIncremental: true });
+  assert.notDeepEqual(missed.issues[0].graph.events, full.issues[0].graph.events,
+    "Search matches alone cannot establish that an issue's relationships are unchanged");
+  assert.throws(() => acquireFileDietHistory(source, next, null, { shadowIncremental: true }),
+    /requires preserved proof/);
 });
 
 test("Git evidence reuses immutable facts and resolves new deliveries from actual parent headers", t => {

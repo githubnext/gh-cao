@@ -37,6 +37,7 @@ export function githubReader(directory, execute = execFileSync, options = {}) {
     if (existsSync(cache)) return binary ? readFileSync(cache) : readJsonArchive(cache);
     assert.ok(++requests <= maxRequests, "Evidence API request budget exceeded");
     consume?.();
+    options.onRequest?.(requirement);
     let value;
     try {
       const bytes = execute("gh", query ? ["api", "graphql", "-f", `query=${query}`] : ["api", endpoint],
