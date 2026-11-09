@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Reviewed local collectors export definition and collectValueEvidence(request).
 // request.workspace = { directory, scratch }: durable acquisition proofs and disposable scratch.
-// The return value is the original schema-v2 operational_value_evidence envelope.
+// Batch collectors return an atomic array of original evidence envelopes.
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
@@ -10,6 +10,7 @@ import { pathToFileURL } from 'node:url';
 import { loadPolicyFile } from '../.github/workflows/shared/policy.mjs';
 import { validateOperationalValueEvidence } from '../dashboard/site/src/data/model/operational-value-evidence.js';
 import { GithubApiBudgetError, prepareGithubApiBudget, readGithubApiBudget } from './github-api-budget.mjs';
+import { isGithubRateLimitError } from './github-telemetry.mjs';
 import { assertValueHistory } from './workflow-value-history.mjs';
 import { readReviewedValueEvidence } from './workflow-value-evidence.mjs';
 import { sameValueAcquisition } from './value-acquisition.mjs';
@@ -93,7 +94,10 @@ async function recordValueCost(workspace, entry, cost) {
 
 export async function collectWorkflowValue(request, { archiveAccess, archiveReader, signal } = {}) {
   const filename = await confinedCollector(request.root, request.entry.collector);
-  const { definition, collectValueEvidence } = await import(pathToFileURL(filename).href);
+  const module = await import(pathToFileURL(filename).href);
+  const { definition } = module;
+  const { collectValueEvidence, collectValueEvidenceBatch } = module;
+  const batch = typeof collectValueEvidenceBatch === 'function';
   const { repository, workflow } = request.entry;
   const cadence = definition?.evidence?.window?.cadenceDays;
   const adoption = Date.parse(definition?.adoption?.adoptedAt);
@@ -103,16 +107,19 @@ export async function collectWorkflowValue(request, { archiveAccess, archiveRead
     || !Array.isArray(definition?.evidence?.repositories) || !definition.evidence.repositories.length
     || definition.evidence.repositories.some((target) => !same(target, repository))
     || !Number.isFinite(adoption) || !Number.isSafeInteger(maturation) || maturation < 0
-    || !Number.isSafeInteger(cadence) || cadence <= 0 || typeof collectValueEvidence !== 'function'
+    || !Number.isSafeInteger(cadence) || cadence <= 0
+    || (batch ? collectValueEvidence !== undefined : typeof collectValueEvidence !== 'function')
     || !sameValueAcquisition(definition?.acquisition, request.entry.acquisition)) {
-    throw new Error('Collector must export an exact frozen definition and collectValueEvidence');
+    throw Object.assign(new Error('Collector must export an exact frozen definition and collectValueEvidence'),
+      { code: 'CAO_VALUE_COLLECTOR_CONTRACT' });
   }
-  const previous = request.previous;
+  const previous = request.previous ?? request.previousPackets?.toSorted((left, right) =>
+    Date.parse(right.observedAt) - Date.parse(left.observedAt))[0];
   const archive = createValueArchiveProvider({
     repository: repository.toLowerCase(), access: archiveAccess ?? valueArchiveAccessFromEnvironment(),
     reader: archiveReader, signal,
   });
-  if (previous) {
+  if (previous && !batch) {
     validateOperationalValueEvidence(previous);
     const header = previous.facts.find((fact) => fact['fact-kind'] === 'contract');
     if (header['cadence-days'] !== cadence) throw new Error('Frozen cadence changed');
@@ -126,25 +133,40 @@ export async function collectWorkflowValue(request, { archiveAccess, archiveRead
   if ((await lstat(request.workspace)).isSymbolicLink()) throw new Error('Evidence workspace symlinks are forbidden');
   const scratch = await mkdtemp(path.join(request.workspace, '.scratch-'));
   try {
-    const envelope = await collectValueEvidence({
+    const result = await (batch ? collectValueEvidenceBatch : collectValueEvidence)({
       repository, workflow, observedAt: request.observedAt, database: request.database,
-      previous, workspace: { directory: request.workspace, scratch }, archive,
+      previous: batch ? request.previousPackets ?? [] : previous,
+      workspace: { directory: request.workspace, scratch }, archive,
     });
-    if (Buffer.byteLength(JSON.stringify(envelope)) > MAX_BYTES || envelope?.schema_version !== 2
-      || envelope?.kind !== 'operational_value_evidence'
-      || Object.keys(envelope).sort().join(',') !== 'kind,operational_value_evidence,schema_version') {
-      throw new Error('Collector must return one bounded original evidence envelope');
+    if (batch && result === null) return null;
+    const envelopes = batch ? result : [result];
+    if (!Array.isArray(envelopes) || !envelopes.length || envelopes.length > 64
+      || Buffer.byteLength(JSON.stringify(result)) > MAX_BYTES) {
+      throw new Error('Collector evidence batch exceeds its bounds');
     }
-    const packet = validateOperationalValueEvidence(envelope.operational_value_evidence);
-    const contract = packet.facts.find((fact) => fact['fact-kind'] === 'contract');
-    if (!same(packet.repository, repository) || packet.workflow !== workflow
-      || Date.parse(packet.observedAt) > Date.now()
-      || Date.parse(packet.windowEnd) > Date.parse(request.observedAt)
-      || contract['cadence-days'] !== cadence) throw new Error('Collector evidence identity or frozen cadence mismatch');
-    const coverage = packet.facts.filter((fact) => fact['fact-kind'] === 'coverage');
-    if (coverage.some((fact) => fact['coverage-status'] !== 'complete')) throw new Error('Collection incomplete; retaining last accepted evidence');
-    assertValueHistory(previous, packet);
-    return envelope;
+    const ids = new Set();
+    for (const envelope of envelopes) {
+      if (envelope?.schema_version !== 2
+        || envelope?.kind !== 'operational_value_evidence'
+        || Object.keys(envelope).sort().join(',') !== 'kind,operational_value_evidence,schema_version') {
+        throw new Error('Collector must return one bounded original evidence envelope');
+      }
+      const packet = validateOperationalValueEvidence(envelope.operational_value_evidence);
+      const contract = packet.facts.find((fact) => fact['fact-kind'] === 'contract');
+      if (!same(packet.repository, repository) || packet.workflow !== workflow
+        || Date.parse(packet.observedAt) > Date.now()
+        || Date.parse(packet.windowEnd) > Date.parse(request.observedAt)
+        || contract['cadence-days'] !== cadence) throw new Error('Collector evidence identity or frozen cadence mismatch');
+      const coverage = packet.facts.filter((fact) => fact['fact-kind'] === 'coverage');
+      if (coverage.some((fact) => fact['coverage-status'] !== 'complete')) throw new Error('Collection incomplete; retaining last accepted evidence');
+      if (ids.has(packet.id)) throw new Error('Duplicate collector evidence identity');
+      ids.add(packet.id);
+      assertValueHistory(batch ? request.previousPackets?.find(value => value.id === packet.id) : previous, packet);
+    }
+    if (batch && request.previousPackets?.some(packet => !ids.has(packet.id))) {
+      throw new Error('Collector batch discarded retained evidence');
+    }
+    return result;
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
@@ -213,6 +235,27 @@ function collectorFailureDiagnostic(error) {
       detail: `collector command timed out${signal || code ? ` (${signal ?? code})` : ''}`,
     };
   }
+  if (code === 'CAO_VALUE_COLLECTOR_CONTRACT') {
+    return {
+      reasonCode: 'collector-failed',
+      detail: 'collector definition or recurring evidence interface does not match the reviewed registration',
+    };
+  }
+  const transport = {
+    rest: 'REST', search: 'Search', graphql: 'GraphQL', artifact: 'artifact',
+  }[error?.githubEvidenceTransport];
+  if (transport) {
+    const stderr = String(error.stderr ?? '');
+    const status = stderr.match(/\(HTTP ([45]\d\d)\)/)?.[1];
+    const limited = isGithubRateLimitError(stderr);
+    const authorization = /SAML (?:SSO|enforcement)/.test(stderr)
+      ? '; organization SSO authorization required'
+      : limited ? '; API rate limit exhausted' : '';
+    return {
+      reasonCode: limited ? 'api-budget' : 'collector-failed',
+      detail: `GitHub ${transport} evidence request failed${status ? ` (HTTP ${status})` : ''}${authorization}`,
+    };
+  }
   if (error?.name === 'AssertionError') {
     return {
       reasonCode: 'collector-failed',
@@ -259,7 +302,7 @@ export async function runWorkflowValues(options) {
   for (const entry of workflowValueRegistrations(policy, options.repositories)) {
     if (!entry.evidence) continue;
     const result = await readReviewedValueEvidence({
-      root: options.root, entry,
+      root: options.root, entry, seedOnly: true,
       retained: [...accepted.values()].map((envelope) => envelope.operational_value_evidence),
     });
     if (result.updated) {
@@ -343,14 +386,13 @@ export async function runWorkflowValues(options) {
         continue;
       }
     }
-    const previous = retained.filter((envelope) => envelope.kind === 'operational_value_evidence'
-      && same(envelope.operational_value_evidence?.repository, entry.repository)
-      && envelope.operational_value_evidence?.workflow === entry.workflow)
-      .map((envelope) => envelope.operational_value_evidence)
-      .sort((a, b) => Date.parse(b.observedAt) - Date.parse(a.observedAt))[0];
     const identity = createHash('sha256').update(`${entry.repository.toLowerCase()}:${entry.workflow}`).digest('hex');
     const request = {
-      root: path.resolve(options.root), entry, previous,
+      root: path.resolve(options.root), entry,
+      previousPackets: retained.filter(envelope =>
+        same(envelope.operational_value_evidence.repository, entry.repository)
+        && envelope.operational_value_evidence.workflow === entry.workflow)
+        .map(envelope => envelope.operational_value_evidence),
       observedAt: options.observedAt ?? new Date().toISOString(), database: options.database,
       workspace: path.resolve(options.workspace, identity),
     };
@@ -391,9 +433,10 @@ export async function runWorkflowValues(options) {
       continue;
     }
     try {
-      const envelope = JSON.parse(child.stdout);
-      if (envelope) {
-        validateOperationalValueEvidence(envelope.operational_value_evidence);
+      const output = JSON.parse(child.stdout);
+      if (output) {
+        const envelopes = Array.isArray(output) ? output : [output];
+        for (const envelope of envelopes) validateOperationalValueEvidence(envelope.operational_value_evidence);
         freshBytes += Buffer.byteLength(child.stdout);
         if (freshBytes > MAX_BATCH_BYTES) {
           decision('failed', 'batch-budget', { ...attempt, lastAttemptOutcome: 'failed' });
@@ -401,10 +444,10 @@ export async function runWorkflowValues(options) {
           result.failed++;
           continue;
         }
-        fresh.push(envelope);
+        fresh.push(...envelopes);
         result.collected++;
       } else result.skipped++;
-      decision('available', envelope ? 'captured' : 'not-due', { ...attempt, lastAttemptOutcome: 'available' });
+      decision('available', output ? 'captured' : 'not-due', { ...attempt, lastAttemptOutcome: 'available' });
     } catch {
       decision('failed', 'invalid-evidence', { ...attempt, lastAttemptOutcome: 'failed' });
       result.failed++;

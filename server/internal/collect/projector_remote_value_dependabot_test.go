@@ -205,6 +205,11 @@ func TestDependabotValueFrozenManifestAndDispatch(t *testing.T) {
 	if err := reviewedDependabotValue(entry); err != nil {
 		t.Fatal(err)
 	}
+	actionsEntry := entry
+	actionsEntry.Collector = dependabotActionsCollector
+	if err := reviewedDependabotValue(actionsEntry); err != nil {
+		t.Fatal(err)
+	}
 	for index, want := range []string{
 		"d73a2676ebb04ebf34093873dc5eb72b8e54a461c8b5f068b7b3bd100fc2507a",
 		"c0bcc97030ca99e4ed5bbe1b89b64ebde02bc7b4659682058e407cf155603ed2",
@@ -261,6 +266,50 @@ process.stdout.write(JSON.stringify(definition.acquisition?.requirements));`
 	valid, failures := supportedRemoteValueEntries([]remoteValueEntry{{Workflow: dependabotValueWorkflow}, entry})
 	if failures == nil || len(valid) != 1 || valid[0].Workflow != dependabotValueWorkflow {
 		t.Fatalf("failure suppressed reviewed registration: %+v %v", valid, failures)
+	}
+}
+
+func TestDependabotActionsPacketsMatchHostedNative(t *testing.T) {
+	api, _ := testDependabotAPI(t, func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == "/search/issues" {
+			_, _ = fmt.Fprint(writer, `{"total_count":0,"incomplete_results":false,"items":[]}`)
+		} else {
+			_, _ = fmt.Fprint(writer, `[]`)
+		}
+	})
+	observed, _ := time.Parse(time.RFC3339, "2026-10-02T00:00:00Z")
+	packets, skipped, err := acquireNativeDependabotValue(t.Context(), api, nil, observed)
+	if err != nil || skipped {
+		t.Fatalf("native acquisition failed: %v", err)
+	}
+	root, err := filepath.Abs(filepath.Join("..", "..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	code := `import { pathToFileURL } from 'node:url';
+const {collectDependabotValue} = await import(pathToFileURL(process.argv[1]));
+const {definition,buildEvidence,scoreMetric} = await import(pathToFileURL(process.argv[2]));
+const read = endpoint => ({body:endpoint.startsWith("search/") ?
+  {total_count:0,incomplete_results:false,items:[]} : [],link:""});
+const result=await collectDependabotValue({
+  repository:"github/gh-aw",workflow:"dependabot-update-planner",
+  observedAt:"2026-10-02T00:00:00Z",previous:[]
+},definition,buildEvidence,scoreMetric,read);
+process.stdout.write(JSON.stringify(result.map(envelope=>envelope.operational_value_evidence)));`
+	command := exec.CommandContext(t.Context(), "node", "--input-type=module", "-e", code,
+		filepath.Join(root, dependabotActionsCollector), filepath.Join(root, dependabotValueCollector)) // #nosec G204 -- fixed reviewed local modules.
+	output, err := command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Actions collector: %v: %s", err, output)
+	}
+	var actions []model.Row
+	if err := json.Unmarshal(output, &actions); err != nil {
+		t.Fatal(err)
+	}
+	expected, _ := json.Marshal(packets)
+	actual, _ := json.Marshal(actions)
+	if !bytes.Equal(actual, expected) {
+		t.Fatalf("Actions packets differ from native packets:\n%s\n%s", actual, expected)
 	}
 }
 
@@ -472,6 +521,8 @@ func TestDependabotValueRejectsUnreviewedAlertCursors(t *testing.T) {
 		valid      bool
 	}{
 		{"next", "<" + valid + `>; rel="next"`, true},
+		{"numeric alias stays on named endpoint", "<" + strings.Replace(valid, "repos/github/gh-aw", "repositories/1036865607", 1) + `>; rel="next"`, true},
+		{"invalid numeric alias", "<" + strings.Replace(valid, "repos/github/gh-aw", "repositories/not-an-id", 1) + `>; rel="next"`, false},
 		{"previous and next", "<" + valid + `>; rel="prev", <` + valid + `>; rel="next"`, true},
 		{"other host", `<https://example.com/` + endpoint + `&after=cursor-two>; rel="next"`, false},
 		{"other repository", "<" + api.base.String() + `/repos/octo/other/dependabot/alerts?state=auto_dismissed,dismissed,fixed,open&per_page=100&after=cursor-two>; rel="next"`, false},

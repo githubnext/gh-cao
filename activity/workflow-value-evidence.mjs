@@ -51,7 +51,7 @@ export function acceptValueEvidenceHistory(previous, incoming) {
   return { packet: incoming, updated: true };
 }
 
-export async function readReviewedValueEvidence({ root, entry, retained = [], now = Date.now() }) {
+export async function readReviewedValueEvidence({ root, entry, retained = [], now = Date.now(), seedOnly = false }) {
   const filename = await confinedEvidenceFile(root, entry.evidence);
   const source = await readFile(filename);
   const decoded = filename.endsWith('.gz')
@@ -73,7 +73,12 @@ export async function readReviewedValueEvidence({ root, entry, retained = [], no
     throw new Error('Reviewed workflow Value evidence source identity mismatch');
   }
   const previous = retained.find((candidate) => candidate.id === packet.id);
-  const accepted = acceptValueEvidenceHistory(previous, packet);
+  let accepted;
+  if (seedOnly && previous && Date.parse(previous.observedAt) > Date.parse(packet.observedAt)) {
+    // A cold-start seed cannot replace a successful recurring capture.
+    acceptValueEvidenceHistory(packet, previous);
+    accepted = { packet: previous, updated: false };
+  } else accepted = acceptValueEvidenceHistory(previous, packet);
   return {
     envelope: {
       schema_version: 2,

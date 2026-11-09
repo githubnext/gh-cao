@@ -140,6 +140,30 @@ test('failed reviewed import leaves accepted evidence and health unchanged', asy
     healthOutput: options.healthOutput, workspace: options.workspace,
     repositories: ['github/gh-aw'], defer: 'shared-budget-unavailable',
   });
+
+  test('recurring collection validates the cold-start seed but retains a newer accepted capture', async t => {
+    const options = await fixture(t);
+    const fresh = structuredClone(envelope);
+    fresh.operational_value_evidence.observedAt = '2026-10-19T12:05:52.580Z';
+    const content = `${JSON.stringify(fresh)}\n`;
+    await writeFile(options.output, content);
+    await assert.rejects(readReviewedValueEvidence({
+      root: options.directory, entry: options.entry, retained: [fresh.operational_value_evidence],
+    }), /Older evidence/);
+    const result = await runWorkflowValues({
+      root: options.directory, policy: options.policy, output: options.output,
+      healthOutput: options.healthOutput, workspace: options.workspace,
+      repositories: ['github/gh-aw'], defer: 'shared-budget-unavailable',
+    });
+    assert.equal(result.imported, 0);
+    assert.equal(result.deferred, 1);
+    assert.equal(await readFile(options.output, 'utf8'), content);
+    const changed = structuredClone(fresh.operational_value_evidence);
+    changed.facts.find(fact => fact['fact-kind'] === 'snapshot').value++;
+    await assert.rejects(readReviewedValueEvidence({
+      root: options.directory, entry: options.entry, retained: [changed], seedOnly: true,
+    }), /Immutable accepted evidence changed/);
+  });
   const accepted = await readFile(options.output, 'utf8');
   const health = await readFile(options.healthOutput, 'utf8');
   const policy = JSON.parse(await readFile(options.policy, 'utf8'));

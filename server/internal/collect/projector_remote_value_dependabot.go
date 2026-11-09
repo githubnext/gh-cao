@@ -19,11 +19,12 @@ import (
 )
 
 const (
-	dependabotValueRepository = "github/gh-aw"
-	dependabotValueWorkflow   = "dependabot-update-planner"
-	dependabotValueCollector  = "dependabot/operational-value/dependabot-update-planner.mjs"
-	dependabotValueAdoption   = "2026-09-17T08:48:00Z"
-	dependabotValueVersion    = "dependabot-lifecycle-v1"
+	dependabotValueRepository  = "github/gh-aw"
+	dependabotValueWorkflow    = "dependabot-update-planner"
+	dependabotValueCollector   = "dependabot/operational-value/dependabot-update-planner.mjs"
+	dependabotActionsCollector = ".github/value-collectors/dependabot-update-planner.mjs"
+	dependabotValueAdoption    = "2026-09-17T08:48:00Z"
+	dependabotValueVersion     = "dependabot-lifecycle-v1"
 )
 
 var dependabotValueRequirements = []remoteValueRequirement{
@@ -43,7 +44,7 @@ var dependabotValueMetrics = []dependabotValueMetric{
 
 func reviewedDependabotValue(entry remoteValueEntry) error {
 	if entry.Repository != dependabotValueRepository || entry.Workflow != dependabotValueWorkflow ||
-		entry.Collector != dependabotValueCollector || entry.APIRequests != 111 ||
+		(entry.Collector != dependabotValueCollector && entry.Collector != dependabotActionsCollector) || entry.APIRequests != 111 ||
 		entry.Acquisition == nil || len(entry.Acquisition.Requirements) != len(dependabotValueRequirements) {
 		return errors.New("unsupported reviewed Dependabot Value registration")
 	}
@@ -62,7 +63,8 @@ func reviewedDependabotValue(entry remoteValueEntry) error {
 }
 
 func reviewedRemoteValue(entry remoteValueEntry) error {
-	if entry.Workflow == dependabotValueWorkflow || entry.Collector == dependabotValueCollector {
+	if entry.Workflow == dependabotValueWorkflow || entry.Collector == dependabotValueCollector ||
+		entry.Collector == dependabotActionsCollector {
 		return reviewedDependabotValue(entry)
 	}
 	return reviewedDailyFileDiet(entry)
@@ -192,9 +194,17 @@ func dependabotValueNext(headers http.Header, base *url.URL, endpoint string) (s
 			continue
 		}
 		target, err := url.Parse(strings.Trim(section[0], "<> "))
-		if err != nil || next != "" || target.User != nil || target.Fragment != "" ||
+		if err != nil {
+			return "", errors.New("dependabot pagination link escaped reviewed endpoint")
+		}
+		basePath := strings.TrimSuffix(base.Path, "/")
+		id := strings.TrimSuffix(strings.TrimPrefix(target.Path, basePath+"/repositories/"), "/dependabot/alerts")
+		number, numericErr := strconv.ParseUint(id, 10, 64)
+		numericAlias := numericErr == nil && number > 0 &&
+			target.Path == basePath+"/repositories/"+id+"/dependabot/alerts"
+		if next != "" || target.User != nil || target.Fragment != "" ||
 			target.Scheme != base.Scheme || target.Host != base.Host ||
-			target.Path != strings.TrimSuffix(base.Path, "/")+"/"+current.Path {
+			(target.Path != basePath+"/"+current.Path && !numericAlias) {
 			return "", errors.New("dependabot pagination link escaped reviewed endpoint")
 		}
 		query, err := url.ParseQuery(target.RawQuery)
@@ -208,6 +218,7 @@ func dependabotValueNext(headers http.Header, base *url.URL, endpoint string) (s
 		if query.Encode() != expected.Encode() {
 			return "", errors.New("dependabot pagination link changed reviewed selection")
 		}
+		// GitHub returns numeric aliases; only the cursor is reused on the reviewed named endpoint.
 		next = current.Path + "?" + target.RawQuery
 	}
 	return next, nil

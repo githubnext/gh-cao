@@ -104,7 +104,14 @@ test("fresh reader caches one acquisition, distinguishes deleted runs and surfac
   const missing = githubReader(path.join(directory, "missing"), () => { throw failure(404); });
   assert.equal(missing("repos/github/gh-aw/actions/runs/42").unavailable.status, 404);
   const forbidden = githubReader(path.join(directory, "forbidden"), () => { throw failure(403); });
-  assert.throws(() => forbidden("repos/github/gh-aw/actions/runs/42"), /HTTP 403/);
+  assert.throws(() => forbidden("repos/github/gh-aw/actions/runs/42"), error =>
+    /HTTP 403/.test(error.message) && error.githubEvidenceTransport === "rest");
+  assert.throws(() => forbidden("search/issues?q=private-query"), error =>
+    error.githubEvidenceTransport === "search");
+  assert.throws(() => forbidden("graphql", "query {}"), error =>
+    error.githubEvidenceTransport === "graphql");
+  assert.throws(() => forbidden("repos/github/gh-aw/actions/artifacts/42/zip", null, true), error =>
+    error.githubEvidenceTransport === "artifact");
   const invalid = githubReader(path.join(directory, "invalid"), () => '{"errors":[{"message":"denied"}]}');
   assert.throws(() => invalid("graphql", "query {}"), /Incomplete GitHub/);
 });
@@ -125,6 +132,20 @@ test("GitHub evidence labels remote reads with their exact reviewed acquisition 
   assert.equal(calls[1].requirement,
     valueAcquisitionRequirementId(fileDietAcquisitionRequirement("graphql", graphQuery(repository, [1]))));
   assert.notEqual(calls[0].requirement, calls[1].requirement);
+});
+
+test("REST evidence caches pagination headers without retaining unrelated response headers", t => {
+  let calls = 0;
+  const read = githubReader(temporary(t), (_command, args) => {
+    calls++;
+    assert.ok(args.includes("--include"));
+    return 'HTTP/2.0 200 OK\r\nLink: <https://api.github.com/repos/github/gh-aw/dependabot/alerts?after=one>; rel="next"\r\nX-Private: not-retained\r\n\r\n[]';
+  }, { includeHeaders: true });
+  assert.deepEqual(read("repos/github/gh-aw/dependabot/alerts"), {
+    body: [], link: '<https://api.github.com/repos/github/gh-aw/dependabot/alerts?after=one>; rel="next"',
+  });
+  read("repos/github/gh-aw/dependabot/alerts");
+  assert.equal(calls, 1);
 });
 
 test("expired source artifacts do not erase preserved applied-output receipt identity", () => {

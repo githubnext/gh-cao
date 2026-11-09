@@ -66,7 +66,7 @@ func TestHostedDependabotRegistrationConsumesOnlyCanonicalCompleteCutoff(t *test
 				"workers":{"update-planner":{"workflow":"dependabot-update-planner"}}},
 			"activity":{"workflow-values":[{"repository":"github/gh-aw",
 				"workflow":"dependabot-update-planner",
-				"collector":"dependabot/operational-value/dependabot-update-planner.mjs",
+				"collector":".github/value-collectors/dependabot-update-planner.mjs",
 				"api-requests":111,"acquisition":{"requirements":[
 					{"source":"github","pool":"core","primitive":"github.dependabot-alert-lifecycle.v1","scope":"github/gh-aw","cache":"invocation"},
 					{"source":"github","pool":"search","primitive":"github.dependabot-pull-request-lifecycle.v1","scope":"github/gh-aw","cache":"invocation"}]}}]}}}}`

@@ -520,6 +520,119 @@ func TestNativeFileDietIncrementalAcquisitionIsBoundedAndFailClosed(t *testing.T
 	}
 }
 
+func TestNativeFileDietBatchesMutablePullGraphsAndRejectsChangedIdentities(t *testing.T) {
+	for _, failure := range []string{"", "missing-alias", "wrong-number", "wrong-kind", "wrong-id"} {
+		t.Run(failure, func(t *testing.T) {
+			previous, _ := testFileDietReplay()
+			previous.History = []fileDietHistoryRevision{{Commit: previous.Adoption.Commit, At: previous.Adoption.At}}
+			for number := 3; number <= 13; number++ {
+				previous.Pulls = append(previous.Pulls, fileDietPull{Number: number, ID: fmt.Sprintf("PR_%d", number)})
+			}
+			graphBatches := [][]int{}
+			pullReads := 0
+			read := func(_ context.Context, endpoint, query string, binary bool) ([]byte, error) {
+				if binary {
+					return nil, errors.New("unexpected binary acquisition")
+				}
+				switch {
+				case endpoint == "repos/github/gh-aw" || endpoint == "repos/githubnext/gh-aw":
+					return []byte(`{"id":42,"full_name":"github/gh-aw"}`), nil
+				case strings.HasPrefix(endpoint, "repos/github/gh-aw/commits?path="):
+					return []byte(`[]`), nil
+				case strings.HasPrefix(endpoint, "search/issues?"):
+					return []byte(`{"incomplete_results":false,"total_count":0,"items":[]}`), nil
+				case endpoint == "graphql":
+					entities := map[string]any{}
+					numbers := []int{}
+					for number := 1; number <= 13; number++ {
+						if !strings.Contains(query, fmt.Sprintf("n%d: issueOrPullRequest(", number)) {
+							continue
+						}
+						numbers = append(numbers, number)
+						entity := map[string]any{
+							"__typename": "PullRequest", "id": fmt.Sprintf("PR_%d", number), "number": number,
+							"url":        fmt.Sprintf("https://github.com/github/gh-aw/pull/%d", number),
+							"repository": map[string]any{"nameWithOwner": dailyFileDietRepository},
+							"state":      "OPEN", "createdAt": "2026-01-03T00:00:00Z", "updatedAt": previous.Until,
+							"timelineItems":           map[string]any{"nodes": []any{}, "pageInfo": map[string]any{"hasNextPage": false}},
+							"closingIssuesReferences": map[string]any{"nodes": []any{}, "pageInfo": map[string]any{"hasNextPage": false}},
+						}
+						if number == 1 {
+							entity["__typename"], entity["id"], entity["url"] =
+								"Issue", "I_1", "https://github.com/github/gh-aw/issues/1"
+						}
+						if number == 3 {
+							switch failure {
+							case "missing-alias":
+								continue
+							case "wrong-number":
+								entity["number"], entity["url"] = 99, "https://github.com/github/gh-aw/pull/99"
+							case "wrong-kind":
+								entity["__typename"] = "Issue"
+							case "wrong-id":
+								entity["id"] = "PR_other"
+							}
+						}
+						entities[fmt.Sprintf("n%d", number)] = entity
+					}
+					graphBatches = append(graphBatches, numbers)
+					if len(numbers) == 0 || len(numbers) > 10 ||
+						query != remoteValueExpectedGraphQuery(dailyFileDietRepository, numbers) {
+						t.Fatalf("unbounded or unexpected graph query: %+v", numbers)
+					}
+					return json.Marshal(map[string]any{"data": map[string]any{"repository": entities}})
+				case strings.Contains(endpoint, "/issues/1/timeline?"):
+					return []byte(`[]`), nil
+				case strings.Contains(endpoint, "/files?"):
+					return []byte(`[]`), nil
+				case strings.HasPrefix(endpoint, "repos/github/gh-aw/pulls/"):
+					var number int
+					if _, err := fmt.Sscanf(endpoint, "repos/github/gh-aw/pulls/%d", &number); err != nil {
+						return nil, err
+					}
+					if number == 2 {
+						t.Fatal("immutable merged pull was fetched again")
+					}
+					pullReads++
+					return json.Marshal(map[string]any{
+						"number": number, "node_id": fmt.Sprintf("PR_%d", number), "title": "Split oversized Go file",
+						"created_at": "2026-01-03T00:00:00Z", "changed_files": 0,
+						"head": map[string]any{"sha": testFileDietSHA("a")},
+						"base": map[string]any{"sha": testFileDietSHA("b")},
+					})
+				case strings.HasPrefix(endpoint, "repos/github/gh-aw/commits?until="):
+					return []byte(`[{"sha":"` + testFileDietSHA("3") +
+						`","commit":{"committer":{"date":"2026-05-01T00:00:00Z"}}}]`), nil
+				}
+				return nil, fmt.Errorf("unreviewed File Diet read %s", endpoint)
+			}
+			acquired, err := fileDietAcquireHistory(t.Context(), read, "2026-05-02T00:00:00Z", &previous)
+			if failure != "" {
+				if err == nil {
+					t.Fatal("invalid implementation graph was accepted")
+				}
+				return
+			}
+			batches, _ := json.Marshal(graphBatches)
+			if err != nil || string(batches) != `[[1],[3,4,5,6,7,8,9,10,11,12],[13]]` ||
+				pullReads != 11 || len(acquired.Pulls) != 12 {
+				t.Fatalf("mutable pull batches=%s reads=%d pulls=%d err=%v",
+					batches, pullReads, len(acquired.Pulls), err)
+			}
+			before, _ := json.Marshal(previous.Pulls[0])
+			after, _ := json.Marshal(acquired.Pulls[0])
+			if !bytes.Equal(before, after) {
+				t.Fatal("immutable merged pull changed")
+			}
+			for _, discovery := range acquired.Discovery {
+				if !discovery.Complete {
+					t.Fatal("native acquisition selected incomplete shadow discovery")
+				}
+			}
+		})
+	}
+}
+
 func TestNativeFileDietEvidenceAcceptedByProductionPostgres(t *testing.T) {
 	data := testutil.Postgres(t, t.Context(), "CAO_TEST_POSTGRES_URL", "POSTGRES_URL")
 	proof, measured := testFileDietReplay()

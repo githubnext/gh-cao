@@ -49,7 +49,8 @@ func dependabotCutoff(observed time.Time) (time.Time, bool) {
 func reviewedDependabotEvidence(reviewed valuePolicy) bool {
 	for _, entry := range reviewed.Control.Campaigns["activity"].Values {
 		if entry.Repository == dependabotRepository && entry.Workflow == dependabotWorkflow &&
-			entry.Collector == dependabotCollector && entry.APIRequests == 111 {
+			(entry.Collector == dependabotCollector ||
+				entry.Collector == ".github/value-collectors/dependabot-update-planner.mjs") && entry.APIRequests == 111 {
 			return true
 		}
 	}
