@@ -3214,6 +3214,13 @@ independent of recurring collector health, so a historical accepted capture and
 a newer shared-budget deferral MAY be published together without representing
 the historical capture as fresh.
 
+Recurring collection SHALL treat that checked-in packet as a cold-start seed,
+not attempt to replace a newer accepted capture on every run. When retained
+evidence is newer, the producer SHALL still validate the seed's digest and
+identity and verify that the retained packet preserves its frozen contract and
+immutable history. It SHALL retain the newer packet without advancing its
+clocks. This does not permit stale explicit replacements or conflicting seeds.
+
 The skill's validated event ledger SHALL export a schema-v2
 `operational_value_evidence` JSONL envelope. Normal Activity ingestion,
 normalization, phase publication and browser/SQLite/PostgreSQL storage SHALL
@@ -3279,6 +3286,14 @@ without deleting retained history. Navigation, report publication and workflow
 discovery SHALL NOT infer opt-in. No per-workflow schedule or model assessment
 is required for continued measurement. The health-first admission and deferral
 contract in section 31.3 governs automatic acquisition.
+
+A reviewed Actions collector MAY return an atomic multi-metric packet batch
+through `collectValueEvidenceBatch` instead of `collectValueEvidence`. The
+batch SHALL contain one to 64 original envelopes within the existing 8 MiB
+invocation bound, receive all retained packets for the exact registration,
+and validate the complete frozen metric set before cadence reuse. Each packet
+SHALL preserve the same identity, coverage and immutable-history guarantees;
+one invalid packet SHALL reject the entire batch without advancing capture.
 
 The single logical source `operational-value-evidence` SHALL purely normalize
 these originals. Every row SHALL expose `report-id`, `workflow-route` (the

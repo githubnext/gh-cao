@@ -370,11 +370,31 @@ before any report exists, with actual deferral reasons and separate decision,
 attempt, accepted capture and cutoff dates. Missing reports do not establish an
 unconfigured collector. Deferrals and failures preserve accepted packets and proof.
 
-Recurring remote acquisition remains deferred pending enforceable shared-budget
-admission; a separate process does not isolate API quota. Ordinary Activity only
-performs bounded, credential-free health publication and retained-data import.
-Actual API exhaustion, fast and public-only modes preserve their existing gates.
+After ordinary collection, a reviewed remote collector may run only when its
+entire request ceiling fits above the selected credential's protected API reserve.
+Each uncached request consumes its durable grant before execution; a separate
+process does not isolate API quota. Fast and public-only modes remain deferred.
+Collectors without enforceable shared-budget admission remain deferred.
 Recycle-only maintenance does not create a new eligible local-computation request.
+
+Single-packet collectors export `collectValueEvidence`. A multi-metric collector
+may instead export `collectValueEvidenceBatch`, returning one atomic array of at
+most 64 original evidence envelopes within the same 8 MiB invocation budget.
+It receives all retained packets in `previous`, validates the frozen metric set
+and cadence, and returns `null` only for a not-due observation. Every returned
+packet must pass the same identity, coverage, cadence and immutable-history
+checks; a failed packet rejects the entire batch. The Actions Dependabot adapter
+uses the existing hosted three-metric lifecycle contract, seven-day cutoffs and
+111-request ceiling. Its campaign batch evaluator remains unchanged.
+
+Collector warnings distinguish a recurring-interface mismatch from GitHub
+REST, Search, GraphQL or artifact acquisition failures. HTTP status and an
+explicit organization-SSO requirement may be reported, but command arguments,
+queries, response bodies and credentials are never included. Retained
+`collection-cost.json` records actual request counts and attempt timing.
+Checked-in evidence is a cold-start seed during recurring collection. A newer
+accepted capture is kept only after verifying that it extends the seed's frozen
+contract and immutable history; a stale explicit replacement still fails.
 
 The separate `cao-value-local.yml` runs after successful default-branch Activity
 publication. It validates the snapshot identity and current policy digest, admits

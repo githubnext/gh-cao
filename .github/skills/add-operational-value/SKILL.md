@@ -252,7 +252,12 @@ Use `/add-operational-value OWNER/REPO` to list repository workflows or `/add-op
   collector exporting the same frozen `definition` and
   `collectValueEvidence({repository, workflow, observedAt, database, previous, workspace})`,
   returning an original schema-v2 evidence envelope after bounded acquisition
-  and validation. The automatic registration in step 6 records only the selected
+  and validation. An existing multi-metric packet contract may instead use
+  `collectValueEvidenceBatch` with all retained packets in `previous`, returning
+  one atomic array of up to 64 envelopes within the same 8 MiB invocation bound.
+  Validate the entire frozen metric set before cadence reuse; one invalid packet
+  must reject the batch. Do not invent rich packets for ordinary scalar measures.
+  The automatic registration in step 6 records only the selected
   pair; function files alone are not runtime authority. Have the policy
   and collector reviewed, committed and deployed together. Do not widen Activity
   scope or enable the measured workflow. A remote collector also needs a reviewed

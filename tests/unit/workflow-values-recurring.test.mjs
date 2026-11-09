@@ -151,6 +151,39 @@ test('collector acquisition requirements must match the reviewed registration ex
   assert.equal(result.collected, 0);
   assert.equal(result.failed, 1);
   assert.match(result.warnings[0], /previous evidence retained/);
+  assert.match(result.warnings[0], /definition or recurring evidence interface/);
+});
+
+test('multi-metric collectors publish atomically and retain every accepted packet on failure', async t => {
+  const options = await fixture(t);
+  const second = packet();
+  second.operational_value_evidence.id = second.operational_value_evidence.id.replace('lines', 'files');
+  second.operational_value_evidence.facts[0]['metric-id'] = 'files';
+  const envelopes = [packet(), second];
+  const filename = path.join(options.root, entry.collector);
+  const original = await readFile(filename, 'utf8');
+  await writeFile(filename, original.replace('collectValueEvidence(request)', 'collectValueEvidenceBatch(request)')
+    .replace(`return ${JSON.stringify(packet())};`, `return ${JSON.stringify(envelopes)};`));
+  assert.equal((await runWorkflowValues(options)).collected, 1);
+  const retained = await readFile(options.output, 'utf8');
+  assert.equal(retained.trim().split('\n').length, 2);
+  options.observedAt = '2026-10-21T12:00:00.000Z';
+  const later = structuredClone(envelopes);
+  for (const envelope of later) envelope.operational_value_evidence.observedAt = options.observedAt;
+  for (const output of [
+    later.slice(0, 1), [later[0], later[0]],
+    [later[0], { ...later[1], kind: 'invalid' }],
+  ]) {
+    await writeFile(filename, original.replace('collectValueEvidence(request)', 'collectValueEvidenceBatch(request)')
+      .replace(`return ${JSON.stringify(packet())};`, `return ${JSON.stringify(output)};`));
+    assert.equal((await runWorkflowValues(options)).failed, 1);
+    assert.equal(await readFile(options.output, 'utf8'), retained);
+  }
+  await writeFile(filename, original.replace('collectValueEvidence(request)', 'collectValueEvidenceBatch(request)')
+    .replace(`return ${JSON.stringify(packet())};`,
+      `if(request.previous.length!==2)throw new Error('incomplete previous batch');return null;`));
+  assert.equal((await runWorkflowValues(options)).skipped, 1);
+  assert.equal(await readFile(options.output, 'utf8'), retained);
 });
 
 test('dogfood File Diet registration pins existing effective Activity scope without adding targets', async () => {
@@ -296,6 +329,42 @@ test('collector failures retain evidence and expose only a bounded safe diagnost
   ]);
   assert.doesNotMatch(JSON.stringify(result), /secret command output/);
   assert.equal(await readFile(options.output, 'utf8'), retained);
+});
+
+test('GitHub acquisition failures report transport and authorization without command or response contents', async t => {
+  const options = await fixture(t, `
+ const error=new Error('secret command and query');
+ error.stderr='gh: Resource protected by organization SAML enforcement. (HTTP 403) secret response https://private.example/token';
+ error.githubEvidenceTransport='search';
+ throw error;
+`);
+  const previous = packet('2026-10-19T12:00:00.000Z');
+  previous.operational_value_evidence.windowEnd = '2026-10-19T00:00:00.000Z';
+  previous.operational_value_evidence.facts[1]['end-at'] = '2026-10-19T00:00:00.000Z';
+  const retained = `${JSON.stringify(previous)}\n`;
+  await writeFile(options.output, retained);
+  const result = await runWorkflowValues(options);
+  assert.equal(result.failed, 1);
+  assert.deepEqual(result.warnings, [
+    'org/repo/daily-review: GitHub Search evidence request failed (HTTP 403); organization SSO authorization required; previous evidence retained',
+  ]);
+  assert.doesNotMatch(JSON.stringify(result), /secret|private\.example|token/);
+  assert.equal(await readFile(options.output, 'utf8'), retained);
+  assert.equal((await collection(options)).reasonCode, 'collector-failed');
+});
+
+test('confirmed GitHub secondary rate limits remain API-budget failures rather than authentication guesses', async t => {
+  const options = await fixture(t, `
+ const error=new Error('private command');
+ error.stderr='gh: You have exceeded a secondary rate limit. (HTTP 403) private details';
+ error.githubEvidenceTransport='search';
+ throw error;
+`);
+  const result = await runWorkflowValues(options);
+  assert.equal(result.failed, 1);
+  assert.equal((await collection(options)).reasonCode, 'api-budget');
+  assert.match(result.warnings[0], /GitHub Search evidence request failed \(HTTP 403\); API rate limit exhausted/);
+  assert.doesNotMatch(JSON.stringify(result), /private|SSO/);
 });
 
 test('recurring producer emits original typed facts, retains proof, skips satisfied cadence and preserves disabled history', async (t) => {

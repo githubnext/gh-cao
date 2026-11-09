@@ -447,7 +447,7 @@
                 }
               ]
             },
-            "collector": "dependabot/operational-value/dependabot-update-planner.mjs",
+            "collector": ".github/value-collectors/dependabot-update-planner.mjs",
             "repository": "github/gh-aw",
             "workflow": "dependabot-update-planner"
           }

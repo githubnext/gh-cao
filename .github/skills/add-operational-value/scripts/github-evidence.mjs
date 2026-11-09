@@ -33,6 +33,7 @@ export function githubReader(directory, execute = execFileSync, options = {}) {
     const key = binary
       ? [requirementId, endpoint, query ?? null, "binary"]
       : [requirementId, endpoint, query ?? null];
+    if (options.includeHeaders) key.push("pagination-headers");
     const cache = path.join(directory, `${digest(key)}${binary ? ".zip" : ".json.gz"}`);
     if (existsSync(cache)) return binary ? readFileSync(cache) : readJsonArchive(cache);
     assert.ok(++requests <= maxRequests, "Evidence API request budget exceeded");
@@ -40,20 +41,34 @@ export function githubReader(directory, execute = execFileSync, options = {}) {
     options.onRequest?.(requirement);
     let value;
     try {
-      const bytes = execute("gh", query ? ["api", "graphql", "-f", `query=${query}`] : ["api", endpoint],
+      assert.ok(!options.includeHeaders || !binary && !query, "Pagination headers require a JSON REST request");
+      const bytes = execute("gh", query ? ["api", "graphql", "-f", `query=${query}`]
+        : ["api", endpoint, ...(options.includeHeaders ? ["--include"] : [])],
         { encoding: binary ? null : "utf8", timeout: 60_000, maxBuffer: 16 * 1024 * 1024,
           stdio: ["pipe", "pipe", "pipe"],
           env: requirementId
             ? { ...process.env, CAO_VALUE_ACQUISITION_REQUIREMENT: requirementId }
             : process.env });
-      value = binary ? bytes : JSON.parse(bytes);
+      if (options.includeHeaders) {
+        const separator = /\r?\n\r?\n/.exec(bytes);
+        assert.ok(separator && /^HTTP\/[\d.]+ 200\b/.test(bytes), "Incomplete GitHub REST response");
+        const headers = bytes.slice(0, separator.index).split(/\r?\n/);
+        const links = headers.filter(header => /^link:/i.test(header));
+        assert.ok(links.length <= 1, "Duplicate GitHub pagination header");
+        value = { body: JSON.parse(bytes.slice(separator.index + separator[0].length)),
+          link: links[0]?.slice(5).trim() ?? "" };
+      } else value = binary ? bytes : JSON.parse(bytes);
       if (query) assert.ok(!value.errors?.length && value.data, "Incomplete GitHub graph response");
     } catch (error) {
       if (!query && /^repos\/[\w.-]+\/[\w.-]+\/actions\/runs\/\d+$/.test(endpoint)
         && /\(HTTP 404\)/.test(String(error.stderr))) {
         value = { unavailable: { status: 404, endpoint, reason: "Producer run is no longer available" } };
         console.error(`Evidence unavailable: ${endpoint} (404)`);
-      } else throw error;
+      } else {
+        error.githubEvidenceTransport = query ? "graphql"
+          : endpoint.startsWith("search/") ? "search" : binary ? "artifact" : "rest";
+        throw error;
+      }
     }
     if (binary) writeFileSync(cache, value);
     else writeEvidence(cache, value);
