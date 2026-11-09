@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-08T21:52:23Z",
-      "worker_run_id": "42527058241",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        42526857872,
-        42525600182,
-        42524543100,
-        42524334889,
-        42523933513,
-        42523052235,
-        42521742738,
-        42520479017,
-        42519216652,
-        42518946266,
-        42517953324,
-        42516656969,
-        42515419943,
-        42514583976,
-        42514187922,
-        42513690774,
-        42513210131,
-        42512870963,
-        42511878233,
-        42511645583
-      ],
-      "outcome": "complete no-op: the latest-20 completed docs.yml window (2026-11-08T18:46:18Z to 2026-11-08T21:46:34Z) was within 14 days and contained 16 successful runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Five successful full publications were available across schedule, push, and workflow_run triggers. Using nearest-rank p90, full workflow execution had median 143s and p90 351s; build jobs had median 93s and p90 117s; deploy jobs had median 30s and p90 225s. Workflow queue time was 0s; build queue median/p90 was 2s/3s and deploy queue median/p90 was 4s/16s. The only successful related CAO Dashboard build in the window took 2,007s and was not a sufficient multi-run distribution; its dominant Upgrade fallback activity data step took 1,871s. Across all five documentation builds, trusted logs verified npm cache hits and dashboard cache hits. Astro documentation generation took 12-15s (median 15s, p90 15s), below both the 60s absolute threshold and 15% of the 143s median workflow execution threshold (21.5s). No actionable Astro recommendation was made; the cycle advanced to reusable dashboard generation."
-    },
-    {
       "evaluated_at": "2026-11-08T22:17:32Z",
       "worker_run_id": "42529165095",
       "category": "reusable dashboard generation",
@@ -841,6 +813,13 @@
         42562314597
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-09T04:31:34Z to 2026-11-09T08:32:59Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that newly observed schedule runs 42586714752 and 42585561462 were freshness-only: schedule-freshness succeeded while build and deploy were skipped. Prior bounded evidence verifies the overlapping runs as freshness-only or skipped. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Full-workflow and dashboard/build/deploy median and p90 distributions, repeated artifact transfer and Pages packaging cost analysis, step timing analysis, and cache-hit verification across a sufficient current sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-09T09:23:34Z",
+      "worker_run_id": "42592768714",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [],
+      "outcome": "incomplete: GitHub Actions evidence collection was blocked immediately by the GitHub REST API rate limit while requesting the latest 20 completed docs.yml runs. No current run list, comparable successful sample, job/step timings, or cache-hit evidence could be verified, so no timing distribution or recommendation was produced. The category remains artifact transfer and Pages packaging for the next evaluation."
     }
   ]
 }
