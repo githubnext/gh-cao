@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-08T16:31:34.052611Z",
-      "worker_run_id": "42500078391",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        42498982953,
-        42498797892,
-        42497717536,
-        42496461129,
-        42495209969,
-        42493928866,
-        42493525701,
-        42492643613,
-        42491413148,
-        42490145593,
-        42488912742,
-        42488590513,
-        42487715033,
-        42486517173,
-        42485320778,
-        42484087908,
-        42483762352,
-        42482947975,
-        42481793172,
-        42480638203
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-08T12:31:13Z to 2026-11-08T16:16:01Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that all 16 successful runs were freshness-only: schedule-freshness succeeded while build and deploy were skipped. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Full-workflow execution, dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification across a sufficient sample, and the Astro documentation generation evaluation could not be established. No suggestion was made; Astro documentation generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-08T16:50:36.044101Z",
       "worker_run_id": "42501691089",
       "category": "Astro documentation generation",
@@ -841,6 +813,34 @@
         42530585405
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-08T22:30:39Z to 2026-11-09T02:31:18Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that all 16 successful runs were freshness-only: schedule-freshness succeeded while build and deploy were skipped. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Full-workflow, related dashboard/build/deploy median and p90 distributions, repeated artifact transfer and Pages packaging cost analysis, and cache-hit verification across a sufficient current sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-09T02:50:46.551469Z",
+      "worker_run_id": "42552889990",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42552719357,
+        42551374407,
+        42550493977,
+        42550337174,
+        42548635337,
+        42547296733,
+        42545999538,
+        42544798879,
+        42544610020,
+        42543282306,
+        42542579998,
+        42541389235,
+        42541199825,
+        42538123218,
+        42536735023,
+        42535542735,
+        42534363389,
+        42533962378,
+        42533079809,
+        42531867838
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-08T22:46:08Z to 2026-11-09T02:46:18Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that all 16 successful runs were freshness-only: schedule-freshness succeeded while build and deploy were skipped. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Full-workflow, related dashboard/build/deploy median and p90 distributions, repeated artifact transfer and Pages packaging cost analysis, and cache-hit verification across a sufficient current sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
