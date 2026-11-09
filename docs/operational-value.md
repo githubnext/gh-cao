@@ -13,6 +13,20 @@ It connects the frozen measurement, canonical records, 365-day compact history,
 recurring collectors, webhook hints, private archive linkage, and dashboard
 presentation without treating those layers as interchangeable.
 
+## Value interface at a glance
+
+| Step | Supply | Receive |
+| --- | --- | --- |
+| Define | Workflow intent at adoption, target repository, eligible opportunities, acceptance evidence, metric formula/unit/direction and cadence | Frozen versioned `definition` and, for recurring acquisition, declared evidence requirements |
+| Measure | Requested window and observation time, canonical query access or immutable proof | `collectBatch` evidence/provenance, then a native-unit score or explicit unavailable result; the adapter sends JSONL definition and assessments to Activity |
+| Collect richer evidence | Exact reviewed registration, previous packet, bounded workspace, admitted read-only acquisition | `collectValueEvidence` returns an original schema-v2 packet with contract, coverage and evidence facts; validation atomically replaces the previous packet |
+| Publish and read | Validated original JSONL via Activity, or an administrator-authorized packet via hosted `POST /api/v1/value` | Separate canonical measurements, rich evidence and collection-health records; Dashboard Language queries deliver the result and drilldown |
+
+The [interface contract](https://github.com/githubnext/gh-cao/blob/main/specs/value.md#21-value-interfaces-inputs-transfer-and-outputs)
+shows the exact request and response shapes, boundaries and failure behavior.
+A published packet is not a collector registration, a collection decision is
+not an outcome, and a missing assessment is not zero.
+
 For the short intent → output → Git evidence flow, see
 [Define and measure workflow value](operational-value-how-to.md).
 
