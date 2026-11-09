@@ -3,13 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-09T09:23:34Z",
-      "worker_run_id": "42592768714",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: GitHub Actions evidence collection was blocked immediately by the GitHub REST API rate limit while requesting the latest 20 completed docs.yml runs. No current run list, comparable successful sample, job/step timings, or cache-hit evidence could be verified, so no timing distribution or recommendation was produced. The category remains artifact transfer and Pages packaging for the next evaluation."
-    },
-    {
       "evaluated_at": "2026-11-09T09:35:19.549607Z",
       "worker_run_id": "42594185821",
       "category": "artifact transfer and Pages packaging",
@@ -820,6 +813,34 @@
         42650533025
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-09T16:01:33Z to 2026-11-09T19:46:08Z) was within 14 days and contained 15 successful schedule runs, one failed schedule run, and four skipped workflow_run callbacks; there were no cancelled runs. Trusted Actions job metadata verified that newly observed successful schedule run 42686445874 was freshness-only: schedule-freshness succeeded while build and deploy were skipped. Prior bounded evidence verifies the overlapping successful runs as freshness-only schedules. Failed schedule run 42673005155 is disclosed as a failure rather than included as a normal sample. Therefore zero successful full build-and-deploy publications were available in the current window, below the required five comparable successful runs. Full-workflow and dashboard/build/deploy median and p90 distributions, repeated artifact-transfer/Pages-packaging cost analysis, step timing analysis, and cache-hit verification across a sufficient current sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-09T20:31:21Z",
+      "worker_run_id": "42693283793",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42691338832,
+        42690222015,
+        42688918329,
+        42686445874,
+        42684037940,
+        42681714660,
+        42681008207,
+        42679317488,
+        42676841080,
+        42674745043,
+        42673005155,
+        42672766569,
+        42670306398,
+        42667787763,
+        42665409970,
+        42663010725,
+        42662503276,
+        42660574556,
+        42658104912,
+        42655588300
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-09T16:31:11Z to 2026-11-09T20:16:31Z) was within 14 days and contained 15 successful schedule runs, one failed schedule run, and four skipped workflow_run callbacks; there were no cancelled runs. Trusted Actions job metadata verified that newly observed successful schedule runs 42691338832 and 42688918329 were freshness-only: schedule-freshness succeeded while build and deploy were skipped; newly observed workflow_run 42690222015 was skipped. Prior bounded evidence verifies the overlapping successful runs as freshness-only schedules. Failed schedule run 42673005155 is disclosed as a failure rather than included as a normal sample. Therefore zero successful full build-and-deploy publications were available in the current window, below the required five comparable successful runs. Full-workflow and dashboard/build/deploy median and p90 distributions, repeated artifact-transfer/Pages-packaging cost analysis, step timing analysis, and cache-hit verification across a sufficient current sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
