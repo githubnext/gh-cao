@@ -19,7 +19,7 @@ type fileDietMeasurements struct {
 	uniqueBlobs    int
 }
 
-const fileDietAcquisitionInstrumentSHA = "d7f314ce0e23e2e3a1e5a8f5f059f974a13bf98f737a251ced2b93fee2e89a23"
+const fileDietAcquisitionInstrumentSHA = "804b20dbf132e4282e2755ae628fca4cbaa207fabf4bc3c50060356dcfb2cd8e"
 
 func fileDietAcquireInventories(
 	ctx context.Context, workspace string, proof *fileDietProof, previous *fileDietArchive,

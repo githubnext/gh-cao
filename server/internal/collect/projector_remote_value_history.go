@@ -781,6 +781,23 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 			previousPulls[pull.Number] = pull
 		}
 	}
+	refreshPulls := make([]int, 0, len(pullNumbers))
+	for _, number := range pullNumbers {
+		retained, ok := previousPulls[number]
+		if !ok || retained.MergedAt == nil ||
+			!fileDietTime(*retained.MergedAt).Before(fileDietTime(previous.Until)) {
+			refreshPulls = append(refreshPulls, number)
+		}
+	}
+	pullGraphs, err := fileDietGraphs(ctx, read, refreshPulls)
+	if err != nil {
+		return proof, err
+	}
+	for _, graph := range pullGraphs {
+		if graph.Kind != "PullRequest" {
+			return proof, errors.New("file Diet implementation graph identity changed")
+		}
+	}
 	for _, number := range pullNumbers {
 		if retained, ok := previousPulls[number]; ok && retained.MergedAt != nil &&
 			fileDietTime(*retained.MergedAt).Before(fileDietTime(previous.Until)) {
@@ -821,9 +838,8 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 		if err != nil || pull.Number != number || pull.NodeID == "" || pull.ChangedFiles > 1000 {
 			return proof, errors.New("invalid File Diet implementation metadata")
 		}
-		graph, err := fileDietGraphs(ctx, read, []int{number})
-		if err != nil {
-			return proof, err
+		if pullGraphs[number].ID != pull.NodeID {
+			return proof, errors.New("file Diet implementation graph identity changed")
 		}
 		files := []fileDietPullFile{}
 		for page := 1; page <= 10; page++ {
@@ -857,7 +873,7 @@ func fileDietAcquireHistory(ctx context.Context, read fileDietRead, until string
 		proof.Pulls = append(proof.Pulls, fileDietPull{
 			Number: number, ID: pull.NodeID, Title: pull.Title, CreatedAt: pull.CreatedAt,
 			MergedAt: pull.MergedAt, HeadSHA: pull.Head.SHA, BaseSHA: pull.Base.SHA,
-			MergeSHA: mergeSHA, Graph: graph[number], Files: files,
+			MergeSHA: mergeSHA, Graph: pullGraphs[number], Files: files,
 		})
 	}
 	start := fileDietTime(proof.Adoption.At)
