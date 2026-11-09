@@ -155,6 +155,31 @@ See [publication and recurring collection](operational-value.md#recurring-collec
 > The skill includes File Diet acquisition and offline replay commands.
 > The linked October 18 example remains a saved historical report.
 
+### Incremental File Diet acquisition pilot
+
+The existing collector searches for updated outputs and reuses accepted
+receipts, merged-PR evidence and immutable Git measurements. It batches issue
+and mutable-PR GraphQL graphs in groups of up to ten but rereads the graph and
+timeline for every retained issue. To inspect the request-cost bound
+from an already preserved proof without GitHub API calls:
+
+```sh
+node scripts/pilot-file-diet-incremental.mjs --offline \
+  PATH_TO_RETAINED_PROOF NEW_OUTPUT_DIRECTORY
+```
+
+`pilot.json` models an unchanged later cutoff with one new snapshot and one
+page per mutable PR or issue timeline. Its request counts are **lower bounds**,
+not observed savings; it excludes retries, extra pages and Git transport. For
+an authorized live comparison, replace `--offline` with a future UTC
+`END_AT` (followed by the same proof and a new output directory). The runner
+uses the reviewed File Diet request ceiling for each independent acquisition
+and retains a baseline proof and request-family counts. Do not use the shadow
+proof for publication: searching for updated issues does not capture every
+issue relationship change, so its coverage is incomplete even if measurements
+match. An incremental production collector needs a complete relationship
+change signal or a bounded reconciliation before replacing accepted evidence.
+
 ## Native reports from retained evidence
 
 The native path is **retained originals → frozen evaluator → original evidence

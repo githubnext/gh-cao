@@ -11,6 +11,7 @@ import { preserveFileDietSnapshots } from "../../.github/skills/add-operational-
 import { operationalValueEvidenceJsonl } from "../../.github/skills/add-operational-value/scripts/export-evidence.mjs";
 import { collectValueEvidence, definition, seedFileDietProof } from "../../.github/value-collectors/daily-file-diet.mjs";
 import { runWorkflowValues } from "../../activity/workflow-values.mjs";
+import { compareFileDietProof, offlineFileDietPilot } from "../../scripts/pilot-file-diet-incremental.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const digest = value => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -88,6 +89,26 @@ test("fresh acquisition retains every accepted snapshot cutoff without changing 
   assert.throws(() => preserveFileDietSnapshots({ snapshots: [
     { at: "2026-05-01T00:00:00Z", commit: merged },
   ] }, retained), /snapshot revision changed/);
+});
+
+test("offline File Diet pilot counts unchanged-cohort request floors from validated proof", t => {
+  const directory = temporary(t);
+  preserve(example(), directory);
+  const result = offlineFileDietPilot(directory);
+  assert.equal(result.apiRequestsMade, 0);
+  assert.equal(result.productionReady, false);
+  assert.deepEqual(result.graphQLRequests, { issues: 1, mutablePulls: 0 });
+  assert.deepEqual(result.requestFloor, {
+    existing: 12, searchOnlyShadow: 10, potentiallyAvoidable: 2,
+  });
+  assert.deepEqual(result.repositoryOutcome, {
+    first: 1, latest: 1, unit: "oversized production Go files",
+  });
+  const original = readFileDietProof(directory);
+  const incomplete = { ...original, proof: structuredClone(original.proof) };
+  incomplete.proof.discovery[0].complete = false;
+  assert.ok(compareFileDietProof(original, incomplete).includes("coverage"),
+    "Identical outcomes cannot establish parity when discovery coverage is incomplete");
 });
 
 test("the real reviewed File Diet collector loads in the isolated worker and reuses satisfied cadence", async t => {
