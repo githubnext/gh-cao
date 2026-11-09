@@ -3,13 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-08T15:14:45Z",
-      "worker_run_id": "42493619197",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [],
-      "outcome": "incomplete: the first bounded request for the latest 20 completed docs.yml runs returned a GitHub Actions API rate-limit error at 2026-11-08T15:14:45Z. Per the worker resource-limit policy, evidence collection stopped immediately. No current evidence window, five comparable successful publications, workflow/job median or p90 distributions, step timings, cache-hit verification, or Astro documentation generation evaluation could be established. No suggestion was made; Astro documentation generation remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-08T15:30:12Z",
       "worker_run_id": "42494915332",
       "category": "Astro documentation generation",
@@ -799,6 +792,34 @@
         42524543100
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-08T21:18:35Z to 2026-11-09T01:17:36Z) was within 14 days and contained 15 successful runs and five skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that newly observed schedule runs 42544798879 and 42543282306 were freshness-only, with schedule-freshness succeeding while build and deploy were skipped; newly observed workflow_run 42544610020 was skipped. Prior bounded evidence verified the overlapping runs. Only two successful full publications remained in the current window (schedule runs 42528065772 and 42525600182), across different source revisions, below the required five comparable successful runs. Full-workflow, related dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification across a sufficient current sample, and an artifact transfer and Pages packaging recommendation could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-09T01:31:16Z",
+      "worker_run_id": "42545752548",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42544798879,
+        42544610020,
+        42543282306,
+        42542579998,
+        42541389235,
+        42541199825,
+        42538123218,
+        42536735023,
+        42535542735,
+        42534363389,
+        42533962378,
+        42533079809,
+        42531867838,
+        42530585405,
+        42529358794,
+        42529026126,
+        42528065772,
+        42526857872,
+        42525600182,
+        42524543100
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-08T21:18:35Z to 2026-11-09T01:17:36Z) was within 14 days and contained 15 successful runs and five skipped workflow_run callbacks; there were no failed or cancelled runs. The bounded run list is unchanged from the immediately preceding evaluation, whose trusted Actions job metadata established that only two successful full publications remained in the window (schedule runs 42528065772 and 42525600182); the other 13 successful runs were freshness-only with build and deploy skipped. The two full publications used different source revisions, and the sample is below the required five comparable successful runs. Full-workflow, related dashboard/build/deploy median and p90 distributions, repeated step-cost analysis, cache-hit verification across a sufficient current sample, and an artifact transfer and Pages packaging recommendation could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
