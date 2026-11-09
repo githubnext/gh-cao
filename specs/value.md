@@ -75,6 +75,75 @@ Missing, partial, interim, stale, unavailable, zero, pending, rejected, and
 unknown are distinct states. A newer unavailable assessment MUST remain visible
 and MUST NOT reveal an older numeric assessment as current.
 
+### 2.1 Value interfaces: inputs, transfer, and outputs
+
+The interfaces below connect the frozen measurement to the three canonical
+populations in Section 3. They are separate exchanges, not one interchangeable
+Value payload. Field-level validation and scheduling are owned by the linked
+contracts; this section defines which boundary supplies each input and what
+the next boundary receives.
+
+| Boundary | Required inputs | Transfer | Output and owner |
+| --- | --- | --- | --- |
+| Measurement design | Workflow Markdown at its adoption revision, target repository, eligible opportunities, accepted-evidence rule, native metric formula and unit, direction, evidence window, cadence, maturation and missing-data rule | Reviewed `definition` (`schemaVersion: 3`) in an importable value module; `definition.acquisition.requirements` declares recurring evidence families when needed | Frozen metric identities and evidence contract. Neither this file nor its presence registers a collector. |
+| Compact evaluation | Requested `{windowStart, windowEnd, observedAt}` windows, supported repository, frozen `definition`, and an authoritative canonical database or preserved immutable evidence | `collectBatch(requests, context)` returns one `{evidence, provenance, commit?}` per request in the same order; `scoreMetric(metricId, evidence)` returns a finite native-unit number or `null` | Package adapter emits a definition and metric assessments as JSONL on stdout. The Activity reconstruction orchestrator validates them and publishes schema-v2 `operational_value` envelopes into `operationalValues`. See [history §4](operational-value-history.md#4-campaign-adapter-exchange). |
+| Recurring rich acquisition | Exact enabled repository/workflow registration in reviewed control policy, frozen `definition` and acquisition manifest, observation time, canonical query access, previous accepted packet(s) if any, and a bounded private proof workspace; remote GitHub reads also require a reviewed request ceiling and a quota grant | `collectValueEvidence({repository, workflow, observedAt, database, previous, workspace, archive?})` returns one original schema-v2 `operational_value_evidence` envelope; `collectValueEvidenceBatch` instead receives all previous packets and returns one atomic bounded array. A `null` batch means no update is due. | After full validation, a newer packet atomically replaces the exact identity in `operationalValueEvidence`; hosted private proof commits with it. A failure retains the previous packet and clocks. See [dashboard data §31.2](dashboard-data.md#312-native-operational-value-report-evidence). |
+| One-time rich publication | One previously collected original schema-v2 `operational_value_evidence` envelope, already observed repository/workflow parents, and administrator authorization | `POST /api/v1/value` on the hosted Go origin with JSON or NDJSON (at most 8 MiB), or reviewed Activity input for static publication | `{id, revision, updated, observedAt}` on hosted success; exact retries return `updated: false`. Publication never acquires evidence, registers execution or enrolls a target. See [server TypeSpec](../server/spec/value.tsp). |
+| Collection health | Effective reviewed registration and scope, latest decision time, actual attempt (if known), and policy digest | Schema-v2 `workflow_value_collection` JSONL envelope through Activity and canonical ingestion | One current `workflowValueCollections` record per repository/workflow. Decision and attempt times stay separate from accepted capture and evidence cutoff. See [dashboard data §31.3](dashboard-data.md#313-workflow-value-collection-health). |
+| Presentation | Scoped canonical `operationalValues`, `operationalValueEvidence`, and `workflowValueCollections` sources | Dashboard Language queries through the data Web Worker (static) or Go query engine (local/hosted); active views subscribe to query revisions | Native-unit result, coverage and maturity, evidence drilldown, and separately labelled collection health. UI code does not fetch or score repository evidence. |
+
+The data inputs are **repository facts**, not a workflow's self-reported result.
+The `definition` fixes which facts are needed and how to score them; the
+acquisition manifest names their source, native quota pool, versioned primitive,
+exact population scope and cache lifetime. Only reviewed policy grants an exact
+collector invocation; recurring remote reads require admitted transport.
+Canonical query access is read-only. Private proof and credentials MUST NOT be
+included in public envelopes or sent to dashboard components.
+
+The compact adapter exchange is one UTF-8 JSON request on stdin and JSONL
+records on stdout. For example, an orchestrator requests one observation:
+
+```json
+{"schemaVersion":1,"timestamp":"2026-09-24T10:00:00.000Z","repositories":["githubnext/gh-cao"],"database":"/absolute/path/activity.sqlite"}
+```
+
+The adapter first declares the workflow's namespaced metric IDs, then emits
+one assessment per supported repository and metric:
+
+```jsonl
+{"kind":"operational_value_definition","workflowSlug":"example-worker","adoptedAt":"2026-09-15T10:00:00.000Z","evaluationMode":"baseline-comparable","cadenceDays":1,"repositories":["githubnext/gh-cao"],"valueIds":["example-worker.backlog"]}
+{"timestamp":"2026-09-24T10:00:00.000Z","repository":"githubnext/gh-cao","valueId":"example-worker.backlog","value":3,"metricRole":"primary","metricName":"Open backlog","metricUnit":"items","metricDirection":"decrease","maturityStatus":"matured","windowStart":"2026-09-23T10:00:00.000Z","windowEnd":"2026-09-24T10:00:00.000Z","measurementKind":"snapshot","coverageStatus":"complete","eligibleCount":3,"evidenceDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+```
+
+`value: 0` is an observed zero, not a missing value. If evidence cannot be
+scored, a period-bearing assessment instead has `value: null`,
+`maturityStatus: "unavailable"`, an explicit `coverageStatus`, and a non-empty
+`missingReason`; it MUST NOT be silently omitted or replaced with the last
+numeric result. The adapter MUST preserve the requested observation timestamp,
+period cutoffs and evidence identity. Activity wraps each validated assessment
+as `{"schema_version":2,"kind":"operational_value","operational_value":{...}}`
+with snake-case transport fields; ingestion normalizes it to the canonical
+source. The definition record is adapter metadata, not a scored observation.
+
+Rich evidence is **not** an extension of the compact adapter row. Its transfer
+envelope is
+`{"schema_version":2,"kind":"operational_value_evidence","operational_value_evidence":{...}}`;
+the inner packet requires `schemaVersion: 1`, stable `id`, `repository`,
+`workflow`, `sourcePath`, `observedAt`, `windowStart`, `windowEnd`,
+`contractDigest`, and bounded `facts` including exactly one contract header
+and coverage. Identity, fact types, accepted lineage and bounds are validated
+by the [canonical packet contract](dashboard-data.md#312-native-operational-value-report-evidence).
+A batch MUST validate as a whole before publication. A packet's observation
+time is its original capture, not its upload or collection decision time.
+
+Invalid input, incomplete acquisition, a changed frozen contract, an exhausted
+grant, or a stale/conflicting packet MUST fail or defer explicitly without
+advancing accepted evidence or its timestamps. Missing evidence MAY produce an
+explicit unavailable compact assessment only under its frozen missing-data
+rule; collector failures MUST NOT masquerade as unavailable outcome evidence.
+Neither health nor rich lineage may be substituted for an independent compact
+primary measurement.
+
 ## 3. Canonical Value populations
 
 The canonical model contains three separate Value populations:
