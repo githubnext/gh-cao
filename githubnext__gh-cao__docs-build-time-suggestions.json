@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-10T05:18:12.263884Z",
-      "worker_run_id": "42760940271",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42761177221,
-        42760910169,
-        42759499185,
-        42757921670,
-        42756359809,
-        42754932683,
-        42754757581,
-        42753148911,
-        42751491871,
-        42749948369,
-        42748520805,
-        42748294691,
-        42747561438,
-        42746692650,
-        42744983255,
-        42744685202,
-        42743272192,
-        42742082900,
-        42741804944,
-        42740909011
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T02:10:33Z to 2026-11-10T05:17:27Z) was within 14 days and contained 10 successful runs, six failed runs, three skipped workflow_run callbacks, and one cancelled workflow_run callback. Trusted Actions job metadata verified that newly observed schedule runs 42761177221 and 42759499185 were freshness-only: schedule-freshness succeeded while build and deploy were skipped; newly observed workflow_run 42760910169 was skipped. Prior bounded evidence verifies the overlapping window. Only three successful full build-and-deploy publications were available: schedule runs 42742082900 and 42754932683 and push run 42744685202. Their build jobs were 167, 79, and 167 seconds; deploy jobs were 105, 47, and 141 seconds; and creation-to-completion times were 297, 144, and 320 seconds. All three had verified dashboard cache hits because fallback dashboard lookup and artifact download steps were skipped; Pages artifact uploads took 21, 21, and 22 seconds. The six failures and one cancellation are disclosed rather than included as normal successful samples. Three comparable successful publications are below the required five, so full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer/Pages-packaging analysis across a sufficient sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-10T05:31:44Z",
       "worker_run_id": "42762368554",
       "category": "artifact transfer and Pages packaging",
@@ -841,6 +813,34 @@
         42804000346
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T11:01:21Z to 2026-11-10T14:46:11Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified newly observed schedule run 42837407680 was freshness-only: schedule-freshness queued for 4 seconds and executed for 8 seconds, while build and deploy were skipped. Prior bounded evaluations verify the overlapping runs. Only one successful full build-and-deploy publication was available: push run 42827890545 at source 8c677a5f9d71c7f66b2221faaad1f926e4f06b00. It took 132 seconds from creation to completion with no observed queue delay, a 95-second build job, and a 28-second deploy job; checkout took 28 seconds, npm ci 21 seconds, Astro documentation generation 11 seconds, dashboard cache restore 4 seconds, Pages artifact upload 20 seconds, and Pages deployment 25 seconds. The dashboard cache was a verified hit because the fallback dashboard lookup and artifact download steps were skipped. The other 16 successful runs were freshness-only schedules. One comparable successful publication is below the required five, so full-workflow publication and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer/Pages-packaging analysis across a sufficient successful sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-10T15:17:33Z",
+      "worker_run_id": "42842254535",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42842608884,
+        42841965351,
+        42840041041,
+        42837407680,
+        42834919026,
+        42832438146,
+        42829943762,
+        42827890545,
+        42827485083,
+        42825203017,
+        42823069348,
+        42822635595,
+        42820733890,
+        42818554210,
+        42816533903,
+        42815099986,
+        42814698988,
+        42812267623,
+        42810133407,
+        42808104445
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T11:31:05Z to 2026-11-10T15:16:35Z) was within 14 days and contained 17 successful runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified newly observed schedule runs 42842608884 and 42840041041 were freshness-only: schedule-freshness queued for 3 seconds and executed for 10 and 9 seconds respectively, while build and deploy were skipped; newly observed workflow_run 42841965351 skipped every job. Prior bounded evaluations verify the overlapping runs. Only one successful full build-and-deploy publication was available: push run 42827890545 at source 8c677a5f9d71c7f66b2221faaad1f926e4f06b00. It took 132 seconds from creation to completion with no observed queue delay, a 95-second build job, and a 28-second deploy job; checkout took 28 seconds, npm ci 21 seconds, Astro documentation generation 11 seconds, dashboard cache restore 4 seconds, Pages artifact upload 20 seconds, and Pages deployment 25 seconds. The dashboard cache was a verified hit because the fallback dashboard lookup and artifact download steps were skipped. The other 16 successful runs were freshness-only schedules. One comparable successful publication is below the required five, so full-workflow publication and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer/Pages-packaging analysis across a sufficient successful sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
