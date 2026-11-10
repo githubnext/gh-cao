@@ -1,6 +1,6 @@
 services:
   redis:
-    image: redis:8.2-alpine
+    image: docker.io/library/redis:8.2-alpine
     ports:
       - "127.0.0.1::6379"
     healthcheck:
@@ -9,7 +9,7 @@ services:
       timeout: 2s
       retries: 30
   postgres:
-    image: postgres:16-alpine
+    image: docker.io/library/postgres:16-alpine
     environment:
       POSTGRES_DB: cao_backfill
       POSTGRES_USER: cao_backfill

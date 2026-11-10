@@ -35,6 +35,11 @@ func NewContainerRunner(image string, lifecycle ContainerLifecycle) (*ContainerR
 	if lifecycle == nil {
 		return nil, errors.New("hosted CLI requires a container lifecycle")
 	}
+	if validator, ok := lifecycle.(interface{ validateImage(string) error }); ok {
+		if err := validator.validateImage(image); err != nil {
+			return nil, err
+		}
+	}
 	return &ContainerRunner{Image: image, Lifecycle: lifecycle}, nil
 }
 

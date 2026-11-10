@@ -439,7 +439,7 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    cancellation-detached, bounded context. Recovery through `RecoverableRunner`
    MUST retain the same original-runtime and lease-fencing requirements.
    Docker is the only production adapter and retains the local-default-context
-   restriction and existing durable daemon IDs. The native development
+   restriction and existing durable daemon IDs. The local development
    adapters in section 6a require their own backend-scoped runtime identity;
    they do not enable remote Docker or a new production backend. Hosted commands
    are non-interactive; supplied stdin MUST be rejected rather than discarded.
@@ -448,12 +448,12 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    capacity. This does not make workflow dispatch idempotent, change retry
    admission, or release capacity occupied by an unconfirmed workload.
 
-## 6a. Native local-development profiles
+## 6a. Alternate local-development profiles
 
 1. `CAO_HOSTED_CLI_CONTAINER_RUNTIME` MUST default to `docker`; unknown values
-   MUST fail startup. Explicit `apple` or `windows-sandbox` selection MUST
+   MUST fail startup. Explicit `podman`, `apple`, or `windows-sandbox` selection MUST
    require `execute-cli --sqlite` and the matching host platform. Missing
-   native prerequisites MUST fail closed, never select Docker or host execution
+   runtime prerequisites MUST fail closed, never select Docker or host execution
    automatically. Admission, live permission rechecks, token scope, audit
    requirements, deadlines, and retained-claim recovery remain unchanged.
 2. Apple container MUST use the pinned Linux image in a private Linux VM on
@@ -515,6 +515,53 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    lease-fencing guarantees as the Docker adapter. Native prerequisites are
    operator-managed; the executor MUST NOT install OS features or change
    global runtime configuration automatically.
+
+8. Podman MUST be an explicitly selected SQLite-only Linux development
+   adapter, not a production Docker replacement or a macOS/Windows Podman
+   machine connection. Every engine command MUST select `--remote=false`.
+   The fixed `cao-hosted-cli` execution namespace MUST use an owned private
+   engine state directory, not Podman's unsupported SQLite `--namespace` flag.
+   Remote connection environment and
+   explicit engine/storage configuration overrides MUST be rejected; the
+   subprocess environment MUST allow only local path, home and XDG settings
+   plus the adapter-owned private engine configuration, never executor credentials.
+   Engine discovery MUST verify local rootless execution, cgroup v2, and
+   delegated memory and process controllers. Missing evidence MUST fail closed.
+   The fully qualified digest-pinned image MUST already exist in local Podman
+   storage; creation MUST use `--pull=never`, with no pull, Docker or host fallback.
+   Creation MUST preserve the Linux isolation and credential-file requirements
+   in section 6, using `--userns=keep-id` with the executor's UID/GID so only
+   the command workspace is writable on the host. The workspace bind MUST
+   request Podman `relabel=private`, never shared relabeling or disabled SELinux
+   separation. Only the newly allocated command workspace may be relabeled;
+   host home and system directories MUST NOT be substituted. An enforcing
+   SELinux host MUST permit that private relabel and container access, or
+   creation MUST fail with no isolation relaxation. Runtime identity MUST be
+   backend-scoped and bind the local host/user, canonical graph and run roots,
+   fixed namespace, storage driver, stable filesystem identity of the graph/run
+   and execution-state directories and owned SQLite database file, and durable private random records within
+   the graph root and execution namespace. Replacing a directory MUST change
+   identity even if its path or copied marker contents remain the same.
+   Replacing the owned database file MUST likewise change runtime identity.
+   Workload commands MUST pin the discovered graph/run roots,
+   the supported rootless `overlay` or `vfs` driver, SQLite engine state and an
+   owned static directory beneath the private identity directory. The private
+   engine configuration MUST disable inherited container/engine environments,
+   host mounts and OCI hooks. Default subscription-secret mounts and image
+   volumes MUST be disabled explicitly. A changed
+   default execution database MUST NOT make a foreign empty inventory prove absence.
+   Changed or lost identity MUST block reconciliation of retained claims.
+   Inspection MUST require an explicit exited, non-running state and valid exit
+   code; log transport exit MUST NOT establish completion. Forced removal or
+   successful empty exact-name inventory on the original runtime MAY confirm
+   absence without inventing an exit code.
+   This development adapter permits bridge networking; it does not implement
+   section 6b's production egress boundary and MUST reject those egress settings
+   rather than ignore them. Operators MUST provision rootless mappings, delegated
+   controllers, the local image, init helper and compatible workspace permissions
+   and security labels themselves. Unsupported host configuration MUST fail
+   rather than relax isolation. Fake-command tests alone MUST NOT be presented
+   as evidence of actual Podman kernel isolation.
 
 ## 6b. Production Docker egress boundary
 
@@ -851,6 +898,16 @@ workload termination in this model.
   private Git-root initialization, immutable pre-create identity registration,
   Docker/workload exit distinction, failed cleanup retaining capacity across
   SQLite restart, crash preservation, and original-daemon recovery.
+- `server/internal/hostedcli/podman_integration_test.go`: opt-in
+  `CAO_TEST_PODMAN=1 go test ./internal/hostedcli -run '^TestPodmanRealBoundary$' -v`
+  from `server/`, with an already present digest-pinned image containing Git,
+  `/bin/sh` and ordinary Unix tools (`CAO_TEST_PODMAN_IMAGE` MAY select one).
+  It exercises local rootless discovery, stable namespace identity, creation,
+  both output streams, UID/GID mapping, capability/no-new-privileges and
+  memory/process restrictions, read-only root, cancellation and original-runtime
+  removal. It never pulls images or changes host configuration. Missing image
+  or delegated controllers is an explicit skip, not actual workload-isolation
+  evidence.
 - `server/internal/operational/{postgres,sqlite}/cli_execution_test.go`:
   durable execution identity, immutable registration, and lease-fenced recovery.
 - `server/internal/hostedcli/executor_test.go`

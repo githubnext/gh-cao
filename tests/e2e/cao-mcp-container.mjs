@@ -18,6 +18,10 @@ import { MCP_PROTOCOL_VERSION } from "../../activity/mcp-server.mjs";
 
 const run = promisify(execFile);
 const repositoryRoot = path.resolve(import.meta.dirname, "../..");
+const engine = process.env.CAO_CONTAINER_ENGINE ?? "docker";
+if (!["docker", "podman"].includes(engine)) {
+  throw new Error("CAO_CONTAINER_ENGINE must be docker or podman");
+}
 const image = "cao-mcp-e2e";
 const container = "cao-mcp-e2e";
 const port = Number(process.env.CAO_MCP_E2E_PORT ?? 18765);
@@ -75,9 +79,9 @@ async function waitForHealth() {
 
 async function main() {
   try {
-    await run("docker", ["version"]);
+    await run(engine, ["info"]);
   } catch {
-    process.stdout.write("Skipping CAO MCP container test: docker is unavailable.\n");
+    process.stdout.write(`Skipping CAO MCP container test: ${engine} is unavailable.\n`);
     return;
   }
   const directory = await mkdtemp(path.join(tmpdir(), "cao-mcp-container-"));
@@ -90,11 +94,11 @@ async function main() {
   const digestBefore = createHash("sha256")
     .update(await readFile(snapshot))
     .digest("hex");
-  await run("docker", [
+  await run(engine, [
     "build", "-f", "Dockerfile.mcp", "-t", image, ".",
   ], { cwd: repositoryRoot, maxBuffer: 64 * 1024 * 1024 });
-  await run("docker", ["rm", "-f", container]).catch(() => {});
-  await run("docker", [
+  await run(engine, ["rm", "-f", container]).catch(() => {});
+  await run(engine, [
     "run", "--detach", "--name", container,
     "--read-only", "--tmpfs", "/tmp",
     "--volume", `${dataDirectory}:/data:ro`,
@@ -135,9 +139,9 @@ async function main() {
     if (!payload.metadata?.availability) {
       throw new Error("cao_query result is missing availability metadata");
     }
-    const { stdout: identity } = await run("docker", ["exec", container, "id", "-u"]);
+    const { stdout: identity } = await run(engine, ["exec", container, "id", "-u"]);
     if (identity.trim() === "0") throw new Error("The container runs as root");
-    const write = await run("docker", [
+    const write = await run(engine, [
       "exec", container, "sh", "-c", "touch /app/write-probe",
     ]).then(() => "written").catch(() => "read-only");
     if (write !== "read-only") throw new Error("The container filesystem is writable");
@@ -149,7 +153,7 @@ async function main() {
       `CAO MCP container served ${queries.length} catalogued queries over HTTP without modifying its snapshot.\n`,
     );
   } finally {
-    await run("docker", ["rm", "-f", container]).catch(() => {});
+    await run(engine, ["rm", "-f", container]).catch(() => {});
     await rm(directory, { recursive: true, force: true });
   }
 }

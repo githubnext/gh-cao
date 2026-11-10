@@ -2,10 +2,21 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-if docker compose version >/dev/null 2>&1; then
-  compose=(docker compose)
-else
-  compose=(docker-compose)
+# shellcheck source=scripts/container-engine.sh
+source scripts/container-engine.sh
+cao_container_engine_init
+compose=(bash scripts/container-compose.sh)
+if [[ "$CAO_CONTAINER_ENGINE" == podman ]]; then
+  provider_error() {
+    echo "Backfill requires a Docker Compose v2 provider with up --wait, --wait-timeout and --pull never; configure PODMAN_COMPOSE_PROVIDER to its executable. podman-compose is not supported for backfill." >&2
+    exit 1
+  }
+  provider_version="$("${compose[@]}" version --short)" || provider_error
+  [[ "$provider_version" =~ ^v?2\. ]] || provider_error
+  provider_help="$("${compose[@]}" up --help)" || provider_error
+  for option in --wait --wait-timeout --pull; do
+    grep -Eq -- "(^|[[:space:]])${option}([[:space:]=]|$)" <<<"$provider_help" || provider_error
+  done
 fi
 project="cao-backfill-$(openssl rand -hex 6)"
 compose+=(-p "$project" -f server/backfill-compose.yml)
@@ -26,7 +37,7 @@ cleanup() {
       containers+=("$container")
     fi
   done < <("${compose[@]}" ps -aq)
-  if [ "${#containers[@]}" -gt 0 ] && ! docker inspect "${containers[@]}" \
+  if [ "${#containers[@]}" -gt 0 ] && ! cao_container inspect "${containers[@]}" \
     --format '{{json .State}}' > "$report_dir/container-state.jsonl" 2>&1; then
     echo "Could not collect backfill container exit/resource state" >&2
     status=1

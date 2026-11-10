@@ -2234,7 +2234,8 @@ Never put the key in checked-in configuration, command arguments, logs, or the
 | `CAO_HOSTED_CLI_DASHBOARD_URL` | Dashboard URL used in command backlinks. |
 | `CAO_HOSTED_CLI_CONTAINER_IMAGE` | Optional digest-pinned gh-aw image or approved mirror; defaults to `ghcr.io/github/gh-aw@sha256:7ff77dc03182d4edcebc902fa94b0239eb9cde65ea212509aef700bcab354090`. |
 | `CAO_HOSTED_CLI_DOCKER` | Optional Docker CLI path; defaults to `docker`. |
-| `CAO_HOSTED_CLI_CONTAINER_RUNTIME` | `docker` (default), `apple`, or `windows-sandbox`. Native profiles require `execute-cli --sqlite` and the matching OS; there is no automatic fallback. |
+| `CAO_HOSTED_CLI_CONTAINER_RUNTIME` | `docker` (default), `podman`, `apple`, `windows-sandbox`; no fallback. Alternates require `execute-cli --sqlite` and matching OS. Podman: rootless Linux only; no remote/machine, production PostgreSQL or egress settings. |
+| `CAO_HOSTED_CLI_PODMAN` | Podman binary override; defaults to `podman`. |
 | `CAO_HOSTED_CLI_EGRESS_POLICY_FILE` | Required production Docker exact-host HTTPS policy file; see the rollout contract below. No implicit allowed hosts. |
 | `CAO_HOSTED_CLI_EGRESS_RELAY` | Required production path to the static Linux relay artifact built from the reviewed server source. |
 | `CAO_HOSTED_CLI_EGRESS_RELAY_SHA256` | Required reviewed SHA-256 of that relay artifact. Startup snapshots and verifies the bytes; each create verifies the Linux daemon architecture. |
@@ -2341,7 +2342,7 @@ obligations, and workspace follow existing bounded stop/recovery rules.
 
 SQLite-only Docker development keeps its previous bridge behavior **only when
 all three egress settings are absent**. Supplying any setting opts into the
-complete boundary and fails closed if anything is unavailable. Apple and Windows
+complete boundary and fails closed if anything is unavailable. Podman, Apple and Windows
 remain explicit SQLite-only development profiles, not production fallbacks.
 
 Before enabling production admission, run the credential-free real-boundary
@@ -2361,13 +2362,14 @@ It does not write to GitHub or use real credentials. Missing
 do not switch contexts to avoid it. Deterministic policy, proxy and lifecycle
 tests run without Docker but are not evidence of the kernel boundary.
 
-#### Native runtimes for local development
+#### Alternate runtimes for local development
 
-Native runtime selection changes only execution isolation. Keep the existing
-OAuth/App configuration, durable session-secret configuration, scoped tokens,
-and loopback-only SQLite debug server; never substitute a disposable secret or
-run the hosted command directly on the host. Native profiles are rejected for
-the production PostgreSQL executor.
+Alternate runtimes change isolation only. Keep OAuth/App configuration, durable
+session secrets, scoped tokens and loopback-only SQLite; never use disposable
+secrets or run hosted commands directly on the host. Production PostgreSQL
+rejects alternates.
+
+See [Podman and private SELinux label requirements](../specs/server-hosted-cli.md#6a-alternate-local-development-profiles).
 
 On **Apple Silicon macOS 26**, install Apple's
 [`container` CLI](https://github.com/apple/container) and start its services:
@@ -4019,21 +4021,20 @@ guidance, limitations, and private vulnerability-reporting process.
 
 ## Run locally
 
-The module targets and pins Go 1.27.3.
+Go 1.27.3 is pinned.
 
-On a MacBook, install Homebrew first and run the idempotent project setup:
+On macOS with Homebrew:
 
 ```bash
 npm run dashboard:server:setup:macos
 ```
 
-The command installs Homebrew Go, Node.js 24, the Docker CLI, Docker Compose,
-Colima, and the dashboard npm dependencies. Docker and the optional
-PostgreSQL/Redis stack in `server/docker-compose.yml` are not required for the
-default SQLite profile; the setup does not install or start a native Redis
-service.
+Installs Go, Node.js 24, npm packages and Docker/Compose/Colima.
+`CAO_CONTAINER_ENGINE=podman` selects Podman/Compose (no Colima); default Docker
+never falls back. See [setup](../scripts/azure-local/README.md#local-service-engine-setup).
+SQLite needs neither containers nor native Redis.
 
-From the repository root, start with the default SQLite cache:
+From the repository root (default SQLite):
 
 ```bash
 npm --prefix dashboard/site ci
@@ -4042,13 +4043,13 @@ npm run dashboard:server:build
 go -C server run ./cmd/cao-dashboard serve
 ```
 
-The server downloads the deployed snapshot if missing and reuses it offline on
-later starts. To exercise PostgreSQL instead, start the optional database stack,
-configure `CAO_POSTGRES_URL`, and provision storage as described in
+Missing deployed snapshots are downloaded and reused offline.
+For PostgreSQL, start the optional stack, configure `CAO_POSTGRES_URL`, and
+provision storage per
 [`POSTGRES.md`](POSTGRES.md) before ingesting:
 
 ```bash
-docker compose -f server/docker-compose.yml up -d
+bash scripts/container-compose.sh -f server/docker-compose.yml up -d
 
 go -C server run ./cmd/cao-dashboard ingest \
   --source /absolute/path/to/deployed-dashboard

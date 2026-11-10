@@ -743,7 +743,30 @@ Missing production egress configuration fails startup; only SQLite Docker
 development with no egress settings retains the previous bridge mode.
 The proxy is bounded and canceled with its command; losing egress never proves
 workload termination or releases retained claims. No shared host-network
-configuration changes or new runtime providers are introduced.
+configuration changes or new production runtime providers are introduced.
+Linux development may explicitly select local rootless Podman with
+`CAO_HOSTED_CLI_CONTAINER_RUNTIME=podman` and `execute-cli --sqlite`.
+Every Podman invocation forces `--remote=false`; an owned private engine state
+directory establishes the `cao-hosted-cli` execution namespace (SQLite Podman
+does not support `--namespace`). Remote environment and explicit engine/storage
+overrides are rejected. The adapter verifies rootless cgroup-v2 memory/process
+controllers, requires the pinned image already present (`--pull=never`), and
+reuses the Linux read-only/capability/process/memory/credential-file isolation
+with UID-preserving rootless mappings.
+The command-owned workspace alone uses Podman `relabel=private`; an enforcing
+SELinux host must permit private relabeling or creation fails. Shared labels,
+host-directory substitution and `label=disable` are not fallback options.
+Its backend-scoped identity binds the host/user, graph/run roots, storage driver,
+fixed namespace, stable filesystem directory/database-file identities and durable
+private random records in both the store and execution namespace. Replacement
+directories cannot prove old-workload absence, even at the same path with copied
+markers. Workload commands pin those roots and an owned static directory
+with SQLite engine state rather than inheriting an execution-database override;
+changed identity cannot reconcile old claims. Podman uses development bridge
+networking, rejects production Docker egress settings, and has no Docker,
+host-command or production fallback. Host mappings, init helper, controllers
+and security labels remain operator prerequisites, not automatically installed
+or weakened. Fake lifecycle tests do not establish real Podman kernel isolation.
 Apple Silicon development uses Apple's `container` CLI with the
 same pinned Linux image, a private VM, dropped capabilities, and an in-guest
 no-new-privileges bootstrap. Windows development uses Windows Sandbox and a
