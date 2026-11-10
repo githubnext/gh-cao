@@ -137,6 +137,38 @@ test("framework reports freeze complete UTC windows and suppress owned closed du
   }
 });
 
+test("owned dated report titles suppress duplicates without a custom body marker", async () => {
+  for (const state of ["open", "closed"]) {
+    for (const date of ["2026-11-09", "2026-11-10"]) {
+      const report = {
+        number: 20547, title: `[cao-framework-health] ${date}`, state,
+        user: { type: "Bot" },
+        body: "Daily report\n<!-- gh-aw-workflow-id: cao-framework-health -->",
+      };
+      const result = await execute("Fix scope, window and report history", {
+        github: historyAPI({ reports: [report] }),
+      });
+      assert.equal(result.outputs.duplicate, true);
+      const data = JSON.parse(result.files.get(`${directory}/context.json`));
+      assert.equal(data.duplicate, true);
+      assert.equal(data.reports[0].number, report.number);
+    }
+  }
+  for (const title of [
+    "[cao-framework-health] 2026-11-08",
+    "[cao-framework-health] 2026-11-10 unrelated",
+    "Unrelated 2026-11-10",
+  ]) {
+    const result = await execute("Fix scope, window and report history", {
+      github: historyAPI({ reports: [{
+        title, user: { type: "Bot" },
+        body: "<!-- gh-aw-workflow-id: cao-framework-health -->",
+      }] }),
+    });
+    assert.equal(result.outputs.duplicate, false);
+  }
+});
+
 test("scope, revision, report collisions, inaccessible and truncated history fail closed", async () => {
   for (const options of [
     { runContext: { ...context, repo: { owner: "acme", repo: "target" } } },
@@ -144,6 +176,14 @@ test("scope, revision, report collisions, inaccessible and truncated history fai
     { github: historyAPI({ head: "b".repeat(40) }) },
     { github: historyAPI({ createdAt: "invalid" }) },
     { github: historyAPI({ reports: [{ title: "[cao-framework-health] 2026-11-09", user: { type: "User" } }] }) },
+    { github: historyAPI({ reports: [{
+      title: "[cao-framework-health] 2026-11-09", user: { type: "User" },
+      body: "<!-- gh-aw-workflow-id: cao-framework-health -->",
+    }] }) },
+    { github: historyAPI({ reports: [{
+      title: "[cao-framework-health] 2026-11-09", user: { type: "Bot" },
+      body: "<!-- gh-aw-workflow-id: another-workflow -->",
+    }] }) },
     { github: historyAPI({ reports: Array.from({ length: 100 }, () => ({})) }) },
     { github: { rest: { repos: { async get() { throw new Error("403 forbidden"); } } } } },
   ]) {
