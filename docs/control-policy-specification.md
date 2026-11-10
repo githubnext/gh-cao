@@ -17,4 +17,3 @@ The optional `control-plane.web.host` section composes an app server target modu
 with an independent Redis provider module and records only non-secret capabilities
 and environment-variable references. Keep connection
 URLs, passwords, and CA certificate contents in the deployment secret manager.
-See [Managed Redis in one minute](deployment-managed-redis.md).
