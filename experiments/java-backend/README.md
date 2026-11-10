@@ -17,7 +17,16 @@ The fail-closed policy/authority kernel for the control-plane subset of
   default, exact-target and worker-ceiling narrowing, and narrowing-only dispatch
   requests (widening throws `PolicyException`; expected denials return stable reasons).
 
-No HTTP service, database or container exists yet, so no cloud packaging is included.
+- `ApiServer`: `GET /api/health` and `GET /api/readiness` per `server/spec/generated/openapi.json`.
+  With no operational store or canonical data adapter yet, both honestly report 503/unavailable.
+  Other routes return 404. No database exists yet.
+- `Dockerfile`: non-root, provider-neutral; no data or credentials baked in.
+
+Run (after `verify`): `CAO_PORT=8080 java -cp "experiments/java-backend/target/cao-java-backend-0.1.0-SNAPSHOT.jar:experiments/java-backend/target/lib/*" org.cao.backend.http.Main`.
+Env: `CAO_BIND` (default `127.0.0.1`, numeric IP; non-loopback requires `CAO_ALLOW_NON_LOOPBACK=true`),
+`CAO_PORT` (default 8080), `CAO_SHUTDOWN_GRACE_SECONDS` (default 10).
+Container: `docker build -t cao-java-backend experiments/java-backend` (not executed here).
+Never expose the listener publicly: there is no authentication yet.
 
 ## Build and test
 
