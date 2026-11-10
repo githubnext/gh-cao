@@ -6,6 +6,8 @@ import path from "node:path";
 export const VALIDATOR_VERSION = "1";
 const POLICY_PATH = ".github/workflows/cao.json";
 const WORKFLOW_DIRECTORY = ".github/workflows";
+// gh-aw records Markdown metadata from these repository agent directories in every generated lock file.
+const AGENT_METADATA_DIRECTORIES = [".github/agents", ".agents/agents", ".claude/agents", ".codex/agents", ".gemini/agents", ".pi/agents"];
 const VERSION_PATTERN = /\bv\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\b/;
 const FINDING_FIELDS = [
   "id", "severity", "category", "title", "campaign", "files",
@@ -96,6 +98,13 @@ export async function compileAndCompare(root, execute, expectedVersion) {
       );
     } catch (error) {
       if (error?.code !== "ENOENT") throw error;
+    }
+    for (const directory of AGENT_METADATA_DIRECTORIES) {
+      try {
+        await cp(path.join(root, directory), path.join(temporaryRoot, directory), { recursive: true });
+      } catch (error) {
+        if (error?.code !== "ENOENT") throw error;
+      }
     }
     const initialize = run(execute, "git", ["init", "--quiet"], temporaryRoot);
     if (initialize.error || initialize.status !== 0) {

@@ -484,7 +484,7 @@ test("control workflows deny before activation through one shared admission cont
     const preActivation = jobs.get("pre_activation")?.block ?? "";
     const activation = jobs.get("activation")?.block ?? "";
 
-    assert.match(preActivation, /cao_authorized: \$\{\{ steps\.cao_admission\.outputs\.authorized == 'true' && steps\.cao_precompute\.outputs\.authorized != 'false' \}\}/, generatedName);
+    assert.match(preActivation, /cao_authorized: "?\$\{\{ steps\.cao_admission\.outputs\.authorized == 'true' && steps\.cao_precompute\.outputs\.authorized != 'false' \}\}"?/, generatedName);
     assert.match(preActivation, /Evaluate Central Agentic Ops admission/, generatedName);
     assert.match(preActivation, /Generate CAO pre-activation GitHub App token/, generatedName);
     assert.doesNotMatch(preActivation, /github\/gh-aw-actions\/setup-cli@/, generatedName);

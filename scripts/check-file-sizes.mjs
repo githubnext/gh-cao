@@ -3,6 +3,8 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 const maximumSize = 256 * 1024;
+// gh-aw lock files are compiler output; GitHub does not start runs for workflow files above 500 KB.
+const maximumGeneratedWorkflowSize = 500 * 1024;
 const maximumLines = 3000;
 const imageExtensions = new Set([".avif", ".gif", ".ico", ".jpeg", ".jpg", ".png", ".svg", ".webp"]);
 const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".ts", ".tsx"]);
@@ -40,13 +42,15 @@ const oversizedFiles = trackedFiles.filter((file) => {
 }).flatMap((file) => {
   const filePath = path.join(root, file);
   const size = statSync(filePath).size;
-  return size > maximumSize ? [{ file, size }] : [];
+  const isGeneratedWorkflow = file.startsWith(".github/workflows/") && file.endsWith(".lock.yml");
+  const limit = isGeneratedWorkflow ? maximumGeneratedWorkflowSize : maximumSize;
+  return size > limit ? [{ file, size, limit }] : [];
 });
 
 if (oversizedFiles.length > 0) {
-  console.error(`Tracked files must not exceed 256 KiB (${maximumSize} bytes):`);
-  for (const { file, size } of oversizedFiles) {
-    console.error(`- ${file} (${size} bytes)`);
+  console.error(`Tracked files must not exceed 256 KiB (${maximumSize} bytes); generated .github/workflows/*.lock.yml files must not exceed 500 KiB (${maximumGeneratedWorkflowSize} bytes):`);
+  for (const { file, size, limit } of oversizedFiles) {
+    console.error(`- ${file} (${size} bytes, limit ${limit} bytes)`);
   }
   process.exitCode = 1;
 }
