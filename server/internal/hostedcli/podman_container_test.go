@@ -42,6 +42,7 @@ func podmanTest(t *testing.T) (*ContainerRunner, *containerCommandRunner, Proces
 	}
 	clearPodmanConfiguration(t)
 	root := t.TempDir()
+	workspace := t.TempDir()
 	info, err := json.Marshal(map[string]any{
 		"host": map[string]any{
 			"serviceIsRemote": false, "security": map[string]any{"rootless": true},
@@ -81,7 +82,15 @@ func podmanTest(t *testing.T) (*ContainerRunner, *containerCommandRunner, Proces
 		case "create":
 			output("stdout", []byte(strings.Repeat("a", 64)))
 		case "inspect":
-			output("stdout", []byte(`{"Status":"exited","Running":false,"ExitCode":7}`))
+			if slices.Contains(p.Args, podmanIsolationFormat) {
+				effective, err := json.Marshal(podmanIsolationFixture(workspace, p.Args[len(p.Args)-1]))
+				if err != nil {
+					t.Fatal(err)
+				}
+				output("stdout", effective)
+			} else {
+				output("stdout", []byte(`{"Status":"exited","Running":false,"ExitCode":7}`))
+			}
 		case "logs":
 			if output != nil {
 				output("stdout", []byte("out"))
@@ -101,13 +110,28 @@ func podmanTest(t *testing.T) (*ContainerRunner, *containerCommandRunner, Proces
 	if err != nil {
 		t.Fatal(err)
 	}
-	workspace := t.TempDir()
 	return runner, commands, Process{
 		CommandID: 1, Workspace: workspace, Dir: workspace, Program: "gh-aw",
 		Args: []string{"update", "--repo", "octo/cao"},
 		Env:  []string{"GH_TOKEN=scoped-value", "HOME=/workspace/home"},
 		RegisterContainer: func(_ context.Context, execution operational.CLICommandExecution) error {
 			return execution.Validate()
+		},
+	}
+}
+
+func podmanIsolationFixture(workspace, name string) map[string]any {
+	uid, gid, _ := strings.Cut(containerUser(), ":")
+	return map[string]any{
+		"Name": name, "User": containerUser(), "Workdir": "/workspace",
+		"EffectiveCaps": []string{}, "BoundingCaps": []string{},
+		"Mounts": []map[string]any{{"Type": "bind", "Source": workspace, "Destination": "/workspace", "RW": true}},
+		"HostConfig": map[string]any{
+			"Privileged": false, "ReadonlyRootfs": true, "Memory": int64(1 << 30), "PidsLimit": int64(256),
+			"SecurityOpt": []string{"no-new-privileges"}, "NetworkMode": "bridge", "UsernsMode": "keep-id",
+			"PidMode": "private", "IpcMode": "private", "UTSMode": "private", "CgroupnsMode": "private",
+			"Tmpfs":      map[string]string{"/tmp": "rw,nosuid,nodev,noexec,size=64m"},
+			"IDMappings": map[string]any{"UidMap": []string{uid + ":0:1"}, "GidMap": []string{gid + ":0:1"}},
 		},
 	}
 }
@@ -160,7 +184,7 @@ func TestPodmanFullLifecycle(t *testing.T) {
 			}
 			for _, flag := range []string{
 				"--pull=never", "--userns=keep-id", "--image-volume=ignore",
-				"--http-proxy=false", "--env-host=false", "--cgroups=enabled", "--read-only-tmpfs=false",
+				"--http-proxy=false", "--env-host=false", "--privileged=false", "--cgroups=enabled", "--read-only-tmpfs=false",
 				"--default-mounts-file=/dev/null", "--read-only", "--cap-drop",
 				"ALL", "--security-opt", "no-new-privileges", "--pids-limit", "256",
 				"--memory", "1g", "--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=64m",
@@ -218,7 +242,7 @@ func TestPodmanFullLifecycle(t *testing.T) {
 	for _, p := range commands.processes {
 		operations = append(operations, podmanOperation(p))
 	}
-	if !slices.Equal(operations, []string{"info", "info", "create", "start", "logs", "info", "info", "inspect", "rm"}) {
+	if !slices.Equal(operations, []string{"info", "info", "create", "inspect", "start", "logs", "info", "info", "inspect", "rm"}) {
 		t.Fatalf("lifecycle ordering = %v", operations)
 	}
 }

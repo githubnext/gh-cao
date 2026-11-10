@@ -179,6 +179,19 @@ func TestPodmanRealBoundary(t *testing.T) {
 				t.Fatal("Podman exact-name filter matched a different name")
 			}
 			if err := lifecycle.Start(ctx, execution); err != nil {
+				evidence, _, _ := engine.capture(ctx, []string{"inspect", podmanIsolationFormat, name})
+				var fields map[string]any
+				if json.Unmarshal([]byte(evidence), &fields) == nil {
+					if host, ok := fields["HostConfig"].(map[string]any); ok {
+						t.Logf("effective security evidence: privileged=%v readonly=%v caps=%v/%v capadd=%v securityopt=%v",
+							host["Privileged"], host["ReadonlyRootfs"], fields["EffectiveCaps"],
+							fields["BoundingCaps"], host["CapAdd"], host["SecurityOpt"])
+						t.Logf("effective namespace evidence: network=%v user=%v pid=%v ipc=%v uts=%v cgroup=%v/%v tmpfs=%v",
+							host["NetworkMode"], host["UsernsMode"], host["PidMode"], host["IpcMode"], host["UTSMode"],
+							host["CgroupMode"], host["CgroupnsMode"], host["Tmpfs"])
+						t.Logf("effective user mapping evidence: %v", host["IDMappings"])
+					}
+				}
 				t.Fatal(err)
 			}
 			var output strings.Builder

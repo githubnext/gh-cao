@@ -25,6 +25,7 @@ type PodmanContainerLifecycle struct {
 	mu            sync.RWMutex
 	currentID     string
 	currentEngine *DockerContainerLifecycle
+	created       map[string]podmanCreatedWorkspace
 }
 
 var _ ContainerLifecycle = (*PodmanContainerLifecycle)(nil)
@@ -55,7 +56,7 @@ func NewPodmanContainerLifecycle(binary string, commands Runner) (*PodmanContain
 		commandPrefix: []string{"--remote=false", "--db-backend=sqlite",
 			"--default-mounts-file=/dev/null"},
 		createOptions: []string{"--pull=never", "--userns=keep-id", "--image-volume=ignore",
-			"--http-proxy=false", "--env-host=false", "--cgroups=enabled", "--read-only-tmpfs=false"},
+			"--http-proxy=false", "--env-host=false", "--privileged=false", "--cgroups=enabled", "--read-only-tmpfs=false"},
 		responseLimit:         32768,
 		privateWorkspaceLabel: true,
 	}}, nil
@@ -226,6 +227,10 @@ func (r *PodmanContainerLifecycle) Create(ctx context.Context, execution operati
 	if err := r.validateImage(spec.Image); err != nil {
 		return err
 	}
+	workspace, workdir, err := containerPaths(spec.Workspace, spec.Directory)
+	if err != nil {
+		return err
+	}
 	engine, err := r.executionEngine(execution)
 	if err != nil {
 		return err
@@ -237,7 +242,18 @@ func (r *PodmanContainerLifecycle) Create(ctx context.Context, execution operati
 	if err != nil {
 		return errors.Join(errors.New("hosted CLI Podman creation failed; verify the local image, rootless limits and private workspace SELinux relabel permissions"), err)
 	}
-	return err
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.currentID != execution.RuntimeID {
+		return errors.New("hosted CLI Podman runtime changed during creation")
+	}
+	if r.created == nil {
+		r.created = make(map[string]podmanCreatedWorkspace)
+	}
+	r.created[execution.Name] = podmanCreatedWorkspace{
+		runtimeID: execution.RuntimeID, path: workspace, workdir: workdir, user: containerUser(),
+	}
+	return nil
 }
 
 func (r *PodmanContainerLifecycle) validateImage(image string) error {
@@ -252,6 +268,16 @@ func (r *PodmanContainerLifecycle) validateImage(image string) error {
 func (r *PodmanContainerLifecycle) Start(ctx context.Context, execution operational.CLICommandExecution) error {
 	engine, err := r.executionEngine(execution)
 	if err != nil {
+		return err
+	}
+	r.mu.Lock()
+	expected, ok := r.created[execution.Name]
+	delete(r.created, execution.Name)
+	r.mu.Unlock()
+	if !ok || expected.runtimeID != execution.RuntimeID {
+		return errors.New("hosted CLI Podman start requires this adapter's newly created workspace")
+	}
+	if err := validatePodmanIsolation(ctx, engine, execution, expected); err != nil {
 		return err
 	}
 	return engine.Start(ctx, execution)
@@ -291,6 +317,7 @@ func (r *PodmanContainerLifecycle) Stop(ctx context.Context, execution operation
 		return ctx.Err()
 	}
 	if err == nil && code == 0 {
+		r.forgetCreation(execution)
 		return nil
 	}
 	// Podman names, unlike Docker names, do not have a leading slash.
@@ -301,9 +328,18 @@ func (r *PodmanContainerLifecycle) Stop(ctx context.Context, execution operation
 		return ctx.Err()
 	}
 	if err == nil && code == 0 && strings.TrimSpace(value) == "" {
+		r.forgetCreation(execution)
 		return nil
 	}
 	return errors.New("hosted CLI Podman container removal failed")
+}
+
+func (r *PodmanContainerLifecycle) forgetCreation(execution operational.CLICommandExecution) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if expected, ok := r.created[execution.Name]; ok && expected.runtimeID == execution.RuntimeID {
+		delete(r.created, execution.Name)
+	}
 }
 
 func (r *PodmanContainerLifecycle) CollectOutput(ctx context.Context, execution operational.CLICommandExecution, output OutputFunc) error {
