@@ -35,6 +35,8 @@ type podmanIsolation struct {
 		NetworkMode, PidMode, IpcMode, UTSMode     string
 		UsernsMode, CgroupnsMode, CgroupMode       string
 		Devices, DeviceRequests, DeviceCgroupRules []json.RawMessage
+		PortBindings                             map[string]json.RawMessage
+		PublishAllPorts                          bool
 		Tmpfs                                      map[string]string
 		IDMappings                                 *struct{ UidMap, GidMap []string }
 	}
@@ -63,17 +65,21 @@ func validatePodmanIsolation(ctx context.Context, engine *DockerContainerLifecyc
 	}
 	if host.NetworkMode != "bridge" || (host.UsernsMode != "keep-id" && host.UsernsMode != "private") ||
 		!podmanKeepsUser(expected.user, host.IDMappings) ||
-		!privatePodmanNamespace(host.PidMode) || !privatePodmanNamespace(host.UTSMode) ||
+		host.PidMode != "private" || host.UTSMode != "private" ||
 		!privatePodmanNamespace(host.CgroupnsMode) || !privatePodmanNamespace(host.CgroupMode) ||
-		(!privatePodmanNamespace(host.IpcMode) && host.IpcMode != "shareable") {
+		(host.CgroupMode != "private" && host.CgroupnsMode != "private") ||
+		(host.IpcMode != "private" && host.IpcMode != "shareable") {
 		return errors.New("hosted CLI Podman effective isolation namespaces are unsafe")
 	}
-	if len(host.Devices) != 0 || len(host.DeviceRequests) != 0 || len(host.DeviceCgroupRules) != 0 {
-		return errors.New("hosted CLI Podman effective isolation contains extra host devices")
+	if len(host.Devices) != 0 || len(host.DeviceRequests) != 0 || len(host.DeviceCgroupRules) != 0 ||
+		len(host.PortBindings) != 0 || host.PublishAllPorts {
+		return errors.New("hosted CLI Podman effective isolation contains extra host devices or port bindings")
 	}
 	workspaceFound := false
+	tmpfsFound := false
 	for _, mount := range actual.Mounts {
-		if mount.Type == "tmpfs" && mount.Destination == "/tmp" {
+		if mount.Type == "tmpfs" && mount.Destination == "/tmp" && !tmpfsFound {
+			tmpfsFound = true
 			continue
 		}
 		if mount.Type != "bind" || mount.Source != expected.path || mount.Destination != "/workspace" ||
@@ -140,10 +146,22 @@ func privatePodmanNamespace(mode string) bool {
 
 func safePodmanTmpfs(options string) bool {
 	flags := make(map[string]bool)
+	sizeFound := false
 	for _, option := range strings.Split(options, ",") {
+		if flags[option] {
+			return false
+		}
+		switch option {
+		case "rw", "nosuid", "nodev", "noexec", "rprivate", "tmpcopyup", "mode=1777":
+		case "size=64m", "size=65536k", "size=67108864":
+			if sizeFound {
+				return false
+			}
+			sizeFound = true
+		default:
+			return false
+		}
 		flags[option] = true
 	}
-	return flags["rw"] && !flags["ro"] && !flags["exec"] && !flags["suid"] && !flags["dev"] &&
-		flags["noexec"] && flags["nosuid"] && flags["nodev"] &&
-		(flags["size=64m"] || flags["size=65536k"] || flags["size=67108864"])
+	return flags["rw"] && flags["noexec"] && flags["nosuid"] && flags["nodev"] && sizeFound
 }
