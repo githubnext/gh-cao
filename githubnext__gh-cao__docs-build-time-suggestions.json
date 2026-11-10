@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-10T12:36:22.917742Z",
-      "worker_run_id": "42816766901",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42816533903,
-        42815099986,
-        42814698988,
-        42812267623,
-        42810133407,
-        42808104445,
-        42806058524,
-        42805577341,
-        42804000346,
-        42801897003,
-        42799812250,
-        42797819794,
-        42797437106,
-        42795599307,
-        42793374918,
-        42791402673,
-        42789610471,
-        42787284296,
-        42785201087,
-        42783280424
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T08:31:15Z to 2026-11-10T12:32:09Z) was within 14 days and contained 17 successful schedule runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified the newly observed schedule run 42816533903 was freshness-only: schedule-freshness succeeded in 17 seconds while build and deploy were skipped. Prior bounded evaluations verify the overlapping runs. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Full-workflow publication and dashboard/build/deploy median and p90 distributions, repeated artifact-transfer/Pages-packaging cost analysis, step timing analysis, and cache-hit verification across a sufficient successful publication sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-10T12:50:48Z",
       "worker_run_id": "42818812407",
       "category": "artifact transfer and Pages packaging",
@@ -841,6 +813,34 @@
         42880862291
       ],
       "outcome": "incomplete: latest-20 completed docs.yml window (2026-11-10T19:00:17Z to 2026-11-10T22:15:59Z) contained 14 successful runs (12 freshness-only schedules and 2 full publications), 4 skipped workflow_run callbacks, 2 cancelled runs excluded (42880898081 workflow_run, 42880862291 push) and 0 failed runs. Only two comparable successful publications were available, below the required five: push 42905068616 at c6fd809e (174s created-to-completion; build 136s with checkout 55s, npm ci 25s, docs build 13s, dashboard cache restore 4s, Pages artifact upload 23s; deploy 29s) and schedule 42881074442 at 2fbe39c5 (415s created-to-completion including a 201s queue before the first job was created; freshness 9s; build 168s with checkout 65s, npm ci 51s, docs build 15s, cache restore 4s, Pages upload 19s; deploy 27s). Both dashboard cache restores were verified hits because the fallback lookup and artifact steps were skipped. The mission's 'dashboard' job does not exist in docs.yml; dashboard steps run inside build. Structural caveat: the */15 schedule yields mostly freshness-only runs, so a 20-run window rarely holds five publications. No median/p90 distributions or suggestion could be established; next_category unchanged."
+    },
+    {
+      "evaluated_at": "2026-11-10T22:33:55Z",
+      "worker_run_id": "42914979216",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42915280441,
+        42912938024,
+        42912416453,
+        42910650809,
+        42908132923,
+        42905767635,
+        42905068616,
+        42903346355,
+        42902695947,
+        42898468486,
+        42896004811,
+        42893528446,
+        42893241575,
+        42891091809,
+        42888486035,
+        42886082405,
+        42883487961,
+        42882863950,
+        42881074442,
+        42880898081
+      ],
+      "outcome": "incomplete: latest-20 completed docs.yml window (2026-11-10T19:00:30Z to 2026-11-10T22:31:05Z, within 14 days) contained 15 successful runs (13 freshness-only schedules with build and deploy skipped, 8 to 10 s each; 2 full publications), 4 skipped workflow_run callbacks, and 1 cancelled workflow_run (42880898081, excluded). No failed runs. Only two comparable successful build-and-deploy publications were available, below the required five: push 42905068616 at c6fd809e (build 136 s, deploy 29 s) and schedule 42881074442 at 2fbe39c5 (build 168 s, deploy 27 s). Trusted job metadata verified the step conditions; no bounded logs were read because the gate stopped the evaluation. next_category was not advanced because no complete evaluation was made. The mission's 'dashboard' job does not exist; dashboard steps run inside build."
     }
   ]
 }
