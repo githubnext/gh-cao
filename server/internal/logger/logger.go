@@ -52,22 +52,32 @@ func (l *Logger) Enabled() bool {
 
 // Printf writes a formatted message when the logger is enabled.
 //
-//nolint:contextcheck // This context-free debug API has no caller context; slog.Handle forwards its context separately.
+//nolint:contextcheck // Background work may log without a caller context.
 func (l *Logger) Printf(format string, args ...any) {
+	l.PrintfContext(context.Background(), format, args...)
+}
+
+// PrintfContext writes a formatted message with the caller's trace context.
+func (l *Logger) PrintfContext(ctx context.Context, format string, args ...any) {
 	if !l.enabled {
 		return
 	}
-	l.write(context.Background(), otelLog.SeverityDebug, fmt.Sprintf(format, args...))
+	l.write(ctx, otelLog.SeverityDebug, fmt.Sprintf(format, args...))
 }
 
 // Print writes a message when the logger is enabled.
 //
-//nolint:contextcheck // This context-free debug API has no caller context; slog.Handle forwards its context separately.
+//nolint:contextcheck // Background work may log without a caller context.
 func (l *Logger) Print(args ...any) {
+	l.PrintContext(context.Background(), args...)
+}
+
+// PrintContext writes a message with the caller's trace context.
+func (l *Logger) PrintContext(ctx context.Context, args ...any) {
 	if !l.enabled {
 		return
 	}
-	l.write(context.Background(), otelLog.SeverityDebug, fmt.Sprint(args...))
+	l.write(ctx, otelLog.SeverityDebug, fmt.Sprint(args...))
 }
 
 func (l *Logger) write(ctx context.Context, severity otelLog.Severity, message string) {

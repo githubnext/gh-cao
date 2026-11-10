@@ -51,14 +51,14 @@ func (a *App) serverLogRedis(ctx context.Context) serverLogRedis {
 	defer cancel()
 	counters, _, err := a.services.IngestionMetrics.IngestionHealth(ctx)
 	if err != nil {
-		serverLogsLog.Printf("server log snapshot unavailable stage=ingestion-health")
+		serverLogsLog.PrintfContext(ctx, "server log snapshot unavailable stage=ingestion-health")
 		return serverLogRedis{Status: "unavailable"}
 	}
 	result := serverLogRedis{Status: "ok", Counters: counters}
 	if collector := a.Collector(); collector != nil {
 		depth, pending, dead, err := collectionQueueCounts(ctx, collector.reporter.Queue)
 		if err != nil {
-			serverLogsLog.Printf("server log snapshot unavailable stage=collection-queue")
+			serverLogsLog.PrintfContext(ctx, "server log snapshot unavailable stage=collection-queue")
 			return serverLogRedis{Status: "unavailable"}
 		}
 		result.QueueDepth, result.PendingTasks, result.DeadLetters = &depth, &pending, &dead
@@ -77,7 +77,7 @@ func (a *App) serverLogsSnapshot(ctx context.Context) serverLogSnapshot {
 
 func (a *App) serverLogs(response http.ResponseWriter, request *http.Request) {
 	if !a.serverLogsAuthorized(request.Context()) {
-		writeError(response, http.StatusForbidden, "administrator access is required")
+		writeError(request.Context(), response, http.StatusForbidden, "administrator access is required")
 		return
 	}
 	response.Header().Set("Content-Type", "application/json")

@@ -134,7 +134,7 @@ func TestWebhookReconcilesThroughInjectedCanonicalUpdater(t *testing.T) {
 	app := &App{services: redisx.NewStore(client, "webhook-test").OperationalServices(), reconciler: reconciler,
 		webhookSecret: []byte("webhook-secret"),
 		hub:           newEventHub(),
-		oauth: &githubOAuth{log: func(branch string) {
+		oauth: &githubOAuth{log: func(_ context.Context, branch string) {
 			authBranches = append(authBranches, branch)
 		}},
 	}
@@ -236,7 +236,7 @@ func TestHealthReportsPostgresFailureAsUnhealthy(t *testing.T) {
 func TestHostedRebuildRequiresExplicitAdministrator(t *testing.T) {
 	var branches []string
 	app := &App{
-		oauth: &githubOAuth{log: func(branch string) {
+		oauth: &githubOAuth{log: func(_ context.Context, branch string) {
 			branches = append(branches, branch)
 		}},
 		config: Config{AdminUsers: []string{"cao-admin"}},

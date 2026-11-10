@@ -732,7 +732,7 @@ func TestHostedOAuthLogsBranchesWithoutCredentialValues(t *testing.T) {
 	app := newAzureTestApp(t, github.URL)
 	app.database = integrationDatabase(t)
 	var branches []string
-	app.oauth.log = func(branch string) {
+	app.oauth.log = func(_ context.Context, branch string) {
 		branches = append(branches, branch)
 	}
 
@@ -812,11 +812,11 @@ func TestOAuthBranchLogsUseFixedIdentifiers(t *testing.T) {
 			if !ok || (selector.Sel.Name != "logBranch" && selector.Sel.Name != "logAuthBranch") {
 				return true
 			}
-			if len(call.Args) != 1 {
-				t.Errorf("%s logBranch call must have exactly one argument", path)
+			if len(call.Args) != 2 {
+				t.Errorf("%s logBranch call must have a context and fixed branch identifier", path)
 				return true
 			}
-			literal, ok := call.Args[0].(*ast.BasicLit)
+			literal, ok := call.Args[1].(*ast.BasicLit)
 			if !ok || literal.Kind != token.STRING {
 				t.Errorf("%s logBranch argument must be a fixed string literal", path)
 				return true

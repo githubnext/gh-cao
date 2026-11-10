@@ -167,20 +167,20 @@ func classifyCanonicalError(err error) (outcome canonicalOutcome, status int, me
 
 func (a *App) repositories(response http.ResponseWriter, request *http.Request) {
 	rows, err := a.canonical.rows(request.Context(), "repositories")
-	a.writeCanonicalRows(response, rows, err)
+	a.writeCanonicalRows(request.Context(), response, rows, err)
 }
 
 func (a *App) repository(response http.ResponseWriter, request *http.Request) {
 	row, err := a.canonical.entity(request.Context(), "repositories", request.PathValue("id"))
 	if outcome, status, message := classifyCanonicalError(err); outcome != canonicalOutcomeOK {
-		canonicalLog.Printf("repository query failed outcome=%s", outcome)
+		canonicalLog.PrintfContext(request.Context(), "repository query failed outcome=%s", outcome)
 		if outcome == canonicalOutcomeNotFound {
 			// This endpoint predates the shared classifier and names the
 			// missing entity in its message, unlike the generic message the
 			// other canonical endpoints share; preserve that wording.
 			message = "repository was not found"
 		}
-		writeError(response, status, message)
+		writeError(request.Context(), response, status, message)
 		return
 	}
 	writeJSON(response, http.StatusOK, row)
@@ -188,18 +188,18 @@ func (a *App) repository(response http.ResponseWriter, request *http.Request) {
 
 func (a *App) repositoryRuns(response http.ResponseWriter, request *http.Request) {
 	rows, err := a.canonical.repositoryRuns(request.Context(), request.PathValue("id"))
-	a.writeCanonicalRows(response, rows, err)
+	a.writeCanonicalRows(request.Context(), response, rows, err)
 }
 
 func (a *App) workflowRuns(response http.ResponseWriter, request *http.Request) {
 	rows, err := a.canonical.workflowRuns(request.Context(), request.PathValue("id"))
-	a.writeCanonicalRows(response, rows, err)
+	a.writeCanonicalRows(request.Context(), response, rows, err)
 }
 
-func (a *App) writeCanonicalRows(response http.ResponseWriter, rows []model.Row, err error) {
+func (a *App) writeCanonicalRows(ctx context.Context, response http.ResponseWriter, rows []model.Row, err error) {
 	if outcome, status, message := classifyCanonicalError(err); outcome != canonicalOutcomeOK {
-		canonicalLog.Printf("canonical rows query failed outcome=%s", outcome)
-		writeError(response, status, message)
+		canonicalLog.PrintfContext(ctx, "canonical rows query failed outcome=%s", outcome)
+		writeError(ctx, response, status, message)
 		return
 	}
 	writeJSON(response, http.StatusOK, rows)

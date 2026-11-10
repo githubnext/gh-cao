@@ -24,15 +24,15 @@ func (a *App) gitHubQuotaUsage(response http.ResponseWriter, request *http.Reque
 		return
 	}
 	if a.quota == nil {
-		writeError(response, http.StatusServiceUnavailable, "github quota usage is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "github quota usage is unavailable")
 		return
 	}
 	report, err := a.quota.Usage(request.Context())
 	if err != nil {
-		writeError(response, http.StatusServiceUnavailable, "github quota usage is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "github quota usage is unavailable")
 		return
 	}
-	serverLog.Printf("github quota usage served points=%d slots=%d", len(report.Buckets), len(report.Aggregate))
+	serverLog.PrintfContext(request.Context(), "github quota usage served points=%d slots=%d", len(report.Buckets), len(report.Aggregate))
 	writeJSON(response, http.StatusOK, report)
 }
 
