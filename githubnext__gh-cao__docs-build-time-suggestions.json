@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-10T12:50:48Z",
-      "worker_run_id": "42818812407",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42818554210,
-        42816533903,
-        42815099986,
-        42814698988,
-        42812267623,
-        42810133407,
-        42808104445,
-        42806058524,
-        42805577341,
-        42804000346,
-        42801897003,
-        42799812250,
-        42797819794,
-        42797437106,
-        42795599307,
-        42793374918,
-        42791402673,
-        42789610471,
-        42787284296,
-        42785201087
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T08:46:01Z to 2026-11-10T12:46:22Z) was within 14 days and contained 17 successful schedule runs and three skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified newly observed schedule run 42818554210 was freshness-only: schedule-freshness succeeded in 13 seconds while build and deploy were skipped. Prior bounded evaluations verify the overlapping runs. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Full-workflow publication and dashboard/build/deploy median and p90 distributions, repeated artifact-transfer/Pages-packaging cost analysis, step timing analysis, and cache-hit verification across a sufficient successful publication sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-10T13:17:05Z",
       "worker_run_id": "42822659064",
       "category": "artifact transfer and Pages packaging",
@@ -841,6 +813,34 @@
         42880898081
       ],
       "outcome": "incomplete: latest-20 completed docs.yml window (2026-11-10T19:00:30Z to 2026-11-10T22:31:05Z, within 14 days) contained 15 successful runs (13 freshness-only schedules with build and deploy skipped, 8 to 10 s each; 2 full publications), 4 skipped workflow_run callbacks, and 1 cancelled workflow_run (42880898081, excluded). No failed runs. Only two comparable successful build-and-deploy publications were available, below the required five: push 42905068616 at c6fd809e (build 136 s, deploy 29 s) and schedule 42881074442 at 2fbe39c5 (build 168 s, deploy 27 s). Trusted job metadata verified the step conditions; no bounded logs were read because the gate stopped the evaluation. next_category was not advanced because no complete evaluation was made. The mission's 'dashboard' job does not exist; dashboard steps run inside build."
+    },
+    {
+      "evaluated_at": "2026-11-10T22:52:41Z",
+      "worker_run_id": "42917913013",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42917487659,
+        42915280441,
+        42912938024,
+        42912416453,
+        42910650809,
+        42908132923,
+        42905767635,
+        42905068616,
+        42903346355,
+        42902695947,
+        42898468486,
+        42896004811,
+        42893528446,
+        42893241575,
+        42891091809,
+        42888486035,
+        42886082405,
+        42883487961,
+        42882863950,
+        42881074442
+      ],
+      "outcome": "incomplete: latest 20 completed docs.yml runs (2026-11-10T19:01:30Z to 2026-11-10T22:45:40Z, within 14 days; no cancelled runs in this window; no failed runs) contained 16 successful runs (15 schedule runs that were freshness-only with build and deploy skipped, and 1 push publication) and 4 skipped workflow_run callbacks. Only 2 comparable successful full build-and-deploy publications exist, below the required 5: push 42905068616 at c6fd809e8 (run 174 s; build 136 s; deploy 29 s) and schedule 42881074442 at 2fbe39c5c (run 415 s, including 201 s between run start and first job creation; build 168 s; deploy 27 s). Successful schedule-freshness jobs n=15, median 8 s (range 6-10 s). Cache-hit and step-level analysis across a sufficient sample was not established; cao-dashboard.yml was not analyzed beyond docs.yml freshness logic because the sample gate failed. No suggestion; next_category unchanged. Unverified observation for a future evaluation: the 201 s pre-job gap on run 42881074442 may reflect concurrency group documentation-pages after cancelled runs 42880898081 and 42880862291; cause not verified from logs."
     }
   ]
 }
