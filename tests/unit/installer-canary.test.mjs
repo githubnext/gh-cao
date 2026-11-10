@@ -56,6 +56,12 @@ test("canary is read-only and never dispatches, provisions, or archives reposito
   assert.match(workflow, /node-version: 24/);
 });
 
+test("release canary scopes metadata authentication to the installation-test step", () => {
+  const workflow = readFileSync(".github/workflows/installer-canary.yml", "utf8");
+  assert.match(workflow, /- name: Test real release installation\n        env:\n          GH_TOKEN: \$\{\{ github\.token \}\}\n/);
+  assert.match(workflow, /\npermissions:\n  contents: read\n/);
+});
+
 test("workflow success cannot mask skipped, absent or failed collection and browser jobs", () => {
   const jobs = [
     { name: "collect (org/repo)", conclusion: "success" },

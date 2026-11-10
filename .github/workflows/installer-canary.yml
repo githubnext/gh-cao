@@ -67,6 +67,7 @@ jobs:
       - run: npm ci
       - name: Test real release installation
         env:
+          GH_TOKEN: ${{ github.token }}
           CAO_INSTALLER_SCENARIO: ${{ matrix.scenario }}
           CAO_INSTALLER_REQUIRED_VERSION: ${{ matrix.required }}
           CAO_INSTALLER_PREINSTALLED_VERSION: ${{ matrix.preinstalled }}
