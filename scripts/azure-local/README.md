@@ -2,7 +2,9 @@
 
 This Linux-only harness runs the CAO Azure Functions hosting boundary against
 Azurite and a real PostgreSQL container. It uses no Azure subscription, Azure login,
-Azure credentials, or production secrets. It does not
+or Azure credentials. Its default integration profile uses only synthetic data and
+credentials; an explicit GitHub.com development profile uses your own OAuth app.
+It does not
 emulate managed identity, Key Vault, deployed networking, Azure edge behavior,
 or managed PostgreSQL TLS; those remain real-Azure smoke-test concerns.
 
@@ -27,6 +29,111 @@ Run the complete suite:
 ```bash
 npm run test:integration:azure-services
 ```
+
+## GitHub.com local development
+
+Use the same Functions/Azurite/PostgreSQL boundary with the **real built dashboard**
+and ordinary GitHub.com OAuth and organization-membership authorization:
+
+```bash
+export CAO_GITHUB_CLIENT_ID=YOUR_DEVELOPMENT_OAUTH_CLIENT_ID
+export CAO_GITHUB_ALLOWED_ORGS=YOUR_ORGANIZATION
+read -rsp 'Development OAuth client secret: ' CAO_GITHUB_CLIENT_SECRET; echo
+export CAO_GITHUB_CLIENT_SECRET
+npm run dashboard:local:azure
+```
+
+Install the existing dashboard npm dependencies first (`npm ci` in
+`dashboard/site/`). Register a dedicated development OAuth app on GitHub.com with
+homepage `http://localhost:7071/` and callback
+`http://localhost:7071/auth/callback`. Authorize the app for the explicitly listed
+organizations as required by their OAuth policies. The existing production OAuth
+APIs, scopes, token exchange, membership checks, session encryption, secure
+cookies, and CSRF checks are unchanged. This is **not** the separate
+`CAO_GITHUB_LOCAL_USER` profile and does not bypass organization membership.
+Use the printed **localhost** URL, not `127.0.0.1`: browsers permit the existing
+Secure OAuth cookies on HTTP localhost but may reject them on numeric-loopback
+HTTP origins. The actual listening socket remains bound to `127.0.0.1`.
+Do not expose this listener through tunnels or proxies.
+
+`dev` binds Core Tools explicitly to `127.0.0.1`, defaults to stable port `7071`,
+waits for readiness, prints the local URL and evidence selection, and runs in the
+foreground until Ctrl+C. It then removes its exact host process group, containers
+(including their anonymous volumes), generated settings, and runtime state. No
+collector, GitHub webhook, dispatch worker, Azure credentials, or rollout change
+is enabled. This profile exercises real GitHub.com authentication, not simulated
+GitHub APIs; successful login still requires valid credentials and authorized
+organization membership.
+
+| Environment variable | Development behavior |
+| --- | --- |
+| `CAO_GITHUB_CLIENT_ID`, `CAO_GITHUB_CLIENT_SECRET` | Required real development OAuth credentials; never pass secrets as command arguments |
+| `CAO_GITHUB_ALLOWED_ORGS` | Required comma-separated exact organization logins; no wildcard or implicit catalog scope |
+| `AZURE_LOCAL_FUNCTIONS_PORT` | Optional stable unprivileged port, default `7071`; an unavailable port fails startup |
+| `CAO_GITHUB_REDIRECT_URL` | Optional; if set, must exactly match `http://localhost:PORT/auth/callback` |
+| `CAO_SESSION_SECRET` | Optional, at least 32 characters; otherwise generated cryptographically for each fresh stack |
+| `AZURE_LOCAL_SOURCE_DIRECTORY` | Optional existing **absolute** deployed Activity snapshot directory, ingested with production hash verification |
+| `AZURE_LOCAL_STATE_DIR` | Optional absolute isolated directory; default `.tmp/azure-local/github/` |
+
+Without a source directory, startup ingests `server/azure/empty-data`, the
+production empty-evidence artifact. Empty views mean **no collected evidence**,
+not a live fleet. The synthetic integration fixture is never generated or
+implicitly loaded in this profile. Importing a snapshot does not collect or
+refresh GitHub evidence. Restart with an explicitly updated snapshot to replace
+it; local data is disposable and removed on stop.
+
+Both canonical data and operational state use **ephemeral PostgreSQL**, not Redis.
+Restart persistence applies only while that container exists: stopping removes
+sessions and any pending GitHub credential-revocation work. Deleting local state
+does **not** prove remote tokens were revoked. Sign out of the dashboard before
+stopping the stack. If the stack was interrupted, or remote cleanup is uncertain,
+revoke the dedicated development app's authorization in your GitHub account's
+Settings → Applications. The harness does not issue broad automatic revocation
+calls or claim durable token cleanup after deleting the container.
+
+Other `CAO_*` environment configuration is rejected before startup rather than
+silently inheriting a collector, alternative authentication policy, or remote
+service. Core Tools receives a clean environment and private settings. State and
+log directories are owner-only (`0700`), generated secret files are private
+(`0600`), PostgreSQL has a random local password, and verbose host logging is
+disabled. Development failures and `logs` print private log **paths**, not their
+contents; retained logs may contain sensitive operational metadata. Never upload
+the development state or logs as CI artifacts. Do not use shell tracing.
+
+For a background stack, select the profile explicitly:
+
+```bash
+AZURE_LOCAL_PROFILE=github ./scripts/azure-local/azure-local.sh start
+AZURE_LOCAL_PROFILE=github ./scripts/azure-local/azure-local.sh wait
+AZURE_LOCAL_PROFILE=github ./scripts/azure-local/azure-local.sh logs
+AZURE_LOCAL_PROFILE=github ./scripts/azure-local/azure-local.sh stop
+```
+
+`start` refuses existing GitHub stack state: stop it explicitly before changing
+credentials, evidence, or port. Profiles cannot reuse or tear down one another's
+state, including when given the same explicit directory. `test` and `run` remain
+synthetic-only and must never be pointed at a development stack.
+The non-secret `profile` marker remains with retained logs after stopping or
+failed startup, so the synthetic profile cannot read or reuse old development
+logs. Use a fresh directory to change profiles. Existing unmarked, nonempty
+directories also fail closed; inspect their retained files and choose fresh
+state rather than implicitly adopting them.
+
+With a development stack running and native Chromium installed, verify the real
+browser cookie/callback boundary separately:
+
+```bash
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium \
+  node tests/integration/azure-local-dev-browser.test.mjs \
+  .tmp/azure-local/github/runtime.json
+```
+
+This test intercepts the real local login redirect before following GitHub; it requires
+no live GitHub login and never exchanges an authorization code. It verifies
+Secure-cookie persistence, invalid-state rejection, valid-state consumption,
+anonymous API denial, actual loopback binding, and absence of configured secrets
+from host logs. It does not establish a successful GitHub token exchange or
+organization membership.
 
 ## Bicep service inventory and local equivalents
 
@@ -171,8 +278,9 @@ Before changing this harness:
   production deployment contract for local convenience;
 - inspect existing dashboard build, server test fixtures, Docker, and GitHub
   Actions conventions;
-- confirm all local settings are synthetic and no workflow secret or Azure
-  credential is required.
+- confirm integration settings stay synthetic, development OAuth is explicitly
+  selected and private, and neither profile requires workflow secrets or Azure
+  credentials.
 
 ## Functions end-to-end contract
 
