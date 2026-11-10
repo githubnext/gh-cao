@@ -1,7 +1,7 @@
 name: Continuous Architecture Review
 icon: ":code:"
 description: Evidence-led, incremental architecture improvements with reviewable patches and readiness history.
-min-version: v1.0.1
+min-version: v1.2.2
 experimental: true
 includes:
   - README.md
