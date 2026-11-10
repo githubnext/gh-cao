@@ -104,7 +104,7 @@ steps:
         const directory = '/tmp/gh-aw/agent/framework-health';
         fs.mkdirSync(directory, { recursive: true });
         fs.writeFileSync(`${directory}/context.json`, JSON.stringify({
-          report_version: 2, rubric_version: 2, repository, branch: repo.default_branch, source_sha: context.sha,
+          report_version: 3, rubric_version: 2, repository, branch: repo.default_branch, source_sha: context.sha,
           window_anchor: run.created_at, observed_at: new Date().toISOString(),
           run_url: run.html_url, date, marker, duplicate,
           report_window: { start: iso(1), end: iso(0) },
@@ -521,7 +521,7 @@ steps:
           if (!row.owner) blockers.push(`owner-missing:${row.id}`);
         }
         fs.writeFileSync(`${directory}/evidence.json`, JSON.stringify({
-          schema_version: 1, report_version: 2, rubric_version: 2,
+          schema_version: 1, report_version: 3, rubric_version: 2,
           repository: evidence.repository, source_sha: evidence.source_sha,
           observed_at: evidence.observed_at, run_url: evidence.run_url,
           date: evidence.date, report_window: evidence.report_window, ci_windows: evidence.ci_windows,
@@ -744,8 +744,9 @@ Review up to seven previous owned report snapshots from `context.json`, newest
 first. Revalidate their claims against current source and independent CI/merge
 evidence; prior model judgments are leads, not authority. On the first run say
 **Baseline established; no prior report comparison.** Compare rubric findings
-only when version, contract digest, candidate, claim and assessed boundary/acceptance check match; otherwise mark
-the comparison unavailable. Keep stable finding keys as `claim-id:path:behavior`,
+only when rubric version, contract digest, candidate, claim and assessed boundary/acceptance check match; otherwise mark
+the comparison unavailable. Report format changes alone do not invalidate
+otherwise matching evidence. Keep stable finding keys as `claim-id:path:behavior`,
 and classify each revisited finding as new, persisting, regressed, verified
 resolved or unverified. A report auto-closed as superseded is not remediation.
 Count progress only for merged default-branch implementation plus applicable
@@ -770,38 +771,64 @@ If duplicate ownership is ambiguous or required context cannot be read, call
 assessment may produce a clearly marked **incomplete assessment** with unknowns,
 never a healthy default.
 
-## Standard executive report contract, version 2
+## Standard executive report contract, version 3
 
 Every report must use the following opening and six sections in exactly this
 order, including sections whose evidence is unavailable. Do not improvise
 headings or omit an empty section. Keep the opening, executive assessment,
 eight-row journey scorecard and decisions visible and concise (at most 350 words in
 total). Everything else belongs in the three named, non-nested disclosure
-blocks. This makes the preview promise, candidate, evidence limits and most
-important operator blocker clear before architectural detail.
+blocks. Use GitHub-native Markdown tables, labelled status icons and one decision
+callout, not paragraphs of repeated metadata. A reader should see the preview
+evidence, what is missing and who acts next without opening a disclosure.
 
 ````markdown
 **CAO Private Preview - Daily Executive Evidence Report**
 
 **Reporting day:** {date}, UTC | **Assessed revision:** {immutable SHA link}
-**Candidate:** {tag and exact SHA, or not selected} | **Profile:** {ID; proposed/approved scope}
+**Profile:** {ID; proposed/approved scope}
 **Scope:** githubnext/gh-cao; 8 operator journeys; 8 components / 16 supporting claims
-**Evidence collected:** {observed_at} | **Report / rubric version:** 2 / 2
+**Evidence collected:** {observed_at} | **Report / rubric version:** 3 / 2
 **Purpose:** Can an invited operator safely install, use, operate and leave this bounded CAO candidate?
 
 ### Executive assessment
-**Preview evidence:** {not demonstrated | blocked | evidence complete, human decision pending}
-**Direction:** {improving | regressing | unchanged | insufficient comparable evidence}
-**Confidence:** {high | medium | low}, with the evidence limitation.
-{Two sentences: what changed, highest-impact journey blocker, scope/candidate/owner gaps and whether assessment is incomplete.}
-**Action:** {Highest-value bounded next increment, owner/unassigned and closure check.}
+
+| At a glance | Today |
+| --- | --- |
+| Preview evidence | **{not demonstrated, blocked, or evidence complete—human decision pending}** |
+| Candidate | {tag and exact SHA link, or **Not selected**} |
+| Change | {↑ Improving, ↓ Regressing, → Unchanged, or ? Insufficient comparable evidence} |
+| Confidence | **{high, medium or low}** — {principal evidence limitation} |
+
+> [!NOTE]
+> **Next decision:** {one bounded action → closure check}. **Owner:** {owner or unassigned}.
+
+{One short sentence on the highest-impact gap or verified change. Add a WARNING alert if the assessment is incomplete; do not bury this limit in a disclosure.}
 
 ### Preview journey scorecard
-{Eight rows in contract order: Journey | Passed/failed/unknown | Owner | Gap / closure check.}
+
+✅ Passed · ❌ Failed · ❔ Unknown — acceptance evidence, not CI results.
+
+| Operator step | Evidence | Next check / owner |
+| --- | --- | --- |
+| Install (`install`) | {status} | {next check}; owner: {owner or unassigned} |
+| Connect a repository (`connect`) | {status} | {next check}; owner: {owner or unassigned} |
+| Collect evidence (`collect`) | {status} | {next check}; owner: {owner or unassigned} |
+| Inspect and refresh (`inspect-refresh`) | {status} | {next check}; owner: {owner or unassigned} |
+| Check access and withdrawal (`access-withdraw`) | {status} | {next check}; owner: {owner or unassigned} |
+| Update and recover (`update-recover`) | {status} | {next check}; owner: {owner or unassigned} |
+| Leave and clean up (`offboard`) | {status} | {next check}; owner: {owner or unassigned} |
+| Prove operator value (`participant-value`) | {status} | {next check}; owner: {owner or unassigned} |
+
 {Participant evidence summary or the fixed unavailable statement. No aggregate readiness score.}
 
 ### Blockers and next increments
-{At most three ranked actions: journey ID, owner/unassigned, impact, next increment, closure evidence, change since comparable baseline. Group configuration gaps without hiding them.}
+
+| Priority / journey | Next action → closure check | Owner |
+| --- | --- | --- |
+| {rank / journey ID} | {next action → observable closure} | {owner or unassigned} |
+
+{Use at most three ranked rows. One sentence on impact and change since comparable baseline. Group configuration gaps with their exact count; list every missing decision in the acceptance disclosure.}
 
 ### Core health and stability
 <details><summary>Supporting component scorecard, charts and measurements</summary>
@@ -837,6 +864,16 @@ important operator blocker clear before architectural detail.
 **Report run:** {current workflow run URL}
 ````
 
+Write the visible report in plain language: explain what an operator can do and
+the next proof needed. Keep at most 12 words per next check, excluding the owner;
+put full acceptance wording, raw job lists, test selectors and failure analysis in
+the acceptance disclosure. Keep all eight stable journey IDs and their order;
+the friendly labels do not change the frozen checks.
+Replace each `{status}` with exactly **✅ Passed**, **❌ Failed** or **❔ Unknown**.
+Always pair each icon with its text label; never rely on color or symbols alone.
+Unknown is not failed: missing, skipped, stale or harness-only evidence stays
+unknown, not a red product failure. Do not invent a completion bar, aggregate
+readiness percentage or launch signal from these eight statuses.
 In the visible scorecard, summarize actual journey acceptance, not CI colors;
 do not collapse mixed or missing coverage into "green". Confidence
 describes evidence quality/completeness, not optimism: explain missing exact-SHA
@@ -857,7 +894,7 @@ series; do not interpolate, smooth, extrapolate, invent a sparkline or imply a
 trend beyond the available evidence. Do not add chart packages, image uploads,
 external chart services, asset branches or new network/tool grants.
 
-Use only `###` report headings, GitHub warning/note alerts for critical limits,
-and no emoji status indicators. Retain gh-aw's automatically appended ownership
-marker. Never invent citations, test outcomes or operational value, and do not
-add mentions or a custom attribution footer.
+Use only `###` report headings, GitHub warning/note alerts for decisions and
+critical limits, and only the labelled status icons defined above. Retain gh-aw's
+automatically appended ownership marker. Never invent citations, test outcomes
+or operational value, and do not add mentions or a custom attribution footer.
