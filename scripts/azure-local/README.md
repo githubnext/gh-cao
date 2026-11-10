@@ -1,6 +1,6 @@
 # Local Azure service integration
 
-This Linux-only harness runs the CAO Azure Functions hosting boundary against
+This Linux and macOS harness runs the native Go CAO Azure Functions hosting boundary against
 Azurite and a real PostgreSQL container. It uses no Azure subscription, Azure login,
 or Azure credentials. Its default integration profile uses only synthetic data and
 credentials; an explicit GitHub.com development profile uses your own OAuth app.
@@ -10,9 +10,10 @@ or managed PostgreSQL TLS; those remain real-Azure smoke-test concerns.
 
 ## Prerequisites
 
-- Linux with Bash, Docker, Go, Node.js, Python 3, curl, `flock`, unzip, and
-  `setsid`
-- A running Docker daemon
+- Linux or macOS on x64 or arm64, with Bash, Docker, Go, Node.js, Python 3,
+  curl, `ps`, and unzip. macOS's bundled Bash and Python 3.9 are supported;
+  GNU utilities and a separate Core Tools installation are not required.
+- A running local Docker daemon (for example, Docker Desktop or Colima on macOS)
 - Cached Go dependencies for both the root Azure deployment CLI and Go server.
   Populate these before entering the hermetic service tests:
 
@@ -21,7 +22,9 @@ or managed PostgreSQL TLS; those remain real-Azure smoke-test concerns.
   ```
 
 Azure Functions Core Tools 4.15.1 is downloaded on first use from its official
-GitHub release and verified by SHA-256. PostgreSQL 16 and Azurite 3.37.0 images
+GitHub release for the host OS and architecture and verified by a pinned SHA-256.
+Each platform has a separate cache protected by an exclusive installation lock.
+The host runs natively, including on Apple Silicon; PostgreSQL 16 and Azurite 3.37.0 images
 are pinned by tag or digest.
 
 Run the complete suite:
@@ -29,6 +32,19 @@ Run the complete suite:
 ```bash
 npm run test:integration:azure-services
 ```
+
+On macOS, start your Docker runtime first (for example, `colima start`).
+The same command builds the native Go server, bootstraps disposable databases,
+starts the real Functions host, runs the service and HTTP integration cases, and
+stops its exact processes and containers. Process ownership uses kernel start
+times and executable paths on both operating systems, not process names or
+Linux `/proc` emulation. Logs remain under `.tmp/azure-local/`.
+
+The separate Go setup and private-install journey suites also run natively.
+They require an explicit disposable numeric-loopback PostgreSQL instance; set
+`POSTGRES_URL` before running `npm run test:integration:setup-azure` or
+`npm run test:integration:azure-install-journey`. They simulate Azure's deployment
+APIs; they do not provision real Azure resources.
 
 ## GitHub.com local development
 

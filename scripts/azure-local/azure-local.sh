@@ -26,9 +26,9 @@ LOG_DIR="$STATE_DIR/logs"
 APP_DIR="$STATE_DIR/function-app"
 RUNTIME_ENV="$STATE_DIR/runtime.env"
 RUNTIME_JSON="$STATE_DIR/runtime.json"
-HARNESS_VERSION=6
+HARNESS_VERSION=7
 CORE_TOOLS_VERSION=4.15.1
-CORE_TOOLS_SHA256=9b982efb4047c717c9b1c26beb2269c2ac41b29bf8d21f4df1130c1586cc81cd
+PLATFORM_HELPER="$ROOT/scripts/azure-local/platform.py"
 POSTGRES_IMAGE=postgres:16-alpine
 AZURITE_IMAGE=mcr.microsoft.com/azure-storage/azurite:3.37.0@sha256:830430c1da1a2d537e08f3e6764dd1f5ae00cf0346bcaf625b968ec3f0971fd5
 AZURITE_ACCOUNT=caoazurelocal
@@ -39,13 +39,31 @@ fail() {
   exit 1
 }
 
-require_linux() {
-  [[ "$(uname -s)" == Linux ]] || fail "this harness supports Linux only"
+select_platform() {
+  case "$(uname -s)/$(uname -m)" in
+    Linux/x86_64)
+      CORE_TOOLS_PLATFORM=linux-x64
+      CORE_TOOLS_SHA256=9b982efb4047c717c9b1c26beb2269c2ac41b29bf8d21f4df1130c1586cc81cd ;;
+    Linux/aarch64|Linux/arm64)
+      CORE_TOOLS_PLATFORM=linux-arm64
+      CORE_TOOLS_SHA256=d29b86958f42232ef4d7c03aa644a015c9dd3deccf70c34805670dc5155848a3 ;;
+    Darwin/arm64)
+      CORE_TOOLS_PLATFORM=osx-arm64
+      CORE_TOOLS_SHA256=a1708a7b7415e79cbb2309c1eff9bf26d62e6982bff31ce06448f53686b71d49 ;;
+    Darwin/x86_64)
+      CORE_TOOLS_PLATFORM=osx-x64
+      CORE_TOOLS_SHA256=0e3622b5efd91b86cfa5c51fa10e44375f956d794140a85d6bddee12a76a53c1 ;;
+    *) fail "supported platforms are Linux and macOS on x64 or arm64" ;;
+  esac
+}
+
+sha256() {
+  python3 -c 'import hashlib,sys; print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest())'
 }
 
 require_commands() {
   local command
-  for command in curl docker flock go node python3 setsid sha256sum unzip; do
+  for command in curl docker go node python3 ps unzip; do
     command -v "$command" >/dev/null 2>&1 || fail "required command not found: $command"
   done
   docker info >/dev/null 2>&1 || fail "Docker is not available"
@@ -100,31 +118,24 @@ container_port() {
   docker port "$1" "$2/tcp" | awk -F: 'END { print $NF }'
 }
 
-install_core_tools() {
-  local tools_root tools_dir archive temp_dir lock_fd
+install_core_tools_locked() {
+  local tools_root tools_dir archive temp_dir
   tools_root="$ROOT/.tmp/azure-local/tools"
-  tools_dir="$tools_root/core-tools-$CORE_TOOLS_VERSION"
-  if [[ -x "$tools_dir/func" ]]; then
-    FUNC_BIN="$tools_dir/func"
-    return
-  fi
+  tools_dir="$tools_root/core-tools-$CORE_TOOLS_VERSION-$CORE_TOOLS_PLATFORM"
   mkdir -p "$tools_root"
-  exec {lock_fd}>"$tools_root/core-tools-$CORE_TOOLS_VERSION.lock"
-  flock "$lock_fd"
   if [[ -x "$tools_dir/func" ]]; then
-    FUNC_BIN="$tools_dir/func"
-    exec {lock_fd}>&-
+    printf '%s\n' "$tools_dir/func"
     return
   fi
   temp_dir="$(python3 -c 'import sys,tempfile; print(tempfile.mkdtemp(prefix=".install.", dir=sys.argv[1]))' "$tools_root")"
   archive="$temp_dir/core-tools.zip"
   curl -fsSL \
-    "https://github.com/Azure/azure-functions-core-tools/releases/download/$CORE_TOOLS_VERSION/Azure.Functions.Cli.linux-x64.$CORE_TOOLS_VERSION.zip" \
+    "https://github.com/Azure/azure-functions-core-tools/releases/download/$CORE_TOOLS_VERSION/Azure.Functions.Cli.$CORE_TOOLS_PLATFORM.$CORE_TOOLS_VERSION.zip" \
     -o "$archive" || {
       rm -rf "$temp_dir"
       fail "Azure Functions Core Tools download failed"
     }
-  printf '%s  %s\n' "$CORE_TOOLS_SHA256" "$archive" | sha256sum --check --status ||
+  python3 "$PLATFORM_HELPER" verify "$archive" "$CORE_TOOLS_SHA256" ||
     {
       rm -rf "$temp_dir"
       fail "Azure Functions Core Tools checksum verification failed"
@@ -134,8 +145,15 @@ install_core_tools() {
   rm -f "$archive"
   rm -rf "$tools_dir"
   mv "$temp_dir" "$tools_dir"
-  FUNC_BIN="$tools_dir/func"
-  exec {lock_fd}>&-
+  printf '%s\n' "$tools_dir/func"
+}
+
+install_core_tools() {
+  local tools_root="$ROOT/.tmp/azure-local/tools"
+  mkdir -p "$tools_root"
+  FUNC_BIN="$(python3 "$PLATFORM_HELPER" lock \
+    "$tools_root/core-tools-$CORE_TOOLS_VERSION-$CORE_TOOLS_PLATFORM.lock" \
+    bash "$ROOT/scripts/azure-local/azure-local.sh" install-core-tools)"
 }
 
 capture_container_logs() {
@@ -148,36 +166,22 @@ capture_container_logs() {
 }
 
 process_matches() {
-  local pid expected_start expected_executable actual_start actual_executable
-  pid="$1"
-  expected_start="$2"
-  expected_executable="$3"
-  [[ -n "$pid" && -n "$expected_start" && -n "$expected_executable" ]] || return 1
-  [[ -r "/proc/$pid/stat" && -e "/proc/$pid/exe" ]] || return 1
-  actual_start="$(awk '{print $22}' "/proc/$pid/stat")"
-  actual_executable="$(readlink -f "/proc/$pid/exe")"
-  [[ "$actual_start" == "$expected_start" ]] &&
-    [[ "$actual_executable" == "$(readlink -f "$expected_executable")" ]]
+  [[ -n "$1" && -n "$2" && -n "$3" ]] || return 1
+  python3 "$PLATFORM_HELPER" matches "$1" "$2" "$3"
 }
 
 process_start_matches() {
-  local pid expected_start
-  pid="$1"
-  expected_start="$2"
-  [[ -n "$pid" && -n "$expected_start" && -r "/proc/$pid/stat" ]] || return 1
-  [[ "$(awk '{print $22}' "/proc/$pid/stat")" == "$expected_start" ]]
+  python3 "$PLATFORM_HELPER" matches "$1" "$2"
 }
 
 wait_for_process_group() {
-  local pid expected_executable pgid executable
+  local pid expected_executable pgid
   pid="$1"
-  expected_executable="$(readlink -f "$2")"
+  expected_executable="$2"
   for _ in {1..50}; do
-    if [[ -r "/proc/$pid/stat" && -e "/proc/$pid/exe" ]]; then
-      pgid="$(awk '{print $5}' "/proc/$pid/stat")"
-      executable="$(readlink -f "/proc/$pid/exe")"
-      if [[ "$pgid" == "$pid" && "$executable" == "$expected_executable" ]]; then
-        FUNCTIONS_START_TIME="$(awk '{print $22}' "/proc/$pid/stat")"
+    pgid="$(ps -p "$pid" -o pgid= | tr -d ' ')" || true
+    if [[ "$pgid" == "$pid" ]]; then
+      if process_matches "$pid" "$FUNCTIONS_START_TIME" "$expected_executable"; then
         FUNCTIONS_PGID="$pgid"
         return 0
       fi
@@ -188,19 +192,7 @@ wait_for_process_group() {
 }
 
 process_group_matches() {
-  local process stat_pgid executable expected_handler
-  [[ -n "${FUNCTIONS_PGID:-}" ]] || return 1
-  expected_handler="$(readlink -f "$APP_DIR/cao-dashboard")"
-  for process in /proc/[0-9]*; do
-    [[ -r "$process/stat" && -e "$process/exe" ]] || continue
-    stat_pgid="$(awk '{print $5}' "$process/stat")"
-    [[ "$stat_pgid" == "$FUNCTIONS_PGID" ]] || continue
-    executable="$(readlink -f "$process/exe")"
-    if [[ "$executable" == "$expected_handler" ]]; then
-      return 0
-    fi
-  done
-  return 1
+  python3 "$PLATFORM_HELPER" group "${FUNCTIONS_PGID:-}" "$APP_DIR/cao-dashboard"
 }
 
 stop_internal() {
@@ -343,7 +335,7 @@ JSON
 
 start() {
   check_state_profile
-  require_linux
+  select_platform
   if [[ "$PROFILE" == github ]]; then
     node "$ROOT/scripts/azure-local/profile.mjs" validate
     python3 - "${AZURE_LOCAL_FUNCTIONS_PORT:-7071}" <<'PY'
@@ -384,7 +376,7 @@ PY
   local azurite_key
   run_id="$(basename "$STATE_DIR" | tr -cd 'a-zA-Z0-9_.-' | cut -c1-40)"
   [[ -n "$run_id" ]] || run_id="run-$$"
-  path_hash="$(printf '%s' "$STATE_DIR" | sha256sum | cut -c1-12)"
+  path_hash="$(printf '%s' "$STATE_DIR" | sha256 | cut -c1-12)"
   run_id="$(printf '%s' "$run_id" | cut -c1-20)-$path_hash"
   postgres_name="cao-azure-local-$run_id-postgres"
   azurite_name="cao-azure-local-$run_id-azurite"
@@ -504,24 +496,19 @@ JSON
 }
 JSON
 
-  (
-    cd "$APP_DIR"
-    local -a host_command
-    mkdir -p "$APP_DIR/.home" "$APP_DIR/.scratch"
-    host_command=(env -i "PATH=$PATH" "HOME=$APP_DIR/.home" "TMPDIR=$APP_DIR/.scratch"
-      FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT=1
-      "$FUNC_BIN" start --address 127.0.0.1 --port "$function_port")
-    [[ "$PROFILE" == github ]] || host_command+=(--verbose)
-    # setsid makes Core Tools the process-group leader tracked for exact teardown.
-    setsid "${host_command[@]}" >"$LOG_DIR/functions.log" 2>&1 &
-    FUNCTIONS_PID=$!
-    FUNCTIONS_START_TIME="$(awk '{print $22}' "/proc/$FUNCTIONS_PID/stat")"
-    FUNCTIONS_PGID="$FUNCTIONS_PID"
-    write_env_value FUNCTIONS_PID "$FUNCTIONS_PID"
-    write_env_value FUNCTIONS_START_TIME "$FUNCTIONS_START_TIME"
-    write_env_value FUNCTIONS_PGID "$FUNCTIONS_PGID"
-    wait_for_process_group "$FUNCTIONS_PID" "$FUNC_BIN"
-  )
+  local -a host_command
+  mkdir -p "$APP_DIR/.home" "$APP_DIR/.scratch"
+  host_command=(env -i "PATH=$PATH" "HOME=$APP_DIR/.home" "TMPDIR=$APP_DIR/.scratch"
+    FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT=1
+    "$FUNC_BIN" start --address 127.0.0.1 --port "$function_port")
+  [[ "$PROFILE" == github ]] || host_command+=(--verbose)
+  FUNCTIONS_PID="$(python3 "$PLATFORM_HELPER" launch "$APP_DIR" "$LOG_DIR/functions.log" "${host_command[@]}")"
+  FUNCTIONS_START_TIME="$(python3 "$PLATFORM_HELPER" identity "$FUNCTIONS_PID")"
+  FUNCTIONS_PGID="$FUNCTIONS_PID"
+  write_env_value FUNCTIONS_PID "$FUNCTIONS_PID"
+  write_env_value FUNCTIONS_START_TIME "$FUNCTIONS_START_TIME"
+  write_env_value FUNCTIONS_PGID "$FUNCTIONS_PGID"
+  wait_for_process_group "$FUNCTIONS_PID" "$FUNC_BIN"
   if [[ -n "$previous_exit_trap" ]]; then
     eval "$previous_exit_trap"
   else
@@ -615,6 +602,7 @@ dev() {
 }
 
 case "${1:-}" in
+  install-core-tools) select_platform; install_core_tools_locked ;;
   dev) dev ;;
   start) start ;;
   wait) wait_for_stack ;;

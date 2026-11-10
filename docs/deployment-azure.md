@@ -688,7 +688,7 @@ normative detail.
    1. Confirm that the dashboard refuses a user who isn't in an allowed organization or team.
 
 > [!TIP]
-> To test the Functions HTTP interface on Linux without Azure credentials, run `./scripts/azure-local/azure-local.sh run`. The script starts Azure Functions Core Tools, Azurite, and PostgreSQL.
+> To test the Functions HTTP interface on Linux or macOS (Intel or Apple Silicon) without Azure credentials, run `npm run test:integration:azure-services` with a local Docker daemon running. The script builds the native Go server and starts platform-matched Azure Functions Core Tools, Azurite, and PostgreSQL.
 
 ### Infrastructure-only bootstrap
 
