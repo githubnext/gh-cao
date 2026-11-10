@@ -244,7 +244,7 @@ func TestOAuthCanceledCallbackRetainsOwnerUntilQueueRecovery(t *testing.T) {
 	queue := &oauthQueueOutage{RevocationQueue: app.oauth.revocations}
 	app.oauth.revocations = queue
 	var branches []string
-	app.oauth.log = func(branch string) { branches = append(branches, branch) }
+	app.oauth.log = func(_ context.Context, branch string) { branches = append(branches, branch) }
 	stateCookie, state := loginState(t, app)
 	request := azureRequest(t, http.MethodGet, "/auth/callback?code=code&state="+state)
 	ctx, cancel := context.WithCancel(request.Context())
@@ -271,7 +271,7 @@ func TestOAuthCleanupBackpressurePrecedesTokenExchange(t *testing.T) {
 	github := fakeGitHub(t, fakeGitHubOptions{membershipState: "active"})
 	app := newAzureTestApp(t, github.URL)
 	for range cap(app.oauth.exchanges) {
-		if !app.oauth.acquireExchange() {
+		if !app.oauth.acquireExchange(t.Context()) {
 			t.Fatal("could not fill exchange reservations")
 		}
 	}
@@ -304,7 +304,7 @@ func TestOAuthNoRefreshInvalidationPreservesConcurrentRefreshAndStorageFailures(
 			config := validOAuthConfig(github.URL)
 			oauth := newGitHubOAuth(*config, store, store, store)
 			var branches []string
-			oauth.log = func(branch string) { branches = append(branches, branch) }
+			oauth.log = func(_ context.Context, branch string) { branches = append(branches, branch) }
 			session := oauthSession{ID: "s", AccessToken: "old", AccessExpires: time.Now().Add(-time.Hour)}
 			if err := oauth.saveSession(t.Context(), session); err != nil {
 				t.Fatal(err)

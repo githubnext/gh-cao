@@ -115,24 +115,41 @@ func TestOTelLogsRespectDebugCategoriesAndSlogContext(t *testing.T) {
 	captureStderr(t, func() {
 		New("cao:allowed").Printf("processed %d items", 3)
 		New("cao:blocked").Print("not exported")
+		New("cao:blocked").PrintfContext(ctx, "not exported")
+		New("cao:blocked").PrintContext(ctx, "not exported")
+		New("cao:allowed").PrintfContext(ctx, "handled %d items", 2)
+		New("cao:allowed").PrintContext(ctx, "request complete")
 		NewSlogLoggerWithHandler(New("cao:allowed")).ErrorContext(ctx, "operation failed", "status", 500)
+		New("cao:allowed").Print("background complete")
 	})
-	if len(exporter.records) != 2 {
-		t.Fatalf("exported %d records, want 2", len(exporter.records))
+	if len(exporter.records) != 5 {
+		t.Fatalf("exported %d records, want 5", len(exporter.records))
 	}
 	if got := exporter.records[0]; got.Body().AsString() != "processed 3 items" ||
 		got.Severity() != otelLog.SeverityDebug || got.InstrumentationScope().Name != "cao:allowed" {
 		t.Fatalf("unexpected debug record: body=%q severity=%v scope=%q",
 			got.Body().AsString(), got.Severity(), got.InstrumentationScope().Name)
 	}
-	if got := exporter.records[1]; got.Body().AsString() != "✗ operation failed status=500" ||
+	for index, message := range []string{"handled 2 items", "request complete"} {
+		got := exporter.records[index+1]
+		if got.Body().AsString() != message || got.Severity() != otelLog.SeverityDebug ||
+			got.TraceID() != traceID || got.SpanID() != spanID || got.TraceFlags() != trace.FlagsSampled {
+			t.Errorf("contextual debug record lost its message, severity, or trace context: %v", got)
+		}
+	}
+	if got := exporter.records[3]; got.Body().AsString() != "✗ operation failed status=500" ||
 		got.Severity() != otelLog.SeverityError || got.TraceID() != traceID || got.SpanID() != spanID {
 		t.Fatalf("unexpected error record: body=%q severity=%v trace=%s span=%s",
 			got.Body().AsString(), got.Severity(), got.TraceID(), got.SpanID())
 	}
+	for _, index := range []int{0, 4} {
+		if got := exporter.records[index]; got.TraceID().IsValid() || got.SpanID().IsValid() {
+			t.Error("context-free logging inherited another call's trace context")
+		}
+	}
 	global.SetLoggerProvider(noop.NewLoggerProvider())
 	captureStderr(t, func() { New("cao:allowed").Print("stderr only") })
-	if len(exporter.records) != 2 {
+	if len(exporter.records) != 5 {
 		t.Fatal("disabled export must not forward records")
 	}
 }

@@ -610,7 +610,7 @@ func (a *App) sessionArchiveStatus(response http.ResponseWriter, request *http.R
 		return
 	}
 	if !a.sessionArchiveAuthorized(request) {
-		writeError(response, http.StatusForbidden, "separately approved full-trace-read access is required")
+		writeError(request.Context(), response, http.StatusForbidden, "separately approved full-trace-read access is required")
 		return
 	}
 	a.sessionArchive.mu.Lock()
@@ -628,11 +628,11 @@ func (a *App) sessionArchiveStatus(response http.ResponseWriter, request *http.R
 
 func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Request) {
 	if a.sessionArchive == nil {
-		writeError(response, http.StatusServiceUnavailable, "session archive is disabled")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "session archive is disabled")
 		return
 	}
 	if !a.sessionArchiveAuthorized(request) {
-		writeError(response, http.StatusForbidden, "separately approved full-trace-read access is required")
+		writeError(request.Context(), response, http.StatusForbidden, "separately approved full-trace-read access is required")
 		return
 	}
 	request.Body = http.MaxBytesReader(response, request.Body, 4096)
@@ -640,28 +640,28 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 	decoder.DisallowUnknownFields()
 	var input sessionArchiveQuery
 	if err := decoder.Decode(&input); err != nil {
-		writeError(response, http.StatusBadRequest, "invalid bounded archive query")
+		writeError(request.Context(), response, http.StatusBadRequest, "invalid bounded archive query")
 		return
 	}
 	if decoder.Decode(new(any)) != io.EOF {
-		writeError(response, http.StatusBadRequest, "archive query must contain exactly one JSON object")
+		writeError(request.Context(), response, http.StatusBadRequest, "archive query must contain exactly one JSON object")
 		return
 	}
 	repository, err := collect.NormalizeRepository(input.Repository)
 	if err != nil || repository != input.Repository {
-		writeError(response, http.StatusBadRequest, "archive queries require an exact normalized repository")
+		writeError(request.Context(), response, http.StatusBadRequest, "archive queries require an exact normalized repository")
 		return
 	}
 	if !slices.Contains(a.sessionArchive.repositories, repository) {
-		writeError(response, http.StatusForbidden, "repository is outside the approved archive scope")
+		writeError(request.Context(), response, http.StatusForbidden, "repository is outside the approved archive scope")
 		return
 	}
 	if err := input.validate(); err != nil {
-		writeError(response, http.StatusBadRequest, "archive query requires a trusted template and bounded exact identity")
+		writeError(request.Context(), response, http.StatusBadRequest, "archive query requires a trusted template and bounded exact identity")
 		return
 	}
 	if !slices.Contains(a.sessionArchive.backend.QueryKinds(), input.Kind) {
-		writeError(response, http.StatusUnprocessableEntity, "analytical query profile is unavailable on this archive backend")
+		writeError(request.Context(), response, http.StatusUnprocessableEntity, "analytical query profile is unavailable on this archive backend")
 		return
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), 30*time.Second)
@@ -672,7 +672,7 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 		defer func() { _ = result.reader.Close() }()
 	}
 	writeQueryError := func(err error) {
-		serverLog.Printf("session archive query failed")
+		serverLog.PrintfContext(ctx, "session archive query failed")
 		status := http.StatusServiceUnavailable
 		switch {
 		case errors.Is(err, sessionarchive.ErrQuery):
@@ -684,7 +684,7 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 		case errors.Is(err, sessionarchive.ErrWithdrawn), errors.Is(err, sessionarchiveblob.ErrWithdrawn), errors.Is(err, sessionarchiveblob.ErrScope):
 			status = http.StatusForbidden
 		}
-		writeError(response, status, "session archive query is unavailable or exceeds its approved budget")
+		writeError(ctx, response, status, "session archive query is unavailable or exceeds its approved budget")
 	}
 	if err != nil {
 		writeQueryError(err)
@@ -697,7 +697,7 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 	content, err := json.Marshal(result)
 	if err != nil || len(content) > 8<<20 || len(result.Summary) > input.rowLimit() || len(result.Events) > input.rowLimit() ||
 		(result.Rows != nil && len(*result.Rows) > 10000) {
-		writeError(response, http.StatusUnprocessableEntity, "complete archive result exceeds the response budget")
+		writeError(ctx, response, http.StatusUnprocessableEntity, "complete archive result exceeds the response budget")
 		return
 	}
 	deadline, _ := ctx.Deadline()
@@ -709,7 +709,7 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 	started := false
 	err = result.reader.Deliver(func() error {
 		if !a.sessionArchiveAuthorized(request) {
-			writeError(response, http.StatusForbidden, "full-trace-read authorization is no longer available")
+			writeError(ctx, response, http.StatusForbidden, "full-trace-read authorization is no longer available")
 			return nil
 		}
 		if err := ctx.Err(); err != nil {
@@ -725,7 +725,7 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 		if !started {
 			writeQueryError(err)
 		} else {
-			serverLog.Printf("session archive response delivery failed")
+			serverLog.PrintfContext(ctx, "session archive response delivery failed")
 		}
 	}
 }

@@ -8,6 +8,16 @@ import { promisify } from "node:util";
 const execute = promisify(execFile);
 const helper = resolve("scripts/container-engine.sh");
 
+test("local telemetry npm commands preserve explicit container engine selection", async () => {
+  const { scripts } = JSON.parse(await readFile(resolve("package.json"), "utf8"));
+  for (const service of ["aspire", "lgtm"]) {
+    for (const [action, args] of [["up", "up -d"], ["down", "down"]]) {
+      assert.equal(scripts[`dashboard:server:${service}-${action}`],
+        `bash scripts/container-compose.sh -f server/${service}-compose.yml ${args}`);
+    }
+  }
+});
+
 async function fixture(t, tools, selection) {
   await mkdir(resolve(".tmp"), { recursive: true });
   const directory = await mkdtemp(resolve(".tmp/container-engine-"));

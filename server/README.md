@@ -1389,8 +1389,7 @@ admission and serving, while retaining protected operations and pressure
 reclamation. Operational state and other namespaces are
 protected, and unreclaimable pressure is reported rather than silently deleting
 sessions or queued work. The effective budget never exceeds 80% of a reported
-Redis `maxmemory`. See the
-[managed Redis deployment guide](../docs/deployment-managed-redis.md#redis-memory-budget).
+Redis `maxmemory`.
 The read-only `doctor` command resolves the same budget override and reports
 configured/effective limits, not only provider utilization.
 
@@ -1980,8 +1979,8 @@ TLS at the CAO service itself. It is not coupled to a Redis provider or cloud
 SDK. Set `CAO_POLICY_PATH` when loading a reviewed deployment-specific host
 extension or when the policy is mounted somewhere other than
 `.github/workflows/cao.json`. See
-[`docs/deployment-managed-redis.md`](../docs/deployment-managed-redis.md) for
-the generic `REDIS_URL` and TLS contract and provider modules.
+[Deployment-specific host extensions](../docs/configuration.md#deployment-specific-host-extensions)
+for the host-extension contract.
 
 Every hosted process requires `control-plane.web.host` in the composed policy. Redis
 provider selection, TLS behavior, environment-variable names, namespace
@@ -2624,8 +2623,7 @@ database, artifact ingestion through `CAO_SOURCE_DIRECTORY`, and verified TLS.
 Server-side collection and standalone collection roles are rejected. Policy
 validation requires `target.replicas: 1`, and operators must set the hosting
 platform itself to the same replica count. Do not configure the Upstash REST URL
-or REST token. For the operator procedure, see [Deploying the dashboard with Upstash
-Redis](https://github.com/githubnext/gh-cao/blob/main/docs/deployment-upstash.md).
+or REST token.
 
 ### Container image
 
@@ -3734,6 +3732,18 @@ certify the entire deployment's GDPR compliance.
 
 ## Telemetry
 
+Request-scoped debug logging uses `PrintfContext(ctx, ...)` or
+`PrintContext(ctx, ...)` from `internal/logger/`, or the existing context-aware
+slog adapter. These APIs forward the active span context to the OTLP log SDK,
+which populates native `TraceId`, `SpanId`, and trace flags. Request error and
+query logs can therefore be retrieved with Aspire's
+`list_trace_structured_logs`, not just text searches for an embedded trace ID.
+Pass the current operation's context through error-response helpers; do not
+reconstruct log context from response headers. Context-free `Printf` and
+`Print` remain available for work without a request or operation context and
+do not inherit another call's span. Namespace selection, stderr formatting,
+and the additional log-export opt-in are unchanged.
+
 The server is instrumented with standard, vendor-neutral
 [OpenTelemetry](https://opentelemetry.io/) tracing and metrics
 (`internal/telemetry/`). HTTP requests other than `GET /auth/callback` are
@@ -4057,52 +4067,20 @@ go -C server run ./cmd/cao-dashboard ingest \
 go -C server run ./cmd/cao-dashboard serve --postgres-url="$CAO_POSTGRES_URL"
 ```
 
-To inspect local traces and metrics, start the optional
-[OpenObserve self-hosted instance](https://openobserve.ai/docs/getting-started/)
-on `http://127.0.0.1:5080` via the separate `server/otel-compose.yml`.
-It is not started by the Redis/Postgres Compose stack.
-Set an email and a locally held password (8–128 characters with uppercase,
-lowercase, digit, and special characters) before its first startup
-(do not commit them or put them in command-line arguments):
+### Local Aspire telemetry dashboard
 
-```bash
-read -rp 'OpenObserve email: ' CAO_LOCAL_OTEL_EMAIL
-read -rsp 'OpenObserve password: ' CAO_LOCAL_OTEL_PASSWORD; echo
-export CAO_LOCAL_OTEL_EMAIL CAO_LOCAL_OTEL_PASSWORD
-npm run dashboard:server:otel-up
-```
+See the [local Aspire guide](LOCAL-TELEMETRY.md#local-aspire-telemetry-dashboard)
+for loopback-only setup, exporter configuration, validation, and cleanup.
 
-In the same shell, configure the Go server's OTLP/HTTP exporters before
-running `serve` or `ingest`. OpenObserve requires Basic authentication and
-uses signal-specific endpoints; the shared base OTLP endpoint would append
-the wrong paths. The credentials are needed again after a restart to export
-telemetry, even though OpenObserve only uses them for account creation on
-first startup.
+### Local Grafana LGTM telemetry
 
-```bash
-export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:5080/api/default/v1/traces
-export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://127.0.0.1:5080/api/default/v1/metrics
-export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic%20$(printf '%s' "$CAO_LOCAL_OTEL_EMAIL:$CAO_LOCAL_OTEL_PASSWORD" | base64 | tr -d '\n')"
-export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=local
-go -C server run ./cmd/cao-dashboard serve
-```
+See the [local Grafana LGTM guide](LOCAL-TELEMETRY.md#local-grafana-lgtm-telemetry)
+for the alternative collector stack and its shared OTLP/HTTP configuration.
 
-To exercise both exporters from the local Go server integration test (after
-starting OpenObserve and setting the variables above in the same shell):
+### Local OpenObserve telemetry
 
-```bash
-CAO_LOCAL_OTEL_INTEGRATION=1 go -C server test ./internal/telemetry -run '^TestLocalOpenObserveExport$' -count=1
-```
-
-The test skips during ordinary `go test ./...` runs; when enabled it fails if
-either the trace or metric export is rejected or unreachable.
-
-Sign in to OpenObserve with the same credentials and select the `default`
-organization. The local instance stores data in the `openobserve-data` Docker
-volume; `docker-compose -f server/otel-compose.yml down` stops it without
-deleting that volume. Do not use `down -v` unless you intend to erase its data.
-For hosted deployments, supply exporter authentication through the deployment
-secret manager instead of exporting it from an interactive shell.
+See the [local OpenObserve guide](LOCAL-TELEMETRY.md#local-openobserve-telemetry)
+for authenticated signal-specific endpoints and persistent local storage.
 
 ### PostgreSQL backfill integration
 

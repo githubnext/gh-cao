@@ -148,7 +148,7 @@ func classifyProxyRequest(request *http.Request, policy ProxyPolicy) proxyReject
 func validProxyRequest(request *http.Request, policy ProxyPolicy) bool {
 	reason := classifyProxyRequest(request, policy)
 	if reason != proxyRejectionNone {
-		proxyLog.Printf("proxy request rejected reason=%s", reason)
+		proxyLog.PrintfContext(request.Context(), "proxy request rejected reason=%s", reason)
 		return false
 	}
 	return true

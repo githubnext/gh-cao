@@ -74,6 +74,10 @@ The Actions-only `cao-validate.yml` workflow, implemented in the shipped JavaScr
 
 A durable first-in-first-out queue of declared `cao` actions, separate from the collection task queue. Local admin and trusted canvas sessions share one queue per checkout in `.cao/cli-actions.sqlite`, and the PostgreSQL operational store can provide a deployment-scoped queue. Queued commands survive restart, interrupted executions are recorded as failed and never retried automatically, and the online dashboard and read-only previews do not initialize it. See the [dashboard README](https://github.com/githubnext/gh-cao/blob/main/dashboard/README.md#cli-command-queue) and the [operational storage specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
 
+## Cold-start seed
+
+The checked-in Value evidence packet that recurring collection uses as its starting point rather than replacing a newer accepted capture on every run. The producer validates the seed's digest and identity, keeps a newer retained packet only after verifying that it preserves the seed's frozen contract and immutable history, and does not advance its clocks. A stale explicit replacement or conflicting seed is still rejected. See the [Dashboard data model](dashboard-data-model.md).
+
 ## Collection health
 
 The `collection-health` registered runtime source: a bounded, read-only snapshot of the server-side webhook and collection profile's queue depth, pending tasks, dead letters, backfill state, and recent webhook and collection outcomes. It is exposed only through the authorized Dashboard Language query boundary, never stored in browser IndexedDB, and returns no raw error messages or credentials. See the Dashboard Language Specification, Section 5.4.

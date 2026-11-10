@@ -33,12 +33,12 @@ func (a *App) publishValue(response http.ResponseWriter, request *http.Request) 
 		return
 	}
 	if a.valuePublisher == nil {
-		writeError(response, http.StatusServiceUnavailable, "value publication requires PostgreSQL")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "value publication requires PostgreSQL")
 		return
 	}
 	mediaType, _, err := mime.ParseMediaType(request.Header.Get("Content-Type"))
 	if err != nil || mediaType != "application/json" && mediaType != "application/x-ndjson" {
-		writeError(response, http.StatusUnsupportedMediaType, "value publication requires application/json or application/x-ndjson")
+		writeError(request.Context(), response, http.StatusUnsupportedMediaType, "value publication requires application/json or application/x-ndjson")
 		return
 	}
 	request.Body = http.MaxBytesReader(response, request.Body, valuePublicationMaxBytes)
@@ -59,43 +59,43 @@ func (a *App) publishValue(response http.ResponseWriter, request *http.Request) 
 	if err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			writeError(response, http.StatusRequestEntityTooLarge, "value evidence exceeds the publication limit")
+			writeError(request.Context(), response, http.StatusRequestEntityTooLarge, "value evidence exceeds the publication limit")
 		} else {
-			writeError(response, http.StatusBadRequest, "publish exactly one original value evidence envelope")
+			writeError(request.Context(), response, http.StatusBadRequest, "publish exactly one original value evidence envelope")
 		}
 		return
 	}
 	if input.SchemaVersion != 2 || input.Kind != "operational_value_evidence" || len(input.Evidence) == 0 {
-		writeError(response, http.StatusBadRequest, "publish exactly one original value evidence envelope")
+		writeError(request.Context(), response, http.StatusBadRequest, "publish exactly one original value evidence envelope")
 		return
 	}
 	session, _ := request.Context().Value(oauthSessionContextKey{}).(oauthSession)
 	if err := a.config.Audit.Record(request.Context(), "value.publish.requested", audit.Success,
 		slog.String("actor", session.Login)); err != nil {
 		if !errors.Is(err, audit.ErrMirrorUnavailable) {
-			writeError(response, http.StatusServiceUnavailable, "publication audit is unavailable")
+			writeError(request.Context(), response, http.StatusServiceUnavailable, "publication audit is unavailable")
 			return
 		}
-		serverLog.Printf("value publication audit mirror unavailable")
+		serverLog.PrintfContext(request.Context(), "value publication audit mirror unavailable")
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), 30*time.Second)
 	defer cancel()
 	result, err := a.valuePublisher.PublishOperationalValue(ctx, input.Evidence)
 	switch {
 	case errors.Is(err, postgresx.ErrValueInvalid):
-		writeError(response, http.StatusBadRequest, "value evidence is invalid")
+		writeError(request.Context(), response, http.StatusBadRequest, "value evidence is invalid")
 	case errors.Is(err, postgresx.ErrValueConflict):
-		writeError(response, http.StatusConflict, "value evidence conflicts with a retained capture, contract or immutable fact")
+		writeError(request.Context(), response, http.StatusConflict, "value evidence conflicts with a retained capture, contract or immutable fact")
 	case errors.Is(err, postgresx.ErrValueParentMissing):
-		writeError(response, http.StatusNotFound, "value repository and workflow must already be observed")
+		writeError(request.Context(), response, http.StatusNotFound, "value repository and workflow must already be observed")
 	case err != nil:
-		serverLog.Printf("value publication failed")
-		writeError(response, http.StatusServiceUnavailable, "value publication is unavailable")
+		serverLog.PrintfContext(request.Context(), "value publication failed")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "value publication is unavailable")
 	default:
 		if result.Updated {
 			a.hub.Broadcast(result.Revision)
 		}
-		serverLog.Printf("value publication completed updated=%t revision=%d", result.Updated, result.Revision)
+		serverLog.PrintfContext(request.Context(), "value publication completed updated=%t revision=%d", result.Updated, result.Revision)
 		writeJSON(response, http.StatusOK, result)
 	}
 }

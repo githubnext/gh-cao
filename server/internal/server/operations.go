@@ -80,37 +80,37 @@ func (a *App) rebuild(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if a.reconciler == nil {
-		writeError(response, http.StatusServiceUnavailable, "rebuild is not configured")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "rebuild is not configured")
 		return
 	}
 	if a.oauth != nil && !a.config.Audit.Durable() {
-		writeError(response, http.StatusServiceUnavailable, "rebuild requires durable audit storage")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "rebuild requires durable audit storage")
 		return
 	}
 	id, err := operationToken()
 	if err != nil {
-		writeError(response, http.StatusInternalServerError, "rebuild could not start")
+		writeError(request.Context(), response, http.StatusInternalServerError, "rebuild could not start")
 		return
 	}
 	token, err := operationToken()
 	if err != nil {
-		writeError(response, http.StatusInternalServerError, "rebuild could not start")
+		writeError(request.Context(), response, http.StatusInternalServerError, "rebuild could not start")
 		return
 	}
 	acquired, err := a.services.Leases.TryLock(request.Context(), a.rebuildLockName(), token, projectionLockTTL)
 	if err != nil {
-		writeError(response, http.StatusServiceUnavailable, "rebuild coordination is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "rebuild coordination is unavailable")
 		return
 	}
 	if !acquired {
-		writeError(response, http.StatusConflict, "a projection update is already running")
+		writeError(request.Context(), response, http.StatusConflict, "a projection update is already running")
 		return
 	}
 	started := time.Now().UTC()
 	active, err := a.database.State(request.Context())
 	if err != nil {
 		a.releaseRebuildLock(request.Context(), token)
-		writeError(response, http.StatusServiceUnavailable, "rebuild database state is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "rebuild database state is unavailable")
 		return
 	}
 	evidence := rebuildEvidence{ID: id, Actor: "local-bearer", PreviousRevision: active.Revision}
@@ -124,14 +124,14 @@ func (a *App) rebuild(response http.ResponseWriter, request *http.Request) {
 	}
 	if err := a.recordRebuildEvent(request.Context(), "admin.rebuild.admitted", audit.Success, evidence, status, ""); err != nil {
 		a.releaseRebuildLock(request.Context(), token)
-		writeError(response, http.StatusServiceUnavailable, "rebuild audit is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "rebuild audit is unavailable")
 		return
 	}
 	if err := a.writeRebuildStatus(request.Context(), status); err != nil {
 		status.State = "failed"
 		a.finishRebuild(request.Context(), evidence, status, "status_unavailable")
 		a.releaseRebuildLock(request.Context(), token)
-		writeError(response, http.StatusServiceUnavailable, "rebuild status is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "rebuild status is unavailable")
 		return
 	}
 	ctx, cancel := a.operationContext(request.Context())
@@ -140,7 +140,7 @@ func (a *App) rebuild(response http.ResponseWriter, request *http.Request) {
 		status.State = "failed"
 		a.finishRebuild(ctx, evidence, status, "service_stopped")
 		a.releaseRebuildLock(request.Context(), token)
-		writeError(response, http.StatusServiceUnavailable, "dashboard service is not running")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "dashboard service is not running")
 		return
 	}
 	writeJSON(response, http.StatusAccepted, status)
@@ -168,7 +168,7 @@ func (a *App) performRebuild(ctx context.Context, cancel context.CancelFunc, tok
 			reason = "operation_canceled"
 		}
 		a.finishRebuild(ctx, evidence, status, reason)
-		serverLog.Printf("rebuild failed rebuild_id=%s state=%s", evidence.ID, status.State)
+		serverLog.PrintfContext(ctx, "rebuild failed rebuild_id=%s state=%s", evidence.ID, status.State)
 		return
 	}
 	status.State = "succeeded"
@@ -178,7 +178,7 @@ func (a *App) performRebuild(ctx context.Context, cancel context.CancelFunc, tok
 	status.Counts = result.Counts
 	status = a.finishRebuild(ctx, evidence, status, "")
 	a.hub.Broadcast(result.Revision)
-	serverLog.Printf("rebuild published rebuild_id=%s revision=%d audit_state=%s", evidence.ID, result.Revision, status.AuditState)
+	serverLog.PrintfContext(ctx, "rebuild published rebuild_id=%s revision=%d audit_state=%s", evidence.ID, result.Revision, status.AuditState)
 }
 
 func (a *App) recordRebuildEvent(ctx context.Context, event, outcome string, evidence rebuildEvidence, status rebuildStatus, reason string) error {
@@ -189,7 +189,7 @@ func (a *App) recordRebuildEvent(ctx context.Context, event, outcome string, evi
 		slog.String("completed_at", status.CompletedAt), slog.String("reason", reason),
 		slog.Int64("revision", status.Revision), slog.String("data_revision", status.DataRevision))
 	if err != nil {
-		serverLog.Printf("rebuild audit write failed rebuild_id=%s event=%s", evidence.ID, event)
+		serverLog.PrintfContext(ctx, "rebuild audit write failed rebuild_id=%s event=%s", evidence.ID, event)
 		// A mirror-only failure cannot invalidate confirmed durable evidence.
 		if a.config.Audit.Durable() && errors.Is(err, audit.ErrMirrorUnavailable) && !errors.Is(err, audit.ErrUnavailable) {
 			return nil
@@ -214,9 +214,9 @@ func (a *App) finishRebuild(parent context.Context, evidence rebuildEvidence, st
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), 3*time.Second)
 	defer cancel()
 	if err := a.writeRebuildStatus(ctx, status); err != nil {
-		serverLog.Printf("rebuild terminal status write failed rebuild_id=%s state=%s", evidence.ID, status.State)
+		serverLog.PrintfContext(parent, "rebuild terminal status write failed rebuild_id=%s state=%s", evidence.ID, status.State)
 		if err := a.recordRebuildEvent(parent, "admin.rebuild.status_failed", audit.Failure, evidence, status, "status_unavailable"); err != nil {
-			serverLog.Printf("rebuild terminal evidence incomplete rebuild_id=%s", evidence.ID)
+			serverLog.PrintfContext(parent, "rebuild terminal evidence incomplete rebuild_id=%s", evidence.ID)
 		}
 	}
 	return status
@@ -247,7 +247,7 @@ func (a *App) releaseLock(parent context.Context, name, token string) {
 func (a *App) rebuildStatus(response http.ResponseWriter, request *http.Request) {
 	status, err := a.readRebuildStatus(request.Context())
 	if err != nil {
-		writeError(response, http.StatusServiceUnavailable, "rebuild status is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "rebuild status is unavailable")
 		return
 	}
 	writeJSON(response, http.StatusOK, status)
@@ -260,26 +260,26 @@ func (a *App) githubWebhook(response http.ResponseWriter, request *http.Request)
 	ping := false
 	defer func() { a.webhookMetrics.finish(tracked.status, ping) }()
 	if a.reconciler == nil || len(a.webhookSecret) == 0 {
-		writeError(response, http.StatusServiceUnavailable, "webhook reconciliation is not configured")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "webhook reconciliation is not configured")
 		return
 	}
 	request.Body = http.MaxBytesReader(response, request.Body, 10<<20)
 	payload, err := io.ReadAll(request.Body)
 	if err != nil {
-		writeError(response, http.StatusBadRequest, "invalid webhook payload")
+		writeError(request.Context(), response, http.StatusBadRequest, "invalid webhook payload")
 		return
 	}
 	if !validWebhookSignature(payload, request.Header.Get("X-Hub-Signature-256"), a.webhookSecret) {
-		a.logAuthBranch("webhook.signature_rejected")
-		writeError(response, http.StatusUnauthorized, "invalid webhook signature")
+		a.logAuthBranch(request.Context(), "webhook.signature_rejected")
+		writeError(request.Context(), response, http.StatusUnauthorized, "invalid webhook signature")
 		return
 	}
-	a.logAuthBranch("webhook.signature_accepted")
+	a.logAuthBranch(request.Context(), "webhook.signature_accepted")
 	a.webhookMetrics.verified()
 	delivery := strings.TrimSpace(request.Header.Get("X-GitHub-Delivery"))
 	event := strings.TrimSpace(request.Header.Get("X-GitHub-Event"))
 	if delivery == "" || event == "" {
-		writeError(response, http.StatusBadRequest, "GitHub delivery and event headers are required")
+		writeError(request.Context(), response, http.StatusBadRequest, "GitHub delivery and event headers are required")
 		return
 	}
 	ping = event == "ping"
@@ -295,15 +295,15 @@ func (a *App) githubWebhook(response http.ResponseWriter, request *http.Request)
 	}
 	token, err := operationToken()
 	if err != nil {
-		writeError(response, http.StatusInternalServerError, "reconciliation could not start")
+		writeError(request.Context(), response, http.StatusInternalServerError, "reconciliation could not start")
 		return
 	}
 	acquired, err := a.services.Leases.TryLock(request.Context(), "projection", token, projectionLockTTL)
 	if err != nil || !acquired {
 		if err != nil {
-			writeError(response, http.StatusServiceUnavailable, "reconciliation coordination is unavailable")
+			writeError(request.Context(), response, http.StatusServiceUnavailable, "reconciliation coordination is unavailable")
 		} else {
-			writeError(response, http.StatusConflict, "a projection update is already running")
+			writeError(request.Context(), response, http.StatusConflict, "a projection update is already running")
 		}
 		return
 	}
@@ -312,7 +312,7 @@ func (a *App) githubWebhook(response http.ResponseWriter, request *http.Request)
 		a.recordIngestionCounter(request.Context(), "webhookAdmissionFailed")
 		a.recordIngestionFailure(request.Context(), "redis")
 		a.releaseProjectionLock(request.Context(), token)
-		writeError(response, http.StatusServiceUnavailable, "webhook deduplication is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "webhook deduplication is unavailable")
 		return
 	}
 	if !fresh {
@@ -331,7 +331,7 @@ func (a *App) githubWebhook(response http.ResponseWriter, request *http.Request)
 	if !a.launchTask(func() { a.performReconciliation(ctx, cancel, token, eventPayload) }) {
 		cancel()
 		a.releaseProjectionLock(request.Context(), token)
-		writeError(response, http.StatusServiceUnavailable, "dashboard service is not running")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "dashboard service is not running")
 		return
 	}
 	writeJSON(response, http.StatusAccepted, map[string]any{"accepted": true})
@@ -358,8 +358,8 @@ func (a *App) admitWebhook(
 	if err != nil {
 		a.recordIngestionCounter(request.Context(), "webhookAdmissionFailed")
 		a.recordIngestionFailure(request.Context(), "admission")
-		serverLog.Printf("webhook admission failed")
-		writeError(response, http.StatusServiceUnavailable, "webhook admission is unavailable")
+		serverLog.PrintfContext(request.Context(), "webhook admission failed")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "webhook admission is unavailable")
 		return
 	}
 	payload := map[string]any{"accepted": true}
@@ -369,9 +369,9 @@ func (a *App) admitWebhook(
 	if duplicate, _ := result["duplicate"].(bool); duplicate {
 		a.webhookMetrics.duplicate()
 		a.recordIngestionCounter(request.Context(), "webhookDuplicate")
-		serverLog.Printf("webhook delivery duplicate")
+		serverLog.PrintfContext(request.Context(), "webhook delivery duplicate")
 	} else {
-		serverLog.Printf("webhook admission completed kind=%v queued=%v reason=%v admitted_at=%s",
+		serverLog.PrintfContext(request.Context(), "webhook admission completed kind=%v queued=%v reason=%v admitted_at=%s",
 			result["kind"], result["queued"], result["reason"],
 			time.Now().UTC().Format(time.RFC3339Nano))
 	}
@@ -380,7 +380,7 @@ func (a *App) admitWebhook(
 
 func (a *App) recordIngestionCounter(ctx context.Context, name string) {
 	if err := a.services.IngestionMetrics.IncrementIngestionCounter(ctx, name); err != nil {
-		serverLog.Printf("ingestion counter update failed")
+		serverLog.PrintfContext(ctx, "ingestion counter update failed")
 	}
 }
 
@@ -390,7 +390,7 @@ func (a *App) recordIngestionFailure(ctx context.Context, code string) {
 
 func (a *App) recordIngestionEvent(ctx context.Context, event, code string) {
 	if err := a.services.IngestionMetrics.RecordIngestionHealthEvent(ctx, event, code, time.Now().UTC()); err != nil {
-		serverLog.Printf("ingestion health update failed")
+		serverLog.PrintfContext(ctx, "ingestion health update failed")
 	}
 }
 
@@ -407,11 +407,11 @@ func (a *App) performReconciliation(
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 		defer cleanupCancel()
 		_ = a.services.Deliveries.ForgetDelivery(cleanupCtx, event.Delivery)
-		serverLog.Printf("webhook reconciliation failed")
+		serverLog.PrintfContext(ctx, "webhook reconciliation failed")
 		return
 	}
 	a.hub.Broadcast(result.Revision)
-	serverLog.Printf("webhook reconciliation completed revision=%d", result.Revision)
+	serverLog.PrintfContext(ctx, "webhook reconciliation completed revision=%d", result.Revision)
 }
 
 func validWebhookSignature(payload []byte, signature string, secret []byte) bool {
@@ -480,7 +480,7 @@ func (a *App) readRebuildStatus(ctx context.Context) (rebuildStatus, error) {
 					return rebuildStatus{}, err
 				}
 				status = reconcileInterruptedRebuild(status, held, active.Ready, time.Now().UTC())
-				operationsLog.Printf("rebuild status reconciled as interrupted required=%v", status.Required)
+				operationsLog.PrintfContext(ctx, "rebuild status reconciled as interrupted required=%v", status.Required)
 			}
 		}
 		return status, nil

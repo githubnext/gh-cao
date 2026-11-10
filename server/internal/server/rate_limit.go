@@ -156,8 +156,8 @@ func (a *App) enforceRateLimit(
 	defer cancel()
 	result, err := a.services.RequestLimiter.TakeRateLimitToken(ctx, key, policy.capacity, policy.window)
 	if err != nil {
-		serverLog.Printf("rate limit unavailable policy=%s", policy.name)
-		writeError(response, http.StatusServiceUnavailable, "request rate limiter is unavailable")
+		serverLog.PrintfContext(request.Context(), "rate limit unavailable policy=%s", policy.name)
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "request rate limiter is unavailable")
 		return
 	}
 	resetSeconds := cooldownSeconds(result.ResetAfter)
@@ -170,7 +170,7 @@ func (a *App) enforceRateLimit(
 	)
 	if !result.Allowed {
 		response.Header().Set("Retry-After", strconv.Itoa(cooldownSeconds(result.RetryAfter)))
-		writeError(response, http.StatusTooManyRequests, "rate limit exceeded")
+		writeError(request.Context(), response, http.StatusTooManyRequests, "rate limit exceeded")
 		return
 	}
 	if policy.name == "query" {
@@ -203,7 +203,7 @@ func (a *App) chargeQueryRateLimit(
 		cost-1,
 	)
 	if err != nil {
-		serverLog.Printf("rate limit unavailable policy=%s", reservation.policy.name)
+		serverLog.PrintfContext(ctx, "rate limit unavailable policy=%s", reservation.policy.name)
 		return http.StatusServiceUnavailable, errors.New("request rate limiter is unavailable")
 	}
 	if response != nil {
@@ -326,7 +326,7 @@ func (a *App) clientIP(request *http.Request) string {
 		forwardedHeader(request, "Forwarded"),
 		request.RemoteAddr,
 	)
-	serverLog.Printf("client address resolved source=%s", source)
+	serverLog.PrintfContext(request.Context(), "client address resolved source=%s", source)
 	return ip
 }
 

@@ -104,10 +104,10 @@ func (instruments *queryCacheTelemetry) observe(
 			attribute.Int64(queryCacheMetricPrefix+"expired", stats.Expired),
 			attribute.Int64(queryCacheMetricPrefix+"evicted", stats.Evicted),
 		)
-		queryCacheLog.Printf("operation=%s outcome=%s duration_ms=%d result_bytes=%d memory_bytes=%d entries=%d expired=%d evicted=%d",
+		queryCacheLog.PrintfContext(ctx, "operation=%s outcome=%s duration_ms=%d result_bytes=%d memory_bytes=%d entries=%d expired=%d evicted=%d",
 			operation, outcome, duration.Milliseconds(), payloadBytes, stats.MemoryBytes, stats.Entries, stats.Expired, stats.Evicted)
 	} else {
-		queryCacheLog.Printf("operation=%s outcome=%s duration_ms=%d result_bytes=%d",
+		queryCacheLog.PrintfContext(ctx, "operation=%s outcome=%s duration_ms=%d result_bytes=%d",
 			operation, outcome, duration.Milliseconds(), payloadBytes)
 	}
 	if span != nil {

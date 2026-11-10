@@ -79,8 +79,8 @@ func (a *App) canvasHandler(next http.Handler) http.Handler {
 			request.Out.Header.Del("Cookie")
 		},
 	}
-	proxy.ErrorHandler = func(response http.ResponseWriter, _ *http.Request, _ error) {
-		writeError(response, http.StatusBadGateway, "canvas integration is unavailable")
+	proxy.ErrorHandler = func(response http.ResponseWriter, request *http.Request, _ error) {
+		writeError(request.Context(), response, http.StatusBadGateway, "canvas integration is unavailable")
 	}
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		if !validLocalRequestHost(request.Host) || request.URL.IsAbs() {

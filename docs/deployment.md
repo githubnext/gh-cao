@@ -20,8 +20,7 @@ Dashboard hosting and collection credentials are separate choices. Pages can
 use the built-in workflow token for bounded monitoring, or Apps/PATs when
 required. Server-backed deployments use PostgreSQL for dashboard entities,
 queries, and operational state by default. Azure still pairs PostgreSQL with
-Azure Managed Redis for operational state; other hosts can explicitly select
-a compatible Redis provider such as Upstash.
+Azure Managed Redis for operational state.
 
 | Option | Dashboard host | Where queries run | Who can sign in | Infrastructure you operate |
 | --- | --- | --- | --- | --- |
@@ -49,15 +48,6 @@ origin. Forward the entire application to the Go handler, not just API paths.
 Do not publish a separate Pages or static-hosted frontend for hosted mode.
 The browser uses server-side PostgreSQL queries; a hosted failure does not
 switch to browser storage or the Pages deployment.
-
-Use the [one-minute managed Redis guide](deployment-managed-redis.md) to connect
-AWS ElastiCache, Redis Cloud, GCP Memorystore, Railway, Render, or DigitalOcean.
-The same provider-neutral `cao.json` host contract also defines the local Redis,
-Azure, and Upstash examples.
-
-### Using Upstash Redis
-
-[Upstash Redis](deployment-upstash.md) is a managed Redis option for the host-neutral Go server. Upstash doesn't host the CAO application. Run the container on your application platform, provide its verified artifact there, and configure the server to use the Upstash TLS Redis endpoint.
 
 > [!NOTE]
 > Your credential profile still matters for server-backed deployments. The CAO Activity workflow collects their evidence in GitHub Actions, using the profile that you configure. Dashboard users sign in separately, through a GitHub OAuth app. The optional Azure collection profile requires a GitHub App and doesn't support PATs.

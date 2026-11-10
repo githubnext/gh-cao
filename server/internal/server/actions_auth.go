@@ -82,13 +82,13 @@ func verifyGitHubActionsPermissions(ctx context.Context, config Config, token st
 		request.Header.Set("User-Agent", "gh-cao-mcp")
 		response, err := client.Do(request)
 		if err != nil {
-			actionsAuthLog.Printf("permission probe request failed probe=%s", probe.name)
+			actionsAuthLog.PrintfContext(ctx, "permission probe request failed probe=%s", probe.name)
 			return fmt.Errorf("GitHub Actions MCP %s permission check failed", probe.name)
 		}
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
 		_ = response.Body.Close()
 		if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-			actionsAuthLog.Printf("permission probe denied probe=%s status=%d", probe.name, response.StatusCode)
+			actionsAuthLog.PrintfContext(ctx, "permission probe denied probe=%s status=%d", probe.name, response.StatusCode)
 			return fmt.Errorf("GitHub Actions token requires %s: read permission for MCP access", probe.name)
 		}
 	}

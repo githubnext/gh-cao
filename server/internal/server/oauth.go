@@ -140,7 +140,7 @@ type githubOAuth struct {
 	revocations operational.RevocationQueue
 	key         []byte
 	keys        map[string][]byte
-	log         func(string)
+	log         func(context.Context, string)
 	// Bound exchanges that might need an in-memory cleanup owner while both
 	// GitHub and protected storage are unavailable.
 	exchanges chan struct{}
@@ -313,19 +313,19 @@ func newGitHubOAuth(config GitHubOAuthConfig, sessions operational.SessionStore,
 		key:         sum[:],
 		keys:        keys,
 		exchanges:   make(chan struct{}, 16),
-		log: func(branch string) {
-			serverLog.Printf("oauth branch=%s", branch)
+		log: func(ctx context.Context, branch string) {
+			serverLog.PrintfContext(ctx, "oauth branch=%s", branch)
 		},
 	}
 }
 
-func (oauth *githubOAuth) logBranch(branch string) {
-	oauth.emitAuthBranch(branch)
+func (oauth *githubOAuth) logBranch(ctx context.Context, branch string) {
+	oauth.emitAuthBranch(ctx, branch)
 }
 
-func (oauth *githubOAuth) emitAuthBranch(branch string) {
+func (oauth *githubOAuth) emitAuthBranch(ctx context.Context, branch string) {
 	if oauth.log != nil {
-		oauth.log(branch)
+		oauth.log(ctx, branch)
 	}
 }
 
@@ -347,36 +347,36 @@ func recordOAuthDecision(ctx context.Context, operation, outcome string) {
 
 func (oauth *githubOAuth) login(response http.ResponseWriter, request *http.Request) {
 	if !navigationRequest(request) {
-		oauth.logBranch("login.embedded_or_subresource_rejected")
-		writeError(response, http.StatusUnauthorized, "GitHub sign-in requires a top-level navigation")
+		oauth.logBranch(request.Context(), "login.embedded_or_subresource_rejected")
+		writeError(request.Context(), response, http.StatusUnauthorized, "GitHub sign-in requires a top-level navigation")
 		return
 	}
 	var consent *oauthConsentState
 	if values, requested := request.URL.Query()["hosted_cli"]; requested {
 		if len(values) != 1 || values[0] != "1" {
-			oauth.logBranch("login.consent_request_invalid")
-			writeError(response, http.StatusBadRequest, "Invalid hosted administrator consent request")
+			oauth.logBranch(request.Context(), "login.consent_request_invalid")
+			writeError(request.Context(), response, http.StatusBadRequest, "Invalid hosted administrator consent request")
 			return
 		}
 		if oauth.repositoryConsentAllowed == nil {
-			oauth.logBranch("login.consent_disabled")
-			writeError(response, http.StatusForbidden, "Hosted administrator consent is not enabled")
+			oauth.logBranch(request.Context(), "login.consent_disabled")
+			writeError(request.Context(), response, http.StatusForbidden, "Hosted administrator consent is not enabled")
 			return
 		}
 		session, ok := oauth.session(response, request)
 		if !ok {
-			oauth.logBranch("login.consent_session_missing")
-			writeError(response, http.StatusUnauthorized, "Sign in before requesting hosted administrator consent")
+			oauth.logBranch(request.Context(), "login.consent_session_missing")
+			writeError(request.Context(), response, http.StatusUnauthorized, "Sign in before requesting hosted administrator consent")
 			return
 		}
 		if !oauth.repositoryConsentAllowed(session) {
-			oauth.logBranch("login.consent_admin_rejected")
-			writeError(response, http.StatusForbidden, "Administrator access is required for repository consent")
+			oauth.logBranch(request.Context(), "login.consent_admin_rejected")
+			writeError(request.Context(), response, http.StatusForbidden, "Administrator access is required for repository consent")
 			return
 		}
 		if session.GitHubID <= 0 {
-			oauth.logBranch("login.consent_subject_missing")
-			writeError(response, http.StatusUnauthorized, "Sign in again before requesting hosted administrator consent")
+			oauth.logBranch(request.Context(), "login.consent_subject_missing")
+			writeError(request.Context(), response, http.StatusUnauthorized, "Sign in again before requesting hosted administrator consent")
 			return
 		}
 		consent = &oauthConsentState{
@@ -386,16 +386,16 @@ func (oauth *githubOAuth) login(response http.ResponseWriter, request *http.Requ
 	}
 	state, err := randomToken(32)
 	if err != nil {
-		oauth.logBranch("login.state_generation_failed")
-		writeError(response, http.StatusInternalServerError, "failed to initialize login")
+		oauth.logBranch(request.Context(), "login.state_generation_failed")
+		writeError(request.Context(), response, http.StatusInternalServerError, "failed to initialize login")
 		return
 	}
 	cookieState := state
 	if consent != nil {
 		data, err := json.Marshal(consent)
 		if err != nil {
-			oauth.logBranch("login.consent_state_failed")
-			writeError(response, http.StatusInternalServerError, "Failed to initialize hosted administrator consent")
+			oauth.logBranch(request.Context(), "login.consent_state_failed")
+			writeError(request.Context(), response, http.StatusInternalServerError, "Failed to initialize hosted administrator consent")
 			return
 		}
 		cookieState += "." + base64.RawURLEncoding.EncodeToString(data)
@@ -428,14 +428,14 @@ func (oauth *githubOAuth) login(response http.ResponseWriter, request *http.Requ
 		values.Set("scope", scope)
 	}
 	values.Set("prompt", "select_account")
-	oauth.logBranch("login.account_selection_requested")
+	oauth.logBranch(request.Context(), "login.account_selection_requested")
 	target.RawQuery = values.Encode()
-	oauth.logBranch("login.redirected")
+	oauth.logBranch(request.Context(), "login.redirected")
 	http.Redirect(response, request, target.String(), http.StatusFound)
 }
 
-func (oauth *githubOAuth) loggedOut(response http.ResponseWriter, _ *http.Request) {
-	oauth.logBranch("logged_out.rendered")
+func (oauth *githubOAuth) loggedOut(response http.ResponseWriter, request *http.Request) {
+	oauth.logBranch(request.Context(), "logged_out.rendered")
 	oauth.clearSessionCookies(response)
 	oauth.clearStateCookie(response)
 	response.Header().Set("Cache-Control", "no-store")
@@ -483,15 +483,15 @@ func (oauth *githubOAuth) callback(response http.ResponseWriter, request *http.R
 	}
 	consent, validState := oauth.loginState(request)
 	if !validState {
-		serverLog.Printf("oauth callback rejected invalid state")
-		oauth.logBranch("callback.state_rejected")
+		serverLog.PrintfContext(ctx, "oauth callback rejected invalid state")
+		oauth.logBranch(ctx, "callback.state_rejected")
 		fail(http.StatusBadRequest, "invalid_state")
 		return
 	}
 	oauth.clearStateCookie(response)
 	code := strings.TrimSpace(request.URL.Query().Get("code"))
 	if code == "" {
-		oauth.logBranch("callback.code_missing")
+		oauth.logBranch(ctx, "callback.code_missing")
 		reason := "missing_code"
 		if request.URL.Query().Has("error") {
 			reason = "provider_denied"
@@ -499,7 +499,7 @@ func (oauth *githubOAuth) callback(response http.ResponseWriter, request *http.R
 		fail(http.StatusBadRequest, reason)
 		return
 	}
-	if !oauth.acquireExchange() {
+	if !oauth.acquireExchange(ctx) {
 		fail(http.StatusServiceUnavailable, "credential_cleanup_capacity")
 		return
 	}
@@ -511,8 +511,8 @@ func (oauth *githubOAuth) callback(response http.ResponseWriter, request *http.R
 		"redirect_uri":  {oauth.config.RedirectURL},
 	})
 	if err != nil {
-		serverLog.Printf("oauth exchange failed")
-		oauth.logBranch("callback.exchange_failed")
+		serverLog.PrintfContext(ctx, "oauth exchange failed")
+		oauth.logBranch(ctx, "callback.exchange_failed")
 		fail(http.StatusUnauthorized, "exchange_failed")
 		return
 	}
@@ -522,14 +522,14 @@ func (oauth *githubOAuth) callback(response http.ResponseWriter, request *http.R
 	}
 	session.applyTokens(tokens, now)
 	if session.ProviderAccessExpires.IsZero() {
-		oauth.logBranch("callback.access_expiry_defaulted")
+		oauth.logBranch(ctx, "callback.access_expiry_defaulted")
 	} else {
-		oauth.logBranch("callback.access_expiry_provided")
+		oauth.logBranch(ctx, "callback.access_expiry_provided")
 	}
 	if session.ProviderRefreshExpires.IsZero() {
-		oauth.logBranch("callback.refresh_expiry_defaulted")
+		oauth.logBranch(ctx, "callback.refresh_expiry_defaulted")
 	} else {
-		oauth.logBranch("callback.refresh_expiry_provided")
+		oauth.logBranch(ctx, "callback.refresh_expiry_provided")
 	}
 	retained := false
 	defer func() {
@@ -541,23 +541,23 @@ func (oauth *githubOAuth) callback(response http.ResponseWriter, request *http.R
 				queueCtx, queueCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 				defer queueCancel()
 				if oauth.queueRevocation(queueCtx, session) != nil {
-					oauth.logBranch("callback.revocation_queue_failed")
+					oauth.logBranch(ctx, "callback.revocation_queue_failed")
 					recordOAuthDecision(context.WithoutCancel(ctx), "callback_cleanup", "queue_failed")
 					oauth.retainCredentialCleanup(ctx, session)
 				} else {
-					oauth.logBranch("callback.revocation_queued")
+					oauth.logBranch(ctx, "callback.revocation_queued")
 					recordOAuthDecision(context.WithoutCancel(ctx), "callback_cleanup", "queued")
 				}
 			} else {
-				oauth.logBranch("callback.credentials_revoked")
+				oauth.logBranch(ctx, "callback.credentials_revoked")
 				recordOAuthDecision(context.WithoutCancel(ctx), "callback_cleanup", "revoked")
 			}
 		}
 	}()
 	account, err := oauth.authorizedAccount(ctx, tokens.AccessToken)
 	if err != nil {
-		serverLog.Printf("oauth authorization failed")
-		oauth.logBranch("callback.authorization_failed")
+		serverLog.PrintfContext(ctx, "oauth authorization failed")
+		oauth.logBranch(ctx, "callback.authorization_failed")
 		fail(http.StatusForbidden, "authorization_failed")
 		return
 	}
@@ -574,21 +574,21 @@ func (oauth *githubOAuth) callback(response http.ResponseWriter, request *http.R
 			!strings.EqualFold(previous.Login, consent.Login) || !strings.EqualFold(account.Login, consent.Login) ||
 			!oauth.repositoryConsentAllowed(session) || !oauth.adminAssured(session, time.Now().UTC()) ||
 			time.Now().Unix() >= consent.ExpiresAt {
-			oauth.logBranch("callback.consent_rejected")
+			oauth.logBranch(ctx, "callback.consent_rejected")
 			fail(http.StatusForbidden, "authorization_failed")
 			return
 		}
-		oauth.logBranch("callback.consent_authorized")
+		oauth.logBranch(ctx, "callback.consent_authorized")
 	}
 	sessionID, err := randomToken(32)
 	if err != nil {
-		oauth.logBranch("callback.session_id_generation_failed")
+		oauth.logBranch(ctx, "callback.session_id_generation_failed")
 		fail(http.StatusInternalServerError, "session_id_generation_failed")
 		return
 	}
 	csrfToken, err := randomToken(32)
 	if err != nil {
-		oauth.logBranch("callback.csrf_generation_failed")
+		oauth.logBranch(ctx, "callback.csrf_generation_failed")
 		fail(http.StatusInternalServerError, "csrf_generation_failed")
 		return
 	}
@@ -596,47 +596,47 @@ func (oauth *githubOAuth) callback(response http.ResponseWriter, request *http.R
 	session.AvatarURL = account.AvatarURL
 	session.CSRFToken = csrfToken
 	if err := oauth.saveSession(ctx, session); err != nil {
-		serverLog.Printf("oauth session save failed")
-		oauth.logBranch("callback.session_save_failed")
+		serverLog.PrintfContext(ctx, "oauth session save failed")
+		oauth.logBranch(ctx, "callback.session_save_failed")
 		fail(http.StatusServiceUnavailable, "session_save_failed")
 		return
 	}
 	retained = true
 	oauth.setSessionCookies(response, session)
 	oauth.clearStateCookie(response)
-	serverLog.Printf("oauth callback completed")
-	oauth.logBranch("callback.succeeded")
+	serverLog.PrintfContext(ctx, "oauth callback completed")
+	oauth.logBranch(ctx, "callback.succeeded")
 	http.Redirect(response, request, "/", http.StatusFound)
 }
 
 func (oauth *githubOAuth) logout(response http.ResponseWriter, request *http.Request) {
 	if err := oauth.clearRequestSession(response, request); err != nil {
-		oauth.logBranch("logout.failed")
-		writeError(response, http.StatusServiceUnavailable, "GitHub credential revocation is temporarily unavailable")
+		oauth.logBranch(request.Context(), "logout.failed")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "GitHub credential revocation is temporarily unavailable")
 		return
 	}
-	oauth.logBranch("logout.succeeded")
+	oauth.logBranch(request.Context(), "logout.succeeded")
 	response.WriteHeader(http.StatusNoContent)
 }
 
 func (oauth *githubOAuth) switchAccount(response http.ResponseWriter, request *http.Request) {
 	if err := oauth.clearRequestSession(response, request); err != nil {
-		oauth.logBranch("switch_account.failed")
-		writeError(response, http.StatusServiceUnavailable, "GitHub credential revocation is temporarily unavailable")
+		oauth.logBranch(request.Context(), "switch_account.failed")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "GitHub credential revocation is temporarily unavailable")
 		return
 	}
-	oauth.logBranch("switch_account.succeeded")
+	oauth.logBranch(request.Context(), "switch_account.succeeded")
 	writeJSON(response, http.StatusOK, map[string]string{"loginUrl": "/auth/login?select_account=1"})
 }
 
 func (oauth *githubOAuth) currentAccount(response http.ResponseWriter, request *http.Request) {
 	session, ok := oauth.loadRequestSession(request)
 	if !ok {
-		oauth.logBranch("current_account.session_missing")
-		writeError(response, http.StatusUnauthorized, "GitHub authentication is required")
+		oauth.logBranch(request.Context(), "current_account.session_missing")
+		writeError(request.Context(), response, http.StatusUnauthorized, "GitHub authentication is required")
 		return
 	}
-	oauth.logBranch("current_account.succeeded")
+	oauth.logBranch(request.Context(), "current_account.succeeded")
 	payload := map[string]string{
 		"login":     session.Login,
 		"avatarUrl": session.AvatarURL,
@@ -654,16 +654,16 @@ func (oauth *githubOAuth) verifiedAssurance(ctx context.Context, accessToken str
 	var assurance []string
 	if account.TwoFactorAuthentication != nil && *account.TwoFactorAuthentication {
 		assurance = append(assurance, assuranceTwoFactor)
-		oauth.logBranch("assurance.two_factor_verified")
+		oauth.logBranch(ctx, "assurance.two_factor_verified")
 	}
 	for _, org := range oauth.config.SSOOrganizations {
 		if oauth.orgAuthorized(ctx, accessToken, org) {
 			assurance = append(assurance, assuranceSSOPrefix+strings.ToLower(org))
-			oauth.logBranch("assurance.sso_verified")
+			oauth.logBranch(ctx, "assurance.sso_verified")
 		}
 	}
 	if len(assurance) == 0 {
-		oauth.logBranch("assurance.unverified")
+		oauth.logBranch(ctx, "assurance.unverified")
 	}
 	return assurance
 }
@@ -710,31 +710,31 @@ func (oauth *githubOAuth) clearRequestSession(response http.ResponseWriter, requ
 	if ok {
 		staged, stagedValue, err := oauth.stageRevocation(request.Context(), session.ID)
 		if err != nil {
-			serverLog.Printf("oauth credential revocation staging failed")
-			oauth.logBranch("session_clear.revocation_staging_failed")
+			serverLog.PrintfContext(request.Context(), "oauth credential revocation staging failed")
+			oauth.logBranch(request.Context(), "session_clear.revocation_staging_failed")
 			return err
 		}
 		session = staged
 		sealed = stagedValue
 		if sealed == "" {
-			oauth.logBranch("session_clear.already_absent")
+			oauth.logBranch(request.Context(), "session_clear.already_absent")
 			ok = false
 		} else {
-			oauth.logBranch("session_clear.revocation_staged")
+			oauth.logBranch(request.Context(), "session_clear.revocation_staged")
 		}
 	} else {
-		oauth.logBranch("session_clear.session_missing")
+		oauth.logBranch(request.Context(), "session_clear.session_missing")
 	}
 	oauth.clearSessionCookies(response)
 	if ok {
 		if err := oauth.revokeCredentials(request.Context(), session); err != nil {
-			serverLog.Printf("oauth credential revocation queued")
-			oauth.logBranch("session_clear.revocation_queued")
+			serverLog.PrintfContext(request.Context(), "oauth credential revocation queued")
+			oauth.logBranch(request.Context(), "session_clear.revocation_queued")
 		} else {
 			if err := oauth.completeRevocation(request.Context(), session.ID, sealed); err != nil {
-				oauth.logBranch("session_clear.revocation_completion_failed")
+				oauth.logBranch(request.Context(), "session_clear.revocation_completion_failed")
 			} else {
-				oauth.logBranch("session_clear.revocation_completed")
+				oauth.logBranch(request.Context(), "session_clear.revocation_completed")
 			}
 		}
 	}
@@ -744,12 +744,12 @@ func (oauth *githubOAuth) clearRequestSession(response http.ResponseWriter, requ
 func (oauth *githubOAuth) session(response http.ResponseWriter, request *http.Request) (oauthSession, bool) {
 	cookie, err := request.Cookie(sessionCookieName)
 	if err != nil || cookie.Value == "" {
-		oauth.logBranch("session.cookie_missing")
+		oauth.logBranch(request.Context(), "session.cookie_missing")
 		return oauthSession{}, false
 	}
 	session, expected, err := oauth.loadSessionRecord(request.Context(), cookie.Value)
 	if err != nil {
-		oauth.logBranch("session.load_failed")
+		oauth.logBranch(request.Context(), "session.load_failed")
 		return oauthSession{}, false
 	}
 	if time.Now().UTC().Add(tokenRefreshSkew).Before(session.AccessExpires) {
@@ -759,7 +759,7 @@ func (oauth *githubOAuth) session(response http.ResponseWriter, request *http.Re
 			defer span.End()
 			account, err := oauth.authorizedAccount(ctx, session.AccessToken)
 			if err != nil || !strings.EqualFold(account.Login, session.Login) {
-				oauth.logBranch("session.authorization_rejected")
+				oauth.logBranch(ctx, "session.authorization_rejected")
 				recordOAuthDecision(ctx, "session_revalidation", "rejected")
 				oauth.invalidateSessionIfUnchanged(response, ctx, session.ID, expected)
 				return oauthSession{}, false
@@ -768,25 +768,25 @@ func (oauth *githubOAuth) session(response http.ResponseWriter, request *http.Re
 			session.AuthorizedAt = time.Now().UTC()
 			saved, err := oauth.saveSessionIfUnchanged(ctx, session, expected)
 			if err != nil {
-				oauth.logBranch("session.revalidation_save_failed")
+				oauth.logBranch(ctx, "session.revalidation_save_failed")
 				recordOAuthDecision(ctx, "session_revalidation", "store_failed")
 				return oauthSession{}, false
 			}
 			if !saved {
 				latest, err := oauth.loadSession(ctx, session.ID)
 				if err != nil || time.Since(latest.AuthorizedAt) >= authorizationRecheckInterval {
-					oauth.logBranch("session.revalidation_superseded")
+					oauth.logBranch(ctx, "session.revalidation_superseded")
 					recordOAuthDecision(ctx, "session_revalidation", "superseded")
 					return oauthSession{}, false
 				}
 				session = latest
 				recordOAuthDecision(ctx, "session_revalidation", "concurrent_accepted")
 			} else {
-				oauth.logBranch("session.authorization_revalidated")
+				oauth.logBranch(ctx, "session.authorization_revalidated")
 				recordOAuthDecision(ctx, "session_revalidation", "accepted")
 			}
 		}
-		oauth.logBranch("session.active")
+		oauth.logBranch(request.Context(), "session.active")
 		csrfCookie, err := request.Cookie(csrfCookieName)
 		if err != nil || csrfCookie.Value == "" {
 			oauth.setSessionCookies(response, session)
@@ -794,11 +794,11 @@ func (oauth *githubOAuth) session(response http.ResponseWriter, request *http.Re
 		return session, true
 	}
 	if session.RefreshToken == "" || !time.Now().UTC().Before(session.RefreshExpires) {
-		oauth.logBranch("session.expired_revocation_required")
+		oauth.logBranch(request.Context(), "session.expired_revocation_required")
 		oauth.invalidateSessionIfUnchanged(response, request.Context(), session.ID, expected)
 		return oauthSession{}, false
 	}
-	if !oauth.acquireExchange() {
+	if !oauth.acquireExchange(request.Context()) {
 		return oauthSession{}, false
 	}
 	defer oauth.releaseExchange()
@@ -809,44 +809,44 @@ func (oauth *githubOAuth) session(response http.ResponseWriter, request *http.Re
 		"refresh_token": {session.RefreshToken},
 	})
 	if err != nil {
-		serverLog.Printf("oauth token refresh failed")
-		oauth.logBranch("refresh.exchange_failed")
+		serverLog.PrintfContext(request.Context(), "oauth token refresh failed")
+		oauth.logBranch(request.Context(), "refresh.exchange_failed")
 		oauth.invalidateSessionIfUnchanged(response, request.Context(), session.ID, expected)
 		return oauthSession{}, false
 	}
 	previous := session
 	now := time.Now().UTC()
 	if refreshed.RefreshToken != "" {
-		oauth.logBranch("refresh.refresh_token_rotated")
+		oauth.logBranch(request.Context(), "refresh.refresh_token_rotated")
 	} else {
-		oauth.logBranch("refresh.refresh_token_reused")
+		oauth.logBranch(request.Context(), "refresh.refresh_token_reused")
 	}
 	session.applyTokens(refreshed, now)
 	if refreshed.RefreshTokenExpiresIn > 0 {
-		oauth.logBranch("refresh.refresh_expiry_updated")
+		oauth.logBranch(request.Context(), "refresh.refresh_expiry_updated")
 	} else {
-		oauth.logBranch("refresh.refresh_expiry_retained")
+		oauth.logBranch(request.Context(), "refresh.refresh_expiry_retained")
 	}
 	if session.ProviderAccessExpires.IsZero() {
-		oauth.logBranch("refresh.access_expiry_defaulted")
+		oauth.logBranch(request.Context(), "refresh.access_expiry_defaulted")
 	} else {
-		oauth.logBranch("refresh.access_expiry_provided")
+		oauth.logBranch(request.Context(), "refresh.access_expiry_provided")
 	}
 	account, err := oauth.authorizedAccount(request.Context(), refreshed.AccessToken)
 	if err != nil || !strings.EqualFold(account.Login, session.Login) {
 		if oauth.revokeCredentials(request.Context(), session) != nil {
 			if oauth.queueRevocation(request.Context(), session) != nil {
-				oauth.logBranch("refresh.rejected_revocation_queue_failed")
+				oauth.logBranch(request.Context(), "refresh.rejected_revocation_queue_failed")
 				oauth.retainCredentialCleanup(request.Context(), session)
 			} else {
-				oauth.logBranch("refresh.rejected_revocation_queued")
+				oauth.logBranch(request.Context(), "refresh.rejected_revocation_queued")
 			}
 		} else {
-			oauth.logBranch("refresh.rejected_credentials_revoked")
+			oauth.logBranch(request.Context(), "refresh.rejected_credentials_revoked")
 		}
 		oauth.invalidateSessionIfUnchanged(response, request.Context(), session.ID, expected)
-		serverLog.Printf("oauth authorization revalidation failed")
-		oauth.logBranch("refresh.authorization_rejected")
+		serverLog.PrintfContext(request.Context(), "oauth authorization revalidation failed")
+		oauth.logBranch(request.Context(), "refresh.authorization_rejected")
 		return oauthSession{}, false
 	}
 	session.AvatarURL = account.AvatarURL
@@ -861,45 +861,45 @@ func (oauth *githubOAuth) session(response http.ResponseWriter, request *http.Re
 			expected = latestSealed
 			saved, err = oauth.saveSessionIfUnchanged(request.Context(), session, expected)
 			if saved && err == nil {
-				oauth.logBranch("refresh.concurrent_revalidation_reconciled")
+				oauth.logBranch(request.Context(), "refresh.concurrent_revalidation_reconciled")
 				recordOAuthDecision(request.Context(), "session_revalidation", "concurrent_refresh_reconciled")
 			}
 		}
 	}
 	if err != nil {
-		serverLog.Printf("oauth refreshed session save failed")
-		oauth.logBranch("refresh.session_save_failed")
+		serverLog.PrintfContext(request.Context(), "oauth refreshed session save failed")
+		oauth.logBranch(request.Context(), "refresh.session_save_failed")
 		if oauth.revokeCredentials(request.Context(), session) != nil {
 			if oauth.queueRevocation(request.Context(), session) != nil {
-				oauth.logBranch("refresh.save_failed_revocation_queue_failed")
+				oauth.logBranch(request.Context(), "refresh.save_failed_revocation_queue_failed")
 				oauth.retainCredentialCleanup(request.Context(), session)
 			} else {
-				oauth.logBranch("refresh.save_failed_revocation_queued")
+				oauth.logBranch(request.Context(), "refresh.save_failed_revocation_queued")
 			}
 		} else {
-			oauth.logBranch("refresh.save_failed_credentials_revoked")
+			oauth.logBranch(request.Context(), "refresh.save_failed_credentials_revoked")
 		}
 		oauth.invalidateSessionIfUnchanged(response, request.Context(), session.ID, expected)
 		return oauthSession{}, false
 	}
 	if !saved {
-		serverLog.Printf("oauth refreshed session superseded")
-		oauth.logBranch("refresh.session_superseded")
+		serverLog.PrintfContext(request.Context(), "oauth refreshed session superseded")
+		oauth.logBranch(request.Context(), "refresh.session_superseded")
 		if oauth.revokeCredentials(request.Context(), session) != nil {
 			if oauth.queueRevocation(request.Context(), session) != nil {
-				oauth.logBranch("refresh.superseded_revocation_queue_failed")
+				oauth.logBranch(request.Context(), "refresh.superseded_revocation_queue_failed")
 				oauth.retainCredentialCleanup(request.Context(), session)
 			} else {
-				oauth.logBranch("refresh.superseded_revocation_queued")
+				oauth.logBranch(request.Context(), "refresh.superseded_revocation_queued")
 			}
 		} else {
-			oauth.logBranch("refresh.superseded_credentials_revoked")
+			oauth.logBranch(request.Context(), "refresh.superseded_credentials_revoked")
 		}
 		oauth.clearSessionCookies(response)
 		return oauthSession{}, false
 	}
-	serverLog.Printf("oauth session refreshed")
-	oauth.logBranch("refresh.succeeded")
+	serverLog.PrintfContext(request.Context(), "oauth session refreshed")
+	oauth.logBranch(request.Context(), "refresh.succeeded")
 	oauth.setSessionCookies(response, session)
 	return session, true
 }
@@ -907,28 +907,28 @@ func (oauth *githubOAuth) session(response http.ResponseWriter, request *http.Re
 func (oauth *githubOAuth) invalidateSessionIfUnchanged(response http.ResponseWriter, ctx context.Context, sessionID, expected string) {
 	session, sealed, err := oauth.stageRevocationIfUnchanged(ctx, sessionID, expected)
 	if errors.Is(err, errSessionSuperseded) {
-		oauth.logBranch("invalidation.session_superseded")
+		oauth.logBranch(ctx, "invalidation.session_superseded")
 		return
 	}
 	if err != nil {
-		serverLog.Printf("oauth credential revocation staging failed")
-		oauth.logBranch("invalidation.revocation_staging_failed")
+		serverLog.PrintfContext(ctx, "oauth credential revocation staging failed")
+		oauth.logBranch(ctx, "invalidation.revocation_staging_failed")
 		oauth.clearSessionCookies(response)
 		return
 	}
 	oauth.clearSessionCookies(response)
 	if sealed == "" {
-		oauth.logBranch("invalidation.session_absent")
+		oauth.logBranch(ctx, "invalidation.session_absent")
 		return
 	}
 	if oauth.revokeCredentials(ctx, session) == nil {
 		if oauth.completeRevocation(ctx, session.ID, sealed) != nil {
-			oauth.logBranch("invalidation.revocation_completion_failed")
+			oauth.logBranch(ctx, "invalidation.revocation_completion_failed")
 		} else {
-			oauth.logBranch("invalidation.revocation_completed")
+			oauth.logBranch(ctx, "invalidation.revocation_completed")
 		}
 	} else {
-		oauth.logBranch("invalidation.revocation_deferred")
+		oauth.logBranch(ctx, "invalidation.revocation_deferred")
 	}
 }
 
@@ -974,14 +974,14 @@ func (oauth *githubOAuth) exchange(ctx context.Context, values url.Values) (toke
 	// #nosec G704 -- endpoints are fixed GitHub defaults in production and test-only overrides are explicit configuration.
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, oauth.config.TokenURL, strings.NewReader(values.Encode()))
 	if err != nil {
-		oauth.logBranch("exchange.request_creation_failed")
+		oauth.logBranch(ctx, "exchange.request_creation_failed")
 		return tokenResponse{}, err
 	}
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	response, err := oauth.client.Do(request) // #nosec G704 -- see endpoint validation note above.
 	if err != nil {
-		oauth.logBranch("exchange.request_failed")
+		oauth.logBranch(ctx, "exchange.request_failed")
 		return tokenResponse{}, err
 	}
 	defer func() {
@@ -989,73 +989,73 @@ func (oauth *githubOAuth) exchange(ctx context.Context, values url.Values) (toke
 		_ = response.Body.Close()
 	}()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		oauth.logBranch("exchange.status_rejected")
+		oauth.logBranch(ctx, "exchange.status_rejected")
 		return tokenResponse{}, errors.New("GitHub OAuth token endpoint rejected the request")
 	}
 	var tokens tokenResponse
 	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&tokens); err != nil {
-		oauth.logBranch("exchange.response_decode_failed")
+		oauth.logBranch(ctx, "exchange.response_decode_failed")
 		return tokenResponse{}, err
 	}
 	if tokens.Error != "" || tokens.AccessToken == "" {
-		oauth.logBranch("exchange.token_missing")
+		oauth.logBranch(ctx, "exchange.token_missing")
 		return tokenResponse{}, errors.New("GitHub OAuth token endpoint did not return an access token")
 	}
-	oauth.logBranch("exchange.succeeded")
+	oauth.logBranch(ctx, "exchange.succeeded")
 	return tokens, nil
 }
 
 func (oauth *githubOAuth) authorizedAccount(ctx context.Context, accessToken string) (githubAccount, error) {
 	account, err := oauth.githubAccount(ctx, accessToken)
 	if err != nil {
-		oauth.logBranch("authorization.identity_failed")
+		oauth.logBranch(ctx, "authorization.identity_failed")
 		return githubAccount{}, err
 	}
 	if oauth.config.LocalDevelopmentUser != "" {
 		if account.ID <= 0 || !strings.EqualFold(account.Login, oauth.config.LocalDevelopmentUser) {
-			oauth.logBranch("authorization.local_user_rejected")
+			oauth.logBranch(ctx, "authorization.local_user_rejected")
 			return githubAccount{}, errors.New("GitHub account is not the configured local developer")
 		}
-		oauth.logBranch("authorization.local_user_allowed")
+		oauth.logBranch(ctx, "authorization.local_user_allowed")
 		return account, nil
 	}
 	for _, login := range oauth.config.AllowedUsers {
 		if strings.EqualFold(strings.TrimSpace(login), account.Login) {
-			oauth.logBranch("authorization.user_allowed")
+			oauth.logBranch(ctx, "authorization.user_allowed")
 			return account, nil
 		}
 	}
 	for _, org := range oauth.config.AllowedOrganizations {
 		if oauth.orgAuthorized(ctx, accessToken, org) {
-			oauth.logBranch("authorization.organization_allowed")
+			oauth.logBranch(ctx, "authorization.organization_allowed")
 			return account, nil
 		}
 	}
 	for _, team := range oauth.config.AllowedTeams {
 		parts := strings.Split(team, "/")
 		if len(parts) == 2 && oauth.teamAuthorized(ctx, accessToken, parts[0], parts[1], account.Login) {
-			oauth.logBranch("authorization.team_allowed")
+			oauth.logBranch(ctx, "authorization.team_allowed")
 			return account, nil
 		}
 		if len(parts) != 2 {
-			oauth.logBranch("authorization.team_policy_invalid")
+			oauth.logBranch(ctx, "authorization.team_policy_invalid")
 		}
 	}
-	oauth.logBranch("authorization.denied")
+	oauth.logBranch(ctx, "authorization.denied")
 	return githubAccount{}, errors.New("GitHub user is not authorized")
 }
 
 func (oauth *githubOAuth) githubAccount(ctx context.Context, accessToken string) (githubAccount, error) {
 	var account githubAccount
 	if err := oauth.githubJSON(ctx, http.MethodGet, oauth.config.UserURL, accessToken, nil, &account); err != nil {
-		oauth.logBranch("identity.request_failed")
+		oauth.logBranch(ctx, "identity.request_failed")
 		return githubAccount{}, err
 	}
 	if strings.TrimSpace(account.Login) == "" {
-		oauth.logBranch("identity.login_missing")
+		oauth.logBranch(ctx, "identity.login_missing")
 		return githubAccount{}, errors.New("GitHub user response did not include a login")
 	}
-	oauth.logBranch("identity.loaded")
+	oauth.logBranch(ctx, "identity.loaded")
 	return account, nil
 }
 
@@ -1065,14 +1065,14 @@ func (oauth *githubOAuth) orgAuthorized(ctx context.Context, accessToken, org st
 	}
 	endpoint := strings.ReplaceAll(oauth.config.OrgMembershipURL, "{org}", url.PathEscape(org))
 	if err := oauth.githubJSON(ctx, http.MethodGet, endpoint, accessToken, nil, &payload); err != nil {
-		oauth.logBranch("organization_membership.request_failed")
+		oauth.logBranch(ctx, "organization_membership.request_failed")
 		return false
 	}
 	if payload.State != "active" {
-		oauth.logBranch("organization_membership.inactive")
+		oauth.logBranch(ctx, "organization_membership.inactive")
 		return false
 	}
-	oauth.logBranch("organization_membership.active")
+	oauth.logBranch(ctx, "organization_membership.active")
 	return true
 }
 
@@ -1084,20 +1084,20 @@ func (oauth *githubOAuth) teamAuthorized(ctx context.Context, accessToken, org, 
 	endpoint = strings.ReplaceAll(endpoint, "{team}", url.PathEscape(team))
 	endpoint = strings.ReplaceAll(endpoint, "{user}", url.PathEscape(login))
 	if err := oauth.githubJSON(ctx, http.MethodGet, endpoint, accessToken, nil, &payload); err != nil {
-		oauth.logBranch("team_membership.request_failed")
+		oauth.logBranch(ctx, "team_membership.request_failed")
 		return false
 	}
 	if payload.State != "active" {
-		oauth.logBranch("team_membership.inactive")
+		oauth.logBranch(ctx, "team_membership.inactive")
 		return false
 	}
-	oauth.logBranch("team_membership.active")
+	oauth.logBranch(ctx, "team_membership.active")
 	return true
 }
 
 func (oauth *githubOAuth) revoke(ctx context.Context, token string) error {
 	if token == "" {
-		oauth.logBranch("revocation.token_absent")
+		oauth.logBranch(ctx, "revocation.token_absent")
 		return nil
 	}
 	body, _ := json.Marshal(map[string]string{"access_token": token})
@@ -1106,9 +1106,9 @@ func (oauth *githubOAuth) revoke(ctx context.Context, token string) error {
 		request.SetBasicAuth(oauth.config.ClientID, oauth.config.ClientSecret)
 	}, acceptNotFound)
 	if err != nil {
-		oauth.logBranch("revocation.request_failed")
+		oauth.logBranch(ctx, "revocation.request_failed")
 	} else {
-		oauth.logBranch("revocation.request_succeeded")
+		oauth.logBranch(ctx, "revocation.request_succeeded")
 	}
 	return err
 }
@@ -1120,12 +1120,12 @@ func (oauth *githubOAuth) revokeCredentials(ctx context.Context, session oauthSe
 	)
 }
 
-func (oauth *githubOAuth) acquireExchange() bool {
+func (oauth *githubOAuth) acquireExchange(ctx context.Context) bool {
 	select {
 	case oauth.exchanges <- struct{}{}:
 		return true
 	default:
-		oauth.logBranch("exchange.cleanup_capacity_exhausted")
+		oauth.logBranch(ctx, "exchange.cleanup_capacity_exhausted")
 		return false
 	}
 }
@@ -1140,20 +1140,20 @@ func (oauth *githubOAuth) retainCredentialCleanup(ctx context.Context, session o
 		err := oauth.revokeCredentials(cleanup, session)
 		cancel()
 		if err == nil {
-			oauth.logBranch("credential_cleanup.revoked")
+			oauth.logBranch(ctx, "credential_cleanup.revoked")
 			return
 		}
 		queue, queueCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		err = oauth.queueRevocation(queue, session)
 		queueCancel()
 		if err == nil {
-			oauth.logBranch("credential_cleanup.queued")
+			oauth.logBranch(ctx, "credential_cleanup.queued")
 			return
 		}
-		oauth.logBranch("credential_cleanup.retained")
+		oauth.logBranch(ctx, "credential_cleanup.retained")
 		time.Sleep(time.Second)
 	}
-	oauth.logBranch("credential_cleanup.provider_expired")
+	oauth.logBranch(ctx, "credential_cleanup.provider_expired")
 }
 
 func (oauth *githubOAuth) stageRevocation(ctx context.Context, sessionID string) (oauthSession, string, error) {
@@ -1206,43 +1206,43 @@ func (oauth *githubOAuth) retryPendingRevocations(ctx context.Context, limit int
 	for range limit {
 		record, err := oauth.revocations.PendingRevocation(ctx, oauth.config.RevocationKeyPrefix)
 		if err != nil {
-			oauth.logBranch("revocation_retry.record_read_failed")
+			oauth.logBranch(ctx, "revocation_retry.record_read_failed")
 			return
 		}
 		if record.Value == "" {
-			oauth.logBranch("revocation_retry.queue_empty")
+			oauth.logBranch(ctx, "revocation_retry.queue_empty")
 			return
 		}
 		sealed := record.Value
 		plain, err := oauth.open(sealed)
 		if err != nil {
-			oauth.logBranch("revocation_retry.decrypt_failed")
+			oauth.logBranch(ctx, "revocation_retry.decrypt_failed")
 			return
 		}
 		var session oauthSession
 		if json.Unmarshal(plain, &session) != nil {
-			oauth.logBranch("revocation_retry.decode_failed")
+			oauth.logBranch(ctx, "revocation_retry.decode_failed")
 			return
 		}
 		if credentialsExpired(session) {
 			if oauth.completeRevocation(ctx, session.ID, sealed) != nil {
-				oauth.logBranch("revocation_retry.expired_removal_failed")
+				oauth.logBranch(ctx, "revocation_retry.expired_removal_failed")
 				continue
 			}
-			oauth.logBranch("revocation_retry.expired_removed")
+			oauth.logBranch(ctx, "revocation_retry.expired_removed")
 			continue
 		}
 		if oauth.revokeCredentials(ctx, session) != nil {
-			oauth.logBranch("revocation_retry.request_failed")
+			oauth.logBranch(ctx, "revocation_retry.request_failed")
 			return
 		}
 		if oauth.completeRevocation(ctx, session.ID, sealed) != nil {
-			oauth.logBranch("revocation_retry.completion_failed")
+			oauth.logBranch(ctx, "revocation_retry.completion_failed")
 			continue
 		}
-		oauth.logBranch("revocation_retry.completed")
+		oauth.logBranch(ctx, "revocation_retry.completed")
 	}
-	oauth.logBranch("revocation_retry.limit_reached")
+	oauth.logBranch(ctx, "revocation_retry.limit_reached")
 }
 
 func (oauth *githubOAuth) runRevocationWorker(ctx context.Context) {
@@ -1252,10 +1252,10 @@ func (oauth *githubOAuth) runRevocationWorker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			oauth.logBranch("revocation_worker.stopped")
+			oauth.logBranch(ctx, "revocation_worker.stopped")
 			return
 		case <-ticker.C:
-			oauth.logBranch("revocation_worker.tick")
+			oauth.logBranch(ctx, "revocation_worker.tick")
 			oauth.retryPendingRevocations(ctx, 16)
 		}
 	}
@@ -1347,7 +1347,7 @@ func (oauth *githubOAuth) loadSessionRecord(ctx context.Context, sessionID strin
 		return oauthSession{}, "", err
 	}
 	if !strings.EqualFold(session.LocalDevelopmentUser, oauth.config.LocalDevelopmentUser) {
-		oauth.logBranch("session.authorization_mode_rejected")
+		oauth.logBranch(ctx, "session.authorization_mode_rejected")
 		return oauthSession{}, "", errors.New("session does not match the configured OAuth authorization mode")
 	}
 	return session, sealed, nil

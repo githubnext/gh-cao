@@ -141,7 +141,7 @@ extension's directory after symlink resolution. Cycles, more than eight
 imports, duplicate keys, expressions, non-host overrides, and invalid
 composed policy fail closed. See the
 [control architecture specification](https://github.com/githubnext/gh-cao/blob/main/specs/control-architecture.md#531-deployment-specific-host-extensions)
-and [managed Redis guide](deployment-managed-redis.md) for host-module options.
+for the host-extension contract.
 
 For example, this policy keeps Dependabot in review across its scope while promoting one exact target to live:
 
@@ -400,7 +400,7 @@ Steering can refine evidence, priorities, and selection within resolved policy. 
 
 ## Optional Observability
 
-The dispatcher span is built into `shared/control.md`; exporter configuration determines where gh-aw sends it. Set the `GH_AW_DEFAULT_OTLP_ENDPOINT` Actions variable and `GH_AW_DEFAULT_OTLP_HEADERS` Actions secret at repository, organization, or enterprise scope. Export is disabled when the endpoint or matching headers are absent. Hosted dashboard servers configure their own OpenTelemetry export; see [Azure](deployment-azure.md#monitoring-the-deployment) and [Upstash Redis](deployment-upstash.md#monitoring-the-deployment).
+The dispatcher span is built into `shared/control.md`; exporter configuration determines where gh-aw sends it. Set the `GH_AW_DEFAULT_OTLP_ENDPOINT` Actions variable and `GH_AW_DEFAULT_OTLP_HEADERS` Actions secret at repository, organization, or enterprise scope. Export is disabled when the endpoint or matching headers are absent. Hosted dashboard servers configure their own OpenTelemetry export; see [Azure](deployment-azure.md#monitoring-the-deployment).
 
 ```bash
 CONTROL_REPO="acme/central-agentic-ops"

@@ -58,7 +58,7 @@ func (c storeMarketplaceCache) Set(ctx context.Context, registryID, generation s
 func marketplaceSource(ctx context.Context, store operational.Cache, generation string) model.Source {
 	config, err := marketplace.LoadConfigFile(marketplacePolicyPath())
 	if err != nil {
-		marketplaceLog.Printf("marketplace policy unavailable")
+		marketplaceLog.PrintfContext(ctx, "marketplace policy unavailable")
 		return marketplaceUnavailableSource()
 	}
 	result := marketplace.Resolve(ctx, config, generation, storeMarketplaceCache{store: store}, marketplace.Options{})
@@ -70,7 +70,7 @@ func marketplaceSource(ctx context.Context, store operational.Cache, generation 
 	for _, diagnostic := range result.Diagnostics {
 		diagnostics = append(diagnostics, diagnostic.Row())
 	}
-	marketplaceLog.Printf("resolved marketplace catalog packages=%d registries=%d", len(rows), len(result.Diagnostics))
+	marketplaceLog.PrintfContext(ctx, "resolved marketplace catalog packages=%d registries=%d", len(rows), len(result.Diagnostics))
 	return model.Source{
 		Source: marketplace.SourceName,
 		Rows:   rows,
