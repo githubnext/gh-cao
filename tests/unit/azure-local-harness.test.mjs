@@ -28,6 +28,7 @@ for (const [stage, label, logName] of failures) {
     try {
       await mkdir(dirname(script), { recursive: true });
       await copyFile(resolve("scripts/azure-local/azure-local.sh"), script);
+      await copyFile(resolve("scripts/azure-local/platform.py"), join(dirname(script), "platform.py"));
       await mkdir(join(directory, "tests/e2e"), { recursive: true });
       await copyFile(resolve("tests/e2e/dashboard-server-fixture.mjs"), join(directory, "tests/e2e/dashboard-server-fixture.mjs"));
       await mkdir(join(directory, "server/testdata"), { recursive: true });
@@ -36,13 +37,11 @@ for (const [stage, label, logName] of failures) {
       await mkdir(join(directory, ".github/workflows"), { recursive: true });
       await writeFile(join(directory, ".github/workflows/cao.json"), '{"control-plane":{"web":{}}}\n');
       await copyFile(resolve(".github/workflows/cao.azure.json"), join(directory, ".github/workflows/cao.azure.json"));
-      const func = join(directory, ".tmp/azure-local/tools/core-tools-4.15.1/func");
+      const func = join(directory, ".tmp/azure-local/tools/core-tools-4.15.1-linux-x64/func");
       await mkdir(dirname(func), { recursive: true });
       await executable(func, "exit 99\n");
-      await executable(join(tools, "uname"), "echo Linux\n");
-      await executable(join(tools, "sha256sum"), "cat >/dev/null\necho 0123456789abcdef\n");
-      await executable(join(tools, "python3"), 'if [[ "$1" == -c ]]; then echo bG9jYWw=; else cat >/dev/null; echo 12345; fi\n');
-      for (const tool of ["curl", "flock", "setsid", "unzip"]) {
+      await executable(join(tools, "uname"), 'if [[ "$1" == -s ]]; then echo Linux; else echo x86_64; fi\n');
+      for (const tool of ["curl", "unzip"]) {
         await executable(join(tools, tool), "exit 99\n");
       }
       await executable(join(tools, "docker"), `

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile, spawn } from "node:child_process";
-import { access, copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -99,14 +99,16 @@ test("GitHub stack uses built assets, explicit or empty evidence, isolated envir
     await mkdir(dirname(script), { recursive: true });
     await copyFile(join(root, "scripts/azure-local/azure-local.sh"), script);
     await copyFile(join(root, "scripts/azure-local/profile.mjs"), join(dirname(script), "profile.mjs"));
+    await copyFile(join(root, "scripts/azure-local/platform.py"), join(dirname(script), "platform.py"));
     await mkdir(join(dir, ".github/workflows"), { recursive: true });
     for (const file of ["cao.json", "cao.azure.json"]) {
       await copyFile(join(root, ".github/workflows", file), join(dir, ".github/workflows", file));
     }
     await mkdir(tools);
-    const func = join(dir, ".tmp/azure-local/tools/core-tools-4.15.1/func");
+    const platform = `${process.platform === "darwin" ? "osx" : "linux"}-${process.arch === "arm64" ? "arm64" : "x64"}`;
+    const func = join(dir, `.tmp/azure-local/tools/core-tools-4.15.1-${platform}/func`);
     await mkdir(dirname(func), { recursive: true });
-    await copyFile(process.execPath, func);
+    await symlink(process.execPath, func);
     await executable(join(tools, "docker"), `
 echo "docker $*" >> "${trace}"
 case "$1" in

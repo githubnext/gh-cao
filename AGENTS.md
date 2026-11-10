@@ -101,6 +101,15 @@ Run `npm run check` for complete repository validation. It executes, in order: `
 
 Always pass `--schedule-seed githubnext/gh-cao` when running `gh aw compile` manually (the `compile` script already includes it); omitting the seed causes non-deterministic cron scattering in lock files.
 
+### Local Azure server testing (Linux and macOS)
+
+- Run `npm run test:integration:azure-services` from the repository root with a local Docker daemon running. On macOS, start Docker Desktop or Colima first. The harness builds the Go server natively and runs the real Functions host against disposable Azurite and PostgreSQL containers; no Azure login or credentials are required.
+- Linux and macOS on x64 or arm64 are supported, including macOS's bundled Bash and Python 3.9. Keep Core Tools downloads platform-specific and checksum-pinned. Do not reintroduce GNU-only commands, Linux-only shell process tracking, or unverified installed-tool fallbacks; use `scripts/azure-local/platform.py` for process identity, process groups, and installation locking.
+- Populate both Go module caches with `go mod download && go -C server mod download` before the hermetic service tests. Missing services, skipped selections, or unavailable backends are failures, not passing evidence.
+- Run `node --test tests/unit/azure-local-*.test.mjs` and `shellcheck scripts/azure-local/azure-local.sh` after harness changes. Preserve exact process ownership checks, profile isolation, private development logs, and cleanup of only the harness-owned resources.
+- The separate `npm run test:integration:setup-azure` and `npm run test:integration:azure-install-journey` suites require `POSTGRES_URL` pointing to an explicitly selected disposable numeric-loopback PostgreSQL instance. They simulate deployment APIs and do not establish real-Azure acceptance.
+- Use `npm run dashboard:local:azure` only with explicitly configured development GitHub OAuth credentials and organizations. Do not substitute synthetic fixtures or bypass membership checks in this profile. See [the local Azure guide](scripts/azure-local/README.md) for prerequisites, evidence limits, and cleanup.
+
 ### Dashboard site (`dashboard/site/`)
 
 Run these commands from the `dashboard/site/` directory:
@@ -147,6 +156,7 @@ After UI changes, when Playwright loads the full website, capture and include de
 | `cid.yml` | Dashboard site lint, typecheck, unit tests, sharded E2E | PR / push to `dashboard/site/**` |
 | `svg-contrast-check.yml` | Playwright SVG WCAG contrast validation | PR / push to SVG files |
 | `csh.yml` | ShellCheck (warning severity) on all tracked `.sh` files | PR / push to `.sh` files |
+| `azure-local-integration.yml` | Portable harness regressions and real Functions/Azurite/PostgreSQL integration | Relevant push to main / manual / reusable call |
 | `docs.yml` | Documentation build | Schedule / push to main |
 
 ### Choosing which tests to run
@@ -158,6 +168,7 @@ After UI changes, when Playwright loads the full website, capture and include de
 - Debugging deployed SQLite data → use `DASHBOARD_DATA_URL=https://OWNER.github.io/REPOSITORY/ npm run dashboard:local -- --download-sqlite`
 - Editing the Activity workflow or JSONL parser under `activity/` → run the focused activity tests and `npm run compile`
 - Editing workflow `.md` files → `npm run compile` (add `compile:locks` if lock files should update)
+- Editing the local Azure harness or Azure hosting/service boundaries → run the focused Azure tests above and `npm run test:integration:azure-services`; run the setup/install journey suites when deployment behavior changes
 - Editing SVGs → `npm run check:svg`
 - Editing documentation under `docs/` → `npm run docs:build`
 - Editing the PostgreSQL schema (`server/spec/storage.tsp`, `server/spec/postgres-emitter.mjs`, or generated `server/internal/postgresx/schema.*`) → from `server/spec/`, run `npm run generate` and `npm test`, commit all changed generated files (including `generated/openapi.json`), then run `npm run check` as a required gate. The check compares generated artifacts against the commit, so it cannot pass before those changes are committed.
