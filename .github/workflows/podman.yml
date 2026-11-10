@@ -1,0 +1,88 @@
+name: Podman integration
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/podman.yml
+      - scripts/container-*.sh
+      - scripts/azure-local/**
+      - server/**
+      - tests/unit/container-engine.test.mjs
+      - tests/unit/podman-ci.test.mjs
+      - tests/unit/azure-local-*.test.mjs
+      - tests/integration/azure-local-*.test.mjs
+      - go.mod
+      - go.sum
+      - package.json
+      - .github/workflows/cao.json
+      - .github/workflows/cao.azure.json
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/podman.yml
+      - scripts/container-*.sh
+      - scripts/azure-local/**
+      - server/**
+      - tests/unit/container-engine.test.mjs
+      - tests/unit/podman-ci.test.mjs
+      - tests/unit/azure-local-*.test.mjs
+      - tests/integration/azure-local-*.test.mjs
+      - go.mod
+      - go.sum
+      - package.json
+      - .github/workflows/cao.json
+      - .github/workflows/cao.azure.json
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: podman-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  podman:
+    name: Rootless Podman lifecycle and local Azure services
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CAO_CONTAINER_ENGINE: podman
+      CAO_TEST_PODMAN: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version: 1.27.3
+          cache: false
+      - name: Prepare rootless Podman with a delegated user session
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman uidmap slirp4netns fuse-overlayfs crun
+          test "$(id -u)" -ne 0
+          sudo loginctl enable-linger "$(id -un)"
+          sudo systemctl start "user@$(id -u).service"
+          echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
+          echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus" >> "$GITHUB_ENV"
+      - name: Prepare Go dependencies before hermetic service tests
+        run: go mod download && go -C server mod download
+      - name: Check engine selection and harness contracts
+        run: node --test tests/unit/container-engine.test.mjs tests/unit/azure-local-*.test.mjs
+      - name: Preload the production digest-pinned CLI image
+        run: |
+          image="$(sed -n 's/^const DefaultContainerImage = "\(.*\)"$/\1/p' server/internal/hostedcli/container_runner.go)"
+          [[ "$image" =~ ^ghcr.io/github/gh-aw@sha256:[0-9a-f]{64}$ ]]
+          podman --remote=false pull "$image"
+      - name: Verify real rootless workload isolation, cancellation and recovery
+        run: |
+          systemd-run --user --scope --property=Delegate=yes \
+            go -C server test -race ./internal/hostedcli \
+            -run '^TestPodmanRealBoundary$' -count=1 -timeout=5m -v
+      - name: Run real local Azure services with Podman
+        run: npm run test:integration:azure-services

@@ -905,9 +905,13 @@ workload termination in this model.
   It exercises local rootless discovery, stable namespace identity, creation,
   both output streams, UID/GID mapping, capability/no-new-privileges and
   memory/process restrictions, read-only root, cancellation and original-runtime
-  removal. It never pulls images or changes host configuration. Missing image
-  or delegated controllers is an explicit skip, not actual workload-isolation
-  evidence.
+  removal. It never pulls images or changes host configuration. Once explicitly
+  enabled, missing Podman, image or delegated controllers fails the test rather
+  than skipping workload-isolation evidence. `.github/workflows/podman.yml` runs
+  this test on relevant pull requests and pushes using a rootless user session,
+  preloads the production digest-pinned image, and runs the real Azure local
+  service integration with `CAO_CONTAINER_ENGINE=podman`. Enforcing-SELinux
+  validation still requires a separate host with SELinux enabled.
 - `server/internal/operational/{postgres,sqlite}/cli_execution_test.go`:
   durable execution identity, immutable registration, and lease-fenced recovery.
 - `server/internal/hostedcli/executor_test.go`

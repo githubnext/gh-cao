@@ -24,14 +24,14 @@ func TestPodmanRealBoundary(t *testing.T) {
 		t.Skip("set CAO_TEST_PODMAN=1 on a Linux executor with delegated rootless cgroup v2 controllers")
 	}
 	if runtime.GOOS != "linux" {
-		t.Skip("real Podman boundary requires Linux")
+		t.Fatal("real Podman boundary requires Linux")
 	}
 	binary := strings.TrimSpace(os.Getenv("CAO_HOSTED_CLI_PODMAN"))
 	if binary == "" {
 		binary = "podman"
 	}
 	if _, err := exec.LookPath(binary); err != nil {
-		t.Skip("Podman is unavailable; real boundary is not validated")
+		t.Fatal("Podman is unavailable; real boundary is not validated")
 	}
 	t.Setenv("CAO_PODMAN_TEST_SECRET", "must-not-reach-workload")
 	lifecycle, err := NewPodmanContainerLifecycle(binary, nil)
@@ -63,7 +63,7 @@ func TestPodmanRealBoundary(t *testing.T) {
 	}
 	if !info.Host.Security.Rootless || info.Host.ServiceIsRemote || info.Host.CgroupVersion != "v2" ||
 		!slices.Contains(info.Host.CgroupControllers, "memory") || !slices.Contains(info.Host.CgroupControllers, "pids") {
-		t.Skip("required rootless delegated memory/pids controllers are unavailable; workload isolation is NOT validated")
+		t.Fatal("required rootless delegated memory/pids controllers are unavailable; workload isolation is NOT validated")
 	}
 	runtimeID, err := lifecycle.RuntimeID(ctx)
 	if err != nil {
@@ -80,7 +80,7 @@ func TestPodmanRealBoundary(t *testing.T) {
 	}
 	_, code, err = engine.capture(ctx, []string{"image", "exists", runner.Image})
 	if err == nil && code == 1 {
-		t.Skip("the pinned test image is absent; preload it or set CAO_TEST_PODMAN_IMAGE; workload isolation is NOT validated")
+		t.Fatal("the pinned test image is absent; preload it or set CAO_TEST_PODMAN_IMAGE; workload isolation is NOT validated")
 	}
 	if err != nil || code != 0 {
 		t.Fatalf("local pinned image lookup failed: code=%d err=%v", code, err)

@@ -35,8 +35,8 @@ type podmanIsolation struct {
 		NetworkMode, PidMode, IpcMode, UTSMode     string
 		UsernsMode, CgroupnsMode, CgroupMode       string
 		Devices, DeviceRequests, DeviceCgroupRules []json.RawMessage
-		PortBindings                             map[string]json.RawMessage
-		PublishAllPorts                          bool
+		PortBindings                               map[string]json.RawMessage
+		PublishAllPorts                            bool
 		Tmpfs                                      map[string]string
 		IDMappings                                 *struct{ UidMap, GidMap []string }
 	}
