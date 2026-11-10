@@ -1,35 +1,7 @@
 {
-  "source_sha": "825ed82cc3a0fe45d86652db8f3e70d2cb437eaf",
+  "source_sha": "a5099d9988432ce6b0a0d6a67e640db2e5cb7f2b",
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-10T08:35:03Z",
-      "worker_run_id": "42783393490",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42783280424,
-        42782255393,
-        42781946290,
-        42781684143,
-        42779447172,
-        42777581756,
-        42775773617,
-        42774192263,
-        42772452147,
-        42772393609,
-        42770711330,
-        42769505390,
-        42768797069,
-        42768265179,
-        42768047949,
-        42765765836,
-        42764867728,
-        42764182360,
-        42762621192,
-        42761177221
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T05:17:15Z to 2026-11-10T08:31:26Z) was within 14 days and contained 18 successful runs and two skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job and step metadata verified that newly observed schedule run 42783280424 was freshness-only: schedule-freshness succeeded while build and deploy were skipped; newly observed workflow_run 42782255393 was skipped. Prior bounded evidence verifies the overlapping window. Only three successful full build-and-deploy publications were available: workflow_run 42772452147 and push runs 42768797069 and 42764867728. Their creation-to-completion times were 131, 148, and 141 seconds; build jobs were 98, 92, and 102 seconds; deploy jobs were 10, 47, and 30 seconds. All three had verified dashboard cache hits because fallback dashboard lookup and artifact download steps were skipped; Pages artifact uploads took 24, 25, and 24 seconds. Three comparable successful publications are below the required five, so full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer/Pages-packaging analysis across a sufficient sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
     {
       "evaluated_at": "2026-11-10T08:51:17.322643Z",
       "worker_run_id": "42785461680",
@@ -817,6 +789,34 @@
     {
       "evaluated_at": "2026-11-10T18:20:01Z",
       "worker_run_id": "42873440569",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42873697320,
+        42870930998,
+        42868247499,
+        42865784030,
+        42864725603,
+        42863193567,
+        42862394688,
+        42860599143,
+        42860280975,
+        42857825785,
+        42855326967,
+        42853035371,
+        42850425874,
+        42849499413,
+        42847763667,
+        42845157691,
+        42842608884,
+        42841965351,
+        42840041041,
+        42837407680
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T14:45:58Z to 2026-11-10T18:17:46Z) was within 14 days and contained 16 successful runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job and step metadata verified only one successful full build-and-deploy publication: push run 42860280975 at source 825ed82cc3a0fe45d86652db8f3e70d2cb437eaf. It took 143 seconds from creation to completion with no workflow-level queue delay, an 81-second build job, and a 51-second deploy job; checkout took 30 seconds, npm ci 14 seconds, Astro documentation generation 9 seconds, dashboard cache restore 3 seconds, Pages artifact upload 14 seconds, and Pages deployment 48 seconds. The dashboard cache was a verified hit because fallback dashboard lookup and artifact download steps were skipped. The other 15 successful runs were freshness-only schedules, and the four workflow_run callbacks skipped every job. One comparable successful publication is below the required five, so queue-versus-execution distributions, full-workflow and dashboard/build/deploy median and p90 measurements, and repeated artifact-transfer/Pages-packaging analysis across a sufficient sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-10T18:33:56Z",
+      "worker_run_id": "42875861004",
       "category": "artifact transfer and Pages packaging",
       "evidence_run_ids": [
         42873697320,
