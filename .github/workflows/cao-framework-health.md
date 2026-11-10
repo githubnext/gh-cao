@@ -91,11 +91,13 @@ steps:
         const owned = item => item.user?.type === 'Bot'
           && /gh-aw-workflow-id:\s*cao-framework-health\b/.test(item.body || '');
         const title = `[cao-framework-health] ${date}`;
-        if (reports.some(item => item.title === title && (!owned(item) || !item.body.includes(marker)))) {
+        if (reports.some(item => item.title === title && !owned(item))) {
           throw new Error('Report title collision; refusing to replace unrelated content');
         }
         const duplicate = reports.some(item => {
           if (!owned(item)) return false;
+          const titleDate = item.title?.match(/^\[cao-framework-health\] (\d{4}-\d{2}-\d{2})$/)?.[1];
+          if (titleDate >= date) return true;
           return (item.body || '').split(identity).slice(1).some(part => {
             const reportedDate = part.match(/^(\d{4}-\d{2}-\d{2}) -->/)?.[1];
             return reportedDate >= date;
