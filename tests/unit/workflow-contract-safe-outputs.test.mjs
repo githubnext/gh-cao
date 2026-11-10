@@ -338,7 +338,7 @@ test("review bundles persist redacted patch evidence before publishing", () => {
     const uploadIndex = agent.steps.findIndex((step) => step.name === "Upload agent artifacts");
     const upload = agent.steps[uploadIndex];
     assert.ok(redactionIndex >= 0 && uploadIndex > redactionIndex, name);
-    assert.equal(upload.if, "always() && steps.redact_secrets.outcome == 'success'", name);
+    assert.equal(upload.if, "always() && steps.redact_secrets.outcome == 'success' && steps.validate_recovery_envelopes.outcome == 'success' && steps.validate_final_recovery_envelopes.outcome == 'success'", name);
     for (const extension of [".md", ".txt", ".patch"]) {
       assert.ok(upload.with.path.includes(`/tmp/gh-aw/agent/review-bundles/**/*${extension}`), `${name}: ${extension}`);
     }
