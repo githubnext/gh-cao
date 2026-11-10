@@ -3,34 +3,6 @@
   "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
     {
-      "evaluated_at": "2026-11-09T17:17:20Z",
-      "worker_run_id": "42662583450",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42663010725,
-        42662503276,
-        42660574556,
-        42658104912,
-        42655588300,
-        42653435506,
-        42652894208,
-        42650533025,
-        42647938248,
-        42645379711,
-        42643063865,
-        42642714890,
-        42640416228,
-        42637899194,
-        42635494543,
-        42633315985,
-        42632838592,
-        42630617627,
-        42628377746,
-        42626169112
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-09T13:31:07Z to 2026-11-09T17:16:45Z) was within 14 days and contained 16 successful runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job metadata verified that newly observed schedule runs 42663010725, 42660574556, and 42658104912 were freshness-only, with schedule-freshness succeeding while build and deploy were skipped; newly observed workflow_run 42662503276 was skipped. Prior bounded evidence verifies the overlapping runs. Only schedule run 42637899194 completed build and deploy successfully; the other 15 successful runs were freshness-only schedules. That sole full publication used source revision 11984f7d82e70cee2691f4d84fcb2dce16e7c69f, below the required five comparable successful runs. Full-workflow and dashboard/build/deploy median and p90 distributions, repeated artifact-transfer/Pages-packaging cost analysis, step timing analysis, and cache-hit verification across a sufficient current sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
-    {
       "evaluated_at": "2026-11-09T17:31:49.766406Z",
       "worker_run_id": "42665016163",
       "category": "artifact transfer and Pages packaging",
@@ -841,6 +813,34 @@
         42732714494
       ],
       "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T01:01:32Z to 2026-11-10T04:16:03Z) was within 14 days and contained 10 successful runs, six failed runs (four schedule and two push), three skipped workflow_run callbacks, and one cancelled workflow_run callback. Trusted Actions job and step metadata verified only two successful full build-and-deploy publications: schedule run 42742082900 at source d7df903a9ae07a56e1c2c0c4eb3e507ea991a642 and push run 42744685202 at source 1e2c9c4a97b38435df94bb3e064b61b794d1e4e3. Prior bounded evidence recorded their build/deploy timings and verified dashboard cache hits. Newly observed failed schedule runs 42751491871 and 42753148911 completed build with verified dashboard cache hits because fallback dashboard lookup and artifact download steps were skipped; their Pages artifact uploads took 20 and 22 seconds, then deployment failed after 612 and 6 seconds respectively. The failed and cancelled runs are disclosed rather than included as normal successful publication samples; the remaining successful runs were freshness-only schedules. Two successful publications, on different source revisions and triggers, are below the required five comparable successful runs, so full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer/Pages-packaging analysis across a sufficient successful sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
+    },
+    {
+      "evaluated_at": "2026-11-10T04:33:45.388608Z",
+      "worker_run_id": "42756277160",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        42756359809,
+        42754932683,
+        42754757581,
+        42753148911,
+        42751491871,
+        42749948369,
+        42748520805,
+        42748294691,
+        42747561438,
+        42746692650,
+        42744983255,
+        42744685202,
+        42743272192,
+        42742082900,
+        42741804944,
+        42740909011,
+        42739840480,
+        42738075152,
+        42736357397,
+        42734617008
+      ],
+      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T01:16:34Z to 2026-11-10T04:31:13Z) was within 14 days and contained 11 successful runs, six failed runs (four schedule and two push), two skipped workflow_run callbacks, and one cancelled workflow_run callback. Trusted Actions job and step metadata verified three successful full build-and-deploy publications: schedule run 42754932683 at source c89727c09e344c93edea95cccd210d865e4ac458 (79-second build job, 47-second deploy job, 144 seconds from creation to completion), push run 42744685202 at source 1e2c9c4a97b38435df94bb3e064b61b794d1e4e3, and schedule run 42742082900 at source d7df903a9ae07a56e1c2c0c4eb3e507ea991a642. Prior bounded evidence recorded the latter two timings. Run 42754932683 had checkout 23 seconds, npm ci 14 seconds, Astro documentation generation 12 seconds, dashboard cache restore 3 seconds, Pages artifact upload 21 seconds, and Pages deployment 45 seconds; its dashboard cache was a verified hit because the fallback lookup and artifact download steps were skipped. Run 42756359809 was freshness-only. Failures and the cancelled run are disclosed rather than included as normal successful publication samples. Three successful publications, across different source revisions and triggers, are below the required five comparable successful runs, so full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer/Pages-packaging analysis across a sufficient sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
     }
   ]
 }
