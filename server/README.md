@@ -1389,8 +1389,7 @@ admission and serving, while retaining protected operations and pressure
 reclamation. Operational state and other namespaces are
 protected, and unreclaimable pressure is reported rather than silently deleting
 sessions or queued work. The effective budget never exceeds 80% of a reported
-Redis `maxmemory`. See the
-[managed Redis deployment guide](../docs/deployment-managed-redis.md#redis-memory-budget).
+Redis `maxmemory`.
 The read-only `doctor` command resolves the same budget override and reports
 configured/effective limits, not only provider utilization.
 
@@ -1980,8 +1979,8 @@ TLS at the CAO service itself. It is not coupled to a Redis provider or cloud
 SDK. Set `CAO_POLICY_PATH` when loading a reviewed deployment-specific host
 extension or when the policy is mounted somewhere other than
 `.github/workflows/cao.json`. See
-[`docs/deployment-managed-redis.md`](../docs/deployment-managed-redis.md) for
-the generic `REDIS_URL` and TLS contract and provider modules.
+[Deployment-specific host extensions](../docs/configuration.md#deployment-specific-host-extensions)
+for the host-extension contract.
 
 Every hosted process requires `control-plane.web.host` in the composed policy. Redis
 provider selection, TLS behavior, environment-variable names, namespace
@@ -2622,8 +2621,7 @@ database, artifact ingestion through `CAO_SOURCE_DIRECTORY`, and verified TLS.
 Server-side collection and standalone collection roles are rejected. Policy
 validation requires `target.replicas: 1`, and operators must set the hosting
 platform itself to the same replica count. Do not configure the Upstash REST URL
-or REST token. For the operator procedure, see [Deploying the dashboard with Upstash
-Redis](https://github.com/githubnext/gh-cao/blob/main/docs/deployment-upstash.md).
+or REST token.
 
 ### Container image
 

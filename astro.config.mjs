@@ -286,8 +286,6 @@ export default defineConfig({
             { label: "Deployment Options", link: "/deployment/" },
             { label: "Deployment (GitHub Actions)", link: "/deployment-actions/" },
             { label: "Deployment (Azure)", link: "/deployment-azure/" },
-            { label: "Deployment (Upstash Redis)", link: "/deployment-upstash/" },
-            { label: "Deployment (Managed Redis)", link: "/deployment-managed-redis/" },
           ],
         },
         {

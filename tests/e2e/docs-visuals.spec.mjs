@@ -9,7 +9,6 @@ const diagramPages = [
   "activity/",
   "dashboard-data-model/",
   "deployment-azure/",
-  "deployment-upstash/",
   "intelligence/",
   "operational-value-how-to/",
 ];
