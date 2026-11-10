@@ -11,6 +11,7 @@ on:
       - tests/integration/azure-local-functions.test.mjs
       - tests/integration/azure-local-services.test.mjs
       - tests/unit/server-azure-*.test.mjs
+      - tests/unit/azure-local-*.test.mjs
       - internal/cli/**
       - internal/azcli/**
       - go.mod
@@ -44,6 +45,8 @@ jobs:
           cache: false
       - name: Prepare Go dependencies before hermetic service tests
         run: go mod download && go -C server mod download
+      - name: Check portable Azure harness
+        run: node --test tests/unit/azure-local-*.test.mjs
       - name: Run local Azure integration
         run: npm run test:integration:azure-services
       - name: Upload local Azure logs

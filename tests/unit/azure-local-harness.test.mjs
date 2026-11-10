@@ -29,6 +29,7 @@ for (const [stage, label, logName, engine] of failures.flatMap((entry) => ["dock
       await mkdir(dirname(script), { recursive: true });
       await copyFile(resolve("scripts/azure-local/azure-local.sh"), script);
       await copyFile(resolve("scripts/container-engine.sh"), join(directory, "scripts/container-engine.sh"));
+      await copyFile(resolve("scripts/azure-local/platform.py"), join(dirname(script), "platform.py"));
       await mkdir(join(directory, "tests/e2e"), { recursive: true });
       await copyFile(resolve("tests/e2e/dashboard-server-fixture.mjs"), join(directory, "tests/e2e/dashboard-server-fixture.mjs"));
       await mkdir(join(directory, "server/testdata"), { recursive: true });
@@ -37,13 +38,11 @@ for (const [stage, label, logName, engine] of failures.flatMap((entry) => ["dock
       await mkdir(join(directory, ".github/workflows"), { recursive: true });
       await writeFile(join(directory, ".github/workflows/cao.json"), '{"control-plane":{"web":{}}}\n');
       await copyFile(resolve(".github/workflows/cao.azure.json"), join(directory, ".github/workflows/cao.azure.json"));
-      const func = join(directory, ".tmp/azure-local/tools/core-tools-4.15.1/func");
+      const func = join(directory, ".tmp/azure-local/tools/core-tools-4.15.1-linux-x64/func");
       await mkdir(dirname(func), { recursive: true });
       await executable(func, "exit 99\n");
-      await executable(join(tools, "uname"), "echo Linux\n");
-      await executable(join(tools, "sha256sum"), "cat >/dev/null\necho 0123456789abcdef\n");
-      await executable(join(tools, "python3"), 'if [[ "$1" == -c ]]; then echo bG9jYWw=; else cat >/dev/null; echo 12345; fi\n');
-      for (const tool of ["curl", "flock", "setsid", "unzip"]) {
+      await executable(join(tools, "uname"), 'if [[ "$1" == -s ]]; then echo Linux; else echo x86_64; fi\n');
+      for (const tool of ["curl", "unzip"]) {
         await executable(join(tools, tool), "exit 99\n");
       }
       await executable(join(tools, engine), `
@@ -182,7 +181,8 @@ for (const original of ["docker", "podman", "legacy"]) {
       const trace = join(directory, "commands.log");
       const engine = original === "legacy" ? "docker" : original;
       try {
-        await mkdir(state);
+        await mkdir(join(state, "logs"), { recursive: true });
+        await writeFile(join(state, "profile"), "synthetic\n");
         for (const name of ["docker", "podman"]) {
           await writeFile(join(directory, name), `#!/bin/bash
 printf '${name} %s\\n' "$*" >> "$HARNESS_TRACE"
@@ -227,6 +227,7 @@ test("Azure restart never removes original container IDs from the new engine", a
   const trace = join(directory, "commands.log");
   try {
     await mkdir(state);
+    await writeFile(join(state, "profile"), "synthetic\n");
     for (const engine of ["docker", "podman"]) {
       await writeFile(join(directory, engine), `#!/bin/bash
 echo '${engine}' "$@" >> "$HARNESS_TRACE"
@@ -258,6 +259,7 @@ test("Azure cleanup fails closed on invalid saved engine and retains recovery st
   const directory = await mkdtemp(resolve(".tmp/azure-invalid-engine-"));
   try {
     const runtime = join(directory, "runtime.env");
+    await writeFile(join(directory, "profile"), "synthetic\n");
     const contents = "CAO_CONTAINER_ENGINE=invalid\nPOSTGRES_CONTAINER_ID=original\n";
     await writeFile(runtime, contents);
     await assert.rejects(execute("bash", [resolve("scripts/azure-local/azure-local.sh"), "stop"], {
@@ -278,6 +280,7 @@ for (const action of ["start", "stop"]) {
       const trace = join(directory, "commands.log");
       try {
         await mkdir(join(state, "function-app"), { recursive: true });
+        await writeFile(join(state, "profile"), "synthetic\n");
         const runtime = "CAO_CONTAINER_ENGINE=docker\nPOSTGRES_CONTAINER_ID=old-postgres\nAZURITE_CONTAINER_ID=old-azurite\n";
         await writeFile(join(state, "runtime.env"), runtime);
         await writeFile(join(state, "runtime.json"), "{}\n");
@@ -323,6 +326,7 @@ test("Azure stop accepts already absent containers only after successful invento
   const trace = join(directory, "commands.log");
   try {
     await mkdir(join(directory, "function-app"));
+    await writeFile(join(directory, "profile"), "synthetic\n");
     await writeFile(join(directory, "runtime.env"), "CAO_CONTAINER_ENGINE=docker\nPOSTGRES_CONTAINER_ID=old-postgres\nAZURITE_CONTAINER_ID=old-azurite\n");
     await writeFile(join(directory, "runtime.json"), "{}\n");
     await writeFile(join(directory, "docker"), `#!/bin/bash
