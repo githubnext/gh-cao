@@ -1,13 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-STATE_DIR="${AZURE_LOCAL_STATE_DIR:-"$ROOT/.tmp/azure-local/default"}"
+PROFILE="${AZURE_LOCAL_PROFILE:-synthetic}"
+if [[ "${1:-}" == dev ]]; then
+  [[ -z "${AZURE_LOCAL_PROFILE:-}" || "$PROFILE" == github ]] || {
+    printf 'azure-local: dev requires the github profile\n' >&2
+    exit 1
+  }
+  PROFILE=github
+fi
+[[ "$PROFILE" == synthetic || "$PROFILE" == github ]] || {
+  printf 'azure-local: profile must be synthetic or github\n' >&2
+  exit 1
+}
+DEFAULT_STATE=default
+[[ "$PROFILE" != github ]] || DEFAULT_STATE=github
+STATE_DIR="${AZURE_LOCAL_STATE_DIR:-"$ROOT/.tmp/azure-local/$DEFAULT_STATE"}"
+[[ "$STATE_DIR" == /* ]] || {
+  printf 'azure-local: AZURE_LOCAL_STATE_DIR must be absolute\n' >&2
+  exit 1
+}
 LOG_DIR="$STATE_DIR/logs"
 APP_DIR="$STATE_DIR/function-app"
 RUNTIME_ENV="$STATE_DIR/runtime.env"
 RUNTIME_JSON="$STATE_DIR/runtime.json"
-HARNESS_VERSION=5
+HARNESS_VERSION=6
 CORE_TOOLS_VERSION=4.15.1
 CORE_TOOLS_SHA256=9b982efb4047c717c9b1c26beb2269c2ac41b29bf8d21f4df1130c1586cc81cd
 POSTGRES_IMAGE=postgres:16-alpine
@@ -32,10 +51,36 @@ require_commands() {
   docker info >/dev/null 2>&1 || fail "Docker is not available"
 }
 
+check_state_profile() {
+  local marker="$STATE_DIR/profile"
+  if [[ -e "$marker" ]]; then
+    [[ -f "$marker" && "$(cat "$marker")" == "$PROFILE" ]] ||
+      fail "state belongs to a different or invalid profile; use its profile or a fresh state directory"
+  elif [[ -d "$STATE_DIR" && -n "$(find "$STATE_DIR" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+    fail "existing unmarked state cannot be reused; review retained files and choose a fresh state directory"
+  fi
+}
+
+prepare_state() {
+  check_state_profile
+  mkdir -p "$STATE_DIR"
+  chmod 700 "$STATE_DIR"
+  if [[ ! -e "$STATE_DIR/profile" ]]; then
+    # Claim once; concurrent starts must never overwrite another profile's marker.
+    (set -o noclobber; printf '%s\n' "$PROFILE" >"$STATE_DIR/profile") 2>/dev/null || true
+  fi
+  check_state_profile
+  mkdir -p "$LOG_DIR"
+  chmod 700 "$LOG_DIR"
+}
+
 load_runtime() {
+  check_state_profile
   [[ -f "$RUNTIME_ENV" ]] || fail "no harness state found at $STATE_DIR; run start first"
   # shellcheck disable=SC1090
   source "$RUNTIME_ENV"
+  [[ "${STATE_PROFILE:-synthetic}" == "$PROFILE" ]] ||
+    fail "state belongs to a different profile; select its profile and stop it first"
 }
 
 write_env_value() {
@@ -71,7 +116,7 @@ install_core_tools() {
     exec {lock_fd}>&-
     return
   fi
-  temp_dir="$(mktemp -d "$tools_root/.install.XXXXXX")"
+  temp_dir="$(python3 -c 'import sys,tempfile; print(tempfile.mkdtemp(prefix=".install.", dir=sys.argv[1]))' "$tools_root")"
   archive="$temp_dir/core-tools.zip"
   curl -fsSL \
     "https://github.com/Azure/azure-functions-core-tools/releases/download/$CORE_TOOLS_VERSION/Azure.Functions.Cli.linux-x64.$CORE_TOOLS_VERSION.zip" \
@@ -159,7 +204,7 @@ process_group_matches() {
 }
 
 stop_internal() {
-  mkdir -p "$LOG_DIR"
+  prepare_state
   if [[ -f "$RUNTIME_ENV" ]]; then
     # shellcheck disable=SC1090
     source "$RUNTIME_ENV"
@@ -194,8 +239,8 @@ stop_internal() {
   fi
   capture_container_logs "${AZURITE_CONTAINER_ID:-}" azurite
   capture_container_logs "${POSTGRES_CONTAINER_ID:-}" postgres
-  [[ -z "${AZURITE_CONTAINER_ID:-}" ]] || docker rm -f "$AZURITE_CONTAINER_ID" >/dev/null 2>&1 || true
-  [[ -z "${POSTGRES_CONTAINER_ID:-}" ]] || docker rm -f "$POSTGRES_CONTAINER_ID" >/dev/null 2>&1 || true
+  [[ -z "${AZURITE_CONTAINER_ID:-}" ]] || docker rm -f "$AZURITE_CONTAINER_ID" --volumes >/dev/null 2>&1 || true
+  [[ -z "${POSTGRES_CONTAINER_ID:-}" ]] || docker rm -f "$POSTGRES_CONTAINER_ID" --volumes >/dev/null 2>&1 || true
   rm -rf "$APP_DIR"
   rm -f "$RUNTIME_ENV" "$RUNTIME_JSON"
 }
@@ -241,13 +286,18 @@ run_logged() {
     status=$?
   fi
   printf 'azure-local: %s failed (exit %s); log: %s\n' "$label" "$status" "$log_file" >&2
-  cat "$log_file" >&2
+  [[ "$PROFILE" == github ]] || cat "$log_file" >&2
   return "$status"
 }
 
 prepare_application() {
   mkdir -p "$APP_DIR/site" "$APP_DIR/.github/workflows" "$LOG_DIR"
-  printf '<!doctype html><title>CAO local Azure simulation</title>\n' >"$APP_DIR/site/index.html"
+  if [[ "$PROFILE" == github ]]; then
+    run_logged "dashboard site build" site-build.log \
+      npm --prefix "$ROOT/dashboard/site" run build -- "$APP_DIR/site" "$ROOT/.github/workflows/cao.json"
+  else
+    printf '<!doctype html><title>CAO local Azure simulation</title>\n' >"$APP_DIR/site/index.html"
+  fi
   cp "$ROOT/.github/workflows/cao.json" "$APP_DIR/.github/workflows/cao.json"
   cp "$ROOT/.github/workflows/cao.azure.json" "$APP_DIR/.github/workflows/cao.azure.json"
   run_logged "dashboard server build" server-build.log \
@@ -292,12 +342,28 @@ JSON
 }
 
 start() {
+  check_state_profile
   require_linux
+  if [[ "$PROFILE" == github ]]; then
+    node "$ROOT/scripts/azure-local/profile.mjs" validate
+    python3 - "${AZURE_LOCAL_FUNCTIONS_PORT:-7071}" <<'PY'
+import socket, sys
+try:
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", int(sys.argv[1])))
+except OSError:
+    sys.exit("azure-local: requested Functions port is unavailable")
+PY
+  fi
   require_commands
-  mkdir -p "$STATE_DIR" "$LOG_DIR"
+  prepare_state
   if [[ -f "$RUNTIME_ENV" ]]; then
     # shellcheck disable=SC1090
     source "$RUNTIME_ENV"
+    [[ "${STATE_PROFILE:-synthetic}" == "$PROFILE" ]] ||
+      fail "state belongs to a different profile; select its profile and stop it first"
+    [[ "$PROFILE" != github ]] ||
+      fail "GitHub stack state already exists; stop it explicitly before restarting with new configuration"
     if [[ "${STATE_HARNESS_VERSION:-}" == "$HARNESS_VERSION" ]] &&
       process_matches \
         "${FUNCTIONS_PID:-}" "${FUNCTIONS_START_TIME:-}" "${FUNC_BIN:-}"; then
@@ -308,9 +374,12 @@ start() {
   fi
 
   : >"$RUNTIME_ENV"
+  chmod 600 "$RUNTIME_ENV"
   local previous_exit_trap
   previous_exit_trap="$(trap -p EXIT || true)"
   trap 'stop_internal' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
   local run_id path_hash postgres_name azurite_name function_port postgres_port blob_port queue_port table_port namespace
   local azurite_key
   run_id="$(basename "$STATE_DIR" | tr -cd 'a-zA-Z0-9_.-' | cut -c1-40)"
@@ -323,9 +392,17 @@ start() {
   azurite_key="$(python3 -c 'import base64,hashlib; print(base64.b64encode(hashlib.sha256(b"cao-azure-local").digest()).decode())')"
 
   write_env_value STATE_HARNESS_VERSION "$HARNESS_VERSION"
+  write_env_value STATE_PROFILE "$PROFILE"
 
-  POSTGRES_CONTAINER_ID="$(docker run -d --name "$postgres_name" -p 127.0.0.1::5432 \
-    -e POSTGRES_DB=cao -e POSTGRES_HOST_AUTH_METHOD=trust "$POSTGRES_IMAGE")"
+  local postgres_password=""
+  if [[ "$PROFILE" == github ]]; then
+    postgres_password="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+    POSTGRES_CONTAINER_ID="$(POSTGRES_PASSWORD="$postgres_password" docker run -d --name "$postgres_name" \
+      -p 127.0.0.1::5432 -e POSTGRES_DB=cao -e POSTGRES_PASSWORD "$POSTGRES_IMAGE")"
+  else
+    POSTGRES_CONTAINER_ID="$(docker run -d --name "$postgres_name" -p 127.0.0.1::5432 \
+      -e POSTGRES_DB=cao -e POSTGRES_HOST_AUTH_METHOD=trust "$POSTGRES_IMAGE")"
+  fi
   write_env_value POSTGRES_CONTAINER_ID "$POSTGRES_CONTAINER_ID"
   postgres_port="$(container_port "$POSTGRES_CONTAINER_ID" 5432)"
 
@@ -338,7 +415,11 @@ start() {
   blob_port="$(container_port "$AZURITE_CONTAINER_ID" 10000)"
   queue_port="$(container_port "$AZURITE_CONTAINER_ID" 10001)"
   table_port="$(container_port "$AZURITE_CONTAINER_ID" 10002)"
-  function_port="$(free_port)"
+  if [[ "$PROFILE" == github ]]; then
+    function_port="$((10#${AZURE_LOCAL_FUNCTIONS_PORT:-7071}))"
+  else
+    function_port="$(free_port)"
+  fi
 
   write_env_value POSTGRES_PORT "$postgres_port"
   write_env_value AZURITE_BLOB_PORT "$blob_port"
@@ -348,7 +429,7 @@ start() {
   write_env_value REDIS_NAMESPACE "$namespace"
 
   poll Postgres postgres_ready "$POSTGRES_CONTAINER_ID"
-  export CAO_POSTGRES_URL="postgres://postgres@127.0.0.1:$postgres_port/cao?sslmode=disable"
+  export CAO_POSTGRES_URL="postgres://postgres${postgres_password:+:$postgres_password}@127.0.0.1:$postgres_port/cao?sslmode=disable"
   prepare_application
   install_core_tools
   write_env_value FUNC_BIN "$FUNC_BIN"
@@ -361,9 +442,17 @@ start() {
   CAO_DATABASE_ADMIN_URL="$CAO_POSTGRES_URL" run_logged "operational database bootstrap" operational-database-bootstrap.log \
     "$APP_DIR/cao-dashboard" database bootstrap --store operational --namespace "${namespace}-operational"
 
-  node "$ROOT/tests/e2e/dashboard-server-fixture.mjs" "$STATE_DIR/fixture"
-  run_logged "fixture ingestion" ingest.log "$APP_DIR/cao-dashboard" ingest \
-    --source "$STATE_DIR/fixture" \
+  local source_directory ingestion_label
+  if [[ "$PROFILE" == github ]]; then
+    source_directory="${AZURE_LOCAL_SOURCE_DIRECTORY:-"$ROOT/server/azure/empty-data"}"
+    ingestion_label="development snapshot ingestion"
+  else
+    node "$ROOT/tests/e2e/dashboard-server-fixture.mjs" "$STATE_DIR/fixture"
+    source_directory="$STATE_DIR/fixture"
+    ingestion_label="fixture ingestion"
+  fi
+  run_logged "$ingestion_label" ingest.log "$APP_DIR/cao-dashboard" ingest \
+    --source "$source_directory" \
     --redis-namespace "$namespace" \
     --database-queries "$ROOT/dashboard/site/src/data/queries/database.json"
 
@@ -392,11 +481,18 @@ start() {
   }
 }
 JSON
+  if [[ "$PROFILE" == github ]]; then
+    chmod 600 "$APP_DIR/local.settings.json"
+    node "$ROOT/scripts/azure-local/profile.mjs" settings "$APP_DIR/local.settings.json" "$PROFILE"
+  fi
+  local public_host=127.0.0.1
+  [[ "$PROFILE" != github ]] || public_host=localhost
   cat >"$RUNTIME_JSON" <<JSON
 {
+  "profile": "$PROFILE",
   "stateDirectory": "$STATE_DIR",
   "applicationDirectory": "$APP_DIR",
-  "baseUrl": "http://127.0.0.1:$function_port",
+  "baseUrl": "http://$public_host:$function_port",
   "postgresUrl": "$CAO_POSTGRES_URL",
   "storage": {
     "account": "$AZURITE_ACCOUNT",
@@ -410,8 +506,14 @@ JSON
 
   (
     cd "$APP_DIR"
+    local -a host_command
+    mkdir -p "$APP_DIR/.home" "$APP_DIR/.scratch"
+    host_command=(env -i "PATH=$PATH" "HOME=$APP_DIR/.home" "TMPDIR=$APP_DIR/.scratch"
+      FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT=1
+      "$FUNC_BIN" start --address 127.0.0.1 --port "$function_port")
+    [[ "$PROFILE" == github ]] || host_command+=(--verbose)
     # setsid makes Core Tools the process-group leader tracked for exact teardown.
-    setsid "$FUNC_BIN" start --port "$function_port" --verbose >"$LOG_DIR/functions.log" 2>&1 &
+    setsid "${host_command[@]}" >"$LOG_DIR/functions.log" 2>&1 &
     FUNCTIONS_PID=$!
     FUNCTIONS_START_TIME="$(awk '{print $22}' "/proc/$FUNCTIONS_PID/stat")"
     FUNCTIONS_PGID="$FUNCTIONS_PID"
@@ -425,6 +527,7 @@ JSON
   else
     trap - EXIT
   fi
+  trap - INT TERM
   printf 'azure-local: started stack at %s\n' "$STATE_DIR"
 }
 
@@ -437,6 +540,7 @@ wait_for_stack() {
 }
 
 test_stack() {
+  [[ "$PROFILE" == synthetic ]] || fail "integration tests require the synthetic profile"
   load_runtime
   run_logged "Azure service integration" service-integration-test.log \
     node "$ROOT/tests/integration/azure-local-services.test.mjs" "$RUNTIME_JSON"
@@ -445,10 +549,13 @@ test_stack() {
 }
 
 logs() {
-  mkdir -p "$LOG_DIR"
+  check_state_profile
+  [[ -d "$LOG_DIR" ]] || {
+    printf 'azure-local: no logs at %s\n' "$LOG_DIR"
+    return
+  }
   if [[ -f "$RUNTIME_ENV" ]]; then
-    # shellcheck disable=SC1090
-    source "$RUNTIME_ENV"
+    load_runtime
     capture_container_logs "${AZURITE_CONTAINER_ID:-}" azurite
     capture_container_logs "${POSTGRES_CONTAINER_ID:-}" postgres
   fi
@@ -456,17 +563,26 @@ logs() {
   for file in "$LOG_DIR"/*.log; do
     [[ -e "$file" ]] || continue
     printf '\n===== %s =====\n' "$(basename "$file")"
-    cat "$file"
+    if [[ "$PROFILE" == github ]]; then
+      printf 'Private development log: %s\n' "$file"
+    else
+      cat "$file"
+    fi
   done
   printf '\nazure-local: logs retained at %s\n' "$LOG_DIR"
 }
 
 stop() {
+  check_state_profile
+  if [[ -f "$RUNTIME_ENV" ]]; then
+    load_runtime
+  fi
   stop_internal
   printf 'azure-local: stopped stack; logs retained at %s\n' "$LOG_DIR"
 }
 
 run_all() {
+  [[ "$PROFILE" == synthetic ]] || fail "run requires the synthetic profile; use dev for GitHub.com"
   if [[ -z "${AZURE_LOCAL_STATE_DIR:-}" ]]; then
     STATE_DIR="$ROOT/.tmp/azure-local/run-$(date -u +%Y%m%dT%H%M%SZ)-$$"
     LOG_DIR="$STATE_DIR/logs"
@@ -474,18 +590,37 @@ run_all() {
     RUNTIME_ENV="$STATE_DIR/runtime.env"
     RUNTIME_JSON="$STATE_DIR/runtime.json"
   fi
-  trap 'status=$?; trap - EXIT INT TERM; stop_internal; exit "$status"' EXIT INT TERM
   start
+  trap 'status=$?; trap - EXIT INT TERM; stop_internal; exit "$status"' EXIT INT TERM
   wait_for_stack
   test_stack
 }
 
+dev() {
+  start
+  trap 'status=$?; trap - EXIT INT TERM; stop_internal; exit "$status"' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  wait_for_stack
+  printf 'azure-local: GitHub.com dashboard: http://localhost:%s/ (Ctrl+C to stop)\n' "$FUNCTIONS_PORT"
+  if [[ -n "${AZURE_LOCAL_SOURCE_DIRECTORY:-}" ]]; then
+    printf 'azure-local: data source: explicit snapshot (no automatic collection)\n'
+  else
+    printf 'azure-local: data source: empty (no collected evidence)\n'
+  fi
+  while process_matches "$FUNCTIONS_PID" "$FUNCTIONS_START_TIME" "$FUNC_BIN"; do
+    sleep 1
+  done
+  fail "Azure Functions host exited; inspect private logs at $LOG_DIR"
+}
+
 case "${1:-}" in
+  dev) dev ;;
   start) start ;;
   wait) wait_for_stack ;;
   test) test_stack ;;
   logs) logs ;;
   stop) stop ;;
   run) run_all ;;
-  *) fail "usage: $0 {start|wait|test|logs|stop|run}" ;;
+  *) fail "usage: $0 {dev|start|wait|test|logs|stop|run}" ;;
 esac
