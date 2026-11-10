@@ -130,7 +130,15 @@ Every issue uses the same executive report contract: a purpose/period/revision
 header, **Executive assessment**, **Preview journey scorecard**, **Blockers and
 next increments**, **Core health and stability**, **Acceptance evidence and
 participant outcomes**, and
-**Method and provenance**. The first three sections are concise and visible;
+**Method and provenance**. Report format 3 keeps acceptance rubric 2 unchanged.
+The first three sections are concise and visible: a two-column at-a-glance
+summary, one next-decision callout, all eight operator steps with plain-language
+labels and stable journey IDs, and a ranked next-action table. Journey evidence
+uses **✅ Passed**, **❌ Failed** or **❔ Unknown**, always with text labels rather
+than color alone. Unknown means evidence is missing or insufficient, not a
+demonstrated product failure; CI success alone never makes a journey passed.
+Owners and short next checks remain visible. Full acceptance checks,
+configuration gaps and failure analysis stay in the acceptance disclosure;
 component health/charts, detailed acceptance/claim evidence, and methodology use named
 progressive-disclosure blocks. Deterministic text bar charts compare CI success
 fractions and component source churn, with exact counts and common linear scales.

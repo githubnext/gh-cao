@@ -306,7 +306,7 @@ test("preview observations retain unapproved scope, unassigned owners and no inf
     assert.equal(signal.latest.conclusion, "failure");
     assert.equal(signal.latest.jobs[0].steps[0].conclusion, "skipped");
   }
-  assert.equal(packet.report_version, 2);
+  assert.equal(packet.report_version, 3);
   assert.equal(packet.rubric_version, 2);
   assert.ok(!("reports" in packet), "prior issue bodies are not retained as acceptance evidence");
   const changed = structuredClone(previewContract);
@@ -529,7 +529,8 @@ test("executive reports retain a fixed opening, section order and non-nested pro
   assert.ok(template);
   assert.match(template, /^\*\*CAO Private Preview - Daily Executive Evidence Report\*\*/);
   assert.match(template, /\*\*Reporting day:\*\*[\s\S]*\*\*Assessed revision:\*\*/);
-  assert.match(template, /\*\*Candidate:\*\*[\s\S]*\*\*Profile:\*\*/);
+  assert.match(template, /\| Candidate \|/);
+  assert.match(template, /\*\*Profile:\*\*/);
   assert.match(template, /\*\*Purpose:\*\* Can an invited operator safely install, use, operate and leave/);
   assert.deepEqual([...template.matchAll(/^### (.+)$/gm)].map(match => match[1]), [
     "Executive assessment", "Preview journey scorecard", "Blockers and next increments",
@@ -551,4 +552,31 @@ test("executive reports retain a fixed opening, section order and non-nested pro
     assert.equal(journey.owner, null);
     assert.ok(journey.acceptance);
   }
+});
+
+test("at-a-glance reports use labelled statuses, complete journey rows and short decision tables", async () => {
+  const template = /````markdown\n([\s\S]*?)\n````/.exec(source)[1];
+  const overview = template.split("### Core health and stability")[0];
+  assert.match(template, /\*\*Report \/ rubric version:\*\* 3 \/ 2/);
+  const files = await evidenceFiles();
+  const metadata = JSON.parse(files.get(`${directory}/context.json`));
+  assert.equal(metadata.report_version, 3);
+  assert.equal(metadata.rubric_version, 2, "visual changes must not change acceptance criteria");
+  assert.match(overview, /\| At a glance \| Today \|/);
+  for (const field of ["Preview evidence", "Candidate", "Change", "Confidence"]) {
+    assert.ok(overview.includes(`| ${field} |`), `missing summary field: ${field}`);
+  }
+  assert.match(overview, /> \[!NOTE\]\n> \*\*Next decision:\*\*/);
+  assert.match(overview, /✅ Passed · ❌ Failed · ❔ Unknown/);
+  const journeys = overview.split("### Preview journey scorecard")[1].split("### Blockers and next increments")[0];
+  assert.match(journeys, /\| Operator step \| Evidence \| Next check \/ owner \|/);
+  assert.deepEqual([...journeys.matchAll(/^\| [^|\n]+ \(`([^`]+)`\) \|/gm)].map(match => match[1]),
+    previewContract.journeys.map(journey => journey.id));
+  assert.match(overview, /\| Priority \/ journey \| Next action → closure check \| Owner \|/);
+  assert.match(overview, /\| \{rank \/ journey ID\} \| \{next action → observable closure\} \| \{owner or unassigned\} \|/);
+  assert.match(source, /Always pair each icon with its text label/);
+  assert.match(source, /Unknown is not failed/);
+  assert.match(source, /Report format changes alone do not invalidate/);
+  assert.match(source, /at most 12 words per next check/);
+  assert.doesNotMatch(source, /no emoji status indicators/);
 });
