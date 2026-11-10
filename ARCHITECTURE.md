@@ -44,6 +44,48 @@ The effective authority of a run is the intersection of reviewed CAO policy,
 the dispatch request, worker ceilings, credential reach, and capabilities
 compiled by gh-aw. No one input can widen another.
 
+### Daily core-health priorities
+
+Humans and agents should use the repository-local
+[CAO Framework Health workflow](.github/workflows/cao-framework-health.md) and its
+daily `[cao-framework-health]` report issues to track our main engineering
+priorities: a consistent, stable, lean core whose documented guarantees hold
+under behavioral and real-adapter tests, demonstrated through a bounded
+operator experience rather than a framework-wide readiness score. The
+[private-preview acceptance contract](docs/private-preview.md) is currently a
+proposal, not approved launch scope. Reports lead with the pinned candidate,
+supported journeys, blockers, owners and closure evidence. They distinguish
+workflow source, installed/tested candidate and deployed revision; green CI at
+`main` does not validate another release.
+
+The supporting fixed component/claim register
+covers authority and execution, acquisition, canonical storage, declarative
+queries and presentation, operational state, hosting and access, distribution
+and lifecycle, and accepted-outcome evidence.
+
+Reports connect those claims to specifications, implementation, positive and
+negative tests, exact-revision execution evidence, component churn and prior
+snapshots. Convergence means fewer demonstrated contradictions, preserved or
+stronger behavioral coverage and stable supported contracts without authority
+or durability regressions, not simply fewer lines, quieter code or more PRs.
+Reports use a standardized executive opening, journey scorecard and ranked
+decisions, with component health, measured charts and technical evidence behind
+progressive disclosure. Deterministic Actions artifacts preserve the contract
+digest and collected observations separately from model judgments. Daily work
+revisits changed evidence and unresolved blockers against a stable baseline,
+not a repeated whole-framework audit. Required acceptance gaps cannot be
+averaged away; excluded capabilities are not automatic preview prerequisites.
+Missing or skipped evidence stays unknown; proposals and closed reports are not
+accepted progress. Use the ranked next increments to guide bounded work, not to
+justify a broad rewrite or another layer of infrastructure.
+
+This observer reports priorities and gaps; it does not define architecture,
+supersede normative specifications, certify enterprise readiness, admit a cohort,
+accept risk, remediate, dispatch work or grant rollout authority. Human approval
+and applicable existing release/assessment records remain independent. See
+[daily framework health](docs/operations.md#daily-cao-framework-health) for
+windows, collection limits and report lifecycle.
+
 ## Runtime flows
 
 ### Authority envelopes and operating patterns

@@ -83,6 +83,95 @@ The repository-only `Enterprise review stress` workflow sends only `2`, `3`, or 
 
 ## Routine Monitoring
 
+### Daily CAO framework health
+
+The catalog source repository's `CAO Framework Health` agentic workflow runs
+daily and supports manual dispatch on the default branch. It publishes one
+`[cao-framework-health] YYYY-MM-DD` issue for the previous complete UTC day,
+including on quiet days. A same-day rerun does not create another report, even
+when the earlier report is closed, and historical reruns cannot supersede a newer
+report. New reports close superseded reports from this workflow; those snapshots
+remain available for progress comparisons. An orphaned report expires after 14 days.
+
+The report leads with the [private-preview acceptance contract](private-preview.md):
+candidate release/SHA, proposed or approved profile, eight frozen operator
+journeys, required evidence gaps, accountable owners and closure checks.
+The initial contract is **proposed**, with candidate and owners unassigned;
+the report must not infer them from `main`, latest release or available credentials.
+It is not a launch gate. Human scope/acceptance decisions, release promotion,
+CAO policy and participant admission remain separate.
+
+Its supporting register covers eight core components and 16 claims: control/execution,
+acquisition, canonical storage, queries/presentation, operational state,
+hosting/access, distribution/lifecycle, and outcomes/evidence. Each claim is
+**evidenced**, **at risk** or **unknown**, with source, test and execution evidence.
+Behavioral coverage distinguishes absent tests, mapped-but-unexecuted tests,
+passing, failing and partial evidence; it does not invent line-coverage percentages.
+Per-component first-parent Git churn compares source and test additions/deletions
+across the same windows, separating generated artifacts. Commit-time churn is
+not merge-time acceptance, and overlapping path groups must not be summed.
+Low churn or fewer lines alone do not prove a stable or cleaner core.
+It compares default-branch push runs of Workflow contracts, Go Dashboard Server
+CI and Dashboard CI across adjacent complete seven-day windows. Collection is
+bounded to 500 runs per workflow and 200 jobs for each inspected run; truncated
+counts are observations, not totals or success-rate trends. Git measurements
+are bounded to 1,000 first-parent commits per component per window.
+The exact assessed revision's CI run/jobs are collected separately without
+contaminating the closed historical windows. Additional supporting observations
+cover installer/deployed canaries, runtime packaging, Activity, Dashboard and
+release promotion alongside core CI. Each of these nine workflows has at most
+10 latest and 10 candidate-source run observations, with at most 200 jobs per
+inspected run. Missing workflows, skipped checks and lookup limits stay explicit.
+Source-SHA matches do not establish which release an installer, deployment or
+promotion actually exercised; candidate-bound receipts and live walkthroughs
+remain necessary.
+
+Every issue uses the same executive report contract: a purpose/period/revision
+header, **Executive assessment**, **Preview journey scorecard**, **Blockers and
+next increments**, **Core health and stability**, **Acceptance evidence and
+participant outcomes**, and
+**Method and provenance**. Report format 3 keeps acceptance rubric 2 unchanged.
+The first three sections are concise and visible: a two-column at-a-glance
+summary, one next-decision callout, all eight operator steps with plain-language
+labels and stable journey IDs, and a ranked next-action table. Journey evidence
+uses **✅ Passed**, **❌ Failed** or **❔ Unknown**, always with text labels rather
+than color alone. Unknown means evidence is missing or insufficient, not a
+demonstrated product failure; CI success alone never makes a journey passed.
+Owners and short next checks remain visible. Full acceptance checks,
+configuration gaps and failure analysis stay in the acceptance disclosure;
+component health/charts, detailed acceptance/claim evidence, and methodology use named
+progressive-disclosure blocks. Deterministic text bar charts compare CI success
+fractions and component source churn, with exact counts and common linear scales.
+Unknowns remain N/A, not zero; no chart invents a time series or readiness score.
+Required journey unknowns cannot be averaged away. Out-of-profile features are
+not automatic blockers. Participant outcomes remain unavailable until independent
+task evidence exists; no user counts, time savings or successful adoption are inferred.
+
+Trusted steps retain `evidence.json` and the charts as
+`framework-health-evidence-RUN-ATTEMPT` for 90 days. The JSON contains the frozen
+contract and SHA-256 digest, candidate release metadata and supporting CI/job/churn
+observations, not model verdicts, acceptance approvals or customer evidence.
+Changed contract/candidate/boundaries invalidate acceptance comparisons. Daily
+analysis prioritizes changed evidence and existing blockers rather than a new
+whole-framework audit, reusing maintained findings such as `server/SOC2.md`.
+
+Only merged implementation with applicable validation counts as accepted
+progress. Missing/skipped backends, stale CI, unreviewed boundaries and absent
+baselines remain explicit gaps. This is not a readiness percentage, security or
+compliance certification, deployed-service SLO, or exhaustive enterprise audit.
+The source snapshot and activity window are recorded separately.
+
+This private repository-local observer is not installed by `aw.yml`, imports no
+CAO admission and cannot enroll targets, dispatch workers, change code, remediate,
+deploy or alter rollout policy. Its only agent-authored write is the bounded report;
+the evidence artifact is collected and uploaded before model execution.
+The schedule takes effect after its source and compiled lock file reach the
+default branch and still requires the repository's normal Actions/Copilot setup.
+API collection failures fail the Actions run; ambiguous duplicate ownership
+prevents publication rather than overwriting unrelated content.
+
+### Scheduled operation signals
+
 Review the following for scheduled runs:
 
 | Signal | Expected condition |

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -95,6 +95,28 @@ test("strict compiler accepts a clean generated workflow set", async () => {
       "aw", "compile", "--strict", "--validate", "--show-all", "--no-check-update",
       "--schedule-seed", "githubnext/gh-cao", "--dir", ".github/workflows",
     ]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("copies repository agent definitions into the isolated compiler checkout", async () => {
+  const root = await fixture({ declaration: false });
+  try {
+    await mkdir(path.join(root, ".github", "agents"), { recursive: true });
+    await writeFile(path.join(root, ".github", "agents", "reviewer.md"), "---\nname: Reviewer\n---\n");
+    await mkdir(path.join(root, ".claude", "agents"), { recursive: true });
+    await writeFile(path.join(root, ".claude", "agents", "helper.md"), "---\nname: Helper\n---\n");
+    const copied = [];
+    const findings = await compileAndCompare(root, compiler({
+      output(args, options) {
+        for (const file of [".github/agents/reviewer.md", ".claude/agents/helper.md", ".codex/agents"]) {
+          if (existsSync(path.join(options.cwd, file))) copied.push(file);
+        }
+      },
+    }), version);
+    assert.deepEqual(findings, []);
+    assert.deepEqual(copied, [".github/agents/reviewer.md", ".claude/agents/helper.md"]);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

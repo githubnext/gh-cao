@@ -53,7 +53,7 @@ Declare the exact workflow slug under `control-plane.operations`:
 ```json
 {
   "version": 1,
-  "gh-aw-version": "v1.0.1",
+  "gh-aw-version": "v1.2.2",
   "control-plane": {
     "scope": {
       "allowed-owners": ["acme"],

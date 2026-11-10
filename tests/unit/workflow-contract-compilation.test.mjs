@@ -180,12 +180,12 @@ test("clean-room compilation emits the expected GitHub Actions settings", { time
     const advisoryMaintainer = workflow("uk-ai-advisory-campaign-maintainer.lock.yml", generatedDirectory);
     assert.match(advisoryMaintainer, /schedule:/);
     assert.match(advisoryMaintainer, /uk-ai-advisory\/implementation-status\.md/);
-    assert.match(advisoryMaintainer, /copilot\/gpt-5\.6-sol/);
+    assert.match(advisoryMaintainer, /\\?"objective\\?":\{\\?"goal\\?":\\?"cost\\?",\\?"mode\\?":\\?"auto\\?"\}/);
 
     const craMaintainer = workflow("eu-cra-compliance-campaign-maintainer.lock.yml", generatedDirectory);
     assert.match(craMaintainer, /schedule:/);
     assert.match(craMaintainer, /eu-cra-compliance\/implementation-status\.md/);
-    assert.match(craMaintainer, /copilot\/gpt-5\.6-sol/);
+    assert.match(craMaintainer, /\\?"objective\\?":\{\\?"goal\\?":\\?"cost\\?",\\?"mode\\?":\\?"auto\\?"\}/);
 
     const prReviewer = workflow("pr-reviewer.lock.yml", generatedDirectory);
     assert.match(prReviewer, /create_pull_request_review_comment/);

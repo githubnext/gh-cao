@@ -305,7 +305,7 @@ async function run() {
         };
         const context = {
           github, runner: { temp, tool_cache: "/tmp/tool-cache", debug: "0", os: "Linux", arch: process.arch === "arm64" ? "ARM64" : "X64" },
-          job: { workflow_ref: github.workflow_ref, check_run_id: "1" },
+          job: { workflow_ref: github.workflow_ref, workflow_sha: github.workflow_sha, check_run_id: "1" },
           inputs: event.inputs || {}, vars: config.vars || {}, secrets: { GITHUB_TOKEN: github.token, COPILOT_GITHUB_TOKEN: "github_pat_simulator_not_a_real_token" },
           needs: Object.fromEntries(dependencies.map(name => [name, report.jobs[name]])), steps: {}, env: {},
           status: dependencies.every(name => report.jobs[name].result === "success") ? "success" : "failure",

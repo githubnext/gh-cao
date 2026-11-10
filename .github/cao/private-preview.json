@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "status": "proposed",
+  "decision_owner": null,
+  "support_owner": null,
+  "approval_reference": null,
+  "candidate": null,
+  "profile": {
+    "id": "monitoring-first-v1",
+    "audience": "Invited operators evaluating existing GitHub Agentic Workflow evidence.",
+    "topology": "GitHub.com; one explicitly enrolled repository; GitHub Actions collection and access-restricted GitHub Pages.",
+    "platforms": ["Linux", "macOS"],
+    "data": "Approved evaluation evidence only; private evidence requires verified restricted dashboard access.",
+    "capabilities": ["Install", "Configure monitoring", "Collect", "Inspect and refresh", "Diagnose", "Update and recover", "Offboard"],
+    "exclusions": ["Production reliance", "Target writes", "Campaign execution", "Hosted CLI execution", "Azure hosting", "Other backends and enterprise hosts"],
+    "support": null,
+    "cohort_limit": null,
+    "recovery_objective": null,
+    "retention_reference": null,
+    "stop_conditions": [
+      "Unexpected repository access, evidence disclosure or target mutation.",
+      "Failure of a required journey or loss of required evidence.",
+      "Recovery cannot restore the promised bounded evaluation experience."
+    ]
+  },
+  "journeys": [
+    {
+      "id": "install",
+      "owner": null,
+      "acceptance": "Install the exact candidate from verified release assets on every declared platform; verify version, provenance and a usable CLI without relying on a developer checkout.",
+      "signals": ["cao-runtime.yml", "installer-canary.yml", "release-promote.yml"]
+    },
+    {
+      "id": "connect",
+      "owner": null,
+      "acceptance": "An independent operator configures exactly the approved repository with actual administrator/App grants; denied grants fail explicitly and setup neither enrolls execution nor broadens scope.",
+      "signals": ["workflow-contracts.yml"]
+    },
+    {
+      "id": "collect",
+      "owner": null,
+      "acceptance": "Candidate Activity collection publishes a verified, repository-scoped snapshot; duplicate, missing, stale and partial inputs remain explicit rather than becoming successful empty evidence.",
+      "signals": ["cao-activity.yml", "workflow-contracts.yml"]
+    },
+    {
+      "id": "inspect-refresh",
+      "owner": null,
+      "acceptance": "An operator opens populated Overview and Runs, follows source provenance and observes a fresh query result after collection; required desktop/mobile views preserve unknown and partial states.",
+      "signals": ["cao-dashboard.yml", "dashboard-deployed-integration.yml", "cid.yml"]
+    },
+    {
+      "id": "access-withdraw",
+      "owner": null,
+      "acceptance": "Verify real restricted Pages access with an allowed and a denied viewer; withdrawing enrollment or credentials prevents further collection beyond scope without claiming previously published copies are erased.",
+      "signals": ["workflow-contracts.yml"]
+    },
+    {
+      "id": "update-recover",
+      "owner": null,
+      "acceptance": "Pause collection, diagnose an induced failure, update the candidate while preserving consumer policy/ownership, and recover the last known working experience within an explicitly agreed recovery objective.",
+      "signals": ["installer-canary.yml", "workflow-contracts.yml"]
+    },
+    {
+      "id": "offboard",
+      "owner": null,
+      "acceptance": "Withdraw enrollment and credentials, stop future collection, and verify disposition of deployed snapshots, caches and retained evidence according to the agreed per-copy retention/deletion rules.",
+      "signals": ["workflow-contracts.yml"]
+    },
+    {
+      "id": "participant-value",
+      "owner": null,
+      "acceptance": "Independent invited operators complete representative monitoring tasks and assess evidence correctness/usefulness; record task denominator, assistance, time and support burden without publishing participant identities or private data.",
+      "signals": []
+    }
+  ]
+}

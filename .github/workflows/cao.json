@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/githubnext/gh-cao/main/.github/workflows/shared/cao.schema.json",
   "version": 1,
-  "gh-aw-version": "v1.0.1",
+  "gh-aw-version": "v1.2.2",
   "control-plane": {
     "token-broker": {
       "copilot-requests": {
