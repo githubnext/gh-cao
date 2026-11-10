@@ -203,7 +203,7 @@ func (a *App) cors(next http.Handler) http.Handler {
 		headers := response.Header()
 		headers.Add("Vary", "Origin")
 		outcome := classifyCORSRequest(request, policy, a.validCORSRequestHost(request))
-		corsLog.Printf("cors request classified outcome=%s", outcome)
+		corsLog.PrintfContext(request.Context(), "cors request classified outcome=%s", outcome)
 		if outcome == corsOutcomeNotCrossOrigin {
 			next.ServeHTTP(response, request)
 			return

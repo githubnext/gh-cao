@@ -248,9 +248,9 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	if err := configureOperationalStore(ctx, store, &config); err != nil {
 		return nil, err
 	}
-	serverLog.Printf("configured redis_max_bytes=%d maintenance_interval_ms=%d",
+	serverLog.PrintfContext(ctx, "configured redis_max_bytes=%d maintenance_interval_ms=%d",
 		config.RedisMaxBytes, redisMaintenanceInterval.Milliseconds())
-	queryCacheLog.Printf("configured enabled=%t ttl_ms=%d min_duration_ms=%d max_result_bytes=%d max_bytes=%d max_entries=%d",
+	queryCacheLog.PrintfContext(ctx, "configured enabled=%t ttl_ms=%d min_duration_ms=%d max_result_bytes=%d max_bytes=%d max_entries=%d",
 		!cache.Disabled, operational.QueryCacheTTL.Milliseconds(), cache.MinDuration.Milliseconds(),
 		cache.MaxResultBytes, cache.MaxBytes, operational.QueryCacheMaxEntries)
 	cors, err := config.CORS.normalize()
@@ -259,7 +259,7 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	}
 	config.CORS = cors
 	profile := config.HostProfile
-	serverLog.Printf("initializing host_profile=%s", profile.Name)
+	serverLog.PrintfContext(ctx, "initializing host_profile=%s", profile.Name)
 	if err := validateHostedMode(store, &config); err != nil {
 		return nil, err
 	}
@@ -361,7 +361,7 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 			return nil, fmt.Errorf("configure github quota: %w", err)
 		}
 	}
-	serverLog.Printf("initialized host_profile=%s oauth=%t source_ingestion=%t", profile.Name, oauth != nil, config.SourceDirectory != "")
+	serverLog.PrintfContext(ctx, "initialized host_profile=%s oauth=%t source_ingestion=%t", profile.Name, oauth != nil, config.SourceDirectory != "")
 	app := &App{
 		admission:   activationAdmission,
 		tokenBroker: broker,
@@ -442,7 +442,7 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 		cancel()
 		return err
 	}
-	serverLog.Printf("starting service initial_ingestion=%t", a.config.SourceDirectory != "")
+	serverLog.PrintfContext(startupCtx, "starting service initial_ingestion=%t", a.config.SourceDirectory != "")
 	if a.config.SourceDirectory != "" {
 		database, ok := a.database.(*postgresx.Store)
 		if !ok {
@@ -462,7 +462,7 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 			a.cancelAndWaitTasks(cancel, startupCtx)
 			return fmt.Errorf("start collection: %w", err)
 		}
-		serverLog.Printf("collection profile started workers=%d", a.config.Collector.Workers)
+		serverLog.PrintfContext(startupCtx, "collection profile started workers=%d", a.config.Collector.Workers)
 	}
 	if err := startupCtx.Err(); err != nil {
 		a.cancelAndWaitTasks(cancel, startupCtx)
@@ -633,7 +633,7 @@ func (a *App) cancelAndWaitTasks(cancel context.CancelFunc, parent context.Conte
 	ctx, waitCancel := context.WithTimeout(context.WithoutCancel(parent), 5*time.Second)
 	defer waitCancel()
 	if err := a.waitTasks(ctx); err != nil {
-		serverLog.Printf("background startup cleanup failed")
+		serverLog.PrintfContext(parent, "background startup cleanup failed")
 	}
 }
 
@@ -644,7 +644,7 @@ func (a *App) requireStarted(next http.Handler) http.Handler {
 		draining := a.draining
 		a.startMu.Unlock()
 		if draining || ctx == nil || ctx.Err() != nil {
-			writeError(response, http.StatusServiceUnavailable, "dashboard service is not running")
+			writeError(request.Context(), response, http.StatusServiceUnavailable, "dashboard service is not running")
 			return
 		}
 		next.ServeHTTP(response, request)
@@ -657,7 +657,7 @@ func (a *App) requireNotDraining(next http.Handler) http.Handler {
 		draining := a.draining
 		a.startMu.Unlock()
 		if draining {
-			writeError(response, http.StatusServiceUnavailable, "dashboard service is not running")
+			writeError(request.Context(), response, http.StatusServiceUnavailable, "dashboard service is not running")
 			return
 		}
 		next.ServeHTTP(response, request)
@@ -672,19 +672,19 @@ func (a *App) Serve(ctx context.Context) error {
 		stopCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if err := a.Stop(stopCtx); err != nil {
-			serverLog.Printf("background shutdown failed")
+			serverLog.PrintfContext(ctx, "background shutdown failed")
 		}
 	}(ctx)
 	if err := a.start(ctx, context.WithoutCancel(ctx)); err != nil {
 		return err
 	}
-	serverLog.Printf("starting server tls=%t", a.config.CertFile != "")
+	serverLog.PrintfContext(ctx, "starting server tls=%t", a.config.CertFile != "")
 	var listenConfig net.ListenConfig
 	listener, err := listenConfig.Listen(ctx, "tcp", a.config.Listen)
 	if err != nil {
 		return err
 	}
-	serverLog.Printf("listener ready")
+	serverLog.PrintfContext(ctx, "listener ready")
 	a.config.Listen = listener.Addr().String()
 	if a.config.OnListen != nil {
 		if err := a.config.OnListen(listener.Addr().String()); err != nil {
@@ -727,7 +727,7 @@ func (a *App) Serve(ctx context.Context) error {
 			defer cancel()
 			err := httpServer.Shutdown(shutdown)
 			if err != nil {
-				serverLog.Printf("HTTP shutdown failed")
+				serverLog.PrintfContext(ctx, "HTTP shutdown failed")
 			}
 			shutdownResult <- err
 		case <-serveDone:
@@ -928,57 +928,57 @@ func (a *App) capabilityURL() string {
 func (a *App) requireAccess(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		if a.oauth != nil {
-			a.logAuthBranch("access.hosted_mode")
+			a.logAuthBranch(request.Context(), "access.hosted_mode")
 			a.requireGitHubAccess(next).ServeHTTP(response, request)
 			return
 		}
 		if !validLocalRequestHost(request.Host) {
-			a.logAuthBranch("access.local_host_rejected")
+			a.logAuthBranch(request.Context(), "access.local_host_rejected")
 			http.Error(response, "invalid request host", http.StatusMisdirectedRequest)
 			return
 		}
 		if publicServiceEndpoint(request.URL.Path) || request.URL.Path == "/api/github/webhook" {
-			a.logAuthBranch("access.local_public_allowed")
+			a.logAuthBranch(request.Context(), "access.local_public_allowed")
 			next.ServeHTTP(response, request)
 			return
 		}
 		if !strings.HasPrefix(request.URL.Path, "/api/") && request.URL.Path != "/mcp" {
 			if (request.Method == http.MethodGet || request.Method == http.MethodHead) &&
 				constantTimeTokenEqual(request.URL.Query().Get("access_token"), a.accessToken) {
-				a.logAuthBranch("access.local_capability_accepted")
+				a.logAuthBranch(request.Context(), "access.local_capability_accepted")
 				a.serveIndex(response, request, a.accessToken)
 				return
 			}
-			a.logAuthBranch("access.local_static_allowed")
+			a.logAuthBranch(request.Context(), "access.local_static_allowed")
 			next.ServeHTTP(response, request)
 			return
 		}
 		if a.authorized(request) {
-			a.logAuthBranch("access.local_bearer_accepted")
+			a.logAuthBranch(request.Context(), "access.local_bearer_accepted")
 			next.ServeHTTP(response, request)
 			return
 		}
 		if request.URL.Path == "/mcp" || (request.URL.Path == "/api/admin/logs" && a.logs != nil) {
 			if actor, ok := a.authorizedGitHubActions(request); ok {
-				a.logAuthBranch("access.local_actions_accepted")
+				a.logAuthBranch(request.Context(), "access.local_actions_accepted")
 				request = request.WithContext(context.WithValue(
 					request.Context(), githubActionsActorContextKey{}, actor))
 				next.ServeHTTP(response, request)
 				return
 			}
-			a.logAuthBranch("access.local_actions_rejected")
+			a.logAuthBranch(request.Context(), "access.local_actions_rejected")
 		}
-		a.logAuthBranch("access.local_bearer_rejected")
-		writeError(response, http.StatusUnauthorized, "dashboard access token is required")
+		a.logAuthBranch(request.Context(), "access.local_bearer_rejected")
+		writeError(request.Context(), response, http.StatusUnauthorized, "dashboard access token is required")
 	})
 }
 
-func (a *App) logAuthBranch(branch string) {
+func (a *App) logAuthBranch(ctx context.Context, branch string) {
 	if a.oauth != nil {
-		a.oauth.emitAuthBranch(branch)
+		a.oauth.emitAuthBranch(ctx, branch)
 		return
 	}
-	serverLog.Printf("oauth branch=%s", branch)
+	serverLog.PrintfContext(ctx, "oauth branch=%s", branch)
 }
 
 func validLocalRequestHost(value string) bool {
@@ -1048,13 +1048,13 @@ func bearerToken(request *http.Request) (string, bool) {
 func (a *App) requireGitHubAccess(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		if !validProxyRequest(request, a.proxyPolicy()) {
-			a.logAuthBranch("access.proxy_rejected")
+			a.logAuthBranch(request.Context(), "access.proxy_rejected")
 			http.Error(response, "invalid forwarded request host", http.StatusMisdirectedRequest)
 			return
 		}
 		if !a.oauth.validLocalDevelopmentRequest(request) {
-			a.logAuthBranch("access.local_development_boundary_rejected")
-			writeError(response, http.StatusForbidden, "Local development OAuth requires a direct loopback HTTPS request")
+			a.logAuthBranch(request.Context(), "access.local_development_boundary_rejected")
+			writeError(request.Context(), response, http.StatusForbidden, "Local development OAuth requires a direct loopback HTTPS request")
 			return
 		}
 		if publicServiceEndpoint(request.URL.Path) ||
@@ -1062,7 +1062,7 @@ func (a *App) requireGitHubAccess(next http.Handler) http.Handler {
 			strings.HasPrefix(request.URL.Path, "/auth/login") ||
 			strings.HasPrefix(request.URL.Path, "/auth/logged-out") ||
 			strings.HasPrefix(request.URL.Path, "/auth/callback") {
-			a.logAuthBranch("access.public_allowed")
+			a.logAuthBranch(request.Context(), "access.public_allowed")
 			next.ServeHTTP(response, request)
 			return
 		}
@@ -1074,7 +1074,7 @@ func (a *App) requireGitHubAccess(next http.Handler) http.Handler {
 			defer span.End()
 			actor, err := verifyHostedActionsMCP(ctx, a.config, request)
 			if err != nil {
-				a.logAuthBranch("access.hosted_actions_rejected")
+				a.logAuthBranch(request.Context(), "access.hosted_actions_rejected")
 				var refusal *hostedMCPRefusal
 				code := "authentication_failed"
 				if errors.As(err, &refusal) {
@@ -1089,11 +1089,11 @@ func (a *App) requireGitHubAccess(next http.Handler) http.Handler {
 					telemetry.SetResponseTraceHeaders(response, spanContext)
 					result["traceId"] = spanContext.TraceID().String()
 				}
-				serverLog.Printf("hosted MCP authentication rejected code=%s trace_id=%s", code, result["traceId"])
+				serverLog.PrintfContext(request.Context(), "hosted MCP authentication rejected code=%s trace_id=%s", code, result["traceId"])
 				writeJSON(response, http.StatusUnauthorized, result)
 				return
 			}
-			a.logAuthBranch("access.hosted_actions_accepted")
+			a.logAuthBranch(request.Context(), "access.hosted_actions_accepted")
 			next.ServeHTTP(response, request.WithContext(context.WithValue(
 				request.Context(), githubActionsActorContextKey{}, actor)))
 			return
@@ -1101,41 +1101,41 @@ func (a *App) requireGitHubAccess(next http.Handler) http.Handler {
 		var session oauthSession
 		var ok bool
 		if request.URL.Path == "/auth/logout" || request.URL.Path == "/auth/switch-account" {
-			a.logAuthBranch("access.mutation_session_checked")
+			a.logAuthBranch(request.Context(), "access.mutation_session_checked")
 			session, ok = a.oauth.loadRequestSession(request)
 		} else {
-			a.logAuthBranch("access.refreshable_session_checked")
+			a.logAuthBranch(request.Context(), "access.refreshable_session_checked")
 			session, ok = a.oauth.session(response, request)
 		}
 		if !ok {
 			if strings.HasPrefix(request.URL.Path, "/api/") || request.URL.Path == "/auth/logout" || request.URL.Path == "/mcp" {
-				a.logAuthBranch("access.unauthorized")
-				writeError(response, http.StatusUnauthorized, "GitHub authentication is required")
+				a.logAuthBranch(request.Context(), "access.unauthorized")
+				writeError(request.Context(), response, http.StatusUnauthorized, "GitHub authentication is required")
 				return
 			}
 			if !navigationRequest(request) {
 				// Subresource fetches (web app manifest, service worker,
 				// scripts) must not follow a redirect to the cross-origin
 				// GitHub authorize endpoint, which browsers block by CORS.
-				a.logAuthBranch("access.subresource_unauthorized")
-				writeError(response, http.StatusUnauthorized, "GitHub authentication is required")
+				a.logAuthBranch(request.Context(), "access.subresource_unauthorized")
+				writeError(request.Context(), response, http.StatusUnauthorized, "GitHub authentication is required")
 				return
 			}
-			a.logAuthBranch("access.login_redirected")
+			a.logAuthBranch(request.Context(), "access.login_redirected")
 			http.Redirect(response, request, "/auth/login", http.StatusFound)
 			return
 		}
 		if request.Method != http.MethodGet && request.Method != http.MethodHead && request.Method != http.MethodOptions {
 			if !constantTimeTokenEqual(request.Header.Get("X-CSRF-Token"), session.CSRFToken) {
-				a.logAuthBranch("access.csrf_rejected")
-				writeError(response, http.StatusForbidden, "CSRF token is required")
+				a.logAuthBranch(request.Context(), "access.csrf_rejected")
+				writeError(request.Context(), response, http.StatusForbidden, "CSRF token is required")
 				return
 			}
-			a.logAuthBranch("access.csrf_accepted")
+			a.logAuthBranch(request.Context(), "access.csrf_accepted")
 		} else {
-			a.logAuthBranch("access.safe_method")
+			a.logAuthBranch(request.Context(), "access.safe_method")
 		}
-		a.logAuthBranch("access.authorized")
+		a.logAuthBranch(request.Context(), "access.authorized")
 		request = request.WithContext(context.WithValue(request.Context(), oauthSessionContextKey{}, session))
 		if request.URL.Path == "/mcp" && a.mcp != nil && !a.adminAuthorized(request) {
 			a.writeAdminDenied(response, request, "administrator access is required")
@@ -1167,23 +1167,23 @@ func (a *App) adminAuthorized(request *http.Request) bool {
 
 func (a *App) adminAuthorizedContext(ctx context.Context) bool {
 	if a.oauth == nil {
-		a.logAuthBranch("admin.local_mode_allowed")
+		a.logAuthBranch(ctx, "admin.local_mode_allowed")
 		return true
 	}
 	session, ok := ctx.Value(oauthSessionContextKey{}).(oauthSession)
 	if !ok {
-		a.logAuthBranch("admin.session_missing")
+		a.logAuthBranch(ctx, "admin.session_missing")
 		return false
 	}
 	if !a.adminListed(session) {
-		a.logAuthBranch("admin.denied")
+		a.logAuthBranch(ctx, "admin.denied")
 		return false
 	}
 	if !a.oauth.adminAssured(session, time.Now().UTC()) {
-		a.logAuthBranch("admin.step_up_required")
+		a.logAuthBranch(ctx, "admin.step_up_required")
 		return false
 	}
-	a.logAuthBranch("admin.allowed")
+	a.logAuthBranch(ctx, "admin.allowed")
 	return true
 }
 
@@ -1208,16 +1208,16 @@ func (a *App) writeAdminDenied(response http.ResponseWriter, request *http.Reque
 		if err := a.config.Audit.Record(request.Context(), "admin.denied", audit.Denied,
 			slog.String("actor", session.Login), slog.String("reason", reason),
 			slog.String("method", request.Method), slog.String("path", request.URL.Path)); err != nil {
-			serverLog.Printf("administrator denial audit unavailable")
+			serverLog.PrintfContext(request.Context(), "administrator denial audit unavailable")
 			if errors.Is(err, audit.ErrUnavailable) || !a.config.Audit.Durable() {
-				writeError(response, http.StatusServiceUnavailable, "administrator denial audit is unavailable")
+				writeError(request.Context(), response, http.StatusServiceUnavailable, "administrator denial audit is unavailable")
 				return
 			}
 		}
 		if reason == "step_up_required" {
 			maxAge := int(a.oauth.adminReauthenticationMaxAge() / time.Second)
 			response.Header().Set("WWW-Authenticate", fmt.Sprintf(`CAO-Step-Up realm="admin", max_age=%d`, maxAge))
-			writeErrorPayload(response, http.StatusUnauthorized, map[string]string{
+			writeErrorPayload(request.Context(), response, http.StatusUnauthorized, map[string]string{
 				"error":          "Sign in again with two-factor authentication or single sign-on to perform administrator actions.",
 				"code":           "admin_step_up_required",
 				"reauthenticate": "/auth/login",
@@ -1225,7 +1225,7 @@ func (a *App) writeAdminDenied(response http.ResponseWriter, request *http.Reque
 			return
 		}
 	}
-	writeError(response, http.StatusForbidden, message)
+	writeError(request.Context(), response, http.StatusForbidden, message)
 }
 
 func constantTimeTokenEqual(candidate, expected string) bool {
@@ -1261,7 +1261,7 @@ func (a *App) health(response http.ResponseWriter, request *http.Request) {
 	if !redisHealthy || activeErr != nil {
 		status = http.StatusServiceUnavailable
 	}
-	serverLog.Printf("health status=%d redis=%t data=%t", status, redisHealthy, active.Ready)
+	serverLog.PrintfContext(request.Context(), "health status=%d redis=%t data=%t", status, redisHealthy, active.Ready)
 	data := map[string]any{"available": active.Ready, "rebuildRequired": !active.Ready}
 	if active.Ready && !active.EvaluatedAt.IsZero() {
 		data["evaluatedAt"] = active.EvaluatedAt.UTC().Format(time.RFC3339Nano)
@@ -1278,7 +1278,7 @@ func (a *App) health(response http.ResponseWriter, request *http.Request) {
 	detailsAuthorized := a.authorized(request) || (a.oauth != nil && a.oauth.requestHasSession(request))
 	if detailsAuthorized {
 		if a.oauth != nil {
-			a.logAuthBranch("health.details_authorized")
+			a.logAuthBranch(request.Context(), "health.details_authorized")
 		}
 		rowCount := 0
 		for _, count := range active.Counts {
@@ -1289,7 +1289,7 @@ func (a *App) health(response http.ResponseWriter, request *http.Request) {
 		payload["sourceCount"] = len(active.Counts)
 		payload["rowCount"] = rowCount
 	} else if a.oauth != nil {
-		a.logAuthBranch("health.details_redacted")
+		a.logAuthBranch(request.Context(), "health.details_redacted")
 	}
 	writeJSON(response, status, payload)
 }
@@ -1397,8 +1397,8 @@ func (a *App) events(response http.ResponseWriter, request *http.Request) {
 	}
 	if err := http.NewResponseController(response).SetWriteDeadline(expires); err != nil &&
 		!errors.Is(err, http.ErrNotSupported) {
-		serverLog.Printf("event stream requires a response writer with deadline control")
-		writeError(response, http.StatusInternalServerError, "streaming unsupported")
+		serverLog.PrintfContext(request.Context(), "event stream requires a response writer with deadline control")
+		writeError(request.Context(), response, http.StatusInternalServerError, "streaming unsupported")
 		return
 	}
 	response.Header().Set("Content-Type", "text/event-stream")
@@ -1417,13 +1417,13 @@ func (a *App) events(response http.ResponseWriter, request *http.Request) {
 	flusher.Flush()
 	lastRevision := active.Revision
 	lastHealthRevision := healthRevision
-	serverLog.Printf("event stream subscribed")
+	serverLog.PrintfContext(request.Context(), "event stream subscribed")
 	heartbeat := time.NewTicker(20 * time.Second)
 	defer heartbeat.Stop()
 	for {
 		select {
 		case <-drain:
-			serverLog.Printf("event stream drained")
+			serverLog.PrintfContext(request.Context(), "event stream drained")
 			return
 		case observation, ok := <-channel:
 			if !ok || !valid() {
@@ -1446,7 +1446,7 @@ func (a *App) events(response http.ResponseWriter, request *http.Request) {
 				cancel()
 				if err != nil || !time.Now().Before(a.oauth.eventAuthorizationExpires(latest, allowHealth)) ||
 					(allowHealth && !a.adminAuthorizedContext(context.WithValue(request.Context(), oauthSessionContextKey{}, latest))) {
-					serverLog.Printf("event stream authorization unavailable")
+					serverLog.PrintfContext(request.Context(), "event stream authorization unavailable")
 					return
 				}
 			}
@@ -1456,7 +1456,7 @@ func (a *App) events(response http.ResponseWriter, request *http.Request) {
 			_, _ = io.WriteString(response, ": keepalive\n\n")
 			flusher.Flush()
 		case <-request.Context().Done():
-			serverLog.Printf("event stream closed")
+			serverLog.PrintfContext(request.Context(), "event stream closed")
 			return
 		}
 	}
@@ -1512,7 +1512,7 @@ func (a *App) query(response http.ResponseWriter, request *http.Request) {
 		if status >= http.StatusInternalServerError {
 			span.SetStatus(codes.Error, "query execution failed")
 		}
-		writeError(response, status, message)
+		writeError(ctx, response, status, message)
 	}
 	request.Body = http.MaxBytesReader(response, request.Body, 8<<20)
 	decoder := json.NewDecoder(request.Body)
@@ -1525,8 +1525,7 @@ func (a *App) query(response http.ResponseWriter, request *http.Request) {
 		fail(http.StatusBadRequest, "query request exceeds source limits")
 		return
 	}
-	serverLog.Printf(
-		"query received sources=%d aliases=%d definitions=%d compiled=%d paginated=%d",
+	serverLog.PrintfContext(ctx, "query received sources=%d aliases=%d definitions=%d compiled=%d paginated=%d",
 		len(input.SourceNames), len(input.Aliases), len(input.Queries), len(input.CompiledQueries), len(input.Pagination),
 	)
 	for _, name := range append(append([]string{}, input.SourceNames...), input.Aliases...) {
@@ -1537,7 +1536,7 @@ func (a *App) query(response http.ResponseWriter, request *http.Request) {
 	}
 	result, status, err := a.executeQuery(ctx, input, a.adminAuthorized(request))
 	if err != nil {
-		writeQueryError(response, status, err)
+		writeQueryError(ctx, response, status, err)
 		return
 	}
 
@@ -1551,15 +1550,15 @@ func (a *App) query(response http.ResponseWriter, request *http.Request) {
 	writeJSON(response, http.StatusOK, result)
 }
 
-func writeQueryError(response http.ResponseWriter, status int, err error) {
+func writeQueryError(ctx context.Context, response http.ResponseWriter, status int, err error) {
 	var limitErr *query.PlanLimitError
 	if errors.As(err, &limitErr) {
-		writeErrorPayload(response, http.StatusUnprocessableEntity, map[string]string{
+		writeErrorPayload(ctx, response, http.StatusUnprocessableEntity, map[string]string{
 			"error": limitErr.Error(), "code": "query_plan_too_large", "queryId": limitErr.QueryID, "boundary": limitErr.Boundary,
 		})
 		return
 	}
-	writeError(response, status, err.Error())
+	writeError(ctx, response, status, err.Error())
 }
 
 type queryResponse struct {
@@ -1692,7 +1691,7 @@ func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, al
 	}
 	sources, metrics, err := loader.ExecuteSQLPlan(definitions, requested, pages)
 	if err != nil {
-		serverLog.Printf("query failed")
+		serverLog.PrintfContext(ctx, "query failed")
 		return queryResponse{}, http.StatusBadRequest, err
 	}
 	for name := range input.Pagination {
@@ -1751,7 +1750,7 @@ func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, al
 		sources[name] = source
 	}
 	metrics.DurationMS = time.Since(started).Milliseconds()
-	serverLog.Printf("query completed sources=%d duration_ms=%d", len(sources), metrics.DurationMS)
+	serverLog.PrintfContext(ctx, "query completed sources=%d duration_ms=%d", len(sources), metrics.DurationMS)
 	return queryResponse{
 		Revision: active.Revision, HealthRevision: healthRevision,
 		EvaluatedAt: evaluatedAt, Sources: sources, Metrics: metrics,
@@ -1958,25 +1957,25 @@ func paginationOffset(source, revision string, page paginationRequest) (int, err
 func (a *App) diagnostics(response http.ResponseWriter, request *http.Request) {
 	active, err := a.database.State(request.Context())
 	if err != nil || !active.Ready {
-		writeError(response, http.StatusServiceUnavailable, "dashboard data is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "dashboard data is unavailable")
 		return
 	}
 	diagnostics, err := a.database.Diagnostics(request.Context())
 	if err != nil {
-		writeError(response, http.StatusServiceUnavailable, "dashboard diagnostics are unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "dashboard diagnostics are unavailable")
 		return
 	}
-	serverLog.Printf("diagnostics served")
+	serverLog.PrintfContext(request.Context(), "diagnostics served")
 	writeJSON(response, http.StatusOK, diagnostics)
 }
 
 func (a *App) refresh(response http.ResponseWriter, request *http.Request) {
 	active, err := a.database.State(request.Context())
 	if err != nil {
-		writeError(response, http.StatusServiceUnavailable, "dashboard data is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "dashboard data is unavailable")
 		return
 	}
-	serverLog.Printf("refresh checked revision=%d", active.Revision)
+	serverLog.PrintfContext(request.Context(), "refresh checked revision=%d", active.Revision)
 	writeJSON(response, http.StatusOK, map[string]any{
 		"revision":    active.Revision,
 		"evaluatedAt": evaluationTime(active),
@@ -2103,7 +2102,7 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 		})
 		var bootstrap strings.Builder
 		if err := localAccessBootstrap.Execute(&bootstrap, accessToken); err != nil {
-			writeError(response, http.StatusInternalServerError, "dashboard bootstrap is unavailable")
+			writeError(request.Context(), response, http.StatusInternalServerError, "dashboard bootstrap is unavailable")
 			return
 		}
 		injections += bootstrap.String()
@@ -2125,11 +2124,11 @@ func writeJSON(response http.ResponseWriter, status int, value any) {
 	_ = json.NewEncoder(response).Encode(value)
 }
 
-func writeError(response http.ResponseWriter, status int, message string) {
-	writeErrorPayload(response, status, map[string]string{"error": message})
+func writeError(ctx context.Context, response http.ResponseWriter, status int, message string) {
+	writeErrorPayload(ctx, response, status, map[string]string{"error": message})
 }
 
-func writeErrorPayload(response http.ResponseWriter, status int, payload map[string]string) {
+func writeErrorPayload(ctx context.Context, response http.ResponseWriter, status int, payload map[string]string) {
 	traceID := response.Header().Get(telemetry.TraceIDHeader)
 	spanID := response.Header().Get(telemetry.SpanIDHeader)
 	if traceID != "" {
@@ -2138,8 +2137,7 @@ func writeErrorPayload(response http.ResponseWriter, status int, payload map[str
 	if spanID != "" {
 		payload["spanId"] = spanID
 	}
-	serverLog.Printf(
-		"http error status=%d trace_id=%s span_id=%s",
+	serverLog.PrintfContext(ctx, "http error status=%d trace_id=%s span_id=%s",
 		status, traceID, spanID,
 	)
 	writeJSON(response, status, payload)

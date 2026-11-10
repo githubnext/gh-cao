@@ -138,26 +138,26 @@ func cliFailure(status int, message string) error {
 	return &hostedCLIError{status: status, message: message}
 }
 
-func writeHostedCLIError(response http.ResponseWriter, err error) {
+func writeHostedCLIError(ctx context.Context, response http.ResponseWriter, err error) {
 	var request *hostedcli.RequestError
 	var failure *hostedCLIError
 	switch {
 	case errors.As(err, &request):
-		writeError(response, request.Status, request.Message)
+		writeError(ctx, response, request.Status, request.Message)
 	case errors.As(err, &failure):
-		writeError(response, failure.status, failure.message)
+		writeError(ctx, response, failure.status, failure.message)
 	case errors.Is(err, operational.ErrCLICommandNotFound):
-		writeError(response, http.StatusNotFound, "CLI command was not found.")
+		writeError(ctx, response, http.StatusNotFound, "CLI command was not found.")
 	case errors.Is(err, operational.ErrCLICommandInput):
-		writeError(response, http.StatusBadRequest, "Invalid CLI command request.")
+		writeError(ctx, response, http.StatusBadRequest, "Invalid CLI command request.")
 	case errors.Is(err, operational.ErrConflict):
-		writeError(response, http.StatusConflict, "CLI command request conflicts with an existing command.")
+		writeError(ctx, response, http.StatusConflict, "CLI command request conflicts with an existing command.")
 	case errors.Is(err, audit.ErrUnavailable):
-		hostedCLILog.Printf("hosted CLI mutation could not be confirmed: %v", err)
-		writeError(response, http.StatusServiceUnavailable, "The CLI command mutation could not be confirmed. Check the queue before retrying, and reuse the same idempotency key.")
+		hostedCLILog.PrintfContext(ctx, "hosted CLI mutation could not be confirmed: %v", err)
+		writeError(ctx, response, http.StatusServiceUnavailable, "The CLI command mutation could not be confirmed. Check the queue before retrying, and reuse the same idempotency key.")
 	default:
-		hostedCLILog.Printf("hosted CLI request failed: %v", err)
-		writeError(response, http.StatusServiceUnavailable, "The hosted CLI command queue is unavailable.")
+		hostedCLILog.PrintfContext(ctx, "hosted CLI request failed: %v", err)
+		writeError(ctx, response, http.StatusServiceUnavailable, "The hosted CLI command queue is unavailable.")
 	}
 }
 
@@ -169,7 +169,7 @@ func (a *App) authorizeHostedCLI(response http.ResponseWriter, request *http.Req
 		if request.Context().Value(localCanvasContextKey{}) != true ||
 			!a.authorized(request) ||
 			(request.Method != http.MethodGet && request.Header.Get("Origin") != "http://"+request.Host) {
-			writeError(response, http.StatusForbidden, "Local command capability and same-origin approval are required.")
+			writeError(request.Context(), response, http.StatusForbidden, "Local command capability and same-origin approval are required.")
 			return oauthSession{}, false
 		}
 		return oauthSession{Login: "local"}, true
@@ -199,7 +199,7 @@ func (a *App) mutateCLICommand(request *http.Request, session oauthSession, even
 		slog.Time("authenticated_at", session.AuthenticatedAt),
 	)
 	if errors.Is(err, audit.ErrMirrorUnavailable) && !errors.Is(err, audit.ErrUnavailable) {
-		hostedCLILog.Printf("hosted CLI mutation stored id=%d status=%s but audit mirror unavailable", command.ID, command.Status)
+		hostedCLILog.PrintfContext(request.Context(), "hosted CLI mutation stored id=%d status=%s but audit mirror unavailable", command.ID, command.Status)
 		err = cliFailure(http.StatusServiceUnavailable, fmt.Sprintf(
 			"CLI command %d is %s. The mutation and audit event were stored, but the audit mirror is unavailable. Check the queue before retrying, and reuse the same idempotency key.",
 			command.ID, command.Status))
@@ -305,7 +305,7 @@ func (a *App) requesterCanWrite(ctx context.Context, token, repository string) b
 	defer cancel()
 	endpoint := a.hostedCLI.reposURL + url.PathEscape(owner) + "/" + url.PathEscape(name)
 	if err := a.oauth.githubJSON(ctx, http.MethodGet, endpoint, token, nil, &payload); err != nil {
-		hostedCLILog.Printf("requester repository permission lookup failed")
+		hostedCLILog.PrintfContext(ctx, "requester repository permission lookup failed")
 		return false
 	}
 	return payload.Permissions.Admin || payload.Permissions.Maintain || payload.Permissions.Push
@@ -318,13 +318,13 @@ func (a *App) hostedCLIEnqueue(response http.ResponseWriter, request *http.Reque
 	}
 	var payload hostedcli.Request
 	if err := readHostedCLIJSON(request, &payload); err != nil {
-		writeHostedCLIError(response, err)
+		writeHostedCLIError(request.Context(), response, err)
 		return
 	}
 	invocation, err := a.admit(request.Context(), session, payload)
 	if err != nil {
 		a.auditCLIRejected(request, session, payload.ID, err)
-		writeHostedCLIError(response, err)
+		writeHostedCLIError(request.Context(), response, err)
 		return
 	}
 	command, err := a.mutateCLICommand(request, session, "cli_command.admitted",
@@ -332,10 +332,10 @@ func (a *App) hostedCLIEnqueue(response http.ResponseWriter, request *http.Reque
 			return a.hostedCLI.queue.EnqueueAudited(ctx, invocation, idempotencyKey(request, payload.IdempotencyKey), 0, event)
 		})
 	if err != nil {
-		writeHostedCLIError(response, err)
+		writeHostedCLIError(request.Context(), response, err)
 		return
 	}
-	hostedCLILog.Printf("hosted CLI command queued id=%d action=%s", command.ID, command.ActionID)
+	hostedCLILog.PrintfContext(request.Context(), "hosted CLI command queued id=%d action=%s", command.ID, command.ActionID)
 	writeJSON(response, http.StatusAccepted, hostedCLICommandJSON(command))
 }
 
@@ -354,19 +354,19 @@ func (a *App) hostedCLIList(response http.ResponseWriter, request *http.Request)
 		if value := query.Get(name); value != "" {
 			parsed, err := strconv.Atoi(value)
 			if err != nil {
-				writeError(response, http.StatusBadRequest, "Invalid queue pagination.")
+				writeError(request.Context(), response, http.StatusBadRequest, "Invalid queue pagination.")
 				return
 			}
 			*target = parsed
 		}
 	}
 	if filter.Limit > 300 || filter.Validate() != nil {
-		writeError(response, http.StatusBadRequest, "Invalid queue pagination.")
+		writeError(request.Context(), response, http.StatusBadRequest, "Invalid queue pagination.")
 		return
 	}
 	page, err := a.hostedCLI.queue.List(request.Context(), filter)
 	if err != nil {
-		writeHostedCLIError(response, err)
+		writeHostedCLIError(request.Context(), response, err)
 		return
 	}
 	commands := make([]map[string]any, 0, len(page.Commands))
@@ -410,7 +410,7 @@ func (a *App) hostedCLIDetail(response http.ResponseWriter, request *http.Reques
 			return
 		}
 	}
-	writeHostedCLIError(response, err)
+	writeHostedCLIError(request.Context(), response, err)
 }
 
 func (a *App) hostedCLICancel(response http.ResponseWriter, request *http.Request) {
@@ -435,12 +435,12 @@ func (a *App) hostedCLICancel(response http.ResponseWriter, request *http.Reques
 				return a.hostedCLI.queue.CancelAudited(ctx, id, event)
 			})
 		if err == nil {
-			hostedCLILog.Printf("hosted CLI command cancel requested id=%d", id)
+			hostedCLILog.PrintfContext(request.Context(), "hosted CLI command cancel requested id=%d", id)
 			writeJSON(response, http.StatusOK, hostedCLICommandJSON(command))
 			return
 		}
 	}
-	writeHostedCLIError(response, err)
+	writeHostedCLIError(request.Context(), response, err)
 }
 
 func (a *App) hostedCLIRetry(response http.ResponseWriter, request *http.Request) {
@@ -482,7 +482,7 @@ func (a *App) hostedCLIRetry(response http.ResponseWriter, request *http.Request
 			return
 		}
 	}
-	writeHostedCLIError(response, err)
+	writeHostedCLIError(request.Context(), response, err)
 }
 
 // hostedCLIOutput streams NDJSON output events compatible with the local
@@ -493,19 +493,19 @@ func (a *App) hostedCLIOutput(response http.ResponseWriter, request *http.Reques
 	}
 	id, err := commandID(request)
 	if err != nil {
-		writeHostedCLIError(response, err)
+		writeHostedCLIError(request.Context(), response, err)
 		return
 	}
 	cursor := int64(0)
 	if value := request.URL.Query().Get("after"); value != "" {
 		if cursor, err = strconv.ParseInt(value, 10, 64); err != nil || cursor < 0 {
-			writeError(response, http.StatusBadRequest, "Invalid output cursor.")
+			writeError(request.Context(), response, http.StatusBadRequest, "Invalid output cursor.")
 			return
 		}
 	}
 	ctx := request.Context()
 	if _, err := a.hostedCLI.queue.Detail(ctx, id); err != nil {
-		writeHostedCLIError(response, err)
+		writeHostedCLIError(request.Context(), response, err)
 		return
 	}
 	controller := http.NewResponseController(response)

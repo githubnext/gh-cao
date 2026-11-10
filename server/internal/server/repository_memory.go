@@ -27,7 +27,7 @@ func (a *App) repositoryMemoryDirectory() string {
 func (a *App) repositoryMemoryCampaign(response http.ResponseWriter, request *http.Request) {
 	campaignID := request.PathValue("campaign")
 	if !repositorymemory.ValidCampaign(campaignID) {
-		writeError(response, http.StatusBadRequest, "repository-memory campaign is invalid")
+		writeError(request.Context(), response, http.StatusBadRequest, "repository-memory campaign is invalid")
 		return
 	}
 	var campaign repositorymemory.Campaign
@@ -36,7 +36,7 @@ func (a *App) repositoryMemoryCampaign(response http.ResponseWriter, request *ht
 		errors.Is(err, errCanonicalEntityNotFound) {
 		resolved, resolveErr := a.memory.Campaign(request.Context(), campaignID)
 		if resolveErr != nil {
-			writeRepositoryMemoryError(response, resolveErr)
+			writeRepositoryMemoryError(request.Context(), response, resolveErr)
 			return
 		}
 		if resolved == nil {
@@ -51,7 +51,7 @@ func (a *App) repositoryMemoryCampaign(response http.ResponseWriter, request *ht
 		return
 	}
 	if err != nil {
-		writeError(response, http.StatusServiceUnavailable, "repository memory is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "repository memory is unavailable")
 		return
 	}
 	writeJSON(response, http.StatusOK, campaign)
@@ -61,7 +61,7 @@ func (a *App) repositoryMemoryContent(response http.ResponseWriter, request *htt
 	campaignID := request.PathValue("campaign")
 	filePath := request.URL.Query().Get("path")
 	if !repositorymemory.ValidCampaign(campaignID) || !repositorymemory.ValidPath(filePath) {
-		writeError(response, http.StatusBadRequest, "repository-memory file path is invalid")
+		writeError(request.Context(), response, http.StatusBadRequest, "repository-memory file path is invalid")
 		return
 	}
 	var content []byte
@@ -90,7 +90,7 @@ func (a *App) repositoryMemoryContent(response http.ResponseWriter, request *htt
 		}
 		content = value
 		if reason, ok := repositoryMemoryIntegrityFailure(content, *selected); !ok {
-			repositoryMemoryLog.Printf("repository-memory file failed integrity validation reason=%s", reason)
+			repositoryMemoryLog.PrintfContext(ctx, "repository-memory file failed integrity validation reason=%s", reason)
 			return errRepositoryMemoryIntegrityFailure
 		}
 		return nil
@@ -100,30 +100,30 @@ func (a *App) repositoryMemoryContent(response http.ResponseWriter, request *htt
 		content, resolveErr := a.memory.Content(request.Context(), campaignID, filePath)
 		if errors.Is(resolveErr, repositorymemory.ErrNotFound) ||
 			(resolveErr == nil && content == nil) {
-			writeError(response, http.StatusNotFound, "repository-memory file was not found")
+			writeError(request.Context(), response, http.StatusNotFound, "repository-memory file was not found")
 			return
 		}
 		if resolveErr != nil {
-			writeRepositoryMemoryError(response, resolveErr)
+			writeRepositoryMemoryError(request.Context(), response, resolveErr)
 			return
 		}
 		writeJSON(response, http.StatusOK, map[string]string{"content": string(content)})
 		return
 	}
 	if errors.Is(err, errCanonicalEntityNotFound) {
-		writeError(response, http.StatusNotFound, "repository-memory branch was not found")
+		writeError(request.Context(), response, http.StatusNotFound, "repository-memory branch was not found")
 		return
 	}
 	if errors.Is(err, repositorymemory.ErrNotFound) {
-		writeError(response, http.StatusNotFound, "repository-memory file was not found")
+		writeError(request.Context(), response, http.StatusNotFound, "repository-memory file was not found")
 		return
 	}
 	if errors.Is(err, errRepositoryMemoryIntegrityFailure) {
-		writeError(response, http.StatusServiceUnavailable, "repository-memory file failed integrity validation")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "repository-memory file failed integrity validation")
 		return
 	}
 	if err != nil {
-		writeError(response, http.StatusServiceUnavailable, "repository memory is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "repository memory is unavailable")
 		return
 	}
 	writeJSON(response, http.StatusOK, map[string]string{"content": string(content)})
@@ -183,11 +183,11 @@ func repositoryMemorySnapshot(
 	return repositorymemory.Campaign{}, errCanonicalEntityNotFound
 }
 
-func writeRepositoryMemoryError(response http.ResponseWriter, err error) {
+func writeRepositoryMemoryError(ctx context.Context, response http.ResponseWriter, err error) {
 	if retryAfter, throttled := repositorymemory.RetryAfterSeconds(err); throttled {
 		response.Header().Set("Retry-After", strconv.Itoa(retryAfter))
-		writeError(response, http.StatusTooManyRequests, "repository memory is temporarily throttled")
+		writeError(ctx, response, http.StatusTooManyRequests, "repository memory is temporarily throttled")
 		return
 	}
-	writeError(response, http.StatusServiceUnavailable, "repository memory is unavailable")
+	writeError(ctx, response, http.StatusServiceUnavailable, "repository memory is unavailable")
 }

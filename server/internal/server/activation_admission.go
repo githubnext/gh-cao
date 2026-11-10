@@ -91,7 +91,7 @@ func (a *App) serveAdmission(w http.ResponseWriter, r *http.Request, conclusion 
 	limit, err := a.services.RequestLimiter.TakeRateLimitToken(ctx,
 		"activation-admission:"+hex.EncodeToString(sum[:]), 60, time.Minute)
 	if err != nil {
-		serverLog.Printf("activation admission dependency unavailable")
+		serverLog.PrintfContext(r.Context(), "activation admission dependency unavailable")
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}

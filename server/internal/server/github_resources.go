@@ -111,26 +111,26 @@ func (a *App) gitHubReleaseResource(w http.ResponseWriter, r *http.Request) {
 func (a *App) gitHubResource(w http.ResponseWriter, r *http.Request, release bool) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)
-		writeError(w, http.StatusMethodNotAllowed, "GitHub resources are read-only")
+		writeError(r.Context(), w, http.StatusMethodNotAllowed, "GitHub resources are read-only")
 		return
 	}
 	w.Header().Add("Vary", "Authorization")
 	w.Header().Add("Vary", "Cookie")
 	repository, err := collect.NormalizeRepository(r.PathValue("owner") + "/" + r.PathValue("repo"))
 	if err != nil || len(repository) > 256 || r.URL.RawQuery != "" {
-		writeError(w, http.StatusBadRequest, "invalid GitHub resource request")
+		writeError(r.Context(), w, http.StatusBadRequest, "invalid GitHub resource request")
 		return
 	}
 	installation, err := a.githubResourceScope(r.Context(), repository)
 	if err != nil {
-		writeGitHubResourceError(w, err)
+		writeGitHubResourceError(r.Context(), w, err)
 		return
 	}
 	credentialCtx, cancelCredentials := context.WithTimeout(r.Context(), 15*time.Second)
 	credentials, err := a.githubResourceCredentials(credentialCtx, installation)
 	cancelCredentials()
 	if err != nil {
-		writeGitHubResourceError(w, err)
+		writeGitHubResourceError(r.Context(), w, err)
 		return
 	}
 	path := "repos/" + repository
@@ -140,7 +140,7 @@ func (a *App) gitHubResource(w http.ResponseWriter, r *http.Request, release boo
 	key := githubResourceKey(installation, path, r.Header, credentials.token)
 	entry, ok, err := a.githubResources.load(r.Context(), key)
 	if err != nil {
-		writeGitHubResourceError(w, err)
+		writeGitHubResourceError(r.Context(), w, err)
 		return
 	}
 	stale := false
@@ -164,7 +164,7 @@ func (a *App) gitHubResource(w http.ResponseWriter, r *http.Request, release boo
 		case fetched := <-result:
 			if fetched.Err != nil {
 				if !ok || !githubResourceTransientError(fetched.Err) {
-					writeGitHubResourceError(w, fetched.Err)
+					writeGitHubResourceError(r.Context(), w, fetched.Err)
 					return
 				}
 				stale = true
@@ -440,7 +440,7 @@ func githubResourceTransientError(err error) bool {
 	return true
 }
 
-func writeGitHubResourceError(w http.ResponseWriter, err error) {
+func writeGitHubResourceError(ctx context.Context, w http.ResponseWriter, err error) {
 	status := http.StatusServiceUnavailable
 	var resourceError *githubResourceError
 	var unavailable *githubquota.UnavailableError
@@ -456,7 +456,7 @@ func writeGitHubResourceError(w http.ResponseWriter, err error) {
 	if status == http.StatusTooManyRequests || status == http.StatusServiceUnavailable {
 		writeGitHubResourceRetryAfter(w, err)
 	}
-	writeError(w, status, "GitHub resource is unavailable")
+	writeError(ctx, w, status, "GitHub resource is unavailable")
 }
 
 func writeGitHubResourceRetryAfter(w http.ResponseWriter, err error) {

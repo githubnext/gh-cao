@@ -97,7 +97,7 @@ func newOperationalStore(ctx context.Context, host *resolvedHostPolicy) (operati
 		if err != nil {
 			return nil, "", err
 		}
-		hostedLog.Printf("operational backend=memory scope=process persistence=volatile sessions=restart-invalidated revocations=best-effort accepted-work=lost-on-restart")
+		hostedLog.PrintfContext(ctx, "operational backend=memory scope=process persistence=volatile sessions=restart-invalidated revocations=best-effort accepted-work=lost-on-restart")
 		return store, "", nil
 	}
 	if backend == "postgres" {
@@ -109,7 +109,7 @@ func newOperationalStore(ctx context.Context, host *resolvedHostPolicy) (operati
 		if err != nil {
 			return nil, "", fmt.Errorf("open provisioned operational storage (run database bootstrap as owner before rollout): %w", err)
 		}
-		hostedLog.Printf("operational backend=postgres scope=deployment persistence=restart")
+		hostedLog.PrintfContext(ctx, "operational backend=postgres scope=deployment persistence=restart")
 		return store, "", nil
 	}
 	if backend != "redis" {
@@ -150,7 +150,7 @@ func newRedisOperationalStore(ctx context.Context, host *resolvedHostPolicy) (*r
 		_ = store.Close()
 		return nil, "", err
 	}
-	hostedLog.Printf("operational backend=redis")
+	hostedLog.PrintfContext(ctx, "operational backend=redis")
 	return store, revocations, nil
 }
 

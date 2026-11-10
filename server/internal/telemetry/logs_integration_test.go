@@ -198,11 +198,11 @@ func checkExportedLogRecord(t *testing.T, record *logsv1.LogRecord) {
 		if !strings.HasSuffix(record.GetBody().GetStringValue(), "request complete status=200") {
 			t.Error("slog message and attributes were not preserved")
 		}
-		if hex.EncodeToString(record.GetTraceId()) != logTraceID || hex.EncodeToString(record.GetSpanId()) != logSpanID {
-			t.Error("slog trace/span context was not preserved")
-		}
 	default:
 		t.Errorf("unexpected log severity: %v", record.GetSeverityNumber())
+	}
+	if hex.EncodeToString(record.GetTraceId()) != logTraceID || hex.EncodeToString(record.GetSpanId()) != logSpanID {
+		t.Error("log trace/span context was not preserved")
 	}
 }
 
@@ -225,7 +225,7 @@ func TestOTLPLogHelper(t *testing.T) {
 	ctx := trace.ContextWithSpanContext(t.Context(), trace.NewSpanContext(trace.SpanContextConfig{
 		TraceID: traceID, SpanID: spanID, TraceFlags: trace.FlagsSampled,
 	}))
-	logger.New("cao:log-test").Printf("processed %d items", 3)
+	logger.New("cao:log-test").PrintfContext(ctx, "processed %d items", 3)
 	logger.NewSlogLoggerWithHandler(logger.New("cao:log-test")).InfoContext(ctx, "request complete", "status", 200)
 	logger.New("cao:log-blocked").Print("not selected")
 	shutdownCtx, cancel := context.WithTimeout(t.Context(), 5*time.Second)

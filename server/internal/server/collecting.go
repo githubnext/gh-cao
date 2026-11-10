@@ -229,7 +229,7 @@ func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(rev
 			if err == nil || ctx.Err() != nil {
 				return
 			}
-			serverLog.Printf("cold start failed")
+			serverLog.PrintfContext(startupCtx, "cold start failed")
 			timer := time.NewTimer(30 * time.Second)
 			select {
 			case <-ctx.Done():
@@ -244,7 +244,7 @@ func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(rev
 		worker.OnProjection = onProjection
 		launch(func() {
 			if err := worker.Run(ctx); err != nil && ctx.Err() == nil {
-				serverLog.Printf("collection worker stopped")
+				serverLog.PrintfContext(startupCtx, "collection worker stopped")
 			}
 		})
 	}
@@ -285,7 +285,7 @@ func (c *Collector) recoverDeliveries(ctx context.Context) {
 			return
 		case <-ticker.C:
 			if _, err := c.replayer.Recover(ctx); err != nil {
-				serverLog.Printf("delivery recovery failed")
+				serverLog.PrintfContext(ctx, "delivery recovery failed")
 			}
 		}
 	}
@@ -356,7 +356,7 @@ func (a *App) collectionStatus(response http.ResponseWriter, request *http.Reque
 	}
 	status, err := collector.reporter.Snapshot(request.Context())
 	if err != nil {
-		writeError(response, http.StatusServiceUnavailable, "collection status is unavailable")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "collection status is unavailable")
 		return
 	}
 	writeJSON(response, http.StatusOK, status)

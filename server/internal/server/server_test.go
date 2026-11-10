@@ -30,7 +30,7 @@ const testAccessToken = "0123456789abcdef0123456789abcdef"
 
 func TestQueryPlanLimitErrorResponse(t *testing.T) {
 	response := httptest.NewRecorder()
-	writeQueryError(response, http.StatusBadRequest, &query.PlanLimitError{
+	writeQueryError(t.Context(), response, http.StatusBadRequest, &query.PlanLimitError{
 		QueryID: "campaign-repository-coverage", Boundary: "retained_bytes",
 	})
 	if response.Code != http.StatusUnprocessableEntity {

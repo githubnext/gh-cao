@@ -252,12 +252,12 @@ func fetchActionsOIDCKey(ctx context.Context, client *http.Client, keyID string)
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		actionsOIDCLog.Printf("jwks fetch request failed")
+		actionsOIDCLog.PrintfContext(ctx, "jwks fetch request failed")
 		return nil, err
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
-		actionsOIDCLog.Printf("jwks fetch rejected status=%d", response.StatusCode)
+		actionsOIDCLog.PrintfContext(ctx, "jwks fetch rejected status=%d", response.StatusCode)
 		return nil, errors.New("actions OIDC JWKS is unavailable")
 	}
 	var jwks struct {
@@ -265,12 +265,12 @@ func fetchActionsOIDCKey(ctx context.Context, client *http.Client, keyID string)
 	}
 	decoder := json.NewDecoder(io.LimitReader(response.Body, 64<<10))
 	if decoder.Decode(&jwks) != nil || len(jwks.Keys) > 32 {
-		actionsOIDCLog.Printf("jwks decode failed")
+		actionsOIDCLog.PrintfContext(ctx, "jwks decode failed")
 		return nil, errors.New("invalid Actions OIDC JWKS")
 	}
 	key, err := selectActionsOIDCKey(jwks.Keys, keyID)
 	if err != nil {
-		actionsOIDCLog.Printf("jwks key selection failed count=%d", len(jwks.Keys))
+		actionsOIDCLog.PrintfContext(ctx, "jwks key selection failed count=%d", len(jwks.Keys))
 		return nil, err
 	}
 	return key, nil

@@ -3732,6 +3732,18 @@ certify the entire deployment's GDPR compliance.
 
 ## Telemetry
 
+Request-scoped debug logging uses `PrintfContext(ctx, ...)` or
+`PrintContext(ctx, ...)` from `internal/logger/`, or the existing context-aware
+slog adapter. These APIs forward the active span context to the OTLP log SDK,
+which populates native `TraceId`, `SpanId`, and trace flags. Request error and
+query logs can therefore be retrieved with Aspire's
+`list_trace_structured_logs`, not just text searches for an embedded trace ID.
+Pass the current operation's context through error-response helpers; do not
+reconstruct log context from response headers. Context-free `Printf` and
+`Print` remain available for work without a request or operation context and
+do not inherit another call's span. Namespace selection, stderr formatting,
+and the additional log-export opt-in are unchanged.
+
 The server is instrumented with standard, vendor-neutral
 [OpenTelemetry](https://opentelemetry.io/) tracing and metrics
 (`internal/telemetry/`). HTTP requests other than `GET /auth/callback` are
