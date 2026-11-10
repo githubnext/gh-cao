@@ -1,8 +1,8 @@
 name: Synthetic Postgres Backfill Stress
 
 on:
-  workflow_dispatch:
-  workflow_call:
+  schedule:
+    - cron: "37 6 * * *"
 
 concurrency:
   group: daily-synthetic-backfill-stress

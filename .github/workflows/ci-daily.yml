@@ -105,14 +105,6 @@ jobs:
     uses: ./.github/workflows/company-stress.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
     with:
       preset: large
-  backfill-stress:
-    needs: revision
-    uses: ./.github/workflows/backfill-stress.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
-    permissions:
-      contents: read
-      actions: read
-      issues: write
-
   worker-memory:
     name: Fully ingested dashboard worker heap
     needs: revision
@@ -168,7 +160,6 @@ jobs:
       - dashboard-stress
       - fleet-stress
       - company-stress
-      - backfill-stress
       - worker-memory
     runs-on: ubuntu-latest
     timeout-minutes: 5
