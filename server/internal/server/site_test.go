@@ -22,6 +22,48 @@ func hostedTestSite(t *testing.T) string {
 	return site
 }
 
+func TestDashboardServesHTMLJavaScriptAndCSS(t *testing.T) {
+	app, _ := newSQLiteTestApp(t, false)
+	for name, content := range map[string]string{
+		"index.html": `<html><head><link rel="stylesheet" href="/app.css"></head><body><main>Dashboard</main><script type="module" src="/app.js"></script></body></html>`,
+		"app.js":     `document.querySelector("main").textContent = "Dashboard loaded";`,
+		"app.css":    `main { color: green; }`,
+	} {
+		if err := os.WriteFile(filepath.Join(app.config.SiteDirectory, name), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	handler := app.Handler()
+	for _, test := range []struct {
+		path        string
+		contentType string
+		content     string
+	}{
+		{"/", "text/html", "<main>Dashboard</main>"},
+		{"/repositories", "text/html", "<main>Dashboard</main>"},
+		{"/app.js", "javascript", `document.querySelector("main").textContent = "Dashboard loaded";`},
+		{"/app.css", "text/css", `main { color: green; }`},
+	} {
+		t.Run(test.path, func(t *testing.T) {
+			request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "http://localhost"+test.path, nil)
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, request)
+			if response.Code != http.StatusOK ||
+				!strings.Contains(response.Header().Get("Content-Type"), test.contentType) ||
+				!strings.Contains(response.Body.String(), test.content) {
+				t.Fatalf("dashboard response: status=%d content-type=%q body=%s",
+					response.Code, response.Header().Get("Content-Type"), response.Body.String())
+			}
+			if test.contentType == "text/html" &&
+				(!strings.Contains(response.Body.String(), `content="server-http"`) ||
+					!strings.Contains(response.Body.String(), `content="sqlite"`) ||
+					response.Header().Get("Cache-Control") != "no-store") {
+				t.Fatal("dashboard entry did not select the uncached Go/SQLite bootstrap")
+			}
+		})
+	}
+}
+
 func TestHostedStartupRequiresBuiltDashboard(t *testing.T) {
 	for _, name := range []string{"missing-index", "empty-index", "directory-index", "escaping-index"} {
 		t.Run(name, func(t *testing.T) {
