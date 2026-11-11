@@ -568,6 +568,7 @@ test_stack() {
     node "$ROOT/tests/integration/azure-local-services.test.mjs" "$RUNTIME_JSON"
   run_logged "Azure Functions integration" integration-test.log \
     node "$ROOT/tests/integration/azure-local-functions.test.mjs" "$RUNTIME_JSON"
+  cat "$LOG_DIR/service-integration-test.log" "$LOG_DIR/integration-test.log"
 }
 
 logs() {
