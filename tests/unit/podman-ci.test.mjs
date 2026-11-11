@@ -33,7 +33,13 @@ test("Podman CI runs real rootless boundaries and Azure services on pull request
   assert.match(commands, /container_runner\.go/);
   assert.match(commands, /podman-bin\/server\/hostedcli\.test/);
   assert.match(commands, /-test.run '\^TestPodmanRealBoundary\$' -test.count=1/);
-  assert.match(commands, /npm run test:integration:azure-services/);
+  assert.match(commands, /azure-local\.sh run-services/);
+  const protocols = workflow.jobs["azure-protocols"];
+  assert.equal(protocols.needs, undefined, "protocol contracts must not wait for service startup");
+  assert.equal(protocols.if, undefined);
+  assert.match(protocols.steps.map((step) => step.run ?? "").join("\n"), /azure-local-protocols\.test\.mjs/);
+  assert.equal(protocols.steps.find((step) => step.id === "binaries").with.key,
+    job.steps.find((step) => step.id === "binaries").with.key);
   assert.doesNotMatch(commands, /sudo (?:podman|go)|\|\| true/);
 });
 
@@ -64,7 +70,7 @@ for (const failure of ["", "boundary", "azure", "contracts"]) {
     const directory = await mkdtemp(join(tmpdir(), "cao-podman-ci-"));
     const trace = join(directory, "trace");
     try {
-      for (const [command, lane] of [["podman", "boundary"], ["npm", "azure"], ["node", "contracts"]]) {
+      for (const [command, lane] of [["podman", "boundary"], ["bash", "azure"], ["node", "contracts"]]) {
         await writeFile(join(directory, command), `#!/bin/bash
 set -eu
 touch "$CHECK_DIRECTORY/${lane}"
@@ -82,7 +88,7 @@ exit 99
       }
       await writeFile(join(directory, "systemd-run"), '#!/bin/bash\nprintf "boundary-run\\n" >> "$CHECK_TRACE"\n', { mode: 0o700 });
       const script = workflow.jobs.podman.steps.find((step) => step.name === "Run independent rootless and Azure checks concurrently").run;
-      const result = await execute("bash", ["-e", "-c", script], {
+      const result = await execute("/bin/bash", ["-e", "-c", script], {
         cwd: fileURLToPath(root),
         env: {
           ...process.env,

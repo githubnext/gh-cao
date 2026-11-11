@@ -64,6 +64,9 @@ independently namespaced PostgreSQL adapter suites run concurrently. Synthetic
 PostgreSQL data lives on container tmpfs to avoid overlay-filesystem write costs;
 this is still real PostgreSQL, but does not establish host-crash durability.
 The explicit GitHub development profile retains its original storage behavior.
+CI gives the CPU-heavy deployment-protocol suite its own parallel job and uses
+`run-services` for the real service lane; both jobs run on every invocation.
+The ordinary `run` command still runs both suites and propagates either failure.
 
 ## Local service engine setup
 

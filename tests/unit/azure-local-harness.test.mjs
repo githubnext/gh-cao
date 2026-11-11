@@ -120,7 +120,7 @@ fi
       }
       // Readiness must succeed without contacting any real services.
       await executable(join(tools, "curl"), "echo 200\n");
-      const result = await execute("bash", [script, "run"], {
+      const result = await execute("bash", [script, prebuilt ? "run-services" : "run"], {
         env: {
           ...process.env,
           CAO_CONTAINER_ENGINE: engine,

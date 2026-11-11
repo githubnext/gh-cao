@@ -615,6 +615,13 @@ run_all() {
     RUNTIME_JSON="$STATE_DIR/runtime.json"
   fi
   prepare_state
+  if [[ "${1:-}" == services ]]; then
+    start
+    trap 'status=$?; trap - EXIT INT TERM; stop_internal; exit "$status"' EXIT INT TERM
+    wait_for_stack
+    test_stack
+    return
+  fi
   (
     start
     trap 'status=$?; trap - EXIT INT TERM; stop_internal; exit "$status"' EXIT INT TERM
@@ -664,5 +671,6 @@ case "${1:-}" in
   logs) logs ;;
   stop) stop ;;
   run) run_all ;;
-  *) fail "usage: $0 {dev|start|wait|test|logs|stop|run}" ;;
+  run-services) run_all services ;;
+  *) fail "usage: $0 {dev|start|wait|test|logs|stop|run|run-services}" ;;
 esac
