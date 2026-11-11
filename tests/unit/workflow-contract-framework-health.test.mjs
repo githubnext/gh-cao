@@ -32,7 +32,7 @@ function ownedReport({ runId = 100, attempt = 1, title = `[cao-framework-health]
   };
 }
 
-async function execute(name, { github = {}, files = new Map(), runContext = context, exec } = {}) {
+async function execute(name, { github = {}, files = new Map(), runContext = context, exec, env = {} } = {}) {
   const outputs = {};
   const fs = {
     mkdirSync() {},
@@ -42,8 +42,10 @@ async function execute(name, { github = {}, files = new Map(), runContext = cont
     },
     writeFileSync(path, value) { files.set(path, value); },
   };
-  await runInNewContext(`(async () => { ${config.steps.find(step => step.name === name).with.script}\n })()`, {
+  const step = [...config.steps, ...config["safe-outputs"].steps].find(step => step.name === name);
+  await runInNewContext(`(async () => { ${step.with.script}\n })()`, {
     github, context: runContext, core: { setOutput(name, value) { outputs[name] = value; } },
+    process: { env },
     require(name) {
       if (name === "node:fs") return fs;
       if (name === "node:crypto") return { createHash };
@@ -549,6 +551,7 @@ test("compiled framework reports remain local read-only observation with only de
   assert.deepEqual(config.network.allowed, []);
   assert.equal(config.tools.edit, false);
   assert.equal(config.tools.github["github-token"], "${{ secrets.GITHUB_TOKEN }}");
+  assert.deepEqual(config.tools.github.toolsets, ["repos", "pull_requests", "actions"]);
   assert.equal(config["safe-outputs"]["github-token"], "${{ secrets.GITHUB_TOKEN }}");
   assert.ok(!config.tools.bash.includes("*"));
   assert.equal(config.checkout["fetch-depth"], 0);
@@ -598,6 +601,75 @@ test("compiled framework reports remain local read-only observation with only de
   assert.match(source, /A passing run at a different SHA does not validate this SHA/);
   assert.match(source, /mapped but not executed/);
   assert.match(source, /source reduction that removes a\nguarantee or tests is not a cleaner core/);
+});
+
+test("source review is required independently of candidate acceptance and incomplete baselines", () => {
+  const review = source.split("## Required source-review pass\n")[1]?.split("\n## Private-preview acceptance first")[0];
+  assert.ok(review, "the report must investigate source instead of only repeating collector metadata");
+  assert.match(review, /missing candidate, unapproved scope or unassigned owner blocks journey\nacceptance, not review of the core at `source_sha`/);
+  assert.match(review, /each component's `paths` in `components\.json`/);
+  assert.match(review, /read its governing specification, implementation\nand representative behavioral tests/);
+  assert.match(review, /all eight components and account for\nall 16 claims within the existing file budgets/);
+  assert.match(review, /0\/16 mapped claims is not a baseline/);
+  for (const field of ["Review", "Coverage", "Verdict", "Remaining proof"]) {
+    assert.ok(review.includes(`**${field}:**`), `missing review field: ${field}`);
+  }
+  assert.match(review, /Reviewed source with no matching execution remains mapped but not executed/);
+  assert.match(review, /Trace suite membership through the workflow and runner scripts/);
+  assert.match(review, /Never manufacture an evidenced verdict to reduce unknowns/);
+  assert.match(source, /if no component received substantive specification\/source\/test review, call\n`report_incomplete` and do not call `create_issue`/);
+  const template = /````markdown\n([\s\S]*?)\n````/.exec(source)[1];
+  assert.match(template, /Reviewed \/ 16, mapped \/ 16 and exact-revision execution \/ 16/);
+  assert.match(template.split("### Executive assessment")[0], /^Core claims reviewed: \{reviewed count\}\/16$/m);
+});
+
+test("publication rejects missing, zero, duplicate and invalid review declarations before issue mutation", async () => {
+  const path = "/tmp/framework-health-agent-output.json";
+  const validate = output => execute("Validate core review before publication", {
+    files: new Map([[path, JSON.stringify(output)]]), env: { GH_AW_AGENT_OUTPUT: path },
+  });
+  for (const body of [
+    "Incomplete assessment; source and tests were not reviewed.",
+    "Core claims reviewed: 0/16",
+    "Core claims reviewed: 17/16",
+    "Core claims reviewed: -1/16",
+    "Core claims reviewed: 1.5/16",
+    "Core claims reviewed: 1/15",
+    "Core claims reviewed: 1/16\nCore claims reviewed: 16/16",
+    "Core claims reviewed: 16/16\nCore claims reviewed: 0/16",
+  ]) {
+    await assert.rejects(validate({ items: [{ type: "create_issue", body }] }), /Refusing report/);
+  }
+  await assert.rejects(validate({ items: {} }), /Invalid agent output/);
+  await assert.rejects(execute("Validate core review before publication"), /Missing agent output/);
+  for (const count of [1, 8, 16]) {
+    await validate({ items: [{
+      type: "create_issue",
+      body: `Core claims reviewed: ${count}/16\r\nAll verdicts unknown; tests mapped but not executed.`,
+    }] });
+  }
+  for (const type of ["noop", "report_incomplete"]) await validate({ items: [{ type }] });
+
+  const compiled = parse(workflow("cao-framework-health.lock.yml"));
+  const steps = compiled.jobs.safe_outputs.steps;
+  const guard = steps.findIndex(step => step.name === "Validate core review before publication");
+  const handler = steps.findIndex(step => step.env?.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG);
+  assert.ok(guard >= 0 && guard < handler, "validation must run before issue creation and close-older");
+  assert.equal(steps[guard].env.GH_AW_AGENT_OUTPUT,
+    "${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}");
+  assert.equal(steps[guard].if, undefined);
+  assert.equal(steps[guard]["continue-on-error"], undefined);
+  assert.equal(steps[handler].if, undefined, "publication must retain default success gating");
+});
+
+test("failure investigation is bounded, read-only and does not publish raw evidence", () => {
+  assert.equal(config.permissions.actions, "read");
+  assert.match(source, /at most three failing\njobs already identified in the collected evidence/);
+  assert.match(source, /at most 100 lines per job/);
+  assert.match(source, /Follow the workflow's selectors and failing assertion before classifying\nharness versus product failure/);
+  assert.match(source, /If the excerpt is insufficient, name the exact\njob\/step and next diagnostic rather than guessing/);
+  assert.match(source, /Never publish raw logs,\ncredentials or private data/);
+  assert.match(source, /Do not\nrecollect broad run history or download artifacts/);
 });
 
 test("executive reports retain a fixed opening, section order and non-nested progressive disclosure", () => {

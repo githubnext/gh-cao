@@ -8,6 +8,13 @@ description: Run the Central Agentic Ops dashboard server on Azure Functions wit
 
 ## About the Azure deployment
 
+For an alternative without Azure Functions, its runtime Storage account or the
+Elastic Premium plan, select the [Azure Container Apps topology](deployment-topology.md#azure-container-apps).
+It uses Container Apps Consumption with the hosted Go server, private PostgreSQL,
+Key Vault, ACR and separate provisioning/ingestion jobs. This is a review-only
+topology bundle with separate activation gates, not a new `deploy azure --apply`
+backend; the native deployment command below remains Functions-only.
+
 The Azure deployment runs `cao-dashboard azure-functions` from the `server/` directory as a custom Linux container on Azure Functions. The `azure-functions-runtime` Docker target and `cao-functions` image repository remain unchanged; there is no separate `cao-functions` executable. Bicep sets `appCommandLine: 'azure-functions'` as the arguments to the image's `/app/cao-dashboard` entrypoint. The Functions Core Tools custom-handler configuration uses `defaultExecutablePath: "cao-dashboard"` with `arguments: ["azure-functions"]`. Browsers connect only to the Function App, over HTTPS on the same origin. The Function App:
 
 - Signs users in with GitHub OAuth.
@@ -30,6 +37,24 @@ flowchart LR
 
 ## Prerequisites
 
+### YAML topology planning
+
+For review-only configuration generation from feature choices, use the
+[native Go deployment bundle generator](deployment-topology.md) with
+`gh cao deploy init`, `gh cao deploy generate` and `gh cao deploy check`.
+It emits the unchanged Azure Bicep module set, Key Vault parameter references,
+a checked dependency graph, GitHub application setup instructions, validation
+scripts and operator TODOs. Its offline checker detects dependency and output
+drift; it does not create resources, install Apps, prove external prerequisites,
+or replace the guarded native deployment plan below.
+Default-off `sessionDataLake` and `webhookGateway` choices additionally emit a
+separate Bicep deployment for isolated persistent hosts and dedicated private
+Blob/ADX resources. These hosts remain staged until reviewed policy,
+credentials and real destination/runtime acceptance gates are satisfied; the
+Functions baseline is unchanged.
+`MANIFEST.md` includes Mermaid diagrams; the underlying deployment model is
+TOSCA Simple Profile 1.3, validated and resolved by the embedded Puccini engine.
+
 ### Native fresh-deployment command
 
 `gh cao deploy azure --apply` supports **fresh development deployments only**.
@@ -46,8 +71,15 @@ Updates, resuming a partially created deployment, and upgrades are follow-up
 work; a subsequent `--plan` against a successfully deployed instance must fail
 closed as an existing instance.
 
-For a development build, supply the compiled `server/azure/main.json` with
-`--template` and a gh-cao checkout with `--source-dir`. Supply the operator's
+Preflight and planning use the Go-embedded Azure ARM template and the same
+TOSCA dependency engine as offline bundle generation; neither needs a source
+checkout or Bicep installation. Plans include the resolved topology, and apply
+rejects topology drift before Azure writes. Older plans must be regenerated
+with the current CLI. `--template` remains an explicit compiled ARM override;
+its parameters must also satisfy the embedded provider contract.
+
+Development apply still requires a gh-cao checkout with `--source-dir` for
+building images. Supply the operator's
 repository with `--repo-dir` (default `.`); its reviewed
 `.github/workflows/cao.json` and `.github/workflows/cao.azure.json` are layered
 into an owner-only temporary build context. Only allowlisted product files,
@@ -66,10 +98,9 @@ letter or digit, and without consecutive hyphens. The longest derived name,
 
 ```bash
 gh cao deploy azure --plan --config /private/operator/deploy-azure.json \
-  --template /src/gh-cao/server/azure/main.json --out /private/operator/plan.json
+  --out /private/operator/plan.json
 
 gh cao deploy azure --apply --config /private/operator/deploy-azure.json \
-  --template /src/gh-cao/server/azure/main.json \
   --plan-file /private/operator/plan.json \
   --source-dir /src/gh-cao --repo-dir /private/operator \
   --empty-evidence --receipt /private/operator/deploy-azure-receipt.json
@@ -87,8 +118,9 @@ digests, and locks the version-plus-config-hash tags against writes and deletes.
 It then deploys the full template with separate Functions, provisioning, and
 ingestion digest parameters, not those tags. After deployment it reads back the
 configured digest references for all three targets before starting either job;
-missing, mismatched, or additional job containers fail closed. Regenerate `server/azure/main.json` from the reviewed Bicep sources before
-planning, then review the exact compiled template. Apply rejects templates
+missing, mismatched, or additional job containers fail closed. When using an
+explicit template override, regenerate `server/azure/main.json` from the reviewed
+Bicep sources before planning, then review the exact compiled template. Apply rejects templates
 without the three image digest parameters before any Azure call.
 New managed-identity Key Vault grants can take time to propagate. Apply retries
 the exact reviewed ARM request at most three times only when every nested

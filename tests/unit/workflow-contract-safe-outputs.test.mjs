@@ -249,7 +249,9 @@ test("Dependabot worker maintains a durable parent and one-PR child tasks withou
   assert.doesNotMatch(lock.slice(alertFetch), /require\('@actions\/github'\)/);
   assert.match(lock.slice(alertFetch), /precompute\.target_repo !== target/);
   assert.match(lock.slice(alertFetch), /GET \/repos\/\{owner\}\/\{repo\}\/dependabot\/alerts/);
-  assert.match(lock.slice(alertFetch), /response\.data\.length < 100/);
+  assert.match(lock.slice(alertFetch), /response\.headers\?\.link/);
+  assert.match(lock.slice(alertFetch), /new URL\(next\)\.searchParams\.get\('after'\)/);
+  assert.doesNotMatch(lock.slice(alertFetch), /per_page: 100, page/);
   assert.match(lock.slice(alertFetch), /complete: false, alerts: null, unavailable_reason: reason/);
   assert.match(lock.slice(alertFetch), /markUnavailable\(rateLimited \? 'api_rate_limit' : 'api_request_failed'\)/);
   assert.match(lock.slice(alertFetch), /markUnavailable\('pagination_limit_exceeded'\)/);

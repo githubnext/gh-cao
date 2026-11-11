@@ -1557,6 +1557,17 @@ Doctor does not replace production policy/workflow validation, grant authority,
 or invoke the Node snapshot-repair command. Actions and Node-only tools invoke
 `node activity/cao.mjs <command>` explicitly, including SQLite snapshot `repair-database`.
 There is no shell launcher.
+`gh cao deploy` owns both offline bundle generation (`init`, `generate`, `check`)
+and guarded Azure development deployment (`azure`). `internal/topology/` owns
+the embedded Puccini TOSCA dependency engine and provider parameter contract,
+shared by YAML bundle generation and JSON-config preflight, planning and apply.
+All bundle templates, examples, scripts and runbooks are compiled into Go
+resources; Azure planning defaults to the same embedded ARM baseline, with an
+explicit compiled-template override for development. Apply plans bind the
+resolved topology and reject drift before Azure writes. Bundle generation
+still requires the official Bicep compiler and grants no deployment authority;
+optional bundle profiles do not widen native apply support or its existing
+development-only, fresh-instance, secret-reference and evidence gates.
 Node `cao` owns the Actions runtime, `gh cao` owns the operator interface, and
 `cao-dashboard` owns the server. Node onboarding and lifecycle implementations
 and exports are removed: `init`, `setup`, `setup-auth`, campaign `add`, `mode`,
@@ -1911,6 +1922,14 @@ not authorize cross-repository evidence access.
   or an explicit empty dataset; builds never download a catalog-owned dataset
   implicitly. Instance policy, credentials, and target enrollment remain
   adopter-owned inputs, not public deployment defaults.
+- The additive `azure-container-apps` topology (`internal/topology/`) uses the
+  existing process-owned container host with PostgreSQL operational state,
+  managed HTTPS ingress and explicitly verified private proxy peers. It reuses
+  private PostgreSQL and the separate provisioning/ingestion job modules, but
+  omits Functions, runtime Storage, the Premium plan and Application Insights.
+  Web activation is default-off until independently verified provisioning and
+  ingestion succeed. Topology generation remains offline/review-only; the native
+  `deploy azure --apply` command still targets the Functions baseline.
 - Explicit `CAO_GITHUB_LOCAL_USER` development OAuth replaces membership
   authorization with one configured GitHub login and a valid numeric account
   ID. Classic login requests `read:user` without `read:org`; GitHub App clients

@@ -98,8 +98,8 @@ func newHostedAppWithPolicy(
 	if err != nil {
 		return nil, err
 	}
-	if collector == nil && sourceDirectory == "" {
-		return nil, errors.New("CAO_SOURCE_DIRECTORY is required")
+	if err := validateHostedIngestion(sourceDirectory, collector != nil, os.Getenv("CAO_EXTERNAL_INGESTION")); err != nil {
+		return nil, err
 	}
 	if host.Profile.SingleProcess && collector != nil && collector.AdmitOnly {
 		return nil, errors.New("memory operational-store requires co-resident collection, not admission-only mode")
@@ -209,6 +209,22 @@ func newHostedAppWithPolicy(
 		initialized = true
 	}
 	return app, err
+}
+
+func validateHostedIngestion(sourceDirectory string, collectorConfigured bool, external string) error {
+	switch strings.TrimSpace(external) {
+	case "", "false":
+		if !collectorConfigured && sourceDirectory == "" {
+			return errors.New("CAO_SOURCE_DIRECTORY is required unless CAO_EXTERNAL_INGESTION=true")
+		}
+	case "true":
+		if sourceDirectory != "" || collectorConfigured {
+			return errors.New("CAO_EXTERNAL_INGESTION cannot be combined with CAO_SOURCE_DIRECTORY or collection")
+		}
+	default:
+		return errors.New("CAO_EXTERNAL_INGESTION must be true or false")
+	}
+	return nil
 }
 
 func hostedProxyTrust(listen, certFile string, configured []netip.Prefix) (bool, []netip.Prefix) {

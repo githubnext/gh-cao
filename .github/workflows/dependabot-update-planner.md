@@ -205,9 +205,11 @@ jobs:
               return;
             }
             const alerts = [];
+            const cursors = new Set();
+            let after;
             for (let page = 1; page <= 100; page += 1) {
               const response = await requestAlerts('GET /repos/{owner}/{repo}/dependabot/alerts', {
-                owner, repo, state: 'open', per_page: 100, page,
+                owner, repo, state: 'open', per_page: 100, ...(after ? { after } : {}),
               });
               if (!response) return;
               if (!Array.isArray(response.data)) {
@@ -230,12 +232,24 @@ jobs:
                   first_patched_version: alert.security_vulnerability?.first_patched_version,
                 },
               })));
-              if (response.data.length < 100) {
+              const next = /<([^>]+)>;\s*rel="next"/.exec(response.headers?.link || '')?.[1];
+              if (!next) {
                 fs.writeFileSync(alertFile,
                   JSON.stringify({ target_repo: target, state: 'open', complete: true, alerts }));
                 core.info(`Fetched ${alerts.length} open Dependabot alerts for the authorized target.`);
                 return;
               }
+              try {
+                after = new URL(next).searchParams.get('after');
+              } catch {
+                markUnavailable('invalid_pagination_cursor');
+                return;
+              }
+              if (!after || cursors.has(after)) {
+                markUnavailable('invalid_pagination_cursor');
+                return;
+              }
+              cursors.add(after);
             }
             markUnavailable('pagination_limit_exceeded');
 

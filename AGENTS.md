@@ -62,19 +62,13 @@ credential or rollout authority.
 
 ### Installing npm dependencies
 
-From the package directory, use the lockfile with `npm ci`. Outside the Microsoft corporate network, use the default npm registry:
+From the package directory, use the lockfile with `npm ci`. The root, dashboard site, and server specification packages configure the Microsoft-approved npm feed, `https://packagefeedproxy.microsoft.io/npm/`, in their `.npmrc` files:
 
 ```sh
 npm ci
 ```
 
-If npmjs access is blocked by the Microsoft corporate firewall, use the Microsoft 1ES feed instead:
-
-```sh
-npm ci --registry=https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ --replace-registry-host=npmjs
-```
-
-Do not configure the Microsoft feed for environments that can access the default registry. Load the [npm skill](.github/skills/npm/SKILL.md) before troubleshooting dependency installation, registry, proxy, or certificate failures. If a pinned release is unavailable, check the 1ES feed for a compatible available release and use it when compatibility can be verified. Update dependency constraints or overrides as needed and regenerate the lockfile with npm; do not hand-edit lockfile URLs or integrity values. Verify with `npm ci` and the affected tests or build. Report a blocker only when no compatible release is available or access itself fails.
+Keep these configurations aligned with [githubnext.com](https://github.com/githubnext/githubnext.com/blob/main/.npmrc). npm reroutes default npmjs lockfile URLs through the configured registry; do not rewrite lockfile URLs. Load the [npm skill](.github/skills/npm/SKILL.md) before troubleshooting dependency installation, registry, proxy, or certificate failures. If a pinned release is unavailable, check the approved feed for a compatible available release and use it when compatibility can be verified. Update dependency constraints or overrides as needed and regenerate the lockfile with npm; do not hand-edit lockfile URLs or integrity values. Verify with `npm ci` and the affected tests or build. Report a blocker only when no compatible release is available or access itself fails.
 
 ### Full validation
 

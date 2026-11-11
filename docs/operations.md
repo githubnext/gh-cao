@@ -119,6 +119,16 @@ hosting/access, distribution/lifecycle, and outcomes/evidence. Each claim is
 **evidenced**, **at risk** or **unknown**, with source, test and execution evidence.
 Behavioral coverage distinguishes absent tests, mapped-but-unexecuted tests,
 passing, failing and partial evidence; it does not invent line-coverage percentages.
+Each run must inspect specifications, implementation and behavioral tests across
+the component register, even when no preview candidate or owners are selected.
+An earlier evidence-only report is not a source-review baseline. Reports count
+reviewed, test-mapped and exact-revision-executed claims separately; a reviewed
+claim can still have an unknown verdict. A run that skips substantive source
+review reports incomplete without publishing another evidence-only issue.
+The visible opening declares `Core claims reviewed: N/16`; a pre-publication step
+rejects missing, duplicate, zero or out-of-range declarations before creating an
+issue or closing an older report. This validates the declaration, not the model's
+citations or conclusions, which still require human review.
 Per-component first-parent Git churn compares source and test additions/deletions
 across the same windows, separating generated artifacts. Commit-time churn is
 not merge-time acceptance, and overlapping path groups must not be summed.
@@ -134,6 +144,11 @@ cover installer/deployed canaries, runtime packaging, Activity, Dashboard and
 release promotion alongside core CI. Each of these nine workflows has at most
 10 latest and 10 candidate-source run observations, with at most 200 jobs per
 inspected run. Missing workflows, skipped checks and lookup limits stay explicit.
+The agent may inspect up to three already-identified failing jobs using at most
+100 log lines per job within its 20 additional read-only GitHub calls. It traces
+selectors and assertions to distinguish harness from product failures, summarizes
+only sanitized facts, and records the exact next diagnostic if evidence is
+insufficient. It cannot download artifacts or publish raw logs.
 Source-SHA matches do not establish which release an installer, deployment or
 promotion actually exercised; candidate-bound receipts and live walkthroughs
 remain necessary.

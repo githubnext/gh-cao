@@ -1,0 +1,85 @@
+# Azure Container Apps topology
+
+Review-only, experimental infrastructure. Generation does not deploy, build
+images, start jobs or activate the service. MANIFEST.md shows resolved TOSCA
+dependencies; RULES.md records declared tradeoffs, not live acceptance.
+
+This profile uses one Azure Container Apps **Consumption** environment and a
+single Go `serve-hosted` replica behind managed HTTPS ingress. Dashboard assets,
+OAuth and PostgreSQL query execution share that origin. There are **no Azure
+Functions, Functions runtime Storage account, App Service/Premium plan, Redis,
+VMs or Application Insights**. Private PostgreSQL Flexible Server, ACR, a target
+Key Vault and Log Analytics remain paid resources. Consumption with one minimum
+replica is not scale-to-zero or a claim that the deployment is free.
+
+The public environment has a dedicated delegated subnet; PostgreSQL has a
+separate delegated subnet and linked private DNS, with public access disabled.
+Review the fixed 10.45.0.0/16 network for overlap. Set trustedProxyCidrs to
+independently verified private IPv4/loopback ingress peers, NOT client networks.
+The sample's 10.45.0.0/23 is illustrative, not evidence that the platform uses
+those peers. Never trust all private networks to work around rejected requests.
+Verify actual peers and spoofed-header rejection before admitting users; an
+unsupported platform peer range is a blocker, not permission to bypass the
+hosted trust policy. The platform terminates HTTPS; the private hop to port
+8080 uses HTTP. No direct public container port or alternate frontend is added.
+
+## Ordered deployment and activation
+
+1. Replace example identities, regions, names, OAuth allowlists and all three
+   image digests. Keep the existing input vault separate from the new target
+   vault. All six credentials use ARM Key Vault references; generated files
+   contain no secret values. Review scoped RBAC and allow template deployment
+   from the input vault through your independently approved Azure process.
+2. Build reviewed images from the generating revision's server/Dockerfile:
+   `dashboard-runtime`, `azure-db-provision`, and either `azure-ingest-runtime`
+   for a verified Actions snapshot or explicitly `azure-empty-ingest-runtime`.
+   Missing/invalid evidence must not become empty evidence. Bootstrap the exact
+   declared ACR separately before deploying jobs; Bicep does not build/push.
+   Record and independently review each immutable digest and image assurance.
+3. In the operator's reviewed image policy at `/app/.github/workflows/cao.json`,
+   configure `control-plane.web.host` with `target.module: container`,
+   `target.replicas: 1`, and `operational-store.backend: postgres`.
+   Build using the operator policy context, not this catalog's default policy.
+   Keep the rest of the reviewed policy intact; no rollout or live authority is
+   granted here. The runtime fails if policy/backend/listener contracts disagree.
+   The template sets `CAO_EXTERNAL_INGESTION=true` without a source directory
+   or collector: web startup preserves the separately published database.
+   Local snapshot rebuild/reconciliation is unavailable; new evidence is
+   published by the ingestion job and observed through normal revision events.
+4. Run `sh scripts/validate.sh` and
+   `sh scripts/what-if.sh SUBSCRIPTION_ID RESOURCE_GROUP`. Review the exact
+   parameters and template. Use a separately approved deployment process with
+   `runtimeEnabled: false` (default). `gh cao deploy azure --apply` remains
+   Functions-only and does NOT accept this topology bundle.
+5. Start ONLY the provisioningJobName output. Wait for that exact execution to
+   succeed, including schema bootstrap and restricted role grants. Then start
+   ingestionJobName and wait for its exact successful execution. ARM dependency
+   ordering creates job definitions; it does NOT execute or verify these jobs.
+   Schedule subsequent ingestion independently.
+6. Register githubRedirectUri as the exact GitHub OAuth callback. See
+   GITHUB-APPS.md. After independent approval, regenerate a new reviewed bundle
+   with `runtimeEnabled: true` and deploy that revision to enable the web app.
+   The provisioning identity alone receives admin/owner credentials; ingestion
+   receives only the runtime URL; the web identity receives runtime/OAuth/session
+   and webhook secrets, NEVER administrator or owner credentials.
+7. Verify HTTPS redirects, `/api/health`, `/api/readiness`, signed-out API denial,
+   allowed/disallowed OAuth users, spoofed proxy headers, private DB transport,
+   retention, deployed digests and logs. Platform TCP probes check only listener
+   availability, not application/database readiness or authorization.
+
+One replica, non-HA PostgreSQL, seven-day database backups and 30-day log
+retention are development defaults, not production approval. Rehearse restore,
+secret rotation (including revision restarts), rollback and recovery separately.
+ACR/Key Vault public endpoints use RBAC; this is not full private-link isolation,
+a WAF or outbound allowlisting. Azure region/provider availability and managed
+identity propagation require live evidence.
+Managed HTTP ingress has a platform request timeout; verify revision-event
+stream reconnection through that boundary rather than claiming unlimited
+stream lifetime.
+
+Actions snapshots only: collector, private ingress, ADX, OTLP, session lake and
+gateway combinations fail closed. Optional MCP is documented in AGENT-MCP.md,
+but neither its flag nor caller-repository authority is enabled by this profile.
+Setting runtimeEnabled false does not remove an existing app in an incremental
+ARM deployment. Stopping/removing it needs a separate reviewed operation.
+Generation never tears down resources, revokes authority or deletes evidence.

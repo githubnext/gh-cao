@@ -1,0 +1,55 @@
+# Deployment TODOs
+
+- [ ] Review requirements.yaml, topology.yaml, MANIFEST.md and all parameters.
+- [ ] Review subscription/resource group, global names, regional SKUs, quota,
+  provider registration, cost, networking, privacy, security, monitoring,
+  backup/restore, incident response and rollback.
+- [ ] Preserve the greatest existing run/linked retention and snapshot window
+  across every role, including stopped jobs and active revisions.
+- [ ] Configure the applications in GITHUB-APPS.md; verify installations and
+  authorized AND rejected identities independently.
+- [ ] If agent MCP access is intended, complete AGENT-MCP.md: compatible host
+  opt-in, exact caller repository/default branch, both token headers, read
+  permissions and runner network path. The Functions entrypoint does not wire MCP.
+- [ ] Provision the EXISTING input secret vault and referenced secrets through
+  an approved secret manager. Enable that vault's ARM template-deployment
+  access and the deployment principal's required deployment action, separately
+  from managed-identity access to the destination vault.
+- [ ] Verify secret contents independently: distinct PostgreSQL passwords
+  (at least 16 characters for Bicep, at least 32 for native deploy), session
+  secret at least 32 characters, valid OAuth secret and optional PEM/HMAC.
+  The checker validates references, never reads secret values.
+- [ ] Build approved policy and evidence into the correct image targets, push
+  to ACR, pin reviewed digests and retain provenance/scan/SBOM evidence.
+- [ ] Run `gh cao deploy check`, Bicep validation and what-if; review the exact output.
+- [ ] Obtain deployment approval separately. No generated script applies changes.
+- [ ] Run database provisioning successfully before ingestion or collection.
+{{if eq .Topology.Features.Acquisition "collector"}}
+- [ ] Pin exact inventory bytes with Acquisition.PinInventoryConfiguration in
+  azure-dashboard BEFORE workers start; compare collectorNativeInventoryDigest.
+  This generator does not generate or provision inventory.
+- [ ] Keep snapshot ingestion stopped; verify signed webhook delivery,
+  enrollment, worker and backfill health. Never run both acquisition profiles.
+{{else}}
+- [ ] Select verified snapshot OR deliberate empty evidence, run ingestion after
+  provisioning and separately arrange ongoing snapshot updates.
+{{end}}
+{{if eq .Topology.Features.Ingress "private"}}
+- [ ] Provision and verify private Functions connectivity, DNS, approved client
+  access, OAuth redirects and GitHub webhook routing without widening policy.
+{{end}}
+{{if eq .Topology.Features.Telemetry "otlp"}}
+- [ ] Provision the external HTTPS OTLP collector; verify TLS, authentication,
+  per-role backend delivery and controlled-outage alerts.
+{{end}}
+{{if eq .Topology.Features.Analytics "adx"}}
+- [ ] Review paid ADX SKU/cost, private reachability, separate schema setup and
+  exporter authority. Do not activate export on Azure Functions.
+{{end}}
+{{if .Optional}}
+- [ ] Complete OPTIONAL-FEATURES.md for additional hosts, Apps and runtime gates.
+{{end}}
+- [ ] Verify live health/readiness, sign-in, allowlist rejection and SCM denial.
+- [ ] Retain independent evidence for every external prerequisite. A valid
+  TOSCA graph does not prove installation, reachability, policy approval,
+  secret availability, Azure destination conformance or runtime readiness.
