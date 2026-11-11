@@ -105,21 +105,34 @@ safe-outputs:
     max: 3
 
 steps:
+  - name: Set up Node.js for CAO activity queries
+    uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+    with:
+      node-version: 24
   - name: Prepare bounded public failure evidence
     env:
       ACTIVITY_ROOT: ${{ runner.temp }}/cao-activity
+      EVIDENCE_PATH: /tmp/gh-aw/agent/self-care-open-source-failures/evidence.json
       GITHUB_SERVER_URL: ${{ github.server_url }}
     run: |
       node <<'EOF'
       const fs = require("node:fs");
       const path = require("node:path");
+      const { execFileSync } = require("node:child_process");
 
-      const outputPath = "/tmp/gh-aw/agent/self-care-open-source-failures/evidence.json";
-      const sourcePath = path.join(process.env.ACTIVITY_ROOT, "deployed-workflows.json");
+      const outputPath = process.env.EVIDENCE_PATH;
+      const databasePath = path.join(process.env.ACTIVITY_ROOT, "gh-aw-logs.sqlite");
+      const inventoryPath = path.join(process.env.ACTIVITY_ROOT, "inventory-sources.json");
+      const caoScript = "activity/cao.mjs";
       const now = Date.now();
       const freshnessMs = 2 * 60 * 60 * 1000;
       const windowMs = 7 * 24 * 60 * 60 * 1000;
-      const failedConclusions = new Set(["failure", "timed_out", "startup_failure"]);
+      const windowStart = new Date(now - windowMs).toISOString();
+      const failedConclusions = ["failure", "timed_out", "startup_failure"];
+      // Excluding unscoped audit records leaves run summaries complete.
+      const runSafeCollectionReasons = new Set([
+        "Downloaded shard included out-of-scope or unscoped audit records; collection is partial.",
+      ]);
       const serverUrl = process.env.GITHUB_SERVER_URL;
 
       function write(payload) {
@@ -137,75 +150,121 @@ steps:
           projects: [],
           failures: [],
         });
-      }
-
-      if (!serverUrl) {
-        incomplete("GitHub Actions server URL is unavailable");
         process.exit(0);
       }
 
-      if (!fs.existsSync(sourcePath)) {
-        incomplete("CAO activity snapshot is unavailable");
-        process.exit(0);
+      function nonEmptyFile(file) {
+        try {
+          return fs.statSync(file).size > 0;
+        } catch {
+          return false;
+        }
       }
 
-      let snapshot;
+      function query(definition) {
+        return JSON.parse(execFileSync(process.execPath, [caoScript, "query", "--database", databasePath, "--stdin"], {
+          input: JSON.stringify(definition),
+          encoding: "utf8",
+          maxBuffer: 256 * 1024 * 1024,
+          stdio: ["pipe", "pipe", "inherit"],
+        }));
+      }
+
+      const repositoryName = (owner, name) => `${owner}/${name}`.toLowerCase();
+
+      if (!serverUrl) incomplete("GitHub Actions server URL is unavailable");
+      if (!nonEmptyFile(databasePath) || !nonEmptyFile(inventoryPath)) incomplete("CAO activity snapshot is unavailable");
+      if (!fs.existsSync(caoScript)) incomplete("CAO activity CLI is unavailable");
+
+      let inventory;
       try {
-        snapshot = JSON.parse(fs.readFileSync(sourcePath, "utf8"));
+        inventory = JSON.parse(fs.readFileSync(inventoryPath, "utf8"));
       } catch {
         incomplete("CAO activity snapshot is not valid JSON");
-        process.exit(0);
       }
-
-      if (snapshot.schemaVersion !== 1) {
-        incomplete("CAO activity snapshot schemaVersion is not 1");
-        process.exit(0);
-      }
-      const generatedAt = Date.parse(snapshot.generatedAt);
+      const repositories = inventory?.repositories;
+      const metadata = repositories?.metadata ?? {};
+      if (!Array.isArray(repositories?.rows)) incomplete("CAO activity snapshot has no repository records");
+      const generatedAt = Date.parse(metadata["as-of"]);
       if (!Number.isFinite(generatedAt) || now - generatedAt > freshnessMs || generatedAt > now + 5 * 60 * 1000) {
         incomplete("CAO activity snapshot is stale or has an invalid generatedAt");
-        process.exit(0);
       }
-      if (snapshot.runHealth?.available !== true || snapshot.runHealth?.complete !== true) {
+      if (repositories.rows.some((row) => !["public", "private", "internal"].includes(row?.visibility))) {
+        incomplete("CAO activity repository visibility is unavailable or incomplete");
+      }
+
+      const publicRepositories = new Map(repositories.rows
+        .filter((row) => row.visibility === "public" && typeof row.organization === "string" && typeof row.repository === "string")
+        .map((row) => [repositoryName(row.organization, row.repository), `${row.organization}/${row.repository}`]));
+      const projects = [...publicRepositories.values()].sort();
+      const collectionGaps = (Array.isArray(metadata["repository-failures"]) ? metadata["repository-failures"] : [])
+        .filter((failure) => publicRepositories.has(String(failure?.repository).toLowerCase())
+          && !runSafeCollectionReasons.has(failure?.reason));
+      if (metadata.availability !== "available" || collectionGaps.length > 0) {
         incomplete("CAO activity run-health coverage is unavailable or incomplete");
-        process.exit(0);
       }
-      if (!Number.isFinite(snapshot.runHealth?.windowHours) || snapshot.runHealth.windowHours < 168) {
+
+      let observed;
+      let retained;
+      let runs;
+      try {
+        const countByRepository = { by: ["owner", "repository"], values: [{ field: "id", as: "runs", reducer: "count" }] };
+        observed = query({ name: "open-source-failure-coverage", from: "runs", aggregate: countByRepository });
+        retained = query({
+          name: "open-source-failure-window",
+          from: "runs",
+          filter: { predicates: [{ field: "createdAt", lt: windowStart }] },
+          aggregate: countByRepository,
+        });
+        runs = query({
+          name: "open-source-failures",
+          from: "runs",
+          joins: [{ source: "workflows", type: "left", on: [{ left: "workflowId", right: "id" }], fields: [{ field: "name", as: "workflowName" }] }],
+          filter: {
+            predicates: [
+              { field: "conclusion", in: failedConclusions },
+              { field: "createdAt", gte: windowStart },
+            ],
+          },
+          select: ["owner", "repository", "workflowPath", "workflowName", "githubRunId", "attempt", "createdAt", "conclusion", "failureJob", "failureStep", "failureMessage"]
+            .map((field) => ({ field })),
+          "order-by": [{ field: "createdAt", direction: "desc" }],
+        });
+      } catch {
+        incomplete("CAO activity snapshot database could not be queried");
+      }
+      if (![observed, retained, runs].every(Array.isArray)) incomplete("CAO activity snapshot database could not be queried");
+
+      const isPublic = (row) => publicRepositories.has(repositoryName(row?.owner, row?.repository));
+      if (!observed.some((row) => isPublic(row) && row.runs > 0)) {
+        incomplete("CAO activity run-health coverage is unavailable or incomplete");
+      }
+      if (!retained.some((row) => isPublic(row) && row.runs > 0)) {
         incomplete("CAO activity run-health window is shorter than seven days");
-        process.exit(0);
-      }
-      if (!Array.isArray(snapshot.workflows)) {
-        incomplete("CAO activity snapshot has no workflow records");
-        process.exit(0);
       }
 
-      const publicWorkflows = snapshot.workflows.filter(
-        (workflow) => workflow && workflow.visibility === "public" && typeof workflow.repository === "string",
-      );
-      const projects = [...new Set(publicWorkflows.map((workflow) => workflow.repository))].sort();
       const failures = [];
-
-      for (const workflow of publicWorkflows) {
-        for (const run of workflow.runHealth?.runRecords || []) {
-          if (!failedConclusions.has(String(run?.conclusion || "").toLowerCase())) continue;
-          const createdAt = Date.parse(run.createdAt);
-          if (!Number.isFinite(createdAt) || now - createdAt > windowMs || createdAt > now + 5 * 60 * 1000) continue;
-          failures.push({
-            repository: workflow.repository,
-            workflow: workflow.path,
-            workflowName: workflow.name,
-            runId: run.runId,
-            runAttempt: run.runAttempt,
-            createdAt: run.createdAt,
-            conclusion: run.conclusion,
-            failureJob: run.failureJob || null,
-            failureStep: run.failureStep || null,
-            failureMessage: run.failureMessage || null,
-            url: run.runId
-              ? `${serverUrl}/${workflow.repository}/actions/runs/${run.runId}`
-              : workflow.htmlUrl,
-          });
-        }
+      for (const run of runs) {
+        if (!isPublic(run) || !failedConclusions.includes(String(run.conclusion || "").toLowerCase())) continue;
+        const createdAt = Date.parse(run.createdAt);
+        if (!Number.isFinite(createdAt) || now - createdAt > windowMs || createdAt > now + 5 * 60 * 1000) continue;
+        const repository = publicRepositories.get(repositoryName(run.owner, run.repository));
+        const runId = Number(run.githubRunId);
+        failures.push({
+          repository,
+          workflow: run.workflowPath || null,
+          workflowName: run.workflowName || null,
+          runId: Number.isSafeInteger(runId) ? runId : null,
+          runAttempt: run.attempt,
+          createdAt: run.createdAt,
+          conclusion: run.conclusion,
+          failureJob: run.failureJob || null,
+          failureStep: run.failureStep || null,
+          failureMessage: run.failureMessage || null,
+          url: Number.isSafeInteger(runId)
+            ? `${serverUrl}/${repository}/actions/runs/${runId}`
+            : `${serverUrl}/${repository}/actions`,
+        });
       }
 
       failures.sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)));
@@ -213,10 +272,10 @@ steps:
         schemaVersion: 1,
         status: "complete",
         source: "cao-dashboard-activity",
-        snapshotGeneratedAt: snapshot.generatedAt,
+        snapshotGeneratedAt: new Date(generatedAt).toISOString(),
         evidenceWindowHours: 168,
-        repositoryScope: snapshot.repositoryScope,
-        allowedRepositories: snapshot.allowedRepositories || [],
+        repositoryScope: "public",
+        allowedRepositories: projects,
         projectCount: projects.length,
         projects,
         failureCount: failures.length,
