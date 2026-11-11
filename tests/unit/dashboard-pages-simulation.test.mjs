@@ -57,9 +57,10 @@ test("enterprise workloads have long tails, correlated costs and independently a
   const cheap = runs.filter(run => cost(run) <= percentile(runs.map(cost), 0.25));
   const expensive = runs.filter(run => cost(run) >= percentile(runs.map(cost), 0.75));
   assert.ok(percentile(expensive.map(duration), 0.5) > percentile(cheap.map(duration), 0.5) * 2);
-  const modelCounts = [...new Set(runs.map(run => run.model))].map(model => runs.filter(run => run.model === model).length);
-  assert.equal(modelCounts.length, 3);
-  assert.ok(Math.max(...modelCounts) > Math.min(...modelCounts) * 1.1, "model mix is not round robin");
+  assert.equal(new Set(runs.map(run => run.model)).size, 3);
+  const modelTokens = model => runs.filter(run => run.model === model).map(run => run.token_usage_summary.total_input_tokens);
+  assert.ok(percentile(modelTokens("gpt-5.3-codex"), 0.5) > percentile(modelTokens("claude-haiku-5.5"), 0.5) * 1.5,
+    "complex workloads favor the larger model rather than round-robin selection");
   const variants = new Map();
   for (const run of runs) {
     const date = run.started_at.slice(0, 10);
@@ -67,6 +68,31 @@ test("enterprise workloads have long tails, correlated costs and independently a
     variants.get(date).add(run.experiments.assignments["review-strategy"]);
   }
   assert.ok([...variants.values()].every(values => values.size === 2), "variant is not determined by day");
+});
+
+test("workflow output rates, batch sizes, issue/PR mix and tool activity are heterogeneous", () => {
+  for (const date of ["2040-06-15T12:00:00Z", "2040-06-17T23:59:00Z", "2040-06-20T00:00:00Z"]) {
+    const runs = enterpriseSample(Date.parse(date)).records.filter(record => record.kind === "run").map(record => record.run);
+    const deployments = Object.values(Object.groupBy(runs, run => `${run.repository}:${run.workflow_path}`));
+    const outputCounts = deployments.map(rows => rows.flatMap(run => run.safe_outputs).length).toSorted((a, b) => a - b);
+    assert.ok(outputCounts.filter(count => count === 0).length >= 3, "some workflows are quiet");
+    assert.ok(outputCounts.at(-1) > outputCounts[Math.floor(outputCounts.length / 2)] * 5, "a few workflows produce most outputs");
+    const outputRates = deployments.filter(rows => rows.filter(run => run.conclusion === "success").length >= 10)
+      .map(rows => rows.filter(run => run.safe_outputs.length > 0).length / rows.filter(run => run.conclusion === "success").length);
+    assert.ok(Math.max(...outputRates) - Math.min(...outputRates) > 0.6, "output probability is not shared by all workflows");
+    assert.ok(runs.some(run => run.safe_outputs.length >= 4), "orchestrators can create batches");
+    assert.ok(runs.some(run => run.conclusion === "success" && run.safe_outputs.length === 0), "successful no-ops are normal");
+    const mix = name => {
+      const outputs = runs.filter(run => run.workflow_name === name).flatMap(run => run.safe_outputs);
+      return outputs.filter(output => output.type === "create_pull_request").length / outputs.length;
+    };
+    assert.ok(mix("Dependency review") < 0.25 && mix("Security review") < 0.25, "review workflows favor findings");
+    assert.ok(mix("Repository assistant") > 0.75 && mix("Documentation maintenance") > 0.75, "repair workflows favor PRs");
+    assert.ok(new Set(runs.map(run => run.mcp_tool_usage.tool_calls.length)).size > 10, "tool call counts vary");
+    assert.deepEqual(new Set(runs.map(run => run.skill_activations.length)), new Set([0, 1, 2]));
+    const urls = runs.flatMap(run => run.safe_outputs).map(output => output.url);
+    assert.equal(new Set(urls).size, urls.length, "batched outputs have distinct identities");
+  }
 });
 
 test("probabilistic outcomes preserve timestamps, output eligibility and delayed Value acceptance", () => {
@@ -204,6 +230,28 @@ test("sample-only build produces verified canonical enterprise data and no opera
   assert.equal(runs.length, marker.runs);
   assert.equal((await readCollection(indexedDB, "repositories")).length, 12);
   assert.equal((await readCollection(indexedDB, "workflows")).length, 48);
+  const expectedOutputs = new Map();
+  const lifecycleByUrl = new Map();
+  for (const { run } of enterpriseSample(now).records.filter(record => record.kind === "run")) {
+    const key = `${run.repository}:${run.workflow_path}`;
+    const retainedOutputs = run.safe_outputs.filter(output => !isExpiredCanonicalRecord("issues",
+      { timestamp: output.timestamp }, { now }));
+    expectedOutputs.set(key, (expectedOutputs.get(key) ?? 0) + retainedOutputs.length);
+    for (const output of retainedOutputs) lifecycleByUrl.set(output.url, output.github_issue_status);
+  }
+  const workflowByRun = new Map(runs.map(run => [run.id, `${run.owner}/${run.repository}:${run.workflowPath}`]));
+  const actualOutputs = new Map(runs.map(run => [workflowByRun.get(run.id), 0]));
+  for (const issue of await readCollection(indexedDB, "issues")) {
+    const key = workflowByRun.get(issue.runId);
+    assert.ok(actualOutputs.has(key), "canonical outputs retain their producing workflow");
+    actualOutputs.set(key, actualOutputs.get(key) + 1);
+    const lifecycle = lifecycleByUrl.get(issue.correlationId);
+    assert.ok(lifecycle, "canonical output retains its exact URL");
+    assert.equal(issue.state, lifecycle.state);
+    assert.equal(issue.closed, lifecycle.closed);
+    assert.equal(issue.closedAt, lifecycle.closed_at);
+  }
+  assert.deepEqual(actualOutputs, expectedOutputs, "normalization preserves per-workflow output counts and batches within retention");
   for (const collection of ["campaigns", "marketplacePackages", "domains", "tools", "skills", "friction",
     "audits", "issues", "graders", "graderObservations", "evals", "evalObservations", "experiments",
     "experimentAssignments", "operationalValues", "operationalValueEvidence", "workflowValueCollections"]) {

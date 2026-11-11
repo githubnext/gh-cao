@@ -64,6 +64,31 @@ function repositoryProfile(repository, department, service) {
   };
 }
 
+function workflowProfile(repository, workflow, profile) {
+  const sample = distributionFor(`${repository}:${workflow.id}:behavior`);
+  const traits = {
+    "dependency-review": { activity: 1.5, outputRate: 0.8, batchSize: 2.5, pullRequestRate: 0.12, resolutionDays: 5, complexity: 0.8 },
+    "repository-assistant": { activity: 1, outputRate: 0.65, batchSize: 0.3, pullRequestRate: 0.9, resolutionDays: 2, complexity: 1.4 },
+    "security-review": { activity: 0.8, outputRate: 0.45, batchSize: 1.8, pullRequestRate: 0.08, resolutionDays: 7, complexity: 1.6 },
+    documentation: { activity: 0.6, outputRate: 0.3, batchSize: 0.15, pullRequestRate: 0.95, resolutionDays: 1, complexity: 0.6 },
+  }[workflow.id];
+  const quiet = sample.random() < 0.18;
+  return {
+    ...profile,
+    activity: profile.activity * traits.activity * Math.min(3, sample.lognormal(1, 0.65)),
+    complexity: profile.complexity * traits.complexity,
+    failureRate: Math.min(0.25, profile.failureRate * sample.lognormal(1, 0.45)),
+    outputRate: quiet ? 0.015 : Math.min(0.95, traits.outputRate * sample.lognormal(1, 0.45)),
+    batchSize: traits.batchSize * Math.min(3, sample.lognormal(1, 0.65)),
+    pullRequestRate: Math.min(0.99, traits.pullRequestRate * sample.lognormal(1, 0.2)),
+    resolutionDays: traits.resolutionDays * sample.lognormal(1, 0.5),
+    acceptanceRate: Math.min(0.95, profile.acceptanceRate * sample.lognormal(1, 0.3)),
+    toolIntensity: sample.lognormal(1, 0.45),
+    skillRate: 0.35 + sample.random() * 0.6,
+    evaluationRate: 0.3 + sample.random() * 0.65,
+  };
+}
+
 function inventoryFor(repository, index, generatedAt) {
   const standaloneDocumentation = index % 3 === 2;
   const campaignPolicy = Object.fromEntries(campaigns.map(campaign => [campaign.id, {
@@ -162,10 +187,21 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
   const tokens = { total_input_tokens: input, total_output_tokens: output,
     total_cache_read_tokens: cacheRead, total_cache_write_tokens: Math.round(input * sample.random() * 0.15),
     total_reasoning_tokens: Math.round(output * sample.random() * 0.6), total_aic: aic };
-  const pullRequest = sample.random() < (workflow.role === "worker" ? 0.75 : 0.3);
-  const hasOutput = successful && sample.random() < 0.72;
-  const resolutionHours = sample.lognormal(pullRequest ? 48 : 96, 1);
-  const closed = resolutionHours * 3600_000 < now - Date.parse(completedAt);
+  const outputCount = successful && sample.random() < profile.outputRate
+    ? Math.min(8, 1 + sample.poisson(profile.batchSize)) : 0;
+  const safeOutputs = Array.from({ length: outputCount }, (_, index) => {
+    const pullRequest = sample.random() < profile.pullRequestRate;
+    const resolutionHours = sample.lognormal(profile.resolutionDays * 24 * (pullRequest ? 0.7 : 1), 1);
+    const closed = resolutionHours * 3600_000 < now - Date.parse(completedAt);
+    const number = runId * 100 + index + 1;
+    return {
+      type: pullRequest ? "create_pull_request" : "create_issue", repo: repository, number,
+      url: `https://github.com/${repository}/${pullRequest ? "pull" : "issues"}/${number}`, timestamp: completedAt,
+      github_issue_status: { state: closed ? "closed" : "open", closed, state_reason: closed ? "completed" : null,
+        closed_at: closed ? new Date(Date.parse(completedAt) + resolutionHours * 3600_000).toISOString() : null,
+        observed_at: new Date(now).toISOString() },
+    };
+  });
   const mode = sample.random() < 0.7 ? "live" : "review";
   const apiCalls = Math.max(2, sample.poisson(12 * complexity));
   const blocked = sample.random() < (incident ? 0.18 : 0.06);
@@ -176,7 +212,26 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
   const failureKind = outcome === "timed_out" ? "timeout" : sample.weighted([
     ["tool_error", 0.5], ["rate_limit", incident ? 0.4 : 0.15], ["validation_error", 0.25],
   ]);
-  const toolName = ["get_file_contents", "list_issues", "search_code", "get_pull_request"][workflowIndex];
+  const toolCount = Math.min(24, sample.poisson(4 * complexity * profile.toolIntensity));
+  const toolCalls = Array.from({ length: toolCount }, (_, index) => {
+    const toolName = sample.weighted([
+      ["get_file_contents", 3], ["list_issues", workflow.role === "orchestrator" ? 4 : 1],
+      ["search_code", workflow.id === "security-review" ? 5 : 2],
+      ["get_pull_request", workflow.role === "worker" ? 3 : 1], ["bash", workflow.role === "worker" ? 4 : 1],
+    ]);
+    return {
+      tool_call_id: `sample-tool-${runId}-${index}`, server_name: toolName === "bash" ? "bash" : "github",
+      tool_name: toolName, timestamp: new Date(start + durationSeconds * 1000 * (index + 1) / (toolCount + 1)).toISOString(),
+      status: failed && index === 0 ? "failure" : "success",
+      input_size: Math.round(sample.lognormal(100 * complexity, 0.4)),
+      output_size: Math.round(sample.lognormal(1000 * complexity, 0.7)),
+    };
+  });
+  const skillActivations = [workflow.id, "test-validation"].filter(() => sample.random() < profile.skillRate)
+    .map(name => ({
+      name, source: "repository", timestamp: startedAt, invocation_count: Math.min(5, 1 + sample.poisson(complexity)),
+      failed_count: failed ? 1 : 0, status: failed ? "failed" : "invoked",
+    }));
   const run = {
     run_id: runId, run_attempt: "1", organization: owner, repository,
     workflow_name: workflow.name, workflow_path: `.github/workflows/${workflow.id}.md`,
@@ -194,33 +249,22 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
     engine_version: "1.0.106", gh_aw_version: "1.2.2", agent_runtime: "actions",
     model, model_id: model, requested_model: "auto", resolved_model: model,
     firewall_version: "0.9.0", gateway_version: "0.8.0",
-    token_usage_summary: tokens, github_api_calls: apiCalls, safe_items_count: hasOutput ? 1 : 0,
+    token_usage_summary: tokens, github_api_calls: apiCalls, safe_items_count: safeOutputs.length,
     error_count: failed ? 1 : 0,
     ...(failed ? { failure_kind: failureKind, failure_job: "agent", failure_step: workflow.name,
       failure_message: `Synthetic ${workflow.name} interrupted by ${failureKind.replaceAll("_", " ")}.` } : {}),
-    mcp_tool_usage: { tool_calls: [
-      { tool_call_id: `sample-read-${runId}`, server_name: "github", tool_name: toolName,
-        timestamp: startedAt, status: failed ? "failure" : "success", input_size: Math.round(100 * complexity), output_size: input },
-      { tool_call_id: `sample-shell-${runId}`, server_name: "bash", tool_name: "bash",
-        timestamp: completedAt, status: "success", input_size: 40, output_size: 200 },
-    ] },
-    skill_activations: [{ name: workflow.id, source: "repository", timestamp: startedAt,
-      invocation_count: 1 + sample.poisson(complexity), failed_count: failed ? 1 : 0, status: failed ? "failed" : "invoked" }],
+    mcp_tool_usage: { tool_calls: toolCalls },
+    skill_activations: skillActivations,
     firewall_analysis: { requests_by_domain: {
       "api.github.com": { allowed: apiCalls, blocked: 0 },
       "registry.npmjs.org": { allowed: sample.poisson(workflowIndex === 0 ? 12 : 2), blocked: 0 },
       ...(blocked ? { "unapproved.example.invalid": { allowed: 0, blocked: 1 + sample.poisson(1) } } : {}),
     } },
-    safe_outputs: hasOutput ? [{
-      type: pullRequest ? "create_pull_request" : "create_issue", repo: repository, number: runId,
-      url: `https://github.com/${repository}/${pullRequest ? "pull" : "issues"}/${runId}`, timestamp: completedAt,
-      github_issue_status: { state: closed ? "closed" : "open", closed, state_reason: closed ? "completed" : null,
-        closed_at: closed ? new Date(Date.parse(completedAt) + resolutionHours * 3600_000).toISOString() : null, observed_at: new Date(now).toISOString() },
-    }] : [],
+    safe_outputs: safeOutputs,
     audit: {
       key_findings: failed ? [{ title: "Synthetic package access needs review", severity: "warning", timestamp: completedAt }] : [],
       recommendations: frictionRatio > 0.1 ? [{ action: "Reduce repeated metadata requests with one bounded batch", priority: "medium" }] : [],
-      noops: successful && !hasOutput ? [{ message: "Repository already meets the synthetic baseline", status: "success" }] : [],
+      noops: successful && !outputCount ? [{ message: "Repository already meets the synthetic baseline", status: "success" }] : [],
     },
     friction: {
       measurement_state: "measured", canonical_unit: "aic", sources: ["agent"], total_events: frictionEvents,
@@ -246,6 +290,9 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
     run.safe_items_count = 0;
     run.graders = { results: [] };
     run.evals = [];
+  } else if (sample.random() >= profile.evaluationRate) {
+    run.graders = { results: [] };
+    run.evals = [];
   }
   // Routing samples use gh-aw's actual unified-session parser, never canonical-row fixtures.
   const events = [
@@ -259,19 +306,24 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
       requestedModel: model, selectedModel: model, routed: failed ? "deviated" : "as_selected", outcome: failed ? "failed" : "success" } },
     { type: "firewall.token_usage", data: { requestId: `request-${runId}`, model, aic,
       usage: { inputTokens: tokens.total_input_tokens, outputTokens: tokens.total_output_tokens } } },
-    { type: "mcp.tool_call", data: { serverName: "github", toolName, toolCallId: `sample-read-${runId}`,
-      status: failed ? "error" : "success", inputSize: Math.round(100 * complexity), outputSize: input,
-      durationMs: Math.round(sample.lognormal(150 * complexity, 0.6)) } },
-    { type: "skill.invoked", data: { name: workflow.id, source: "repository" } },
+    ...toolCalls.map(call => ({ type: "mcp.tool_call", timestamp: call.timestamp, data: {
+      serverName: call.server_name, toolName: call.tool_name, toolCallId: call.tool_call_id,
+      status: call.status === "failure" ? "error" : "success", inputSize: call.input_size, outputSize: call.output_size,
+      durationMs: Math.round(sample.lognormal(150 * complexity, 0.6)),
+    } })),
+    ...skillActivations.flatMap(skill => Array.from({ length: skill.invocation_count },
+      () => ({ type: "skill.invoked", timestamp: skill.timestamp, data: { name: skill.name, source: skill.source } }))),
+    ...safeOutputs.map(output => ({ type: "safe_output.result", timestamp: output.timestamp,
+      data: { type: output.type, repo: output.repo, number: output.number, url: output.url } })),
     { type: "firewall.http_access", data: { host: "api.github.com", method: "GET", status: 200, bytes: 1200, durationMs: 40 } },
     { type: "workflow.job_result", data: { jobId: "agent", result: pending ? "in_progress" : run.conclusion } },
     { type: "session.collection", data: { sources: [{ component: "firewall", phase: "agent", path: "firewall/token-usage.jsonl", events: 1 }] } },
-  ].map(event => ({ ...event, timestamp: completedAt, provenance: { phase: event.type === "session.collection" ? "conclusion" : "agent" } }));
+  ].map(event => ({ ...event, timestamp: event.timestamp ?? completedAt,
+    provenance: { phase: event.type === "session.collection" ? "conclusion" : "agent" } }));
   const session = parseUnifiedSessionDocument(events.map(event => JSON.stringify(event)).join("\n"),
     "usage/aw_session.jsonl", { runId: String(runId), attempt: 1 });
-  // Keep the summary's independently supplied outputs/graders and use parsed routing
-  // events on half the runs; the remainder demonstrate summary-only ingestion.
-  if (sample.random() < 0.5) run.cao_unified_session = { version: 1, path: "usage/aw_session.jsonl", events: session.events };
+  // Match the production session envelope; lifecycle observations remain separate.
+  if (sample.random() < 0.5) run.cao_unified_session = { version: 1, path: "usage/aw_session.jsonl", ...session };
   return run;
 }
 
@@ -300,11 +352,12 @@ function valueSample(repository, workflow, now, profile) {
   const dailyValues = [];
   const acceptedRepairs = new Map();
   for (let day = 13; day >= 0; day--) {
-    const proposals = sample.poisson(profile.activity);
+    const proposals = sample.random() < profile.outputRate
+      ? sample.poisson(profile.activity * (1 + profile.batchSize)) : 0;
     for (let proposal = 0; proposal < proposals; proposal++) {
       const output = `proposal-${day}-${proposal}`;
       const implementation = `repair-${day}-${proposal}`;
-      const acceptanceDelay = sample.lognormal(2, 0.8);
+      const acceptanceDelay = sample.lognormal(profile.resolutionDays, 0.8);
       const accepted = acceptanceDelay < day && sample.random() < profile.acceptanceRate;
       const units = 1 + sample.poisson(1.5);
       facts.push({ "fact-kind": "output", "fact-id": output, label: "Maintenance proposal",
@@ -377,21 +430,24 @@ export function enterpriseSample(now) {
         sources[name].rows.push(...source.rows);
       }
       for (const [index, workflow] of workflows.entries()) {
+        const behavior = workflowProfile(repository, workflow, profile);
         for (let day = 0; day < 14; day++) {
           const sample = distributionFor(`${repository}:${workflow.id}:${day}:cadence`);
           const date = Math.floor(now / dayMs) * dayMs - day * dayMs;
           const weekday = new Date(date).getUTCDay();
           const weekdayWeight = weekday === 0 || weekday === 6 ? 0.3 : 1.2;
           const partialDay = day === 0 ? (now - date) / dayMs : 1;
-          const rate = profile.activity * [1.5, 1, 0.8, 0.6][index] * weekdayWeight
+          const rate = behavior.activity * Math.min(3, sample.lognormal(1, 0.5)) * weekdayWeight
             * (0.85 + (13 - day) / 40) * partialDay;
           const count = sample.poisson(rate);
           for (let ordinal = 0; ordinal < count; ordinal++) {
-            records.push({ schema_version: 2, kind: "run",
-              run: runSample(repository, workflow, index, ++runId, day, ordinal, now, profile) });
+            const run = runSample(repository, workflow, index, ++runId, day, ordinal, now, behavior);
+            records.push({ schema_version: 2, kind: "run", run },
+              ...run.safe_outputs.map(output => ({ schema_version: 2, kind: "safe_output_item",
+                safe_output: { ...output, run_id: run.run_id } })));
           }
         }
-        records.push(...valueSample(repository, workflow, now, profile));
+        records.push(...valueSample(repository, workflow, now, behavior));
       }
     }
   }
