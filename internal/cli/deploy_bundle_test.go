@@ -42,7 +42,7 @@ func TestDeployBundleCommandsOffline(t *testing.T) {
 			t.Fatalf("%v: %s: %v", args, text, err)
 		}
 	}
-	for _, profile := range []string{"single-vm", "minimal-azure", "full-azure"} {
+	for _, profile := range []string{"single-vm", "minimal-azure", "azure-container-apps", "full-azure"} {
 		profileConfig := filepath.Join(directory, profile+".yaml")
 		profileOutput := filepath.Join(directory, profile)
 		for _, args := range [][]string{

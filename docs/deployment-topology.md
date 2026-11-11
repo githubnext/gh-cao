@@ -67,10 +67,10 @@ incompatible combinations fail rather than carrying hidden full-stack services.
 ### Azure Container Apps
 
 ```sh
-gh cao topology init --deployment azure-container-apps --out /private/operator/containers.yaml
-gh cao topology generate --config /private/operator/containers.yaml \
+gh cao deploy init --deployment azure-container-apps --out /private/operator/containers.yaml
+gh cao deploy generate --config /private/operator/containers.yaml \
   --out /private/operator/containers-plan
-gh cao topology check /private/operator/containers-plan
+gh cao deploy check /private/operator/containers-plan
 ```
 
 This additive profile replaces the Functions HTTP host, runtime Storage and

@@ -65,7 +65,7 @@ func TestResolveAzureRejectsInvalidInputs(t *testing.T) {
 			}
 		})
 	}
-	for _, profile := range []string{"single-vm", "minimal-azure", "full-azure"} {
+	for _, profile := range []string{"single-vm", "minimal-azure", "azure-container-apps", "full-azure"} {
 		content, err := ExampleFor(profile)
 		if err != nil {
 			t.Fatal(err)
