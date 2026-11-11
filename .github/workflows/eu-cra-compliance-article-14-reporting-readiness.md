@@ -124,6 +124,12 @@ safe-outputs:
     close-older-issues: true
     max: 1
     target-repo: ${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}
+  update-issue:
+    target: "*"
+    target-repo: ${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}
+    body: true
+    required-title-prefix: "[eu-cra-compliance:article-14-reporting-readiness] "
+    max: 1
 
 timeout-minutes: 30
 ---
@@ -213,5 +219,7 @@ Material conclusions about CRA scope exclusion, economic-operator role, commerci
 Do not put secrets, personal data, exploit details, private advisory or incident content, or confidential regulatory evidence in a safe output. Summarize the gap and identify the access-controlled evidence location instead.
 
 If `correlation_id` is present, include `### Control Plane` with correlation ID, central repository, and control-plane run URL. Use `noop` only for an equivalent current readiness record with no changed evidence or authoritative requirement.
+
+Before creating the issue, search open issues in `SAFE_OUTPUT_REPO` for this exact prefixed title. If an equivalent open audit issue exists and relevant evidence or authoritative requirements changed, refresh that issue's body with `update_issue` using its issue number, keeping the same structure and updating the operational-value marker to the new `target-sha`; do not create a new issue or report incomplete. If nothing relevant changed, call `noop` naming that issue. Create a new issue only when no equivalent open issue exists.
 
 {{#runtime-import? .github/cao/eu-cra-compliance.md}}

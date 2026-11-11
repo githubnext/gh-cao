@@ -1,5 +1,5 @@
-# gh-aw-metadata: {"schema_version":"v4","frontmatter_hash":"ab467260906e938b61909430ab46e1031bf6e4ce554e0c5480865bb2a713782a","body_hash":"93958c7bdf61fc2cad71e042a4b30022fac6941277e67e6c9ec8bbcba8d9413d","compiler_version":"v1.2.2","strict":true,"agent_id":"pi","engine_versions":{"pi":"1.5.0"}}
-# gh-aw-manifest: {"version":1,"secrets":["GH_AW_DEFAULT_OTLP_ENDPOINT","GH_AW_DEFAULT_OTLP_HEADERS","GH_AW_GITHUB_MCP_SERVER_TOKEN","GH_AW_GITHUB_READ_APP_PRIVATE_KEY","GH_AW_GITHUB_READ_PAT","GH_AW_GITHUB_TOKEN","GH_AW_GITHUB_WRITE_APP_PRIVATE_KEY","GH_AW_GITHUB_WRITE_PAT","GITHUB_TOKEN"],"actions":[{"repo":"actions/checkout","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1","version":"v7.0.1"},{"repo":"actions/create-github-app-token","sha":"64ab729a6294000f5aa4a4bc0b73d1f32bc45510","version":"v3.3.0"},{"repo":"actions/create-github-app-token","sha":"bcd2ba49218906704ab6c1aa796996da409d3eb1","version":"v3.2.0"},{"repo":"actions/download-artifact","sha":"3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c","version":"v8.0.1"},{"repo":"actions/download-artifact","sha":"9000827ccba6bdab643e8b6fd33ac0654aef8333","version":"v8.0.2"},{"repo":"actions/github-script","sha":"3a2844b7e9c422d3c10d287c895573f7108da1b3","version":"v9.0.0"},{"repo":"actions/setup-node","sha":"949feb2413d6458794dcd2491c4babbbce0c15c1","version":"v7.1.0"},{"repo":"actions/upload-artifact","sha":"043fb46d1a93c77aae656e7c1c64a875d1fc6a0a","version":"v7.0.1"},{"repo":"actions/upload-artifact","sha":"cf430e030ddbb5b0abf93d22962f4752f3646cd9","version":"v7.0.2"},{"repo":"github/gh-aw-actions/setup","sha":"53d0749e19424a918acd82b4d140264ce48f2f14","version":"v1.2.2"}],"containers":[{"image":"ghcr.io/github/gh-aw-firewall/agent:0.29.11@sha256:8774a73c351395b41d2ad0af4ddb4689007c67de3cd08bd9f43bb8a0e300690e"},{"image":"ghcr.io/github/gh-aw-firewall/api-proxy:0.29.11@sha256:88d2d0e315a504d93fd4fb8847fd0f6b7f4469f41a6fc6047b3dc9654c56ab2c"},{"image":"ghcr.io/github/gh-aw-firewall/cli-proxy:0.29.11@sha256:97782bc0d8ff7f80f19ae2fdc5e1668517aa732a6fa077e64b8d3919238496d2"},{"image":"ghcr.io/github/gh-aw-firewall/router:0.29.11@sha256:51de2cdeaaa7a2c039df7beed34472b8598cf9296bd2365ab08045142b67b1fe"},{"image":"ghcr.io/github/gh-aw-firewall/squid:0.29.11@sha256:861739ecf924dd2db5e5fb652db2ad82aaafd1615623297ddabc8f41a36b2847"},{"image":"ghcr.io/github/gh-aw-mcpg:v0.5.6","digest":"sha256:342cd624e1f179d91be2de7a146fc4f387092e62e6c8a47506d7932e113d2311","pinned_image":"ghcr.io/github/gh-aw-mcpg:v0.5.6@sha256:342cd624e1f179d91be2de7a146fc4f387092e62e6c8a47506d7932e113d2311"},{"image":"ghcr.io/github/gh-aw-node","digest":"sha256:11c2c544876cdbaffefe0f7f1283b74838c209654b4934a78e23ed11f750490f","pinned_image":"ghcr.io/github/gh-aw-node@sha256:11c2c544876cdbaffefe0f7f1283b74838c209654b4934a78e23ed11f750490f"},{"image":"ghcr.io/github/github-mcp-server:v2.1.0","digest":"sha256:f6056fc10bfffcc8c81a6417a2e9ca12808647e8dd6049642a4feaadee0e0f8a","pinned_image":"ghcr.io/github/github-mcp-server:v2.1.0@sha256:f6056fc10bfffcc8c81a6417a2e9ca12808647e8dd6049642a4feaadee0e0f8a"}],"mcp_servers":[{"name":"safeoutputs","tools":["create_issue","noop","report_incomplete","report_missing_data","report_missing_tool"]}],"threat_detection":{"mode":"enabled"},"admission":false,"agent_metadata":{"d0b9e7072036c3cc9c38":{"name":"W3C Specification"},"fbd10cd783979952bdc7":{"name":"Agentic Workflows"}}}
+# gh-aw-metadata: {"schema_version":"v4","frontmatter_hash":"b8d51dedd312692844ac912667215828bbd73b1355474de2ee9d66b106803b96","body_hash":"7f3f1b15bcc25140cb1858ed2f72b585dc486318339085069358052104a101dc","compiler_version":"v1.2.2","strict":true,"agent_id":"pi","engine_versions":{"pi":"1.5.0"}}
+# gh-aw-manifest: {"version":1,"secrets":["GH_AW_DEFAULT_OTLP_ENDPOINT","GH_AW_DEFAULT_OTLP_HEADERS","GH_AW_GITHUB_MCP_SERVER_TOKEN","GH_AW_GITHUB_READ_APP_PRIVATE_KEY","GH_AW_GITHUB_READ_PAT","GH_AW_GITHUB_TOKEN","GH_AW_GITHUB_WRITE_APP_PRIVATE_KEY","GH_AW_GITHUB_WRITE_PAT","GITHUB_TOKEN"],"actions":[{"repo":"actions/checkout","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1","version":"v7.0.1"},{"repo":"actions/create-github-app-token","sha":"64ab729a6294000f5aa4a4bc0b73d1f32bc45510","version":"v3.3.0"},{"repo":"actions/create-github-app-token","sha":"bcd2ba49218906704ab6c1aa796996da409d3eb1","version":"v3.2.0"},{"repo":"actions/download-artifact","sha":"3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c","version":"v8.0.1"},{"repo":"actions/download-artifact","sha":"9000827ccba6bdab643e8b6fd33ac0654aef8333","version":"v8.0.2"},{"repo":"actions/github-script","sha":"3a2844b7e9c422d3c10d287c895573f7108da1b3","version":"v9.0.0"},{"repo":"actions/setup-node","sha":"949feb2413d6458794dcd2491c4babbbce0c15c1","version":"v7.1.0"},{"repo":"actions/upload-artifact","sha":"043fb46d1a93c77aae656e7c1c64a875d1fc6a0a","version":"v7.0.1"},{"repo":"actions/upload-artifact","sha":"cf430e030ddbb5b0abf93d22962f4752f3646cd9","version":"v7.0.2"},{"repo":"github/gh-aw-actions/setup","sha":"53d0749e19424a918acd82b4d140264ce48f2f14","version":"v1.2.2"}],"containers":[{"image":"ghcr.io/github/gh-aw-firewall/agent:0.29.11@sha256:8774a73c351395b41d2ad0af4ddb4689007c67de3cd08bd9f43bb8a0e300690e"},{"image":"ghcr.io/github/gh-aw-firewall/api-proxy:0.29.11@sha256:88d2d0e315a504d93fd4fb8847fd0f6b7f4469f41a6fc6047b3dc9654c56ab2c"},{"image":"ghcr.io/github/gh-aw-firewall/cli-proxy:0.29.11@sha256:97782bc0d8ff7f80f19ae2fdc5e1668517aa732a6fa077e64b8d3919238496d2"},{"image":"ghcr.io/github/gh-aw-firewall/router:0.29.11@sha256:51de2cdeaaa7a2c039df7beed34472b8598cf9296bd2365ab08045142b67b1fe"},{"image":"ghcr.io/github/gh-aw-firewall/squid:0.29.11@sha256:861739ecf924dd2db5e5fb652db2ad82aaafd1615623297ddabc8f41a36b2847"},{"image":"ghcr.io/github/gh-aw-mcpg:v0.5.6","digest":"sha256:342cd624e1f179d91be2de7a146fc4f387092e62e6c8a47506d7932e113d2311","pinned_image":"ghcr.io/github/gh-aw-mcpg:v0.5.6@sha256:342cd624e1f179d91be2de7a146fc4f387092e62e6c8a47506d7932e113d2311"},{"image":"ghcr.io/github/gh-aw-node","digest":"sha256:11c2c544876cdbaffefe0f7f1283b74838c209654b4934a78e23ed11f750490f","pinned_image":"ghcr.io/github/gh-aw-node@sha256:11c2c544876cdbaffefe0f7f1283b74838c209654b4934a78e23ed11f750490f"},{"image":"ghcr.io/github/github-mcp-server:v2.1.0","digest":"sha256:f6056fc10bfffcc8c81a6417a2e9ca12808647e8dd6049642a4feaadee0e0f8a","pinned_image":"ghcr.io/github/github-mcp-server:v2.1.0@sha256:f6056fc10bfffcc8c81a6417a2e9ca12808647e8dd6049642a4feaadee0e0f8a"}],"mcp_servers":[{"name":"safeoutputs","tools":["create_issue","noop","report_incomplete","report_missing_data","report_missing_tool","update_issue"]}],"threat_detection":{"mode":"enabled"},"admission":false,"agent_metadata":{"d0b9e7072036c3cc9c38":{"name":"W3C Specification"},"fbd10cd783979952bdc7":{"name":"Agentic Workflows"}}}
 # This file was automatically generated by gh-aw (v1.2.2). DO NOT EDIT. To debug this workflow, load the skill at https://github.com/github/gh-aw/blob/main/debug.md
 #
 #    ___                   _   _
@@ -333,7 +333,7 @@ jobs:
             <system>
           GH_AW_PROMPT_CONTENT_0001: |
             <safe-output-tools>
-            Tools: create_issue, report_missing_tool, report_missing_data, noop(max:2)
+            Tools: create_issue, update_issue, report_missing_tool, report_missing_data, noop(max:2)
           GH_AW_PROMPT_CONTENT_0002: |
             </safe-output-tools>
           GH_AW_PROMPT_CONTENT_0003: |+
@@ -1046,7 +1046,7 @@ jobs:
         env:
           GH_AW_FILE_ROOT: "${{ runner.temp }}/gh-aw"
           GH_AW_FILE_CONFIG: "{\"files\":[{\"path\":\"safeoutputs/config.json\",\"content_env\":\"GH_AW_SAFE_OUTPUTS_CONFIG\"}]}"
-          GH_AW_SAFE_OUTPUTS_CONFIG: "{\"create_issue\":{\"close_older_issues\":true,\"deduplicate_by_title\":true,\"expires\":720,\"labels\":[\"eu-cra-compliance\",\"eu-cra-compliance:supply-chain-sbom-auditor\"],\"max\":1,\"max_issue_artifact_size\":1048576,\"max_issue_artifacts\":10,\"target-repo\":\"${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}\",\"title_prefix\":\"[eu-cra-compliance:supply-chain-sbom-auditor] \"},\"create_report_incomplete_issue\":{},\"noop\":{\"max\":2,\"report-as-issue\":\"false\"},\"report_incomplete\":{},\"report_missing_data\":{},\"report_missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_CONFIG: "{\"create_issue\":{\"close_older_issues\":true,\"deduplicate_by_title\":true,\"expires\":720,\"labels\":[\"eu-cra-compliance\",\"eu-cra-compliance:supply-chain-sbom-auditor\"],\"max\":1,\"max_issue_artifact_size\":1048576,\"max_issue_artifacts\":10,\"target-repo\":\"${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}\",\"title_prefix\":\"[eu-cra-compliance:supply-chain-sbom-auditor] \"},\"create_report_incomplete_issue\":{},\"noop\":{\"max\":2,\"report-as-issue\":\"false\"},\"report_incomplete\":{},\"report_missing_data\":{},\"report_missing_tool\":{},\"update_issue\":{\"allow_body\":true,\"max\":1,\"max_issue_artifact_size\":1048576,\"max_issue_artifacts\":10,\"required_title_prefix\":\"[eu-cra-compliance:supply-chain-sbom-auditor] \",\"target\":\"*\",\"target-repo\":\"${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}\"}}"
         with:
           script: |
             const path = require('path');
@@ -1060,7 +1060,8 @@ jobs:
           GH_AW_TOOLS_META_JSON: |
             {
               "description_suffixes": {
-                "create_issue": " CONSTRAINTS: Maximum 1 issue(s) can be created. Title will be prefixed with \"[eu-cra-compliance:supply-chain-sbom-auditor] \". Labels [\"eu-cra-compliance\" \"eu-cra-compliance:supply-chain-sbom-auditor\"] will be automatically added. Maximum 10 artifact(s) can be attached per issue. Maximum artifact body size: 1048576 UTF-8 bytes. Issues will be created in repository \"${GH_AW_EXPR_07671AC8}\"."
+                "create_issue": " CONSTRAINTS: Maximum 1 issue(s) can be created. Title will be prefixed with \"[eu-cra-compliance:supply-chain-sbom-auditor] \". Labels [\"eu-cra-compliance\" \"eu-cra-compliance:supply-chain-sbom-auditor\"] will be automatically added. Maximum 10 artifact(s) can be attached per issue. Maximum artifact body size: 1048576 UTF-8 bytes. Issues will be created in repository \"${GH_AW_EXPR_07671AC8}\".",
+                "update_issue": " CONSTRAINTS: Maximum 1 issue(s) can be updated. Maximum 10 artifact(s) can be attached per issue. Maximum artifact body size: 1048576 UTF-8 bytes. Target: *. The target issue title must start with \"[eu-cra-compliance:supply-chain-sbom-auditor] \". Body updates are allowed."
               },
               "repo_params": {},
               "dynamic_tools": []
@@ -1181,6 +1182,61 @@ jobs:
                     "maxLength": 128
                   }
                 }
+              },
+              "update_issue": {
+                "defaultMax": 1,
+                "fields": {
+                  "artifacts": {
+                    "type": "array"
+                  },
+                  "assignees": {
+                    "type": "array",
+                    "itemType": "string",
+                    "itemSanitize": true,
+                    "itemMaxLength": 39
+                  },
+                  "body": {
+                    "type": "string",
+                    "sanitize": true,
+                    "maxLength": 65000
+                  },
+                  "issue_number": {
+                    "issueOrPRNumber": true
+                  },
+                  "labels": {
+                    "type": "array"
+                  },
+                  "milestone": {
+                    "optionalPositiveInteger": true,
+                    "allowNull": true
+                  },
+                  "operation": {
+                    "type": "string",
+                    "enum": [
+                      "replace",
+                      "append",
+                      "prepend",
+                      "replace-island"
+                    ]
+                  },
+                  "repo": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "open",
+                      "closed"
+                    ]
+                  },
+                  "title": {
+                    "type": "string",
+                    "sanitize": true,
+                    "maxLength": 128
+                  }
+                },
+                "customValidation": "requiresOneOf:status,title,body,labels,assignees,milestone,artifacts"
               }
             }
           GH_AW_EXPR_07671AC8: ${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}
@@ -3035,7 +3091,7 @@ jobs:
           GH_AW_ALLOWED_DOMAINS: "*.githubusercontent.com,archive.ubuntu.com,azure.archive.ubuntu.com,codeload.github.com,commission.europa.eu,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,digital-strategy.ec.europa.eu,docs.github.com,enisa.europa.eu,eur-lex.europa.eu,github-cloud.githubusercontent.com,github-cloud.s3.amazonaws.com,github.blog,github.com,github.githubassets.com,json-schema.org,json.schemastore.org,keyserver.ubuntu.com,lfs.github.com,objects.githubusercontent.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,patch-diff.githubusercontent.com,patchdiff.githubusercontent.com,raw.githubusercontent.com,s.symcb.com,s.symcd.com,security.ubuntu.com,single-market-economy.ec.europa.eu,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com"
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_API_URL: ${{ github.api_url }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_issue\":{\"close_older_issues\":true,\"deduplicate_by_title\":true,\"expires\":720,\"labels\":[\"eu-cra-compliance\",\"eu-cra-compliance:supply-chain-sbom-auditor\"],\"max\":1,\"max_issue_artifact_size\":1048576,\"max_issue_artifacts\":10,\"target-repo\":\"${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}\",\"title_prefix\":\"[eu-cra-compliance:supply-chain-sbom-auditor] \"},\"create_report_incomplete_issue\":{},\"noop\":{\"max\":2,\"report-as-issue\":\"false\"},\"report_incomplete\":{},\"report_missing_data\":{},\"report_missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_issue\":{\"close_older_issues\":true,\"deduplicate_by_title\":true,\"expires\":720,\"labels\":[\"eu-cra-compliance\",\"eu-cra-compliance:supply-chain-sbom-auditor\"],\"max\":1,\"max_issue_artifact_size\":1048576,\"max_issue_artifacts\":10,\"target-repo\":\"${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}\",\"title_prefix\":\"[eu-cra-compliance:supply-chain-sbom-auditor] \"},\"create_report_incomplete_issue\":{},\"noop\":{\"max\":2,\"report-as-issue\":\"false\"},\"report_incomplete\":{},\"report_missing_data\":{},\"report_missing_tool\":{},\"update_issue\":{\"allow_body\":true,\"max\":1,\"max_issue_artifact_size\":1048576,\"max_issue_artifacts\":10,\"required_title_prefix\":\"[eu-cra-compliance:supply-chain-sbom-auditor] \",\"target\":\"*\",\"target-repo\":\"${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}\"}}"
           GH_AW_SAFE_OUTPUTS_STAGED: ${{ inputs.safe_output_mode == 'debug' }}
           GH_AW_GITHUB_TOKEN_SOURCE: ${{ steps.safe-outputs-app-token.outputs.token != '' && 'app' || 'unknown' }}
         with:
