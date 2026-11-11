@@ -1,12 +1,18 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { parse } from "yaml";
 
 const root = new URL("../../", import.meta.url);
+const execute = promisify(execFile);
+const workflow = parse(await readFile(new URL(".github/workflows/podman.yml", root), "utf8"));
 
-test("Podman CI runs real rootless boundaries and Azure services on pull requests", async () => {
-  const workflow = parse(await readFile(new URL(".github/workflows/podman.yml", root), "utf8"));
+test("Podman CI runs real rootless boundaries and Azure services on pull requests", () => {
   for (const event of ["pull_request", "push"]) {
     for (const path of [".github/workflows/podman.yml", "server/**", "scripts/container-*.sh", "scripts/azure-local/**"]) {
       assert.ok(workflow.on[event].paths.includes(path), `${event} must cover ${path}`);
@@ -30,6 +36,63 @@ test("Podman CI runs real rootless boundaries and Azure services on pull request
   assert.match(commands, /npm run test:integration:azure-services/);
   assert.doesNotMatch(commands, /sudo (?:podman|go)|\|\| true/);
 });
+
+test("Podman CI reuses Go builds and verified platform-specific Core Tools", () => {
+  const steps = workflow.jobs.podman.steps;
+  const go = steps.find((step) => step.uses?.startsWith("actions/setup-go@"));
+  assert.equal(go.with.cache, true);
+  assert.deepEqual(go.with["cache-dependency-path"].trim().split("\n"), ["go.sum", "server/go.sum"]);
+  const tools = steps.find((step) => step.uses?.startsWith("actions/cache@"));
+  assert.equal(tools.with.path, ".tmp/azure-local/tools");
+  assert.ok(tools.with.key.includes("runner.os"));
+  assert.ok(tools.with.key.includes("runner.arch"));
+  assert.ok(tools.with.key.includes("hashFiles('scripts/azure-local/azure-local.sh')"));
+  assert.equal(tools.with["restore-keys"], undefined, "do not restore tooling with stale checksum pins");
+});
+
+for (const failure of ["", "boundary", "azure", "contracts"]) {
+  test(`Podman concurrent checks wait for every lane and preserve ${failure || "success"}`, async () => {
+    const directory = await mkdtemp(join(tmpdir(), "cao-podman-ci-"));
+    const trace = join(directory, "trace");
+    try {
+      for (const [command, lane] of [["podman", "boundary"], ["npm", "azure"], ["node", "contracts"]]) {
+        await writeFile(join(directory, command), `#!/bin/bash
+set -eu
+touch "$CHECK_DIRECTORY/${lane}"
+for (( attempt=0; attempt<100; attempt++ )); do
+  if [[ -f "$CHECK_DIRECTORY/boundary" && -f "$CHECK_DIRECTORY/azure" && -f "$CHECK_DIRECTORY/contracts" ]]; then
+    printf '${lane}-done\\n' >> "$CHECK_TRACE"
+    if [[ "$CHECK_FAILURE" == '${lane}' ]]; then exit 42; fi
+    exit 0
+  fi
+  sleep 0.02
+done
+echo "checks did not run concurrently" >&2
+exit 99
+`, { mode: 0o700 });
+      }
+      await writeFile(join(directory, "systemd-run"), '#!/bin/bash\nprintf "boundary-run\\n" >> "$CHECK_TRACE"\n', { mode: 0o700 });
+      const script = workflow.jobs.podman.steps.find((step) => step.name === "Run independent rootless and Azure checks concurrently").run;
+      const result = await execute("bash", ["-e", "-c", script], {
+        cwd: fileURLToPath(root),
+        env: {
+          ...process.env,
+          PATH: `${directory}:${process.env.PATH}`,
+          CHECK_DIRECTORY: directory,
+          CHECK_TRACE: trace,
+          CHECK_FAILURE: failure,
+        },
+        timeout: 5000,
+      }).then(() => 0, (error) => error.code);
+      assert.equal(result, failure ? 42 : 0);
+      const lines = (await readFile(trace, "utf8")).trim().split("\n");
+      for (const lane of ["boundary", "azure", "contracts"]) assert.ok(lines.includes(`${lane}-done`));
+      assert.equal(lines.includes("boundary-run"), failure !== "boundary", "failed image preload must not run the workload");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+}
 
 test("explicit real Podman validation cannot pass by skipping unavailable prerequisites", async () => {
   const source = await readFile(new URL("server/internal/hostedcli/podman_integration_test.go", root), "utf8");

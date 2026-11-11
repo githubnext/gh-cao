@@ -60,11 +60,25 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: 1.27.3
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            server/go.sum
+      - name: Restore checksum-verified Azure Functions Core Tools
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/azure-local/tools
+          key: podman-core-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/azure-local/azure-local.sh') }}
       - name: Prepare rootless Podman with a delegated user session
         run: |
-          sudo apt-get update
-          sudo apt-get install -y podman uidmap slirp4netns fuse-overlayfs crun
+          missing=()
+          for tool in podman newuidmap slirp4netns fuse-overlayfs crun; do
+            command -v "$tool" >/dev/null || missing+=("$tool")
+          done
+          if (( ${#missing[@]} )); then
+            sudo apt-get update
+            sudo apt-get install -y podman uidmap slirp4netns fuse-overlayfs crun
+          fi
           test "$(id -u)" -ne 0
           sudo loginctl enable-linger "$(id -un)"
           sudo systemctl start "user@$(id -u).service"
@@ -72,17 +86,24 @@ jobs:
           echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus" >> "$GITHUB_ENV"
       - name: Prepare Go dependencies before hermetic service tests
         run: go mod download && go -C server mod download
-      - name: Check engine selection and harness contracts
-        run: node --test tests/unit/container-engine.test.mjs tests/unit/azure-local-*.test.mjs
-      - name: Preload the production digest-pinned CLI image
+      - name: Run independent rootless and Azure checks concurrently
         run: |
-          image="$(sed -n 's/^const DefaultContainerImage = "\(.*\)"$/\1/p' server/internal/hostedcli/container_runner.go)"
-          [[ "$image" =~ ^ghcr.io/github/gh-aw@sha256:[0-9a-f]{64}$ ]]
-          podman --remote=false pull "$image"
-      - name: Verify real rootless workload isolation, cancellation and recovery
-        run: |
-          systemd-run --user --scope --property=Delegate=yes \
-            go -C server test -race ./internal/hostedcli \
-            -run '^TestPodmanRealBoundary$' -count=1 -timeout=5m -v
-      - name: Run real local Azure services with Podman
-        run: npm run test:integration:azure-services
+          boundary() {
+            image="$(sed -n 's/^const DefaultContainerImage = "\(.*\)"$/\1/p' server/internal/hostedcli/container_runner.go)"
+            [[ "$image" =~ ^ghcr.io/github/gh-aw@sha256:[0-9a-f]{64}$ ]]
+            podman --remote=false pull "$image"
+            systemd-run --user --scope --property=Delegate=yes \
+              go -C server test -race ./internal/hostedcli \
+              -run '^TestPodmanRealBoundary$' -count=1 -timeout=5m -v
+          }
+          boundary &
+          boundary_pid=$!
+          npm run test:integration:azure-services &
+          azure_pid=$!
+          node --test tests/unit/container-engine.test.mjs tests/unit/azure-local-*.test.mjs &
+          contracts_pid=$!
+          status=0
+          wait "$boundary_pid" || status=$?
+          wait "$azure_pid" || status=$?
+          wait "$contracts_pid" || status=$?
+          exit "$status"
