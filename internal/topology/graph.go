@@ -43,7 +43,7 @@ func (f Features) validate() error {
 		value   string
 		choices []string
 	}{
-		"deployment":  {f.Deployment, []string{"single-vm", "minimal-azure", "azure-functions"}},
+		"deployment":  {f.Deployment, []string{"single-vm", "minimal-azure", "azure-functions", "azure-container-apps"}},
 		"acquisition": {f.Acquisition, []string{"actions", "collector"}},
 		"ingress":     {f.Ingress, []string{"public", "private"}},
 		"analytics":   {f.Analytics, []string{"none", "adx"}},
@@ -54,12 +54,20 @@ func (f Features) validate() error {
 		}
 	}
 	if f.Deployment != "azure-functions" && (f.Acquisition != "actions" || f.Ingress != "public" || f.Analytics != "none" || f.Telemetry != "none" || f.SessionDataLake || f.WebhookGateway) {
-		return fmt.Errorf("compact deployments support public hosted OAuth with Actions snapshots only; select azure-functions for optional managed features")
+		return fmt.Errorf("compact and Container Apps deployments support public hosted OAuth with Actions snapshots only; select azure-functions for optional managed features")
 	}
 	return nil
 }
 
 func dependencies(id string, f Features) []string {
+	if f.Deployment == "azure-container-apps" {
+		switch id {
+		case "dashboard":
+			return []string{"database-provisioning", "job-environment", "registry", "secrets", "runtime-activation", "snapshot-ingestion"}
+		default:
+			return slices.Clone(contracts[id])
+		}
+	}
 	if f.Deployment != "azure-functions" {
 		switch id {
 		case "dashboard":

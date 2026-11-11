@@ -513,7 +513,7 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 	if a.hostedCLI != nil && a.hostedCLI.local != nil {
 		a.startTask(func() { a.runOperatorCommands(runCtx) })
 	}
-	if a.oauth != nil && (a.config.SourceDirectory != "" || a.Collector() != nil) {
+	if a.oauth != nil {
 		a.startTask(func() { a.oauth.runRevocationWorker(runCtx) })
 	}
 	return nil

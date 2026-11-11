@@ -7,7 +7,7 @@ import (
 )
 
 func TestSamplesDocumentActionsOIDCMCPWithoutEnablingIt(t *testing.T) {
-	for _, profile := range []string{"single-vm", "minimal-azure", "azure-functions", "full-azure"} {
+	for _, profile := range []string{"single-vm", "minimal-azure", "azure-functions", "azure-container-apps", "full-azure"} {
 		t.Run(profile, func(t *testing.T) {
 			source, err := ExampleFor(profile)
 			if err != nil {

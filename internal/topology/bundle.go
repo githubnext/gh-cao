@@ -65,7 +65,9 @@ func filesFor(ctx context.Context, content []byte) (map[string][]byte, Topology,
 	files["RULES.md"] = []byte(report.Markdown())
 	files["MANIFEST.md"] = []byte(renderManifest(solution.Topology) + fmt.Sprintf("\n## Architecture rules\n\n%d strict errors; %d advisory warnings. See [RULES.md](RULES.md).\nStatic declared topology only; not a security certification or live assessment.\n", report.Errors, report.Warnings))
 	documentDirectory := "assets/docs"
-	if input.Features.Deployment != "azure-functions" {
+	if input.Features.Deployment == "azure-container-apps" {
+		documentDirectory = "assets/container-apps-docs"
+	} else if input.Features.Deployment != "azure-functions" {
 		documentDirectory = "assets/compact-docs"
 	}
 	if input.Features.Deployment != "azure-functions" || len(additionalRuntimeSecrets(input.Features)) > 0 {

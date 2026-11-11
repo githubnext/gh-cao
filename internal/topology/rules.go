@@ -124,9 +124,11 @@ func additionalRuntimeSecrets(features Features) []string {
 func ReviewRules(solution Solution) RuleReport {
 	input := solution.Requirements
 	required := []string{"githubClientSecret", "sessionSecret", "postgresAdministratorPassword", "postgresOwnerPassword", "postgresRuntimePassword"}
-	compact := input.Features.Deployment != "azure-functions"
+	compact := input.Features.Deployment == "single-vm" || input.Features.Deployment == "minimal-azure"
 	if compact {
 		required = slices.Clone(compactSecretNames)
+	} else if input.Features.Deployment == "azure-container-apps" {
+		required = slices.Clone(containerAppsSecretNames)
 	} else if input.Features.Acquisition == "collector" {
 		required = append(required, "collectorPrivateKey", "githubWebhookSecret")
 	}
@@ -135,7 +137,7 @@ func ReviewRules(solution Solution) RuleReport {
 	for _, node := range solution.Topology.Nodes {
 		nodes[node.ID] = true
 	}
-	known := slices.Contains([]string{"single-vm", "minimal-azure", "azure-functions"}, input.Features.Deployment)
+	known := slices.Contains([]string{"single-vm", "minimal-azure", "azure-functions", "azure-container-apps"}, input.Features.Deployment)
 	authorized := false
 	for _, field := range []string{"githubAllowedOrganizations", "githubAllowedTeams", "githubAllowedUsers"} {
 		if users, ok := list(input.Azure.Parameters[field]); ok && len(users) > 0 {

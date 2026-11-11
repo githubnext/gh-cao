@@ -1,0 +1,18 @@
+# Operator acceptance gates
+
+- Replace all example identities/digests and review subscription/region, names,
+  VNet overlap, provider registration, capacity, paid SKUs and platform TLS policy.
+- Verify existing input vault and new target vault governance, scoped grants,
+  secret rotation, purge protection and distinct PostgreSQL role passwords.
+- Build and approve immutable images with the operator's container/PostgreSQL
+  host policy and verified snapshot or deliberately empty evidence.
+- Review MANIFEST.md, RULES.md, GITHUB-APPS.md and AGENT-MCP.md. MCP stays off.
+- Validate Bicep and independently review what-if; generation is not apply.
+- Deploy infrastructure with runtimeEnabled false, then wait for successful
+  exact provisioning and ingestion executions before enabling the app.
+- Confirm HTTPS/OAuth, trusted proxy peers and spoof rejection, private verified
+  PostgreSQL TLS, image digests, readiness, logs, retention and restore.
+- Explicitly accept single-replica/database failure domains and the unencrypted
+  private ingress-to-container hop, or design a separately reviewed alternative.
+
+No checkbox is completed by static validation. Missing evidence remains unknown.
