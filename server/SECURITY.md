@@ -46,7 +46,7 @@ not trigger minting.
 
 A dedicated organization App's private key is read from Azure Key Vault using
 managed identity, never from policy or caller inputs. GitHub installation
-identity, organization ownership and least-privilege `copilot_requests: read`
+identity, organization ownership and least-privilege `organization_copilot_requests: read`
 are checked before minting. Issuance is billable organization access, not
 read-only financial behavior. GitHub Copilot organization budgets must be
 configured separately; CAO admission budgets are not a broker spending cap.
@@ -56,6 +56,12 @@ credentials and rate subjects are bounded. Redirects and caller-selected
 upstream destinations are forbidden. Never capture broker bodies, OIDC tokens,
 App JWTs, Key Vault secrets or returned credentials in logs, traces or proxies.
 Failures have empty no-store responses without upstream diagnostics.
+The broker emits fixed-name OpenTelemetry spans and correlated operation/outcome
+logs for identity verification, enrollment, issuance and revocation without
+requiring `DEBUG`. HTTP metrics use the fixed broker route; trace propagation
+accepts only a single valid traceparent, drops baggage and tracestate, and never
+returns trace identifiers. Telemetry uses the server's existing providers and
+does not authorize issuance.
 
 The initial broker requires one explicitly acknowledged process replica.
 Job invalidation and graceful shutdown revoke tracked tokens, but a crash loses
@@ -67,11 +73,17 @@ certification is claimed.
 #### Broker enrollment and setup
 
 The organization permission is **Copilot Requests: Read-only**
-(`copilot_requests: read`); despite its name it authorizes billable AI requests.
+(`organization_copilot_requests: read`); despite its name it authorizes billable AI requests.
 Use a dedicated organization-installed App, not a personal/enterprise
 installation or the collector App. Review the
 [GitHub organization App access documentation](https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/administer-copilot/manage-for-organization/manage-app-copilot-access)
 and enable organization spending controls before activation.
+The installation token request uses
+`{"permissions":{"organization_copilot_requests":"read"}}` and restricts
+repository access to the verified repository. The legacy `copilot_requests`
+App permission is not accepted. The organization must enable Copilot requests
+from GitHub App installations; see the SDK's
+[server-to-server authentication guide](https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/server-to-server-tokens?apiVersion=2026-03-10).
 
 The checked-in `control-plane.token-broker.copilot-requests.workflows` list in
 `cao.json` is empty: no workflow is enrolled by this change. Each enrollment

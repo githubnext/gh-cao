@@ -837,16 +837,16 @@ func (a *App) Handler() http.Handler {
 	}
 	dashboardHandler := handler
 	handler = http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		if request.URL.Path == tokenBrokerPath {
-			a.exchangeBrokerToken(response, request)
-			return
-		}
-		if admissionPath(request.URL.Path) {
+		if oidcServicePath(request.URL.Path) {
 			route := semconv.HTTPRoute(request.URL.Path)
 			trace.SpanFromContext(request.Context()).SetAttributes(route)
 			labeler, _ := otelhttp.LabelerFromContext(request.Context())
 			labeler.Add(route)
-			a.serveAdmission(response, request, request.URL.Path == "/api/conclusion")
+			if request.URL.Path == tokenBrokerPath {
+				a.exchangeBrokerToken(response, request)
+			} else {
+				a.serveAdmission(response, request, request.URL.Path == "/api/conclusion")
+			}
 			return
 		}
 		dashboardHandler.ServeHTTP(response, request)
@@ -873,7 +873,7 @@ func (a *App) Handler() http.Handler {
 			// named when the mux dispatches to their registered handler.
 			// Other paths share one bounded name without a second mux lookup.
 			pattern := request.Method + " " + request.URL.Path
-			if _, ok := routePatterns[pattern]; ok {
+			if _, ok := routePatterns[pattern]; ok || oidcServicePath(request.URL.Path) {
 				return pattern
 			}
 			return request.Method + " /*"
@@ -881,15 +881,15 @@ func (a *App) Handler() http.Handler {
 	)
 	safeTelemetry := http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		traceparent := request.Header.Get("Traceparent")
-		if admissionPath(request.URL.Path) && len(request.Header.Values("Traceparent")) != 1 {
+		if oidcServicePath(request.URL.Path) && len(request.Header.Values("Traceparent")) != 1 {
 			traceparent = ""
 		}
 		parentContext := request.Context()
-		if admissionPath(request.URL.Path) {
+		if oidcServicePath(request.URL.Path) {
 			parentContext = trace.ContextWithSpanContext(parentContext, trace.SpanContext{})
 		}
 		ctx := telemetry.ExtractTraceparent(parentContext, traceparent)
-		if admissionPath(request.URL.Path) {
+		if oidcServicePath(request.URL.Path) {
 			parent := trace.SpanContextFromContext(ctx)
 			// Use one local sampling choice, not the remote caller's sampled flag.
 			ctx = trace.ContextWithRemoteSpanContext(ctx, parent.WithTraceFlags(trace.FlagsSampled))
@@ -899,11 +899,11 @@ func (a *App) Handler() http.Handler {
 		safe.Host = ""
 		safe.RequestURI = ""
 		safe.Header = make(http.Header)
-		if traceparent != "" && !admissionPath(request.URL.Path) {
+		if traceparent != "" && !oidcServicePath(request.URL.Path) {
 			safe.Header.Set("Traceparent", traceparent)
 		}
 		path := ""
-		if _, ok := routePatterns[request.Method+" "+request.URL.Path]; ok {
+		if _, ok := routePatterns[request.Method+" "+request.URL.Path]; ok || oidcServicePath(request.URL.Path) {
 			path = request.URL.Path
 		}
 		safe.URL = &url.URL{Path: path}
@@ -920,13 +920,17 @@ func (a *App) Handler() http.Handler {
 
 type originalHTTPRequestKey struct{}
 
+func oidcServicePath(path string) bool {
+	return admissionPath(path) || path == tokenBrokerPath
+}
+
 // withResponseTraceHeaders exposes the W3C trace/span ids that otelhttp
 // assigned to the in-flight request as response headers, so operators can
 // correlate a client-visible request with exported spans without requiring
 // the client to send its own traceparent header.
 func withResponseTraceHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		if !admissionPath(request.URL.Path) {
+		if !oidcServicePath(request.URL.Path) {
 			telemetry.SetResponseTraceHeaders(response, trace.SpanContextFromContext(request.Context()))
 		}
 		next.ServeHTTP(response, request)

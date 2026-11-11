@@ -37,6 +37,10 @@ const (
 	SpanConclusionPolicy    = "cao_dashboard.admission.conclusion.authorize"
 	SpanConclusionRecord    = "cao_dashboard.admission.conclusion.record"
 	SpanConclusionPublish   = "cao_dashboard.admission.conclusion.publish"
+	SpanTokenBrokerIdentity = "cao_dashboard.token_broker.identity.verify"
+	SpanTokenBrokerPolicy   = "cao_dashboard.token_broker.policy.evaluate"
+	SpanTokenBrokerIssue    = "cao_dashboard.token_broker.credential.issue"
+	SpanTokenBrokerRevoke   = "cao_dashboard.token_broker.credential.revoke"
 )
 
 // Tracer returns the dashboard server's instrumentation-scoped tracer. It

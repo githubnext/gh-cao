@@ -19,6 +19,7 @@ import (
 	"unicode"
 
 	"github.com/githubnext/gh-cao/server/internal/admission"
+	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
 
 type IdentityVerifier interface {
@@ -169,7 +170,9 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
 		return
 	}
-	identity, err := s.verifier.Verify(ctx, input.identity)
+	identity, err := observeOperation(ctx, telemetry.SpanTokenBrokerIdentity, func(ctx context.Context) (admission.Identity, error) {
+		return s.verifier.Verify(ctx, input.identity)
+	})
 	if err != nil {
 		status = http.StatusUnauthorized
 		if errors.Is(err, admission.ErrUnavailable) {
@@ -195,9 +198,17 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// previously authorized. The verified profile and complete execution key
 	// still have to match; an untracked context requires current enrollment.
 	trackedCleanup := input.invalidate && state != nil && s.authorizedIdentity(identity)
-	if !trackedCleanup && !s.authorized(identity) {
-		w.WriteHeader(http.StatusForbidden)
-		return
+	if !trackedCleanup {
+		_, err := observeOperation(ctx, telemetry.SpanTokenBrokerPolicy, func(ctx context.Context) (bool, error) {
+			if !s.authorized(ctx, identity) {
+				return false, admission.ErrDenied
+			}
+			return true, nil
+		})
+		if err != nil {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
 	}
 	if !input.invalidate && input.tokenType == "copilot-task" {
 		w.WriteHeader(http.StatusNotImplemented)
@@ -252,7 +263,9 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.tenantMints++
-	result, issueErr := s.issue(ctx, identity)
+	result, issueErr := observeOperation(ctx, telemetry.SpanTokenBrokerIssue, func(ctx context.Context) (credential, error) {
+		return s.issue(ctx, identity)
+	})
 	var response []byte
 	if issueErr == nil {
 		response, issueErr = json.Marshal(result)

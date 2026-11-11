@@ -13,6 +13,7 @@ import (
 	"github.com/bradleyfalzon/ghinstallation/v2"
 
 	"github.com/githubnext/gh-cao/server/internal/admission"
+	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
 
 const (
@@ -51,7 +52,7 @@ func (s *Service) issue(ctx context.Context, identity admission.Identity) (crede
 	if json.Unmarshal(body, &installation) != nil || installation.AppID != s.config.AppID ||
 		installation.Account.Type != "Organization" || installation.Account.ID.String() != identity.OwnerID ||
 		installation.Account.ID.String() != s.config.OwnerID || string(installation.SuspendedAt) != "null" ||
-		installation.Permissions["copilot_requests"] != "read" {
+		installation.Permissions["organization_copilot_requests"] != "read" {
 		return credential{}, errUpstream
 	}
 	repoID, err := strconv.ParseUint(identity.RepositoryID, 10, 64)
@@ -61,7 +62,7 @@ func (s *Service) issue(ctx context.Context, identity admission.Identity) (crede
 	payload, _ := json.Marshal(struct {
 		Permissions   map[string]string `json:"permissions"`
 		RepositoryIDs []uint64          `json:"repository_ids"`
-	}{map[string]string{"copilot_requests": "read"}, []uint64{repoID}})
+	}{map[string]string{"organization_copilot_requests": "read"}, []uint64{repoID}})
 	body, err = upstream(ctx, &client, http.MethodPost, base+"/access_tokens", "", payload, http.StatusCreated)
 	if err != nil {
 		return credential{}, err
@@ -85,13 +86,13 @@ func (s *Service) issue(ctx context.Context, identity admission.Identity) (crede
 	now := s.now()
 	if parseErr != nil || !safeToken(result.Token) ||
 		!expiry.After(now.Add(time.Minute)) || expiry.After(now.Add(time.Hour)) ||
-		result.Permissions["copilot_requests"] != "read" || len(result.Repositories) != 1 ||
+		result.Permissions["organization_copilot_requests"] != "read" || len(result.Repositories) != 1 ||
 		result.Repositories[0].ID.String() != identity.RepositoryID ||
 		result.Repositories[0].Owner.ID.String() != identity.OwnerID {
 		return token, errUpstream
 	}
 	for permission, level := range result.Permissions {
-		if permission != "copilot_requests" && (permission != "metadata" || level != "read") {
+		if permission != "organization_copilot_requests" && (permission != "metadata" || level != "read") {
 			return token, errUpstream
 		}
 	}
@@ -140,6 +141,8 @@ func upstream(ctx context.Context, client *http.Client, method, endpoint, token 
 }
 
 func (s *Service) revokeToken(ctx context.Context, token string) error {
-	_, err := upstream(ctx, s.client, http.MethodDelete, githubAPI+"/installation/token", token, nil, http.StatusNoContent)
+	_, err := observeOperation(ctx, telemetry.SpanTokenBrokerRevoke, func(ctx context.Context) ([]byte, error) {
+		return upstream(ctx, s.client, http.MethodDelete, githubAPI+"/installation/token", token, nil, http.StatusNoContent)
+	})
 	return err
 }
