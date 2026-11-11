@@ -33,7 +33,13 @@ test("Podman CI runs real rootless boundaries and Azure services on pull request
   assert.match(commands, /container_runner\.go/);
   assert.match(commands, /podman-bin\/server\/hostedcli\.test/);
   assert.match(commands, /-test.run '\^TestPodmanRealBoundary\$' -test.count=1/);
-  assert.match(commands, /azure-local\.sh run-services/);
+  const services = workflow.jobs["azure-services"];
+  assert.equal(services.needs, undefined, "real services must not contend with hosted-CLI workloads");
+  assert.equal(services.if, undefined);
+  assert.equal(services.env.CAO_CONTAINER_ENGINE, "podman");
+  assert.match(services.steps.map((step) => step.run ?? "").join("\n"), /azure-local\.sh run-services/);
+  assert.equal(services.steps.find((step) => step.id === "binaries").with.key,
+    job.steps.find((step) => step.id === "binaries").with.key);
   const protocols = workflow.jobs["azure-protocols"];
   assert.equal(protocols.needs, undefined, "protocol contracts must not wait for service startup");
   assert.equal(protocols.if, undefined);
@@ -57,7 +63,7 @@ test("Podman CI reuses only exact-source executables and verified platform-speci
   assert.equal(binaries.with["restore-keys"], undefined, "stale-source executables must never be reused");
   const build = await readFile(new URL("scripts/azure-local/prepare-test-binaries.sh", root), "utf8");
   assert.match(build, /test -race -c/);
-  const tools = steps.find((step) => step.with?.path === ".tmp/azure-local/tools");
+  const tools = workflow.jobs["azure-services"].steps.find((step) => step.with?.path === ".tmp/azure-local/tools");
   assert.equal(tools.with.path, ".tmp/azure-local/tools");
   assert.ok(tools.with.key.includes("runner.os"));
   assert.ok(tools.with.key.includes("runner.arch"));
@@ -65,17 +71,17 @@ test("Podman CI reuses only exact-source executables and verified platform-speci
   assert.equal(tools.with["restore-keys"], undefined, "do not restore tooling with stale checksum pins");
 });
 
-for (const failure of ["", "boundary", "azure", "contracts"]) {
+for (const failure of ["", "boundary", "contracts"]) {
   test(`Podman concurrent checks wait for every lane and preserve ${failure || "success"}`, async () => {
     const directory = await mkdtemp(join(tmpdir(), "cao-podman-ci-"));
     const trace = join(directory, "trace");
     try {
-      for (const [command, lane] of [["podman", "boundary"], ["bash", "azure"], ["node", "contracts"]]) {
+      for (const [command, lane] of [["podman", "boundary"], ["node", "contracts"]]) {
         await writeFile(join(directory, command), `#!/bin/bash
 set -eu
 touch "$CHECK_DIRECTORY/${lane}"
 for (( attempt=0; attempt<100; attempt++ )); do
-  if [[ -f "$CHECK_DIRECTORY/boundary" && -f "$CHECK_DIRECTORY/azure" && -f "$CHECK_DIRECTORY/contracts" ]]; then
+  if [[ -f "$CHECK_DIRECTORY/boundary" && -f "$CHECK_DIRECTORY/contracts" ]]; then
     printf '${lane}-done\\n' >> "$CHECK_TRACE"
     if [[ "$CHECK_FAILURE" == '${lane}' ]]; then exit 42; fi
     exit 0
@@ -87,7 +93,7 @@ exit 99
 `, { mode: 0o700 });
       }
       await writeFile(join(directory, "systemd-run"), '#!/bin/bash\nprintf "boundary-run\\n" >> "$CHECK_TRACE"\n', { mode: 0o700 });
-      const script = workflow.jobs.podman.steps.find((step) => step.name === "Run independent rootless and Azure checks concurrently").run;
+      const script = workflow.jobs.podman.steps.find((step) => step.name === "Run independent rootless and harness checks concurrently").run;
       const result = await execute("/bin/bash", ["-e", "-c", script], {
         cwd: fileURLToPath(root),
         env: {
@@ -102,7 +108,7 @@ exit 99
       }).then(() => 0, (error) => error.code);
       assert.equal(result, failure ? 42 : 0);
       const lines = (await readFile(trace, "utf8")).trim().split("\n");
-      for (const lane of ["boundary", "azure", "contracts"]) assert.ok(lines.includes(`${lane}-done`));
+      for (const lane of ["boundary", "contracts"]) assert.ok(lines.includes(`${lane}-done`));
       assert.equal(lines.includes("boundary-run"), failure !== "boundary", "failed image preload must not run the workload");
     } finally {
       await rm(directory, { recursive: true, force: true });
