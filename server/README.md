@@ -38,11 +38,37 @@ From the repository root, `npm run dev` or `npm run dashboard:local` builds
 the dashboard and starts Go `serve` with its verified SQLite cache. The Node
 server is retired; only an internal loopback canvas authoring bridge remains.
 
+### Self-contained executable and disk-backed iteration
+
+After installing npm dependencies in the root, `dashboard/site`, and `server/spec`,
+build from the repository root:
+
+```sh
+npm run dashboard:server:bundle
+.tmp/cao-dashboard serve --sqlite /absolute/path/to/gh-aw-logs.sqlite
+```
+
+The executable embeds HTML, JavaScript, styles, icons, page chunks, queries,
+and MCP metadata. It runs without a checkout or Node.js; data, policy, and
+credentials remain external. All hosting profiles default to embedded resources.
+
+For disk-backed iteration, use `npm run dashboard:local`, or build the dashboard
+and run `go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist`.
+`--site` selects that build's assets and query/catalog metadata; individual
+metadata flags override those paths. Asset edits appear on the next request.
+Rebuild and restart after query/catalog changes. Invalid disk paths never fall
+back to embedded resources.
+
+`npm run dashboard:server:build` stages resources for subsequent `go build`.
+Without staging, source-only Go builds require `--site`. Release and container
+builds embed automatically. CI verifies all embedded assets and an executable
+launched outside the checkout.
+
 The Go local SQLite server also runs natively on Windows, without PostgreSQL,
 Redis, Docker, or Linux process features. From PowerShell at the repository root,
 build the dashboard with `npm --prefix dashboard/site run build -- dist`, then
-run `go -C server run ./cmd/cao-dashboard serve`. The POSIX environment-assignment
-syntax in the root npm launch commands is not supported by PowerShell's default
+run `go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist`.
+The POSIX environment-assignment syntax in the root npm launch commands is not supported by PowerShell's default
 npm shell; use the direct Go command there. Windows CI builds the native command
 and exercises snapshot download, offline startup, HTTP queries, and shutdown with
 local fixtures. Evidence-lake writers retain cross-process exclusion using
@@ -431,7 +457,7 @@ go -C server run ./cmd/cao-dashboard serve \
   --listen 127.0.0.1:8443
 ```
 
-The built site defaults to `dashboard/site/dist`. Use `--site` for a different
+The server defaults to embedded resources. Use `--site` for a disk-backed
 build directory and `--mcp-enabled` to expose the existing read-only MCP endpoint.
 Paths in this example resolve from `server/` because of `go -C server`.
 `gh cao download` prepares the default CAO snapshot; use `--url` with another
@@ -2000,15 +2026,12 @@ settings:
 | `CAO_GITHUB_LOCAL_USER` | Optional exact developer login for [single-user local OAuth](#local-oauth-without-organization-access); removes organization scopes/checks only on a direct loopback HTTPS listener. Cannot be combined with organization/team/SSO policy. |
 | `CAO_GITHUB_ADMIN_USERS` | Required comma-separated GitHub logins allowed to trigger rebuilds. |
 | `CAO_GITHUB_WEBHOOK_SECRET` | Required GitHub webhook signature secret of at least 32 characters. |
-| `CAO_SOURCE_DIRECTORY` | Required authoritative deployed gh-aw artifact directory used by rebuild/reconciliation. |
+| `CAO_SOURCE_DIRECTORY` | Snapshot directory for startup/rebuild; required unless collection or external ingestion is selected. |
+| `CAO_EXTERNAL_INGESTION` | Explicit `true` for [separate jobs](../docs/deployment-topology.md#azure-container-apps); excludes source/collector. Default `false`. |
 
-Hosted HTTPS enforcement cannot be disabled. Forwarded host and protocol
-headers are trusted only when the service is bound to loopback; externally
-reachable listeners validate their direct TLS connection and `Host` header.
-Supply secrets through the deployment platform's secret manager (for example,
-Key Vault references, Kubernetes Secrets mounted into the process environment,
-or an equivalent managed facility), never command-line arguments or checked-in
-configuration.
+Hosted HTTPS is mandatory. Direct TLS validates `Host`; forwarded headers
+require loopback or explicitly trusted private proxy CIDRs. Use the platform
+secret manager, never policy or command-line secrets.
 
 ### Administrator step-up
 

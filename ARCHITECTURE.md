@@ -264,6 +264,12 @@ separate work; persistence cannot recover evidence missing at admission or reduc
 canonical storage/downloads.
 
 The Go server is the unified local and hosted dashboard serving runtime.
+Self-contained builds embed the complete built site and declarative query/MCP
+resources through `server/internal/dashboardassets/`; serving defaults to those
+immutable resources. An explicit `--site` selects a disk-backed build for local
+iteration, without fallback to embedded assets on disk errors. Both resource
+modes use the same authenticated handler and server-side query bootstrap.
+Data snapshots, policy, credentials, and hosted storage remain external inputs.
 `npm run dev` and `npm run dashboard:local` build the site and invoke `serve`
 against a verified cached SQLite snapshot; `serve-hosted` retains the reviewed
 PostgreSQL/OAuth host. Explicit `serve-pages` serves a prepared static Pages
@@ -624,7 +630,7 @@ is no memory disk journal, automatic failover, or dual-write path.
 The separately opt-in organization Copilot requests broker
 (`server/internal/tokenbroker/`, `POST /api/token-broker`) exchanges GitHub
 Actions OIDC identities for dedicated organization App installation tokens with
-only `copilot_requests: read`. Its protected
+only `organization_copilot_requests: read`. Its protected
 `control-plane.token-broker.copilot-requests.workflows` policy pins immutable
 owner/repository IDs, workflow reference and revision; signed job context
 isolates issuance and invalidation. It never grants rollout, admission, or
@@ -635,6 +641,11 @@ profile keeps a bounded process-local credential registry for revocation;
 crashes can lose cleanup state until upstream expiry, bounded to one hour.
 Platform/external listeners and overlapping replicas are unsupported. Live
 Copilot inference, renewal and cleanup acceptance remains operator-owned.
+Identity verification, enrollment, issuance and revocation emit fixed-name
+OpenTelemetry spans and correlated operation/outcome logs through the hosted
+providers, without requiring debug logging. The HTTP boundary uses a fixed
+route, sanitized traceparent-only correlation and no response trace identifiers;
+credentials, identities, policy contents and raw upstream errors are excluded.
 
 The optional hosted activation-admission service (`server/internal/admission/`)
 implements gh-aw's separate OIDC-only `POST /api/admission` contract, never CAO
@@ -1546,6 +1557,17 @@ Doctor does not replace production policy/workflow validation, grant authority,
 or invoke the Node snapshot-repair command. Actions and Node-only tools invoke
 `node activity/cao.mjs <command>` explicitly, including SQLite snapshot `repair-database`.
 There is no shell launcher.
+`gh cao deploy` owns both offline bundle generation (`init`, `generate`, `check`)
+and guarded Azure development deployment (`azure`). `internal/topology/` owns
+the embedded Puccini TOSCA dependency engine and provider parameter contract,
+shared by YAML bundle generation and JSON-config preflight, planning and apply.
+All bundle templates, examples, scripts and runbooks are compiled into Go
+resources; Azure planning defaults to the same embedded ARM baseline, with an
+explicit compiled-template override for development. Apply plans bind the
+resolved topology and reject drift before Azure writes. Bundle generation
+still requires the official Bicep compiler and grants no deployment authority;
+optional bundle profiles do not widen native apply support or its existing
+development-only, fresh-instance, secret-reference and evidence gates.
 Node `cao` owns the Actions runtime, `gh cao` owns the operator interface, and
 `cao-dashboard` owns the server. Node onboarding and lifecycle implementations
 and exports are removed: `init`, `setup`, `setup-auth`, campaign `add`, `mode`,
@@ -1900,6 +1922,14 @@ not authorize cross-repository evidence access.
   or an explicit empty dataset; builds never download a catalog-owned dataset
   implicitly. Instance policy, credentials, and target enrollment remain
   adopter-owned inputs, not public deployment defaults.
+- The additive `azure-container-apps` topology (`internal/topology/`) uses the
+  existing process-owned container host with PostgreSQL operational state,
+  managed HTTPS ingress and explicitly verified private proxy peers. It reuses
+  private PostgreSQL and the separate provisioning/ingestion job modules, but
+  omits Functions, runtime Storage, the Premium plan and Application Insights.
+  Web activation is default-off until independently verified provisioning and
+  ingestion succeed. Topology generation remains offline/review-only; the native
+  `deploy azure --apply` command still targets the Functions baseline.
 - Explicit `CAO_GITHUB_LOCAL_USER` development OAuth replaces membership
   authorization with one configured GitHub login and a valid numeric account
   ID. Classic login requests `read:user` without `read:org`; GitHub App clients

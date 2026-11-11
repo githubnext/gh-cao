@@ -477,7 +477,8 @@ to invoke it as `gh cao`.
 | Onboarding and authentication | `setup`, `setup auth github-app\|enterprise-app\|hosted-cli\|token` | Native Go; setup prepares missing monitoring runtime and policy, Pages, scope, and authentication, preserving separate read/write and hosted-executor credentials. |
 | Issue-service webhook setup | `setup linear`, `setup jira`, `setup ado` (alias `setup azure-devops`) | Native Go; offline enrollment preparation and provider instructions, with separate receive secrets and outbound safe-output credentials. |
 | Cooperative admission | `setup admission`, `admission status`, `admission disable` | Native Go; configure admission with `setup admission`. Configures or inspects non-secret Actions variables, not server deployment or enrollment authority. |
-| Cloud deployment | `deploy azure` | Native Go; read-only preflight and planning, or explicit application of a reviewed development deployment plan. |
+| Cloud deployment | `deploy azure` | Native Go; shared TOSCA dependency resolution with an embedded Azure template, read-only preflight and planning, or explicit application of a reviewed development deployment plan. |
+| Deployment bundles | `deploy init`, `deploy generate`, `deploy check` | Native Go; offline TOSCA 1.3 resolution through Puccini, embedded review-only Bicep bundles, Mermaid manifests and dependency/drift checking. No deployment or App changes. See [bundle generation](deployment-topology.md). |
 | Lifecycle | `repos add OWNER/REPO`, `update`, `upgrade-gh-aw` | Native Go; gh-aw still owns workflow generation and campaign installation records. |
 | Read-only analysis | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `api-cost`, `mcp` | Native Go with pure-Go SQLite access, hosted server queries where declared, and declarative Dashboard Language evaluation. |
 | Workflow value | `value publish`, `value enable`, `value disable` | Publish prepared evidence to a hosted dashboard, or edit reviewed local policy for recurring collection of one workflow. |
@@ -878,7 +879,7 @@ gh aw run dependabot --ref main \
 | `gh cao setup auth token ...` | Configure explicitly consented owner-scoped fine-grained PAT pairs when an App is unavailable. |
 | `gh cao add OWNER/REPO/CAMPAIGN` | Install one campaign and merge its declared workers into policy without broadening rollout or enabling live mode. |
 | `gh cao repos add OWNER/REPO` | Verify GitHub CLI read access and stage one exact repository in local control-plane policy, with review-mode overrides for existing campaigns. |
-| `gh cao deploy azure --plan --config FILE --template FILE --out FILE` | Review a fresh Azure Functions deployment without writing to Azure; `--apply --plan-file FILE` then repeats preflight and refuses change-set drift. See [Azure deployment](deployment-azure.md#native-fresh-deployment-command). |
+| `gh cao deploy azure --plan --config FILE --out FILE` | Review a fresh Azure Functions deployment using the embedded template without writing to Azure; `--apply --plan-file FILE` then repeats preflight and refuses topology and change-set drift. See [Azure deployment](deployment-azure.md#native-fresh-deployment-command). |
 | `gh cao update` | Upgrade gh-aw when required, update installed campaigns, and refresh worker declarations while preserving operator-owned settings. |
 | `gh cao update --campaign SLUG` | Update exactly one installed campaign, retaining runtime materialization and worker-declaration refresh. Use `root` for the CAO root package. |
 | `gh cao upgrade-gh-aw VERSION` | Install an exact gh-aw release, upgrade local Agentic Workflow files, and update the pinned policy version after the upgrade succeeds. |

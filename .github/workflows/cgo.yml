@@ -455,6 +455,9 @@ jobs:
           npm run dashboard:server:build
           mkdir -p .tmp
           go -C server build -o ../.tmp/cao-dashboard ./cmd/cao-dashboard
+      - name: Verify self-contained dashboard resources
+        if: matrix.shard == 0
+        run: go -C server test -tags dashboard_embed ./internal/dashboardassets ./internal/server ./cmd/cao-dashboard -run '^TestEmbeddedDashboard' -count=1
       - name: Bootstrap dashboard integration storage
         if: matrix.shard == 0
         env:

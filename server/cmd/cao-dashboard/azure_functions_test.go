@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 )
 
 func TestAzureFunctionsCommand(t *testing.T) {
@@ -65,10 +67,10 @@ func TestResolveFunctionsConfig_Defaults(t *testing.T) {
 	if config.host != "127.0.0.1" {
 		t.Errorf("host = %q, want %q", config.host, "127.0.0.1")
 	}
-	if config.siteDirectory != "site" {
-		t.Errorf("siteDirectory = %q, want %q", config.siteDirectory, "site")
+	if config.siteDirectory != "" {
+		t.Errorf("siteDirectory = %q, want embedded resources", config.siteDirectory)
 	}
-	wantQueries := filepath.Join("site", "dashboard.json")
+	wantQueries := dashboardassets.Path("", dashboardassets.DashboardQueries)
 	if config.queriesPath != wantQueries {
 		t.Errorf("queriesPath = %q, want %q", config.queriesPath, wantQueries)
 	}
@@ -95,7 +97,7 @@ func TestResolveFunctionsConfig_OverridesAndDerivedQueriesPath(t *testing.T) {
 	if config.siteDirectory != "/srv/dashboard" {
 		t.Errorf("siteDirectory = %q, want %q", config.siteDirectory, "/srv/dashboard")
 	}
-	wantQueries := filepath.Join("/srv/dashboard", "dashboard.json")
+	wantQueries := filepath.Join("/srv/dashboard", filepath.FromSlash(dashboardassets.DashboardQueries))
 	if config.queriesPath != wantQueries {
 		t.Errorf("queriesPath = %q, want %q", config.queriesPath, wantQueries)
 	}

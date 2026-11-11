@@ -19,6 +19,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 
+	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
@@ -238,7 +239,7 @@ func loadDefinitions(path string) ([]query.Definition, error) {
 		return nil, errors.New("database query path is required for typed inventory adapters")
 	}
 	// #nosec G304 -- the operator configures this local definition file.
-	content, err := os.ReadFile(path)
+	content, err := dashboardassets.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read database queries: %w", err)
 	}

@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/githubnext/gh-cao/server/internal/audit"
+	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
@@ -290,7 +291,7 @@ func NewAzureFunctionsHandlerFromEnv(ctx context.Context, siteDirectory, dashboa
 	}
 	databaseQueries := strings.TrimSpace(os.Getenv("CAO_DATABASE_QUERIES"))
 	if databaseQueries == "" {
-		return nil, errors.New("azure Functions mode requires CAO_DATABASE_QUERIES")
+		databaseQueries = dashboardassets.Path(siteDirectory, dashboardassets.DatabaseQueries)
 	}
 	databaseNamespace := strings.TrimSpace(host.RedisNamespace)
 	if databaseNamespace == "" {
