@@ -12,6 +12,17 @@ entity/query adapter, tables, namespace, schema generation, and lifecycle.
 `Store` exposes immutable per-feature capabilities, typed services, read-only
 health, one bounded cancellation-aware maintenance pass, and close. The
 application owns maintenance scheduling and MUST stop owned work before close.
+Hosted deployments MAY explicitly set `CAO_EXTERNAL_INGESTION=true`
+when a separately authorized job owns canonical PostgreSQL publication. This
+mode MUST reject a simultaneous source directory or collector and MUST NOT
+ingest, reset or synthesize evidence during web startup. Omitted/false preserves
+the existing source-or-collector requirement; invalid selections MUST fail.
+Local snapshot rebuild/reconciliation is unavailable in this mode. Readiness
+MUST reflect published canonical state, active revision subscriptions MUST
+observe external publications, and OAuth revocation maintenance MUST run
+independently of acquisition ownership. This selection grants no ingestion,
+collection, dispatch or database-bootstrap authority.
+
 `OperationalServices` separates backend lifecycle, cache, request limiting,
 sessions, atomic session invalidation, revocations, leases, state, delivery
 deduplication, task queue, atomic delivery admission, collection metadata,

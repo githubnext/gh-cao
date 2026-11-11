@@ -57,6 +57,9 @@ func renderManifest(t Topology) string {
 }
 
 func architecture(f Features) string {
+	if f.Deployment == "azure-container-apps" {
+		return containerAppsArchitecture(f)
+	}
 	if f.Deployment != "azure-functions" {
 		return compactArchitecture(f)
 	}
@@ -134,6 +137,41 @@ func architecture(f Features) string {
 			"  gatewayQueue -.->|operational storage only| postgres",
 			"  gatewayQueue -.->|fenced claims, fresh authorization| dispatcher",
 			"  dispatcher -.->|only approved dispatch transport| workflows")
+	}
+	return strings.Join(append(lines, agentMCPArchitecture(f)...), "\n")
+}
+
+func containerAppsArchitecture(f Features) string {
+	lines := []string{
+		"flowchart LR",
+		`  browser["Authorized browser"]`,
+		`  signin["GitHub OAuth App<br/>explicit allowlist"]`,
+		`  approval["Successful provisioning + ingestion + reviewed runtime activation<br/>EXTERNAL gates"]`,
+		`  subgraph network["Azure VNet"]`,
+		`    environment["Container Apps Consumption environment<br/>managed HTTPS ingress"]`,
+		`    dashboard["Go serve-hosted: ONE replica, activation gated<br/>dashboard + OAuth + server queries, one origin"]`,
+		`    postgres["Private PostgreSQL 16<br/>canonical + isolated operational state"]`,
+		`    provision["Manual DB provisioning job<br/>privileged identity"]`,
+		`    ingestion["Manual snapshot ingestion job<br/>runtime-only identity"]`,
+		"  end",
+		`  registry["ACR<br/>three reviewed image digests"]`,
+		`  vault["Key Vault<br/>separate secret-scoped identities"]`,
+		`  monitoring["Log Analytics<br/>container logs"]`,
+		"  browser -->|HTTPS only| environment",
+		"  environment -.->|verified private proxy peers, after activation| dashboard",
+		"  signin <-->|OAuth authorization code| dashboard",
+		"  approval -.-> dashboard",
+		"  dashboard -->|runtime login, verified TLS| postgres",
+		"  provision -->|bootstrap only| postgres",
+		"  provision -.->|must succeed first| ingestion",
+		"  ingestion -->|verified snapshot OR deliberately empty evidence| postgres",
+		"  registry -->|managed identity pull| dashboard",
+		"  registry --> provision",
+		"  registry --> ingestion",
+		"  vault -->|runtime secrets ONLY| dashboard",
+		"  vault -->|bootstrap secrets ONLY| provision",
+		"  vault -->|runtime URL ONLY| ingestion",
+		"  environment --> monitoring",
 	}
 	return strings.Join(append(lines, agentMCPArchitecture(f)...), "\n")
 }

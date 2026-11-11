@@ -114,6 +114,9 @@ func Solve(ctx context.Context, input Requirements) (Solution, error) {
 	if err := input.Features.validate(); err != nil {
 		return result, err
 	}
+	if input.Features.Deployment == "azure-container-apps" {
+		return solveContainerApps(ctx, input)
+	}
 	if input.Features.Deployment != "azure-functions" {
 		return solveCompact(ctx, input)
 	}

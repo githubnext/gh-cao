@@ -44,7 +44,7 @@ func ExampleFor(deployment string) ([]byte, error) {
 	switch deployment {
 	case "azure-functions":
 		return assets.ReadFile("assets/example.yaml")
-	case "single-vm", "minimal-azure", "full-azure":
+	case "single-vm", "minimal-azure", "full-azure", "azure-container-apps":
 		return assets.ReadFile("assets/examples/" + deployment + ".yaml")
 	default:
 		return nil, fmt.Errorf("unsupported deployment example: %s", deployment)
@@ -52,6 +52,23 @@ func ExampleFor(deployment string) ([]byte, error) {
 }
 
 func deploymentFiles(features Features) (map[string][]byte, error) {
+	if features.Deployment == "azure-container-apps" {
+		files := map[string][]byte{}
+		for name, source := range map[string]string{
+			"main.bicep":         "assets/container-apps/main.bicep",
+			"postgres.bicep":     "assets/compact/postgres.bicep",
+			"provisioning.bicep": "assets/azure-baseline.generated/provisioning.bicep",
+			"ingestion.bicep":    "assets/azure-baseline.generated/ingestion.bicep",
+			"worker-roles.bicep": "assets/azure-baseline.generated/worker-roles.bicep",
+		} {
+			content, err := assets.ReadFile(source)
+			if err != nil {
+				return nil, err
+			}
+			files[name] = content
+		}
+		return files, nil
+	}
 	if features.Deployment == "azure-functions" {
 		baseline, err := baselineFiles()
 		if err != nil {

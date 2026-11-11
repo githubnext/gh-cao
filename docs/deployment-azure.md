@@ -8,6 +8,13 @@ description: Run the Central Agentic Ops dashboard server on Azure Functions wit
 
 ## About the Azure deployment
 
+For an alternative without Azure Functions, its runtime Storage account or the
+Elastic Premium plan, select the [Azure Container Apps topology](deployment-topology.md#azure-container-apps).
+It uses Container Apps Consumption with the hosted Go server, private PostgreSQL,
+Key Vault, ACR and separate provisioning/ingestion jobs. This is a review-only
+topology bundle with separate activation gates, not a new `deploy azure --apply`
+backend; the native deployment command below remains Functions-only.
+
 The Azure deployment runs `cao-dashboard azure-functions` from the `server/` directory as a custom Linux container on Azure Functions. The `azure-functions-runtime` Docker target and `cao-functions` image repository remain unchanged; there is no separate `cao-functions` executable. Bicep sets `appCommandLine: 'azure-functions'` as the arguments to the image's `/app/cao-dashboard` entrypoint. The Functions Core Tools custom-handler configuration uses `defaultExecutablePath: "cao-dashboard"` with `arguments: ["azure-functions"]`. Browsers connect only to the Function App, over HTTPS on the same origin. The Function App:
 
 - Signs users in with GitHub OAuth.

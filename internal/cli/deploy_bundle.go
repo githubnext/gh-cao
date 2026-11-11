@@ -23,7 +23,7 @@ func addDeployBundleCommands(command *cobra.Command) {
 		},
 	}
 	init.Flags().String("out", "requirements.yaml", "New YAML requirements file")
-	init.Flags().String("deployment", "azure-functions", "Example: single-vm, minimal-azure, azure-functions, or full-azure")
+	init.Flags().String("deployment", "azure-functions", "Example: single-vm, minimal-azure, azure-functions, azure-container-apps, or full-azure")
 	generate := &cobra.Command{
 		Use: "generate", Short: "Resolve requirements and write a new deployment folder", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {

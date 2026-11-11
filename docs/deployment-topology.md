@@ -44,6 +44,7 @@ The same input samples are shipped by the command and exercised by Go tests:
 | `single-vm` | One persistent VM; hosted Go + OAuth + direct TLS | On that same VM, socket/loopback only | Existing external Key Vault; no new managed database |
 | `minimal-azure` | One persistent hosted Go VM | Private Azure Flexible Server | Private DNS; existing external Key Vault |
 | `azure-functions` | Existing Functions baseline, unchanged Bicep | Private Azure Flexible Server | ACR, target vault, runtime storage, jobs and monitoring |
+| `azure-container-apps` | One hosted Go replica on Container Apps Consumption, managed HTTPS | Private Azure Flexible Server | ACR, target vault, provisioning/ingestion jobs and Log Analytics; no Functions, runtime Storage or Premium plan |
 | `full-azure` | Functions plus separate archive/receive/dispatch hosts | Private Azure Flexible Server | Collector/backfill, Blob session lake, two separate ADX destinations, gateway, external OTLP |
 
 ```sh
@@ -62,6 +63,53 @@ Existing vaults are external prerequisites, not free or verified resources.
 The compact profiles deliberately support Actions snapshots only. Select the
 Functions profile for optional collection, archive, gateway, ADX and telemetry;
 incompatible combinations fail rather than carrying hidden full-stack services.
+
+### Azure Container Apps
+
+```sh
+gh cao topology init --deployment azure-container-apps --out /private/operator/containers.yaml
+gh cao topology generate --config /private/operator/containers.yaml \
+  --out /private/operator/containers-plan
+gh cao topology check /private/operator/containers-plan
+```
+
+This additive profile replaces the Functions HTTP host, runtime Storage and
+Elastic Premium plan with a Container Apps **Consumption** environment. The
+same Go `serve-hosted` process serves built assets, OAuth, server-side PostgreSQL
+queries and revision events on one origin. Private PostgreSQL, separate
+privileged provisioning and runtime-only ingestion identities, scoped Key Vault
+references and managed-identity ACR pulls remain. Log Analytics receives
+container logs; Application Insights and Redis are not provisioned.
+
+Supply immutable `dashboardImage`, `provisioningImage` and `ingestionImage`
+references in the selected `containerRegistryName`, plus `keyVaultName`,
+`deploymentName`, `location`, OAuth allowlists, administrators and explicit
+retention. Six input-vault secret references are required, including
+`githubWebhookSecret` for the existing hosted runtime. The dashboard image must
+contain the operator's reviewed `cao.json` with `target.module: container`,
+`target.replicas: 1` and `operational-store.backend: postgres`.
+
+The fixed VNet is `10.45.0.0/16`, with separate Container Apps and PostgreSQL
+delegated subnets and private database DNS. `trustedProxyCidrs` must identify
+independently verified private IPv4/loopback ingress peers, not clients; sample
+CIDRs are not live peer evidence. Managed ingress requires HTTPS, forwarding
+privately to HTTP port 8080. No trust bypass or alternate public container port
+is provided. Verify platform proxy behavior and revision-stream reconnection.
+
+The default `runtimeEnabled: false` stages infrastructure and manual job
+definitions without creating the web app. Separately bootstrap ACR and build
+approved images; deploy infrastructure, run provisioning to successful
+completion, then explicitly selected snapshot/empty ingestion. Only then
+regenerate and approve a bundle with `runtimeEnabled: true`. ARM dependencies
+do not execute or verify jobs. Follow the generated runbook for exact outputs,
+OAuth callback registration, deployed digest checks and application readiness;
+TCP platform probes establish only listener availability.
+
+This profile currently supports public OAuth ingress and Actions snapshots only.
+Unsupported optional features fail closed. It does not change `gh cao deploy
+azure --apply`, which remains Functions-only. Consumption with one minimum
+replica, ACR, Key Vault, PostgreSQL and logs still incur costs; this is neither
+scale-to-zero nor production acceptance.
 
 ## Architecture rule checker
 
@@ -145,7 +193,7 @@ by the diagrams. MCP grants no admission, token-broker, dispatch or write author
 version: 1
 backend: azure
 features:
-  deployment: azure-functions # single-vm | minimal-azure | azure-functions
+  deployment: azure-functions # single-vm | minimal-azure | azure-functions | azure-container-apps
   acquisition: actions # actions | collector, mutually exclusive
   ingress: public # public OAuth | private, external connectivity required
   analytics: none # none | adx, a paid destination, not an exporter
@@ -227,8 +275,9 @@ has been removed; use `deploy init`, `deploy generate` and `deploy check`.
 After changing `server/azure/`, run
 `go generate ./internal/topology`. A parity test rejects stale embedded sources;
 the generator never maintains a second baseline resource implementation.
-Asset regeneration also compiles the compact profile's ARM parameter contract,
+Asset regeneration also compiles the compact and Container Apps ARM parameter contracts,
 so it requires the official Bicep CLI on `PATH`. `TestDeploymentSamples` compiles
-all four shipped samples with the actual compiler and checks VM/database/Functions
-resource counts. Missing Bicep fails those tests; CI installs a checksum-pinned
+all five shipped samples with the actual compiler and checks VM/database/Functions/
+Container Apps resource definitions (including activation-gated definitions).
+Missing Bicep fails those tests; CI installs a checksum-pinned
 official compiler. Static rule and bad-configuration regressions run separately.
