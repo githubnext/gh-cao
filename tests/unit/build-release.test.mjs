@@ -13,6 +13,13 @@ const platforms = [
   "gh-cao-darwin-amd64", "gh-cao-darwin-arm64", "gh-cao-linux-amd64", "gh-cao-linux-arm64",
   "gh-cao-windows-amd64.exe", "gh-cao-windows-arm64.exe",
 ];
+const extraDashboardFiles = {
+  "assets/app.js": "export default 'dashboard';",
+  "assets/app.css": "body { color: green; }",
+  "assets/.hidden.txt": "hidden asset",
+  "assets/_internal.txt": "underscore asset",
+  "dashboard-pages/repositories.json": '{"view":"repositories"}',
+};
 
 function fixture(t) {
   const directory = mkdtempSync(join(tmpdir(), "cao-release-build-"));
@@ -37,6 +44,10 @@ for (const name of ["dashboard.json", "src/agent/queries.generated.json", "src/a
   "src/agent/mcp-contract.json", "src/data/queries/database.json"]) {
   mkdirSync(join(output, name, ".."), { recursive: true });
   if (name !== process.env.RELEASE_BUILD_OMIT_RESOURCE) writeFileSync(join(output, name), "{}");
+}
+for (const [name, content] of Object.entries(${JSON.stringify(extraDashboardFiles)})) {
+  mkdirSync(join(output, name, ".."), { recursive: true });
+  writeFileSync(join(output, name), content);
 }
 `, { mode: 0o755 });
   const log = join(directory, "go.jsonl");
@@ -67,6 +78,9 @@ test("release builder embeds the exact tag in every platform binary and seals ch
   const result = run(["v1.2.3", output]);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(readFileSync(join(dirname(log), "server/internal/dashboardassets/resources/site/index.html"), "utf8"), "<html></html>");
+  for (const [name, content] of Object.entries(extraDashboardFiles)) {
+    assert.equal(readFileSync(join(dirname(log), "server/internal/dashboardassets/resources/site", name), "utf8"), content);
+  }
   assert.deepEqual(readdirSync(output).sort(), [...platforms, "checksums.txt"].sort());
   const builds = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line));
   assert.equal(builds.length, platforms.length * 2);
