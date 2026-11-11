@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"log"
 	"log/slog"
 	"net"
@@ -37,6 +38,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/adxingest"
 	"github.com/githubnext/gh-cao/server/internal/adxtrace"
 	"github.com/githubnext/gh-cao/server/internal/audit"
+	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
@@ -63,7 +65,7 @@ var localAccessBootstrap = template.Must(template.New("local-access-bootstrap").
 
 type Config struct {
 	Listen                 string
-	SiteDirectory          string
+	SiteDirectory          string // Empty selects embedded dashboard resources.
 	CertFile               string
 	KeyFile                string
 	AccessToken            string
@@ -178,6 +180,27 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	if config.Database == nil || isPostgres && postgresDatabase == nil || localSQLite && sqliteDatabase == nil {
 		return nil, errors.New("dashboard database is required")
 	}
+	if config.SiteDirectory == "" {
+		if config.DatabaseQueriesPath == "" {
+			config.DatabaseQueriesPath = dashboardassets.Path("", dashboardassets.DatabaseQueries)
+		}
+		if config.DashboardQueriesPath == "" {
+			config.DashboardQueriesPath = dashboardassets.Path("", dashboardassets.DashboardQueries)
+		}
+		if config.AgentCatalogPath == "" {
+			config.AgentCatalogPath = dashboardassets.Path("", dashboardassets.AgentCatalog)
+		}
+		if config.MCPContractPath == "" {
+			config.MCPContractPath = dashboardassets.Path("", dashboardassets.MCPContract)
+		}
+		if config.DashboardQueries == nil {
+			var err error
+			config.DashboardQueries, err = ParseDashboardQueries(config.DashboardQueriesPath)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 	adxConfig, err := resolveADXConfig(config)
 	if err != nil {
 		return nil, err
@@ -199,7 +222,7 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	}
 	var databaseQueries []query.Definition
 	if config.DatabaseQueriesPath != "" {
-		content, err := os.ReadFile(config.DatabaseQueriesPath)
+		content, err := dashboardassets.ReadFile(config.DatabaseQueriesPath)
 		if err != nil {
 			return nil, fmt.Errorf("read database queries: %w", err)
 		}
@@ -271,12 +294,13 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	if err != nil {
 		return nil, err
 	}
-	info, err := os.Stat(config.SiteDirectory)
-	if err != nil || !info.IsDir() {
-		return nil, errors.New("site directory must exist and contain the built dashboard")
+	_, closeSite, err := openSite(config.SiteDirectory)
+	if err != nil {
+		return nil, fmt.Errorf("site directory must exist and contain the built dashboard: %w", err)
 	}
+	closeSite()
 	if profile.Authentication == HostAuthenticationOAuth {
-		if err := validateHostedSite(config.SiteDirectory); err != nil {
+		if err := ValidateSite(config.SiteDirectory); err != nil {
 			return nil, err
 		}
 	}
@@ -2021,19 +2045,21 @@ func (a *App) static(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	clean := strings.TrimPrefix(request.URL.Path, "/")
+	trailingSlash := strings.HasSuffix(clean, "/")
+	clean = strings.TrimSuffix(clean, "/")
 	if clean == "" {
 		clean = "index.html"
 	}
-	if !filepath.IsLocal(clean) {
+	if !fs.ValidPath(clean) || !filepath.IsLocal(clean) {
 		http.NotFound(response, request)
 		return
 	}
-	root, err := os.OpenRoot(a.config.SiteDirectory)
+	root, closeSite, err := openSite(a.config.SiteDirectory)
 	if err != nil {
 		http.NotFound(response, request)
 		return
 	}
-	defer func() { _ = root.Close() }()
+	defer closeSite()
 	file, err := root.Open(clean)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) && a.config.Canvas == nil {
@@ -2049,6 +2075,10 @@ func (a *App) static(response http.ResponseWriter, request *http.Request) {
 		http.NotFound(response, request)
 		return
 	}
+	if trailingSlash && !info.IsDir() {
+		http.NotFound(response, request)
+		return
+	}
 	if info.IsDir() || filepath.Base(clean) == "index.html" {
 		a.serveIndex(response, request, "")
 		return
@@ -2059,17 +2089,22 @@ func (a *App) static(response http.ResponseWriter, request *http.Request) {
 			response.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		}
 	}
-	http.ServeContent(response, request, info.Name(), info.ModTime(), file)
+	seeker, ok := file.(io.ReadSeeker)
+	if !ok {
+		writeError(request.Context(), response, http.StatusInternalServerError, "dashboard asset is not seekable")
+		return
+	}
+	http.ServeContent(response, request, info.Name(), info.ModTime(), seeker)
 }
 
 func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, accessToken string) {
-	root, err := os.OpenRoot(a.config.SiteDirectory)
+	root, closeSite, err := openSite(a.config.SiteDirectory)
 	if err != nil {
 		http.Error(response, "not found", http.StatusNotFound)
 		return
 	}
-	defer func() { _ = root.Close() }()
-	content, err := root.ReadFile("index.html")
+	defer closeSite()
+	content, err := fs.ReadFile(root, "index.html")
 	if err != nil {
 		http.Error(response, "not found", http.StatusNotFound)
 		return
@@ -2325,7 +2360,7 @@ func ParseDashboardQueries(path string) ([]query.Definition, error) {
 		return nil, nil
 	}
 	// #nosec G304 -- the operator explicitly configures the local dashboard query path.
-	content, err := os.ReadFile(path)
+	content, err := dashboardassets.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

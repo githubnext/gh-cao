@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/githubnext/gh-cao/server/internal/audit"
+	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
@@ -82,6 +83,12 @@ func newHostedAppWithPolicy(
 	mcpEnabled bool,
 	agentCatalogPath, mcpContractPath string,
 ) (*App, error) {
+	if dashboardQueriesPath == "" {
+		dashboardQueriesPath = dashboardassets.Path(siteDirectory, dashboardassets.DashboardQueries)
+	}
+	if databaseQueriesPath == "" {
+		databaseQueriesPath = dashboardassets.Path(siteDirectory, dashboardassets.DatabaseQueries)
+	}
 	definitions, err := ParseDashboardQueries(dashboardQueriesPath)
 	if err != nil {
 		return nil, err

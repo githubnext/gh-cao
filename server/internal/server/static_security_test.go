@@ -18,6 +18,7 @@ func TestStaticFilesStayInsideSiteRoot(t *testing.T) {
 	for name, content := range map[string]string{
 		filepath.Join(site, "index.html"):   "<head></head><body>dashboard</body>",
 		filepath.Join(site, "app.js"):       "export default 1;",
+		filepath.Join(site, "app.css"):      "body { color: red; }",
 		filepath.Join(outside, "secret.js"): "private-file-content",
 	} {
 		if err := os.WriteFile(name, []byte(content), 0o600); err != nil {
@@ -42,9 +43,13 @@ func TestStaticFilesStayInsideSiteRoot(t *testing.T) {
 		{"/", http.StatusOK, "dashboard"},
 		{"/index.html", http.StatusOK, "dashboard"},
 		{"/missing-route", http.StatusOK, "dashboard"},
+		{"/missing-route/", http.StatusOK, "dashboard"},
 		{"/app.js", http.StatusOK, "export default 1;"},
+		{"/app.css", http.StatusOK, "body { color: red; }"},
+		{"/app.js/", http.StatusNotFound, ""},
 		{"/alias.js", http.StatusOK, "export default 1;"},
 		{"/../secret.js", http.StatusNotFound, ""},
+		{"/../secret.js/", http.StatusNotFound, ""},
 		{"/%2e%2e/secret.js", http.StatusNotFound, ""},
 		{"//" + strings.TrimPrefix(filepath.Join(outside, "secret.js"), "/"), http.StatusNotFound, ""},
 		{"/escaped.js", http.StatusNotFound, ""},
@@ -78,6 +83,14 @@ func TestStaticFilesStayInsideSiteRoot(t *testing.T) {
 	app.static(response, httptest.NewRequestWithContext(t.Context(), http.MethodHead, "/app.js", nil))
 	if response.Code != http.StatusOK || response.Body.Len() != 0 {
 		t.Fatal("static handler did not preserve HEAD serving")
+	}
+	if err := os.WriteFile(filepath.Join(site, "app.js"), []byte("export default 2;"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	response = httptest.NewRecorder()
+	app.static(response, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/app.js", nil))
+	if response.Body.String() != "export default 2;" {
+		t.Fatal("disk-backed serving did not observe an edited asset")
 	}
 }
 

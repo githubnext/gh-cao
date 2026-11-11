@@ -167,6 +167,7 @@ setInterval(() => {}, 1000);
       assert.equal(settings.CAO_GITHUB_CLIENT_SECRET, credentials.CAO_GITHUB_CLIENT_SECRET);
       assert.equal(settings.CAO_AZURE_LOCAL_SIMULATION, "1");
       assert.equal(settings.CAO_AZURE_ALLOWED_HOSTS, "127.0.0.1,localhost");
+      assert.equal(settings.CAO_AZURE_SITE_DIRECTORY, join(state, "function-app/site"));
       assert.match(await readFile(join(state, "function-app/site/index.html"), "utf8"), /built dashboard/);
       assert.equal(JSON.parse(await readFile(join(state, "runtime.json"), "utf8")).profile, "github");
       assert.equal(JSON.parse(await readFile(join(state, "runtime.json"), "utf8")).baseUrl, `http://localhost:${port}`);

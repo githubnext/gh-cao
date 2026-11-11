@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"os"
 	"slices"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel/codes"
 
+	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/query"
@@ -175,7 +175,7 @@ func readJSONFile[T any](path string) (T, error) {
 		return value, errors.New("path is required")
 	}
 	// #nosec G304 -- these paths are explicit operator configuration.
-	data, err := os.ReadFile(path)
+	data, err := dashboardassets.ReadFile(path)
 	if err != nil {
 		return value, err
 	}

@@ -86,16 +86,17 @@ func TestServeWithExistingPostgresOperationalTables(t *testing.T) {
 	}
 }
 
-func TestServeHostedLoadsMaterializedDashboardQueriesByDefault(t *testing.T) {
+func TestServeHostedLoadsMaterializedDashboardQueriesFromSelectedSite(t *testing.T) {
 	cmd := newServeHostedCommand()
+	resolveServeResources(cmd, "../../../dashboard/site")
 	path, err := cmd.Flags().GetString("dashboard-queries")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if path != "../dashboard/site/src/agent/queries.generated.json" {
+	if path != filepath.FromSlash("../../../dashboard/site/src/agent/queries.generated.json") {
 		t.Fatalf("unexpected dashboard queries default: %q", path)
 	}
-	definitions, err := server.ParseDashboardQueries("../../" + path)
+	definitions, err := server.ParseDashboardQueries(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,10 +104,10 @@ func TestServeHostedLoadsMaterializedDashboardQueriesByDefault(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if catalogPath != "../dashboard/site/src/agent/catalog.generated.json" {
+	if catalogPath != filepath.FromSlash("../../../dashboard/site/src/agent/catalog.generated.json") {
 		t.Fatalf("agent catalog default = %q", catalogPath)
 	}
-	content, err := os.ReadFile("../../../dashboard/site/src/agent/catalog.generated.json")
+	content, err := os.ReadFile(catalogPath) // #nosec G304 -- Fixed test-owned dashboard catalog path.
 	if err != nil {
 		t.Fatal(err)
 	}

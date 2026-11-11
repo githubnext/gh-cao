@@ -950,6 +950,13 @@ reject a missing, unreadable, or empty built `index.html`. Dashboard entry
 responses SHALL select the `server-http` backend and SHALL NOT be cached as
 static HTML. Hosted service failures SHALL NOT fall back to browser shard
 ingestion, IndexedDB query execution, or the separate Pages deployment.
+Self-contained server builds SHALL embed the complete built dashboard and its
+query/catalog resources. Serving SHALL select embedded resources by default;
+an explicitly selected disk site SHALL use that site's resources without
+falling back to embedded files on errors. Disk-backed asset serving SHALL
+observe file edits without recompiling the executable. Both modes SHALL retain
+the same authentication, bootstrap, routing, and query execution boundaries;
+embedding dashboard resources SHALL NOT embed credentials or grant authority.
 
 When GitHub OAuth is configured, the server SHALL inject the
 `globalThis.__DASHBOARD_ADMIN__ = true` capability into a dashboard entry

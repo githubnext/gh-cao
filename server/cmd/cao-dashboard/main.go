@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -576,20 +575,21 @@ func newServeHostedCommand() *cobra.Command {
 	operationalStore := cmd.Flags().String("operational-store", "", "require redis, memory, or postgres to match the reviewed host policy; does not override policy")
 	cert := cmd.Flags().String("cert", "", "TLS certificate PEM file required for a non-loopback listener")
 	key := cmd.Flags().String("key", "", "TLS private key PEM file required for a non-loopback listener")
-	siteDirectory := cmd.Flags().String("site", "../dashboard/site/dist", "built dashboard site directory")
-	databaseQueries := cmd.Flags().String("database-queries", "../dashboard/site/src/data/queries/database.json", "canonical database projection queries")
-	dashboardQueries := cmd.Flags().String("dashboard-queries", "../dashboard/site/src/agent/queries.generated.json", "materialized dashboard query definitions")
-	agentCatalog := cmd.Flags().String("agent-catalog", "../dashboard/site/src/agent/catalog.generated.json", "materialized read-only agent catalog")
-	mcpContract := cmd.Flags().String("mcp-contract", "../dashboard/site/src/agent/mcp-contract.json", "shared MCP tool contract")
+	siteDirectory := cmd.Flags().String("site", "", "serve a built dashboard directory from disk instead of embedded resources")
+	databaseQueries := cmd.Flags().String("database-queries", "", "canonical database projection queries (default: selected dashboard resources)")
+	dashboardQueries := cmd.Flags().String("dashboard-queries", "", "materialized dashboard query definitions (default: selected dashboard resources)")
+	agentCatalog := cmd.Flags().String("agent-catalog", "", "materialized read-only agent catalog (default: selected dashboard resources)")
+	mcpContract := cmd.Flags().String("mcp-contract", "", "shared MCP tool contract (default: selected dashboard resources)")
 	mcpEnabled := cmd.Flags().Bool("mcp-enabled", false, "serve the read-only MCP endpoint at /mcp")
 	experimental := cmd.Flags().Bool("experimental", false, "enable experimental server features")
 	hostedCLIActions := cmd.Flags().Bool("hosted-cli-actions", false,
 		"accept CLI action commands from authorized administrators into the hosted queue drained by execute-cli")
-	cliActionsCatalog := cmd.Flags().String("cli-actions-catalog", "../dashboard/site/dashboard.json",
+	cliActionsCatalog := cmd.Flags().String("cli-actions-catalog", "",
 		"dashboard document declaring the CLI actions accepted by --hosted-cli-actions")
 	hostedCLISQLite := cmd.Flags().String("hosted-cli-sqlite", "",
 		"local debugging only: SQLite file holding the hosted CLI queue and audit table, shared with execute-cli --sqlite; requires --experimental, --hosted-cli-actions, and a loopback --listen")
 	cmd.RunE = func(*cobra.Command, []string) error {
+		resolveServeResources(cmd, *siteDirectory)
 		if *hostedCLIActions && !*experimental {
 			return errors.New("--hosted-cli-actions requires --experimental")
 		}
@@ -683,16 +683,16 @@ func newServeCommand() *cobra.Command {
 	downloadURL := cmd.Flags().String("download-sqlite", "", "refresh the SQLite cache from a Pages site even if it exists; optional URL defaults to DASHBOARD_DATA_URL or CAO Pages")
 	cmd.Flags().Lookup("download-sqlite").NoOptDefVal = dataURLDefault
 	redisNamespace, namespaceErr := registerRedisNamespaceFlag(cmd, "Redis key and index namespace")
-	siteDirectory := cmd.Flags().String("site", "../dashboard/site/dist", "built dashboard site directory")
+	siteDirectory := cmd.Flags().String("site", "", "serve a built dashboard directory from disk instead of embedded resources")
 	listen := cmd.Flags().String("listen", "127.0.0.1:8443", "loopback HTTP listen address; HTTPS when --cert and --key are set")
 	cert := cmd.Flags().String("cert", "", "optional TLS certificate PEM file")
 	key := cmd.Flags().String("key", "", "optional TLS private key PEM file")
 	accessToken := cmd.Flags().String("access-token", "", "dashboard access token (generated when omitted)")
 	source := cmd.Flags().String("source", "", "deployed dashboard directory to ingest before serving")
-	databaseQueries := cmd.Flags().String("database-queries", "../dashboard/site/src/data/queries/database.json", "canonical database projection queries")
-	dashboardQueries := cmd.Flags().String("dashboard-queries", "../dashboard/site/src/agent/queries.generated.json", "materialized dashboard query definitions")
-	agentCatalog := cmd.Flags().String("agent-catalog", "../dashboard/site/src/agent/catalog.generated.json", "materialized read-only agent catalog")
-	mcpContract := cmd.Flags().String("mcp-contract", "../dashboard/site/src/agent/mcp-contract.json", "shared MCP tool contract")
+	databaseQueries := cmd.Flags().String("database-queries", "", "canonical database projection queries (default: selected dashboard resources)")
+	dashboardQueries := cmd.Flags().String("dashboard-queries", "", "materialized dashboard query definitions (default: selected dashboard resources)")
+	agentCatalog := cmd.Flags().String("agent-catalog", "", "materialized read-only agent catalog (default: selected dashboard resources)")
+	mcpContract := cmd.Flags().String("mcp-contract", "", "shared MCP tool contract (default: selected dashboard resources)")
 	mcpEnabled := cmd.Flags().Bool("mcp-enabled", false, "serve the read-only MCP endpoint at /mcp")
 	canvasConfigPath := cmd.Flags().String("canvas-config", "", "private local Copilot adapter configuration; stdin owns the host lifetime")
 	exitOnStdinClose := cmd.Flags().Bool("exit-on-stdin-close", false, "stop local SQLite serving when the owning CLI closes stdin")
@@ -709,6 +709,7 @@ func newServeCommand() *cobra.Command {
 		return cobra.NoArgs(cmd, args)
 	}
 	cmd.RunE = func(_ *cobra.Command, args []string) error {
+		resolveServeResources(cmd, *siteDirectory)
 		if namespaceErr != nil {
 			return namespaceErr
 		}
@@ -827,11 +828,8 @@ func newServeCommand() *cobra.Command {
 				return err
 			}
 			if downloadSnapshot {
-				if info, err := os.Stat(config.SiteDirectory); err != nil || !info.IsDir() {
-					return errors.New("build the dashboard before downloading: npm --prefix dashboard/site run build (from the repository root), or select an existing build with --site")
-				}
-				if _, err := os.Stat(filepath.Join(config.SiteDirectory, "index.html")); err != nil {
-					return errors.New("--site must contain the built dashboard index.html")
+				if err := server.ValidateSite(config.SiteDirectory); err != nil {
+					return fmt.Errorf("build the dashboard before downloading, or select an existing build with --site: %w", err)
 				}
 				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Downloading and verifying the deployed SQLite snapshot...")
 				if err := downloadSQLite(ctx, snapshotURL, snapshotPath); err != nil {

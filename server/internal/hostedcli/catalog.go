@@ -13,11 +13,11 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 	"unicode/utf8"
 
+	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
@@ -73,7 +73,7 @@ type Catalog struct {
 // LoadCatalog reads the declared CLI actions from a dashboard document.
 func LoadCatalog(path string) (*Catalog, error) {
 	// #nosec G304 -- the operator configures the dashboard document path.
-	content, err := os.ReadFile(path)
+	content, err := dashboardassets.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read dashboard CLI actions: %w", err)
 	}

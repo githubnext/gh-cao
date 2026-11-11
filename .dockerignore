@@ -5,6 +5,7 @@
 **/.DS_Store
 **/node_modules
 **/dist
+server/internal/dashboardassets/resources/site
 **/test-results
 **/.cache
 **/*.lock.yml
