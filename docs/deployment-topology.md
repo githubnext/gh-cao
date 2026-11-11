@@ -215,7 +215,7 @@ unverified; a valid template is not live readiness, deployment acceptance,
 compliance or authorization.
 
 Keep the generating CLI release when checking older bundles. The CLI embeds a
-deterministic compressed snapshot of the canonical Bicep sources and ARM
+deterministic, reviewable text snapshots of the canonical Bicep sources and ARM
 parameter contract for offline use. After changing `server/azure/`, run
 `go generate ./internal/topology`. A parity test rejects stale embedded sources;
 the generator never maintains a second baseline resource implementation.

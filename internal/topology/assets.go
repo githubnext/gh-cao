@@ -2,32 +2,31 @@
 package topology
 
 import (
-	"bytes"
-	"compress/gzip"
 	"embed"
-	"encoding/json"
 	"fmt"
-	"io"
 )
 
 //go:generate go run ./cmd/generate-assets
 
-//go:embed azure-baseline.generated.json.gz assets
+//go:embed assets
 var assets embed.FS
 
 func baselineFiles() (map[string][]byte, error) {
-	content, err := assets.ReadFile("azure-baseline.generated.json.gz")
+	const directory = "assets/azure-baseline.generated"
+	entries, err := assets.ReadDir(directory)
 	if err != nil {
 		return nil, err
 	}
-	reader, err := gzip.NewReader(bytes.NewReader(content))
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = reader.Close() }()
-	var files map[string][]byte
-	if err := json.NewDecoder(io.LimitReader(reader, 4<<20)).Decode(&files); err != nil {
-		return nil, fmt.Errorf("decode embedded Azure baseline: %w", err)
+	files := map[string][]byte{}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			return nil, fmt.Errorf("unexpected directory in generated Azure baseline: %s", entry.Name())
+		}
+		content, err := assets.ReadFile(directory + "/" + entry.Name())
+		if err != nil {
+			return nil, err
+		}
+		files[entry.Name()] = content
 	}
 	return files, nil
 }

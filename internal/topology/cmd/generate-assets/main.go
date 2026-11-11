@@ -2,8 +2,6 @@
 package main
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -34,30 +32,37 @@ func generate() error {
 		return fmt.Errorf("no canonical Azure Bicep sources found")
 	}
 	names = append(names, filepath.Join(directory, "main.json"))
-	files := map[string][]byte{}
+	destination := filepath.Join("assets", "azure-baseline.generated")
+	if err := os.MkdirAll(destination, 0o755); err != nil {
+		return err
+	}
+	generated := map[string]bool{}
 	for _, name := range names {
 		content, err := os.ReadFile(name)
 		if err != nil {
 			return err
 		}
-		files[filepath.Base(name)] = content
+		base := filepath.Base(name)
+		if err := os.WriteFile(filepath.Join(destination, base), content, 0o644); err != nil {
+			return err
+		}
+		generated[base] = true
 	}
-	content, err := json.Marshal(files)
+	entries, err := os.ReadDir(destination)
 	if err != nil {
 		return err
 	}
-	var compressed bytes.Buffer
-	writer, err := gzip.NewWriterLevel(&compressed, gzip.BestCompression)
-	if err != nil {
-		return err
+	for _, entry := range entries {
+		if !generated[entry.Name()] {
+			if entry.IsDir() {
+				return fmt.Errorf("unexpected directory in generated baseline: %s", entry.Name())
+			}
+			if err := os.Remove(filepath.Join(destination, entry.Name())); err != nil {
+				return err
+			}
+		}
 	}
-	if _, err := writer.Write(content); err != nil {
-		return err
-	}
-	if err := writer.Close(); err != nil {
-		return err
-	}
-	return os.WriteFile("azure-baseline.generated.json.gz", compressed.Bytes(), 0o644)
+	return nil
 }
 
 func compileCompact() (err error) {
