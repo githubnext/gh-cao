@@ -1,0 +1,18 @@
+#cloud-config
+package_update: true
+packages:
+  - docker.io
+  - python3
+  - postgresql-16
+write_files:
+  - path: /opt/cao/ACTIVATION-REQUIRED
+    owner: root:root
+    permissions: '0600'
+    content: |
+      Single VM: PostgreSQL package installed, CAO runtime NOT activated.
+      Keep PostgreSQL on Unix socket/loopback only. No public database port.
+      Identify and mount the persistent data disk before storing CAO data.
+      Owner-provision distinct database roles/schemas before runtime startup.
+      Complete README.md and TODO.md from the generated deployment bundle.
+runcmd:
+  - [systemctl, enable, --now, docker]

@@ -1,0 +1,55 @@
+# Synthetic compile-only example. Neither inventory, Apps, vault entries nor
+# OTLP destination are provisioned/approved by this file.
+version: 1
+backend: azure
+features:
+  deployment: azure-functions
+  acquisition: collector
+  ingress: public
+  analytics: adx
+  telemetry: otlp
+  sessionDataLake: true
+  webhookGateway: true
+azure:
+  parameters:
+    location: eastus
+    functionAppName: example-full
+    storageAccountName: examplefullsa
+    containerRegistryName: examplefullacr
+    keyVaultName: example-full-kv
+    functionImageTag: reviewed-image-tag
+    githubClientId: example-client-id
+    githubAllowedOrganizations: [example-org]
+    githubAdminUsers: [example-admin]
+    postgresRunRetentionDays: 45
+    collectorImage: examplefullacr.azurecr.io/cao-collector@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    collectorGithubAppId: "123456"
+    collectorControlRepository: example-org/control
+    collectorNativeInventoryDigest: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    collectorWorkerReplicas: 1
+    otlpEndpoint: https://otel.example.com
+  secretVaultId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/example-secrets/providers/Microsoft.KeyVault/vaults/example-secrets
+  secrets:
+    githubClientSecret: github-client-secret
+    sessionSecret: session-secret
+    postgresAdministratorPassword: postgres-admin-password
+    postgresOwnerPassword: postgres-owner-password
+    postgresRuntimePassword: postgres-runtime-password
+    collectorPrivateKey: collection-private-key
+    githubWebhookSecret: collection-webhook-secret
+    otlpHeaders: otlp-headers
+    archiveOauthClientSecret: archive-oauth-secret
+    archiveSessionSecret: archive-session-secret
+    archiveEntraClientSecret: archive-entra-secret
+    archiveTlsCertificate: archive-tls-certificate
+    archiveTlsPrivateKey: archive-tls-key
+    gatewayWebhookSecret: gateway-webhook-secret
+    gatewayReceivePrivateKey: gateway-receive-key
+    gatewayDispatchPrivateKey: gateway-dispatch-key
+    gatewayTlsCertificate: gateway-tls-certificate
+    gatewayTlsPrivateKey: gateway-tls-key
+  hosts:
+    sshPublicKey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDda2wZf5ue5CdHLV3NAf4Piom8sB3l4t2nNJ1Sp0U7O example-only
+    archiveAllowedSourceCidrs: [203.0.113.0/24]
+    archiveRepositories: [example-org/example-repo]
+    gatewayAllowedSourceCidrs: [192.0.2.0/24]
