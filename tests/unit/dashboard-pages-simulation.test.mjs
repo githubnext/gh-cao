@@ -17,6 +17,104 @@ import { isExpiredCanonicalRecord } from "../../dashboard/site/src/data/storage/
 
 const root = path.resolve(".");
 
+test("enterprise distributions are reproducible, seasonal and uneven rather than one run per workflow per day", () => {
+  for (const date of ["2040-06-15T12:00:00Z", "2040-06-17T23:59:00Z", "2040-06-20T00:00:00Z"]) {
+    const now = Date.parse(date);
+    const sample = enterpriseSample(now);
+    assert.deepEqual(enterpriseSample(now), sample);
+    const runs = sample.records.filter(record => record.kind === "run").map(record => record.run);
+    assert.equal(runs.length, sample.runs);
+    assert.ok(runs.length > 300 && runs.length < 1500, "bounded but nontrivial population");
+    const repositories = new Map();
+    const days = new Map();
+    for (const run of runs) {
+      repositories.set(run.repository, (repositories.get(run.repository) ?? 0) + 1);
+      const date = run.started_at.slice(0, 10);
+      days.set(date, (days.get(date) ?? 0) + 1);
+    }
+    assert.equal(repositories.size, 12);
+    assert.ok(Math.max(...repositories.values()) > Math.min(...repositories.values()) * 3);
+    const dailyMean = weekend => {
+      const counts = [...days].filter(([date]) => date !== new Date(now).toISOString().slice(0, 10)
+        && [0, 6].includes(new Date(date).getUTCDay()) === weekend).map(([, count]) => count);
+      return counts.reduce((sum, count) => sum + count, 0) / counts.length;
+    };
+    assert.ok(dailyMean(true) < dailyMean(false) * 0.6, "weekends are quieter");
+    assert.equal(new Set(runs.map(run => run.run_id)).size, runs.length);
+  }
+});
+
+test("enterprise workloads have long tails, correlated costs and independently assigned experiment variants", () => {
+  const sample = enterpriseSample(Date.parse("2040-06-15T12:00:00Z"));
+  const runs = sample.records.filter(record => record.kind === "run").map(record => record.run);
+  const percentile = (values, fraction) => values.toSorted((a, b) => a - b)[Math.floor(values.length * fraction)];
+  const duration = run => parseFloat(run.duration);
+  const cost = run => run.token_usage_summary.total_aic;
+  for (const measure of [duration, cost, run => run.token_usage_summary.total_input_tokens]) {
+    const values = runs.map(measure);
+    assert.ok(percentile(values, 0.95) > percentile(values, 0.5) * 3, "heavy right tail");
+  }
+  const cheap = runs.filter(run => cost(run) <= percentile(runs.map(cost), 0.25));
+  const expensive = runs.filter(run => cost(run) >= percentile(runs.map(cost), 0.75));
+  assert.ok(percentile(expensive.map(duration), 0.5) > percentile(cheap.map(duration), 0.5) * 2);
+  const modelCounts = [...new Set(runs.map(run => run.model))].map(model => runs.filter(run => run.model === model).length);
+  assert.equal(modelCounts.length, 3);
+  assert.ok(Math.max(...modelCounts) > Math.min(...modelCounts) * 1.1, "model mix is not round robin");
+  const variants = new Map();
+  for (const run of runs) {
+    const date = run.started_at.slice(0, 10);
+    if (!variants.has(date)) variants.set(date, new Set());
+    variants.get(date).add(run.experiments.assignments["review-strategy"]);
+  }
+  assert.ok([...variants.values()].every(values => values.size === 2), "variant is not determined by day");
+});
+
+test("probabilistic outcomes preserve timestamps, output eligibility and delayed Value acceptance", () => {
+  const now = Date.parse("2040-06-15T12:00:00Z");
+  const sample = enterpriseSample(now);
+  const runs = sample.records.filter(record => record.kind === "run").map(record => record.run);
+  assert.deepEqual(new Set(runs.map(run => run.classification)),
+    new Set(["success", "failure", "timed_out", "cancelled", "action_required", "pending"]));
+  for (const run of runs) {
+    assert.ok(Date.parse(run.started_at) <= Date.parse(run.updated_at));
+    assert.ok(Date.parse(run.updated_at) <= now);
+    assert.equal(run.safe_items_count, run.safe_outputs.length);
+    if (run.classification !== "success") assert.equal(run.safe_outputs.length, 0);
+    assert.ok(run.friction.cost.aic <= run.token_usage_summary.total_aic);
+    const grader = run.graders.results[0];
+    if (grader) assert.equal(grader.passed, grader.value >= grader.threshold);
+    for (const output of run.safe_outputs) {
+      const closedAt = output.github_issue_status.closed_at;
+      if (closedAt) {
+        assert.ok(Date.parse(closedAt) > Date.parse(output.timestamp));
+        assert.ok(Date.parse(closedAt) <= now);
+      }
+    }
+  }
+  const packets = sample.records.filter(record => record.kind === "operational_value_evidence")
+    .map(record => record.operational_value_evidence);
+  const delays = new Set();
+  const outputStates = new Set();
+  const changes = [];
+  for (const packet of packets) {
+    const facts = packet.facts;
+    const outputs = new Map(facts.filter(fact => fact["fact-kind"] === "output").map(fact => [fact["fact-id"], fact]));
+    for (const output of outputs.values()) outputStates.add(output.state);
+    for (const fact of facts.filter(fact => fact["fact-kind"] === "implementation")) {
+      const link = facts.find(link => link["fact-kind"] === "output-implementation" && link["related-id"] === fact["fact-id"]);
+      const delay = Date.parse(fact["accepted-at"]) - Date.parse(outputs.get(link["parent-id"]).at);
+      assert.ok(delay > 0);
+      assert.ok(Date.parse(fact["accepted-at"]) <= now);
+      delays.add(Math.round(delay / 3600_000));
+    }
+    const snapshots = facts.filter(fact => fact["fact-kind"] === "snapshot");
+    for (let index = 1; index < snapshots.length; index++) changes.push(snapshots[index].value - snapshots[index - 1].value);
+  }
+  assert.deepEqual(outputStates, new Set(["open", "closed"]));
+  assert.ok(delays.size > 20);
+  assert.ok(changes.some(change => change > 0) && changes.some(change => change < 0));
+});
+
 test("rebuilding the enterprise sample does not duplicate daily Value observations", async () => {
   const indexedDB = new IDBFactory();
   const now = Date.parse("2040-06-15T12:00:00.000Z");
@@ -103,7 +201,7 @@ test("sample-only build produces verified canonical enterprise data and no opera
   }
   assert.deepEqual(relationshipErrors(records), []);
   const runs = await readCollection(indexedDB, "runs");
-  assert.equal(runs.length, 672);
+  assert.equal(runs.length, marker.runs);
   assert.equal((await readCollection(indexedDB, "repositories")).length, 12);
   assert.equal((await readCollection(indexedDB, "workflows")).length, 48);
   for (const collection of ["campaigns", "marketplacePackages", "domains", "tools", "skills", "friction",
