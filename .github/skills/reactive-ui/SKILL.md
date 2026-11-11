@@ -15,7 +15,7 @@ Build dashboard experiences declaratively first. Use JavaScript only for interac
 2. Express data shaping under `dashboard.queries`; keep joins, projections, aggregates, filters, ordering, and computed fields out of view-specific JavaScript.
 3. Prefer an existing Dashboard Language mark, encoding, layout, section, route, control, or named UI element.
 4. Extend a shared declarative renderer when the missing behavior applies to an existing mark.
-5. Add a named UI element only when the experience requires reusable interaction or presentation that the declarative vocabulary cannot represent. Record a concise `intent` and declare every source it consumes.
+5. Add a named UI element only when the experience requires reusable interaction or presentation that the declarative vocabulary cannot represent. Select it from a `mark: element` view that lists every consumed source in `data.sources`. `intent` is a page key, not a view key; views describe themselves with `subject`, `objective`, and `acceptance`.
 6. Do not infer specialized behavior from page IDs, view IDs, source names, or source contents.
 
 ## Named UI elements
@@ -53,7 +53,7 @@ Use `dashboard/site/src/reactive.js` for state-driven updates:
 
 ## Styles and Primer
 
-- Put dashboard component styles in the focused `dashboard/site/src/styles-*.js` modules composed by `styles-primer.js`; `styles.js` remains the shared minified stylesheet entry point. Preserve composition order and keep responsive and accessibility overrides last. Do not add inline styles or element-local style injection for ordinary views.
+- Put dashboard component styles in the focused `dashboard/site/src/styles-*.js` modules composed by `styles-primer.js`; `styles.js` remains the shared minified stylesheet entry point and composes `styles-notifications.js` separately. Preserve composition order and keep responsive and accessibility overrides last. Do not add inline styles or element-local style injection for ordinary views.
 - Reuse existing classes and CSS custom properties before adding selectors or tokens.
 - Follow the established Primer visual language: system font stack, semantic canvas/foreground/border/accent/status tokens, Octicons, six-pixel control radii, restrained elevation, compact spacing, and visible focus rings.
 - Support light, dark, and explicit dashboard themes through existing semantic tokens. Do not hard-code a color where a token exists.
