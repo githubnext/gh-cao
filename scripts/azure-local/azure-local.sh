@@ -427,6 +427,7 @@ PY
       -p 127.0.0.1::5432 -e POSTGRES_DB=cao -e POSTGRES_PASSWORD "$POSTGRES_IMAGE")"
   else
     POSTGRES_CONTAINER_ID="$(cao_container run -d --name "$postgres_name" -p 127.0.0.1::5432 \
+      --tmpfs /var/lib/postgresql/data:rw \
       -e POSTGRES_DB=cao -e POSTGRES_HOST_AUTH_METHOD=trust "$POSTGRES_IMAGE")"
   fi
   write_env_value POSTGRES_CONTAINER_ID "$POSTGRES_CONTAINER_ID"
@@ -613,10 +614,24 @@ run_all() {
     RUNTIME_ENV="$STATE_DIR/runtime.env"
     RUNTIME_JSON="$STATE_DIR/runtime.json"
   fi
-  start
-  trap 'status=$?; trap - EXIT INT TERM; stop_internal; exit "$status"' EXIT INT TERM
-  wait_for_stack
-  test_stack
+  prepare_state
+  (
+    start
+    trap 'status=$?; trap - EXIT INT TERM; stop_internal; exit "$status"' EXIT INT TERM
+    wait_for_stack
+    test_stack
+  ) &
+  local stack_pid=$!
+  node "$ROOT/tests/integration/azure-local-protocols.test.mjs" >"$LOG_DIR/protocol-test.log" 2>&1 &
+  local protocol_pid=$!
+  trap 'trap - INT TERM; kill -TERM "$stack_pid" "$protocol_pid" 2>/dev/null || true; wait "$stack_pid" || true; wait "$protocol_pid" || true; exit 143' INT TERM
+  local status=0 protocol_status=0
+  wait "$stack_pid" || status=$?
+  wait "$protocol_pid" || protocol_status=$?
+  if (( status == 0 )); then status="$protocol_status"; fi
+  trap - INT TERM
+  cat "$LOG_DIR/protocol-test.log"
+  return "$status"
 }
 
 dev() {
@@ -642,7 +657,10 @@ case "${1:-}" in
   dev) dev ;;
   start) start ;;
   wait) wait_for_stack ;;
-  test) test_stack ;;
+  test)
+    [[ "$PROFILE" == synthetic ]] || fail "integration tests require the synthetic profile"
+    node "$ROOT/tests/integration/azure-local-protocols.test.mjs"
+    test_stack ;;
   logs) logs ;;
   stop) stop ;;
   run) run_all ;;

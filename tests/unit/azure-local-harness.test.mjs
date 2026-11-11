@@ -34,6 +34,8 @@ for (const [stage, label, logName, engine, prebuilt = false] of failureCases) {
       await copyFile(resolve("scripts/container-engine.sh"), join(directory, "scripts/container-engine.sh"));
       await copyFile(resolve("scripts/azure-local/platform.py"), join(dirname(script), "platform.py"));
       await mkdir(join(directory, "tests/e2e"), { recursive: true });
+      await mkdir(join(directory, "tests/integration"), { recursive: true });
+      await writeFile(join(directory, "tests/integration/azure-local-protocols.test.mjs"), "");
       await copyFile(resolve("tests/e2e/dashboard-server-fixture.mjs"), join(directory, "tests/e2e/dashboard-server-fixture.mjs"));
       await mkdir(join(directory, "server/testdata"), { recursive: true });
       await cp(resolve("server/testdata/deployed-subset"), join(directory, "server/testdata/deployed-subset"), { recursive: true });

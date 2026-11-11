@@ -40,7 +40,8 @@ test("Podman CI runs real rootless boundaries and Azure services on pull request
 test("Podman CI reuses only exact-source executables and verified platform-specific Core Tools", async () => {
   const steps = workflow.jobs.podman.steps;
   const go = steps.find((step) => step.uses?.startsWith("actions/setup-go@"));
-  assert.equal(go.with.cache, "${{ steps.binaries.outputs.cache-hit != 'true' }}");
+  assert.equal(go.if, "steps.binaries.outputs.cache-hit != 'true'");
+  assert.equal(go.with.cache, true);
   assert.deepEqual(go.with["cache-dependency-path"].trim().split("\n"), ["go.sum", "server/go.sum"]);
   const binaries = steps.find((step) => step.id === "binaries");
   assert.equal(binaries.with.path, ".tmp/podman-bin");

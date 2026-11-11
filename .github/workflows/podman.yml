@@ -12,7 +12,9 @@ on:
       - tests/unit/podman-ci.test.mjs
       - tests/unit/azure-local-*.test.mjs
       - tests/integration/azure-local-*.test.mjs
+      - tests/helpers/azure-local-go.mjs
       - tests/integration/azure-local-*.test.mjs
+      - tests/helpers/azure-local-go.mjs
       - go.mod
       - go.sum
       - package.json
@@ -68,9 +70,10 @@ jobs:
           path: .tmp/podman-bin
           key: podman-bin-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/podman.yml', 'scripts/azure-local/prepare-test-binaries.sh', 'server/**', 'internal/**', 'go.mod', 'go.sum') }}
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.binaries.outputs.cache-hit != 'true'
         with:
           go-version: 1.27.3
-          cache: ${{ steps.binaries.outputs.cache-hit != 'true' }}
+          cache: true
           cache-dependency-path: |
             go.sum
             server/go.sum

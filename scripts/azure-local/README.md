@@ -57,8 +57,13 @@ race-instrumented test processes. Every selector and package must execute tests,
 and any skipped service evidence still fails the suite.
 CI explicitly supplies `AZURE_LOCAL_TEST_BINARIES` from this exact-source cache.
 The harness copies that server and runs those test executables through Go's
-`test2json`; a missing executable fails rather than falling back to another build.
+cached `test2json`; a missing executable fails rather than falling back to another build.
 Without that setting, local runs continue to build and test the current checkout.
+The deployment-protocol suite runs while the real service stack starts, and the
+independently namespaced PostgreSQL adapter suites run concurrently. Synthetic
+PostgreSQL data lives on container tmpfs to avoid overlay-filesystem write costs;
+this is still real PostgreSQL, but does not establish host-crash durability.
+The explicit GitHub development profile retains its original storage behavior.
 
 ## Local service engine setup
 
