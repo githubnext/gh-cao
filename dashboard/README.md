@@ -120,8 +120,8 @@ repository base paths, with no hosted bootstrap, bearer authentication, query
 API, or fallback. Use `--site ../.tmp/OTHER` to select other prepared output.
 
 The declarative **Synthetic enterprise demo** callout identifies the sample.
-Data URLs live under `demo-data-v1/`; browser storage keys use
-`synthetic-demo-v1` and service-worker caches use `demo-v1`. Old same-origin
+Data URLs live under `demo-data/`; browser storage keys use
+`synthetic-demo` and service-worker caches use `demo`. Old same-origin
 real-data responses cannot be selected through the changed data URLs.
 IndexedDB, Web Worker, service-worker caching, and cross-adapter conformance
 cost remain despite removing live publication and implicit acquisition paths.

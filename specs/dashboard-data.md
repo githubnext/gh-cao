@@ -493,9 +493,9 @@ and manifests without a SQLite checksum. The canvas SHALL select
 `cao-activity-index` from a successful default-branch `cao-activity.yml` run;
 it SHALL NOT acquire from Pages or infer a dashboard backlink from Pages settings.
 
-The demo SHALL put data files under `demo-data-v1/`, not root
-`payload-hashes.json`, suffix browser storage keys with `synthetic-demo-v1`,
-and use the `demo-v1` service-worker cache namespace. Changed data URLs SHALL
+The demo SHALL put data files under `demo-data/`, not root
+`payload-hashes.json`, suffix browser storage keys with `synthetic-demo`,
+and use the `demo` service-worker cache namespace. Changed data URLs SHALL
 prevent reuse of real-data responses from old same-origin service-worker caches.
 It SHALL NOT adopt existing real-data browser projections or delete databases
 and caches outside its scope. Source migration does not scrub previous Pages
@@ -2988,7 +2988,7 @@ const DATABASE_NAME = "gh-aw-cao-dashboard-data";
 const DATABASE_VERSION = 49;
 ```
 
-The logical name SHALL be scoped by the `synthetic-demo-v1` suffix and deployment
+The logical name SHALL be scoped by the `synthetic-demo` suffix and deployment
 path for Pages, preventing reuse of a former operational database on the same
 origin. The demo SHALL NOT automatically delete unrelated or legacy databases.
 Version upgrades within the selected namespace

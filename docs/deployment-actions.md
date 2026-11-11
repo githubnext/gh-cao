@@ -95,10 +95,19 @@ The builder generates synthetic enterprise raw samples and applies production
 normalization and canonical ingestion. It accepts no real-data input option.
 The output includes no SQLite snapshot or operational agent summary. A
 declarative **Synthetic enterprise demo** callout identifies the sample, and
-data lives under `demo-data-v1/`, not a root manifest. Browser storage keys use
-the `synthetic-demo-v1` suffix and service-worker caches use `demo-v1`.
+data lives under `demo-data/`, not a root manifest. Browser storage keys use
+the `synthetic-demo` suffix and service-worker caches use `demo`.
 New data URLs prevent old same-origin service-worker caches from returning
 previous real-data payloads.
+
+The enterprise sample includes two campaigns and standalone workflows across
+12 repositories, with 672 runs spanning two weeks. It exercises mixed outcomes,
+dispatches, models and token costs, tool and skill calls, firewall decisions,
+issues and pull requests, experiments, graders/evals, accepted Value evidence,
+collection deferrals, catalog updates, and synthetic repository-memory files.
+All observations pass through the production adapters and canonical ingestion;
+none are presenter fixtures. Missing hosted-only commands, administration, or
+live telemetry remain unavailable rather than being fabricated for the demo.
 
 `docs.yml` rebuilds the documentation and demo daily, independently of
 operational Activity or Dashboard freshness. Its deployment uses the ordinary
@@ -129,7 +138,7 @@ Rebuild and redeploy the synthetic demo to replace current Pages artifacts, or
 unpublish the old site. Review historical deployment artifacts, downloaded
 copies, and any sensitive-data exposure separately.
 
-The versioned demo namespace does not use former real-data browser databases.
+The separate demo namespace does not use former real-data browser databases.
 Those databases remain disposable but are not automatically deleted, nor are
 caches outside the demo's scope. Explicitly clear affected site data when
 required; do not treat a namespace change as secure erasure.

@@ -126,11 +126,10 @@ func newPagesHandler(directory, basePath string) (*os.Root, *pagesHandler, error
 	marker, err := root.ReadFile(".cao-pages-demo.json")
 	var demo struct {
 		Tool      string `json:"tool"`
-		Version   int    `json:"version"`
 		Synthetic bool   `json:"synthetic"`
 	}
 	if err != nil || len(marker) > 4096 || json.Unmarshal(marker, &demo) != nil ||
-		demo.Tool != "cao-pages-demo" || demo.Version != 1 || !demo.Synthetic {
+		demo.Tool != "cao-pages-demo" || !demo.Synthetic {
 		_ = root.Close()
 		return nil, nil, errors.New("pages accepts only the synthetic demo; run npm run dashboard:pages:build, or use serve --sqlite for operational data")
 	}

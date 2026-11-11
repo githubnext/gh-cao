@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
+import { scrollRenderedViewsIntoView } from "./dashboard-deployed-refresh-helpers.mjs";
 
 let preview;
 
@@ -15,6 +16,61 @@ test.beforeEach(async ({ page }) => {
       if (event.detail?.kind === "refresh") window.__demoRefreshStatus = event.detail.status;
     });
   });
+});
+
+test("enterprise sample populates analytical pages and supports real drill-downs", async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors = [];
+  const externalRequests = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("request", request => {
+    if (new URL(request.url()).origin !== new URL(preview.url).origin || /\/api\//.test(request.url())) {
+      externalRequests.push(request.url());
+    }
+  });
+  const drillTargets = new Map([
+    ["repositories", "repository-"],
+    ["workflows", "workflow-"],
+    ["campaigns", "campaign-"],
+    ["value", "value-report"],
+    ["firewall", "domain-"],
+    ["mcps", "tool-"],
+    ["marketplace", "marketplace-package"],
+  ]);
+  for (const id of ["campaigns", "repositories", "workflows", "runs", "issues", "firewall", "mcps",
+    "skills", "friction", "engines-models", "value", "value-campaigns", "value-standalone", "value-review",
+    "cost", "marketplace", "maintenance", "maintenance-campaigns"]) {
+    await page.goto(`${preview.url}/?debug=1&debug-eager-ingest=1#page-${id}`);
+    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 90_000 });
+    const active = page.locator(`[data-page-id="${id}"]`);
+    await expect(active).toBeVisible();
+    await expect(active).not.toHaveAttribute("data-page-prerequisite-unavailable", "true");
+    const views = active.locator("[data-view-id]:visible");
+    await expect(views.first()).toBeVisible();
+    await scrollRenderedViewsIntoView(active);
+    await expect(active.locator(".dashboard-view-skeleton:visible, .dashboard-lazy-view-skeleton:visible")).toHaveCount(0);
+    await expect(active.locator(".empty:visible, .empty-message:visible")).toHaveCount(0);
+    const target = drillTargets.get(id);
+    if (target) {
+      const link = active.locator(`a[href^="#page-${target}"]`).first();
+      await expect(link).toBeAttached();
+      const href = await link.getAttribute("href");
+      await page.goto(`${preview.url}/?debug=1${href}`);
+      const detail = page.locator(`[data-page-id="${href.split("?")[0].slice("#page-".length)}"]`);
+      await expect(detail).toBeVisible();
+      await expect(detail.locator("[data-view-id]").first()).toBeAttached();
+      await expect(detail).not.toContainText("Unable to load");
+    }
+  }
+  await page.goto(`${preview.url}/?debug=1#page-memory`);
+  await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 90_000 });
+  const memory = page.locator('[data-page-id="memory"]');
+  await memory.getByRole("treeitem", { name: "Dependency health", exact: true }).click();
+  await expect(memory.getByRole("treeitem", { name: /observations\.jsonl/ }).first()).toBeVisible();
+  await memory.getByRole("treeitem", { name: /observations\.jsonl/ }).first().click();
+  await expect(memory).toContainText("Synthetic dependency upgrade accepted");
+  expect(errors).toEqual([]);
+  expect(externalRequests).toEqual([]);
 });
 
 for (const width of [1440, 390]) {
@@ -81,7 +137,7 @@ for (const width of [1440, 390]) {
     await expect(page.locator('meta[name="dashboard-data-backend"]')).toHaveCount(0);
     await expect.poll(() => page.evaluate(async () => {
       const databases = await indexedDB.databases();
-      const descriptor = databases.find(({ name }) => name?.includes("synthetic-demo-v1"));
+      const descriptor = databases.find(({ name }) => name?.includes("synthetic-demo"));
       if (!descriptor?.name) return 0;
       const database = await new Promise((resolve, reject) => {
         const request = indexedDB.open(descriptor.name);
@@ -98,7 +154,7 @@ for (const width of [1440, 390]) {
       } finally { database.close(); }
     }), { timeout: 90_000 }).toBe(672);
     const demoRunIds = await page.evaluate(async () => {
-      const descriptor = (await indexedDB.databases()).find(({ name }) => name?.includes("synthetic-demo-v1"));
+      const descriptor = (await indexedDB.databases()).find(({ name }) => name?.includes("synthetic-demo"));
       const db = await new Promise((resolve, reject) => {
         const request = indexedDB.open(descriptor.name);
         request.onsuccess = () => resolve(request.result);
@@ -125,7 +181,7 @@ for (const width of [1440, 390]) {
     expect(hostedRequests).toEqual([]);
     expect(errors).toEqual([]);
     for (const name of ["payload-hashes.json", "inventory-sources.json"]) {
-      const response = await page.request.get(`${preview.url}/demo-data-v1/${name}`);
+      const response = await page.request.get(`${preview.url}/demo-data/${name}`);
       expect(response.ok(), name).toBe(true);
     }
     for (const name of ["payload-hashes.json", "gh-aw-logs.sqlite", "agent-summary.json"]) {

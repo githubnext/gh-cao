@@ -145,7 +145,7 @@ Operational artifacts feed local SQLite or hosted PostgreSQL, not Pages.
 Observations can arrive at different times and enrich an existing entity. Explicit source precedence and observation time resolve conflicting fields; arrival order alone never decides the result.
 
 The demo manifest uses the same normalized transport contract as operational
-artifacts, with synthetic-only content under `demo-data-v1/`. Normalized
+artifacts, with synthetic-only content under `demo-data/`. Normalized
 run-information and record shards are JSONL streams: a metadata envelope is
 followed by one canonical record envelope per line. The worker imports every
 run-information stream before downloading larger record streams and writes

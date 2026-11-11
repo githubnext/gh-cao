@@ -53,7 +53,7 @@ async function startServer(retentionAsOf) {
       const [, state, ...segments] = decodeURIComponent(url.pathname).split('/');
       if (!['empty', 'full'].includes(state)) { response.writeHead(404).end(); return; }
       const relative = segments.join('/') || 'index.html';
-      const root = state === 'empty' && relative.startsWith('demo-data-v1/') ? emptyRoot : siteRoot;
+      const root = state === 'empty' && relative.startsWith('demo-data/') ? emptyRoot : siteRoot;
       const path = resolve(root, relative);
       if (!path.startsWith(`${root}${sep}`)) { response.writeHead(403).end(); return; }
       const details = await stat(path);
@@ -117,8 +117,8 @@ async function ready(page, route, state) {
     return active && (active.querySelector('[data-view-id]')
       || active.getAttribute('data-page-prerequisite-unavailable') === 'true');
   }, `[data-page-id="${route}"]`, { timeout: 180_000 });
-  // The full demo has standalone workflows, not campaign evidence. Preserve
-  // explicitly unavailable routes in the report instead of claiming population.
+  // Empty-data scenarios preserve unavailable prerequisites rather than
+  // claiming population; full-data scenarios include campaign evidence.
   if (await active.getAttribute('data-page-prerequisite-unavailable') === 'true') {
     await active.locator('[data-view-state="unavailable"]').waitFor({ state: 'visible' });
     return 'unavailable';

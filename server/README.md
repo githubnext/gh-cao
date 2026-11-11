@@ -104,8 +104,8 @@ Loopback `serve-pages --site ../.tmp/dashboard-pages --listen 127.0.0.1:8080`
 serves bytes unchanged, optionally under `--base-path /REPO/`, with IndexedDB
 and no hosted bootstrap, authentication, or query API. It rejects directory
 listings and escaping symlinks. npm Go paths resolve from `server/`.
-This demo is never hosted failover. `demo-data-v1/` data URLs,
-`synthetic-demo-v1` storage keys, and `demo-v1` service-worker caches exclude
+This demo is never hosted failover. `demo-data/` data URLs,
+`synthetic-demo` storage keys, and `demo` service-worker caches exclude
 legacy real data. Rebuilds replace current artifacts, not historical deployments
 or browser storage; cleanup never deletes outside the demo namespace.
 

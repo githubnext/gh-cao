@@ -42,7 +42,7 @@ func pagesFixture(t *testing.T) (string, map[string]string) {
 		}
 	}
 	if err := os.WriteFile(filepath.Join(directory, ".cao-pages-demo.json"),
-		[]byte(`{"tool":"cao-pages-demo","version":1,"synthetic":true}`), 0o600); err != nil {
+		[]byte(`{"tool":"cao-pages-demo","synthetic":true}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	return directory, files

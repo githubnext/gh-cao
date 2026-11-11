@@ -36,9 +36,9 @@ The built-in dashboard keeps its shared query foundations and its controls, repo
 All profiles execute the same canonical Dashboard Language definitions and
 shared views. The Pages demo is not presenter fixtures: its declarative
 **Synthetic enterprise demo** callout accompanies a full canonical pipeline.
-Demo data files live under `demo-data-v1/`, not root `payload-hashes.json`;
-browser storage keys use `synthetic-demo-v1` and service-worker caches use
-`demo-v1`. The changed URLs prevent old same-origin cached real data from being
+Demo data files live under `demo-data/`, not root `payload-hashes.json`;
+browser storage keys use `synthetic-demo` and service-worker caches use
+`demo`. The changed URLs prevent old same-origin cached real data from being
 selected. Operational downloaders require an explicit direct manifest URL or
 authenticated Activity artifact acquisition; Pages is not their default.
 

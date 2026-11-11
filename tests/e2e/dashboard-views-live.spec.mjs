@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
+import { pageCapabilityAvailable } from "../../dashboard/site/src/view-availability.js";
 import {
   dashboardAssessmentCleanupBudgetMs,
   dashboardAssessmentPageHash,
@@ -32,7 +33,7 @@ const maximumFailedViews = 5;
 
 function selectedPages(dashboard) {
   const selected = process.env.DASHBOARD_PAGE_IDS;
-  const pages = dashboard.dashboard.pages.filter((page) => !isIgnoredDashboardPageId(page.id));
+  const pages = dashboard.dashboard.pages.filter((page) => !isIgnoredDashboardPageId(page.id) && pageCapabilityAvailable(page));
   if (selected === undefined) return pages;
   const pageIds = new Set(selected.split(",").filter(Boolean));
   return pages.filter((page) => pageIds.has(page.id));
@@ -83,6 +84,8 @@ test("each selected dashboard view renders with synthetic enterprise demo data",
       throw new Error(`Unable to load composed dashboard.json: HTTP ${dashboardResponse.status}.`);
     }
     const dashboard = await dashboardResponse.json();
+    summary.unavailableCapabilities = dashboard.dashboard.pages.filter(page => !pageCapabilityAvailable(page))
+      .map(page => ({ pageId: page.id, capability: page.requires.capability }));
     const pageChunks = await Promise.all(
       selectedPages(dashboard).map((page) => loadPageDefinition(preview.url, page)),
     );
@@ -109,6 +112,7 @@ test("each selected dashboard view renders with synthetic enterprise demo data",
         renderedViews: [],
         missingViews: [],
         missingData: [],
+        emptyViews: [],
         loadingViews: [],
         crashed: false,
         errors: [],
@@ -180,16 +184,14 @@ test("each selected dashboard view renders with synthetic enterprise demo data",
           const dashboardRoot = assessedPage.locator(".dashboard-root");
           const activePage = assessedPage.locator(`[data-page-id="${pageDefinition.id}"]`);
           await expect(dashboardRoot).toBeVisible();
-          if (pageIndex === 0) {
-            // The shell can be visible and idle before canonical ingestion starts.
-            await assessedPage.waitForFunction(() =>
-              ["completed", "failed"].includes(window.__dashboardRefreshStatus),
-            null, { timeout: dashboardAssessmentStartupBudgetMs });
-            expect(
-              await assessedPage.evaluate(() => window.__dashboardRefreshStatus),
-              "The dashboard must complete its canonical data refresh",
-            ).toBe("completed");
-          }
+          // Each new document refreshes independently, even when IndexedDB is warm.
+          await assessedPage.waitForFunction(() =>
+            ["completed", "failed"].includes(window.__dashboardRefreshStatus),
+          null, { timeout: dashboardAssessmentStartupBudgetMs });
+          expect(
+            await assessedPage.evaluate(() => window.__dashboardRefreshStatus),
+            "The dashboard must complete its canonical data refresh",
+          ).toBe("completed");
           await assessedPage.waitForFunction((pageId) =>
             (window.__dashboardPageRenderCounts[pageId] || 0) >= 1,
           pageDefinition.id, {
@@ -199,6 +201,7 @@ test("each selected dashboard view renders with synthetic enterprise demo data",
           await expect(activePage).toBeVisible();
           await expect(activePage).not.toHaveAttribute("data-page-pending", "", { timeout: 120_000 });
           await expect(activePage).not.toHaveAttribute("aria-busy", "true", { timeout: 120_000 });
+          await expect(activePage).not.toHaveAttribute("data-page-prerequisite-unavailable", "true");
           await activePage.locator("details.view-disclosure").evaluateAll((disclosures) => {
             for (const disclosure of disclosures) disclosure.open = true;
           });
@@ -218,6 +221,7 @@ test("each selected dashboard view renders with synthetic enterprise demo data",
             await assessedPage.waitForTimeout(100);
           }
           await expect(busyViews).toHaveCount(0);
+          await expect(activePage.locator(visibleLoadingViewSelector)).toHaveCount(0);
 
           result.renderedViews = (await renderedViewElements.evaluateAll((elements) =>
             elements.map((element) => element.getAttribute("data-view-id")).filter(Boolean)
@@ -231,6 +235,11 @@ test("each selected dashboard view renders with synthetic enterprise demo data",
             .evaluateAll((elements) => elements.map((element) =>
               element.closest("[data-view-id]")?.getAttribute("data-view-id") || "page"
             ));
+          result.emptyViews = await activePage.locator(".empty:visible, .empty-message:visible")
+            .evaluateAll(elements => elements.map(element => ({
+              view: element.closest("[data-view-id]")?.getAttribute("data-view-id"),
+              message: element.textContent,
+            })));
           result.domNodes = await assessedPage.locator("*").count();
           result.crashed = crashed;
           result.status = (

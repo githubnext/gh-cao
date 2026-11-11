@@ -58,6 +58,23 @@ test("dashboard WebKit uses an OS-specific browser cache on its supported Ubuntu
   assert.match(install.run, /playwright install --with-deps chromium webkit/);
 });
 
+test("Windows installer prepares the native Go build before bounded installer tests", () => {
+  const steps = parse(workflow("install-windows.yml")).jobs.install.steps;
+  const go = steps.find((step) => step.uses?.startsWith("actions/setup-go@"));
+  const build = steps.find((step) => step.name === "Prepare native installer fixture build");
+  const tests = steps.find((step) => step.run === "node --test tests/unit/install-script.test.mjs");
+  assert.ok(go, "provision the module's Go toolchain and cache");
+  assert.equal(go.with["go-version-file"], "go.mod");
+  assert.equal(go.with["cache-dependency-path"], "go.sum");
+  assert.ok(build, "download dependencies and warm the native build outside the test deadline");
+  assert.equal(build.run, "go build -o .tmp/gh-cao-installer.exe ./cmd/gh-cao");
+  assert.ok(tests);
+  assert.ok(steps.indexOf(go) < steps.indexOf(build));
+  assert.ok(steps.indexOf(build) < steps.indexOf(tests));
+  assert.equal(build.if, undefined);
+  assert.equal(build["continue-on-error"], undefined);
+});
+
 test("slow integration workflows run on relevant main pushes, not pull requests", () => {
   for (const name of mainOnlyWorkflows) {
     const triggers = parse(workflow(name)).on;

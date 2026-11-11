@@ -22,8 +22,8 @@ export async function preparePerformanceData({ siteRoot, emptyRoot, now = Date.n
     cwd: repositoryRoot, timeout: 180_000, maxBuffer: 1024 * 1024
   });
   const demo = JSON.parse(stdout);
-  const fullRoot = join(siteRoot, 'demo-data-v1');
-  const emptyDataRoot = join(emptyRoot, 'demo-data-v1');
+  const fullRoot = join(siteRoot, 'demo-data');
+  const emptyDataRoot = join(emptyRoot, 'demo-data');
   const manifest = JSON.parse(await readFile(join(fullRoot, 'payload-hashes.json'), 'utf8'));
   const expected = JSON.parse(await readFile(join(siteRoot, '.cao-pages-demo.json'), 'utf8'));
   const shards = Object.entries(manifest).map(([name, hash]) => {

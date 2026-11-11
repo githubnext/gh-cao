@@ -193,7 +193,7 @@ function formatDomAnalysis(dom) {
 
 test.beforeAll(async () => {
   preview = await startDashboardPagesPreview();
-  const dataDirectory = join(preview.site, "demo-data-v1");
+  const dataDirectory = join(preview.site, "demo-data");
   const manifest = JSON.parse(await readFile(join(dataDirectory, "payload-hashes.json"), "utf8"));
   const shards = deployedActivityShardEntries(manifest, mobileDebugShardLimit());
   expectedActivityShardPaths = shards.map(({ name }) => `/${name}`);

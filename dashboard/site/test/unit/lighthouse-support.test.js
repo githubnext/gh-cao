@@ -30,7 +30,7 @@ it('prepares only the generated enterprise demo and an empty version without net
     expect(bootstrap).toContain('name="dashboard-deployment" content="synthetic-demo"');
     const records = { runs: new Set(), repositories: new Set() };
     for (const root of [siteRoot, emptyRoot]) {
-      const dataRoot = join(root, 'demo-data-v1');
+      const dataRoot = join(root, 'demo-data');
       const manifest = JSON.parse(await readFile(join(dataRoot, 'payload-hashes.json'), 'utf8'));
       for (const [name, hash] of Object.entries(manifest)) {
         const content = await readFile(join(dataRoot, name));

@@ -92,7 +92,7 @@ export async function buildDashboardSite({
       .replace(/<title>[^<]*<\/title>/, "<title>CAO synthetic enterprise demo</title>"));
     const workerPath = join(destinationPath, "service-worker.js");
     await writeFile(workerPath, (await readFile(workerPath, "utf8"))
-      .replaceAll("central-agentic-ops-dashboard-", "central-agentic-ops-dashboard-demo-v1-"));
+      .replaceAll("central-agentic-ops-dashboard-", "central-agentic-ops-dashboard-demo-"));
   }
   if (githubRepository && profile !== "immediate") {
     if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\/[A-Za-z0-9._-]+$/.test(githubRepository)

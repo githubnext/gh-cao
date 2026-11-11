@@ -194,8 +194,8 @@ The complete normative [cached gh-aw JSONL mapping](https://github.com/githubnex
 
 The canonical model is version 36. The browser database is
 logically `gh-aw-cao-dashboard-data`, IndexedDB version 49. Pages storage keys
-carry the `synthetic-demo-v1` suffix and deployment scope; service-worker caches
-use `demo-v1`. Demo payloads live under `demo-data-v1/`, not the old root
+carry the `synthetic-demo` suffix and deployment scope; service-worker caches
+use `demo`. Demo payloads live under `demo-data/`, not the old root
 manifest URL, preventing old same-origin cached real data from being reused.
 Its canonical stores are
 `campaigns`, `repositories`, `workflows`, `runs`, `domains`, `tools`, `skills`,

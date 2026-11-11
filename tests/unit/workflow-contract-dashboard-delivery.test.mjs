@@ -547,7 +547,7 @@ test("mobile integration measures the synthetic demo rather than operational evi
   const workflow = readFileSync(join(root, ".github/workflows/actions.yml"), "utf8");
   const mobile = readFileSync(join(root, "tests/e2e/dashboard-mobile-live.spec.mjs"), "utf8");
   const document = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-  assert.doesNotMatch(workflow, /DASHBOARD_DATA_URL|githubnext.github.io|deployed-data:/);
+  assert.doesNotMatch(workflow, /DASHBOARD_DATA_URL|githubnext\.github\.io|deployed-data:/);
   assert.match(mobile, /startDashboardPagesPreview/);
   assert.doesNotMatch(mobile, /downloadData:|DASHBOARD_DATA_URL/);
   assert.match(workflow, /MOBILE_MEMORY_MB: 256/);

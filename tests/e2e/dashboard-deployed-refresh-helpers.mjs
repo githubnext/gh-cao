@@ -136,7 +136,7 @@ function isDeployedDashboardShardProbe({ method, url, dashboardUrl }) {
     return parsed.origin === deployedDashboardBase.origin
       && parsed.pathname.startsWith(deployedDashboardBase.pathname)
       && isFlatDeployedActivityShardPath(
-        parsed.pathname.slice(deployedDashboardBase.pathname.length).replace(/^demo-data-v1\//, ""),
+        parsed.pathname.slice(deployedDashboardBase.pathname.length).replace(/^demo-data\//, ""),
       );
   } catch {
     return false;

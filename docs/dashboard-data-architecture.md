@@ -102,8 +102,8 @@ pipeline, and uses the same canonical queries and views. Its declarative
 Daily documentation/demo builds do not depend on operational artifact freshness
 and publish neither SQLite nor an agent summary.
 
-The demo's `demo-data-v1/` data URLs, `synthetic-demo-v1` browser storage-key
-suffix, and `demo-v1` service-worker caches isolate it from old same-origin
+The demo's `demo-data/` data URLs, `synthetic-demo` browser storage-key
+suffix, and `demo` service-worker caches isolate it from old same-origin
 operational data, including cached responses at former URLs. This removes
 live-data publication and implicit acquisition paths, not the cost of the
 IndexedDB/worker/service-worker adapters and cross-backend conformance.

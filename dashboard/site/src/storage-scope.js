@@ -31,7 +31,7 @@ export function dashboardPagePath(
  * @param {string} [pathname]
  */
 export function scopedStorageKey(key, pathname = dashboardPagePath()) {
-  if (DEMO_MODE) key = `${key}:synthetic-demo-v1`;
+  if (DEMO_MODE) key = `${key}:synthetic-demo`;
   return pathname === '/' ? key : `${key}:${encodeURIComponent(pathname)}`;
 }
 
@@ -41,7 +41,7 @@ export function scopedStorageKey(key, pathname = dashboardPagePath()) {
  * @param {string} [pathname]
  */
 export function clearScopedStorage(storage, pathname = dashboardPagePath()) {
-  const suffix = `${DEMO_MODE ? ':synthetic-demo-v1' : ''}${pathname === '/' ? '' : `:${encodeURIComponent(pathname)}`}`;
+  const suffix = `${DEMO_MODE ? ':synthetic-demo' : ''}${pathname === '/' ? '' : `:${encodeURIComponent(pathname)}`}`;
   let removedCount = 0;
   for (let index = storage.length - 1; index >= 0; index -= 1) {
     const key = storage.key(index);

@@ -317,7 +317,7 @@ test("deployed dashboard scrolling reports unexpected errors", async () => {
 test("deployed dashboard failure tracking ignores only benign aborted probes", () => {
   assert.equal(shouldIgnoreRequestFailure({
     method: "HEAD",
-    url: `${deployedDashboardUrl}demo-data-v1/gh-aw-logs-runs/shard.jsonl`,
+    url: `${deployedDashboardUrl}demo-data/gh-aw-logs-runs/shard.jsonl`,
     errorText: "net::ERR_ABORTED",
   }), true);
   assert.equal(shouldIgnoreRequestFailure({

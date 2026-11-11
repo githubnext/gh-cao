@@ -4,16 +4,28 @@ import { mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promis
 import path from "node:path";
 import test from "node:test";
 import { Readable } from "node:stream";
+import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import {
   assertSafePagesOutput, parsePagesArguments, prepareDashboardPages,
 } from "../../scripts/simulate-dashboard-pages.mjs";
-import { ingestNormalizedJsonl } from "../../dashboard/site/src/data/ingest/coordinator.js";
+import { ingestCachedGhAwJsonl, ingestDashboardSources, ingestNormalizedJsonl } from "../../dashboard/site/src/data/ingest/coordinator.js";
+import { enterpriseSample } from "../../scripts/dashboard-demo-data.mjs";
 import { readCollection } from "../../dashboard/site/src/data/storage/indexeddb.js";
 import { relationshipErrors } from "../../dashboard/site/src/data/model/schema.js";
 import { isExpiredCanonicalRecord } from "../../dashboard/site/src/data/storage/retention.js";
 
 const root = path.resolve(".");
+
+test("rebuilding the enterprise sample does not duplicate daily Value observations", async () => {
+  const indexedDB = new IDBFactory();
+  const now = Date.parse("2040-06-15T12:00:00.000Z");
+  for (const clock of [now, now + 60_000]) {
+    const sample = enterpriseSample(clock);
+    await ingestCachedGhAwJsonl(indexedDB, sample.records.map(record => JSON.stringify(record)).join("\n"), { now: clock });
+    assert.equal((await readCollection(indexedDB, "operationalValues")).length, 672);
+  }
+});
 
 async function workspace(t) {
   const directory = path.join(root, ".tmp", `pages-demo-test-${randomUUID()}`);
@@ -66,12 +78,13 @@ test("sample-only build produces verified canonical enterprise data and no opera
   const html = await readFile(path.join(output, "index.html"), "utf8");
   assert.match(html, /dashboard-deployment" content="synthetic-demo"/);
   assert.match(html, /connect-src 'self'/);
-  const data = path.join(output, "demo-data-v1");
+  const data = path.join(output, "demo-data");
   const inventory = JSON.parse(await readFile(path.join(data, "inventory-sources.json"), "utf8"));
   assert.equal(inventory.workflows.metadata["source-kind"], "synthetic");
   assert.equal(inventory.workflows.metadata["as-of"], new Date(now).toISOString());
   const manifest = JSON.parse(await readFile(path.join(data, "payload-hashes.json"), "utf8"));
   const indexedDB = new IDBFactory();
+  await ingestDashboardSources(indexedDB, inventory, { now, deferMaintenance: true });
   const records = {};
   // Use the canonical production boundary, including run-before-detail ingestion.
   const shards = Object.entries(manifest).sort(([a], [b]) =>
@@ -93,6 +106,16 @@ test("sample-only build produces verified canonical enterprise data and no opera
   assert.equal(runs.length, 672);
   assert.equal((await readCollection(indexedDB, "repositories")).length, 12);
   assert.equal((await readCollection(indexedDB, "workflows")).length, 48);
+  for (const collection of ["campaigns", "marketplacePackages", "domains", "tools", "skills", "friction",
+    "audits", "issues", "graders", "graderObservations", "evals", "evalObservations", "experiments",
+    "experimentAssignments", "operationalValues", "operationalValueEvidence", "workflowValueCollections"]) {
+    assert.ok((await readCollection(indexedDB, collection)).length > 0, `${collection} must have canonical sample evidence`);
+  }
+  for (const field of ["agentVersion", "modelId", "engine", "duration", "aicTotal", "inputTokens", "outputTokens"]) {
+    assert.ok(runs.every(run => run[field] !== undefined && run[field] !== null && run[field] !== ""), `run.${field}`);
+  }
+  const memory = JSON.parse(await readFile(path.join(data, "memory/manifest.json"), "utf8"));
+  assert.equal(memory.campaigns.length, 2);
   assert.ok(runs.some(run => run.conclusion === "failure"));
   assert.ok(runs.every(run => run.id.includes("sample-enterprise/")));
   const tools = await readCollection(indexedDB, "tools");

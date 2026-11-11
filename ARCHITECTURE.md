@@ -232,9 +232,9 @@ through production normalization, canonical ingestion, worker queries, and the
 same views. It has no real-data input option, SQLite download, agent summary, or
 live services. Its declarative **Synthetic enterprise demo** callout identifies
 the evidence. Browser download, ingestion, persistence, and queries run in a
-dedicated Web Worker. Demo data URLs are under `demo-data-v1/`, not the former
-root `payload-hashes.json`; browser storage keys carry `synthetic-demo-v1` and
-service-worker caches use `demo-v1`. Changing data URLs as well as storage keys
+dedicated Web Worker. Demo data URLs are under `demo-data/`, not the former
+root `payload-hashes.json`; browser storage keys carry `synthetic-demo` and
+service-worker caches use `demo`. Changing data URLs as well as storage keys
 prevents old same-origin service-worker responses from supplying real evidence.
 
 SQLite and IndexedDB remain independently rebuildable projections, not sources

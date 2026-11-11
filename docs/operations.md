@@ -355,8 +355,8 @@ npm run dashboard:pages -- --base-path /gh-cao/
 
 There is no real-data input option. Pages contains no SQLite snapshot or agent
 summary and exposes no live services. A declarative **Synthetic enterprise demo**
-callout identifies the result. Demo data uses `demo-data-v1/`, browser storage
-keys use `synthetic-demo-v1`, and service-worker caches use `demo-v1`. Changed
+callout identifies the result. Demo data uses `demo-data/`, browser storage
+keys use `synthetic-demo`, and service-worker caches use `demo`. Changed
 data URLs prevent old same-origin cached real data from being reused.
 
 This reduces live publication and implicit acquisition paths, not the
