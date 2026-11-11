@@ -15,13 +15,15 @@ const updates = vi.hoisted(() => ({
   DASHBOARD_REFRESH_REQUEST_EVENT: "dashboard-refresh-request",
   startAutomaticDashboardDataUpdates: vi.fn(),
 }));
+const deployment = vi.hoisted(() => ({ DEMO_MODE: false }));
 
 vi.mock("../../src/data-processor.js", () => dataProcessor);
 vi.mock("../../src/dashboard-data-updates.js", () => updates);
+vi.mock("../../src/deployment-profile.js", () => deployment);
 
 import { createBatchedSourceLoader, startDashboardData } from "../../src/data/startup.js";
 import { dashboardViewAliasName } from "../../src/data/queries/view-payload-compiler.js";
-import { browserFirstLoad } from "../../src/browser-first-load.js";
+import { browserFirstLoad, preparationStorage } from "../../src/browser-first-load.js";
 import { dashboardDataStatus } from "../../src/dashboard-data-status.js";
 
 const cachedSources = {
@@ -68,6 +70,7 @@ describe("dashboard data startup", () => {
   beforeEach(() => {
     calls.length = 0;
     vi.clearAllMocks();
+    deployment.DEMO_MODE = false;
     browserFirstLoad.set({ status: "inactive", dismissed: false });
     dataProcessor.subscribeDatabaseUpgrade.mockReturnValue(() => {});
     dataProcessor.subscribeWorkerLoadingProgress.mockReturnValue(() => {});
@@ -193,6 +196,18 @@ describe("dashboard data startup", () => {
     const stop = await startDashboardData(config);
     await Promise.resolve();
     expect(document.querySelector(".dashboard-notification-warning")).toBeNull();
+    stop();
+  });
+
+  it.each([false, null])("does not warn for synthetic enterprise data when persistence is %s", async (persisted) => {
+    deployment.DEMO_MODE = true;
+    const config = options();
+    Object.defineProperty(config.browserWindow, "navigator", {
+      value: { storage: { persisted: async () => persisted } }
+    });
+    const stop = await startDashboardData(config);
+    await vi.waitFor(() => expect(preparationStorage.get()).toMatchObject({ persisted }));
+    expect(document.querySelector('[data-notification-id="dashboard:browser-storage"]')).toBeNull();
     stop();
   });
 
