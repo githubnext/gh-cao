@@ -32,7 +32,7 @@ tools:
   github:
     mode: gh-proxy
     github-token: ${{ secrets.GITHUB_TOKEN }}
-    toolsets: [repos, pull_requests]
+    toolsets: [repos, pull_requests, actions]
 safe-outputs:
   github-token: ${{ secrets.GITHUB_TOKEN }}
   concurrency-group: "${{ github.workflow }}-outputs"
@@ -52,6 +52,27 @@ safe-outputs:
     max: 1
   noop:
     report-as-issue: false
+  steps:
+    - name: Validate core review before publication
+      uses: actions/github-script@v9
+      env:
+        GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
+      with:
+        script: |
+          const fs = require('node:fs');
+          const file = process.env.GH_AW_AGENT_OUTPUT;
+          if (!file) throw new Error('Missing agent output');
+          const output = JSON.parse(fs.readFileSync(file, 'utf8'));
+          if (!Array.isArray(output.items)) throw new Error('Invalid agent output');
+          for (const item of output.items) {
+            if (item.type !== 'create_issue') continue;
+            const body = String(item.body ?? '').replace(/\r\n?/g, '\n');
+            const counts = [...body.matchAll(/^Core claims reviewed: (\d+)\/16$/gm)];
+            const reviewed = counts.length === 1 ? Number(counts[0][1]) : 0;
+            if (!Number.isInteger(reviewed) || reviewed < 1 || reviewed > 16) {
+              throw new Error('Refusing report: missing or zero core review');
+            }
+          }
 steps:
   - name: Fix scope, window and report history
     id: framework_health
@@ -587,7 +608,53 @@ semantics read `specs/dashboard-data.md`; for service/API claims read the releva
 `server/spec/` contracts. Existing tests show intended coverage, not execution.
 Use at most 20 additional read-only GitHub calls, all scoped to this repository,
 for exact-SHA source, relevant PR merge evidence or a specific CI job. Do not
-recollect broad run history or download raw logs or artifacts.
+recollect broad run history or download artifacts. For at most three failing
+jobs already identified in the collected evidence, read bounded job-log excerpts
+(at most 100 lines per job), prioritizing installer, collection and dashboard
+failures. Follow the workflow's selectors and failing assertion before classifying
+harness versus product failure. If the excerpt is insufficient, name the exact
+job/step and next diagnostic rather than guessing. Never publish raw logs,
+credentials or private data; cite the job and summarize only sanitized facts.
+
+## Required source-review pass
+
+The deterministic packet is an investigation index, not a source assessment.
+A missing candidate, unapproved scope or unassigned owner blocks journey
+acceptance, not review of the core at `source_sha`. Do not stop after listing
+configuration blockers or CI colors.
+
+Before drafting the report, use each component's `paths` in `components.json`
+and the claim register below to read its governing specification, implementation
+and representative behavioral tests. Cover all eight components and account for
+all 16 claims within the existing file budgets. Bootstrap these mappings when
+previous reports contain no usable source/test baseline; an evidence-only report
+with 0/16 mapped claims is not a baseline. On later days revalidate mappings and
+prioritize changed boundaries, distinguishing retained evidence from fresh execution.
+
+For each claim record:
+
+- **Review:** reviewed or blocked; the bounded behavior actually inspected, with
+  immutable specification-section, implementation and positive/negative test
+  references. A blocked review names the attempted path/read and concrete obstacle.
+- **Coverage:** the existing coverage category, actual selector and backend/platform.
+  Trace suite membership through the workflow and runner scripts before binding
+  a collected job/step to those tests at the exact assessed SHA.
+- **Verdict:** evidenced, at risk or unknown, independently of review completion.
+  Reviewed source with no matching execution remains mapped but not executed;
+  it does not become absent coverage or disappear behind a blanket unknown.
+- **Remaining proof:** the specific missing observation and next check, separating
+  unavailable execution, skipped adapter, inaccessible source and human acceptance.
+
+Report reviewed claims / 16, mapped claims / 16 and exact-revision execution
+claims / 16 separately. These are evidence-accounting counts, not pass quotas or
+readiness scores. Never manufacture an evidenced verdict to reduce unknowns.
+Do not defer readable source/test mapping to a future owner merely because
+candidate-specific acceptance is unavailable.
+Include the literal plain-text line `Core claims reviewed: N/16` in the opening,
+replacing N with the number actually inspected. The pre-publication check rejects
+a missing, duplicate, zero or out-of-range review count before issue creation
+or superseding older reports. This checks the declaration, not the truth of
+model-written citations; human evidence review remains necessary.
 
 ## Private-preview acceptance first
 
@@ -771,7 +838,10 @@ their closed snapshots remain the history. Do not close findings or other issues
 If duplicate ownership is ambiguous or required context cannot be read, call
 `report_incomplete` without creating a report. A bounded/partial CI or source
 assessment may produce a clearly marked **incomplete assessment** with unknowns,
-never a healthy default.
+never a healthy default. This allowance requires the source-review pass above:
+if no component received substantive specification/source/test review, call
+`report_incomplete` and do not call `create_issue`. Do not publish another
+evidence-only report that merely acknowledges skipping that work.
 
 ## Standard executive report contract, version 3
 
@@ -792,6 +862,8 @@ evidence, what is missing and who acts next without opening a disclosure.
 **Scope:** githubnext/gh-cao; 8 operator journeys; 8 components / 16 supporting claims
 **Evidence collected:** {observed_at} | **Report / rubric version:** 3 / 2
 **Purpose:** Can an invited operator safely install, use, operate and leave this bounded CAO candidate?
+
+Core claims reviewed: {reviewed count}/16
 
 ### Executive assessment
 
@@ -847,7 +919,7 @@ evidence, what is missing and who acts next without opening a disclosure.
 
 {Frozen journey checks, candidate/profile/platform binding, supporting runs versus independent acceptance, required unknowns, owner and remaining evidence.}
 {Participant task outcomes and limitations or unavailable; support/stop/recovery acceptance and residual human decisions.}
-{All 16 claim IDs: boundary/specification, status, positive/negative test selectors, coverage category, tested SHA/job, limitation and remaining acceptance check.}
+{Reviewed / 16, mapped / 16 and exact-revision execution / 16; all 16 claim IDs with review state, boundary/specification, status, positive/negative test selectors, coverage category, tested SHA/job, limitation and specific remaining proof.}
 {Existing finding references/keys and new/persisting/regressed/verified-resolved/unverified transitions; accepted commit/PR plus validation, never issue closure as progress.}
 
 </details>
