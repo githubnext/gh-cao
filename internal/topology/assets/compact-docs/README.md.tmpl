@@ -1,0 +1,70 @@
+# Hosted {{.Topology.Features.Deployment}} deployment
+
+Review-only, Bicep-validated infrastructure. No resources or services have been
+deployed by generation. [MANIFEST.md](MANIFEST.md) shows architecture and TOSCA
+dependencies; [RULES.md](RULES.md) records security/reliability tradeoffs.
+[AGENT-MCP.md](AGENT-MCP.md) documents optional Actions agent access through
+both GITHUB_TOKEN and signed OIDC provenance. Enablement is separate from
+browser OAuth and is never inferred from this plan.
+
+{{if eq .Topology.Features.Deployment "single-vm"}}
+Exactly one VM hosts the Go dashboard and local PostgreSQL. PostgreSQL 16 is
+installed by cloud-init, but CAO databases, roles and runtime are NOT activated.
+Use Unix sockets/loopback only; never publish port 5432. The managed data disk
+must be mounted and PostgreSQL's data directory moved to it before use.
+No managed PostgreSQL, Functions, ACR, target Key Vault, Container Apps or ADX
+service is created.
+{{else}}
+Exactly one VM hosts the Go dashboard; Azure PostgreSQL Flexible Server holds
+canonical data and isolated operational tables. The database is private through
+a delegated subnet and linked private DNS. No Functions, ACR, target Key Vault,
+Container Apps or ADX service is created. This minimizes managed services,
+not VM administration or downtime risk.
+{{end}}
+
+An EXISTING Key Vault remains mandatory for credentials, TLS key material and
+the restricted runtime URL. runtime-secret-references.json contains references,
+never values. Infrastructure managed identity is provisioned, but grants are
+NOT widened automatically. Approve secret-scoped access and secure delivery
+separately. Do not copy secrets into Bicep, cloud-init, policy or this folder.
+
+## Ordered activation
+
+1. Replace example identities, public SSH key and documentation-only CIDRs.
+   Review name availability, subscription/region, SKUs and the fixed
+   10.44.0.0/16 network for overlap. Default SKUs are development choices.
+2. Read TODO.md and GITHUB-APPS.md. Run `bash scripts/validate.sh` and
+   `bash scripts/what-if.sh SUBSCRIPTION_ID RESOURCE_GROUP`.
+   Deployment requires a separate approval/process; scripts never apply.
+3. Use approved private administration/Run Command: SSH is NOT public.
+   Verify cloud-init, positively identify the new empty disk, then mount it.
+   No generated script formats disks or destroys data.
+4. Follow the generating revision's server/POSTGRES.md. Create distinct
+   owner/runtime/retention/evidence roles and a dedicated schema. Owner-run
+   bootstrap/partition maintenance must succeed before runtime.
+   The web process must NEVER receive the administrator/owner URL.
+5. Ingest a verified Actions snapshot or explicitly selected empty evidence;
+   never treat a missing snapshot as empty. Schedule subsequent ingestion.
+6. Supply an approved standalone Linux Go server binary with embedded
+   dashboard/query resources, reviewed host policy and private runtime
+   environment. Use the existing hosted/container profile with PostgreSQL
+   operational storage and one replica; this is not SQLite or volatile memory.
+7. Fetch secrets/certificates from Key Vault through approved scoped access.
+   Configure CAO_POSTGRES_URL with the runtime login (verified TLS for managed
+   PostgreSQL), CAO_SESSION_SECRET, CAO_GITHUB_CLIENT_ID/CLIENT_SECRET,
+   CAO_GITHUB_ALLOWED_ORGS/TEAMS/USERS, CAO_GITHUB_ADMIN_USERS and
+   CAO_GITHUB_WEBHOOK_SECRET. Preserve both run/linked retention settings.
+8. Serve DIRECT TLS using `cao-dashboard serve-hosted --listen 0.0.0.0:443
+   --cert /etc/cao/tls/server.crt --key /etc/cao/tls/server.key
+   --operational-store postgres`. A dedicated non-root service account may
+   receive only CAP_NET_BIND_SERVICE to bind 443. Protect policy, environment
+   and certificate files; avoid a privileged container or root web process.
+9. Register the actual dashboardHostName output as the allowed host and set
+   its exact HTTPS OAuth callback. Verify health/readiness, rejected signed-out
+   requests, authorized/unauthorized sign-in and database transport.
+
+The VM's explicit public IP provides egress; approved source CIDRs restrict
+HTTPS ingress. NSGs deny all other inbound ports, including SSH and PostgreSQL.
+This is not a WAF, an outbound allowlist, HA or production acceptance.
+Key Vault existence/access, TLS, backups and live runtime effectiveness remain
+independently unverified. Turning profiles off is not teardown.

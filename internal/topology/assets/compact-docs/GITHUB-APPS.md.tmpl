@@ -1,0 +1,20 @@
+# Hosted GitHub sign-in application
+
+Register a separate OAuth App or GitHub App user authorization-code flow.
+After infrastructure deployment, use the actual dashboardHostName output:
+
+- Homepage: `https://DASHBOARD_HOST/`
+- Authorization callback: `https://DASHBOARD_HOST/auth/callback`
+- Client ID: the reviewed githubClientId parameter.
+- Client secret: the githubClientSecret Key Vault reference, NOT a literal.
+
+Do not repoint an existing deployment's callback. GitHub Apps using
+organization/team authorization need Members: read and an approved installation
+in each allowed organization; classic OAuth Apps need approved organization
+access where third-party restrictions apply. Enable expiring user tokens for
+GitHub Apps. Test allowed AND disallowed identities.
+
+Actions snapshot acquisition needs no new collection App in these compact
+profiles. Collection, session lake, gateway, hosted CLI and broker execution
+are not enabled. Existing control-repository App credentials and safe outputs
+retain their separate reviewed policy; topology generation grants no reach.
