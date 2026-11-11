@@ -26,6 +26,7 @@ for (const [system, architecture, asset] of [
       await mkdir(dirname(script), { recursive: true });
       await mkdir(tools);
       await copyFile(resolve("scripts/azure-local/azure-local.sh"), script);
+      await copyFile(resolve("scripts/container-engine.sh"), join(dir, "scripts/container-engine.sh"));
       await copyFile(helper, join(dirname(script), "platform.py"));
       await writeFile(join(tools, "uname"),
         `#!/bin/bash\nif [[ "$1" == -s ]]; then echo ${system}; else echo ${architecture}; fi\n`,

@@ -12,13 +12,26 @@ Review the [Microsoft license](https://aka.ms/adx.emulator.license) first.
 **Benchmarks are prohibited.** This suite checks functional correctness only;
 it makes no throughput, latency, storage-cost or capacity claims.
 
-The script requires Docker through a local Unix socket, sufficient free image
+The script defaults to Docker through a local Unix socket, sufficient free image
 extraction space and an x86 processor with SSE4.2/AVX2. Microsoft does not support
 ARM. `DOCKER_CONTEXT` or `DOCKER_HOST` may select an existing isolated local
 engine; the script never changes the active context, prunes images, restarts a
 shared VM or provisions cloud services. The official image is pinned by digest.
 It publishes only an ephemeral numeric-loopback port, records the image identity
 and engine version, and removes its own container on exit.
+
+Linux Podman is an explicit alternative:
+
+```sh
+CAO_CONTAINER_ENGINE=podman ACCEPT_EULA=Y bash scripts/test-kusto-emulator.sh
+```
+
+Every Podman invocation uses `--remote=false`. macOS Podman machines and remote
+engine environments (`CONTAINER_HOST`, `CONTAINER_CONNECTION`, `CONTAINER_SSHKEY`,
+`DOCKER_HOST`, or `DOCKER_CONTEXT`) are rejected for this path. Unset those
+variables before using native Linux Podman. Only `docker` and `podman` are
+accepted; missing engines never trigger fallback. These constraints are stricter
+than the ordinary local service scripts, which can use a macOS Podman machine.
 
 For an already-running official emulator bound only to numeric loopback:
 

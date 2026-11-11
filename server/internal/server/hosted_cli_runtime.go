@@ -43,12 +43,24 @@ func newHostedCLIRunnerFromEnv(options HostedCLIExecutorOptions) (*hostedcli.Con
 			}
 		}
 		return hostedcli.NewContainerRunner(image, lifecycle)
-	case "apple", "windows-sandbox":
+	case "podman", "apple", "windows-sandbox":
 		if options.SQLitePath == "" {
 			return nil, errors.New("native hosted CLI runtimes are for local development only and require execute-cli --sqlite")
 		}
 	default:
-		return nil, errors.New("CAO_HOSTED_CLI_CONTAINER_RUNTIME must be docker, apple, or windows-sandbox")
+		return nil, errors.New("CAO_HOSTED_CLI_CONTAINER_RUNTIME must be docker, podman, apple, or windows-sandbox")
+	}
+	if provider == "podman" {
+		if strings.TrimSpace(os.Getenv("CAO_HOSTED_CLI_EGRESS_POLICY_FILE")) != "" ||
+			strings.TrimSpace(os.Getenv("CAO_HOSTED_CLI_EGRESS_RELAY")) != "" ||
+			strings.TrimSpace(os.Getenv("CAO_HOSTED_CLI_EGRESS_RELAY_SHA256")) != "" {
+			return nil, errors.New("the local Podman profile does not support production Docker egress settings")
+		}
+		lifecycle, err := hostedcli.NewPodmanContainerLifecycle(strings.TrimSpace(os.Getenv("CAO_HOSTED_CLI_PODMAN")), hostedcli.ExecRunner{})
+		if err != nil {
+			return nil, err
+		}
+		return hostedcli.NewContainerRunner(image, lifecycle)
 	}
 	if provider == "apple" {
 		lifecycle, err := hostedcli.NewAppleContainerLifecycle(strings.TrimSpace(os.Getenv("CAO_HOSTED_CLI_APPLE_CONTAINER")), hostedcli.ExecRunner{})

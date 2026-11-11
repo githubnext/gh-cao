@@ -12,7 +12,7 @@ import (
 )
 
 func TestHostedCLIContainerRuntimeSelection(t *testing.T) {
-	for _, provider := range []string{"", "docker", "apple", "windows-sandbox", "remote"} {
+	for _, provider := range []string{"", "docker", "podman", "apple", "windows-sandbox", "remote"} {
 		t.Run(provider, func(t *testing.T) {
 			t.Setenv("CAO_HOSTED_CLI_CONTAINER_RUNTIME", provider)
 			t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", "")
@@ -72,13 +72,14 @@ func TestHostedCLINativeQueueConfigurationMatchesAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, provider := range []string{"docker", "apple", "windows-sandbox"} {
+	for _, provider := range []string{"docker", "podman", "apple", "windows-sandbox"} {
 		t.Run(provider, func(t *testing.T) {
 			t.Setenv("CAO_HOSTED_CLI_CONTAINER_RUNTIME", provider)
 			catalog, err := hostedcli.ParseCatalog([]byte(`{"dashboard":{"cli-actions":[]}}`))
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			store, err := newHostedCLISQLiteTestStore(t, filepath.Join(t.TempDir(), "queue.sqlite"))
 			if err != nil {
 				t.Fatal(err)
@@ -111,5 +112,44 @@ func TestHostedCLINativeQueueConfigurationMatchesAdmission(t *testing.T) {
 				t.Fatal("local runtime selection altered production queue concurrency")
 			}
 		})
+	}
+}
+
+func TestHostedCLIPodmanSelection(t *testing.T) {
+	t.Setenv("CAO_HOSTED_CLI_CONTAINER_RUNTIME", "podman")
+	t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", "")
+	for _, name := range []string{
+		"CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY",
+		"DOCKER_HOST", "DOCKER_CONTEXT", "PODMAN_CONNECTIONS_CONF",
+		"CONTAINERS_CONF", "CONTAINERS_CONF_OVERRIDE", "CONTAINERS_CONF_MODULES",
+		"CONTAINERS_STORAGE_CONF", "CAO_HOSTED_CLI_EGRESS_POLICY_FILE",
+		"CAO_HOSTED_CLI_EGRESS_RELAY", "CAO_HOSTED_CLI_EGRESS_RELAY_SHA256",
+	} {
+		t.Setenv(name, "")
+	}
+	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{}); err == nil {
+		t.Fatal("production accepted Podman")
+	}
+	runner, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{SQLitePath: "debug.sqlite"})
+	if runtime.GOOS != "linux" {
+		if err == nil {
+			t.Fatal("Podman accepted on unsupported platform")
+		}
+		return
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := runner.Lifecycle.(*hostedcli.PodmanContainerLifecycle); !ok {
+		t.Fatal("explicit selection did not choose Podman")
+	}
+	t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", "ghcr.io/github/gh-aw:latest")
+	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{SQLitePath: "debug.sqlite"}); err == nil {
+		t.Fatal("Podman accepted an unpinned image")
+	}
+	t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", "")
+	t.Setenv("CAO_HOSTED_CLI_EGRESS_POLICY_FILE", "egress.json")
+	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{SQLitePath: "debug.sqlite"}); err == nil {
+		t.Fatal("Podman silently ignored production egress configuration")
 	}
 }
