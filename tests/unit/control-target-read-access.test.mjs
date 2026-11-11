@@ -372,3 +372,124 @@ test("Dependabot planner reads non-public target alerts only for a private contr
   const unknownTarget = await runDependabotPrefetch({ targetPrivate: null, controlPrivate: false });
   assert.equal(unknownTarget.evidence.unavailable_reason, "non_public_target_requires_private_control_plane");
 });
+
+function resiliencePrefetch() {
+  const { lock } = workers.find(({ name }) => name === "uk-ai-advisory-operational-resilience.md");
+  const step = lock.jobs.agent.steps.find((entry) => entry.name === "Pre-compute recent changes governance context");
+  assert.ok(step, "missing UK AI resilience prefetch step");
+  return step;
+}
+
+const RESILIENCE_DEPENDABOT_ROUTE = "GET /repos/{owner}/{repo}/dependabot/alerts";
+
+async function runResiliencePrefetch({ dependabotPages = [[]], dependabotLinks = [], dependabotFailure } = {}) {
+  const files = new Map();
+  const fs = {
+    existsSync: () => false,
+    writeFileSync: (path, value) => files.set(path, value),
+    mkdirSync: () => {},
+  };
+  const requests = [];
+  let dependabotPage = 0;
+  const github = {
+    request: async (route, parameters) => {
+      requests.push({ route, ...parameters });
+      if (route === "GET /repos/{owner}/{repo}") return { status: 200, data: { private: false } };
+      if (route !== RESILIENCE_DEPENDABOT_ROUTE) return { status: 200, data: [] };
+      if (parameters.page !== undefined) {
+        throw Object.assign(new Error("Pagination using the `page` parameter is not supported."), { status: 400 });
+      }
+      if (dependabotFailure) throw dependabotFailure;
+      const index = dependabotPage++;
+      return { status: 200, data: dependabotPages[index] ?? [], headers: { link: dependabotLinks[index] } };
+    },
+  };
+  const warnings = [];
+  const core = { info: () => {}, warning: (message) => warnings.push(message) };
+  const run = new Function(
+    "require", "process", "github", "core",
+    `return (async () => {\n${resiliencePrefetch().with.script}\n})();`,
+  );
+  await run(
+    (id) => {
+      if (id === "fs") return fs;
+      if (id === "path") return { join: (...parts) => parts.join("/") };
+      throw new Error(`unexpected require ${id}`);
+    },
+    { env: { TARGET_REPOSITORY: "acme/service" } },
+    github,
+    core,
+  );
+  const evidence = JSON.parse(files.get("/tmp/gh-aw/agent/uk-ai-advisory-operational-resilience/prefetch.json"));
+  return { evidence, requests, warnings };
+}
+
+const dependabotLink = (cursor) =>
+  `<https://api.github.com/repositories/123/dependabot/alerts?state=open&per_page=100&after=${cursor}>; rel="next"`;
+
+test("UK AI resilience reads Dependabot alerts by cursor without the unsupported page parameter", async () => {
+  assert.equal(resiliencePrefetch().with["github-token"], TARGET_READ_CREDENTIAL);
+  const { evidence, requests } = await runResiliencePrefetch({
+    dependabotPages: [[{ number: 1, security_advisory: { severity: "high" } }], [{ number: 2 }]],
+    dependabotLinks: [dependabotLink("cursor%2B1")],
+  });
+
+  const dependabot = requests.filter(({ route }) => route === RESILIENCE_DEPENDABOT_ROUTE);
+  assert.deepEqual(dependabot.map(({ page, after, state, per_page }) => ({ page, after, state, per_page })), [
+    { page: undefined, after: undefined, state: "open", per_page: 100 },
+    { page: undefined, after: "cursor+1", state: "open", per_page: 100 },
+  ]);
+  assert.deepEqual(evidence.source_access.dependabot_alerts, { accessible: true, status: 200 });
+  assert.deepEqual(evidence.open_dependabot_alerts.map(({ number }) => number), [1, 2]);
+  assert.equal(evidence.open_dependabot_alerts[0].severity, "high");
+});
+
+test("UK AI resilience keeps the two-page Dependabot bound when following cursors", async () => {
+  const { evidence, requests } = await runResiliencePrefetch({
+    dependabotPages: [[{ number: 1 }], [{ number: 2 }], [{ number: 3 }]],
+    dependabotLinks: [dependabotLink("one"), dependabotLink("two"), undefined],
+  });
+
+  const dependabot = requests.filter(({ route }) => route === RESILIENCE_DEPENDABOT_ROUTE);
+  assert.deepEqual(dependabot.map(({ after }) => after), [undefined, "one"]);
+  assert.deepEqual(evidence.source_access.dependabot_alerts, { accessible: true, status: 200 });
+  assert.deepEqual(evidence.open_dependabot_alerts.map(({ number }) => number), [1, 2]);
+});
+
+test("UK AI resilience treats malformed or repeated Dependabot cursors as inaccessible", async () => {
+  for (const dependabotLinks of [
+    ['<not-a-url>; rel="next"'],
+    ['<https://api.github.com/repos/acme/service/dependabot/alerts?page=2>; rel="next"'],
+  ]) {
+    const { evidence } = await runResiliencePrefetch({ dependabotPages: [[{ number: 1 }]], dependabotLinks });
+    assert.equal(evidence.source_access.dependabot_alerts.accessible, false);
+    assert.deepEqual(evidence.open_dependabot_alerts, []);
+  }
+});
+
+test("UK AI resilience records Dependabot alerts as inaccessible with the failing status", async () => {
+  const { evidence, warnings } = await runResiliencePrefetch({
+    dependabotFailure: Object.assign(new Error("Resource not accessible by integration"), { status: 403 }),
+  });
+
+  assert.deepEqual(evidence.source_access.dependabot_alerts, { accessible: false, status: 403 });
+  assert.deepEqual(evidence.open_dependabot_alerts, []);
+  assert.equal(warnings.length, 1);
+});
+
+test("UK AI resilience leaves the other prefetch sources on page pagination", async () => {
+  const { evidence, requests } = await runResiliencePrefetch();
+
+  for (const route of [
+    "GET /repos/{owner}/{repo}/commits",
+    "GET /repos/{owner}/{repo}/issues",
+    "GET /repos/{owner}/{repo}/code-scanning/alerts",
+    "GET /repos/{owner}/{repo}/secret-scanning/alerts",
+  ]) {
+    const calls = requests.filter((request) => request.route === route);
+    assert.deepEqual(calls.map(({ page, per_page }) => ({ page, per_page })), [{ page: 1, per_page: 100 }], route);
+  }
+  for (const source of ["commits", "security_issues", "code_scanning_alerts", "secret_scanning_alerts", "dependabot_alerts"]) {
+    assert.deepEqual(evidence.source_access[source], { accessible: true, status: 200 }, source);
+  }
+});
