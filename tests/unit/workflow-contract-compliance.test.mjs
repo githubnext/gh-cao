@@ -243,8 +243,9 @@ test("EU CRA auditors refresh their own open audit issue instead of failing", ()
     assert.equal(update["target-repo"], create["target-repo"], name);
 
     assert.match(source, /search open issues in `SAFE_OUTPUT_REPO` for this exact prefixed title/, name);
-    assert.match(source, /evidence or authoritative requirements changed, refresh that issue's body with `update_issue` using its issue number/, name);
-    assert.match(source, /do not create a new issue or report incomplete/, name);
+    assert.match(source, /evidence or authoritative requirements changed, replace that issue's complete body by calling `update_issue` with its issue number and `operation: "replace"`/, name);
+    assert.match(source, /Send the full refreshed report with the same heading and structure, exactly one operational-value marker with the new `target-sha`, and the `### Control Plane` section when `correlation_id` is present; never append to the existing body/, name);
+    assert.match(source, /Do not create a new issue or report incomplete/, name);
     assert.match(source, /If nothing relevant changed, call `noop` naming that issue/, name);
     assert.match(source, /Create a new issue only when no equivalent open issue exists/, name);
   }
