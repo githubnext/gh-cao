@@ -483,6 +483,7 @@ PY
     "FUNCTIONS_WORKER_RUNTIME": "custom",
     "AzureWebJobsStorage": "$storage_connection",
     "CAO_AZURE_ALLOWED_HOSTS": "127.0.0.1,localhost",
+    "CAO_AZURE_SITE_DIRECTORY": "$APP_DIR/site",
     "CAO_AZURE_DASHBOARD_QUERIES": "$ROOT/dashboard/site/dashboard.json",
     "CAO_DATABASE_QUERIES": "$ROOT/dashboard/site/src/data/queries/database.json",
     "CAO_AZURE_LOCAL_SIMULATION": "1",

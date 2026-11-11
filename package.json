@@ -26,7 +26,7 @@
     "dashboard:server:redis-down": "bash scripts/container-compose.sh -f server/docker-compose.yml down",
     "dashboard:server:setup:macos": "bash scripts/setup-dashboard-server-macos.sh",
     "dashboard:server:ingest": "go -C server run ./cmd/cao-dashboard ingest",
-    "dashboard:server:serve": "CAO_MARKETPLACE_POLICY_PATH=\"${CAO_MARKETPLACE_POLICY_PATH:-$PWD/.github/workflows/cao.json}\" go -C server run ./cmd/cao-dashboard serve",
+    "dashboard:server:serve": "CAO_MARKETPLACE_POLICY_PATH=\"${CAO_MARKETPLACE_POLICY_PATH:-$PWD/.github/workflows/cao.json}\" go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist",
     "dashboard:server:otel-smoke": "go -C server run ./cmd/cao-dashboard otel-smoke",
     "dashboard:server:lint": "cd server && golangci-lint fmt --diff && golangci-lint run ./...",
     "dashboard:server:test": "go -C server test -p 1 ./...",

@@ -126,6 +126,12 @@ is enabled. This profile exercises real GitHub.com authentication, not simulated
 GitHub APIs; successful login still requires valid credentials and authorized
 organization membership.
 
+Both local profiles explicitly serve files from the state's `function-app/site/`
+directory, not the executable's embedded dashboard. Edit generated JavaScript or
+CSS there and reload the browser without rebuilding Go. For source edits, rebuild
+the dashboard into that directory; restart the server after query/catalog changes.
+The directory is disposable and removed on stop, so retain changes in source files.
+
 | Environment variable | Development behavior |
 | --- | --- |
 | `CAO_CONTAINER_ENGINE` | Optional `docker` (default) or `podman`; no automatic fallback |

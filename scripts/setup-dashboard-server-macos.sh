@@ -98,5 +98,6 @@ cat <<'EOF'
   npm run dashboard:server:redis-up
   npm run dashboard:server:build
   go -C server run ./cmd/cao-dashboard serve \
+    --site ../dashboard/site/dist \
     --source testdata/deployed-subset
 EOF
