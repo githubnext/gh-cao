@@ -146,7 +146,9 @@ install_core_tools_locked() {
       rm -rf "$temp_dir"
       fail "Azure Functions Core Tools checksum verification failed"
     }
-  unzip -q "$archive" -d "$temp_dir"
+  unzip -q "$archive" -d "$temp_dir" -x \
+    'in-proc6/*' 'in-proc8/*' \
+    'workers/java/*' 'workers/node/*' 'workers/powershell/*' 'workers/python/*'
   chmod +x "$temp_dir/func"
   rm -f "$archive"
   rm -rf "$tools_dir"

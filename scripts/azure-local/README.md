@@ -25,6 +25,8 @@ or managed PostgreSQL TLS; those remain real-Azure smoke-test concerns.
 Azure Functions Core Tools 4.15.1 is downloaded on first use from its official
 GitHub release for the host OS and architecture and verified by a pinned SHA-256.
 Each platform has a separate cache protected by an exclusive installation lock.
+Only the custom-handler host is extracted: unused .NET in-process hosts and
+Java, Node.js, PowerShell and Python workers are excluded from this Go-only harness.
 The host runs natively, including on Apple Silicon; PostgreSQL 16 and Azurite 3.37.0 images
 are pinned by tag or digest.
 
