@@ -50,6 +50,9 @@ module lockfiles. The checksum-verified Core Tools installation is cached
 separately by platform and harness revision; runtime state, credentials and
 container storage are never cached. Cold-cache runs still download tools and
 compile the real adapters; cache hits do not replace test execution.
+Service checks batch compatible Go selectors so packages share compilation and
+race-instrumented test processes. Every selector and package must execute tests,
+and any skipped service evidence still fails the suite.
 
 ## Local service engine setup
 

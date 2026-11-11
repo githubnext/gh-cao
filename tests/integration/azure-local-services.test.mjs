@@ -156,7 +156,7 @@ test("Azure Storage Table: entity persistence and stale ETag rejection", async (
     `/${table}(PartitionKey='synthetic',RowKey='missing')`, "", headers)).status, 404);
 });
 
-async function goCase(directory, packages, pattern, services = {}) {
+async function goCase(directory, packages, patterns, services = {}) {
   const env = Object.fromEntries([
     "PATH", "HOME", "TMPDIR", "GOPATH", "GOMODCACHE", "GOCACHE", "SDKROOT", "DEVELOPER_DIR",
   ].filter((name) => process.env[name] !== undefined).map((name) => [name, process.env[name]]));
@@ -182,52 +182,47 @@ async function goCase(directory, packages, pattern, services = {}) {
     });
   }
   const { stdout } = await execute("go", [
-    "test", "-race", ...packages, "-run", pattern, "-count=1", "-timeout=3m", "-json",
+    "test", "-race", ...packages, "-run", patterns.join("|"), "-count=1", "-timeout=3m", "-json",
   ], { cwd: `${root}${directory}`, env, timeout: 240_000, maxBuffer: 8 << 20 });
   const events = stdout.trim().split("\n").map((line) => JSON.parse(line));
-  assert.ok(events.some((event) => event.Test && event.Action === "pass"), "selector must execute tests");
+  for (const pattern of patterns) {
+    const segments = pattern.split("/").map((part) => new RegExp(part));
+    assert.ok(events.some((event) => event.Test && event.Action === "pass"
+      && segments.every((segment, index) => {
+        const part = event.Test.split("/")[index];
+        return part !== undefined && segment.test(part);
+      })), `selector ${pattern} must execute tests`);
+  }
+  for (const pkg of packages) {
+    assert.ok(events.some((event) => event.Test && event.Action === "pass"
+      && event.Package.endsWith(pkg.slice(1))), `package ${pkg} must execute tests`);
+  }
   assert.deepEqual(events.filter((event) => event.Action === "skip"), [], "selected service coverage cannot skip");
 }
 
-test("Azure PostgreSQL canonical adapter: publication, reopen and contract drift", async () => {
-  await goCase("server", ["./internal/postgresx"], "^TestFreshSchemaReopen$", { postgres: true });
-});
-
 test("Azure PostgreSQL operational adapter: sessions, CAS, queue capacity and leases", async () => {
-  await goCase("server", ["./internal/operational"], "^TestAdapters$/^postgres$", { postgres: true });
+  await goCase("server", ["./internal/operational"], ["^TestAdapters$/^postgres$"], { postgres: true });
 });
 
-test("Azure Blob archive adapter: real Azurite immutable objects, leases and pointer CAS", async () => {
-  await goCase("server", ["./internal/sessionarchiveblob"], "^TestAzuriteBlobStoreIntegration$", { blob: true });
+test("Azure server adapters: canonical PostgreSQL, Blob archive, Key Vault and monitoring", async () => {
+  await goCase("server", [
+    "./internal/postgresx", "./internal/sessionarchiveblob", "./internal/tokenbroker", "./internal/telemetry",
+  ], [
+    "^TestFreshSchemaReopen$",
+    "^TestAzuriteBlobStoreIntegration$",
+    "^TestArchive(ServiceInjectionPreservesActivationGates|InjectedServicesHTTPIntegration)$",
+    "^TestAzureKeyVaultHTTPIntegration$",
+    "^TestAzureDeploymentTelemetryReceipts$",
+  ], { postgres: true, blob: true });
 });
 
-test("Azure archive service interfaces: injection, activation gates and HTTP recovery", async () => {
-  await goCase("server", ["./internal/sessionarchiveblob"], "^TestArchive(ServiceInjectionPreservesActivationGates|InjectedServicesHTTPIntegration)$");
-});
-
-test("Azure Key Vault and managed identity: local HTTP protocol integration", async () => {
-  await goCase("server", ["./internal/tokenbroker"], "^TestAzureKeyVaultHTTPIntegration$");
-});
-
-test("Azure monitoring: template-driven OTLP receipts and exporter failure isolation", async () => {
-  await goCase("server", ["./internal/telemetry"], "^TestAzureDeploymentTelemetryReceipts$");
-});
-
-test("Azure Container Registry protocol: digest bindings and configured-image read-back", async () => {
-  await goCase("", ["./internal/cli"],
-    "^TestDeployAzure(ImageBindingsFailClosed|ImageReadBackBlocksJobsOnMismatch)$");
-});
-
-test("Azure Container Apps jobs protocol: bounded cancellation", async () => {
-  await goCase("", ["./internal/cli"], "^TestDeployAzureJobWaitCancellation$");
-});
-
-test("Azure Functions configuration protocol: unresolved Key Vault references fail closed", async () => {
-  await goCase("", ["./internal/cli"], "^TestDeployAzureApplyFailsClosedWhenKeyVaultReferencesStayUnresolved$");
-});
-
-test("Azure Resource Manager protocol: read-only planning and required preflight checks", async () => {
-  await goCase("", ["./internal/cli"], "^TestDeployAzure(PlanRunsOnlyReadOnlyCommands|PreflightChecks|PreflightHealthy)$");
+test("Azure deployment protocols: registry, jobs, Functions configuration and ARM preflight", async () => {
+  await goCase("", ["./internal/cli"], [
+    "^TestDeployAzure(ImageBindingsFailClosed|ImageReadBackBlocksJobsOnMismatch)$",
+    "^TestDeployAzureJobWaitCancellation$",
+    "^TestDeployAzureApplyFailsClosedWhenKeyVaultReferencesStayUnresolved$",
+    "^TestDeployAzure(PlanRunsOnlyReadOnlyCommands|PreflightChecks|PreflightHealthy)$",
+  ]);
 });
 
 test("Azure networking, RBAC and optional ADX: exhaustive Bicep contract coverage", async () => {
