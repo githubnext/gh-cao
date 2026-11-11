@@ -43,6 +43,14 @@ The selected engine is persisted in `runtime.env`; subsequent `wait`, `logs` and
 State created before engine selection was introduced belongs to Docker.
 Keep the original engine's context/connection unchanged while a stack is running.
 
+The Podman integration workflow overlaps the independent hosted-CLI boundary,
+Azure service suite and portable harness checks, and waits for all three before
+reporting success or failure. Go modules and build outputs are cached using both
+module lockfiles. The checksum-verified Core Tools installation is cached
+separately by platform and harness revision; runtime state, credentials and
+container storage are never cached. Cold-cache runs still download tools and
+compile the real adapters; cache hits do not replace test execution.
+
 ## Local service engine setup
 
 The npm Redis, PostgreSQL and telemetry commands and backfill harness also use
