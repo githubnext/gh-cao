@@ -96,9 +96,9 @@ npm ci
 npm run install:gh-aw
 ```
 
-If npmjs access is blocked on the Microsoft corporate network, follow the
-[1ES installation instructions](AGENTS.md#installing-npm-dependencies) instead of
-the default `npm ci` command.
+The repository's `.npmrc` files select the Microsoft-approved npm feed.
+See the [installation instructions](AGENTS.md#installing-npm-dependencies)
+for configuration and troubleshooting guidance.
 
 Keep changes focused and include tests for new behavior. Edit agentic workflow
 sources in `.github/workflows/*.md`; do not edit generated

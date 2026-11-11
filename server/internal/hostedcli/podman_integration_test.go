@@ -229,6 +229,13 @@ func TestPodmanRealBoundary(t *testing.T) {
 				}); err != nil {
 					t.Fatal(err)
 				}
+				// Log transport may close before the engine publishes final state.
+				waitCtx, stopWaiting := context.WithTimeout(ctx, 5*time.Second)
+				defer stopWaiting()
+				exit, code, err := engine.capture(waitCtx, []string{"wait", name})
+				if err != nil || code != 0 || strings.TrimSpace(exit) != "7" {
+					t.Fatalf("real workload exit wait = %q, code=%d, err=%v", exit, code, err)
+				}
 				state, err := lifecycle.Inspect(ctx, execution)
 				if err != nil || !state.Terminated || state.ExitCode == nil || *state.ExitCode != 7 {
 					t.Fatalf("real workload result = %+v, %v; output=%s", state, err, output.String())
