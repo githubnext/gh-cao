@@ -1,6 +1,6 @@
 # CAO Azure topology
 
-Review-only output from **gh cao topology**. The solver uses Puccini's
+Review-only output from **gh cao deploy generate**. The solver uses Puccini's
 TOSCA Simple Profile 1.3 parser/compiler/requirement resolver in the Go process.
 No Node.js, cloud calls, App creation, deployments or job starts are involved.
 Generation compiles every emitted `.bicep` file with Microsoft's official
@@ -53,7 +53,7 @@ schema or grant an exporter. Azure Functions is not an exporter host.
 
 ## Checking and reproducibility
 
-`gh cao topology check /absolute/path/to/this-folder` re-solves requirements
+`gh cao deploy check /absolute/path/to/this-folder` re-solves requirements
 with the real TOSCA engine, validates dependency closure/order/cycles and
 feature/parameter/secret consistency, and detects file drift and orphaned output.
 Keep the generating CLI release: newer embedded source revisions can intentionally

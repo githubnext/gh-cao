@@ -105,7 +105,8 @@ func deployAzureExecute(ctx context.Context, deps deployAzureDeps, loaded deploy
 	}
 	if fresh.TenantID != plan.TenantID || fresh.Scope != plan.Scope || fresh.ResourceGroupExists != plan.ResourceGroupExists ||
 		fresh.Location != plan.Location || !reflect.DeepEqual(fresh.Parameters, plan.Parameters) ||
-		!reflect.DeepEqual(fresh.SecureParameters, plan.SecureParameters) || !reflect.DeepEqual(fresh.WhatIf, plan.WhatIf) {
+		!reflect.DeepEqual(fresh.SecureParameters, plan.SecureParameters) || !reflect.DeepEqual(fresh.WhatIf, plan.WhatIf) ||
+		!reflect.DeepEqual(fresh.Topology, plan.Topology) {
 		return errors.New("azure plan drift detected; no Azure changes were made; rerun --plan and review the new change set")
 	}
 	config := loaded.config

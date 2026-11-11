@@ -1,9 +1,10 @@
 ---
-title: Configuration topology generator
+title: Deployment bundle generator
 description: Generate and check review-only Azure deployment bundles using native Go and the TOSCA standard.
 ---
 
-`gh cao topology` is a native Go, offline configuration generator. A small YAML
+`gh cao deploy init`, `generate` and `check` provide native Go, offline
+configuration generation within the deployment command. A small YAML
 file selects features and backend parameters. **Puccini v0.22.7** validates,
 compiles and resolves the generated **TOSCA Simple Profile 1.3** service template:
 typed nodes, capabilities, requirement occurrences, constraints and standard
@@ -27,11 +28,11 @@ The standalone `bicep` executable must be on `PATH`; installing only the
 `az bicep` wrapper is not sufficient. No compiler is downloaded automatically.
 
 ```sh
-gh cao topology init --out /private/operator/requirements.yaml
+gh cao deploy init --out /private/operator/requirements.yaml
 # Edit the example's identities, feature choices and references.
-gh cao topology generate --config /private/operator/requirements.yaml \
+gh cao deploy generate --config /private/operator/requirements.yaml \
   --out /private/operator/azure-plan
-gh cao topology check /private/operator/azure-plan
+gh cao deploy check /private/operator/azure-plan
 ```
 
 ## Deployment samples
@@ -47,8 +48,8 @@ The same input samples are shipped by the command and exercised by Go tests:
 | `full-azure` | Functions plus separate archive/receive/dispatch hosts | Private Azure Flexible Server | Collector/backfill, Blob session lake, two separate ADX destinations, gateway, external OTLP |
 
 ```sh
-gh cao topology init --deployment single-vm --out /private/operator/vm.yaml
-gh cao topology generate --config /private/operator/vm.yaml --out /private/operator/vm-plan
+gh cao deploy init --deployment single-vm --out /private/operator/vm.yaml
+gh cao deploy generate --config /private/operator/vm.yaml --out /private/operator/vm-plan
 ```
 
 Samples use synthetic identities, PUBLIC test keys, documentation-only networks
@@ -66,10 +67,10 @@ incompatible combinations fail rather than carrying hidden full-stack services.
 ### Azure Container Apps
 
 ```sh
-gh cao topology init --deployment azure-container-apps --out /private/operator/containers.yaml
-gh cao topology generate --config /private/operator/containers.yaml \
+gh cao deploy init --deployment azure-container-apps --out /private/operator/containers.yaml
+gh cao deploy generate --config /private/operator/containers.yaml \
   --out /private/operator/containers-plan
-gh cao topology check /private/operator/containers-plan
+gh cao deploy check /private/operator/containers-plan
 ```
 
 This additive profile replaces the Functions HTTP host, runtime Storage and
@@ -112,7 +113,7 @@ scale-to-zero nor production acceptance.
 
 ## Architecture rule checker
 
-Generation and `topology check` apply deterministic rules based on the validated
+Generation and `deploy check` apply deterministic rules based on the validated
 profile's declared capabilities and requirements. `RULES.md` and `rules.json`
 are included in the hash-bound bundle; CLI output reports errors and warnings.
 Strict errors block generation. Warnings record explicit tradeoffs.
@@ -262,9 +263,16 @@ and rejects stale/orphaned outputs and symlinks. External prerequisites remain
 unverified; a valid template is not live readiness, deployment acceptance,
 compliance or authorization.
 
-Keep the generating CLI release when checking older bundles. The CLI embeds a
-deterministic, reviewable text snapshots of the canonical Bicep sources and ARM
-parameter contract for offline use. After changing `server/azure/`, run
+Keep the generating CLI release when checking older bundles. The CLI embeds
+deterministic, reviewable snapshots of every bundled template, example,
+script and runbook, including the canonical Bicep sources and ARM parameter
+contract. It never needs a source checkout or downloads resources at runtime.
+`deploy azure` uses the same embedded ARM template and TOSCA dependency engine
+for its guarded JSON-config preflight, plan and development apply path.
+The YAML bundles are review-only outputs, not apply plan files; their optional
+profiles do not expand native apply support. The separate `topology` command
+has been removed; use `deploy init`, `deploy generate` and `deploy check`.
+After changing `server/azure/`, run
 `go generate ./internal/topology`. A parity test rejects stale embedded sources;
 the generator never maintains a second baseline resource implementation.
 Asset regeneration also compiles the compact and Container Apps ARM parameter contracts,

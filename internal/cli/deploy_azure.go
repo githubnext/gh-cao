@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -17,11 +18,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/githubnext/gh-cao/internal/azcli"
+	"github.com/githubnext/gh-cao/internal/topology"
 )
 
 const (
 	deployAzurePlanKind        = "cao.deploy.azure.plan"
-	deployAzurePlanVersion     = 1
+	deployAzurePlanVersion     = 2
 	defaultDeployAzurePlanPath = ".cao/deploy-azure-plan.json"
 )
 
@@ -49,13 +51,23 @@ func defaultDeployAzureDeps() deployAzureDeps {
 func deployCommand(deps deployAzureDeps) *cobra.Command {
 	deploy := &cobra.Command{
 		Use:   "deploy",
-		Short: "Plan CAO dashboard deployments to cloud hosting",
-		Args:  cobra.NoArgs,
+		Short: "Generate, check, plan and apply CAO deployments",
+		Long: `Resolve deployment dependencies with the embedded Puccini TOSCA 1.3 engine.
+
+init, generate and check prepare offline, review-only deployment bundles from
+YAML feature choices. Templates, examples and runbooks are embedded in Go;
+generation requires Microsoft's official Bicep CLI on PATH.
+
+azure plans or explicitly applies a fresh development Functions deployment from
+a reviewed JSON config using the same dependency engine and embedded Azure template.
+Offline generation never deploys resources or changes GitHub Apps.`,
+		Args: cobra.NoArgs,
 		RunE: func(*cobra.Command, []string) error {
-			return fmt.Errorf("deploy requires azure")
+			return fmt.Errorf("deploy requires init, generate, check, or azure")
 		},
 	}
 	deploy.AddCommand(deployAzureCommand(deps))
+	addDeployBundleCommands(deploy)
 	return deploy
 }
 
@@ -68,6 +80,8 @@ func deployAzureCommand(deps deployAzureDeps) *cobra.Command {
 The config (default ` + defaultDeployAzureConfigPath + `) names the subscription,
 resource group, resources, and access policy. It never contains secret values;
 secure parameters reference environment variables or Key Vault secrets.
+The embedded Azure template and TOSCA dependency engine require no gh-cao
+checkout for preflight or planning. --template selects an explicit ARM override.
 
 --plan (default) runs read-only preflight checks and what-if, then writes a
 secret-free plan file. --preflight runs only the preflight checks (tools,
@@ -88,7 +102,7 @@ Updates to existing instances are not supported.`,
 	flags.Bool("json", false, "Print preflight results as JSON (with --preflight)")
 	flags.Bool("apply", false, "Apply a reviewed plan to a fresh development deployment (not production-assured)")
 	flags.String("plan-file", "", "Reviewed plan file required by --apply")
-	flags.String("template", "", "Compiled ARM template (development source until assets are distributed)")
+	flags.String("template", "", "Explicit compiled ARM override (default: embedded Azure template)")
 	flags.String("out", defaultDeployAzurePlanPath, "Plan file to write")
 	flags.String("source-dir", "", "Development gh-cao checkout used as the allowlisted build source")
 	flags.String("repo-dir", ".", "Operator repository containing reviewed cao.json and cao.azure.json")
@@ -162,6 +176,7 @@ type deployAzurePlan struct {
 	Parameters          map[string]any           `json:"parameters"`
 	SecureParameters    map[string]string        `json:"secureParameters"`
 	WhatIf              deployAzureWhatIfSummary `json:"whatIf"`
+	Topology            topology.Topology        `json:"topology"`
 }
 
 type deployAzurePlanDigest struct {
@@ -183,9 +198,23 @@ type deployAzureChange struct {
 
 func deployAzureLoadTemplate(ctx context.Context, deps deployAzureDeps, path string) (deployAzureTemplate, error) {
 	if path == "" {
-		return deployAzureTemplate{}, errors.New("--template is required until reviewed template distribution is available")
+		return deployAzureEmbeddedTemplate{}.Load(ctx)
 	}
 	return deps.template(path).Load(ctx)
+}
+
+func resolveDeployAzureTopology(ctx context.Context, config deployAzureConfig) (topology.Topology, error) {
+	features := topology.Features{
+		Deployment: "azure-functions", Acquisition: "actions", Ingress: "public", Analytics: "none", Telemetry: "none",
+	}
+	if config.Telemetry.OTLPEndpoint != "" {
+		features.Telemetry = "otlp"
+	}
+	var secrets []string
+	for _, secure := range config.secureParameters() {
+		secrets = append(secrets, secure.name)
+	}
+	return topology.ResolveAzure(ctx, features, config.parameters(), secrets)
 }
 
 func deployAzurePlanRun(ctx context.Context, stdout io.Writer, deps deployAzureDeps, configPath, templatePath, out string) error {
@@ -206,6 +235,10 @@ func deployAzurePlanRun(ctx context.Context, stdout io.Writer, deps deployAzureD
 	document, err := checkDeployAzureTemplate(template, parameters, secureNames)
 	if err != nil {
 		return err
+	}
+	resolved, err := resolveDeployAzureTopology(ctx, config)
+	if err != nil {
+		return fmt.Errorf("resolve Azure deployment topology: %w", err)
 	}
 	secrets, err := resolveDeployAzureSecrets(config, deps.getenv)
 	if err != nil {
@@ -280,6 +313,7 @@ func deployAzurePlanRun(ctx context.Context, stdout io.Writer, deps deployAzureD
 		Parameters:          parameters,
 		SecureParameters:    map[string]string{},
 		WhatIf:              summary,
+		Topology:            resolved,
 	}
 	for _, secure := range config.secureParameters() {
 		plan.SecureParameters[secure.name] = secure.ref.describe()
@@ -312,6 +346,9 @@ func deployAzurePreflightRun(ctx context.Context, stdout io.Writer, deps deployA
 	}
 	if _, err := checkDeployAzureTemplate(template, config.parameters(), secureNames); err != nil {
 		return err
+	}
+	if _, err := resolveDeployAzureTopology(ctx, config); err != nil {
+		return fmt.Errorf("resolve Azure deployment topology: %w", err)
 	}
 	// Preflight needs no secret values, but redacts any that are present.
 	az := deployAzureRedacting(azcli.ReadOnly(deps.az), deployAzureAvailableSecrets(config, deps.getenv))
@@ -483,7 +520,7 @@ func readDeployAzurePlan(path string) (deployAzurePlan, error) {
 	}
 	switch {
 	case plan.Kind != deployAzurePlanKind || plan.SchemaVersion != deployAzurePlanVersion:
-		return plan, fmt.Errorf("invalid plan file %s: expected %s version %d", path, deployAzurePlanKind, deployAzurePlanVersion)
+		return plan, fmt.Errorf("invalid plan file %s: expected %s version %d; rerun --plan", path, deployAzurePlanKind, deployAzurePlanVersion)
 	case plan.WhatIf.Status != "Succeeded":
 		return plan, fmt.Errorf("invalid plan file %s: what-if did not succeed", path)
 	case plan.Config.SHA256 == "" || plan.Template.SHA256 == "":
@@ -491,6 +528,9 @@ func readDeployAzurePlan(path string) (deployAzurePlan, error) {
 	}
 	if _, err := time.Parse(time.RFC3339, plan.CreatedAt); err != nil {
 		return plan, fmt.Errorf("invalid plan file %s: createdAt: %w", path, err)
+	}
+	if err := topology.CheckTopology(plan.Topology); err != nil {
+		return plan, fmt.Errorf("invalid plan file %s: %w; rerun --plan", path, err)
 	}
 	return plan, nil
 }
@@ -516,6 +556,13 @@ func deployAzureApply(ctx context.Context, deps deployAzureDeps, configPath, tem
 	}
 	if template.Digest != plan.Template.SHA256 {
 		return fmt.Errorf("plan file %s was created from a different template; rerun --plan", planFile)
+	}
+	resolved, err := resolveDeployAzureTopology(ctx, loaded.config)
+	if err != nil {
+		return fmt.Errorf("resolve Azure deployment topology: %w", err)
+	}
+	if !reflect.DeepEqual(resolved, plan.Topology) {
+		return fmt.Errorf("plan file %s was created from a different topology; rerun --plan", planFile)
 	}
 	if len(options) != 1 {
 		return errors.New("--apply requires --source-dir and exactly one of --snapshot-dir or --empty-evidence")

@@ -120,18 +120,12 @@ func Solve(ctx context.Context, input Requirements) (Solution, error) {
 	if input.Features.Deployment != "azure-functions" {
 		return solveCompact(ctx, input)
 	}
-	sources, err := baselineFiles()
+	definitions, err := azureParameterDefinitions()
 	if err != nil {
 		return result, err
 	}
-	var template struct {
-		Parameters map[string]ParameterDefinition `json:"parameters"`
-	}
-	if err := json.Unmarshal(sources["main.json"], &template); err != nil {
-		return result, err
-	}
 	defaults := map[string]any{}
-	for name, definition := range template.Parameters {
+	for name, definition := range definitions {
 		if definition.DefaultValue != nil {
 			var value any
 			if err := json.Unmarshal(definition.DefaultValue, &value); err != nil {
@@ -146,7 +140,7 @@ func Solve(ctx context.Context, input Requirements) (Solution, error) {
 	}
 	parameters := map[string]Parameter{}
 	for name, value := range azure.Parameters {
-		definition, exists := template.Parameters[name]
+		definition, exists := definitions[name]
 		if exists && strings.HasPrefix(strings.ToLower(definition.Type), "secure") {
 			return result, fmt.Errorf("SEC-VAULT-002: %s must use a vault reference, not a literal parameter", name)
 		}
@@ -301,7 +295,7 @@ func Solve(ctx context.Context, input Requirements) (Solution, error) {
 	}
 	for name, secretName := range azure.Secrets {
 		runtimeOnly := slices.Contains(runtimeSecrets, name)
-		if !strings.HasPrefix(strings.ToLower(template.Parameters[name].Type), "secure") && !runtimeOnly {
+		if !strings.HasPrefix(strings.ToLower(definitions[name].Type), "secure") && !runtimeOnly {
 			return result, fmt.Errorf("unknown or non-secret Azure secret: %s", name)
 		}
 		if !match(`^[a-zA-Z0-9-]{1,127}$`, secretName) {
@@ -314,27 +308,12 @@ func Solve(ctx context.Context, input Requirements) (Solution, error) {
 		reference.KeyVault.ID = azure.SecretVaultID
 		parameters[name] = Parameter{Reference: reference}
 	}
-	for name, definition := range template.Parameters {
-		parameter, exists := parameters[name]
-		if definition.DefaultValue == nil && !exists {
-			return result, fmt.Errorf("azure dependency missing: %s", name)
-		}
-		if exists && parameter.Reference == nil {
-			if err := validateParameter(name, parameter.Value, definition); err != nil {
-				return result, err
-			}
-		}
-	}
 	result.Parameters = parameterDocument(parameters)
 	result.Optional, err = solveHosts(input, parameters, appName)
 	if err != nil {
 		return result, err
 	}
-	result.TOSCA, err = providerServiceTemplate(features, parameters, template.Parameters)
-	if err != nil {
-		return result, err
-	}
-	result.Topology, err = resolveTOSCA(ctx, result.TOSCA, features)
+	result.TOSCA, result.Topology, err = resolveAzureParameters(ctx, features, parameters, definitions, nil)
 	return result, err
 }
 

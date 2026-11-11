@@ -127,7 +127,7 @@ func Parse(content []byte) (Requirements, error) {
 	decoder := yaml.NewDecoder(bytes.NewReader(content))
 	decoder.KnownFields(true)
 	if err := decoder.Decode(&result); err != nil {
-		return result, fmt.Errorf("invalid requirements fields or types; use 'gh cao topology init' for the supported schema")
+		return result, fmt.Errorf("invalid requirements fields or types; use 'gh cao deploy init' for the supported schema")
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {

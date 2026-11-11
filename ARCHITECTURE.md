@@ -1557,6 +1557,17 @@ Doctor does not replace production policy/workflow validation, grant authority,
 or invoke the Node snapshot-repair command. Actions and Node-only tools invoke
 `node activity/cao.mjs <command>` explicitly, including SQLite snapshot `repair-database`.
 There is no shell launcher.
+`gh cao deploy` owns both offline bundle generation (`init`, `generate`, `check`)
+and guarded Azure development deployment (`azure`). `internal/topology/` owns
+the embedded Puccini TOSCA dependency engine and provider parameter contract,
+shared by YAML bundle generation and JSON-config preflight, planning and apply.
+All bundle templates, examples, scripts and runbooks are compiled into Go
+resources; Azure planning defaults to the same embedded ARM baseline, with an
+explicit compiled-template override for development. Apply plans bind the
+resolved topology and reject drift before Azure writes. Bundle generation
+still requires the official Bicep compiler and grants no deployment authority;
+optional bundle profiles do not widen native apply support or its existing
+development-only, fresh-instance, secret-reference and evidence gates.
 Node `cao` owns the Actions runtime, `gh cao` owns the operator interface, and
 `cao-dashboard` owns the server. Node onboarding and lifecycle implementations
 and exports are removed: `init`, `setup`, `setup-auth`, campaign `add`, `mode`,

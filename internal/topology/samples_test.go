@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// These are the same inputs shipped by `topology init --deployment`.
+// These are the same inputs shipped by `deploy init --deployment`.
 // Missing Bicep is a failure, not skipped validation.
 func TestDeploymentSamples(t *testing.T) {
 	for _, sample := range []struct {

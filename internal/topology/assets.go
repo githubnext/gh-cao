@@ -11,6 +11,11 @@ import (
 //go:embed assets
 var assets embed.FS
 
+// AzureTemplate returns the embedded, compiled Functions baseline.
+func AzureTemplate() ([]byte, error) {
+	return assets.ReadFile("assets/azure-baseline.generated/main.json")
+}
+
 func baselineFiles() (map[string][]byte, error) {
 	const directory = "assets/azure-baseline.generated"
 	entries, err := assets.ReadDir(directory)

@@ -21,7 +21,7 @@
   The checker validates references, never reads secret values.
 - [ ] Build approved policy and evidence into the correct image targets, push
   to ACR, pin reviewed digests and retain provenance/scan/SBOM evidence.
-- [ ] Run topology check, Bicep validation and what-if; review the exact output.
+- [ ] Run `gh cao deploy check`, Bicep validation and what-if; review the exact output.
 - [ ] Obtain deployment approval separately. No generated script applies changes.
 - [ ] Run database provisioning successfully before ingestion or collection.
 {{if eq .Topology.Features.Acquisition "collector"}}

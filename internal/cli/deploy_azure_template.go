@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/githubnext/gh-cao/internal/topology"
 )
 
 // deployAzureTemplate is a compiled ARM template for the CAO Azure profile.
@@ -20,14 +22,27 @@ type deployAzureTemplate struct {
 	Origin  string
 }
 
-// deployAzureTemplateSource supplies the reviewed template. Released binaries
-// will resolve distributed assets; development builds read an explicit file.
+// deployAzureTemplateSource supplies an embedded baseline or explicit ARM override.
 type deployAzureTemplateSource interface {
 	Load(context.Context) (deployAzureTemplate, error)
 }
 
 type deployAzureFileTemplate struct {
 	path string
+}
+
+type deployAzureEmbeddedTemplate struct{}
+
+func (deployAzureEmbeddedTemplate) Load(ctx context.Context) (deployAzureTemplate, error) {
+	if err := ctx.Err(); err != nil {
+		return deployAzureTemplate{}, err
+	}
+	content, err := topology.AzureTemplate()
+	if err != nil {
+		return deployAzureTemplate{}, fmt.Errorf("read embedded Azure template: %w", err)
+	}
+	sum := sha256.Sum256(content)
+	return deployAzureTemplate{Content: content, Digest: hex.EncodeToString(sum[:]), Origin: "embedded"}, nil
 }
 
 func (s deployAzureFileTemplate) Load(ctx context.Context) (deployAzureTemplate, error) {

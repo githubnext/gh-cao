@@ -9,12 +9,7 @@ import (
 	"github.com/githubnext/gh-cao/internal/topology"
 )
 
-func topologyCommand() *cobra.Command {
-	command := &cobra.Command{
-		Use: "topology", Short: "Solve and check review-only TOSCA deployment topologies",
-		Long: "Generate Azure Bicep, Mermaid manifests and configuration instructions from feature choices.\nUses the embedded Puccini TOSCA 1.3 engine in Go; no Node.js, cloud calls or deployment.\nGeneration requires Microsoft's official Bicep CLI on PATH and validates every emitted template.",
-		Args: cobra.NoArgs,
-	}
+func addDeployBundleCommands(command *cobra.Command) {
 	init := &cobra.Command{
 		Use: "init", Short: "Write an example feature configuration without overwriting files", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -35,7 +30,7 @@ func topologyCommand() *cobra.Command {
 			source, _ := cmd.Flags().GetString("config")
 			destination, _ := cmd.Flags().GetString("out")
 			if destination == "" {
-				return fmt.Errorf("topology generate requires --out")
+				return fmt.Errorf("deploy generate requires --out")
 			}
 			content, err := topology.ReadRequirements(source)
 			if err != nil {
@@ -49,7 +44,7 @@ func topologyCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return topologyReport(cmd, "Generated", directory, result)
+			return deployBundleReport(cmd, "Generated", directory, result)
 		},
 	}
 	generate.Flags().String("config", "requirements.yaml", "Reviewed YAML feature choices and non-secret parameters")
@@ -65,14 +60,13 @@ func topologyCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return topologyReport(cmd, "Checked", directory, result)
+			return deployBundleReport(cmd, "Checked", directory, result)
 		},
 	}
 	command.AddCommand(init, generate, check)
-	return command
 }
 
-func topologyReport(cmd *cobra.Command, verb, directory string, result topology.Topology) error {
+func deployBundleReport(cmd *cobra.Command, verb, directory string, result topology.Topology) error {
 	report, err := topology.ReadRuleReport(directory)
 	if err != nil {
 		return err
