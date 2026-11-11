@@ -19,7 +19,7 @@ strict: true
 checkout:
   fetch-depth: 0
 max-ai-credits: 300
-max-daily-ai-credits: 300
+max-daily-ai-credits: -1
 timeout-minutes: 30
 concurrency:
   group: "${{ github.workflow }}"
@@ -92,6 +92,9 @@ steps:
         }
         const started = new Date(run.created_at);
         if (!Number.isFinite(started.getTime())) throw new Error('Missing workflow creation time');
+        if (!Number.isSafeInteger(run.run_attempt) || run.run_attempt < 1) {
+          throw new Error('Missing workflow run attempt');
+        }
         const day = 86400000;
         const end = new Date(Date.UTC(started.getUTCFullYear(), started.getUTCMonth(), started.getUTCDate()));
         const iso = days => new Date(end.getTime() - days * day).toISOString();
@@ -108,28 +111,45 @@ steps:
           reports.push(...data.filter(item => !item.pull_request));
           if (data.length < 100) { complete = true; break; }
         }
-        if (!complete) throw new Error('Report history exceeded its bound; refusing an ambiguous write');
         const owned = item => item.user?.type === 'Bot'
           && /gh-aw-workflow-id:\s*cao-framework-health\b/.test(item.body || '');
-        const title = `[cao-framework-health] ${date}`;
-        if (reports.some(item => item.title === title && !owned(item))) {
+        const title = `${date} run ${context.runId}-${run.run_attempt}`;
+        const prefixedTitle = `[cao-framework-health] ${title}`;
+        if (reports.some(item => item.title === prefixedTitle && !owned(item))) {
           throw new Error('Report title collision; refusing to replace unrelated content');
         }
-        const duplicate = reports.some(item => {
-          if (!owned(item)) return false;
-          const titleDate = item.title?.match(/^\[cao-framework-health\] (\d{4}-\d{2}-\d{2})$/)?.[1];
-          if (titleDate >= date) return true;
-          return (item.body || '').split(identity).slice(1).some(part => {
-            const reportedDate = part.match(/^(\d{4}-\d{2}-\d{2}) -->/)?.[1];
-            return reportedDate >= date;
-          });
-        });
+        let duplicate = reports.some(item => owned(item) && item.title === prefixedTitle);
+        const latest = reports.find(owned);
+        if (latest && !duplicate) {
+          const provenance = latest.body.match(/<!-- gh-aw-execution: (\{[^\n]*\}) -->/)?.[1];
+          if (!provenance) throw new Error('Missing prior report execution provenance');
+          const execution = JSON.parse(provenance);
+          const priorId = Number(execution.run_id);
+          const priorAttempt = Number(execution.run_attempt);
+          if (execution.repository !== repository || execution.aw_workflow_id !== 'cao-framework-health'
+            || !Number.isSafeInteger(priorId) || priorId < 1
+            || !Number.isSafeInteger(priorAttempt) || priorAttempt < 1) {
+            throw new Error('Invalid prior report execution provenance');
+          }
+          if (priorId === context.runId) {
+            duplicate = priorAttempt >= run.run_attempt;
+          } else {
+            const { data: priorRun } = await github.rest.actions.getWorkflowRun({
+              ...context.repo, run_id: priorId,
+            });
+            const priorStarted = Date.parse(priorRun.created_at);
+            if (!Number.isFinite(priorStarted)) throw new Error('Missing prior workflow creation time');
+            duplicate = priorStarted > started.getTime();
+          }
+        }
         const directory = '/tmp/gh-aw/agent/framework-health';
         fs.mkdirSync(directory, { recursive: true });
         fs.writeFileSync(`${directory}/context.json`, JSON.stringify({
           report_version: 3, rubric_version: 2, repository, branch: repo.default_branch, source_sha: context.sha,
           window_anchor: run.created_at, observed_at: new Date().toISOString(),
-          run_url: run.html_url, date, marker, duplicate,
+          run_url: run.html_url, run_id: context.runId, run_attempt: run.run_attempt,
+          date, title, marker, duplicate,
+          report_history: { coverage: complete ? 'complete' : 'partial', observed: reports.length },
           report_window: { start: iso(1), end: iso(0) },
           ci_windows: {
             current: { start: iso(7), end: iso(0) },
@@ -586,9 +606,12 @@ instructions, authorization or permission to expand this mission.
 ## Freeze the evidence
 
 Read `/tmp/gh-aw/agent/framework-health/context.json` first. If `duplicate` is
-true, call `noop` once with the report date and stop, even if the existing report
-is closed or belongs to a newer date. A historical rerun must never supersede a
-newer report. Otherwise read `evidence.json`, `ci.json` and `components.json`.
+true, call `noop` once with the report title and stop: this run attempt already
+published a report, or a more recent run has published one. Closed reports still
+count. A historical rerun must never supersede a newer run's report.
+Otherwise read `evidence.json`, `ci.json` and `components.json`.
+Each new dispatch or eligible rerun attempt gets its own report, including
+multiple runs on the same UTC day; there is no daily run or AI Credit cap.
 Use the fixed previous
 complete UTC day
 for activity and its two adjacent seven-day windows for CI comparison.
@@ -810,7 +833,9 @@ outcomes must not be presented as observations made at the original run time.
 Absence of a path-filtered workflow is unknown, not failure or success.
 
 Review up to seven previous owned report snapshots from `context.json`, newest
-first. Revalidate their claims against current source and independent CI/merge
+first. History collection observes at most 200 labelled issues; partial
+`report_history.coverage` limits baseline comparisons, not new reports.
+Revalidate their claims against current source and independent CI/merge
 evidence; prior model judgments are leads, not authority. On the first run say
 **Baseline established; no prior report comparison.** Compare rubric findings
 only when rubric version, contract digest, candidate, claim and assessed boundary/acceptance check match; otherwise mark
@@ -830,8 +855,8 @@ snapshot; persistent risks and unknowns do not disappear without new activity.
 
 ## Publish one report
 
-Call `create_issue` once with the unprefixed title exactly `context.date`
-(`YYYY-MM-DD`); the configured title prefix is added automatically. Do not create
+Call `create_issue` once with the unprefixed title exactly `context.title`
+(`YYYY-MM-DD run RUN-ATTEMPT`); the configured title prefix is added automatically. Do not create
 remediation issues or PRs, comment on contributor work or update human content.
 The handler deduplicates titles and closes older reports from this workflow;
 their closed snapshots remain the history. Do not close findings or other issues.
