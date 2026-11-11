@@ -1,35 +1,7 @@
 {
-  "source_sha": "494560796e94c3f709f91c9a1ff7de98e840f660",
-  "next_category": "artifact transfer and Pages packaging",
+  "source_sha": "770e465dd56ccc6ae2f2daf9f7602b764f5e4b79",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-10T13:32:33Z",
-      "worker_run_id": "42824837723",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42825203017,
-        42823069348,
-        42822635595,
-        42820733890,
-        42818554210,
-        42816533903,
-        42815099986,
-        42814698988,
-        42812267623,
-        42810133407,
-        42808104445,
-        42806058524,
-        42805577341,
-        42804000346,
-        42801897003,
-        42799812250,
-        42797819794,
-        42797437106,
-        42795599307,
-        42793374918
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T09:45:30Z to 2026-11-10T13:31:17Z) was within 14 days and contained 16 successful schedule runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job and step metadata verified that all 16 successful runs were freshness-only: schedule-freshness succeeded while build and deploy were skipped. The four workflow_run callbacks skipped every job. Therefore zero successful full build-and-deploy publications were available, below the required five comparable successful runs. Queue-versus-execution timing, full-workflow and dashboard/build/deploy median and p90 distributions, repeated artifact-transfer/Pages-packaging cost analysis, step timing analysis, and cache-hit verification across a sufficient successful publication sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
     {
       "evaluated_at": "2026-11-10T13:52:18Z",
       "worker_run_id": "42827918053",
@@ -841,6 +813,34 @@
         43056574412
       ],
       "outcome": "incomplete: latest-20 completed docs.yml runs (2026-11-11T16:15:50Z to 2026-11-11T19:31:09Z, within 14 days) contained 14 successful runs (10 freshness-only schedules with build and deploy skipped, 4 full build-and-deploy publications), 4 skipped workflow_run callbacks, 2 cancelled runs excluded (43056574412 push, 43056606989 workflow_run) and 0 failed runs. Comparable successful publications were 4 (schedule runs 43083249533 at 49456079, 43078552939 at c56d4216, 43059108154 at 5a3e62fa, 43056881974 at 81e2c711), below the required 5, so the evaluation stopped before timing distributions, step analysis, or cache verification. Preliminary created-to-completed durations: 114 s, 134 s, 398 s, 401 s; build 85/86/93/97 s; deploy 19/34/296/53 s, where 43059108154 Pages deploy (287 s step) is an outlier. Build steps: checkout 24-29 s, npm ci 15-17 s, docs build 11-14 s, Pages upload 17-23 s. docs.yml has no dashboard job; dashboard steps run inside build. Unverified observation: 43056881974 first job was created 244 s after run creation at 16:21:41Z, the same second push run 43056177904 completed, consistent with documentation-pages concurrency queueing. next_category unchanged; no suggestion."
+    },
+    {
+      "evaluated_at": "2026-11-11T19:57:00Z",
+      "worker_run_id": "43090776691",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        43090243002,
+        43087935698,
+        43085628886,
+        43085139761,
+        43083249533,
+        43081415171,
+        43080844329,
+        43078618882,
+        43078552939,
+        43076367701,
+        43076120883,
+        43073764764,
+        43071291945,
+        43068939179,
+        43066601169,
+        43066186678,
+        43064053077,
+        43061590593,
+        43059108154,
+        43056881974
+      ],
+      "outcome": "complete, not actionable: latest-20 completed docs.yml runs (2026-11-11T16:17:41Z to 2026-11-11T19:46:01Z, within 14 days; 0 cancelled, 1 failed) contained 5 successful full build-and-deploy publications (4 schedule, 1 push: 43056881974, 43059108154, 43078552939, 43081415171, 43083249533), 10 freshness-only schedule runs (6-13 s) and 4 skipped workflow_run callbacks. Build median 84 s (p90 95 s); wall time from build start to deploy end median 119 s (p90 386 s, driven by deploy outlier 43059108154 at 287 s). Upload Pages artifact median 19 s (15-23 s) for a near-constant 111.9 MB github-pages artifact; Deploy Pages median 27 s (9-287 s). Upload plus deploy median 44 s, but no concrete workflow change was identified that saves 60 s or about 18 s (15%) without altering published content or relying on GitHub-managed deploy latency; artifact composition is not verifiable from accessible metadata. No suggestion made. Critical observation: failed run 43090243002 (schedule, 2026-11-11T19:46Z, source 770e465) had a dashboard cache miss and failed at Mount latest CAO Dashboard artifact (job logs HTTP 403; cause inferred). central-agentic-ops-dashboard cache absent from 40 listed repo caches (repo total 10.85 GB). Last CAO Dashboard success 2026-11-10T06:41Z (artifact retention 1 day; listing returns total_count 1 with no entries). Last CAO Activity success 2026-11-09T23:11Z; recent Activity runs failing. Carry-forward leads: (5) freshness check compares only the deployed HEAD SHA, so 770e465 (only internal/topology/README.md changed) triggered a full rebuild; 43083249533 rebuilt 494560796 about 12 min after 43081415171 deployed it (cause not visible). (1) checkout uses fetch-depth 0 (median 25 s); docs:build uses only git ls-files and rev-parse, so a shallow-checkout candidate needs measurement."
     }
   ]
 }
