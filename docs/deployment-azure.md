@@ -33,7 +33,8 @@ flowchart LR
 ### YAML topology planning
 
 For review-only configuration generation from feature choices, use the
-[native Go topology generator](deployment-topology.md) with `gh cao topology`.
+[native Go deployment bundle generator](deployment-topology.md) with
+`gh cao deploy init`, `gh cao deploy generate` and `gh cao deploy check`.
 It emits the unchanged Azure Bicep module set, Key Vault parameter references,
 a checked dependency graph, GitHub application setup instructions, validation
 scripts and operator TODOs. Its offline checker detects dependency and output
@@ -63,8 +64,15 @@ Updates, resuming a partially created deployment, and upgrades are follow-up
 work; a subsequent `--plan` against a successfully deployed instance must fail
 closed as an existing instance.
 
-For a development build, supply the compiled `server/azure/main.json` with
-`--template` and a gh-cao checkout with `--source-dir`. Supply the operator's
+Preflight and planning use the Go-embedded Azure ARM template and the same
+TOSCA dependency engine as offline bundle generation; neither needs a source
+checkout or Bicep installation. Plans include the resolved topology, and apply
+rejects topology drift before Azure writes. Older plans must be regenerated
+with the current CLI. `--template` remains an explicit compiled ARM override;
+its parameters must also satisfy the embedded provider contract.
+
+Development apply still requires a gh-cao checkout with `--source-dir` for
+building images. Supply the operator's
 repository with `--repo-dir` (default `.`); its reviewed
 `.github/workflows/cao.json` and `.github/workflows/cao.azure.json` are layered
 into an owner-only temporary build context. Only allowlisted product files,
@@ -83,10 +91,9 @@ letter or digit, and without consecutive hyphens. The longest derived name,
 
 ```bash
 gh cao deploy azure --plan --config /private/operator/deploy-azure.json \
-  --template /src/gh-cao/server/azure/main.json --out /private/operator/plan.json
+  --out /private/operator/plan.json
 
 gh cao deploy azure --apply --config /private/operator/deploy-azure.json \
-  --template /src/gh-cao/server/azure/main.json \
   --plan-file /private/operator/plan.json \
   --source-dir /src/gh-cao --repo-dir /private/operator \
   --empty-evidence --receipt /private/operator/deploy-azure-receipt.json
@@ -104,8 +111,9 @@ digests, and locks the version-plus-config-hash tags against writes and deletes.
 It then deploys the full template with separate Functions, provisioning, and
 ingestion digest parameters, not those tags. After deployment it reads back the
 configured digest references for all three targets before starting either job;
-missing, mismatched, or additional job containers fail closed. Regenerate `server/azure/main.json` from the reviewed Bicep sources before
-planning, then review the exact compiled template. Apply rejects templates
+missing, mismatched, or additional job containers fail closed. When using an
+explicit template override, regenerate `server/azure/main.json` from the reviewed
+Bicep sources before planning, then review the exact compiled template. Apply rejects templates
 without the three image digest parameters before any Azure call.
 New managed-identity Key Vault grants can take time to propagate. Apply retries
 the exact reviewed ARM request at most three times only when every nested

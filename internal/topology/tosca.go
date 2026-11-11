@@ -136,6 +136,9 @@ type engineVertex struct {
 
 func resolveTOSCA(ctx context.Context, content []byte, features Features) (result Topology, err error) {
 	result = Topology{Version: 1, Backend: "azure", Features: features, Nodes: []Node{}}
+	if err := ctx.Err(); err != nil {
+		return result, err
+	}
 	urlContext := exturl.NewContext()
 	defer func() { err = errors.Join(err, urlContext.Release()) }()
 	// Only generated, import-free templates enter the engine. Built-in profiles
@@ -146,7 +149,7 @@ func resolveTOSCA(ctx context.Context, content []byte, features Features) (resul
 	parserContext.URL = source
 	normalized, err := parserContext.Parse(ctx)
 	if err != nil {
-		return result, fmt.Errorf("TOSCA validation failed: %w; %v", err, parserContext.GetProblems())
+		return result, fmt.Errorf("TOSCA validation failed: %w; %v", errors.Join(err, ctx.Err()), parserContext.GetProblems())
 	}
 	clout, err := normalized.Compile()
 	if err != nil {
