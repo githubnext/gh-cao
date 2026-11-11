@@ -630,7 +630,7 @@ is no memory disk journal, automatic failover, or dual-write path.
 The separately opt-in organization Copilot requests broker
 (`server/internal/tokenbroker/`, `POST /api/token-broker`) exchanges GitHub
 Actions OIDC identities for dedicated organization App installation tokens with
-only `copilot_requests: read`. Its protected
+only `organization_copilot_requests: read`. Its protected
 `control-plane.token-broker.copilot-requests.workflows` policy pins immutable
 owner/repository IDs, workflow reference and revision; signed job context
 isolates issuance and invalidation. It never grants rollout, admission, or
@@ -641,6 +641,11 @@ profile keeps a bounded process-local credential registry for revocation;
 crashes can lose cleanup state until upstream expiry, bounded to one hour.
 Platform/external listeners and overlapping replicas are unsupported. Live
 Copilot inference, renewal and cleanup acceptance remains operator-owned.
+Identity verification, enrollment, issuance and revocation emit fixed-name
+OpenTelemetry spans and correlated operation/outcome logs through the hosted
+providers, without requiring debug logging. The HTTP boundary uses a fixed
+route, sanitized traceparent-only correlation and no response trace identifiers;
+credentials, identities, policy contents and raw upstream errors are excluded.
 
 The optional hosted activation-admission service (`server/internal/admission/`)
 implements gh-aw's separate OIDC-only `POST /api/admission` contract, never CAO

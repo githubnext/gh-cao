@@ -141,10 +141,10 @@ func (b *stressBroker) RoundTrip(r *http.Request) (*http.Response, error) {
 	switch {
 	case r.Method == http.MethodGet && r.URL.Path == "/app/installations/11":
 		_, _ = response.WriteString(`{"app_id":7,"account":{"id":42,"type":"Organization"},
-			"suspended_at":null,"permissions":{"copilot_requests":"read"}}`)
+			"suspended_at":null,"permissions":{"organization_copilot_requests":"read"}}`)
 	case r.Method == http.MethodPost && r.URL.Path == "/app/installations/11/access_tokens":
 		body, err := io.ReadAll(io.LimitReader(r.Body, 1024))
-		if err != nil || string(body) != `{"permissions":{"copilot_requests":"read"},"repository_ids":[1001]}` {
+		if err != nil || string(body) != `{"permissions":{"organization_copilot_requests":"read"},"repository_ids":[1001]}` {
 			b.t.Fatal("broker broadened the fixture credential scope")
 		}
 		b.report.Exchanges++
@@ -152,7 +152,7 @@ func (b *stressBroker) RoundTrip(r *http.Request) (*http.Response, error) {
 		b.tokens[token] = true
 		response.WriteHeader(http.StatusCreated)
 		_, _ = fmt.Fprintf(response, `{"token":%q,"expires_at":%q,
-			"permissions":{"copilot_requests":"read","metadata":"read"},
+			"permissions":{"organization_copilot_requests":"read","metadata":"read"},
 			"repositories":[{"id":1001,"owner":{"id":42}}]}`,
 			token, b.now().Add(50*time.Minute).Format(time.RFC3339))
 	default:

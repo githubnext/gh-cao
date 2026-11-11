@@ -18,7 +18,7 @@ import (
 )
 
 func TestAdmissionHTTPMetricsAndSpansStayBounded(t *testing.T) {
-	for _, path := range []string{"/api/admission", "/api/conclusion"} {
+	for _, path := range []string{"/api/admission", "/api/conclusion", tokenBrokerPath} {
 		t.Run(path, func(t *testing.T) { testAdmissionHTTPMetricsAndSpans(t, path) })
 	}
 }
@@ -51,12 +51,18 @@ func testAdmissionHTTPMetricsAndSpans(t *testing.T, path string) {
 			AllowedHosts: []string{"admission.example"}, RequireHTTPS: true,
 		}}, admission: &admission.Service{Verifier: verifier},
 	}
+	deniedStatus := int64(403)
+	if path == tokenBrokerPath {
+		app.tokenBroker = newDeniedTokenBroker(t)
+		deniedStatus = 400
+	}
 	handler := app.Handler()
 	for n := 0; n < 62; n++ {
 		if n == 61 {
 			app.Drain()
 		}
 		request := httptest.NewRequestWithContext(t.Context(), "POST", "https://admission.example"+path+"?PRIVATE_QUERY=private-value", strings.NewReader(`{"private":"PRIVATE_BODY"}`))
+		request.Header.Set("Content-Type", "application/json")
 		request.Header.Set("Authorization", "Bearer PRIVATE_CREDENTIAL")
 		request.Header.Set("Baggage", "private=PRIVATE_BAGGAGE")
 		request.Header.Set("Traceparent", "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
@@ -86,7 +92,7 @@ func testAdmissionHTTPMetricsAndSpans(t *testing.T, path string) {
 			}
 		}
 	}
-	if counts[403] != 60 || counts[429] != 1 || counts[503] != 1 {
+	if counts[deniedStatus] != 60 || counts[429] != 1 || counts[503] != 1 {
 		t.Fatalf("HTTP telemetry missed denial/throttle/unavailability: %v", counts)
 	}
 	encoded, err := json.Marshal(struct {

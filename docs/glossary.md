@@ -96,7 +96,7 @@ The local, loopback-only **Central Agentic Ops** Copilot SDK surface that hosts 
 
 ## Copilot requests token broker
 
-A separately opt-in, single-replica server endpoint (`POST /api/token-broker`) that exchanges a GitHub Actions OIDC identity for a dedicated organization App installation token limited to `copilot_requests: read`. The control repository's `control-plane.token-broker.copilot-requests.workflows` policy must pin the exact owner and repository IDs, workflow reference, and workflow revision; an empty list authorizes nothing. It grants credential authorization only, never rollout, admission, or repository-write authority.
+A separately opt-in, single-replica server endpoint (`POST /api/token-broker`) that exchanges a GitHub Actions OIDC identity for a dedicated organization App installation token limited to `organization_copilot_requests: read`. The control repository's `control-plane.token-broker.copilot-requests.workflows` policy must pin the exact owner and repository IDs, workflow reference, and workflow revision; an empty list authorizes nothing. It grants credential authorization only, never rollout, admission, or repository-write authority.
 
 ## Daily partition
 

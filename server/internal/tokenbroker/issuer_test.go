@@ -15,14 +15,15 @@ func TestInstallationMustMatchTrustedTenant(t *testing.T) {
 		name string
 		body string
 	}{
-		{"wrong-app", `{"app_id":8,"account":{"id":42,"type":"Organization"},"suspended_at":null,"permissions":{"copilot_requests":"read"}}`},
-		{"wrong-owner", `{"app_id":7,"account":{"id":99,"type":"Organization"},"suspended_at":null,"permissions":{"copilot_requests":"read"}}`},
-		{"personal-account", `{"app_id":7,"account":{"id":42,"type":"User"},"suspended_at":null,"permissions":{"copilot_requests":"read"}}`},
-		{"suspended", `{"app_id":7,"account":{"id":42,"type":"Organization"},"suspended_at":"2026-10-30T00:00:00Z","permissions":{"copilot_requests":"read"}}`},
-		{"missing-suspension-evidence", `{"app_id":7,"account":{"id":42,"type":"Organization"},"permissions":{"copilot_requests":"read"}}`},
+		{"wrong-app", `{"app_id":8,"account":{"id":42,"type":"Organization"},"suspended_at":null,"permissions":{"organization_copilot_requests":"read"}}`},
+		{"wrong-owner", `{"app_id":7,"account":{"id":99,"type":"Organization"},"suspended_at":null,"permissions":{"organization_copilot_requests":"read"}}`},
+		{"personal-account", `{"app_id":7,"account":{"id":42,"type":"User"},"suspended_at":null,"permissions":{"organization_copilot_requests":"read"}}`},
+		{"suspended", `{"app_id":7,"account":{"id":42,"type":"Organization"},"suspended_at":"2026-10-30T00:00:00Z","permissions":{"organization_copilot_requests":"read"}}`},
+		{"missing-suspension-evidence", `{"app_id":7,"account":{"id":42,"type":"Organization"},"permissions":{"organization_copilot_requests":"read"}}`},
 		{"missing-permission", `{"app_id":7,"account":{"id":42,"type":"Organization"},"suspended_at":null,"permissions":{"issues":"write"}}`},
-		{"write-not-read", `{"app_id":7,"account":{"id":42,"type":"Organization"},"suspended_at":null,"permissions":{"copilot_requests":"write"}}`},
-		{"duplicate-security-field", `{"app_id":7,"app_id":8,"account":{"id":42,"type":"Organization"},"suspended_at":null,"permissions":{"copilot_requests":"read"}}`},
+		{"write-not-read", `{"app_id":7,"account":{"id":42,"type":"Organization"},"suspended_at":null,"permissions":{"organization_copilot_requests":"write"}}`},
+		{"legacy-permission", `{"app_id":7,"account":{"id":42,"type":"Organization"},"suspended_at":null,"permissions":{"copilot_requests":"read"}}`},
+		{"duplicate-security-field", `{"app_id":7,"app_id":8,"account":{"id":42,"type":"Organization"},"suspended_at":null,"permissions":{"organization_copilot_requests":"read"}}`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -41,13 +42,19 @@ func TestIssuedTokenValidationRevokesRejectedResults(t *testing.T) {
 		edit func(map[string]any, *fixture)
 	}{
 		{"scope", func(result map[string]any, _ *fixture) {
-			result["permissions"] = map[string]string{"copilot_requests": "read", "issues": "write"}
+			result["permissions"] = map[string]string{"organization_copilot_requests": "read", "issues": "write"}
 		}},
 		{"missing-permission", func(result map[string]any, _ *fixture) {
 			result["permissions"] = map[string]string{"metadata": "read"}
 		}},
 		{"write", func(result map[string]any, _ *fixture) {
-			result["permissions"] = map[string]string{"copilot_requests": "write"}
+			result["permissions"] = map[string]string{"organization_copilot_requests": "write"}
+		}},
+		{"legacy-permission", func(result map[string]any, _ *fixture) {
+			result["permissions"] = map[string]string{"copilot_requests": "read"}
+		}},
+		{"extra-legacy-permission", func(result map[string]any, _ *fixture) {
+			result["permissions"] = map[string]string{"organization_copilot_requests": "read", "copilot_requests": "read"}
 		}},
 		{"near-expiry", func(result map[string]any, f *fixture) {
 			result["expires_at"] = f.now.Add(time.Minute).Format(time.RFC3339)
@@ -94,7 +101,7 @@ func TestIssuedTokenValidationRevokesRejectedResults(t *testing.T) {
 func TestRejectedCredentialRetainedOnCleanupFailure(t *testing.T) {
 	f := newFixture(t)
 	f.result = func() string {
-		return `{"token":"test-rejected","expires_at":"bad","permissions":{"copilot_requests":"write"}}`
+		return `{"token":"test-rejected","expires_at":"bad","permissions":{"organization_copilot_requests":"write"}}`
 	}
 	f.revokeFails = true
 	if w := f.call(exchangeBody); w.Code != 503 {

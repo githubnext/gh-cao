@@ -68,7 +68,7 @@ func newFixture(t *testing.T) *fixture {
 			WorkflowRef: "acme/project/.github/workflows/triage.lock.yml@refs/heads/main",
 			WorkflowSHA: strings.Repeat("a", 40),
 		},
-		installation: `{"app_id":7,"account":{"id":42,"type":"Organization"},"suspended_at":null,"permissions":{"copilot_requests":"read","issues":"write"}}`,
+		installation: `{"app_id":7,"account":{"id":42,"type":"Organization"},"suspended_at":null,"permissions":{"organization_copilot_requests":"read","issues":"write"}}`,
 	}
 	var suffix [16]byte
 	if _, err := rand.Read(suffix[:]); err != nil {
@@ -81,7 +81,7 @@ func newFixture(t *testing.T) *fixture {
 		body, _ := json.Marshal(map[string]any{
 			"token":        "test-issued-" + strings.Repeat("x", f.mints),
 			"expires_at":   f.now.Add(50 * time.Minute).Format(time.RFC3339),
-			"permissions":  map[string]string{"copilot_requests": "read", "metadata": "read"},
+			"permissions":  map[string]string{"organization_copilot_requests": "read", "metadata": "read"},
 			"repositories": []any{map[string]any{"id": 1001, "owner": map[string]any{"id": 42}}},
 		})
 		return string(body)
@@ -117,7 +117,7 @@ func newFixture(t *testing.T) *fixture {
 				t.Error("invalid token endpoint")
 			}
 			payload, err := io.ReadAll(r.Body)
-			if err != nil || string(payload) != `{"permissions":{"copilot_requests":"read"},"repository_ids":[1001]}` {
+			if err != nil || string(payload) != `{"permissions":{"organization_copilot_requests":"read"},"repository_ids":[1001]}` {
 				t.Errorf("excessive or invalid mint scope: %s", payload)
 			}
 			f.mints++
