@@ -1,0 +1,584 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.49.2.45890",
+      "templateHash": "11000907788162770842"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string"
+    },
+    "deploymentName": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 19
+    },
+    "sshPublicKey": {
+      "type": "string"
+    },
+    "administrator": {
+      "type": "string",
+      "defaultValue": "caoadmin"
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_B2s"
+    },
+    "dataDiskSizeGB": {
+      "type": "int",
+      "defaultValue": 64,
+      "minValue": 16
+    },
+    "httpsSourceCidrs": {
+      "type": "array",
+      "minLength": 1
+    },
+    "managedPostgres": {
+      "type": "bool",
+      "defaultValue": false
+    },
+    "postgresServerName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-pg', parameters('deploymentName'))]"
+    },
+    "postgresAdministratorPassword": {
+      "type": "securestring",
+      "defaultValue": ""
+    },
+    "postgresSkuName": {
+      "type": "string",
+      "defaultValue": "Standard_B2s"
+    },
+    "postgresSkuTier": {
+      "type": "string",
+      "defaultValue": "Burstable"
+    },
+    "githubClientId": {
+      "type": "string"
+    },
+    "githubAllowedOrganizations": {
+      "type": "array",
+      "defaultValue": []
+    },
+    "githubAllowedTeams": {
+      "type": "array",
+      "defaultValue": []
+    },
+    "githubAllowedUsers": {
+      "type": "array",
+      "defaultValue": []
+    },
+    "githubAdminUsers": {
+      "type": "array",
+      "minLength": 1
+    },
+    "postgresRunRetentionDays": {
+      "type": "int",
+      "minValue": 7,
+      "maxValue": 3650
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2024-05-01",
+      "name": "[format('{0}-https', parameters('deploymentName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "reviewed-https",
+            "properties": {
+              "priority": 100,
+              "access": "Allow",
+              "direction": "Inbound",
+              "protocol": "Tcp",
+              "sourceAddressPrefixes": "[parameters('httpsSourceCidrs')]",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "443"
+            }
+          },
+          {
+            "name": "deny-other-inbound",
+            "properties": {
+              "priority": 4096,
+              "access": "Deny",
+              "direction": "Inbound",
+              "protocol": "*",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "*"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2024-05-01",
+      "name": "[format('{0}-vnet', parameters('deploymentName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.44.0.0/16"
+          ]
+        },
+        "subnets": "[concat(createArray(createObject('name', 'vm', 'properties', createObject('addressPrefix', '10.44.0.0/24', 'defaultOutboundAccess', false(), 'networkSecurityGroup', createObject('id', resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-https', parameters('deploymentName'))))))), if(parameters('managedPostgres'), createArray(createObject('name', 'postgres', 'properties', createObject('addressPrefix', '10.44.1.0/24', 'delegations', createArray(createObject('name', 'postgres', 'properties', createObject('serviceName', 'Microsoft.DBforPostgreSQL/flexibleServers')))))), createArray()))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-https', parameters('deploymentName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "compact-dashboard-host",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "name": {
+            "value": "[parameters('deploymentName')]"
+          },
+          "role": {
+            "value": "dashboard"
+          },
+          "subnetId": {
+            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', format('{0}-vnet', parameters('deploymentName')), 'vm')]"
+          },
+          "administrator": {
+            "value": "[parameters('administrator')]"
+          },
+          "sshPublicKey": {
+            "value": "[parameters('sshPublicKey')]"
+          },
+          "vmSize": {
+            "value": "[parameters('vmSize')]"
+          },
+          "publicEndpoint": {
+            "value": true
+          },
+          "persistentDataDisk": {
+            "value": true
+          },
+          "dataDiskSizeGB": {
+            "value": "[parameters('dataDiskSizeGB')]"
+          },
+          "localPostgres": {
+            "value": "[not(parameters('managedPostgres'))]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.49.2.45890",
+              "templateHash": "8575000414209395564"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string",
+              "allowedValues": [
+                "archive",
+                "gateway-receive",
+                "gateway-dispatch",
+                "dashboard"
+              ]
+            },
+            "subnetId": {
+              "type": "string"
+            },
+            "administrator": {
+              "type": "string"
+            },
+            "sshPublicKey": {
+              "type": "string"
+            },
+            "vmSize": {
+              "type": "string"
+            },
+            "containerRegistryName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "publicEndpoint": {
+              "type": "bool",
+              "defaultValue": false
+            },
+            "persistentDataDisk": {
+              "type": "bool",
+              "defaultValue": false
+            },
+            "localPostgres": {
+              "type": "bool",
+              "defaultValue": false
+            },
+            "dataDiskSizeGB": {
+              "type": "int",
+              "defaultValue": 128,
+              "minValue": 16
+            }
+          },
+          "variables": {
+            "$fxv#0": "#cloud-config\npackage_update: true\npackages:\n  - docker.io\n  - python3\n  - postgresql-16\nwrite_files:\n  - path: /opt/cao/ACTIVATION-REQUIRED\n    owner: root:root\n    permissions: '0600'\n    content: |\n      Single VM: PostgreSQL package installed, CAO runtime NOT activated.\n      Keep PostgreSQL on Unix socket/loopback only. No public database port.\n      Identify and mount the persistent data disk before storing CAO data.\n      Owner-provision distinct database roles/schemas before runtime startup.\n      Complete README.md and TODO.md from the generated deployment bundle.\nruncmd:\n  - [systemctl, enable, --now, docker]\n",
+            "$fxv#1": "#cloud-config\npackage_update: true\npackages:\n  - docker.io\n  - python3\nwrite_files:\n  - path: /opt/cao/ACTIVATION-REQUIRED\n    owner: root:root\n    permissions: '0600'\n    content: |\n      Infrastructure staged only. No CAO runtime, policy or credentials installed.\n      Complete the generated OPTIONAL-FEATURES.md before starting services.\nruncmd:\n  - [systemctl, enable, --now, docker]\n"
+          },
+          "resources": [
+            {
+              "condition": "[parameters('publicEndpoint')]",
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}-https', parameters('name'))]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "publicIPAllocationMethod": "Static",
+                "dnsSettings": {
+                  "domainNameLabel": "[parameters('name')]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Network/networkInterfaces",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}-nic', parameters('name'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "primary",
+                    "properties": {
+                      "privateIPAllocationMethod": "Dynamic",
+                      "subnet": {
+                        "id": "[parameters('subnetId')]"
+                      },
+                      "publicIPAddress": "[if(parameters('publicEndpoint'), createObject('id', resourceId('Microsoft.Network/publicIPAddresses', format('{0}-https', parameters('name')))), null())]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-https', parameters('name')))]"
+              ]
+            },
+            {
+              "condition": "[parameters('persistentDataDisk')]",
+              "type": "Microsoft.Compute/disks",
+              "apiVersion": "2024-03-02",
+              "name": "[format('{0}-private-data', parameters('name'))]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "StandardSSD_LRS"
+              },
+              "properties": {
+                "creationData": {
+                  "createOption": "Empty"
+                },
+                "diskSizeGB": "[parameters('dataDiskSizeGB')]",
+                "networkAccessPolicy": "DenyAll",
+                "publicNetworkAccess": "Disabled"
+              }
+            },
+            {
+              "type": "Microsoft.Compute/virtualMachines",
+              "apiVersion": "2024-07-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": {
+                "workload": "[if(equals(parameters('role'), 'dashboard'), 'gh-cao-dashboard', 'gh-cao-optional')]",
+                "role": "[parameters('role')]",
+                "activation": "staged"
+              },
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "hardwareProfile": {
+                  "vmSize": "[parameters('vmSize')]"
+                },
+                "securityProfile": {
+                  "securityType": "TrustedLaunch",
+                  "uefiSettings": {
+                    "secureBootEnabled": true,
+                    "vTpmEnabled": true
+                  }
+                },
+                "osProfile": {
+                  "computerName": "[parameters('name')]",
+                  "adminUsername": "[parameters('administrator')]",
+                  "customData": "[base64(if(parameters('localPostgres'), variables('$fxv#0'), variables('$fxv#1')))]",
+                  "linuxConfiguration": {
+                    "disablePasswordAuthentication": true,
+                    "provisionVMAgent": true,
+                    "ssh": {
+                      "publicKeys": [
+                        {
+                          "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('administrator'))]",
+                          "keyData": "[parameters('sshPublicKey')]"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "storageProfile": {
+                  "imageReference": {
+                    "publisher": "Canonical",
+                    "offer": "ubuntu-24_04-lts",
+                    "sku": "server",
+                    "version": "latest"
+                  },
+                  "osDisk": {
+                    "createOption": "FromImage",
+                    "managedDisk": {
+                      "storageAccountType": "StandardSSD_LRS"
+                    },
+                    "deleteOption": "Detach"
+                  },
+                  "dataDisks": "[if(parameters('persistentDataDisk'), createArray(createObject('lun', 0, 'name', format('{0}-private-data', parameters('name')), 'createOption', 'Attach', 'managedDisk', createObject('id', resourceId('Microsoft.Compute/disks', format('{0}-private-data', parameters('name')))), 'deleteOption', 'Detach')), createArray())]"
+                },
+                "networkProfile": {
+                  "networkInterfaces": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('name')))]"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Compute/disks', format('{0}-private-data', parameters('name')))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('name')))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('containerRegistryName')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), resourceId('Microsoft.Compute/virtualMachines', parameters('name')), 'AcrPull')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]",
+                "principalId": "[reference(resourceId('Microsoft.Compute/virtualMachines', parameters('name')), '2024-07-01', 'full').identity.principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('name'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "principalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Compute/virtualMachines', parameters('name')), '2024-07-01', 'full').identity.principalId]"
+            },
+            "hostName": {
+              "type": "string",
+              "value": "[if(parameters('publicEndpoint'), reference(resourceId('Microsoft.Network/publicIPAddresses', format('{0}-https', parameters('name'))), '2024-05-01').dnsSettings.fqdn, '')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', format('{0}-vnet', parameters('deploymentName')))]"
+      ]
+    },
+    {
+      "condition": "[parameters('managedPostgres')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "compact-managed-postgres",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "name": {
+            "value": "[parameters('postgresServerName')]"
+          },
+          "virtualNetworkId": {
+            "value": "[resourceId('Microsoft.Network/virtualNetworks', format('{0}-vnet', parameters('deploymentName')))]"
+          },
+          "subnetId": {
+            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', format('{0}-vnet', parameters('deploymentName')), 'postgres')]"
+          },
+          "administratorPassword": {
+            "value": "[parameters('postgresAdministratorPassword')]"
+          },
+          "skuName": {
+            "value": "[parameters('postgresSkuName')]"
+          },
+          "skuTier": {
+            "value": "[parameters('postgresSkuTier')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.49.2.45890",
+              "templateHash": "15950922116570535279"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "virtualNetworkId": {
+              "type": "string"
+            },
+            "subnetId": {
+              "type": "string"
+            },
+            "administratorPassword": {
+              "type": "securestring"
+            },
+            "skuName": {
+              "type": "string"
+            },
+            "skuTier": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}.private.postgres.database.azure.com', parameters('name'))]",
+              "location": "global"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', format('{0}.private.postgres.database.azure.com', parameters('name')), 'dashboard')]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[parameters('virtualNetworkId')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', format('{0}.private.postgres.database.azure.com', parameters('name')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+              "apiVersion": "2024-08-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "[parameters('skuTier')]"
+              },
+              "properties": {
+                "version": "16",
+                "administratorLogin": "caoadmin",
+                "administratorLoginPassword": "[parameters('administratorPassword')]",
+                "network": {
+                  "delegatedSubnetResourceId": "[parameters('subnetId')]",
+                  "privateDnsZoneArmResourceId": "[resourceId('Microsoft.Network/privateDnsZones', format('{0}.private.postgres.database.azure.com', parameters('name')))]",
+                  "publicNetworkAccess": "Disabled"
+                },
+                "storage": {
+                  "storageSizeGB": 32,
+                  "autoGrow": "Enabled"
+                },
+                "backup": {
+                  "backupRetentionDays": 7,
+                  "geoRedundantBackup": "Disabled"
+                },
+                "highAvailability": {
+                  "mode": "Disabled"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', format('{0}.private.postgres.database.azure.com', parameters('name')))]",
+                "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', format('{0}.private.postgres.database.azure.com', parameters('name')), 'dashboard')]"
+              ]
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+              "apiVersion": "2024-08-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'cao')]",
+              "properties": {
+                "charset": "UTF8",
+                "collation": "en_US.utf8"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('name'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "hostName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('name')), '2024-08-01').fullyQualifiedDomainName]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', format('{0}-vnet', parameters('deploymentName')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "dashboardHostName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'compact-dashboard-host'), '2025-04-01').outputs.hostName.value]"
+    },
+    "githubOAuthRedirectUri": {
+      "type": "string",
+      "value": "[format('https://{0}/auth/callback', reference(resourceId('Microsoft.Resources/deployments', 'compact-dashboard-host'), '2025-04-01').outputs.hostName.value)]"
+    },
+    "postgresHostName": {
+      "type": "string",
+      "value": "[if(parameters('managedPostgres'), reference(resourceId('Microsoft.Resources/deployments', 'compact-managed-postgres'), '2025-04-01').outputs.hostName.value, 'localhost')]"
+    },
+    "hostedConfiguration": {
+      "type": "object",
+      "value": {
+        "githubClientId": "[parameters('githubClientId')]",
+        "githubAllowedOrganizations": "[parameters('githubAllowedOrganizations')]",
+        "githubAllowedTeams": "[parameters('githubAllowedTeams')]",
+        "githubAllowedUsers": "[parameters('githubAllowedUsers')]",
+        "githubAdminUsers": "[parameters('githubAdminUsers')]",
+        "postgresRunRetentionDays": "[parameters('postgresRunRetentionDays')]"
+      }
+    },
+    "runtimeActivation": {
+      "type": "string",
+      "value": "staged: provision database authority, retained evidence, runtime secrets, reviewed host policy and HTTPS before starting CAO"
+    }
+  }
+}

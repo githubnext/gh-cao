@@ -44,6 +44,19 @@ func (deniedBrokerIdentity) PrivateKey(context.Context) ([]byte, error) {
 	return nil, admission.ErrDenied
 }
 
+func newDeniedTokenBroker(t *testing.T) *tokenbroker.Service {
+	t.Helper()
+	broker, err := tokenbroker.New(tokenbroker.Config{
+		Audience: "https://admission.example/api/token-broker", PolicyFile: "absent-cao.json",
+		AppID: 1, InstallationID: 2, OwnerID: "3", Verifier: deniedBrokerIdentity{},
+		KeyReader: deniedBrokerIdentity{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return broker
+}
+
 func TestTokenBrokerEnvironmentOptIn(t *testing.T) {
 	for _, name := range []string{
 		"ENABLED", "APP_ID", "INSTALLATION_ID", "OWNER_ID", "URL",

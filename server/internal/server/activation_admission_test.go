@@ -36,7 +36,7 @@ func (l *admissionTraceLimiter) TakeRateLimitToken(ctx context.Context, key stri
 }
 
 func TestAdmissionClientTraceparentExportedThroughFullHandler(t *testing.T) {
-	for _, path := range []string{"/api/admission", "/api/conclusion"} {
+	for _, path := range []string{"/api/admission", "/api/conclusion", tokenBrokerPath} {
 		t.Run(path, func(t *testing.T) { testAdmissionClientTraceparent(t, path) })
 	}
 }
@@ -71,6 +71,9 @@ func testAdmissionClientTraceparent(t *testing.T, path string) {
 		}},
 		admission: &admission.Service{Verifier: verifier},
 	}
+	if path == tokenBrokerPath {
+		app.tokenBroker = newDeniedTokenBroker(t)
+	}
 	handler := app.Handler()
 	const clientTrace = "4bf92f3577b34da6a3ce929d0e0e4736"
 	const clientSpan = "00f067aa0ba902b7"
@@ -104,7 +107,12 @@ func testAdmissionClientTraceparent(t *testing.T, path string) {
 				t.Fatal(err)
 			}
 			ctx = baggage.ContextWithBaggage(ctx, bag)
-			request := httptest.NewRequestWithContext(ctx, "POST", "https://admission.example"+path, strings.NewReader("{}"))
+			body, status := "{}", http.StatusForbidden
+			if path == tokenBrokerPath {
+				body = `{"token_type":"copilot-request","provider":"github","oidc_token":"invalid"}`
+				status = http.StatusUnauthorized
+			}
+			request := httptest.NewRequestWithContext(ctx, "POST", "https://admission.example"+path, strings.NewReader(body))
 			request.Header.Set("Content-Type", "application/json")
 			request.Header.Set("Authorization", "Bearer invalid-synthetic-oidc")
 			request.Header.Set("Tracestate", "private=must-not-export")
@@ -114,7 +122,7 @@ func testAdmissionClientTraceparent(t *testing.T, path string) {
 			}
 			response := httptest.NewRecorder()
 			handler.ServeHTTP(response, request)
-			if response.Code != 403 || response.Body.Len() != 0 {
+			if response.Code != status || response.Body.Len() != 0 {
 				t.Fatalf("tracing changed decision: %d %s", response.Code, response.Body)
 			}
 			serverSpan := findSpan(t, exporter.GetSpans(), "POST "+path)

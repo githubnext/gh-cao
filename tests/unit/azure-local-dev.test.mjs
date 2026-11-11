@@ -48,6 +48,12 @@ test("GitHub Azure profile requires explicit credentials, orgs and exact loopbac
     assert.throws(() => validateEnvironment({ ...credentials, [name]: "unexpected" }), /unset other CAO/);
   }
   assert.throws(() => validateEnvironment({ ...credentials, GITHUB_SERVER_URL: "https://github.example.com" }), /GitHub.com only/);
+  for (const engine of ["docker", "podman"]) {
+    assert.equal(validateEnvironment({ ...credentials, CAO_CONTAINER_ENGINE: engine }).port, "7071");
+  }
+  for (const engine of ["", "auto", "podman --remote"]) {
+    assert.throws(() => validateEnvironment({ ...credentials, CAO_CONTAINER_ENGINE: engine }), /must be docker or podman/);
+  }
 });
 
 test("GitHub settings safely serialize credentials and use built server queries", async () => {
@@ -70,7 +76,8 @@ test("GitHub settings safely serialize credentials and use built server queries"
   }
 });
 
-test("GitHub stack uses built assets, explicit or empty evidence, isolated environment and exact teardown", async () => {
+for (const engine of ["docker", "podman"]) {
+test(`GitHub stack uses built assets, explicit or empty evidence, isolated environment and exact teardown (${engine})`, async () => {
   const dir = await directory();
   const script = join(dir, "scripts/azure-local/azure-local.sh");
   const state = join(dir, "state");
@@ -88,6 +95,7 @@ test("GitHub stack uses built assets, explicit or empty evidence, isolated envir
     PATH: `${tools}:${process.env.PATH}`,
     HOME: process.env.HOME,
     ...credentials,
+    CAO_CONTAINER_ENGINE: engine,
     AZURE_LOCAL_STATE_DIR: state,
     AZURE_LOCAL_PROFILE: "github",
     AZURE_LOCAL_FUNCTIONS_PORT: port,
@@ -98,6 +106,7 @@ test("GitHub stack uses built assets, explicit or empty evidence, isolated envir
   try {
     await mkdir(dirname(script), { recursive: true });
     await copyFile(join(root, "scripts/azure-local/azure-local.sh"), script);
+    await copyFile(join(root, "scripts/container-engine.sh"), join(dir, "scripts/container-engine.sh"));
     await copyFile(join(root, "scripts/azure-local/profile.mjs"), join(dirname(script), "profile.mjs"));
     await copyFile(join(root, "scripts/azure-local/platform.py"), join(dirname(script), "platform.py"));
     await mkdir(join(dir, ".github/workflows"), { recursive: true });
@@ -109,8 +118,8 @@ test("GitHub stack uses built assets, explicit or empty evidence, isolated envir
     const func = join(dir, `.tmp/azure-local/tools/core-tools-4.15.1-${platform}/func`);
     await mkdir(dirname(func), { recursive: true });
     await symlink(process.execPath, func);
-    await executable(join(tools, "docker"), `
-echo "docker $*" >> "${trace}"
+    await executable(join(tools, engine), `
+echo "${engine} $*" >> "${trace}"
 case "$1" in
   run) case "$*" in *-postgres*) echo postgres-id ;; *) echo azurite-id ;; esac ;;
   port) echo 127.0.0.1:12345 ;;
@@ -158,6 +167,7 @@ setInterval(() => {}, 1000);
       assert.equal(settings.CAO_GITHUB_CLIENT_SECRET, credentials.CAO_GITHUB_CLIENT_SECRET);
       assert.equal(settings.CAO_AZURE_LOCAL_SIMULATION, "1");
       assert.equal(settings.CAO_AZURE_ALLOWED_HOSTS, "127.0.0.1,localhost");
+      assert.equal(settings.CAO_AZURE_SITE_DIRECTORY, join(state, "function-app/site"));
       assert.match(await readFile(join(state, "function-app/site/index.html"), "utf8"), /built dashboard/);
       assert.equal(JSON.parse(await readFile(join(state, "runtime.json"), "utf8")).profile, "github");
       assert.equal(JSON.parse(await readFile(join(state, "runtime.json"), "utf8")).baseUrl, `http://localhost:${port}`);
@@ -165,6 +175,7 @@ setInterval(() => {}, 1000);
       assert.deepEqual(observed.args, ["--address", "127.0.0.1", "--port", port]);
       assert.equal(observed.env.UNRELATED_SECRET, undefined);
       assert.equal(observed.env.CAO_GITHUB_CLIENT_SECRET, undefined, "Core Tools loads private settings itself");
+      assert.equal(observed.env.CAO_CONTAINER_ENGINE, undefined);
       assert.equal(observed.env.HOME, join(state, "function-app/.home"));
       assert.equal(observed.env.TMPDIR, join(state, "function-app/.scratch"));
       assert.equal((await stat(state)).mode & 0o777, 0o700);
@@ -200,8 +211,9 @@ setInterval(() => {}, 1000);
       await rm(join(dir, "host-observed.json"));
     }
     const commands = await readFile(trace, "utf8");
-    assert.equal((commands.match(/docker rm -f postgres-id/g) ?? []).length, 2);
-    assert.equal((commands.match(/docker rm -f azurite-id/g) ?? []).length, 2);
+    assert.equal((commands.match(new RegExp(`${engine} rm -f postgres-id`, "g")) ?? []).length, 2);
+    assert.equal((commands.match(new RegExp(`${engine} rm -f azurite-id`, "g")) ?? []).length, 2);
+    assert.doesNotMatch(commands, new RegExp(`^${engine === "docker" ? "podman" : "docker"} `, "m"));
     const { CAO_GITHUB_CLIENT_SECRET: omitted, ...missingSecret } = env;
     assert.ok(omitted);
     await assert.rejects(run("dev", missingSecret), /requires real GitHub.com OAuth credentials/);
@@ -236,7 +248,7 @@ setInterval(() => {}, 1000);
     await writeFile(join(state, "runtime.env"), "STATE_PROFILE=synthetic\nPOSTGRES_CONTAINER_ID=do-not-remove\n");
     const before = await readFile(trace, "utf8");
     await assert.rejects(run("dev"), /different profile/);
-    assert.doesNotMatch((await readFile(trace, "utf8")).slice(before.length), /docker rm/);
+    assert.doesNotMatch((await readFile(trace, "utf8")).slice(before.length), /(?:docker|podman) rm/);
     await access(join(state, "runtime.env"));
     await rm(join(state, "runtime.env"));
     const startup = spawn("bash", [script, "start"], {
@@ -259,8 +271,8 @@ setInterval(() => {}, 1000);
       await assert.rejects(access(join(state, "runtime.env")), { code: "ENOENT" });
       await assert.rejects(access(join(state, "function-app")), { code: "ENOENT" });
       const afterCancellation = (await readFile(trace, "utf8")).slice(before.length);
-      assert.match(afterCancellation, /docker rm -f postgres-id --volumes/);
-      assert.match(afterCancellation, /docker rm -f azurite-id --volumes/);
+      assert.match(afterCancellation, new RegExp(`${engine} rm -f postgres-id --volumes`));
+      assert.match(afterCancellation, new RegExp(`${engine} rm -f azurite-id --volumes`));
       await rm(join(state, "profile"));
       await assert.rejects(run("logs", syntheticAfterFailure), /existing unmarked state/);
       await assert.rejects(run("start"), /existing unmarked state/);
@@ -276,3 +288,4 @@ setInterval(() => {}, 1000);
     await rm(dir, { recursive: true, force: true });
   }
 });
+}

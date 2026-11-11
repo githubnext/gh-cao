@@ -40,10 +40,13 @@ export function githubProfile(env) {
 export function validateEnvironment(env) {
   const allowed = new Set([
     "CAO_GITHUB_CLIENT_ID", "CAO_GITHUB_CLIENT_SECRET", "CAO_GITHUB_ALLOWED_ORGS",
-    "CAO_GITHUB_REDIRECT_URL", "CAO_SESSION_SECRET",
+    "CAO_GITHUB_REDIRECT_URL", "CAO_SESSION_SECRET", "CAO_CONTAINER_ENGINE",
   ]);
   if (Object.keys(env).some((name) => name.startsWith("CAO_") && !allowed.has(name))) {
     throw new Error("GitHub development accepts only the documented CAO OAuth variables; unset other CAO configuration");
+  }
+  if (env.CAO_CONTAINER_ENGINE !== undefined && !["docker", "podman"].includes(env.CAO_CONTAINER_ENGINE)) {
+    throw new Error("CAO_CONTAINER_ENGINE must be docker or podman");
   }
   if (env.GITHUB_SERVER_URL && env.GITHUB_SERVER_URL !== "https://github.com") {
     throw new Error("GitHub development supports GitHub.com only");

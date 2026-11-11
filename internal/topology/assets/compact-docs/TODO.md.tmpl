@@ -1,0 +1,33 @@
+# Activation TODOs
+
+- [ ] Read RULES.md; record decisions for each warning and independent evidence.
+- [ ] If Actions agents need MCP, complete AGENT-MCP.md; explicitly enable the
+  endpoint and caller repository, and verify both tokens plus negative cases.
+- [ ] Replace synthetic identities, public key and source CIDRs; review costs,
+  permissions, DNS, regional SKUs, quotas, patching and recovery.
+- [ ] Verify all runtime-secret-references.json entries exist in the declared
+  Key Vault; approve secret-scoped managed-identity delivery, audit and rotation.
+- [ ] Keep TLS private keys and credentials in the vault; deliver only private,
+  short-lived runtime copies. Never store them in cloud-init, policy or Git.
+- [ ] Review Bicep/parameters/what-if and obtain deployment approval separately.
+- [ ] Verify private administration and cloud-init. Positively identify and
+  mount the new persistent disk before storing any CAO data.
+{{if eq .Topology.Features.Deployment "single-vm"}}
+- [ ] Move local PostgreSQL data onto the mounted disk; retain socket/loopback
+  binding only. Configure off-host backups and rehearse a VM-loss restore.
+{{else}}
+- [ ] Verify private PostgreSQL DNS and TLS from the VM; review seven-day
+  managed backups and rehearse restore. No zone-redundant HA is configured.
+{{end}}
+- [ ] Owner-provision distinct database roles, canonical/operational namespaces
+  and partitions. Runtime gets DML only, never administrator/owner credentials.
+- [ ] Ingest verified or deliberately empty evidence; preserve existing
+  retention and arrange ongoing snapshot updates.
+- [ ] Approve/build the native Go server binary with embedded resources and
+  reviewed PostgreSQL host policy. Do not substitute SQLite or volatile memory.
+- [ ] Configure hosted OAuth, authorization/admin allowlists, webhook secret,
+  runtime PostgreSQL URL and protected session encryption secret.
+- [ ] Supply vault-backed valid TLS certificates, bind HTTPS as a dedicated
+  service user and verify sign-in plus denied requests.
+- [ ] Review single-host/region failure, backup/restore, monitoring, alerts,
+  secret rotation and rollback. Disk persistence is not backup or HA.

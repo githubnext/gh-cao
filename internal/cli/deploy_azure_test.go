@@ -421,15 +421,44 @@ func TestDeployAzurePlanRequiresSecretsBeforeAzure(t *testing.T) {
 	}
 }
 
-func TestDeployAzurePlanRequiresTemplate(t *testing.T) {
+func TestDeployAzurePlanUsesEmbeddedTopologyResources(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("PATH", "")
 	fake := &fakeAz{t: t}
 	root, _, _ := testDeployRoot(fake)
-	root.SetArgs([]string{"deploy", "azure", "--config", writeDeployConfig(t, testDeployConfig())})
-	if err := root.Execute(); err == nil || !strings.Contains(err.Error(), "--template is required") {
-		t.Fatalf("expected template error, got %v", err)
+	config := writeDeployConfig(t, testDeployConfig())
+	out := filepath.Join(t.TempDir(), "plan.json")
+	root.SetArgs([]string{"deploy", "azure", "--config", config, "--out", out})
+	if err := root.Execute(); err != nil {
+		t.Fatal(err)
 	}
-	if len(fake.calls) != 0 {
-		t.Fatalf("unexpected calls: %q", fake.calls)
+	plan, err := readDeployAzurePlan(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Template.Origin != "embedded" || len(plan.Topology.Order) == 0 {
+		t.Fatalf("missing embedded template or resolved topology: %+v", plan)
+	}
+	before := len(fake.calls)
+	changed, err := loadDeployAzureConfig(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed.config.Telemetry.OTLPEndpoint = "https://collector.example.test"
+	plan.Topology, err = resolveDeployAzureTopology(context.Background(), changed.config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeDeployAzurePlan(out, plan); err != nil {
+		t.Fatal(err)
+	}
+	root, _, _ = testDeployRoot(fake)
+	root.SetArgs([]string{"deploy", "azure", "--apply", "--config", config, "--plan-file", out})
+	if err := root.Execute(); err == nil || !strings.Contains(err.Error(), "topology") {
+		t.Fatalf("apply accepted changed topology: %v", err)
+	}
+	if len(fake.calls) != before {
+		t.Fatal("Azure was called before topology drift was rejected")
 	}
 }
 
@@ -448,7 +477,7 @@ func TestDeployAzureTemplateMustMatchConfig(t *testing.T) {
 }
 
 func TestDeployAzureHelpIsOffline(t *testing.T) {
-	for _, args := range [][]string{{"deploy", "--help"}, {"deploy", "azure", "--help"}} {
+	for _, args := range [][]string{{"deploy", "--help"}, {"deploy", "azure", "--help"}, {"deploy", "init", "--help"}, {"deploy", "generate", "--help"}, {"deploy", "check", "--help"}} {
 		failing := azcli.ExecutorFunc(func(context.Context, ...string) (azcli.Result, error) {
 			t.Fatal("help invoked the Azure CLI")
 			return azcli.Result{}, nil
@@ -479,7 +508,7 @@ func TestDeployAzureStandaloneHelpWithEmptyPath(t *testing.T) {
 		t.Fatalf("build: %v\n%s", err, output)
 	}
 	working := t.TempDir()
-	for _, args := range [][]string{{"deploy", "--help"}, {"deploy", "azure", "--help"}} {
+	for _, args := range [][]string{{"deploy", "--help"}, {"deploy", "azure", "--help"}, {"deploy", "generate", "--help"}} {
 		command := exec.Command(binary, args...)
 		command.Dir = working
 		command.Env = append(os.Environ(), "PATH=")
@@ -561,6 +590,17 @@ func TestDeployAzureApplyValidatesPlanBeforeInputs(t *testing.T) {
 	writeTestFile(t, tampered, strings.Replace(string(planContent), `"kind"`, `"unexpected": true, "kind"`, 1))
 	if err := apply(configPath, testDeployTemplatePath(t), tampered); err == nil || !strings.Contains(err.Error(), "invalid plan file") {
 		t.Fatalf("expected invalid plan, got %v", err)
+	}
+	oldPlan, err := readDeployAzurePlan(planPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldPlan.SchemaVersion = 1
+	if err := writeDeployAzurePlan(tampered, oldPlan); err != nil {
+		t.Fatal(err)
+	}
+	if err := apply(configPath, "", tampered); err == nil || !strings.Contains(err.Error(), "rerun --plan") {
+		t.Fatalf("expected old plan to require regeneration, got %v", err)
 	}
 	if len(fake.calls) != planCalls {
 		t.Fatalf("apply invoked the Azure CLI: %q", fake.calls[planCalls:])

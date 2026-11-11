@@ -1,6 +1,7 @@
 package tokenbroker
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -51,7 +52,7 @@ func (s *Service) authorizedIdentity(i admission.Identity) bool {
 	return true
 }
 
-func (s *Service) authorized(i admission.Identity) bool {
+func (s *Service) authorized(ctx context.Context, i admission.Identity) bool {
 	if !s.authorizedIdentity(i) {
 		return false
 	}
@@ -59,16 +60,16 @@ func (s *Service) authorized(i admission.Identity) bool {
 	// denies authority instead of retaining a stale authorization snapshot.
 	data, err := readPolicyFile(s.config.PolicyFile)
 	if err != nil {
-		brokerLog.Printf("policy denied: reason=unreadable")
+		brokerLog.PrintfContext(ctx, "policy denied: reason=unreadable")
 		return false
 	}
 	rules, err := parseWorkflowRules(data)
 	if err != nil {
-		brokerLog.Printf("policy denied: reason=invalid_policy")
+		brokerLog.PrintfContext(ctx, "policy denied: reason=invalid_policy")
 		return false
 	}
 	if !ruleAllows(rules, i) {
-		brokerLog.Printf("policy denied: reason=no_matching_rule rules=%d", len(rules))
+		brokerLog.PrintfContext(ctx, "policy denied: reason=no_matching_rule rules=%d", len(rules))
 		return false
 	}
 	return true

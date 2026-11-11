@@ -1,0 +1,2 @@
+Build dashboard resources with npm run dashboard:server:build before building
+a self-contained cao-dashboard executable. Source-only Go builds support --site.

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
@@ -19,6 +20,49 @@ func hostedTestSite(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return site
+}
+
+func TestDashboardServesHTMLJavaScriptAndCSS(t *testing.T) {
+	app, _ := newSQLiteTestApp(t, false)
+	for name, content := range map[string]string{
+		"index.html": `<html><head><link rel="stylesheet" href="/app.css"></head><body><main>Dashboard</main><script type="module" src="/app.js"></script></body></html>`,
+		"app.js":     `document.querySelector("main").textContent = "Dashboard loaded";`,
+		"app.css":    `main { color: green; }`,
+	} {
+		if err := os.WriteFile(filepath.Join(app.config.SiteDirectory, name), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	handler := app.Handler()
+	for _, test := range []struct {
+		path        string
+		contentType string
+		content     string
+	}{
+		{"/", "text/html", "<main>Dashboard</main>"},
+		{"/repositories", "text/html", "<main>Dashboard</main>"},
+		{"/repositories/", "text/html", "<main>Dashboard</main>"},
+		{"/app.js", "javascript", `document.querySelector("main").textContent = "Dashboard loaded";`},
+		{"/app.css", "text/css", `main { color: green; }`},
+	} {
+		t.Run(test.path, func(t *testing.T) {
+			request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "http://localhost"+test.path, nil)
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, request)
+			if response.Code != http.StatusOK ||
+				!strings.Contains(response.Header().Get("Content-Type"), test.contentType) ||
+				!strings.Contains(response.Body.String(), test.content) {
+				t.Fatalf("dashboard response: status=%d content-type=%q body=%s",
+					response.Code, response.Header().Get("Content-Type"), response.Body.String())
+			}
+			if test.contentType == "text/html" &&
+				(!strings.Contains(response.Body.String(), `content="server-http"`) ||
+					!strings.Contains(response.Body.String(), `content="sqlite"`) ||
+					response.Header().Get("Cache-Control") != "no-store") {
+				t.Fatal("dashboard entry did not select the uncached Go/SQLite bootstrap")
+			}
+		})
+	}
 }
 
 func TestHostedStartupRequiresBuiltDashboard(t *testing.T) {
@@ -56,6 +100,10 @@ func TestHostedStartupRequiresBuiltDashboard(t *testing.T) {
 }
 
 func TestHostedHandlerServesDashboardAndAssets(t *testing.T) {
+	testHostedHandlerServesDashboardAndAssets(t, false)
+}
+
+func testHostedHandlerServesDashboardAndAssets(t *testing.T, embedded bool) {
 	github := fakeGitHub(t, fakeGitHubOptions{membershipState: "active", accessExpiresIn: 3600})
 	for _, name := range []string{"container", "platform", "external"} {
 		t.Run(name, func(t *testing.T) {
@@ -72,8 +120,12 @@ func TestHostedHandlerServesDashboardAndAssets(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			site := hostedTestSite(t)
+			if embedded {
+				site = ""
+			}
 			config := Config{
-				Database: constructorDatabase(), SiteDirectory: hostedTestSite(t),
+				Database: constructorDatabase(), SiteDirectory: site,
 				HostProfile: profile,
 				Proxy:       ProxyPolicy{AllowedHosts: []string{"dashboard.example.com"}, RequireHTTPS: true},
 				GitHubOAuth: validOAuthConfig(github.URL),
@@ -89,11 +141,20 @@ func TestHostedHandlerServesDashboardAndAssets(t *testing.T) {
 			if profile.Listener == HostListenerExternal {
 				app.startContext = t.Context()
 			}
-			if err := os.WriteFile(filepath.Join(app.config.SiteDirectory, "app.js"), []byte("export default 'hosted';"), 0o600); err != nil {
-				t.Fatal(err)
+			assetPath, assetContent := "/app.js", []byte("export default 'hosted';")
+			if embedded {
+				assetPath = "/" + dashboardassets.MCPContract
+				assetContent, err = dashboardassets.ReadFile(dashboardassets.Path("", dashboardassets.MCPContract))
+				if err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				if err := os.WriteFile(filepath.Join(app.config.SiteDirectory, "app.js"), assetContent, 0o600); err != nil {
+					t.Fatal(err)
+				}
 			}
 			handler := app.Handler()
-			for _, path := range []string{"/", "/index.html", "/repositories", "/app.js"} {
+			for _, path := range []string{"/", "/index.html", "/repositories", "/repositories/", assetPath} {
 				response := httptest.NewRecorder()
 				handler.ServeHTTP(response, azureRequest(t, http.MethodGet, path))
 				if response.Code != http.StatusFound || response.Header().Get("Location") != "/auth/login" {
@@ -101,7 +162,7 @@ func TestHostedHandlerServesDashboardAndAssets(t *testing.T) {
 				}
 			}
 			session, _ := callbackSession(t, app)
-			for _, path := range []string{"/", "/index.html", "/repositories", "/app.js", "/api/auth/session"} {
+			for _, path := range []string{"/", "/index.html", "/repositories", "/repositories/", assetPath, "/api/auth/session"} {
 				request := azureRequest(t, http.MethodGet, path)
 				request.AddCookie(session)
 				response := httptest.NewRecorder()
@@ -111,8 +172,8 @@ func TestHostedHandlerServesDashboardAndAssets(t *testing.T) {
 				}
 				body := response.Body.String()
 				switch path {
-				case "/app.js":
-					if body != "export default 'hosted';" {
+				case assetPath:
+					if body != string(assetContent) {
 						t.Fatal("hosted asset was not served from the configured site")
 					}
 				case "/api/auth/session":
@@ -120,7 +181,7 @@ func TestHostedHandlerServesDashboardAndAssets(t *testing.T) {
 						t.Fatal("hosted API returned the dashboard instead of JSON")
 					}
 				default:
-					if !strings.Contains(body, "Hosted dashboard") {
+					if !embedded && !strings.Contains(body, "Hosted dashboard") {
 						t.Fatal("hosted HTML was not served from the configured site")
 					}
 					for _, marker := range []string{

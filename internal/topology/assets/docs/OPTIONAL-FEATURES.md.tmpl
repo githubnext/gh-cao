@@ -1,0 +1,127 @@
+# Optional infrastructure and activation
+
+Deploy optional/hosts.bicep AFTER the unchanged main.bicep baseline. Review
+`bash scripts/what-if-optional.sh SUBSCRIPTION_ID RESOURCE_GROUP` separately.
+No generated script deploys infrastructure or starts a service automatically.
+All optional-role credentials and TLS keys must be referenced in the existing
+input Key Vault. runtime-secret-references.json names them without values.
+Missing required references fail generation rather than bypassing secret custody.
+
+The dedicated 10.43.0.0/16 VNet peers to the baseline's 10.42.0.0/16. Verify
+no overlap with other connected networks. Dedicated subnets/default-deny NSGs
+isolate archive, receive and dispatch. Only reviewed CIDRs reach public HTTPS.
+SSH is NOT exposed; arrange approved private administration/Run Command.
+A NAT gateway provides explicit egress, not an outbound allowlist.
+Ubuntu 24.04 Trusted Launch VMs have distinct identities, ACR-pull permission,
+Docker and an ACTIVATION-REQUIRED marker, NOT running CAO services.
+Review patching, image pinning, disk protection, egress, logging, cost and
+recovery; default VM and ADX SKUs are development choices, not production advice.
+
+## Unified session lake: {{if .Topology.Features.SessionDataLake}}provisioned, runtime activation blocked pending evidence{{else}}off{{end}}
+
+{{if .Topology.Features.SessionDataLake}}
+A SINGLE persistent archive VM has a detached-on-delete 128 GiB managed disk.
+A dedicated private Blob account/container and paid managed-identity ADX
+cluster/database provide Parquet generation storage and bounded external-table
+queries. Functions runtime storage is NOT a lake. The host has container-scoped
+Blob Data Contributor; ADX has container-scoped Blob Data Reader.
+The ADX-managed private Blob endpoint needs independent approval.
+
+Requested repository scope: {{join .Requirements.Azure.Hosts.ArchiveRepositories ", "}}.
+This narrows scope; it grants no source enrollment, capture or content access.
+The current native archive requires independently gated native collection.
+The generator does NOT enable that integration or fabricate Azure acceptance.
+
+- [ ] Record destination IDs from deployment outputs, not guessed hostnames.
+- [ ] Approve the ADX-managed Blob endpoint; verify both private paths and DNS.
+- [ ] Identify the new empty disk BEFORE formatting/mounting it. Create a
+  private POSIX directory and verify persistence, permissions, locks, rename
+  and durability. No generated script formats disks.
+- [ ] Register a SEPARATE browser sign-in App with its own HTTPS callback
+  /auth/callback and explicit reader allowlist. Never repoint the baseline App.
+- [ ] Choose a documented compatible producer/image: legacy needs
+  checksum-pinned DuckDB v1.4.3; native requires native acquisition/privacy
+  authority integration gates. Standard Alpine images prove neither.
+- [ ] Approve closed content/redaction policy, exact acquisition scope,
+  full-content readers, fresh strong-authentication checks and budgets.
+- [ ] Provision the explicit Entra application credentials required by the
+  current Blob adapter, with reviewed runtime storage/query permissions.
+  VM/ADX managed identities do NOT replace those credentials; setup/admin
+  authority is separate.
+- [ ] Use sessionarchiveblob.ExternalTableDDL for the reviewed external-table
+  layout and bind its actual Properties digest and exact destination.
+  No guessed KQL, automatic DDL or PostgreSQL archive catalog is generated.
+- [ ] Run real destination conformance, recovery, cancellation and withdrawal
+  checks. NEVER synthesize CAO_SESSION_ARCHIVE_BLOB_ACCEPTANCE.
+- [ ] Confirm one persistent owner, co-resident authorized acquisition and
+  source-epoch/privacy-outbox composition. Never run duplicate exporters or
+  infer that provisioning a VM passes native collector activation gates.
+
+Follow server/SESSION-ARCHIVE.md and specs/session-archive.md at the generating
+revision. Archive content never widens dashboard queries or rollout authority.
+{{else}}
+No archive host, Blob account, ADX destination or archive grants are provisioned.
+{{end}}
+
+## Webhook gateway: {{if .Topology.Features.WebhookGateway}}provisioned, policy and credentials required{{else}}off{{end}}
+
+{{if .Topology.Features.WebhookGateway}}
+Receive and dispatch have separate VMs/identities/credential domains. Receive
+has reviewed public HTTPS ingress; dispatch has NO public IP or inbound rule.
+Both can reach private PostgreSQL through peering/DNS, but neither receives a
+database password, policy or GitHub permission merely by being provisioned.
+
+- [ ] Owner-provision operational schema, a gateway-specific namespace,
+  bounded queue and runtime grants. Never give either process the admin URL.
+- [ ] Supply reviewed exact-revision control-plane.webhook-gateway policy,
+  approved compiler artifacts/digests, immutable source/destination identities,
+  root scope and subscription grants. Infrastructure activates none.
+- [ ] Configure separate receiving and dispatch GitHub Apps below.
+- [ ] Provision a valid certificate for the receiver's actual hostname.
+  The service itself terminates TLS. Use /webhooks/compiler for reviewed
+  compiler routes, or the exact approved /webhooks/SOURCE_ID for other routes.
+- [ ] Receiver gets only CAO_POSTGRES_URL, CAO_GATEWAY_WEBHOOK_SECRET
+  (32-512 bytes) and TLS certificate/key. NO App private key.
+- [ ] Dispatcher gets CAO_POSTGRES_URL and independently scoped
+  CAO_GATEWAY_RECEIVE_KEY_FILE / CAO_GATEWAY_DISPATCH_KEY_FILE.
+  NO HMAC secret or ingress TLS key.
+- [ ] Retrieve each role's credentials through approved secret handling and
+  separately reviewed secret-scoped grants. No Key Vault wildcard grant or
+  cross-role copying is generated.
+- [ ] Push digest-pinned webhook-gateway-runtime to ACR and authenticate Docker
+  with each host's managed identity. Copy scripts/run-gateway.sh to that host.
+  Keep policy/key files readable by container UID 65532 only, and environment
+  files and credential directories owner-only. Verify cloud-init and Docker.
+- [ ] Start dispatch FIRST so its authorization primer can populate admission
+  proofs, then receive. Retain signature, admission, live grant-refresh,
+  bounded dispatch, revision, retry/ambiguity and revocation evidence.
+
+### Additional GitHub Apps
+
+Receiving App: install only on approved source repositories. Grant only the
+event-specific READ permissions needed by reviewed subscriptions and select
+those events. Keep its private key on the DISPATCH host, never receive:
+dispatch refreshes source-authorization proofs.
+
+Dispatch App: install only on approved PRIVATE control repositories.
+Grant only the selected dispatch transport and its required read permissions:
+compiler repository_dispatch needs Contents: write; workflow_dispatch needs
+Actions: write. Do NOT grant both by default. These explicit transport
+permissions are not general agent write tools or safe-output authority.
+Workflow CAO policy and gh-aw ceilings still apply.
+
+Use distinct Apps/keys, not ambient credentials. Scope, permissions, exact
+policy revision, compiler artifacts and actual installation access are
+independent gates; installing an App does not activate a route.
+See specs/rfc-033-webhook-gateway.md and server/cmd/cao-webhook-gateway/.
+{{else}}
+No gateway hosts, dispatch credentials, App grants or routing activation are provisioned.
+{{end}}
+
+## Turning features off
+
+Incremental ARM deployment is NOT teardown: omission does not stop services,
+delete retained evidence, remove identities/grants or revoke Apps.
+Stop/revoke through a separately approved procedure; preserve withdrawal/outbox
+obligations, replay fences and retention. Never delete an occupied subnet or
+retained disk as a shortcut.

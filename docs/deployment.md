@@ -19,13 +19,13 @@ Choosing a deployment option never changes campaign policy, rollout mode, creden
 Dashboard hosting and collection credentials are separate choices. Pages can
 use the built-in workflow token for bounded monitoring, or Apps/PATs when
 required. Server-backed deployments use PostgreSQL for dashboard entities,
-queries, and operational state by default. Azure still pairs PostgreSQL with
-Azure Managed Redis for operational state.
+queries, and operational state by default, including both Azure topologies.
 
 | Option | Dashboard host | Where queries run | Who can sign in | Infrastructure you operate |
 | --- | --- | --- | --- | --- |
 | [GitHub Actions only](deployment-actions.md) | GitHub Pages | In each viewer's browser | Anyone who can read the Pages site | No application server; [collection credentials](deployment-actions.md#choosing-a-credential-profile) depend on the exact scope |
-| [Azure](deployment-azure.md) | Azure Functions | On the server, over PostgreSQL | Members of allowed GitHub organizations or teams | Function App, PostgreSQL, Key Vault, Azure Managed Redis, storage account, and Application Insights |
+| [Azure Functions](deployment-azure.md) | Azure Functions | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Function App, Elastic Premium plan, PostgreSQL, Key Vault, ACR, runtime storage, jobs and monitoring |
+| [Azure Container Apps](deployment-topology.md#azure-container-apps) | Container Apps Consumption, one hosted Go replica | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Container Apps environment, PostgreSQL, Key Vault, ACR, jobs and Log Analytics; no Functions, runtime Storage or Premium plan |
 
 ## Choosing an option
 

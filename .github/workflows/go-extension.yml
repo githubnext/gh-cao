@@ -94,6 +94,17 @@ jobs:
           cache-dependency-path: go.sum
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+      - name: Install official Bicep validator for topology samples
+        shell: bash
+        run: |
+          curl --fail --location --silent --show-error \
+            https://github.com/Azure/bicep/releases/download/v0.49.2/bicep-linux-x64 \
+            --output "$RUNNER_TEMP/bicep"
+          printf '%s  %s\n' \
+            '0ab9de90c2493f206f8281bae74f9ee2d5ed3605548dab1adf41fef185e1f7c5' \
+            "$RUNNER_TEMP/bicep" | sha256sum --check
+          chmod 700 "$RUNNER_TEMP/bicep"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - name: Check formatting
         shell: bash
         run: |

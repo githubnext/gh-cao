@@ -32,7 +32,7 @@ func (r *AppleContainerLifecycle) RuntimeID(ctx context.Context) (string, error)
 	if err != nil || code != 0 || (domain != "Aqua" && domain != "Background") {
 		return "", errors.New("hosted CLI requires a local user launchd session")
 	}
-	seed, err := appleRuntimeSeed(appRoot)
+	seed, err := containerRuntimeSeed(appRoot)
 	if err != nil {
 		return "", err
 	}
@@ -44,7 +44,7 @@ func (r *AppleContainerLifecycle) RuntimeID(ctx context.Context) (string, error)
 	return "apple:" + hex.EncodeToString(digest[:]), nil
 }
 
-func appleRuntimeSeed(appRoot string) (string, error) {
+func containerRuntimeSeed(appRoot string) (string, error) {
 	directory := filepath.Join(appRoot, "cao-hosted-cli")
 	if err := os.Mkdir(directory, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
 		return "", errors.New("hosted CLI native runtime identity directory could not be created")

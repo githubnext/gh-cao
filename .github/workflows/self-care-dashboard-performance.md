@@ -71,7 +71,9 @@ permissions:
 
 engine:
   id: pi
-  model: copilot/gpt-5.6-sol
+  model-routing:
+    goal: cost
+    mode: auto
 strict: true
 max-ai-credits: 400
 max-daily-ai-credits: -1

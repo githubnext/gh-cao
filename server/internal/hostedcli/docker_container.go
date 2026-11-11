@@ -33,6 +33,20 @@ type DockerContainerLifecycle struct {
 	Egress        *DockerEgress
 	egressMu      sync.Mutex
 	egressClosers map[string]func()
+	// The Podman adapter reuses OCI lifecycle mechanics, not Docker discovery
+	// or its production egress boundary.
+	commandPrefix         []string
+	createOptions         []string
+	responseLimit         int
+	privateWorkspaceLabel bool
+}
+
+func (r *DockerContainerLifecycle) args(args ...string) []string {
+	prefix := r.commandPrefix
+	if prefix == nil {
+		prefix = []string{"--context", "default"}
+	}
+	return append(append([]string{}, prefix...), args...)
 }
 
 var _ ContainerLifecycle = (*DockerContainerLifecycle)(nil)
@@ -73,8 +87,12 @@ func (r *DockerContainerLifecycle) Create(ctx context.Context, execution operati
 			return err
 		}
 	}
-	args := []string{
-		"--context", "default", "create", "--init", "--name", execution.Name,
+	workspaceMount := "type=bind,src=" + workspace + ",dst=/workspace,rw"
+	if r.privateWorkspaceLabel {
+		workspaceMount += ",relabel=private"
+	}
+	args := r.args(
+		"create", "--init", "--name", execution.Name,
 		"--network", network,
 		"--read-only",
 		"--cap-drop", "ALL",
@@ -82,10 +100,11 @@ func (r *DockerContainerLifecycle) Create(ctx context.Context, execution operati
 		"--pids-limit", "256",
 		"--memory", "1g",
 		"--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=64m",
-		"--mount", "type=bind,src=" + workspace + ",dst=/workspace,rw",
+		"--mount", workspaceMount,
 		"--workdir", workdir,
 		"--env-file", environmentFile,
-	}
+	)
+	args = append(args, r.createOptions...)
 	if user := containerUser(); user != "" {
 		args = append(args, "--user", user)
 	}
