@@ -62,6 +62,10 @@ The consistent entities, identities, and relationships produced by applying the 
 
 The implementation-neutral `dashboardstore` interface (`Store` and transaction-scoped `Reader`) through which the dashboard server reads state, query results, and diagnostics in one bounded, cancellation-aware transaction. PostgreSQL and SQLite each implement it, and storage errors propagate instead of becoming successful empty data. It adds no backend fallback or shared write API, and revisions keep their backend-specific identities.
 
+## CAO Framework Health
+
+The repository-local agentic workflow of the catalog source that runs daily and on manual dispatch to publish one `[cao-framework-health]` report issue per run attempt, with no workflow-level daily run cap. A report leads with the private-preview acceptance contract, then covers core-component claims, behavioral test evidence, CI trends, and bounded Git churn; a pre-publication step rejects a missing or out-of-range `Core claims reviewed: N/16` declaration. It is monitoring evidence, not a launch gate or a readiness score. See [Operations](operations.md#daily-cao-framework-health).
+
 ## CAO runtime
 
 The curated production bundle of canonical Activity and Dashboard code that a control repository installs and executes. It is packaged from `runtime/package.json` by `npm run runtime:pack -- DESTINATION REVISION` (see `scripts/build-cao-runtime.mjs`) and built and attested by `.github/workflows/cao-runtime.yml` as a verified exact-SHA artifact. The Release workflow verifies that artifact and attaches it to the draft before immutable publication, providing stable release assets for stable version references; successful Actions artifacts retained for 90 days serve main/SHA references. The trusted materializer verifies GitHub signed build provenance for the catalog, signer workflow, and source and signer SHAs on a GitHub-hosted runner before replacing an installed repository's bounded canonical destinations, failing closed without source or npm fallback when an artifact is missing or unverifiable. Normal installation needs Node.js and authenticated GitHub CLI artifact/attestation access, not npm; explicit local source materialization remains a developer path using npm. See [Repository Layout and Installation](https://github.com/githubnext/gh-cao/blob/main/specs/repository-layout-and-installation.md).
@@ -189,6 +193,10 @@ The run-scoped result produced by gh-aw's upstream `operational-value` grader pr
 ## Operational store
 
 The provider-neutral storage contract in `server/internal/operational/` that exposes immutable per-feature cache, request-limit, OAuth, quota, collection, coordination, and diagnostic capabilities. PostgreSQL is the default adapter for a selector-free reviewed host, using only its own `cao_operational_*` tables and never the canonical dashboard entity/query schema; explicit Redis configuration remains supported, and an explicit, acknowledged single-process in-memory adapter is a bounded, volatile alternative that loses all operational state on restart. See [Server operational storage](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
+
+## Private-preview acceptance contract
+
+The proposed, reviewable commitment in `.github/cao/private-preview.json` that bounds a monitoring-first private evaluation: profile, candidate release and SHA, decision and support owners, and the operator journeys with their evidence. Null fields are unresolved decisions, not defaults, and the contract does not select a release, admit participants, change CAO policy, or enable execution. See [Private-preview acceptance](private-preview.md).
 
 ## Public control repository
 
