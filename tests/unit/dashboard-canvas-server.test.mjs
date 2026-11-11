@@ -421,6 +421,20 @@ test("local dashboard server fails when dashboard data cannot be downloaded", as
   }
 });
 
+test("canvas does not discover operational data inside a Pages artifact", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "dashboard-canvas-pages-rejected-"));
+  await writeFile(path.join(root, "index.html"), "<!doctype html><body>preview</body>");
+  await writeFile(path.join(root, "dashboard.json"), dashboard("built-in"));
+  try {
+    await assert.rejects(startCanvasServer({
+      siteRoot: root, catalogRoot: null, workingDirectory: root,
+      downloadData: (destination) => writeCanvasSnapshot(path.join(destination, "cao")),
+    }), /CAO Activity artifact requires gh-aw-logs.sqlite and payload-hashes.json at its root/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("local dashboard server serves repository memory from canonical dashboard data", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "dashboard-local-server-memory-"));
   const siteRoot = path.join(root, "site");
@@ -431,7 +445,7 @@ test("local dashboard server serves repository memory from canonical dashboard d
     siteRoot,
     catalogRoot: null,
     downloadData: async (destination) => {
-      const dataRoot = path.join(destination, "cao");
+      const dataRoot = destination;
       await writeCanvasSnapshot(dataRoot);
       await mkdir(path.join(dataRoot, "memory", "ambient-context"), { recursive: true });
       const content = "bounded memory";
@@ -737,7 +751,7 @@ test("local dashboard server rejects paths outside its workspace", async () => {
   }
 });
 
-test("local dashboard server downloads dashboard-build data with GitHub CLI", {
+test("local dashboard server downloads verified Activity data without Pages discovery", {
   skip: process.platform === "win32",
 }, async () => {
   const root = await mkdtemp(path.join(tmpdir(), "dashboard-local-server-"));
@@ -757,16 +771,19 @@ if [ "$1" = "api" ]; then
     exit
   fi
   if [ "$2" = "repos/acme/control/pages" ]; then
-    [ ! -f ${JSON.stringify(path.join(root, "pages-unavailable"))} ] || exit 5
-    printf 'https://ops.example.com/central/\\n'
-    exit
+    touch ${JSON.stringify(path.join(root, "unexpected-pages-discovery"))}
+    exit 5
   fi
-  if [ "$2" = "repos/acme/control/actions/artifacts?name=central-agentic-ops-dashboard&per_page=100" ]; then
+  if [ "$2" = "repos/acme/control/actions/artifacts?name=cao-activity-index&per_page=100" ]; then
     printf '42\\n'
     exit
   fi
   if [ "$2" = "repos/acme/control/actions/runs/42" ]; then
-    printf 'success\\tmain\\t.github/workflows/cao-dashboard.yml\\n'
+    if [ -f ${JSON.stringify(path.join(root, "untrusted-workflow"))} ]; then
+      printf 'success\\tmain\\t.github/workflows/cao-dashboard.yml\\n'
+    else
+      printf 'success\\tmain\\t.github/workflows/cao-activity.yml\\n'
+    fi
     exit
   fi
   if [ "$2" = "repos/github/gh-aw/releases/latest" ]; then
@@ -780,13 +797,13 @@ fi
   [ "$2" = "download" ] &&
   [ "$3" = "42" ] &&
   [ "$4" = "--name" ] &&
-  [ "$5" = "central-agentic-ops-dashboard" ] &&
+  [ "$5" = "cao-activity-index" ] &&
   [ "$6" = "--dir" ] &&
   [ "$8" = "--repo" ] &&
   [ "$9" = "acme/control" ] || exit 3
-mkdir -p "$7/cao"
-cp ${JSON.stringify(path.join(artifact, "gh-aw-logs.sqlite"))} "$7/cao/gh-aw-logs.sqlite"
-cp ${JSON.stringify(path.join(artifact, "payload-hashes.json"))} "$7/cao/payload-hashes.json"
+mkdir -p "$7"
+cp ${JSON.stringify(path.join(artifact, "gh-aw-logs.sqlite"))} "$7/gh-aw-logs.sqlite"
+cp ${JSON.stringify(path.join(artifact, "payload-hashes.json"))} "$7/payload-hashes.json"
 `);
   await chmod(ghExecutable, 0o755);
 
@@ -794,6 +811,7 @@ cp ${JSON.stringify(path.join(artifact, "payload-hashes.json"))} "$7/cao/payload
     siteRoot: root,
     catalogRoot: null,
     repository: "acme/control",
+    caoUrl: "https://ops.example.com/central/",
     approveCliAction: async () => true,
     cliQueueAdmission: async () => ({ concurrency: 1 }),
     executeCliAction: async ({ command }) => { commands.push(command); return { ok: true, exitCode: 0 }; },
@@ -817,7 +835,6 @@ cp ${JSON.stringify(path.join(artifact, "payload-hashes.json"))} "$7/cao/payload
     for (const pathname of ["gh-aw-logs-runs/logs-1.jsonl", "payload-hashes.json", "inventory-sources.json"]) {
       assert.equal((await fetch(`${preview.url}/${pathname}`)).status, 404);
     }
-    await writeFile(path.join(root, "pages-unavailable"), "");
     const executionOptions = {
       siteRoot: root, catalogRoot: null, repository: "acme/control", approveCliAction: async () => true,
       ghExecutable, workingDirectory: root, port: 0,
@@ -845,6 +862,9 @@ cp ${JSON.stringify(path.join(artifact, "payload-hashes.json"))} "$7/cao/payload
       const hostedHtml = await (await fetch(`${hosted.url}/`)).text();
       assert.match(hostedHtml, /<meta name="cao-url" content="https:\/\/custom\.example\.com\/ops\/">/);
     } finally { await hosted.close(); }
+    await assert.rejects(readFile(path.join(root, "unexpected-pages-discovery")), { code: "ENOENT" });
+    await writeFile(path.join(root, "untrusted-workflow"), "");
+    await assert.rejects(startCanvasServer(executionOptions), /not from a successful trusted CAO Activity workflow run/);
   } finally {
     await preview.close();
     await rm(root, { recursive: true, force: true });

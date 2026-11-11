@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,9 +18,76 @@ import (
 
 const localSQLiteTestToken = "0123456789abcdef0123456789abcdef"
 
+type sqliteTestTransport func(*http.Request) (*http.Response, error)
+
+func (f sqliteTestTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	return f(request)
+}
+
+func TestServeSQLiteMissingSourceDoesNotUseNetworkOrChangeCache(t *testing.T) {
+	t.Setenv("CAO_POLICY_PATH", "")
+	t.Setenv("DASHBOARD_DATA_URL", "")
+	var requests atomic.Int32
+	previous := http.DefaultTransport
+	http.DefaultTransport = sqliteTestTransport(func(*http.Request) (*http.Response, error) {
+		requests.Add(1)
+		return nil, errors.New("unexpected network request")
+	})
+	t.Cleanup(func() { http.DefaultTransport = previous })
+	for _, test := range []struct {
+		name string
+		args []string
+	}{
+		{"missing-default", nil},
+		{"missing-custom", []string{"--sqlite=custom.sqlite"}},
+		{"explicit-refresh", []string{"--download-sqlite"}},
+		{"empty-explicit-url", []string{"--download-sqlite="}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			working := filepath.Join(t.TempDir(), "server")
+			if err := os.Mkdir(working, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			t.Chdir(working)
+			cached := strings.Contains(test.name, "refresh") || test.name == "empty-explicit-url"
+			if cached {
+				if err := os.MkdirAll(filepath.Dir(defaultSQLitePath), 0o700); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(defaultSQLitePath, []byte("existing cache"), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			cmd := newServeCommand()
+			cmd.SilenceUsage, cmd.SilenceErrors = true, true
+			cmd.SetArgs(test.args)
+			err := cmd.ExecuteContext(t.Context())
+			if err == nil || !strings.Contains(err.Error(), "gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao") ||
+				!strings.Contains(err.Error(), "--sqlite FILE") {
+				t.Fatalf("missing source must explain local acquisition: %v", err)
+			}
+			if cached {
+				content, err := os.ReadFile(defaultSQLitePath)
+				if err != nil || string(content) != "existing cache" {
+					t.Fatal("missing source replaced existing cache")
+				}
+			} else if _, err := os.Stat(filepath.Dir(defaultSQLitePath)); !os.IsNotExist(err) {
+				t.Fatalf("missing source created a cache: %v", err)
+			}
+			if entries, err := os.ReadDir("."); err != nil || len(entries) != 0 {
+				t.Fatalf("missing source wrote files: %v, %v", entries, err)
+			}
+		})
+	}
+	if requests.Load() != 0 {
+		t.Fatalf("unconfigured source used the network: %d", requests.Load())
+	}
+}
+
 func TestServeSQLiteFlagValidation(t *testing.T) {
 	t.Setenv("CAO_POLICY_PATH", "")
 	t.Setenv("CAO_POSTGRES_URL", "")
+	t.Setenv("DASHBOARD_DATA_URL", "")
 	for _, test := range []struct {
 		name string
 		args []string
@@ -35,14 +103,14 @@ func TestServeSQLiteFlagValidation(t *testing.T) {
 		{"stdin-postgres", []string{"--exit-on-stdin-close", "--postgres-url=postgres://localhost/test"}, "requires local SQLite"},
 		{"public", []string{"--sqlite=local.sqlite", "--listen=0.0.0.0:8080"}, "non-loopback"},
 		{"default-public", []string{"--listen=0.0.0.0:8080"}, "non-loopback"},
-		{"download-empty-url", []string{"--download-sqlite="}, "must use HTTP or HTTPS"},
+		{"download-empty-url", []string{"--download-sqlite="}, "explicit Activity snapshot manifest URL is required"},
 		{"download-postgres", []string{"--download-sqlite", "--postgres-url=postgres://localhost/test"}, "none of the others"},
 		{"download-redis", []string{"--download-sqlite", "--redis-url=redis://localhost"}, "none of the others"},
 		{"download-source", []string{"--download-sqlite", "--source=deployed"}, "none of the others"},
 		{"download-public", []string{"--download-sqlite", "--listen=0.0.0.0:8080"}, "non-loopback"},
 		{"download-empty-path", []string{"--download-sqlite", "--sqlite="}, "--sqlite requires"},
 		{"missing-cache-unbuilt-site", []string{"--sqlite=missing.sqlite", "--site=missing-site",
-			"--dashboard-queries=../../../dashboard/site/src/agent/queries.generated.json"}, "build the dashboard"},
+			"--dashboard-queries=../../../dashboard/site/src/agent/queries.generated.json"}, "explicit Activity snapshot manifest URL is required"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			cmd := newServeCommand()
@@ -122,11 +190,12 @@ func TestServeSQLiteDownloadURLArguments(t *testing.T) {
 	t.Setenv("CAO_POSTGRES_URL", "invalid-unused-postgres")
 	t.Setenv("CAO_REDIS_URL", "invalid-unused-redis")
 	t.Setenv("OTEL_SDK_DISABLED", "true")
+	t.Setenv("DASHBOARD_DATA_URL", "https://snapshot.example.org/payload-hashes.json")
 	for _, args := range [][]string{
 		{"--download-sqlite"},
-		{"--download-sqlite=https://owner.github.io/project/"},
-		{"--download-sqlite", "https://owner.github.io/project/"},
-		{"--sqlite=custom.sqlite", "--download-sqlite=https://custom.example.org/"},
+		{"--download-sqlite=https://snapshot.example.org/project/payload-hashes.json"},
+		{"--download-sqlite", "https://snapshot.example.org/project/payload-hashes.json"},
+		{"--sqlite=custom.sqlite", "--download-sqlite=https://custom.example.org/payload-hashes.json"},
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			cmd := newServeCommand()
@@ -141,9 +210,9 @@ func TestServeSQLiteDownloadURLArguments(t *testing.T) {
 }
 
 func TestServeSQLiteDownloadEnvironmentURL(t *testing.T) {
-	t.Setenv("DASHBOARD_DATA_URL", "https://custom.example.org/site")
+	t.Setenv("DASHBOARD_DATA_URL", "https://custom.example.org/site/payload-hashes.json")
 	cmd := newServeCommand()
-	if got := cmd.Flags().Lookup("download-sqlite").NoOptDefVal; got != "https://custom.example.org/site" {
+	if got := cmd.Flags().Lookup("download-sqlite").NoOptDefVal; got != "DASHBOARD_DATA_URL" {
 		t.Fatalf("download URL default = %q", got)
 	}
 	if got := cmd.Flags().Lookup("sqlite").DefValue; got != defaultSQLitePath {
@@ -235,9 +304,9 @@ func TestServeSQLiteDefaultStartup(t *testing.T) {
 				}
 			}))
 			defer remote.Close()
-			t.Setenv("DASHBOARD_DATA_URL", remote.URL)
+			t.Setenv("DASHBOARD_DATA_URL", remote.URL+"/payload-hashes.json")
 			if test.cached && !test.refresh {
-				t.Setenv("DASHBOARD_DATA_URL", "invalid-unused-data-url")
+				t.Setenv("DASHBOARD_DATA_URL", "")
 			}
 			if test.refresh {
 				args = append(args, "--download-sqlite")
@@ -382,7 +451,7 @@ func TestServeSQLiteStartupFailuresDoNotRepairCache(t *testing.T) {
 				w.WriteHeader(http.StatusForbidden)
 			}))
 			defer remote.Close()
-			t.Setenv("DASHBOARD_DATA_URL", remote.URL)
+			t.Setenv("DASHBOARD_DATA_URL", remote.URL+"/payload-hashes.json")
 			cmd := newServeCommand()
 			cmd.SilenceUsage, cmd.SilenceErrors = true, true
 			args := append(append([]string{}, baseArgs...), "--sqlite="+cache)

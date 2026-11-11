@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { access, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -19,12 +19,10 @@ import {
 import { assertCanonicalCounts, median, performanceFailures } from './lighthouse-contract.js';
 
 const sourceRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)));
-const siteRoot = resolve(process.env.DASHBOARD_PERFORMANCE_SITE_ROOT || join(sourceRoot, 'dist'));
 const outputRoot = resolve(process.env.DASHBOARD_PERFORMANCE_OUTPUT_DIR || join(sourceRoot, 'test-results/lighthouse'));
-const temporaryRoot = join(sourceRoot, '.tmp');
-const fullRoot = resolve(process.env.DASHBOARD_PERFORMANCE_DATA_ROOT || join(temporaryRoot, 'lighthouse-data/full'));
-const emptyRoot = join(temporaryRoot, 'lighthouse-data/empty');
-const dataUrl = process.env.DASHBOARD_DATA_URL || 'https://githubnext.github.io/gh-cao/cao/payload-hashes.json';
+const temporaryRoot = resolve(sourceRoot, '../../.tmp/lighthouse-demo');
+const siteRoot = join(temporaryRoot, 'site');
+const emptyRoot = join(temporaryRoot, 'empty');
 const repeats = Number(process.env.DASHBOARD_PERFORMANCE_REPEATS || 3);
 const networkModes = (process.env.DASHBOARD_PERFORMANCE_NETWORK_MODES || 'cold,pwa').split(',');
 const threshold = 0.88;
@@ -55,16 +53,12 @@ async function startServer(retentionAsOf) {
       const [, state, ...segments] = decodeURIComponent(url.pathname).split('/');
       if (!['empty', 'full'].includes(state)) { response.writeHead(404).end(); return; }
       const relative = segments.join('/') || 'index.html';
-      const isData = relative === 'payload-hashes.json' || relative === 'inventory-sources.json'
-        || relative.startsWith('gh-aw-logs-')
-        || relative.startsWith('memory/') && relative !== 'memory/index.html';
-      const root = isData ? state === 'full' ? fullRoot : emptyRoot : siteRoot;
+      const root = state === 'empty' && relative.startsWith('demo-data-v1/') ? emptyRoot : siteRoot;
       const path = resolve(root, relative);
       if (!path.startsWith(`${root}${sep}`)) { response.writeHead(403).end(); return; }
       const details = await stat(path);
       if (!details.isFile()) { response.writeHead(404).end(); return; }
-      // Measure the published snapshot at its evidence time, not its download time.
-      // Keep retention cutoffs stable across the long repeated-navigation audit.
+      // Freeze the generated demo's clock across repeated navigation audits.
       const prefix = relative === 'src/data-worker.js'
         ? Buffer.from(`Date.now = () => ${retentionAsOf};\n`) : null;
       const readBody = async () => {
@@ -123,9 +117,11 @@ async function ready(page, route, state) {
     return active && (active.querySelector('[data-view-id]')
       || active.getAttribute('data-page-prerequisite-unavailable') === 'true');
   }, `[data-page-id="${route}"]`, { timeout: 180_000 });
-  if (state === 'empty' && await active.getAttribute('data-page-prerequisite-unavailable') === 'true') {
+  // The full demo has standalone workflows, not campaign evidence. Preserve
+  // explicitly unavailable routes in the report instead of claiming population.
+  if (await active.getAttribute('data-page-prerequisite-unavailable') === 'true') {
     await active.locator('[data-view-state="unavailable"]').waitFor({ state: 'visible' });
-    return;
+    return 'unavailable';
   }
   await active.locator('[data-view-id]').first().waitFor({ state: 'attached' });
   await scrollRenderedViewsIntoView(active);
@@ -135,12 +131,13 @@ async function ready(page, route, state) {
   }, `[data-page-id="${route}"]`, { timeout: 180_000 });
   await active.locator(visibleBusyViewSelector).first().waitFor({ state: 'hidden', timeout: 180_000 });
   const unavailable = await active.locator('[data-view-state="unavailable"]:visible').allTextContents();
-  if (unavailable.length) throw new Error(`${route} rendered unavailable data: ${unavailable.join('; ')}`);
+  if (unavailable.length) throw new Error(`${state} ${route} rendered unavailable data: ${unavailable.join('; ')}`);
   await page.evaluate(() => {
     const main = document.querySelector('main.dashboard-prototype');
     if (main) main.scrollTop = 0;
     window.scrollTo(0, 0);
   });
+  return 'ready';
 }
 
 async function audit(context, browser, origin, state, profile, network, scenario, directory, port) {
@@ -172,7 +169,7 @@ async function audit(context, browser, origin, state, profile, network, scenario
       if (network === 'cold' && !result.lhr.audits['network-requests'].details.items.some((item) => (
         item.url.includes('/src/main.js') && item.transferSize > 0
       ))) throw new Error('The cold audit did not measure an uncached application transfer.');
-      await ready(page, scenario.routes[0], state);
+      const dataState = await ready(page, scenario.routes[0], state);
       if (errors.length) throw new Error(`${state} audit page errors: ${errors.join('; ')}`);
       const repeatRoot = join(directory, String(repeat));
       await mkdir(repeatRoot, { recursive: true });
@@ -183,6 +180,7 @@ async function audit(context, browser, origin, state, profile, network, scenario
         writeFile(join(repeatRoot, 'devtoolslog.json'), JSON.stringify(result.artifacts.DevtoolsLog))
       ]);
       samples.push({
+        dataState,
         scores: Object.fromEntries(Object.entries(result.lhr.categories).map(([name, category]) => [name, category.score])),
         metrics: Object.fromEntries(Object.keys(budgets).map((name) => [name, result.lhr.audits[name].numericValue]))
       });
@@ -203,17 +201,17 @@ async function main() {
   if (!Number.isSafeInteger(repeats) || repeats < 1) throw new Error('DASHBOARD_PERFORMANCE_REPEATS must be a positive integer.');
   if (!networkModes.length || new Set(networkModes).size !== networkModes.length
       || networkModes.some((mode) => !['cold', 'pwa'].includes(mode))) throw new Error('Invalid performance network modes.');
-  await access(join(siteRoot, 'index.html'));
   await mkdir(outputRoot, { recursive: true });
   await mkdir(temporaryRoot, { recursive: true });
-  const dataset = await preparePerformanceData(fullRoot, emptyRoot, dataUrl, Boolean(process.env.DASHBOARD_PERFORMANCE_DATA_ROOT));
+  const dataset = await preparePerformanceData({ siteRoot, emptyRoot });
   await writeFile(join(outputRoot, 'dataset.json'), JSON.stringify(dataset, null, 2));
   const { server, origin, retentionAsOf } = await startServer(dataset.retentionAsOf);
   const results = [];
   const states = {};
   const writeSummary = (status, error) => writeFile(join(outputRoot, 'summary.json'), JSON.stringify({
     generatedAt: new Date().toISOString(), status, ...(error ? { error } : {}),
-    methodology: 'Gzip production site; verified empty and fully ingested canonical databases; repeated desktop/mobile medians; cold HTTP with service-worker bypass and separate PWA navigation.',
+    evidenceKind: dataset.evidenceKind, evidenceLimits: dataset.evidenceLimits,
+    methodology: 'Gzip synthetic enterprise demo; verified empty and fully ingested synthetic IndexedDB datasets; repeated desktop/mobile medians; cold HTTP with service-worker bypass and separate PWA navigation.',
     retentionAsOf: new Date(retentionAsOf).toISOString(),
     dataset, states, results
   }, null, 2));
@@ -243,7 +241,7 @@ async function main() {
         if (refresh.status !== 'completed') throw new Error(`${state} ingestion failed: ${JSON.stringify(refresh)}`);
         const counts = await canonicalCounts(page);
         states[state] = { ingestionMs: performance.now() - started, counts, refresh, journeys: [] };
-        assertCanonicalCounts(state, counts, state === 'full' ? dataset.shards : 2);
+        assertCanonicalCounts(state, counts, state === 'full' ? dataset.shards : 2, dataset.expected);
         await page.evaluate(() => navigator.serviceWorker.ready);
         for (const profile of ['desktop', 'mobile']) {
           await page.setViewportSize(profile === 'desktop' ? { width: 1440, height: 900 } : { width: 390, height: 844 });
@@ -256,8 +254,8 @@ async function main() {
               for (const route of scenario.routes) {
                 const started = performance.now();
                 await page.evaluate((route) => { location.hash = `page-${route}`; }, route);
-                await ready(page, route, state);
-                states[state].journeys.push({ profile, route, durationMs: performance.now() - started });
+                const dataState = await ready(page, route, state);
+                states[state].journeys.push({ profile, route, dataState, durationMs: performance.now() - started });
                 const table = page.locator(`[data-page-id="${route}"] [data-view-mode-value="table"]`);
                 if (await table.isVisible()) { await table.click(); await ready(page, route, state); }
               }
@@ -271,7 +269,7 @@ async function main() {
               const result = await audit(context, browser, origin, state, profile, network, scenario, join(directory, network), port);
               results.push(result);
               await writeSummary('running');
-              console.log(`${result.id}: performance ${Math.round(result.score * 100)}, CLS ${result.metrics['cumulative-layout-shift'].toFixed(3)}`);
+              console.log(`Synthetic demo ${result.id}: performance ${Math.round(result.score * 100)}, CLS ${result.metrics['cumulative-layout-shift'].toFixed(3)}`);
             }
           }
         }
@@ -298,7 +296,7 @@ async function main() {
   await writeSummary('complete');
   const failures = results.flatMap((result) => result.failures.map((failure) => `${result.id}: ${failure}`));
   for (const failure of failures) console.error(`::error title=Lighthouse budget exceeded::${failure}`);
-  console.log(`Performance evidence: ${outputRoot}`);
+  console.log(`Synthetic demo performance evidence (not operational evidence): ${outputRoot}`);
   return failures.length ? 42 : 0;
 }
 

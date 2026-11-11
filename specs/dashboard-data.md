@@ -255,9 +255,11 @@ Repository
             └── Issue
 ```
 
-The dashboard data and query implementations are IndexedDB in the browser,
-SQLite for local/headless consumers, and Postgres in the Go server. The static
-deployment SHALL maintain the canonical model in IndexedDB. The Go server
+The dashboard data and query implementations are IndexedDB for the synthetic
+enterprise Pages demo, SQLite for real local/headless snapshots, and Postgres
+for production hosted serving. Local and hosted serving SHALL use the same Go
+handler and declarative views. Pages SHALL NOT publish real operational data.
+The demo SHALL maintain the canonical model in IndexedDB. The Go server
 profile SHALL transactionally replace current dashboard sources in Postgres
 and SHALL execute Dashboard Language queries server-side. Redis SHALL hold
 only operational caches, queues, and sessions, not dashboard entities or
@@ -388,7 +390,10 @@ The implementation SHALL fully replace dashboard-side source-shaped/view-shaped 
 
 Development MAY proceed incrementally from the source-adapter boundary inward. The completed implementation MUST NOT retain a shadow, dual-read, alias, compatibility-cache, or fallback path to the replaced browser data system.
 
-Functioning upstream collectors and Pages deployment MAY remain as authoritative data producers. This allowance does not permit the legacy browser data architecture to remain active.
+Functioning upstream collectors MAY remain authoritative operational data
+producers. Pages SHALL be a synthetic-only demonstration, not an operational
+producer, distribution channel, or fallback. This does not permit the legacy
+browser data architecture to remain active.
 
 ---
 
@@ -435,7 +440,7 @@ canonical normalization
 canonical model
         |
         v
-IndexedDB
+selected canonical storage
         |
         v
 query layer
@@ -453,10 +458,55 @@ The initial implementation SHOULD NOT rewrite working:
 * activity collection;
 * gh-aw log generation;
 * policy enforcement;
-* Pages deployment;
-* existing source publication.
+* bounded operational artifact production.
 
 Those components SHALL initially be treated as data producers.
+
+## 3.2.1 Deployment and publication profiles
+
+Production SHALL serve HTML, assets, OAuth, query APIs, and revision events
+through one Go/PostgreSQL origin. Local development SHALL use the same Go
+serving/query boundary with an explicitly acquired real operational SQLite
+snapshot. Neither profile SHALL fall back to Pages or browser ingestion.
+
+Pages SHALL contain only a synthetic enterprise sample. Its build SHALL
+generate raw sample evidence and pass it through the production normalization,
+canonical ingestion, Dashboard Language queries, and shared declarative views.
+It SHALL NOT substitute presenter fixtures, JavaScript-derived view rows, or
+a separate demo query implementation. A declarative **Synthetic enterprise demo**
+callout SHALL identify the sample; live services SHALL be unavailable.
+
+`npm run dashboard:pages:build` SHALL accept no real-data input option.
+Its published output SHALL contain neither SQLite nor an operational agent
+summary. Daily documentation/demo builds SHALL be independent of Activity and
+Dashboard operational-artifact freshness. `cao-dashboard.yml` SHALL retain
+bounded operational artifacts for authorized consumers, not deploy them to
+Pages; Activity's `cao-activity-index` SHALL remain a SQLite/shard transport.
+
+Native and JavaScript snapshot acquisition SHALL have no default Pages source.
+An explicit `DASHBOARD_DATA_URL` or URL argument SHALL name an operational
+`payload-hashes.json` directly, not a site root or directory-discovery endpoint.
+Authenticated Actions artifact acquisition followed by cached `--sqlite`
+serving remains supported. This contract does not introduce a hosted export API.
+Operational downloaders and canvas acquisition SHALL reject synthetic manifests
+and manifests without a SQLite checksum. The canvas SHALL select
+`cao-activity-index` from a successful default-branch `cao-activity.yml` run;
+it SHALL NOT acquire from Pages or infer a dashboard backlink from Pages settings.
+
+The demo SHALL put data files under `demo-data-v1/`, not root
+`payload-hashes.json`, suffix browser storage keys with `synthetic-demo-v1`,
+and use the `demo-v1` service-worker cache namespace. Changed data URLs SHALL
+prevent reuse of real-data responses from old same-origin service-worker caches.
+It SHALL NOT adopt existing real-data browser projections or delete databases
+and caches outside its scope. Source migration does not scrub previous Pages
+deployments, browser caches, or downloaded copies. Rebuilding and redeploying
+Pages removes operational artifacts from the current site; legacy browser
+databases remain unused disposable state until explicitly cleared.
+
+Removing live Pages publication and implicit acquisition paths does not remove
+IndexedDB, Web Worker, service-worker, or cross-adapter conformance obligations.
+Canonical semantics, cancellation, partial/unavailable states, isolation,
+retention, and recovery SHALL remain covered through production boundaries.
 
 ## 3.3 Source Inputs
 
@@ -550,18 +600,22 @@ flowchart LR
   source --> sqlite["SQLite"]
   sqlite --> agents["Agents"]
   sqlite --> cli["CLI"]
-  source --> indexeddb["IndexedDB<br/>browser"]
-  indexeddb --> views["Dashboard views"]
+  samples["Synthetic enterprise raw samples"] --> normalize["Production normalization"]
+  normalize --> indexeddb["IndexedDB<br/>isolated demo namespace"]
+  indexeddb --> worker["Data Web Worker queries"] --> views["Shared dashboard views"]
   source --> postgres["Postgres<br/>hosted dashboard sources"]
   postgres --> go["Go HTTP(S) query server"]
   redis["Redis<br/>operational state"] --> go
   go --> views
+  sqlite --> local["Same Go handler<br/>local read-only queries"] --> views
 ```
 
 The SQLite and IndexedDB projections SHALL be independently reconstructable
-from authoritative external inputs. Neither projection SHALL become the source
-for the other. Publishing SQLite MAY support headless consumers, but browser
-ingestion SHALL continue to use the published JSONL and inventory inputs.
+from their selected inputs: real operational snapshots for local SQLite and
+generated synthetic evidence for Pages. Neither projection SHALL become the
+source for the other. Operational artifacts MAY include SQLite for authorized
+headless consumers; Pages SHALL NOT include SQLite. Demo browser ingestion
+SHALL use only synthetic normalized JSONL and inventory inputs.
 
 The deployed dashboard payload SHALL publish only compacted normalized
 run-information and run-record JSONL shards for browser ingestion. Raw Activity
@@ -783,13 +837,13 @@ underlying canonical storage or shard download volume in this increment.
 ## 5.2 Go server profile
 
 Go SHALL be the serving runtime for local SQLite, hosted PostgreSQL, and explicit
-static Pages previews. The Node.js authoring bridge SHALL remain internal to
+synthetic-only Pages previews. The Node.js authoring bridge SHALL remain internal to
 Copilot canvas development rather than provide a standalone serving mode. The
 Go server data profile SHALL:
 
 * ingest `inventory-sources.json`, `payload-hashes.json`, and compacted
   `gh-aw-logs-runs/*.jsonl` and `gh-aw-logs-records/*.jsonl` from a deployed
-  dashboard artifact;
+  operational dashboard artifact, never the public Pages demo;
 * verify every manifested shard hash and require run-information shards before
   activating a new generation;
 * replace current Postgres sources, diagnostics, and revision atomically and
@@ -834,7 +888,8 @@ files SHALL remain untouched and MUST NOT be automatically attached.
 Requests MUST use consistent query-only transactions through the existing
 native canonical query boundary. External canonical commits SHALL invalidate
 stale query state and notify revision subscribers. Startup MAY download and
-verify an already-published SQLite snapshot; that is artifact acquisition, not
+verify an explicitly selected operational SQLite snapshot through a direct
+manifest URL; it SHALL NOT discover or default to a Pages source. That is artifact acquisition, not
 evidence collection or local backfill. These boundaries apply equally to
 ordinary local and internal canvas serving and MUST NOT change hosted
 PostgreSQL, OAuth, webhook, or collection-authority contracts.
@@ -1202,7 +1257,7 @@ cao.json repository scope
   -> one gh aw logs --repo call per resolved repository
   -> repository-specific --cached-jsonl wildcard shards
   -> canonical JSONL ingestion
-  -> SQLite and IndexedDB projections
+  -> operational SQLite / hosted PostgreSQL projections
   -> Dashboard Language queries
 ```
 
@@ -1231,12 +1286,12 @@ shards, and canonical ingestion SHALL skip a shard whose content hash already
 exists in the Transaction ledger. Repository collection MAY be serial to bound
 concurrent GitHub API pressure and reuse shared analysis state. The consolidated
 The `gh-aw-logs-shards/` directory SHALL retain the authoritative collection
-transport. Dashboard publication SHOULD additionally provide
-`gh-aw-logs-normalized/` JSON payloads containing content-addressed canonical
-batches generated from those shards. Browsers SHALL prefer those payloads to
-avoid source adaptation and normalization, use their `payload-hashes.json`
-identities to skip unchanged downloads and imports, and fall back to the source
-JSONL shards when normalized payloads are unavailable.
+transport within the operational cache. Artifact publication SHALL provide
+compacted normalized run-information and record JSONL plus
+`payload-hashes.json`, as specified in §5. Pages SHALL generate equivalent
+transport solely from synthetic raw samples. Browsers SHALL use manifest
+identities to skip unchanged demo downloads and imports, and SHALL NOT fall
+back to raw source shards or operational artifacts.
 
 ### 5.4.1 Canonical join contract
 
@@ -2531,7 +2586,10 @@ Everything downstream of adapters SHOULD NOT.
 
 SQL SHALL be treated as another source representation. The static dashboard SHALL NOT connect directly to a database.
 
-Database owners SHALL map source-specific tables to the versioned `gh-aw-cao.dashboard-sql-export` interchange contract. A trusted workflow or offline tool SHALL serialize that result to JSON before Pages publication.
+Database owners SHALL map source-specific tables to the versioned
+`gh-aw-cao.dashboard-sql-export` interchange contract. A trusted workflow or
+offline tool SHALL serialize that result to JSON for authorized canonical
+ingestion, not real-data Pages publication. Demo inputs SHALL remain synthetic.
 
 The IndexedDB model MUST NOT be produced by mechanically copying SQL tables.
 
@@ -2542,7 +2600,7 @@ source-specific SQL tables
 dashboard export view
   |
   v
-static JSON publication
+bounded JSON interchange
   |
   v
 SQL-export adapter
@@ -2910,7 +2968,8 @@ Raw payloads MAY remain in immutable source chunks.
 
 # 25. IndexedDB Role
 
-IndexedDB SHALL be a materialized browser projection.
+IndexedDB SHALL be a materialized browser projection for the synthetic Pages
+demo and adapter conformance, not a live operational serving mode.
 
 The governing rule is:
 
@@ -2929,8 +2988,10 @@ const DATABASE_NAME = "gh-aw-cao-dashboard-data";
 const DATABASE_VERSION = 49;
 ```
 
-The name MAY be scoped by deployment path to prevent unrelated dashboard
-deployments on the same origin from sharing derived state. Version upgrades
+The logical name SHALL be scoped by the `synthetic-demo-v1` suffix and deployment
+path for Pages, preventing reuse of a former operational database on the same
+origin. The demo SHALL NOT automatically delete unrelated or legacy databases.
+Version upgrades within the selected namespace
 SHALL follow Section 5.1: versions 44, 45, and 46 with a `runs` store receive an
 additive upgrade; incompatible older projections are recreated from inputs.
 

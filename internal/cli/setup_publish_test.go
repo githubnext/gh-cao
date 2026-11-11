@@ -88,8 +88,6 @@ func setupPublishFixture(t *testing.T, existing bool) (*cobra.Command, ghExecuto
 		switch strings.Join(args, " ") {
 		case "api --hostname github.com repos/org/control":
 			return `{"full_name":"org/control","html_url":"https://github.com/org/control","default_branch":"main"}`, "", nil
-		case "api repos/org/control/pages":
-			return `{"build_type":"workflow","public":true,"html_url":"https://org.github.io/control/"}`, "", nil
 		}
 		return bootstrap(ctx, args...)
 	}
@@ -171,8 +169,8 @@ func TestSetupPublishesAllPreparedComponentsWithoutUnrelatedFiles(t *testing.T) 
 		t.Fatal(err)
 	}
 	publication := nativeSetupMap(result["publication"])
-	if !prompt.asked || publication["status"] != "published" || publication["deploymentStatus"] != "pending" ||
-		publication["actionsURL"] != "https://github.com/org/control/actions" || publication["dashboardURL"] != "https://org.github.io/control/" {
+	if !prompt.asked || publication["status"] != "published" || publication["actionsStatus"] != "pending" ||
+		publication["actionsURL"] != "https://github.com/org/control/actions" {
 		t.Fatalf("publication result: %#v", publication)
 	}
 	localHead := setupPublishTestGit(t, cmd, "rev-parse", "HEAD")
@@ -208,16 +206,21 @@ func TestNativeSetupPublicationOutput(t *testing.T) {
 			if strings.Contains(output, "\x1b[") {
 				t.Fatal("redirected setup output must not contain terminal styling")
 			}
+			for _, obsolete := range []string{"Pages", "pages", "dashboardURL", "deploymentStatus", ".github.io"} {
+				if strings.Contains(output, obsolete) {
+					t.Fatalf("publication retains obsolete Pages output %q: %s", obsolete, output)
+				}
+			}
 			if structured {
 				var result map[string]any
 				if err := json.Unmarshal([]byte(output), &result); err != nil {
 					t.Fatal(err)
 				}
 				publication := nativeSetupMap(result["publication"])
-				if publication["status"] != "published" || publication["deploymentStatus"] != "pending" {
+				if publication["status"] != "published" || publication["actionsStatus"] != "pending" {
 					t.Fatalf("misleading JSON result: %s", output)
 				}
-			} else if !strings.Contains(output, "Deployment pending") || !strings.Contains(output, "https://github.com/org/control/actions") ||
+			} else if !strings.Contains(output, "Actions pending") || !strings.Contains(output, "https://github.com/org/control/actions") ||
 				strings.Contains(output, "No commit or push was performed") {
 				t.Fatalf("misleading text result: %s", output)
 			}
@@ -226,49 +229,37 @@ func TestNativeSetupPublicationOutput(t *testing.T) {
 }
 
 func TestSetupPublicationLinkStyling(t *testing.T) {
-	for _, dashboard := range []bool{false, true} {
-		publication := map[string]any{
-			"actionsURL":       "https://github.com/org/control/actions",
-			"pagesSettingsURL": "https://github.com/org/control/settings/pages",
+	publication := map[string]any{"actionsURL": "https://github.com/org/control/actions"}
+	for _, styled := range []bool{false, true} {
+		output := setupPublishOutput(publication, styled)
+		want := "Actions:"
+		if styled {
+			want = "\x1b[1;36m" + want + "\x1b[0m"
 		}
-		labels := []string{"Actions", "Pages settings"}
-		if dashboard {
-			publication["dashboardURL"] = "https://org.github.io/control/"
-			labels = append(labels, "Dashboard (deployment pending)")
+		if !strings.Contains(output, want) {
+			t.Fatalf("missing label %q in output %q", want, output)
 		}
-		for _, styled := range []bool{false, true} {
-			output := setupPublishOutput(publication, styled)
-			for _, label := range labels {
-				want := label + ":"
-				if styled {
-					want = "\x1b[1;36m" + want + "\x1b[0m"
-				}
-				if !strings.Contains(output, want) {
-					t.Fatalf("missing label %q in output %q", want, output)
-				}
-			}
-			for _, value := range publication {
-				link := value.(string)
-				if styled {
-					link = "\x1b[4;34m" + link + "\x1b[0m"
-				}
-				if !strings.Contains(output, link) {
-					t.Fatalf("missing link %q in output %q", link, output)
-				}
-			}
-			if !dashboard && strings.Contains(output, "Dashboard") {
-				t.Fatal("output invents a dashboard link")
-			}
+		for _, value := range publication {
+			link := value.(string)
 			if styled {
-				if !strings.HasPrefix(output, "\n\x1b[1;32mMonitoring configuration pushed.\x1b[0m") {
-					t.Fatal("styled success must be highlighted and separated from the prompt")
-				}
-			} else if strings.Contains(output, "\x1b[") {
-				t.Fatal("plain output must not contain terminal styling")
+				link = "\x1b[4;34m" + link + "\x1b[0m"
 			}
-			if !strings.Contains(output, "Deployment pending; setup is not waiting for Actions.") {
-				t.Fatal("link styling must preserve deployment-pending status")
+			if !strings.Contains(output, link) {
+				t.Fatalf("missing link %q in output %q", link, output)
 			}
+		}
+		if !strings.Contains(output, "Actions operational artifacts with the local or cloud dashboard") {
+			t.Fatal("output must direct operators to real-data dashboards")
+		}
+		if styled {
+			if !strings.HasPrefix(output, "\n\x1b[1;32mMonitoring configuration pushed.\x1b[0m") {
+				t.Fatal("styled success must be highlighted and separated from the prompt")
+			}
+		} else if strings.Contains(output, "\x1b[") {
+			t.Fatal("plain output must not contain terminal styling")
+		}
+		if !strings.Contains(output, "Actions pending; setup is not waiting for workflow completion.") {
+			t.Fatal("link styling must preserve pending Actions status")
 		}
 	}
 }
@@ -279,7 +270,7 @@ func TestSetupPublicationDeclineAndCancellationLeaveIndexUntouched(t *testing.T)
 			cmd, gh, _, files := setupPublishFixture(t, true)
 			before := setupPublishTestGit(t, cmd, "rev-parse", "HEAD")
 			prompt := &setupPublishPrompt{cancel: cancel}
-			result, err := setupPublish(cmd, gh, prompt, "org/control", "", files)
+			result, err := setupPublish(cmd, gh, prompt, "org/control", files)
 			if err != nil || result["status"] != "declined" || !prompt.asked {
 				t.Fatalf("result=%#v error=%v", result, err)
 			}
@@ -303,7 +294,7 @@ func TestSetupPublicationNeverCommitsUnattended(t *testing.T) {
 				t.Setenv("CI", "true")
 				prompt = &setupPublishPrompt{approve: true}
 			}
-			result, err := setupPublish(cmd, nil, prompt, "org/control", "", nil)
+			result, err := setupPublish(cmd, nil, prompt, "org/control", nil)
 			if err != nil || result["status"] != "not-requested" {
 				t.Fatalf("result=%#v error=%v", result, err)
 			}
@@ -340,7 +331,7 @@ func TestSetupPublicationBlocksUnsafeGitState(t *testing.T) {
 			head := setupPublishTestGit(t, cmd, "rev-parse", "HEAD")
 			index := setupPublishTestGit(t, cmd, "write-tree")
 			prompt := &setupPublishPrompt{approve: true}
-			result, err := setupPublish(cmd, gh, prompt, "org/control", "", files)
+			result, err := setupPublish(cmd, gh, prompt, "org/control", files)
 			if err != nil || result["status"] != "blocked" || prompt.asked {
 				t.Fatalf("result=%#v error=%v asked=%v", result, err, prompt.asked)
 			}
@@ -358,7 +349,7 @@ func TestSetupPublicationCommitsOnlyCAODelta(t *testing.T) {
 	setupPublishTestGit(t, cmd, "commit", "-m", "Existing documentation")
 	setupPublishTestGit(t, cmd, "push", "origin", "main")
 	writeTestFile(t, "README.md", "Unrelated unstaged documentation edit")
-	result, err := setupPublish(cmd, gh, &setupPublishPrompt{approve: true}, "org/control", "", files)
+	result, err := setupPublish(cmd, gh, &setupPublishPrompt{approve: true}, "org/control", files)
 	if err != nil || result["status"] != "published" {
 		t.Fatalf("result=%#v error=%v", result, err)
 	}
@@ -371,7 +362,7 @@ func TestSetupPublicationCommitsOnlyCAODelta(t *testing.T) {
 	if setupPublishTestGit(t, cmd, "--git-dir="+remote, "rev-parse", "main") != result["commit"] {
 		t.Fatal("CAO delta was not pushed")
 	}
-	unchanged, err := setupPublish(cmd, gh, &setupPublishPrompt{approve: true}, "org/control", "", files)
+	unchanged, err := setupPublish(cmd, gh, &setupPublishPrompt{approve: true}, "org/control", files)
 	if err != nil || unchanged["status"] != "unchanged" {
 		t.Fatalf("idempotent publication result=%#v error=%v", unchanged, err)
 	}
@@ -403,7 +394,7 @@ func TestSetupPublicationRejectsChangesDuringReview(t *testing.T) {
 					originChanged = true
 				}
 			}}
-			_, err := setupPublish(cmd, gh, prompt, "org/control", "", files)
+			_, err := setupPublish(cmd, gh, prompt, "org/control", files)
 			if err == nil || !strings.Contains(err.Error(), "changed after review") {
 				t.Fatalf("changed %s accepted: %v", state, err)
 			}
@@ -430,7 +421,7 @@ func TestSetupPublicationReportsCommitAndProtectedPushFailures(t *testing.T) {
 			if err := os.Chmod(hook, 0o755); err != nil {
 				t.Fatal(err)
 			}
-			_, err := setupPublish(cmd, gh, &setupPublishPrompt{approve: true}, "org/control", "", files)
+			_, err := setupPublish(cmd, gh, &setupPublishPrompt{approve: true}, "org/control", files)
 			if err == nil || !strings.Contains(err.Error(), stage+" failed") {
 				t.Fatalf("failed %s not reported: %v", stage, err)
 			}
@@ -504,7 +495,7 @@ func TestSetupPublicationDoesNotPushHookChangedCommit(t *testing.T) {
 					return output, err
 				})))
 			}
-			_, err := setupPublish(cmd, gh, &setupPublishPrompt{approve: true}, "org/control", "", files)
+			_, err := setupPublish(cmd, gh, &setupPublishPrompt{approve: true}, "org/control", files)
 			if err == nil || !strings.Contains(err.Error(), "local commit retained") {
 				t.Fatalf("%s mutation not reported: %v", stage, err)
 			}

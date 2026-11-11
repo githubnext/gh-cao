@@ -18,7 +18,6 @@ import {
   visibleLoadingViewSelector,
   visibleViewSelector,
 } from "./dashboard-view-assessment.mjs";
-import { downloadDeployedDashboardData } from "./dashboard-view-data.mjs";
 import {
   dashboardPageChunkPath,
   mergeDashboardPage,
@@ -30,7 +29,6 @@ const outputDirectory = resolve(
 );
 const maximumDomNodes = 6_000;
 const maximumFailedViews = 5;
-const maximumActivityShards = 25;
 
 function selectedPages(dashboard) {
   const selected = process.env.DASHBOARD_PAGE_IDS;
@@ -60,15 +58,15 @@ async function loadPageDefinition(previewUrl, pageDefinition) {
   };
 }
 
-test("each selected dashboard view renders with live data", async ({ context }, testInfo) => {
+test("each selected dashboard view renders with synthetic enterprise demo data", async ({ context }, testInfo) => {
   const assessmentStartedAt = Date.now();
   await rm(outputDirectory, { force: true, recursive: true });
   await mkdir(outputDirectory, { recursive: true });
 
-  const sourceUrl = process.env.DASHBOARD_DATA_URL;
   const summary = {
     generatedAt: new Date().toISOString(),
-    sourceUrl: sourceUrl || null,
+    evidenceKind: "synthetic-enterprise-demo",
+    evidenceLimits: "Browser UX only; not operational freshness or completeness evidence.",
     maximumDomNodes,
     selectionMode: process.env.DASHBOARD_PAGE_IDS === undefined ? "all" : "affected",
     ignoredPageIds: [...ignoredDashboardPageIds],
@@ -79,12 +77,7 @@ test("each selected dashboard view renders with live data", async ({ context }, 
 
   try {
     if (process.env.DASHBOARD_PAGE_IDS === "") return;
-    if (!sourceUrl) throw new Error("DASHBOARD_DATA_URL is required.");
-
-    preview = await startDashboardPagesPreview({
-      downloadData: (destination) =>
-        downloadDeployedDashboardData(destination, sourceUrl, fetch, maximumActivityShards),
-    });
+    preview = await startDashboardPagesPreview();
     const dashboardResponse = await fetch(`${preview.url}/dashboard.json`);
     if (!dashboardResponse.ok) {
       throw new Error(`Unable to load composed dashboard.json: HTTP ${dashboardResponse.status}.`);

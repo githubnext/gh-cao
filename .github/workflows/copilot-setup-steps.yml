@@ -54,6 +54,11 @@ jobs:
       - name: Install gh-aw extension
         uses: ./.github/actions/setup-gh-aw # zizmor: ignore[self-repository] - Local actions use the syntax accepted by GitHub Actions and actionlint.
       - name: Stage CAO dashboard evidence
+        if: vars.CAO_DASHBOARD_DATA_URL != ''
         env:
           DASHBOARD_DATA_URL: ${{ vars.CAO_DASHBOARD_DATA_URL }}
         run: node activity/cao.mjs download
+      - name: Report unconfigured operational evidence
+        if: vars.CAO_DASHBOARD_DATA_URL == ''
+        run: |
+          echo "::notice::Operational dashboard evidence is not staged. Download a selected cao-activity-index Actions artifact into .cao, or configure CAO_DASHBOARD_DATA_URL. Pages is synthetic demo data, not a fallback."

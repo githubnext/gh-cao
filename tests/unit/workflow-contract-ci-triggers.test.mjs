@@ -472,6 +472,49 @@ test("main pushes retain browser and integration coverage for representative inp
   assert.equal(parse(workflow("actions.yml")).jobs.mobile.if, undefined);
 });
 
+test("demo browser CI cannot substitute synthetic Pages data for operational snapshots", () => {
+  for (const name of ["actions.yml", "dashboard-views.yml"]) {
+    const source = workflow(name);
+    assert.doesNotMatch(source, /DASHBOARD_DATA_URL|githubnext\.github\.io/);
+    assert.match(source, /not operational freshness or completeness evidence/);
+  }
+  const { jobs } = parse(workflow("dashboard-deployed-integration.yml"));
+  assert.match(jobs.integration.name, /synthetic/i);
+  assert.equal(jobs["query-performance"], undefined);
+  assert.equal(jobs["query-performance-comment"], undefined);
+  const artifact = jobs["query-cost"].steps.find(({ name }) => name === "Download operational Activity artifact");
+  assert.match(artifact.run, /--workflow cao-activity\.yml --branch "\$DEFAULT_BRANCH"/);
+  assert.match(artifact.run, /--status success/);
+  assert.match(artifact.run, /gh run download "\$run_id" --name cao-activity-index --dir \.cao/);
+  assert.doesNotMatch(artifact.run, /dashboard:data:download|github\.io/);
+  const ingestion = jobs["query-cost"].steps.find(({ name }) => name === "Verify operational artifact ingestion");
+  assert.equal(ingestion.env.DASHBOARD_DATA_DIR, ".cao");
+});
+
+test("operational ingestion fails closed without an explicit real snapshot", () => {
+  const environment = { ...process.env };
+  delete environment.DASHBOARD_DATA_URL;
+  delete environment.DASHBOARD_DATA_DIR;
+  for (const [source, manifest, expected] of [
+    [undefined, {}, /Select exactly one operational source/],
+    ["https://snapshot.example/payload-hashes.json", { synthetic: true }, /Synthetic demo data is not operational evidence/],
+    ["https://snapshot.example/payload-hashes.json", {}, /Operational evidence must include a checksum/],
+  ]) {
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", `
+      globalThis.fetch = async () => Response.json(${JSON.stringify(manifest)});
+      await import("./tests/integration/dashboard-deployed-data.test.mjs");
+    `], {
+      cwd: root,
+      env: { ...environment, ...(source ? { DASHBOARD_DATA_URL: source } : {}) },
+      encoding: "utf8",
+      timeout: 10_000,
+    });
+    assert.equal(result.error, undefined);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stdout + result.stderr, expected);
+  }
+});
+
 test("mixed workflows keep fast checks on PRs and gate expensive jobs off PRs", () => {
   const cases = [
     ["workflow-contracts.yml", ["unit", "test"], [

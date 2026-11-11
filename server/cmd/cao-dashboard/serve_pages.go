@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -26,10 +27,10 @@ var pagesLog = debuglogger.New("cao:dashboard:serve-pages")
 func newServePagesCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "serve-pages",
-		Short: "serve a prepared Pages directory locally with browser IndexedDB (no hosted services)",
+		Short: "preview the synthetic Pages demo with browser IndexedDB (no operational data)",
 		Args:  cobra.NoArgs,
 	}
-	directory := cmd.Flags().String("site", "../.tmp/dashboard-pages", "prepared Pages directory containing index.html and published data")
+	directory := cmd.Flags().String("site", "../.tmp/dashboard-pages", "synthetic directory prepared by npm run dashboard:pages:build")
 	listen := cmd.Flags().String("listen", "127.0.0.1:8080", "numeric loopback HTTP listen address")
 	basePath := cmd.Flags().String("base-path", "/", "URL path prefix, e.g. /repository/; files are served unchanged")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
@@ -122,6 +123,23 @@ func newPagesHandler(directory, basePath string) (*os.Root, *pagesHandler, error
 		_ = root.Close()
 		return nil, nil, fmt.Errorf("pages directory requires a readable built index.html: %w", err)
 	}
+	marker, err := root.ReadFile(".cao-pages-demo.json")
+	var demo struct {
+		Tool      string `json:"tool"`
+		Version   int    `json:"version"`
+		Synthetic bool   `json:"synthetic"`
+	}
+	if err != nil || len(marker) > 4096 || json.Unmarshal(marker, &demo) != nil ||
+		demo.Tool != "cao-pages-demo" || demo.Version != 1 || !demo.Synthetic {
+		_ = root.Close()
+		return nil, nil, errors.New("pages accepts only the synthetic demo; run npm run dashboard:pages:build, or use serve --sqlite for operational data")
+	}
+	for _, name := range []string{"gh-aw-logs.sqlite", "agent-summary.json", "payload-hashes.json"} {
+		if _, err := root.Stat(name); !errors.Is(err, os.ErrNotExist) {
+			_ = root.Close()
+			return nil, nil, fmt.Errorf("pages demo must not contain operational export %s", name)
+		}
+	}
 	pagesLog.Printf("pages handler ready: base_path_depth=%d", strings.Count(basePath, "/")-1)
 	return root, &pagesHandler{root: root, basePath: basePath}, nil
 }
@@ -181,9 +199,6 @@ func (h *pagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !info.Mode().IsRegular() {
 		http.NotFound(w, r)
 		return
-	}
-	if strings.EqualFold(path.Ext(info.Name()), ".sqlite") || strings.EqualFold(path.Ext(info.Name()), ".db") {
-		w.Header().Set("Content-Type", "application/vnd.sqlite3")
 	}
 	http.ServeContent(w, r, info.Name(), info.ModTime(), file)
 }

@@ -11,16 +11,17 @@ import {
   DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS,
   DEPLOYED_REFRESH_TIMEOUT_MS,
   DEPLOYED_STORAGE_QUOTA_BYTES,
-  deployedDashboardUrl,
   deployedStorageContext,
   populatedDashboardPages,
   populatedOverviewStations,
   scrollRenderedViewsIntoView,
-  shouldIgnoreRequestFailure,
+  shouldIgnoreRequestFailure as ignoreRequestFailure,
 } from "../e2e/dashboard-deployed-refresh-helpers.mjs";
 import { authoritativeDashboard } from "../helpers/authoritative-dashboard.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const deployedDashboardUrl = "http://127.0.0.1:8123/gh-cao/";
+const shouldIgnoreRequestFailure = (input) => ignoreRequestFailure({ dashboardUrl: deployedDashboardUrl, ...input });
 
 test("deployed dashboard test has enough time for sequential refresh checks", () => {
   assert.equal(DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS, 900_000);
@@ -314,6 +315,11 @@ test("deployed dashboard scrolling reports unexpected errors", async () => {
 });
 
 test("deployed dashboard failure tracking ignores only benign aborted probes", () => {
+  assert.equal(shouldIgnoreRequestFailure({
+    method: "HEAD",
+    url: `${deployedDashboardUrl}demo-data-v1/gh-aw-logs-runs/shard.jsonl`,
+    errorText: "net::ERR_ABORTED",
+  }), true);
   assert.equal(shouldIgnoreRequestFailure({
     method: "HEAD",
     url: `${deployedDashboardUrl}gh-aw-logs-runs/shard.jsonl`,

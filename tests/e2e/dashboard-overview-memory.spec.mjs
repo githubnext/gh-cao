@@ -1,19 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
 import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
-import { performanceSnapshotTimestamp } from "../../dashboard/site/test/performance/lighthouse-contract.js";
-import { deployedActivityShardEntries } from "./dashboard-deployed-refresh-helpers.mjs";
-import { downloadDeployedDashboardData } from "./dashboard-view-data.mjs";
 import { WorkerHeapProbe, remoteDebuggingPort } from "./dashboard-worker-memory.mjs";
 
-const sourceUrl = process.env.DASHBOARD_DATA_URL
-  ?? "https://githubnext.github.io/gh-cao/cao/payload-hashes.json";
 const sampleIntervalMs = numberSetting("DASHBOARD_OVERVIEW_MEMORY_SAMPLE_INTERVAL_MS", 50);
-// Budgets are set from measured peaks against the deployed dataset plus
-// headroom. The ingestion budget is deliberately far larger than the Overview
-// budget because `ingestCanonicalBatch` still materializes the whole canonical
-// database to merge it; see the ingestion note in specs/dashboard-data.md.
+// Browser-worker budgets apply to the synthetic enterprise demo, not operational
+// cloud or SQLite workloads. Keep ingestion and query peaks separately visible.
 const maximumWorkerHeapMb = numberSetting("DASHBOARD_OVERVIEW_MAX_WORKER_HEAP_MB", 192);
 const maximumRetainedWorkerHeapMb = numberSetting("DASHBOARD_OVERVIEW_MAX_RETAINED_WORKER_HEAP_MB", 128);
 const maximumIngestionWorkerHeapMb = numberSetting("DASHBOARD_OVERVIEW_MAX_INGESTION_WORKER_HEAP_MB", 448);
@@ -23,7 +15,6 @@ const megabyte = 1024 * 1024;
 const overviewUrl = (preview) => `${preview.url}/?debug-eager-ingest=1#page-overview`;
 
 let preview;
-let retentionAsOf;
 
 function numberSetting(name, fallback) {
   const value = Number(process.env[name] ?? fallback);
@@ -33,23 +24,7 @@ function numberSetting(name, fallback) {
 
 test.beforeAll(async () => {
   test.setTimeout(900_000);
-  preview = await startDashboardPagesPreview({
-    downloadData: async (destination) => {
-      const response = await fetch(sourceUrl);
-      if (!response.ok) throw new Error(`Dashboard manifest download failed: HTTP ${response.status}.`);
-      const manifest = await response.json();
-      await downloadDeployedDashboardData(destination, sourceUrl, (input) => (
-        String(input) === String(sourceUrl) ? Promise.resolve(Response.json(manifest)) : fetch(input)
-      ));
-      retentionAsOf = -Infinity;
-      for (const { name } of deployedActivityShardEntries(manifest)) {
-        retentionAsOf = Math.max(retentionAsOf, performanceSnapshotTimestamp(
-          await readFile(join(destination, name), "utf8"),
-        ));
-      }
-      if (!Number.isFinite(retentionAsOf)) throw new Error("Memory dataset contains no timestamped canonical evidence.");
-    },
-  });
+  preview = await startDashboardPagesPreview();
 });
 
 test.afterAll(async () => {
@@ -110,23 +85,14 @@ async function sampleWhile(probe, phase, settled) {
   }
 }
 
-test("the Overview page renders deployed data within a bounded data-worker heap", async ({ page }, testInfo) => {
+test("the synthetic enterprise Overview renders within a bounded data-worker heap", async ({ page }, testInfo) => {
   test.setTimeout(900_000);
   await page.addInitScript(instrumentation);
   await page.setViewportSize({ width: 1440, height: 900 });
-  // Match Lighthouse: measure the complete snapshot at its evidence time.
-  await page.context().route("**/src/data-worker.js*", async (route) => {
-    const response = await route.fetch();
-    await route.fulfill({ response, body: `Date.now = () => ${retentionAsOf};\n${await response.text()}` });
-  });
 
   const ingestionProbe = new WorkerHeapProbe({ port: remoteDebuggingPort() });
   await page.goto(overviewUrl(preview), { waitUntil: "domcontentloaded" });
   expect(await ingestionProbe.attach()).toBe(true);
-  await expect.poll(async () => {
-    const clock = await ingestionProbe.send("Runtime.evaluate", { expression: "Date.now()", returnByValue: true });
-    return clock.result.value;
-  }).toBe(retentionAsOf);
   await sampleWhile(ingestionProbe, "ingestion", () =>
     page.waitForFunction(() => window.__dashboardRefreshStatus === "completed", null, { timeout: 600_000 }));
   const ingested = await canonicalDatabaseState(page);
@@ -136,7 +102,7 @@ test("the Overview page renders deployed data within a bounded data-worker heap"
   expect(ingested.counts.repositories).toBeGreaterThan(0);
   // Proves the Overview heap budget is measured against a fully ingested
   // database rather than a run-phase-only or shard-limited subset.
-  expect(ingested.counts.audits).toBeGreaterThan(0);
+  expect(ingested.counts.tools).toBeGreaterThan(0);
   expect(ingested.storeNames).not.toContain("dailyOverviewAggregates");
   expect(ingested.storeNames).not.toContain("overviewAggregateMetadata");
 
@@ -165,7 +131,8 @@ test("the Overview page renders deployed data within a bounded data-worker heap"
   const peakOverviewBytes = overviewProbe.peakUsedBytes(["overview-start", "overview"]);
   const retainedOverviewBytes = overviewProbe.lastUsedBytes();
   const metrics = {
-    sourceUrl,
+    evidenceKind: "synthetic-enterprise-demo",
+    evidenceLimits: "Browser-worker heap only; not operational freshness or completeness evidence.",
     database: ingested,
     overview: { durationMs: overviewDurationMs, renderedViews },
     workerHeap: {

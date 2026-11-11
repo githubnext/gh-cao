@@ -18,7 +18,6 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/sqlitex"
 )
 
-const defaultSQLiteDataURL = "https://githubnext.github.io/gh-cao/cao/payload-hashes.json"
 const defaultSQLitePath = "../.cao/gh-aw-logs.sqlite"
 const maxSQLiteManifestBytes int64 = 8 << 20
 const maxSQLiteDownloadBytes int64 = 2 << 30
@@ -26,12 +25,14 @@ const maxSQLiteDownloadBytes int64 = 2 << 30
 type sqliteDownloadError struct {
 	message string
 	retry   bool
-	status  int
 }
 
 func (e *sqliteDownloadError) Error() string { return e.message }
 
-func sqliteManifestURLs(raw string) ([]*url.URL, error) {
+func sqliteManifestURL(raw string) (*url.URL, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, errors.New("an explicit Activity snapshot manifest URL is required: set DASHBOARD_DATA_URL or pass --download-sqlite=URL identifying payload-hashes.json; alternatively, download the cao-activity-index artifact from a selected CAO Activity run with gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao at the checkout root, or select an existing snapshot with --sqlite FILE")
+	}
 	location, err := url.Parse(raw)
 	if err != nil || location.Hostname() == "" || (location.Scheme != "https" && location.Scheme != "http") {
 		return nil, errors.New("--download-sqlite URL must use HTTP or HTTPS")
@@ -39,19 +40,14 @@ func sqliteManifestURLs(raw string) ([]*url.URL, error) {
 	if location.User != nil || location.Fragment != "" {
 		return nil, errors.New("--download-sqlite URL must not contain credentials or a fragment")
 	}
-	if strings.HasSuffix(location.Path, "/payload-hashes.json") {
-		return []*url.URL{location}, nil
+	if !strings.HasSuffix(location.Path, "/payload-hashes.json") {
+		return nil, errors.New("--download-sqlite URL must identify payload-hashes.json; site and directory discovery is not supported")
 	}
-	location.Path = strings.TrimRight(strings.TrimSuffix(location.Path, "/index.html"), "/") + "/"
-	location.RawPath = ""
-	return []*url.URL{
-		location.ResolveReference(&url.URL{Path: "payload-hashes.json"}),
-		location.ResolveReference(&url.URL{Path: "cao/payload-hashes.json"}),
-	}, nil
+	return location, nil
 }
 
 func downloadSQLite(ctx context.Context, rawURL, destination string) error {
-	manifestURLs, err := sqliteManifestURLs(rawURL)
+	manifestURL, err := sqliteManifestURL(rawURL)
 	if err != nil {
 		return err
 	}
@@ -72,7 +68,7 @@ func downloadSQLite(ctx context.Context, rawURL, destination string) error {
 		CheckRedirect: checkSQLiteRedirect,
 	}
 	for attempt := 1; ; attempt++ {
-		err := downloadSQLiteAttempt(ctx, client, manifestURLs, destination)
+		err := downloadSQLiteAttempt(ctx, client, manifestURL, destination)
 		if err == nil {
 			return nil
 		}
@@ -126,20 +122,11 @@ func validateSQLiteDestination(destination string) error {
 	return nil
 }
 
-func downloadSQLiteAttempt(ctx context.Context, client *http.Client, manifestURLs []*url.URL, destination string) (err error) {
+func downloadSQLiteAttempt(ctx context.Context, client *http.Client, sourceURL *url.URL, destination string) (err error) {
 	manifest := &strings.Builder{}
-	var manifestURL *url.URL
-	for index, candidate := range manifestURLs {
-		manifest.Reset()
-		resolvedURL, err := fetchSQLitePayload(ctx, client, candidate, "manifest", manifest, maxSQLiteManifestBytes)
-		if err == nil {
-			manifestURL = resolvedURL
-			break
-		}
-		var failure *sqliteDownloadError
-		if index == len(manifestURLs)-1 || !errors.As(err, &failure) || failure.status != http.StatusNotFound {
-			return err
-		}
+	manifestURL, err := fetchSQLitePayload(ctx, client, sourceURL, "manifest", manifest, maxSQLiteManifestBytes)
+	if err != nil {
+		return err
 	}
 	expected, err := parseSQLiteChecksum([]byte(manifest.String()))
 	if err != nil {
@@ -165,7 +152,7 @@ func downloadSQLiteAttempt(ctx context.Context, client *http.Client, manifestURL
 		}
 		if hex.EncodeToString(hash.Sum(nil)) != expected {
 			commandLog.Printf("SQLite snapshot checksum mismatch")
-			return &sqliteDownloadError{message: "SQLite snapshot checksum mismatch; the Pages deployment may be changing", retry: true}
+			return &sqliteDownloadError{message: "SQLite snapshot checksum mismatch; the published snapshot may be changing", retry: true}
 		}
 		return temporary.Sync()
 	}(); err != nil {
@@ -198,6 +185,9 @@ func parseSQLiteChecksum(manifest []byte) (string, error) {
 	if err := json.Unmarshal(manifest, &hashes); err != nil {
 		return "", errors.New("SQLite snapshot manifest must contain a JSON object")
 	}
+	if string(hashes["synthetic"]) == "true" {
+		return "", errors.New("synthetic Pages demo data cannot be used as an operational Activity snapshot")
+	}
 	var expected string
 	if err := json.Unmarshal(hashes["gh-aw-logs.sqlite"], &expected); err != nil {
 		return "", errors.New("SQLite snapshot manifest contains no valid SQLite SHA-256 checksum")
@@ -216,13 +206,13 @@ func retryableSQLiteStatus(status int) bool {
 }
 
 func fetchSQLitePayload(ctx context.Context, client *http.Client, location *url.URL, resource string, destination io.Writer, limit int64) (_ *url.URL, err error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, location.String(), nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, location.String(), nil) // #nosec G704 -- Operator-selected HTTP(S) snapshot endpoint, never a remote request input.
 	if err != nil {
 		return nil, fmt.Errorf("create SQLite %s request", resource)
 	}
 	request.Header.Set("Accept", "application/octet-stream, application/json")
 	request.Header.Set("Cache-Control", "no-cache")
-	response, err := client.Do(request)
+	response, err := client.Do(request) // #nosec G704 -- CLI acquisition with credential-free URLs and checked redirects; local endpoints are intentionally supported.
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
@@ -233,7 +223,7 @@ func fetchSQLitePayload(ctx context.Context, client *http.Client, location *url.
 	defer func() { err = errors.Join(err, response.Body.Close()) }()
 	if response.StatusCode != http.StatusOK {
 		retry := retryableSQLiteStatus(response.StatusCode)
-		return nil, &sqliteDownloadError{message: fmt.Sprintf("download SQLite %s: HTTP %d", resource, response.StatusCode), retry: retry, status: response.StatusCode}
+		return nil, &sqliteDownloadError{message: fmt.Sprintf("download SQLite %s: HTTP %d", resource, response.StatusCode), retry: retry}
 	}
 	if response.ContentLength > limit {
 		return nil, fmt.Errorf("SQLite %s exceeds the %d-byte download limit", resource, limit)

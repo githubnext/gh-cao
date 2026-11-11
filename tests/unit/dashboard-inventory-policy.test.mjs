@@ -11,7 +11,7 @@ const input = {
 test("inventory excludes internal campaigns", () => {
   const sources = buildInventoryDashboardSources({
     ...input,
-    controlSettings: { campaigns: { activity: {}, dashboard: { deploy: false } } },
+    controlSettings: { campaigns: { activity: {}, dashboard: {} } },
   });
   assert.deepEqual(sources.campaigns.rows, []);
 });

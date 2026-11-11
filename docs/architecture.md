@@ -129,8 +129,9 @@ GitHub state. Derived intelligence is advisory, not permission to execute.
 
 | Dashboard deployment | Presentation and query boundary |
 | --- | --- |
-| Static GitHub Pages | The browser downloads the published snapshot; a data Web Worker prepares it and runs queries against browser-local storage. |
-| Hosted Go server | The same Go handler serves the UI, assets, sign-in, query API, and revision events; dashboard queries run server-side over PostgreSQL. |
+| Synthetic enterprise Pages demo | Generated raw samples pass through production normalization and canonical ingestion; a Web Worker queries isolated IndexedDB using the same Dashboard Language and views. No real operational data or live services. |
+| Local Go server | The same Go handler and views query a real operational SQLite snapshot read-only. Acquisition requires an authorized Activity artifact or an explicit direct manifest URL. |
+| Production hosted Go server | The same-origin Go handler serves the UI, assets, sign-in, query API, and revision events; dashboard queries run server-side over PostgreSQL. |
 
 Hosted mode is not a Pages frontend with a separate API. It does not fall back
 to browser storage or static shards when the hosted service fails.
@@ -140,9 +141,10 @@ to browser storage or static shards when the hosted service fails.
 
 Repository visibility and dashboard visibility are separate decisions. Use a
 public control repository only when policy, run metadata, evidence, dashboard
-data, and review outputs can all be public. A private repository does not
-guarantee private Pages; [setup](setup-quickstarts.md) checks publication
-visibility.
+data, and review outputs can all be public. [Setup](setup-quickstarts.md)
+configures monitoring and credentials, not Pages. Operational artifacts remain
+access-controlled; the public demo is rebuilt independently and supplies no
+operational SQLite or agent summary.
 
 ## Core Safety Properties
 

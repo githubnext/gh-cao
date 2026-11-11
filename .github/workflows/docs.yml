@@ -2,36 +2,27 @@ name: Documentation Pages
 
 on:
   workflow_dispatch:
-    inputs:
-      force_deploy:
-        description: Rebuild and deploy even when documentation and dashboard are current
-        type: boolean
-        default: false
-  workflow_run: # zizmor: ignore[dangerous-triggers] - The build job accepts only successful default-branch runs and checks out the default branch.
-    workflows:
-      - CAO Dashboard
-    types:
-      - completed
   schedule:
-    - cron: "*/15 * * * *"
+    # Refresh synthetic dates; never wait for operational collection.
+    - cron: "23 5 * * *"
   push:
     branches: [main]
     paths:
-      - .github/workflows/shared/**
       - .github/workflows/docs.yml
-      - .github/workflows/cao-activity.yml
-      - .github/workflows/*.lock.yml
-      - .github/workflows/*.md
+      - .github/workflows/shared/**
       - "*/aw.yml"
       - astro.config.mjs
       - aw.yml
       - docs/**
+      - dashboard/site/**
+      - dashboard/report/**
+      - activity/**
+      - scripts/simulate-dashboard-pages.mjs
       - package.json
       - package-lock.json
       - public/**
 
 permissions:
-  actions: read
   contents: read
 
 concurrency:
@@ -39,84 +30,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  schedule-freshness:
-    if: >-
-      github.event_name == 'schedule'
-      || (github.event_name == 'workflow_dispatch' && !inputs.force_deploy)
-      || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == github.event.repository.default_branch)
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-    outputs:
-      should-build: ${{ steps.freshness.outputs.should-build }}
-    steps:
-      - name: Check documentation and dashboard freshness
-        id: freshness
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const { owner, repo } = context.repo
-            const branch = context.payload.repository.default_branch
-            const currentBranch = await github.rest.repos.getBranch({
-              owner,
-              repo,
-              branch,
-            })
-            // Fail closed with a rebuild when the latest deployment is no longer recent.
-            const maxDocsRunsToInspect = 100
-            const successfulDocsRuns = await github.rest.actions.listWorkflowRuns({
-              owner,
-              repo,
-              workflow_id: 'docs.yml',
-              branch,
-              status: 'success',
-              per_page: maxDocsRunsToInspect,
-            })
-            let deployedDocsRun
-            for (const run of successfulDocsRuns.data.workflow_runs) {
-              const jobs = await github.rest.actions.listJobsForWorkflowRun({
-                owner,
-                repo,
-                run_id: run.id,
-                filter: 'latest',
-                per_page: 100,
-              })
-              if (jobs.data.jobs.some((job) => job.name === 'deploy' && job.conclusion === 'success')) {
-                deployedDocsRun = run
-                break
-              }
-            }
-            const dashboardRuns = await github.rest.actions.listWorkflowRuns({
-              owner,
-              repo,
-              workflow_id: 'cao-dashboard.yml',
-              branch,
-              status: 'success',
-              per_page: 1,
-            })
-            const latestDashboardRun = dashboardRuns.data.workflow_runs[0]
-            const docsCurrent = deployedDocsRun?.head_sha === currentBranch.data.commit.sha
-            const dashboardCurrent = latestDashboardRun
-              && deployedDocsRun
-              && new Date(latestDashboardRun.updated_at) <= new Date(deployedDocsRun.updated_at)
-            const shouldBuild = !(docsCurrent && dashboardCurrent)
-            core.setOutput('should-build', String(shouldBuild))
-            if (!shouldBuild) {
-              await core.summary
-                .addRaw('Documentation build skipped because the deployed docs and dashboard are current.\n')
-                .write()
-            }
-
   build:
-    needs: schedule-freshness
-    if: >-
-      !failure() && !cancelled()
-      && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.force_deploy) || needs.schedule-freshness.outputs.should-build == 'true')
-      && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == github.event.repository.default_branch))
     runs-on: ubuntu-latest
     permissions:
-      actions: read
       contents: read
       pages: write
     steps:
@@ -125,58 +41,23 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
-
       - name: Install dependencies
-        run: npm ci
-
+        run: npm ci && npm --prefix dashboard/site ci --omit=dev --ignore-scripts
       - name: Build documentation
         env:
-          # Commit that triggered this run (push or scheduled tip of default branch).
           PUBLIC_PAGES_BUILD_COMMIT: ${{ github.sha }}
         run: npm run docs:build
-
-      - name: Restore cached CAO Dashboard
-        id: dashboard-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: dist/cao
-          key: central-agentic-ops-dashboard
-
-      - name: Find latest CAO Dashboard run
-        if: steps.dashboard-cache.outputs.cache-hit != 'true'
-        id: dashboard-run
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      - name: Build synthetic enterprise demo
         run: |
-          run_id="$(gh api \
-            "repos/$REPOSITORY/actions/workflows/cao-dashboard.yml/runs?branch=$DEFAULT_BRANCH&status=success&per_page=20" \
-            --jq '.workflow_runs[0].id // empty')"
-          if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
-            echo "No successful CAO Dashboard workflow run was found on $DEFAULT_BRANCH" >&2
-            exit 1
-          fi
-          echo "run-id=$run_id" >> "$GITHUB_OUTPUT"
-
-      - name: Mount latest CAO Dashboard artifact
-        if: steps.dashboard-cache.outputs.cache-hit != 'true'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: central-agentic-ops-dashboard
-          path: dist/cao
-          github-token: ${{ github.token }}
-          run-id: ${{ steps.dashboard-run.outputs.run-id }}
-
+          npm run dashboard:pages:build
+          cp -R .tmp/dashboard-pages dist/cao
       - name: Configure Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
@@ -184,7 +65,6 @@ jobs:
 
   deploy:
     needs: build
-    if: ${{ !failure() && !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

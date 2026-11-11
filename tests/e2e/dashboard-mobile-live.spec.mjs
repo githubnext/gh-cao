@@ -1,13 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { createWriteStream } from "node:fs";
 import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { pipeline } from "node:stream/promises";
+import { join } from "node:path";
 import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
 import { captureMobileDashboardScreenshot } from "./dashboard-screenshot.mjs";
 import {
   deployedActivityShardEntries,
-  legacyPhaseJsonToJsonl,
 } from "./dashboard-deployed-refresh-helpers.mjs";
 import {
   summarizeAccessibilityTree,
@@ -17,7 +14,6 @@ import {
 
 const maximumDomNodes = 6_000;
 const maximumWebKitShardCount = 5;
-const transientDownloadStatuses = new Set([408, 429, 500, 502, 503, 504]);
 let preview;
 let sourcePayload;
 let expectedActivityShardPaths;
@@ -36,22 +32,6 @@ function mobileDebugShardLimit() {
   return process.env.MOBILE_BROWSER === "webkit"
     ? Math.min(requested ?? maximumWebKitShardCount, maximumWebKitShardCount)
     : requested;
-}
-
-async function fetchDeployedData(url) {
-  const maximumAttempts = 4;
-  for (let attempt = 1; ; attempt += 1) {
-    try {
-      const response = await fetch(url);
-      if (response.ok || !transientDownloadStatuses.has(response.status) || attempt === maximumAttempts) {
-        return response;
-      }
-      await response.body?.cancel();
-    } catch (error) {
-      if (attempt === maximumAttempts) throw error;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1_000 * 2 ** (attempt - 1)));
-  }
 }
 
 function metricValues(metrics) {
@@ -212,56 +192,22 @@ function formatDomAnalysis(dom) {
 }
 
 test.beforeAll(async () => {
-  const dataUrl = process.env.DASHBOARD_DATA_URL;
-  if (!dataUrl) throw new Error("DASHBOARD_DATA_URL is required.");
-  preview = await startDashboardPagesPreview({
-    downloadData: async (destination) => {
-      const inventoryUrl = new URL("inventory-sources.json", dataUrl);
-      const payloadHashesUrl = new URL("payload-hashes.json", dataUrl);
-      const [payloadHashesResponse, inventoryResponse] = await Promise.all([
-        fetchDeployedData(payloadHashesUrl),
-        fetchDeployedData(inventoryUrl),
-      ]);
-      if (!payloadHashesResponse.ok) {
-        throw new Error(`Unable to download deployed dashboard manifest: HTTP ${payloadHashesResponse.status}.`);
-      }
-      if (!inventoryResponse.ok) throw new Error(`Unable to download deployed dashboard inventory: HTTP ${inventoryResponse.status}.`);
-      if (!inventoryResponse.body) throw new Error("Deployed dashboard inventory response has no body.");
-      const payloadHashes = await payloadHashesResponse.json();
-      const selectedShards = deployedActivityShardEntries(payloadHashes, mobileDebugShardLimit());
-      expectedActivityShardPaths = selectedShards.map(({ name }) => `/${name}`);
-      await mkdir(destination, { recursive: true });
-      const inventoryPath = join(destination, "inventory-sources.json");
-      await pipeline(inventoryResponse.body, createWriteStream(inventoryPath));
-      let activityBytes = 0;
-      for (const { name, sourceName } of selectedShards) {
-        const response = await fetchDeployedData(new URL(sourceName, dataUrl));
-        if (!response.ok) throw new Error(`Unable to download deployed dashboard shard ${sourceName}: HTTP ${response.status}.`);
-        if (!response.body) throw new Error(`Deployed dashboard shard ${sourceName} has no body.`);
-        const shardPath = join(destination, name);
-        await mkdir(dirname(shardPath), { recursive: true });
-        if (sourceName.endsWith(".json")) {
-          await writeFile(shardPath, legacyPhaseJsonToJsonl(Buffer.from(await response.arrayBuffer())));
-        } else {
-          await pipeline(response.body, createWriteStream(shardPath));
-        }
-        activityBytes += (await stat(shardPath)).size;
-      }
-      const inventory = await stat(inventoryPath);
-      sourcePayload = {
-        activityBytes,
-        inventoryBytes: inventory.size,
-        totalBytes: activityBytes + inventory.size,
-      };
-    },
-  });
+  preview = await startDashboardPagesPreview();
+  const dataDirectory = join(preview.site, "demo-data-v1");
+  const manifest = JSON.parse(await readFile(join(dataDirectory, "payload-hashes.json"), "utf8"));
+  const shards = deployedActivityShardEntries(manifest, mobileDebugShardLimit());
+  expectedActivityShardPaths = shards.map(({ name }) => `/${name}`);
+  const sizes = await Promise.all(shards.map(async ({ name }) => (await stat(join(dataDirectory, name))).size));
+  const activityBytes = sizes.reduce((total, size) => total + size, 0);
+  const inventoryBytes = (await stat(join(dataDirectory, "inventory-sources.json"))).size;
+  sourcePayload = { activityBytes, inventoryBytes, totalBytes: activityBytes + inventoryBytes };
 });
 
 test.afterAll(async () => {
   await preview?.close();
 });
 
-test("latest dashboard data loads within the mobile DOM budget", async ({ page }, testInfo) => {
+test("synthetic enterprise demo loads within the mobile DOM budget", async ({ page }, testInfo) => {
   const pageErrors = [];
   let crashed = false;
   const shardResponses = new Map();
@@ -464,6 +410,8 @@ test("latest dashboard data loads within the mobile DOM budget", async ({ page }
   });
   const memory = await memoryInvestigation.stop();
   const analysis = {
+    evidenceKind: "synthetic-enterprise-demo",
+    evidenceLimits: "Browser UX only; not operational freshness or completeness evidence.",
     profile: process.env.MOBILE_PROFILE ?? "baseline",
     device: process.env.MOBILE_DEVICE,
     browser: process.env.MOBILE_BROWSER,

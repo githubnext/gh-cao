@@ -180,10 +180,12 @@ flowchart LR
     Runs["Compact run-information shards"]
     Records["Detailed domain, tool, audit, and issue shards"]
     SQLite["SQLite projection"]
-    Publisher["Dashboard publisher"]
+    Publisher["Read-only operational artifacts"]
+    Sample["Synthetic enterprise raw samples"]
+    Normalize["Production normalization and demo build"]
     Worker["Browser data Web Worker"]
     IndexedDB["IndexedDB projection"]
-    Postgres["Postgres dashboard entities<br/>optional server profile"]
+    Postgres["Postgres dashboard entities<br/>production hosted profile"]
     Redis["Operational caches, queues, sessions<br/>Postgres default, Redis opt-in, or process memory"]
     Query["Dashboard Language queries"]
     GoServer["Go HTTP(S) query server"]
@@ -191,7 +193,7 @@ flowchart LR
     Compute["Versioned computations<br/>bounded insights"]
     HostedValue["Hosted Operational Value<br/>reviewed adapters"]
     Results["Materialized computation results<br/>generation-scoped"]
-    UI["Static dashboard"]
+    UI["Shared declarative dashboard views"]
     CLI["cao CLI and agents"]
 
     Logs --> Shards
@@ -199,10 +201,12 @@ flowchart LR
     Shards --> Runs
     Shards --> Records
     Runs --> Publisher
-    Records --> Publisher --> Worker
+    Records --> Publisher
+    Sample --> Normalize --> Worker
     Worker --> IndexedDB
     IndexedDB --> Query
     Publisher --> GoServer --> Postgres
+    SQLite --> Local["Same Go handler<br/>local read-only queries"] --> Query
     GitHub -->|"webhooks + rebuild input"| GoServer
     GoServer --> Redis
     Postgres --> GoServer --> Query
@@ -214,16 +218,29 @@ flowchart LR
     Compute --> CLI
 ```
 
-Activity collects a bounded snapshot once and publishes immutable cache
-artifacts. SQLite and IndexedDB are independently rebuildable projections of
-the authoritative inputs. It deterministically separates compact, immutable run
-information from detailed run-linked records so the browser data worker loads every run
-before continuing with event shards. Raw Activity JSONL remains available only
-inside the Activity cache for audits and projection rebuilds. The deployed
-dashboard artifact contains the SQLite projection, inventory, and compacted
-normalized run and record JSONL; browser ingestion fails closed rather than
-falling back to raw Activity JSONL. Static-browser download, normalization,
-persistence, and queries run in a dedicated Web Worker. Actions and explicitly
+Activity collects a bounded snapshot once and publishes read-only operational
+artifacts, not public Pages data. Its `cao-activity-index` artifact supplies
+SQLite, inventory, and compacted normalized run and record JSONL. The Dashboard
+workflow retains its operational artifact for authorized consumers; it does not
+deploy it to Pages. Raw Activity JSONL remains in the Activity cache for audits
+and projection rebuilds.
+
+Production uses the same-origin Go/PostgreSQL host. Local development uses the
+same Go handler and declarative views over a real, read-only operational SQLite
+snapshot. Pages is only a synthetic enterprise demo: generated raw samples pass
+through production normalization, canonical ingestion, worker queries, and the
+same views. It has no real-data input option, SQLite download, agent summary, or
+live services. Its declarative **Synthetic enterprise demo** callout identifies
+the evidence. Browser download, ingestion, persistence, and queries run in a
+dedicated Web Worker. Demo data URLs are under `demo-data-v1/`, not the former
+root `payload-hashes.json`; browser storage keys carry `synthetic-demo-v1` and
+service-worker caches use `demo-v1`. Changing data URLs as well as storage keys
+prevents old same-origin service-worker responses from supplying real evidence.
+
+SQLite and IndexedDB remain independently rebuildable projections, not sources
+for one another. Compacted run-information shards load before detailed records;
+browser ingestion fails closed rather than falling back to raw Activity JSONL.
+Actions and explicitly
 selected static Operational Value
 reconstruction use the rebuildable SQLite projection. A collector-enabled
 hosted server instead runs the same reviewed JavaScript metric definitions
@@ -232,8 +249,8 @@ production Dashboard Language SQL boundary. It does not create, copy, open, or
 ingest an intermediate SQLite database. Completed observations replace the
 canonical `operationalValues` collection under the namespace writer lock with
 an expected-revision check; the accepted JSONL is mirrored only for cold-start
-lake recovery and is never the hosted computation input. The optional Go server
-profile ingests the same deployed
+lake recovery and is never the hosted computation input. The hosted Go server
+ingests the operational
 dashboard artifact into Postgres, keeps database credentials server-side,
 compiles hosted Dashboard Language queries to parameterized SQL in the
 request's repeatable-read transaction, and returns
@@ -272,18 +289,37 @@ modes use the same authenticated handler and server-side query bootstrap.
 Data snapshots, policy, credentials, and hosted storage remain external inputs.
 `npm run dev` and `npm run dashboard:local` build the site and invoke `serve`
 against a verified cached SQLite snapshot; `serve-hosted` retains the reviewed
-PostgreSQL/OAuth host. Explicit `serve-pages` serves a prepared static Pages
+PostgreSQL/OAuth host. Explicit `serve-pages` serves a prepared synthetic Pages
 artifact unchanged, including repository base paths, so the browser exercises
 IndexedDB rather than the hosted HTTP backend. The local Pages preparation
-script runs production Activity normalization/SQLite ingestion and Dashboard
-building from an existing snapshot or explicitly labelled synthetic evidence;
-it does not simulate GitHub collection, Actions permissions or artifact transport.
+command, `npm run dashboard:pages:build`, generates synthetic enterprise raw
+samples and runs production normalization and Dashboard building. It accepts no
+operational snapshot input and publishes neither SQLite nor agent summaries.
+`npm run dashboard:pages` remains a demo-only preview. Daily `docs.yml` builds
+refresh the demo independently of operational collection or artifact freshness.
+
+This removes live-data Pages publication and implicit public snapshot acquisition,
+not the IndexedDB, Web Worker, service-worker caching, or cross-adapter conformance
+cost. Those paths still require isolation, recovery, quota, cancellation, and
+semantic-parity testing. Bounded operational artifacts remain necessary for
+authorized local analysis, canvas use, and hosted ingestion.
+
+Changing source alone does not scrub an old deployed Pages site or browser
+cache. Rebuilding and redeploying Pages replaces the current site artifacts;
+operators must separately address historical deployments, downloaded copies,
+and exposure. Existing browser real-data databases are unused disposable state.
+The demo must not automatically delete databases or caches outside its scoped
+namespace; operators can explicitly clear the affected site's legacy storage.
 There is no standalone Node dashboard CLI, admin server or process replacement.
 The Copilot canvas also uses Go `serve`: `dashboard/canvas-go-host.mjs` launches
 the bundled server module or an explicitly selected compatible executable.
 Go owns the capability-protected browser origin, assets, verified canonical
 SQLite queries, diagnostics, read-only repository memory and revision events.
-Canvas startup requires a checksum-verified published SQLite snapshot; there is
+Canvas startup downloads `cao-activity-index` from a successful default-branch
+`cao-activity.yml` run and requires its checksum-verified SQLite snapshot.
+Synthetic manifests and manifests without SQLite checksums are rejected.
+Dashboard backlinks require explicit `caoUrl` or `CAO_DASHBOARD_URL`, never a
+GitHub Pages API lookup. There is
 no Node query backend, logical-source HTTP transport or browser ingestion
 fallback. Published inventory quality may accompany the snapshot as metadata
 only; missing quality remains unknown, never inferred complete from row counts.
@@ -884,8 +920,9 @@ dashboard data authority, policy, or rollout authority.
 The local Go `serve` command defaults to a cached canonical SQLite projection
 through the ordinary HTTP query, canonical API, diagnostics, revision
 subscriptions, and optional read-only MCP boundary.
-It reuses `.cao/gh-aw-logs.sqlite` in the checkout without another download, or
-downloads deployed data on demand when the cache is missing. `--sqlite PATH`
+It reuses `.cao/gh-aw-logs.sqlite` in the checkout without another download.
+A missing cache requires an explicitly selected operational snapshot source;
+there is no default Pages download. `--sqlite PATH`
 selects another cache with the same behavior. An explicit `--postgres-url`,
 `--source`, or `--redis-url` selects the PostgreSQL profile; database service
 environment variables alone do not override the SQLite default.
@@ -911,11 +948,14 @@ Shared conformance tests exercise both real adapters, including concurrent
 publication and next-read revision visibility; dependency tests keep contract
 ownership and production dependencies independent of the implementations.
 
-Automatic acquisition uses `DASHBOARD_DATA_URL` or the public CAO Pages snapshot.
+Acquisition requires `DASHBOARD_DATA_URL` or an explicit URL naming an operational
+`payload-hashes.json` directly. Site-root and `cao/` discovery are not supported;
+the synthetic Pages site is not an operational snapshot source.
 `serve --download-sqlite[=URL]` explicitly refreshes even an existing cache before
-opening it. Any Pages site or custom-domain directory, dashboard directory, or
-direct manifest URL may supply the snapshot; directory
-discovery checks its root and then `cao/` on HTTP 404. Bounded streaming,
+opening it. Alternatively, an authorized operator downloads the Activity artifact
+with `gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao`
+and selects its cached database with `--sqlite PATH`. This requires Actions read
+access and introduces no hosted snapshot-export API. Bounded streaming,
 manifest SHA-256 verification, and canonical-version validation precede atomic
 replacement; failed acquisition preserves the old file and fails startup.
 This acquisition path does not ingest shards or relax read-only snapshot access.
@@ -1480,7 +1520,7 @@ and removal remain authenticated and never hydrate notification payloads.
 | `activity/` | Deterministic Activity collection, JSONL ingestion, SQLite projection, and the `cao` CLI. |
 | `cmd/gh-cao/`, `internal/cli/`, `internal/ghcli/`, `dashboard/catalog.go` | Independent, entirely Go operator-facing `gh cao` executable, including onboarding, campaign and policy management, SQLite queries, computations and MCP; embeds the dashboard's authoritative JSON contracts. Actions pipeline commands remain Node-owned. |
 | `internal/dashboardquery/` | Small independent Go module sharing the bounded local Dashboard Language evaluator and read-only canonical SQLite reader between the extension and explicit local server profile; never a hosted PostgreSQL fallback. |
-| `dashboard/` | Dashboard campaign, report/source adapters, canvas-only authoring bridge, and shared browser UI built for Pages or the unified Go server. |
+| `dashboard/` | Dashboard campaign, report/source adapters, canvas-only authoring bridge, and shared browser UI served operationally by Go or as a synthetic-only Pages demo. |
 | `server/` | Optional host-neutral Go HTTP(S) service, deployed-artifact ingester, authenticated canonical API, webhook/rebuild control, Postgres entity storage and default operational state, explicit Redis or single-process memory alternatives, server-side Dashboard Language query engine, externally hosted handler facade, container image, and Azure Functions deployment profile. |
 | `server/cmd/cao-webhook-gateway/`, `server/internal/webhookgateway/`, `server/internal/webhookgatewayhost/` | Optional isolated gateway entry point, consumer contracts and pure decisions, and host adapters; durable state extends the existing PostgreSQL operational adapter. |
 | `server/spec/` | Editable TypeSpec HTTP/SSE, fresh Postgres storage and optional ADX export contracts; generates OpenAPI 3.1, wire JSON Schemas, standalone SQL DDL, Go bindings and ADX setup KQL; checks routes, payloads and canonical field coverage. |
@@ -1756,7 +1796,7 @@ preparation lives in `internal/cli/setup_runtime.go`. Setup distinguishes absent
 policy from malformed policy, constructs only a missing exact campaign-free
 baseline with the same helper as policy-only `gh cao init`, and saves it after
 configuration succeeds, before optional publication.
-After approval and before Pages or credential changes, missing runtime is
+After approval and before credential changes, missing runtime is
 prepared by gh-aw in an isolated checkout at the selected stable release, then
 materialized from the exact-SHA attested runtime using shared acquisition,
 extraction, and verification helpers. All destinations are preflighted; matching
@@ -1783,7 +1823,7 @@ manual publication. Hooks, identity and branch protections remain effective;
 no force, additional tags or submodule pushes are allowed. Failed pushes retain
 the local commit and report recovery guidance. Declining/cancelling publication,
 headless mode and CI leave configuration local. Successful push returns Actions
-and known dashboard links marked deployment pending, never dispatching, polling
+links marked monitoring pending, never dispatching, polling
 or waiting for collection/deployment.
 
 The root `install-gh-cao.sh` checks required tools, Node.js 24+, GitHub sign-in, and checkout-root
@@ -1794,14 +1834,15 @@ the explicit `gh cao setup` next step. `--setup` attaches guided setup directly
 to the controlling terminal after verified materialization when one is
 available. Without a terminal or when `CI` is set, setup applies only an exact
 public-control-repository profile: self-only read and Activity scope, no
-campaigns, public Actions-backed Pages, and repository workflow-token
+campaigns, no Pages configuration, and repository workflow-token
 authentication. Private/internal repositories, broader existing policy, or
 installed campaigns fail closed. Headless repository creation still requires
 an exact `--create-repo OWNER/NAME`, and missing prerequisites fail rather than
 appearing successful. Streamed bootstrap children otherwise retain null stdin.
 
 Native setup owns terminal presentation, cancellation, explicit scope,
-public Pages consent and review/apply confirmation. `setup --json` retains
+authentication and review/apply confirmation. It neither configures Pages nor
+asks for public-publication consent. `setup --json` retains
 structured stdout. Native setup/authentication and lifecycle tests exercise the
 supported operator paths without a local Node installation; Actions runtime
 tests separately enforce retired-command rejection and unchanged files.
@@ -2128,7 +2169,7 @@ not authorize cross-repository evidence access.
 - **Node.js 24 and ECMAScript modules** implement dependency-light control,
   collection, data, and local tooling.
 - **JSONL** is the bounded evidence interchange; **SQLite** supports local tools
-  and agents; **IndexedDB** supports the static browser dashboard; **Postgres**
+  and agents; **IndexedDB** supports the synthetic Pages demo; **Postgres**
   stores and queries current hosted dashboard sources through the canonical
   adapter and implements default durable operational services; **Redis** is
   an explicit alternative operational adapter for caches, queues, coordination, rate limits,
@@ -2139,9 +2180,10 @@ not authorize cross-repository evidence access.
   service, plus the independent native GitHub CLI extension scaffold.
 - **Dashboard Language** keeps data operations declarative and off the browser
   main thread.
-- **Astro/Starlight** builds the documentation site. The operational dashboard
-  has a separately bundled browser UI. Only the static deployment publishes it
-  through GitHub Pages; hosted deployments serve it through the Go handler.
+- **Astro/Starlight** builds the documentation site. The dashboard has a
+  separately bundled browser UI shared by operational Go serving and the
+  synthetic-only Pages demo. Documentation and demo publication never consume
+  operational artifacts.
 
 ## Where to read next
 

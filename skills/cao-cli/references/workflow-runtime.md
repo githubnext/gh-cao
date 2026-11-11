@@ -28,3 +28,7 @@ run the operator's `install-gh-cao.sh` inside a workflow as a runtime dependency
 Do not download another snapshot inside the run. Validate cache scope,
 freshness, time window, and completeness before treating results as
 authoritative.
+The public Pages demo is synthetic and provides no operational SQLite or agent
+summary. It is not a cache-miss recovery source. For separately authorized
+artifact preparation, follow [Agent analysis](https://githubnext.github.io/gh-cao/agent-analysis/);
+do not widen the worker's acquisition scope or credentials.

@@ -120,21 +120,9 @@ func TestBootstrapRepositoryLifecycle(t *testing.T) {
 	}
 }
 
-func TestBootstrapPagesAndVariables(t *testing.T) {
+func TestBootstrapVariables(t *testing.T) {
 	api := NewBootstrapAPI("v1.0.0", nil)
 	bootstrapRequest(t, api, "POST", "/orgs/platform/repos", `{"name":"control"}`, http.StatusCreated)
-	pages := "/repos/platform/control/pages"
-	bootstrapRequest(t, api, "GET", pages, "", http.StatusNotFound)
-	bootstrapRequest(t, api, "PUT", pages, `{"build_type":"workflow"}`, http.StatusNotFound)
-	bootstrapRequest(t, api, "POST", pages, `{"build_type":"legacy"}`, http.StatusUnprocessableEntity)
-	created := bootstrapRequest(t, api, "POST", pages, `{"build_type":"workflow"}`, http.StatusCreated)
-	if created["build_type"] != "workflow" || created["public"] != true {
-		t.Fatalf("unexpected Pages site: %v", created)
-	}
-	bootstrapRequest(t, api, "POST", pages, `{"build_type":"workflow"}`, http.StatusConflict)
-	bootstrapRequest(t, api, "PUT", pages, `{"build_type":"workflow"}`, http.StatusOK)
-	bootstrapRequest(t, api, "DELETE", pages, "", http.StatusNoContent)
-	bootstrapRequest(t, api, "GET", pages, "", http.StatusNotFound)
 	variables := "/repos/platform/control/actions/variables"
 	variable := variables + "/GH_AW_GITHUB_AUTH_MODE"
 	bootstrapRequest(t, api, "GET", variable, "", http.StatusNotFound)

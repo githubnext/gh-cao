@@ -644,7 +644,6 @@ test("checked-in control policy keeps Dependabot scoped with live gh-aw target a
 
   assert.deepEqual(policy["control-plane"].scope["allowed-repositories"], repositories);
   assert.equal(policy["control-plane"].defaults["max-repositories"], 6);
-  assert.equal(policy["control-plane"].campaigns.dashboard.deploy, false);
 
   const dependabotCampaign = policy["control-plane"].campaigns.dependabot;
   assert.equal(dependabotCampaign.mode, "review");
@@ -756,7 +755,6 @@ test("control policy exposes scope and publishing defaults to deterministic add-
         "rollout-percent": 100,
         "monthly-ai-credit-budget": 0,
         icon: null,
-        deploy: true,
         worker_policies: {
           "dependabot-update-planner": {
             worker: "update-planner",
@@ -868,20 +866,17 @@ test("control policy validates and exposes a campaign octicon", () => {
   );
 });
 
-test("control policy validates and exposes campaign deployment settings", () => {
-  const policy = JSON.parse(minimalPolicy);
-  policy["control-plane"].campaigns.dashboard = { deploy: false };
+test("control policy rejects removed campaign deployment settings as unknown keys", () => {
+  for (const campaign of ["dashboard", "dependabot"]) {
+    for (const deploy of [false, true, "false"]) {
+      const policy = JSON.parse(minimalPolicy);
+      policy["control-plane"].campaigns[campaign] = { deploy };
 
-  assert.equal(validate(JSON.stringify(policy)).status, 0);
-  assert.equal(
-    controlSettings(parsePolicy(JSON.stringify(policy)), "acme/control").campaigns.dashboard.deploy,
-    false,
-  );
-
-  policy["control-plane"].campaigns.dashboard.deploy = "false";
-  const invalid = validate(JSON.stringify(policy));
-  assert.notEqual(invalid.status, 0);
-  assert.match(invalid.stderr, /control-plane\.campaigns\.dashboard\.deploy must be a Boolean/);
+      const invalid = validate(JSON.stringify(policy));
+      assert.notEqual(invalid.status, 0);
+      assert.ok(invalid.stderr.includes(`unknown key control-plane.campaigns.${campaign}.deploy`), invalid.stderr);
+    }
+  }
 });
 
 test("control policy validates config-defined worker workflow identities", () => {

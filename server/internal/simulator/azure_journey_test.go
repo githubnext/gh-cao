@@ -53,7 +53,7 @@ func setupAzurePrivateFarm(t *testing.T, ctx context.Context, f *setupFixture, c
 			t.Fatalf("installer omitted %s", name)
 		}
 	}
-	// Hosted setup is reviewed policy, not the public Pages setup shortcut.
+	// Hosted setup uses reviewed policy, not the public monitoring shortcut.
 	f.control()["scope"] = map[string]any{"allowed-owners": []string{"platform"},
 		"allowed-repositories": []string{"platform/control", "platform/alpha", "platform/zeta"}}
 	f.control()["activity"] = map[string]any{"repositories": []string{"platform/control", "platform/alpha", "platform/zeta"},
@@ -94,9 +94,6 @@ func setupAzurePrivateFarm(t *testing.T, ctx context.Context, f *setupFixture, c
 	}
 	f.api.mu.Lock()
 	defer f.api.mu.Unlock()
-	if f.api.Repositories["platform/control"].Pages != nil {
-		t.Fatal("private Azure installation enabled Pages")
-	}
 	if len(f.api.Unhandled) != 0 {
 		t.Fatalf("installer used unsupported GitHub routes: %v", f.api.Unhandled)
 	}

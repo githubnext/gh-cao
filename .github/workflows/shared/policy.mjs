@@ -41,7 +41,7 @@ const OCTICONS = [
   "shield", "meter", "graph", "codescan", "dependabot", "key", "beaker", "rocket",
   "workflow", "gear", "check-circle", "campaign", "external-link",
 ];
-const CAMPAIGN_KEYS = ["enabled", ...DEFAULT_KEYS, "icon", "deploy", "targets", "workers", "workflow-values"];
+const CAMPAIGN_KEYS = ["enabled", ...DEFAULT_KEYS, "icon", "targets", "workers", "workflow-values"];
 const WORKFLOW_KEYS = ["enabled", ...DEFAULT_KEYS, "max-mode", "targets"];
 const OPERATION_KEYS = ["enabled", "mode", "max-mode", "max-repositories", "targets"];
 const TARGET_POLICY_KEYS = ["mode"];
@@ -863,7 +863,6 @@ function validateOperationPolicies(campaigns, collection = "campaigns") {
     }
     if ("enabled" in campaignPolicy) assertBoolean(campaignPolicy.enabled, `${path}.enabled`);
     if ("icon" in campaignPolicy) assertOcticon(campaignPolicy.icon, `${path}.icon`);
-    if ("deploy" in campaignPolicy) assertBoolean(campaignPolicy.deploy, `${path}.deploy`);
     if ("max-mode" in campaignPolicy) assertMode(campaignPolicy["max-mode"], `${path}.max-mode`);
     validateDefaults(pick(campaignPolicy, DEFAULT_KEYS), path);
     if ("targets" in campaignPolicy) {
@@ -1105,7 +1104,6 @@ export function controlSettings(document, controlRepository) {
     ...defaults,
     ...pick(policy, DEFAULT_KEYS),
     icon: policy.icon ?? null,
-    deploy: policy.deploy ?? true,
     worker_policies: Object.fromEntries(
       Object.entries(policy.workers ?? {}).map(([worker, workerPolicy]) => [workerPolicy.workflow, {
         worker,

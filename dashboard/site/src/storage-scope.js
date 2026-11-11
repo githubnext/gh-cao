@@ -1,4 +1,5 @@
 import { createDebug } from './debug.js';
+import { DEMO_MODE } from './deployment-profile.js';
 
 const SOURCE_PATH_SEGMENT = '/src/';
 
@@ -30,6 +31,7 @@ export function dashboardPagePath(
  * @param {string} [pathname]
  */
 export function scopedStorageKey(key, pathname = dashboardPagePath()) {
+  if (DEMO_MODE) key = `${key}:synthetic-demo-v1`;
   return pathname === '/' ? key : `${key}:${encodeURIComponent(pathname)}`;
 }
 
@@ -39,13 +41,13 @@ export function scopedStorageKey(key, pathname = dashboardPagePath()) {
  * @param {string} [pathname]
  */
 export function clearScopedStorage(storage, pathname = dashboardPagePath()) {
-  const suffix = pathname === '/' ? '' : `:${encodeURIComponent(pathname)}`;
+  const suffix = `${DEMO_MODE ? ':synthetic-demo-v1' : ''}${pathname === '/' ? '' : `:${encodeURIComponent(pathname)}`}`;
   let removedCount = 0;
   for (let index = storage.length - 1; index >= 0; index -= 1) {
     const key = storage.key(index);
     const appKey = key?.startsWith('central-agentic-ops.dashboard.') === true;
     // Root deployments retain the legacy unsuffixed keys; current base keys contain no colon.
-    const inScope = pathname === '/' ? !key?.includes(':') : key?.endsWith(suffix);
+    const inScope = suffix === '' ? !key?.includes(':') : key?.endsWith(suffix);
     if (appKey && inScope) {
       storage.removeItem(key);
       removedCount += 1;

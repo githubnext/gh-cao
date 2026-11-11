@@ -1,5 +1,5 @@
 /**
- * Diagnostic driver that ingests the deployed dashboard data and records a
+ * Diagnostic driver that ingests synthetic enterprise demo data and records a
  * data-worker heap timeline alongside the worker's own debug log output.
  *
  * It exists to attribute data-worker memory growth to a stage: the heap peak is
@@ -12,10 +12,6 @@
 import { createServer } from "node:net";
 import { chromium } from "playwright";
 import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
-import { downloadDeployedDashboardData } from "./dashboard-view-data.mjs";
-
-const sourceUrl = process.env.DASHBOARD_DATA_URL
-  ?? "https://githubnext.github.io/gh-cao/cao/payload-hashes.json";
 const eager = process.argv.includes("--eager");
 const debugPattern = process.argv.find((value) => value.startsWith("--debug="))?.slice(8) ?? "data:*";
 const heapMb = Number(process.env.TRACE_HEAP_MB ?? 2048);
@@ -77,9 +73,8 @@ function cdpClient(endpoint) {
   };
 }
 
-const preview = await startDashboardPagesPreview({
-  downloadData: (destination) => downloadDeployedDashboardData(destination, sourceUrl),
-});
+console.log("Synthetic enterprise demo: browser-worker diagnostics, not operational freshness or completeness evidence.");
+const preview = await startDashboardPagesPreview();
 const port = await freePort();
 const browser = await chromium.launch({
   args: [

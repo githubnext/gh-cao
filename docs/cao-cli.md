@@ -217,7 +217,8 @@ receive new commands and fixes; merging source does not update an installed bina
 
 `gh cao setup` runs from an existing GitHub checkout's root. It prepares missing
 monitoring runtime files and missing baseline policy, then configures exact
-repository scope, authentication, and Actions-backed Pages. It stages the root
+repository scope and authentication. It does not configure Pages or ask for
+public-publication consent. It stages the root
 package with gh-aw in an isolated checkout, verifies the selected stable
 release's exact runtime provenance and file checksums, and checks all
 destinations before adding files. Existing policy is read, not replaced with a
@@ -243,9 +244,9 @@ settings. Both paths construct the same exact, campaign-free baseline policy.
 Create or clone repositories explicitly with `gh repo create` or `gh repo clone`
 before setup. Setup never creates repositories, enrolls campaigns, or dispatches
 workflows. A failed or cancelled setup can leave prepared runtime files and
-already applied Pages or credential settings; inspect them before retrying.
+already applied credential settings; inspect them before retrying.
 After approval, brief progress lines identify each setup step before it starts,
-including release download, workflow preparation, Pages, authentication, and
+including release download, workflow preparation, authentication, and
 policy saving. Progress goes to stderr, keeping `--json` stdout machine-readable.
 
 Interactive setup offers a separate **“Commit and push these CAO monitoring
@@ -474,7 +475,7 @@ to invoke it as `gh cao`.
 | Policy and workflow controls | `init`, `campaigns mode`, `campaigns enable`, `campaigns disable` | Native Go; `init` is optional local policy-only preparation, not runtime, Pages, or credential setup. |
 | Standalone workflow installation | `add WORKFLOW [--force] [--engine ENGINE]` | gh-aw installs and compiles; CAO registers the standalone workflow in policy. Interactive publication and first run require separate default-No approvals. |
 | Campaign installation | `add CAMPAIGN [GH_AW_ADD_OPTIONS...]` | Native Go; gh-aw owns installation records and workflow generation, Go materializes campaign resources and merges policy. No Node runtime required. |
-| Onboarding and authentication | `setup`, `setup auth github-app\|enterprise-app\|hosted-cli\|token` | Native Go; setup prepares missing monitoring runtime and policy, Pages, scope, and authentication, preserving separate read/write and hosted-executor credentials. |
+| Onboarding and authentication | `setup`, `setup auth github-app\|enterprise-app\|hosted-cli\|token` | Native Go; setup prepares missing monitoring runtime and policy, scope, and authentication, preserving separate read/write and hosted-executor credentials. It does not configure Pages. |
 | Issue-service webhook setup | `setup linear`, `setup jira`, `setup ado` (alias `setup azure-devops`) | Native Go; offline enrollment preparation and provider instructions, with separate receive secrets and outbound safe-output credentials. |
 | Cooperative admission | `setup admission`, `admission status`, `admission disable` | Native Go; configure admission with `setup admission`. Configures or inspects non-secret Actions variables, not server deployment or enrollment authority. |
 | Cloud deployment | `deploy azure` | Native Go; shared TOSCA dependency resolution with an embedded Azure template, read-only preflight and planning, or explicit application of a reviewed development deployment plan. |
@@ -526,7 +527,8 @@ an explicit dashboard document and its directory-confined fragments.
 
 Evidence queries read the canonical `__idb_records` projection through a
 read-only SQLite connection; they do not run migrations or repair the snapshot.
-Download evidence first with `gh cao download`, or pass `--database FILE` for
+Download evidence first with an explicit operational manifest URL via
+`gh cao download --url URL`, acquire an Activity artifact, or pass `--database FILE` for
 an explicitly prepared projection. Policy mutations still operate on the current
 control checkout; the executable does not grant rollout authority.
 
@@ -574,13 +576,13 @@ monitoring. The control repository itself may be private or internal: its own
 job token can read it without an App or PAT. Fresh setup leaves the authentication
 mode unset and stores no credentials. An existing conflicting repository or
 inherited organization mode receives an explicit `workflow-token` override.
-Review and public Pages
-consent still require confirmation. Nonpublic remote targets or unknown visibility
+Review still requires confirmation; setup has no Pages publication step.
+Nonpublic remote targets or unknown visibility
 never qualify; lookup failures stop setup. For authenticated operations, use
 `gh cao setup auth`. Its unattended monitoring shortcut is to repeat
 `--repository OWNER/REPO` or pass a quoted `OWNER/*` to snapshot
-currently public repositories. This public monitoring quickstart accepts a public Pages
-dashboard; exact private/internal inputs fail. It enables no agent execution or
+currently public repositories. This public monitoring quickstart does not
+publish evidence to Pages; exact private/internal remote inputs fail. It enables no agent execution or
 campaigns. Review and publish the resulting exact policy. Public evidence is
 marked partial when logs/artifacts or authenticated enrichments cannot be
 guaranteed; it is not reported as complete zero activity.
@@ -761,7 +763,8 @@ immutable measurements fail rather than replace accepted evidence.
 Evidence timestamps use UTC and at most microsecond precision; finer nonzero
 fractions are rejected rather than silently rounded.
 Activity replacement retains directly published evidence. Local SQLite and
-static Pages have no direct-publication endpoint; Pages uses Activity transport.
+the synthetic Pages demo have no direct-publication endpoint. Pages contains
+only generated sample evidence, not Activity's operational transport.
 
 **Collection is wired automatically by the skill** once its frozen function and
 repository-local recurring collector pass verification. It stages the exact
@@ -864,7 +867,7 @@ gh aw run dependabot --ref main \
 
 | Command | Use it to |
 | --- | --- |
-| `gh cao setup` | Prepare missing bare runtime and baseline policy, then guide scope, authentication, and Pages. No prior `init` is required. |
+| `gh cao setup` | Prepare missing bare runtime and baseline policy, then guide scope and authentication without configuring Pages. No prior `init` is required. |
 | `gh cao setup linear\|jira\|ado ... [--json] [--dry-run]` | Prepare secret-free external-source enrollment and service-specific webhook instructions; does not deploy or activate the receiver. |
 | `gh cao init` | Optionally create only a local minimal review-safe policy for scripting. No runtime installation or remote configuration; refuses existing policy. |
 | `gh cao setup admission --repo OWNER/REPO --url HTTPS_URL [--dry-run]` | Configure non-secret admission variables (OIDC requires no workflow secret); `--dry-run` previews changes. |
@@ -916,7 +919,7 @@ using `gh cao add` and `gh aw run`.
 
 Without an interactive terminal or when `CI` is set, `gh cao setup` applies
 only the agent-safe public profile: exact current-repository read and Activity
-scope, no campaigns, public Actions-backed Pages, and repository
+scope, no campaigns, no Pages configuration, and repository
 `GITHUB_TOKEN` (`workflow-token`) authentication. It refuses private/internal
 control repositories, broader existing policy, or installed campaigns.
 `gh cao setup --json` returns the applied profile with
@@ -1049,13 +1052,41 @@ when diagnosing the CLI itself and an internal stack trace is needed.
 
 ## Inspect Activity
 
-First download the JSONL shards and SQLite snapshot published by your deployed CAO dashboard:
+First download a successful Activity run's bounded operational artifact with
+authenticated Actions read access:
 
 ```bash
-gh cao download --url https://OWNER.github.io/CONTROL_REPO/cao/payload-hashes.json
+gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
 ```
 
-The download remains local under `.cao/`. It is derived evidence, not rollout authority.
+This supplies SQLite and normalized shards for local read-only analysis.
+Production dashboards use same-origin Go/PostgreSQL; local development uses the
+same Go server over this real SQLite snapshot:
+
+```bash
+npm run dashboard:local -- --sqlite ../.cao/gh-aw-logs.sqlite
+```
+
+The npm command runs from a catalog checkout; relative Go paths resolve from
+`server/`. Existing caches serve offline without another download.
+
+Alternatively, if an operator already provides a trusted operational payload
+location, select its manifest:
+
+```bash
+gh cao download --url https://evidence.example/operational/payload-hashes.json
+```
+
+This illustrative URL is not a CAO hosted export endpoint. Native and
+JavaScript download commands require `--url` or `DASHBOARD_DATA_URL` ending
+in `/payload-hashes.json`. There is no implicit Pages source or site-directory
+discovery. Local Go serving likewise needs an explicit operational source when
+its cache is absent or refresh is requested. Synthetic manifests and manifests
+without a SQLite checksum are rejected.
+
+Pages is only a generated synthetic enterprise demo. It exports neither SQLite
+nor an operational agent summary and must not be used for operational analysis.
+The download remains local under `.cao/`; it is evidence, not rollout authority.
 Use a trusted HTTPS source; redirects cannot downgrade HTTPS to HTTP.
 For independent manifest integrity, pass `--manifest-sha256 SHA256` (or set
 `DASHBOARD_MANIFEST_SHA256`) with a digest obtained through a separate trusted channel.

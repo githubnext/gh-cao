@@ -23,6 +23,7 @@
       import { loadDashboardPageChunk, loadDashboardSchema } from "./dashboard-definition.js";
       import { pageCapabilityAvailable } from "./view-availability.js";
       import { localCliQueueAvailable } from "./backend-mode.js";
+      import { DEMO_MODE } from "./deployment-profile.js";
 
       /** @typedef {{ name?: string } & Record<string, unknown>} DashboardQueryDefinition */
       /** @typedef {{ 'language-version': string, dashboard: import('./presenter.js').PresentableDashboard }} DashboardSchema */
@@ -426,7 +427,7 @@
         if (!document.querySelector('meta[name="dashboard-data-backend"][content="server-http"]')) {
           renderSources({}, "loading");
         }
-        const sourceUrl = new URL("./payload-hashes.json", window.location.href).href;
+        const sourceUrl = new URL(DEMO_MODE ? "./demo-data-v1/payload-hashes.json" : "./payload-hashes.json", window.location.href).href;
         try {
           await startDashboardData({
             browserWindow: window,

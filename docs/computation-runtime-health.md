@@ -28,10 +28,16 @@ For the normative computation model, see the
 
 ## Run it
 
+Acquire a successful Activity run's operational snapshot with Actions read
+access. There is no implicit public snapshot; Pages contains only synthetic data.
+
 ```bash
-gh cao download
+gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
 gh cao computation runtime-health
 ```
+
+For an explicitly provided operational manifest URL, use
+`gh cao download --url URL`; see [Agent analysis](agent-analysis.md).
 
 Evaluate one Campaign:
 

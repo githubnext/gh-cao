@@ -3,26 +3,32 @@
 > [!NOTE]
 > **Research prototype:** Features and interfaces may change as the project evolves.
 
-The dashboard campaign publishes an access-controlled static view of Central Agentic Ops reports from a private control-plane repository.
+The dashboard campaign builds bounded operational artifacts from control-plane
+evidence. Production serves the dashboard through same-origin Go/PostgreSQL;
+local development uses the same Go server and views with a real SQLite snapshot.
 
 > [!NOTE]
-> Do not create a `REPORT_PAGES_TOKEN` secret. The workflow reads report data with the automatic `github.token` under explicit job permissions and deploys through GitHub Pages OIDC using `pages: write` and `id-token: write`.
+> GitHub Pages is only the **Synthetic enterprise demo**. It uses generated raw
+> samples through production normalization, canonical ingestion, queries, and
+> shared views, with no live services or operational-data input.
 
 > [!CAUTION]
-> The generated site contains private control-plane data, including repository identity, issue and pull request content, comments, artifact-derived summaries, and workflow/run metadata. A private source repository does not make its Pages site private. Configure Pages access control before running the standalone publisher; do not publish the dashboard when the intended audience cannot be enforced. `REPORT_INCLUDE_PRIVATE` is a boolean, not a credential, and no `REPORT_INCLUDE_TOKEN` exists. The bundled workflow does not enable cross-repository private discovery. A custom implementation needs a short-lived credential limited to selected repositories with `Metadata: read`, `Contents: read`, and `Actions: read`.
+> Operational artifacts may contain non-public evidence. Keep them bounded and
+> access-controlled; never copy them into Pages output. Changing source does not
+> remove an older deployed site or historical/browser copies.
 
 ## Contents
 
-- `.github/workflows/cao-dashboard.yml`: dashboard build, artifact publication, and optional standalone GitHub Pages deployment.
+- `.github/workflows/cao-dashboard.yml`: operational dashboard build and artifact publication, not Pages deployment.
 - `.github/workflows/cao-activity.yml`: shared data collector and cache publisher installed by the core activity campaign.
 - `.github/workflows/shared/policy.mjs`: dependency-free checked-in policy parser and resolver.
 - `.github/workflows/shared/control.mjs`: deterministic policy command adapter used by the build workflow.
 - `dashboard/report`: deterministic collection modules executed by the activity action plus Dashboard Language source adaptation.
 - `dashboard/site`: the bundled Dashboard Language validator, presenter, configuration, and browser runtime.
-- `server/`: unified Go serving for local SQLite, hosted PostgreSQL, and explicit static Pages simulation.
+- `server/`: unified Go serving for real local SQLite, hosted PostgreSQL, and synthetic-only Pages preview.
 - `dashboard/canvas-server.mjs`: internal loopback-only Copilot canvas authoring bridge, with JSON live reload; not a standalone server.
 
-The activity action reads trusted workflow data and writes a bounded JSONL and SQLite cache snapshot plus a deterministic `inventory-sources.json` sidecar from the reviewed control policy, installed campaign ownership records, local control workflow inventory, and paginated Actions workflow registries for resolved repositories. Campaign default-branch revisions, the latest stable gh-aw release, and generated lock compiler metadata are collected as independent version evidence. Registry and version lookup failures remain explicit partial evidence, and repository-owned workflows remain standalone rather than becoming campaign workers or rollout authority. An Activity-triggered dashboard build restores the exact triggering run and attempt's cache, or downloads that run's `cao-activity-index` artifact on a cache miss. It never substitutes another run's snapshot or an empty bootstrap. Manual builds can reuse the latest cached snapshot, falling back to a successful default-branch Activity run with a successful `index` job. The browser ingests the activity JSONL and then the sidecar so configured campaigns, including campaigns without recent runs, are available to Dashboard Language queries. AI agents do not receive `pages: write`, `id-token: write`, or deployment authority.
+The activity action reads trusted workflow data and writes a bounded JSONL and SQLite cache snapshot plus a deterministic `inventory-sources.json` sidecar from the reviewed control policy, installed campaign ownership records, local control workflow inventory, and paginated Actions workflow registries for resolved repositories. Campaign default-branch revisions, the latest stable gh-aw release, and generated lock compiler metadata are collected as independent version evidence. Registry and version lookup failures remain explicit partial evidence, and repository-owned workflows remain standalone rather than becoming campaign workers or rollout authority. An Activity-triggered dashboard build restores the exact triggering run and attempt's cache, or downloads that run's `cao-activity-index` artifact on a cache miss. It never substitutes another run's snapshot or an empty bootstrap. Manual builds can reuse the latest cached snapshot, falling back to a successful default-branch Activity run with a successful `index` job. Canonical ingestion includes inventory so configured campaigns, including campaigns without recent runs, are available to Dashboard Language queries. Operational artifacts are not public demo inputs. AI agents do not receive `pages: write`, `id-token: write`, or deployment authority.
 
 The **GitHub API** view reads the activity snapshot's `cao-gh.jsonl` ledger. It charts rate-limit capacity and lists the before/after credential class and aggregate cache-hydration state for each instrumented collection operation.
 
@@ -44,10 +50,8 @@ Direct `gh aw add` of the component `activity/` or `dashboard/` manifests is not
 a complete installation: gh-aw cannot run the required post-install materialization step
 for component manifests, and those manifests intentionally contain no duplicate
 runtime resources. The root installation adds the deterministic dashboard
-automation without an additional enable variable. Run `gh cao setup` to
-configure Pages for GitHub Actions with repository-restricted access for a
-private control repository. The standalone publisher remains manual-only and
-cannot enable Pages for the repository.
+automation without an additional enable variable. `gh cao setup` configures
+scope and authentication, not Pages, and asks for no public-publication consent.
 
 > [!TIP]
 > **SAML-token installation failure:** If GitHub CLI cannot download the extension
@@ -75,43 +79,52 @@ the dashboard through the Go server:
 ```bash
 npm ci
 npm --prefix dashboard/site ci
-npm run dashboard:local
+gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+npm run dashboard:local -- --sqlite ../.cao/gh-aw-logs.sqlite
 ```
 
 `npm run dev` is the same entrypoint. The build composes the campaign documents
 and fragments, and Go `serve` uses a verified canonical SQLite snapshot cached
-under `server/`. A missing cache is downloaded from `DASHBOARD_DATA_URL` or the
-public CAO Pages deployment; an invalid existing cache fails startup. Pass
-`--download-sqlite=https://owner.github.io/repository/` to refresh explicitly.
+under `server/` by default, or at the explicit path above. Existing caches work
+offline. A missing cache requires an explicit operational manifest URL through
+`DASHBOARD_DATA_URL` or `--download-sqlite=URL`; there is no default Pages source.
+URLs must end in `/payload-hashes.json`, not a site root. Synthetic manifests,
+missing SQLite checksums, and invalid existing caches fail closed.
 Use `--listen 127.0.0.1:8443`, `--sqlite PATH`, or `--site PATH` to override the
 listener, cache, or built site. Paths resolve from the `server/` module.
-Open the access URL printed by Go. No GitHub CLI artifact download, standalone
-Node preview, admin flag, automatic process replacement, or Node Go launcher
-is used for normal serving.
+Open the access URL printed by Go. Artifact acquisition is separate from
+read-only serving; there is no standalone Node preview, admin flag, automatic
+process replacement, or Node Go launcher.
 
-### Local Pages deployment simulation
+### Synthetic Pages demo preview
 
-To exercise the real built Pages artifact and browser IndexedDB, not the hosted
+To exercise the synthetic enterprise demo and browser IndexedDB, not the hosted
 HTTP query backend:
 
 ```bash
-npm run dashboard:pages:build -- --fixture
+npm run dashboard:pages:build
 npm run dashboard:pages -- --base-path /gh-cao/
 ```
 
-`--fixture` explicitly produces labelled synthetic evidence. For real data, use
-`npm run dashboard:pages:build -- --activity-dir PATH` with an existing Activity
-snapshot containing its control settings, inventory, and raw or manifest-listed
-phased shards. Preparation uses the production Activity normalization, SQLite
-ingestion, hashes and Dashboard build steps. It does not contact GitHub or
-simulate Actions permissions, caches/artifact transport, or Pages infrastructure.
+Preparation generates synthetic enterprise raw samples through production
+Activity normalization, canonical ingestion, hashes, and Dashboard build steps.
+There is no real-data input option. Published output contains no SQLite snapshot
+or agent summary. It does not contact GitHub or simulate Actions permissions,
+caches/artifact transport, or Pages infrastructure.
 The existing Actions runtime simulator supports compiled dry-run agentic locks,
-not the ordinary Activity/Dashboard workflows' cache and Pages actions.
+not the ordinary Activity/Dashboard workflows' cache and artifact transport.
 
 The output defaults to `.tmp/dashboard-pages`; only owned simulator output may
 be replaced. Go `serve-pages` serves those bytes unchanged on loopback, including
 repository base paths, with no hosted bootstrap, bearer authentication, query
 API, or fallback. Use `--site ../.tmp/OTHER` to select other prepared output.
+
+The declarative **Synthetic enterprise demo** callout identifies the sample.
+Data URLs live under `demo-data-v1/`; browser storage keys use
+`synthetic-demo-v1` and service-worker caches use `demo-v1`. Old same-origin
+real-data responses cannot be selected through the changed data URLs.
+IndexedDB, Web Worker, service-worker caching, and cross-adapter conformance
+cost remain despite removing live publication and implicit acquisition paths.
 
 ### Hosted serving and canvas authoring
 
@@ -122,7 +135,8 @@ volatile memory explicit alternatives. OAuth, authorization and HTTPS/proxy
 protections remain required. See [`../server/README.md`](../server/README.md).
 
 The Copilot canvas launches the same Go server against the authenticated GitHub
-CLI download's checksum-verified canonical SQLite snapshot. Go owns its public
+CLI download's checksum-verified `cao-activity-index` SQLite snapshot from a
+successful default-branch Activity run. Go owns its public
 loopback origin, static assets, query/diagnostics/memory APIs and revision events.
 It proxies only Copilot integration routes to a private Node adapter, which
 composes and watches JSON documents/fragments, reloads valid edits over a
@@ -157,8 +171,8 @@ were requested through CAO, identify the affected campaign or repository and the
 reason for maintenance, and link back to the CAO project and dashboard. The
 message is part of the declarative command shown for approval; existing
 pull-request creation and auto-merge choices are unchanged. Backlinks use the
-actual control repository and published dashboard URL, not the CAO catalog's
-deployment.
+actual control repository and explicitly supplied `caoUrl` or
+`CAO_DASHBOARD_URL`, not discovered Pages settings or the catalog demo.
 
 Command text supports literal `{{field}}` substitutions for validated row
 values. Three reserved placeholders come from the host, never browser-supplied
@@ -170,11 +184,11 @@ slash), `{{cao-repository}}` is its control repository slug, and
 gh aw upgrade --repo {{repository}} --pr-message 'Requested through {{cao-repository}}. See {{cao-url}}#page-maintenance.'
 ```
 
-Local executable previews resolve the published URL from the control
-repository's GitHub Pages API. For a custom-hosted dashboard, set
-`CAO_DASHBOARD_URL=https://ops.example.com/central/` for the canvas extension. URLs must use
+Supply `caoUrl` explicitly to the canvas or set
+`CAO_DASHBOARD_URL=https://ops.example.com/central/`; there is no GitHub Pages
+API discovery or catalog-demo fallback. URLs must use
 HTTPS and contain no credentials, query, fragment, whitespace, or command
-delimiters. Public dashboards use their own page base URL. Local preview
+delimiters. Hosted dashboards use their own page base URL. Local preview
 capability URLs are never copied into PRs. Missing host context disables the
 action with an explicit message; queue admission rejects missing or overridden
 host context. Substitutions are literal, not expressions, and never run a shell.
@@ -290,10 +304,12 @@ request to 1 MiB, including JSON escaping and UTF-8 overhead. Oversized requests
 are rejected before approval or execution.
 
 Catalog contributors can run `npm run dashboard:local`; the build composes
-top-level campaign documents. Set `DASHBOARD_DATA_URL` to select another
-deployed snapshot, or use the explicit Pages simulation above for IndexedDB.
+top-level campaign documents. Select a cached operational snapshot or set
+`DASHBOARD_DATA_URL` to its direct trusted manifest URL. Use the synthetic demo
+above for IndexedDB.
 
-To reproduce the deployed dashboard's mobile DOM budget locally with live Pages data, run:
+To measure the dashboard's mobile DOM budget with an explicitly selected
+operational snapshot, run:
 
 ```bash
 npm run dashboard:local:mobile
@@ -301,25 +317,25 @@ npm run dashboard:local:mobile
 
 This starts the local preview through Playwright with the Pixel 7 profile and a 256 MiB V8 heap limit, then records DOM analysis, accessibility, trace, and screenshot evidence under `test-results/chromium-low-memory/`. The check fails when the rendered page exceeds 6,000 elements.
 
-## Standalone Pages site
+## Pages publication and migration
 
-Before running the standalone deployment, run `gh cao setup` in the control repository. It configures the Pages source as GitHub Actions and requires repository-restricted access for a private repository. If your plan does not support private Pages or you cannot manage Pages settings, setup fails rather than proceeding with a public dashboard. For an already configured review repository, verify the same settings:
+The catalog's `docs.yml` rebuilds documentation and the synthetic enterprise
+demo daily, independently of operational collection or Dashboard artifact
+freshness. `cao-dashboard.yml` retains operational artifacts and never deploys
+them to Pages. Bounded operational artifacts remain necessary for authorized
+local analysis, canvas use, and hosted ingestion.
 
-1. In **Settings > Pages**, confirm **GitHub Actions** is the source.
-2. Confirm site access is restricted to the intended audience.
-3. Protect the `github-pages` environment as required by your organization.
-
-The workflow passes `enablement: false` to `actions/configure-pages`, so a run validates existing Pages configuration but never enables Pages for the repository. The deploy job also refuses to publish a private repository's dashboard to a public Pages site.
-
-Use **Refresh** in the dashboard header to open **Central Agentic Ops Dashboard** on the repository's **Actions** page, then click **Run workflow**. The build restores the latest complete schema-versioned activity snapshot and normalizes its usage records into the dashboard tables without triggering collection or indexing. Run **CAO Activity** separately when a fresh snapshot is required. The standalone workflow is deliberately not scheduled, so installing the campaign cannot replace an existing Pages deployment without an explicit run. Operational-value collection preserves the ordered native metrics already present in retained gh-aw run records. Actions caches accelerate refreshes but are evictable and are not historical authority.
-
-The catalog contains the collector, adapter, presenter, and runtime sources at the same paths used by control repositories. Control repositories generate the current access-controlled Pages view. Live organization-specific JSON, Markdown, and SVG snapshots are generated data and are not committed to this catalog.
+An upgrade alone does not scrub an old Pages deployment or browser cache.
+Rebuild and redeploy the demo to replace current site artifacts, or unpublish
+the old site. Review historical artifacts and downloaded copies separately.
+Old real-data browser databases are unused disposable state, not automatically
+deleted: the demo only owns its scoped namespace. Explicitly clear affected
+legacy site data when required.
 
 ## Configure
 
-1. Set `control-plane.scope.allowed-repositories` in `.github/workflows/cao.json` when report discovery should be limited to an explicit repository allowlist.
-2. Set `control-plane.campaigns.dashboard.deploy` to `false` when another workflow downloads the `central-agentic-ops-dashboard` artifact and includes it in a combined Pages deployment. The default is `true`.
-
-With standalone deployment disabled, the hosting workflow needs `actions: read`. It should list successful `cao-dashboard.yml` runs on the default branch, select the latest run, and download its `central-agentic-ops-dashboard` artifact into the hosting site's output directory before uploading the combined Pages artifact.
-
-Do not install this campaign when the report would be public or when the repository plan cannot enforce the required access boundary. See [Publishing Pages Reports](../docs/operations.md#publishing-pages-reports) for operating details.
+Set `control-plane.scope.allowed-repositories` in `.github/workflows/cao.json`
+when collection should be limited to an explicit repository allowlist. The
+former `control-plane.campaigns.dashboard.deploy` field is removed; it is not
+a hosting selector. See [Actions artifacts and the Pages demo](../docs/deployment-actions.md)
+for the acquisition and publication boundaries.

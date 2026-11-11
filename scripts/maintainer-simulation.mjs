@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { buildInventoryDashboardSources } from "../activity/inventory-sources.mjs";
-import { prepareDashboardPages } from "./simulate-dashboard-pages.mjs";
+import { hashActivityPayloads } from "../activity/cli/payloads.mjs";
+import { buildDashboardSite } from "../dashboard/site/scripts/build.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const directory = path.join(root, ".tmp/maintainer-simulation");
@@ -136,7 +138,18 @@ async function prepare() {
       `${records.map(record => JSON.stringify(record)).join("\n")}\n`);
     await mkdir(path.join(activity, "memory"), { recursive: true });
     await json(path.join(activity, "memory/manifest.json"), { version: 1, generatedAt: timestamp, campaigns: [] });
-    await prepareDashboardPages({ activityDir: activity, output: site });
+    const runsDirectory = path.join(activity, "gh-aw-logs-runs");
+    const recordsDirectory = path.join(activity, "gh-aw-logs-records");
+    await hashActivityPayloads({
+      shardDirectory: path.join(activity, "gh-aw-logs-shards"), runsDirectory, recordsDirectory,
+      inventoryPath: path.join(activity, "inventory-sources.json"),
+    });
+    await buildDashboardSite({ destination: site, controlSettings: settings, githubRepository: repositories[0].full_name });
+    await promisify(execFile)(process.execPath, [
+      path.join(root, "activity/cao.mjs"), "ingest-jsonl", "--database", path.join(site, "gh-aw-logs.sqlite"),
+      "--runs-dir", runsDirectory, "--records-dir", recordsDirectory,
+      "--retention-days", "all", "--run-retention-days", "all",
+    ], { cwd: root, timeout: 120_000 });
     await json(path.join(directory, "environment.json"), {
       simulation: true, backend: "local-sqlite", dashboardOrigin, apiOrigin,
       browserURL: `${dashboardOrigin}/?access_token=${accessToken}`,

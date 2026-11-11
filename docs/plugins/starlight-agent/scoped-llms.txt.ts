@@ -36,7 +36,6 @@ export const GET: APIRoute = async ({ site }) => {
     "",
     "## Deeper access",
     "",
-    `- [Dashboard agent access guide](${new URL("cao/llms.txt", base)}): choose CAO skills, bounded Activity artifacts, targeted MCP queries, or bulk SQLite analysis without scraping the dashboard UI.`,
     `- [Agent analysis](${new URL("agent-analysis/", base)}): use the CAO CLI or read-only MCP server for large operational datasets and named Dashboard Language queries.`,
     `- [Complete documentation](${new URL("llms-full.txt", base)}): use only when the compact routes do not answer the task.`,
     "",

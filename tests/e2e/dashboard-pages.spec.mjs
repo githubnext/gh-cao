@@ -5,37 +5,47 @@ let preview;
 
 test.beforeAll(async () => {
   test.setTimeout(240_000);
-  preview = await startDashboardPagesPreview({ fixture: true, fixtureExperimental: true });
+  preview = await startDashboardPagesPreview({ experimental: true });
 });
 
 test.afterAll(async () => { await preview?.close(); });
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    document.addEventListener("dashboard-data", (event) => {
+      if (event.detail?.kind === "refresh") window.__demoRefreshStatus = event.detail.status;
+    });
+  });
+});
 
 for (const width of [1440, 390]) {
   test(`Pull request simulator recomputes company estimates at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto(`${preview.url}/?debug-eager-ingest=1#page-simulators`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${preview.url}/?debug=1&debug-eager-ingest=1#page-simulators`, { waitUntil: "domcontentloaded" });
     await expect(page.locator("#page-title")).toHaveText("Simulators");
+    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 90_000 });
     await expect(page.locator(".first-load-overlay")).toHaveCount(0, { timeout: 90_000 });
     await page.locator('[data-page-id="simulators"]').getByRole("link", { name: "Pull request", exact: true }).click();
     const simulator = page.locator('[data-page-id="simulator-pull-request"]');
     await expect(simulator.getByRole("link", { name: "Pull request", exact: true })).toHaveAttribute("aria-current", "page");
     const table = simulator.locator('[data-view-id="simulator-pr-totals"]').getByRole("table");
-    await expect(table.getByRole("row", { name: "AW runs 500000 500000", exact: true })).toBeVisible();
-    await expect(table.getByRole("row", { name: "AI Credits (AIC) 50000000 50000000", exact: true })).toBeVisible();
+    const awRuns = table.getByRole("row").filter({ has: page.getByRole("cell", { name: "AW runs", exact: true }) });
+    const credits = table.getByRole("row").filter({ has: page.getByRole("cell", { name: "AI Credits (AIC)", exact: true }) });
+    await expect(awRuns.getByRole("cell").nth(1)).toHaveAccessibleName(/500,000 Modeled count/);
+    await expect(credits.getByRole("cell").nth(1)).toHaveAccessibleName(/50,000,000 Modeled count/);
     const screenshot = testInfo.outputPath(`pull-request-simulator-${width}.png`);
     await page.screenshot({ path: screenshot, fullPage: true });
     await testInfo.attach(`Pull request simulator ${width}px`, { path: screenshot, contentType: "image/png" });
     await simulator.getByRole("slider", { name: "Duration (days)", exact: true }).fill("2");
-    await expect(table.getByRole("row", { name: "AW runs 500000 1000000", exact: true })).toBeVisible();
+    await expect(awRuns.getByRole("cell").nth(2)).toHaveAccessibleName(/1,000,000 Modeled count/);
     const developerInput = simulator.getByRole("slider", { name: "Developers", exact: true });
     await developerInput.focus();
     await developerInput.fill("3");
-    await expect(table.getByRole("row", { name: "AW runs 150 300", exact: true })).toBeVisible();
+    await expect(awRuns.getByRole("cell").nth(2)).toHaveAccessibleName(/300 Modeled count/);
     await expect(developerInput).toBeFocused();
     await simulator.getByRole("slider", { name: "Repositories", exact: true }).fill("7");
-    await expect(table.getByRole("row", { name: "AW runs 150 300", exact: true })).toBeVisible();
+    await expect(awRuns.getByRole("cell").nth(2)).toHaveAccessibleName(/300 Modeled count/);
     await simulator.getByRole("slider", { name: "AIC per AW run", exact: true }).fill("0");
-    await expect(table.getByRole("row", { name: "AI Credits (AIC) 0 0", exact: true })).toBeVisible();
+    await expect(credits.getByRole("cell").nth(2)).toHaveAccessibleName(/0 Modeled count/);
     await simulator.getByRole("link", { name: "Database size", exact: true }).click();
     await expect(page.locator('[data-page-id="simulators"]').getByRole("slider")).toHaveCount(5);
   });
@@ -45,18 +55,33 @@ for (const width of [1440, 390]) {
     const hostedRequests = [];
     const errors = [];
     page.on("request", (request) => {
-      if (/\/api\/v1\/(?:query|refresh|diagnostics|events)(?:[/?]|$)/.test(request.url())) {
+      if (new URL(request.url()).origin !== new URL(preview.url).origin
+          || /\/api\//.test(request.url())) {
         hostedRequests.push(request.url());
       }
     });
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto(`${preview.url}/?debug-eager-ingest=1#page-overview`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${preview.url}/favicon.svg`);
+    await page.evaluate(async (base) => {
+      const request = indexedDB.open(`gh-aw-cao-dashboard-data:${encodeURIComponent(new URL(base).pathname + "/")}`, 1);
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore("runs", { keyPath: "id" }).put({ id: "real-operational-record" });
+      };
+      await new Promise((resolve, reject) => {
+        request.onsuccess = () => { request.result.close(); resolve(); };
+        request.onerror = () => reject(request.error);
+      });
+      const cache = await caches.open("central-agentic-ops-dashboard-data-old");
+      await cache.put(`${base}/payload-hashes.json`, Response.json({ "real-data.jsonl": "must-not-be-read" }));
+    }, preview.url);
+    await page.goto(`${preview.url}/?debug=1&debug-eager-ingest=1#page-overview`, { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 90_000 });
     await expect(page.locator(".first-load-overlay")).toHaveCount(0, { timeout: 90_000 });
     await expect(page.locator("#page-title")).toHaveText("Overview");
     await expect(page.locator('meta[name="dashboard-data-backend"]')).toHaveCount(0);
     await expect.poll(() => page.evaluate(async () => {
       const databases = await indexedDB.databases();
-      const descriptor = databases.find(({ name }) => name?.startsWith("gh-aw-cao-dashboard-data"));
+      const descriptor = databases.find(({ name }) => name?.includes("synthetic-demo-v1"));
       if (!descriptor?.name) return 0;
       const database = await new Promise((resolve, reject) => {
         const request = indexedDB.open(descriptor.name);
@@ -71,8 +96,26 @@ for (const width of [1440, 390]) {
           request.onerror = () => reject(request.error);
         });
       } finally { database.close(); }
-    }), { timeout: 90_000 }).toBeGreaterThan(0);
-    await expect(page.locator("body")).toContainText("example/pages-fixture");
+    }), { timeout: 90_000 }).toBe(672);
+    const demoRunIds = await page.evaluate(async () => {
+      const descriptor = (await indexedDB.databases()).find(({ name }) => name?.includes("synthetic-demo-v1"));
+      const db = await new Promise((resolve, reject) => {
+        const request = indexedDB.open(descriptor.name);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      try {
+        return await new Promise((resolve, reject) => {
+          const request = db.transaction("runs").objectStore("runs").getAllKeys();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      } finally { db.close(); }
+    });
+    expect(demoRunIds).toHaveLength(672);
+    expect(demoRunIds.every(id => String(id).includes("sample-enterprise/"))).toBe(true);
+    await expect(page.locator("body")).toContainText("Synthetic enterprise demo");
+    await expect(page.locator('meta[name="dashboard-deployment"]')).toHaveAttribute("content", "synthetic-demo");
     const screenshot = testInfo.outputPath(`pages-indexeddb-${width}.png`);
     await page.screenshot({ path: screenshot, fullPage: true });
     await testInfo.attach(`Pages IndexedDB ${width}px`, { path: screenshot, contentType: "image/png" });
@@ -81,9 +124,12 @@ for (const width of [1440, 390]) {
     await expect(page.locator(".first-load-overlay")).toHaveCount(0);
     expect(hostedRequests).toEqual([]);
     expect(errors).toEqual([]);
-    for (const name of ["payload-hashes.json", "inventory-sources.json", "gh-aw-logs.sqlite"]) {
-      const response = await page.request.get(`${preview.url}/${name}`);
+    for (const name of ["payload-hashes.json", "inventory-sources.json"]) {
+      const response = await page.request.get(`${preview.url}/demo-data-v1/${name}`);
       expect(response.ok(), name).toBe(true);
+    }
+    for (const name of ["payload-hashes.json", "gh-aw-logs.sqlite", "agent-summary.json"]) {
+      expect((await page.request.get(`${preview.url}/${name}`)).status()).toBe(404);
     }
     expect((await page.request.post(`${preview.url}/api/v1/query`, { data: {} })).status()).toBe(405);
     expect((await page.request.get(`${preview.url}/api/v1/query`)).status()).toBe(404);

@@ -36,8 +36,8 @@ In Copilot CLI, open the **Central Agentic Ops** canvas for the current
 repository or an explicit `OWNER/REPOSITORY`. You need:
 
 - GitHub CLI authentication with Actions read access to that repository.
-- A current `central-agentic-ops-dashboard` artifact from a successful dashboard
-  run, including `payload-hashes.json` and `gh-aw-logs.sqlite`.
+- A current `cao-activity-index` artifact from a successful default-branch
+  `cao-activity.yml` run, including `payload-hashes.json` and `gh-aw-logs.sqlite`.
 - Go compatible with the bundled server module, or `CAO_DASHBOARD_EXECUTABLE`
   set to an absolute path to a compatible `cao-dashboard` binary.
 
@@ -46,9 +46,13 @@ Go server on loopback. Go serves assets, declarative queries, pagination,
 diagnostics, repository memory, and revision subscriptions behind one capability
 URL. Missing, corrupt, or unsupported snapshots stop startup. There is no canvas
 backend selector, Node query engine, or browser IndexedDB fallback.
+Synthetic manifests and manifests without a SQLite checksum are rejected.
+Pages is not an acquisition source. Dashboard backlinks require an explicit
+`caoUrl` or `CAO_DASHBOARD_URL`; the canvas does not discover a repository's
+Pages URL.
 
 Keep the capability URL private; do not expose or forward it to other users.
-For ordinary local serving or an explicit Pages/IndexedDB simulation instead,
+For ordinary local serving or the synthetic-only Pages/IndexedDB demo instead,
 see [Choose a local serving mode](dashboard-data-ingestion.md#choose-a-local-serving-mode).
 
 ### Code and process boundary

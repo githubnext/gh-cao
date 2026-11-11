@@ -223,6 +223,8 @@ func TestNativeManagementPolicyValidation(t *testing.T) {
 		valid        bool
 	}{
 		{"valid", nativeManagementPolicy, true},
+		{"removed dashboard deployment", strings.Replace(nativeManagementPolicy, `"campaigns": {`, `"campaigns": {"dashboard": {"deploy": false},`, 1), false},
+		{"removed campaign deployment", strings.Replace(nativeManagementPolicy, `"two": {`, `"two": {"deploy": true,`, 1), false},
 		{"expression", strings.Replace(nativeManagementPolicy, `"v0.92.0"`, `"${{ secrets.PIN }}"`, 1), false},
 		{"outside campaign target", strings.Replace(nativeManagementPolicy, `"two": {`, `"two": {"targets":{"other/repo":{"mode":"review"}},`, 1), false},
 		{"case duplicate target", strings.Replace(nativeManagementPolicy, `"two": {`, `"two": {"targets":{"owner/repo":{"mode":"review"},"OWNER/REPO":{"mode":"live"}},`, 1), false},

@@ -98,7 +98,7 @@ func testCAOSetupAzureIntegration(t *testing.T, scenarios ...string) {
 				setupAzurePrivateFarm(t, ctx, f, catalog, binary)
 			} else {
 				f.assertSuccess(t, f.run(t, ctx, ""), []string{"platform/control"}, "workflow-token")
-				f.assertRequests(t, ctx, "POST", false)
+				f.assertRequests(t, ctx, false)
 			}
 			configuredPolicy, githubState := setupRead(t, f.policyPath()), f.state(t)
 			setupWrite(t, filepath.Join(f.checkout, ".github/workflows/cao.azure.json"),

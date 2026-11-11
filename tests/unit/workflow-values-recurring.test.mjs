@@ -223,7 +223,6 @@ test('dogfood File Diet registration pins existing effective Activity scope with
     'github.repository-metadata.v1',
     'github.workflow-source-history.v1',
   ]);
-  assert.equal(control.campaigns.dashboard.deploy, false);
   assert.equal(workflowValueApiHeadroom(document, ['github/gh-aw']), 811);
   assert.equal(workflowValueApiHeadroom(document, ['githubnext/gh-cao']), 0);
   const disabled = structuredClone(document);

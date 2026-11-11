@@ -245,15 +245,12 @@ test("dashboard bootstraps only when neither cache nor run is available and alwa
   }
 });
 
-test("dashboard caches successful builds and preserves the Pages deployment policy", () => {
+test("dashboard retains operational artifacts without Pages publishing or cache", () => {
   const upload = step("Upload dashboard artifact");
   assert.equal(upload.with["if-no-files-found"], "error");
-  assert.equal(jobs.cache.needs, "build");
-  assert.equal(jobs.cache.if, undefined);
-  assert.equal(jobs.pages.needs, "build");
-  assert.equal(jobs.pages.if, "needs.build.outputs.deploy == 'true'");
-  assert.deepEqual(jobs.deploy.needs, ["build", "pages"]);
-  assert.equal(jobs.deploy.if, "needs.build.outputs.deploy == 'true'");
+  assert.equal(jobs.cache, undefined);
+  assert.equal(jobs.pages, undefined);
+  assert.equal(jobs.deploy, undefined);
   assert.equal(jobs["notify-failure"].if,
-    "${{ always() && (needs.build.result == 'failure' || needs.cache.result == 'failure' || needs.pages.result == 'failure' || needs.deploy.result == 'failure') }}");
+    "${{ always() && needs.build.result == 'failure' }}");
 });

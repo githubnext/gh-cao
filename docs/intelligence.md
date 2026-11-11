@@ -54,11 +54,17 @@ GitHub during evaluation.
 
 ## Run the current layer
 
-Download or refresh the deployed snapshot:
+Select a successful Activity run and acquire its operational artifact with
+Actions read access:
 
 ```bash
-gh cao download
+gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
 ```
+
+Existing verified SQLite snapshots work offline. For a trusted explicit
+operational manifest URL, use `gh cao download --url URL`. There is no public
+snapshot default; the Pages demo is synthetic and cannot establish operational
+facts. See [Agent analysis](agent-analysis.md).
 
 Evaluate the complete portfolio:
 
