@@ -314,7 +314,7 @@ func Solve(ctx context.Context, input Requirements) (Solution, error) {
 	for name, definition := range template.Parameters {
 		parameter, exists := parameters[name]
 		if definition.DefaultValue == nil && !exists {
-			return result, fmt.Errorf("Azure dependency missing: %s", name)
+			return result, fmt.Errorf("azure dependency missing: %s", name)
 		}
 		if exists && parameter.Reference == nil {
 			if err := validateParameter(name, parameter.Value, definition); err != nil {

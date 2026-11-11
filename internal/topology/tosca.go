@@ -3,6 +3,7 @@ package topology
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -133,10 +134,10 @@ type engineVertex struct {
 	} `json:"edgesOut"`
 }
 
-func resolveTOSCA(ctx context.Context, content []byte, features Features) (Topology, error) {
-	result := Topology{Version: 1, Backend: "azure", Features: features, Nodes: []Node{}}
+func resolveTOSCA(ctx context.Context, content []byte, features Features) (result Topology, err error) {
+	result = Topology{Version: 1, Backend: "azure", Features: features, Nodes: []Node{}}
 	urlContext := exturl.NewContext()
-	defer urlContext.Release()
+	defer func() { err = errors.Join(err, urlContext.Release()) }()
 	// Only generated, import-free templates enter the engine. Built-in profiles
 	// and scriptlets stay inside the Go process; there is no Node.js or user code.
 	source := urlContext.NewInternalURL("/cao/topology.yaml")

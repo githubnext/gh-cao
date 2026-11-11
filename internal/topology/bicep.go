@@ -29,11 +29,11 @@ func (b BicepCLI) Validate(ctx context.Context, directory string, templates []st
 		return err
 	}
 	if len(templates) == 0 {
-		return fmt.Errorf("Bicep validation requires at least one template")
+		return fmt.Errorf("bicep validation requires at least one template")
 	}
 	compiler, err := exec.LookPath("bicep")
 	if err != nil {
-		return fmt.Errorf("Bicep validation requires Microsoft's official Bicep CLI on PATH: %w; install it from https://learn.microsoft.com/azure/azure-resource-manager/bicep/install", err)
+		return fmt.Errorf("bicep validation requires Microsoft's official Bicep CLI on PATH: %w; install it from https://learn.microsoft.com/azure/azure-resource-manager/bicep/install", err)
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
@@ -50,7 +50,7 @@ func (b BicepCLI) Validate(ctx context.Context, directory string, templates []st
 		command.Stdout = io.Discard
 		command.Stderr = &diagnostics
 		if err := command.Run(); err != nil {
-			return fmt.Errorf("Bicep validation failed for %s: %w\n%s", name, errors.Join(err, ctx.Err()), strings.TrimSpace(diagnostics.String()))
+			return fmt.Errorf("bicep validation failed for %s: %w\n%s", name, errors.Join(err, ctx.Err()), strings.TrimSpace(diagnostics.String()))
 		}
 		if _, err := diagnostics.WriteTo(output); err != nil {
 			return fmt.Errorf("write Bicep diagnostics: %w", err)

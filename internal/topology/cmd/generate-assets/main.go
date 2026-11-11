@@ -95,7 +95,7 @@ func compileCompact() (err error) {
 		return fmt.Errorf("compile compact Azure parameter contract with official Bicep CLI: %w", err)
 	}
 	if !json.Valid(content) {
-		return fmt.Errorf("Bicep compiler returned invalid ARM JSON")
+		return fmt.Errorf("bicep compiler returned invalid ARM JSON")
 	}
 	return os.WriteFile("assets/compact/main.generated.json", content, 0o644)
 }

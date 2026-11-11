@@ -188,7 +188,7 @@ func InitExample(destination, deployment string) error {
 
 func Generate(ctx context.Context, content []byte, directory string, validator BicepValidator) (result Topology, err error) {
 	if validator == nil {
-		return result, fmt.Errorf("Bicep validation is required for generation")
+		return result, fmt.Errorf("bicep validation is required for generation")
 	}
 	files, result, err := filesFor(ctx, content)
 	if err != nil {
