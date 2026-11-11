@@ -15,14 +15,15 @@ import (
 // Missing Bicep is a failure, not skipped validation.
 func TestDeploymentSamples(t *testing.T) {
 	for _, sample := range []struct {
-		name                      string
-		vms, databases, functions int
-		managedDatabase           bool
+		name                                     string
+		vms, databases, functions, containerApps int
+		managedDatabase                          bool
 	}{
-		{"single-vm", 1, 0, 0, false},
-		{"minimal-azure", 1, 1, 0, true},
-		{"azure-functions", 0, 1, 1, true},
-		{"full-azure", 3, 1, 1, true},
+		{"single-vm", 1, 0, 0, 0, false},
+		{"minimal-azure", 1, 1, 0, 0, true},
+		{"azure-functions", 0, 1, 1, 1, true},
+		{"azure-container-apps", 0, 1, 0, 1, true},
+		{"full-azure", 3, 1, 1, 1, true},
 	} {
 		t.Run(sample.name, func(t *testing.T) {
 			content, err := ExampleFor(sample.name)
@@ -58,12 +59,20 @@ func TestDeploymentSamples(t *testing.T) {
 				"Microsoft.Compute/virtualMachines":         sample.vms,
 				"Microsoft.DBforPostgreSQL/flexibleServers": sample.databases,
 				"Microsoft.Web/sites":                       sample.functions,
+				"Microsoft.App/containerApps":               sample.containerApps,
 			} {
 				if counts[kind] != expected {
 					t.Fatalf("%s: got %d %s resources, want %d", sample.name, counts[kind], kind, expected)
 				}
 			}
 			if input.Features.Deployment != "azure-functions" {
+				for _, absent := range []string{"Microsoft.Web/serverfarms", "Microsoft.Storage/storageAccounts", "Microsoft.Insights/components"} {
+					if counts[absent] != 0 {
+						t.Fatalf("profile accidentally carries %s", absent)
+					}
+				}
+			}
+			if input.Features.Deployment == "single-vm" || input.Features.Deployment == "minimal-azure" {
 				for _, absent := range []string{"Microsoft.ContainerRegistry/registries", "Microsoft.KeyVault/vaults", "Microsoft.App/jobs", "Microsoft.Kusto/clusters"} {
 					if counts[absent] != 0 {
 						t.Fatalf("compact profile accidentally carries %s", absent)
@@ -100,6 +109,15 @@ type sampleResource struct {
 
 func compileSample(t *testing.T, filename string) sampleARM {
 	t.Helper()
+	var template sampleARM
+	if err := json.Unmarshal(compileSampleJSON(t, filename), &template); err != nil {
+		t.Fatal(err)
+	}
+	return template
+}
+
+func compileSampleJSON(t *testing.T, filename string) []byte {
+	t.Helper()
 	command := exec.Command("bicep", "build", filename, "--no-restore", "--stdout")
 	var diagnostics bytes.Buffer
 	command.Stderr = &diagnostics
@@ -107,11 +125,7 @@ func compileSample(t *testing.T, filename string) sampleARM {
 	if err != nil {
 		t.Fatalf("official Bicep compilation failed: %v\n%s", err, &diagnostics)
 	}
-	var template sampleARM
-	if err := json.Unmarshal(output, &template); err != nil {
-		t.Fatal(err)
-	}
-	return template
+	return output
 }
 
 func countCompiledResources(t *testing.T, template sampleARM, managedDatabase bool, counts map[string]int) {

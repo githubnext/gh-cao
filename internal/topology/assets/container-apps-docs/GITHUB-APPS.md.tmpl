@@ -1,0 +1,16 @@
+# GitHub application setup
+
+Create a browser OAuth App with the actual dashboardHostName output as its
+HTTPS homepage and the exact githubRedirectUri output as its callback
+(`https://HOST/auth/callback`). Store the client secret only in the input vault;
+set githubClientId and an explicit organization/team/user allowlist. Admin users
+must also satisfy that allowlist. No App installation or OAuth setting is changed
+by topology generation.
+
+The webhook secret is required by the existing hosted runtime; it does not
+authorize collection or workflow dispatch. Actions evidence acquisition remains
+independently governed by the reviewed control policy. No collection App key,
+PAT, admission authority or broker credential is granted to the web process.
+
+AGENT-MCP.md documents separate optional Actions bearer-token plus OIDC access.
+Browser OAuth does not enable MCP; this profile leaves that endpoint disabled.

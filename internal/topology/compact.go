@@ -22,39 +22,9 @@ func solveCompact(ctx context.Context, input Requirements) (Solution, error) {
 	if input.Azure.Hosts != nil {
 		return result, fmt.Errorf("azure.hosts is only supported by the azure-functions deployment")
 	}
-	content, err := assets.ReadFile("assets/compact/main.generated.json")
+	definitions, parameters, defaults, err := deploymentParameters(input, "assets/compact/main.generated.json", compactSecretNames)
 	if err != nil {
 		return result, err
-	}
-	var template struct {
-		Parameters map[string]ParameterDefinition `json:"parameters"`
-	}
-	if err := json.Unmarshal(content, &template); err != nil {
-		return result, err
-	}
-	parameters := map[string]Parameter{}
-	defaults := map[string]any{}
-	for name, definition := range template.Parameters {
-		if definition.DefaultValue != nil {
-			var value any
-			if err := json.Unmarshal(definition.DefaultValue, &value); err != nil {
-				return result, err
-			}
-			defaults[name] = value
-		}
-	}
-	for name, value := range input.Azure.Parameters {
-		definition, exists := template.Parameters[name]
-		if slices.Contains(compactSecretNames, name) || exists && strings.HasPrefix(strings.ToLower(definition.Type), "secure") {
-			return result, fmt.Errorf("SEC-VAULT-002: %s must use a vault reference, not a literal parameter", name)
-		}
-		if !exists {
-			return result, fmt.Errorf("unknown or secret compact Azure parameter: %s", name)
-		}
-		if err := validateParameter(name, value, definition); err != nil {
-			return result, err
-		}
-		parameters[name] = Parameter{Value: value}
 	}
 	value := func(name string) any {
 		if parameter, exists := parameters[name]; exists {
@@ -93,27 +63,8 @@ func solveCompact(ctx context.Context, input Requirements) (Solution, error) {
 			return result, fmt.Errorf("httpsSourceCidrs must contain IPv4 CIDRs")
 		}
 	}
-	if !nonempty(value("githubClientId")) {
-		return result, fmt.Errorf("hosted OAuth requires githubClientId")
-	}
-	authorized := false
-	for _, field := range []string{"githubAllowedOrganizations", "githubAllowedTeams", "githubAllowedUsers", "githubAdminUsers"} {
-		users, ok := list(value(field))
-		if !ok || slices.ContainsFunc(users, func(user string) bool { return strings.TrimSpace(user) == "" }) {
-			return result, fmt.Errorf("%s must contain nonempty strings", field)
-		}
-		if field == "githubAdminUsers" && len(users) == 0 {
-			return result, fmt.Errorf("hosted service requires githubAdminUsers")
-		}
-		if field != "githubAdminUsers" && len(users) > 0 {
-			authorized = true
-		}
-	}
-	if !authorized {
-		return result, fmt.Errorf("hosted OAuth requires at least one allowed organization, team or user")
-	}
-	if _, exists := input.Azure.Parameters["postgresRunRetentionDays"]; !exists {
-		return result, fmt.Errorf("explicit postgresRunRetentionDays is required")
+	if err := validateHostedParameters(input, value); err != nil {
+		return result, err
 	}
 	if err := validateVaultReferences(input, compactSecretNames); err != nil {
 		return result, err
@@ -128,7 +79,7 @@ func solveCompact(ctx context.Context, input Requirements) (Solution, error) {
 		ref.KeyVault.ID = input.Azure.SecretVaultID
 		parameters["postgresAdministratorPassword"] = Parameter{Reference: ref}
 	}
-	for name, definition := range template.Parameters {
+	for name, definition := range definitions {
 		if definition.DefaultValue == nil {
 			if _, exists := parameters[name]; !exists {
 				return result, fmt.Errorf("compact Azure dependency missing: %s", name)
@@ -136,12 +87,76 @@ func solveCompact(ctx context.Context, input Requirements) (Solution, error) {
 		}
 	}
 	result.Parameters = parameterDocument(parameters)
-	result.TOSCA, err = providerServiceTemplate(input.Features, parameters, template.Parameters)
+	result.TOSCA, err = providerServiceTemplate(input.Features, parameters, definitions)
 	if err != nil {
 		return result, err
 	}
 	result.Topology, err = resolveTOSCA(ctx, result.TOSCA, input.Features)
 	return result, err
+}
+
+func deploymentParameters(input Requirements, source string, secretNames []string) (map[string]ParameterDefinition, map[string]Parameter, map[string]any, error) {
+	content, err := assets.ReadFile(source)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var template struct {
+		Parameters map[string]ParameterDefinition `json:"parameters"`
+	}
+	if err := json.Unmarshal(content, &template); err != nil {
+		return nil, nil, nil, err
+	}
+	parameters := map[string]Parameter{}
+	defaults := map[string]any{}
+	for name, definition := range template.Parameters {
+		if definition.DefaultValue != nil {
+			var value any
+			if err := json.Unmarshal(definition.DefaultValue, &value); err != nil {
+				return nil, nil, nil, err
+			}
+			defaults[name] = value
+		}
+	}
+	for name, value := range input.Azure.Parameters {
+		definition, exists := template.Parameters[name]
+		if slices.Contains(secretNames, name) || exists && strings.HasPrefix(strings.ToLower(definition.Type), "secure") {
+			return nil, nil, nil, fmt.Errorf("SEC-VAULT-002: %s must use a vault reference, not a literal parameter", name)
+		}
+		if !exists {
+			return nil, nil, nil, fmt.Errorf("unknown or secret Azure parameter: %s", name)
+		}
+		if err := validateParameter(name, value, definition); err != nil {
+			return nil, nil, nil, err
+		}
+		parameters[name] = Parameter{Value: value}
+	}
+	return template.Parameters, parameters, defaults, nil
+}
+
+func validateHostedParameters(input Requirements, value func(string) any) error {
+	if !nonempty(value("githubClientId")) {
+		return fmt.Errorf("hosted OAuth requires githubClientId")
+	}
+	authorized := false
+	for _, field := range []string{"githubAllowedOrganizations", "githubAllowedTeams", "githubAllowedUsers", "githubAdminUsers"} {
+		users, ok := list(value(field))
+		if !ok || slices.ContainsFunc(users, func(user string) bool { return strings.TrimSpace(user) == "" }) {
+			return fmt.Errorf("%s must contain nonempty strings", field)
+		}
+		if field == "githubAdminUsers" && len(users) == 0 {
+			return fmt.Errorf("hosted service requires githubAdminUsers")
+		}
+		if field != "githubAdminUsers" && len(users) > 0 {
+			authorized = true
+		}
+	}
+	if !authorized {
+		return fmt.Errorf("hosted OAuth requires at least one allowed organization, team or user")
+	}
+	if _, exists := input.Azure.Parameters["postgresRunRetentionDays"]; !exists {
+		return fmt.Errorf("explicit postgresRunRetentionDays is required")
+	}
+	return nil
 }
 
 func validateVaultReferences(input Requirements, required []string) error {

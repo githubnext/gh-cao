@@ -2026,15 +2026,12 @@ settings:
 | `CAO_GITHUB_LOCAL_USER` | Optional exact developer login for [single-user local OAuth](#local-oauth-without-organization-access); removes organization scopes/checks only on a direct loopback HTTPS listener. Cannot be combined with organization/team/SSO policy. |
 | `CAO_GITHUB_ADMIN_USERS` | Required comma-separated GitHub logins allowed to trigger rebuilds. |
 | `CAO_GITHUB_WEBHOOK_SECRET` | Required GitHub webhook signature secret of at least 32 characters. |
-| `CAO_SOURCE_DIRECTORY` | Required authoritative deployed gh-aw artifact directory used by rebuild/reconciliation. |
+| `CAO_SOURCE_DIRECTORY` | Snapshot directory for startup/rebuild; required unless collection or external ingestion is selected. |
+| `CAO_EXTERNAL_INGESTION` | Explicit `true` for [separate jobs](../docs/deployment-topology.md#azure-container-apps); excludes source/collector. Default `false`. |
 
-Hosted HTTPS enforcement cannot be disabled. Forwarded host and protocol
-headers are trusted only when the service is bound to loopback; externally
-reachable listeners validate their direct TLS connection and `Host` header.
-Supply secrets through the deployment platform's secret manager (for example,
-Key Vault references, Kubernetes Secrets mounted into the process environment,
-or an equivalent managed facility), never command-line arguments or checked-in
-configuration.
+Hosted HTTPS is mandatory. Direct TLS validates `Host`; forwarded headers
+require loopback or explicitly trusted private proxy CIDRs. Use the platform
+secret manager, never policy or command-line secrets.
 
 ### Administrator step-up
 
