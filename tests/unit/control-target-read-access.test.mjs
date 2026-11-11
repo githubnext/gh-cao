@@ -187,7 +187,9 @@ async function runDependabotPrefetch({
   controlPrivate = true,
   precompute,
   pages = [[]],
+  links = [],
   failure,
+  failurePage = 0,
 }) {
   const files = new Map([
     ["/tmp/gh-aw/agent/control-precompute.json", JSON.stringify(precompute ?? {
@@ -204,12 +206,15 @@ async function runDependabotPrefetch({
   };
   const readRequests = [];
   const actionRequests = [];
+  let alertPage = 0;
   const github = {
     request: async (route, parameters) => {
       readRequests.push({ route, ...parameters });
       if (route === "GET /repos/{owner}/{repo}") return { data: { private: targetPrivate } };
-      if (failure) throw failure;
-      return { data: pages[parameters.page - 1] ?? [] };
+      assert.equal(parameters.page, undefined, "Dependabot alerts reject page-based pagination");
+      const index = alertPage++;
+      if (failure && index === failurePage) throw failure;
+      return { data: pages[index] ?? [], headers: { link: links[index] } };
     },
   };
   const getOctokit = (token) => ({
@@ -251,12 +256,13 @@ test("Dependabot planner reads complete target alert evidence through the target
   };
   const { evidence, readRequests, actionRequests } = await runDependabotPrefetch({
     pages: [Array.from({ length: 100 }, () => alert), [alert]],
+    links: ['<https://api.github.com/repositories/123/dependabot/alerts?state=open&per_page=100&after=cursor%2B1>; rel="next"'],
   });
 
-  assert.deepEqual(readRequests.map(({ route, owner, repo, state, page }) => ({ route, owner, repo, state, page })), [
-    { route: "GET /repos/{owner}/{repo}", owner: "acme", repo: "service", state: undefined, page: undefined },
-    { route: "GET /repos/{owner}/{repo}/dependabot/alerts", owner: "acme", repo: "service", state: "open", page: 1 },
-    { route: "GET /repos/{owner}/{repo}/dependabot/alerts", owner: "acme", repo: "service", state: "open", page: 2 },
+  assert.deepEqual(readRequests.map(({ route, owner, repo, state, after }) => ({ route, owner, repo, state, after })), [
+    { route: "GET /repos/{owner}/{repo}", owner: "acme", repo: "service", state: undefined, after: undefined },
+    { route: "GET /repos/{owner}/{repo}/dependabot/alerts", owner: "acme", repo: "service", state: "open", after: undefined },
+    { route: "GET /repos/{owner}/{repo}/dependabot/alerts", owner: "acme", repo: "service", state: "open", after: "cursor+1" },
   ]);
   assert.deepEqual(
     actionRequests.map(({ token, route, owner, repo }) => ({ token, route, owner, repo })),
@@ -268,6 +274,57 @@ test("Dependabot planner reads complete target alert evidence through the target
   assert.equal(evidence.alerts.length, 101);
   assert.deepEqual(evidence.alerts[0].security_advisory, { ghsa_id: "GHSA-xxxx-yyyy-zzzz", severity: "high" });
   assert.equal(evidence.alerts[0].dependency.manifest_path, "package-lock.json");
+});
+
+test("Dependabot planner uses next links rather than alert counts to determine completeness", async () => {
+  for (const count of [0, 100]) {
+    const { evidence, readRequests } = await runDependabotPrefetch({
+      pages: [Array.from({ length: count }, () => ({ number: 1 }))],
+    });
+    assert.equal(evidence.complete, true);
+    assert.equal(evidence.alerts.length, count);
+    assert.equal(readRequests.length, 2);
+  }
+
+  const { evidence, readRequests } = await runDependabotPrefetch({
+    pages: [[{ number: 1 }], [{ number: 2 }]],
+    links: ['<https://api.github.com/repos/acme/service/dependabot/alerts?after=next>; rel="next"'],
+  });
+  assert.equal(evidence.complete, true);
+  assert.deepEqual(evidence.alerts.map(({ number }) => number), [1, 2]);
+  assert.equal(readRequests.at(-1).after, "next");
+});
+
+test("Dependabot planner rejects invalid or repeated alert cursors", async () => {
+  for (const links of [
+    ['<not-a-url>; rel="next"'],
+    ['<https://api.github.com/repos/acme/service/dependabot/alerts?page=2>; rel="next"'],
+    Array(2).fill('<https://api.github.com/repos/acme/service/dependabot/alerts?after=same>; rel="next"'),
+  ]) {
+    const { evidence } = await runDependabotPrefetch({ pages: [[{ number: 1 }]], links });
+    assert.equal(evidence.complete, false);
+    assert.equal(evidence.alerts, null);
+    assert.equal(evidence.unavailable_reason, "invalid_pagination_cursor");
+  }
+});
+
+test("Dependabot planner keeps pagination bounded and discards partial alert evidence", async () => {
+  const links = Array.from({ length: 100 }, (_, index) =>
+    `<https://api.github.com/repos/acme/service/dependabot/alerts?after=cursor-${index}>; rel="next"`);
+  const limited = await runDependabotPrefetch({ links });
+  assert.equal(limited.evidence.complete, false);
+  assert.equal(limited.evidence.alerts, null);
+  assert.equal(limited.evidence.unavailable_reason, "pagination_limit_exceeded");
+  assert.equal(limited.readRequests.length, 101);
+
+  const failed = await runDependabotPrefetch({
+    pages: [[{ number: 1 }]], links,
+    failure: Object.assign(new Error("API rate limit exceeded"), { status: 403 }),
+    failurePage: 1,
+  });
+  assert.equal(failed.evidence.complete, false);
+  assert.equal(failed.evidence.alerts, null);
+  assert.equal(failed.evidence.unavailable_reason, "api_rate_limit");
 });
 
 test("Dependabot planner records incomplete evidence when the read credential cannot read alerts", async () => {
