@@ -31,18 +31,26 @@ test("Podman CI runs real rootless boundaries and Azure services on pull request
   assert.match(commands, /systemd-run --user --scope --property=Delegate=yes/);
   assert.match(commands, /podman --remote=false pull "\$image"/);
   assert.match(commands, /container_runner\.go/);
-  assert.match(commands, /go -C server test -race \.\/internal\/hostedcli/);
-  assert.match(commands, /-run '\^TestPodmanRealBoundary\$' -count=1/);
+  assert.match(commands, /podman-bin\/server\/hostedcli\.test/);
+  assert.match(commands, /-test.run '\^TestPodmanRealBoundary\$' -test.count=1/);
   assert.match(commands, /npm run test:integration:azure-services/);
   assert.doesNotMatch(commands, /sudo (?:podman|go)|\|\| true/);
 });
 
-test("Podman CI reuses Go builds and verified platform-specific Core Tools", () => {
+test("Podman CI reuses only exact-source executables and verified platform-specific Core Tools", async () => {
   const steps = workflow.jobs.podman.steps;
   const go = steps.find((step) => step.uses?.startsWith("actions/setup-go@"));
-  assert.equal(go.with.cache, true);
+  assert.equal(go.with.cache, "${{ steps.binaries.outputs.cache-hit != 'true' }}");
   assert.deepEqual(go.with["cache-dependency-path"].trim().split("\n"), ["go.sum", "server/go.sum"]);
-  const tools = steps.find((step) => step.uses?.startsWith("actions/cache@"));
+  const binaries = steps.find((step) => step.id === "binaries");
+  assert.equal(binaries.with.path, ".tmp/podman-bin");
+  for (const input of ["runner.os", "runner.arch", "'server/**'", "'internal/**'", "'go.mod'", "'go.sum'", "'.github/workflows/podman.yml'"]) {
+    assert.ok(binaries.with.key.includes(input), `binary cache must bind ${input}`);
+  }
+  assert.equal(binaries.with["restore-keys"], undefined, "stale-source executables must never be reused");
+  const build = await readFile(new URL("scripts/azure-local/prepare-test-binaries.sh", root), "utf8");
+  assert.match(build, /test -race -c/);
+  const tools = steps.find((step) => step.with?.path === ".tmp/azure-local/tools");
   assert.equal(tools.with.path, ".tmp/azure-local/tools");
   assert.ok(tools.with.key.includes("runner.os"));
   assert.ok(tools.with.key.includes("runner.arch"));
@@ -81,6 +89,7 @@ exit 99
           CHECK_DIRECTORY: directory,
           CHECK_TRACE: trace,
           CHECK_FAILURE: failure,
+          GITHUB_WORKSPACE: fileURLToPath(root),
         },
         timeout: 5000,
       }).then(() => 0, (error) => error.code);

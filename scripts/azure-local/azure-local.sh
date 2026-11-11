@@ -317,8 +317,14 @@ prepare_application() {
   fi
   cp "$ROOT/.github/workflows/cao.json" "$APP_DIR/.github/workflows/cao.json"
   cp "$ROOT/.github/workflows/cao.azure.json" "$APP_DIR/.github/workflows/cao.azure.json"
-  run_logged "dashboard server build" server-build.log \
-    go -C "$ROOT/server" build -o "$APP_DIR/cao-dashboard" ./cmd/cao-dashboard
+  if [[ -n "${AZURE_LOCAL_TEST_BINARIES:-}" ]]; then
+    [[ -x "$AZURE_LOCAL_TEST_BINARIES/cao-dashboard" ]] ||
+      fail "explicit test binary is missing or not executable"
+    cp "$AZURE_LOCAL_TEST_BINARIES/cao-dashboard" "$APP_DIR/cao-dashboard"
+  else
+    run_logged "dashboard server build" server-build.log \
+      go -C "$ROOT/server" build -o "$APP_DIR/cao-dashboard" ./cmd/cao-dashboard
+  fi
   cat >"$APP_DIR/host.json" <<'JSON'
 {
   "version": "2.0",
@@ -359,6 +365,8 @@ JSON
 }
 
 start() {
+  [[ "$PROFILE" == synthetic || -z "${AZURE_LOCAL_TEST_BINARIES:-}" ]] ||
+    fail "prebuilt test executables require the synthetic profile"
   check_state_profile
   select_platform
   if [[ "$PROFILE" == github ]]; then

@@ -6,10 +6,12 @@ on:
       - .github/workflows/podman.yml
       - scripts/container-*.sh
       - scripts/azure-local/**
+      - internal/**
       - server/**
       - tests/unit/container-engine.test.mjs
       - tests/unit/podman-ci.test.mjs
       - tests/unit/azure-local-*.test.mjs
+      - tests/integration/azure-local-*.test.mjs
       - tests/integration/azure-local-*.test.mjs
       - go.mod
       - go.sum
@@ -22,10 +24,12 @@ on:
       - .github/workflows/podman.yml
       - scripts/container-*.sh
       - scripts/azure-local/**
+      - internal/**
       - server/**
       - tests/unit/container-engine.test.mjs
       - tests/unit/podman-ci.test.mjs
       - tests/unit/azure-local-*.test.mjs
+      - tests/integration/azure-local-*.test.mjs
       - tests/integration/azure-local-*.test.mjs
       - go.mod
       - go.sum
@@ -57,10 +61,16 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
+      - name: Restore exact-source race-instrumented executables
+        id: binaries
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/podman-bin
+          key: podman-bin-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/podman.yml', 'scripts/azure-local/prepare-test-binaries.sh', 'server/**', 'internal/**', 'go.mod', 'go.sum') }}
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.27.3
-          cache: true
+          cache: ${{ steps.binaries.outputs.cache-hit != 'true' }}
           cache-dependency-path: |
             go.sum
             server/go.sum
@@ -84,21 +94,23 @@ jobs:
           sudo systemctl start "user@$(id -u).service"
           echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
           echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus" >> "$GITHUB_ENV"
-      - name: Prepare Go dependencies before hermetic service tests
-        run: go mod download && go -C server mod download
+      - name: Build current-source executables on cache miss
+        if: steps.binaries.outputs.cache-hit != 'true'
+        run: bash scripts/azure-local/prepare-test-binaries.sh
       - name: Run independent rootless and Azure checks concurrently
         run: |
           boundary() {
             image="$(sed -n 's/^const DefaultContainerImage = "\(.*\)"$/\1/p' server/internal/hostedcli/container_runner.go)"
             [[ "$image" =~ ^ghcr.io/github/gh-aw@sha256:[0-9a-f]{64}$ ]]
             podman --remote=false pull "$image"
+            cd server/internal/hostedcli
             systemd-run --user --scope --property=Delegate=yes \
-              go -C server test -race ./internal/hostedcli \
-              -run '^TestPodmanRealBoundary$' -count=1 -timeout=5m -v
+              "$GITHUB_WORKSPACE/.tmp/podman-bin/server/hostedcli.test" \
+              -test.run '^TestPodmanRealBoundary$' -test.count=1 -test.timeout=5m -test.v
           }
           boundary &
           boundary_pid=$!
-          npm run test:integration:azure-services &
+          AZURE_LOCAL_TEST_BINARIES="$PWD/.tmp/podman-bin" npm run test:integration:azure-services &
           azure_pid=$!
           node --test tests/unit/container-engine.test.mjs tests/unit/azure-local-*.test.mjs &
           contracts_pid=$!

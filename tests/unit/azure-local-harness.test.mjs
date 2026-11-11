@@ -13,8 +13,11 @@ const failures = [
   ["ingest", "fixture ingestion", "ingest.log"],
 ];
 
-for (const [stage, label, logName, engine] of failures.flatMap((entry) => ["docker", "podman"].map((engine) => [...entry, engine]))) {
-  test(`Azure local harness reports ${stage} failures before cleaning up (${engine})`, async () => {
+const failureCases = failures.flatMap((entry) => ["docker", "podman"].map((engine) => [...entry, engine]));
+failureCases.push(...["docker", "podman"].map((engine) => [...failures[3], engine, true]));
+failureCases.push([...failures[0], "podman", "missing"]);
+for (const [stage, label, logName, engine, prebuilt = false] of failureCases) {
+  test(`Azure local harness reports ${stage} failures before cleaning up (${engine}${prebuilt ? ", prebuilt" : ""})`, async () => {
     await mkdir(resolve(".tmp"), { recursive: true });
     const directory = await mkdtemp(resolve(".tmp/azure-local-harness-"));
     const script = join(directory, "scripts/azure-local/azure-local.sh");
@@ -108,6 +111,11 @@ if [[ "$stage" == "$HARNESS_FAILURE" ]]; then
   exit 42
 fi
 `);
+      const binaryDirectory = join(directory, "test-binaries");
+      if (prebuilt) {
+        await mkdir(binaryDirectory);
+        if (prebuilt !== "missing") await copyFile(binary, join(binaryDirectory, "cao-dashboard"));
+      }
       // Readiness must succeed without contacting any real services.
       await executable(join(tools, "curl"), "echo 200\n");
       const result = await execute("bash", [script, "run"], {
@@ -117,6 +125,7 @@ fi
           PATH: `${tools}:${process.env.PATH}`,
           AZURE_LOCAL_STATE_DIR: state,
           AZURE_LOCAL_WAIT_TIMEOUT: "1",
+          AZURE_LOCAL_TEST_BINARIES: prebuilt ? binaryDirectory : "",
           HARNESS_TRACE: trace,
           HARNESS_FAILURE: stage,
           HARNESS_MESSAGE: message,
@@ -129,6 +138,17 @@ fi
         (value) => ({ ...value, code: 0 }),
         (error) => ({ stdout: error.stdout, stderr: error.stderr, code: error.code }),
       );
+      if (prebuilt === "missing") {
+        assert.equal(result.code, 1, result.stderr);
+        assert.match(result.stderr, /explicit test binary is missing or not executable/);
+        const commands = await readFile(trace, "utf8");
+        assert.doesNotMatch(commands, /go .* build /);
+        for (const service of ["postgres", "azurite"]) {
+          assert.match(commands, new RegExp(`${engine} rm -f ${service}-id`));
+        }
+        await assert.rejects(access(join(state, "runtime.env")), { code: "ENOENT" });
+        return;
+      }
       assert.equal(result.code, 42, result.stderr);
       assert.ok(result.stderr.includes(`azure-local: ${label} failed (exit 42)`), result.stderr);
       assert.ok(result.stderr.includes(message), result.stderr);
@@ -140,7 +160,8 @@ fi
       assert.match(await readFile(join(directory, "saved-runtime.env"), "utf8"), new RegExp(`CAO_CONTAINER_ENGINE=${engine}`));
       assert.doesNotMatch(commands, /(?:docker|podman) .*redis/);
       assert.match(commands, /docker.io\/library\/postgres:16-alpine/);
-      assert.equal((commands.match(/go .* build /g) || []).length, 1, "the shared dashboard executable is built once");
+      assert.equal((commands.match(/go .* build /g) || []).length, prebuilt ? 0 : 1,
+        "explicit prebuilt executables must run without rebuilding");
       if (stage !== "server-build") {
         const host = JSON.parse(await readFile(join(directory, "host.json"), "utf8"));
         assert.deepEqual(host.customHandler.description, {

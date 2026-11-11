@@ -45,14 +45,20 @@ Keep the original engine's context/connection unchanged while a stack is running
 
 The Podman integration workflow overlaps the independent hosted-CLI boundary,
 Azure service suite and portable harness checks, and waits for all three before
-reporting success or failure. Go modules and build outputs are cached using both
-module lockfiles. The checksum-verified Core Tools installation is cached
+reporting success or failure. Race-instrumented test executables and the dashboard
+server are cached against the complete Go source, embedded resources, module
+lockfiles and build recipe, with no stale-key restoration. On a miss, the build
+also reuses Go's module and compilation cache. The checksum-verified Core Tools installation is cached
 separately by platform and harness revision; runtime state, credentials and
 container storage are never cached. Cold-cache runs still download tools and
 compile the real adapters; cache hits do not replace test execution.
 Service checks batch compatible Go selectors so packages share compilation and
 race-instrumented test processes. Every selector and package must execute tests,
 and any skipped service evidence still fails the suite.
+CI explicitly supplies `AZURE_LOCAL_TEST_BINARIES` from this exact-source cache.
+The harness copies that server and runs those test executables through Go's
+`test2json`; a missing executable fails rather than falling back to another build.
+Without that setting, local runs continue to build and test the current checkout.
 
 ## Local service engine setup
 

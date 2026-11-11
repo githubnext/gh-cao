@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import { createHmac, randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import http from "node:http";
+import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import test from "node:test";
@@ -181,9 +182,22 @@ async function goCase(directory, packages, patterns, services = {}) {
       CAO_AZURITE_KEY: runtime.storage.key,
     });
   }
-  const { stdout } = await execute("go", [
-    "test", "-race", ...packages, "-run", patterns.join("|"), "-count=1", "-timeout=3m", "-json",
-  ], { cwd: `${root}${directory}`, env, timeout: 240_000, maxBuffer: 8 << 20 });
+  const binaries = process.env.AZURE_LOCAL_TEST_BINARIES;
+  const options = { env, timeout: 240_000, maxBuffer: 8 << 20 };
+  const pattern = patterns.join("|");
+  let stdout;
+  if (binaries) {
+    const results = await Promise.all(packages.map((pkg) => execute("go", [
+      "tool", "test2json", "-t", "-p", pkg,
+      join(binaries, directory || "root", `${basename(pkg)}.test`),
+      "-test.run", pattern, "-test.count=1", "-test.timeout=3m", "-test.v=test2json",
+    ], { ...options, cwd: `${root}${directory}/${pkg}` })));
+    stdout = results.map((result) => result.stdout.trim()).join("\n");
+  } else {
+    ({ stdout } = await execute("go", [
+      "test", "-race", ...packages, "-run", pattern, "-count=1", "-timeout=3m", "-json",
+    ], { ...options, cwd: `${root}${directory}` }));
+  }
   const events = stdout.trim().split("\n").map((line) => JSON.parse(line));
   for (const pattern of patterns) {
     const segments = pattern.split("/").map((part) => new RegExp(part));
