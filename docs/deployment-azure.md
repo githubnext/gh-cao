@@ -30,6 +30,23 @@ flowchart LR
 
 ## Prerequisites
 
+### YAML topology planning
+
+For review-only configuration generation from feature choices, use the
+[native Go topology generator](deployment-topology.md) with `gh cao topology`.
+It emits the unchanged Azure Bicep module set, Key Vault parameter references,
+a checked dependency graph, GitHub application setup instructions, validation
+scripts and operator TODOs. Its offline checker detects dependency and output
+drift; it does not create resources, install Apps, prove external prerequisites,
+or replace the guarded native deployment plan below.
+Default-off `sessionDataLake` and `webhookGateway` choices additionally emit a
+separate Bicep deployment for isolated persistent hosts and dedicated private
+Blob/ADX resources. These hosts remain staged until reviewed policy,
+credentials and real destination/runtime acceptance gates are satisfied; the
+Functions baseline is unchanged.
+`MANIFEST.md` includes Mermaid diagrams; the underlying deployment model is
+TOSCA Simple Profile 1.3, validated and resolved by the embedded Puccini engine.
+
 ### Native fresh-deployment command
 
 `gh cao deploy azure --apply` supports **fresh development deployments only**.

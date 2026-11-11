@@ -1,0 +1,52 @@
+# GitHub application configuration
+
+## Browser sign-in: required
+
+Register a GitHub OAuth App OR a GitHub App using the user authorization-code
+flow. Homepage: https://{{.Requirements.Azure.Parameters.functionAppName}}.azurewebsites.net/
+Authorization callback: https://{{.Requirements.Azure.Parameters.functionAppName}}.azurewebsites.net/auth/callback
+
+Set githubClientId and put its client secret in the referenced githubClientSecret
+secret. No PAT or pasted user token is supported.
+Sign-in GitHub Apps need expiring user tokens; organization/team checks require
+Members: read and an approved installation in each allowed organization.
+Approve classic OAuth App organization access where restrictions apply.
+Ordinary classic login uses read:org read:user, not repo. Directly allowed
+users do not require organization membership lookups. Test allowed AND
+disallowed identities. App installation does not widen CAO policy.
+
+## Collection App: {{if eq .Topology.Features.Acquisition "collector"}}required, separate credential boundary{{else}}not selected{{end}}
+
+{{if eq .Topology.Features.Acquisition "collector"}}
+Use App ID {{.Requirements.Azure.Parameters.collectorGithubAppId}}, NOT an
+OAuth client ID. Configure HTTPS webhooks at
+https://{{.Requirements.Azure.Parameters.functionAppName}}.azurewebsites.net/api/github/webhook
+Store its RSA PEM in collectorPrivateKey and the same high-entropy HMAC secret
+in GitHub and githubWebhookSecret.
+
+Enable Workflow run events and retain installation/installation-repositories
+lifecycle deliveries. Review the exact ingestion evidence: Actions: read for
+runs/artifacts, Contents: read for reviewed workflow/policy inputs and
+Metadata: read for selected repositories. Other evidence needs separately
+reviewed read permissions, never a speculative write/admin grant.
+
+Install only on reviewed repositories. Verify signature admission, completion,
+installation scope and uninstall/removal behavior. Enrollment, reviewed
+inventory and CAO policy remain separate authorities.
+The public Function App receives only the webhook secret, never the App
+private key. Collection workers hold installation-scoped credentials.
+{{else}}
+Actions snapshot ingestion needs no collection App here. Existing
+control-repository workflow Apps remain under their existing reviewed policy;
+this generator neither creates nor expands them.
+{{end}}
+
+{{if .Optional}}
+See OPTIONAL-FEATURES.md for additional archive sign-in and separate gateway
+receiving/dispatch Apps. Never reuse their private keys in the Functions process.
+{{end}}
+
+Hosted CLI and token-broker execution Apps are NOT enabled by the baseline.
+Live safe-output writes require their own reviewed implementation and authority.
+ADX needs separate Entra setup/runtime principals, not a GitHub App.
+No App creation, installation, permission acceptance or live check is automated.

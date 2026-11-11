@@ -1,0 +1,26 @@
+# Synthetic compilation sample. Existing vault is NOT provisioned by this plan.
+version: 1
+backend: azure
+features:
+  deployment: minimal-azure
+azure:
+  parameters:
+    location: eastus
+    deploymentName: example-minimal
+    sshPublicKey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDda2wZf5ue5CdHLV3NAf4Piom8sB3l4t2nNJ1Sp0U7O example-only
+    httpsSourceCidrs: [203.0.113.0/24]
+    githubClientId: example-client-id
+    githubAllowedOrganizations: [example-org]
+    githubAdminUsers: [example-admin]
+    postgresRunRetentionDays: 45
+  secretVaultId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/example-secrets/providers/Microsoft.KeyVault/vaults/example-secrets
+  secrets:
+    githubClientSecret: github-client-secret
+    sessionSecret: session-secret
+    githubWebhookSecret: webhook-secret
+    postgresAdministratorPassword: postgres-admin-password
+    postgresOwnerPassword: postgres-owner-password
+    postgresRuntimePassword: postgres-runtime-password
+    postgresRuntimeUrl: postgres-runtime-url
+    tlsCertificate: hosted-tls-certificate
+    tlsPrivateKey: hosted-tls-key

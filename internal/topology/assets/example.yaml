@@ -1,0 +1,31 @@
+version: 1
+backend: azure
+features:
+  acquisition: actions # actions | collector (mutually exclusive)
+  ingress: public # public (OAuth) | private (external connectivity required)
+  analytics: none # none | adx (paid destination only, no exporter)
+  telemetry: none # none | otlp (external HTTPS collector required)
+  sessionDataLake: false # dedicated persistent host + private Blob + paid ADX
+  webhookGateway: false # separate receive/dispatch hosts; reviewed policy required
+azure:
+  # Example names must be replaced with your globally unique reviewed names.
+  parameters:
+    location: eastus
+    functionAppName: cao-example
+    storageAccountName: caoexamplesa
+    containerRegistryName: caoexampleacr
+    keyVaultName: cao-example-kv
+    functionImageTag: reviewed-image-tag
+    githubClientId: your-oauth-client-id
+    githubAllowedOrganizations: [your-organization]
+    # Explicitly preserve existing run/linked retention and snapshot window.
+    postgresRunRetentionDays: 45
+  # EXISTING input vault, separate from the destination vault created by Bicep.
+  # Values are secret NAMES, never passwords, PEMs, tokens or client secrets.
+  secretVaultId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/operator-secrets/providers/Microsoft.KeyVault/vaults/operator-secrets
+  secrets:
+    githubClientSecret: github-oauth-client-secret
+    sessionSecret: cao-session-secret
+    postgresAdministratorPassword: cao-postgres-admin-password
+    postgresOwnerPassword: cao-postgres-owner-password
+    postgresRuntimePassword: cao-postgres-runtime-password
