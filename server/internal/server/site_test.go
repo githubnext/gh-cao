@@ -41,6 +41,7 @@ func TestDashboardServesHTMLJavaScriptAndCSS(t *testing.T) {
 	}{
 		{"/", "text/html", "<main>Dashboard</main>"},
 		{"/repositories", "text/html", "<main>Dashboard</main>"},
+		{"/repositories/", "text/html", "<main>Dashboard</main>"},
 		{"/app.js", "javascript", `document.querySelector("main").textContent = "Dashboard loaded";`},
 		{"/app.css", "text/css", `main { color: green; }`},
 	} {
@@ -153,7 +154,7 @@ func testHostedHandlerServesDashboardAndAssets(t *testing.T, embedded bool) {
 				}
 			}
 			handler := app.Handler()
-			for _, path := range []string{"/", "/index.html", "/repositories", assetPath} {
+			for _, path := range []string{"/", "/index.html", "/repositories", "/repositories/", assetPath} {
 				response := httptest.NewRecorder()
 				handler.ServeHTTP(response, azureRequest(t, http.MethodGet, path))
 				if response.Code != http.StatusFound || response.Header().Get("Location") != "/auth/login" {
@@ -161,7 +162,7 @@ func testHostedHandlerServesDashboardAndAssets(t *testing.T, embedded bool) {
 				}
 			}
 			session, _ := callbackSession(t, app)
-			for _, path := range []string{"/", "/index.html", "/repositories", assetPath, "/api/auth/session"} {
+			for _, path := range []string{"/", "/index.html", "/repositories", "/repositories/", assetPath, "/api/auth/session"} {
 				request := azureRequest(t, http.MethodGet, path)
 				request.AddCookie(session)
 				response := httptest.NewRecorder()

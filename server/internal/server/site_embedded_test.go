@@ -87,7 +87,7 @@ func TestEmbeddedDashboardResources(t *testing.T) {
 			t.Fatalf("%s embedded byte range: %d, %d bytes", method, response.Code, response.Body.Len())
 		}
 	}
-	for _, endpoint := range []string{"/", "/repositories", "/src/agent/mcp-contract.json"} {
+	for _, endpoint := range []string{"/", "/repositories", "/repositories/", "/src/agent/mcp-contract.json"} {
 		request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "http://localhost"+endpoint, nil)
 		response := httptest.NewRecorder()
 		app.Handler().ServeHTTP(response, request)

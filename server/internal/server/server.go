@@ -2045,6 +2045,8 @@ func (a *App) static(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	clean := strings.TrimPrefix(request.URL.Path, "/")
+	trailingSlash := strings.HasSuffix(clean, "/")
+	clean = strings.TrimSuffix(clean, "/")
 	if clean == "" {
 		clean = "index.html"
 	}
@@ -2070,6 +2072,10 @@ func (a *App) static(response http.ResponseWriter, request *http.Request) {
 	defer func() { _ = file.Close() }()
 	info, err := file.Stat()
 	if err != nil {
+		http.NotFound(response, request)
+		return
+	}
+	if trailingSlash && !info.IsDir() {
 		http.NotFound(response, request)
 		return
 	}
