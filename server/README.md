@@ -38,11 +38,37 @@ From the repository root, `npm run dev` or `npm run dashboard:local` builds
 the dashboard and starts Go `serve` with its verified SQLite cache. The Node
 server is retired; only an internal loopback canvas authoring bridge remains.
 
+### Self-contained executable and disk-backed iteration
+
+After installing npm dependencies in the root, `dashboard/site`, and `server/spec`,
+build from the repository root:
+
+```sh
+npm run dashboard:server:bundle
+.tmp/cao-dashboard serve --sqlite /absolute/path/to/gh-aw-logs.sqlite
+```
+
+The executable embeds HTML, JavaScript, styles, icons, page chunks, queries,
+and MCP metadata. It runs without a checkout or Node.js; data, policy, and
+credentials remain external. All hosting profiles default to embedded resources.
+
+For disk-backed iteration, use `npm run dashboard:local`, or build the dashboard
+and run `go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist`.
+`--site` selects that build's assets and query/catalog metadata; individual
+metadata flags override those paths. Asset edits appear on the next request.
+Rebuild and restart after query/catalog changes. Invalid disk paths never fall
+back to embedded resources.
+
+`npm run dashboard:server:build` stages resources for subsequent `go build`.
+Without staging, source-only Go builds require `--site`. Release and container
+builds embed automatically. CI verifies all embedded assets and an executable
+launched outside the checkout.
+
 The Go local SQLite server also runs natively on Windows, without PostgreSQL,
 Redis, Docker, or Linux process features. From PowerShell at the repository root,
 build the dashboard with `npm --prefix dashboard/site run build -- dist`, then
-run `go -C server run ./cmd/cao-dashboard serve`. The POSIX environment-assignment
-syntax in the root npm launch commands is not supported by PowerShell's default
+run `go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist`.
+The POSIX environment-assignment syntax in the root npm launch commands is not supported by PowerShell's default
 npm shell; use the direct Go command there. Windows CI builds the native command
 and exercises snapshot download, offline startup, HTTP queries, and shutdown with
 local fixtures. Evidence-lake writers retain cross-process exclusion using
@@ -431,7 +457,7 @@ go -C server run ./cmd/cao-dashboard serve \
   --listen 127.0.0.1:8443
 ```
 
-The built site defaults to `dashboard/site/dist`. Use `--site` for a different
+The server defaults to embedded resources. Use `--site` for a disk-backed
 build directory and `--mcp-enabled` to expose the existing read-only MCP endpoint.
 Paths in this example resolve from `server/` because of `go -C server`.
 `gh cao download` prepares the default CAO snapshot; use `--url` with another

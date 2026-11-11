@@ -24,6 +24,7 @@ function fixture(t) {
   writeFileSync(fixtureScript, readFileSync(script));
   writeFileSync(join(directory, "scripts/generate-dashboard-ingest.mjs"),
     'if (process.argv[2] !== "--check") throw new Error("release must check the embedded normalizer");\n');
+  writeFileSync(join(directory, "scripts/prepare-dashboard-embed.mjs"), readFileSync(join(root, "scripts/prepare-dashboard-embed.mjs")));
   writeFileSync(join(bin, "npm"), `#!/usr/bin/env node
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -32,6 +33,11 @@ if (process.env.CAO_DASHBOARD_PROFILE !== "immediate") throw new Error("release 
 const output = args[args.indexOf("--") + 1];
 mkdirSync(output, { recursive: true });
 writeFileSync(join(output, "index.html"), "<html></html>");
+for (const name of ["dashboard.json", "src/agent/queries.generated.json", "src/agent/catalog.generated.json",
+  "src/agent/mcp-contract.json", "src/data/queries/database.json"]) {
+  mkdirSync(join(output, name, ".."), { recursive: true });
+  if (name !== process.env.RELEASE_BUILD_OMIT_RESOURCE) writeFileSync(join(output, name), "{}");
+}
 `, { mode: 0o755 });
   const log = join(directory, "go.jsonl");
   writeFileSync(join(bin, "go"), `#!/usr/bin/env node
@@ -60,6 +66,7 @@ test("release builder embeds the exact tag in every platform binary and seals ch
   const { log, output, run } = fixture(t);
   const result = run(["v1.2.3", output]);
   assert.equal(result.status, 0, result.stderr);
+  assert.equal(readFileSync(join(dirname(log), "server/internal/dashboardassets/resources/site/index.html"), "utf8"), "<html></html>");
   assert.deepEqual(readdirSync(output).sort(), [...platforms, "checksums.txt"].sort());
   const builds = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line));
   assert.equal(builds.length, platforms.length * 2);
@@ -106,6 +113,14 @@ test("release builder rejects missing or invalid versions before building", (t) 
   assert.notEqual(run(["v1.2.3", output, "extra"]).status, 0);
   assert.equal(existsSync(log), false);
   assert.equal(existsSync(output), false);
+});
+
+test("release builder rejects incomplete dashboard resources before compiling", (t) => {
+  const { log, output, run } = fixture(t);
+  const result = run(["v1.2.3", output], { RELEASE_BUILD_OMIT_RESOURCE: "src/agent/queries.generated.json" });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /queries\.generated\.json/);
+  assert.equal(existsSync(log), false);
 });
 
 test("release builder refuses empty output paths and existing output files", (t) => {

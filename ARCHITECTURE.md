@@ -264,6 +264,12 @@ separate work; persistence cannot recover evidence missing at admission or reduc
 canonical storage/downloads.
 
 The Go server is the unified local and hosted dashboard serving runtime.
+Self-contained builds embed the complete built site and declarative query/MCP
+resources through `server/internal/dashboardassets/`; serving defaults to those
+immutable resources. An explicit `--site` selects a disk-backed build for local
+iteration, without fallback to embedded assets on disk errors. Both resource
+modes use the same authenticated handler and server-side query bootstrap.
+Data snapshots, policy, credentials, and hosted storage remain external inputs.
 `npm run dev` and `npm run dashboard:local` build the site and invoke `serve`
 against a verified cached SQLite snapshot; `serve-hosted` retains the reviewed
 PostgreSQL/OAuth host. Explicit `serve-pages` serves a prepared static Pages

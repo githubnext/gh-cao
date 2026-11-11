@@ -7,6 +7,7 @@ export default [
       ".tmp/**",
       "dashboard/site/**",
       "node_modules/**",
+      "server/internal/dashboardassets/resources/site/**",
       "test-results/**",
       "tests/**",
     ],

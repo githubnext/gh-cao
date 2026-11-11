@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 	"github.com/githubnext/gh-cao/server/internal/hostedcli"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	operationalsqlite "github.com/githubnext/gh-cao/server/internal/operational/sqlite"
@@ -38,7 +39,7 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 			return errors.New("invalid operator repository scope")
 		}
 	}
-	catalog, err := hostedcli.LoadCatalog(filepath.Join(a.config.SiteDirectory, "dashboard.json"))
+	catalog, err := hostedcli.LoadCatalog(dashboardassets.Path(a.config.SiteDirectory, "dashboard.json"))
 	if err != nil {
 		return err
 	}
