@@ -8,16 +8,27 @@ if [[ "${ACCEPT_EULA:-}" != Y ]]; then
 fi
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=scripts/container-engine.sh
+source "$root/scripts/container-engine.sh"
+cao_container_engine_init
 image="mcr.microsoft.com/azuredataexplorer/kustainer-linux@sha256:230588624dbd95b8575f2493c0a7599d42d099b01b5875c239704f7cdfc65192"
-host="${DOCKER_HOST:-}"
-if [[ -n "${DOCKER_CONTEXT:-}" || -z "$host" ]]; then
-  host="$(docker context inspect "${DOCKER_CONTEXT:-$(docker context show)}" --format '{{.Endpoints.docker.Host}}')"
+if [[ "$CAO_CONTAINER_ENGINE" == podman ]]; then
+  if [[ "$(uname -s)" != Linux || -n "${CONTAINER_HOST:-}${CONTAINER_CONNECTION:-}${CONTAINER_SSHKEY:-}${DOCKER_HOST:-}${DOCKER_CONTEXT:-}" ]]; then
+    echo "Kusto acceptance requires Linux Podman --remote=false with no remote engine environment; Podman machines are not supported." >&2
+    exit 1
+  fi
+  docker_local=(podman --remote=false)
+else
+  host="${DOCKER_HOST:-}"
+  if [[ -n "${DOCKER_CONTEXT:-}" || -z "$host" ]]; then
+    host="$(docker context inspect "${DOCKER_CONTEXT:-$(docker context show)}" --format '{{.Endpoints.docker.Host}}')"
+  fi
+  if [[ "$host" != unix:///* || "$host" == *$'\n'* || "$host" == *'?'* || "$host" == *'#'* ]]; then
+    echo "Kusto acceptance requires a local Unix Docker socket, not a remote engine." >&2
+    exit 1
+  fi
+  docker_local=(docker --host "$host")
 fi
-if [[ "$host" != unix:///* || "$host" == *$'\n'* || "$host" == *'?'* || "$host" == *'#'* ]]; then
-  echo "Kusto acceptance requires a local Unix Docker socket, not a remote engine." >&2
-  exit 1
-fi
-docker_local=(docker --host "$host")
 container=""
 cleanup() {
   if [[ -n "$container" ]]; then

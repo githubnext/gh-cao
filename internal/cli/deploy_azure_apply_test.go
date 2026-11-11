@@ -291,7 +291,7 @@ func TestDeployAzureApplyHappyPathExactOrderingWithHeterogeneousOutputs(t *testi
 		}
 		return verifyTransport.RoundTrip(request)
 	})}
-	if err := deployAzureApply(context.Background(), deps, config, testDeployTemplatePath(t), plan, options); err != nil {
+	if err := deployAzureApply(context.Background(), deps, config, "", plan, options); err != nil {
 		t.Fatal(err)
 	}
 	var writes []string

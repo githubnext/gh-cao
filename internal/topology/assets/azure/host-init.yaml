@@ -1,0 +1,14 @@
+#cloud-config
+package_update: true
+packages:
+  - docker.io
+  - python3
+write_files:
+  - path: /opt/cao/ACTIVATION-REQUIRED
+    owner: root:root
+    permissions: '0600'
+    content: |
+      Infrastructure staged only. No CAO runtime, policy or credentials installed.
+      Complete the generated OPTIONAL-FEATURES.md before starting services.
+runcmd:
+  - [systemctl, enable, --now, docker]

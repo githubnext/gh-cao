@@ -24,20 +24,24 @@ func (r *DockerContainerLifecycle) RuntimeID(ctx context.Context) (string, error
 func (r *DockerContainerLifecycle) capture(ctx context.Context, args []string) (string, int, error) {
 	var value strings.Builder
 	overflow := false
+	limit := r.responseLimit
+	if limit == 0 {
+		limit = 4096
+	}
 	code, err := r.Commands.Run(ctx, Process{
-		Program: r.DockerBinary, Args: append([]string{"--context", "default"}, args...), Env: r.HostEnv,
+		Program: r.DockerBinary, Args: r.args(args...), Env: r.HostEnv,
 	}, func(stream string, data []byte) {
 		if stream != "stdout" {
 			return
 		}
-		if value.Len()+len(data) > 4096 {
+		if value.Len()+len(data) > limit {
 			overflow = true
 			return
 		}
 		_, _ = value.Write(data)
 	})
 	if overflow {
-		return "", code, errors.New("hosted CLI Docker response exceeded its limit")
+		return "", code, errors.New("hosted CLI container runtime response exceeded its limit")
 	}
 	return value.String(), code, err
 }
@@ -47,7 +51,7 @@ func (r *DockerContainerLifecycle) Stop(ctx context.Context, execution operation
 	// does not prove termination or permit releasing the durable claim.
 	r.stopEgress(execution.Name)
 	code, err := r.Commands.Run(ctx, Process{
-		Program: r.DockerBinary, Args: []string{"--context", "default", "rm", "--force", execution.Name}, Env: r.HostEnv,
+		Program: r.DockerBinary, Args: r.args("rm", "--force", execution.Name), Env: r.HostEnv,
 	}, nil)
 	if err == nil && code == 0 {
 		return nil
@@ -93,7 +97,7 @@ func (r *DockerContainerLifecycle) Start(ctx context.Context, execution operatio
 
 func (r *DockerContainerLifecycle) CollectOutput(ctx context.Context, execution operational.CLICommandExecution, output OutputFunc) error {
 	code, err := r.Commands.Run(ctx, Process{
-		Program: r.DockerBinary, Args: []string{"--context", "default", "logs", "--follow", execution.Name}, Env: r.HostEnv,
+		Program: r.DockerBinary, Args: r.args("logs", "--follow", execution.Name), Env: r.HostEnv,
 	}, output)
 	if ctx.Err() != nil {
 		return ctx.Err()

@@ -1,0 +1,29 @@
+# Synthetic review-only sample. Replace identities and image digests before deployment.
+version: 1
+backend: azure
+features:
+  deployment: azure-container-apps
+azure:
+  parameters:
+    location: eastus
+    deploymentName: example-containers
+    containerRegistryName: examplecaoacr
+    keyVaultName: example-cao-vault
+    dashboardImage: examplecaoacr.azurecr.io/cao-dashboard@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    provisioningImage: examplecaoacr.azurecr.io/cao-provision@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    ingestionImage: examplecaoacr.azurecr.io/cao-ingest@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    runtimeEnabled: false
+    # Illustrative only: verify actual ingress peers, not client addresses.
+    trustedProxyCidrs: [10.45.0.0/23]
+    githubClientId: example-client-id
+    githubAllowedOrganizations: [example-org]
+    githubAdminUsers: [example-admin]
+    postgresRunRetentionDays: 45
+  secretVaultId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/example-secrets/providers/Microsoft.KeyVault/vaults/example-secrets
+  secrets:
+    githubClientSecret: github-client-secret
+    sessionSecret: session-secret
+    githubWebhookSecret: webhook-secret
+    postgresAdministratorPassword: postgres-admin-password
+    postgresOwnerPassword: postgres-owner-password
+    postgresRuntimePassword: postgres-runtime-password

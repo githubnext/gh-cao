@@ -225,14 +225,14 @@ func TestAppleRuntimeIdentityAndRecovery(t *testing.T) {
 
 func TestAppleRuntimeIdentityCorruptionFailsClosed(t *testing.T) {
 	root := t.TempDir()
-	seed, err := appleRuntimeSeed(root)
+	seed, err := containerRuntimeSeed(root)
 	if err != nil || len(seed) != 32 {
 		t.Fatalf("native identity initialization: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(root, "cao-hosted-cli", "identity"), []byte("corrupt"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := appleRuntimeSeed(root); err == nil {
+	if _, err := containerRuntimeSeed(root); err == nil {
 		t.Fatal("corrupt native runtime identity was silently replaced")
 	}
 }

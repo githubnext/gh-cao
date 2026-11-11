@@ -1,0 +1,68 @@
+# CAO Azure topology
+
+Review-only output from **gh cao deploy generate**. The solver uses Puccini's
+TOSCA Simple Profile 1.3 parser/compiler/requirement resolver in the Go process.
+No Node.js, cloud calls, App creation, deployments or job starts are involved.
+Generation compiles every emitted `.bicep` file with Microsoft's official
+`bicep build --no-restore --stdout` before publishing this folder. Compiler
+errors or a missing Bicep CLI fail generation; warnings are reported.
+This is syntax/type/linter validation, not live Azure deployment acceptance.
+
+Start with [MANIFEST.md](MANIFEST.md) for Mermaid architecture and dependency
+diagrams. [topology.yaml](topology.yaml) is the standard TOSCA service template;
+topology.json is its deterministic resolved dependency projection, not a second
+topology language. manifest.json binds the generated files by SHA-256.
+AGENT-MCP.md and the architecture diagram show Actions agents' separate
+bearer-token plus OIDC provenance path. It is not enabled by generation.
+
+## Review and use
+
+1. Complete [TODO.md](TODO.md) and [GITHUB-APPS.md](GITHUB-APPS.md).
+   Keep this folder private; it contains identities and secret references,
+   never secret values.
+2. Follow the [Azure bootstrap guide](https://github.com/githubnext/gh-cao/blob/main/docs/deployment-azure.md#bootstrap-steps)
+   for registry bootstrap, approved policy build contexts, separately built
+   Functions/provisioning/ingestion images, reviewed digests and evidence.
+   Bicep creates ACR, but does not build images.
+3. Run `bash scripts/validate.sh` and
+   `bash scripts/what-if.sh SUBSCRIPTION_ID RESOURCE_GROUP`.
+   Review the exact Bicep, parameters and what-if before your separately
+   approved deployment process. No generated script applies changes.
+4. Wait for successful database provisioning before starting any database-owning
+   role. {{if eq .Topology.Features.Acquisition "collector"}}Pin reviewed inventory before starting collectors. Do NOT start snapshot ingestion.{{else}}Run verified snapshot or deliberately empty ingestion only after provisioning.{{end}}
+5. Verify health, readiness, signed-out API denial, allowed/disallowed OAuth
+   sign-in, independent SCM denial, image digests and retention on every role.
+{{if .Optional}}
+6. Review [OPTIONAL-FEATURES.md](OPTIONAL-FEATURES.md). Optional hosts are a
+   separate deployment AFTER the baseline. Their runtimes remain staged until
+   policy, credentials and independent acceptance evidence are satisfied.
+{{end}}
+
+The Azure baseline's Bicep files are byte-for-byte copies embedded in the
+generating CLI. Its manual ingestion job is provisioned even in collector mode;
+presence does not authorize running it. TOSCA DependsOn relationships describe
+configuration/bootstrap prerequisites, NOT replacement ARM scheduling.
+
+{{if eq .Topology.Features.Ingress "private"}}Private ingress disables public access. The baseline does NOT create a Functions
+private endpoint, proxy, VPN, DNS or approved client connectivity. Arrange and
+verify these externally, including OAuth callbacks and webhook delivery.
+{{end}}
+{{if eq .Topology.Features.Analytics "adx"}}The baseline's paid ADX destination does not enable export, create runtime
+schema or grant an exporter. Azure Functions is not an exporter host.
+{{end}}
+
+## Checking and reproducibility
+
+`gh cao deploy check /absolute/path/to/this-folder` re-solves requirements
+with the real TOSCA engine, validates dependency closure/order/cycles and
+feature/parameter/secret consistency, and detects file drift and orphaned output.
+Keep the generating CLI release: newer embedded source revisions can intentionally
+reject an older bundle. This is not a signed attestation or live readiness check.
+Edit requirements.yaml and generate a NEW folder; do not hand-edit outputs.
+
+The Azure baseline is experimental, not production-assured or a certified
+service. This bundle is not the native deployment CLI's guarded apply plan.
+External prerequisites remain unverified, and no authority is inferred from
+credentials, topology validation or provisioning.
+Turning features off does not tear down resources, stop existing runtimes,
+revoke Apps or erase evidence; removal requires a separate reviewed procedure.

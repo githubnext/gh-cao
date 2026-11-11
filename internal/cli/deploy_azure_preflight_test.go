@@ -168,7 +168,7 @@ func TestDeployAzurePreflightTable(t *testing.T) {
 	t.Chdir(t.TempDir())
 	fake := &fakeAz{t: t, overrides: map[string]fakeAzResponse{"acr check-name": {stdout: `{"nameAvailable":false,"reason":"AlreadyExists","message":"taken"}`}}}
 	root, stdout, _ := testDeployRoot(fake)
-	root.SetArgs([]string{"deploy", "azure", "--preflight", "--config", writeDeployConfig(t, testDeployConfig()), "--template", testDeployTemplatePath(t)})
+	root.SetArgs([]string{"deploy", "azure", "--preflight", "--config", writeDeployConfig(t, testDeployConfig())})
 	err := root.Execute()
 	if err == nil || !strings.Contains(err.Error(), "name-container-registry") {
 		t.Fatalf("expected failing preflight error naming the check, got %v", err)
@@ -387,7 +387,7 @@ func TestDeployAzurePreflightWorksWithoutSecrets(t *testing.T) {
 	t.Chdir(t.TempDir())
 	fake := &fakeAz{t: t}
 	root, stdout, _ := testDeployRootWith(fake, func(string) (string, bool) { return "", false })
-	root.SetArgs([]string{"deploy", "azure", "--preflight", "--config", writeDeployConfig(t, testDeployConfig()), "--template", testDeployTemplatePath(t)})
+	root.SetArgs([]string{"deploy", "azure", "--preflight", "--config", writeDeployConfig(t, testDeployConfig())})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("preflight should not require secrets: %v\n%s", err, stdout)
 	}
@@ -407,7 +407,6 @@ func TestDeployAzurePreflightModeFlags(t *testing.T) {
 		{[]string{"--preflight", "--out", filepath.Join(t.TempDir(), "p.json")}, "--out is not valid with --preflight"},
 		{[]string{"--preflight", "--plan-file", "p.json"}, "--plan-file is only valid with --apply"},
 		{[]string{"--json"}, "--json is only valid with --preflight"},
-		{[]string{"--preflight"}, "--template"},
 	} {
 		fake := &fakeAz{t: t}
 		root, _, _ := testDeployRoot(fake)

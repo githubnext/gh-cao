@@ -10,7 +10,7 @@ const accessToken = process.env.DASHBOARD_SERVER_ACCESS_TOKEN
   || "0123456789abcdef0123456789abcdef";
 const source = `${repositoryRoot}/test-results/dashboard-server/fixture`;
 const serverCommand = process.env.DASHBOARD_SERVER_COMMAND
-  || `go -C "${repositoryRoot}/server" run ./cmd/cao-dashboard serve --source "${source}" --access-token ${accessToken}`;
+  || `go -C "${repositoryRoot}/server" run ./cmd/cao-dashboard serve --site "${repositoryRoot}/dashboard/site/dist" --source "${source}" --access-token ${accessToken}`;
 
 export default defineConfig({
   testDir: "../../e2e",

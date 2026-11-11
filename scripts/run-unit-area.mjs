@@ -15,7 +15,7 @@ export const unitTestAreas = {
     /^add-operational-value-skill\./, /^token-intervention-lifecycle\./,
   ],
   tooling: [
-    /^cao-/, /^ops-publish/, /^optimization-/, /^dependabot-/, /^azure-local-/,
+    /^cao-/, /^ops-publish/, /^optimization-/, /^dependabot-/, /^azure-local-/, /^container-engine\./, /^podman-ci\./,
     /^eslint-rules-/, /^actions-context\./, /^actions-runtime\./, /^agent-plugin\./,
     /^install-script\./, /^installer-canary\./, /^repository-/, /^no-hardcoded-github-actions-url\./,
     /^token-optimization-data-contract\./, /^unit-area-selection\./,

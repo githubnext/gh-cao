@@ -3,6 +3,8 @@ set -euo pipefail
 umask 077
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=scripts/container-engine.sh
+source "$ROOT/scripts/container-engine.sh"
 PROFILE="${AZURE_LOCAL_PROFILE:-synthetic}"
 if [[ "${1:-}" == dev ]]; then
   [[ -z "${AZURE_LOCAL_PROFILE:-}" || "$PROFILE" == github ]] || {
@@ -29,7 +31,7 @@ RUNTIME_JSON="$STATE_DIR/runtime.json"
 HARNESS_VERSION=7
 CORE_TOOLS_VERSION=4.15.1
 PLATFORM_HELPER="$ROOT/scripts/azure-local/platform.py"
-POSTGRES_IMAGE=postgres:16-alpine
+POSTGRES_IMAGE=docker.io/library/postgres:16-alpine
 AZURITE_IMAGE=mcr.microsoft.com/azure-storage/azurite:3.37.0@sha256:830430c1da1a2d537e08f3e6764dd1f5ae00cf0346bcaf625b968ec3f0971fd5
 AZURITE_ACCOUNT=caoazurelocal
 WAIT_TIMEOUT="${AZURE_LOCAL_WAIT_TIMEOUT:-120}"
@@ -63,10 +65,11 @@ sha256() {
 
 require_commands() {
   local command
-  for command in curl docker go node python3 ps unzip; do
+  for command in curl go node python3 ps unzip; do
     command -v "$command" >/dev/null 2>&1 || fail "required command not found: $command"
   done
-  docker info >/dev/null 2>&1 || fail "Docker is not available"
+  cao_container_engine_init
+  cao_container info >/dev/null 2>&1 || fail "$CAO_CONTAINER_ENGINE is not available"
 }
 
 check_state_profile() {
@@ -95,10 +98,13 @@ prepare_state() {
 load_runtime() {
   check_state_profile
   [[ -f "$RUNTIME_ENV" ]] || fail "no harness state found at $STATE_DIR; run start first"
+  # Older harness state belongs to Docker, regardless of the caller's selection.
+  CAO_CONTAINER_ENGINE=docker
   # shellcheck disable=SC1090
   source "$RUNTIME_ENV"
   [[ "${STATE_PROFILE:-synthetic}" == "$PROFILE" ]] ||
     fail "state belongs to a different profile; select its profile and stop it first"
+  cao_container_engine_init
 }
 
 write_env_value() {
@@ -115,7 +121,7 @@ PY
 }
 
 container_port() {
-  docker port "$1" "$2/tcp" | awk -F: 'END { print $NF }'
+  cao_container port "$1" "$2/tcp" | awk -F: 'END { print $NF }'
 }
 
 install_core_tools_locked() {
@@ -160,8 +166,8 @@ capture_container_logs() {
   local id name
   id="$1"
   name="$2"
-  if [[ -n "$id" ]] && docker inspect "$id" >/dev/null 2>&1; then
-    docker logs "$id" >"$LOG_DIR/$name.log" 2>&1 || true
+  if [[ -n "$id" ]] && cao_container inspect "$id" >/dev/null 2>&1; then
+    cao_container logs "$id" >"$LOG_DIR/$name.log" 2>&1 || true
   fi
 }
 
@@ -195,11 +201,27 @@ process_group_matches() {
   python3 "$PLATFORM_HELPER" group "${FUNCTIONS_PGID:-}" "$APP_DIR/cao-dashboard"
 }
 
+remove_owned_container() {
+  local id remaining
+  id="$1"
+  [[ -n "$id" ]] || return 0
+  if cao_container rm -f "$id" --volumes >/dev/null 2>&1; then
+    return 0
+  fi
+  # An inspect error is not absence: require successful exact-ID inventory.
+  if remaining="$(cao_container ps --all --quiet --no-trunc --filter "id=$id")" &&
+    [[ -z "$remaining" ]]; then
+    return 0
+  fi
+  printf 'azure-local: cannot confirm removal of %s from %s; recovery state retained at %s\n' \
+    "$id" "$CAO_CONTAINER_ENGINE" "$STATE_DIR" >&2
+  return 1
+}
+
 stop_internal() {
   prepare_state
   if [[ -f "$RUNTIME_ENV" ]]; then
-    # shellcheck disable=SC1090
-    source "$RUNTIME_ENV"
+    load_runtime || return 1
   fi
   if process_start_matches "${FUNCTIONS_PID:-}" "${FUNCTIONS_START_TIME:-}" ||
     process_group_matches; then
@@ -231,10 +253,13 @@ stop_internal() {
   fi
   capture_container_logs "${AZURITE_CONTAINER_ID:-}" azurite
   capture_container_logs "${POSTGRES_CONTAINER_ID:-}" postgres
-  [[ -z "${AZURITE_CONTAINER_ID:-}" ]] || docker rm -f "$AZURITE_CONTAINER_ID" --volumes >/dev/null 2>&1 || true
-  [[ -z "${POSTGRES_CONTAINER_ID:-}" ]] || docker rm -f "$POSTGRES_CONTAINER_ID" --volumes >/dev/null 2>&1 || true
+  local removal_failed=0
+  remove_owned_container "${AZURITE_CONTAINER_ID:-}" || removal_failed=1
+  remove_owned_container "${POSTGRES_CONTAINER_ID:-}" || removal_failed=1
+  (( removal_failed == 0 )) || return 1
   rm -rf "$APP_DIR"
   rm -f "$RUNTIME_ENV" "$RUNTIME_JSON"
+  unset POSTGRES_CONTAINER_ID AZURITE_CONTAINER_ID FUNCTIONS_PID FUNCTIONS_START_TIME FUNCTIONS_PGID
 }
 
 poll() {
@@ -254,7 +279,7 @@ poll() {
 }
 
 postgres_ready() {
-  docker exec "$1" pg_isready -U postgres -d cao
+  cao_container exec "$1" pg_isready -U postgres -d cao
 }
 
 azurite_ready() {
@@ -348,12 +373,10 @@ except OSError:
 PY
   fi
   require_commands
+  local requested_engine="$CAO_CONTAINER_ENGINE"
   prepare_state
   if [[ -f "$RUNTIME_ENV" ]]; then
-    # shellcheck disable=SC1090
-    source "$RUNTIME_ENV"
-    [[ "${STATE_PROFILE:-synthetic}" == "$PROFILE" ]] ||
-      fail "state belongs to a different profile; select its profile and stop it first"
+    load_runtime || return 1
     [[ "$PROFILE" != github ]] ||
       fail "GitHub stack state already exists; stop it explicitly before restarting with new configuration"
     if [[ "${STATE_HARNESS_VERSION:-}" == "$HARNESS_VERSION" ]] &&
@@ -362,11 +385,14 @@ PY
       printf 'azure-local: matching stack is already running at %s\n' "$STATE_DIR"
       return
     fi
-    stop_internal
+    stop_internal || return 1
   fi
+  CAO_CONTAINER_ENGINE="$requested_engine"
+  cao_container_engine_init
 
   : >"$RUNTIME_ENV"
   chmod 600 "$RUNTIME_ENV"
+  write_env_value CAO_CONTAINER_ENGINE "$CAO_CONTAINER_ENGINE"
   local previous_exit_trap
   previous_exit_trap="$(trap -p EXIT || true)"
   trap 'stop_internal' EXIT
@@ -389,16 +415,16 @@ PY
   local postgres_password=""
   if [[ "$PROFILE" == github ]]; then
     postgres_password="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
-    POSTGRES_CONTAINER_ID="$(POSTGRES_PASSWORD="$postgres_password" docker run -d --name "$postgres_name" \
+    POSTGRES_CONTAINER_ID="$(POSTGRES_PASSWORD="$postgres_password" cao_container run -d --name "$postgres_name" \
       -p 127.0.0.1::5432 -e POSTGRES_DB=cao -e POSTGRES_PASSWORD "$POSTGRES_IMAGE")"
   else
-    POSTGRES_CONTAINER_ID="$(docker run -d --name "$postgres_name" -p 127.0.0.1::5432 \
+    POSTGRES_CONTAINER_ID="$(cao_container run -d --name "$postgres_name" -p 127.0.0.1::5432 \
       -e POSTGRES_DB=cao -e POSTGRES_HOST_AUTH_METHOD=trust "$POSTGRES_IMAGE")"
   fi
   write_env_value POSTGRES_CONTAINER_ID "$POSTGRES_CONTAINER_ID"
   postgres_port="$(container_port "$POSTGRES_CONTAINER_ID" 5432)"
 
-  AZURITE_CONTAINER_ID="$(docker run -d --name "$azurite_name" \
+  AZURITE_CONTAINER_ID="$(cao_container run -d --name "$azurite_name" \
     -p 127.0.0.1::10000 -p 127.0.0.1::10001 -p 127.0.0.1::10002 \
     -e "AZURITE_ACCOUNTS=$AZURITE_ACCOUNT:$azurite_key" \
     "$AZURITE_IMAGE" azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 \
@@ -457,6 +483,7 @@ PY
     "FUNCTIONS_WORKER_RUNTIME": "custom",
     "AzureWebJobsStorage": "$storage_connection",
     "CAO_AZURE_ALLOWED_HOSTS": "127.0.0.1,localhost",
+    "CAO_AZURE_SITE_DIRECTORY": "$APP_DIR/site",
     "CAO_AZURE_DASHBOARD_QUERIES": "$ROOT/dashboard/site/dashboard.json",
     "CAO_DATABASE_QUERIES": "$ROOT/dashboard/site/src/data/queries/database.json",
     "CAO_AZURE_LOCAL_SIMULATION": "1",
@@ -519,7 +546,7 @@ JSON
 }
 
 wait_for_stack() {
-  load_runtime
+  load_runtime || return 1
   poll Postgres postgres_ready "$POSTGRES_CONTAINER_ID"
   poll Azurite azurite_ready "http://127.0.0.1:$AZURITE_BLOB_PORT/$AZURITE_ACCOUNT?comp=list"
   poll "Azure Functions host" functions_ready "http://127.0.0.1:$FUNCTIONS_PORT"
@@ -528,7 +555,7 @@ wait_for_stack() {
 
 test_stack() {
   [[ "$PROFILE" == synthetic ]] || fail "integration tests require the synthetic profile"
-  load_runtime
+  load_runtime || return 1
   run_logged "Azure service integration" service-integration-test.log \
     node "$ROOT/tests/integration/azure-local-services.test.mjs" "$RUNTIME_JSON"
   run_logged "Azure Functions integration" integration-test.log \
@@ -542,7 +569,7 @@ logs() {
     return
   }
   if [[ -f "$RUNTIME_ENV" ]]; then
-    load_runtime
+    load_runtime || return 1
     capture_container_logs "${AZURITE_CONTAINER_ID:-}" azurite
     capture_container_logs "${POSTGRES_CONTAINER_ID:-}" postgres
   fi
@@ -562,9 +589,9 @@ logs() {
 stop() {
   check_state_profile
   if [[ -f "$RUNTIME_ENV" ]]; then
-    load_runtime
+    load_runtime || return 1
   fi
-  stop_internal
+  stop_internal || return 1
   printf 'azure-local: stopped stack; logs retained at %s\n' "$LOG_DIR"
 }
 

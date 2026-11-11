@@ -38,11 +38,37 @@ From the repository root, `npm run dev` or `npm run dashboard:local` builds
 the dashboard and starts Go `serve` with its verified SQLite cache. The Node
 server is retired; only an internal loopback canvas authoring bridge remains.
 
+### Self-contained executable and disk-backed iteration
+
+After installing npm dependencies in the root, `dashboard/site`, and `server/spec`,
+build from the repository root:
+
+```sh
+npm run dashboard:server:bundle
+.tmp/cao-dashboard serve --sqlite /absolute/path/to/gh-aw-logs.sqlite
+```
+
+The executable embeds HTML, JavaScript, styles, icons, page chunks, queries,
+and MCP metadata. It runs without a checkout or Node.js; data, policy, and
+credentials remain external. All hosting profiles default to embedded resources.
+
+For disk-backed iteration, use `npm run dashboard:local`, or build the dashboard
+and run `go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist`.
+`--site` selects that build's assets and query/catalog metadata; individual
+metadata flags override those paths. Asset edits appear on the next request.
+Rebuild and restart after query/catalog changes. Invalid disk paths never fall
+back to embedded resources.
+
+`npm run dashboard:server:build` stages resources for subsequent `go build`.
+Without staging, source-only Go builds require `--site`. Release and container
+builds embed automatically. CI verifies all embedded assets and an executable
+launched outside the checkout.
+
 The Go local SQLite server also runs natively on Windows, without PostgreSQL,
 Redis, Docker, or Linux process features. From PowerShell at the repository root,
 build the dashboard with `npm --prefix dashboard/site run build -- dist`, then
-run `go -C server run ./cmd/cao-dashboard serve`. The POSIX environment-assignment
-syntax in the root npm launch commands is not supported by PowerShell's default
+run `go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist`.
+The POSIX environment-assignment syntax in the root npm launch commands is not supported by PowerShell's default
 npm shell; use the direct Go command there. Windows CI builds the native command
 and exercises snapshot download, offline startup, HTTP queries, and shutdown with
 local fixtures. Evidence-lake writers retain cross-process exclusion using
@@ -431,7 +457,7 @@ go -C server run ./cmd/cao-dashboard serve \
   --listen 127.0.0.1:8443
 ```
 
-The built site defaults to `dashboard/site/dist`. Use `--site` for a different
+The server defaults to embedded resources. Use `--site` for a disk-backed
 build directory and `--mcp-enabled` to expose the existing read-only MCP endpoint.
 Paths in this example resolve from `server/` because of `go -C server`.
 `gh cao download` prepares the default CAO snapshot; use `--url` with another
@@ -2000,15 +2026,12 @@ settings:
 | `CAO_GITHUB_LOCAL_USER` | Optional exact developer login for [single-user local OAuth](#local-oauth-without-organization-access); removes organization scopes/checks only on a direct loopback HTTPS listener. Cannot be combined with organization/team/SSO policy. |
 | `CAO_GITHUB_ADMIN_USERS` | Required comma-separated GitHub logins allowed to trigger rebuilds. |
 | `CAO_GITHUB_WEBHOOK_SECRET` | Required GitHub webhook signature secret of at least 32 characters. |
-| `CAO_SOURCE_DIRECTORY` | Required authoritative deployed gh-aw artifact directory used by rebuild/reconciliation. |
+| `CAO_SOURCE_DIRECTORY` | Snapshot directory for startup/rebuild; required unless collection or external ingestion is selected. |
+| `CAO_EXTERNAL_INGESTION` | Explicit `true` for [separate jobs](../docs/deployment-topology.md#azure-container-apps); excludes source/collector. Default `false`. |
 
-Hosted HTTPS enforcement cannot be disabled. Forwarded host and protocol
-headers are trusted only when the service is bound to loopback; externally
-reachable listeners validate their direct TLS connection and `Host` header.
-Supply secrets through the deployment platform's secret manager (for example,
-Key Vault references, Kubernetes Secrets mounted into the process environment,
-or an equivalent managed facility), never command-line arguments or checked-in
-configuration.
+Hosted HTTPS is mandatory. Direct TLS validates `Host`; forwarded headers
+require loopback or explicitly trusted private proxy CIDRs. Use the platform
+secret manager, never policy or command-line secrets.
 
 ### Administrator step-up
 
@@ -2233,7 +2256,8 @@ Never put the key in checked-in configuration, command arguments, logs, or the
 | `CAO_HOSTED_CLI_DASHBOARD_URL` | Dashboard URL used in command backlinks. |
 | `CAO_HOSTED_CLI_CONTAINER_IMAGE` | Optional digest-pinned gh-aw image or approved mirror; defaults to `ghcr.io/github/gh-aw@sha256:7ff77dc03182d4edcebc902fa94b0239eb9cde65ea212509aef700bcab354090`. |
 | `CAO_HOSTED_CLI_DOCKER` | Optional Docker CLI path; defaults to `docker`. |
-| `CAO_HOSTED_CLI_CONTAINER_RUNTIME` | `docker` (default), `apple`, or `windows-sandbox`. Native profiles require `execute-cli --sqlite` and the matching OS; there is no automatic fallback. |
+| `CAO_HOSTED_CLI_CONTAINER_RUNTIME` | `docker` (default), `podman`, `apple`, `windows-sandbox`; no fallback. Alternates require `execute-cli --sqlite` and matching OS. Podman: rootless Linux only; no remote/machine, production PostgreSQL or egress settings. |
+| `CAO_HOSTED_CLI_PODMAN` | Podman binary override; defaults to `podman`. |
 | `CAO_HOSTED_CLI_EGRESS_POLICY_FILE` | Required production Docker exact-host HTTPS policy file; see the rollout contract below. No implicit allowed hosts. |
 | `CAO_HOSTED_CLI_EGRESS_RELAY` | Required production path to the static Linux relay artifact built from the reviewed server source. |
 | `CAO_HOSTED_CLI_EGRESS_RELAY_SHA256` | Required reviewed SHA-256 of that relay artifact. Startup snapshots and verifies the bytes; each create verifies the Linux daemon architecture. |
@@ -2340,7 +2364,7 @@ obligations, and workspace follow existing bounded stop/recovery rules.
 
 SQLite-only Docker development keeps its previous bridge behavior **only when
 all three egress settings are absent**. Supplying any setting opts into the
-complete boundary and fails closed if anything is unavailable. Apple and Windows
+complete boundary and fails closed if anything is unavailable. Podman, Apple and Windows
 remain explicit SQLite-only development profiles, not production fallbacks.
 
 Before enabling production admission, run the credential-free real-boundary
@@ -2360,13 +2384,14 @@ It does not write to GitHub or use real credentials. Missing
 do not switch contexts to avoid it. Deterministic policy, proxy and lifecycle
 tests run without Docker but are not evidence of the kernel boundary.
 
-#### Native runtimes for local development
+#### Alternate runtimes for local development
 
-Native runtime selection changes only execution isolation. Keep the existing
-OAuth/App configuration, durable session-secret configuration, scoped tokens,
-and loopback-only SQLite debug server; never substitute a disposable secret or
-run the hosted command directly on the host. Native profiles are rejected for
-the production PostgreSQL executor.
+Alternate runtimes change isolation only. Keep OAuth/App configuration, durable
+session secrets, scoped tokens and loopback-only SQLite; never use disposable
+secrets or run hosted commands directly on the host. Production PostgreSQL
+rejects alternates.
+
+See [Podman and private SELinux label requirements](../specs/server-hosted-cli.md#6a-alternate-local-development-profiles).
 
 On **Apple Silicon macOS 26**, install Apple's
 [`container` CLI](https://github.com/apple/container) and start its services:
@@ -4029,21 +4054,20 @@ guidance, limitations, and private vulnerability-reporting process.
 
 ## Run locally
 
-The module targets and pins Go 1.27.3.
+Go 1.27.3 is pinned.
 
-On a MacBook, install Homebrew first and run the idempotent project setup:
+On macOS with Homebrew:
 
 ```bash
 npm run dashboard:server:setup:macos
 ```
 
-The command installs Homebrew Go, Node.js 24, the Docker CLI, Docker Compose,
-Colima, and the dashboard npm dependencies. Docker and the optional
-PostgreSQL/Redis stack in `server/docker-compose.yml` are not required for the
-default SQLite profile; the setup does not install or start a native Redis
-service.
+Installs Go, Node.js 24, npm packages and Docker/Compose/Colima.
+`CAO_CONTAINER_ENGINE=podman` selects Podman/Compose (no Colima); default Docker
+never falls back. See [setup](../scripts/azure-local/README.md#local-service-engine-setup).
+SQLite needs neither containers nor native Redis.
 
-From the repository root, start with the default SQLite cache:
+From the repository root (default SQLite):
 
 ```bash
 npm --prefix dashboard/site ci
@@ -4052,13 +4076,13 @@ npm run dashboard:server:build
 go -C server run ./cmd/cao-dashboard serve
 ```
 
-The server downloads the deployed snapshot if missing and reuses it offline on
-later starts. To exercise PostgreSQL instead, start the optional database stack,
-configure `CAO_POSTGRES_URL`, and provision storage as described in
+Missing deployed snapshots are downloaded and reused offline.
+For PostgreSQL, start the optional stack, configure `CAO_POSTGRES_URL`, and
+provision storage per
 [`POSTGRES.md`](POSTGRES.md) before ingesting:
 
 ```bash
-docker compose -f server/docker-compose.yml up -d
+bash scripts/container-compose.sh -f server/docker-compose.yml up -d
 
 go -C server run ./cmd/cao-dashboard ingest \
   --source /absolute/path/to/deployed-dashboard

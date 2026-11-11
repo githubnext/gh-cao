@@ -42,6 +42,7 @@ COPY internal/dashboardquery/go.mod internal/dashboardquery/go.sum /workspace/in
 RUN go mod download
 COPY server/ ./
 COPY internal/dashboardquery/ /workspace/internal/dashboardquery/
+COPY --from=dashboard-build /workspace/dashboard/site/dist/ ./internal/dashboardassets/resources/site/
 RUN CGO_ENABLED=0 go build \
     -trimpath \
     -ldflags="-s -w -X main.version=${VERSION} -X main.revision=${REVISION}" \
@@ -92,7 +93,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD ["sh", "-c", "host=\"${CAO_ALLOWED_HOSTS%%,*}\"; test -n \"${host}\" && wget -q -T 4 -O /dev/null --header=\"X-Forwarded-Host: ${host}\" --header=\"X-Forwarded-Proto: https\" http://127.0.0.1:8080/api/readiness"]
 
 ENTRYPOINT ["/app/cao-dashboard"]
-CMD ["serve-hosted", "--listen", "0.0.0.0:8080", "--site", "/app/site", "--dashboard-queries", "/app/agent/queries.json", "--database-queries", "/app/queries/database.json"]
+CMD ["serve-hosted", "--listen", "0.0.0.0:8080"]
 
 FROM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8 AS azure-functions-runtime
 

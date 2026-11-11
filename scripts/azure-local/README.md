@@ -10,10 +10,11 @@ or managed PostgreSQL TLS; those remain real-Azure smoke-test concerns.
 
 ## Prerequisites
 
-- Linux or macOS on x64 or arm64, with Bash, Docker, Go, Node.js, Python 3,
+- Linux or macOS on x64 or arm64, with Bash, Docker or Podman, Go, Node.js, Python 3,
   curl, `ps`, and unzip. macOS's bundled Bash and Python 3.9 are supported;
   GNU utilities and a separate Core Tools installation are not required.
-- A running local Docker daemon (for example, Docker Desktop or Colima on macOS)
+- A running local Docker daemon (default, for example Docker Desktop or Colima on
+  macOS) or explicitly selected working Podman engine
 - Cached Go dependencies for both the root Azure deployment CLI and Go server.
   Populate these before entering the hermetic service tests:
 
@@ -33,6 +34,50 @@ Run the complete suite:
 npm run test:integration:azure-services
 ```
 
+For Podman, use `CAO_CONTAINER_ENGINE=podman npm run test:integration:azure-services`.
+Only `docker` and `podman` are accepted; no installed-engine fallback occurs.
+This harness uses the engine directly and does not require Compose. PostgreSQL
+uses the fully qualified `docker.io/library/postgres:16-alpine` image.
+The selected engine is persisted in `runtime.env`; subsequent `wait`, `logs` and
+`stop` restore that selection even if the caller selects another engine.
+State created before engine selection was introduced belongs to Docker.
+Keep the original engine's context/connection unchanged while a stack is running.
+
+## Local service engine setup
+
+The npm Redis, PostgreSQL and telemetry commands and backfill harness also use
+`CAO_CONTAINER_ENGINE=docker|podman`, with Docker as the default. Missing or
+invalid selections fail rather than switching engines. Docker supports
+`docker compose` or legacy `docker-compose`; Podman requires `podman compose`
+with an installed provider (`podman-compose` or `docker-compose`, optionally
+selected using `PODMAN_COMPOSE_PROVIDER`). Use the same engine when bringing
+a Compose stack down.
+
+The backfill harness specifically requires **Docker Compose v2** as Podman's
+provider: its `up --wait`, `--wait-timeout` and `--pull never` behavior is required.
+Set `PODMAN_COMPOSE_PROVIDER` to the Docker Compose v2 executable (for example
+`docker-compose` or its CLI-plugin path). Backfill checks the provider version
+and required flags before creating resources, rejecting `podman-compose` with
+an actionable error. The simpler Redis/PostgreSQL service commands may still
+use `podman-compose`.
+
+On macOS, run
+`CAO_CONTAINER_ENGINE=podman npm run dashboard:server:setup:macos`
+to install Go, Node.js, dashboard dependencies, Podman and `podman-compose`,
+without Docker or Colima. Then:
+
+```sh
+podman machine init   # once, if no machine exists
+podman machine start
+export CAO_CONTAINER_ENGINE=podman
+export PODMAN_COMPOSE_PROVIDER=podman-compose
+npm run dashboard:server:postgres-up
+```
+
+Default macOS setup still installs Docker/Compose/Colima. Podman machines are
+allowed for ordinary local services and the Azure harness, but not for
+the stricter [Kusto acceptance](../../server/KUSTO-ACCEPTANCE.md). These settings
+do not change hosted/container deployment authority.
 On macOS, start your Docker runtime first (for example, `colima start`).
 The same command builds the native Go server, bootstraps disposable databases,
 starts the real Functions host, runs the service and HTTP integration cases, and
@@ -81,8 +126,15 @@ is enabled. This profile exercises real GitHub.com authentication, not simulated
 GitHub APIs; successful login still requires valid credentials and authorized
 organization membership.
 
+Both local profiles explicitly serve files from the state's `function-app/site/`
+directory, not the executable's embedded dashboard. Edit generated JavaScript or
+CSS there and reload the browser without rebuilding Go. For source edits, rebuild
+the dashboard into that directory; restart the server after query/catalog changes.
+The directory is disposable and removed on stop, so retain changes in source files.
+
 | Environment variable | Development behavior |
 | --- | --- |
+| `CAO_CONTAINER_ENGINE` | Optional `docker` (default) or `podman`; no automatic fallback |
 | `CAO_GITHUB_CLIENT_ID`, `CAO_GITHUB_CLIENT_SECRET` | Required real development OAuth credentials; never pass secrets as command arguments |
 | `CAO_GITHUB_ALLOWED_ORGS` | Required comma-separated exact organization logins; no wildcard or implicit catalog scope |
 | `AZURE_LOCAL_FUNCTIONS_PORT` | Optional stable unprivileged port, default `7071`; an unavailable port fails startup |
@@ -260,6 +312,11 @@ logs remain under `.tmp/azure-local/<run>/logs/`. Set
 `AZURE_LOCAL_STATE_DIR` to use an explicit isolated state directory or run
 several stacks in parallel. Set `AZURE_LOCAL_WAIT_TIMEOUT` to change the
 120-second readiness deadline.
+
+If original-engine removal fails, teardown requires successful exact-container-ID
+inventory confirming absence. An unavailable engine or failed inventory is not
+absence: recovery IDs, application and runtime state are retained, and replacing
+the stack with another engine is blocked until cleanup can be confirmed.
 
 ## Process model
 

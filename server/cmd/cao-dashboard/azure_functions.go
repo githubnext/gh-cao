@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/server"
 )
@@ -50,8 +50,8 @@ func resolveFunctionsConfig(getenv func(string) string) (functionsConfig, error)
 	if port == "" {
 		return functionsConfig{}, errors.New("FUNCTIONS_CUSTOMHANDLER_PORT is required")
 	}
-	siteDirectory := envOrDefault(getenv, "CAO_AZURE_SITE_DIRECTORY", "site")
-	queriesPath := envOrDefault(getenv, "CAO_AZURE_DASHBOARD_QUERIES", filepath.Join(siteDirectory, "dashboard.json"))
+	siteDirectory := strings.TrimSpace(getenv("CAO_AZURE_SITE_DIRECTORY"))
+	queriesPath := envOrDefault(getenv, "CAO_AZURE_DASHBOARD_QUERIES", dashboardassets.Path(siteDirectory, dashboardassets.DashboardQueries))
 	return functionsConfig{
 		host:          envOrDefault(getenv, "FUNCTIONS_CUSTOMHANDLER_HOST", "127.0.0.1"),
 		port:          port,
