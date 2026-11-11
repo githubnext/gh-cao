@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
-import { copyFile, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -42,12 +42,68 @@ test("exposes the dashboard data CLI as cao", async () => {
     assert.match(stdout, /cao gh runs /);
     assert.match(stdout, /cao gh issues /);
     assert.match(stdout, /cao gh prs /);
-    assert.match(stdout, /Download the deployed snapshot before querying/);
+    assert.match(stdout, /Import a selected CAO Activity snapshot before querying/);
+    assert.match(stdout, /gh run download RUN_ID --repo OWNER\/REPO --name cao-activity-index --dir .cao/);
+    assert.match(stdout, /Explicit --url or DASHBOARD_DATA_URL identifying payload-hashes.json \(no default\)/);
+    assert.doesNotMatch(stdout, /githubnext\.github\.io\/gh-cao\/cao\/payload-hashes\.json/);
     assert.match(stdout, /execution repo for runs, target repo for issues and prs/);
     assert.match(stdout, /-s, --status\s+Runs only/);
     assert.match(stdout, /cao ingest-jsonl --input-dir SHARD_DIRECTORY/);
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("download requires an explicit manifest before network or cache changes", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "cao-explicit-download-"));
+  const previousURL = process.env.DASHBOARD_DATA_URL;
+  delete process.env.DASHBOARD_DATA_URL;
+  t.after(async () => {
+    if (previousURL === undefined) delete process.env.DASHBOARD_DATA_URL;
+    else process.env.DASHBOARD_DATA_URL = previousURL;
+    await rm(root, { recursive: true, force: true });
+  });
+  t.mock.method(globalThis, "fetch", () => assert.fail("unconfigured sources must never use the network"));
+  const output = path.join(root, "cache");
+  await assert.rejects(downloadDeployedDashboardData({ output }), /explicit Activity snapshot manifest URL is required/);
+  assert.deepEqual(await readdir(root), []);
+  await mkdir(output);
+  const database = path.join(output, "gh-aw-logs.sqlite");
+  await writeFile(database, "existing cache");
+  await assert.rejects(downloadDeployedDashboardData({ output }), /gh run download RUN_ID .*--name cao-activity-index --dir .cao/);
+  for (const url of ["https://snapshot.example/", "https://snapshot.example/cao/", "https://snapshot.example/index.html"]) {
+    await assert.rejects(downloadDeployedDashboardData({ output, url }), /must identify payload-hashes.json/);
+  }
+  assert.equal(await readFile(database, "utf8"), "existing cache");
+  assert.deepEqual(await readdir(output), ["gh-aw-logs.sqlite"]);
+  await assert.rejects(
+    executeFile(process.execPath, [cao, "download", "--output", output], {
+      env: { ...process.env, DASHBOARD_DATA_URL: "" },
+    }),
+    /explicit Activity snapshot manifest URL is required/,
+  );
+});
+
+test("download rejects synthetic and SQLite-free manifests without fetching payloads", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "cao-demo-rejected-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const database = path.join(root, "gh-aw-logs.sqlite");
+  await writeFile(database, "existing cache");
+  for (const [manifest, error] of [
+    [{ synthetic: true, "gh-aw-logs.sqlite": "a".repeat(64) }, /Synthetic Pages demo/],
+    [{ "gh-aw-logs-runs/demo.jsonl": "a".repeat(64) }, /no valid SQLite checksum/],
+  ]) {
+    const fetch = t.mock.method(globalThis, "fetch", async (url) => {
+      assert.equal(String(url), "https://snapshot.example/payload-hashes.json");
+      return new Response(JSON.stringify(manifest));
+    });
+    await assert.rejects(downloadDeployedDashboardData({
+      output: root, url: "https://snapshot.example/payload-hashes.json",
+    }), error);
+    assert.equal(fetch.mock.callCount(), 1);
+    fetch.mock.restore();
+    assert.equal(await readFile(database, "utf8"), "existing cache");
+    assert.deepEqual(await readdir(root), ["gh-aw-logs.sqlite"]);
   }
 });
 

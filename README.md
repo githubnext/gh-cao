@@ -39,9 +39,11 @@ changes local unless you separately approve commit and push. A published setup
 reports **deployment pending**; an empty dashboard is normal until Agentic
 Workflow evidence exists.
 
-Use a private control repository for non-public evidence, but verify dashboard
-visibility before publishing: a private repository does not guarantee private
-GitHub Pages.
+Use a private control repository for non-public evidence. Production dashboards
+use same-origin Go/PostgreSQL hosting; local development uses the same Go server
+over a real SQLite snapshot. GitHub Pages hosts only the **Synthetic enterprise
+demo**, with the same canonical pipeline, queries, and views but no live services.
+Setup does not configure Pages.
 
 > [!TIP]
 > **SAML-token installation failure:** Use the
@@ -75,7 +77,7 @@ For agents, install the [CAO plugin](docs/agent-plugin.md) and use the task skil
 - [What CAO is and its safety boundaries](docs/architecture-at-a-glance.md)
 - [CLI commands](docs/cao-cli.md), [authentication](docs/authentication.md), and
   [deployment](docs/deployment.md), including
-  [GitHub Actions and Pages](docs/deployment-actions.md)
+  [Actions artifacts and the Pages demo](docs/deployment-actions.md)
 - [Dashboard evidence](docs/dashboard.md) and [agent analysis](docs/agent-analysis.md)
 - [Operations, updates, and recovery](docs/operations.md)
 - [Documentation site](https://githubnext.github.io/gh-cao/) and

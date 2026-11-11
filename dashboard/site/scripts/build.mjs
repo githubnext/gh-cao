@@ -32,7 +32,7 @@ export async function buildDashboardSite({
   if (!controlSettings || typeof controlSettings !== "object" || Array.isArray(controlSettings)) {
     throw new Error("resolved control settings are required");
   }
-  if (profile !== undefined && profile !== "immediate") throw new Error("unknown dashboard build profile");
+  if (profile !== undefined && !["immediate", "demo"].includes(profile)) throw new Error("unknown dashboard build profile");
 
   const requestedDestinationPath = destination instanceof URL ? fileURLToPath(destination) : resolve(destination);
   const repositoryPath = repositoryRoot instanceof URL ? fileURLToPath(repositoryRoot) : resolve(repositoryRoot);
@@ -78,6 +78,22 @@ export async function buildDashboardSite({
     )));
   }
   dashboard = filterExperimentalDashboardViews(dashboard, controlSettings.web?.experimental === true);
+  if (profile === "demo") {
+    dashboard.dashboard.title = "CAO synthetic enterprise demo";
+    dashboard.dashboard.callouts = [{
+      id: "synthetic-demo",
+      title: "Synthetic enterprise demo",
+      description: "Fictional enterprise activity, not operational evidence. No live services or commands.",
+      icon: "info",
+    }, ...(dashboard.dashboard.callouts ?? [])];
+    await writeFile(join(destinationPath, "src/deployment-profile.js"), "export const DEMO_MODE = true;\n");
+    const html = await readFile(indexPath, "utf8");
+    await writeFile(indexPath, html.replace("<head>", `<head>\n<meta name="dashboard-deployment" content="synthetic-demo">\n<meta http-equiv="Content-Security-Policy" content="connect-src 'self'; worker-src 'self';">`)
+      .replace(/<title>[^<]*<\/title>/, "<title>CAO synthetic enterprise demo</title>"));
+    const workerPath = join(destinationPath, "service-worker.js");
+    await writeFile(workerPath, (await readFile(workerPath, "utf8"))
+      .replaceAll("central-agentic-ops-dashboard-", "central-agentic-ops-dashboard-demo-"));
+  }
   if (githubRepository && profile !== "immediate") {
     if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\/[A-Za-z0-9._-]+$/.test(githubRepository)
         || githubRepository.includes("..")) {

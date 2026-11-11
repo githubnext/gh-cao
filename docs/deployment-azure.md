@@ -304,7 +304,7 @@ an ADX cluster does not provide them.
 - Docker, or an Azure Container Registry build agent.
 - A GitHub OAuth app, or a GitHub App configured for the user authorization-code flow. For membership authorization, the GitHub App needs organization **Members: read** and an approved installation in each allowed organization. PATs and pasted user tokens aren't supported.
 - At least one allowed GitHub user, organization, or team in `ORGANIZATION/TEAM-SLUG` format.
-- An adopter-owned reviewed `cao.json` and a verified local dashboard snapshot, or an explicit choice to initialize an empty dashboard. Neither campaigns nor public Pages are required for empty initialization. Private repository snapshots must be collected with credentials authorized for those repositories and kept private.
+- An adopter-owned reviewed `cao.json` and a verified local operational snapshot, or an explicit choice to initialize an empty dashboard. Obtain snapshots from authorized Activity artifacts, not the synthetic Pages demo. Campaigns are not required for empty initialization. Private repository snapshots must be collected with credentials authorized for those repositories and kept private.
 - An ingress choice. The template defaults to the public-main model: the
   Function App's `publicNetworkAccess` is `Enabled`, unmatched main-site traffic
   is `Allow` with no custom rules, and GitHub OAuth sign-in plus the allowed

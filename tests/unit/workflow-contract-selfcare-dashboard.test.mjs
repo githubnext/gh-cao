@@ -13,7 +13,10 @@ test("SelfCare agent discoverability audits bounded access-path routing", () => 
   const source = workflow("self-care-agent-discoverability.md");
 
   assert.match(source, /worker: agent-discoverability/);
-  assert.match(source, /https:\/\/githubnext\.github\.io\/gh-cao\/cao\//);
+  assert.match(source, /canonical `skills\/analyze-cao\/SKILL\.md` entry point/);
+  assert.match(source, /`cao-activity-index` Actions artifact from `cao-activity\.yml`/);
+  assert.doesNotMatch(source, /https:\/\/githubnext\.github\.io\/gh-cao\/cao\//);
+  assert.match(source, /unavailable evidence stays unavailable, with no synthetic fallback/);
   assert.match(source, /Start only at/);
   assert.match(source, /at most 25 total HTTP fetches, 8 MCP calls, and 5 local CLI commands/);
   assert.match(source, /`cao_catalog`, then one bounded `cao_query`/);
@@ -43,14 +46,16 @@ test("dashboard view assessment comments only on pull requests", () => {
   assert.match(source, /queryUsageGraphSection/);
 });
 
-test("SelfCare dashboard data schema worker tracks every deployed source with Data Health inference", () => {
+test("SelfCare dashboard data schema worker compares canonical contracts without Pages inference", () => {
   const source = workflow("self-care-dashboard-data-schema.md");
 
   assert.match(source, /campaign: self-care\n\s+role: worker\n\s+worker: dashboard-data-schema/);
   assert.match(source, /safe_output_mode` is `live`/);
-  assert.match(source, /https:\/\/githubnext\.github\.io\/gh-cao\/cao\/sources/);
-  assert.match(source, /deriveDataHealthSources/);
-  assert.match(source, /manifest\.sources\.sort\(\)/);
+  assert.match(source, /CANONICAL_DATABASE_SCHEMA/);
+  assert.match(source, /CANONICAL_SCHEMA_VERSION/);
+  assert.match(source, /canonical-source-contract/);
+  assert.match(source, /Never replace the specification wholesale/);
+  assert.doesNotMatch(source, /https:\/\/githubnext\.github\.io|deriveDataHealthSources|curl |manifest\.sources/);
   assert.match(source, /allowed-files:\n\s+- "specs\/dashboard-data\.md"/);
   assert.match(source, /if-no-changes: ignore/);
   assert.match(source, /labels: \[self-care, self-care:dashboard-data-schema\]/);
@@ -207,6 +212,9 @@ test("SelfCare dashboard reviewer checks deployments through stakeholder persona
   assert.match(source, /safe_output_mode` is `live`/);
   assert.match(source, /REPORT_INVENTORY=\/tmp\/gh-aw\/agent\/self-care-dashboard-review\/expected-inventory\.json/);
   assert.match(source, /githubnext\.github\.io\/gh-cao\/cao\//);
+  assert.match(source, /Never compare its displayed values to real Actions or policy values/);
+  assert.match(source, /not operational records/);
+  assert.match(source, /operational freshness and completeness as not assessed/);
   assert.match(source, /^  playwright:\s*$/m);
   assert.match(source, /version: "0\.1\.18"/);
   assert.match(source, /browsers: \[chromium\]/);
@@ -343,6 +351,8 @@ test("SelfCare Pages health worker audits every deployed view on three profiles"
   assert.match(source, /campaign: self-care\n\s+role: worker\n\s+worker: pages-health/);
   assert.match(source, /safe_output_mode` is `live`/);
   assert.match(source, /https:\/\/githubnext\.github\.io\/gh-cao\/cao\//);
+  assert.match(source, /synthetic demo UI health, accessibility, and browser performance evidence/);
+  assert.match(source, /operational freshness and completeness were not assessed/);
   assert.doesNotMatch(source, /close-older-issues: true/);
   assert.doesNotMatch(source, /close-older-key: self-care-pages-health/);
   assert.match(source, /create-pull-request:/);

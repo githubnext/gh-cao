@@ -11,7 +11,7 @@ import { webMCPManifestForDashboard } from "../dashboard/site/src/webmcp/manifes
 const artifactNames = ["llms.txt", "llms-small.txt", "llms-full.txt"];
 const scopedIndexPath = "agent/llms.txt";
 const resourceIndexPath = "agent/resources.json";
-const dashboardAgentGuide = "https://githubnext.github.io/gh-cao/cao/llms.txt";
+const dashboardAgentGuide = "https://githubnext.github.io/gh-cao/agent-analysis/";
 const artifactSizeLimits = {
   "llms.txt": 4 * 1024,
   "llms-small.txt": 64 * 1024,

@@ -27,7 +27,6 @@ export const ENTITY_COLLECTIONS = [
 ];
 export const NORMALIZED_COLLECTIONS = ['campaigns', ...ENTITY_COLLECTIONS];
 export const QUERY_COLLECTIONS = [...ENTITY_COLLECTIONS, 'transactions'];
-export const DEFAULT_DEPLOYED_DATA_URL = 'https://githubnext.github.io/gh-cao/cao/payload-hashes.json';
 export const DEFAULT_OUTPUT_DIRECTORY = '.cao';
 export const DEFAULT_SHARDS_PATH = `${DEFAULT_OUTPUT_DIRECTORY}/gh-aw-logs-shards`;
 export const DEFAULT_DATABASE_PATH = `${DEFAULT_OUTPUT_DIRECTORY}/gh-aw-logs.sqlite`;
@@ -72,8 +71,9 @@ Manual artifact import (supported; not used by the Activity or Dashboard pipelin
   Imports an extracted gh-aw artifact directory with its context JSON into SQLite.
   The explicit ingest command remains supported; only the old positional CONTEXT_JSON LOG_DIRECTORY form is retired.
 
-Query local CAO data as JSON. Download the deployed snapshot before querying:
-  cao download
+Query local CAO data as JSON. Import a selected CAO Activity snapshot before querying:
+  gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao
+  cao download --url https://SNAPSHOT_HOST/payload-hashes.json
   cao dashboard-complexity --input dashboard/site/dashboard.json
   cao dashboard-complexity campaign-inventory --input dashboard/site/dashboard.json
   cao prune-dashboard --input dashboard.json --output dashboard.pruned.json
@@ -99,8 +99,10 @@ Agent analysis:
   administration. Similar operator reads do not replace these workflow APIs.
   Workflow agents use queries, query-info, prompt, query, gh runs/issues/prs,
   computation, mcp, and download without building or installing gh cao.
-  Download the current CAO snapshot:
-    cao download
+  Download an explicitly configured operational snapshot:
+    cao download --url https://SNAPSHOT_HOST/payload-hashes.json
+  Or import the cao-activity-index artifact from a selected CAO Activity run:
+    gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao
   Discover dashboard pages:
     cao pages
   Discover named queries:
@@ -135,7 +137,8 @@ gh query options:
   --database       Local SQLite snapshot (default ${DEFAULT_DATABASE_PATH})
 
 Data preparation:
-  cao download writes the deployed JSONL and query-ready SQLite snapshot to ${DEFAULT_OUTPUT_DIRECTORY}/.
+  cao download writes the explicitly selected JSONL and query-ready SQLite snapshot to ${DEFAULT_OUTPUT_DIRECTORY}/.
+  HTTP acquisition requires a payload-hashes.json URL; Pages demos are synthetic-only.
   To query other gh-aw JSONL shards, first run cao ingest-jsonl --input-dir SHARD_DIRECTORY [--database FILE].
 
 Active ingestion and packaging:
@@ -149,7 +152,7 @@ Query stdin JSON:
   {"name":"failed-runs","from":"runs","filter":{"predicates":[{"field":"conclusion","equals":"failure"}]},"limit":20}
 
 Download defaults:
-  URL        DASHBOARD_DATA_URL or ${DEFAULT_DEPLOYED_DATA_URL}
+  URL        Explicit --url or DASHBOARD_DATA_URL identifying payload-hashes.json (no default)
   MANIFEST   Optional DASHBOARD_MANIFEST_SHA256 trust anchor
   DIRECTORY  ${DEFAULT_OUTPUT_DIRECTORY}
   SHARDS     ${DEFAULT_SHARDS_PATH}

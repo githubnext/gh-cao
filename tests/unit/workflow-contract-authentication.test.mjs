@@ -47,6 +47,11 @@ test("Copilot setup stages evidence with the JavaScript runtime, not the operato
   const stage = steps.find((step) => step.name === "Stage CAO dashboard evidence");
   assert.equal(stage.run, "node activity/cao.mjs download");
   assert.equal(stage.env.DASHBOARD_DATA_URL, "${{ vars.CAO_DASHBOARD_DATA_URL }}");
+  assert.equal(stage.if, "vars.CAO_DASHBOARD_DATA_URL != ''");
+  const unavailable = steps.find((step) => step.name === "Report unconfigured operational evidence");
+  assert.equal(unavailable.if, "vars.CAO_DASHBOARD_DATA_URL == ''");
+  assert.match(unavailable.run, /cao-activity-index/);
+  assert.doesNotMatch(stage.run, /github\.io|--fixture/);
   assert.doesNotMatch(steps.map((step) => step.run ?? "").join("\n"),
     /\bgh[ \t]+cao\b|(?:^|[ \t/])gh-cao(?:\.exe)?[ \t]|\bmake[ \t]+build\b|\bgo[ \t]+build\b/);
 });

@@ -186,10 +186,6 @@ if [[ "\${1:-} \${2:-}" == "api graphql" ]]; then
   printf '%b\\n' "\${FAKE_REPOSITORY_OWNERS:-alpha-user\\\\nalpha-org}"
   exit 0
 fi
-if [[ "\${1:-}" == api && "\${2:-}" == repos/*/pages ]]; then
-  printf '{"build_type":"workflow","public":true,"html_url":"https://example.invalid/cao/"}\\n'
-  exit 0
-fi
 if [[ "\${1:-}" == api && "\${2:-}" == repos/* && "$#" -eq 2 ]]; then
   if [[ "\${2#repos/}" == "\${FAKE_REPOSITORY_CHECK_FAILURE:-}" ]]; then
     echo "gh: service unavailable (HTTP 503)" >&2
@@ -1288,7 +1284,7 @@ test("streamed new-repository installation enters bundled setup without consumin
   assert.equal(result.code, 0, result.stdout + result.stderr);
   assert.equal(step, 2);
   assert.match(result.stdout, /Apply this setup\? \(y\/n\) \[n\]/);
-  assert.doesNotMatch(result.stdout, /Monitoring configured locally|Deployment pending/);
+  assert.doesNotMatch(result.stdout, /Monitoring configured locally|Actions pending/);
   assert.match(result.stdout, /Open the new checkout: cd control/);
   assert.doesNotMatch(result.stdout, /"command": "setup"/);
   assert.equal(await log(), "create-private\nadd\n");
@@ -1345,6 +1341,8 @@ for (const [name, environment, arguments_] of [
     if (setup) {
       assert.match(result.stderr, /Non-interactive setup applied/);
       assert.match(result.stderr, /repository GITHUB_TOKEN \(workflow-token\)/);
+      assert.match(result.stdout + result.stderr, /Actions operational artifacts for the local or cloud dashboard/);
+      assert.doesNotMatch(result.stdout + result.stderr, /Pages|public dashboard|dashboardPages|pagesSettingsURL|dashboardURL/);
       assert.doesNotMatch(result.stdout + result.stderr, /Repositories CAO should read|Apply this setup\?/);
     }
     await assertCompleteInstall(

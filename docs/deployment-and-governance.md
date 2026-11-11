@@ -9,6 +9,11 @@ and how target repositories consent to live operation. Start with
 for the architectural model. To choose where the dashboard is hosted, see
 [Deployment options](deployment.md).
 
+Operational hosting is same-origin Go/PostgreSQL; local analysis uses the same
+Go server with real SQLite snapshots. Pages is only a synthetic enterprise demo.
+Actions operational artifacts remain bounded and access-controlled; neither
+demo publication nor a successful local query grants rollout authority.
+
 ## Deployment Topologies
 
 Central Agentic Ops does not require a GitHub enterprise account. An organization or OSS maintainer can run one organization-owned control repository for repositories in that organization. Make it private when targets or required evidence are non-public; use public visibility only when policy, runs, metadata, dashboard data, and review outputs may all be public. Enterprise deployment adds an enterprise-operated control repository for cross-organization AWs and may also use independent organization control repositories for organization-shared AWs. Because a GitHub enterprise account does not directly own repositories, its control repository is still hosted in a designated organization.

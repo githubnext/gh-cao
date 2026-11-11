@@ -24,9 +24,9 @@ Every view follows the same data flow:
 
 1. **Activity collects evidence.** The Activity workflow publishes a bounded
 	snapshot of workflow activity.
-2. **The selected backend prepares and queries the data.** Static Pages uses a
-	browser Web Worker and IndexedDB; local Go serving uses SQLite; hosted Go
-	serving uses PostgreSQL. Each evaluates Dashboard Language.
+2. **The selected backend prepares and queries the data.** Production Go
+	serving uses PostgreSQL; local development uses the same Go server over a real
+	SQLite snapshot. Each evaluates Dashboard Language.
 3. **The active view presents the result.** When the underlying data changes, the
 	query runs again and the view updates.
 
@@ -36,7 +36,13 @@ evidence into each query backend, while the
 [Data model](dashboard-data-model.md) explains the records and relationships
 available to every view.
 
-On the first visit to a static dashboard, a dismissible import screen explains
+The public Pages site is instead a **Synthetic enterprise demo** with no live
+services. Generated raw samples pass through production normalization, canonical
+ingestion, worker queries, and these same views. It publishes no operational
+SQLite snapshot or agent summary. Its daily rebuild is independent of real
+collection freshness.
+
+On the first visit to the synthetic demo, a dismissible import screen explains
 how the browser downloads and caches its first snapshot. Dismissing it keeps
 the import running; Overview continues to show preparation progress rather
 than calling campaigns idle. The import screen is automatically removed when a
@@ -68,7 +74,7 @@ rollout mode, safe output, outcome, and operational value.
 Reading dashboard evidence does not start work, approve an output, grant
 workflow authority, change rollout policy, or write to a repository. Make those
 decisions through the control repository and its reviewed workflows and policy.
-Static Pages is read-only; optional canvas commands and
+The synthetic Pages demo is read-only; optional canvas commands and
 [hosted CLI actions](https://github.com/githubnext/gh-cao/blob/main/server/README.md#hosted-cli-actions)
 have separate authorization and approval requirements.
 
@@ -108,7 +114,7 @@ perform these operations, so editing remains disabled for hosted administrators.
 	operational view.
 - Choose where to host the dashboard in [Deployment options](deployment.md).
 - Read [Data ingestion](dashboard-data-ingestion.md) to follow evidence from
-	GitHub Actions into the browser.
+	GitHub Actions into operational backends, separately from demo ingestion.
 - Use the [Data model](dashboard-data-model.md) to understand entities,
 	relationships, identities, and retention.
 - Build views with the [Dashboard Language guide](dashboard-language.md), then

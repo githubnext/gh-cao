@@ -5,10 +5,13 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { setTimeout as delay } from 'node:timers/promises';
-import { DEFAULT_DEPLOYED_DATA_URL, DEFAULT_OUTPUT_DIRECTORY } from '../cli-usage.mjs';
+import { DEFAULT_OUTPUT_DIRECTORY } from '../cli-usage.mjs';
 import { isMapping, hashFileContents } from './files.mjs';
 
 function deployedDataUrl(value) {
+  if (!value?.trim()) {
+    throw new Error('An explicit Activity snapshot manifest URL is required: pass --url or set DASHBOARD_DATA_URL to a payload-hashes.json URL. Alternatively, download the cao-activity-index artifact from a selected CAO Activity run with gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao, then query the local cache with --database FILE.');
+  }
   const url = new URL(value);
   if (!['http:', 'https:'].includes(url.protocol)) {
     throw new Error('Dashboard data URL must use HTTP or HTTPS.');
@@ -74,7 +77,7 @@ async function replaceFile(source, destination) {
 }
 
 export async function downloadDeployedDashboardData({
-  url = process.env.DASHBOARD_DATA_URL || DEFAULT_DEPLOYED_DATA_URL,
+  url = process.env.DASHBOARD_DATA_URL,
   output = DEFAULT_OUTPUT_DIRECTORY, manifestSha256 = process.env.DASHBOARD_MANIFEST_SHA256
 } = {}) {
   const manifestUrl = deployedDataUrl(url);
@@ -104,8 +107,23 @@ export async function downloadDeployedDashboardData({
     const temporaryInventory = path.join(temporaryDirectory, 'inventory-sources.json');
     const abortController = new AbortController();
     try {
+      await downloadFile(manifestUrl, temporaryManifest, { signal: abortController.signal });
+      if (manifestSha256 && await hashFileContents(temporaryManifest) !== manifestSha256.toLowerCase()) {
+        throw new Error('Activity snapshot manifest checksum mismatch: payload-hashes.json');
+      }
+      const hashes = JSON.parse(await readFile(temporaryManifest, 'utf8'));
+      if (!isMapping(hashes)) {
+        throw new Error('Activity snapshot manifest must contain a JSON object.');
+      }
+      if (hashes.synthetic === true) {
+        throw new Error('Synthetic Pages demo data cannot be used as an operational Activity snapshot.');
+      }
+      const validDigest = (digest) => /^[a-f0-9]{64}$/i.test(String(digest));
+      const expectedDatabaseDigest = hashes['gh-aw-logs.sqlite'];
+      if (!validDigest(expectedDatabaseDigest)) {
+        throw new Error('Activity snapshot manifest contains no valid SQLite checksum.');
+      }
       const downloads = [
-        downloadFile(manifestUrl, temporaryManifest, { signal: abortController.signal }),
         downloadFile(databaseUrl, temporaryDatabase, { signal: abortController.signal }),
         downloadFile(inventoryUrl, temporaryInventory, { signal: abortController.signal })
       ];
@@ -114,18 +132,9 @@ export async function downloadDeployedDashboardData({
         await Promise.allSettled(downloads);
         throw error;
       });
-      if (manifestSha256 && await hashFileContents(temporaryManifest) !== manifestSha256.toLowerCase()) {
-        throw new Error('Activity snapshot manifest checksum mismatch: payload-hashes.json');
-      }
       const inventorySources = JSON.parse(await readFile(temporaryInventory, 'utf8'));
       if (!isMapping(inventorySources)) {
         throw new Error('Deployed inventory sources must contain a JSON object.');
-      }
-      const hashes = JSON.parse(await readFile(temporaryManifest, 'utf8'));
-      const validDigest = (digest) => /^[a-f0-9]{64}$/i.test(String(digest));
-      const expectedDatabaseDigest = hashes['gh-aw-logs.sqlite'];
-      if (!validDigest(expectedDatabaseDigest)) {
-        throw new Error('Activity snapshot manifest contains no valid SQLite checksum.');
       }
       const databaseDigest = await hashFileContents(temporaryDatabase);
       if (databaseDigest !== expectedDatabaseDigest.toLowerCase()) {

@@ -1,6 +1,6 @@
 name: CAO Dashboard
 icon: ":graph:"
-description: Root-package component that deploys an access-controlled, read-only Central Agentic Ops report with GitHub Pages and optional background data updates; not a standalone installation entry point.
+description: Root-package component that prepares canonical dashboard artifacts for cloud production and local development; not a standalone installation entry point.
 min-version: v1.2.2
 experimental: true
 includes:

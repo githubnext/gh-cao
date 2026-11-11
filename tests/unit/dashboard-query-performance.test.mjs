@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { runInNewContext } from "node:vm";
 import { parse } from "yaml";
 import config from "../playwright/configs/dashboard-query-performance.config.mjs";
 import { DEPLOYED_REFRESH_TIMEOUT_MS } from "../e2e/dashboard-deployed-refresh-helpers.mjs";
@@ -41,92 +40,19 @@ test("Overview request budget allows the measured deployed-data baseline", () =>
   assert.equal(DEFAULT_OVERVIEW_REQUEST_BUDGET_MS, 1_250);
 });
 
-test("deployed integration isolates query benchmark reporting from test permissions", () => {
+test("dashboard integration retains operational SQL benchmarks without real-data Pages benchmarking", () => {
   const workflow = readFileSync(deployedIntegrationWorkflowPath, "utf8");
   assert.match(workflow, /push:\n\s+branches: \[main\]\n\s+paths:/);
   assert.match(workflow, /group: dashboard-deployed-integration-\$\{\{ github\.event_name \}\}/);
   assert.match(workflow, /tests\/e2e\/dashboard-deployed-refresh-helpers\.mjs/);
   assert.match(workflow, /tests\/e2e\/dashboard-view-assessment\.mjs/);
-  assert.match(workflow, /run: npm run test:performance:dashboard-queries/);
-  assert.match(workflow, /test-results\/dashboard-query-performance\//);
-  assert.match(workflow, /query-performance:\n[\s\S]*permissions:\n\s+contents: read/);
-  assert.match(workflow, /query-performance-comment:\n[\s\S]*needs: query-performance/);
-  assert.match(
-    workflow,
-    /query-performance-comment:[\s\S]*pull-requests: write/,
-  );
-  assert.match(workflow, /shard: \[1, 2, 3\]/);
-  assert.match(workflow, /DASHBOARD_QUERY_PERFORMANCE_SHARD: \$\{\{ matrix\.shard \}\}\/3/);
-  assert.match(workflow, /name: dashboard-query-performance-\$\{\{ matrix\.shard \}\}/);
-  assert.match(workflow, /pattern: dashboard-query-performance-\*/);
-  assert.match(workflow, /scripts\/merge-dashboard-query-performance\.mjs/);
-  assert.match(workflow, /dashboard-query-performance-results/);
+  assert.doesNotMatch(workflow, /run: npm run test:performance:dashboard-queries|query-performance-comment:/);
+  assert.match(workflow, /--name cao-activity-index --dir \.cao/);
+  assert.match(workflow, /run: npm run test:performance:dashboard-query-cost/);
+  assert.match(workflow, /run: npm run test:performance:dashboard-query-cost-postgres/);
 });
 
-test("query performance comment waits for the installation rate limit to reset", async () => {
-  const workflow = parse(readFileSync(deployedIntegrationWorkflowPath, "utf8"));
-  const script = workflow.jobs["query-performance-comment"].steps.find(
-    ({ name }) => name === "Comment with query performance results",
-  ).with.script;
-  const waits = [];
-  const calls = [];
-  let requests = 0;
-  const github = {
-    rest: {
-      issues: {
-        listComments() {},
-        async createComment(options) { calls.push(options); },
-      },
-    },
-    async paginate() {
-      requests++;
-      if (requests === 1) {
-        throw Object.assign(new Error("rate limit"), {
-          status: 403,
-          response: { headers: {
-            "x-ratelimit-remaining": "0",
-            "x-ratelimit-reset": String(Math.ceil(Date.now() / 1000) + 2),
-          } },
-        });
-      }
-      return [];
-    },
-  };
-  const context = {
-    serverUrl: "https://github.com",
-    repo: { owner: "example", repo: "dashboard" },
-    issue: { number: 42 },
-    runId: 123,
-  };
-  await runInNewContext(`(async () => { ${script} })()`, {
-    require: () => ({ readFileSync: () => "benchmark results" }),
-    github,
-    context,
-    setTimeout(resolve, duration) { waits.push(duration); resolve(); },
-  });
-  assert.equal(requests, 2);
-  assert.equal(waits.length, 1);
-  assert.ok(waits[0] >= 1000);
-  assert.equal(calls.length, 1);
-  assert.match(calls[0].body, /benchmark results/);
-
-  await assert.rejects(
-    runInNewContext(`(async () => { ${script} })()`, {
-      require: () => ({ readFileSync: () => "benchmark results" }),
-      github: {
-        ...github,
-        async paginate() {
-          throw Object.assign(new Error("permission denied"), { status: 403 });
-        },
-      },
-      context,
-      setTimeout() { assert.fail("permission errors must not be retried"); },
-    }),
-    /permission denied/,
-  );
-});
-
-test("deployed integration main push trigger only watches query benchmark inputs", () => {
+test("dashboard integration main push trigger watches demo and operational benchmark inputs", () => {
   const workflow = parse(readFileSync(deployedIntegrationWorkflowPath, "utf8"));
   // The boolean-key lookup is a defensive fallback for YAML 1.1 core-schema behavior.
   const workflowTriggers = workflow.on ?? workflow[true];
@@ -148,14 +74,14 @@ test("deployed integration main push trigger only watches query benchmark inputs
     "dashboard/site/src/source-*.js",
     "package.json",
     "package-lock.json",
-    "scripts/merge-dashboard-query-performance.mjs",
+    "scripts/simulate-dashboard-pages.mjs",
     "tests/e2e/dashboard-deployed-refresh-helpers.mjs",
-    "tests/e2e/dashboard-query-performance-helpers.mjs",
-    "tests/e2e/dashboard-query-performance.spec.mjs",
+    "tests/e2e/dashboard-deployed-refresh.spec.mjs",
+    "tests/integration/dashboard-deployed-data.test.mjs",
     "tests/e2e/dashboard-view-assessment.mjs",
     "tests/helpers/dashboard-query-cost.mjs",
     "tests/performance/dashboard-query-cost.test.mjs",
-    "tests/playwright/configs/dashboard-query-performance.config.mjs",
+    "tests/playwright/configs/dashboard-deployed.config.mjs",
   ]) {
     assert.ok(paths.includes(path), `expected trigger path ${path}`);
   }

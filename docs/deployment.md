@@ -16,29 +16,32 @@ Choosing a deployment option never changes campaign policy, rollout mode, creden
 
 ## Comparing the options
 
-Dashboard hosting and collection credentials are separate choices. Pages can
-use the built-in workflow token for bounded monitoring, or Apps/PATs when
-required. Server-backed deployments use PostgreSQL for dashboard entities,
-queries, and operational state by default, including both Azure topologies.
+Dashboard hosting and collection credentials are separate choices. Production
+serves the dashboard through the same-origin Go/PostgreSQL host. Local
+development uses the same Go server and views over a real operational SQLite
+snapshot. Pages is only a synthetic enterprise demo, never a real-data host.
+PostgreSQL also provides separate operational state by default.
 
 | Option | Dashboard host | Where queries run | Who can sign in | Infrastructure you operate |
 | --- | --- | --- | --- | --- |
-| [GitHub Actions only](deployment-actions.md) | GitHub Pages | In each viewer's browser | Anyone who can read the Pages site | No application server; [collection credentials](deployment-actions.md#choosing-a-credential-profile) depend on the exact scope |
+| [Synthetic enterprise demo](deployment-actions.md#building-the-synthetic-pages-demo) | GitHub Pages | Web Worker over isolated browser IndexedDB | No operational sign-in or live services | Documentation/demo workflow only; no operational artifacts |
+| [Local development](dashboard-data-ingestion.md#choose-a-local-serving-mode) | Loopback Go server | Go over read-only operational SQLite | Private local capability URL | Explicitly acquired operational snapshot |
 | [Azure Functions](deployment-azure.md) | Azure Functions | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Function App, Elastic Premium plan, PostgreSQL, Key Vault, ACR, runtime storage, jobs and monitoring |
 | [Azure Container Apps](deployment-topology.md#azure-container-apps) | Container Apps Consumption, one hosted Go replica | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Container Apps environment, PostgreSQL, Key Vault, ACR, jobs and Log Analytics; no Functions, runtime Storage or Premium plan |
 
 ## Choosing an option
 
-1. **Start with GitHub Actions only.** It needs no infrastructure beyond your
-   control repository and is what the supported CAO installer configures by
-   default. If you don't have a control repository yet, follow
-   [Set Up CAO](setup-quickstarts.md) first.
+1. **Prepare the control plane and evidence.** Follow
+   [Set Up CAO](setup-quickstarts.md), then collect a bounded Activity snapshot.
+   Setup configures monitoring, not Pages.
 2. **Choose collection credentials for the scope.** Monitoring the control
    repository and confirmed public targets needs no App/PAT setup. Prefer
    private GitHub Apps for durable cross-repository access; use fine-grained
    PATs only when eligible and explicitly accepted. See
    [Choosing a credential profile](deployment-actions.md#choosing-a-credential-profile).
-3. **Move to a server-backed option only when you need to.** Choose Azure when your data is too large to query in a browser, when you need per-user sign-in instead of Pages visibility, or when you need webhook-driven refresh.
+3. **Use Go/PostgreSQL for shared operational hosting.** Choose an Azure topology
+   or your own container platform. Use Go/SQLite for local development and
+   snapshot investigations. Use Pages only to explore the synthetic demo.
 
 Azure runs the host-neutral Go service from the `server/` directory, with authentication, authorization, cross-site request forgery (CSRF), webhook, rate-limit, and logging protections. You can also deploy that service on your own container platform; you are responsible for secret management, ingress, and delivery.
 
@@ -54,8 +57,10 @@ switch to browser storage or the Pages deployment.
 
 ## About the shared data flow
 
-Every option uses the canonical evidence model, not a separate dashboard data
-format. [Data ingestion](dashboard-data-ingestion.md) owns the collection,
+Every option uses the canonical evidence model and declarative views, not a
+separate demo data model or presenter fixtures. Pages generates synthetic raw
+samples and passes them through production normalization and worker ingestion;
+it never consumes operational artifacts. [Data ingestion](dashboard-data-ingestion.md) owns the collection,
 verified payload, retention, and backend-processing details;
 [Data model](dashboard-data-model.md) owns entities and identities.
 The optional [Azure collection profile](deployment-azure.md#using-the-optional-collection-profile)
@@ -71,20 +76,20 @@ on scheduled Activity snapshots.
 
 ## What no option guarantees
 
-- **Live data.** The dashboard is not a live feed. Its data is only as fresh as the last Activity run and the last dashboard rebuild or ingestion.
+- **Live data.** Operational evidence is only as fresh as its last successful collection and ingestion. The daily Pages demo rebuild is independent and says nothing about operational freshness.
 - **Availability.** CAO adds no availability service-level agreement (SLA), backup service, or disaster-recovery objective beyond what the underlying platform provides.
 - **Compliance records.** The dashboard is not a compliance record. For compliance evidence, use GitHub Actions run history, your checked-in policy, your infrastructure definitions, and platform audit logs.
 - **Automatic workflow control.** Evidence and recommendations do not stop or govern workflows. To stop campaigns, follow [Emergency stop](operations.md#emergency-stop).
 
 ## Next steps
 
-- To deploy the default option, see [Deploying the dashboard with GitHub Actions](deployment-actions.md).
+- For operational snapshot acquisition and the separate demo, see [Actions artifacts and the Pages demo](deployment-actions.md).
 - To plan your control repository's topology, ownership, and enrollment, see [Deployment and governance](deployment-and-governance.md).
 
 ## Further reading
 
 - [Dashboard](dashboard.md)
-- [Monitor and recover](operations.md), including [Publishing Pages reports](operations.md#publishing-pages-reports) and [Incident response](operations.md#incident-response)
+- [Monitor and recover](operations.md), including [Operational artifacts and the Pages demo](operations.md#publishing-pages-reports) and [Incident response](operations.md#incident-response)
 - [Optional observability](configuration.md#optional-observability) for the agentic workflows
 - [Glossary](glossary.md)
 - [`server/README.md`](https://github.com/githubnext/gh-cao/blob/main/server/README.md) and [`server/SECURITY.md`](https://github.com/githubnext/gh-cao/blob/main/server/SECURITY.md), the detailed references for the Go server

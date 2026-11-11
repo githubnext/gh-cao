@@ -1373,7 +1373,7 @@ Server commit SHA: %s
 ## Agent documentation
 
 - CAO agent resources: https://githubnext.github.io/gh-cao/agent/llms.txt
-- Published dashboard agent guide: https://githubnext.github.io/gh-cao/cao/llms.txt
+- Operational data access guide: https://githubnext.github.io/gh-cao/agent-analysis/
 - Agent analysis and MCP setup: https://githubnext.github.io/gh-cao/agent-analysis/
 
 ## Configure MCP

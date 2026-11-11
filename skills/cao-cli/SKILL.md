@@ -51,7 +51,8 @@ below; do not build or install the extension when the runtime or cache is absent
 | Install and register one standalone workflow | `gh cao add WORKFLOW [--force] [--engine ENGINE]` |
 | Install a campaign package | `gh cao add CAMPAIGN` |
 | Enroll one exact repository in review mode | `gh cao repos add OWNER/REPO` |
-| Download published Activity | `gh cao download [--url URL]` |
+| Acquire Activity evidence | `gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao` |
+| Download an explicit operational manifest | `gh cao download --url URL` |
 | Audit source coverage | `node activity/cao.mjs audit-jsonl` |
 | Discover reviewed dashboard queries | `gh cao pages`, `gh cao queries`, `gh cao query-info QUERY_ID` |
 | Run a reviewed query | `gh cao query QUERY_ID --limit N [--param NAME=VALUE]` |
@@ -66,6 +67,11 @@ query object to `gh cao query --stdin`; do not combine `--stdin` with
 
 Canonical collections are `repositories`, `workflows`, `runs`, `jobs`,
 `sessions`, `events`, and `transactions`.
+
+Acquire authorized Activity artifacts or pass `--url`/`DASHBOARD_DATA_URL`
+ending in `/payload-hashes.json`. Synthetic manifests and missing SQLite checksums
+fail closed. Pages has no operational exports or default; directory discovery
+and hosted exports are not implied. Reuse verified caches offline.
 
 ## Daily run-counts
 
@@ -95,6 +101,6 @@ fallback or union with daily totals for migrated consumers.
   behavior, and CLI invocation inside a gh-aw run.
 - [Dashboard query maintenance](references/dashboard-query-maintenance.md):
   complexity measurement and query pruning.
-- [Agent analysis](https://github.com/githubnext/gh-cao/blob/main/docs/agent-analysis.md): choosing CLI or MCP.
+- [Agent analysis](https://githubnext.github.io/gh-cao/agent-analysis/): choosing CLI or MCP.
 - [CAO Commands](https://github.com/githubnext/gh-cao/blob/main/docs/cao-cli.md): complete operator and command reference.
 - [Dashboard Language](https://github.com/githubnext/gh-cao/blob/main/docs/dashboard-language.md): query authoring.

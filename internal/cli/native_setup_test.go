@@ -135,7 +135,7 @@ func TestNativeSetupBoundedPolicy(t *testing.T) {
 }
 
 func TestNativeSetupNonInteractive(t *testing.T) {
-	for _, failure := range []string{"", "pages", "mode"} {
+	for _, failure := range []string{"", "mode"} {
 		t.Run("failure="+failure, func(t *testing.T) {
 			nativeSetupTestDirectory(t)
 			policy := nativeSetupTestPolicy()
@@ -154,11 +154,6 @@ func TestNativeSetupNonInteractive(t *testing.T) {
 					return "org/control", "", nil
 				case call == "repo view org/control --json nameWithOwner,visibility":
 					return `{"nameWithOwner":"org/control","visibility":"PUBLIC"}`, "", nil
-				case call == "api repos/org/control/pages":
-					if failure == "pages" {
-						return "", "HTTP 403", errors.New("denied")
-					}
-					return `{"build_type":"workflow","public":true,"html_url":"https://org.github.io/control"}`, "", nil
 				case strings.HasPrefix(call, "api repos/org/control/actions/"):
 					if failure == "mode" {
 						return `{"value":"app"}`, "", nil
@@ -187,7 +182,7 @@ func TestNativeSetupNonInteractive(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if result["nonInteractive"] != true || result["profile"] != "workflow-token" || result["dashboardPages"] != "public" {
+			if result["nonInteractive"] != true || result["profile"] != "workflow-token" {
 				t.Fatalf("unexpected result: %#v", result)
 			}
 			saved, err := readPolicy()
@@ -229,8 +224,6 @@ func TestNativeSetupPublicMonitoring(t *testing.T) {
 					return `[{"nameWithOwner":"other/public","visibility":"PUBLIC"},{"nameWithOwner":"other/private","visibility":"PRIVATE"},{"nameWithOwner":"other/internal","visibility":"INTERNAL"}]`, "", nil
 				case "repo view other/public --json nameWithOwner,visibility":
 					return `{"nameWithOwner":"other/public","visibility":"PUBLIC"}`, "", nil
-				case "api repos/org/control/pages":
-					return `{"build_type":"workflow","public":true}`, "", nil
 				case `api repos/org/control/actions/variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`,
 					`api repos/org/control/actions/organization-variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`:
 					return "", "", nil
@@ -270,7 +263,7 @@ func TestNativeSetupPublicMonitoring(t *testing.T) {
 				t.Fatalf("repeat result=%#v err=%v", repeated, err)
 			}
 			guided, err := nativeSetupControl(nativeSetupTestCommand(), gh, &nativeSetupTestPrompt{
-				texts: []string{"other/public"}, confirms: []bool{true, true},
+				texts: []string{"other/public"}, confirms: []bool{true},
 			})
 			if err != nil || guided["profile"] != "public-only" || !reflect.DeepEqual(guided["repositories"], want) {
 				t.Fatalf("guided result=%#v err=%v", guided, err)
@@ -382,7 +375,7 @@ func TestNativeSetupGuidedAuthenticationByVisibility(t *testing.T) {
 				t.Fatal(err)
 			}
 			cmd := nativeSetupTestCommand()
-			prompt := &nativeSetupTestPrompt{texts: []string{test.scope}, confirms: []bool{true, true}}
+			prompt := &nativeSetupTestPrompt{texts: []string{test.scope}, confirms: []bool{true}}
 			if test.wantAuth {
 				prompt.texts = append(prompt.texts, "token")
 				prompt.confirms = []bool{false}
@@ -407,8 +400,6 @@ func TestNativeSetupGuidedAuthenticationByVisibility(t *testing.T) {
 						document = "[" + document + "]"
 					}
 					return document, "", nil
-				case call == "api repos/org/control/pages":
-					return `{"build_type":"workflow","public":true}`, "", nil
 				case strings.HasPrefix(call, "api repos/org/control/actions/"):
 					return "", "", nil
 				case call == "variable set GH_AW_GITHUB_AUTH_MODE --repo org/control --body workflow-token":
@@ -465,46 +456,43 @@ func TestNativeSetupGuidedAuthenticationByVisibility(t *testing.T) {
 	}
 }
 
-func TestNativeSetupPublicDashboardConsent(t *testing.T) {
-	for _, existing := range []bool{false, true} {
-		t.Run(fmt.Sprint(existing), func(t *testing.T) {
+func TestNativeSetupDoesNotUsePages(t *testing.T) {
+	for _, visibility := range []string{"PUBLIC", "PRIVATE"} {
+		t.Run(visibility, func(t *testing.T) {
 			nativeSetupTestDirectory(t)
 			nativeSetupTestSave(t, nativeSetupTestPolicy())
-			before, _ := os.ReadFile(policyPath)
-			reads, deleted, writes := 0, false, false
 			gh := func(_ context.Context, args ...string) (string, string, error) {
 				call := strings.Join(args, " ")
-				switch {
-				case call == "auth status":
+				switch call {
+				case "auth status":
 					return "", "", nil
-				case call == "repo view --json nameWithOwner --jq .nameWithOwner":
+				case "repo view --json nameWithOwner --jq .nameWithOwner":
 					return "org/control", "", nil
-				case strings.HasPrefix(call, "repo view"):
-					return `{"nameWithOwner":"org/control","visibility":"PRIVATE"}`, "", nil
-				case call == "api repos/org/control/pages":
-					reads++
-					if !existing && reads == 1 {
-						return "", "gh: Not Found (HTTP 404)", errors.New("not found")
-					}
-					return `{"build_type":"workflow","public":true}`, "", nil
-				case strings.Contains(call, "-X POST"):
-					return "", "", nil
-				case strings.Contains(call, "-X DELETE"):
-					deleted = true
+				case "repo view org/control --json nameWithOwner,visibility":
+					return fmt.Sprintf(`{"nameWithOwner":"org/control","visibility":%q}`, visibility), "", nil
+				case `api repos/org/control/actions/variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`,
+					`api repos/org/control/actions/organization-variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`:
 					return "", "", nil
 				default:
-					writes = true
+					t.Fatalf("setup must not inspect or configure Pages: %s", call)
 					return "", "", nil
 				}
 			}
-			prompt := &nativeSetupTestPrompt{texts: []string{"org/control"}, confirms: []bool{true, false}}
-			result, err := nativeSetupControl(nativeSetupTestCommand(), gh, prompt)
-			if err != nil || result["reason"] != "public-pages-declined" {
+			cmd := nativeSetupTestCommand()
+			prompt := &nativeSetupTestPrompt{texts: []string{"org/control"}, confirms: []bool{true}}
+			result, err := nativeSetupControl(cmd, gh, prompt)
+			if err != nil || result["profile"] != "public-only" || result["cancelled"] == true {
 				t.Fatalf("result=%#v err=%v", result, err)
 			}
-			after, _ := os.ReadFile(policyPath)
-			if writes || !bytes.Equal(before, after) || deleted == existing {
-				t.Fatalf("consent guard failed: credentials=%v deleted=%v existing=%v", writes, deleted, existing)
+			encoded, err := json.Marshal(result)
+			if err != nil {
+				t.Fatal(err)
+			}
+			output := string(encoded) + cmd.ErrOrStderr().(*bytes.Buffer).String()
+			for _, obsolete := range []string{"Pages", "pages", "dashboardURL", ".github.io"} {
+				if strings.Contains(output, obsolete) {
+					t.Fatalf("setup retains obsolete Pages output %q: %s", obsolete, output)
+				}
 			}
 		})
 	}
@@ -956,8 +944,6 @@ func TestNativeSetupGuidedTokenAppliesOnlyConsentedScope(t *testing.T) {
 			return `{"nameWithOwner":"org/control","visibility":"PRIVATE"}`, "", nil
 		case call == "repo view other/target --json nameWithOwner,visibility":
 			return `{"nameWithOwner":"other/target","visibility":"PRIVATE"}`, "", nil
-		case call == "api repos/org/control/pages":
-			return `{"build_type":"workflow","public":false}`, "", nil
 		case call == "secret list --repo org/control --json name":
 			return "[]", "", nil
 		case strings.HasPrefix(call, "variable set "):
@@ -975,7 +961,7 @@ func TestNativeSetupGuidedTokenAppliesOnlyConsentedScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result["profile"] != "token" || result["dashboardPages"] != "private" || secretCalls != 3 {
+	if result["profile"] != "token" || secretCalls != 3 {
 		t.Fatalf("guided result=%#v secrets=%d", result, secretCalls)
 	}
 	if writeMap != `{"org/control":"GH_AW_GITHUB_WRITE_PAT_ORG"}` {

@@ -71,7 +71,11 @@ The schema defaults are:
 | `control-plane.defaults.monthly-ai-credit-budget` | `0` | Deprecated compatibility field; no runtime admission effect |
 | `control-plane.campaigns.<campaign>.targets.<owner/repository>.mode` | Campaign mode | `review` or `live` |
 
-Each entry under `control-plane.campaigns` may override the defaults with `enabled`, `mode`, `max-repositories`, and `rollout-percent`; `monthly-ai-credit-budget` remains accepted as a deprecated compatibility field but has no runtime admission effect. The internal `dashboard` campaign also accepts `deploy: false` to keep building its reusable artifact while another workflow owns Pages deployment; `deploy` defaults to `true`. Its optional `targets` map assigns a different mode to an exact repository while unmatched repositories retain the campaign mode. Every campaign target must remain inside the global allowed owners and, when present, the global repository allowlist. The `workers` map is the campaign's workflow catalog: every worker entry requires its exact `workflow` slug, may set `enabled: false` to disable that worker, and may set `max-mode` to narrow its mode. Campaign and worker names are lowercase kebab-case identifiers loaded directly from this policy.
+Each entry under `control-plane.campaigns` may override the defaults with `enabled`, `mode`, `max-repositories`, and `rollout-percent`; `monthly-ai-credit-budget` remains accepted as a deprecated compatibility field but has no runtime admission effect. Its optional `targets` map assigns a different mode to an exact repository while unmatched repositories retain the campaign mode. Every campaign target must remain inside the global allowed owners and, when present, the global repository allowlist. The `workers` map is the campaign's workflow catalog: every worker entry requires its exact `workflow` slug, may set `enabled: false` to disable that worker, and may set `max-mode` to narrow its mode. Campaign and worker names are lowercase kebab-case identifiers loaded directly from this policy.
+
+Dashboard publication is not campaign policy. Operational Actions artifacts feed
+local or cloud dashboards; GitHub Pages serves only the separate synthetic demo.
+The removed campaign `deploy` key is rejected as unknown.
 
 The optional `control-plane.activity.repositories` field declares an explicit
 evidence-collection subset when campaign rollout scope is broader than the

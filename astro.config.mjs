@@ -126,7 +126,7 @@ export default defineConfig({
             },
             {
               label: "Dashboard data access",
-              url: "https://githubnext.github.io/gh-cao/cao/llms.txt",
+              url: "https://githubnext.github.io/gh-cao/agent-analysis/",
               description: "Choose bounded dashboard artifacts, MCP queries, or local SQLite analysis.",
             },
             {

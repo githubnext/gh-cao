@@ -185,7 +185,7 @@ and discovery generation.
 Keep one procedural home per task: [setup](docs/setup-quickstarts.md),
 [credential provisioning](docs/control-plane-authentication.md),
 [runtime authentication](docs/authentication.md),
-[Pages deployment](docs/deployment-actions.md), and
+[operational artifacts and the synthetic Pages demo](docs/deployment-actions.md), and
 [plugin/canvas use](docs/agent-plugin.md). Scope-specific guides should retain
 their distinct decisions and caveats, linking to shared procedures instead of
 copying them.

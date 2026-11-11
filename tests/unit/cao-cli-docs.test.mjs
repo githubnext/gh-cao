@@ -130,7 +130,7 @@ test("native setup hands off to outcome and scope rather than pattern selection"
   assert.ok(source.includes("setupPublishOutput("));
   assert.ok(source.includes("Optional automation: https://githubnext.github.io/gh-cao/operation-patterns/"));
   assert.ok(readFileSync("internal/cli/setup_publish.go", "utf8")
-    .includes("Deployment pending; setup is not waiting for Actions."));
+    .includes("Actions pending; setup is not waiting for workflow completion."));
   assert.doesNotMatch(source, /Add your first campaign separately|Choose an operation pattern/);
   const skill = readFileSync("skills/setup-cao/SKILL.md", "utf8");
   assert.match(skill, /operation-patterns\.md/);
@@ -314,7 +314,7 @@ test("manual Repo Assist walkthrough separates installation, execution, and evid
   assert.match(walkthrough, /Pause the orchestrator even if dispatch fails/);
   assert.match(walkthrough, /does not cancel an already requested run/);
   assert.match(walkthrough, /repeating `gh aw run` requests new work/);
-  assert.match(walkthrough, /successful Pages deployment job/);
+  assert.match(walkthrough, /successful\s+Activity run and its `cao-activity-index` artifact/);
   assert.match(walkthrough, /never applies\s+changes to the target repository/);
   assert.match(walkthrough, /A no-op is a valid result/);
   assert.match(walkthrough, /1,250 AI credits/);

@@ -10,8 +10,10 @@ CAO Activity is the shared, bounded `gh aw logs` collector for Central Agentic
 Ops. It prevents consumers from independently acquiring the same compiled
 workflow history. It also materializes the canonical log projection in SQLite
 so local tools and agents can query the snapshot without re-ingesting it.
-Every [deployment option](deployment.md) serves dashboard data derived from
-this collector.
+Operational snapshot consumers use this collector; the separately selected
+hosted collector is another acquisition profile. The public Pages demo generates
+synthetic raw samples instead of downloading operational evidence. All profiles
+retain the same canonical model and declarative queries.
 
 Read this page when changing Activity collection, cache publication, or workflow
 registry enrichment. Continue to the
@@ -83,7 +85,18 @@ filenames, plus each retained source, run-information, and record shard, to
 their SHA-256 checksums. Run and record shards use matching filename stems; an
 unpaired phase set is incomplete and consumers fall back to a complete
 compatible transport. The dashboard publishes this small file beside the
-payloads so clients can detect unchanged data before downloading them.
+operational artifact payloads so authorized clients can detect unchanged data
+before downloading them. Obtain SQLite and normalized shards from a successful
+Activity run:
+
+```bash
+gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+```
+
+Native/JavaScript downloads require an explicit direct operational
+`payload-hashes.json` URL when not using an artifact; there is no public Pages
+default or implied hosted export API. See [Agent analysis](agent-analysis.md).
+
 Dashboard ingestion checks the sidecar first, then falls back to ETag validation
 and finally a downloaded-content hash when neither server-side identity is
 usable.

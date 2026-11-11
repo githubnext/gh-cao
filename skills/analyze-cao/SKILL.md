@@ -50,25 +50,29 @@ Do you have shell access?
   NO / MCP only -> cao_catalog to discover pages and queries, then cao_query
 ```
 
-Without a shell, the workflow has already installed CAO, downloaded the snapshot,
-and started the read-only MCP server; call `cao_catalog` and `cao_query` instead of
-running commands. See [Agent analysis](https://github.com/githubnext/gh-cao/blob/main/docs/agent-analysis.md).
+Without a shell, use `cao_catalog` and `cao_query` against the prepared snapshot.
+See [Agent analysis](https://githubnext.github.io/gh-cao/agent-analysis/).
 
-1. Verify `gh cao --version`. Use the [CAO installer](https://github.com/githubnext/gh-cao/blob/main/docs/cao-cli.md#github-cli-extension) if the extension is unavailable. The retained `node activity/cao.mjs` audit and snapshot-repair tools additionally need the installed Node.js runtime.
-2. Download the current published activity snapshot:
+1. Verify `gh cao --version`; use the [installer](https://github.com/githubnext/gh-cao/blob/main/docs/cao-cli.md#github-cli-extension) if absent. Node audit/repair tools require Node.js.
+2. With Actions read access, select a successful default-branch Activity run:
 
    ```bash
-   gh cao download
+   gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
    ```
 
-   This writes `.cao/payload-hashes.json`, `.cao/gh-aw-logs-shards/`, and `.cao/gh-aw-logs.sqlite` by default.
-3. For another deployment, prefer the explicit source requested by the user:
+   This supplies SQLite and normalized shards under `.cao/`; verified caches
+   work offline.
+3. Or select a trusted operational manifest:
 
    ```bash
    gh cao download --url URL
    ```
 
-   `DASHBOARD_DATA_URL=URL gh cao download` is equivalent. The URL must point at `payload-hashes.json`; the CLI derives sibling shard and `gh-aw-logs.sqlite` URLs. Pass `--output DIRECTORY` only when the user requests a non-default destination.
+   `DASHBOARD_DATA_URL=URL` is equivalent. URLs must end in `/payload-hashes.json`.
+   No default Pages source, directory discovery, or hosted export is implied.
+   Synthetic manifests and missing SQLite checksums fail closed. Pages supplies
+   neither operational SQLite nor an agent summary. Use `--output DIRECTORY`
+   only for an explicit destination.
 4. Check source coverage before treating the snapshot as complete:
 
    ```bash

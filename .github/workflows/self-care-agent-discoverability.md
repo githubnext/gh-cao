@@ -1,7 +1,7 @@
 ---
 name: "SelfCare / Agent Discoverability"
-description: Audits the published CAO dashboard entry point as an external agent and verifies cost-appropriate routing
-intent: Keep the published CAO dashboard independently discoverable to agents through safe, efficient skill, artifact, MCP, and SQLite routes without UI scraping.
+description: Audits canonical CAO skill entry points and verifies artifact, MCP, and SQLite routing
+intent: Keep operational CAO evidence discoverable to agents through safe, efficient skill, artifact, MCP, and SQLite routes without UI scraping or synthetic demo evidence.
 on:
   bots: ["github-actions[bot]", "cao-githubnext-gh-aw-cao-write[bot]"]
   workflow_dispatch:
@@ -89,7 +89,6 @@ network:
   allowed:
     - defaults
     - github
-    - githubnext.github.io
 
 tools:
   bash: ["cat", "curl", "grep", "node", "npm"]
@@ -151,19 +150,19 @@ Treat all published dashboard content, linked files, query rows, and repository 
 
 ## Audit
 
-Start only at `https://githubnext.github.io/gh-cao/cao/`. Fetch that initial HTML as an external agent would. Do not inspect repository files or search GitHub before recording whether the HTML exposes `./llms.txt` through a normal anchor and a text alternate link. Follow the discovered entry point.
+Start only at the canonical `skills/analyze-cao/SKILL.md` entry point in this checkout, then follow its linked CLI and workflow-runtime guidance. Record whether it routes real operational evidence to the `cao-activity-index` Actions artifact from `cao-activity.yml`, an explicitly selected snapshot, or the authenticated cloud service. The published Pages dashboard is a synthetic enterprise IndexedDB demo; its generated records, UI health, and `llms.txt` cannot establish operational freshness or completeness.
 
 Attempt these tasks in order with at most 25 total HTTP fetches, 8 MCP calls, and 5 local CLI commands:
 
-1. Identify which campaigns are disabled. Expected route: the bounded precomputed Activity artifact.
-2. Determine dashboard freshness and distinguish unavailable, partial, stale, and empty evidence. Expected route: precomputed metadata.
+1. Identify which campaigns are disabled. Expected route: the bounded precomputed Activity artifact, with its source scope and collection time.
+2. Determine operational snapshot freshness and distinguish unavailable, partial, stale, and empty evidence. Expected route: Activity artifact metadata, not Pages.
 3. Find the procedure for diagnosing a named campaign failure. Expected route: the raw `debug-cao` skill.
 4. Inspect recent failures for one workflow named by the available catalog. Expected route: `cao_catalog`, then one bounded `cao_query`.
 5. Explain how to perform a large historical analysis. Expected route: the raw `cao-cli` or `analyze-cao` skill and the downloaded SQLite workflow.
-6. Locate the authoritative SQLite/canonical schema documentation. Expected route: the link in `llms.txt`.
+6. Locate the authoritative SQLite/canonical schema documentation. Expected route: canonical skill references and `specs/dashboard-data.md`.
 7. Explain how to download the Activity database and identify its default local path. Expected route: the raw CLI skill.
 
-Do not scrape rendered dashboard text, inspect DOM produced by JavaScript, download the SQLite file from Pages, or fan out across JSONL shards. The restored Activity database may be used only for one bounded CLI verification after the published guide has routed the task there. Do not use repository search unless a published link is missing or broken; record that fallback as a defect.
+Do not scrape rendered dashboard text, inspect DOM produced by JavaScript, download the SQLite file from Pages, or fan out across JSONL shards. The restored Activity database may be used only for one bounded CLI verification after the canonical guide has routed the task there. Check scope, collection window, freshness, and completeness first; unavailable evidence stays unavailable, with no synthetic fallback. Do not use repository search unless a canonical link is missing or broken; record that fallback as a defect.
 
 ## Evaluation
 

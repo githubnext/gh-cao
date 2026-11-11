@@ -37,8 +37,6 @@ jobs:
         && github.event.workflow_run.head_branch == github.event.repository.default_branch)
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    outputs:
-      deploy: ${{ steps.deployment-policy.outputs.deploy }}
     permissions:
       actions: read
       contents: read
@@ -53,25 +51,6 @@ jobs:
         uses: ./.github/actions/setup-cao-runtime # zizmor: ignore[self-repository] - local action is checked out at github.workflow_sha.
         with:
           bundle: dashboard
-
-      - name: Resolve dashboard deployment policy
-        id: deployment-policy
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const fs = require('fs')
-            const policy = JSON.parse(fs.readFileSync('.github/workflows/cao.json', 'utf8'))
-            const configuredDeploy = policy['control-plane']?.campaigns?.dashboard?.deploy
-            if (
-              configuredDeploy !== undefined
-              && configuredDeploy !== null
-              && typeof configuredDeploy !== 'boolean'
-            ) {
-              throw new Error('control-plane.campaigns.dashboard.deploy must be a boolean')
-            }
-            const deploy = configuredDeploy ?? true
-            core.info(`Standalone Pages deployment: ${deploy ? 'enabled' : 'disabled'}`)
-            core.setOutput('deploy', String(deploy))
 
       - name: Restore collected activity data
         id: activity-cache
@@ -415,93 +394,9 @@ jobs:
           include-hidden-files: true
           retention-days: 1
 
-  cache:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - name: Download dashboard artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: central-agentic-ops-dashboard
-          path: dist/cao
-
-      - name: Delete previous dashboard cache
-        env:
-          DASHBOARD_CACHE_KEY: central-agentic-ops-dashboard
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const caches = await github.paginate(github.rest.actions.getActionsCacheList, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              key: process.env.DASHBOARD_CACHE_KEY,
-              per_page: 100,
-            })
-            const matchingCaches = caches.filter(
-              (cache) => cache.key === process.env.DASHBOARD_CACHE_KEY && cache.ref === process.env.GITHUB_REF,
-            )
-            for (const cache of matchingCaches) {
-              core.info(`Deleting dashboard cache ID ${cache.id}`)
-              await github.rest.actions.deleteActionsCacheById({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                cache_id: cache.id,
-              })
-            }
-
-      - name: Save dashboard cache
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: dist/cao
-          key: central-agentic-ops-dashboard
-
-  pages:
-    needs: build
-    if: needs.build.outputs.deploy == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      pages: write
-    steps:
-      - name: Download dashboard artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: central-agentic-ops-dashboard
-          path: ${{ runner.temp }}/central-agentic-ops-dashboard
-
-      - name: Configure Pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-        with:
-          enablement: false
-          ignore-if-missing: true
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: ${{ runner.temp }}/central-agentic-ops-dashboard
-
-  deploy:
-    needs: [build, pages]
-    if: needs.build.outputs.deploy == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      id-token: write
-      pages: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy Pages
-        id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
-
   notify-failure:
-    needs: [build, cache, pages, deploy]
-    if: ${{ always() && (needs.build.result == 'failure' || needs.cache.result == 'failure' || needs.pages.result == 'failure' || needs.deploy.result == 'failure') }}
+    needs: build
+    if: ${{ always() && needs.build.result == 'failure' }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -517,21 +412,6 @@ jobs:
                 code: 'CAO_DASHBOARD_BUILD_FAILED',
                 result: '${{ needs.build.result }}',
                 message: 'The dashboard build job failed while restoring activity data or assembling the dashboard artifact.',
-              },
-              {
-                code: 'CAO_DASHBOARD_CACHE_FAILED',
-                result: '${{ needs.cache.result }}',
-                message: 'The dashboard cache job failed while saving the dashboard artifact for reuse.',
-              },
-              {
-                code: 'CAO_DASHBOARD_PAGES_ARTIFACT_FAILED',
-                result: '${{ needs.pages.result }}',
-                message: 'The dashboard Pages artifact job failed while packaging the site for deployment.',
-              },
-              {
-                code: 'CAO_DASHBOARD_DEPLOY_FAILED',
-                result: '${{ needs.deploy.result }}',
-                message: 'The dashboard deploy job failed while publishing the prepared artifact to GitHub Pages.',
               },
             ].filter(({ result }) => result === 'failure')
             if (failures.length === 0) {

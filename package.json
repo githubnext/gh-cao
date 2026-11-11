@@ -48,7 +48,7 @@
     "test:stress:company": "node scripts/company-stress.mjs",
     "dashboard:server:spec": "npm --prefix server/spec run generate",
     "dashboard:server:spec:check": "npm --prefix server/spec run check",
-    "dashboard:local:mobile": "DASHBOARD_DATA_URL=https://githubnext.github.io/gh-cao/cao/payload-hashes.json MOBILE_BROWSER=chromium MOBILE_DEVICE='Pixel 7' MOBILE_PROFILE=low-memory MOBILE_MEMORY_MB=256 playwright test --config=tests/playwright/configs/mobile.config.mjs",
+    "dashboard:demo:mobile": "MOBILE_BROWSER=chromium MOBILE_DEVICE='Pixel 7' MOBILE_PROFILE=low-memory MOBILE_MEMORY_MB=256 playwright test --config=tests/playwright/configs/mobile.config.mjs",
     "dashboard:data": "node activity/cao.mjs",
     "dashboard:data:download": "npm run dashboard:data -- download",
     "generate:agent-catalog": "node scripts/generate-agent-catalog.mjs",

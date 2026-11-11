@@ -28,12 +28,19 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
       - name: Install dependencies
         run: npm ci --ignore-scripts
+      # Keep cold toolchain/dependency compilation outside the fixture's deadline.
+      - name: Prepare native installer fixture build
+        run: go build -o .tmp/gh-cao-installer.exe ./cmd/gh-cao
       - name: Test install-gh-cao.sh
         shell: bash
         run: node --test tests/unit/install-script.test.mjs

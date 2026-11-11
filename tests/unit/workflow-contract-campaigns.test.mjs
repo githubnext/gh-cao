@@ -586,9 +586,9 @@ test("Agent customizations preserve deterministic core campaign boundaries", () 
   assert.match(packageExtensions, /Follow the control\s+repository's selected engine and inference\/billing profile/);
   assert.match(packageExtensions, /A different supported gh-aw engine\/provider is valid when explicitly/);
   assert.match(packageExtensions, /Never infer\s+or mix provider\/billing profiles from available secrets/);
-  assert.match(repositoryInstructions, /Keep `\.github\/workflows\/cao-dashboard\.yml` as the single dashboard builder and optional Pages publisher/);
-  assert.match(repositoryInstructions, /upload the reusable dashboard artifact/);
-  assert.match(repositoryInstructions, /must not add a schedule or another enable variable/);
+  assert.match(repositoryInstructions, /Keep `\.github\/workflows\/cao-dashboard\.yml` as the operational artifact builder/);
+  assert.match(repositoryInstructions, /Preserve its reusable artifact for cloud\/local consumers/);
+  assert.match(repositoryInstructions, /must not publish to Pages/);
   assert.match(repositoryInstructions, /Keep data collection and cache publication out of operational campaigns and dashboard build jobs/);
   assert.match(repositoryInstructions, /follow `skills\/create-cao-campaign\/SKILL\.md`/);
   assert.match(repositoryInstructions, /apply `skills\/create-cao-campaign\/SKILL\.md`/);
@@ -665,7 +665,7 @@ test("README routes zero-to-CAO requests to the setup skill", () => {
   assert.match(setupSkill, /Node\.js 24\+/);
   assert.match(setupSkill, /separate default-No prompt can publish reviewed CAO files/);
   assert.match(setupSkill, /declining\/CI stays\s+local/);
-  assert.match(setupSkill, /deployment-pending links without waiting/);
+  assert.match(setupSkill, /Push links to Actions artifacts/);
   assert.match(setupSkill, /gh extension install githubnext\/gh-cao/);
   assert.ok(setupSkill.indexOf("gh extension install") < setupSkill.indexOf("curl -fsSL"));
   assert.match(setupReferences["implementation-details"], /primary operator path is `gh extension install githubnext\/gh-cao`/);

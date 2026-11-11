@@ -128,7 +128,9 @@ test("canvas rejects legacy, corrupt and invalid canonical evidence without fall
         } else await writeFile(join(destination, "gh-aw-logs.sqlite"), "corrupted snapshot");
       }
     });
-    await assert.rejects(start(), kind === "legacy" ? /requires a canonical/ : kind === "checksum" ? /checksum/ : /Go host exited/);
+    await assert.rejects(start(), kind === "legacy"
+      ? /CAO Activity artifact requires gh-aw-logs\.sqlite and payload-hashes\.json at its root/
+      : kind === "checksum" ? /checksum/ : /Go host exited/);
     assert.equal((await readdir(root)).filter((name) => name.startsWith(".cao-dashboard-preview-")).length, 0);
   }
 });

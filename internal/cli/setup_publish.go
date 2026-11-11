@@ -111,27 +111,24 @@ func setupPublishSummary(stat string, styled bool) string {
 }
 
 func setupPublishOutput(publication map[string]any, styled bool) string {
-	message := "Monitoring configuration pushed. Deployment pending; setup is not waiting for Actions.\n"
+	message := "Monitoring configuration pushed. Actions pending; setup is not waiting for workflow completion.\n"
 	link := "%s: %s\n"
 	if styled {
-		message = "\n\x1b[1;32mMonitoring configuration pushed.\x1b[0m Deployment pending; setup is not waiting for Actions.\n"
+		message = "\n\x1b[1;32mMonitoring configuration pushed.\x1b[0m Actions pending; setup is not waiting for workflow completion.\n"
 		link = "\x1b[1;36m%s:\x1b[0m \x1b[4;34m%s\x1b[0m\n"
 	}
 	message += fmt.Sprintf(link, "Actions", publication["actionsURL"])
-	message += fmt.Sprintf(link, "Pages settings", publication["pagesSettingsURL"])
-	if dashboard, ok := publication["dashboardURL"].(string); ok {
-		message += fmt.Sprintf(link, "Dashboard (deployment pending)", dashboard)
-	}
+	message += "Use Actions operational artifacts with the local or cloud dashboard.\n"
 	return message
 }
 
-func setupPublish(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupPrompt, repository, dashboard string, files []string) (result map[string]any, err error) {
-	return publishCAOChanges(cmd, gh, prompt, repository, dashboard, files,
+func setupPublish(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupPrompt, repository string, files []string) (result map[string]any, err error) {
+	return publishCAOChanges(cmd, gh, prompt, repository, files,
 		"Commit and push these CAO monitoring changes?", "Set up CAO monitoring",
-		"Pushing starts monitoring in Actions; setup will not wait for deployment.")
+		"Pushing starts monitoring in Actions; setup will not wait for workflow completion.")
 }
 
-func publishCAOChanges(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupPrompt, repository, dashboard string, files []string, question, commitMessage, notice string) (result map[string]any, err error) {
+func publishCAOChanges(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupPrompt, repository string, files []string, question, commitMessage, notice string) (result map[string]any, err error) {
 	result = map[string]any{"status": "not-requested"}
 	if prompt == nil || os.Getenv("CI") != "" {
 		return result, nil
@@ -318,12 +315,9 @@ func publishCAOChanges(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupProm
 		return nil, fmt.Errorf("CAO changes committed as %s, but push failed; the local commit is retained. Follow your repository's publication or pull-request process; branch protections were not bypassed: %w", commit, err)
 	}
 	result = map[string]any{
-		"status": "published", "commit": commit, "deploymentStatus": "pending",
-		"actionsURL": target.URL + "/actions", "pagesSettingsURL": target.URL + "/settings/pages",
+		"status": "published", "commit": commit, "actionsStatus": "pending",
+		"actionsURL": target.URL + "/actions",
 		"repository": repository, "branch": target.Branch,
-	}
-	if dashboard != "" {
-		result["dashboardURL"] = dashboard
 	}
 	return result, nil
 }

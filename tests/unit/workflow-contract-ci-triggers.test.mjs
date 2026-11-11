@@ -58,6 +58,23 @@ test("dashboard WebKit uses an OS-specific browser cache on its supported Ubuntu
   assert.match(install.run, /playwright install --with-deps chromium webkit/);
 });
 
+test("Windows installer prepares the native Go build before bounded installer tests", () => {
+  const steps = parse(workflow("install-windows.yml")).jobs.install.steps;
+  const go = steps.find((step) => step.uses?.startsWith("actions/setup-go@"));
+  const build = steps.find((step) => step.name === "Prepare native installer fixture build");
+  const tests = steps.find((step) => step.run === "node --test tests/unit/install-script.test.mjs");
+  assert.ok(go, "provision the module's Go toolchain and cache");
+  assert.equal(go.with["go-version-file"], "go.mod");
+  assert.equal(go.with["cache-dependency-path"], "go.sum");
+  assert.ok(build, "download dependencies and warm the native build outside the test deadline");
+  assert.equal(build.run, "go build -o .tmp/gh-cao-installer.exe ./cmd/gh-cao");
+  assert.ok(tests);
+  assert.ok(steps.indexOf(go) < steps.indexOf(build));
+  assert.ok(steps.indexOf(build) < steps.indexOf(tests));
+  assert.equal(build.if, undefined);
+  assert.equal(build["continue-on-error"], undefined);
+});
+
 test("slow integration workflows run on relevant main pushes, not pull requests", () => {
   for (const name of mainOnlyWorkflows) {
     const triggers = parse(workflow(name)).on;
@@ -470,6 +487,49 @@ test("main pushes retain browser and integration coverage for representative inp
     assert.ok(runsForFile(name, "push", file), `${name}: ${file}`);
   }
   assert.equal(parse(workflow("actions.yml")).jobs.mobile.if, undefined);
+});
+
+test("demo browser CI cannot substitute synthetic Pages data for operational snapshots", () => {
+  for (const name of ["actions.yml", "dashboard-views.yml"]) {
+    const source = workflow(name);
+    assert.doesNotMatch(source, /DASHBOARD_DATA_URL|githubnext\.github\.io/);
+    assert.match(source, /not operational freshness or completeness evidence/);
+  }
+  const { jobs } = parse(workflow("dashboard-deployed-integration.yml"));
+  assert.match(jobs.integration.name, /synthetic/i);
+  assert.equal(jobs["query-performance"], undefined);
+  assert.equal(jobs["query-performance-comment"], undefined);
+  const artifact = jobs["query-cost"].steps.find(({ name }) => name === "Download operational Activity artifact");
+  assert.match(artifact.run, /--workflow cao-activity\.yml --branch "\$DEFAULT_BRANCH"/);
+  assert.match(artifact.run, /--status success/);
+  assert.match(artifact.run, /gh run download "\$run_id" --name cao-activity-index --dir \.cao/);
+  assert.doesNotMatch(artifact.run, /dashboard:data:download|github\.io/);
+  const ingestion = jobs["query-cost"].steps.find(({ name }) => name === "Verify operational artifact ingestion");
+  assert.equal(ingestion.env.DASHBOARD_DATA_DIR, ".cao");
+});
+
+test("operational ingestion fails closed without an explicit real snapshot", () => {
+  const environment = { ...process.env };
+  delete environment.DASHBOARD_DATA_URL;
+  delete environment.DASHBOARD_DATA_DIR;
+  for (const [source, manifest, expected] of [
+    [undefined, {}, /Select exactly one operational source/],
+    ["https://snapshot.example/payload-hashes.json", { synthetic: true }, /Synthetic demo data is not operational evidence/],
+    ["https://snapshot.example/payload-hashes.json", {}, /Operational evidence must include a checksum/],
+  ]) {
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", `
+      globalThis.fetch = async () => Response.json(${JSON.stringify(manifest)});
+      await import("./tests/integration/dashboard-deployed-data.test.mjs");
+    `], {
+      cwd: root,
+      env: { ...environment, ...(source ? { DASHBOARD_DATA_URL: source } : {}) },
+      encoding: "utf8",
+      timeout: 10_000,
+    });
+    assert.equal(result.error, undefined);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stdout + result.stderr, expected);
+  }
 });
 
 test("mixed workflows keep fast checks on PRs and gate expensive jobs off PRs", () => {

@@ -5,12 +5,13 @@ OpenAPI 3.1 and selected JSON Schemas; consult it before changing server routes.
 
 The `server/` module is the unified serving runtime for the Central Agentic Ops
 dashboard with server-owned persistence and query execution. It ingests the
-same compacted data published with the deployed dashboard, stores current
+same compacted data retained in operational artifacts, stores current
 native entity rows in PostgreSQL and executes hosted Dashboard Language plans
 as SQL through the bounded PostgreSQL query engine,
 and serves the built dashboard either over loopback HTTP or through an
 authenticated host-neutral service profile. Local `serve` defaults to a cached
-SQLite snapshot, downloading deployed data only when the file is missing.
+real operational SQLite snapshot. Missing caches require explicit acquisition;
+there is no public Pages default.
 PostgreSQL is the hosted default operational adapter, so the default deployment
 requires no Redis service.
 Explicit Redis configuration remains supported; an acknowledged single-process memory adapter supports the
@@ -32,7 +33,7 @@ the focused contracts.
 The browser never connects directly to Postgres or Redis and never receives
 database credentials. It communicates only with the same-origin HTTP(S) API.
 
-### Local development and Pages simulation
+### Local development and synthetic Pages demo
 
 From the repository root, `npm run dev` or `npm run dashboard:local` builds
 the dashboard and starts Go `serve` with its verified SQLite cache. The Node
@@ -85,28 +86,28 @@ SQLite snapshot. Registry failures remain explicit in source availability or
 registry diagnostics; they never trigger synthetic packages or snapshot-inventory
 fallback.
 
-For explicit Pages/IndexedDB testing:
+For synthetic-only Pages/IndexedDB testing:
 
 ```sh
-npm run dashboard:pages:build -- --fixture
+npm run dashboard:pages:build
 npm run dashboard:pages -- --base-path /gh-cao/
 npm run test:e2e:dashboard-pages
 ```
 
-Use `--activity-dir PATH` instead of `--fixture` to prepare an existing Activity
-snapshot offline. Preparation runs production normalization, SQLite ingestion,
-hashing and Dashboard building; fixture data is explicitly synthetic. It does
-not simulate collection, Actions permissions, cache/artifact transport, TLS or
-GitHub Pages infrastructure. The current Actions runtime simulator accepts
-compiled dry-run agentic locks, not the ordinary Activity/Dashboard workflows.
+Synthetic enterprise raw samples use production normalization, canonical ingestion,
+hashing, queries, and views. No real-data input, SQLite export, or agent summary
+is supported. A declarative **Synthetic enterprise demo** callout labels the sample.
+This does not simulate collection, Actions permissions, transport, TLS, or Pages;
+the Actions runtime simulator supports compiled dry-run locks only.
 
-`serve-pages --site ../.tmp/dashboard-pages --listen 127.0.0.1:8080`
-serves the prepared artifact unchanged, optionally below `--base-path /REPO/`.
-It provides no hosted bootstrap, authentication or query API, so the page uses
-its real browser IndexedDB data path. The listener is numeric-loopback-only,
-and directory listings and escaping symlinks are refused. Paths in npm Go
-commands resolve relative to `server/`. Static Pages is an explicit mode,
-never a fallback for hosted serving.
+Loopback `serve-pages --site ../.tmp/dashboard-pages --listen 127.0.0.1:8080`
+serves bytes unchanged, optionally under `--base-path /REPO/`, with IndexedDB
+and no hosted bootstrap, authentication, or query API. It rejects directory
+listings and escaping symlinks. npm Go paths resolve from `server/`.
+This demo is never hosted failover. `demo-data/` data URLs,
+`synthetic-demo` storage keys, and `demo` service-worker caches exclude
+legacy real data. Rebuilds replace current artifacts, not historical deployments
+or browser storage; cleanup never deletes outside the demo namespace.
 
 [Canonical read contract inner loop (explicitly synthetic)](DASHBOARD-CONTRACT.md).
 
@@ -140,8 +141,8 @@ node scripts/maintainer-simulation.mjs serve
 
 Read `.tmp/maintainer-simulation/environment.json` for the browser URL and
 fixture limits. The two servers bind only to `127.0.0.1` (ports 18443 and 18081);
-Ctrl-C stops both. Preparation reuses the Pages artifact builder only to
-produce the snapshot/assets; the dashboard is served with the `server-http`
+Ctrl-C stops both. Preparation produces synthetic snapshot/assets through
+production normalization; the dashboard is served with the `server-http`
 bootstrap and Go query API, not as a Pages/IndexedDB application.
 
 ## Local GitHub bootstrap integration
@@ -160,7 +161,7 @@ commands, and HTTPS Git push/clone against the simulator's test-only
 reader are not compiled into production binaries. The fixture's
 stateful surface implements repository creation and visibility, the GraphQL
 selections used by gh, release metadata and checksum-verified asset downloads,
-workflow-sourced Pages, and Actions variables. Unknown routes and fields fail
+and Actions variables. Setup makes no Pages configuration calls. Unknown routes and fields fail
 explicitly. The root campaign is installed and materialized from the current
 checkout, not a published CAO revision.
 
@@ -202,8 +203,8 @@ available on that host, and same/cross/mixed resource owners. Public controls
 reject non-public evidence. PAT cases retain simulated existing secret names
 and check exact owner-scoped read maps and control-only writes. App previews
 cover both hosts, separate permissions, reuse plans, and cross-owner rejection
-for newly created organization Apps. Capability failures exercise denied Pages,
-secret lookup and variable writes, declined public Pages, and unchanged consumer
+for newly created organization Apps. Capability failures exercise denied
+secret lookup and variable writes, no Pages calls, and unchanged consumer
 files/index. The recorded public monitoring flow and a private GHE.com PAT flow
 also publish reviewed files through real HTTPS Git to local bare repositories.
 GHE.com requests must remain on its selected web/API hosts.
@@ -362,7 +363,8 @@ handler owns the built HTML and assets as well as OAuth, query APIs, and revisio
 events on the same origin. A reverse proxy or platform listener must forward
 the complete application, not just `/api/`. Do not deploy the frontend separately
 to Pages, a static website host, or an object-storage website endpoint.
-Pages is a different deployment mode whose browser owns ingestion and queries.
+Pages is only a synthetic enterprise demo whose browser owns ingestion and
+queries through the same canonical pipeline and views; it has no live services.
 
 Hosted revision streams reconnect before membership authorization, token-refresh
 eligibility or administrator health entitlement expires. A 20-second session
@@ -384,24 +386,25 @@ inventory quality stays unknown. Inventory rows never replace SQLite query data.
 The owner receives a machine-readable readiness URL and keeps stdin open for
 the lifetime of the child; EOF shuts the host down. This is an internal extension
 contract, not a second dashboard CLI. Canvas startup requires a verified
-published SQLite artifact and never falls back to Node queries or browser ingestion.
+`cao-activity-index` SQLite artifact from a successful default-branch Activity
+run and never falls back to Node queries or browser ingestion. Synthetic
+manifests and missing SQLite checksums fail closed.
 
-Build the dashboard once, then run the local server without PostgreSQL, Redis,
-`gh`, or a separate download command:
+Acquire an operational artifact, then build and serve it read-only:
 
 ```bash
 # From the repository root:
+gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
 npm ci
 npm --prefix dashboard/site ci
 npm --prefix dashboard/site run build
-go -C server run ./cmd/cao-dashboard serve
+go -C server run ./cmd/cao-dashboard serve --sqlite ../.cao/gh-aw-logs.sqlite
 ```
 
-Plain `serve` reuses `.cao/gh-aw-logs.sqlite` in this checkout without downloading
-it again. If that cache is missing, startup downloads the public CAO Pages snapshot,
-or `DASHBOARD_DATA_URL` when set. `--sqlite PATH` selects another cache and has the
-same download-if-missing behavior. Database service environment variables alone
-do not change this local default.
+Plain `serve` reuses `.cao/gh-aw-logs.sqlite` offline. Missing caches require
+`DASHBOARD_DATA_URL` or `--download-sqlite[=URL]`, otherwise startup stops with
+artifact-acquisition guidance. `--sqlite PATH` selects another cache.
+Database service environment variables alone do not override local SQLite.
 
 The selected snapshot stays **read-only**. SQLite creation, normalization,
 backfill, and maintenance remain in the JavaScript `cao-activity` pipeline.
@@ -416,25 +419,19 @@ are no longer supported. Previously created `.local.sqlite` files are preserved
 but are not attached or merged. Ordinary local and internal Copilot canvas
 serving use the same read-only boundary.
 
-Use `--download-sqlite` to explicitly refresh the cache, even when it exists.
-Its optional URL overrides `DASHBOARD_DATA_URL` and accepts any GitHub Pages site,
-including project sites and custom domains:
+`--download-sqlite` refreshes even existing caches. Its URL overrides
+`DASHBOARD_DATA_URL` and must name a trusted operational `payload-hashes.json`:
 
 ```bash
 go -C server run ./cmd/cao-dashboard serve \
-  --download-sqlite https://OWNER.github.io/REPOSITORY/
-
-# A dashboard directory or direct payload-hashes.json URL also works.
-go -C server run ./cmd/cao-dashboard serve \
-  --download-sqlite=https://dashboard.example.org/cao/ \
+  --download-sqlite=https://evidence.example/operational/payload-hashes.json \
   --sqlite ../.cao/custom.sqlite
 ```
 
-For a site URL, the downloader looks for `payload-hashes.json` in that directory,
-then under `cao/` if the first location returns HTTP 404. The image is fetched
-beside the discovered manifest; the hostname is not restricted to
-`githubnext.github.io`. URLs must use HTTP or HTTPS without embedded credentials
-or fragments. HTTPS redirects cannot downgrade to HTTP.
+This example implies no hosted export API. No site-root or `cao/` discovery
+occurs; SQLite is fetched beside the manifest. URLs require HTTP(S), without
+credentials or fragments; HTTPS cannot downgrade. Synthetic manifests and
+missing SQLite checksums are rejected.
 
 The download streams only the SQLite image, not inventory or JSONL shards.
 It verifies the manifest's SHA-256 checksum and canonical database version
@@ -460,11 +457,11 @@ go -C server run ./cmd/cao-dashboard serve \
 The server defaults to embedded resources. Use `--site` for a disk-backed
 build directory and `--mcp-enabled` to expose the existing read-only MCP endpoint.
 Paths in this example resolve from `server/` because of `go -C server`.
-`gh cao download` prepares the default CAO snapshot; use `--url` with another
-dashboard's `payload-hashes.json` URL to select different data.
+`gh cao download --url URL` requires an explicit operational
+`payload-hashes.json` URL, or `DASHBOARD_DATA_URL`. It has no default Pages source.
 The snapshot must use
 the canonical IndexedDB-compatible SQLite layout and database version 45.
-Only a genuinely missing cache triggers automatic acquisition. Unreadable or
+Only a genuinely missing cache with an explicit source triggers acquisition. Unreadable or
 invalid existing files, dangling symlinks, unsupported versions, and missing
 requested stores fail closed without a repair download. Startup never creates
 an empty snapshot, repairs, migrates, or ingests the downloaded file. Acquisition installs
@@ -4076,7 +4073,7 @@ npm run dashboard:server:build
 go -C server run ./cmd/cao-dashboard serve
 ```
 
-Missing deployed snapshots are downloaded and reused offline.
+Missing operational snapshots require an explicit source; verified caches are reused offline.
 For PostgreSQL, start the optional stack, configure `CAO_POSTGRES_URL`, and
 provision storage per
 [`POSTGRES.md`](POSTGRES.md) before ingesting:

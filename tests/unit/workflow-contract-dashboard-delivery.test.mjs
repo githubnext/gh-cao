@@ -230,7 +230,7 @@ test("dashboard CI runs the campaign quality gates", () => {
   assert.match(lighthouseComment.block, /issues\.createComment/);
 });
 
-test("Dashboard campaign builds artifacts and deploys Pages in one workflow", () => {
+test("Dashboard campaign retains operational artifacts without Pages publication", () => {
   const rootManifest = readFileSync(join(root, "aw.yml"), "utf8");
   const controlPlaneManifest = rootManifest;
   const activityManifest = readFileSync(join(root, "activity", "aw.yml"), "utf8");
@@ -252,10 +252,7 @@ test("Dashboard campaign builds artifacts and deploys Pages in one workflow", ()
   const activityNotifyFailureJob = activityWorkflow.match(/\n  notify-failure:\n([\s\S]*)/)?.[1];
   const siteBuildScript = readFileSync(join(root, "dashboard", "site", "scripts", "build.mjs"), "utf8");
   const dashboardWorkflow = readFileSync(join(root, ".github", "workflows", "cao-dashboard.yml"), "utf8");
-  const dashboardBuildJob = dashboardWorkflow.match(/\n  build:\n([\s\S]*?)\n  cache:\n/)?.[1];
-  const dashboardCacheJob = dashboardWorkflow.match(/\n  cache:\n([\s\S]*?)\n  pages:\n/)?.[1];
-  const dashboardPagesJob = dashboardWorkflow.match(/\n  pages:\n([\s\S]*?)\n  deploy:\n/)?.[1];
-  const dashboardDeployJob = dashboardWorkflow.match(/\n  deploy:\n([\s\S]*?)\n  notify-failure:\n/)?.[1];
+  const dashboardBuildJob = dashboardWorkflow.match(/\n  build:\n([\s\S]*?)\n  notify-failure:\n/)?.[1];
   const dashboardNotifyFailureJob = dashboardWorkflow.match(/\n  notify-failure:\n([\s\S]*)/)?.[1];
   const aicUsage = readFileSync(join(root, "dashboard", "report", "aic-usage.mjs"), "utf8");
   const deployedWorkflows = readFileSync(join(root, "activity", "index.mjs"), "utf8");
@@ -361,12 +358,11 @@ test("Dashboard campaign builds artifacts and deploys Pages in one workflow", ()
   assert.match(activityRunner, /control-settings\.mjs[\s\S]*?\.github\/workflows\/shared\/control\.mjs[\s\S]*?\.github\/workflows\/cao\.json[\s\S]*?controlSettingsPath/);
   assert.match(activityRunner, /REPORT_CONTROL_SETTINGS[\s\S]*?path\.join\(runnerTemp, "cao-activity", "control-settings\.json"\)/);
   assert.doesNotMatch(dashboardWorkflow, /^\s+run:/m);
-  assert.equal((dashboardWorkflow.match(/actions\/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3/g) || []).length, 10);
+  assert.equal((dashboardWorkflow.match(/actions\/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3/g) || []).length, 8);
   assert.match(dashboardWorkflow, /Install dashboard build dependencies[\s\S]*?await exec\.exec\('npm', \[[\s\S]*?'ci'[\s\S]*?'--prefix'[\s\S]*?'dashboard\/site'[\s\S]*?'--ignore-scripts'/);
   assert.match(dashboardWorkflow, /Assemble Dashboard Language site[\s\S]*?await exec\.exec\('npm', \[[\s\S]*?'--prefix'[\s\S]*?'dashboard\/site'[\s\S]*?'run'[\s\S]*?'build'[\s\S]*?process\.env\.REPORT_OUTPUT[\s\S]*?controlSettings/);
   assert.match(dashboardWorkflow, /DASHBOARD_COMMIT_SHA: \$\{\{ github\.workflow_sha \}\}[\s\S]*?process\.env\.DASHBOARD_COMMIT_SHA/);
   assert.doesNotMatch(dashboardWorkflow, /DASHBOARD_LAYOUT|DASHBOARD_SITE_ROOT|Resolve dashboard source layout/);
-  assert.match(dashboardWorkflow, /core\.info\(`Standalone Pages deployment: \$\{deploy \? 'enabled' : 'disabled'\}`\)/);
   assert.match(dashboardWorkflow, /core\.info\('Dashboard build dependencies installed'\)[\s\S]*?'validate-activity-data'[\s\S]*?core\.info\('Activity database repair and retention completed'\)[\s\S]*?core\.info\('Dashboard site build completed'\)[\s\S]*?core\.info\(`Dashboard artifact assembly completed \(\$\{collectedFiles\.length \+ 1\} collected data files\)`\)/);
   assert.doesNotMatch(dashboardWorkflow, /core\.(?:info|error)\(`[^`]*\$\{activityFile\}/);
   assert.match(siteBuildScript, /from "esbuild"/);
@@ -377,41 +373,13 @@ test("Dashboard campaign builds artifacts and deploys Pages in one workflow", ()
   assert.doesNotMatch(dashboardWorkflow, /legacy dashboard redirects|redirects\.mjs/);
   assert.match(dashboardWorkflow, /actions\/upload-artifact@[0-9a-f]{40}/);
   assert.match(dashboardWorkflow, /name: central-agentic-ops-dashboard[\s\S]*?include-hidden-files: true/);
-  assert.match(dashboardCacheJob, /needs: build[\s\S]*?permissions:[\s\S]*?actions: write/);
-  assert.match(dashboardCacheJob, /Download dashboard artifact[\s\S]*?name: central-agentic-ops-dashboard[\s\S]*?path: dist\/cao[\s\S]*?Delete previous dashboard cache/);
-  assert.match(dashboardCacheJob, /Delete previous dashboard cache[\s\S]*?cache\.key === process\.env\.DASHBOARD_CACHE_KEY[\s\S]*?cache\.ref === process\.env\.GITHUB_REF[\s\S]*?deleteActionsCacheById[\s\S]*?cache_id: cache\.id/);
-  assert.match(dashboardCacheJob, /Save dashboard cache[\s\S]*?actions\/cache\/save@[0-9a-f]{40}[\s\S]*?path: dist\/cao[\s\S]*?key: central-agentic-ops-dashboard/);
-  assert.match(dashboardWorkflow, /Resolve dashboard deployment policy[\s\S]*?policy\['control-plane'\]\?\.campaigns\?\.dashboard\?\.deploy[\s\S]*?typeof configuredDeploy !== 'boolean'[\s\S]*?const deploy = configuredDeploy \?\? true[\s\S]*?core\.setOutput\('deploy', String\(deploy\)\)/);
+  assert.deepEqual(Object.keys(parse(dashboardWorkflow).jobs), ["build", "notify-failure"]);
   assert.ok(dashboardBuildJob);
-  assert.ok(dashboardCacheJob);
-  assert.ok(dashboardPagesJob);
-  assert.ok(dashboardDeployJob);
-  assert.ok(dashboardNotifyFailureJob);
-  assert.doesNotMatch(dashboardBuildJob, /actions: write|pages: write|id-token: write|configure-pages|upload-pages-artifact|deploy-pages/);
-  assert.doesNotMatch(dashboardBuildJob, /issues: write/);
-  assert.match(dashboardPagesJob, /needs: build[\s\S]*?Download dashboard artifact[\s\S]*?name: central-agentic-ops-dashboard[\s\S]*?Configure Pages[\s\S]*?Upload Pages artifact/);
-  assert.doesNotMatch(dashboardPagesJob, /deploy-pages|id-token: write/);
-  assert.match(dashboardDeployJob, /needs: \[build, pages\][\s\S]*?actions: read[\s\S]*?id-token: write[\s\S]*?pages: write/);
-  assert.match(dashboardDeployJob, /Deploy Pages[\s\S]*?actions\/deploy-pages@[0-9a-f]{40}/);
-  assert.doesNotMatch(dashboardDeployJob, /Download dashboard artifact|Configure Pages|Upload Pages artifact|upload-pages-artifact/);
-  assert.doesNotMatch(dashboardPagesJob, /Verify dashboard Pages access|getPages|pages-access|continue-on-error/);
-  const dashboardPagesSteps = parse(dashboardWorkflow).jobs.pages.steps;
-  const dashboardDeploySteps = parse(dashboardWorkflow).jobs.deploy.steps;
-  for (const step of dashboardPagesSteps) {
-    assert.equal(step.if, undefined, step.name);
-  }
-  for (const step of dashboardDeploySteps) {
-    assert.equal(step.if, undefined, step.name);
-  }
-  assert.equal(
-    dashboardPagesSteps.find(({ name }) => name === "Configure Pages").with["ignore-if-missing"],
-    true,
-  );
-  assert.match(dashboardWorkflow, /pages:\n\s+needs: build\n\s+if: needs\.build\.outputs\.deploy == 'true'/);
-  assert.match(dashboardWorkflow, /deploy:\n\s+needs: \[build, pages\]\n\s+if: needs\.build\.outputs\.deploy == 'true'/);
-  assert.match(dashboardNotifyFailureJob, /needs: \[build, cache, pages, deploy\]/);
+  assert.doesNotMatch(dashboardWorkflow, /pages: write|id-token: write|configure-pages|upload-pages-artifact|deploy-pages|deployment-policy|DASHBOARD_CACHE_KEY/);
+  assert.doesNotMatch(dashboardBuildJob, /actions: write|issues: write/);
+  assert.match(dashboardNotifyFailureJob, /needs: build/);
   assert.match(dashboardNotifyFailureJob, /permissions:\n\s+issues: write/);
-  assert.match(dashboardNotifyFailureJob, /CAO_DASHBOARD_BUILD_FAILED[\s\S]*?CAO_DASHBOARD_CACHE_FAILED[\s\S]*?CAO_DASHBOARD_PAGES_ARTIFACT_FAILED[\s\S]*?CAO_DASHBOARD_DEPLOY_FAILED/);
+  assert.match(dashboardNotifyFailureJob, /CAO_DASHBOARD_BUILD_FAILED/);
   assert.match(dashboardNotifyFailureJob, /Assign this issue to an agent/);
   assert.match(dashboardNotifyFailureJob, /GITHUB_WORKFLOW_SHA[\s\S]*?githubnext\/gh-cao\/blob\/main\/skills\/debug-cao\/SKILL\.md/);
   assert.doesNotMatch(dashboardNotifyFailureJob, /cancelled/);
@@ -420,12 +388,7 @@ test("Dashboard campaign builds artifacts and deploys Pages in one workflow", ()
   assert.match(dashboardWorkflow, /github\.event_name == 'workflow_run'[\s\S]*?github\.event\.workflow_run\.conclusion == 'success'[\s\S]*?github\.event\.workflow_run\.head_branch == github\.event\.repository\.default_branch/);
   assert.doesNotMatch(dashboardWorkflow, /\.github\/aw\/dashboards|\.github\/aw\/dashboard/);
   assert.doesNotMatch(dashboardWorkflow, /github\.event_name == 'push'/);
-  assert.match(dashboardWorkflow, /enablement: false/);
-  assert.match(dashboardWorkflow, /pages: write/);
-  assert.match(dashboardWorkflow, /id-token: write/);
   assert.doesNotMatch(dashboardWorkflow, /schedule:/);
-  assert.equal((dashboardWorkflow.match(/actions\/upload-pages-artifact@/g) || []).length, 1);
-  assert.equal((dashboardWorkflow.match(/actions\/deploy-pages@/g) || []).length, 1);
   assert.doesNotMatch(activityWorkflow, /actions\/setup-go|go build|go clean|gh-aw-operational-value/);
   assert.doesNotMatch(dashboardWorkflow, /pages-aic|REPORT_AIC_CACHE/);
   assert.match(activityCollector, /--artifacts usage,experiment,graders \\\s+--start-date/);
@@ -563,128 +526,34 @@ test("Activity campaign owns the shared collected-data cache contract", () => {
   assert.match(readme, /gh-aw-logs-shards/);
 });
 
-test("Documentation Pages deploys docs with the latest dashboard artifact", () => {
-  const workflow = readFileSync(join(root, ".github", "workflows", "docs.yml"), "utf8").replaceAll("\r\n", "\n");
-  const dashboardWorkflow = readFileSync(join(root, ".github", "workflows", "cao-dashboard.yml"), "utf8").replaceAll("\r\n", "\n");
-  const astroConfig = readFileSync(join(root, "astro.config.mjs"), "utf8");
-
-  assert.equal(existsSync(join(root, ".github", "workflows", "dashboard-build.yml")), false);
-  assert.equal(existsSync(join(root, ".github", "workflows", "documentation-pages.yml")), false);
-  assert.equal(existsSync(join(root, ".github", "workflows", "documentation-build.yml")), false);
-
-  assert.doesNotMatch(workflow, /dashboard-build|needs: dashboard/);
-  const steps = parse(workflow).jobs.build.steps;
-  const setupNode = steps.find(({ uses }) => uses?.startsWith("actions/setup-node@"));
-  assert.equal(setupNode.with.cache, "npm");
-  const installs = steps.filter(({ run }) => run === "npm ci");
-  assert.equal(installs.length, 1);
-  assert.equal(installs[0].if, undefined, "npm ci must run even on a cache hit");
-  assert.notEqual(installs[0]["continue-on-error"], true);
-  assert.ok(steps.findIndex(({ run }) => run === "npm run docs:build") > steps.indexOf(installs[0]));
-  assert.doesNotMatch(workflow, /\bnode_modules\b/);
-  assert.match(workflow, /run: npm run docs:build/);
-  assert.ok(
-    workflow.indexOf("run: npm run docs:build") < workflow.indexOf("uses: actions/upload-pages-artifact@"),
-    "agent documentation validation must complete before the Pages artifact is uploaded",
-  );
-  assert.match(workflow, /schedule:\n\s+- cron: "\*\/15 \* \* \* \*"/);
-  assert.match(workflow, /workflow_dispatch:\n\s+inputs:\n\s+force_deploy:[\s\S]*?type: boolean\n\s+default: false/);
-  assert.doesNotMatch(workflow, /inputs\.mode|"mode":/);
-  assert.match(workflow, /schedule-freshness:[\s\S]*?github\.event_name == 'schedule'[\s\S]*?github\.event_name == 'workflow_run'[\s\S]*?outputs:[\s\S]*?should-build: \$\{\{ steps\.freshness\.outputs\.should-build \}\}/);
-  assert.match(workflow, /Check documentation and dashboard freshness[\s\S]*?actions\/github-script@[0-9a-f]{40}[\s\S]*?repos\.getBranch[\s\S]*?workflow_id: 'docs\.yml'[\s\S]*?workflow_id: 'cao-dashboard\.yml'/);
-  assert.match(workflow, /listJobsForWorkflowRun[\s\S]*?job\.name === 'deploy' && job\.conclusion === 'success'/);
-  assert.match(workflow, /maxDocsRunsToInspect = 100[\s\S]*?per_page: maxDocsRunsToInspect/);
-  assert.match(workflow, /const docsCurrent = deployedDocsRun\?\.head_sha === currentBranch\.data\.commit\.sha/);
-  assert.match(workflow, /const dashboardCurrent = latestDashboardRun[\s\S]*?latestDashboardRun\.updated_at\) <= new Date\(deployedDocsRun\.updated_at\)/);
-  assert.match(workflow, /Documentation build skipped because the deployed docs and dashboard are current/);
-  assert.match(workflow, /build:\n\s+needs: schedule-freshness[\s\S]*?!failure\(\) && !cancelled\(\)[\s\S]*?github\.event_name == 'push'[\s\S]*?github\.event_name == 'workflow_dispatch' && inputs\.force_deploy[\s\S]*?needs\.schedule-freshness\.outputs\.should-build == 'true'/);
-  assert.match(workflow, /deploy:\n\s+needs: build\n\s+if: \$\{\{ !failure\(\) && !cancelled\(\) && needs\.build\.result == 'success' \}\}/);
-  assert.match(workflow, /workflow_run:[\s\S]*?workflows:[\s\S]*?- CAO Dashboard[\s\S]*?types:[\s\S]*?- completed/);
-  assert.match(workflow, /actions: read/);
-  assert.match(workflow, /Restore cached CAO Dashboard[\s\S]*?id: dashboard-cache[\s\S]*?actions\/cache\/restore@[0-9a-f]{40}[\s\S]*?path: dist\/cao[\s\S]*?key: central-agentic-ops-dashboard/);
-  assert.match(workflow, /Find latest CAO Dashboard run[\s\S]*?if: steps\.dashboard-cache\.outputs\.cache-hit != 'true'[\s\S]*?actions\/workflows\/cao-dashboard\.yml\/runs\?branch=\$DEFAULT_BRANCH&status=success&per_page=20[\s\S]*?\.workflow_runs\[0\]\.id/);
-  assert.match(workflow, /Mount latest CAO Dashboard artifact[\s\S]*?if: steps\.dashboard-cache\.outputs\.cache-hit != 'true'[\s\S]*?name: central-agentic-ops-dashboard[\s\S]*?path: dist\/cao[\s\S]*?run-id: \$\{\{ steps\.dashboard-run\.outputs\.run-id \}\}/);
-  assert.doesNotMatch(workflow, /gh aw add|DASHBOARD_CAMPAIGN/);
-  assert.equal((workflow.match(/actions\/upload-pages-artifact@/g) || []).length, 1);
-  assert.equal((workflow.match(/actions\/deploy-pages@/g) || []).length, 1);
-  assert.doesNotMatch(dashboardWorkflow, /workflow_call:/);
-  assert.match(dashboardWorkflow, /workflow_dispatch:/);
-  assert.match(dashboardWorkflow, /gh-aw-logs-shards[\s\S]*?recursive: true/);
-  assert.match(dashboardWorkflow, /name: central-agentic-ops-dashboard/);
-  assert.doesNotMatch(dashboardWorkflow, /DASHBOARD_LAYOUT|DASHBOARD_SITE_ROOT/);
-  assert.match(dashboardWorkflow, /push:|deploy-pages|upload-pages-artifact/);
-  assert.match(astroConfig, /base: "\/gh-cao"/);
-  assert.match(astroConfig, /rewriteDocsLinks, \{ base: "\/gh-cao" \}/);
-  assert.match(astroConfig, /githubnext\/gh-cao\/edit\/main/);
-  assert.match(astroConfig, /href: "https:\/\/github\.com\/githubnext\/gh-cao"/);
-  assert.match(astroConfig, /label: "Sample Dashboard", link: "\/cao\/"/);
+test("Documentation publishes only independently generated demo data", () => {
+  const workflow = readFileSync(join(root, ".github/workflows/docs.yml"), "utf8");
+  const parsed = parse(workflow);
+  assert.deepEqual(Object.keys(parsed.jobs), ["build", "deploy"]);
+  assert.equal(parsed.on.workflow_run, undefined);
+  assert.equal(parsed.permissions.actions, undefined);
+  assert.ok(parsed.on.schedule.length);
+  const steps = parsed.jobs.build.steps;
+  assert.ok(steps.some(({ run }) => run === "npm run docs:build"));
+  const build = steps.find(({ name }) => name === "Build synthetic enterprise demo");
+  assert.match(build.run, /npm run dashboard:pages:build/);
+  assert.match(build.run, /cp -R .tmp\/dashboard-pages dist\/cao/);
+  assert.doesNotMatch(workflow, /central-agentic-ops-dashboard|download-artifact|cache\/restore|cao-dashboard.yml|freshness|force_deploy|GH_TOKEN/);
+  assert.match(workflow, /actions\/upload-pages-artifact@/);
+  assert.match(workflow, /actions\/deploy-pages@/);
 });
 
-test("mobile dashboard integration downloads deployed dashboard data", () => {
-  const workflow = readFileSync(join(root, ".github", "workflows", "actions.yml"), "utf8").replaceAll("\r\n", "\n");
-  const campaignDocument = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-
-  assert.match(workflow, /push:\n\s+branches: \[main\][\s\S]*?dashboard\/site\/\*\*/);
-  assert.equal(parse(workflow).on.pull_request, undefined);
-  assert.match(workflow, /concurrency:\n\s+group: mobile-dashboard-integration-\$\{\{ github\.ref \}\}\n\s+cancel-in-progress: true/);
-  assert.match(workflow, /deployed-data:[\s\S]*?if: github\.event_name == 'schedule' \|\| github\.event_name == 'workflow_dispatch'/);
-  assert.equal(parse(workflow).jobs.mobile.if, undefined);
-  assert.match(workflow, /include: \$\{\{ fromJSON\(github\.ref == 'refs\/heads\/main'/);
-  assert.match(workflow, /refs\/heads\/main' && '[^']*Pixel 7[^']*' \|\| '\[\{"browser":"webkit","device":"iPhone 15"\}\]'/);
-  assert.match(workflow, /name: Test deployed dashboard data ingestion\n\s+run: node --test tests\/integration\/dashboard-deployed-data\.test\.mjs/);
-  assert.match(workflow, /DASHBOARD_DATA_URL: https:\/\/githubnext\.github\.io\/gh-cao\/cao\/payload-hashes\.json/);
-  assert.match(workflow, /MOBILE_DEBUG_SHARD_LIMIT: 10/);
-  assert.match(workflow, /Test mobile dashboard with restricted memory[\s\S]*?MOBILE_MEMORY_MB: 256/);
-  assert.match(workflow, /Test mobile dashboard with throttled network[\s\S]*?MOBILE_NETWORK_DOWNLOAD_KBPS: 1600/);
-  assert.match(workflow, /Test mobile dashboard with restricted memory and network[\s\S]*?MOBILE_MEMORY_MB: 256[\s\S]*?MOBILE_NETWORK_LATENCY_MS: 150/);
-  assert.match(workflow, /Upload mobile analysis evidence[\s\S]*?if: always\(\)[\s\S]*?path: test-results\/[\s\S]*?retention-days: 1/);
-  assert.match(workflow, /mobile-analysis-comment:[\s\S]*?permissions:[\s\S]*?pull-requests: write/);
-  assert.match(workflow, /github\.event_name == 'pull_request'[\s\S]*?Comment with mobile analysis[\s\S]*?mobile-dashboard-analysis/);
-  assert.match(workflow, /\| Visible target size \| Visible reflow \| Zoom \| Visible accessible names \|/);
-  assert.match(workflow, /### Mobile dashboard analysis/);
-  assert.match(workflow, /<details><summary><b>Mobile analysis measurements<\/b><\/summary>[\s\S]*?\| Visible target size \|[\s\S]*?<\/details>/);
-  assert.match(workflow, /no visible targets/);
-  assert.match(workflow, /existsSync\('mobile-analysis'\)/);
-  assert.match(workflow, /width min.*height min/);
-  const playwrightConfig = readFileSync(join(root, "tests", "playwright", "configs", "mobile.config.mjs"), "utf8");
-  assert.match(playwrightConfig, /preserveOutput: "always"/);
-  assert.match(playwrightConfig, /--max-old-space-size=\$\{memoryMb\}/);
-  assert.match(campaignDocument.scripts["dashboard:local:mobile"], /DASHBOARD_DATA_URL=https:\/\/githubnext\.github\.io\/gh-cao\/cao\/payload-hashes\.json/);
-  assert.match(campaignDocument.scripts["dashboard:local:mobile"], /MOBILE_DEVICE='Pixel 7'/);
-  assert.match(campaignDocument.scripts["dashboard:local:mobile"], /MOBILE_MEMORY_MB=256/);
-  assert.match(campaignDocument.scripts["dashboard:local:mobile"], /tests\/playwright\/configs\/mobile\.config\.mjs/);
-  const mobileTest = readFileSync(join(root, "tests", "e2e", "dashboard-mobile-live.spec.mjs"), "utf8");
-  assert.match(mobileTest, /await page\.addInitScript\([\s\S]*?document\.addEventListener\("dashboard-data"[\s\S]*?event\.detail\?\.kind === "refresh"[\s\S]*?await page\.goto/);
-  assert.match(mobileTest, /await page\.waitForFunction\([\s\S]*?\["completed", "failed"\]\.includes\(window\.__dashboardRefreshStatus\)[\s\S]*?toBe\("completed"\)[\s\S]*?\[\.\.\.shardResponses\.keys\(\)\]/);
-  assert.match(mobileTest, /Network\.emulateNetworkConditions/);
-  assert.match(mobileTest, /Performance\.getMetrics/);
-  assert.match(mobileTest, /HeapProfiler\.collectGarbage/);
-  assert.match(mobileTest, /Memory\.getDOMCounters/);
-  assert.match(mobileTest, /VmRSS/);
-  assert.match(mobileTest, /payload-hashes\.json/);
-  assert.match(mobileTest, /deployedActivityShardEntries\(payloadHashes, mobileDebugShardLimit\(\)\)/);
-  assert.match(mobileTest, /gh-aw-logs-\(\?:runs\|records\)/);
-  assert.match(mobileTest, /inventory-sources\.json/);
-  assert.match(mobileTest, /process\.env\.MOBILE_BROWSER === "webkit"[\s\S]*?Math\.min\(requested \?\? maximumWebKitShardCount, maximumWebKitShardCount\)/);
-  assert.match(mobileTest, /for \(const \{ name, sourceName \} of selectedShards\)[\s\S]*?legacyPhaseJsonToJsonl[\s\S]*?pipeline\(response\.body, createWriteStream\(shardPath\)\)/);
-  assert.match(mobileTest, /parameters\.set\("debug-shard-limit", String\(shardLimit\)\)/);
-  assert.doesNotMatch(mobileTest, /fetch\(dataUrl\)/);
-  assert.doesNotMatch(mobileTest, /logsResponse\.text\(\)/);
-  assert.match(mobileTest, /mobile-dashboard\.png/);
-  assert.match(mobileTest, /minimumTargetSize/);
-  assert.match(mobileTest, /horizontal page scrolling/);
-  assert.match(workflow, /Peak process PSS \| Peak JS heap \| Retained JS heap \| Source payload/);
-  const deployedDataTest = readFileSync(join(root, "tests", "integration", "dashboard-deployed-data.test.mjs"), "utf8");
-  assert.match(deployedDataTest, /deployedActivityShardEntries\(manifest\)[\s\S]*?ingestNormalizedJsonl\(indexedDB, chunks/);
-  assert.match(deployedDataTest, /expectedPhase: name\.startsWith\("gh-aw-logs-runs\/"\) \? "runs" : "records"/);
-  assert.doesNotMatch(deployedDataTest, /gh-aw-logs-shards/);
-  assert.doesNotMatch(deployedDataTest, /response\.text\(\)/);
-  assert.match(deployedDataTest, /event\.source === "firewall"/);
-  for (const source of ["workflows", "runs", "domains", "tools", "audits", "issues"]) {
-    assert.match(deployedDataTest, new RegExp(`readCollection\\(indexedDB, "${source}"\\)`));
-  }
-  assert.doesNotMatch(workflow, /actions\/cache|cao-dashboard-/);
-  assert.doesNotMatch(workflow, /GH_TOKEN:/);
+test("mobile integration measures the synthetic demo rather than operational evidence", () => {
+  const workflow = readFileSync(join(root, ".github/workflows/actions.yml"), "utf8");
+  const mobile = readFileSync(join(root, "tests/e2e/dashboard-mobile-live.spec.mjs"), "utf8");
+  const document = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  assert.doesNotMatch(workflow, /DASHBOARD_DATA_URL|githubnext\.github\.io|deployed-data:/);
+  assert.match(mobile, /startDashboardPagesPreview/);
+  assert.doesNotMatch(mobile, /downloadData:|DASHBOARD_DATA_URL/);
+  assert.match(workflow, /MOBILE_MEMORY_MB: 256/);
+  assert.match(workflow, /MOBILE_NETWORK_LATENCY_MS: 150/);
+  assert.match(document.scripts["dashboard:demo:mobile"], /MOBILE_DEVICE='Pixel 7'/);
+  assert.equal(document.scripts["dashboard:local:mobile"], undefined);
 });
 
 test("deployed integration checks Pages without the retired hosted dashboard", () => {
