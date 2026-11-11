@@ -86,11 +86,23 @@ The repository-only `Enterprise review stress` workflow sends only `2`, `3`, or 
 ### Daily CAO framework health
 
 The catalog source repository's `CAO Framework Health` agentic workflow runs
-daily and supports manual dispatch on the default branch. It publishes one
-`[cao-framework-health] YYYY-MM-DD` issue for the previous complete UTC day,
-including on quiet days. A same-day rerun does not create another report, even
-when the earlier report is closed, and historical reruns cannot supersede a newer
-report. New reports close superseded reports from this workflow; those snapshots
+daily and supports manual dispatch on the default branch:
+
+```sh
+gh workflow run cao-framework-health.lock.yml --repo githubnext/gh-cao --ref main
+```
+
+There is no workflow-level daily run or AI Credit cap. Each dispatch or eligible
+rerun attempt publishes one `[cao-framework-health] YYYY-MM-DD run RUN-ATTEMPT`
+issue, including multiple reports on the same day. The reporting date still
+identifies the previous complete UTC day; source and current-revision CI evidence
+are refreshed for each run. The 300-credit and 30-minute per-run limits remain.
+An already-published attempt does not create another report, even when its issue
+is closed, and historical reruns cannot supersede a newer run's report. Ordering
+uses gh-aw's execution provenance and workflow creation times, not model-written
+dates or custom markers. Report history observes at most 200 labelled issues;
+truncation limits comparisons rather than blocking new reports.
+New reports close superseded reports from this workflow; those snapshots
 remain available for progress comparisons. An orphaned report expires after 14 days.
 
 The report leads with the [private-preview acceptance contract](private-preview.md):

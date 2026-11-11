@@ -20,6 +20,18 @@ const context = {
 };
 const marker = "<!-- framework-health:v1 repository=githubnext/gh-cao date=2026-11-09 -->";
 
+function ownedReport({ runId = 100, attempt = 1, title = `[cao-framework-health] 2026-11-09 run ${runId}-${attempt}`,
+  state = "closed", body = marker } = {}) {
+  const execution = {
+    repository: "githubnext/gh-cao", aw_workflow_id: "cao-framework-health",
+    run_id: String(runId), run_attempt: String(attempt),
+  };
+  return {
+    number: runId, title, state, user: { type: "Bot" },
+    body: `${body}\n<!-- gh-aw-workflow-id: cao-framework-health -->\n<!-- gh-aw-execution: ${JSON.stringify(execution)} -->`,
+  };
+}
+
 async function execute(name, { github = {}, files = new Map(), runContext = context, exec } = {}) {
   const outputs = {};
   const fs = {
@@ -42,14 +54,24 @@ async function execute(name, { github = {}, files = new Map(), runContext = cont
   return { files, outputs };
 }
 
-function historyAPI({ createdAt = "2026-11-10T07:00:00Z", reports = [], head = sha } = {}) {
+function historyAPI({ createdAt = "2026-11-10T07:00:00Z", reports = [], head = sha, attempt = 1,
+  priorRuns = { 100: { created_at: "2026-11-10T06:00:00Z" } } } = {}) {
   return { rest: {
     repos: { async get() { return { data: { default_branch: "main" } }; } },
-    actions: { async getWorkflowRun() { return { data: { head_sha: head, created_at: createdAt, html_url: "run-url" } }; } },
+    actions: { async getWorkflowRun({ run_id }) {
+      if (run_id === context.runId) {
+        return { data: { head_sha: head, created_at: createdAt, run_attempt: attempt, html_url: "run-url" } };
+      }
+      assert.ok(Object.hasOwn(priorRuns, run_id), `unexpected prior run: ${run_id}`);
+      return { data: priorRuns[run_id] };
+    } },
     issues: { async listForRepo(parameters) {
       assert.equal(parameters.state, "all", "closed reports must participate in duplicate suppression");
       assert.equal(parameters.labels, "framework-health");
-      return { data: reports };
+      assert.equal(parameters.sort, "created");
+      assert.equal(parameters.direction, "desc");
+      assert.ok(parameters.page <= 2, "history must remain bounded regardless of daily run count");
+      return { data: reports.slice((parameters.page - 1) * 100, parameters.page * 100) };
     } },
   } };
 }
@@ -102,7 +124,7 @@ function previewAPI({ candidateSha = "b".repeat(40), conclusion = "failure", par
   } };
 }
 
-test("framework reports freeze complete UTC windows and suppress owned closed duplicates", async () => {
+test("framework reports freeze complete UTC windows for each run attempt", async () => {
   for (const [createdAt, date, end] of [
     ["2026-01-01T23:59:59Z", "2025-12-31", "2026-01-01T00:00:00.000Z"],
     ["2024-03-01T00:00:00Z", "2024-02-29", "2024-03-01T00:00:00.000Z"],
@@ -115,76 +137,85 @@ test("framework reports freeze complete UTC windows and suppress owned closed du
     assert.equal(Date.parse(data.ci_windows.current.end) - Date.parse(data.ci_windows.current.start), 7 * 86400000);
     assert.equal(data.ci_windows.previous.end, data.ci_windows.current.start);
     assert.equal(data.source_sha, sha);
+    assert.equal(data.title, `${date} run 123-1`);
+    assert.equal(data.duplicate, false);
   }
-  const result = await execute("Fix scope, window and report history", { github: historyAPI({ reports: [{
-    number: 42, state: "closed", user: { type: "Bot" },
-    body: `${marker}\n<!-- gh-aw-workflow-id: cao-framework-health -->`,
-  }] }) });
-  assert.equal(result.outputs.duplicate, true);
-  assert.equal(JSON.parse(result.files.get(`${directory}/context.json`)).duplicate, true);
-  const historical = await execute("Fix scope, window and report history", { github: historyAPI({ reports: [{
-    number: 43, state: "open", user: { type: "Bot" },
-    body: [
-      marker.replace("2026-11-09", "YYYY-MM-DD"),
-      marker.replace("2026-11-09", "2026-11-08"),
-      marker.replace("2026-11-09", "2026-11-10"),
-      "<!-- gh-aw-workflow-id: cao-framework-health -->",
-    ].join("\n"),
-  }] }) });
-  assert.equal(historical.outputs.duplicate, true, "an older rerun cannot close a newer report");
   for (const step of config.steps.slice(1)) {
     assert.equal(step.if, "${{ steps.framework_health.outputs.duplicate != 'true' }}");
   }
 });
 
-test("owned dated report titles suppress duplicates without a custom body marker", async () => {
+test("same-day dispatches and rerun attempts publish fresh reports but repeated attempts do not", async () => {
   for (const state of ["open", "closed"]) {
-    for (const date of ["2026-11-09", "2026-11-10"]) {
-      const report = {
-        number: 20547, title: `[cao-framework-health] ${date}`, state,
-        user: { type: "Bot" },
-        body: "Daily report\n<!-- gh-aw-workflow-id: cao-framework-health -->",
-      };
+    for (const title of ["[cao-framework-health] 2026-11-09", "[cao-framework-health] 2026-11-09 run 100-1"]) {
       const result = await execute("Fix scope, window and report history", {
-        github: historyAPI({ reports: [report] }),
+        github: historyAPI({ reports: [ownedReport({ state, title, body: "Report without a custom marker" })] }),
       });
-      assert.equal(result.outputs.duplicate, true);
-      const data = JSON.parse(result.files.get(`${directory}/context.json`));
-      assert.equal(data.duplicate, true);
-      assert.equal(data.reports[0].number, report.number);
+      assert.equal(result.outputs.duplicate, false, "another run on the same UTC day must not suppress a new dispatch");
     }
-  }
-  for (const title of [
-    "[cao-framework-health] 2026-11-08",
-    "[cao-framework-health] 2026-11-10 unrelated",
-    "Unrelated 2026-11-10",
-  ]) {
-    const result = await execute("Fix scope, window and report history", {
-      github: historyAPI({ reports: [{
-        title, user: { type: "Bot" },
-        body: "<!-- gh-aw-workflow-id: cao-framework-health -->",
-      }] }),
+    const retry = await execute("Fix scope, window and report history", {
+      github: historyAPI({ attempt: 2, reports: [ownedReport({ state, runId: context.runId })] }),
     });
-    assert.equal(result.outputs.duplicate, false);
+    assert.equal(retry.outputs.duplicate, false);
+    assert.equal(JSON.parse(retry.files.get(`${directory}/context.json`)).title, "2026-11-09 run 123-2");
+    const repeated = await execute("Fix scope, window and report history", {
+      github: historyAPI({ attempt: 2, reports: [ownedReport({ state, runId: context.runId, attempt: 2 })] }),
+    });
+    assert.equal(repeated.outputs.duplicate, true);
+    assert.equal(JSON.parse(repeated.files.get(`${directory}/context.json`)).duplicate, true);
   }
 });
 
-test("scope, revision, report collisions, inaccessible and truncated history fail closed", async () => {
+test("historical reruns cannot supersede newer runs even on the same day or without a custom marker", async () => {
+  for (const created_at of ["2026-11-10T08:00:00Z", "2026-11-11T00:00:00Z"]) {
+    const result = await execute("Fix scope, window and report history", {
+      github: historyAPI({
+        reports: [ownedReport({ state: "closed", title: "[cao-framework-health] 2026-11-09", body: "No custom marker" })],
+        priorRuns: { 100: { created_at } },
+      }),
+    });
+    assert.equal(result.outputs.duplicate, true, "publication order is bound to workflow creation, not issue/model dates");
+  }
+  const earlierAttempt = await execute("Fix scope, window and report history", {
+    github: historyAPI({ reports: [ownedReport({ runId: context.runId, attempt: 2 })] }),
+  });
+  assert.equal(earlierAttempt.outputs.duplicate, true);
+});
+
+test("bounded report history does not become an indirect daily run cap", async () => {
+  const reports = Array.from({ length: 201 }, () => ownedReport());
+  const result = await execute("Fix scope, window and report history", { github: historyAPI({ reports }) });
+  const data = JSON.parse(result.files.get(`${directory}/context.json`));
+  assert.equal(result.outputs.duplicate, false);
+  assert.deepEqual(data.report_history, { coverage: "partial", observed: 200 });
+  assert.equal(data.reports.length, 14);
+});
+
+test("scope, revision, report collisions and inaccessible or invalid provenance fail closed", async () => {
+  const title = "[cao-framework-health] 2026-11-09 run 123-1";
   for (const options of [
     { runContext: { ...context, repo: { owner: "acme", repo: "target" } } },
     { runContext: { ...context, ref: "refs/heads/feature" } },
     { github: historyAPI({ head: "b".repeat(40) }) },
     { github: historyAPI({ createdAt: "invalid" }) },
-    { github: historyAPI({ reports: [{ title: "[cao-framework-health] 2026-11-09", user: { type: "User" } }] }) },
+    { github: historyAPI({ attempt: null }) },
+    { github: historyAPI({ attempt: 0 }) },
+    { github: historyAPI({ reports: [{ title, user: { type: "User" } }] }) },
     { github: historyAPI({ reports: [{
-      title: "[cao-framework-health] 2026-11-09", user: { type: "User" },
+      title, user: { type: "User" },
       body: "<!-- gh-aw-workflow-id: cao-framework-health -->",
     }] }) },
     { github: historyAPI({ reports: [{
-      title: "[cao-framework-health] 2026-11-09", user: { type: "Bot" },
+      title, user: { type: "Bot" },
       body: "<!-- gh-aw-workflow-id: another-workflow -->",
     }] }) },
-    { github: historyAPI({ reports: Array.from({ length: 100 }, () => ({})) }) },
+    { github: historyAPI({ reports: [{
+      ...ownedReport(), body: "<!-- gh-aw-workflow-id: cao-framework-health -->",
+    }] }) },
+    { github: historyAPI({ reports: [{
+      ...ownedReport(), body: "<!-- gh-aw-workflow-id: cao-framework-health -->\n<!-- gh-aw-execution: {invalid} -->",
+    }] }) },
+    { github: historyAPI({ reports: [ownedReport()], priorRuns: { 100: { created_at: "invalid" } } }) },
     { github: { rest: { repos: { async get() { throw new Error("403 forbidden"); } } } } },
   ]) {
     const files = new Map();
@@ -508,6 +539,7 @@ test("component fluctuation measures real frozen Git history without conflating 
 test("compiled framework reports remain local read-only observation with only deduplicated report writes", () => {
   const compiled = parse(workflow("cao-framework-health.lock.yml"));
   assert.equal(config.private, true);
+  assert.equal(config["max-daily-ai-credits"], -1);
   assert.equal(config.on.schedule, "daily");
   assert.match(config.if, /github\.repository == 'githubnext\/gh-cao'/);
   assert.match(config.if, /github\.event\.repository\.default_branch/);
@@ -548,6 +580,10 @@ test("compiled framework reports remain local read-only observation with only de
     assert.equal(outputs[forbidden], undefined);
   }
   assert.ok(compiled.on.schedule[0].cron);
+  assert.ok(!compiled.jobs.activation.steps.some(step => step.id === "daily-ai-credits-workflow-guardrail"),
+    "compiled runs must not be gated by daily AI Credit consumption");
+  const compiledScope = compiled.jobs.agent.steps.find(step => step.name === "Fix scope, window and report history");
+  assert.equal(compiledScope.with.script, config.steps[0].with.script);
   const artifact = config.steps.find(step => step.name === "Retain deterministic framework evidence");
   assert.equal(artifact.with["retention-days"], 90);
   assert.equal(artifact.with["if-no-files-found"], "error");
