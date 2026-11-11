@@ -66,9 +66,28 @@ const links = [
     focusTarget();
   };
 
+  // Starlight's mobile Menu button is a plain popover invoker without ARIA state,
+  // so expose the sidebar popover's open state on the button for assistive technology.
+  const syncMobileMenuToggle = () => {
+    const toggle = document.querySelector<HTMLButtonElement>('button[popovertarget="starlight__sidebar"]');
+    const panel = document.getElementById("starlight__sidebar");
+    if (!(toggle instanceof HTMLButtonElement) || !(panel instanceof HTMLElement)) return;
+    if (toggle.dataset.menuStateReady === "true") return;
+    toggle.dataset.menuStateReady = "true";
+    toggle.setAttribute("aria-controls", panel.id);
+
+    const syncExpanded = () => {
+      toggle.setAttribute("aria-expanded", String(panel.matches(":popover-open")));
+    };
+    panel.addEventListener("toggle", syncExpanded);
+    syncExpanded();
+  };
+
   enhanceSkipLink();
   document.addEventListener("astro:page-load", enhanceSkipLink);
   window.addEventListener("hashchange", enhanceSkipLink);
+  syncMobileMenuToggle();
+  document.addEventListener("astro:page-load", syncMobileMenuToggle);
 </script>
 
 <style>
