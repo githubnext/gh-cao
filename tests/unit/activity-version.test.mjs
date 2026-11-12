@@ -6,7 +6,7 @@ import {
   normalizeVersion,
   revisionUpdateState,
   updateState,
-} from "../../activity/version.mjs";
+} from "../../dashboard/lib/version.mjs";
 
 test("gh-aw versions normalize optional prefixes and build metadata", () => {
   assert.equal(normalizeVersion("0.88.2"), "v0.88.2");

@@ -32,7 +32,7 @@ Sections 2 through 11 are normative. The key words "MUST", "MUST NOT",
 This specification owns the integration invariants between the detailed
 contracts below:
 
-- [`activity.md`](activity.md) owns the ordinary Activity snapshot boundary.
+- [`activity.md`](server-ingestion.md) owns the ordinary Activity snapshot boundary.
 - [`operational-value-history.md`](operational-value-history.md) owns compact
   observation reconstruction, cadence compaction, and publication.
 - [`dashboard-data.md`](dashboard-data.md) owns canonical entities, logical
@@ -505,6 +505,6 @@ Implementations MUST retain automated coverage for:
 
 - [Operational-Value History Reconstruction Specification](operational-value-history.md)
 - [Dashboard Data Architecture Specification](dashboard-data.md)
-- [CAO Activity Specification](activity.md)
+- [CAO Activity Specification](server-ingestion.md)
 - [Private Unified-Session Archive](session-archive.md)
 - [Dashboard Product Specification](dashboard.md)

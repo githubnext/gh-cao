@@ -144,7 +144,7 @@ test("the runtime package uses npm files selection without shipping development 
   const destination = mkdtempSync(path.join(tmpdir(), "cao-runtime-package-"));
   try {
     const packed = packCaoRuntime(sourceRoot, destination, { tracked: true });
-    assert.ok(packed.files.includes("activity/cao.mjs"));
+    assert.ok(packed.files.includes("dashboard/report/configure-site.mjs"));
     assert.ok(packed.files.includes("dashboard/site/scripts/build.mjs"));
     assert.ok(packed.files.includes("dashboard/site/src/data-worker.js"));
     assert.ok(packed.files.includes("dashboard/site/package-lock.json"));
@@ -160,117 +160,6 @@ test("the runtime package uses npm files selection without shipping development 
   }
 });
 
-test("CAO materialization preserves canonical production paths without installing the agent plugin", () => {
-  const destination = mkdtempSync(path.join(tmpdir(), "cao-materialize-layout-"));
-  try {
-    const installedCaoSkills = ["setup-cao", "debug-cao"].map((skill) =>
-      path.join(destination, ".github", "skills", skill, "SKILL.md")
-    );
-    const consumerSkill = path.join(destination, ".github", "skills", "consumer-skill", "SKILL.md");
-    const consumerExtension = path.join(destination, "com.github.copilot", "extensions", "consumer-extension", "extension.mjs");
-    const consumerSpecification = path.join(destination, "specs", "consumer.md");
-    const consumerPackage = path.join(destination, "package.json");
-    for (const installedCaoSkill of installedCaoSkills) {
-      mkdirSync(path.dirname(installedCaoSkill), { recursive: true });
-      writeFileSync(installedCaoSkill, "installed");
-    }
-    mkdirSync(path.dirname(consumerSkill), { recursive: true });
-    writeFileSync(consumerSkill, "consumer-owned");
-    for (const file of [consumerExtension, consumerSpecification, consumerPackage]) {
-      mkdirSync(path.dirname(file), { recursive: true });
-      writeFileSync(file, "consumer-owned");
-    }
-
-    materializeCaoFromSource("root", sourceRoot, destination);
-    materializeCaoFromSource("dependabot", sourceRoot, destination);
-    const staleRootFile = path.join(destination, "activity", "removed-runtime.mjs");
-    const staleCampaignFile = path.join(destination, "dependabot", "removed-runtime.mjs");
-    const intelligenceDeclaration = path.join(destination, ".github", "cao", "intelligence", "dependabot.json");
-    writeFileSync(staleRootFile, "stale");
-    mkdirSync(path.dirname(staleCampaignFile), { recursive: true });
-    writeFileSync(staleCampaignFile, "stale");
-    writeFileSync(intelligenceDeclaration, "stale");
-
-    materializeCaoFromSource("root", sourceRoot, destination);
-    materializeCaoFromSource("dependabot", sourceRoot, destination);
-
-    verifyCaoRuntime("activity", destination);
-    verifyCaoRuntime("dashboard", destination);
-    assert.equal(existsSync(staleRootFile), false);
-    assert.equal(existsSync(staleCampaignFile), false);
-    assert.ok(existsSync(path.join(destination, "activity", "cao.mjs")));
-    const cliModules = filesBelow(sourceRoot, "activity/cli");
-    assert.deepEqual(filesBelow(destination, "activity/cli").sort(), cliModules.sort());
-    for (const module of cliModules) {
-      const installedPath = path.join(destination, module);
-      const content = readFileSync(installedPath);
-      assert.deepEqual(content, readFileSync(path.join(sourceRoot, module)));
-      rmSync(installedPath);
-      assert.throws(() => verifyCaoRuntime("activity", destination), {
-        message: `CAO activity runtime is incomplete at its canonical source paths: ${module}`,
-      });
-      writeFileSync(installedPath, content);
-    }
-    assert.ok(existsSync(path.join(destination, "activity", "normalized-phase.mjs")));
-    assert.ok(existsSync(path.join(destination, "dashboard", "site", "package.json")));
-    assert.equal(existsSync(path.join(destination, "skills")), false);
-    assert.ok(existsSync(path.join(destination, "dependabot", "cao.json")));
-    assert.equal(
-      readFileSync(intelligenceDeclaration, "utf8"),
-      readFileSync(path.join(sourceRoot, "dependabot", "intelligence.json"), "utf8"),
-    );
-    assert.ok(existsSync(path.join(destination, ".github", "actions", "setup-cao-runtime", "action.yml")));
-    assert.ok(existsSync(path.join(destination, ".github", "actions", "setup-gh-aw", "action.yml")));
-    assert.ok(existsSync(path.join(destination, ".github", "cao", "instructions.md")));
-    assert.equal(existsSync(path.join(destination, ".github", "workflows", "shared", "activity-cache.md")), false);
-    assert.ok(existsSync(path.join(destination, ".github", "workflows", "shared", "control.md")));
-    assert.ok(existsSync(path.join(destination, ".github", "workflows", "shared", "review-bundle.md")));
-    assert.equal(existsSync(path.join(destination, "cao.sh")), false);
-    const trackedDashboardFiles = spawnSync(
-      "git",
-      ["-C", sourceRoot, "ls-files", "--", ...runtimeManifest.files.filter((file) => file.startsWith("dashboard/"))],
-      { encoding: "utf8" },
-    ).stdout.trim().split("\n");
-    assert.deepEqual(
-      filesBelow(destination, "dashboard").sort(),
-      trackedDashboardFiles.sort(),
-    );
-    for (const file of [
-      "plugin.json",
-      "specs/dashboard-data.md",
-      "docs/dashboard-language-specification.md",
-      "com.github.copilot/extensions/cao-dashboard",
-      ".github/skills/generate-dashboard-ir",
-      ".github/skills/dashboard-authoring",
-      ".github/skills/author-dashboard-intent",
-      "activity/README.md",
-      "activity/aw.yml",
-      "dashboard/aw.yml",
-      "dashboard/site/PLAN.md",
-      "dashboard/site/test",
-      "dashboard/site/screenshots",
-      "dashboard/site/eslint.config.mjs",
-      "dashboard/site/vitest.config.mjs",
-      "dashboard/site/playwright.config.mjs",
-      "dashboard/site/scripts/validate-corpus.mjs",
-    ]) {
-      assert.equal(existsSync(path.join(destination, file)), false, `${file} is not runtime`);
-    }
-    assert.equal(existsSync(path.join(destination, ".github", "aw", "instructions.md")), false);
-    assert.equal(existsSync(path.join(destination, ".github", "aw", "activity")), false);
-    assert.equal(existsSync(path.join(destination, ".github", "aw", "dashboard")), false);
-    assert.equal(existsSync(path.join(destination, ".github", "aw", "dependabot")), false);
-    for (const installedCaoSkill of installedCaoSkills) {
-      assert.equal(readFileSync(installedCaoSkill, "utf8"), "installed");
-    }
-    assert.equal(readFileSync(consumerSkill, "utf8"), "consumer-owned");
-    for (const file of [consumerExtension, consumerSpecification, consumerPackage]) {
-      assert.equal(readFileSync(file, "utf8"), "consumer-owned");
-    }
-  } finally {
-    rmSync(destination, { force: true, recursive: true });
-  }
-});
 
 test("CAO materialization validates the complete source bundle before replacing runtime files", () => {
   const source = mkdtempSync(path.join(tmpdir(), "cao-materialize-incomplete-"));
@@ -282,7 +171,7 @@ test("CAO materialization validates the complete source bundle before replacing 
 
     assert.throws(
       () => materializeCaoFromSource("root", source, destination),
-      /missing required resource: activity/,
+      /missing required resource: dashboard/,
     );
     assert.equal(readFileSync(existingRuntime, "utf8"), "existing");
   } finally {
@@ -315,7 +204,7 @@ test("root materialization leaves separately installed plugin resources untouche
 });
 
 for (const missingResource of [
-  "activity/cli",
+  ".github/workflows/shared/value-acquisition.mjs",
   "dashboard/site/src",
   "dashboard/site/scripts/build.mjs",
   "dashboard/site/package-lock.json",
@@ -369,15 +258,15 @@ test("CAO materialization rejects paths outside a campaign slug", () => {
 
 test("root materialization preserves exact focused package revisions", () => {
   const rootRevision = "1".repeat(40);
-  const activityRevision = "2".repeat(40);
+  const dashboardRevision = "2".repeat(40);
   const plans = planCaoMaterialization([
     {
       name: "githubnext/gh-cao/control-plane",
       record: { resolvedCommit: rootRevision },
     },
     {
-      name: "githubnext/gh-cao/activity",
-      record: { resolvedCommit: activityRevision },
+      name: "githubnext/gh-cao/dashboard",
+      record: { resolvedCommit: dashboardRevision },
     },
   ], "root");
 
@@ -388,7 +277,8 @@ test("root materialization preserves exact focused package revisions", () => {
         campaign: "root",
         revision: rootRevision,
         resources: [
-          "dashboard",
+          ".github/workflows/shared/value-acquisition.mjs",
+          ".github/workflows/shared/actions-log.mjs",
           ".github/actions/setup-cao-runtime",
           ".github/actions/setup-gh-aw",
           ".github/cao/instructions.md",
@@ -398,9 +288,9 @@ test("root materialization preserves exact focused package revisions", () => {
         ],
       },
       {
-        campaign: "activity",
-        revision: activityRevision,
-        resources: ["activity"],
+        campaign: "dashboard",
+        revision: dashboardRevision,
+        resources: ["dashboard"],
       },
     ],
   );

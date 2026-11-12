@@ -20,10 +20,6 @@ export function testPlan(files, full = false) {
     } else if (/^(dashboard\/|self-care\/dashboard)/.test(file)) {
       selected.add("dashboard");
       selected.add("tooling");
-    } else if (file.startsWith("activity/")) {
-      selected.add("activity");
-      selected.add("tooling");
-      selected.add("dashboard");
     } else if (/^(server\/|cmd\/|internal\/|go\.(mod|sum)$)/.test(file)) {
       // Native behavior is checked by Go CI; root contracts cover its CLI and adapters.
       selected.add("tooling");

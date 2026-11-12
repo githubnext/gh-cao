@@ -121,11 +121,10 @@ test("dashboard CI runs the campaign quality gates", () => {
   assert.match(deadViewsComment.block, /issues\.createComment/);
   assert.deepEqual(queryComplexity.needs, []);
   assert.match(queryComplexity.block, /if: github\.event_name != 'pull_request'/);
-  assert.match(queryComplexity.block, /node activity\/cao\.mjs dashboard-complexity/);
-  assert.match(queryComplexity.block, /npm run dashboard:data:download/);
-  assert.match(queryComplexity.block, /--database \.cao\/gh-aw-logs\.sqlite/);
-  assert.match(queryComplexity.block, /--input dashboard\/site\/dashboard\.json/);
-  assert.match(queryComplexity.block, /--format markdown > query-complexity\.md/);
+  assert.match(queryComplexity.block, /node scripts\/dashboard-query-complexity\.mjs/);
+  assert.match(queryComplexity.block, /go run \.\/cmd\/gh-cao download/);
+  assert.match(queryComplexity.block, /dashboard\/site\/dashboard\.json \.cao\/gh-aw-logs\.sqlite/);
+  assert.match(queryComplexity.block, /> query-complexity\.md/);
   assert.match(queryComplexity.block, /cat query-complexity\.md >> "\$GITHUB_STEP_SUMMARY"/);
   assert.match(queryComplexity.block, /uses: actions\/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a/);
   assert.match(queryComplexity.block, /name: dashboard-query-complexity/);
@@ -243,61 +242,4 @@ test("Documentation site uses stock Starlight without external themes", () => {
 
   assert.deepEqual(Object.keys(dependencies).filter((name) => name.startsWith("starlight-theme-")), []);
   assert.doesNotMatch(astroConfig, /starlight-theme-/);
-});
-
-test("Dashboard inventory links multiline orchestrator worker lists", () => {
-  const temporaryRoot = mkdtempSync(join(tmpdir(), "central-agentic-ops-inventory-"));
-  const outputPath = join(temporaryRoot, "control-plane.json");
-  try {
-    execFileSync(process.execPath, [join(root, "activity", "inventory.mjs")], {
-      env: { ...process.env, REPORT_ROOT: root, REPORT_INVENTORY: outputPath },
-    });
-    const inventory = JSON.parse(readFileSync(outputPath, "utf8"));
-    const dependabotBundle = inventory.bundles.find((bundle) => bundle.id === "dependabot");
-    const policyCampaigns = JSON.parse(
-      readFileSync(join(root, ".github", "workflows", "cao.json"), "utf8"),
-    )["control-plane"].campaigns;
-    const registeredCampaignIds = Object.keys(policyCampaigns).sort();
-    const expectedBundles = registeredCampaignIds.flatMap((campaignId) => {
-      const descriptorPath = join(root, campaignId, "cao.json");
-      if (!existsSync(descriptorPath)) {
-        assert.equal(policyCampaigns[campaignId].workers, undefined, `${campaignId} workers require a campaign descriptor`);
-        return [];
-      }
-      const descriptor = JSON.parse(readFileSync(descriptorPath, "utf8"));
-      assert.equal(descriptor.campaign, campaignId, descriptorPath);
-      assert.deepEqual(
-        Object.fromEntries(Object.entries(policyCampaigns[campaignId].workers).map(([worker, config]) => [
-          worker,
-          config.workflow,
-        ])),
-        descriptor.workers,
-        `${campaignId} policy workers must match its campaign descriptor`,
-      );
-      const orchestratorSource = workflow(`${descriptor.orchestrator}.md`);
-      const frontmatter = /^---\n([\s\S]*?)\n---/.exec(orchestratorSource)?.[1];
-      assert.ok(frontmatter, `${descriptor.orchestrator}.md must have frontmatter`);
-      const dispatchWorkflows = parse(frontmatter)["safe-outputs"]["dispatch-workflow"].workflows;
-      assert.deepEqual(
-        [...dispatchWorkflows].sort(),
-        Object.values(descriptor.workers).sort(),
-        `${campaignId} dispatch allowlist must match its campaign descriptor`,
-      );
-      return [{
-        id: campaignId,
-        workers: dispatchWorkflows,
-      }];
-    }).sort((left, right) => left.id.localeCompare(right.id));
-    assert.deepEqual(inventory.campaigns.map((entry) => entry.id), registeredCampaignIds);
-    assert.equal(inventory.campaigns.find((entry) => entry.id === "repo-assist")?.name, "Repo Assist");
-    assert.equal(dependabotBundle.readmePath, "dependabot/README.md");
-    assert.match(dependabotBundle.readme, /^# Dependabot Campaign\r?\n/);
-    assert.match(dependabotBundle.readme, /## Safety Boundaries/);
-    assert.deepEqual(inventory.bundles.map((bundle) => ({
-      id: bundle.id,
-      workers: bundle.workers.map((worker) => worker.id),
-    })), expectedBundles);
-  } finally {
-    rmSync(temporaryRoot, { recursive: true, force: true });
-  }
 });

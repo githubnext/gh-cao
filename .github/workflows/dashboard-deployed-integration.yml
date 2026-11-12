@@ -150,7 +150,7 @@ jobs:
       - name: Download explicitly configured operational snapshot
         env:
           DASHBOARD_DATA_URL: ${{ vars.CAO_DASHBOARD_DATA_URL }}
-        run: npm run dashboard:data:download
+        run: go run ./cmd/gh-cao download
       - name: Verify operational artifact ingestion
         env:
           DASHBOARD_DATA_DIR: .cao

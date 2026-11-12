@@ -1,5 +1,5 @@
 import { pathToFileURL } from "node:url";
-import { compareVersions, parseVersion } from "../activity/version.mjs";
+import { compareVersions, parseVersion } from "../dashboard/lib/version.mjs";
 
 const versionPattern = /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 

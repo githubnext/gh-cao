@@ -648,18 +648,17 @@ and background work stop before an owned store is closed.
 
 The memory adapter requires mandatory GitHub OAuth, HTTPS, explicit single-process
 and volatile-state acknowledgements, and one owning process for HTTP admission,
-quota, collectors, projection, and backfill. Platform listeners, multiple replicas,
-admission-only deployment, and detached collection/backfill roles are rejected.
+quota, and snapshot ingestion. Platform listeners and multiple replicas are
+rejected. App-backed collection requires durable PostgreSQL ownership and is
+not available with the memory adapter.
 Its protected state has separate accounting-byte and entry bounds; cache eviction
 cannot evict sessions or accepted work. These bounds do not claim to measure RSS.
 On restart all CAO sessions and pending login states are invalid, while GitHub
 tokens themselves are not expired or revoked. Revocation retry and acknowledged
-unfinished deliveries can be lost. A fresh GitHub scope enumeration gates
-admission and workers; partial enumeration never authorizes destructive scope
-inference. Retained evidence is replayed through the existing projector, fresh
-quota observations fail closed, and backfill is rerun idempotently. The protected
-rebuild action also reruns backfill in this mode. Recovery repairs observable
-state and available history, not every missed event or expired artifact. There
+unfinished deliveries can be lost. Fresh quota observations fail closed.
+Snapshot recovery uses the explicitly selected verified input, not a collector
+Projector or filesystem collection fallback. Recovery repairs observable
+state and available evidence, not every missed event or expired artifact. There
 is no memory disk journal, automatic failover, or dual-write path.
 `specs/server-operational-storage.md` specifies these guarantees.
 
@@ -983,7 +982,8 @@ through the same native query and revision-subscription boundaries.
 This does not change the separate hosted PostgreSQL collector or its runtimes.
 
 `gh cao dashboard` is a separately selected native operator acquisition profile
-for investigations lasting at most 48 hours. It resolves the current repository
+for investigations lasting at most 48 hours per invocation, retaining up to seven
+days of evidence. It resolves the current repository
 or up to 20 exact `--repo` selections, calls the embedded pinned gh-aw log collector
 with all available artifact sets, audit evidence and its normal artifact/JSONL
 cache semantics, and combines that evidence with fresh
@@ -1000,9 +1000,16 @@ execution have explicit 128 MiB / 64 MiB and 30-second bounds.
 `npm run generate:dashboard-ingest` regenerates the compressed embedded bundle;
 release checks reject stale artifacts.
 Acquisition names exact remote workflow IDs from the observed Actions inventory,
-not local lock files. Its shared count and two-minute limits produce explicitly
-reported partial coverage. Analyses and artifacts are reusable, but discovery
-lists are refreshed. Optional Node-based Markdown report parsing is disabled;
+not local lock files. Background passes rotate through the selected repositories,
+persist fixed-interval page checkpoints, and split intervals exceeding GitHub's
+1000-result search ceiling. Incremental publication retains earlier pages inside
+the evidence window and commits the discovery checkpoint with the evidence.
+All discovery and embedded collectors share a 100-point core API pass ceiling,
+corrected from observed quota, and reserve at least 1000 points or 20% of the
+core limit. Quota is required; exhausted headroom pauses acquisition.
+Its shared count and two-minute limits produce explicitly reported partial
+artifact coverage. Analyses and artifacts are reusable, but discovery lists are
+refreshed. Optional Node-based Markdown report parsing is disabled;
 canonical parsing uses the embedded runtime above.
 The ordinary declarative database
 queries, Go evaluator, HTTP handler, and revision subscriptions serve them.
@@ -1024,9 +1031,16 @@ evidence and execution errors still fail. Available cached jobs, sessions,
 tools, domains, skills, friction, safe outputs, experiments, evals and graders
 hydrate their ordinary canonical stores instead of a separate UI projection.
 
-One local collection lock serializes refreshes. A successful transaction replaces
-only that profile's projection and observation metadata; failed acquisition
-preserves the previous database. The CLI refreshes outside the server lifecycle
+One local collection lock serializes refreshes. A successful transaction upserts
+only that profile's observations and checkpoint, removes expired detail and
+stale prior-attempt children, and preserves earlier history pages. Failed
+acquisition preserves evidence and its checkpoint while publishing a separate
+failure status. Acquisition progress, scanned repository-hours and observed
+quota are exposed through a bounded `transactions` receipt and a declarative
+shell data-status binding, rendered in the header tooltip with ordinary
+abort-scoped query/revision subscriptions. Discovery
+completion never implies complete artifact or upstream coverage.
+The server starts before acquisition. The CLI refreshes outside the server lifecycle
 and closes its owned server on interruption or expiry. Release binaries embed
 their platform's existing `cao-dashboard` executable and built site; extraction
 is private and temporary, with no install-time Node, Go, service, or container.
@@ -1125,15 +1139,16 @@ this profile. The default hosted and Azure
 profiles retain their ordinary pooled Redis behavior.
 
 The Go server profile acquires evidence through exactly one of two mutually
-exclusive ingestion profiles. By default the Activity workflow collects
-evidence in GitHub Actions and publishes a snapshot that the server ingests.
+exclusive ingestion profiles. By default the server ingests an explicitly
+acquired, verified operational snapshot; the legacy Activity publisher is retired.
 As an alternative, the server itself collects evidence from GitHub App
-installations, admitting webhook deliveries into a queue, collecting one
-repository at a time with the same `gh aw logs --audit` and `activity/cao.mjs`
-commands the workflow runs, and writing into an evidence lake laid out exactly
-like a published snapshot. Because the layout is the same, one projector serves
-both profiles and a retained lake repopulates a database on cold start without
-contacting GitHub. Configuring both profiles fails at startup: a canonical
+installations through bounded native Go acquisition and epoch-fenced PostgreSQL
+publication. It does not execute `gh cao`, stage an Activity lake,
+or schedule snapshot replacement. Native recovery replays durable PostgreSQL
+publications; the default Actions profile independently ingests verified
+published snapshots. The separately selected `NativeValueService` owns reviewed
+Value execution without a snapshot Projector or its dirty-generation lifecycle.
+Configuring both profiles fails at startup: a canonical
 database has one writer. The collection profile also persists allowlisted
 Redis-backed operational counters and exposes a read-only health status API.
 Verified GitHub issue lifecycle deliveries for enrolled repositories enqueue
@@ -1156,11 +1171,7 @@ they preserve source quality and provenance and grant no operational authority.
 The `cao computation runtime-health` command executes the first production
 measure through declarative canonical queries. Future CLI measures extend the
 same `computation` namespace.
-`activity/cao.mjs` is the executable entry point and preserves the public CLI
-exports. `activity/cli/` owns argument parsing, dispatch, policy and campaign
-configuration, authentication, evidence ingestion and publication, downloads,
-and local queries in focused modules. `activity/commands/` owns one handler per
-command; implementation modules depend on shared helpers, not the entry point.
+The native Go extension is the only CLI entry point. Dashboard build normalization lives under `dashboard/report/`; reviewed policy and Value acquisition contracts live under their domain owners. No Activity CLI or compatibility runtime is packaged.
 Native `gh cao api-cost` executes the deterministic planning model in
 `internal/apicost`. It keeps sustained quota, synchronized burst, reviewed
 collector grants and serialized runner time separate, supports declarative
@@ -1519,7 +1530,6 @@ and removal remain authenticated and never hydrate notification payloads.
 | `<operation>/aw.yml` | Campaign boundary and installation manifest for an operation. User-facing operations include `cao-evolution/`, `dependabot/`, `eu-cra-compliance/`, `optimization/`, `repo-assist/`, `self-care/`, `software-development-practices/`, and `uk-ai-advisory/`. |
 | `<operation>/operational-value.mjs` | Optional deterministic repository-scoped operational-value computation installed with its package. |
 | `<operation>/problem-clustering.mjs` | Optional bounded problem computation installed with its package. |
-| `activity/` | Deterministic Activity collection, JSONL ingestion, SQLite projection, and the `cao` CLI. |
 | `cmd/gh-cao/`, `internal/cli/`, `internal/ghcli/`, `dashboard/catalog.go` | Independent, entirely Go operator-facing `gh cao` executable, including onboarding, campaign and policy management, SQLite queries, computations and MCP; embeds the dashboard's authoritative JSON contracts. Actions pipeline commands remain Node-owned. |
 | `internal/dashboardquery/` | Small independent Go module sharing the bounded local Dashboard Language evaluator and read-only canonical SQLite reader between the extension and explicit local server profile; never a hosted PostgreSQL fallback. |
 | `dashboard/` | Dashboard campaign, report/source adapters, canvas-only authoring bridge, and shared browser UI served operationally by Go or as a synthetic-only Pages demo. |
@@ -1597,7 +1607,7 @@ and nonzero status for failed or skipped checks. Authentication may contact
 GitHub; raw authentication output and subprocess errors are never reported.
 Doctor does not replace production policy/workflow validation, grant authority,
 or invoke the Node snapshot-repair command. Actions and Node-only tools invoke
-`node activity/cao.mjs <command>` explicitly, including SQLite snapshot `repair-database`.
+`gh cao COMMAND` explicitly, including SQLite snapshot `repair-database`.
 There is no shell launcher.
 `gh cao deploy` owns both offline bundle generation (`init`, `generate`, `check`)
 and guarded Azure development deployment (`azure`). `internal/topology/` owns
@@ -1631,14 +1641,13 @@ never install it.
 Human/operator commands belong in the Go extension; server hosting and
 administration belong to `cao-dashboard`. Actions execution support, including
 workflow-agent evidence APIs, belongs in the shipped JavaScript runtime under
-`activity/` and `dashboard/`.
+`dashboard/` and the shared control resources.
 Agentic workflow execution and agent evidence preparation must not build,
 install, or invoke the native extension. Copilot setup stages dashboard evidence
-with `node activity/cao.mjs download`. Dedicated extension build, release, and
+with `gh cao download`. Dedicated extension build, release, and
 operator-installer compatibility tests remain separate from agent runtime.
 Control-plane validation is
 Actions-only, with one implementation invoked directly as
-`node activity/cao.mjs validate --json`, using the installed runtime revision
 and production policy resolver. The extension exposes no `validate` command.
 Native policy parsing still guards operator construction
 and mutation; it is not a second control-plane validator. The workflow does not
@@ -2189,7 +2198,7 @@ not authorize cross-repository evidence access.
 
 - `specs/control-architecture.md` defines authority, admission, and execution
   invariants.
-- `specs/activity.md` defines evidence collection and snapshot semantics.
+- `specs/server-ingestion.md` defines evidence collection and snapshot semantics.
 - `specs/github-api-capacity.md` defines deterministic GitHub acquisition-cost
   and fleet-capacity modeling.
 - `specs/value.md` defines the cross-subsystem Value contract, including

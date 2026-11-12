@@ -760,7 +760,7 @@ func verifyHostedLocalAdapters(root string, disabled []string) error {
 		if wrapperErr != nil {
 			return wrapperErr
 		}
-		if fmt.Sprintf("%x", sha256.Sum256(wrapperBytes)) != "771ab1363f035e771684fc334c38dfeeee1855d691758055d4637373d3617416" {
+		if fmt.Sprintf("%x", sha256.Sum256(wrapperBytes)) != "6018038cff7e92c82718964cfa1693d0e095fa56c2fca0cd4aefc7762e830d8f" {
 			return errors.New("hosted local Value wrapper differs from its reviewed Go implementation")
 		}
 		if directory.Name() != "optimization" && directory.Name() != "dependabot" {
@@ -775,7 +775,7 @@ func verifyHostedLocalAdapters(root string, disabled []string) error {
 			if !strings.HasSuffix(module.Name(), ".mjs") {
 				continue
 			}
-			expected := "4c69f080d1e7c1d07ee2201585bacefbdbbba652d75163f7bcaed19d294e1546"
+			expected := "1fbfca97aa4ca56a49255f2117091beb6c474ca441221486328ad23b33087f2b"
 			name := "optimization-token-optimizer.mjs"
 			if directory.Name() == "dependabot" {
 				expected, name = "bb95c37d4e5a7204f5587f1b7732603f88da9fdf7e50933492bc6af90c97d0b9",

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { buildInventoryDashboardSources } from "../activity/inventory-sources.mjs";
-import { parsePackageManifest } from "../activity/marketplace.mjs";
+import { buildInventoryDashboardSources } from "../dashboard/report/inventory-sources.mjs";
+import { parsePackageManifest } from "../dashboard/report/package-manifest.mjs";
 import { parseUnifiedSessionDocument } from "../dashboard/site/src/data/adapters/unified-session.js";
 import { operationalValueEvidenceId } from "../dashboard/site/src/data/model/operational-value-evidence.js";
 import { VALUE_COLLECTION_REASONS, workflowValueCollectionId } from "../dashboard/site/src/data/model/workflow-value-collection.js";

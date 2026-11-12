@@ -1149,27 +1149,26 @@ The `summarize` reducers include `count`, `distinct-count`, `distinct-list`, `un
 
 ### Global ingestion indicator
 
-`dashboard.data-status` optionally binds the shell indicator to a declared
-`freshness-source` query exposing one row with `latest-data-at` (ISO timestamp or
-Unix milliseconds), a positive finite `stale-after-hours` threshold, and an
-optional `health-source` query exposing one row with `configured` and `health`.
-Both queries remain shell dependencies when page definitions are chunked.
-The health query is requested only on server-backed dashboards and respects
-the existing authorization boundary.
+`dashboard.data-status` binds the shell indicator to a declared `freshness-source`
+query exposing `latest-data-at` (ISO timestamp or Unix milliseconds) and a positive
+finite `stale-after-hours` threshold. Optional `health-source` exposes `configured`
+and `health`; optional `ingestion-source` exposes the tooltip presentation contract
+in the canonical dashboard data specification. All bindings survive page chunking.
+Only server-backed dashboards request health and ingestion, with normal authorization.
 
-The indicator subscribes to these query results for its mounted lifetime and
-reevaluates evidence age once per minute. Green means evidence is fresh and,
-when hosted health is configured, collection reports `healthy`. Amber means
-evidence is at least the threshold age or collection reports `recovering`.
-Red means collection reports `degraded`, a dashboard refresh failed, or requests
-are blocked by rate limiting. Missing, invalid, future, or unavailable evidence
-and unavailable hosted health remain unknown, not healthy. Stale evidence alone
-does not prove ingestion failure. The accessible label and tooltip explain the
-state, using upstream evidence time rather than browser import time.
+Abort-scoped subscriptions last while mounted; evidence age is reevaluated each
+minute. Fresh evidence with configured `healthy` collection is green; stale evidence
+or `recovering` collection is amber. Degraded health, refresh failure and rate
+limiting are red and take priority over ingestion presentation. Missing, invalid,
+future or unavailable evidence remains unknown. Staleness alone is not failure.
+Labels use upstream evidence time, not browser import time.
 
-This clock comparison and lifecycle feedback are shared shell presentation:
-Dashboard Language still owns evidence selection, aggregation, and collection
-health projection; the renderer must not query or reconstruct source rows.
+Available ingestion presentation replaces generic refresh feedback and exposes
+progress, quota, retry/reset times and observation time in the header tooltip,
+not an Overview table. Missing values remain unknown; discovery is not complete
+coverage. Tooltip interaction belongs to the shared shell, not a page mark.
+Dashboard Language owns selection, aggregation and status classification; the
+renderer only formats supplied fields and must not query or reconstruct rows.
 
 ### 8.1 Data-Set Metadata
 

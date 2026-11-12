@@ -3,7 +3,7 @@ import { access, glob, readFile } from "node:fs/promises";
 import test from "node:test";
 import { parse } from "yaml";
 
-import { parsePackageManifest } from "../../activity/marketplace.mjs";
+import { parsePackageManifest } from "../../dashboard/report/package-manifest.mjs";
 
 const root = new URL("../../", import.meta.url);
 

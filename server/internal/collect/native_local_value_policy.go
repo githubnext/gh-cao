@@ -7,7 +7,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/operationalvalue"
 )
 
-func (p Projector) resolvedNativeValuePolicy(ctx context.Context) ([]byte, error) {
+func (p NativeValueService) resolvedNativeValuePolicy(ctx context.Context) ([]byte, error) {
 	root, err := p.nativeLocalValueRoot()
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func (p Projector) resolvedNativeValuePolicy(ctx context.Context) ([]byte, error
 	return snapshot.Document, nil
 }
 
-func (p Projector) nativeLocalValueRoot() (string, error) {
+func (p NativeValueService) nativeLocalValueRoot() (string, error) {
 	root, err := filepath.Abs(p.CatalogRoot)
 	if err != nil {
 		return "", err

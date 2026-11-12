@@ -489,7 +489,7 @@ To let an agent read the same snapshot through dashboard pages and named
 queries, instead of through collections, see
 [Agent analysis](agent-analysis.md).
 
-Run `gh cao --help` for operator commands or `node activity/cao.mjs --help`
+Run `gh cao --help` for operator commands or `gh cao --help`
 for the Actions runtime. See [CAO Commands](cao-cli.md#command-reference) for
 their intentional read-only overlap. SQLite remains local derived state and
 does not make the Pages demo an operational data source.

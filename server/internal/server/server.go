@@ -483,7 +483,7 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 		a.config.Logger.Printf("activated dashboard revision %d", result.Revision)
 	}
 	if collector := a.Collector(); collector != nil {
-		if err := collector.start(startupCtx, runCtx, a.hub.Broadcast, a.startTask); err != nil {
+		if err := collector.start(startupCtx, runCtx, a.startTask); err != nil {
 			a.cancelAndWaitTasks(cancel, startupCtx)
 			return fmt.Errorf("start collection: %w", err)
 		}

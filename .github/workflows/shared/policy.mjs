@@ -1,7 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { AuthorityError as PolicyError, narrowLimit, resolveAuthority } from "./authority.mjs";
-import { normalizeValueAcquisition } from "../../../activity/value-acquisition.mjs";
+import { normalizeValueAcquisition } from "./value-acquisition.mjs";
 export { AuthorityError as PolicyError } from "./authority.mjs";
 
 const SCHEMA_URI = "https://raw.githubusercontent.com/githubnext/gh-cao/main/.github/workflows/shared/cao.schema.json";

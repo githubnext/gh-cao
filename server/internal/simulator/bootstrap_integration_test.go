@@ -94,7 +94,7 @@ func TestCAOBootstrapIntegration(t *testing.T) {
 	bootstrapAssertRepository(t, api, true)
 	for _, name := range []string{
 		".github/workflows/cao-validate.yml", ".github/workflows/shared/control.mjs",
-		".github/actions/setup-cao-runtime/action.yml", "activity/cao.mjs", ".github/workflows/shared/materialize-cao.mjs",
+		".github/actions/setup-cao-runtime/action.yml", "dashboard/report/configure-site.mjs", ".github/workflows/shared/materialize-cao.mjs",
 	} {
 		if info, err := os.Stat(filepath.Join(consumer, name)); err != nil || info.Size() == 0 {
 			t.Fatalf("missing or empty installed resource %s: %v", name, err)

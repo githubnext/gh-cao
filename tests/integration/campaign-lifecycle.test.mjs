@@ -55,10 +55,10 @@ const selfCareCampaignSource = focusedCampaignSource("self-care");
 const softwareDevelopmentPracticesCampaignSource = focusedCampaignSource("software-development-practices");
 const activityExpectedFiles = [
   "activity/actions-context.mjs",
-  "activity/actions-log.mjs",
+  ".github/workflows/shared/actions-log.mjs",
   "activity/campaign-intelligence.mjs",
   "activity/cao.mjs",
-  "activity/cli-usage.mjs",
+  "dashboard/report/collections.mjs",
   "activity/commands/audit-jsonl.mjs",
   "activity/commands/cluster-problems.mjs",
   "activity/commands/compact-jsonl.mjs",
@@ -82,15 +82,15 @@ const activityExpectedFiles = [
   "activity/computations/index.mjs",
   "activity/computations/runtime-health.mjs",
   "activity/control-settings.mjs",
-  "activity/debug.mjs",
+  "dashboard/report/debug.mjs",
   "activity/gh-aw-logs.mjs",
   "activity/inventory.mjs",
-  "activity/inventory-sources.mjs",
-  "activity/marketplace.mjs",
-  "activity/normalized-phase.mjs",
+  "dashboard/report/inventory-sources.mjs",
+  "dashboard/report/package-manifest.mjs",
+  "dashboard/report/normalized-phase.mjs",
   "activity/repository-visibility.mjs",
   "activity/token-intervention-lifecycle.mjs",
-  "activity/version.mjs",
+  "dashboard/lib/version.mjs",
 ];
 const caoEvolutionExpectedFiles = [
   ".github/workflows/cao-evolution-failures-investigator.md",

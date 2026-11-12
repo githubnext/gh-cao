@@ -1,0 +1,1058 @@
+{
+  "runtime-health:f08e4407dbc1444559bef612ed194acf29fba51ab28cbbf2ad7aa264faf0db78": {
+    "campaignResults": [
+      {
+        "answer": "no",
+        "attentionPartitionCount": 1,
+        "campaignId": "campaign:blocked",
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "orchestratorCount": 1,
+        "partitionRunCount": 1,
+        "recordsVisited": 1,
+        "skippedWorkerPartitionCount": 0,
+        "skippedWorkerRunCount": 0,
+        "workerEvaluationState": "blocked-by-orchestrator",
+        "workerPartitionCount": 0
+      },
+      {
+        "answer": "no",
+        "attentionPartitionCount": 2,
+        "campaignId": "campaign:maintenance",
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "orchestratorCount": 1,
+        "partitionRunCount": 8,
+        "recordsVisited": 8,
+        "skippedWorkerPartitionCount": 0,
+        "skippedWorkerRunCount": 0,
+        "workerEvaluationState": "eligible",
+        "workerPartitionCount": 3
+      },
+      {
+        "answer": "unknown",
+        "attentionPartitionCount": 1,
+        "campaignId": "campaign:unobserved",
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "orchestratorCount": 1,
+        "partitionRunCount": 0,
+        "recordsVisited": 0,
+        "skippedWorkerPartitionCount": 0,
+        "skippedWorkerRunCount": 0,
+        "workerEvaluationState": "indeterminate-orchestrator",
+        "workerPartitionCount": 0
+      }
+    ],
+    "diagnostics": {
+      "failures": [
+        {
+          "actionsRun": {
+            "reason": "Canonical evidence does not contain the exact process error; inspect job logs and stderr.",
+            "url": "https://github.com/octo/control/actions/runs/7"
+          },
+          "changedRuntimeFields": {},
+          "errorGroup": {
+            "campaignId": "campaign:blocked",
+            "conclusionCounts": {
+              "failure": 1
+            },
+            "count": 1,
+            "distinctRunAttemptCount": 1,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:07:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 7,
+                "observedAt": "2026-10-01T10:07:00.000Z",
+                "runId": "github:run:7:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/7"
+              }
+            ],
+            "workflowId": "workflow:blocked",
+            "workflowRole": "orchestrator"
+          },
+          "evidence": {
+            "audits": [],
+            "firewallBlocks": [],
+            "safeOutputs": [],
+            "toolErrors": []
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": "copilot",
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "driver-exit",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 7,
+              "highPriorityAuditItems": null,
+              "id": "github:run:7:attempt:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": "model-1",
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": "https://github.com/octo/control/actions/runs/7",
+              "startedAt": "2026-10-01T10:07:00Z",
+              "status": "completed",
+              "targetRepository": ""
+            }
+          ],
+          "latestSuccess": null,
+          "omittedEvidence": {
+            "audits": 0,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        },
+        {
+          "actionsRun": {
+            "reason": "Canonical evidence does not contain the exact process error; inspect job logs and stderr.",
+            "url": "https://github.com/octo/control/actions/runs/9"
+          },
+          "changedRuntimeFields": {},
+          "errorGroup": {
+            "campaignId": "campaign:maintenance",
+            "conclusionCounts": {
+              "failure": 1
+            },
+            "count": 1,
+            "distinctRunAttemptCount": 1,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:09:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 9,
+                "observedAt": "2026-10-01T10:09:00.000Z",
+                "runId": "github:run:9:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/9"
+              }
+            ],
+            "targetRepositoryId": "repository:expected",
+            "targetScopeMembership": "expected",
+            "workflowId": "workflow:recovery",
+            "workflowRole": "worker"
+          },
+          "evidence": {
+            "audits": [],
+            "firewallBlocks": [],
+            "safeOutputs": [],
+            "toolErrors": []
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": "copilot",
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "driver-exit",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 9,
+              "highPriorityAuditItems": null,
+              "id": "github:run:9:attempt:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": "model-1",
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": "https://github.com/octo/control/actions/runs/9",
+              "startedAt": "2026-10-01T10:09:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            }
+          ],
+          "latestSuccess": null,
+          "omittedEvidence": {
+            "audits": 0,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        },
+        {
+          "actionsRun": {
+            "reason": "Canonical evidence does not contain the exact process error; inspect job logs and stderr.",
+            "url": "https://github.com/octo/control/actions/runs/5"
+          },
+          "changedRuntimeFields": {
+            "requestedModel": {
+              "failed": "model-2",
+              "latestSuccess": "model-1"
+            }
+          },
+          "errorGroup": {
+            "campaignId": "campaign:maintenance",
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:05:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 5,
+                "observedAt": "2026-10-01T10:05:00.000Z",
+                "runId": "github:run:5:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/5"
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 4,
+                "observedAt": "2026-10-01T10:04:00.000Z",
+                "runId": "github:run:4:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/4"
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 3,
+                "observedAt": "2026-10-01T10:03:00.000Z",
+                "runId": "github:run:3:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/3"
+              }
+            ],
+            "targetRepositoryId": "repository:expected",
+            "targetScopeMembership": "expected",
+            "workflowId": "workflow:worker",
+            "workflowRole": "worker"
+          },
+          "evidence": {
+            "audits": [
+              {
+                "error": null,
+                "id": "audit:1",
+                "observedAt": null,
+                "runId": "github:run:5:attempt:1",
+                "source": null,
+                "status": null,
+                "summary": "Post-run failed",
+                "timestamp": null,
+                "type": null
+              }
+            ],
+            "firewallBlocks": [
+              {
+                "decision": "blocked",
+                "domain": "example.com",
+                "id": "domain:1",
+                "observedAt": null,
+                "requestCount": 2,
+                "runId": "github:run:5:attempt:1",
+                "timestamp": null
+              }
+            ],
+            "safeOutputs": [
+              {
+                "correlationId": null,
+                "id": "issue:1",
+                "observedAt": null,
+                "runId": "github:run:5:attempt:1",
+                "safeOutputType": null,
+                "status": null,
+                "summary": "Review required",
+                "timestamp": null,
+                "type": null
+              }
+            ],
+            "toolErrors": [
+              {
+                "id": "tool:1",
+                "mcpServer": "github",
+                "mcpTool": "get_file_contents",
+                "observedAt": null,
+                "runId": "github:run:5:attempt:1",
+                "status": "error",
+                "summary": null,
+                "timestamp": null,
+                "type": null
+              }
+            ]
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": "copilot",
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "driver-exit",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 5,
+              "highPriorityAuditItems": null,
+              "id": "github:run:5:attempt:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": "model-2",
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": "https://github.com/octo/control/actions/runs/5",
+              "startedAt": "2026-10-01T10:05:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": "copilot",
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "driver-exit",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 4,
+              "highPriorityAuditItems": null,
+              "id": "github:run:4:attempt:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": "model-1",
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": "https://github.com/octo/control/actions/runs/4",
+              "startedAt": "2026-10-01T10:04:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": "copilot",
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "driver-exit",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 3,
+              "highPriorityAuditItems": null,
+              "id": "github:run:3:attempt:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": "model-1",
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": "https://github.com/octo/control/actions/runs/3",
+              "startedAt": "2026-10-01T10:03:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            }
+          ],
+          "latestSuccess": {
+            "agentVersion": null,
+            "attempt": 1,
+            "classification": null,
+            "completedAt": null,
+            "conclusion": "success",
+            "duration": null,
+            "engine": "copilot",
+            "engineVersion": null,
+            "errorCount": null,
+            "failureKind": null,
+            "firewallAllowedCalls": null,
+            "firewallBlockedCalls": null,
+            "firewallVersion": null,
+            "ghAwVersion": null,
+            "githubRunId": 2,
+            "highPriorityAuditItems": null,
+            "id": "github:run:2:attempt:1",
+            "mcpToolCalls": null,
+            "mediumPriorityAuditItems": null,
+            "requestedModel": "model-1",
+            "resolvedModel": null,
+            "rolloutMode": null,
+            "runLink": "https://github.com/octo/control/actions/runs/2",
+            "startedAt": "2026-10-01T10:02:00Z",
+            "status": "completed",
+            "targetRepository": "octo/expected"
+          },
+          "omittedEvidence": {
+            "audits": 0,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        },
+        {
+          "actionsRun": {
+            "reason": "Canonical evidence does not contain the exact process error; inspect job logs and stderr.",
+            "url": "https://github.com/octo/control/actions/runs/6"
+          },
+          "changedRuntimeFields": {},
+          "errorGroup": {
+            "campaignId": "campaign:maintenance",
+            "conclusionCounts": {
+              "failure": 1
+            },
+            "count": 1,
+            "distinctRunAttemptCount": 1,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:06:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 6,
+                "observedAt": "2026-10-01T10:06:00.000Z",
+                "runId": "github:run:6:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/6"
+              }
+            ],
+            "targetRepositoryId": "repository:extra",
+            "targetScopeMembership": "observed-extra",
+            "workflowId": "workflow:worker",
+            "workflowRole": "worker"
+          },
+          "evidence": {
+            "audits": [],
+            "firewallBlocks": [],
+            "safeOutputs": [],
+            "toolErrors": []
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": "copilot",
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "driver-exit",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 6,
+              "highPriorityAuditItems": null,
+              "id": "github:run:6:attempt:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": "model-1",
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": "https://github.com/octo/control/actions/runs/6",
+              "startedAt": "2026-10-01T10:06:00Z",
+              "status": "completed",
+              "targetRepository": "octo/extra"
+            }
+          ],
+          "latestSuccess": null,
+          "omittedEvidence": {
+            "audits": 0,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        }
+      ],
+      "groupLimit": 5,
+      "omittedGroupCount": 0
+    },
+    "errorGroups": [
+      {
+        "campaignId": "campaign:blocked",
+        "conclusionCounts": {
+          "failure": 1
+        },
+        "count": 1,
+        "distinctRunAttemptCount": 1,
+        "errorKey": "driver-exit",
+        "failureJobs": [
+          "agent"
+        ],
+        "failureSteps": [
+          "Run agent"
+        ],
+        "latestObservedAt": "2026-10-01T10:07:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 7,
+            "observedAt": "2026-10-01T10:07:00.000Z",
+            "runId": "github:run:7:attempt:1",
+            "status": "completed",
+            "url": "https://github.com/octo/control/actions/runs/7"
+          }
+        ],
+        "workflowId": "workflow:blocked",
+        "workflowRole": "orchestrator"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 1
+        },
+        "count": 1,
+        "distinctRunAttemptCount": 1,
+        "errorKey": "driver-exit",
+        "failureJobs": [
+          "agent"
+        ],
+        "failureSteps": [
+          "Run agent"
+        ],
+        "latestObservedAt": "2026-10-01T10:09:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 9,
+            "observedAt": "2026-10-01T10:09:00.000Z",
+            "runId": "github:run:9:attempt:1",
+            "status": "completed",
+            "url": "https://github.com/octo/control/actions/runs/9"
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:recovery",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 3
+        },
+        "count": 3,
+        "distinctRunAttemptCount": 3,
+        "errorKey": "driver-exit",
+        "failureJobs": [
+          "agent"
+        ],
+        "failureSteps": [
+          "Run agent"
+        ],
+        "latestObservedAt": "2026-10-01T10:05:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 5,
+            "observedAt": "2026-10-01T10:05:00.000Z",
+            "runId": "github:run:5:attempt:1",
+            "status": "completed",
+            "url": "https://github.com/octo/control/actions/runs/5"
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 4,
+            "observedAt": "2026-10-01T10:04:00.000Z",
+            "runId": "github:run:4:attempt:1",
+            "status": "completed",
+            "url": "https://github.com/octo/control/actions/runs/4"
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 3,
+            "observedAt": "2026-10-01T10:03:00.000Z",
+            "runId": "github:run:3:attempt:1",
+            "status": "completed",
+            "url": "https://github.com/octo/control/actions/runs/3"
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 1
+        },
+        "count": 1,
+        "distinctRunAttemptCount": 1,
+        "errorKey": "driver-exit",
+        "failureJobs": [
+          "agent"
+        ],
+        "failureSteps": [
+          "Run agent"
+        ],
+        "latestObservedAt": "2026-10-01T10:06:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 6,
+            "observedAt": "2026-10-01T10:06:00.000Z",
+            "runId": "github:run:6:attempt:1",
+            "status": "completed",
+            "url": "https://github.com/octo/control/actions/runs/6"
+          }
+        ],
+        "targetRepositoryId": "repository:extra",
+        "targetScopeMembership": "observed-extra",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      }
+    ],
+    "measureId": "runtime-health",
+    "measureVersion": "1.0.0",
+    "partitionResults": [
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "no",
+        "campaignId": "campaign:blocked",
+        "errorGroupCount": 1,
+        "errorGroupLimit": 20,
+        "errorGroups": [
+          {
+            "conclusionCounts": {
+              "failure": 1
+            },
+            "count": 1,
+            "distinctRunAttemptCount": 1,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:07:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 7,
+                "observedAt": "2026-10-01T10:07:00.000Z",
+                "runId": "github:run:7:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/7"
+              }
+            ]
+          }
+        ],
+        "evidenceQuality": null,
+        "latestRun": {
+          "attempt": 1,
+          "conclusion": "failure",
+          "githubRunId": 7,
+          "observedAt": "2026-10-01T10:07:00.000Z",
+          "runId": "github:run:7:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/7"
+        },
+        "latestSuccess": null,
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "orchestrator",
+        "partitionRunCount": 1,
+        "recordsVisited": 1,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 1,
+        "successBoundary": "not-observed",
+        "terminalNonSuccessesSinceSuccess": 1,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:blocked",
+        "workflowRole": "orchestrator",
+        "workflowState": "unknown"
+      },
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "yes",
+        "campaignId": "campaign:maintenance",
+        "errorGroupCount": 0,
+        "errorGroupLimit": 20,
+        "errorGroups": [],
+        "evidenceQuality": null,
+        "latestRun": {
+          "attempt": 1,
+          "conclusion": "success",
+          "githubRunId": 1,
+          "observedAt": "2026-10-01T10:01:00.000Z",
+          "runId": "github:run:1:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/1"
+        },
+        "latestSuccess": {
+          "attempt": 1,
+          "conclusion": "success",
+          "githubRunId": 1,
+          "observedAt": "2026-10-01T10:01:00.000Z",
+          "runId": "github:run:1:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/1"
+        },
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": false,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "orchestrator",
+        "partitionRunCount": 1,
+        "recordsVisited": 1,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 0,
+        "successBoundary": "observed",
+        "terminalNonSuccessesSinceSuccess": 0,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:orchestrator",
+        "workflowRole": "orchestrator",
+        "workflowState": "active"
+      },
+      {
+        "activeRunsSinceSuccess": 1,
+        "answer": "no",
+        "campaignId": "campaign:maintenance",
+        "errorGroupCount": 1,
+        "errorGroupLimit": 20,
+        "errorGroups": [
+          {
+            "conclusionCounts": {
+              "failure": 1
+            },
+            "count": 1,
+            "distinctRunAttemptCount": 1,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:09:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 9,
+                "observedAt": "2026-10-01T10:09:00.000Z",
+                "runId": "github:run:9:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/9"
+              }
+            ]
+          }
+        ],
+        "evidenceQuality": null,
+        "latestRun": {
+          "attempt": 1,
+          "conclusion": null,
+          "githubRunId": 10,
+          "observedAt": "2026-10-01T10:10:00.000Z",
+          "runId": "github:run:10:attempt:1",
+          "status": "in_progress",
+          "url": "https://github.com/octo/control/actions/runs/10"
+        },
+        "latestSuccess": null,
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "worker-target",
+        "partitionRunCount": 2,
+        "recordsVisited": 2,
+        "recoveryMayBeInProgress": true,
+        "runsSinceSuccess": 2,
+        "successBoundary": "not-observed",
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "terminalNonSuccessesSinceSuccess": 1,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:recovery",
+        "workflowRole": "worker",
+        "workflowState": "unknown"
+      },
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "no",
+        "campaignId": "campaign:maintenance",
+        "errorGroupCount": 1,
+        "errorGroupLimit": 20,
+        "errorGroups": [
+          {
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:05:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 5,
+                "observedAt": "2026-10-01T10:05:00.000Z",
+                "runId": "github:run:5:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/5"
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 4,
+                "observedAt": "2026-10-01T10:04:00.000Z",
+                "runId": "github:run:4:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/4"
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 3,
+                "observedAt": "2026-10-01T10:03:00.000Z",
+                "runId": "github:run:3:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/3"
+              }
+            ]
+          }
+        ],
+        "evidenceQuality": null,
+        "latestRun": {
+          "attempt": 1,
+          "conclusion": "failure",
+          "githubRunId": 5,
+          "observedAt": "2026-10-01T10:05:00.000Z",
+          "runId": "github:run:5:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/5"
+        },
+        "latestSuccess": {
+          "attempt": 1,
+          "conclusion": "success",
+          "githubRunId": 2,
+          "observedAt": "2026-10-01T10:02:00.000Z",
+          "runId": "github:run:2:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/2"
+        },
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "worker-target",
+        "partitionRunCount": 4,
+        "recordsVisited": 4,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 3,
+        "successBoundary": "observed",
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "terminalNonSuccessesSinceSuccess": 3,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker",
+        "workflowState": "active"
+      },
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "no",
+        "campaignId": "campaign:maintenance",
+        "errorGroupCount": 1,
+        "errorGroupLimit": 20,
+        "errorGroups": [
+          {
+            "conclusionCounts": {
+              "failure": 1
+            },
+            "count": 1,
+            "distinctRunAttemptCount": 1,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:06:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 6,
+                "observedAt": "2026-10-01T10:06:00.000Z",
+                "runId": "github:run:6:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/6"
+              }
+            ]
+          }
+        ],
+        "evidenceQuality": null,
+        "latestRun": {
+          "attempt": 1,
+          "conclusion": "failure",
+          "githubRunId": 6,
+          "observedAt": "2026-10-01T10:06:00.000Z",
+          "runId": "github:run:6:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/6"
+        },
+        "latestSuccess": null,
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "worker-target",
+        "partitionRunCount": 1,
+        "recordsVisited": 1,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 1,
+        "successBoundary": "not-observed",
+        "targetRepositoryId": "repository:extra",
+        "targetScopeMembership": "observed-extra",
+        "terminalNonSuccessesSinceSuccess": 1,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker",
+        "workflowState": "active"
+      },
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "not-observed",
+        "campaignId": "campaign:unobserved",
+        "errorGroupCount": 0,
+        "errorGroupLimit": 20,
+        "errorGroups": [],
+        "evidenceQuality": null,
+        "latestRun": null,
+        "latestSuccess": null,
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "orchestrator",
+        "partitionRunCount": 0,
+        "recordsVisited": 0,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 0,
+        "successBoundary": "not-observed",
+        "terminalNonSuccessesSinceSuccess": 0,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:unobserved",
+        "workflowRole": "orchestrator",
+        "workflowState": "unknown"
+      }
+    ]
+  }
+}

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -37,14 +38,20 @@ type dashboardRepositoryEvidence struct {
 
 type dashboardLogRequest struct {
 	Repository, Directory, Cache, StartDate string
+	EndDate                                 string
 	Count                                   int
 	ManagedCache                            bool
 	WorkflowIDs                             []string
+	WorkflowCounts                          map[string]int
+	BeforeRunID, AfterRunID                 int64
+	MaxAPIUsed                              int
+	CheckQuota                              func(context.Context, int) error
+	Limited                                 *bool
 }
 
 type dashboardLogsCollector func(context.Context, dashboardLogRequest) error
 
-func collectDashboard(ctx context.Context, repositories []string, cache string, options dashboardOptions, gh ghExecutor, logs dashboardLogsCollector) (map[string]any, error) {
+func collectDashboard(ctx context.Context, repositories []string, cache string, options dashboardOptions, gh ghExecutor, logs dashboardLogsCollector) (metadata map[string]any, err error) {
 	if err := prepareDashboardCache(cache); err != nil {
 		return nil, err
 	}
@@ -61,12 +68,75 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 		return nil, err
 	}
 	now := time.Now().UTC()
+	state, err := readDashboardIngestion(ctx, cache)
+	if err != nil {
+		return nil, err
+	}
+	if state.TargetHours != 0 && state.TargetHours != options.window.Hours()*float64(len(repositories)) {
+		state.Cursors = map[string]dashboardHistoryCursor{}
+		state.NextRepo = 0
+	}
+	previous := maps.Clone(state.Cursors)
+	previousRepo := state.NextRepo
+	state.Status, state.Message = "collecting", "Discovering retained history and collecting available artifacts; coverage remains partial."
+	state.NextAt = ""
+	state.summarize(repositories, now.Add(-options.window), now, options.window)
+	if _, statErr := os.Stat(filepath.Join(cache, "gh-aw-logs.sqlite")); errors.Is(statErr, os.ErrNotExist) {
+		metadata = dashboardObservationMetadata(repositories, options, now, nil)
+		metadata["coverage"] = "Initial collection pending; upstream evidence is not yet available."
+		if err := publishDashboardSnapshot(ctx, cache, map[string][]map[string]any{"transactions": {metadata}}); err != nil {
+			return nil, err
+		}
+	}
+	defer func() {
+		if err != nil {
+			state.Cursors, state.NextRepo = maps.Clone(previous), previousRepo
+			state.Status, state.Message = "failed", dashboardPauseMessage(err)
+			if errors.Is(err, errDashboardQuota) {
+				state.Status = "paused"
+				state.NextAt = time.Now().UTC().Add(options.refresh).Format(time.RFC3339)
+				if state.Remaining != nil && *state.Remaining <= state.Reserve {
+					state.NextAt = state.ResetAt
+				}
+			}
+		}
+		state.summarize(repositories, time.Now().UTC().Add(-options.window), time.Now().UTC(), options.window)
+		if err != nil {
+			state.Cursors = previous
+		}
+		writeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+		writeErr := writeDashboardIngestion(writeCtx, cache, state)
+		if errors.Is(err, errDashboardQuota) && writeErr == nil {
+			metadata, err = readDashboardStatus(writeCtx, cache, repositories)
+		} else {
+			err = errors.Join(err, writeErr)
+		}
+	}()
+	budget, err := newDashboardAcquisition(ctx, gh, &state)
+	if err != nil {
+		return nil, err
+	}
+	metadata, err = collectDashboardPass(ctx, repositories, cache, options, budget, logs, &state, now)
+	return metadata, err
+}
+
+func collectDashboardPass(ctx context.Context, repositories []string, cache string, options dashboardOptions, budget *dashboardAcquisition, logs dashboardLogsCollector, state *dashboardIngestion, now time.Time) (map[string]any, error) {
+	gh := budget.exec
 	cutoff := now.Add(-options.window)
-	evidence := make([]dashboardRepositoryEvidence, 0, len(repositories))
-	for _, repository := range repositories {
+	evidence := make([]dashboardRepositoryEvidence, 0, 1)
+	repositoryIndex := state.NextRepo % len(repositories)
+	for _, repository := range repositories[repositoryIndex : repositoryIndex+1] {
+		state.Repository = repository
+		if err := writeDashboardIngestion(ctx, cache, *state); err != nil {
+			return nil, err
+		}
 		target := "github.com/" + repository
 		identity, _, err := gh(ctx, "repo", "view", target, "--json", "nameWithOwner,url,id")
 		if err != nil {
+			if errors.Is(err, errDashboardQuota) {
+				return nil, err
+			}
 			return nil, fmt.Errorf("cannot access %s; check 'gh auth status --hostname github.com', repository access, and API quota; previous snapshot preserved", repository)
 		}
 		var resolved struct {
@@ -80,6 +150,9 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 		}
 		inventory, _, err := gh(ctx, "workflow", "list", "--repo", target, "--all", "--limit", "1000", "--json", "id,name,path,state")
 		if err != nil {
+			if errors.Is(err, errDashboardQuota) {
+				return nil, err
+			}
 			return nil, fmt.Errorf("cannot read workflow inventory for %s; previous snapshot preserved", repository)
 		}
 		workflows := []dashboardWorkflow{}
@@ -90,13 +163,51 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 			"--limit", strconv.Itoa(options.count), "--json",
 			"databaseId,workflowDatabaseId,workflowName,displayTitle,status,conclusion,event,headBranch,headSha,createdAt,startedAt,updatedAt,url,attempt")
 		if err != nil {
+			if errors.Is(err, errDashboardQuota) {
+				return nil, err
+			}
 			return nil, fmt.Errorf("cannot read recent runs for %s; previous snapshot preserved", repository)
 		}
 		runs := []map[string]any{}
 		if err := json.Unmarshal([]byte(raw), &runs); err != nil || runs == nil {
 			return nil, errors.New("GitHub runs response is not a valid run list")
 		}
-		workflowIDs := dashboardObservedWorkflowIDs(workflows, runs)
+		cursor := dashboardHistoryRange(state.Cursors[repository], cutoff, now)
+		history, nextCursor, err := collectDashboardHistory(ctx, repository, cursor, options.count, gh)
+		if err != nil {
+			return nil, err
+		}
+		seen := map[string]bool{}
+		for _, run := range runs {
+			seen[nativeScalar(run["databaseId"])] = true
+		}
+		for _, run := range history {
+			if !seen[nativeScalar(run["databaseId"])] {
+				runs = append(runs, run)
+			}
+		}
+		richRuns := history
+		if len(richRuns) == 0 {
+			richRuns = runs
+		}
+		workflowIDs := dashboardObservedWorkflowIDs(workflows, richRuns)
+		eligible := make([]map[string]any, 0, len(richRuns))
+		for _, run := range richRuns {
+			if !slices.Contains(workflowIDs, nativeScalar(run["workflowDatabaseId"])) {
+				continue
+			}
+			created, createdErr := time.Parse(time.RFC3339, nativeText(run["createdAt"]))
+			id, idErr := strconv.ParseInt(nativeScalar(run["databaseId"]), 10, 64)
+			if createdErr != nil || idErr != nil || id < 1 || id == 1<<63-1 ||
+				!dashboardRunID.MatchString(nativeScalar(run["databaseId"])) {
+				return nil, errors.New("agentic run has an invalid creation time or identity")
+			}
+			if !created.Before(cutoff) && !created.After(now) {
+				eligible = append(eligible, run)
+			}
+		}
+		richRuns = eligible
+		workflowIDs = dashboardObservedWorkflowIDs(workflows, richRuns)
 		directory := filepath.Join(cache, "logs", dashboardCoordinate(repository))
 		managedCache := true
 		if options.logs != "" {
@@ -126,17 +237,42 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 			return nil, err
 		}
 		if len(workflowIDs) > 0 {
+			limited := false
+			start, end := now, cutoff
+			before, after := int64(0), int64(1<<63-1)
+			workflowCounts := map[string]int{}
+			for _, run := range richRuns {
+				created, _ := time.Parse(time.RFC3339, nativeText(run["createdAt"]))
+				if created.Before(start) {
+					start = created
+				}
+				if created.After(end) {
+					end = created
+				}
+				id, _ := strconv.ParseInt(nativeScalar(run["databaseId"]), 10, 64)
+				before, after = max(before, id), min(after, id)
+				workflowCounts[nativeScalar(run["workflowDatabaseId"])]++
+			}
 			err = logs(ctx, dashboardLogRequest{
 				Repository: repository, Directory: directory, Cache: shard,
-				StartDate: cutoff.Format("2006-01-02"), Count: options.count,
+				StartDate: start.Format(time.RFC3339), EndDate: end.Format(time.RFC3339),
+				Count:        options.count,
 				ManagedCache: managedCache, WorkflowIDs: workflowIDs,
+				WorkflowCounts: workflowCounts, BeforeRunID: before + 1, AfterRunID: max(0, after-1),
+				MaxAPIUsed: budget.ceiling, CheckQuota: budget.check, Limited: &limited,
 			})
 			if err != nil {
+				if errors.Is(err, errDashboardQuota) {
+					return nil, err
+				}
 				return nil, fmt.Errorf("gh-aw log collection failed for %s; verify authentication and API quota; previous snapshot preserved", repository)
+			}
+			if limited {
+				state.Message = "Artifact acquisition reached its time or quota ceiling; history discovery continues with partial artifact evidence."
 			}
 		}
 		cached, err := readDashboardLogCache(shard, repository)
-		if err != nil && (len(workflowIDs) != 0 || !errors.Is(err, os.ErrNotExist)) {
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
 		runs = mergeDashboardCachedRuns(runs, workflows, cached, options.count)
@@ -145,6 +281,8 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 			Directory: directory, SafeOutputs: cached.SafeOutputs,
 			GithubID: resolved.ID,
 		})
+		state.Cursors[repository] = nextCursor
+		state.NextRepo = (repositoryIndex + 1) % len(repositories)
 	}
 	batch, err := projectDashboardEvidence(evidence, cutoff, now)
 	if err != nil {
@@ -158,21 +296,41 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 	for store, rows := range batch {
 		counts[store] = len(rows)
 	}
-	metadata := map[string]any{
-		"id": "local-dashboard", "kind": "local-dashboard", "createdAt": now.Format(time.RFC3339Nano),
-		"repositories": repositories, "windowStart": cutoff.Format(time.RFC3339Nano),
-		"windowEnd": now.Format(time.RFC3339Nano), "windowHours": options.window.Hours(),
-		"runLimitPerAcquisition": options.count, "maximumDisplayedRunsPerRepository": options.count * 2,
-		"workflowLimitPerRepository": 1000,
-		"availability":               "available", "completeness": "partial",
-		"coverage": "Bounded recent gh-aw logs and available session, tool, firewall, skill, friction, safe-output, experiment, eval and grader evidence; partial daily observations. Missing artifacts, campaign policy, queue backlog, accepted outcomes and Operational Value remain unavailable.",
-		"counts":   counts,
-	}
+	metadata := dashboardObservationMetadata(repositories, options, now, counts)
 	batch["transactions"] = []map[string]any{metadata}
-	if err := publishDashboardSnapshot(ctx, cache, batch); err != nil {
+	quota, err := budget.quota(ctx)
+	if err != nil {
+		return nil, err
+	}
+	state.Status = "waiting"
+	state.NextAt = time.Now().UTC().Add(options.refresh).Format(time.RFC3339)
+	if quota.Remaining <= state.Reserve {
+		state.Status, state.Message = "paused", dashboardPauseMessage(errDashboardQuota)
+		state.NextAt = state.ResetAt
+	}
+	state.summarize(repositories, cutoff, time.Now().UTC(), options.window)
+	checkpoint, err := dashboardIngestionRecord(*state)
+	if err != nil {
+		return nil, err
+	}
+	batch["transactions"] = append(batch["transactions"], checkpoint)
+	if err := writeDashboardSnapshot(ctx, cache, batch, true); err != nil {
 		return nil, err
 	}
 	return metadata, nil
+}
+
+func dashboardObservationMetadata(repositories []string, options dashboardOptions, now time.Time, counts map[string]int) map[string]any {
+	return map[string]any{
+		"id": "local-dashboard", "kind": "local-dashboard", "createdAt": now.Format(time.RFC3339Nano),
+		"repositories": repositories, "windowStart": now.Add(-options.window).Format(time.RFC3339Nano),
+		"windowEnd": now.Format(time.RFC3339Nano), "windowHours": options.window.Hours(),
+		"runLimitPerAcquisition": options.count, "historyPageSize": min(options.count, 100),
+		"workflowLimitPerRepository": 1000,
+		"availability":               "available", "completeness": "partial",
+		"coverage": "Resumable bounded history discovery and available gh-aw artifacts; partial upstream and daily observations. A scanned interval does not establish complete artifacts, accepted outcomes, campaign policy or Operational Value.",
+		"counts":   counts,
+	}
 }
 
 type dashboardCachedLogs struct {

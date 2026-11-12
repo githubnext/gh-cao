@@ -116,7 +116,7 @@ test("probe workflow mints a target-scoped read App token after validating scope
   assert.deepEqual(config.permissions, { contents: "read" });
   const steps = config.jobs.probe.steps;
   const checkout = steps.find((step) => step.name === "Checkout probe and control policy");
-  assert.match(checkout.with["sparse-checkout"], /\/activity\/value-acquisition\.mjs/);
+  assert.match(checkout.with["sparse-checkout"], /\/\.github\/workflows\/shared\/value-acquisition\.mjs/);
   assert.equal(checkout.with["sparse-checkout-cone-mode"], false);
   const scope = steps.findIndex((step) => step.run === "node scripts/probe-target-read-access.mjs --scope-only");
   const tokenStep = steps.find((step) => step.id === "read-app-token");

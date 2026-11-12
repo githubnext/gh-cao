@@ -57,8 +57,8 @@ jobs:
         if: vars.CAO_DASHBOARD_DATA_URL != ''
         env:
           DASHBOARD_DATA_URL: ${{ vars.CAO_DASHBOARD_DATA_URL }}
-        run: node activity/cao.mjs download
+        run: go run ./cmd/gh-cao download
       - name: Report unconfigured operational evidence
         if: vars.CAO_DASHBOARD_DATA_URL == ''
         run: |
-          echo "::notice::Operational dashboard evidence is not staged. Download a selected cao-activity-index Actions artifact into .cao, or configure CAO_DASHBOARD_DATA_URL. Pages is synthetic demo data, not a fallback."
+          echo "::notice::Operational dashboard evidence is not staged. Provide an explicitly acquired verified snapshot in .cao, or configure CAO_DASHBOARD_DATA_URL. Pages is synthetic demo data, not a fallback."

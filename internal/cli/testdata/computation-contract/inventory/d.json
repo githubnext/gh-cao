@@ -1,0 +1,172 @@
+{
+  "inventory:d5f736c7a4335057c2caba7d4967f1638b6fe4b3686e68b3f4299400171ba2f1": {
+    "agentInvocations": 0,
+    "asOf": null,
+    "campaignContractCount": 1,
+    "campaignContracts": [
+      {
+        "authorityContext": {
+          "enabled": true,
+          "maxRepositories": {
+            "state": "missing",
+            "value": null
+          },
+          "mode": "unknown",
+          "rolloutPercent": {
+            "state": "missing",
+            "value": null
+          },
+          "targets": [
+            "octo/expected"
+          ]
+        },
+        "backoff": null,
+        "campaignId": "campaign:dashboard-sources:maintenance",
+        "campaignSlug": "maintenance",
+        "contractId": "campaign-intelligence-contract:ecd6d7e2feb202fc86d137fd",
+        "contractVersion": "1.1.0",
+        "declaration": {
+          "campaign": "maintenance",
+          "contractVersion": "1.0.0"
+        },
+        "deduplication": null,
+        "eligibleOpportunity": null,
+        "inputFingerprint": "sha256:949b8981ba323ce86597d16858d99e1ef9677720165e880854bb0a5e2463dc6c",
+        "intendedOutcome": "Keep dependencies current",
+        "interventionClass": null,
+        "maturationPeriod": null,
+        "maxDetectionDelay": null,
+        "operationalValueDefinition": null,
+        "outcomeAttainmentEvidence": null,
+        "outputApprovalPolicy": null,
+        "overlapIdentity": null,
+        "quality": {
+          "attributionCoverage": {
+            "denominator": null,
+            "numerator": null,
+            "state": "unknown"
+          },
+          "availability": "available",
+          "completeness": "partial",
+          "contractId": "evidence-quality",
+          "contractVersion": "1.0.0",
+          "contradictionState": "unknown",
+          "coverage": {
+            "denominator": 17,
+            "numerator": 4,
+            "state": "partial"
+          },
+          "freshness": {
+            "observedAt": "2026-10-01T10:00:00.000Z",
+            "state": "unknown"
+          },
+          "maturity": "unknown",
+          "provenance": {
+            "sources": [
+              "campaign-intelligence-declaration",
+              "dashboard-sources"
+            ],
+            "state": "available"
+          }
+        },
+        "repositoryNativeProblem": null,
+        "resourceEnvelope": {
+          "aiCreditAllowance": {
+            "state": "missing",
+            "value": null
+          },
+          "humanAttention": {
+            "state": "missing",
+            "value": null
+          },
+          "monthlyAiCreditBudget": {
+            "state": "zero",
+            "value": 0
+          },
+          "workflows": [
+            {
+              "maxAiCredits": {
+                "state": "available",
+                "value": 42
+              },
+              "workflowId": "workflow:octo%2Fcontrol%3A.github%2Fworkflows%2Fmaintenance.md"
+            }
+          ]
+        },
+        "scheduleRationale": null,
+        "stopConditions": [
+          "stop"
+        ],
+        "targetPopulation": [
+          "octo/expected"
+        ],
+        "triggerAndSchedule": null,
+        "workflows": [
+          {
+            "maxAiCredits": {
+              "state": "available",
+              "value": 42
+            },
+            "role": "orchestrator",
+            "rolloutMode": null,
+            "state": "active",
+            "workflowId": "workflow:octo%2Fcontrol%3A.github%2Fworkflows%2Fmaintenance.md"
+          }
+        ]
+      }
+    ],
+    "correlatedCandidateCount": 0,
+    "decisionCount": 0,
+    "decisions": [],
+    "evaluatedDecisionClasses": [
+      "protect"
+    ],
+    "evidenceQuality": {
+      "attributionCoverage": {
+        "denominator": null,
+        "numerator": null,
+        "state": "unknown"
+      },
+      "availability": "available",
+      "completeness": "partial",
+      "contractId": "evidence-quality",
+      "contractVersion": "1.0.0",
+      "contradictionState": "unknown",
+      "coverage": {
+        "denominator": null,
+        "numerator": 1,
+        "state": "partial"
+      },
+      "freshness": {
+        "observedAt": null,
+        "state": "unknown"
+      },
+      "maturity": "unknown",
+      "provenance": {
+        "sources": [
+          "campaign-intelligence-contract",
+          "runtime-health"
+        ],
+        "state": "missing"
+      }
+    },
+    "feedback": {
+      "appliedCount": 0,
+      "contractId": "decision-feedback",
+      "contractVersion": "1.0.0",
+      "recordCount": 0,
+      "records": [],
+      "staleCount": 0,
+      "staleFeedbackIds": [],
+      "unmatchedCount": 0,
+      "unmatchedFeedbackIds": []
+    },
+    "inputFingerprint": "sha256:5e9321631f05a8348b141caee5d41cef5329c80de82e722f38c8e4409ada05a1",
+    "measureId": "portfolio-decisions",
+    "measureVersion": "1.2.0",
+    "reusedDecisionIds": [],
+    "signalCount": 0,
+    "suppressionCount": 0,
+    "suppressions": []
+  }
+}

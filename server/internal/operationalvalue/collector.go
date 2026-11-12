@@ -138,7 +138,8 @@ func persistValues(
 	return mergeValues(append(currentRetained, values...), definitions)
 }
 
-func parseOutput(content []byte, source string, repositories []string) (parsedOutput, error) {
+func parseOutput(content []byte, repositories []string) (parsedOutput, error) {
+	const source = "adapter"
 	var output parsedOutput
 	allowed := map[string]struct{}{}
 	for _, repository := range repositories {
@@ -451,18 +452,6 @@ func mergeValues(values []envelope, definitions map[string]definition) []envelop
 		merged = append(merged, item)
 	}
 	return merged
-}
-
-func writeEnvelopes(path string, values []envelope) error {
-	var content bytes.Buffer
-	encoder := json.NewEncoder(&content)
-	encoder.SetEscapeHTML(false)
-	for _, item := range values {
-		if err := encoder.Encode(item); err != nil {
-			return err
-		}
-	}
-	return writeContent(path, content.Bytes())
 }
 
 func writeContent(path string, content []byte) error {

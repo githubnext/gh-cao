@@ -1,37 +1,23 @@
 ---
 title: CAO Commands
-description: Configure and inspect CAO with the Go extension, and use the Node Actions runtime for workflow-agent evidence APIs.
+description: Configure, inspect, and query CAO with the native Go extension.
 agent:
   type: cli-reference
   prominent: true
 ---
 
-Use this reference when operating CAO or adding a CLI command. GitHub CLI
-installs the compiled Go extension as `gh cao`; guided setup prepares the
-repository runtime for Activity and Dashboard Actions. Invoke that runtime as
-`node activity/cao.mjs <command>`; there is no shell launcher. Agents
-using the CLI should follow the
-[`cao-cli` skill](https://github.com/githubnext/gh-cao/blob/main/skills/cao-cli/SKILL.md);
-agents querying activity data should use
-[`analyze-cao`](https://github.com/githubnext/gh-cao/blob/main/skills/analyze-cao/SKILL.md).
-Onboarding and lifecycle administration run only in Go, not in Node wrappers.
-The Node `cao` entry point is the supported Actions runtime, including evidence
-APIs for agents inside agentic workflows, not an alternative operator surface.
-Its `queries`, `query-info`, `prompt`, `query`, `gh runs|issues|prs`,
-`computation`, `mcp`, and `download` commands and runtime dependencies remain
-installed and supported. Similar read capabilities in `gh cao` are intentional:
-operators use `gh cao`, workflow agents use `node activity/cao.mjs`, and server
-hosting/administration belongs to `cao-dashboard`. Workflow agents need not
-build, install, or invoke the Go extension. See [workflow-agent evidence](agent-analysis.md#inside-an-agentic-workflow).
-Run policy commands from the control repository root:
+Use the compiled Go extension as `gh cao` for operator commands and
+read-only evidence analysis. The former Activity JavaScript runtime and its
+Node-only commands have been removed; there is no shell launcher or compatibility
+entry point. Workflow agents may use an explicitly installed `gh cao`, or the
+bounded read-only GitHub and agentic-workflow tools already available to them.
+Server hosting and administration belong to `cao-dashboard`.
 
-```bash
-gh cao --help
-node activity/cao.mjs --help
-```
-
-Command failures exit nonzero and report the error without printing the command
-reference. Request command-specific help with `gh cao COMMAND --help`.
+Follow the [`cao-cli` skill](https://github.com/githubnext/gh-cao/blob/main/skills/cao-cli/SKILL.md)
+for command ownership and [`analyze-cao`](https://github.com/githubnext/gh-cao/blob/main/skills/analyze-cao/SKILL.md)
+for evidence interpretation. Run policy commands from the control repository
+root. Use `gh cao --help` and `gh cao COMMAND --help` for the supported surface.
+Failures exit nonzero without substituting a retired runtime.
 
 ## Operator evidence
 
@@ -62,19 +48,39 @@ HTTP assets, and SQLite queries.
 The command resolves the current repository when `--repo` is omitted and
 supports up to 20 explicitly named GitHub.com repositories.
 
-Both the recent evidence window and server lifetime default to **48 hours** and
-cannot exceed that bound. The command stays in the foreground, selects an
-available loopback port, prints the access URL, and refreshes every five minutes.
-Startup reports that collection is in progress before displaying a clearly
+The evidence window defaults to **seven days** (maximum `168h`); server lifetime
+defaults to **48 hours**, which remains its maximum per invocation. The command
+stays in the foreground, selects an available loopback port, prints the access
+URL, and collects in background passes separated by five minutes.
+The server starts without waiting for artifact downloads. Startup displays a clearly
 labelled browser URL, repository scope, SQLite cache path, refresh interval, and
 session lifetime. The ready message also reminds you that Ctrl-C stops the
 server without deleting the cache. If repository access fails, check
 `gh auth status --hostname github.com` in the same terminal that runs the command.
 Ctrl-C closes its server and stops collection. `--listen 127.0.0.1:8443`,
 `--window 12h`, `--duration 2h`, `--refresh 2m`, and `--count 100` narrow or adjust
-the session. The count caps each repository's recent-run lookup and usage sample
-separately (maximum 1000 each); their deduplicated union contains at most twice
-that count. It is not a guarantee of complete history.
+the session. The count caps each repository's recent-run lookup and cached usage
+sample separately (maximum 1000 each); historical pages contain at most 100 runs.
+One repository is processed per pass in round-robin order. Fixed date intervals
+and saved page checkpoints let later passes reach older history rather than
+repeatedly sampling only the newest runs. Dense intervals are split before
+reaching GitHub's 1000-result filtered-search ceiling. Earlier pages remain in
+SQLite until they age out of the selected window; restarting reuses the saved
+checkpoint. Discovery completion is not a guarantee of complete artifacts or
+upstream coverage.
+
+The header's **data-status card** shows a history progress bar, compact API
+headroom and a retry countdown. On mobile, tap the labeled menu button to open
+its popup; desktop keeps a hover tooltip. **Details** expands diagnostics and
+timestamps. This status updates
+through the ordinary server revision subscription without navigation, and
+ignores page filters. Scanned hours measure completed history-discovery intervals,
+not the percentage of runs or artifacts acquired. Acquisition shares a ceiling
+of 100 core API points per pass and reserves at least 1000 points or 20% of the
+reported core limit, whichever is greater. Exhausted headroom pauses acquisition
+instead of spending the reserve; later passes recheck quota and resume.
+GitHub clients using the same credentials share this quota, so concurrent
+external traffic can reduce the available headroom. Unknown quota fails closed.
 
 The CLI binds its ingestion pipeline to the explicit
 `cao-dashboard serve --sqlite-ingestion --sqlite PATH` server mode. It uses the
@@ -89,7 +95,7 @@ executions and daily observations through canonical SQLite and revision subscrip
 not browser IndexedDB. Its local daily projection reconciles observed logical
 Runs by UTC execution-start day in the same atomic publication transaction.
 Replays and reruns do not double count, and compact receipts retain observations
-independently of the 48-hour detail window under the canonical three-week
+independently of the seven-day detail window under the canonical three-week
 retention policy. Undated evidence is excluded and reported as incomplete;
 whole-day counts are partial observations, not exhaustive or exact sub-day totals.
 It combines fresh Actions status with cached gh-aw evidence and requests all
@@ -114,9 +120,10 @@ it with `--logs-dir PATH`. Existing gh-aw artifacts and matching cached JSONL
 records are reused by the same gh-aw collector. Only profile-owned artifact
 caches receive the 256 MiB storage budget; existing external gh-aw caches are
 not pruned by this command.
-Collection selects exact remote workflow IDs from the recent Actions inventory,
+Collection selects exact remote workflow IDs from the Actions inventory and observed runs,
 so it does not depend on workflow files in the current folder. Its rich-run
-budget is shared across those observed workflows under one two-minute deadline;
+budget is shared across those observed workflows under one two-minute deadline
+and the pass's API ceiling;
 reaching this acquisition limit is reported and publishes partial collected evidence.
 Refresh reuses analyses and artifacts, but fetches fresh run-discovery lists
 rather than replaying a stale open-ended cached listing. Older profile-owned
@@ -129,8 +136,9 @@ and each repository's artifact input to 32 MiB. Oversized or malformed evidence
 fails the refresh rather than publishing a truncated success. Cache files can
 contain private repository evidence; protect directory ACLs on Windows, where
 POSIX mode bits are not sufficient.
-A failed refresh preserves the previous database and is
-reported rather than replacing it with empty data.
+A failed refresh preserves previously published evidence and its history
+checkpoint; a separate status update reports the failure rather than replacing
+evidence with empty data.
 
 `gh cao dashboard` only serves the dashboard; it has no subcommands.
 Collection and refresh happen automatically while it is running. Maintenance
@@ -249,7 +257,7 @@ destinations before adding files. Existing policy is read, not replaced with a
 baseline. Invalid policy and conflicting runtime files fail closed. Complete
 runtime installs are reused; use `gh cao update --campaign root` for upgrades.
 
-Control repositories receive the curated production runtime under `activity/`,
+Control repositories receive the reviewed dashboard and shared control resources,
 `dashboard/`, and `.github/`, not tests, screenshots, contributor tooling, or
 plugin files. Normal materialization downloads a prebuilt exact-SHA archive,
 without install-time npm. Stable versions use release assets; main/SHA installs
@@ -510,16 +518,13 @@ to invoke it as `gh cao`.
 | Operator evidence | `evidence release` | Native Go; bounded read-only GitHub references, optional provenance verification and development Azure receipt summaries. No Node runtime or checkout required. |
 | On-demand dashboard | `dashboard` | Native Go; serve the existing local dashboard with automatic bounded recent collection and a private canonical SQLite cache. No subcommands, remote mutations, policy, Actions, or runtime installation. |
 | Installation diagnostics | `doctor`, `version` | Native Go. `doctor` checks GitHub CLI, gh-aw, authentication, and basic local policy structure and compiler pin. |
-| Workflow-agent evidence APIs | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `mcp` | Supported `node activity/cao.mjs <command>` APIs inside agentic workflows, including their installed runtime dependencies; intentional overlap with operator reads, not deprecated duplicates. |
+| Workflow-agent evidence APIs | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `mcp` | Supported `gh cao COMMAND` APIs inside agentic workflows, including their installed runtime dependencies; intentional overlap with operator reads, not deprecated duplicates. |
 | Active ingestion and packaging | `ingest-jsonl`, `compact-jsonl`, `hash-payloads` | Node Actions pipeline: import raw or normalized JSONL into SQLite, compact raw shards per repository, and generate normalized run/record shards plus payload checksums. |
-| Manual artifact import | `ingest` | Supported `node activity/cao.mjs ingest --context FILE --logs DIRECTORY` importer for extracted gh-aw artifacts; not used by the Activity or Dashboard pipelines and not deprecated. |
-| Actions pipeline and maintainer tools | `discover-workflows`, `audit-jsonl`, `recycle-cache`, `issue-status`, `operational-value`, `cluster-problems`, `dashboard-complexity`, `prune-dashboard` | Invoke with `node activity/cao.mjs <command>`; not migrated to the extension. |
-| Control-plane validation | `node activity/cao.mjs validate --json` | Actions-only JavaScript runtime invoked by `cao-validate.yml`; no Go or shell-wrapper command. |
-| Node-only administration | `node activity/cao.mjs repair-database` | Mutating SQLite repair/retention; no equivalent Go command. |
+| Actions pipeline and maintainer tools | `discover-workflows`, `audit-jsonl`, `recycle-cache`, `issue-status`, `operational-value`, `cluster-problems`, `dashboard-complexity`, `prune-dashboard` | Invoke with `gh cao COMMAND`; not migrated to the extension. |
 
 This table groups commands by responsibility, not by interchangeable executables.
 Inspect the executable trees with `gh cao --help`,
-`node activity/cao.mjs --help`, and `cao-dashboard --help`; use native
+`gh cao --help`, and `cao-dashboard --help`; use native
 subcommand help to inspect each registered child and its flags. `help` is built-in
 discovery, not another operation. `pages` remains dashboard-page discovery in both
 the operator and Node runtimes.
@@ -643,30 +648,6 @@ JSON output, repeatable query parameters, stdin queries, interactive
 secret prompts, and command exit codes retain their existing contracts.
 There is no `gh cao run`: workflow execution still belongs to gh-aw.
 
-### Retired Node operator commands
-
-The following Node commands are removed, including their administration modules
-and JavaScript exports. They exit nonzero with native replacement guidance
-before reading stdin, parsing options, opening a database, or changing files or
-GitHub settings. Even two-argument calls cannot enter legacy ingestion.
-
-| Retired `node activity/cao.mjs` command | Native replacement |
-| --- | --- |
-| `init` | `gh cao init` |
-| `setup` | `gh cao setup` |
-| `setup-auth PROFILE` | `gh cao setup auth PROFILE` (`github-app`, `enterprise-app`, `token`, `hosted-cli`) |
-| `add CAMPAIGN` | `gh cao add CAMPAIGN` |
-| `mode MODE CAMPAIGN...` | `gh cao campaigns mode MODE CAMPAIGN...` |
-| `enable CAMPAIGN...` | `gh cao campaigns enable CAMPAIGN...` |
-| `disable CAMPAIGN...` | `gh cao campaigns disable CAMPAIGN...` |
-| `update [REF] [OPTIONS...]` | `gh cao update [REF] [OPTIONS...]` |
-| `upgrade-gh-aw VERSION` | `gh cao upgrade-gh-aw VERSION` |
-
-Repository enrollment remains `gh cao repos add OWNER/REPO`, not campaign or
-standalone workflow installation. No native operator command invokes Node as a
-bridge. This consolidation does not activate workflows, widen scope, or change
-review-mode defaults; review and publish policy changes separately.
-
 ### `gh cao add WORKFLOW_OR_CAMPAIGN`
 
 `gh cao add` is the single native command for installing a standalone CAO workflow
@@ -744,7 +725,6 @@ the exact current control repository. Campaign installation never commits, pushe
 or dispatches work. Prepare the root runtime with `gh cao setup`, not `gh cao add`;
 review and commit generated workflows and policy together.
 
-`gh cao doctor` is deliberately **not** `node activity/cao.mjs repair-database`: use the latter for
 the existing mutating SQLite snapshot repair/retention operation. Neither Activity nor
 Dashboard Actions is switched to the Go executable.
 
@@ -857,7 +837,6 @@ does not establish rollout authority or full schema validity; use the
 CAO and gh-aw have separate jobs:
 
 - **`gh cao`** configures CAO policy, authentication, installed campaigns, workflow enablement, and queries evidence.
-- **`node activity/cao.mjs`** prepares pipeline data and runs the retained Node-only tools.
 - **`gh aw run`** starts a compiled agentic workflow.
 - **`gh run`** lists, watches, and inspects the resulting GitHub Actions runs.
 
@@ -989,7 +968,6 @@ gh run list --workflow cao-validate.yml --limit 5
 
 Validation checks the policy with the production resolver, the installed gh-aw compiler version, strict compilation and generated workflow drift, campaign workflow identity and enablement, `gh aw doctor`, and bounded trust-boundary security rules. GitHub workflow state is reported as unknown when API access is unavailable. Warnings do not fail the workflow by default.
 
-The workflow invokes `node activity/cao.mjs validate --json` from the shipped
 JavaScript runtime at the installed revision. This is the sole implementation;
 `gh cao` does not expose `validate`. CI does not build or download
 the Go extension or require consumer npm metadata. The internal runtime command
@@ -1180,7 +1158,6 @@ gh cao prompt campaign-runs --param campaign=dependabot --database .cao/gh-aw-lo
 
 Without `--database`, the command needs no downloaded snapshot and includes no evidence rows. With `--database FILE`, it executes the named query against that existing snapshot and includes a bounded preview; this does not grant rollout authority. Use `--dashboard FILE` to experiment with a different dashboard definition.
 
-Run `node activity/cao.mjs repair-database --database snapshot.sqlite` (or the npm
 `cao repair-database` bin) to repair a SQLite snapshot and apply retention. This
 is **not a read-only check**: it creates a backup before repair and may prune
 expired or orphaned records even when SQLite integrity is healthy. Existing
@@ -1203,13 +1180,9 @@ The CLI also exposes evidence used to improve campaigns:
 
 | Command | Purpose |
 | --- | --- |
-| `node activity/cao.mjs operational-value` | Compute campaign-specific value evidence from the canonical snapshot. |
-| `node activity/cao.mjs cluster-problems` | Cluster bounded problem evidence emitted by installed campaigns. |
 | `gh cao api-cost --profile daily-file-diet` | Estimate GitHub quota, collector-grant, and runner bottlenecks from retained canonical Daily File Diet evidence. |
 | `gh cao api-cost --profile daily-file-diet --server URL --calibrate` | Calibrate the Daily File Diet model from hosted PostgreSQL request-pool and wall-time observations. |
 | `gh cao api-cost --input SCENARIO.json` | Simulate another declarative data-acquisition request profile. |
-| `node activity/cao.mjs dashboard-complexity --input FILE [--database FILE]` | Rank Dashboard Language queries by estimated computation pressure. |
-| `node activity/cao.mjs prune-dashboard --input FILE` | Report reusable, redundant, and unreferenced dashboard queries and views. |
 
 Without `--database`, `dashboard-complexity` normalizes every canonical database table to weight one. With `--database FILE`, it weights tables by their deployed row counts (normalized to the largest table) read from that downloaded snapshot, giving a more realistic computation-pressure ranking.
 
@@ -1233,7 +1206,7 @@ Use `--collection-window-hours` to compare one synchronized hourly batch with a
 webhook- or queue-spread collection window. See the [GitHub API Capacity
 Specification](../specs/github-api-capacity.md).
 
-Data-pipeline and dashboard-maintainer commands are listed by `node activity/cao.mjs --help`. For the full data workflow, see [Dashboard data ingestion](dashboard-data-ingestion.md#use-local-sqlite).
+Data-pipeline and dashboard-maintainer commands are listed by `gh cao --help`. For the full data workflow, see [Dashboard data ingestion](dashboard-data-ingestion.md#use-local-sqlite).
 
 ## Review What Each Command Changed
 

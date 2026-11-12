@@ -367,14 +367,6 @@ type Admitter struct {
 	// Mining retains each object's payload instead of coalescing it into a
 	// repository refresh. Admission-only replicas use the same durable task.
 	Mining bool
-	// Projection requests a projection after erasure, so the canonical
-	// database stops reporting repositories that left ingestion scope.
-	Projection ProjectionRequester
-}
-
-// ProjectionRequester marks the lake as changed. Projector satisfies it.
-type ProjectionRequester interface {
-	RequestProjection(ctx context.Context) error
 }
 
 // Admission describes what a delivery did, for the webhook response.
@@ -633,11 +625,7 @@ func (a Admitter) admitIntent(ctx context.Context, intent Intent) (Admission, er
 		if err != nil {
 			return Admission{}, err
 		}
-		erased, err := a.erase(ctx, removed)
-		if err != nil {
-			return Admission{}, err
-		}
-		return Admission{Kind: IntentUnenroll, ErasureQueued: erased}, nil
+		return Admission{Kind: IntentUnenroll, ErasureQueued: len(removed)}, nil
 	case IntentRemoveInstallation:
 		removed, err := a.Enrollment.RemoveInstallationBefore(
 			ctx, intent.InstallationID,
@@ -648,11 +636,7 @@ func (a Admitter) admitIntent(ctx context.Context, intent Intent) (Admission, er
 		if err != nil {
 			return Admission{}, err
 		}
-		erased, err := a.erase(ctx, removed)
-		if err != nil {
-			return Admission{}, err
-		}
-		return Admission{Kind: IntentRemoveInstallation, ErasureQueued: erased}, nil
+		return Admission{Kind: IntentRemoveInstallation, ErasureQueued: len(removed)}, nil
 	case IntentCollect:
 		installationID, err := a.resolveCollectInstallation(ctx, intent)
 		if err != nil {
@@ -673,17 +657,4 @@ func (a Admitter) admitIntent(ctx context.Context, intent Intent) (Admission, er
 	default:
 		return Admission{Kind: IntentIgnore}, nil
 	}
-}
-
-// erase requests projection after durable erasure work has been queued.
-func (a Admitter) erase(ctx context.Context, repositories []string) (int, error) {
-	if len(repositories) == 0 {
-		return 0, nil
-	}
-	if a.Projection != nil {
-		if err := a.Projection.RequestProjection(ctx); err != nil {
-			return 0, err
-		}
-	}
-	return len(repositories), nil
 }

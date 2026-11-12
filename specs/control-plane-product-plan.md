@@ -14,7 +14,7 @@ CAO could evolve from a primarily observational dashboard into the team and ente
 
 ## Build on the current architecture
 
-The repository already contains the main foundations for this direction. `specs/control-architecture.md`, `.github/workflows/cao.json`, and `.github/workflows/shared/` define policy-governed rollout and execution boundaries. `specs/activity.md` and `activity/` provide bounded evidence collection. `specs/dashboard-data.md`, `dashboard/site/src/data/`, and `server/` provide canonical, rebuildable projections. `specs/computations.md` defines deterministic insights, while `specs/dashboard.md` already describes a task-centered operator experience.
+The repository already contains the main foundations for this direction. `specs/control-architecture.md`, `.github/workflows/cao.json`, and `.github/workflows/shared/` define policy-governed rollout and execution boundaries. `specs/server-ingestion.md` and `activity/` provide bounded evidence collection. `specs/dashboard-data.md`, `dashboard/site/src/data/`, and `server/` provide canonical, rebuildable projections. `specs/computations.md` defines deterministic insights, while `specs/dashboard.md` already describes a task-centered operator experience.
 
 Potential improvements should extend these contracts rather than create a parallel control system. The dashboard should remain a presentation and interaction surface, Activity should remain evidence infrastructure, computations should remain derived evidence, and the control repository should remain the source of rollout authority. Existing orchestrator discovery and one-target worker enforcement should continue to bound all execution.
 

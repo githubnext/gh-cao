@@ -898,7 +898,7 @@ The explicitly selected `gh cao dashboard` operator profile MAY create and
 refresh a separate private canonical SQLite projection through its native
 acquisition adapter, outside the Go server. It MUST select the current verified
 GitHub.com repository or an explicit bounded list of exact repositories, retain
-at most a 48-hour recent window, and serve for at most 48 hours per invocation.
+at most a seven-day recent window, and serve for at most 48 hours per invocation.
 The adapter MUST use the pinned gh-aw collector and canonical repository,
 workflow, and repository-scoped Run identities; fresh Actions observations MUST
 take precedence over cached status and mismatched-attempt enrichment MUST NOT
@@ -908,7 +908,36 @@ MUST reconcile the canonical daily projection in the same publication transactio
 using the receipts, classification and retention contract in §72.2, MUST NOT
 infer complete upstream history or campaign/rollout authority,
 and MUST NOT modify or migrate an ordinary Activity snapshot. Publication MUST
-be atomic and failed collection MUST preserve the previous projection.
+be atomic and failed collection MUST preserve previously published evidence and
+its discovery checkpoint. Acquisition SHALL resume fixed-interval pagination
+across passes and restarts, split intervals exceeding the provider's filtered
+search ceiling, retain earlier admitted pages inside the requested detail
+window, and preserve same-second run boundaries. It SHALL bound each pass to
+100 core API points shared across selected repositories and embedded collectors,
+reserve at least 1000 points or 20% of the reported core quota, and fail closed
+when quota cannot be observed. Quota exhaustion SHALL pause rather than consume
+the reserve. Concurrent unrelated clients share the provider quota.
+The `transactions` store MAY contain one `local-dashboard-ingestion` receipt,
+with `ingestionStatus`, `ingestionMessage`, `ingestionRepository`, `scannedHours`,
+`targetHours`, observed `apiRemaining`, `apiReserve`, `apiResetAt`, and
+`nextAttemptAt`, plus private resumable cursors. Unknown quota MUST remain absent.
+`createdAt` on this receipt is the status observation clock, not upstream
+freshness. Discovery hours SHALL describe scanned repository-time intervals,
+never a run-count denominator or complete artifact coverage. Status-only writes
+MAY report acquisition failure without modifying evidence or its checkpoint.
+The ordinary declarative shell data-status binding SHALL expose this status in
+the header tooltip, independently of page filters, and refresh through its
+active revision subscription. The Overview hero SHALL NOT require an ingestion table.
+The optional shell `ingestion-source` query SHALL project `status-name`, `status-label`,
+`status-icon`, `status-tone`, `message`, `repository`, `scanned-hours`,
+`target-hours`, `api-remaining`, `api-reserve`, `api-reset-at`, `next-attempt-at`,
+and `observed-at`. Dashboard Language SHALL own status classification. The shared
+tooltip MAY format supplied numbers and timestamps, but MUST NOT derive business
+state or query rows. Unknown quota and progress MUST NOT become zero or healthy.
+The default card SHALL use the reported history bounds for an accessible progress
+bar, compact API headroom, and relative retry time. Verbose diagnostics SHALL be
+collapsed initially. Mobile SHALL expose a labeled tap-to-open popup button with
+expanded state, Escape and outside-tap dismissal; desktop MAY retain a hover tooltip.
 The existing read-only Go query/server and revision-subscription contracts
 SHALL serve this projection unchanged. This exception does not authorize
 server-side acquisition, a hosted fallback, or a browser ingestion path.
@@ -5173,12 +5202,10 @@ Run `POSTGRES_URL=... npm run test:conformance:daily-run-counts` from the
 repository root against an isolated PostgreSQL database whose test role can
 create schemas. The suite requires real PostgreSQL and rejects skipped or
 unexecuted Go tests; an unset connection is a failure, not a passing backend.
-Docker must be running with `node:24-bookworm` available (`docker pull
-node:24-bookworm`). The Activity runtime test downloads checksum-verified GitHub
-CLI, jq, and the policy-pinned gh-aw collector before executing the checked-in
-workflow in a credential-free, network-isolated container. It runs a loopback-only
-GitHub simulator, not a mocked `gh aw logs` command; missing tools or Docker fail
-the suite rather than skip coverage.
+Native Go tests exercise the supported SQLite publisher. The obsolete Activity
+JavaScript SQLite writer, doctor and legacy upgrade runner are retired, so the
+gate does not bootstrap their container runtime. Bounded legacy backfill remains
+required for the supported IndexedDB and PostgreSQL writers.
 Chromium must be installed for the native-browser test; Node's IndexedDB
 emulation alone is not conformance (§50). Browser reports also reject empty,
 skipped, failed, or retry-only success. Node and Vitest reports reject empty,
@@ -5196,7 +5223,7 @@ evidence. The command runs these existing production-boundary suites:
 
 | Suite | Implemented contract exercised |
 | --- | --- |
-| Activity SQLite | CLI normalization, phased ingestion, doctor repair, replay, publication, and bounded legacy backfill |
+| Native SQLite publication | Exclusive UTC counters, canonical queries, atomic corrections, detail-independent retention, rollover and replay fences |
 | IndexedDB and worker | Shared reconciliation cases, exclusive UTC counters, atomic corrections, logical retention, resumed backfill, unavailable state, and all three migrated query consumers |
 | Native Chromium worker | Real IndexedDB and a module Web Worker preserve all three migrated consumers through corrections, detail expiry, aggregate rollover, and unavailable state |
 | Native CLI | Canonical SQLite daily source and unavailable legacy snapshots |

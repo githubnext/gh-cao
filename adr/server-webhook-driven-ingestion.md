@@ -9,7 +9,7 @@ Accepted
 CAO Activity acquires evidence from a scheduled GitHub Actions workflow.
 `.github/workflows/cao-activity.yml` iterates the repositories named in
 `cao.json`, runs `gh aw logs --audit` for each, compacts the result with
-`activity/cao.mjs`, and publishes an immutable snapshot directory. The hosted
+`gh cao`, and publishes an immutable snapshot directory. The hosted
 Go server in `server/` then ingests that published directory through
 `DirectoryReconciler` and `internal/ingest`.
 
@@ -42,7 +42,7 @@ than a replacement for it or a layer on top of it.
 ### 1. The Actions profile is unchanged and remains the default
 
 `.github/workflows/cao-activity.yml`, `activity/`, the published snapshot
-contract, `specs/activity.md`, and browser-side ingestion are not modified,
+contract, `specs/server-ingestion.md`, and browser-side ingestion are not modified,
 deprecated, or superseded. A deployment with no collector configuration behaves
 exactly as it does today, including `DirectoryReconciler`. The Actions-only
 story stays intact for users with no hosted infrastructure.
@@ -67,7 +67,7 @@ enrollment set.
 | Capability | Reused owner |
 | --- | --- |
 | Log acquisition and audit fidelity | `gh aw logs --audit`, invoked as a subprocess |
-| JSONL compaction, payload hashing, shard layout | `activity/cao.mjs` (`compact-jsonl`, `hash-payloads`), invoked as a subprocess |
+| JSONL compaction, payload hashing, shard layout | `gh cao` (`compact-jsonl`, `hash-payloads`), invoked as a subprocess |
 | Canonical mapping, twelve collections, diagnostics | `internal/ingest` |
 | Generation staging and atomic activation | `internal/ingest` and the existing generation keys |
 | Redis access, pooling, deadlines, retries | `internal/redisx` `Do` / `DoMany` |
@@ -224,5 +224,5 @@ stream depth is a direct KEDA scaling signal.
   gap.
 
 Normative requirements for the optional profile are in
-`specs/server-ingestion.md`. That specification conforms to `specs/activity.md`;
+`specs/server-ingestion.md`. That specification conforms to `specs/server-ingestion.md`;
 it supersedes nothing.

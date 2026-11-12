@@ -3,20 +3,22 @@
 Use this reference only when an operational snapshot was explicitly prepared
 for the authorized workflow.
 
-The agent runtime is JavaScript under `activity/` and `dashboard/`. Invoke it
-with Node.js; never build, install, or invoke the native `gh cao` extension or
-run the operator's `install-gh-cao.sh` inside a workflow as a runtime dependency.
+The obsolete Activity JavaScript CLI is retired. Query prepared snapshots with
+an already available native `gh cao`. Never build or install the `gh cao`
+extension or run the operator's `install-gh-cao.sh` inside a workflow as a
+missing-runtime or missing-evidence fallback.
 
 1. Check `.cao/gh-aw-logs.sqlite`. A missing or empty file
    means operational evidence is unavailable. Use only separately authorized,
    bounded read-only evidence tools; do not infer a snapshot or discover artifacts.
-2. Resolve `activity/cao.mjs` from the installed campaign source. If it is
-   absent, skip every CAO command; never invoke `node` with an empty script path.
+2. Check that the native `gh cao` extension is already available. If it is
+   absent, skip every CAO command and use only separately authorized bounded
+   read-only tools.
 3. Pass the snapshot database explicitly:
 
    ```bash
    db=".cao/gh-aw-logs.sqlite"
-   node activity/cao.mjs gh runs \
+   gh cao gh runs \
      --database "$db" \
      --repo OWNER/REPOSITORY \
      --workflow WORKFLOW \

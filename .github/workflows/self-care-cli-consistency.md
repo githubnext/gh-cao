@@ -149,14 +149,14 @@ Operate as an all-you-can-eat feature grower: SelfCare dispatches every 20 minut
 
 | Surface | Owns | Must not become |
 | --- | --- | --- |
-| `node activity/cao.mjs` and `activity/commands/` | GitHub Actions runtime: deterministic collection, precomputation, ingestion, publication, and workflow helpers | A second operator CLI |
+| `gh cao` and the native command registry | GitHub Actions runtime: deterministic collection, precomputation, ingestion, publication, and workflow helpers | A second operator CLI |
 | `gh cao`, rooted at `cmd/gh-cao/` and `internal/cli/` | Human/operator commands, configuration, setup, deployment, diagnostics, and evidence inspection; native Go without a Node.js requirement | A wrapper around the Actions runtime or a service daemon |
 | `server/cmd/cao-dashboard/` | Dashboard server starter and server lifecycle configuration | A catch-all operator, maintenance, or administrative CLI |
 | Other executable CLIs | Single-purpose microservices with explicit service lifecycle and configuration | Alternate entry points for the same operator commands or an omnibus CLI |
 
-These are desired ownership boundaries, not claims that current code already satisfies them. Inventory outliers rather than preserving them as precedent. Share suitable domain logic below command entry points; do not make operator commands shell out to `activity/cao.mjs` or start services merely to reuse their CLI.
+These are desired ownership boundaries, not claims that current code already satisfies them. Inventory outliers rather than preserving them as precedent. Share suitable domain logic below command entry points; do not make operator commands shell out to `gh cao` or start services merely to reuse their CLI.
 
-Use `node activity/cao.mjs` for workflow runtime operations. The native operator CLI is a product under test here, never the runtime for this agent; execute it only for isolated, offline validation of the selected change.
+Use `gh cao` for workflow runtime operations. The native operator CLI is a product under test here, never the runtime for this agent; execute it only for isolated, offline validation of the selected change.
 
 ## Inventory and selection
 

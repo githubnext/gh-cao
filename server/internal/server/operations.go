@@ -228,7 +228,7 @@ func (a *App) releaseProjectionLock(parent context.Context, token string) {
 
 func (a *App) rebuildLockName() string {
 	if a.Collector() != nil {
-		// The collector's projector takes its own projection lease.
+		// Native backfill coordinates publications independently of snapshot replacement.
 		return "collect:admin-rebuild"
 	}
 	return "projection"

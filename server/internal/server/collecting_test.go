@@ -262,8 +262,8 @@ func TestCollectorConfigFromEnvReadsTheCollectionProfile(t *testing.T) {
 	if config.AppID != 12345 || config.Workers != 4 {
 		t.Fatalf("unexpected configuration: %+v", config)
 	}
-	if config.MinProjectionInterval.Seconds() != 90 {
-		t.Fatalf("projection interval = %s, want 90s", config.MinProjectionInterval)
+	if config.MinValueInterval.Seconds() != 90 {
+		t.Fatalf("projection interval = %s, want 90s", config.MinValueInterval)
 	}
 	if !config.RecoverDeliveries {
 		t.Fatal("expected delivery recovery to be enabled")

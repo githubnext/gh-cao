@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { actionsLog } from "../../activity/actions-log.mjs";
+import { actionsLog } from "../../.github/workflows/shared/actions-log.mjs";
 
 test("Actions log macros format messages and workflow commands", () => {
   const output = [];

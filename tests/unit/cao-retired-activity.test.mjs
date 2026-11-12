@@ -1,32 +1,19 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
-import { parse } from "yaml";
-import { runCli } from "../../activity/cao.mjs";
 
-test("the root package no longer installs the legacy Activity publication chain", async () => {
-  const manifest = parse(await readFile(new URL("../../aw.yml", import.meta.url), "utf8"));
-  assert.deepEqual(manifest.includes, [".github/workflows/cao-validate.yml"]);
-  for (const filename of [
-    ".github/workflows/cao-activity.yml",
-    ".github/workflows/cao-dashboard.yml",
-    ".github/workflows/cao-value-local.yml",
-    ".github/workflows/shared/activity-cache.md",
-    "activity/aw.yml",
-    "dashboard/aw.yml",
-    "dashboard/bootstrap-activity.mjs",
-    "activity/local-values.mjs",
-  ]) {
-    await assert.rejects(readFile(new URL(`../../${filename}`, import.meta.url)), { code: "ENOENT" });
+test("the obsolete Activity runtime is absent from source and runtime packaging", () => {
+  assert.equal(existsSync("activity"), false);
+  const root = JSON.parse(readFileSync("package.json", "utf8"));
+  const runtime = JSON.parse(readFileSync("runtime/package.json", "utf8"));
+  assert.equal(root.bin, undefined);
+  assert.ok(runtime.files.every(file => !file.startsWith("activity/")));
+  for (const command of Object.values(root.scripts)) {
+    assert.doesNotMatch(command, /activity\/cao\.mjs/);
   }
 });
 
-test("legacy pipeline commands are absent rather than redirected through compatibility handlers", async () => {
-  const input = { [Symbol.asyncIterator]() { assert.fail("unknown commands must not consume input"); } };
-  for (const command of ["activity-stats", "validate-activity-data"]) {
-    await assert.rejects(
-      runCli([command, "--database", "must-not-open.sqlite", "--stdin"], input),
-      { message: `Unknown command: ${command}` },
-    );
-  }
+test("native runtime materialization does not install Activity", () => {
+  const materializer = readFileSync("internal/cli/native_management_runtime.go", "utf8");
+  assert.doesNotMatch(materializer, /activity\/|cao\.mjs/);
 });

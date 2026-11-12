@@ -3,11 +3,12 @@ package cli
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -75,47 +76,27 @@ func ncDataJSON(data ncData) ncRecord {
 	}
 }
 
+// Frozen independent outputs captured from the pre-retirement contract.
 func ncOracle(t *testing.T, operation string, input any) any {
 	t.Helper()
-	node, err := exec.LookPath("node")
-	if err != nil {
-		t.Skip("JavaScript baseline oracle requires Node; Go-only safety tests still run")
-	}
-	script := `
-import fs from 'node:fs';
-import { computeRuntimeHealthFromCanonicalData, computeIntelligenceFromCanonicalData } from './activity/computations/index.mjs';
-import { compileCampaignIntelligenceContracts, normalizeDecisionFeedback, normalizeEvidenceQuality } from './activity/computations/intelligence-contracts.mjs';
-import { queryDashboardSourceObservations } from './dashboard/site/src/data/queries/ingestion.js';
-import { normalize } from './dashboard/site/src/data/normalize/index.js';
-const input = JSON.parse(fs.readFileSync(0, 'utf8'));
-const op = process.argv[1];
-let result;
-if (op === 'runtime-health') result = computeRuntimeHealthFromCanonicalData(input.data, input.options).result;
-else if (op === 'intelligence') result = computeIntelligenceFromCanonicalData(input.data, input.options).result;
-else if (op === 'contracts') result = compileCampaignIntelligenceContracts(input.campaigns, input.workflows);
-else if (op === 'feedback') result = normalizeDecisionFeedback(input).records;
-else if (op === 'quality') result = normalizeEvidenceQuality(input);
-else if (op === 'inventory') {
- const data = normalize(queryDashboardSourceObservations(input).observations);
- result = computeIntelligenceFromCanonicalData({...data, runs: []}).result;
-}
-console.log(JSON.stringify(result));`
 	content, err := json.Marshal(input)
 	if err != nil {
 		t.Fatal(err)
 	}
-	command := exec.Command(node, "--input-type=module", "-e", script, operation)
-	command.Dir = filepath.Join("..", "..")
-	command.Stdin = bytes.NewReader(content)
-	output, err := command.CombinedOutput()
+	digest := sha256.Sum256(content)
+	fixture, err := os.ReadFile(filepath.Join("testdata", "computation-contract", operation, hex.EncodeToString(digest[:1])[:1]+".json"))
 	if err != nil {
-		t.Fatalf("JS baseline oracle: %v\n%s", err, output)
+		t.Fatal(err)
 	}
-	var value any
-	if err := json.Unmarshal(output, &value); err != nil {
-		t.Fatalf("decode oracle: %v\n%s", err, output)
+	var cases map[string]any
+	if err := json.Unmarshal(fixture, &cases); err != nil {
+		t.Fatal(err)
 	}
-	return value
+	expected, ok := cases[operation+":"+hex.EncodeToString(digest[:])]
+	if !ok {
+		t.Fatalf("no independent contract fixture for %s / %x", operation, digest)
+	}
+	return expected
 }
 
 func ncAssertJSON(t *testing.T, got, want any) {

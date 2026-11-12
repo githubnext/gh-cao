@@ -1035,7 +1035,6 @@ func newCollectCommand() *cobra.Command {
 	databaseQueries := cmd.Flags().String("database-queries",
 		"../dashboard/site/src/data/queries/database.json", "canonical database projection queries")
 	consumer := cmd.Flags().String("consumer", "", "consumer name; defaults to the hostname")
-	project := cmd.Flags().Bool("project", true, "participate in coalesced projection")
 	cmd.RunE = func(*cobra.Command, []string) error {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
@@ -1053,7 +1052,6 @@ func newCollectCommand() *cobra.Command {
 			return err
 		}
 		worker := collector.Worker(name)
-		worker.Project = *project
 		commandLog.Printf("collect resolved consumer name source=%s", nameSource)
 		log.Printf("collection worker %s started", name)
 		runErr := worker.Run(ctx)

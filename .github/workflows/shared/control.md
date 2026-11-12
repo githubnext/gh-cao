@@ -181,7 +181,7 @@ jobs:
           path: .cao
           sparse-checkout: |
             .github/
-            /activity/value-acquisition.mjs
+            /.github/workflows/shared/value-acquisition.mjs
           sparse-checkout-cone-mode: false
           fetch-depth: 1
           persist-credentials: false

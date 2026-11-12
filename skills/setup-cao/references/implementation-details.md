@@ -100,7 +100,7 @@ commit/push requires the separate interactive approval above.
 Canonical runtime files live together under `.github/workflows/shared/`,
 including `control.md`, `control.mjs`, `policy.mjs`, the policy schema, the
 materializer, and authentication helpers. Operator commands use `gh cao`;
-Actions invoke `node activity/cao.mjs <command>` directly, without a shell launcher.
+Actions invoke `gh cao COMMAND` directly, without a shell launcher.
 Do not fetch a second runtime copy or construct one ad hoc.
 
 Editable workflow sources are `.github/workflows/*.md`; `.lock.yml` workflows
@@ -115,5 +115,5 @@ in `.github/cao/instructions.md`; the gh-aw overlay under
 for custom prompting, so setup must not create it.
 
 Use [CAO Commands](https://github.com/githubnext/gh-cao/blob/main/docs/cao-cli.md) for current command behavior and
-the installed `gh cao --help` output for operator syntax. `node activity/cao.mjs --help`
+the installed `gh cao --help` output for operator syntax. `gh cao --help`
 lists the retained pipeline tools.
