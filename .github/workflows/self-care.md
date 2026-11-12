@@ -63,9 +63,9 @@ imports:
       campaign: self-care
       role: orchestrator
       read_repository: ${{ github.repository }}
-      dispatch_max: 23
+      dispatch_max: 22
       orchestrator_credits: 200
-      worker_credits_per_target: 5900
+      worker_credits_per_target: 5400
       read_actions: read
       read_contents: read
 
@@ -91,8 +91,8 @@ network:
 
 safe-outputs:
   dispatch-workflow:
-    workflows: [self-care-accessibility-checker, self-care-agent-discoverability, self-care-calesi-design-principles, self-care-cli-consistency, self-care-code-improvement, self-care-dashboard-data-schema, self-care-dashboard-debug-logging, self-care-dashboard-performance, self-care-data-acquisition-audit, self-care-database-architecture, self-care-dashboard-language-refactor, self-care-dashboard-review, self-care-docs-build-time-investigator, self-care-docs-maintainer, self-care-documentation-discoverability, self-care-glossary, self-care-open-source-failures, self-care-pages-health, self-care-primer-brand-checker, self-care-reactive-ui-expert, self-care-server-go-logging, self-care-server-soc2, self-care-specs-maintainer]
-    max: 23
+    workflows: [self-care-accessibility-checker, self-care-agent-discoverability, self-care-calesi-design-principles, self-care-cli-consistency, self-care-code-improvement, self-care-dashboard-data-schema, self-care-dashboard-debug-logging, self-care-dashboard-performance, self-care-data-acquisition-audit, self-care-database-architecture, self-care-dashboard-language-refactor, self-care-dashboard-review, self-care-docs-build-time-investigator, self-care-docs-maintainer, self-care-documentation-discoverability, self-care-glossary, self-care-pages-health, self-care-primer-brand-checker, self-care-reactive-ui-expert, self-care-server-go-logging, self-care-server-soc2, self-care-specs-maintainer]
+    max: 22
   threat-detection: false
 
 source: githubnext/gh-cao@a4b937e2ee4e540d3ccce1377f8943315670f33d
@@ -124,7 +124,6 @@ The single eligible repository contains the documentation site and dashboard mai
 - `self-care-data-acquisition-audit`: reviews gh-aw logs, GitHub API access, predownloads, indexing, and caching, then opens one focused draft pull request when the acquisition audit is stale.
 - `self-care-database-architecture`: maintains the diagram-rich cloud-architect data architecture guide against current specifications and implementation boundaries, then opens one documentation-only draft PR for material drift.
 - `self-care-dashboard-language-refactor`: replaces one over-specialized dashboard view with tested reusable subcomponents configured through Dashboard Language and opens one focused draft pull request.
-- `self-care-open-source-failures`: scans the dashboard activity snapshot for clustered failures across represented public projects and files one digest plus focused remediation issues.
 - `self-care-pages-health`: audits every synthetic Pages demo view under desktop, mobile, and low-bandwidth profiles and opens a focused draft PR with validated JavaScript quick wins; demo UI evidence does not establish operational freshness or completeness.
 - `self-care-primer-brand-checker`: audits the dashboard against retrieved Primer brand guidance and opens one focused draft pull request when an evidenced presentational fix is available.
 - `self-care-reactive-ui-expert`: maintains the reactive UI skill, migrates JavaScript-produced view sources to request-scoped dashboard queries, reviews recent dashboard JavaScript changes, and replaces evidenced imperative DOM updates with owned reactive elements, data binding, and effects.

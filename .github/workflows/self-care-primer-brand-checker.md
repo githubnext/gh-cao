@@ -200,7 +200,7 @@ Always finish by calling exactly one safe-output tool. If the audit finds no mea
 - Do NOT restructure the dashboard, rename files, create files, or change application logic. This workflow is presentational only.
 - Do NOT remove existing functionality, tests, or accessibility affordances such as ARIA attributes and keyboard handling.
 - Do NOT add or update dependencies.
-- Do NOT change `dashboard/aw.yml`, report producers, documentation, agentic workflows, or files outside the configured safe-output allowlist.
+- Do NOT change `runtime/package.json`, report producers, documentation, agentic workflows, or files outside the configured safe-output allowlist.
 - Do NOT open a pull request when any validation command fails.
 - Keep the change set small enough for a human to review in one sitting.
 

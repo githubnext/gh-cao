@@ -362,7 +362,7 @@ func testSetupQuickstartPublication(t *testing.T, ctx context.Context, root, cat
 			if strings.TrimSpace(published) != strings.TrimSpace(string(setupRead(t, f.policyPath()))) {
 				t.Fatal("published policy differs from the reviewed local configuration")
 			}
-			for _, workflow := range []string{"cao-activity.yml", "cao-dashboard.yml", "cao-validate.yml"} {
+			for _, workflow := range []string{"cao-validate.yml"} {
 				bootstrapRun(t, ctx, f.root, f.env, "git", "--git-dir="+remote, "show", "main:.github/workflows/"+workflow)
 			}
 			if bootstrapRun(t, ctx, f.checkout, f.env, "git", "status", "--short", "--", "consumer.txt") != "?? consumer.txt\n" {

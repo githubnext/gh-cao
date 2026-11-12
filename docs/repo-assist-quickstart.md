@@ -80,17 +80,9 @@ grades or requirements for using CAO.
 
 ## 3. Collect and inspect evidence
 
-After inspecting the outcome, request collection:
-
-```bash
-gh workflow run cao-activity.yml
-```
-
-This dispatch returns without waiting. Normal Activity push and schedule
-triggers may also collect evidence independently. Inspect the successful
-Activity run and its `cao-activity-index` artifact, then query that operational
-snapshot or the authorized hosted dashboard. Follow
-[Agent analysis](agent-analysis.md) for artifact acquisition and bounded queries.
+Inspect the result in the authorized hosted dashboard or an explicitly selected
+operational snapshot. Follow [Agent analysis](agent-analysis.md) for acquisition
+and bounded queries. The legacy scheduled Activity publication chain is removed.
 The public Pages demo is synthetic and cannot verify this run's result.
 Runtime success alone does not prove a proposal was applied or accepted.
 

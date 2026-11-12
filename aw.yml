@@ -4,8 +4,6 @@ description: Central agentic workflow control plane for reusable campaigns at th
 min-version: v1.2.2
 experimental: true
 includes:
-  - activity/aw.yml
-  - dashboard/aw.yml
   - .github/workflows/cao-validate.yml
 skills:
   - skills/agentic-workflows

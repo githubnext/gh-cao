@@ -8,7 +8,7 @@ import { resolvePolicy, workflow, workflowsDirectory } from "./workflow-contract
 test("Optimization workers use bounded canonical activity evidence", () => {
   for (const name of ["optimization-token-auditor.md", "optimization-token-optimizer.md"]) {
     const source = workflow(name);
-    assert.match(source, /uses: shared\/activity-cache\.md/, name);
+    assert.doesNotMatch(source, /uses: shared\/activity-cache\.md/, name);
     assert.match(source, /activity\/cao\.mjs/, name);
     assert.match(source, /Validate schema|validate schema/i, name);
     assert.match(source, /Fetch only missing evidence|bounded read-only fallback/i, name);

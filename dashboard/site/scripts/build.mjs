@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 import { build, transform } from "esbuild";
 import { bundleDashboardFiles } from "../../report/bundle-dashboards.mjs";
 import { configureSite } from "../../report/configure-site.mjs";
-import { composeImmediateDashboard } from "../../report/compose-immediate-dashboard.mjs";
 import { loadPolicyFile } from "../../../.github/workflows/shared/policy.mjs";
 import { buildDashboardPageChunkPath, splitDashboardDocument } from "../src/dashboard-chunks.js";
 import { generateDashboardLlms } from "./llms.mjs";
@@ -32,7 +31,7 @@ export async function buildDashboardSite({
   if (!controlSettings || typeof controlSettings !== "object" || Array.isArray(controlSettings)) {
     throw new Error("resolved control settings are required");
   }
-  if (profile !== undefined && !["immediate", "demo"].includes(profile)) throw new Error("unknown dashboard build profile");
+  if (profile !== undefined && !["server", "demo"].includes(profile)) throw new Error("unknown dashboard build profile");
 
   const requestedDestinationPath = destination instanceof URL ? fileURLToPath(destination) : resolve(destination);
   const repositoryPath = repositoryRoot instanceof URL ? fileURLToPath(repositoryRoot) : resolve(repositoryRoot);
@@ -63,7 +62,7 @@ export async function buildDashboardSite({
   };
   await writeFile(indexPath, embedDashboardVersions(embedDashboardVersion(configuredIndex, commitSha), versions));
 
-  const campaignDashboards = profile === "immediate" ? [] : await findCampaignDashboards(repositoryPath, controlSettings);
+  const campaignDashboards = profile === "server" ? [] : await findCampaignDashboards(repositoryPath, controlSettings);
 
   const dashboardPath = join(destinationPath, "dashboard.json");
   await bundleDashboardFiles(
@@ -72,11 +71,6 @@ export async function buildDashboardSite({
     fileURLToPath(new URL("dashboard.json", siteRoot)),
   );
   let dashboard = JSON.parse(await readFile(dashboardPath, "utf8"));
-  if (profile === "immediate") {
-    dashboard = composeImmediateDashboard(dashboard, JSON.parse(await readFile(
-      new URL("dashboard-fragments/immediate-profile.json", siteRoot), "utf8",
-    )));
-  }
   dashboard = filterExperimentalDashboardViews(dashboard, controlSettings.web?.experimental === true);
   if (profile === "demo") {
     dashboard.dashboard.title = "CAO synthetic enterprise demo";
@@ -94,7 +88,7 @@ export async function buildDashboardSite({
     await writeFile(workerPath, (await readFile(workerPath, "utf8"))
       .replaceAll("central-agentic-ops-dashboard-", "central-agentic-ops-dashboard-demo-"));
   }
-  if (githubRepository && profile !== "immediate") {
+  if (githubRepository && profile !== "server") {
     if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\/[A-Za-z0-9._-]+$/.test(githubRepository)
         || githubRepository.includes("..")) {
       throw new Error("GITHUB_REPOSITORY must be a valid owner/repository slug");

@@ -24,6 +24,25 @@ func (f sqliteTestTransport) RoundTrip(request *http.Request) (*http.Response, e
 	return f(request)
 }
 
+func TestSQLiteIngestionRequiresExplicitExistingCanonicalDatabase(t *testing.T) {
+	t.Setenv("CAO_POLICY_PATH", "")
+	t.Setenv("DASHBOARD_DATA_URL", "https://example.com/payload-hashes.json")
+	for _, args := range [][]string{
+		{"--sqlite-ingestion"},
+		{"--sqlite-ingestion", "--sqlite", filepath.Join(t.TempDir(), "missing.sqlite")},
+		{"--sqlite-ingestion", "--sqlite", "database.sqlite", "--download-sqlite"},
+		{"--sqlite-ingestion", "--sqlite", "database.sqlite", "--canvas-config", "canvas.json"},
+		{"--sqlite-ingestion", "--postgres-url", "postgres://127.0.0.1/test"},
+	} {
+		cmd := newServeCommand()
+		cmd.SilenceUsage, cmd.SilenceErrors = true, true
+		cmd.SetArgs(args)
+		if err := cmd.ExecuteContext(t.Context()); err == nil {
+			t.Fatalf("invalid SQLite ingestion mode accepted: %v", args)
+		}
+	}
+}
+
 func TestServeSQLiteMissingSourceDoesNotUseNetworkOrChangeCache(t *testing.T) {
 	t.Setenv("CAO_POLICY_PATH", "")
 	t.Setenv("DASHBOARD_DATA_URL", "")

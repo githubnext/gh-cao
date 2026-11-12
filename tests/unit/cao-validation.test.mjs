@@ -68,9 +68,6 @@ test("Activity Value configuration belongs to the installed root runtime, not an
     const policy = JSON.parse(await readFile(path.join(root, ".github/workflows/cao.json"), "utf8"));
     policy["control-plane"].campaigns.activity = { "workflow-values": [] };
     let result = await validatePolicy(root, JSON.stringify(policy));
-    assert.ok(result.findings.some(finding => finding.id === "policy-campaign-not-installed"));
-    await writeFile(path.join(root, ".github/workflows/cao-activity.yml"), "name: CAO Activity\non: workflow_dispatch\n");
-    result = await validatePolicy(root, JSON.stringify(policy));
     assert.deepEqual(result.findings, []);
   } finally {
     await rm(root, { recursive: true, force: true });

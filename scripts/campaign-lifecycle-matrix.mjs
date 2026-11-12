@@ -23,12 +23,6 @@ const suites = [
     ],
   },
   {
-    name: "activity",
-    manifest: "activity/aw.yml",
-    testPattern: "focused activity installation remains incomplete",
-    prefixes: ["activity/", ".github/workflows/activity."],
-  },
-  {
     name: "CAO Evolution",
     manifest: "cao-evolution/aw.yml",
     testPattern: "focused CAO Evolution campaign contract",
@@ -80,12 +74,6 @@ const suites = [
       ".github/workflows/shared/",
       ".github/workflows/software-development-practices",
     ],
-  },
-  {
-    name: "dashboard",
-    manifest: "dashboard/aw.yml",
-    testPattern: "dashboard campaign contract|--force restores dashboard",
-    prefixes: ["dashboard/", ".github/workflows/dashboard-"],
   },
   {
     name: "Dependabot",

@@ -1,7 +1,6 @@
-import { readFile, readdir, realpath, writeFile } from "node:fs/promises";
+import { readFile, realpath, writeFile } from "node:fs/promises";
 import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { composeDashboardDocuments } from "./compose-dashboard-documents.mjs";
 
 /** @typedef {import("./compose-dashboard-documents.mjs").DashboardDocument} DashboardDocument */
@@ -195,22 +194,6 @@ export function loadDashboardSourceSync(source) {
 
 /**
  * @param {string} outputPath
- * @param {string} dashboardsDirectory
- */
-export async function bundleDashboards(outputPath, dashboardsDirectory) {
-  const entries = await readdir(dashboardsDirectory, { withFileTypes: true }).catch((error) => {
-    if (error?.code === "ENOENT") return [];
-    throw error;
-  });
-  await bundleDashboardFiles(
-    outputPath,
-    entries.filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-      .map((entry) => path.join(dashboardsDirectory, entry.name)),
-  );
-}
-
-/**
- * @param {string} outputPath
  * @param {string[]} dashboardPaths
  * @param {string} [primaryPath]
  */
@@ -222,20 +205,4 @@ export async function bundleDashboardFiles(outputPath, dashboardPaths, primaryPa
     )),
   );
   await writeFile(outputPath, `${JSON.stringify(composeDashboardDocuments(primary, additions), null, 2)}\n`);
-}
-
-async function main() {
-  const [, , outputPath, dashboardsDirectory] = process.argv;
-  if (!outputPath || !dashboardsDirectory) {
-    throw new Error("usage: bundle-dashboards.mjs OUTPUT_DASHBOARD DASHBOARDS_DIRECTORY");
-  }
-  await bundleDashboards(path.resolve(outputPath), path.resolve(dashboardsDirectory));
-  console.log(`Bundled dashboard documents into ${outputPath}`);
-}
-
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await main().catch((error) => {
-    console.error(error instanceof Error ? error.stack || error.message : String(error));
-    process.exitCode = 1;
-  });
 }

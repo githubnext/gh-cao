@@ -182,7 +182,7 @@ test("ESLint Factory workflows keep GitHub evidence acquisition bounded", () => 
   ]) {
     assert.match(miner, new RegExp(`/tmp/gh-aw/eslint-rules/evidence/${file.replace(".", "\\.")}`));
   }
-  assert.match(miner, /uses: shared\/activity-cache\.md/);
+  assert.doesNotMatch(miner, /uses: shared\/activity-cache\.md/);
   assert.match(miner, /WINDOW_DAYS: "14"/);
   assert.match(miner, /MAX_PULL_REQUESTS: "25"/);
   const minerSteps = miner.split("\n---\n")[0];
@@ -191,7 +191,8 @@ test("ESLint Factory workflows keep GitHub evidence acquisition bounded", () => 
     assert.match(call, /-F page=1/, "every miner API call reads exactly one page");
   }
   assert.ok(shellCommands(minerSteps).length >= 4, "the miner pre-fetches its bounded evidence deterministically");
-  assert.match(miner, /cao-activity\/gh-aw-logs-shards/);
+  assert.doesNotMatch(miner, /cao-activity\/gh-aw-logs-shards|ACTIVITY_LOG_DIR/);
+  assert.match(miner, /Historical run evidence is not collected by this worker/);
   assert.match(miner, /at most one candidate per run|Select \*\*at most one\*\* candidate per run/);
 });
 

@@ -3,7 +3,7 @@ import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { promisify } from "node:util";
-import { startCanvasServer } from "../../dashboard/canvas-server.mjs";
+import { startCanvasServer } from "../helpers/canvas-snapshot.mjs";
 
 test("ordinary dashboard development uses Go, not the canvas server", async () => {
   const root = JSON.parse(await readFile(new URL("../../package.json", import.meta.url)));
@@ -12,6 +12,7 @@ test("ordinary dashboard development uses Go, not the canvas server", async () =
     'CAO_MARKETPLACE_POLICY_PATH="${CAO_MARKETPLACE_POLICY_PATH:-$PWD/.github/workflows/cao.json}" go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist');
   assert.equal(root.scripts.dev, "npm run dashboard:local --");
   assert.equal(site.scripts.dev, "npm --prefix ../.. run dev --");
+  assert.match(root.scripts["predashboard:local"], /^CAO_DASHBOARD_PROFILE=server /);
   assert.equal(root.scripts["dashboard:server:serve"], root.scripts["dashboard:local"]);
   for (const command of Object.values(root.scripts)) {
     assert.doesNotMatch(command, /node dashboard\/(?:local|canvas)-server\.mjs/);

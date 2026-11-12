@@ -683,10 +683,7 @@ test("checked-in control policy keeps Dependabot scoped with live gh-aw target a
   });
   assert.equal(selfCare.safe_output_mode, "live");
   assert.equal(selfCare.max_repositories, 1);
-  assert.equal(
-    policy["control-plane"].campaigns["self-care"].workers["open-source-failures"].workflow,
-    "self-care-open-source-failures",
-  );
+  assert.equal(policy["control-plane"].campaigns["self-care"].workers["open-source-failures"], undefined);
   assert.equal(
     policy["control-plane"].campaigns["self-care"].workers["dashboard-performance"].workflow,
     "self-care-dashboard-performance",

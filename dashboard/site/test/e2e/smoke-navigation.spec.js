@@ -255,9 +255,17 @@ test('phone navigation keeps all views in the full-label menu without horizontal
   const viewMenuButton = page.getByRole('button', { name: 'Select view' });
   await expect(viewMenuButton).toHaveCSS('border-radius', '50%');
   await expect(viewMenuButton).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  const headerBounds = await mobileBrandName.boundingBox();
   await viewMenuButton.click();
   const menu = page.locator('.mobile-nav-menu-list');
   await expect(menu).toBeVisible();
+  expect(await mobileBrandName.boundingBox()).toEqual(headerBounds);
+  await expect(menu).toHaveCSS('position', 'fixed');
+  await expect(menu).toHaveCSS('border-radius', '0px');
+  const drawerBounds = await menu.boundingBox();
+  expect(drawerBounds?.y).toBe(0);
+  expect(drawerBounds?.height).toBe(844);
+  expect((drawerBounds?.x ?? 0) + (drawerBounds?.width ?? 0)).toBe(390);
   await expect(menu.locator('.mobile-nav-item')).toHaveCount(6);
   await expect(menu.getByText('Overview', { exact: true })).toBeVisible();
   await expect(menu.getByText('Runs', { exact: true })).toBeVisible();
@@ -268,6 +276,18 @@ test('phone navigation keeps all views in the full-label menu without horizontal
   await expect(menuActions.locator('.account-menu')).toHaveCount(0);
   await expect(menu.locator('.octicon-goal')).toBeVisible();
   await expect(menu.getByText('Cost & efficiency', { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 320 });
+  await expect(menu).toHaveCSS('height', '320px');
+  await menu.getByText('Campaigns', { exact: true }).scrollIntoViewIfNeeded();
+  expect(await menu.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await viewMenuButton.click();
+  await expect(menu).toBeHidden();
+  await viewMenuButton.click();
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(viewMenuButton).toBeFocused();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await viewMenuButton.click();
   await menu.getByText('Cost & efficiency', { exact: true }).click();
   await expect(menu).toBeHidden();
   await expect(page.getByRole('heading', { name: 'Cost & efficiency', level: 1 })).toBeVisible();
@@ -370,6 +390,14 @@ test('phone pages toggle between chart, full-view table, and card-list modes', a
   await expect(root).toHaveClass(/dashboard-full-view/);
   await expect(table.getByRole('heading', { name: 'Runs', level: 3 })).toBeHidden();
   await expect(page.locator('[data-page-id="runs"] [data-view-mode-value="table"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('.mobile-nav-menu > summary').click();
+  const drawer = page.locator('.mobile-nav-menu-list');
+  await expect(drawer).toBeVisible();
+  const drawerBounds = await drawer.boundingBox();
+  expect(drawerBounds?.y).toBe(0);
+  expect(drawerBounds?.height).toBe(844);
+  await drawer.getByRole('link', { name: 'Runs', exact: true }).click();
+  await expect(drawer).toBeHidden();
 });
 
 test('phone Workflows page cycles through chart, table, and card-list views', async ({ page }) => {

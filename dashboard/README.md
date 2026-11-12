@@ -3,8 +3,7 @@
 > [!NOTE]
 > **Research prototype:** Features and interfaces may change as the project evolves.
 
-The dashboard campaign builds bounded operational artifacts from control-plane
-evidence. Production serves the dashboard through same-origin Go/PostgreSQL;
+The shared dashboard runtime consumes canonical operational evidence. Production serves the dashboard through same-origin Go/PostgreSQL;
 local development uses the same Go server and views with a real SQLite snapshot.
 
 > [!NOTE]
@@ -19,8 +18,6 @@ local development uses the same Go server and views with a real SQLite snapshot.
 
 ## Contents
 
-- `.github/workflows/cao-dashboard.yml`: operational dashboard build and artifact publication, not Pages deployment.
-- `.github/workflows/cao-activity.yml`: shared data collector and cache publisher installed by the core activity campaign.
 - `.github/workflows/shared/policy.mjs`: dependency-free checked-in policy parser and resolver.
 - `.github/workflows/shared/control.mjs`: deterministic policy command adapter used by the build workflow.
 - `dashboard/report`: deterministic collection modules executed by the activity action plus Dashboard Language source adaptation.
@@ -28,7 +25,11 @@ local development uses the same Go server and views with a real SQLite snapshot.
 - `server/`: unified Go serving for real local SQLite, hosted PostgreSQL, and synthetic-only Pages preview.
 - `dashboard/canvas-server.mjs`: internal loopback-only Copilot canvas authoring bridge, with JSON live reload; not a standalone server.
 
-The activity action reads trusted workflow data and writes a bounded JSONL and SQLite cache snapshot plus a deterministic `inventory-sources.json` sidecar from the reviewed control policy, installed campaign ownership records, local control workflow inventory, and paginated Actions workflow registries for resolved repositories. Campaign default-branch revisions, the latest stable gh-aw release, and generated lock compiler metadata are collected as independent version evidence. Registry and version lookup failures remain explicit partial evidence, and repository-owned workflows remain standalone rather than becoming campaign workers or rollout authority. An Activity-triggered dashboard build restores the exact triggering run and attempt's cache, or downloads that run's `cao-activity-index` artifact on a cache miss. It never substitutes another run's snapshot or an empty bootstrap. Manual builds can reuse the latest cached snapshot, falling back to a successful default-branch Activity run with a successful `index` job. Canonical ingestion includes inventory so configured campaigns, including campaigns without recent runs, are available to Dashboard Language queries. Operational artifacts are not public demo inputs. AI agents do not receive `pages: write`, `id-token: write`, or deployment authority.
+The legacy Actions collector and dashboard artifact publisher are removed.
+Hosted collection uses reviewed Go adapters. Local tools consume explicitly
+prepared, checksum-verified snapshots, with no latest-artifact discovery,
+empty bootstrap, or legacy dashboard-bundle fallback. Missing evidence remains
+unavailable; Pages is never an operational input.
 
 The **GitHub API** view reads the activity snapshot's `cao-gh.jsonl` ledger. It charts rate-limit capacity and lists the before/after credential class and aggregate cache-hydration state for each instrumented collection operation.
 
@@ -36,8 +37,7 @@ If authoritative control policy resolution fails, the build remains fail-closed 
 
 ## Install
 
-The root Central Agentic Ops campaign installs Activity, Dashboard, the trusted
-materializer, and the local runtime verification action together. Install the
+The root Central Agentic Ops package installs validation and the shared runtime. Install the
 extension with GitHub CLI, then let guided setup prepare the runtime from the
 exact revision recorded by gh-aw:
 
@@ -46,12 +46,9 @@ gh extension install githubnext/gh-cao
 gh cao setup
 ```
 
-Direct `gh aw add` of the component `activity/` or `dashboard/` manifests is not
-a complete installation: gh-aw cannot run the required post-install materialization step
-for component manifests, and those manifests intentionally contain no duplicate
-runtime resources. The root installation adds the deterministic dashboard
-automation without an additional enable variable. `gh cao setup` configures
-scope and authentication, not Pages, and asks for no public-publication consent.
+The retired Activity and Dashboard component manifests are not installed.
+`gh cao setup` configures scope and authentication, not Pages, and asks for no
+public-publication consent.
 
 > [!TIP]
 > **SAML-token installation failure:** If GitHub CLI cannot download the extension
@@ -134,9 +131,9 @@ the operational adapter, with PostgreSQL the default and Redis or acknowledged
 volatile memory explicit alternatives. OAuth, authorization and HTTPS/proxy
 protections remain required. See [`../server/README.md`](../server/README.md).
 
-The Copilot canvas launches the same Go server against the authenticated GitHub
-CLI download's checksum-verified `cao-activity-index` SQLite snapshot from a
-successful default-branch Activity run. Go owns its public
+The Copilot canvas launches the same Go server against a prepared,
+checksum-verified operational SQLite snapshot in the workspace's `.cao/`
+directory. It does not discover or download legacy Actions artifacts. Go owns its public
 loopback origin, static assets, query/diagnostics/memory APIs and revision events.
 It proxies only Copilot integration routes to a private Node adapter, which
 composes and watches JSON documents/fragments, reloads valid edits over a
@@ -321,8 +318,7 @@ This starts the local preview through Playwright with the Pixel 7 profile and a 
 
 The catalog's `docs.yml` rebuilds documentation and the synthetic enterprise
 demo daily, independently of operational collection or Dashboard artifact
-freshness. `cao-dashboard.yml` retains operational artifacts and never deploys
-them to Pages. Bounded operational artifacts remain necessary for authorized
+freshness. Operational snapshots are explicit private inputs, not Pages artifacts. Bounded operational artifacts remain necessary for authorized
 local analysis, canvas use, and hosted ingestion.
 
 An upgrade alone does not scrub an old Pages deployment or browser cache.

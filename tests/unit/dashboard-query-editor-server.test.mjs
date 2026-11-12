@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { startCanvasServer } from "../../dashboard/canvas-server.mjs";
+import { startCanvasServer } from "../helpers/canvas-snapshot.mjs";
 import { writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
 
 const document = await readFile(new URL("../../dashboard/site/test/fixtures/query-editor.json", import.meta.url), "utf8");
@@ -20,7 +20,7 @@ async function preview(t, options = {}) {
     siteRoot: join(root, "site"), catalogRoot: null, workingDirectory: root, port: 0,
     output: () => {}, requestOutput: () => {}, traceOutput: () => {},
     executeCliAction: async () => ({}), approveCliAction: async () => true,
-    downloadData: async (destination) => { await writeCanvasSnapshot(destination); },
+    prepareSnapshot: async (destination) => { await writeCanvasSnapshot(destination); },
     ...serverOptions,
   });
   t.after(() => server.close());

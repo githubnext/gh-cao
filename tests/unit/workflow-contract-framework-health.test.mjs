@@ -373,7 +373,7 @@ test("preview observations retain unapproved scope, unassigned owners and no inf
   assert.ok(packet.configuration_blockers.includes("recovery-or-retention-decision-missing"));
   assert.equal(packet.configuration_blockers.filter(value => value.startsWith("owner-missing:")).length, 8);
   assert.equal(packet.contract_sha256, createHash("sha256").update(JSON.stringify(previewContract)).digest("hex"));
-  assert.equal(packet.signals.length, 9);
+  assert.equal(packet.signals.length, 7);
   for (const signal of packet.signals) {
     assert.equal(signal.candidate_head_match, null);
     assert.equal(signal.latest.conclusion, "failure");
@@ -565,10 +565,15 @@ test("compiled framework reports remain local read-only observation with only de
   assert.equal(compiled.jobs.safe_outputs.permissions.issues, "write");
   const handler = compiled.jobs.safe_outputs.steps.find(step => step.env?.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG);
   const outputs = JSON.parse(handler.env.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG);
-  assert.equal(outputs.create_issue.max, 1);
+  assert.equal(outputs.create_issue.max, 4);
+  assert.equal(outputs.create_issue.require_temporary_id, true);
   assert.equal(outputs.create_issue.close_older_issues, true);
   assert.equal(outputs.create_issue.deduplicate_by_title, true);
   assert.equal(config["safe-outputs"]["report-failure-as-issue"], false);
+  assert.equal(config["safe-outputs"]["create-issue"].max, 4);
+  assert.equal(config["safe-outputs"]["create-issue"]["require-temporary-id"], true);
+  assert.match(source, /Create zero to three child issues/);
+  assert.match(source, /parent` to `#aw_fh_report`/);
   assert.equal(config["safe-outputs"]["report-missing-tool"]["create-issue"], false);
   assert.equal(config["safe-outputs"]["report-incomplete"]["create-issue"], false);
   for (const job of Object.values(compiled.jobs)) {
@@ -587,6 +592,13 @@ test("compiled framework reports remain local read-only observation with only de
     "compiled runs must not be gated by daily AI Credit consumption");
   const compiledScope = compiled.jobs.agent.steps.find(step => step.name === "Fix scope, window and report history");
   assert.equal(compiledScope.with.script, config.steps[0].with.script);
+  for (const name of ["Fix scope, window and report history", "Collect comparable CI evidence",
+    "Collect preview acceptance evidence"]) {
+    const authored = config.steps.find(step => step.name === name);
+    const generated = compiled.jobs.agent.steps.find(step => step.name === name);
+    assert.equal(authored.with.retries, 3, `${name} must retry transient GitHub API failures`);
+    assert.equal(generated.with.retries, authored.with.retries, `${name} must retain retries after compilation`);
+  }
   const artifact = config.steps.find(step => step.name === "Retain deterministic framework evidence");
   assert.equal(artifact.with["retention-days"], 90);
   assert.equal(artifact.with["if-no-files-found"], "error");
@@ -628,6 +640,10 @@ test("publication rejects missing, zero, duplicate and invalid review declaratio
   const validate = output => execute("Validate core review before publication", {
     files: new Map([[path, JSON.stringify(output)]]), env: { GH_AW_AGENT_OUTPUT: path },
   });
+  const report = {
+    type: "create_issue", title: "2026-11-09 run 123-1",
+    body: "Core claims reviewed: 16/16", temporary_id: "aw_fh_report",
+  };
   for (const body of [
     "Incomplete assessment; source and tests were not reviewed.",
     "Core claims reviewed: 0/16",
@@ -638,15 +654,47 @@ test("publication rejects missing, zero, duplicate and invalid review declaratio
     "Core claims reviewed: 1/16\nCore claims reviewed: 16/16",
     "Core claims reviewed: 16/16\nCore claims reviewed: 0/16",
   ]) {
-    await assert.rejects(validate({ items: [{ type: "create_issue", body }] }), /Refusing report/);
+    await assert.rejects(validate({ items: [{ ...report, body }] }), /Refusing report/);
   }
   await assert.rejects(validate({ items: {} }), /Invalid agent output/);
   await assert.rejects(execute("Validate core review before publication"), /Missing agent output/);
   for (const count of [1, 8, 16]) {
     await validate({ items: [{
-      type: "create_issue",
+      ...report,
       body: `Core claims reviewed: ${count}/16\r\nAll verdicts unknown; tests mapped but not executed.`,
     }] });
+  }
+  const child = {
+    type: "create_issue", title: "2026-11-09 run 123-1: verify preview acceptance",
+    body: "### Scope\nReview the blocked journey.\n\n### Acceptance checks\nRecord the independent evidence.",
+    temporary_id: "aw_fh_dec", parent: "#aw_fh_report",
+  };
+  const withChildren = children => ({
+    ...report,
+    body: `${report.body}\n${children.map(issue => `#${issue.temporary_id}`).join("\n")}`,
+  });
+  await validate({ items: [withChildren([child]), child] });
+  const threeChildren = ["aw_fh_dec", "aw_fh_exec", "aw_fh_ci"].map(temporary_id => ({
+    ...child, temporary_id, parent: "#aw_fh_report",
+  }));
+  await validate({ items: [withChildren(threeChildren), ...threeChildren] });
+  const reordered = await validate({ items: [...threeChildren, { type: "noop" }, withChildren(threeChildren)] });
+  assert.deepEqual(JSON.parse(reordered.files.get(path)).items.map(item => item.temporary_id ?? item.type),
+    ["aw_fh_report", "aw_fh_dec", "aw_fh_exec", "noop", "aw_fh_ci"]);
+  for (const invalid of [
+    { items: [withChildren([child, ...threeChildren]), child, ...threeChildren] },
+    { items: [{ ...report, temporary_id: "framework-health-report" }] },
+    { items: [withChildren([child]), { ...child, parent: "#aw_another_report" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "fh_dec" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "aw_fh-dec" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "aw_fh_dec_longer_than_12" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "AW_FH_DEC" }, child] },
+    { items: [{ ...report, body: `${report.body}\n#aw_fh_dec_extra` }, child] },
+    { items: [withChildren([child]), { ...child, body: "No acceptance checks" }] },
+    { items: [withChildren([child, child]), child, { ...child }] },
+    { items: [child] },
+  ]) {
+    await assert.rejects(validate(invalid), /Refusing report/);
   }
   for (const type of ["noop", "report_incomplete"]) await validate({ items: [{ type }] });
 
@@ -657,6 +705,7 @@ test("publication rejects missing, zero, duplicate and invalid review declaratio
   assert.ok(guard >= 0 && guard < handler, "validation must run before issue creation and close-older");
   assert.equal(steps[guard].env.GH_AW_AGENT_OUTPUT,
     "${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}");
+  assert.equal(steps[guard].with.script, config["safe-outputs"].steps[0].with.script);
   assert.equal(steps[guard].if, undefined);
   assert.equal(steps[guard]["continue-on-error"], undefined);
   assert.equal(steps[handler].if, undefined, "publication must retain default success gating");
@@ -721,7 +770,7 @@ test("at-a-glance reports use labelled statuses, complete journey rows and short
   assert.deepEqual([...journeys.matchAll(/^\| [^|\n]+ \(`([^`]+)`\) \|/gm)].map(match => match[1]),
     previewContract.journeys.map(journey => journey.id));
   assert.match(overview, /\| Priority \/ journey \| Next action → closure check \| Owner \|/);
-  assert.match(overview, /\| \{rank \/ journey ID\} \| \{next action → observable closure\} \| \{owner or unassigned\} \|/);
+  assert.match(overview, /\| \{rank \/ journey ID\} \| \{child issue link — next action → observable closure\} \| \{owner or unassigned\} \|/);
   assert.match(source, /Always pair each icon with its text label/);
   assert.match(source, /Unknown is not failed/);
   assert.match(source, /Report format changes alone do not invalidate/);

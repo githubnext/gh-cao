@@ -67,7 +67,7 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 		target := "github.com/" + repository
 		identity, _, err := gh(ctx, "repo", "view", target, "--json", "nameWithOwner,url,id")
 		if err != nil {
-			return nil, fmt.Errorf("cannot access %s; previous snapshot preserved", repository)
+			return nil, fmt.Errorf("cannot access %s; check 'gh auth status --hostname github.com', repository access, and API quota; previous snapshot preserved", repository)
 		}
 		var resolved struct {
 			Name string `json:"nameWithOwner"`

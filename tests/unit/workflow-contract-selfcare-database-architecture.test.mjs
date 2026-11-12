@@ -28,7 +28,7 @@ test("database architecture worker is registered without widening SelfCare autho
   assert.deepEqual([...dispatch["safe-outputs"]["dispatch-workflow"].workflows].sort(), workers.sort());
   assert.equal(dispatch["safe-outputs"]["dispatch-workflow"].max, workers.length);
   assert.equal(dispatch.imports[0].with.dispatch_max, workers.length);
-  assert.equal(dispatch.imports[0].with.worker_credits_per_target, 5500 + config["max-ai-credits"]);
+  assert.equal(dispatch.imports[0].with.worker_credits_per_target, 5000 + config["max-ai-credits"]);
 
   for (const enabled of [true, false]) {
     const policy = structuredClone(controlPolicy);

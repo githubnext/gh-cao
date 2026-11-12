@@ -47,7 +47,8 @@ test("dashboard integration retains operational SQL benchmarks without real-data
   assert.match(workflow, /tests\/e2e\/dashboard-deployed-refresh-helpers\.mjs/);
   assert.match(workflow, /tests\/e2e\/dashboard-view-assessment\.mjs/);
   assert.doesNotMatch(workflow, /run: npm run test:performance:dashboard-queries|query-performance-comment:/);
-  assert.match(workflow, /--name cao-activity-index --dir \.cao/);
+  assert.match(workflow, /DASHBOARD_DATA_URL: \$\{\{ vars\.CAO_DASHBOARD_DATA_URL \}\}/);
+  assert.doesNotMatch(workflow, /cao-activity\.yml|gh run download/);
   assert.match(workflow, /run: npm run test:performance:dashboard-query-cost/);
   assert.match(workflow, /run: npm run test:performance:dashboard-query-cost-postgres/);
 });
