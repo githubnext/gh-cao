@@ -126,7 +126,7 @@ func TestDependabotValuePacketsReachProductionPostgresQuery(t *testing.T) {
 		t.Fatal(err)
 	}
 	config := operationalvalue.Config{Root: root, Repositories: []string{dependabotValueRepository},
-		ObservedAt: observed, NodeBinary: "/nonexistent-node"}
+		ObservedAt: observed}
 	if err := operationalvalue.WriteCollectionHealth(t.Context(), config, policy, snapshot); err != nil {
 		t.Fatal(err)
 	}

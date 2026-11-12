@@ -32,9 +32,7 @@ func TestLocalCollectionHealthNeedsNeitherCollectorNorCredential(t *testing.T) {
 		[]byte(`{"repositories":{"rows":[]},"workflows":{"rows":[]}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	config := Config{Root: root, Repositories: []string{"org/repo"}, Environment: []string{
-		"PATH=" + os.Getenv("PATH"), "GH_TOKEN=test-only", "GITHUB_TOKEN=test-only",
-	}}
+	config := Config{Root: root, Repositories: []string{"org/repo"}}
 	if err := WriteCollectionHealth(t.Context(), config, policy, snapshot); err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +73,7 @@ func TestHostedHealthPreservesActualAttemptAcrossPreparation(t *testing.T) {
 		[]byte(`{"repositories":{"rows":[]},"workflows":{"rows":[]}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	config := Config{Root: root, Repositories: []string{"org/repo"}, NodeBinary: "/nonexistent-node"}
+	config := Config{Root: root, Repositories: []string{"org/repo"}}
 	if err := WriteCollectionHealth(t.Context(), config, policy, snapshot); err != nil {
 		t.Fatal(err)
 	}
@@ -117,6 +115,7 @@ func TestHostedHealthPreservesActualAttemptAcrossPreparation(t *testing.T) {
 }
 
 func TestHostedSnapshotQueriesCanonicalDataWithoutSQLite(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
 	root := t.TempDir()
 	policy := filepath.Join(root, "cao.json")
 	if err := os.WriteFile(policy, []byte(`{"version":1,"gh-aw-version":"v0.93.1",
@@ -134,7 +133,7 @@ func TestHostedSnapshotQueriesCanonicalDataWithoutSQLite(t *testing.T) {
 	}
 	observed, _ := time.Parse(time.RFC3339, "2026-11-05T20:00:00Z")
 	config := Config{Root: root, Repositories: []string{"githubnext/gh-cao"},
-		NodeBinary: "/nonexistent-node", ObservedAt: observed}
+		ObservedAt: observed}
 	if err := WriteCollectionHealth(t.Context(), config, policy, snapshot); err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +250,7 @@ func TestHostedDependabotWithoutJSReportsMissingEvidence(t *testing.T) {
 			}
 			observed, _ := time.Parse(time.RFC3339, "2026-11-05T20:00:00Z")
 			config := Config{Root: root, Repositories: []string{tt.repository},
-				NodeBinary: "/nonexistent-node", ObservedAt: observed}
+				ObservedAt: observed}
 			if err := WriteCollectionHealth(t.Context(), config, policy, snapshot); err != nil {
 				t.Fatal(err)
 			}
@@ -337,7 +336,7 @@ func TestHostedReviewedEvidenceImportUsesPinnedOriginalPacket(t *testing.T) {
 	}
 	policy := filepath.Join(root, ".github", "workflows", "cao.json")
 	if err := WriteCollectionHealth(t.Context(),
-		Config{Root: root, NodeBinary: "/nonexistent-node", Repositories: []string{"github/gh-aw"}},
+		Config{Root: root, Repositories: []string{"github/gh-aw"}},
 		policy, snapshot); err != nil {
 		t.Fatal(err)
 	}
