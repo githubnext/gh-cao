@@ -15,7 +15,7 @@ import routingContract from '../fixtures/model-routing-contract.json' with { typ
  */
 async function startRoutingServer(shards, timestamp, repository = 'octo/api') {
   const [organization, name] = repository.split('/');
-  const { startCanvasServer } = await import(new URL('../../../canvas-server.mjs', import.meta.url).href);
+  const { startCanvasServer } = await import(new URL('../../../../tests/helpers/canvas-snapshot.mjs', import.meta.url).href);
   const workspace = await mkdtemp(fileURLToPath(new URL('../../../../.cao-routing-e2e-', import.meta.url)));
   const siteRoot = fileURLToPath(new URL('../../', import.meta.url));
   await cp(siteRoot, join(workspace, 'site'), {
@@ -31,7 +31,7 @@ async function startRoutingServer(shards, timestamp, repository = 'octo/api') {
       output: () => {}, requestOutput: () => {}, traceOutput: () => {},
       executeCliAction: async () => { throw new Error('CLI actions are disabled in routing browser tests.'); },
       approveCliAction: async () => false,
-      downloadData: async (/** @type {string} */ destination) => {
+      prepareSnapshot: async (/** @type {string} */ destination) => {
         await writeCanvasArtifact(destination, { sources: {
           repositories: { rows: [{ organization, repository: name, 'observed-at': timestamp }],
             metadata: { 'as-of': timestamp, 'artifact-generation': 'routing-e2e' } }

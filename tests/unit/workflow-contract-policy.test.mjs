@@ -273,7 +273,7 @@ test("enterprise defaults, budgets, timeouts, and concurrency are finite", () =>
     "eu-cra-compliance.md": { credits: 200, timeout: 15, dispatchMax: 48, workers: 6 },
     "eu-cra-compliance-campaign-maintainer.md": { credits: 200, timeout: 20 },
     "optimization.md": { credits: 250, timeout: 15, dispatchMax: 12, workers: 2 },
-    "self-care.md": { credits: 200, timeout: 15, dispatchMax: 23, workers: 23 },
+    "self-care.md": { credits: 200, timeout: 15, dispatchMax: 22, workers: 22 },
     "cao-evolution-failures-investigator.md": { credits: 500, timeout: 30 },
     "cao-evolution-compiler-security.md": { credits: 500, timeout: 45 },
     "dependabot-update-planner.md": { credits: 600, timeout: 60 },
@@ -303,7 +303,6 @@ test("enterprise defaults, budgets, timeouts, and concurrency are finite", () =>
     "self-care-docs-build-time-investigator.md": { credits: 400, timeout: 30 },
     "self-care-docs-maintainer.md": { credits: 500, timeout: 30 },
     "self-care-glossary.md": { credits: 400, timeout: 30 },
-    "self-care-open-source-failures.md": { credits: 500, timeout: 30 },
     "self-care-pages-health.md": { credits: 400, timeout: 120 },
     "self-care-primer-brand-checker.md": { credits: 400, timeout: 25 },
     "self-care-reactive-ui-expert.md": { credits: 500, timeout: 45 },
@@ -387,7 +386,7 @@ test("control workflows deny before activation through one shared admission cont
   assert.match(sharedControl, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7\.0\.1/);
   assert.match(sharedControl, /ref: \$\{\{ github\.workflow_sha \}\}/);
   assert.match(sharedControl, /path: \.cao\n/);
-  assert.match(sharedControl, /sparse-checkout: \|\n\s+\.github\/\n\s+\/activity\/value-acquisition\.mjs/);
+  assert.match(sharedControl, /sparse-checkout: \|\n\s+\.github\/\n\s+\/\.github\/workflows\/shared\/value-acquisition\.mjs/);
   assert.match(sharedControl, /sparse-checkout-cone-mode: false/);
   assert.match(sharedControl, /fetch-depth: 1/);
   assert.doesNotMatch(sharedControl, /gh api --method GET "repos\/\$\{GITHUB_REPOSITORY\}\/contents\/\.github\/cao\/src/);

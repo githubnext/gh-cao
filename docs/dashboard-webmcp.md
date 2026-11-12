@@ -133,12 +133,18 @@ WebMCP requires a secure context, so use `https://` or `localhost`.
 1. Use a Chromium-based browser that supports WebMCP and turn on the WebMCP
    testing flag at `chrome://flags/#enable-webmcp-testing`, then restart the
    browser.
-2. Open a dashboard. To use real data from a repository, run this from the
-   repository root:
+2. Open a dashboard. For real data, select a successful Activity run and
+   download its artifact with Actions read access. From a catalog checkout:
 
    ```bash
-   DASHBOARD_DATA_URL=https://OWNER.github.io/REPOSITORY/ npm run dashboard:local -- --download-sqlite
+   gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+   npm run dashboard:local -- --sqlite ../.cao/gh-aw-logs.sqlite
    ```
+
+   Relative Go paths resolve from `server/`. Pages is only the synthetic
+   enterprise demo, not an operational snapshot source. To explore WebMCP with
+   that sample, use `npm run dashboard:pages:build` followed by
+   `npm run dashboard:pages -- --base-path /gh-cao/`.
 
 3. Open the browser developer tools and list the registered tools:
 

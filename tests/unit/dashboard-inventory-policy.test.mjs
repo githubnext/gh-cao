@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildInventoryDashboardSources } from "../../activity/inventory-sources.mjs";
+import { buildInventoryDashboardSources } from "../../dashboard/report/inventory-sources.mjs";
 
 const input = {
   repository: "githubnext/control",
@@ -11,7 +11,7 @@ const input = {
 test("inventory excludes internal campaigns", () => {
   const sources = buildInventoryDashboardSources({
     ...input,
-    controlSettings: { campaigns: { activity: {}, dashboard: { deploy: false } } },
+    controlSettings: { campaigns: { activity: {}, dashboard: {} } },
   });
   assert.deepEqual(sources.campaigns.rows, []);
 });

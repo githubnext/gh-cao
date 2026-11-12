@@ -54,7 +54,7 @@ func (w RunWorker) validate() error {
 
 func (w RunWorker) Run(ctx context.Context) error {
 	if w.Consumer == "" {
-		w.Consumer = (Worker{}).consumer()
+		w.Consumer = consumerName("")
 	}
 	if err := w.validate(); err != nil {
 		return err

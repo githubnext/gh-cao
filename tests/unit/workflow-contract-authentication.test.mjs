@@ -4,10 +4,6 @@ import { join } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
 import {
-  activityCollectionPlan,
-  GITHUB_AUTH_MODES,
-} from "../../activity/authentication.mjs";
-import {
   controlPrecompute,
   root,
   workflow,
@@ -24,8 +20,6 @@ test("deterministic workflows pin third-party actions by commit SHA", () => {
     join(".github", "workflows", "enterprise-canary.yml"),
     join(".github", "workflows", "enterprise-stress.yml"),
     join(".github", "workflows", "review-smoke.yml"),
-    join(".github", "workflows", "cao-activity.yml"),
-    join(".github", "workflows", "cao-dashboard.yml"),
     join(".github", "workflows", "target-read-access-probe.yml"),
   ]) {
     const source = readFileSync(join(root, relativePath), "utf8");
@@ -41,34 +35,39 @@ test("Copilot setup uses Node 24", () => {
   assert.match(source, /actions\/setup-node@[0-9a-f]{40}[\s\S]*?node-version: 24[\s\S]*?cache: npm[\s\S]*?run: npm ci/);
 });
 
-test("Copilot setup stages evidence with the JavaScript runtime, not the operator extension", () => {
+test("Copilot setup stages explicitly configured evidence with the native downloader", () => {
   const setup = parse(workflow("copilot-setup-steps.yml"));
   const steps = setup.jobs["copilot-setup-steps"].steps;
   const stage = steps.find((step) => step.name === "Stage CAO dashboard evidence");
-  assert.equal(stage.run, "node activity/cao.mjs download");
+  assert.equal(stage.run, "go run ./cmd/gh-cao download");
+  assert.ok(steps.find((step) => step.uses?.startsWith("actions/setup-go@")));
   assert.equal(stage.env.DASHBOARD_DATA_URL, "${{ vars.CAO_DASHBOARD_DATA_URL }}");
+  assert.equal(stage.if, "vars.CAO_DASHBOARD_DATA_URL != ''");
+  const unavailable = steps.find((step) => step.name === "Report unconfigured operational evidence");
+  assert.equal(unavailable.if, "vars.CAO_DASHBOARD_DATA_URL == ''");
+  assert.match(unavailable.run, /explicitly acquired verified snapshot in \.cao/);
+  assert.match(unavailable.run, /Pages is synthetic demo data, not a fallback/);
+  assert.doesNotMatch(stage.run, /github\.io|--fixture/);
   assert.doesNotMatch(steps.map((step) => step.run ?? "").join("\n"),
-    /\bgh[ \t]+cao\b|(?:^|[ \t/])gh-cao(?:\.exe)?[ \t]|\bmake[ \t]+build\b|\bgo[ \t]+build\b/);
+    /\bgh[ \t]+extension[ \t]+(?:install|upgrade)|\bmake[ \t]+build\b|\bgo[ \t]+build\b|activity\/cao\.mjs/);
 });
 
-test("agentic and deterministic CAO workflows do not invoke the native operator extension", () => {
-  // Packaging and CLI maintenance validate the native product, not the agent runtime.
-  const productValidation = new Set(["release.md", "self-care-cli-consistency.md"]);
-  const sources = readdirSync(workflowsDirectory).filter((name) => name.endsWith(".md") && !productValidation.has(name));
+test("agentic and deterministic CAO workflows never invoke the retired JavaScript CLI", () => {
+  const sources = readdirSync(workflowsDirectory).filter((name) => name.endsWith(".md"));
   const names = [
     ...sources,
     ...sources.map((name) => name.replace(/\.md$/, ".lock.yml")),
     ...readdirSync(join(workflowsDirectory, "shared")).filter((name) => name.endsWith(".md")).map((name) => `shared/${name}`),
-    "cao-activity.yml", "cao-dashboard.yml", "cao-validate.yml",
+    "cao-validate.yml",
   ];
   for (const name of names) {
     assert.doesNotMatch(workflow(name),
-      /\bgh[ \t]+cao\b|(?:^|[ \t/])gh-cao(?:\.exe)?[ \t]|\bgo[ \t]+(?:build|run)[^\n]*\.\/cmd\/gh-cao|\bgh[ \t]+extension[ \t]+(?:install|upgrade)[^\n]*gh-cao/m,
-      `${name} must use the installed JavaScript agent runtime`);
+      /\bnode[ \t]+(?:[^\s]*\/)?activity\/|activity\/commands\//m,
+      `${name} must not invoke the retired JavaScript agent runtime`);
   }
 });
 
-test("agent guidance documents the JavaScript-only workflow runtime", () => {
+test("agent guidance documents prepared native queries without runtime installation fallbacks", () => {
   for (const file of [
     ".github/cao/instructions.md",
     "skills/cao-cli/SKILL.md",
@@ -76,9 +75,9 @@ test("agent guidance documents the JavaScript-only workflow runtime", () => {
     "skills/cao-cli/references/workflow-runtime.md",
   ]) {
     const source = readFileSync(join(root, file), "utf8");
-    assert.match(source, /activity\/`\s+and\s+`dashboard\/`/);
-    assert.match(source, /node activity\/cao\.mjs/);
-    assert.match(source, /(?:[Nn]ever|not|Do not)[\s\S]*?(?:build|install|invoke)[\s\S]*?(?:gh cao|extension)/);
+    assert.match(source, /gh cao/);
+    assert.match(source, /(?:[Nn]ever|not|Do not)[\s\S]*?(?:build|install)[\s\S]*?(?:gh cao|extension)/);
+    assert.doesNotMatch(source, /activity\/cao\.mjs|activity\/commands\/|under `activity\/`/);
   }
 });
 
@@ -167,7 +166,6 @@ test("repository-local SelfCare uses organization-billed Copilot authentication"
     "self-care-docs-build-time-investigator",
     "self-care-docs-maintainer",
     "self-care-glossary",
-    "self-care-open-source-failures",
     "self-care-pages-health",
     "self-care-primer-brand-checker",
     "self-care-reactive-ui-expert",
@@ -365,247 +363,13 @@ test("CAO workflows bind GitHub tools to exact declared read permissions", () =>
   }
 });
 
-test("GitHub authentication mode identifiers are immutable", () => {
-  assert.deepEqual(GITHUB_AUTH_MODES, {
-    APP: "app",
-    PAT: "pat",
-    WORKFLOW_TOKEN: "workflow-token",
-  });
-  assert.ok(Object.isFrozen(GITHUB_AUTH_MODES));
-});
 
-test("CAO Activity defaults to the workflow token for the control repository", () => {
-  for (const authMode of [undefined, "", "workflow-token"]) {
-    for (const settings of [
-      {},
-      { allowed_repositories: ["ACME/Control"], allowed_owners: ["acme"] },
-      { allowed_repositories: ["acme/control", "ACME/CONTROL"], allowed_owners: ["acme", "octo"] },
-    ]) {
-      assert.deepEqual(activityCollectionPlan(settings, {
-        authMode,
-        controlRepository: "acme/control",
-        patRepositoryMap: "unused-invalid-map",
-      }), [{
-        owner: "acme",
-        repositories: ["acme/control"],
-        credentialRepository: "acme/control",
-        artifact: "acme",
-      }]);
-    }
-  }
-});
 
-test("CAO Activity workflow token rejects broader collection instead of silently narrowing it", () => {
-  for (const authMode of [undefined, "", "workflow-token"]) {
-    for (const settings of [
-      { allowed_repositories: ["acme/service"] },
-      { allowed_repositories: ["octo/library"] },
-      { allowed_repositories: [], allowed_owners: ["acme"] },
-      { allowed_repositories: [], allowed_owners: ["octo"] },
-    ]) {
-      assert.throws(() => activityCollectionPlan(settings, {
-        authMode,
-        controlRepository: "acme/control",
-      }), /GITHUB_TOKEN can collect CAO Activity only for the control repository/);
-    }
-  }
-  assert.throws(() => activityCollectionPlan({}, {
-    authMode: "invalid",
-    controlRepository: "acme/control",
-  }), /must select app, pat, or workflow-token/);
-  assert.throws(() => activityCollectionPlan({}, {
-    controlRepository: "not-a-repository",
-  }), /GITHUB_REPOSITORY must use OWNER\/REPOSITORY form/);
-  assert.throws(() => activityCollectionPlan({
-    allowed_repositories: ["acme/*"],
-  }, {
-    controlRepository: "acme/control",
-  }), /Activity repository scope must contain exact OWNER\/REPOSITORY values/);
-});
 
-test("CAO Activity workflow token honors an explicit control-repository collection subset", () => {
-  assert.deepEqual(activityCollectionPlan({
-    allowed_repositories: ["acme/control", "githubnext/gh-cao"],
-    allowed_owners: ["acme", "githubnext"],
-    activity_repositories: ["ACME/CONTROL"],
-  }, {
-    authMode: "workflow-token",
-    controlRepository: "acme/control",
-  }), [{
-    owner: "acme",
-    repositories: ["acme/control"],
-    credentialRepository: "acme/control",
-    artifact: "acme",
-  }]);
 
-  assert.throws(() => activityCollectionPlan({
-    activity_repositories: ["githubnext/gh-cao"],
-  }, {
-    authMode: "workflow-token",
-    controlRepository: "acme/control",
-  }), /GITHUB_TOKEN can collect CAO Activity only for the control repository/);
-});
 
-test("public-only Activity requires explicit policy and uses only the built-in token for exact scopes", () => {
-  const settings = {
-    activity_public_only: true,
-    activity_repositories: ["acme/control", "octo/public"],
-    allowed_repositories: ["acme/control", "octo/public", "acme/not-collected"],
-  };
-  const plan = activityCollectionPlan(settings, { controlRepository: "acme/control" });
-  assert.deepEqual(plan.map(({ repositories }) => repositories), [["acme/control"], ["octo/public"]]);
-  assert.ok(plan.every((entry) => entry.publicOnly === true && !entry.secret));
-  for (const authMode of ["app", "pat"]) {
-    assert.throws(() => activityCollectionPlan(settings, {
-      controlRepository: "acme/control", authMode,
-    }), /requires workflow-token/);
-  }
-  for (const activity_repositories of [undefined, []]) {
-    assert.throws(() => activityCollectionPlan({
-      ...settings, activity_repositories,
-    }, { controlRepository: "acme/control" }), /explicit activity.repositories/);
-  }
-  const steps = parse(workflow("cao-activity.yml")).jobs.collect.steps;
-  const boundary = steps.find(({ name }) => name === "Validate public-only repository boundary before discovery");
-  const discovery = steps.find(({ name }) => name === "Collect owner-scoped dashboard inventory");
-  assert.equal(boundary.if, "${{ matrix.publicOnly == true }}");
-  assert.ok(steps.indexOf(boundary) < steps.indexOf(discovery));
-  const finalBoundary = steps.find(({ name }) => name === "Recheck public-only repository boundary before publication");
-  assert.ok(steps.indexOf(finalBoundary) > steps.findIndex(({ id }) => id === "activity-logs"));
-  assert.ok(steps.indexOf(finalBoundary) < steps.findIndex(({ name }) => name === "Publish owner-scoped activity fragment"));
-  assert.equal(steps.find(({ id }) => id === "activity-logs").env.REPORT_PUBLIC_ONLY, "${{ matrix.publicOnly == true }}");
-});
 
-test("CAO Activity workflow-token API reserves fit its standard 1000-request quota", () => {
-  const activity = parse(workflow("cao-activity.yml"));
-  const steps = activity.jobs.collect.steps;
-  const logs = steps.find(({ name }) => name === "Download owner-scoped agentic workflow logs");
-  const inventory = steps.find(({ name }) => name === "Collect owner-scoped dashboard inventory");
-  const value = steps.find(({ name }) => name === "Retain Value evidence and publish collection health");
-  const reserve = steps.find(({ name }) => name === "Reserve reviewed Value API capacity");
-  assert.equal(reserve.env.ACTIVITY_BASE_RESERVE,
-    "${{ (vars.GH_AW_GITHUB_AUTH_MODE == '' || vars.GH_AW_GITHUB_AUTH_MODE == 'workflow-token') && '100' || '2000' }}");
-  for (const step of [inventory, logs]) {
-    assert.equal(
-      step.env.REPORT_MAX_GITHUB_API_RATE_LIMIT,
-      "${{ steps.value-api-capacity.outputs.log-floor }}",
-    );
-  }
-  assert.equal(value.env.GH_TOKEN, undefined);
-  assert.equal(value.env.CAO_GITHUB_CREDENTIAL_ID, "${{ matrix.credentialRepository || matrix.owner }}");
-  assert.equal(value.env.REPORT_VALUE_API_RESERVE,
-    "${{ steps.value-api-capacity.outputs.value-reserve }}");
-  assert.match(value.run, /reason=/);
-  assert.match(value.run, /--apiBudget/);
-  assert.match(value.run, /--apiReserve "\$REPORT_VALUE_API_RESERVE"/);
-  assert.match(value.run, /REPORT_RATE_LIMITED" == "true" \]\]; then reason=api-budget/);
-  assert.doesNotMatch(value.run, /gh api|--max-github-api-rate-limit|cao\.mjs operational-value/);
-  assert.ok(inventory.run.indexOf('github-telemetry.mjs capacity "$REPORT_MAX_GITHUB_API_RATE_LIMIT"')
-    < inventory.run.indexOf("cao.mjs discover-workflows"));
-});
 
-test("CAO Activity serializes PAT collection jobs sharing a user quota without changing App scope", () => {
-  const activity = parse(workflow("cao-activity.yml"));
-  assert.equal(activity.jobs.collect.strategy["max-parallel"],
-    "${{ vars.GH_AW_GITHUB_AUTH_MODE == 'pat' && 1 || 256 }}");
-  assert.equal(activity.jobs.collect.strategy["fail-fast"], false);
-});
-
-test("CAO Activity PAT mode groups exact repositories by owner-scoped secret", () => {
-  const plan = activityCollectionPlan({
-    allowed_repositories: ["acme/service", "octo/library"],
-    allowed_owners: ["acme", "octo"],
-  }, {
-    authMode: "pat",
-    controlRepository: "acme/control",
-    patRepositoryMap: JSON.stringify({
-      "acme/control": "GH_AW_GITHUB_READ_PAT_ACME",
-      "acme/service": "GH_AW_GITHUB_READ_PAT_ACME",
-      "octo/library": "GH_AW_GITHUB_READ_PAT_OCTO",
-    }),
-  });
-
-  assert.deepEqual(plan, [
-    {
-      owner: "acme",
-      repositories: ["acme/control", "acme/service"],
-      secret: "GH_AW_GITHUB_READ_PAT_ACME",
-      credentialRepository: "acme/control",
-      artifact: "acme",
-    },
-    {
-      owner: "octo",
-      repositories: ["octo/library"],
-      secret: "GH_AW_GITHUB_READ_PAT_OCTO",
-      credentialRepository: "octo/library",
-      artifact: "octo",
-    },
-  ]);
-});
-
-test("CAO Activity PAT mode fails closed for missing or cross-owner mappings", () => {
-  const settings = { allowed_repositories: ["octo/library"] };
-  assert.throws(
-    () => activityCollectionPlan(settings, {
-      authMode: "pat",
-      controlRepository: "acme/control",
-      patRepositoryMap: '{"acme/control":"GH_AW_GITHUB_READ_PAT_ACME"}',
-    }),
-    /no mapping for octo\/library/,
-  );
-  assert.throws(
-    () => activityCollectionPlan(settings, {
-      authMode: "pat",
-      controlRepository: "acme/control",
-      patRepositoryMap: JSON.stringify({
-        "acme/control": "GH_AW_GITHUB_READ_PAT_ACME",
-        "octo/library": "GH_AW_GITHUB_READ_PAT_ACME",
-      }),
-    }),
-    /octo\/library must map to owner-scoped secret GH_AW_GITHUB_READ_PAT_OCTO/,
-  );
-  assert.throws(
-    () => activityCollectionPlan({ allowed_repositories: [] }, {
-      authMode: "pat",
-      controlRepository: "acme/control",
-      patRepositoryMap: "{}",
-    }),
-    /requires an exact allowed-repositories scope/,
-  );
-});
-
-test("CAO Activity App mode creates independent organization scopes", () => {
-  assert.deepEqual(activityCollectionPlan({
-    allowed_repositories: ["acme/service", "octo/library"],
-    allowed_owners: ["acme", "octo"],
-  }, {
-    authMode: "app",
-    controlRepository: "acme/control",
-  }), [
-    {
-      owner: "acme",
-      repositories: ["acme/control", "acme/service"],
-      credentialRepository: "",
-      artifact: "acme",
-    },
-    {
-      owner: "octo",
-      repositories: ["octo/library"],
-      credentialRepository: "",
-      artifact: "octo",
-    },
-  ]);
-  assert.deepEqual(activityCollectionPlan({
-    allowed_repositories: [],
-    allowed_owners: ["acme", "octo"],
-  }, {
-    authMode: "app",
-    controlRepository: "acme/control",
-  }).map(({ owner, repositories }) => ({ owner, repositories })), [
-    { owner: "acme", repositories: [] },
-    { owner: "octo", repositories: [] },
-  ]);
-});
 
 test("Dependabot planner scopes its read token to the dispatched target", () => {
   const source = workflow("dependabot-update-planner.md");

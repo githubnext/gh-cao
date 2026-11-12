@@ -6,6 +6,47 @@ import { effect, state } from '../../src/reactive.js';
 import { createModalDialog } from '../../src/components/ui-primitives.js';
 
 describe('ui primitives', () => {
+  it('switches mobile tooltips to native popup buttons and restores desktop semantics', () => {
+    let mobile = true;
+    const media = new EventTarget();
+    Object.defineProperty(media, 'matches', { get: () => mobile });
+    vi.stubGlobal('matchMedia', () => media);
+    const scope = new AbortController();
+    const tooltip = renderTooltip({
+      id: 'mobile-status', label: 'Data status', description: 'Progress',
+      mobilePopup: true, signal: scope.signal
+    });
+    document.body.append(tooltip);
+    const button = /** @type {HTMLElement} */ (tooltip.firstElementChild);
+    const content = /** @type {HTMLElement} */ (tooltip.lastElementChild);
+    const hide = vi.fn();
+    Object.defineProperty(content, 'hidePopover', { value: hide });
+    try {
+      expect(button.getAttribute('popovertarget')).toBe('mobile-status');
+      expect(button.getAttribute('aria-haspopup')).toBe('dialog');
+      expect(button.getAttribute('aria-expanded')).toBe('false');
+      expect(button.hasAttribute('aria-describedby')).toBe(false);
+      expect(content.getAttribute('role')).toBe('dialog');
+      content.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'open' }));
+      expect(button.getAttribute('aria-expanded')).toBe('true');
+      mobile = false;
+      media.dispatchEvent(new Event('change'));
+      expect(hide).toHaveBeenCalledOnce();
+      expect(button.hasAttribute('aria-haspopup')).toBe(false);
+      expect(button.getAttribute('aria-describedby')).toBe('mobile-status');
+      expect(content.getAttribute('role')).toBe('tooltip');
+      expect(content.hasAttribute('popover')).toBe(false);
+      scope.abort();
+      mobile = true;
+      media.dispatchEvent(new Event('change'));
+      expect(content.getAttribute('role')).toBe('tooltip');
+    } finally {
+      scope.abort();
+      tooltip.remove();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('contains dialog clicks without preventing controls or their default actions', () => {
     const parentClick = vi.fn();
     const onChange = vi.fn();

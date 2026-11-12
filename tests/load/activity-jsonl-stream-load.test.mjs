@@ -36,7 +36,7 @@ test("cao reads and ingests one million cached JSONL rows within a 32 MB JavaScr
   try {
     const reader = spawnSync(process.execPath, [
       "--max-old-space-size=32", "--input-type=module", "-e",
-      `import { readJsonlRecords } from './activity/jsonl.mjs';
+      `import { readJsonlRecords } from './dashboard/report/jsonl.mjs';
        let records = 0;
        let checksum = 0;
        for (const { value } of readJsonlRecords(process.argv[1])) {

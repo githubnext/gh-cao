@@ -83,18 +83,21 @@ Review mode is the installation default. It resolves its destination from the ma
 
 In review mode, the review repository is not treated as a clone of the target. When a target-bound mutation cannot be represented natively against the review repository, the worker should publish an artifact-backed review bundle describing the target, intended output primitive, base branch, and supporting evidence.
 
-## Pages Report Routing
+<span id="pages-report-routing"></span>
 
-Pages report routing follows the control-plane modes. Deployment is still conventional deterministic GitHub Actions automation, but the effective mode selects an access-controlled review site update or a production site update.
+## Dashboard hosting is not safe-output routing
 
-| Mode | Report source behavior |
-| --- | --- |
-| `review` | Proposed report source data is routed to the private `safe_output_repo` and published to its access-controlled review Pages site. Production Pages is unchanged. |
-| `live` | Declared report source data is written to its normal durable destination and published to the production Pages site. |
+Campaign mode selects destinations for declared safe outputs, not dashboard
+hosting. `safe_output_repo` remains the review-output destination; it does not
+need a Pages site. Production dashboards serve operational evidence through the
+same-origin Go/PostgreSQL host, and local development uses the same Go server
+over an authorized real SQLite snapshot.
 
-The review and production publishers use fixed trusted source locations and build code and accept no agent-generated build commands, paths, repository names, or site bundles through dispatch inputs. They should use separate build and deploy jobs. The build job needs `contents: read` and its own `pages: write` permission for `actions/configure-pages`; the deploy job independently needs `pages: write` plus `id-token: write` and deploys through a protected environment. Agents do not receive those permissions or authority to change the routed mode.
-
-For Pages reports, `safe_output_repo` retains its standard meaning as the safe-output review destination and also owns the review Pages deployment. It must be private, Pages-enabled, and access-controlled for the intended reviewers. Review and production use distinct repositories or protected environments, URLs, and concurrency groups. If access-controlled review Pages is unavailable, review publication fails closed rather than publishing publicly or falling back to a different output channel.
+Pages publishes only the synthetic enterprise demo, independently of campaign
+mode and operational freshness. No operational artifacts or review outputs
+belong in that demo. Agents receive neither Pages deployment permission nor
+mode-promotion authority. See [Actions artifacts and the Pages demo](deployment-actions.md)
+for publication and legacy-data migration boundaries.
 
 ## `workflow_dispatch` Runs
 

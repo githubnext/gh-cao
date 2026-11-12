@@ -23,6 +23,7 @@
       import { loadDashboardPageChunk, loadDashboardSchema } from "./dashboard-definition.js";
       import { pageCapabilityAvailable } from "./view-availability.js";
       import { localCliQueueAvailable } from "./backend-mode.js";
+      import { DEMO_MODE } from "./deployment-profile.js";
 
       /** @typedef {{ name?: string } & Record<string, unknown>} DashboardQueryDefinition */
       /** @typedef {{ 'language-version': string, dashboard: import('./presenter.js').PresentableDashboard }} DashboardSchema */
@@ -224,7 +225,7 @@
       const previewMode = new URLSearchParams(window.location.search).get("local-preview");
       /** @type {WebSocket | undefined} */
       let dashboardSocket;
-      if (previewMode && previewMode !== "operator") {
+      if (previewMode === "canvas" || previewMode === "admin") {
         const dashboardSocketUrl = new URL("./__dashboard_socket", window.location.href);
         dashboardSocketUrl.protocol = dashboardSocketUrl.protocol.replace(/^http/, "ws");
         dashboardSocket = new WebSocket(dashboardSocketUrl);
@@ -274,7 +275,7 @@
       */
       const renderSources = (sources, state = "ready", prepared = false, loadPageSources, retryRefresh, snapshot = null) => {
         const canExecuteCliActions = previewMode === "canvas" || previewMode === "admin"
-          || (previewMode === "operator" && localCliQueueAvailable());
+          || localCliQueueAvailable();
         renderedSources = sources;
         renderedSourcesPrepared = prepared;
         renderedPageSourceLoader = loadPageSources;
@@ -426,7 +427,7 @@
         if (!document.querySelector('meta[name="dashboard-data-backend"][content="server-http"]')) {
           renderSources({}, "loading");
         }
-        const sourceUrl = new URL("./payload-hashes.json", window.location.href).href;
+        const sourceUrl = new URL(DEMO_MODE ? "./demo-data/payload-hashes.json" : "./payload-hashes.json", window.location.href).href;
         try {
           await startDashboardData({
             browserWindow: window,

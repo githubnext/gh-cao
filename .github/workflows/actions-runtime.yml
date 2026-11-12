@@ -5,11 +5,11 @@ on:
   pull_request:
     paths:
       - .github/workflows/actions-runtime.yml
-      - .github/workflows/cao-activity.yml
       - .github/actions/setup-cao-runtime/**
       - .github/workflows/shared/**
-      - activity/**
+
       - dashboard/site/src/data/**
+      - dashboard/report/**
       - tests/helpers/actions-runtime/**
       - tests/integration/*actions-runtime.test.mjs
       - package.json
@@ -20,11 +20,11 @@ on:
     branches: [main]
     paths:
       - .github/workflows/actions-runtime.yml
-      - .github/workflows/cao-activity.yml
       - .github/actions/setup-cao-runtime/**
       - .github/workflows/shared/**
-      - activity/**
+
       - dashboard/site/src/data/**
+      - dashboard/report/**
       - tests/helpers/actions-runtime/**
       - tests/integration/*actions-runtime.test.mjs
       - package.json

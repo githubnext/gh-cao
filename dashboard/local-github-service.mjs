@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import { DatabaseSync } from "node:sqlite";
-import { compilerVersionFromLock } from "../activity/version.mjs";
+import { compilerVersionFromLock } from "./lib/version.mjs";
 
 const executeFile = promisify(execFile);
 const freshMs = 300_000;

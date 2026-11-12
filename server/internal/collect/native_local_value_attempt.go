@@ -17,7 +17,7 @@ import (
 // RecordNativeValueAttempt publishes a real collector outcome independently
 // of cost accounting. The canonical writer checks the exact enrollment epoch
 // and revision, so a withdrawn or changed target cannot regain health.
-func (p Projector) RecordNativeValueAttempt(
+func (p NativeValueService) RecordNativeValueAttempt(
 	ctx context.Context, repository, workflow string, attemptedAt time.Time, state, reason string,
 ) error {
 	if p.Data == nil || !p.Data.Open() || p.Enrollment.Authority == nil || p.PolicyPath == "" {

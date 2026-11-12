@@ -32,7 +32,11 @@ The execution boundary is the key architectural fact: orchestrators and workers 
 8. The worker workflow imports shared control as `role: worker`, analyzes only `target_repo`, and emits only its declared safe outputs.
 9. safe outputs are routed to the review repository or processed against the target repository according to the effective mode.
 
-Pages report routing participates in the control plane. Review routes report source data to the private `safe_output_repo` and publishes an access-controlled review Pages site owned by that repository. Live routes durable report source data to its normal destination and publishes the production Pages site. Conventional deterministic workflows perform both deployments and own `pages: write` and `id-token: write`; AI agent jobs do not.
+Safe-output routing does not select dashboard hosting. Production dashboards
+use same-origin Go/PostgreSQL, and local analysis uses the same Go server over
+real SQLite snapshots. Pages is only a synthetic enterprise demo, independent
+of review/live modes; it must not receive operational artifacts or review
+outputs. AI agent jobs receive no Pages deployment authority.
 
 ## Standard Control Envelope
 
@@ -91,8 +95,8 @@ Never add an App key, PAT, installation token, or other secret to this envelope.
 - Disabled or unavailable worker workflows are skipped with a reason.
 - A worker workflow handles one admitted target and does not perform organization-wide discovery.
 - GitHub tools are read-only; writes occur only through declared safe-output primitives.
-- Agents do not receive Pages deployment permission or mode-promotion authority. Pages report mode and destination come from the control envelope; persistent publication is performed only by conventional deterministic workflows from trusted durable inputs.
-- Review Pages must be access-controlled for the intended reviewers and isolated from production Pages. If that boundary is unavailable, review publication fails closed.
+- Agents do not receive Pages deployment permission or mode-promotion authority. The synthetic Pages demo is independent of control-envelope routing.
+- Operational evidence and review outputs remain behind their reviewed access boundaries; neither can fall back to public demo publication.
 - A `workflow_dispatch` run may narrow or redirect one run but does not change another campaign's configured mode.
 - Control-plane correlation is included in worker workflow-created issue, pull request, or comment safe outputs when available.
 
@@ -115,7 +119,7 @@ fail, skip, or report incomplete -- never infer broader authority
 - out-of-range repository, discovery, rollout, or dispatch caps: fail precomputation rather than widen scope;
 - target or review repository outside the trusted owner allowlist: fail before repository access or dispatch;
 - safe output not representable safely in review mode: publish an explicit review bundle or emit `report_incomplete`;
-- Pages report in review mode without an access-controlled Pages-capable `safe_output_repo`: do not deploy the report;
+- missing authorized operational evidence: report unavailable rather than substitute synthetic demo data or publish a public fallback;
 - missing required authentication: fail before repository mutation.
 
 ## Current Controls

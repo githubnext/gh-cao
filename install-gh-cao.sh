@@ -536,8 +536,8 @@ install_cao_extension() (
 initialize_cao_policy() {
   gh cao init || return "$?"
   node --input-type=module - "$1" <<'NODE'
-import { readFile } from "node:fs/promises";
-import { writeJsonAtomically } from "./activity/cli/files.mjs";
+import { randomUUID } from "node:crypto";
+import { readFile, rename, rm, writeFile } from "node:fs/promises";
 const file = process.argv[2];
 const policy = JSON.parse(await readFile(file, "utf8"));
 const expected = "https://raw.githubusercontent.com/githubnext/gh-cao/main/.github/workflows/shared/cao.schema.json";
@@ -548,7 +548,13 @@ if (policy.$schema !== legacy || expected !== current) {
   throw new Error("The initialized policy schema does not match the installed catalog.");
 }
 policy.$schema = expected;
-await writeJsonAtomically(file, policy);
+const temporary = `${file}.${randomUUID()}.tmp`;
+try {
+  await writeFile(temporary, `${JSON.stringify(policy, null, 2)}\n`, { flag: "wx", mode: 0o600 });
+  await rename(temporary, file);
+} finally {
+  await rm(temporary, { force: true });
+}
 NODE
 }
 
@@ -579,7 +585,7 @@ upgrade_gh_aw() {
 # Bash (curl | bash), child processes must not consume the unread script lines.
 main() {
   local policy_path=".github/workflows/cao.json"
-  local cao_cli="activity/cao.mjs"
+  local dashboard_runtime="dashboard/report/configure-site.mjs"
   local control_runtime=".github/workflows/shared/control.mjs"
   local materializer=".github/workflows/shared/materialize-cao.mjs"
   local runtime_action=".github/actions/setup-cao-runtime/action.yml"
@@ -783,7 +789,7 @@ main() {
 
   # gh-aw's markdown scanner rejects the GitHub App manifest page embedded in
   # .github/workflows/shared/github-apps.mjs, so catalog installs skip it.
-  if [[ ! -f "$cao_cli" || ! -f "$control_runtime" || ! -f "$materializer" || ! -f "$runtime_action" ]]; then
+  if [[ ! -f "$dashboard_runtime" || ! -f "$control_runtime" || ! -f "$materializer" || ! -f "$runtime_action" ]]; then
     note "Installs 3 workflows, 5 shared control plane resources, and project settings."
     if ! run_quiet_command \
       "Installing control plane components..." \

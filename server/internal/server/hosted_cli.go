@@ -166,7 +166,7 @@ func writeHostedCLIError(ctx context.Context, response http.ResponseWriter, err 
 // operator commands and output.
 func (a *App) authorizeHostedCLI(response http.ResponseWriter, request *http.Request) (oauthSession, bool) {
 	if a.hostedCLI.local != nil {
-		if request.Context().Value(localCanvasContextKey{}) != true ||
+		if (a.config.OperatorActions == nil && request.Context().Value(localCanvasContextKey{}) != true) ||
 			!a.authorized(request) ||
 			(request.Method != http.MethodGet && request.Header.Get("Origin") != "http://"+request.Host) {
 			writeError(request.Context(), response, http.StatusForbidden, "Local command capability and same-origin approval are required.")

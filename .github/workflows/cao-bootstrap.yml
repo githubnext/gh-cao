@@ -10,8 +10,7 @@ on:
       - .github/workflows/shared/**
       - .github/actions/setup-cao-runtime/**
       - aw.yml
-      - activity/**
-      - dashboard/aw.yml
+
       - install-gh-cao.sh
       - cmd/gh-cao/**
       - internal/cli/**

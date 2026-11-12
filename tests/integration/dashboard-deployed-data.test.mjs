@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import "fake-indexeddb/auto";
 import { ingestNormalizedJsonl } from "../../dashboard/site/src/data/ingest/coordinator.js";
 import {
-  DATABASE_NAME,
   deleteCanonicalDatabase,
   readCollection,
 } from "../../dashboard/site/src/data/storage/indexeddb.js";
@@ -12,8 +14,8 @@ import {
   legacyPhaseJsonToJsonl,
 } from "../e2e/dashboard-deployed-refresh-helpers.mjs";
 
-const deployedManifestUrl = process.env.DASHBOARD_DATA_URL
-  || "https://githubnext.github.io/gh-cao/cao/payload-hashes.json";
+const deployedManifestUrl = process.env.DASHBOARD_DATA_URL;
+const artifactDirectory = process.env.DASHBOARD_DATA_DIR;
 const transientDownloadStatuses = new Set([408, 429, 500, 502, 503, 504]);
 
 async function fetchDeployedData(url) {
@@ -33,17 +35,28 @@ async function fetchDeployedData(url) {
 }
 
 async function ingestDeployedShards() {
-  const response = await fetchDeployedData(deployedManifestUrl);
-  assert.equal(response.ok, true, `failed to download ${deployedManifestUrl}: ${response.status}`);
-  const manifest = await response.json();
+  assert.ok(
+    Boolean(deployedManifestUrl) !== Boolean(artifactDirectory),
+    "Select exactly one operational source: DASHBOARD_DATA_URL (explicit manifest) or DASHBOARD_DATA_DIR (cao-activity-index Actions artifact).",
+  );
+  const load = async (name) => {
+    if (artifactDirectory) return readFile(resolve(artifactDirectory, name));
+    const url = name === "payload-hashes.json" ? deployedManifestUrl : new URL(name, deployedManifestUrl);
+    const response = await fetchDeployedData(url);
+    assert.equal(response.ok, true, `failed to download ${url}: ${response.status}`);
+    return Buffer.from(await response.arrayBuffer());
+  };
+  const manifest = JSON.parse((await load("payload-hashes.json")).toString("utf8"));
+  assert.notEqual(manifest.synthetic, true, "Synthetic demo data is not operational evidence.");
+  assert.match(manifest["gh-aw-logs.sqlite"] ?? "", /^[a-f0-9]{64}$/i,
+    "Operational evidence must include a checksum for the canonical SQLite snapshot.");
   for (const { name, sourceName, hash } of deployedActivityShardEntries(manifest)) {
-    const shardUrl = new URL(sourceName, deployedManifestUrl);
-    const shard = await fetchDeployedData(shardUrl);
-    assert.equal(shard.ok, true, `failed to download ${shardUrl}: ${shard.status}`);
-    assert.ok(shard.body, `failed to stream ${shardUrl}`);
+    const content = await load(sourceName);
+    assert.equal(createHash("sha256").update(content).digest("hex"), hash.toLowerCase(),
+      `operational artifact checksum mismatch for ${sourceName}`);
     const chunks = sourceName.endsWith(".json")
-      ? new Response(legacyPhaseJsonToJsonl(Buffer.from(await shard.arrayBuffer()))).body
-      : shard.body;
+      ? new Response(legacyPhaseJsonToJsonl(content)).body
+      : new Response(content).body;
     await ingestNormalizedJsonl(indexedDB, chunks, {
       payloadIdentity: hash,
       payloadScope: name,
@@ -61,7 +74,7 @@ test.after(async () => {
   await deleteCanonicalDatabase(indexedDB);
 });
 
-test("deployed dashboard cache populates canonical workflows, runs, and run records", async () => {
+test("operational Activity snapshot populates canonical workflows, runs, and run records", async () => {
   const [repositories, workflows, runs, domains, tools, audits, issues] = await Promise.all([
     readCollection(indexedDB, "repositories"),
     readCollection(indexedDB, "workflows"),
@@ -78,7 +91,7 @@ test("deployed dashboard cache populates canonical workflows, runs, and run reco
   assert.ok(domains.length + tools.length + audits.length + issues.length > 0);
 });
 
-test("deployed dashboard cache ingests its firewall analysis", async () => {
+test("operational Activity snapshot ingests its firewall analysis", async () => {
   const ingestedFirewallEvents = (await readCollection(indexedDB, "domains")).filter(
     (event) => event.source === "firewall" && /^net_/.test(String(event.type)),
   );

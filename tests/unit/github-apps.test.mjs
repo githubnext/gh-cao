@@ -57,7 +57,7 @@ test("repository credential inspection reads paginated names and individual vari
 test("runtime retains credential inspection, not obsolete App administration", () => {
   const campaignJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const lock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
-  assert.equal(Object.hasOwn(campaignJson.bin, "cao-setup"), false);
+  assert.equal(Object.hasOwn(campaignJson.bin ?? {}, "cao-setup"), false);
   assert.equal(Object.hasOwn(campaignJson.scripts, "setup:github-apps"), false);
   assert.deepEqual(lock.packages[""].bin, campaignJson.bin);
   for (const name of ["setup-github-apps.mjs", "setup-hosted-cli-app.mjs"]) {

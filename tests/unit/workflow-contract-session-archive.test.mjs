@@ -27,7 +27,7 @@ test("Parquet and session archive conformance has an independent read-only workf
     "server/internal/server/session_archive_integration_test.go",
     "server/internal/collect/runner.go",
     "server/go.mod",
-    "activity/cao.mjs",
+    "internal/cli/query.go",
     "dashboard/site/src/data/queries/database.json",
     "internal/dashboardquery/query.go",
     "scripts/test-kusto-emulator.sh",

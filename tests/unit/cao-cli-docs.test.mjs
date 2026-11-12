@@ -1,19 +1,33 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { commandHandlers } from "../../activity/commands/index.mjs";
 
 const docs = readFileSync("docs/cao-cli.md", "utf8");
-const help = `${readFileSync("activity/cao.mjs", "utf8")}\n${readFileSync("activity/cli-usage.mjs", "utf8")}`;
+const help = readFileSync("internal/cli/root.go", "utf8");
 const gettingStarted = readFileSync("docs/setup-quickstarts.md", "utf8");
 const walkthrough = readFileSync("docs/repo-assist-quickstart.md", "utf8");
 const installation = "gh extension install githubnext/gh-cao";
 const fallback = "curl -fsSL https://raw.githubusercontent.com/githubnext/gh-cao/main/install-gh-cao.sh | bash";
 
-test("getting started reaches monitoring before optional campaign execution", () => {
+test("getting started opens a local dashboard before optional shared monitoring", () => {
+  const localStart = gettingStarted.indexOf("## Open a local dashboard (no deployment)");
+  const sharedStart = gettingStarted.indexOf("## Set up shared monitoring (optional)");
+  assert.ok(localStart > 0 && sharedStart > localStart);
+  const local = gettingStarted.slice(localStart, sharedStart);
+  assert.match(local, /gh auth status[\s\S]*gh auth login[\s\S]*gh extension install githubnext\/gh-cao[\s\S]*gh cao dashboard --repo OWNER\/REPOSITORY/);
+  assert.match(local, /No `gh cao setup`, policy file, repository enrollment, campaign, or CAO Actions\s+installation is required/);
+  assert.match(local, /Go server binds to loopback/);
+  assert.match(local, /normal dashboard queries against\s+canonical SQLite/);
+  assert.match(local, /requires network access and\s+repository permissions/);
+  assert.match(local, /Starting the\s+dashboard does not change policy, workflows, or remote repository state/);
+  assert.doesNotMatch(local, /```bash\n(?:gh cao setup|git push|gh workflow run)/);
+});
+
+test("shared monitoring reaches a dashboard before optional campaign execution", () => {
+  const sharedStart = gettingStarted.indexOf("## Set up shared monitoring (optional)");
   const optional = gettingStarted.indexOf("## Optional: add automation later");
-  assert.ok(optional > 0);
-  const monitoring = gettingStarted.slice(0, optional);
+  assert.ok(sharedStart > 0 && optional > sharedStart);
+  const monitoring = gettingStarted.slice(sharedStart, optional);
   const commands = [
     installation,
     "gh cao --version",
@@ -21,7 +35,6 @@ test("getting started reaches monitoring before optional campaign execution", ()
     "gh cao doctor",
     'git commit -m "Set up CAO monitoring"',
     "git push",
-    "gh workflow run cao-activity.yml",
   ];
   let previous = -1;
   for (const command of commands) {
@@ -69,7 +82,10 @@ test("getting started reaches monitoring before optional campaign execution", ()
   ]) {
     assert.ok(gettingStarted.includes(`<span id="${anchor}"></span>`), anchor);
   }
-  assert.ok(gettingStarted.trim().split(/\s+/).length < 1000, "first-run guide should stay concise");
+  const sharedEnd = gettingStarted.indexOf("\n</details>", optional);
+  assert.ok(sharedEnd > optional);
+  assert.ok(gettingStarted.slice(sharedStart, sharedEnd).trim().split(/\s+/).length < 1000,
+    "shared-monitoring first-run guide should stay concise");
   assert.doesNotMatch(monitoring, /--quickstart|gh aw run|cao\.sh (?:add|enable|quickstart)|AI credits/);
   assert.match(monitoring, /No campaigns or agentic work are installed/);
   assert.match(monitoring, /Commit and push these CAO monitoring changes\? \[y\/N\]/);
@@ -79,10 +95,10 @@ test("getting started reaches monitoring before optional campaign execution", ()
   assert.match(monitoring, /Check \*\*CAO validation\*\* in Actions/);
   assert.match(monitoring, /control-plane\.campaigns` is `\{\}`/);
   assert.match(monitoring, /control-plane\.workflows` and\s+`control-plane\.operations` absent or `\{\}`/);
-  assert.match(monitoring, /empty dashboard is expected/);
+  assert.match(monitoring, /Missing evidence remains unavailable/);
   assert.match(monitoring, /not every ordinary Actions job/);
-  assert.match(monitoring, /does\s+\*\*not\*\*\s+guarantee a\s+private Pages site/);
-  assert.match(monitoring, /including its Pages deployment/);
+  assert.match(monitoring, /Pages is synthetic-only; setup does not configure Pages/);
+  assert.doesNotMatch(monitoring, /including its Pages deployment|Is a public dashboard/);
   assert.match(monitoring, /authentication\.md#public-only-monitoring-quickstart/);
   const nativeSetup = readFileSync("internal/cli/native_setup.go", "utf8");
   for (const prompt of ["Repositories", "Authentication", "Apply this setup?"]) {
@@ -92,7 +108,7 @@ test("getting started reaches monitoring before optional campaign execution", ()
   assert.match(monitoring, /Choose \*\*Authentication\*\* only if prompted/);
   assert.match(monitoring, /Confirmed public targets[\s\S]*automatically use `public-only`/);
   assert.match(monitoring, /even when the control repository is private/);
-  assert.match(monitoring, /Decline for non-public evidence/);
+  assert.match(monitoring, /This grants no dashboard publication authority/);
   assert.match(monitoring, /before retrying; do not publish incomplete setup/);
   assert.doesNotMatch(monitoring, /gh cao validate/);
   assert.match(gettingStarted.slice(optional), /setup\/quickstart\.md/);
@@ -130,7 +146,7 @@ test("native setup hands off to outcome and scope rather than pattern selection"
   assert.ok(source.includes("setupPublishOutput("));
   assert.ok(source.includes("Optional automation: https://githubnext.github.io/gh-cao/operation-patterns/"));
   assert.ok(readFileSync("internal/cli/setup_publish.go", "utf8")
-    .includes("Deployment pending; setup is not waiting for Actions."));
+    .includes("Actions pending; setup is not waiting for workflow completion."));
   assert.doesNotMatch(source, /Add your first campaign separately|Choose an operation pattern/);
   const skill = readFileSync("skills/setup-cao/SKILL.md", "utf8");
   assert.match(skill, /operation-patterns\.md/);
@@ -186,58 +202,8 @@ test("CAO command guide covers the operator-facing command surface", () => {
   }
 });
 
-test("Node-only command documentation uses explicit runtime entry points without a shell launcher", () => {
-  for (const command of [
-    "repair-database", "operational-value", "cluster-problems",
-    "dashboard-complexity", "prune-dashboard", "validate --json",
-  ]) {
-    assert.ok(docs.includes(`node activity/cao.mjs ${command}`), command);
-  }
-  assert.doesNotMatch(docs, /(?<![\w-])cao\.sh/);
-  assert.match(docs, /gh cao setup --help/);
-  const demo = readFileSync("docs/components/TerminalDemo.astro", "utf8");
-  assert.match(demo, /gh cao<\/span> setup/);
-  assert.match(demo, /data-terminal-output="setup">Monitoring configured locally\. No commit or push was performed\.[\s\S]*Next: gh cao doctor/);
-  assert.doesNotMatch(demo, /(?<![\w-])cao\.sh|<\/span> validate/);
-});
 
-test("command inventory covers registered Node APIs and process boundaries", () => {
-  const inventory = docs.slice(docs.indexOf("| Surface | Commands | Execution |"), docs.indexOf("The extension is **entirely Go**"));
-  for (const command of commandHandlers.keys()) {
-    assert.ok(inventory.includes(`\`${command}`) || inventory.includes(`\`node activity/cao.mjs ${command}`), command);
-  }
-  assert.match(inventory, /Actions-only JavaScript runtime/);
-  assert.match(inventory, /Workflow-agent evidence APIs[\s\S]*not deprecated duplicates/);
-  assert.match(inventory, /configure admission with `setup admission`/);
-  assert.doesNotMatch(inventory, /`admission setup`/);
-  assert.match(inventory, /`init` is optional local policy-only/);
-  for (const binary of ["cao-dashboard", "cao-webhook-gateway", "cao-cli-quota", "cao-cli-relay"]) {
-    assert.ok(inventory.includes(`\`${binary}\``), binary);
-  }
-  assert.match(inventory, /internal stdin\/stdout scheduling protocol/);
-  assert.match(inventory, /npm `cao` bin[\s\S]*same\s+Node entry point/);
-});
 
-test("ingestion documentation separates active packaging from supported manual artifact import", () => {
-  const rows = docs.split("\n").filter((line) => line.startsWith("|"));
-  const pipeline = rows.find((line) => line.startsWith("| Active ingestion and packaging |"));
-  assert.ok(pipeline);
-  for (const command of ["ingest-jsonl", "compact-jsonl", "hash-payloads"]) {
-    assert.ok(pipeline.includes(`\`${command}\``), command);
-  }
-  assert.ok(!pipeline.includes("`ingest`"));
-  const manual = rows.find((line) => line.startsWith("| Manual artifact import |"));
-  assert.ok(manual);
-  assert.match(manual, /`ingest`/);
-  assert.match(manual, /not used by the Activity or Dashboard pipelines and not deprecated/);
-  const ingestion = readFileSync("docs/dashboard-data-ingestion.md", "utf8").replace(/\s+/g, " ");
-  assert.match(ingestion, /### Manual artifact import .*`node activity\/cao\.mjs ingest` is a supported manual importer/);
-  assert.match(ingestion, /### Active JSONL pipeline .*`compact-jsonl`, `hash-payloads`, and `ingest-jsonl`/);
-  assert.match(ingestion, /not just a checksum utility/);
-  assert.match(ingestion, /gh cao download/);
-  assert.match(ingestion, /gh cao query/);
-  assert.match(ingestion, /node activity\/cao\.mjs repair-database/);
-});
 
 test("hosted-executor App setup belongs only to the native operator CLI", () => {
   assert.match(docs, /gh cao setup auth hosted-cli --repo OWNER\/CONTROL/);
@@ -271,7 +237,7 @@ test("CAO command guide explains the workflow execution boundary", () => {
   assert.match(docs, /`gh cao campaigns mode preview` writes `mode: review`/);
   assert.match(docs, /different from\s+`gh aw doctor`/);
   assert.match(docs, /Control-plane validation is Actions-only/);
-  assert.match(docs, /node activity\/cao\.mjs validate --json/);
+  assert.match(docs, /no shell launcher or compatibility\s+entry point/);
   assert.doesNotMatch(docs, /gh cao validate/);
 });
 
@@ -292,7 +258,7 @@ test("manual Repo Assist walkthrough separates installation, execution, and evid
   const install = walkthrough.indexOf("gh cao add githubnext/gh-cao/repo-assist");
   const review = walkthrough.indexOf("gh cao campaigns mode preview repo-assist");
   const run = walkthrough.indexOf("gh aw run repo-assist");
-  const collect = walkthrough.indexOf("gh workflow run cao-activity.yml");
+  const collect = walkthrough.indexOf("## 3. Collect and inspect evidence");
   assert.ok(install > 0 && review > install && run > review && collect > run);
   const push = walkthrough.indexOf("\ngit push\n");
   const initialPause = walkthrough.indexOf("\ngh workflow disable repo-assist.lock.yml\n");
@@ -314,7 +280,7 @@ test("manual Repo Assist walkthrough separates installation, execution, and evid
   assert.match(walkthrough, /Pause the orchestrator even if dispatch fails/);
   assert.match(walkthrough, /does not cancel an already requested run/);
   assert.match(walkthrough, /repeating `gh aw run` requests new work/);
-  assert.match(walkthrough, /successful Pages deployment job/);
+  assert.match(walkthrough, /explicitly selected\s+operational snapshot/);
   assert.match(walkthrough, /never applies\s+changes to the target repository/);
   assert.match(walkthrough, /A no-op is a valid result/);
   assert.match(walkthrough, /1,250 AI credits/);

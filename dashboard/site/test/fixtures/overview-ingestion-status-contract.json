@@ -2,9 +2,27 @@
   "view": "overview-header",
   "config": "data-status",
   "enabled": false,
+  "local": {
+    "source": "local-ingestion-progress",
+    "transaction": {
+      "id": "local-dashboard-ingestion",
+      "kind": "local-dashboard-ingestion",
+      "createdAt": "2026-11-11T12:00:00Z",
+      "ingestionStatus": "paused",
+      "ingestionMessage": "Acquisition paused to preserve GitHub API quota; upstream and artifact coverage remain partial.",
+      "ingestionRepository": "octo/api",
+      "scannedHours": 48,
+      "targetHours": 168,
+      "apiRemaining": 999,
+      "apiReserve": 1000,
+      "apiResetAt": "2026-11-11T13:00:00Z",
+      "nextAttemptAt": "2026-11-11T13:00:00Z"
+    }
+  },
   "indicator": {
     "freshness-source": "dashboard-data-freshness",
     "health-source": "dashboard-ingestion-health",
+    "ingestion-source": "local-ingestion-progress",
     "stale-after-hours": 24
   },
   "cases": [

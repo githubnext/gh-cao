@@ -34,14 +34,14 @@ with stable lowercase `id`, non-empty `title`, and an actionable `fixPrompt`
 that an agent can follow. Activity runs contributors in a fault-isolated, timed,
 cancelable subprocess and retains prior rows after failure.
 
-When a worker optimizes a campaign or campaign portfolio, use the core activity
-cache and canonical evidence. A campaign workflow has no dashboard browser
+When a worker optimizes a campaign or campaign portfolio, use an explicitly prepared operational snapshot
+and canonical evidence. A campaign workflow has no dashboard browser
 session; never add browser automation or Pages access merely to query IndexedDB.
 coding agents may inspect the disposable cache only through the canonical
 storage/query APIs or Playwright.
 
 ## Deterministic Add-on Exception
 
-The top-level dashboard uses its unified builder and publisher. It is not an
+The shared dashboard runtime is not an
 operational campaign and receives no orchestrator, workers, campaign memory,
 steering, or grader.

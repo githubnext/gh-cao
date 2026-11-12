@@ -46,10 +46,6 @@ const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const executeFile = promisify(execFile);
 const defaultCatalogRoot = resolve(scriptDirectory, "..");
 const socketEndpoint = "/__dashboard_socket";
-const dataArtifactName = "central-agentic-ops-dashboard";
-const trustedDashboardWorkflowPaths = new Set([
-  ".github/workflows/cao-dashboard.yml",
-]);
 const contentTypes = new Map([
   [".avif", "image/avif"],
   [".css", "text/css; charset=utf-8"],
@@ -129,98 +125,27 @@ async function campaignDashboardPaths(catalogRoot) {
   return paths.toSorted();
 }
 
-async function downloadDashboardData(destination, repository, ghExecutable, workingDirectory) {
-  const options = { cwd: workingDirectory };
-  const repositoryPath = repository || "{owner}/{repo}";
-  let defaultBranch;
-  let controlRepository;
-  let runId;
-  try {
-    const repositoryResult = await executeFile(ghExecutable, [
-      "api",
-      `repos/${repositoryPath}`,
-      "--jq",
-      "[.default_branch, .full_name] | @tsv",
-    ], options);
-    [defaultBranch, controlRepository] = repositoryResult.stdout.trim().split("\t");
-    const result = await executeFile(ghExecutable, [
-      "api",
-      `repos/${repositoryPath}/actions/artifacts?name=${dataArtifactName}&per_page=100`,
-      "--jq",
-      "[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | last | .workflow_run.id // empty",
-    ], options);
-    runId = result.stdout.trim();
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
-      throw new Error("GitHub CLI is required to download dashboard data.");
-    }
-    throw new Error("Unable to query the dashboard data artifact. Authenticate GitHub CLI with Actions read access.");
+async function validateCanonicalActivityData(root) {
+  const entries = await readdir(root, { withFileTypes: true });
+  const names = new Set(entries.filter((entry) => entry.isFile()).map((entry) => entry.name));
+  if (!names.has("gh-aw-logs.sqlite") || !names.has("payload-hashes.json")) {
+    throw new Error("Prepare a checksum-verified operational snapshot with gh-aw-logs.sqlite and payload-hashes.json at its root.");
   }
-  if (!/^[1-9][0-9]*$/.test(runId)) {
-    throw new Error(`No current ${dataArtifactName} artifact is available. Run the dashboard action first.`);
-  }
-  if (!defaultBranch) throw new Error("Unable to determine the repository default branch.");
-
-  let provenance;
-  try {
-    const result = await executeFile(ghExecutable, [
-      "api",
-      `repos/${repositoryPath}/actions/runs/${runId}`,
-      "--jq",
-      "[.conclusion, .head_branch, .path] | @tsv",
-    ], options);
-    provenance = result.stdout.trim().split("\t");
-  } catch {
-    throw new Error(`Unable to verify ${dataArtifactName} from workflow run ${runId}.`);
-  }
-  if (provenance[0] !== "success"
-      || provenance[1] !== defaultBranch
-      || !trustedDashboardWorkflowPaths.has(provenance[2])) {
-    throw new Error(`The latest ${dataArtifactName} artifact is not from a successful trusted dashboard workflow run.`);
-  }
-
-  const arguments_ = ["run", "download", runId, "--name", dataArtifactName, "--dir", destination];
-  if (repository) arguments_.push("--repo", repository);
-  try {
-    await executeFile(ghExecutable, arguments_, options);
-  } catch {
-    throw new Error(`Unable to download ${dataArtifactName} from workflow run ${runId}.`);
-  }
-  return { repository: controlRepository };
-}
-
-async function findCanonicalDashboardData(root) {
-  const matches = [];
-  const visit = async (directory) => {
-    const entries = await readdir(directory, { withFileTypes: true });
-    const names = new Set(entries.map((entry) => entry.name));
-    if (names.has("gh-aw-logs.sqlite") && names.has("payload-hashes.json")) {
-      matches.push(directory);
-    }
-    await Promise.all(entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => visit(join(directory, entry.name))));
-  };
-  await visit(root);
-  if (matches.length > 1) {
-    throw new Error("The dashboard artifact contains multiple canonical data directories.");
-  }
-  if (!matches.length) {
-    throw new Error("The dashboard artifact requires a canonical gh-aw-logs.sqlite snapshot and payload-hashes.json. Run the dashboard action to republish it.");
-  }
-  const directory = matches[0];
-  const snapshot = join(directory, "gh-aw-logs.sqlite");
+  const snapshot = join(root, "gh-aw-logs.sqlite");
   if (!isWithin(await realpath(root), await realpath(snapshot))) {
     throw new Error("The canonical dashboard snapshot must remain inside the downloaded artifact.");
   }
-  const hashes = JSON.parse(await readFile(join(directory, "payload-hashes.json"), "utf8"));
+  const hashes = JSON.parse(await readFile(join(root, "payload-hashes.json"), "utf8"));
+  if (hashes.synthetic === true) {
+    throw new Error("Synthetic Pages demo data cannot be used as an operational Activity snapshot.");
+  }
   const expected = hashes["gh-aw-logs.sqlite"];
   const hash = createHash("sha256");
   for await (const chunk of createReadStream(snapshot)) hash.update(chunk);
   if (!/^[a-f0-9]{64}$/.test(expected ?? "") || hash.digest("hex") !== expected) {
     throw new Error("The canonical dashboard SQLite snapshot checksum does not match its manifest.");
   }
-  return directory;
+  return root;
 }
 
 async function sourceSignature(paths) {
@@ -408,7 +333,7 @@ function readWebsocketFrames(buffer) {
  *   repository?: string,
  *   caoUrl?: string,
  *   ghExecutable?: string,
- *   downloadData?: (destination: string, repository?: string, ghExecutable?: string, workingDirectory?: string) => Promise<void | { repository?: string }>,
+ *   snapshotDirectory?: string,
  *   generateQuery?: (intent: import('./query-editor-contract.mjs').QueryEditorIntent, options: { signal: AbortSignal }) => Promise<{ document: string }>,
  *   enhanceQueryIntent?: (request: import('./query-editor-contract.mjs').QueryEditorEnhancement, options: { signal: AbortSignal }) => Promise<import('./query-editor-contract.mjs').QueryEditorAuthoring>,
  *   startSession?: (prompt: string) => Promise<void>,
@@ -435,7 +360,7 @@ export async function startCanvasServer({
   repository,
   caoUrl = process.env.CAO_DASHBOARD_URL,
   ghExecutable = "gh",
-  downloadData = downloadDashboardData,
+  snapshotDirectory = ".cao",
   executeCliAction,
   approveCliAction,
   cliQueuePath,
@@ -509,7 +434,6 @@ export async function startCanvasServer({
   const baseDashboardPath = join(resolvedSiteRoot, "dashboard.json");
   const temporaryDirectory = await mkdtemp(join(resolvedWorkingDirectory, ".cao-dashboard-preview-"));
   const bundledDashboardPath = join(temporaryDirectory, "dashboard.json");
-  const dashboardDataDirectory = join(temporaryDirectory, "data");
   const servedSite = join(temporaryDirectory, "site");
   let canonicalDataDirectory;
   let goHost;
@@ -520,9 +444,16 @@ export async function startCanvasServer({
     })).stdout.trim(),
   });
   try {
-    const downloaded = await downloadData(dashboardDataDirectory, repository, ghExecutable, resolvedWorkingDirectory);
-    repository ??= downloaded?.repository;
-    canonicalDataDirectory = await findCanonicalDashboardData(dashboardDataDirectory);
+    const source = await canonicalPath(resolve(resolvedWorkingDirectory, snapshotDirectory));
+    if (!isWithin(resolvedWorkingDirectory, source)) {
+      throw new Error("The operational snapshot must remain within the workspace.");
+    }
+    try {
+      canonicalDataDirectory = await validateCanonicalActivityData(source);
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+      throw new Error("Prepare a checksum-verified operational snapshot in .cao or pass snapshotDirectory.", { cause: error });
+    }
     await stageCanvasAssets(resolvedSiteRoot, servedSite);
     if (terminalBundle) await writeCanvasAsset(servedSite, "src/components/cli-terminal-runtime.js", terminalBundle);
     if (queryEditorValidationBundle) await writeCanvasAsset(servedSite, "src/data/query-editor.js", queryEditorValidationBundle);
@@ -594,15 +525,8 @@ export async function startCanvasServer({
     if (repository) dashboardDocument.dashboard.repository = repository;
     const needsCaoUrl = (dashboardDocument.dashboard["cli-actions"] ?? []).some((action) =>
       cliActionTemplateFields(action.command, { includeContext: true }).includes("cao-url"));
-    if (needsCaoUrl && caoUrl === undefined && downloadData === downloadDashboardData) {
-      try {
-        const result = await executeFile(ghExecutable, [
-          "api", `repos/${repository || "{owner}/{repo}"}/pages`, "--jq", ".html_url",
-        ], { cwd: resolvedWorkingDirectory, timeout: 10_000, maxBuffer: 16 * 1024 });
-        caoUrl = validateCliActionUrl(result.stdout.trim());
-      } catch {
-        output("CAO command backlinks are unavailable. Set --cao-url or CAO_DASHBOARD_URL to the public dashboard URL.");
-      }
+    if (needsCaoUrl && caoUrl === undefined) {
+      output("CAO command backlinks are unavailable. Set --cao-url or CAO_DASHBOARD_URL to the operational dashboard URL.");
     }
     cliTemplateContext = cliActionTemplateContext({
       repository: dashboardDocument.dashboard.repository,

@@ -212,6 +212,23 @@ describe('continuation engine extensions', () => {
     }).overview;
     expect(enriched.rows.map((row) => row['workflow-id'])).toEqual(['workflow:c']);
 
+    const filteredDefinitions = [...definitions, {
+      name: 'failed',
+      from: 'overview',
+      filter: { predicates: [{ field: 'collection-state', equals: 'failed' }] }
+    }];
+    const filtered = executeDashboardQueries(filteredDefinitions, inputs, ['failed'], {
+      pagination: { failed: { limit: 2 } }
+    }).failed;
+    expect(filtered.rows.map(row => row['workflow-id'])).toEqual(['workflow:b']);
+    expect(filtered.metadata).toMatchObject({ 'page-row-count': 1, 'has-more': true });
+    expect(() => bindSourceContinuations({ failed: filtered }, ['failed'], async () => ({}))).not.toThrow();
+    const empty = executeDashboardQueries(filteredDefinitions, inputs, ['failed'], {
+      pagination: { failed: { limit: 2, continuationToken: filtered.continuationToken } }
+    }).failed;
+    expect(empty.rows).toEqual([]);
+    expect(empty.metadata).toMatchObject({ 'page-row-count': 0, 'has-more': false });
+
     expect(() => executeDashboardQueries(definitions, {
       ...inputs,
       workflows: {
