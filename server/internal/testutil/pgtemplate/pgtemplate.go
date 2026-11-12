@@ -137,20 +137,39 @@ func hostHash() string {
 // exited, and any older than a day. Live processes' databases stay intact.
 func removeStale(t testing.TB, ctx context.Context, admin *sql.DB) {
 	t.Helper()
-	rows, err := admin.QueryContext(ctx, `SELECT datname, datistemplate FROM pg_database WHERE datname LIKE 'cao\_test\_%'`)
+	stale, err := staleDatabases(ctx, admin)
 	if err != nil {
+		t.Logf("skipped stale Postgres test database cleanup: %v", err)
 		return
 	}
-	type candidate struct {
-		name     string
-		template bool
+	for _, current := range stale {
+		if current.template {
+			if _, err := admin.ExecContext(ctx, "ALTER DATABASE "+pgx.Identifier{current.name}.Sanitize()+" WITH IS_TEMPLATE false"); err != nil {
+				continue
+			}
+		}
+		drop(ctx, admin, current.name)
+		t.Logf("removed stale Postgres test database %s", current.name)
 	}
-	var stale []candidate
+}
+
+type staleCandidate struct {
+	name     string
+	template bool
+}
+
+func staleDatabases(ctx context.Context, admin *sql.DB) ([]staleCandidate, error) {
+	rows, err := admin.QueryContext(ctx, `SELECT datname, datistemplate FROM pg_database WHERE datname LIKE 'cao\_test\_%'`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var stale []staleCandidate
 	cutoff := time.Now().Add(-24 * time.Hour).Unix()
 	for rows.Next() {
-		var current candidate
-		if rows.Scan(&current.name, &current.template) != nil {
-			break
+		var current staleCandidate
+		if err := rows.Scan(&current.name, &current.template); err != nil {
+			return nil, err
 		}
 		var host string
 		var pid int
@@ -162,16 +181,7 @@ func removeStale(t testing.TB, ctx context.Context, admin *sql.DB) {
 			stale = append(stale, current)
 		}
 	}
-	_ = rows.Close()
-	for _, current := range stale {
-		if current.template {
-			if _, err := admin.ExecContext(ctx, "ALTER DATABASE "+pgx.Identifier{current.name}.Sanitize()+" WITH IS_TEMPLATE false"); err != nil {
-				continue
-			}
-		}
-		drop(ctx, admin, current.name)
-		t.Logf("removed stale Postgres test database %s", current.name)
-	}
+	return stale, rows.Err()
 }
 
 func processAlive(pid int) bool {
