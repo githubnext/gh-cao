@@ -81,6 +81,7 @@ export default defineConfig({
             "operational-*",
             "operations",
             "orchestrators-*",
+            "personas",
             "rollout-*",
             "setup-compatibility",
             "setup-fine-*",
@@ -255,6 +256,7 @@ export default defineConfig({
           label: "Introduction",
           items: [
             { label: "What is Central Agentic Ops?", link: "/architecture-at-a-glance/" },
+            { label: "Who is CAO for?", link: "/personas/" },
             { label: "Architecture", link: "/architecture/" },
           ],
         },
