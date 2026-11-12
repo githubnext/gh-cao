@@ -1,35 +1,7 @@
 {
- "source_sha": "063cbe9119c151f2d1913b1e5c566d74c1c5ea1b",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "source_sha": "433d9292506695ce6cecaed56525f0c059b8817a",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T08:53:34Z",
-   "worker_run_id": "43185953446",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761,
-    43129836945,
-    43124416558,
-    43121504364,
-    43104481579,
-    43103737760,
-    43101943628,
-    43099316175,
-    43094878868,
-    43092616318,
-    43090243002,
-    43087935698,
-    43085628886
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z; within 14 days; 0 cancelled; none in progress) = 12 successful current-shape publications (11 push, 1 schedule 43161224542; gate of 5 met), 6 failed retired-Mount schedules (excluded), 2 freshness-only schedules (excluded). Queue (build job created to started) median 3 s, p90 3 s; 0 overlapping adjacent runs, so no concurrency wait in the window. Wall created-to-updated median 90.5 s (p90 114 s); 15 percent gate = 13.6 s. Each of the 11 pushes changed at least one published input (docs/**, dashboard/site/**, dashboard/report/**, astro, package, or aw.yml), so none was avoidable by path-filter narrowing; the daily schedule is required for synthetic-date refresh. Open issue 20131 (coalesce superseded builds) rests on a 49 s burst delay that this window does not reproduce; not repeated. Job and step metadata only (logs not read). No suggestion; no issue created. next_category advanced to dependency installation and caching."
-  },
   {
    "evaluated_at": "2026-11-12T09:21:41Z",
    "worker_run_id": "43190048607",
@@ -787,6 +759,34 @@
     43124416558
    ],
    "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; within 14 days; HEAD f85ff07). Excluded: 1 cancelled superseded run 43206161686. Comparable n=19 successful runs (18 push, 1 schedule 43161224542; 5-run minimum met); docs.yml steps unchanged since d57c4c8 (063cbe9 removed only the activity/** path filter). Metrics from job/step metadata (job logs HTTP 403 DIFC, not read; single attempt): Upload Pages artifact median 2 s (p90 3); Configure Pages median 1 s (p90 1); build-end to deploy-start handoff median 6 s (p90 7); deploy job queue median 5 s (p90 6); Deploy Pages median 7 s (p90 14); packaging-to-deploy-end tail median 21 s (p90 30); build-start to deploy-end median 85 s (p90 123). github-pages artifact 8.27-8.34 MB. Gate = 15% of 85 s = 12.75 s. Controllable upload plus configure = 3 s median; halving the artifact saves about 1 s; merging deploy into build saves about 12 s of handoff and queue but moves id-token: write and the github-pages environment into the build job that runs npm ci lifecycle scripts, so it is rejected. Cache: metadata only; node-cache-Linux-x64-npm-e62f... (278.9 MB, refs/heads/main) active; Post Set up Node.js 0-1 s in 19/19, consistent with exact-key hits but not log-verified. Carry-forward for scheduling category (not a suggestion): run-to-build-job waits of 43 s and 27 s occurred (43228124764, 43206235849), consistent with concurrency queueing; cancelled 43206161686 superseded. No suggestion; no issue created. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-12T18:55:30Z",
+   "worker_run_id": "43283815200",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43249903823,
+    43242792853,
+    43236057780,
+    43228124764,
+    43228046118,
+    43225202834,
+    43206235849,
+    43206080696,
+    43194788185,
+    43167568535,
+    43167070179,
+    43165397534,
+    43161224542,
+    43145803206,
+    43141528595,
+    43139972486,
+    43138878761,
+    43129836945,
+    43124416558
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; within 14 days; HEAD 433d929; docs.yml last changed 063cbe9). Excluded: 1 cancelled 43206161686 (pending run replaced by 43206235849, no jobs started). Comparable n=19 successful (18 push, 1 schedule 43161224542; 5-run gate met). Wall created-to-deploy median 88 s (p90 157); build-start-to-deploy-end median 85 s (p90 123); 15 percent gate 12.8 s; 60 s unreachable. Queue: build median 3 s (p90 4), deploy 5 s (p90 6), build-to-deploy handoff 6 s (p90 7). Concurrency: 2 of 19 runs queued behind the in-progress run (43206235849 27 s; 43228124764 43 s), queue-only, median wait 0. Avoidable rebuilds: 0 of 18 pushes lacked a non-test Pages input; none control-plane-only. Daily cron is the freshness refresh (1 of 19 runs). Rejected: deploy merge (about 6 s, drops environment gate), cancel-in-progress (unsafe for in-flight deploys), split concurrency (median 0), conditional cron (weakens freshness, no per-run saving). Issues 20131 and 20380 closed, none open. Job/step metadata only (logs not read). No suggestion; no issue created. next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
   }
  ]
