@@ -1,35 +1,7 @@
 {
   "source_sha": "9537899c8a84550688bd1f4135a33a42a43b9839",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-10T22:33:55Z",
-      "worker_run_id": "42914979216",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42915280441,
-        42912938024,
-        42912416453,
-        42910650809,
-        42908132923,
-        42905767635,
-        42905068616,
-        42903346355,
-        42902695947,
-        42898468486,
-        42896004811,
-        42893528446,
-        42893241575,
-        42891091809,
-        42888486035,
-        42886082405,
-        42883487961,
-        42882863950,
-        42881074442,
-        42880898081
-      ],
-      "outcome": "incomplete: latest-20 completed docs.yml window (2026-11-10T19:00:30Z to 2026-11-10T22:31:05Z, within 14 days) contained 15 successful runs (13 freshness-only schedules with build and deploy skipped, 8 to 10 s each; 2 full publications), 4 skipped workflow_run callbacks, and 1 cancelled workflow_run (42880898081, excluded). No failed runs. Only two comparable successful build-and-deploy publications were available, below the required five: push 42905068616 at c6fd809e (build 136 s, deploy 29 s) and schedule 42881074442 at 2fbe39c5 (build 168 s, deploy 27 s). Trusted job metadata verified the step conditions; no bounded logs were read because the gate stopped the evaluation. next_category was not advanced because no complete evaluation was made. The mission's 'dashboard' job does not exist; dashboard steps run inside build."
-    },
     {
       "evaluated_at": "2026-11-10T22:52:41Z",
       "worker_run_id": "42917913013",
@@ -806,6 +778,23 @@
         43081415171
       ],
       "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:49:35Z to 2026-11-12T05:24:50Z; within 14 days; 0 cancelled; none in progress) = 9 successful current-design full publications (push d57c4c821, 3707d467, f1cdd833, ad8a18d8, f0777fe2, 874fa758, 3bd066dd, 62f179a2; schedule 9537899; docs.yml unchanged since d57c4c821 per commit history; n=9 meets the minimum), 2 pre-design full publications (43083249533, 43081415171; excluded), 2 pre-design freshness-only schedules, 6 failed pre-design schedules (retired Mount latest CAO Dashboard step; excluded and disclosed), 1 skipped workflow_run. Current-design medians (p90), n=9: run created to build start 4 s (4 s); build job 72 s (93 s); build-end to deploy-start 5 s (6 s); deploy job 10 s (11 s); created to deploy-complete 88 s (113 s). Build steps: checkout 24 s (40 s), npm ci 19 s (25 s), docs build 15 s (15 s), demo 3 s (4 s), Pages upload 2 s (3 s). Concurrency: zero queueing; no two runs in the documentation-pages group overlapped (smallest inter-run gap about 9 min against runs of at most 113 s). Avoidable rebuilds: every push publication matched a docs-consumed trigger path (docs/**, dashboard/site/src, package.json, activity/empirical-behavior.mjs); no test-only or non-consumed trigger commit in window (path matcher uses GitHub glob semantics). The daily 05:23 UTC schedule refreshes synthetic dates from Date.now() in scripts/simulate-dashboard-pages.mjs, so removing it would weaken freshness. Open issue 20131 (superseded-build coalescing, 49 s concurrency-delay premise) not reproduced in this window, so no duplicate issue. No suggestion; next_category advanced to dependency installation and caching. Logs not read (job and step metadata plus commit file lists only)."
+    },
+    {
+      "evaluated_at": "2026-11-12T05:54:46Z",
+      "worker_run_id": "43163833615",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579
+      ],
+      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:49:35Z to 2026-11-12T05:24:50Z; 14-day window; 0 cancelled). Excluded: 6 failed schedules at retired Mount step, 2 pre-design full publications (43081415171, 43083249533), skipped callbacks. n=9 comparable successful current-design publications (8 push + 1 schedule; source d57c4c82..9537899c; compare API shows no docs.yml change). Medians (p90): Install dependencies 19 s (25 s; 13-25); Set up Node.js 3 s (8 s); Checkout 24 s (40 s); build job 72 s (93 s); deploy job 10 s (11 s); build-start to deploy-end 85 s (109 s). Gate 15% = 12.8 s; install share ~26% of build median but warm installs show no evidence of a 13 s saving. Cache hit/miss unverified: job logs HTTP 403 (DIFC); cache listing shares keys across workflows. Checkout fetch-depth 0 is not a safe shallow candidate: docs/plugins/starlight-agent/resource.ts derives per-file sourceCommittedAt via git log -- <file>, validated by scripts/validate-agent-docs.mjs. Open issues #20380 and #20131 checked; no new suggestion. next_category advanced to Astro documentation generation."
     }
   ]
 }
