@@ -1,35 +1,7 @@
 {
-  "source_sha": "9537899c8a84550688bd1f4135a33a42a43b9839",
-  "next_category": "Astro documentation generation",
+  "source_sha": "d4bf131be13d9899c0f16a32f4207027e1b19d8d",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-10T22:52:41Z",
-      "worker_run_id": "42917913013",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42917487659,
-        42915280441,
-        42912938024,
-        42912416453,
-        42910650809,
-        42908132923,
-        42905767635,
-        42905068616,
-        42903346355,
-        42902695947,
-        42898468486,
-        42896004811,
-        42893528446,
-        42893241575,
-        42891091809,
-        42888486035,
-        42886082405,
-        42883487961,
-        42882863950,
-        42881074442
-      ],
-      "outcome": "incomplete: latest 20 completed docs.yml runs (2026-11-10T19:01:30Z to 2026-11-10T22:45:40Z, within 14 days; no cancelled runs in this window; no failed runs) contained 16 successful runs (15 schedule runs that were freshness-only with build and deploy skipped, and 1 push publication) and 4 skipped workflow_run callbacks. Only 2 comparable successful full build-and-deploy publications exist, below the required 5: push 42905068616 at c6fd809e8 (run 174 s; build 136 s; deploy 29 s) and schedule 42881074442 at 2fbe39c5c (run 415 s, including 201 s between run start and first job creation; build 168 s; deploy 27 s). Successful schedule-freshness jobs n=15, median 8 s (range 6-10 s). Cache-hit and step-level analysis across a sufficient sample was not established; cao-dashboard.yml was not analyzed beyond docs.yml freshness logic because the sample gate failed. No suggestion; next_category unchanged. Unverified observation for a future evaluation: the 201 s pre-job gap on run 42881074442 may reflect concurrency group documentation-pages after cancelled runs 42880898081 and 42880862291; cause not verified from logs."
-    },
     {
       "evaluated_at": "2026-11-11T19:33:35Z",
       "worker_run_id": "43087688191",
@@ -795,6 +767,34 @@
         43104481579
       ],
       "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:49:35Z to 2026-11-12T05:24:50Z; 14-day window; 0 cancelled). Excluded: 6 failed schedules at retired Mount step, 2 pre-design full publications (43081415171, 43083249533), skipped callbacks. n=9 comparable successful current-design publications (8 push + 1 schedule; source d57c4c82..9537899c; compare API shows no docs.yml change). Medians (p90): Install dependencies 19 s (25 s; 13-25); Set up Node.js 3 s (8 s); Checkout 24 s (40 s); build job 72 s (93 s); deploy job 10 s (11 s); build-start to deploy-end 85 s (109 s). Gate 15% = 12.8 s; install share ~26% of build median but warm installs show no evidence of a 13 s saving. Cache hit/miss unverified: job logs HTTP 403 (DIFC); cache listing shares keys across workflows. Checkout fetch-depth 0 is not a safe shallow candidate: docs/plugins/starlight-agent/resource.ts derives per-file sourceCommittedAt via git log -- <file>, validated by scripts/validate-agent-docs.mjs. Open issues #20380 and #20131 checked; no new suggestion. next_category advanced to Astro documentation generation."
+    },
+    {
+      "evaluated_at": "2026-11-12T06:26:08Z",
+      "worker_run_id": "43167557630",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175,
+        43094878868,
+        43092616318,
+        43090243002,
+        43087935698,
+        43085628886
+      ],
+      "outcome": "complete, not actionable: window 2026-11-11T18:31:43Z to 2026-11-12T06:21:27Z = latest 20 completed docs.yml runs (all within 14 days; 0 cancelled in window). Composition: 12 successful full build+deploy publications (11 push, 1 schedule), 6 failed schedule runs (failed at 'Mount latest CAO Dashboard artifact': 93614994e x4, 770e465dd x2; excluded), 2 freshness-only schedule successes (excluded). Category Astro documentation generation: 'Build documentation' step (npm run docs:build = astro build + validate-agent-docs + node --test) median 14.0 s, p90 15.0, range 10-15. Build job median 72.5 s (p90 93); build start to deploy end median 86.5 s (p90 109). 15% of that is about 13 s and the 60 s bar is far above the step, and validation cannot be removed, so no Astro-only change qualifies. Limits: job logs returned HTTP 403, so step-internal Astro timing and cache hit/miss were not log-verified; cache metadata (last_accessed_at aligned with Set up Node.js window on 43167568535) is indicative only. Leads for dependency category: Checkout fetch-depth 0 median 24 s (p90 40), largest step; need for full history unverified. Existing open issues by this worker: #20380, #20131; no duplicate created. No suggestion. next_category advanced."
     }
   ]
 }
