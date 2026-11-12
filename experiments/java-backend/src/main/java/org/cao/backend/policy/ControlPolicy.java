@@ -7,11 +7,19 @@ import java.util.Map;
 public record ControlPolicy(
         String digest,
         Scope scope,
+        Inventory inventory,
         Defaults defaults,
         Map<String, Campaign> campaigns) {
 
     /** Owner and repository allow-lists; empty means "not restricted by this list". */
     public record Scope(List<String> owners, List<String> repositories) { }
+
+    /** Inventory ceilings with the schema defaults applied (specs/control-architecture.md §5.3). */
+    public record Inventory(int maxScanRepositories, int cellCount, int cellIndex, int batchSize, int batchIndex) {
+        public static Inventory defaults() {
+            return new Inventory(1000, 1, 0, 100_000, 0);
+        }
+    }
 
     /** Nullable members mean the declaration is absent. */
     public record Defaults(Mode mode, Integer maxRepositories, Integer rolloutPercent) { }
