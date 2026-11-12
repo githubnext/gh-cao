@@ -1,35 +1,7 @@
 {
   "source_sha": "cd1e0ba023d17672e8e2a42170a9f57cc709522d",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T13:19:47Z",
-      "worker_run_id": "43225574255",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        43225202834,
-        43206235849,
-        43206161686,
-        43206080696,
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:00:12Z to 2026-11-12T13:13:14Z; within 14 days). Excluded and disclosed: 1 cancelled superseded run 43206161686; 3 failed pre-design schedules 43099316175, 43101943628, 43103737760 (headSha 93614994, failed at retired Mount latest CAO Dashboard step). Comparable n=16 successes on the build+deploy shape (15 push incl. new 43225202834 at 313a3853, 1 schedule 43161224542). Dashboard step 'Build synthetic enterprise demo' (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs calling buildDashboardSite, then cp to dist/cao): median 3 s, p90 4 s, range 2-4 s = 3.4% of median wall 88 s (p90 122 s) and 4.2% of build median 71 s; full elimination saves at most about 3 s, far below the 60 s / 15% (about 13 s) gate. No dashboard job exists; dashboard generation runs inside build. Install dependencies median 17.5 s (p90 23 s) includes dashboard-site npm ci but is not split; job logs re-verified 403 difc_forbidden. The dashboard step uses no cache. Open issue 20380 targets a retired operational-snapshot input path and is not supported by this window; issue 20131 is now CLOSED (previously recorded open). Carry-forward lead, unchanged: Checkout fetch-depth 0 median 24 s (p90 47 s, n=16), largest build-job step; partial-clone alternative unmeasured. No suggestion; next_category advanced to artifact transfer and Pages packaging."
-    },
     {
       "evaluated_at": "2026-11-12T13:33:44Z",
       "worker_run_id": "43227772552",
@@ -835,6 +807,33 @@
         43138878761
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04Z to 2026-11-12T20:35Z; within 14 days; source cd1e0ba = HEAD = source_sha; no new completed runs since the 22:56Z evaluation). Excluded and disclosed: 1 failed 43297524311 (e465d28, fixed by cd1e0ba) and 1 cancelled 43206161686 (no jobs). n=18 successes (17 push, 1 schedule 43161224542). 'Build documentation' (npm run docs:build) from step metadata: median 14 s (p90 15 s; range 8-15 s; push-only median 14 s) = 16.6% of median build-start-to-deploy-end 84.5 s (p90 120 s) and 21% of build job median 67 s. 15% gate = 12.7 s, reachable only by removing nearly the whole step, which is required for publication, so no qualifying change. Internal Astro split not visible: job logs re-verified 403 difc_forbidden at 23:17Z. Cache list has no Astro-specific key (only setup-node npm keys); Astro-internal caching is unmeasured and cannot be shown to save 12.7 s. Only docs.yml-level option found: overlapping the dashboard step (median 4 s) saves at most 4 s. No suggestion; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T23:34:22Z",
+      "worker_run_id": "43329323016",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        43301807773,
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; all within 14 days; no new completed runs since the 23:20Z evaluation; source cd1e0ba = HEAD = source_sha). Excluded and disclosed: 1 failed 43297524311 (e465d28c; Build documentation failed at 14 s; fixed by cd1e0ba; cause unverified, logs 403) and 1 cancelled 43206161686 (no jobs). Comparable n=18 successes (17 push, 1 schedule 43161224542; identical build+deploy step shape; 5-run gate met). Category step 'Build synthetic enterprise demo' (docs.yml lines 55-58: npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs, then cp to dist/cao): median 4 s, p90 4 s, range 2-5 s = 4.7% of median build-start-to-deploy-end 84.5 s (p90 120.2 s) and 6.0% of build job median 67 s. Full removal cannot reach 60 s or 15% (12.7 s). No dashboard job exists; the step has no cache (docs.yml uses only setup-node npm cache), so no hit/miss verification applies. Caching its output would conflict with the daily synthetic-date refresh (Date.now in simulate-dashboard-pages.mjs). The dashboard-site npm ci is inside the unsplit Install dependencies step (median 16 s, p90 22.3 s), so its share is not separable from metadata. Open-issue check via gh: no open issue with label self-care:docs-build-time-investigator; open [aw] failure-tracking issues 20440 and 20719 are operational, not improvement suggestions. Carry-forward, unchanged and unmeasured, not evaluated in this category: Checkout fetch-depth 0 median 24 s (p90 46 s), largest build step. No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
     }
   ]
