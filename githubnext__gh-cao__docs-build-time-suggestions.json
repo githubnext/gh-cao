@@ -1,35 +1,7 @@
 {
   "source_sha": "62f179a2a9b359fc88aee92cefa9a0f54a1422eb",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-10T21:17:32.831849Z",
-      "worker_run_id": "42902966047",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42903346355,
-        42902695947,
-        42898468486,
-        42896004811,
-        42893528446,
-        42893241575,
-        42891091809,
-        42888486035,
-        42886082405,
-        42883487961,
-        42882863950,
-        42881074442,
-        42880898081,
-        42880862291,
-        42878502714,
-        42876007544,
-        42875512132,
-        42873697320,
-        42870930998,
-        42868247499
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T17:45:48Z to 2026-11-10T21:16:16Z) was within 14 days and contained 12 successful runs, three failed runs, two cancelled runs, and three skipped workflow_run callbacks. Trusted Actions job and step metadata verified only one successful full build-and-deploy publication: schedule run 42881074442 at source 2fbe39c5cfd0cf1af046a5e3e21ff67f327f20ac. It waited 203 seconds before the freshness job started, then completed a 168-second build and 27-second deploy; dependency installation took 51 seconds, Astro generation 15 seconds, dashboard cache restore 4 seconds, Pages artifact upload 19 seconds, and Pages deployment 23 seconds. The dashboard cache was a verified hit because the fallback lookup and artifact download steps were skipped. The other 11 successful runs were freshness-only schedules; the three failed runs completed successful build jobs but failed during 607-630 second Pages deployments, the two cancelled runs produced no completed publication sample, and the three workflow_run callbacks skipped every job. One comparable successful publication is below the required five, so full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer/Pages-packaging analysis across a sufficient successful sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
     {
       "evaluated_at": "2026-11-10T21:35:33Z",
       "worker_run_id": "42905594808",
@@ -806,6 +778,34 @@
         43104481579
       ],
       "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z; 14-day window; 0 cancelled) = 13 successes (8 current build+deploy push publications at d57c4c82..62f179a2, n=8 meets minimum; 5 older-shape successes), 6 failed retired-Mount schedules (excluded), 1 skipped workflow_run. Current-design medians (p90), n=8: Install dependencies 20.5s (25s); Set up Node.js 4.5s (8s); Checkout 24s (40s, out of category); build job 72.5s (93s); deploy 10s (11s); build-start to deploy-end 86.5s (109s). Cache evidence from trusted Actions cache metadata plus step timings (job logs returned HTTP 403 DIFC, so hit/miss is inferred from cache-entry timing, not log lines): docs.yml uses default setup-node npm cache keyed on root package-lock.json only (key 40717a8d... recomputed from HEAD lockfile; dashboard/site lockfile not in key). Root lock changed at 9b5a7f99 (16:13Z 11-11; key 4f957eab saved 16:14Z) and at 3bd066dd (02:27Z 11-12; key 40717a8d saved on main 02:28Z by run 43141528595). Seven of eight runs were restores (Set up 3-8s, post-save 0-1s); the first run after the 3bd066dd lock change was the one miss (Set up 1s, post-save 1s, install 22s). Install remains 13-25s on hits, so warm-cache npm ci work is not dominated by downloads; no measured change (--no-audit, --prefer-offline, node_modules caching, workspace merge) has evidence of saving the 13s (15%) threshold. Latent: dashboard-only lock changes would not change the docs cache key; no dashboard/site/package-lock.json commits since 2026-10-25 so no observed cost. Carry-forward for a later eligible cycle: Checkout fetch-depth 0 is the largest build-job step (median 24s, p90 40s); docs build reads git only via rev-parse HEAD supplied by PUBLIC_PAGES_BUILD_COMMIT; history need and savings not verified. No suggestion; next_category advanced to Astro documentation generation."
+    },
+    {
+      "evaluated_at": "2026-11-12T04:34:34Z",
+      "worker_run_id": "43155255291",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175,
+        43094878868,
+        43092616318,
+        43090243002,
+        43087935698,
+        43085628886,
+        43085139761,
+        43083249533,
+        43081415171,
+        43080844329
+      ],
+      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z; 14-day window; 0 cancelled, none in progress) = 13 successes: 8 current-design push publications (d57c4c82..62f179a2; n=8 meets minimum), 2 pre-design full publications (43083249533 schedule, 43081415171 push; excluded from Astro sample), 3 freshness-only schedules (about 11 s); 6 failed schedules (43090243002, 43092616318, 43094878868, 43099316175, 43101943628, 43103737760; build failed at retired Mount latest CAO Dashboard artifact; excluded and disclosed); 1 skipped workflow_run callback. Trusted job and step metadata only; log reads still return 403 difc_forbidden (re-verified). Build documentation step (npm run docs:build) per-run durations 10,15,11,12,15,11,15,15 s: median 13.5 s, p90 15 s (nearest-rank), range 10-15 s. Against per-run median wall 89.5 s (p90 112 s) that is about 15% (gate about 13.4 s); against median build job 72.5 s it is about 19%. Only removing the whole step would reach the gate, and generated docs are required for publication, so no safe Astro-internal change is expected to save 60 s or 15%; split between astro build and validation/tests inside docs:build is not visible without logs. Cache evidence: Set up Node.js restore median 4.5 s (1-8 s); npm install median 20.5 s (13-25 s); node-cache-Linux-x64-npm-40717a8d present (saved on main 02:28Z). No suggestion; open issues 20380 (dashboard input caching) and 20131 (superseded-build coalescing) cover other categories. Carry-forward lead, not a suggestion: fetch-depth 0 checkout (median 24 s, p90 40 s, largest build-job step) may be coupled to per-file provenance git-log reads; any partial-history alternative must preserve sourceCommittedAt semantics and needs measurement. next_category advanced to reusable dashboard generation."
     }
   ]
 }
