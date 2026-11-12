@@ -28,8 +28,9 @@ func TestDashboardServingIntegration(t *testing.T) {
 	}
 	admin := os.Getenv("CAO_DASHBOARD_TEST_POSTGRES_URL")
 	managed := os.Getenv("CAO_DASHBOARD_TEST_DOCKER") == "1"
-	if admin == "" && !managed {
-		t.Fatal("selected integration requires CAO_DASHBOARD_TEST_POSTGRES_URL (disposable native PostgreSQL administrator URL) or CAO_DASHBOARD_TEST_DOCKER=1")
+	dockerExplicit := os.Getenv("CAO_DASHBOARD_TEST_DOCKER_EXPLICIT") == "1"
+	if admin == "" && !managed && !dockerExplicit {
+		t.Fatal("selected integration requires CAO_DASHBOARD_TEST_POSTGRES_URL (disposable native PostgreSQL administrator URL), CAO_DASHBOARD_TEST_DOCKER=1, or CAO_DASHBOARD_TEST_DOCKER_EXPLICIT=1")
 	}
 	site := os.Getenv("CAO_DASHBOARD_TEST_SITE")
 	if !filepath.IsAbs(site) {
@@ -39,7 +40,11 @@ func TestDashboardServingIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	directory, err := os.MkdirTemp(".", ".dashboard serving integration-")
+	temporary := filepath.Join(repository, ".tmp")
+	if err := os.MkdirAll(temporary, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	directory, err := os.MkdirTemp(temporary, ".dashboard serving integration-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,6 +121,104 @@ func TestDashboardServingIntegration(t *testing.T) {
 			runDashboardServingIntegration(t, ctx, binary, builtSite, filepath.Join(directory, "managed backend"), "", &engine)
 		})
 	}
+	if dockerExplicit {
+		t.Run("docker-explicit", func(t *testing.T) {
+			engine, err := selectDashboardEngine(ctx, "docker")
+			if err != nil {
+				t.Fatalf("selected Docker explicit integration requires local Docker with Linux containers: %v", err)
+			}
+			admin := startDashboardServingDockerPostgres(t, ctx, engine)
+			runtimeURL := provisionDashboardServingPostgres(t, ctx, binary, admin)
+			t.Run("synthetic-collection", func(t *testing.T) {
+				runDashboardServingIntegration(t, ctx, binary, builtSite, filepath.Join(directory, "Docker explicit backend"), runtimeURL, nil)
+			})
+			if cli := os.Getenv("CAO_DASHBOARD_TEST_CLI"); cli != "" {
+				t.Run("cli-process", func(t *testing.T) {
+					runDashboardServingCLIProcess(t, ctx, cli, binary, builtSite, filepath.Join(directory, "Docker native CLI process"), runtimeURL)
+				})
+			} else {
+				t.Log("CAO_DASHBOARD_TEST_CLI not supplied: native gh-cao process smoke unavailable")
+			}
+			t.Log("Docker-backed explicit PostgreSQL exercised; automatic managed-cache portability is not established")
+		})
+	}
+}
+
+func startDashboardServingDockerPostgres(t *testing.T, ctx context.Context, engine dashboardEngine) string {
+	t.Helper()
+	owner, err := dashboardPostgresSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
+	password, err := dashboardPostgresSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := "gh-cao-serving-explicit-" + owner[:24]
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		found, err := engine.run(cleanup, "container", "ls", "--all", "--filter", "name=^"+name+"$", "--format", "{{.ID}}")
+		if err != nil {
+			t.Errorf("locate uniquely named Docker explicit fixture: %v", err)
+			return
+		}
+		if strings.TrimSpace(string(found)) == "" {
+			return
+		}
+		container, err := engine.inspectPostgres(cleanup, name)
+		if err != nil || container.Config.Labels[dashboardPostgresLabel] != owner ||
+			container.Config.Image != dashboardPostgresImage {
+			t.Error("refusing Docker explicit cleanup: fixture owner or image mismatch")
+			return
+		}
+		if _, err := engine.run(cleanup, "container", "rm", "--force", "--volumes", container.ID); err != nil {
+			t.Errorf("remove uniquely owned Docker explicit fixture and anonymous volumes: %v", err)
+		}
+	})
+	if _, err := engine.run(ctx, "image", "inspect", dashboardPostgresImage); err != nil {
+		if _, err := engine.run(ctx, "pull", "--quiet", dashboardPostgresImage); err != nil {
+			t.Fatalf("pull Docker explicit PostgreSQL fixture image: %v", err)
+		}
+	}
+	// No host bind mounts or production managed-cache state: Docker owns this
+	// fixture's disposable anonymous data volume on every host platform.
+	if _, err := engine.run(ctx, "run", "--detach", "--name", name,
+		"--label", dashboardPostgresLabel+"="+owner, "--publish", "127.0.0.1::5432",
+		"--env", "POSTGRES_DB=cao_dashboard", "--env", "POSTGRES_USER=cao_bootstrap",
+		"--env", "POSTGRES_PASSWORD="+password,
+		dashboardPostgresImage, "postgres", "-c", "max_locks_per_transaction=512"); err != nil {
+		t.Fatalf("start Docker explicit PostgreSQL fixture: %v", err)
+	}
+	container, err := engine.inspectPostgres(ctx, name)
+	if err != nil || container.Config.Labels[dashboardPostgresLabel] != owner ||
+		container.Config.Image != dashboardPostgresImage {
+		t.Fatalf("Docker explicit PostgreSQL identity unavailable: %v", err)
+	}
+	ports := container.NetworkSettings.Ports["5432/tcp"]
+	if len(ports) != 1 || ports[0].HostIP != "127.0.0.1" {
+		t.Fatal("Docker explicit PostgreSQL must publish exactly one numeric-loopback port")
+	}
+	port := ports[0].HostPort
+	if err := validateDashboardListen(net.JoinHostPort("127.0.0.1", port)); err != nil || port == "0" {
+		t.Fatal("Docker explicit PostgreSQL published an invalid port")
+	}
+	ready, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	for {
+		if _, err := engine.run(ready, "exec", container.ID, "pg_isready", "-h", "127.0.0.1",
+			"-U", "cao_bootstrap", "-d", "cao_dashboard"); err == nil {
+			break
+		}
+		select {
+		case <-ready.Done():
+			t.Fatal("Docker explicit PostgreSQL did not become ready")
+		case <-time.After(250 * time.Millisecond):
+		}
+	}
+	address := &url.URL{Scheme: "postgres", Host: net.JoinHostPort("127.0.0.1", port),
+		Path: "/cao_dashboard", User: url.UserPassword("cao_bootstrap", password), RawQuery: "sslmode=disable"}
+	return address.String()
 }
 
 func runDashboardServingCLIProcess(t *testing.T, parent context.Context, cli, binary, builtSite, directory, postgresURL string) {
@@ -216,6 +319,8 @@ func provisionDashboardServingPostgres(t *testing.T, ctx context.Context, binary
 	if address.User.Username() != "cao_bootstrap" || address.Path != "/cao_dashboard" {
 		t.Fatal("selected disposable PostgreSQL requires administrator cao_bootstrap and database cao_dashboard")
 	}
+	address.Scheme = "postgres"
+	admin = address.String()
 	password, err := dashboardPostgresSecret()
 	if err != nil {
 		t.Fatal(err)
@@ -254,7 +359,19 @@ func runDashboardServingIntegration(t *testing.T, ctx context.Context, binary, b
 	for phase := range 2 {
 		output := &dashboardServingOutput{ready: make(chan string, 1)}
 		session, stop := context.WithCancel(ctx)
-		command := dashboardCommand("integration", dashboardTestGH(t, now), dashboardTestLogs(t))
+		baseGH := dashboardTestGH(t, now)
+		earlyAcquisition := make(chan struct{}, 1)
+		gh := func(ctx context.Context, args ...string) (string, string, error) {
+			if !output.hasAnnouncedReadiness() {
+				select {
+				case earlyAcquisition <- struct{}{}:
+				default:
+				}
+				return "", "", fmt.Errorf("acquisition raced the native server's initial snapshot ingestion")
+			}
+			return baseGH(ctx, args...)
+		}
+		command := dashboardCommand("integration", gh, dashboardTestLogs(t))
 		command.SilenceUsage, command.SilenceErrors = true, true
 		command.SetOut(output)
 		command.SetErr(output)
@@ -290,6 +407,11 @@ func runDashboardServingIntegration(t *testing.T, ctx context.Context, binary, b
 		case <-ctx.Done():
 			stop()
 			t.Fatalf("dashboard startup deadline: %v\n%s", ctx.Err(), output.diagnostics())
+		}
+		select {
+		case <-earlyAcquisition:
+			t.Fatal("collection began before the native server finished initial ingestion and announced readiness")
+		default:
 		}
 		capability, err := url.Parse(address)
 		if err != nil || capability.Scheme != "http" || capability.User != nil ||
@@ -408,9 +530,10 @@ func runDashboardServingIntegration(t *testing.T, ctx context.Context, binary, b
 }
 
 type dashboardServingOutput struct {
-	mutex  sync.Mutex
-	buffer bytes.Buffer
-	ready  chan string
+	mutex     sync.Mutex
+	buffer    bytes.Buffer
+	ready     chan string
+	announced bool
 }
 
 func (output *dashboardServingOutput) Write(value []byte) (int, error) {
@@ -420,6 +543,7 @@ func (output *dashboardServingOutput) Write(value []byte) (int, error) {
 	if _, rest, found := strings.Cut(output.buffer.String(), "Dashboard: "); found {
 		if line, _, complete := strings.Cut(rest, "\n"); complete {
 			if fields := strings.Fields(line); len(fields) > 0 {
+				output.announced = true
 				select {
 				case output.ready <- fields[0]:
 				default:
@@ -428,6 +552,12 @@ func (output *dashboardServingOutput) Write(value []byte) (int, error) {
 		}
 	}
 	return n, err
+}
+
+func (output *dashboardServingOutput) hasAnnouncedReadiness() bool {
+	output.mutex.Lock()
+	defer output.mutex.Unlock()
+	return output.announced
 }
 
 func TestDashboardServingOutputCapturesProcessReadiness(t *testing.T) {
@@ -439,6 +569,9 @@ func TestDashboardServingOutputCapturesProcessReadiness(t *testing.T) {
 	if _, err := io.Copy(output, reader); err != nil {
 		t.Fatal(err)
 	}
+	if output.hasAnnouncedReadiness() {
+		t.Fatal("incomplete pipe line marked the server ready for collection")
+	}
 	select {
 	case <-output.ready:
 		t.Fatal("incomplete pipe line announced a truncated dashboard URL")
@@ -446,6 +579,9 @@ func TestDashboardServingOutputCapturesProcessReadiness(t *testing.T) {
 	}
 	if _, err := io.Copy(output, io.LimitReader(strings.NewReader("\n"), 1)); err != nil {
 		t.Fatal(err)
+	}
+	if !output.hasAnnouncedReadiness() {
+		t.Fatal("complete readiness line did not allow collection")
 	}
 	select {
 	case actual := <-output.ready:
