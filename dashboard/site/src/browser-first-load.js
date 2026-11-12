@@ -13,10 +13,13 @@ export function resetPreparationDiagnostics() {
   preparationLog.length = 0;
   preparationStorage.set(null);
   recording = true;
+  debugBrowserFirstLoad({ event: 'preparation-started' });
 }
 
 export function finishPreparationDiagnostics() {
+  const wasRecording = recording;
   recording = false;
+  debugBrowserFirstLoad({ event: 'preparation-finished', wasRecording, entryCount: preparationLog.length, status: browserFirstLoad.get().status });
 }
 
 /** @param {string} event @param {Record<string, string | number | boolean | null>} [details] */
