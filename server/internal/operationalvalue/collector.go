@@ -375,46 +375,6 @@ func validatePeriod(record *valueRecord, fields map[string]json.RawMessage, obse
 	return nil
 }
 
-func envelopes(campaign string, records []valueRecord) []envelope {
-	output := make([]envelope, 0, len(records))
-	for _, record := range records {
-		role, name, direction, maturity := "primary", record.ValueID, "increase", "matured"
-		if record.MetricRole != nil {
-			role = *record.MetricRole
-		}
-		if record.MetricName != nil {
-			name = *record.MetricName
-		}
-		if record.MetricDirection != nil {
-			direction = *record.MetricDirection
-		}
-		if record.MaturityStatus != nil {
-			maturity = *record.MaturityStatus
-		}
-		output = append(output, envelope{
-			SchemaVersion: 2, Kind: "operational_value",
-			OperationalValue: operationalValue{
-				Timestamp: record.Timestamp, Repository: record.Repository,
-				Campaign: campaign, CampaignID: "campaign:" + campaign,
-				ValueID: record.ValueID, Value: record.Value,
-				WindowStart: record.WindowStart, WindowEnd: record.WindowEnd,
-				MeasurementKind: record.MeasurementKind, CoverageStatus: record.CoverageStatus,
-				MissingReason: record.MissingReason, EligibleCount: record.EligibleCount,
-				PopulationDigest: record.PopulationDigest, EvidenceDigest: record.EvidenceDigest,
-				MetricRole: role, MetricName: name, MetricUnit: record.MetricUnit,
-				MetricDirection: direction, MaturityStatus: maturity,
-				AdoptionAt: record.AdoptionAt, EvaluationMode: record.EvaluationMode,
-				WorkflowSlug: record.WorkflowSlug, WorkflowName: record.WorkflowName,
-				EvaluatorDigest:   record.EvaluatorDigest,
-				CadenceDays:       record.CadenceDays,
-				RollupNumerator:   record.RollupNumerator,
-				RollupDenominator: record.RollupDenominator,
-			},
-		})
-	}
-	return output
-}
-
 func readRetained(path string, cutoff time.Time) ([]envelope, error) {
 	if path == "" {
 		return nil, nil

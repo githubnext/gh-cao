@@ -19,7 +19,7 @@ func TestPeriodAssessmentDomains(t *testing.T) {
 	}
 	raw, _ := json.Marshal(base)
 	parsed, err := parseOutput(raw, "adapter", []string{"octo/api"})
-	if err != nil || len(parsed.values) != 1 || envelopes("example", parsed.values)[0].OperationalValue.Value != nil {
+	if err != nil || len(parsed.values) != 1 || testEnvelopes(parsed.values)[0].OperationalValue.Value != nil {
 		t.Fatalf("unavailable assessment not preserved: %+v, %v", parsed, err)
 	}
 	for field, invalid := range map[string]any{
@@ -82,7 +82,7 @@ func TestCadenceValidationAndPublication(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		values := envelopes("example", parsed.values)
+		values := testEnvelopes(parsed.values)
 		if values[0].OperationalValue.CadenceDays == nil || *values[0].OperationalValue.CadenceDays != 2.5 {
 			t.Fatal("cadence not preserved")
 		}
@@ -114,12 +114,53 @@ func TestEvaluatorDigestValidationAndPublication(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		values := envelopes("example", parsed.values)
+		values := testEnvelopes(parsed.values)
 		if len(values) != 1 || values[0].OperationalValue.EvaluatorDigest == nil ||
 			*values[0].OperationalValue.EvaluatorDigest != digest {
 			t.Fatalf("evaluator fingerprint not preserved: %+v", values)
 		}
 	}
+}
+
+func testEnvelopes(records []valueRecord) []envelope {
+	const campaign = "example"
+	output := make([]envelope, 0, len(records))
+	for _, record := range records {
+		role, name, direction, maturity := "primary", record.ValueID, "increase", "matured"
+		if record.MetricRole != nil {
+			role = *record.MetricRole
+		}
+		if record.MetricName != nil {
+			name = *record.MetricName
+		}
+		if record.MetricDirection != nil {
+			direction = *record.MetricDirection
+		}
+		if record.MaturityStatus != nil {
+			maturity = *record.MaturityStatus
+		}
+		output = append(output, envelope{
+			SchemaVersion: 2, Kind: "operational_value",
+			OperationalValue: operationalValue{
+				Timestamp: record.Timestamp, Repository: record.Repository,
+				Campaign: campaign, CampaignID: "campaign:" + campaign,
+				ValueID: record.ValueID, Value: record.Value,
+				WindowStart: record.WindowStart, WindowEnd: record.WindowEnd,
+				MeasurementKind: record.MeasurementKind, CoverageStatus: record.CoverageStatus,
+				MissingReason: record.MissingReason, EligibleCount: record.EligibleCount,
+				PopulationDigest: record.PopulationDigest, EvidenceDigest: record.EvidenceDigest,
+				MetricRole: role, MetricName: name, MetricUnit: record.MetricUnit,
+				MetricDirection: direction, MaturityStatus: maturity,
+				AdoptionAt: record.AdoptionAt, EvaluationMode: record.EvaluationMode,
+				WorkflowSlug: record.WorkflowSlug, WorkflowName: record.WorkflowName,
+				EvaluatorDigest:   record.EvaluatorDigest,
+				CadenceDays:       record.CadenceDays,
+				RollupNumerator:   record.RollupNumerator,
+				RollupDenominator: record.RollupDenominator,
+			},
+		})
+	}
+	return output
 }
 
 func testEnvelope(valueID string, value float64) envelope {

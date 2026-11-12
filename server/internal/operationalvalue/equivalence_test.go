@@ -134,7 +134,7 @@ func compareActivityCollector(t *testing.T, script string) {
 			definitions[definitionKey("example", id)] = item
 		}
 	}
-	fresh := envelopes("example", parsed.values)
+	fresh := testEnvelopes(parsed.values)
 	merged := persistValues(retained, fresh, active, definitions)
 	if err := writeEnvelopes(goOutput, merged); err != nil {
 		t.Fatal(err)
