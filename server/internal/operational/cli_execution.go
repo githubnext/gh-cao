@@ -13,8 +13,8 @@ type CLICommandExecutionQueue interface {
 	UnsettledExecutions(context.Context, CLICommandLease) ([]CLICommandExecution, error)
 }
 
-// CLICommandExecution identifies a container on its originating Docker daemon.
-// A missing container on a different daemon is not proof of termination.
+// CLICommandExecution identifies a container in its originating runtime namespace.
+// A missing container in a different namespace is not proof of termination.
 type CLICommandExecution struct {
 	CommandID int64
 	Name      string

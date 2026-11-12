@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.49.2.45890",
-      "templateHash": "11000907788162770842"
+      "templateHash": "17298418342171648308"
     }
   },
   "parameters": {
@@ -187,7 +187,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.49.2.45890",
-              "templateHash": "8575000414209395564"
+              "templateHash": "10714020095311608195"
             }
           },
           "parameters": {
@@ -241,8 +241,8 @@
             }
           },
           "variables": {
-            "$fxv#0": "#cloud-config\npackage_update: true\npackages:\n  - docker.io\n  - python3\n  - postgresql-16\nwrite_files:\n  - path: /opt/cao/ACTIVATION-REQUIRED\n    owner: root:root\n    permissions: '0600'\n    content: |\n      Single VM: PostgreSQL package installed, CAO runtime NOT activated.\n      Keep PostgreSQL on Unix socket/loopback only. No public database port.\n      Identify and mount the persistent data disk before storing CAO data.\n      Owner-provision distinct database roles/schemas before runtime startup.\n      Complete README.md and TODO.md from the generated deployment bundle.\nruncmd:\n  - [systemctl, enable, --now, docker]\n",
-            "$fxv#1": "#cloud-config\npackage_update: true\npackages:\n  - docker.io\n  - python3\nwrite_files:\n  - path: /opt/cao/ACTIVATION-REQUIRED\n    owner: root:root\n    permissions: '0600'\n    content: |\n      Infrastructure staged only. No CAO runtime, policy or credentials installed.\n      Complete the generated OPTIONAL-FEATURES.md before starting services.\nruncmd:\n  - [systemctl, enable, --now, docker]\n"
+            "$fxv#0": "#cloud-config\npackage_update: true\npackages:\n  - podman\n  - python3\n  - postgresql-16\nwrite_files:\n  - path: /opt/cao/ACTIVATION-REQUIRED\n    owner: root:root\n    permissions: '0600'\n    content: |\n      Single VM: PostgreSQL package installed, CAO runtime NOT activated.\n      Keep PostgreSQL on Unix socket/loopback only. No public database port.\n      Identify and mount the persistent data disk before storing CAO data.\n      Owner-provision distinct database roles/schemas before runtime startup.\n      Complete README.md and TODO.md from the generated deployment bundle.\n",
+            "$fxv#1": "#cloud-config\npackage_update: true\npackages:\n  - podman\n  - python3\nwrite_files:\n  - path: /opt/cao/ACTIVATION-REQUIRED\n    owner: root:root\n    permissions: '0600'\n    content: |\n      Infrastructure staged only. No CAO runtime, policy or credentials installed.\n      Complete the generated OPTIONAL-FEATURES.md before starting services.\n"
           },
           "resources": [
             {

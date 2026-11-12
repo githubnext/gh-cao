@@ -13,10 +13,15 @@ for (const outcome of ["available", "rate-limit", "other-error"]) {
     const directory = await mkdtemp(join(tmpdir(), "backfill-harness-"));
     const trace = join(directory, "commands.log");
     try {
-      await writeFile(join(directory, "docker"), `#!/usr/bin/env bash
+      await writeFile(join(directory, "docker"), "#!/usr/bin/env bash\necho \"docker $*\" >> \"$HARNESS_TRACE\"\nexit 99\n", { mode: 0o700 });
+      await writeFile(join(directory, "podman"), `#!/usr/bin/env bash
 set -eu
 echo "$*" >> "$HARNESS_TRACE"
-if [[ "$*" == *"pull openobserve"* ]]; then
+if [[ "$*" == "compose version --short" ]]; then
+  echo 2.29.0
+elif [[ "$*" == "compose up --help" ]]; then
+  echo "  --wait  --wait-timeout int  --pull string"
+elif [[ "$*" == *"pull openobserve"* ]]; then
   case "$HARNESS_PULL" in
     rate-limit) echo "toomanyrequests: Data limit exceeded" >&2; exit 1 ;;
     other-error) echo "manifest unknown" >&2; exit 1 ;;
@@ -41,6 +46,7 @@ test -n "$REDIS_URL"
         env: {
           ...process.env,
           PATH: `${directory}:${process.env.PATH}`,
+          CAO_CONTAINER_ENGINE: "docker",
           HARNESS_TRACE: trace,
           HARNESS_PULL: outcome,
           CAO_BACKFILL_REPORT_DIR: directory,
@@ -54,6 +60,8 @@ test -n "$REDIS_URL"
         (error) => ({ stderr: error.stderr, code: error.code }),
       );
       const commands = await readFile(trace, "utf8");
+      assert.doesNotMatch(commands, /^docker /m);
+      assert.match(commands, /^compose .*up -d --wait/m);
       assert.match(commands, /up -d --wait --wait-timeout 120 redis postgres/);
       assert.match(commands, /down --volumes --remove-orphans/);
       if (outcome === "other-error") {

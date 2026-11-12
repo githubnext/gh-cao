@@ -29,7 +29,10 @@ test("CI runs every defined unit test area", () => {
   const workflow = readFileSync(".github/workflows/workflow-contracts.yml", "utf8").replaceAll("\r\n", "\n");
   assert.deepEqual(testPlan([], true).matrix.area, Object.keys(unitTestAreas));
   assert.equal(parse(workflow).jobs.unit.strategy.matrix, "${{ fromJSON(needs.changes.outputs.matrix) }}");
-  assert.equal(parse(workflow).jobs.unit.steps.at(-1).run, 'npm run test:unit:area -- "$UNIT_AREA"');
+  const steps = parse(workflow).jobs.unit.steps;
+  const contracts = steps.findIndex((step) => step.run === 'npm run test:unit:area -- "$UNIT_AREA"');
+  assert.ok(contracts >= 0);
+  assert.ok(steps.slice(contracts + 1).every((step) => /^always\(\)/.test(step.if ?? "")));
   assert.match(
     workflow,
     /name: Install dashboard dependencies\n\s+if: matrix\.area == 'dashboard'\n\s+run: npm ci --prefix dashboard\/site$/m,
@@ -70,35 +73,44 @@ test("dashboard unit contracts prepare native Go tests before the bounded contra
   }
 });
 
-test("PostgreSQL contracts use the host port discovered after the fixture container restarts", (t) => {
+test("PostgreSQL contracts use the Podman-published fixture port and always remove the fixture", (t) => {
   const steps = parse(readFileSync(".github/workflows/workflow-contracts.yml", "utf8")).jobs.unit.steps;
   const prepare = steps.find((step) => step.name === "Prepare partition-heavy PostgreSQL fixtures");
   const contracts = steps.find((step) => step.run?.includes("npm run test:unit:area"));
+  const stop = steps.find((step) => step.name === "Stop partition-heavy PostgreSQL");
   mkdirSync(".tmp", { recursive: true });
   const directory = mkdtempSync(path.resolve(".tmp/ci-postgres-contract-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const output = path.join(directory, "output");
-  writeFileSync(path.join(directory, "docker"), `#!/bin/sh
+  const trace = path.join(directory, "trace");
+  writeFileSync(path.join(directory, "podman"), `#!/bin/sh
 set -eu
+echo "podman $*" >> "$TRACE"
 case "$1" in
-  restart) touch "$RESTART_MARKER" ;;
-  inspect) test -f "$RESTART_MARKER"; printf '55440\\n' ;;
-  exec) ;;
+  run) touch "$STARTED_MARKER" ;;
+  exec) test -f "$STARTED_MARKER" ;;
+  port) test -f "$STARTED_MARKER"; printf '127.0.0.1:55440\\n' ;;
   *) exit 1 ;;
 esac
 `, { mode: 0o700 });
+  writeFileSync(path.join(directory, "docker"), "#!/bin/sh\nexit 99\n", { mode: 0o700 });
   writeFileSync(path.join(directory, "go"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
   execFileSync("bash", ["-e", "-o", "pipefail", "-c", prepare.run], {
     env: {
       ...process.env,
       PATH: `${directory}${path.delimiter}${process.env.PATH}`,
-      POSTGRES_CONTAINER: "fixture",
-      RESTART_MARKER: path.join(directory, "restarted"),
+      POSTGRES_CONTAINER: prepare.env.POSTGRES_CONTAINER,
+      STARTED_MARKER: path.join(directory, "started"),
+      TRACE: trace,
       GITHUB_OUTPUT: output,
     },
   });
   assert.equal(readFileSync(output, "utf8"), "port=55440\n");
+  assert.match(readFileSync(trace, "utf8"), /^podman port cao-contracts-postgres 5432\/tcp$/m);
   assert.ok(steps.indexOf(prepare) < steps.indexOf(contracts));
   assert.ok(contracts.env.POSTGRES_URL.includes(`steps.${prepare.id}.outputs.port`));
   assert.ok(!contracts.env.POSTGRES_URL.includes("job.services.postgres.ports"));
+  assert.ok(steps.indexOf(contracts) < steps.indexOf(stop));
+  assert.match(stop.if, /^always\(\)/);
+  assert.match(stop.run, new RegExp(`^podman rm --force --ignore --volumes ${prepare.env.POSTGRES_CONTAINER}$`));
 });

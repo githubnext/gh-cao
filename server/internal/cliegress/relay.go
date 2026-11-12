@@ -17,7 +17,7 @@ const (
 	RelayPath    = "/cao-egress/relay"
 )
 
-// Relay transports bytes only to the command's fixed Unix socket. Docker's
+// Relay transports bytes only to the command's fixed Unix socket. Podman's
 // network-none namespace, not the relay or proxy variables, blocks direct IP.
 func Relay(ctx context.Context, listener net.Listener, socket string) error {
 	bounded := &boundedListener{Listener: listener, slots: make(chan struct{}, MaxConnections)}

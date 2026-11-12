@@ -1,4 +1,4 @@
-name: Docker Actions runtime
+name: Container Actions runtime
 
 on:
   workflow_call:
@@ -42,7 +42,7 @@ concurrency:
 
 jobs:
   actions-runtime:
-    name: Docker AWI, CAO Activity, and webhook gateway integration
+    name: Podman AWI, CAO Activity, and webhook gateway integration
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -75,7 +75,7 @@ jobs:
       - name: Install gh-aw
         uses: ./.github/actions/setup-gh-aw # zizmor: ignore[self-repository] - Checked-in compiler setup with the reviewed version.
       - name: Pull minimal runner image
-        run: docker pull node:24-bookworm
+        run: podman pull docker.io/library/node:24-bookworm
       - name: Run credential-free samples and gateway integration
         env:
           POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_actions_test?sslmode=disable

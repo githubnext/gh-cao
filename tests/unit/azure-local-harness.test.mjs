@@ -13,11 +13,12 @@ const failures = [
   ["ingest", "fixture ingestion", "ingest.log"],
 ];
 
-const failureCases = failures.flatMap((entry) => ["docker", "podman"].map((engine) => [...entry, engine]));
-failureCases.push(...["docker", "podman"].map((engine) => [...failures[3], engine, true]));
-failureCases.push([...failures[0], "podman", "missing"]);
-for (const [stage, label, logName, engine, prebuilt = false] of failureCases) {
-  test(`Azure local harness reports ${stage} failures before cleaning up (${engine}${prebuilt ? ", prebuilt" : ""})`, async () => {
+const engine = "podman";
+const failureCases = failures.map((entry) => [...entry]);
+failureCases.push([...failures[3], true]);
+failureCases.push([...failures[0], "missing"]);
+for (const [stage, label, logName, prebuilt = false] of failureCases) {
+  test(`Azure local harness reports ${stage} failures before cleaning up${prebuilt ? ` (prebuilt ${prebuilt})` : ""}`, async () => {
     await mkdir(resolve(".tmp"), { recursive: true });
     const directory = await mkdtemp(resolve(".tmp/azure-local-harness-"));
     const script = join(directory, "scripts/azure-local/azure-local.sh");
@@ -50,6 +51,7 @@ for (const [stage, label, logName, engine, prebuilt = false] of failureCases) {
       for (const tool of ["curl", "unzip"]) {
         await executable(join(tools, tool), "exit 99\n");
       }
+      await executable(join(tools, "docker"), 'echo "docker $*" >> "$HARNESS_TRACE"\nexit 99\n');
       await executable(join(tools, engine), `
 echo "${engine} $*" >> "$HARNESS_TRACE"
 if [[ "$1" == run ]]; then cp "$AZURE_LOCAL_STATE_DIR/runtime.env" "$HARNESS_SAVED_ENV"; fi
@@ -123,7 +125,7 @@ fi
       const result = await execute("bash", [script, prebuilt ? "run-services" : "run"], {
         env: {
           ...process.env,
-          CAO_CONTAINER_ENGINE: engine,
+          CAO_CONTAINER_ENGINE: "docker",
           PATH: `${tools}:${process.env.PATH}`,
           AZURE_LOCAL_STATE_DIR: state,
           AZURE_LOCAL_WAIT_TIMEOUT: "1",
@@ -144,6 +146,7 @@ fi
         assert.equal(result.code, 1, result.stderr);
         assert.match(result.stderr, /explicit test binary is missing or not executable/);
         const commands = await readFile(trace, "utf8");
+        assert.doesNotMatch(commands, /^docker /m);
         assert.doesNotMatch(commands, /go .* build /);
         for (const service of ["postgres", "azurite"]) {
           assert.match(commands, new RegExp(`${engine} rm -f ${service}-id`));
@@ -159,8 +162,9 @@ fi
       assert.ok(result.stderr.includes(logPath), result.stderr);
       assert.equal(await readFile(logPath, "utf8"), `captured stdout\n${message}\n`);
       const commands = await readFile(trace, "utf8");
-      assert.match(await readFile(join(directory, "saved-runtime.env"), "utf8"), new RegExp(`CAO_CONTAINER_ENGINE=${engine}`));
-      assert.doesNotMatch(commands, /(?:docker|podman) .*redis/);
+      assert.match(await readFile(join(directory, "saved-runtime.env"), "utf8"), /^STATE_CONTAINER_ENGINE=podman$/m);
+      assert.doesNotMatch(commands, /^docker /m);
+      assert.doesNotMatch(commands, /podman .*redis/);
       assert.match(commands, /docker.io\/library\/postgres:16-alpine/);
       assert.equal((commands.match(/go .* build /g) || []).length, prebuilt ? 0 : 1,
         "explicit prebuilt executables must run without rebuilding");
@@ -195,14 +199,13 @@ fi
   });
 }
 
-for (const original of ["docker", "podman", "legacy"]) {
+for (const record of ["STATE_CONTAINER_ENGINE=podman", "CAO_CONTAINER_ENGINE=podman"]) {
   for (const action of ["stop", "logs", "wait"]) {
-    test(`Azure ${action} restores ${original} engine instead of caller selection`, async () => {
+    test(`Azure ${action} uses Podman for state recorded as ${record}`, async () => {
       await mkdir(resolve(".tmp"), { recursive: true });
       const directory = await mkdtemp(resolve(".tmp/azure-engine-"));
       const state = join(directory, "state");
       const trace = join(directory, "commands.log");
-      const engine = original === "legacy" ? "docker" : original;
       try {
         await mkdir(join(state, "logs"), { recursive: true });
         await writeFile(join(state, "profile"), "synthetic\n");
@@ -214,7 +217,7 @@ if [[ "$1" == logs ]]; then echo service-output; fi
         }
         await writeFile(join(directory, "curl"), "#!/bin/bash\nexit 0\n", { mode: 0o700 });
         await writeFile(join(state, "runtime.env"), [
-          ...(original === "legacy" ? [] : [`CAO_CONTAINER_ENGINE=${original}`]),
+          record,
           "POSTGRES_CONTAINER_ID=postgres-original",
           "AZURITE_CONTAINER_ID=azurite-original",
           "AZURITE_BLOB_PORT=12345",
@@ -225,16 +228,16 @@ if [[ "$1" == logs ]]; then echo service-output; fi
           env: {
             ...process.env,
             PATH: `${directory}:${process.env.PATH}`,
-            CAO_CONTAINER_ENGINE: engine === "docker" ? "podman" : "docker",
+            CAO_CONTAINER_ENGINE: "docker",
             AZURE_LOCAL_STATE_DIR: state,
             HARNESS_TRACE: trace,
           },
         });
         const commands = await readFile(trace, "utf8");
-        assert.doesNotMatch(commands, new RegExp(`^${engine === "docker" ? "podman" : "docker"} `, "m"));
-        if (action === "wait") assert.match(commands, new RegExp(`${engine} exec postgres-original pg_isready`));
-        else assert.match(commands, new RegExp(`${engine} logs postgres-original`));
-        if (action === "stop") assert.match(commands, new RegExp(`${engine} rm -f postgres-original`));
+        assert.doesNotMatch(commands, /^docker /m);
+        if (action === "wait") assert.match(commands, /podman exec postgres-original pg_isready/);
+        else assert.match(commands, /podman logs postgres-original/);
+        if (action === "stop") assert.match(commands, /podman rm -f postgres-original/);
         else assert.doesNotMatch(commands, / rm /);
       } finally {
         await rm(directory, { recursive: true, force: true });
@@ -243,60 +246,63 @@ if [[ "$1" == logs ]]; then echo service-output; fi
   }
 }
 
-test("Azure restart never removes original container IDs from the new engine", async () => {
-  await mkdir(resolve(".tmp"), { recursive: true });
-  const directory = await mkdtemp(resolve(".tmp/azure-restart-"));
-  const state = join(directory, "state");
-  const trace = join(directory, "commands.log");
-  try {
-    await mkdir(state);
-    await writeFile(join(state, "profile"), "synthetic\n");
-    for (const engine of ["docker", "podman"]) {
-      await writeFile(join(directory, engine), `#!/bin/bash
-echo '${engine}' "$@" >> "$HARNESS_TRACE"
-if [[ '${engine}' == podman && "$1" == run ]]; then exit 42; fi
+for (const record of ["CAO_CONTAINER_ENGINE=docker", "legacy", "CAO_CONTAINER_ENGINE=invalid"]) {
+  for (const action of ["start", "stop", "logs", "wait"]) {
+    test(`Azure ${action} fails closed on non-Podman state (${record}) without invoking any engine`, async () => {
+      await mkdir(resolve(".tmp"), { recursive: true });
+      const directory = await mkdtemp(resolve(".tmp/azure-legacy-"));
+      const state = join(directory, "state");
+      const trace = join(directory, "commands.log");
+      try {
+        await mkdir(join(state, "function-app"), { recursive: true });
+        await mkdir(join(state, "logs"), { recursive: true });
+        await writeFile(join(state, "profile"), "synthetic\n");
+        const runtime = [
+          ...(record === "legacy" ? [] : [record]),
+          "POSTGRES_CONTAINER_ID=old-postgres",
+          "AZURITE_CONTAINER_ID=old-azurite",
+          "FUNCTIONS_PID=4242",
+          "",
+        ].join("\n");
+        await writeFile(join(state, "runtime.env"), runtime);
+        await writeFile(join(state, "function-app/owned"), "retain\n");
+        for (const name of ["docker", "podman"]) {
+          await writeFile(join(directory, name), `#!/bin/bash
+echo '${name}' "$@" >> "$HARNESS_TRACE"
 `, { mode: 0o700 });
-    }
-    await writeFile(join(state, "runtime.env"), "CAO_CONTAINER_ENGINE=docker\nPOSTGRES_CONTAINER_ID=old-postgres\nAZURITE_CONTAINER_ID=old-azurite\n");
-    await assert.rejects(execute("bash", [resolve("scripts/azure-local/azure-local.sh"), "start"], {
-      env: {
-        ...process.env,
-        PATH: `${directory}:${process.env.PATH}`,
-        CAO_CONTAINER_ENGINE: "podman",
-        AZURE_LOCAL_STATE_DIR: state,
-        HARNESS_TRACE: trace,
-      },
-    }), { code: 42 });
-    const commands = await readFile(trace, "utf8");
-    assert.match(commands, /docker rm -f old-postgres/);
-    assert.match(commands, /docker rm -f old-azurite/);
-    assert.match(commands, /podman run /);
-    assert.doesNotMatch(commands, /podman (?:rm|logs|inspect) .*old-/);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
+        }
+        await assert.rejects(execute("bash", [resolve("scripts/azure-local/azure-local.sh"), action], {
+          env: {
+            ...process.env,
+            PATH: `${directory}:${process.env.PATH}`,
+            CAO_CONTAINER_ENGINE: "podman",
+            AZURE_LOCAL_STATE_DIR: state,
+            HARNESS_TRACE: trace,
+          },
+        }), (error) => {
+          assert.match(error.stderr, /was not created with Podman/);
+          assert.match(error.stderr, /old-postgres and old-azurite/);
+          assert.match(error.stderr, /PID 4242/);
+          assert.ok(error.stderr.includes(`delete ${state}`), error.stderr);
+          return true;
+        });
+        assert.equal(await readFile(join(state, "runtime.env"), "utf8"), runtime);
+        assert.equal(await readFile(join(state, "function-app/owned"), "utf8"), "retain\n");
+        const commands = await readFile(trace, "utf8").catch(() => "");
+        assert.doesNotMatch(commands, /^docker /m);
+        assert.doesNotMatch(commands, /podman (?:run|rm|inspect|ps|logs|exec)/);
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    });
   }
-});
-
-test("Azure cleanup fails closed on invalid saved engine and retains recovery state", async () => {
-  await mkdir(resolve(".tmp"), { recursive: true });
-  const directory = await mkdtemp(resolve(".tmp/azure-invalid-engine-"));
-  try {
-    const runtime = join(directory, "runtime.env");
-    await writeFile(join(directory, "profile"), "synthetic\n");
-    const contents = "CAO_CONTAINER_ENGINE=invalid\nPOSTGRES_CONTAINER_ID=original\n";
-    await writeFile(runtime, contents);
-    await assert.rejects(execute("bash", [resolve("scripts/azure-local/azure-local.sh"), "stop"], {
-      env: { ...process.env, CAO_CONTAINER_ENGINE: "docker", AZURE_LOCAL_STATE_DIR: directory },
-    }), /must be docker or podman/);
-    assert.equal(await readFile(runtime, "utf8"), contents);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-});
+}
 
 for (const action of ["start", "stop"]) {
   for (const failure of ["offline", "removal-failed", "inventory-failed"]) {
     test(`Azure ${action} retains original recovery state on ${failure}`, async () => {
+      // start checks that Podman is reachable before attempting recovery.
+      const preflightOffline = action === "start" && failure === "offline";
       await mkdir(resolve(".tmp"), { recursive: true });
       const directory = await mkdtemp(resolve(".tmp/azure-recovery-"));
       const state = join(directory, "state");
@@ -304,12 +310,12 @@ for (const action of ["start", "stop"]) {
       try {
         await mkdir(join(state, "function-app"), { recursive: true });
         await writeFile(join(state, "profile"), "synthetic\n");
-        const runtime = "CAO_CONTAINER_ENGINE=docker\nPOSTGRES_CONTAINER_ID=old-postgres\nAZURITE_CONTAINER_ID=old-azurite\n";
+        const runtime = "STATE_CONTAINER_ENGINE=podman\nPOSTGRES_CONTAINER_ID=old-postgres\nAZURITE_CONTAINER_ID=old-azurite\n";
         await writeFile(join(state, "runtime.env"), runtime);
         await writeFile(join(state, "runtime.json"), "{}\n");
         await writeFile(join(state, "function-app/owned"), "retain\n");
-        await writeFile(join(directory, "docker"), `#!/bin/bash
-echo docker "$@" >> "$HARNESS_TRACE"
+        await writeFile(join(directory, "podman"), `#!/bin/bash
+echo podman "$@" >> "$HARNESS_TRACE"
 case "$1" in
   inspect|rm) exit 41 ;;
   info) [[ "$HARNESS_FAILURE" != offline ]] ;;
@@ -318,24 +324,28 @@ case "$1" in
     ;;
 esac
 `, { mode: 0o700 });
-        await writeFile(join(directory, "podman"), '#!/bin/bash\necho podman "$@" >> "$HARNESS_TRACE"\nexit 0\n', { mode: 0o700 });
+        await writeFile(join(directory, "docker"), '#!/bin/bash\necho docker "$@" >> "$HARNESS_TRACE"\nexit 0\n', { mode: 0o700 });
         await assert.rejects(execute("bash", [resolve("scripts/azure-local/azure-local.sh"), action], {
           env: {
             ...process.env,
             PATH: `${directory}:${process.env.PATH}`,
-            CAO_CONTAINER_ENGINE: "podman",
             AZURE_LOCAL_STATE_DIR: state,
             HARNESS_TRACE: trace,
             HARNESS_FAILURE: failure,
           },
-        }), /cannot confirm removal.*recovery state retained/);
+        }), preflightOffline ? /podman is not available/ : /cannot confirm removal.*recovery state retained/);
         assert.equal(await readFile(join(state, "runtime.env"), "utf8"), runtime);
         assert.equal(await readFile(join(state, "runtime.json"), "utf8"), "{}\n");
         assert.equal(await readFile(join(state, "function-app/owned"), "utf8"), "retain\n");
         const commands = await readFile(trace, "utf8");
-        assert.match(commands, /docker ps --all --quiet --no-trunc --filter id=old-postgres/);
-        assert.match(commands, /docker ps --all --quiet --no-trunc --filter id=old-azurite/);
-        assert.doesNotMatch(commands, /podman (?:run|rm|inspect|ps|logs)/);
+        if (preflightOffline) {
+          assert.doesNotMatch(commands, /podman (?:ps|rm|inspect)/);
+        } else {
+          assert.match(commands, /podman ps --all --quiet --no-trunc --filter id=old-postgres/);
+          assert.match(commands, /podman ps --all --quiet --no-trunc --filter id=old-azurite/);
+        }
+        assert.doesNotMatch(commands, /^docker /m);
+        assert.doesNotMatch(commands, /podman run /);
       } finally {
         await rm(directory, { recursive: true, force: true });
       }
@@ -350,24 +360,23 @@ test("Azure stop accepts already absent containers only after successful invento
   try {
     await mkdir(join(directory, "function-app"));
     await writeFile(join(directory, "profile"), "synthetic\n");
-    await writeFile(join(directory, "runtime.env"), "CAO_CONTAINER_ENGINE=docker\nPOSTGRES_CONTAINER_ID=old-postgres\nAZURITE_CONTAINER_ID=old-azurite\n");
+    await writeFile(join(directory, "runtime.env"), "STATE_CONTAINER_ENGINE=podman\nPOSTGRES_CONTAINER_ID=old-postgres\nAZURITE_CONTAINER_ID=old-azurite\n");
     await writeFile(join(directory, "runtime.json"), "{}\n");
-    await writeFile(join(directory, "docker"), `#!/bin/bash
-echo docker "$@" >> "$HARNESS_TRACE"
+    await writeFile(join(directory, "podman"), `#!/bin/bash
+echo podman "$@" >> "$HARNESS_TRACE"
 case "$1" in inspect|rm) exit 41 ;; ps) exit 0 ;; esac
 `, { mode: 0o700 });
     await execute("bash", [resolve("scripts/azure-local/azure-local.sh"), "stop"], {
       env: {
         ...process.env,
         PATH: `${directory}:${process.env.PATH}`,
-        CAO_CONTAINER_ENGINE: "podman",
         AZURE_LOCAL_STATE_DIR: directory,
         HARNESS_TRACE: trace,
       },
     });
     const commands = await readFile(trace, "utf8");
-    assert.match(commands, /docker ps --all --quiet --no-trunc --filter id=old-postgres/);
-    assert.match(commands, /docker ps --all --quiet --no-trunc --filter id=old-azurite/);
+    assert.match(commands, /podman ps --all --quiet --no-trunc --filter id=old-postgres/);
+    assert.match(commands, /podman ps --all --quiet --no-trunc --filter id=old-azurite/);
     for (const file of ["runtime.env", "runtime.json", "function-app"]) {
       await assert.rejects(access(join(directory, file)), { code: "ENOENT" });
     }

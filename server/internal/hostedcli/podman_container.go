@@ -18,25 +18,28 @@ import (
 
 const podmanNamespace = "cao-hosted-cli"
 
-// PodmanContainerLifecycle is a local Linux rootless development adapter.
-// Docker discovery and production egress configuration are never used.
+// PodmanContainerLifecycle is the local Linux rootless container adapter. With
+// egress it runs network-none workloads whose only route is the verified relay;
+// without egress it uses bridge networking for explicit local development only.
 type PodmanContainerLifecycle struct {
-	engine        *DockerContainerLifecycle
+	engine        *ociContainerLifecycle
 	mu            sync.RWMutex
 	currentID     string
-	currentEngine *DockerContainerLifecycle
+	currentEngine *ociContainerLifecycle
 	created       map[string]podmanCreatedWorkspace
 }
 
 var _ ContainerLifecycle = (*PodmanContainerLifecycle)(nil)
 
-func NewPodmanContainerLifecycle(binary string, commands Runner) (*PodmanContainerLifecycle, error) {
+// NewPodmanContainerLifecycle selects the local rootless engine. A nil egress
+// leaves workloads on bridge networking; the server permits that only for
+// explicit local development.
+func NewPodmanContainerLifecycle(binary string, commands Runner, egress *ContainerEgress) (*PodmanContainerLifecycle, error) {
 	if runtime.GOOS != "linux" {
 		return nil, errors.New("hosted CLI Podman requires a local Linux rootless engine")
 	}
 	for _, name := range []string{
-		"CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY",
-		"DOCKER_HOST", "DOCKER_CONTEXT", "PODMAN_CONNECTIONS_CONF",
+		"CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY", "PODMAN_CONNECTIONS_CONF",
 		"CONTAINERS_CONF", "CONTAINERS_CONF_OVERRIDE", "CONTAINERS_CONF_MODULES",
 		"CONTAINERS_STORAGE_CONF",
 	} {
@@ -50,9 +53,10 @@ func NewPodmanContainerLifecycle(binary string, commands Runner) (*PodmanContain
 	if commands == nil {
 		commands = ExecRunner{}
 	}
-	return &PodmanContainerLifecycle{engine: &DockerContainerLifecycle{
-		DockerBinary: binary, Commands: commands,
-		HostEnv: podmanHostEnvironment(os.Environ()),
+	return &PodmanContainerLifecycle{engine: &ociContainerLifecycle{
+		binary: binary, commands: commands,
+		hostEnv: podmanHostEnvironment(os.Environ()),
+		egress:  egress, relays: &egressRelays{},
 		commandPrefix: []string{"--remote=false", "--db-backend=sqlite",
 			"--default-mounts-file=/dev/null"},
 		createOptions: []string{"--pull=never", "--userns=keep-id", "--image-volume=ignore",
@@ -147,9 +151,10 @@ func (r *PodmanContainerLifecycle) RuntimeID(ctx context.Context) (string, error
 	}
 	// Pin the execution database as well as storage. A containers.conf
 	// static_dir change must not turn a foreign empty inventory into absence.
-	engine := &DockerContainerLifecycle{
-		DockerBinary: r.engine.DockerBinary, Commands: r.engine.Commands,
-		HostEnv: append(append([]string{}, r.engine.HostEnv...), "CONTAINERS_CONF="+configFile),
+	engine := &ociContainerLifecycle{
+		binary: r.engine.binary, commands: r.engine.commands,
+		hostEnv: append(append([]string{}, r.engine.hostEnv...), "CONTAINERS_CONF="+configFile),
+		egress:  r.engine.egress, relays: r.engine.relays,
 		commandPrefix: append(r.engine.args(), "--root="+roots[0], "--runroot="+roots[1],
 			"--storage-driver="+info.Store.GraphDriverName),
 		createOptions: r.engine.createOptions, responseLimit: r.engine.responseLimit,
@@ -214,7 +219,7 @@ func podmanEngineConfiguration(graphRoot, runRoot string) (string, error) {
 	return filepath.Join(directory, "engine.conf"), nil
 }
 
-func (r *PodmanContainerLifecycle) executionEngine(execution operational.CLICommandExecution) (*DockerContainerLifecycle, error) {
+func (r *PodmanContainerLifecycle) executionEngine(execution operational.CLICommandExecution) (*ociContainerLifecycle, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if execution.RuntimeID == "" || execution.RuntimeID != r.currentID || r.currentEngine == nil {
@@ -252,6 +257,7 @@ func (r *PodmanContainerLifecycle) Create(ctx context.Context, execution operati
 	}
 	r.created[execution.Name] = podmanCreatedWorkspace{
 		runtimeID: execution.RuntimeID, path: workspace, workdir: workdir, user: containerUser(),
+		egress: engine.egress != nil,
 	}
 	return nil
 }
@@ -288,50 +294,22 @@ func (r *PodmanContainerLifecycle) Inspect(ctx context.Context, execution operat
 	if err != nil {
 		return ContainerState{}, err
 	}
-	value, code, err := engine.capture(ctx, []string{"inspect", "--format={{json .State}}", execution.Name})
-	if ctx.Err() != nil {
-		return ContainerState{}, ctx.Err()
-	}
-	var state struct {
-		Status   string
-		Running  *bool
-		ExitCode *int
-	}
-	if err != nil || code != 0 || json.Unmarshal([]byte(value), &state) != nil {
-		return ContainerState{}, errors.New("hosted CLI Podman workload state is unavailable")
-	}
-	if state.Status == "exited" && state.Running != nil && !*state.Running &&
-		state.ExitCode != nil && *state.ExitCode >= 0 && *state.ExitCode <= 255 {
-		return ContainerState{Terminated: true, ExitCode: state.ExitCode}, nil
-	}
-	return ContainerState{}, nil
+	return engine.Inspect(ctx, execution)
 }
 
 func (r *PodmanContainerLifecycle) Stop(ctx context.Context, execution operational.CLICommandExecution) error {
+	// The relay set is shared by every derived engine, so egress is cut even
+	// when the original runtime namespace can no longer be resolved.
+	r.engine.stopEgress(execution.Name)
 	engine, err := r.executionEngine(execution)
 	if err != nil {
 		return err
 	}
-	_, code, err := engine.capture(ctx, []string{"rm", "--force", execution.Name})
-	if ctx.Err() != nil {
-		return ctx.Err()
+	if err := engine.Stop(ctx, execution); err != nil {
+		return err
 	}
-	if err == nil && code == 0 {
-		r.forgetCreation(execution)
-		return nil
-	}
-	// Podman names, unlike Docker names, do not have a leading slash.
-	value, code, err := engine.capture(ctx, []string{
-		"container", "ls", "--all", "--quiet", "--no-trunc", "--filter", "name=^" + execution.Name + "$",
-	})
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-	if err == nil && code == 0 && strings.TrimSpace(value) == "" {
-		r.forgetCreation(execution)
-		return nil
-	}
-	return errors.New("hosted CLI Podman container removal failed")
+	r.forgetCreation(execution)
+	return nil
 }
 
 func (r *PodmanContainerLifecycle) forgetCreation(execution operational.CLICommandExecution) {

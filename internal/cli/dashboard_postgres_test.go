@@ -14,7 +14,7 @@ import (
 )
 
 func TestDashboardPostgresExplicitConnectionDoesNotManageContainers(t *testing.T) {
-	t.Setenv("CAO_CONTAINER_ENGINE", "must-not-run")
+	t.Setenv("PATH", t.TempDir())
 	connection := "postgres://explicit.example/database"
 	got, err := configureDashboardPostgres(t.Context(), "must-not-run", t.TempDir(), "scope", connection)
 	if err != nil || got != connection {
@@ -34,111 +34,125 @@ func TestDashboardRejectsAnExplicitEmptyConnectionBeforeCollection(t *testing.T)
 }
 
 func TestDashboardEngineRejectsRemoteConnectionsBeforeWork(t *testing.T) {
-	for _, provider := range []string{"docker", "podman"} {
-		t.Run(provider, func(t *testing.T) {
-			for _, name := range []string{"DOCKER_HOST", "DOCKER_CONTEXT", "CONTAINER_HOST", "CONTAINER_CONNECTION"} {
-				t.Setenv(name, "")
-			}
-			engine := dashboardEngine{name: provider, run: func(_ context.Context, args ...string) ([]byte, error) {
-				if args[0] == "context" {
-					return []byte(`"ssh://remote.example"`), nil
-				}
-				if args[0] == "system" {
-					return []byte(`[{"Name":"remote","Default":true,"URI":"ssh://remote.example"}]`), nil
-				}
-				t.Fatal("remote engine reached runtime or resource operations")
-				return nil, nil
-			}}
-			if err := engine.verifyLocal(t.Context()); err == nil {
-				t.Fatal("remote container endpoint was accepted")
-			}
-		})
+	for _, name := range []string{"CONTAINER_HOST", "CONTAINER_CONNECTION"} {
+		t.Setenv(name, "")
+	}
+	engine := dashboardEngine{name: "podman", run: func(_ context.Context, args ...string) ([]byte, error) {
+		if args[0] == "system" {
+			return []byte(`[{"Name":"remote","Default":true,"URI":"ssh://remote.example"}]`), nil
+		}
+		t.Fatal("remote engine reached runtime or resource operations")
+		return nil, nil
+	}}
+	if err := engine.verifyLocal(t.Context()); err == nil {
+		t.Fatal("remote container endpoint was accepted")
+	}
+	t.Setenv("CONTAINER_HOST", "tcp://remote.example:8080")
+	if err := engine.verifyLocal(t.Context()); err == nil || !strings.Contains(err.Error(), "local Podman endpoint") {
+		t.Fatalf("remote CONTAINER_HOST was accepted: %v", err)
 	}
 }
 
-func TestDashboardEngineRejectsInvalidExplicitSelection(t *testing.T) {
-	for _, selection := range []string{"", "auto", "unsupported"} {
-		t.Run(selection, func(t *testing.T) {
-			t.Setenv("CAO_CONTAINER_ENGINE", selection)
-			if _, err := selectDashboardEngine(t.Context()); err == nil || !strings.Contains(err.Error(), "must be docker or podman") {
-				t.Fatalf("invalid explicit engine was accepted: %v", err)
-			}
-		})
+func TestDashboardEngineUsesOnlyPodman(t *testing.T) {
+	directory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(directory, "docker"), []byte("#!/bin/sh\nexit 0\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", directory)
+	t.Setenv("CAO_CONTAINER_ENGINE", "docker")
+	if _, err := selectDashboardEngine(t.Context()); err == nil || !strings.Contains(err.Error(), "podman is not installed") {
+		t.Fatalf("missing Podman did not fail closed: %v", err)
+	}
+}
+
+func TestDashboardPostgresRejectsLegacyDockerCache(t *testing.T) {
+	directory := t.TempDir()
+	state := dashboardPostgresState{Version: 1, Engine: "docker", Owner: strings.Repeat("a", 64),
+		ContainerID: strings.Repeat("b", 64), RuntimePassword: strings.Repeat("c", 64)}
+	if err := writeDashboardPostgresState(filepath.Join(directory, "state.json"), state); err != nil {
+		t.Fatal(err)
+	}
+	engine := dashboardEngine{name: "podman", run: func(context.Context, ...string) ([]byte, error) {
+		t.Fatal("legacy Docker cache reached a container operation")
+		return nil, nil
+	}}
+	_, _, err := startDashboardPostgres(t.Context(), engine, directory)
+	if err == nil || !strings.Contains(err.Error(), "created with docker") || !strings.Contains(err.Error(), state.ContainerID) {
+		t.Fatalf("legacy Docker cache did not fail closed with guidance: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(directory, "state.json")); err != nil {
+		t.Fatalf("legacy state was not retained: %v", err)
 	}
 }
 
 func TestDashboardPostgresOwnedContainerLifecycle(t *testing.T) {
-	for _, provider := range []string{"docker", "podman"} {
-		t.Run(provider, func(t *testing.T) {
-			directory := t.TempDir()
-			id := strings.Repeat("a", 64)
-			var calls []string
-			running := true
-			foreign := false
-			engine := dashboardEngine{name: provider}
-			engine.run = func(_ context.Context, args ...string) ([]byte, error) {
-				calls = append(calls, strings.Join(args, " "))
-				switch args[0] {
-				case "image":
-					return nil, errors.New("image is not cached")
-				case "pull", "run", "exec":
-					if slices.Contains(args, "POSTGRES_PASSWORD=") {
-						t.Fatal("administrator credential reached command arguments")
-					}
-					return nil, nil
-				case "start":
-					running = true
-					return nil, nil
-				case "container":
-					if args[1] == "ls" {
-						return nil, nil
-					}
-					state, err := readDashboardPostgresState(filepath.Join(directory, "state.json"))
-					if err != nil {
-						return nil, err
-					}
-					container := dashboardPostgresContainer{ID: id}
-					container.Config.Image = dashboardPostgresImage
-					container.Config.Labels = map[string]string{dashboardPostgresLabel: state.Owner}
-					if foreign {
-						container.Config.Labels[dashboardPostgresLabel] = "foreign"
-					}
-					container.State.Running = running
-					container.Mounts = append(container.Mounts, struct{ Type, Source, Destination string }{
-						"bind", filepath.Join(directory, "data"), "/var/lib/postgresql/data",
-					})
-					container.NetworkSettings.Ports = map[string][]struct {
-						HostIP   string `json:"HostIp"`
-						HostPort string
-					}{"5432/tcp": {{"127.0.0.1", "55439"}}}
-					return json.Marshal([]dashboardPostgresContainer{container})
-				}
-				return nil, errors.New("unexpected engine operation")
+	directory := t.TempDir()
+	id := strings.Repeat("a", 64)
+	var calls []string
+	running := true
+	foreign := false
+	engine := dashboardEngine{name: "podman"}
+	engine.run = func(_ context.Context, args ...string) ([]byte, error) {
+		calls = append(calls, strings.Join(args, " "))
+		switch args[0] {
+		case "image":
+			return nil, errors.New("image is not cached")
+		case "pull", "run", "exec":
+			if slices.Contains(args, "POSTGRES_PASSWORD=") {
+				t.Fatal("administrator credential reached command arguments")
 			}
-			admin, password, err := startDashboardPostgres(t.Context(), engine, directory)
-			if err != nil || !strings.Contains(admin, "127.0.0.1:55439") || len(password) != 64 {
-				t.Fatalf("managed container failed: %v", err)
+			return nil, nil
+		case "start":
+			running = true
+			return nil, nil
+		case "container":
+			if args[1] == "ls" {
+				return nil, nil
 			}
-			initial := slices.Clone(calls)
-			if !slices.ContainsFunc(initial, func(call string) bool { return strings.HasPrefix(call, "pull ") }) ||
-				!slices.ContainsFunc(initial, func(call string) bool {
-					return strings.Contains(call, "--volume "+filepath.Join(directory, "data")+":/var/lib/postgresql/data:Z")
-				}) {
-				t.Fatal("container did not pull PostgreSQL and bind-mount its cache")
+			state, err := readDashboardPostgresState(filepath.Join(directory, "state.json"))
+			if err != nil {
+				return nil, err
 			}
-			running, calls = false, nil
-			reused, samePassword, err := startDashboardPostgres(t.Context(), engine, directory)
-			if err != nil || reused != admin || password != samePassword ||
-				!slices.Contains(calls, "start "+id) ||
-				slices.ContainsFunc(calls, func(call string) bool { return strings.HasPrefix(call, "run ") }) {
-				t.Fatalf("owned PostgreSQL was not reused: %v %v", calls, err)
+			container := dashboardPostgresContainer{ID: id}
+			container.Config.Image = dashboardPostgresImage
+			container.Config.Labels = map[string]string{dashboardPostgresLabel: state.Owner}
+			if foreign {
+				container.Config.Labels[dashboardPostgresLabel] = "foreign"
 			}
-			foreign, calls = true, nil
-			if _, _, err := startDashboardPostgres(t.Context(), engine, directory); err == nil ||
-				slices.ContainsFunc(calls, func(call string) bool { return strings.HasPrefix(call, "start ") }) {
-				t.Fatal("foreign container ownership did not fail before start")
-			}
-		})
+			container.State.Running = running
+			container.Mounts = append(container.Mounts, struct{ Type, Source, Destination string }{
+				"bind", filepath.Join(directory, "data"), "/var/lib/postgresql/data",
+			})
+			container.NetworkSettings.Ports = map[string][]struct {
+				HostIP   string `json:"HostIp"`
+				HostPort string
+			}{"5432/tcp": {{"127.0.0.1", "55439"}}}
+			return json.Marshal([]dashboardPostgresContainer{container})
+		}
+		return nil, errors.New("unexpected engine operation")
+	}
+	admin, password, err := startDashboardPostgres(t.Context(), engine, directory)
+	if err != nil || !strings.Contains(admin, "127.0.0.1:55439") || len(password) != 64 {
+		t.Fatalf("managed container failed: %v", err)
+	}
+	initial := slices.Clone(calls)
+	if !slices.ContainsFunc(initial, func(call string) bool { return strings.HasPrefix(call, "pull ") }) ||
+		!slices.ContainsFunc(initial, func(call string) bool {
+			return strings.Contains(call, "--volume "+filepath.Join(directory, "data")+":/var/lib/postgresql/data:Z")
+		}) {
+		t.Fatal("container did not pull PostgreSQL and bind-mount its cache")
+	}
+	running, calls = false, nil
+	reused, samePassword, err := startDashboardPostgres(t.Context(), engine, directory)
+	if err != nil || reused != admin || password != samePassword ||
+		!slices.Contains(calls, "start "+id) ||
+		slices.ContainsFunc(calls, func(call string) bool { return strings.HasPrefix(call, "run ") }) {
+		t.Fatalf("owned PostgreSQL was not reused: %v %v", calls, err)
+	}
+	foreign, calls = true, nil
+	if _, _, err := startDashboardPostgres(t.Context(), engine, directory); err == nil ||
+		slices.ContainsFunc(calls, func(call string) bool { return strings.HasPrefix(call, "start ") }) {
+		t.Fatal("foreign container ownership did not fail before start")
 	}
 }
 
@@ -172,7 +186,7 @@ func TestDashboardCacheIgnorePreservesExistingRules(t *testing.T) {
 
 func TestDashboardManagedPostgresContainer(t *testing.T) {
 	if os.Getenv("CAO_TEST_MANAGED_POSTGRES") != "1" {
-		t.Skip("set CAO_TEST_MANAGED_POSTGRES=1 to exercise a real local container engine")
+		t.Skip("set CAO_TEST_MANAGED_POSTGRES=1 to exercise a real local Podman engine")
 	}
 	server, err := filepath.Abs("../../.tmp/cao-dashboard")
 	if err != nil {

@@ -256,11 +256,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/static-check-results"
-          docker run --rm --network none \
+          podman run --rm --network none \
             --cap-drop ALL \
             --security-opt no-new-privileges \
             --volume "$PWD:/repo:ro" \
-            hadolint/hadolint:v2.15.1-alpine@sha256:a1d49ae1a4e83c1dbad26b8c1ad7588c8bd1e04f4866b34ad3cac50335198552 \
+            docker.io/hadolint/hadolint:v2.15.1-alpine@sha256:a1d49ae1a4e83c1dbad26b8c1ad7588c8bd1e04f4866b34ad3cac50335198552 \
             hadolint \
             /repo/server/Dockerfile 2>&1 \
             | tee "${RUNNER_TEMP}/static-check-results/hadolint.txt"
@@ -275,11 +275,11 @@ jobs:
               \( -name '*.yml' -o -name '*.yaml' \) \
               ! -name '*.lock.yml' ! -name 'aw.yml' -print0 | sort -z
           )
-          docker run --rm --network none \
+          podman run --rm --network none \
             --cap-drop ALL \
             --security-opt no-new-privileges \
             --volume "$PWD:/repo:ro" --workdir /repo \
-            rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 \
+            docker.io/rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 \
             -ignore 'unknown permission scope "vulnerability-alerts"' \
             -ignore '^unexpected key "cache-mode" for "workflow" section\.' \
             "${workflow_files[@]}" 2>&1 \
@@ -295,7 +295,7 @@ jobs:
               \( -name '*.yml' -o -name '*.yaml' \) \
               ! -name '*.lock.yml' ! -name 'aw.yml' -print0 | sort -z
           )
-          docker run --rm --network none \
+          podman run --rm --network none \
             --cap-drop ALL \
             --security-opt no-new-privileges \
             --volume "$PWD:/repo:ro" --workdir /repo \
@@ -469,7 +469,9 @@ jobs:
         run: |
           set -euo pipefail
           created="$(git show -s --format=%cI "${REVISION}")"
-          docker build \
+          # Docker image format preserves HEALTHCHECK and SHELL metadata, which OCI image configs drop.
+          podman build \
+            --format docker \
             --file server/Dockerfile \
             --build-arg "CAO_PROFILE=cao.json" \
             --build-arg "VERSION=${VERSION}" \
@@ -477,11 +479,18 @@ jobs:
             --build-arg "CREATED=${created}" \
             --tag "cao-server:${REVISION}" \
             .
+      - id: image-archive
+        name: Export candidate archive for scanning and sealing
+        env:
+          REVISION: ${{ needs.source.outputs.revision }}
+        run: |
+          set -euo pipefail
+          podman save --format docker-archive --output "${RUNNER_TEMP}/cao-server.tar" "cao-server:${REVISION}"
       - id: trivy
         name: Scan candidate CVEs with Trivy
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
-          image-ref: cao-server:${{ needs.source.outputs.revision }}
+          input: ${{ runner.temp }}/cao-server.tar
           format: table
           exit-code: "1"
           ignore-unfixed: true
@@ -492,26 +501,26 @@ jobs:
         env:
           GRYPE_CONFIG: ${{ github.workspace }}/.grype.yaml
         with:
-          image: cao-server:${{ needs.source.outputs.revision }}
+          image: docker-archive:${{ runner.temp }}/cao-server.tar
           fail-build: true
           severity-cutoff: high
           output-format: table
       - id: dockle
         name: Check candidate against container best practices
-        env:
-          REVISION: ${{ needs.source.outputs.revision }}
         run: |
-          docker run --rm --network none \
-            --volume /var/run/docker.sock:/var/run/docker.sock \
-            goodwithtech/dockle:v0.4.15@sha256:eade932f793742de0aa8755406c7677cd7696f8675b6180926f7eeffa7abe6b9 \
+          podman run --rm --network none \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --volume "${RUNNER_TEMP}/cao-server.tar:/candidate/cao-server.tar:ro" \
+            docker.io/goodwithtech/dockle:v0.4.15@sha256:eade932f793742de0aa8755406c7677cd7696f8675b6180926f7eeffa7abe6b9 \
             --exit-code 1 \
             --exit-level WARN \
-            "cao-server:${REVISION}"
+            --input /candidate/cao-server.tar
       - id: syft
         name: Generate SPDX SBOM with Syft
         uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
         with:
-          image: cao-server:${{ needs.source.outputs.revision }}
+          image: docker-archive:${{ runner.temp }}/cao-server.tar
           format: spdx-json
           output-file: ${{ runner.temp }}/cao-server.spdx.json
           upload-artifact: false
@@ -540,7 +549,6 @@ jobs:
           VERSION: ${{ needs.source.outputs.version }}
         run: |
           set -euo pipefail
-          docker image save --output "${RUNNER_TEMP}/cao-server.tar" "cao-server:${REVISION}"
           jq -cn \
             --arg event_name "${EVENT_NAME}" \
             --arg identity "${IDENTITY}" \
@@ -577,6 +585,7 @@ jobs:
       - name: Summarize build security checks
         if: always()
         env:
+          ARCHIVE_STATUS: ${{ steps.image-archive.outcome }}
           BUILD_STATUS: ${{ steps.image-build.outcome }}
           DOCKLE_STATUS: ${{ steps.dockle.outcome }}
           GRYPE_STATUS: ${{ steps.grype.outcome }}
@@ -593,6 +602,7 @@ jobs:
             for check in \
               "Exact source and ancestry|${SOURCE_STATUS}" \
               "Container build|${BUILD_STATUS}" \
+              "Candidate archive export|${ARCHIVE_STATUS}" \
               "Release identity freshness|${RELEASE_IDENTITY_STATUS}" \
               "Sealed artifact checksum|${SEAL_STATUS}" \
               "Sealed artifact upload|${UPLOAD_STATUS}"; do

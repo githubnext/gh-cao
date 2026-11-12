@@ -887,7 +887,7 @@ acquisition adapter, outside the Go server. It MUST select the current verified
 GitHub.com repository or an explicit bounded list of exact repositories, retain
 at most a seven-day recent window, and serve for at most 48 hours per invocation.
 When no PostgreSQL connection is supplied, this operator profile SHALL manage
-an owned local Docker or Podman PostgreSQL container, pull its required image,
+an owned local Podman PostgreSQL container, pull its required image,
 bind-mount private persistent data beneath `.github/cao/dashboard/<scope>/postgres/`,
 and ensure the cache is ignored by Git. `--cache-dir` MAY select another private
 cache. The operator SHALL validate resource ownership and loopback bindings
@@ -5179,7 +5179,7 @@ additional metrics, native weekly aggregate partitions, or full scope-level
 evidence reconciliation.
 
 The `daily-run-counts-conformance` job in `.github/workflows/cgo.yml` runs this
-same command with a PostgreSQL service, Docker, and native Chromium on relevant pull
+same command with a PostgreSQL service container and native Chromium on relevant pull
 requests and main-branch pushes. Root unit CI also enforces the coverage contract
 and verifies that this cross-backend job remains wired.
 

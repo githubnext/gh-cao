@@ -354,7 +354,7 @@ func TestWindowsSandboxExecutorUsesPinnedBundleIdentity(t *testing.T) {
 	if minter.liveCount() != 0 {
 		t.Fatal("Windows execution retained a work token")
 	}
-	if _, err := NewContainerRunner(runner.Image, NewDockerContainerLifecycle("", nil)); err == nil {
+	if _, err := NewContainerRunner(runner.Image, newTestOCILifecycle(nil)); err == nil {
 		t.Fatal("Windows tools bundle was accepted by the OCI runner constructor")
 	}
 }

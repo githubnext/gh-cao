@@ -1,4 +1,4 @@
-# Local build: docker build -t cao-java-backend experiments/java-backend (after `mvn verify`).
+# Local build: podman build -t cao-java-backend experiments/java-backend (after `mvn verify`).
 # Provider-neutral; contains no data or credentials. Not built or published by this repository.
 FROM eclipse-temurin:21-jre
 RUN useradd --system --uid 10001 --no-create-home cao

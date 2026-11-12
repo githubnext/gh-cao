@@ -18,7 +18,7 @@ import (
 )
 
 // Requires a preloaded pinned image with git, /bin/sh and ordinary Unix tools.
-// Never pulls images, configures the host, or substitutes Docker/rootful mode.
+// Never pulls images, configures the host, or substitutes another engine or rootful mode.
 func TestPodmanRealBoundary(t *testing.T) {
 	if os.Getenv("CAO_TEST_PODMAN") != "1" {
 		t.Skip("set CAO_TEST_PODMAN=1 on a Linux executor with delegated rootless cgroup v2 controllers")
@@ -34,7 +34,7 @@ func TestPodmanRealBoundary(t *testing.T) {
 		t.Fatal("Podman is unavailable; real boundary is not validated")
 	}
 	t.Setenv("CAO_PODMAN_TEST_SECRET", "must-not-reach-workload")
-	lifecycle, err := NewPodmanContainerLifecycle(binary, nil)
+	lifecycle, err := NewPodmanContainerLifecycle(binary, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestPodmanRealBoundary(t *testing.T) {
 	if err != nil || code != 0 {
 		t.Fatalf("local pinned image lookup failed: code=%d err=%v", code, err)
 	}
-	restarted, err := NewPodmanContainerLifecycle(binary, nil)
+	restarted, err := NewPodmanContainerLifecycle(binary, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

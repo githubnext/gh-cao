@@ -8,7 +8,7 @@ import { parse } from "yaml";
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const harness = join(root, "tests/helpers/actions-runtime");
-export const image = "node:24-bookworm";
+export const image = "docker.io/library/node:24-bookworm";
 
 export function run(command, args, options = {}) {
   const result = spawnSync(command, args, { encoding: "utf8", timeout: 180_000, maxBuffer: 32 << 20, ...options });
@@ -42,8 +42,8 @@ export function prepareActions(workspace, workflow, cache) {
 }
 
 export function prepareTools(cache) {
-  const arch = run("docker", ["image", "inspect", image, "--format", "{{.Architecture}}"]).trim();
-  if (!["arm64", "amd64"].includes(arch)) throw new Error("Unsupported Docker image architecture");
+  const arch = run("podman", ["image", "inspect", image, "--format", "{{.Architecture}}"]).trim();
+  if (!["arm64", "amd64"].includes(arch)) throw new Error("Unsupported container image architecture");
   const destination = join(cache, `tools-${arch}`), binary = join(destination, "jq");
   mkdirSync(destination, { recursive: true });
   if (!existsSync(binary)) {
@@ -100,8 +100,11 @@ export function simulate({ workspace, workflow, event, eventName = "repository_d
   const sha = run("git", ["rev-parse", "HEAD"], { cwd: workspace }).trim();
   writeFileSync(join(workspace, "simulator.json"), JSON.stringify({ workflow, event, eventName, sha, vars }));
   const name = `cao-actions-test-${randomUUID()}`;
-  const result = spawnSync("docker", [
+  // Rootless Podman maps the host user to container root unless keep-id preserves the caller's identity.
+  const rootless = run("podman", ["info", "--format", "{{.Host.Security.Rootless}}"]).trim() === "true";
+  const result = spawnSync("podman", [
     "run", "--name", name, "--rm", "--pull=never", "--network=none", "--read-only", "--cap-drop=ALL",
+    ...(rootless ? ["--userns=keep-id"] : []),
     "--user", `${process.getuid()}:${process.getgid()}`,
     "--security-opt=no-new-privileges", "--pids-limit=128", "--memory=1g", "--cpus=2",
     "--tmpfs", "/tmp:rw,exec,nosuid,size=768m",
@@ -113,12 +116,12 @@ export function simulate({ workspace, workflow, event, eventName = "repository_d
     "--mount", `type=bind,src=${output},dst=/output`,
     image, "node", "/simulator/runner.mjs",
   ], { encoding: "utf8", timeout: 240_000, maxBuffer: 8 << 20 });
-  const cleanup = spawnSync("docker", ["rm", "--force", name], { encoding: "utf8", timeout: 15_000 });
-  if (cleanup.error || cleanup.status !== 0 && !cleanup.stderr.includes("No such container")) {
+  const cleanup = spawnSync("podman", ["rm", "--force", "--ignore", name], { encoding: "utf8", timeout: 15_000 });
+  if (cleanup.error || cleanup.status !== 0) {
     throw new Error("Could not remove the test-owned Actions container");
   }
   const reportFile = join(output, "report.json");
-  if (!existsSync(reportFile)) throw new Error(`Docker runtime did not produce a report: ${result.error?.message || result.stderr}`);
+  if (!existsSync(reportFile)) throw new Error(`Container runtime did not produce a report: ${result.error?.message || result.stderr}`);
   const report = JSON.parse(readFileSync(reportFile, "utf8"));
   if (result.error || result.status !== 0 || report.error) {
     throw new Error(`Actions simulation failed: ${report.error || result.error?.message || result.stderr}\nReport: ${reportFile}`);

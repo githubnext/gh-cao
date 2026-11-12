@@ -21,7 +21,7 @@ test("Podman CI runs real rootless boundaries and Azure services on pull request
   assert.deepEqual(workflow.permissions, { contents: "read" });
   const job = workflow.jobs.podman;
   assert.equal(job.if, undefined, "pull requests must not skip the integration job");
-  assert.equal(job.env.CAO_CONTAINER_ENGINE, "podman");
+  assert.equal(job.env.CAO_CONTAINER_ENGINE, undefined);
   assert.equal(job.env.CAO_TEST_PODMAN, "1");
   assert.ok(job["timeout-minutes"] > 0);
   assert.equal(job.steps.find((step) => step.uses?.startsWith("actions/checkout@")).with["persist-credentials"], false);
@@ -36,7 +36,7 @@ test("Podman CI runs real rootless boundaries and Azure services on pull request
   const services = workflow.jobs["azure-services"];
   assert.equal(services.needs, undefined, "real services must not contend with hosted-CLI workloads");
   assert.equal(services.if, undefined);
-  assert.equal(services.env.CAO_CONTAINER_ENGINE, "podman");
+  assert.equal(services.env?.CAO_CONTAINER_ENGINE, undefined);
   assert.match(services.steps.map((step) => step.run ?? "").join("\n"), /azure-local\.sh run-services/);
   assert.equal(services.steps.find((step) => step.id === "binaries").with.key,
     job.steps.find((step) => step.id === "binaries").with.key);

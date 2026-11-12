@@ -59,8 +59,8 @@ type Options struct {
 	Prefetch int
 	// AcknowledgeRecovery clears a recovery block left by an interrupted
 	// executor. Enable only after confirming the previous executor's
-	// processes and outstanding Docker requests have terminated. Recorded
-	// containers are reconciled against their original daemon before clearing.
+	// processes and outstanding container-engine requests have terminated. Recorded
+	// containers are reconciled against their original runtime before clearing.
 	AcknowledgeRecovery bool
 	Logger              *log.Logger
 	// Audit records command lifecycle events; nil disables them.

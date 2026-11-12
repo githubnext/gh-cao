@@ -334,7 +334,7 @@ func TestGatewayStartupCredentialIsolation(t *testing.T) {
 	if err := os.WriteFile(run, script, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(bin, "docker"), []byte("#!/bin/sh\nprintf '%s\\n' \"$@\"\n"), 0o700); err != nil {
+	if err := os.WriteFile(filepath.Join(bin, "podman"), []byte("#!/bin/sh\nprintf '%s\\n' \"$@\"\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	for _, name := range []string{"tls.crt", "tls.key", "receive.pem", "dispatch.pem"} {

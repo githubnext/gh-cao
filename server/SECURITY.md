@@ -160,7 +160,7 @@ or public reverse proxy.
 
 The query server opens provisioned PostgreSQL and never downloads or repairs
 database files. The explicitly selected `gh cao dashboard` operator may manage
-an owned local Docker/Podman database and provision it before starting the
+an owned local Podman database and provision it before starting the
 unprivileged runtime. An explicit connection bypasses that management.
 Acquired canonical JSONL is checksum-verified; missing or invalid evidence
 remains incomplete rather than triggering a legacy storage fallback.
@@ -1035,28 +1035,33 @@ contract is [`specs/server-hosted-cli.md`](../specs/server-hosted-cli.md).
   are allowed, following a fixed in-container Git initialization bootstrap
   that preserves their positional arguments. A temporary mode-`0600` environment file supplies the scoped
   token and minimal command environment; the App key, database credentials,
-  executor home, and Docker socket are not mounted. The root Docker context must
-  be local because it bind-mounts a host workspace. On cancellation, timeout, or
+  executor home, and container-engine socket are not mounted. The rootless
+  Podman engine must be local (`--remote=false`; remote connections and machines
+  are refused) because it bind-mounts a host workspace. On cancellation, timeout, or
   lease loss, the executor attempts bounded forced removal. Durable container
-  name and daemon identity are registered before creation; unconfirmed
-  termination retains the execution claim and workspace. Successful Docker
+  name and backend-scoped Podman runtime identity are registered before creation; unconfirmed
+  termination retains the execution claim and workspace. Successful Podman
   startup or log-stream closure alone cannot settle a command. The lifecycle
   interface keeps startup, output transport, and workload evidence separate;
   a stop request is not confirmation of termination. Recovery must confirm termination on
-  the original daemon after the old executor and its requests have stopped.
+  the original runtime after the old executor and its requests have stopped.
   Output redaction applies before persistence.
-- **Production Docker egress**: startup requires an exact-host policy and the
-  reviewed, SHA-256-verified static Linux relay. Workloads use `--network none`;
+- **Production Podman egress**: Podman is the default and only production
+  runtime; there is no Docker adapter. Startup requires an exact-host policy and the
+  reviewed, SHA-256-verified static Linux relay whose architecture must match
+  the local Podman host. Workloads use `--network none`;
   clearing proxy variables cannot restore IP, UDP, or DNS reach. A private
   per-command Unix socket and read-only relay (with no writable workspace alias)
-  expose only a bounded HTTPS CONNECT proxy. Every resolved address is validated
+  expose only a bounded HTTPS CONNECT proxy. Effective-isolation inspection
+  rejects the workload before start unless that network and those mounts are
+  exactly present. Every resolved address is validated
   before numeric dialing; private GHES needs exact host/IP approval, never a
   subnet, metadata, loopback, or link-local exception. This is destination
   control, not TLS SNI or content inspection. Cancellation closes tunnels but
   cannot settle an unconfirmed workload. Native development profiles are
-  unchanged; Explicit local Docker alone retains its previous bridge mode when no
-  egress settings are supplied. See the
-  [production rollout contract](README.md#production-docker-egress-rollout)
+  unchanged; only explicit local-development Podman uses bridge mode, and only
+  when no egress settings are supplied. See the
+  [production rollout contract](README.md#production-podman-egress-rollout)
   for provenance, limits, compatibility, and real-runtime evidence requirements.
 - **Native development profiles**: only `execute-cli --local-development` may explicitly
   select Apple container on Apple Silicon or Windows Sandbox on Windows.
@@ -1072,7 +1077,7 @@ contract is [`specs/server-hosted-cli.md`](../specs/server-hosted-cli.md).
   Native guest result files are not termination
   evidence. Both profiles preserve scoped credentials, lease fencing, and
   retained claims on uncertain cleanup; neither is a production deployment
-  option or an automatic fallback from Docker.
+  option or an automatic fallback from Podman.
 - **Output safety**: stdout and stderr independently retain unfinished known
   credentials and credential-shaped spans before UTF-8-safe framing. Writes,
   newlines, and size-based flushes cannot expose a credential split between
@@ -1185,7 +1190,7 @@ export, OTLP audit logs, and hosted CLI telemetry address those findings.
 Recommended next steps, in priority order:
 
 1. Evaluate a stronger gVisor or microVM boundary against the deployment's
-   threat model; it is not a universal SOC 2 mandate. Production Docker egress
+   threat model; it is not a universal SOC 2 mandate. Production Podman egress
    restriction is now required, with live boundary evidence collected during rollout.
 2. Evaluate managed App JWT signing in a KMS or HSM against the deployment's
    threat model. It is not a universal SOC 2 mandate or a supported runtime

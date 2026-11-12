@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/cliegress"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
@@ -26,8 +29,7 @@ func podmanOperation(process Process) string {
 func clearPodmanConfiguration(t *testing.T) {
 	t.Helper()
 	for _, name := range []string{
-		"CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY",
-		"DOCKER_HOST", "DOCKER_CONTEXT", "PODMAN_CONNECTIONS_CONF",
+		"CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY", "PODMAN_CONNECTIONS_CONF",
 		"CONTAINERS_CONF", "CONTAINERS_CONF_OVERRIDE", "CONTAINERS_CONF_MODULES",
 		"CONTAINERS_STORAGE_CONF",
 	} {
@@ -102,7 +104,7 @@ func podmanTest(t *testing.T) (*ContainerRunner, *containerCommandRunner, Proces
 		}
 		return 0, nil
 	}
-	lifecycle, err := NewPodmanContainerLifecycle("podman-test", commands)
+	lifecycle, err := NewPodmanContainerLifecycle("podman-test", commands, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +141,7 @@ func podmanIsolationFixture(workspace, name string) map[string]any {
 func TestPodmanFullLifecycle(t *testing.T) {
 	runner, commands, process := podmanTest(t)
 	lifecycle := runner.Lifecycle.(*PodmanContainerLifecycle)
-	lifecycle.engine.HostEnv = podmanHostEnvironment([]string{
+	lifecycle.engine.hostEnv = podmanHostEnvironment([]string{
 		"PATH=/bin", "HOME=/operator", "XDG_RUNTIME_DIR=/run/user/1000",
 		"GH_TOKEN=host-token", "CAO_PRIVATE_KEY=secret", "DOCKER_CONFIG=/credentials",
 		"CONTAINER_HOST=ssh://remote", "CONTAINERS_CONF=/untrusted",
@@ -258,7 +260,7 @@ func TestPodmanRuntimeIdentityAndPrerequisites(t *testing.T) {
 	if err != nil || first != second {
 		t.Fatalf("identity changed across discovery: %q, %q, %v", first, second, err)
 	}
-	restarted, err := NewPodmanContainerLifecycle("podman-test", commands)
+	restarted, err := NewPodmanContainerLifecycle("podman-test", commands, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,13 +332,13 @@ func TestPodmanRejectsRemoteConfiguration(t *testing.T) {
 	}
 	clearPodmanConfiguration(t)
 	for _, name := range []string{
-		"CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY", "DOCKER_HOST",
-		"DOCKER_CONTEXT", "PODMAN_CONNECTIONS_CONF", "CONTAINERS_CONF",
+		"CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY",
+		"PODMAN_CONNECTIONS_CONF", "CONTAINERS_CONF",
 		"CONTAINERS_CONF_OVERRIDE", "CONTAINERS_CONF_MODULES", "CONTAINERS_STORAGE_CONF",
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Setenv(name, "untrusted")
-			if _, err := NewPodmanContainerLifecycle("", nil); err == nil {
+			if _, err := NewPodmanContainerLifecycle("", nil, nil); err == nil {
 				t.Fatal("remote/custom configuration accepted")
 			}
 		})
@@ -557,7 +559,7 @@ func TestPodmanReplacedDatabaseBlocksRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	lifecycle := runner.Lifecycle.(*PodmanContainerLifecycle)
-	configFile := strings.TrimPrefix(lifecycle.currentEngine.HostEnv[len(lifecycle.currentEngine.HostEnv)-1], "CONTAINERS_CONF=")
+	configFile := strings.TrimPrefix(lifecycle.currentEngine.hostEnv[len(lifecycle.currentEngine.hostEnv)-1], "CONTAINERS_CONF=")
 	database := filepath.Join(filepath.Dir(configFile), "libpod", "db.sql")
 	// #nosec G703 -- this is only the adapter's test-owned fixture database.
 	if err := os.Rename(database, database+"-replaced"); err != nil {
@@ -624,4 +626,152 @@ func TestPodmanRequiresQualifiedPinnedImage(t *testing.T) {
 			t.Fatal("direct adapter creation bypassed image validation")
 		}
 	}
+}
+
+func podmanEgressIsolationFixture(workspace, name string) map[string]any {
+	value := podmanIsolationFixture(workspace, name)
+	value["Mounts"] = append(value["Mounts"].([]map[string]any), map[string]any{
+		"Type": "bind", "Source": filepath.Join(workspace, ".cao-egress"), "Destination": "/cao-egress", "RW": false,
+	})
+	host := value["HostConfig"].(map[string]any)
+	host["NetworkMode"] = "none"
+	host["Tmpfs"] = map[string]string{
+		"/tmp": "rw,nosuid,nodev,noexec,size=64m", egressTmpfsDestination: "ro,nosuid,nodev,noexec,size=4k,rprivate",
+	}
+	return value
+}
+
+func podmanEgressTest(t *testing.T, mutate func(map[string]any, map[string]any)) (*ContainerRunner, *containerCommandRunner, Process) {
+	t.Helper()
+	runner, commands, process := podmanTest(t)
+	// Unix socket paths have a platform length limit; avoid long test names.
+	workspace, err := os.MkdirTemp("", "pe-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(workspace) })
+	if workspace, err = filepath.EvalSymlinks(workspace); err != nil {
+		t.Fatal(err)
+	}
+	process.Workspace, process.Dir = workspace, workspace
+	policy, relay, digest := egressFixture(t)
+	if runner.Lifecycle.(*PodmanContainerLifecycle).engine.egress, err = LoadContainerEgress(policy, relay, digest); err != nil {
+		t.Fatal(err)
+	}
+	base := commands.run
+	commands.run = func(ctx context.Context, p Process, output OutputFunc) (int, error) {
+		if slices.Contains(p.Args, podmanPlatformFormat) {
+			output("stdout", []byte("linux/amd64\n"))
+			return 0, nil
+		}
+		if slices.Contains(p.Args, podmanIsolationFormat) {
+			value := podmanEgressIsolationFixture(workspace, p.Args[len(p.Args)-1])
+			if mutate != nil {
+				mutate(value, value["HostConfig"].(map[string]any))
+			}
+			encoded, err := json.Marshal(value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			output("stdout", encoded)
+			return 0, nil
+		}
+		return base(ctx, p, output)
+	}
+	return runner, commands, process
+}
+
+func TestPodmanEgressUsesNetworkNoneAndPrivateRelay(t *testing.T) {
+	runner, commands, process := podmanEgressTest(t, nil)
+	directory := filepath.Join(process.Workspace, ".cao-egress")
+	base := commands.run
+	commands.run = func(ctx context.Context, p Process, output OutputFunc) (int, error) {
+		if podmanOperation(p) == "create" {
+			if p.Args[slices.Index(p.Args, "--network")+1] != "none" || slices.Contains(p.Args, "bridge") {
+				t.Fatal("egress workload is not network-none")
+			}
+			if !slices.Contains(p.Args, egressTmpfsDestination+":"+egressTmpfsOptions) ||
+				!slices.Contains(p.Args, "type=bind,src="+directory+",dst=/cao-egress,readonly,relabel=private") {
+				t.Fatalf("relay is not mounted read-only behind a hidden workspace alias: %v", p.Args)
+			}
+			if p.Args[slices.Index(p.Args, "--entrypoint")+1] != cliegress.RelayPath {
+				t.Fatal("verified relay is not the entrypoint")
+			}
+			for _, flag := range []string{"--pull=never", "--remote=false", "--userns=keep-id"} {
+				if !slices.Contains(p.Args, flag) {
+					t.Fatalf("egress dropped rootless isolation option %s", flag)
+				}
+			}
+		}
+		return base(ctx, p, output)
+	}
+	if code, err := runner.Run(t.Context(), process, nil); err != nil || code != 7 {
+		t.Fatalf("egress workload result = %d %v", code, err)
+	}
+	operations := make([]string, 0, len(commands.processes))
+	for _, p := range commands.processes {
+		operations = append(operations, podmanOperation(p))
+	}
+	if !slices.Equal(operations[:4], []string{"info", "info", "info", "create"}) {
+		t.Fatalf("relay architecture was not verified before creation: %v", operations)
+	}
+	if conn, err := (&net.Dialer{Timeout: time.Second}).DialContext(t.Context(), "unix", filepath.Join(directory, "proxy.sock")); err == nil {
+		_ = conn.Close()
+		t.Fatal("proxy outlived confirmed workload cleanup")
+	}
+}
+
+func TestPodmanEgressFailsClosed(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		mutate func(map[string]any, map[string]any)
+	}{
+		{"bridge network", func(_ map[string]any, host map[string]any) { host["NetworkMode"] = "bridge" }},
+		{"missing relay mount", func(value map[string]any, _ map[string]any) {
+			value["Mounts"] = value["Mounts"].([]map[string]any)[:1]
+		}},
+		{"writable relay mount", func(value map[string]any, _ map[string]any) {
+			value["Mounts"].([]map[string]any)[1]["RW"] = true
+		}},
+		{"missing hiding tmpfs", func(_ map[string]any, host map[string]any) {
+			host["Tmpfs"] = map[string]string{"/tmp": "rw,nosuid,nodev,noexec,size=64m"}
+		}},
+		{"copied-up hiding tmpfs", func(_ map[string]any, host map[string]any) {
+			host["Tmpfs"].(map[string]string)[egressTmpfsDestination] = "ro,nosuid,nodev,noexec,size=4k,tmpcopyup"
+		}},
+		{"writable hiding tmpfs", func(_ map[string]any, host map[string]any) {
+			host["Tmpfs"].(map[string]string)[egressTmpfsDestination] = "rw,nosuid,nodev,noexec,size=4k"
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			runner, commands, process := podmanEgressTest(t, test.mutate)
+			if _, err := runner.Run(t.Context(), process, nil); err == nil || !strings.Contains(err.Error(), "effective isolation") {
+				t.Fatalf("unsafe egress isolation was not rejected: %v", err)
+			}
+			for _, p := range commands.processes {
+				if op := podmanOperation(p); op == "start" || op == "logs" {
+					t.Fatal("unsafe egress isolation reached workload start/output")
+				}
+			}
+		})
+	}
+	t.Run("architecture mismatch", func(t *testing.T) {
+		runner, commands, process := podmanEgressTest(t, nil)
+		base := commands.run
+		commands.run = func(ctx context.Context, p Process, output OutputFunc) (int, error) {
+			if slices.Contains(p.Args, podmanPlatformFormat) {
+				output("stdout", []byte("linux/arm64\n"))
+				return 0, nil
+			}
+			return base(ctx, p, output)
+		}
+		if _, err := runner.Run(t.Context(), process, nil); err == nil {
+			t.Fatal("mismatched relay architecture accepted")
+		}
+		for _, p := range commands.processes {
+			if podmanOperation(p) == "create" {
+				t.Fatal("unverified relay created a workload")
+			}
+		}
+	})
 }

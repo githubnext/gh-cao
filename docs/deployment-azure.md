@@ -15,7 +15,7 @@ Key Vault, ACR and separate provisioning/ingestion jobs. This is a review-only
 topology bundle with separate activation gates, not a new `deploy azure --apply`
 backend; the native deployment command below remains Functions-only.
 
-The Azure deployment runs `cao-dashboard azure-functions` from the `server/` directory as a custom Linux container on Azure Functions. The `azure-functions-runtime` Docker target and `cao-functions` image repository remain unchanged; there is no separate `cao-functions` executable. Bicep sets `appCommandLine: 'azure-functions'` as the arguments to the image's `/app/cao-dashboard` entrypoint. The Functions Core Tools custom-handler configuration uses `defaultExecutablePath: "cao-dashboard"` with `arguments: ["azure-functions"]`. Browsers connect only to the Function App, over HTTPS on the same origin. The Function App:
+The Azure deployment runs `cao-dashboard azure-functions` from the `server/` directory as a custom Linux container on Azure Functions. The `azure-functions-runtime` Dockerfile target and `cao-functions` image repository remain unchanged; there is no separate `cao-functions` executable. Bicep sets `appCommandLine: 'azure-functions'` as the arguments to the image's `/app/cao-dashboard` entrypoint. The Functions Core Tools custom-handler configuration uses `defaultExecutablePath: "cao-dashboard"` with `arguments: ["azure-functions"]`. Browsers connect only to the Function App, over HTTPS on the same origin. The Function App:
 
 - Signs users in with GitHub OAuth.
 - Authorizes explicitly allowed GitHub users or members of organizations or teams that you allow.
@@ -301,7 +301,7 @@ an ADX cluster does not provide them.
   done
   ```
 
-- Docker, or an Azure Container Registry build agent.
+- Podman, or an Azure Container Registry build agent.
 - A GitHub OAuth app, or a GitHub App configured for the user authorization-code flow. For membership authorization, the GitHub App needs organization **Members: read** and an approved installation in each allowed organization. PATs and pasted user tokens aren't supported.
 - At least one allowed GitHub user, organization, or team in `ORGANIZATION/TEAM-SLUG` format.
 - An adopter-owned reviewed `cao.json` and a verified local operational snapshot, or an explicit choice to initialize an empty dashboard. Obtain snapshots from authorized Activity artifacts, not the synthetic Pages demo. Campaigns are not required for empty initialization. Private repository snapshots must be collected with credentials authorized for those repositories and kept private.
@@ -538,24 +538,27 @@ normative detail.
 1. Build the Function App image from a trusted checkout. Use an immutable release or commit tag in production instead of `DEPLOYMENT-TAG`.
 
    ```bash
-   az acr login --name CONTAINER-REGISTRY-NAME
-   docker build \
+   az acr login --name CONTAINER-REGISTRY-NAME --expose-token \
+     --query accessToken --output tsv |
+     podman login CONTAINER-REGISTRY-NAME.azurecr.io \
+       --username 00000000-0000-0000-0000-000000000000 --password-stdin
+   podman build \
      --platform linux/amd64 \
      --build-arg CAO_PROFILE=cao.azure.json \
      --target azure-functions-runtime \
      --file server/Dockerfile \
      --tag CONTAINER-REGISTRY-NAME.azurecr.io/cao-functions:DEPLOYMENT-TAG \
      .
-   docker push CONTAINER-REGISTRY-NAME.azurecr.io/cao-functions:DEPLOYMENT-TAG
+   podman push CONTAINER-REGISTRY-NAME.azurecr.io/cao-functions:DEPLOYMENT-TAG
    ```
 
 1. Build and push the short-lived provisioning image to the same ACR:
 
    ```bash
-   docker build --platform linux/amd64 \
+   podman build --platform linux/amd64 \
      --target azure-db-provision --file server/Dockerfile \
      --tag CONTAINER-REGISTRY-NAME.azurecr.io/cao-db-provision:DEPLOYMENT-TAG .
-   docker push CONTAINER-REGISTRY-NAME.azurecr.io/cao-db-provision:DEPLOYMENT-TAG
+   podman push CONTAINER-REGISTRY-NAME.azurecr.io/cao-db-provision:DEPLOYMENT-TAG
    ```
 
 1. Build and push **one** ingestion image with the same deployment tag.
@@ -571,12 +574,12 @@ normative detail.
    in the isolated build context and use the explicit source argument:
 
    ```bash
-   docker build --platform linux/amd64 \
+   podman build --platform linux/amd64 \
      --target azure-ingest-runtime --file server/Dockerfile \
      --build-arg CAO_PROFILE=cao.azure.json \
      --build-arg CAO_INGEST_SOURCE=adopter-snapshot \
      --tag CONTAINER-REGISTRY-NAME.azurecr.io/cao-ingest:DEPLOYMENT-TAG .
-   docker push CONTAINER-REGISTRY-NAME.azurecr.io/cao-ingest:DEPLOYMENT-TAG
+   podman push CONTAINER-REGISTRY-NAME.azurecr.io/cao-ingest:DEPLOYMENT-TAG
    ```
 
    The image never downloads upstream data automatically. Missing source input
@@ -585,7 +588,7 @@ normative detail.
 
    **Building from a release asset bundle.** Operators without a full catalog
    checkout can use the attested `cao-azure-REVISION.tgz` attached to each
-   release beside the runtime archive. It contains only the Docker build inputs
+   release beside the runtime archive. It contains only the container build inputs
    for `azure-functions-runtime`, `azure-ingest-runtime`,
    `azure-empty-ingest-runtime`, and `azure-db-provision`, the compiled `server/azure/main.json`
    template, and a `cao-azure.json` manifest with the source revision and the
@@ -601,13 +604,13 @@ normative detail.
      --signer-workflow OWNER/REPOSITORY/.github/workflows/cao-runtime.yml \
      --source-digest REVISION --signer-digest REVISION --deny-self-hosted-runners
    mkdir cao-azure && tar -xzf cao-azure-REVISION.tgz -C cao-azure
-   docker build --platform linux/amd64 \
+   podman build --platform linux/amd64 \
      --target azure-functions-runtime --file cao-azure/server/Dockerfile \
      --build-arg CAO_PROFILE=cao.azure.json \
      --build-context cao-policy=POLICY-DIRECTORY \
      --tag CONTAINER-REGISTRY-NAME.azurecr.io/cao-functions:DEPLOYMENT-TAG \
      cao-azure
-   docker build --platform linux/amd64 \
+   podman build --platform linux/amd64 \
      --target azure-ingest-runtime --file cao-azure/server/Dockerfile \
      --build-arg CAO_PROFILE=cao.azure.json \
      --build-context cao-policy=POLICY-DIRECTORY \
@@ -720,7 +723,7 @@ normative detail.
    1. Confirm that the dashboard refuses a user who isn't in an allowed organization or team.
 
 > [!TIP]
-> To test the Functions HTTP interface on Linux or macOS (Intel or Apple Silicon) without Azure credentials, run `npm run test:integration:azure-services` with a local Docker daemon running. To use Podman instead, set `CAO_CONTAINER_ENGINE=podman`; only `docker` (the default) and `podman` are accepted, and there is no automatic fallback to another installed engine. The script builds the native Go server and starts platform-matched Azure Functions Core Tools, Azurite, and PostgreSQL.
+> To test the Functions HTTP interface on Linux or macOS (Intel or Apple Silicon) without Azure credentials, run `npm run test:integration:azure-services` with a working local Podman installation. Podman is the only supported container engine; there is no fallback to another engine. The script builds the native Go server and starts platform-matched Azure Functions Core Tools, Azurite, and PostgreSQL.
 
 ### Infrastructure-only bootstrap
 
@@ -910,7 +913,7 @@ backends for the same OTLP/HTTP exports. They are not part of any deployment.
 | `npm run dashboard:server:aspire-up` / `aspire-down` | Standalone Aspire dashboard on `http://127.0.0.1:18888`, OTLP/HTTP on port `4318` |
 | `npm run dashboard:server:lgtm-up` / `lgtm-down` | Grafana LGTM (Grafana, Loki, Tempo, Prometheus) on `http://127.0.0.1:3000`, OTLP/HTTP on port `4318` |
 
-These commands use Docker by default. Set `CAO_CONTAINER_ENGINE=podman` to use `podman compose`, which needs a Compose provider (`podman-compose` or `docker-compose`, selectable with `PODMAN_COMPOSE_PROVIDER`). Use the same engine when bringing a stack down.
+These commands use `podman compose`, which needs a Compose provider (for example `podman-compose`, selectable with `PODMAN_COMPOSE_PROVIDER`). Podman is the only supported container engine.
 
 Both publish port `4318`, so stop one before starting the other. Their receivers
 are unauthenticated and keep data only until the container is removed. Before
@@ -1043,7 +1046,7 @@ You configure traces for orchestrators and workers separately, in the control re
 
 By default, the server serves the data that the Activity workflow publishes and
 doesn't collect anything itself. To have Azure collect instead, set
-`collectorImage` to an image built from the reviewed `collector-runtime` Docker
+`collectorImage` to an image built from the reviewed `collector-runtime` Dockerfile
 target and supply `collectorNativeInventoryDigest` at deployment. The
 authoritative `server/azure/main.bicep` and `server/azure/collector.bicep`
 sources compile to `server/azure/main.json`. The optional module adds:

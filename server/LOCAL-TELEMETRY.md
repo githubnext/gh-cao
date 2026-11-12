@@ -10,11 +10,11 @@ exporter configuration shared with hosted deployments.
 The optional [standalone Aspire dashboard](https://aspire.dev/dashboard/overview/)
 receives the Go server's existing OTLP/HTTP traces, metrics, and opt-in structured
 logs without an Aspire AppHost or a .NET SDK. From the repository root, with
-Docker and Docker Compose available:
+Podman and a `podman compose` provider available:
 
 ```bash
 npm run dashboard:server:aspire-up
-docker-compose -f server/aspire-compose.yml logs aspire-dashboard
+bash scripts/container-compose.sh -f server/aspire-compose.yml logs aspire-dashboard
 ```
 
 Open the browser-token login URL printed in the container logs, using
@@ -76,7 +76,7 @@ root:
 # Aspire and LGTM both publish port 4318; stop Aspire first if it is running.
 npm run dashboard:server:aspire-down
 npm run dashboard:server:lgtm-up
-docker-compose -f server/lgtm-compose.yml logs -f lgtm
+bash scripts/container-compose.sh -f server/lgtm-compose.yml logs -f lgtm
 ```
 
 Wait for the stack's ready message, then open `http://127.0.0.1:3000`.
@@ -153,8 +153,8 @@ The test skips during ordinary `go test ./...` runs; when enabled it fails if
 either the trace or metric export is rejected or unreachable.
 
 Sign in to OpenObserve with the same credentials and select the `default`
-organization. The local instance stores data in the `openobserve-data` Docker
-volume; `docker-compose -f server/otel-compose.yml down` stops it without
+organization. The local instance stores data in the `openobserve-data` Podman
+volume; `bash scripts/container-compose.sh -f server/otel-compose.yml down` stops it without
 deleting that volume. Do not use `down -v` unless you intend to erase its data.
 For hosted deployments, supply exporter authentication through the deployment
 secret manager instead of exporting it from an interactive shell.

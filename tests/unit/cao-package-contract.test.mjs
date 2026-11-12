@@ -80,6 +80,18 @@ test("CAO server package workflow publishes immutable Compose-ready images", asy
   assert.doesNotMatch(source, /prereleaseTag|vX\.Y\.Z-prerelease/);
   assert.match(source, /--file server\/Dockerfile/);
   assert.match(source, /--build-arg "CAO_PROFILE=cao\.json"/);
+  assert.match(source, /podman build \\\n\s+--format docker \\\n\s+--file server\/Dockerfile/);
+  assert.match(source, /podman save --format docker-archive --output "\$\{RUNNER_TEMP\}\/cao-server\.tar"/);
+  assert.match(source, /input: \$\{\{ runner\.temp \}\}\/cao-server\.tar/);
+  assert.equal((source.match(/image: docker-archive:\$\{\{ runner\.temp \}\}\/cao-server\.tar/g) ?? []).length, 2);
+  assert.match(source, /--input \/candidate\/cao-server\.tar/);
+  assert.match(publisherSource, /podman load --input cao-server\.tar/);
+  assert.match(publisherSource, /podman login --authfile "\$\{auth_file\}" --username "\$\{REGISTRY_USERNAME\}" --password-stdin ghcr\.io/);
+  assert.match(publisherSource, /skopeo inspect --raw/);
+  assert.match(publisherSource, /skopeo copy --quiet --all --preserve-digests/);
+  for (const content of [source, publisherSource]) {
+    assert.doesNotMatch(content, /\bdocker (?:run|build|image|tag|push|buildx)\b|docker\.sock|docker\/login-action/);
+  }
   assert.match(source, /go -C server test \.\/\.\.\./);
   assert.match(source, /npm run dashboard:server:build/);
   assert.match(source, /aquasecurity\/trivy-action@[0-9a-f]{40}/);
@@ -121,7 +133,7 @@ test("CAO server package workflow publishes immutable Compose-ready images", asy
   assert.equal(maxEchoedDetailsDepth(publisherSource), 1);
 
   assert.doesNotMatch(publisherSource, /actions\/checkout@/);
-  assert.doesNotMatch(publisherSource, /npm ci|go -C server test|docker build\s|trivy-action|scan-action/);
+  assert.doesNotMatch(publisherSource, /npm ci|go -C server test|(?:docker|podman) build\s|trivy-action|scan-action/);
 
   for (const match of `${source}\n${publisherSource}`.matchAll(/uses:\s+[^@\s]+@([^\s#]+)/g)) {
     if (match[0].includes("cao-package-publish.yml@main")) continue;

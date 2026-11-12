@@ -222,20 +222,26 @@ jobs:
               source_branch: $source_branch,
               version: $version
             }' cao-server-metadata.json >/dev/null
-          docker image load --input cao-server.tar
-          local_revision="$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "cao-server:${REVISION}")"
-          local_version="$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' "cao-server:${REVISION}")"
+          podman load --input cao-server.tar
+          local_revision="$(podman image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "cao-server:${REVISION}")"
+          local_version="$(podman image inspect --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' "cao-server:${REVISION}")"
           if [[ "${local_revision}" != "${REVISION}" || "${local_version}" != "${VERSION}" ]]; then
             echo "sealed candidate labels do not match the authorized package source" >&2
             exit 1
           fi
       - id: registry-login
         name: Log in to GHCR
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USERNAME: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          # actions/attest reads registry credentials only from ~/.docker/config.json; Podman and Skopeo share this auth file.
+          auth_file="${HOME}/.docker/config.json"
+          mkdir -p "$(dirname "${auth_file}")"
+          echo "REGISTRY_AUTH_FILE=${auth_file}" >> "${GITHUB_ENV}"
+          printf '%s' "${REGISTRY_PASSWORD}" \
+            | podman login --authfile "${auth_file}" --username "${REGISTRY_USERNAME}" --password-stdin ghcr.io >/dev/null
       - id: publish
         name: Publish immutable package identity
         env:
@@ -249,19 +255,26 @@ jobs:
           repository="ghcr.io/${REPOSITORY,,}/cao-server"
           candidate="${repository}:candidate-${RUN_ID}-${RUN_ATTEMPT}"
           canonical="${repository}:${IDENTITY}"
+          manifest_file="${RUNNER_TEMP}/registry-manifest.json"
 
-          docker tag "cao-server:${REVISION}" "${candidate}"
-          docker push "${candidate}" >/dev/null
-          candidate_manifest="$(docker buildx imagetools inspect "${candidate}" --format '{{json .Manifest}}')"
-          candidate_digest="$(jq -r '.digest // empty' <<<"${candidate_manifest}")"
-          if [[ ! "${candidate_digest}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+          # Digest of the exact top-level manifest bytes the registry serves for a reference.
+          registry_digest() {
+            skopeo inspect --raw "docker://$1" > "${manifest_file}" || return 1
+            printf 'sha256:%s\n' "$(sha256sum < "${manifest_file}" | cut -d ' ' -f 1)"
+          }
+
+          podman push --quiet --digestfile "${RUNNER_TEMP}/candidate-digest" \
+            "cao-server:${REVISION}" "docker://${candidate}" >/dev/null
+          candidate_digest="$(registry_digest "${candidate}")"
+          if [[ ! "${candidate_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] \
+            || [[ "$(cat "${RUNNER_TEMP}/candidate-digest")" != "${candidate_digest}" ]]; then
             echo "package candidate did not resolve to one immutable digest" >&2
             exit 1
           fi
 
           inspect_output=
-          if inspect_output="$(docker buildx imagetools inspect "${canonical}" --format '{{json .Manifest}}' 2>&1)"; then
-            canonical_digest="$(jq -r '.digest // empty' <<<"${inspect_output}")"
+          if inspect_output="$(skopeo inspect --raw "docker://${canonical}" 2>&1 >/dev/null)"; then
+            canonical_digest="$(registry_digest "${canonical}")"
             if [[ "${canonical_digest}" != "${candidate_digest}" ]]; then
               echo "refusing to redefine an existing immutable package identity" >&2
               exit 1
@@ -271,14 +284,13 @@ jobs:
               echo "unable to verify whether the immutable package identity exists" >&2
               exit 1
             fi
-            docker buildx imagetools create \
-              --prefer-index=false \
-              --tag "${canonical}" \
-              "${repository}@${candidate_digest}" >/dev/null
+            # Copy the candidate manifest byte-for-byte so the canonical tag names the scanned digest.
+            skopeo copy --quiet --all --preserve-digests \
+              "docker://${repository}@${candidate_digest}" \
+              "docker://${canonical}" >/dev/null
           fi
 
-          canonical_manifest="$(docker buildx imagetools inspect "${canonical}" --format '{{json .Manifest}}')"
-          canonical_digest="$(jq -r '.digest // empty' <<<"${canonical_manifest}")"
+          canonical_digest="$(registry_digest "${canonical}")"
           if [[ "${canonical_digest}" != "${candidate_digest}" ]]; then
             echo "canonical package identity does not equal the scanned candidate digest" >&2
             exit 1
@@ -302,6 +314,10 @@ jobs:
           subject-digest: ${{ steps.publish.outputs.digest }}
           sbom-path: ${{ runner.temp }}/candidate/cao-server.spdx.json
           push-to-registry: true
+      - id: registry-logout
+        name: Log out of GHCR
+        if: always() && steps.registry-login.outcome != 'skipped'
+        run: podman logout --authfile "${HOME}/.docker/config.json" ghcr.io || true
       - name: Summarize publication security checks
         if: always()
         env:

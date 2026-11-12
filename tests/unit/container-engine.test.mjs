@@ -8,7 +8,7 @@ import { promisify } from "node:util";
 const execute = promisify(execFile);
 const helper = resolve("scripts/container-engine.sh");
 
-test("local telemetry npm commands preserve explicit container engine selection", async () => {
+test("local service npm commands use the Podman Compose wrapper", async () => {
   const { scripts } = JSON.parse(await readFile(resolve("package.json"), "utf8"));
   for (const service of ["aspire", "lgtm"]) {
     for (const [action, args] of [["up", "up -d"], ["down", "down"]]) {
@@ -16,9 +16,10 @@ test("local telemetry npm commands preserve explicit container engine selection"
         `bash scripts/container-compose.sh -f server/${service}-compose.yml ${args}`);
     }
   }
+  assert.equal(scripts["dashboard:server:postgres-up"], "bash scripts/container-compose.sh -f server/compose.yml up -d postgres");
 });
 
-async function fixture(t, tools, selection) {
+async function fixture(t, tools) {
   await mkdir(resolve(".tmp"), { recursive: true });
   const directory = await mkdtemp(resolve(".tmp/container-engine-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
@@ -30,63 +31,40 @@ ${code}
 `, { mode: 0o700 });
   }
   const env = { ...process.env, PATH: directory, TRACE: trace };
-  delete env.CAO_CONTAINER_ENGINE;
-  if (selection !== undefined) env.CAO_CONTAINER_ENGINE = selection;
+  env.CAO_CONTAINER_ENGINE = "docker";
   const run = (body, args = []) => execute("/bin/bash", ["-c", `source "$1"; shift; ${body}`, "test", helper, ...args], { env });
   return { directory, env, run, commands: async () => (await readFile(trace, "utf8")).split("\0").slice(0, -1) };
 }
 
-for (const selection of [undefined, "docker", "podman"]) {
-  test(`container selection ${selection ?? "default"} forwards exact arguments`, async (t) => {
-    const f = await fixture(t, { docker: "exit 0", podman: "exit 0" }, selection);
-    await f.run('cao_container_engine_init && cao_container "$@"', ["run", "--name", "a b", ""]);
-    assert.deepEqual(await f.commands(), [selection ?? "docker", "run", "--name", "a b", ""]);
-  });
-}
-
-for (const selection of ["", "auto", "nerdctl", "Docker", "podman --remote"]) {
-  test(`invalid engine '${selection}' fails closed`, async (t) => {
-    const f = await fixture(t, { docker: "exit 0", podman: "exit 0" }, selection);
-    await assert.rejects(f.run("cao_container_engine_init"), /must be docker or podman/);
-    await assert.rejects(f.commands(), { code: "ENOENT" });
-  });
-}
-
-for (const selection of [undefined, "docker", "podman"]) {
-  test(`missing selected ${selection ?? "default"} engine never falls back`, async (t) => {
-    const f = await fixture(t, { [selection === "podman" ? "docker" : "podman"]: "exit 0" }, selection);
-    await assert.rejects(f.run("cao_container_engine_init"), /no alternate engine will be used/);
-    await assert.rejects(f.commands(), { code: "ENOENT" });
-  });
-}
-
-for (const engine of ["docker", "podman"]) {
-  test(`${engine} compose forwards exact arguments`, async (t) => {
-    const f = await fixture(t, { docker: "exit 0", podman: "exit 0", "docker-compose": "exit 99" }, engine);
-    await f.run('cao_container_compose "$@"', ["-f", "file with spaces.yml", "up", "-d"]);
-    assert.deepEqual(await f.commands(), [engine, "compose", "version", engine, "compose", "-f", "file with spaces.yml", "up", "-d"]);
-  });
-  test(`${engine} missing Compose gives actionable error`, async (t) => {
-    const f = await fixture(t, { [engine]: "exit 1" }, engine);
-    await assert.rejects(f.run("cao_container_compose up"), engine === "docker" ? /install docker compose or docker-compose/ : /install a Compose provider/);
-  });
-}
-
-test("Docker uses legacy Compose only when its plugin is absent", async (t) => {
-  const f = await fixture(t, { docker: "exit 1", "docker-compose": "exit 0", podman: "exit 99" });
-  await f.run('cao_container_compose "$@"', ["logs", "--no-color"]);
-  assert.deepEqual(await f.commands(), ["docker", "compose", "version", "docker-compose", "logs", "--no-color"]);
+test("container commands always use Podman with exact arguments", async (t) => {
+  const f = await fixture(t, { docker: "exit 0", podman: "exit 0" });
+  await f.run('cao_container_engine_init && cao_container "$@"', ["run", "--name", "a b", ""]);
+  assert.deepEqual(await f.commands(), ["podman", "run", "--name", "a b", ""]);
 });
 
-test("Podman never invokes Docker Compose directly when its provider fails", async (t) => {
-  const f = await fixture(t, { podman: "exit 1", docker: "exit 0", "docker-compose": "exit 0" }, "podman");
-  await assert.rejects(f.run("cao_container_compose up"), /Podman Compose is unavailable/);
+test("missing Podman never falls back to Docker", async (t) => {
+  const f = await fixture(t, { docker: "exit 0", "docker-compose": "exit 0" });
+  await assert.rejects(f.run("cao_container_engine_init"), /Podman is required.*no other engine will be used/);
+  await assert.rejects(f.run("cao_container_compose up"), /Podman is required/);
+  await assert.rejects(f.commands(), { code: "ENOENT" });
+});
+
+test("Podman compose forwards exact arguments", async (t) => {
+  const f = await fixture(t, { docker: "exit 99", podman: "exit 0", "docker-compose": "exit 99" });
+  await f.run('cao_container_compose "$@"', ["-f", "file with spaces.yml", "up", "-d"]);
+  assert.deepEqual(await f.commands(), ["podman", "compose", "version", "podman", "compose", "-f", "file with spaces.yml", "up", "-d"]);
+});
+
+test("missing Podman Compose provider gives an actionable error without other engines", async (t) => {
+  const f = await fixture(t, { podman: "exit 1", docker: "exit 0", "docker-compose": "exit 0" });
+  await assert.rejects(f.run("cao_container_compose up"), /Podman Compose is unavailable; install a Compose provider/);
   assert.deepEqual(await f.commands(), ["podman", "compose", "version"]);
 });
 
 test("Compose wrapper preserves command failures without trying another provider", async (t) => {
   const f = await fixture(t, {
-    docker: 'if [[ "$2" == version ]]; then exit 0; fi\nexit 17',
+    podman: 'if [[ "$2" == version ]]; then exit 0; fi\nexit 17',
+    docker: "exit 0",
     "docker-compose": "exit 0",
     dirname: 'echo "$SCRIPT_DIRECTORY"',
   });
@@ -94,27 +72,30 @@ test("Compose wrapper preserves command failures without trying another provider
   await assert.rejects(execute("/bin/bash", [resolve("scripts/container-compose.sh"), "-f", "file with spaces.yml", "up"], { env: f.env }), { code: 17 });
   const commands = await f.commands();
   assert.ok(commands.includes("file with spaces.yml"));
+  assert.ok(!commands.includes("docker"));
   assert.ok(!commands.includes("docker-compose"));
 });
 
-for (const remoteVariable of ["CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY", "DOCKER_HOST", "DOCKER_CONTEXT"]) {
+for (const remoteVariable of ["CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY"]) {
   test(`Kusto Podman rejects ${remoteVariable}`, async (t) => {
-    const f = await fixture(t, { podman: "exit 0", uname: "echo Linux", dirname: 'echo "$SCRIPT_DIRECTORY"' }, "podman");
+    const f = await fixture(t, { podman: "exit 0", docker: "exit 0", uname: "echo Linux", dirname: 'echo "$SCRIPT_DIRECTORY"' });
     f.env[remoteVariable] = "remote";
     f.env.ACCEPT_EULA = "Y";
     f.env.SCRIPT_DIRECTORY = resolve("scripts");
     await assert.rejects(execute("/bin/bash", [resolve("scripts/test-kusto-emulator.sh")], { env: f.env }), /requires Linux Podman --remote=false/);
-    assert.doesNotMatch((await f.commands()).join(" "), /podman /);
+    assert.doesNotMatch((await f.commands()).join(" "), /podman |docker/);
   });
 }
 
 test("Kusto Podman is Linux-only and uses --remote=false for every engine call", async (t) => {
   const f = await fixture(t, {
     podman: 'if [[ "$2 $3" == "image inspect" ]]; then exit 1; fi\nexit 37',
+    docker: "exit 99",
     uname: "echo Linux",
     dirname: 'echo "$SCRIPT_DIRECTORY"',
-  }, "podman");
-  for (const name of ["CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY", "DOCKER_HOST", "DOCKER_CONTEXT"]) delete f.env[name];
+  });
+  for (const name of ["CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY"]) delete f.env[name];
+  f.env.DOCKER_HOST = "unix:///var/run/docker.sock";
   f.env.ACCEPT_EULA = "Y";
   f.env.SCRIPT_DIRECTORY = resolve("scripts");
   await assert.rejects(execute("/bin/bash", [resolve("scripts/test-kusto-emulator.sh")], { env: f.env }), { code: 37 });
@@ -123,26 +104,12 @@ test("Kusto Podman is Linux-only and uses --remote=false for every engine call",
     if (commands[i] === "podman") assert.equal(commands[i + 1], "--remote=false");
   }
   assert.ok(commands.includes("pull"));
+  assert.ok(!commands.includes("docker"));
   await writeFile(join(f.directory, "uname"), "#!/bin/bash\necho Darwin\n", { mode: 0o700 });
   await assert.rejects(execute("/bin/bash", [resolve("scripts/test-kusto-emulator.sh")], { env: f.env }), /Podman machines are not supported/);
 });
 
-test("Kusto default Docker retains explicit local socket binding and rejects TCP", async (t) => {
-  const f = await fixture(t, {
-    docker: 'if [[ "$*" == *"image inspect"* ]]; then exit 1; fi\nexit 37',
-    dirname: 'echo "$SCRIPT_DIRECTORY"',
-  });
-  f.env.ACCEPT_EULA = "Y";
-  f.env.SCRIPT_DIRECTORY = resolve("scripts");
-  delete f.env.DOCKER_CONTEXT;
-  f.env.DOCKER_HOST = "unix:///var/run/docker.sock";
-  await assert.rejects(execute("/bin/bash", [resolve("scripts/test-kusto-emulator.sh")], { env: f.env }), { code: 37 });
-  assert.deepEqual((await f.commands()).filter((value) => value === "--host"), ["--host", "--host"]);
-  f.env.DOCKER_HOST = "tcp://127.0.0.1:2375";
-  await assert.rejects(execute("/bin/bash", [resolve("scripts/test-kusto-emulator.sh")], { env: f.env }), /requires a local Unix Docker socket/);
-});
-
-test("macOS Podman setup installs its provider but not Docker or Colima", async (t) => {
+test("macOS setup installs Podman and its provider but not Docker or Colima", async (t) => {
   const f = await fixture(t, {
     dirname: 'echo "$SCRIPT_DIRECTORY"',
     uname: "echo Darwin",
@@ -152,7 +119,7 @@ test("macOS Podman setup installs its provider but not Docker or Colima", async 
     node: "echo node-version",
     npm: "echo npm-version",
     cat: 'exec /bin/cat "$@"',
-  }, "podman");
+  });
   f.env.SCRIPT_DIRECTORY = resolve("scripts");
   f.env.FIXTURE_DIRECTORY = f.directory;
   const result = await execute("/bin/bash", [resolve("scripts/setup-dashboard-server-macos.sh")], { env: f.env });
@@ -164,40 +131,23 @@ test("macOS Podman setup installs its provider but not Docker or Colima", async 
   assert.ok(!commands.includes("colima"));
   assert.match(result.stdout, /podman machine init/);
   assert.match(result.stdout, /podman machine start/);
-  assert.match(result.stdout, /export CAO_CONTAINER_ENGINE=podman/);
+  assert.match(result.stdout, /export PODMAN_COMPOSE_PROVIDER=podman-compose/);
+  assert.doesNotMatch(result.stdout, /CAO_CONTAINER_ENGINE|colima/);
 });
 
-for (const selection of [undefined, "docker", "podman"]) {
-  test(`Compose subprocess rejects unavailable ${selection ?? "default Docker"} without fallback`, async (t) => {
-    const f = await fixture(t, {
-      docker: "exit 1", podman: "exit 1", dirname: 'echo "$SCRIPT_DIRECTORY"',
-    }, selection);
-    f.env.SCRIPT_DIRECTORY = resolve("scripts");
-    const engine = selection ?? "docker";
-    await assert.rejects(execute("/bin/bash", [resolve("scripts/container-compose.sh"), "up"], {
-      env: f.env, timeout: 10_000,
-    }), /Compose is unavailable/);
-    assert.deepEqual(await f.commands(), ["dirname", resolve("scripts/container-compose.sh"), engine, "compose", "version"]);
+test("Compose subprocess rejects unavailable Podman Compose without fallback", async (t) => {
+  const f = await fixture(t, {
+    docker: "exit 0", podman: "exit 1", dirname: 'echo "$SCRIPT_DIRECTORY"',
   });
-}
-
-for (const selection of ["", "auto", "nerdctl"]) {
-  test(`Compose subprocess rejects invalid engine '${selection}' before invoking engines`, async (t) => {
-    const f = await fixture(t, {
-      docker: "exit 1", podman: "exit 1", dirname: 'echo "$SCRIPT_DIRECTORY"',
-    }, selection);
-    f.env.SCRIPT_DIRECTORY = resolve("scripts");
-    await assert.rejects(execute("/bin/bash", [resolve("scripts/container-compose.sh"), "up"], {
-      env: f.env,
-      timeout: 10_000,
-    }), /CAO_CONTAINER_ENGINE must be docker or podman/);
-    assert.deepEqual(await f.commands(), ["dirname", resolve("scripts/container-compose.sh")]);
-  });
-}
-
+  f.env.SCRIPT_DIRECTORY = resolve("scripts");
+  await assert.rejects(execute("/bin/bash", [resolve("scripts/container-compose.sh"), "up"], {
+    env: f.env, timeout: 10_000,
+  }), /Compose is unavailable/);
+  assert.deepEqual(await f.commands(), ["dirname", resolve("scripts/container-compose.sh"), "podman", "compose", "version"]);
+});
 
 for (const provider of ["podman-compose", "missing-flags", "docker-compose-v2"]) {
-  test(`backfill checks Podman provider capabilities before creating resources (${provider})`, async (t) => {
+  test(`backfill checks Podman Compose provider capabilities before creating resources (${provider})`, async (t) => {
     const f = await fixture(t, {
       podman: `
 if [[ "$*" == "compose version --short" ]]; then echo "$PROVIDER_VERSION"; fi
@@ -206,9 +156,9 @@ if [[ "$*" == "compose up --help" ]]; then printf '%s\\n' "$PROVIDER_HELP"; fi
       docker: "exit 99",
       dirname: 'echo "$SCRIPT_DIRECTORY"',
       bash: 'exec /bin/bash "$@"',
-      grep: 'exec /bin/grep "$@"',
+      grep: 'exec /usr/bin/grep "$@"',
       openssl: "exit 47",
-    }, "podman");
+    });
     f.env.SCRIPT_DIRECTORY = resolve("scripts");
     f.env.PROVIDER_VERSION = provider === "podman-compose" ? "1.5.0" : "2.38.2";
     f.env.PROVIDER_HELP = provider === "missing-flags" ? " --pull string" : " --wait\n --wait-timeout int\n --pull string";
@@ -216,7 +166,7 @@ if [[ "$*" == "compose up --help" ]]; then printf '%s\\n' "$PROVIDER_HELP"; fi
       if (provider === "docker-compose-v2") {
         assert.equal(error.code, 47, error.stderr);
       } else {
-        assert.match(error.stderr, /Backfill requires a Docker Compose v2 provider/);
+        assert.match(error.stderr, /Backfill requires a Compose v2 provider for podman compose/);
         assert.match(error.stderr, /PODMAN_COMPOSE_PROVIDER/);
       }
       return true;

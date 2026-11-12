@@ -9,8 +9,8 @@ import { sampleWorkflow } from "./workflow.mjs";
 // steps cannot contribute to sample execution and must never start real inference.
 const infrastructure = new Map([
   ["Install GitHub Copilot CLI", "inference is replaced by compiled samples"],
-  ["Install AWF binary", "no inference process or nested Docker"],
-  ["Download container images", "no inference process or nested Docker"],
+  ["Install AWF binary", "no inference process or nested container engine"],
+  ["Download container images", "no inference process or nested container engine"],
   ["Start MCP Gateway", "samples use the real stdio safe-output server"],
   ["Mount MCP servers as CLIs", "samples call the stdio server directly"],
   ["Stop MCP Gateway", "no network MCP gateway was started"],

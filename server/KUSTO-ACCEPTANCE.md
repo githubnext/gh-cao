@@ -12,25 +12,21 @@ Review the [Microsoft license](https://aka.ms/adx.emulator.license) first.
 **Benchmarks are prohibited.** This suite checks functional correctness only;
 it makes no throughput, latency, storage-cost or capacity claims.
 
-The script defaults to Docker through a local Unix socket, sufficient free image
-extraction space and an x86 processor with SSE4.2/AVX2. Microsoft does not support
-ARM. `DOCKER_CONTEXT` or `DOCKER_HOST` may select an existing isolated local
-engine; the script never changes the active context, prunes images, restarts a
-shared VM or provisions cloud services. The official image is pinned by digest.
+The script requires native Linux Podman, sufficient free image extraction space
+and an x86 processor with SSE4.2/AVX2. Microsoft does not support ARM. The
+script never prunes images, restarts a shared VM or provisions cloud services. The official image is pinned by digest.
 It publishes only an ephemeral numeric-loopback port, records the image identity
 and engine version, and removes its own container on exit.
 
-Linux Podman is an explicit alternative:
-
 ```sh
-CAO_CONTAINER_ENGINE=podman ACCEPT_EULA=Y bash scripts/test-kusto-emulator.sh
+ACCEPT_EULA=Y bash scripts/test-kusto-emulator.sh
 ```
 
 Every Podman invocation uses `--remote=false`. macOS Podman machines and remote
-engine environments (`CONTAINER_HOST`, `CONTAINER_CONNECTION`, `CONTAINER_SSHKEY`,
-`DOCKER_HOST`, or `DOCKER_CONTEXT`) are rejected for this path. Unset those
-variables before using native Linux Podman. Only `docker` and `podman` are
-accepted; missing engines never trigger fallback. These constraints are stricter
+engine environments (`CONTAINER_HOST`, `CONTAINER_CONNECTION`, or
+`CONTAINER_SSHKEY`) are rejected for this path. Unset those variables before
+using native Linux Podman. A missing Podman never triggers fallback to another
+engine. These constraints are stricter
 than the ordinary local service scripts, which can use a macOS Podman machine.
 
 For an already-running official emulator bound only to numeric loopback:
@@ -104,7 +100,7 @@ On 2026-10-25, the full functional suite passed against the official image
 The engine reported build `1.0.9791.31285`, product
 `2026.10.22.1714-2642-db4842a-master`, built `2026-10-22T17:22:50Z`.
 It ran in an isolated local Colima VM using Rosetta AMD64 translation on an ARM64
-Mac. That is an observed successful run, **not** Microsoft support for ARM.
+Mac, before the script became Podman-only. That is a historical observed run, **not** Microsoft support for ARM.
 
 Real engine execution exposed the reserved `latest` KQL binding and real-valued
 extent-size response that protocol mocks had missed. Those production fixes,

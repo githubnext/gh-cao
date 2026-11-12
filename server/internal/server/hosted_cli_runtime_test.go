@@ -22,17 +22,15 @@ func TestHostedCLIContainerRuntimeSelection(t *testing.T) {
 			if err == nil {
 				t.Fatal("production accepted missing egress configuration or a native runtime")
 			}
-			if provider == "" || provider == "docker" {
-				runner, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true})
-				if err != nil {
-					t.Fatal(err)
+			switch provider {
+			case "", "podman":
+				if !strings.Contains(err.Error(), "CAO_HOSTED_CLI_EGRESS_POLICY_FILE") {
+					t.Fatalf("production Podman did not require egress configuration: %v", err)
 				}
-				if _, ok := runner.Lifecycle.(*hostedcli.DockerContainerLifecycle); !ok {
-					t.Fatal("Docker must remain the default without automatic native fallback")
-				}
-				t.Setenv("CAO_HOSTED_CLI_EGRESS_POLICY_FILE", "unavailable.json")
-				if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true}); err == nil {
-					t.Fatal("partial egress configuration fell back to unrestricted development")
+			case "docker", "remote":
+				if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true}); err == nil ||
+					!strings.Contains(err.Error(), "must be podman, apple, or windows-sandbox") {
+					t.Fatalf("unsupported runtime %q was not rejected: %v", provider, err)
 				}
 			}
 		})
@@ -71,7 +69,7 @@ func TestHostedCLINativeQueueConfigurationMatchesAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, provider := range []string{"docker", "podman", "apple", "windows-sandbox"} {
+	for _, provider := range []string{"podman", "apple", "windows-sandbox"} {
 		t.Run(provider, func(t *testing.T) {
 			t.Setenv("CAO_HOSTED_CLI_CONTAINER_RUNTIME", provider)
 			catalog, err := hostedcli.ParseCatalog([]byte(`{"dashboard":{"cli-actions":[]}}`))
@@ -113,11 +111,10 @@ func TestHostedCLINativeQueueConfigurationMatchesAdmission(t *testing.T) {
 }
 
 func TestHostedCLIPodmanSelection(t *testing.T) {
-	t.Setenv("CAO_HOSTED_CLI_CONTAINER_RUNTIME", "podman")
+	t.Setenv("CAO_HOSTED_CLI_CONTAINER_RUNTIME", "")
 	t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", "")
 	for _, name := range []string{
-		"CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY",
-		"DOCKER_HOST", "DOCKER_CONTEXT", "PODMAN_CONNECTIONS_CONF",
+		"CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY", "PODMAN_CONNECTIONS_CONF",
 		"CONTAINERS_CONF", "CONTAINERS_CONF_OVERRIDE", "CONTAINERS_CONF_MODULES",
 		"CONTAINERS_STORAGE_CONF", "CAO_HOSTED_CLI_EGRESS_POLICY_FILE",
 		"CAO_HOSTED_CLI_EGRESS_RELAY", "CAO_HOSTED_CLI_EGRESS_RELAY_SHA256",
@@ -125,7 +122,7 @@ func TestHostedCLIPodmanSelection(t *testing.T) {
 		t.Setenv(name, "")
 	}
 	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{}); err == nil {
-		t.Fatal("production accepted Podman")
+		t.Fatal("production accepted Podman without its egress boundary")
 	}
 	runner, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true})
 	if runtime.GOOS != "linux" {
@@ -138,15 +135,15 @@ func TestHostedCLIPodmanSelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, ok := runner.Lifecycle.(*hostedcli.PodmanContainerLifecycle); !ok {
-		t.Fatal("explicit selection did not choose Podman")
+		t.Fatal("default selection did not choose Podman")
 	}
 	t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", "ghcr.io/github/gh-aw:latest")
 	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true}); err == nil {
 		t.Fatal("Podman accepted an unpinned image")
 	}
 	t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", "")
-	t.Setenv("CAO_HOSTED_CLI_EGRESS_POLICY_FILE", "egress.json")
+	t.Setenv("CAO_HOSTED_CLI_EGRESS_POLICY_FILE", "unavailable.json")
 	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true}); err == nil {
-		t.Fatal("Podman silently ignored production egress configuration")
+		t.Fatal("partial egress configuration fell back to unrestricted development")
 	}
 }

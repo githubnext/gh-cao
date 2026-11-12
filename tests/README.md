@@ -47,7 +47,9 @@ empty-initialization, plan-drift, and provisioning-failure scenarios.
 Prepare the pinned gh-aw version and cached Go modules before running; the
 scenario disables Go module/toolchain downloads. PostgreSQL must use numeric
 loopback, including connection-string overrides. Azurite uses the preloaded
-pinned image on a local Docker Unix socket with an internal-only network, or an
+pinned image on local Linux Podman (`--remote=false`; remote `CONTAINER_HOST`,
+`CONTAINER_CONNECTION` and `CONTAINER_SSHKEY` settings are rejected) with an
+internal-only network, or an
 installed official `azurite-blob` executable selected by
 `CAO_SETUP_AZURITE_BINARY`. No Azure CLI installation, cloud login, subscription,
 GitHub token, App PEM, or OAuth registration is needed. Subprocesses use isolated

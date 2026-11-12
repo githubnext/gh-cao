@@ -353,10 +353,10 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    pinned by OCI SHA-256 digest (default
    `ghcr.io/github/gh-aw@sha256:7ff77dc03182d4edcebc902fa94b0239eb9cde65ea212509aef700bcab354090`),
    or in an operator-approved digest-pinned mirror. An unpinned image reference
-   MUST fail startup. Except for the explicit local-development profiles in
-   section 6a, the executor MUST use the local Docker `default` context;
-   remote contexts MUST NOT be used because the command's workspace is a
-   host-local bind mount.
+   MUST fail startup. Except for the explicit native local-development profiles
+   in section 6a, the executor MUST use the local rootless Podman engine
+   (`--remote=false`); remote engine connections MUST NOT be used because the
+   command's workspace is a host-local bind mount.
 7. The Go planner MUST accept only fixed `gh` and `gh-aw` container entrypoints.
    It MUST NOT execute repository shell scripts, arbitrary shell commands, or control-repository
    scripts. A fixed in-container bootstrap MUST initialize an empty private Git
@@ -376,7 +376,7 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    capabilities, enable `no-new-privileges`, and apply process and memory
    limits. The per-command workspace MUST be its only writable host bind mount;
    `/tmp` MAY be a bounded tmpfs. The executor MUST NOT mount the host home,
-   Docker socket, App key, database credentials, or other server files, except
+   container-engine socket, App key, database credentials, or other server files, except
    the reviewed relay and private proxy socket defined in section 6b.
 9. The subprocess environment MUST be minimal: the single-use `GH_TOKEN`, an
    empty system git configuration, the `gh` credential helper, and the App bot
@@ -387,16 +387,16 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
 10. The executor MUST attempt bounded forced container removal on cancellation,
    deadline, or loss of the lease. Command output MUST redact the token. Logs MUST NOT
    contain tokens, private keys, or OAuth credentials.
-11. Before Docker creation, the executor MUST durably register an immutable
-   random container name and the originating Docker daemon identity under the
+11. Before container creation, the executor MUST durably register an immutable
+   random container name and the originating runtime identity under the
    current queue lease fence. Missing execution-storage support, failed
    registration, or a stale lease MUST prevent container creation.
-   Docker CLI exit, including successful start or output collection, MUST NOT be treated
+   Container-engine CLI exit, including successful start or output collection, MUST NOT be treated
    as workload termination. The executor MUST inspect the retained container
    state for a confirmed workload exit code; automatic container removal MUST
    NOT discard that evidence. Successful forced removal or a successful empty
-   exact-name inventory on the original daemon can confirm termination but
-   MUST NOT fabricate a workload exit code. An unavailable daemon, failed
+   exact-name inventory on the original runtime can confirm termination but
+   MUST NOT fabricate a workload exit code. An unavailable engine, failed
    inspection, or failed removal is not evidence of absence.
    A terminal result MUST NOT release its concurrency claim until container
    exit has been confirmed and settlement is durably stored. Unconfirmed
@@ -405,10 +405,10 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    while a command is still claimed or running, the replacement executor MUST
    mark the outcome interrupted, block further claims, and require explicit
    operator recovery acknowledgement after confirming the old executor and its
-   outstanding Docker requests have stopped. The replacement MUST additionally
-   reconcile every recorded unsettled container against its original daemon
-   before clearing the block; a missing container on a different daemon is not
-   proof. Failed reconciliation MUST leave claims and the block unchanged.
+   outstanding container-engine requests have stopped. The replacement MUST additionally
+   reconcile every recorded unsettled container against its original runtime
+   before clearing the block; a missing container in a different runtime
+   namespace is not proof. Failed reconciliation MUST leave claims and the block unchanged.
    Workspaces retained after a crash or unconfirmed exit require operator
    cleanup after reconciliation. It MUST NOT automatically retry the interrupted command: external
    side effects may have completed before the crash, so the system guarantees
@@ -425,22 +425,25 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    absence, not merely submit a cancellation request. Cleanup MUST use a
    cancellation-detached, bounded context. Recovery through `RecoverableRunner`
    MUST retain the same original-runtime and lease-fencing requirements.
-   Docker is the only production adapter and retains the local-default-context
-   restriction and existing durable daemon IDs. The local development
-   adapters in section 6a require their own backend-scoped runtime identity;
-   they do not enable remote Docker or a new production backend. Hosted commands
+   Rootless Podman (section 6a item 8) is the only production adapter. Every
+   adapter, including the native local development adapters in section 6a,
+   requires its own backend-scoped runtime identity; none enables a remote
+   engine or another production backend. There is no Docker adapter: runtime
+   IDs recorded by a former Docker executor do not match Podman identity, so
+   their unsettled claims fail closed and MUST be settled before migration. Hosted commands
    are non-interactive; supplied stdin MUST be rejected rather than discarded.
    The lifecycle boundary adds no exactly-once guarantee or cross-command
    deduplication: idempotent update commands may overlap within configured
    capacity. This does not make workflow dispatch idempotent, change retry
    admission, or release capacity occupied by an unconfirmed workload.
 
-## 6a. Alternate local-development profiles
+## 6a. Container runtimes and local-development profiles
 
-1. `CAO_HOSTED_CLI_CONTAINER_RUNTIME` MUST default to `docker`; unknown values
-   MUST fail startup. Explicit `podman`, `apple`, or `windows-sandbox` selection MUST
+1. `CAO_HOSTED_CLI_CONTAINER_RUNTIME` MUST default to `podman`; unknown values,
+   including the removed `docker` value, MUST fail startup. Podman MUST require
+   the matching Linux host. Explicit `apple` or `windows-sandbox` selection MUST
    require `execute-cli --local-development` and the matching host platform. Missing
-   runtime prerequisites MUST fail closed, never select Docker or host execution
+   runtime prerequisites MUST fail closed, never select another engine or host execution
    automatically. Admission, live permission rechecks, token scope, audit
    requirements, deadlines, and retained-claim recovery remain unchanged.
 2. Apple container MUST use the pinned Linux image in a private Linux VM on
@@ -448,8 +451,8 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    only the private workspace, drop capabilities, enforce no-new-privileges
    inside the guest, and bound VM CPU, memory, and the user's process count.
    The default image is AMD64 and requires Rosetta. Its temporary `/tmp`
-   filesystem MUST be bounded; the native CLI does not expose Docker's exact
-   tmpfs mount options.
+   filesystem MUST be bounded; the native CLI does not expose the OCI
+   engine's exact tmpfs mount options.
 3. Apple runtime identity MUST include its actual service-reported data root,
    local host/user/session identity, and a durable private random identity
    record. Changing or losing that identity MUST block old-runtime recovery.
@@ -499,13 +502,13 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    termination. An owned VM MUST be independently confirmed stopped or absent
    before its receipt can become a settled result. Cancellation, failed launch,
    lost transport, and failed cleanup MUST preserve the same uncertainty and
-   lease-fencing guarantees as the Docker adapter. Native prerequisites are
+   lease-fencing guarantees as the Podman adapter. Native prerequisites are
    operator-managed; the executor MUST NOT install OS features or change
    global runtime configuration automatically.
 
-8. Podman MUST be an explicitly selected explicit local PostgreSQL Linux development
-   adapter, not a production Docker replacement or a macOS/Windows Podman
-   machine connection. Every engine command MUST select `--remote=false`.
+8. Podman MUST be the default and only production Linux adapter, and MAY also
+   serve explicit local PostgreSQL Linux development. It MUST NOT use a
+   macOS/Windows Podman machine connection. Every engine command MUST select `--remote=false`.
    The fixed `cao-hosted-cli` execution namespace MUST use an owned private
    engine state directory, not Podman's unsupported SQLite `--namespace` flag.
    Remote connection environment and
@@ -515,7 +518,7 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    Engine discovery MUST verify local rootless execution, cgroup v2, and
    delegated memory and process controllers. Missing evidence MUST fail closed.
    The fully qualified digest-pinned image MUST already exist in local Podman
-   storage; creation MUST use `--pull=never`, with no pull, Docker or host fallback.
+   storage; creation MUST use `--pull=never`, with no pull, alternate-engine or host fallback.
    Creation MUST preserve the Linux isolation and credential-file requirements
    in section 6, using `--userns=keep-id` with the executor's UID/GID so only
    the command workspace is writable on the host. The workspace bind MUST
@@ -542,31 +545,37 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    code; log transport exit MUST NOT establish completion. Forced removal or
    successful empty exact-name inventory on the original runtime MAY confirm
    absence without inventing an exit code.
-   This development adapter permits bridge networking; it does not implement
-   section 6b's production egress boundary and MUST reject those egress settings
-   rather than ignore them. Operators MUST provision rootless mappings, delegated
+   Outside `--local-development`, Podman MUST enforce section 6b's egress
+   boundary; missing settings MUST fail startup. Effective-isolation inspection
+   MUST then require network mode `none`, exactly the read-only relay bind and
+   the hidden read-only workspace-alias tmpfs in addition to the workspace and
+   `/tmp`. Only explicit local development with every egress setting absent MAY
+   use bridge networking, and then MUST reject any egress mount or `none`
+   network it did not request. Operators MUST provision rootless mappings, delegated
    controllers, the local image, init helper and compatible workspace permissions
    and security labels themselves. Unsupported host configuration MUST fail
    rather than relax isolation. Fake-command tests alone MUST NOT be presented
    as evidence of actual Podman kernel isolation.
 
-## 6b. Production Docker egress boundary
+## 6b. Production Podman egress boundary
 
-1. Production Docker execution MUST require an explicit exact-host policy,
+1. Production Podman execution MUST require an explicit exact-host policy,
    a static Linux relay built from reviewed server source, and its independently
    approved SHA-256 digest. Missing, malformed, unavailable or mismatched
    configuration MUST fail startup. The verified relay bytes and parsed policy
    MUST be snapshotted; later host-path replacement MUST NOT change a command.
-   The relay architecture MUST match the local Linux daemon before creation.
-2. Workloads MUST use Docker `--network none`, with no host networking, added
-   interface, Docker socket, network-administration capabilities or unrestricted
+   The relay architecture MUST match the local Linux Podman engine's reported
+   host OS and architecture before creation.
+2. Workloads MUST use Podman `--network none`, with no host networking, added
+   interface, container-engine socket, network-administration capabilities or unrestricted
    bridge fallback. Proxy environment variables alone MUST NOT constitute the
    boundary. Direct IPv4/IPv6, TCP/UDP and DNS bypasses MUST remain unavailable
    even if the workload ignores the proxy.
 3. The only egress channel MUST be a per-command private Unix socket exposing
    an HTTPS CONNECT proxy. Its directory MUST be `0700`, its socket `0600`,
    and its relay and socket mount read-only. Any writable workspace alias of
-   that directory MUST be hidden from the workload. No host administration API,
+   that directory MUST be hidden from the workload by a read-only, no-copy-up
+   tmpfs, and the relay bind MUST request Podman `relabel=private`. No host administration API,
    policy mutation interface, App key or database credential may be exposed.
 4. The proxy MUST admit only exact approved DNS hosts and TCP port 443. It MUST
    reject non-CONNECT methods, IP authorities, wildcards, alternate ports,
@@ -586,14 +595,14 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    existing tunnels and prevent new ones. Proxy loss MUST NOT imply workload
    termination, settle claims, revoke the requirement to reconcile, or delete an
    unconfirmed workload's workspace. Runtime identity, bounded cleanup, token
-   lifetime, and original-daemon recovery MUST remain as defined in section 6.
+   lifetime, and original-runtime recovery MUST remain as defined in section 6.
 6. Deployment MUST bind relay digest, architecture and source/build provenance
    to the reviewed executor release. Before admitting production work, operators
    MUST validate the real kernel boundary and allowed gh/Git traffic on their
-   intended Linux executor. Mock command tests or missing-Docker skips MUST NOT
-   count as real-boundary evidence. No global Docker or shared host-network
+   intended Linux executor. Mock command tests or missing-Podman skips MUST NOT
+   count as real-boundary evidence. No global container-engine or shared host-network
    modification is required or authorized by this mechanism.
-7. explicit local PostgreSQL Docker development MAY retain its previous bridge behavior only
+7. Explicit local PostgreSQL Podman development MAY use bridge networking only
    when every egress setting is absent. Any supplied setting MUST require the
    complete boundary with no silent fallback. The explicitly selected native
    profiles in section 6a remain development-only.
@@ -883,8 +892,17 @@ workload termination in this model.
   through both stores, and explicit legacy failure/fresh retry.
 - `server/internal/hostedcli/container_runner_test.go` and `recovery_test.go`:
   private Git-root initialization, immutable pre-create identity registration,
-  Docker/workload exit distinction, failed cleanup retaining capacity across
-  PostgreSQL restart, crash preservation, and original-daemon recovery.
+  engine/workload exit distinction, failed cleanup retaining capacity across
+  PostgreSQL restart, crash preservation, and original-runtime recovery.
+- `server/internal/hostedcli/container_egress_test.go` and the egress cases in
+  `podman_container_test.go`: verified relay snapshots, architecture checks,
+  `--network none`, the read-only relay and hidden alias, and fail-closed
+  effective-isolation rejection. These are mock-command evidence only.
+- `server/internal/hostedcli/container_egress_integration_test.go`: opt-in
+  `CAO_TEST_PODMAN_EGRESS=1 go test ./internal/hostedcli -run '^TestContainerEgressRealBoundary$' -v`
+  from `server/` on a dedicated Linux rootless Podman executor with the pinned
+  image preloaded; it proves direct TCP/UDP/DNS denial through the real kernel
+  boundary.
 - `server/internal/hostedcli/podman_integration_test.go`: opt-in
   `CAO_TEST_PODMAN=1 go test ./internal/hostedcli -run '^TestPodmanRealBoundary$' -v`
   from `server/`, with an already present digest-pinned image containing Git,
@@ -897,7 +915,7 @@ workload termination in this model.
   than skipping workload-isolation evidence. `.github/workflows/podman.yml` runs
   this test on relevant pull requests and pushes using a rootless user session,
   preloads the production digest-pinned image, and runs the real Azure local
-  service integration with `CAO_CONTAINER_ENGINE=podman`. Enforcing-SELinux
+  service integration on Podman. Enforcing-SELinux
   validation still requires a separate host with SELinux enabled.
 - `server/internal/operational/postgres/cli_execution_test.go`:
   durable execution identity, immutable registration, and lease-fenced recovery.
@@ -941,19 +959,19 @@ session is limited to the step-up window and to catalog-declared actions on
 repositories the administrator can already write.
 
 The command container runs as the executor's OS user, but receives only its
-workspace, scoped token and the private egress relay/socket. The executor process and local Docker daemon remain
+workspace, scoped token and the private egress relay/socket. The executor process and its rootless Podman engine remain
 trusted: the executor can read the App private key and database credentials,
-and a Docker administrator can inspect container configuration and its scoped
-token. Operators SHOULD run `execute-cli` under a dedicated, unprivileged user
-and restrict Docker daemon access to trusted operators. The gh-aw image MUST be
-digest-pinned; the container is defense in depth, not a boundary against a
-compromised host kernel or Docker daemon.
+and anyone with access to the executor user's account can inspect container
+configuration and its scoped token. Operators SHOULD run `execute-cli` under a
+dedicated, unprivileged user and restrict access to that account to trusted
+operators. The gh-aw image MUST be digest-pinned; the container is defense in
+depth, not a boundary against a compromised host kernel or container engine.
 
 Operational hardening that this specification does not yet require, in
 priority order:
 
 1. Evaluate a gVisor or microVM boundary against the deployment's threat model;
-   it is not a universal SOC 2 requirement. Production Docker egress restriction
+   it is not a universal SOC 2 requirement. Production Podman egress restriction
    is required by section 6b.
 2. Evaluate KMS or HSM App JWT signing against the deployment's threat model,
    rather than treating it as a universal SOC 2 mandate. It is not currently a

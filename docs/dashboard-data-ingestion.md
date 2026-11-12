@@ -90,7 +90,7 @@ Cached JSONL can repeat the same run in later snapshots. These are repeated obse
 The retired Activity Actions job graph and its simulator fixture are removed.
 `npm run test:integration:actions-runtime` validates the remaining staged workflow
 samples and signed webhook delivery through the durable PostgreSQL gateway.
-It requires a running Docker daemon, the `node:24-bookworm` image, and
+It requires Podman with the `docker.io/library/node:24-bookworm` image pulled, and
 `POSTGRES_URL` selecting a disposable numeric-loopback or Unix-socket PostgreSQL
 database whose role can create isolated test schemas. Missing PostgreSQL fails
 the integration rather than skipping the gateway bridge; CI provisions its own

@@ -33,12 +33,13 @@ gh cao dashboard --repo octo/api --repo octo/web
 ```
 
 Release binaries embed the pinned gh-aw log collector, the existing Go server,
-and the built dashboard. Use an authenticated GitHub CLI and Docker or Podman;
+and the built dashboard. Use an authenticated GitHub CLI and local Podman;
 there is no separate gh-aw, Node.js, npm, or Redis setup. Without an explicit
 `--postgres-url` or `CAO_POSTGRES_URL`, the command pulls and starts an owned
 PostgreSQL container and provisions separate owner/runtime roles. Its data is
 bind-mounted under the ignored `.github/cao/dashboard/<scope>/postgres/` cache.
-`CAO_CONTAINER_ENGINE` explicitly selects `docker` or `podman`. An explicit
+Podman is the only managed engine; caches created by earlier Docker-managed
+releases fail closed with removal guidance. An explicit
 connection bypasses container management and requires pre-provisioned storage.
 By default, all dashboard code, static assets, query contracts, and the canonical
 artifact normalizer come from the installed extension binary, not a CAO checkout
@@ -521,7 +522,7 @@ to invoke it as `gh cao`.
 | Read-only analysis | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `api-cost`, `mcp` | Native Go using PostgreSQL canonical read sessions, hosted queries where declared, and declarative Dashboard Language evaluation. |
 | Workflow value | `value publish`, `value enable`, `value disable` | Publish prepared evidence to a hosted dashboard, or edit reviewed local policy for recurring collection of one workflow. |
 | Operator evidence | `evidence release` | Native Go; bounded read-only GitHub references, optional provenance verification and development Azure receipt summaries. No Node runtime or checkout required. |
-| On-demand dashboard | `dashboard` | Native Go; bounded collection with automatically managed local Docker/Podman PostgreSQL unless a connection is specified. No remote mutations, policy, Actions, or runtime installation. |
+| On-demand dashboard | `dashboard` | Native Go; bounded collection with automatically managed local Podman PostgreSQL unless a connection is specified. No remote mutations, policy, Actions, or runtime installation. |
 | Installation diagnostics | `doctor`, `version` | Native Go. `doctor` checks GitHub CLI, gh-aw, authentication, and basic local policy structure and compiler pin. |
 | Workflow-agent evidence APIs | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `mcp` | Supported `gh cao COMMAND` APIs inside agentic workflows, including their installed runtime dependencies; intentional overlap with operator reads, not deprecated duplicates. |
 | Canonical artifact import | `cao-dashboard ingest --source DIRECTORY` | Explicit verified canonical JSONL ingestion into provisioned PostgreSQL; no raw-log database conversion. |

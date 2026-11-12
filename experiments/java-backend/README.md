@@ -25,7 +25,7 @@ The fail-closed policy/authority kernel for the control-plane subset of
 Run (after `verify`): `CAO_PORT=8080 java -cp "experiments/java-backend/target/cao-java-backend-0.1.0-SNAPSHOT.jar:experiments/java-backend/target/lib/*" org.cao.backend.http.Main`.
 Env: `CAO_BIND` (default `127.0.0.1`, numeric IP; non-loopback requires `CAO_ALLOW_NON_LOOPBACK=true`),
 `CAO_PORT` (default 8080), `CAO_SHUTDOWN_GRACE_SECONDS` (default 10).
-Container: `docker build -t cao-java-backend experiments/java-backend` (not executed here).
+Container: `podman build -t cao-java-backend experiments/java-backend` (not executed here).
 Never expose the listener publicly: there is no authentication yet.
 
 ## Build and test

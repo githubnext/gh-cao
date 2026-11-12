@@ -43,9 +43,9 @@ func dashboardCommand(version string, gh ghExecutor, logs dashboardLogsCollector
 
 No CAO configuration, repository enrollment, Actions installation, Node.js,
 or source checkout is required by release binaries. Unless --postgres-url or
-CAO_POSTGRES_URL is supplied, a local Docker or Podman PostgreSQL container is
-pulled, started and provisioned automatically. CAO_CONTAINER_ENGINE selects
-docker or podman explicitly. Data stays in the ignored local dashboard cache.
+CAO_POSTGRES_URL is supplied, a local Podman PostgreSQL container is pulled,
+started and provisioned automatically; Podman is the only supported container
+engine. Data stays in the ignored local dashboard cache.
 GitHub CLI authentication is required for collection. The pinned gh-aw log
 collector is embedded; no separate gh-aw installation is needed. Existing
 gh-aw artifact caches are reused. The evidence window defaults to seven days;

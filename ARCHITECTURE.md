@@ -811,20 +811,19 @@ Local debugging uses the same PostgreSQL operational queue, audit table,
 namespace isolation and role separation as production. Explicit
 --local-development permits development-only container providers on loopback;
 it never selects another storage backend or grants bootstrap authority.
-Docker remains the production default and keeps its local-default-context
-restriction. Production workloads use `--network none`; a private read-only
+Local rootless Linux Podman is the default and only production container
+runtime (`CAO_HOSTED_CLI_CONTAINER_RUNTIME=podman`); there is no Docker adapter,
+and the former `docker` value fails startup. Production workloads use `--network none`; a private read-only
 Unix socket and SHA-256-verified, architecture-matched relay built from reviewed
 server source carry HTTPS CONNECT to an executor-owned exact-host proxy.
 Every DNS address is validated before numeric dialing, private GHES needs
 exact host/IP approval, and metadata/loopback/link-local reach stays denied.
 Policy and verified relay bytes are immutable for the executor lifetime.
-Missing production egress configuration fails startup; only explicit local Docker
-development with no egress settings retains the previous bridge mode.
+Missing production egress configuration fails startup; only explicit
+`--local-development` Podman with no egress settings uses bridge networking.
 The proxy is bounded and canceled with its command; losing egress never proves
 workload termination or releases retained claims. No shared host-network
-configuration changes or new production runtime providers are introduced.
-Linux development may explicitly select local rootless Podman with
-`CAO_HOSTED_CLI_CONTAINER_RUNTIME=podman` and `execute-cli --local-development`.
+configuration changes are introduced.
 Every Podman invocation forces `--remote=false`; an owned private engine state
 directory establishes the `cao-hosted-cli` execution namespace (SQLite Podman
 does not support `--namespace`). Remote environment and explicit engine/storage
@@ -841,9 +840,11 @@ private random records in both the store and execution namespace. Replacement
 directories cannot prove old-workload absence, even at the same path with copied
 markers. Workload commands pin those roots and an owned static directory
 with SQLite engine state rather than inheriting an execution-database override;
-changed identity cannot reconcile old claims. Podman uses development bridge
-networking, rejects production Docker egress settings, and has no Docker,
-host-command or production fallback. Host mappings, init helper, controllers
+changed identity cannot reconcile old claims, including claims recorded by a
+former Docker executor. With egress, effective-isolation inspection requires
+`none` networking plus exactly the read-only relay bind and hidden-alias tmpfs;
+without it, only explicit local development may use bridge networking. There is
+no other-engine or host-command fallback. Host mappings, init helper, controllers
 and security labels remain operator prerequisites, not automatically installed
 or weakened. Fake lifecycle tests do not establish real Podman kernel isolation.
 Apple Silicon development uses Apple's `container` CLI with the
@@ -949,12 +950,13 @@ boundary. Local storage does not grant hosted collection or execution authority.
 
 `gh cao dashboard` is a separately selected native operator acquisition profile
 that also owns local PostgreSQL setup unless a connection is supplied. It
-selects Docker or Podman (`CAO_CONTAINER_ENGINE` pins the choice), verifies an
+requires local Podman (it never falls back to another engine, and caches
+recorded as Docker-managed fail closed with manual-removal guidance), verifies an
 owned loopback-only container, and bind-mounts its persistent data beneath the
 ignored `.github/cao/dashboard/<scope>/postgres/` cache. The operator invokes
 separate provisioning with owner credentials, then passes only a non-owner
 runtime login to ingestion and the query server. An explicit connection bypasses
-both container management and provisioning. Image layers remain engine-owned;
+both container management and provisioning. Image layers remain Podman-owned;
 the container and cache persist across dashboard sessions.
 
 The acquisition profile runs
@@ -1680,7 +1682,7 @@ Actions artifacts retained for 90 days. The Release workflow creates a draft
 stable tag at an exact main SHA, waits for that SHA's successful runtime push
 run, verifies the checksum and signed provenance of both the runtime archive
 and the Azure deployment-asset bundle (`cao-azure-<sha>.tgz`: an allowlisted
-Docker build context for the Azure image targets, the compiled ARM template,
+container build context for the Azure image targets, the compiled ARM template,
 and a per-file SHA-256 manifest, with no adopter policy, which builds supply
 through the `cao-policy` and `cao-ingest-source` named contexts), and attaches
 both archives and checksums together with the six extension binaries and their
@@ -2021,20 +2023,22 @@ not authorize cross-repository evidence access.
   and workflow security linting, independent Trivy and Grype high/critical CVE
   gates, a Dockle hardening check, and Syft SPDX SBOM generation. Lint, test,
   and image build/scanning run as separate jobs with no package-write
-  authority. Raw static-check outputs are retained in a short-lived artifact
-  even when a lint gate fails. The protected-main
+  authority. The build job uses Podman and runs every scanner against the same
+  image archive it seals, so no scanner needs a container-engine socket. Raw
+  static-check outputs are retained in a short-lived artifact even when a lint
+  gate fails. The protected-main
   `.github/workflows/cao-package-publish.yml` reusable publisher revalidates
   caller authority, exact source metadata, the checksummed image archive, and
-  OCI labels before publishing the exact digest and attaching GitHub SLSA
-  provenance and SBOM attestations. Privacy-preserving
+  OCI labels before publishing the exact digest with Podman and Skopeo and
+  attaching GitHub SLSA provenance and SBOM attestations. Privacy-preserving
   non-nested step summaries report only check scope, policy, and outcome. The
   workflow also admits manual branch builds only when both original and rerun
   actors have maintain or admin permission, the executing workflow is current
   protected `main`, and the requested source branch resolves to its current
   head. Those packages use a separate immutable dispatch identity and cannot
   redefine main or release identities. The
-  single image exposes the multi-role server binary so downstream Docker
-  Compose deployments select `serve-hosted`, `collect`, `backfill`, or `doctor`
+  single image exposes the multi-role server binary so downstream Compose
+  deployments select `serve-hosted`, `collect`, `backfill`, or `doctor`
   per service without rebuilding the package. Canonical identities are
   immutable commit or release identities, never mutable channel tags.
   Host-neutral source builds use `server/Dockerfile` with explicit version and

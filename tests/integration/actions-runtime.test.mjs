@@ -4,8 +4,8 @@ import { join } from "node:path";
 import test from "node:test";
 import { compile, fixture, image, prepareActions, prepareTools, root, run, simulate } from "../helpers/actions-runtime/index.mjs";
 
-test("signed gateway delivery runs compiled AWI and CAO samples in Docker", { timeout: 600_000 }, () => {
-  run("docker", ["image", "inspect", image]);
+test("signed gateway delivery runs compiled AWI and CAO samples in a Podman container", { timeout: 600_000 }, () => {
+  run("podman", ["image", "inspect", image]);
   const parent = join(root, ".tmp/actions-runtime");
   mkdirSync(parent, { recursive: true });
   const directory = mkdtempSync(join(parent, "e2e-"));
@@ -15,11 +15,11 @@ test("signed gateway delivery runs compiled AWI and CAO samples in Docker", { ti
   const upstream = prepareActions(workspace, ".github/workflows/sample.lock.yml", parent);
   const tools = prepareTools(parent);
   const eventFile = join(directory, "event.json");
-  run("go", ["-C", "server", "test", "./internal/webhookgateway", "-run", "^TestGitHubSimulatorDockerDispatch$",
+  run("go", ["-C", "server", "test", "./internal/webhookgateway", "-run", "^TestGitHubSimulatorContainerDispatch$",
     "-count=1", "-timeout=90s"], {
     cwd: root,
     env: { ...process.env, CAO_ACTIONS_SIMULATOR_POSTGRES: "1",
-      CAO_DOCKER_ACTIONS_WORKSPACE: workspace, CAO_DOCKER_ACTIONS_EVENT: eventFile },
+      CAO_CONTAINER_ACTIONS_WORKSPACE: workspace, CAO_CONTAINER_ACTIONS_EVENT: eventFile },
   });
   const event = JSON.parse(readFileSync(eventFile, "utf8"));
   assert.equal(event.action, "gh-aw-webhook-9f86d081884c7d659a2feaa0");

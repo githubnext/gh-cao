@@ -69,7 +69,7 @@ require_commands() {
     command -v "$command" >/dev/null 2>&1 || fail "required command not found: $command"
   done
   cao_container_engine_init
-  cao_container info >/dev/null 2>&1 || fail "$CAO_CONTAINER_ENGINE is not available"
+  cao_container info >/dev/null 2>&1 || fail "podman is not available"
 }
 
 check_state_profile() {
@@ -98,12 +98,14 @@ prepare_state() {
 load_runtime() {
   check_state_profile
   [[ -f "$RUNTIME_ENV" ]] || fail "no harness state found at $STATE_DIR; run start first"
-  # Older harness state belongs to Docker, regardless of the caller's selection.
-  CAO_CONTAINER_ENGINE=docker
+  # State without an engine record predates engine selection and belongs to Docker.
+  local CAO_CONTAINER_ENGINE=docker STATE_CONTAINER_ENGINE=""
   # shellcheck disable=SC1090
   source "$RUNTIME_ENV"
   [[ "${STATE_PROFILE:-synthetic}" == "$PROFILE" ]] ||
     fail "state belongs to a different profile; select its profile and stop it first"
+  [[ "${STATE_CONTAINER_ENGINE:-$CAO_CONTAINER_ENGINE}" == podman ]] ||
+    fail "state at $STATE_DIR was not created with Podman; CAO no longer invokes other engines. Remove its containers (${POSTGRES_CONTAINER_ID:-unknown} and ${AZURITE_CONTAINER_ID:-unknown}) with the engine that created them, stop Functions host PID ${FUNCTIONS_PID:-none} if it is still running, then delete $STATE_DIR"
   cao_container_engine_init
 }
 
@@ -216,7 +218,7 @@ remove_owned_container() {
     return 0
   fi
   printf 'azure-local: cannot confirm removal of %s from %s; recovery state retained at %s\n' \
-    "$id" "$CAO_CONTAINER_ENGINE" "$STATE_DIR" >&2
+    "$id" podman "$STATE_DIR" >&2
   return 1
 }
 
@@ -383,7 +385,6 @@ except OSError:
 PY
   fi
   require_commands
-  local requested_engine="$CAO_CONTAINER_ENGINE"
   prepare_state
   if [[ -f "$RUNTIME_ENV" ]]; then
     load_runtime || return 1
@@ -397,12 +398,9 @@ PY
     fi
     stop_internal || return 1
   fi
-  CAO_CONTAINER_ENGINE="$requested_engine"
-  cao_container_engine_init
-
   : >"$RUNTIME_ENV"
   chmod 600 "$RUNTIME_ENV"
-  write_env_value CAO_CONTAINER_ENGINE "$CAO_CONTAINER_ENGINE"
+  write_env_value STATE_CONTAINER_ENGINE podman
   local previous_exit_trap
   previous_exit_trap="$(trap -p EXIT || true)"
   trap 'stop_internal' EXIT

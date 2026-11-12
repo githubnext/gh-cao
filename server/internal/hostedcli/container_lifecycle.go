@@ -35,8 +35,8 @@ type ContainerState struct {
 // address exactly that identity; it must not automatically retry workloads.
 type ContainerLifecycle interface {
 	// RuntimeID is stable across restarts and identifies the backend and its
-	// execution namespace. Docker retains its existing daemon IDs; other
-	// adapters must use distinct backend-scoped IDs.
+	// execution namespace. Each adapter must use distinct backend-scoped
+	// IDs so recovery never confuses namespaces.
 	RuntimeID(context.Context) (string, error)
 	Create(context.Context, operational.CLICommandExecution, ContainerSpec) error
 	// Start launches without waiting for workload termination.

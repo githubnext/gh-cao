@@ -75,7 +75,7 @@ func startSetupAzuriteRelay(t *testing.T, ctx context.Context, command func(cont
 	return listener.Addr().String()
 }
 
-func TestSetupAzureDockerRelay(t *testing.T) {
+func TestSetupAzureContainerRelay(t *testing.T) {
 	if os.Getenv("CAO_SETUP_AZURE_INTEGRATION") != "1" {
 		t.Skip("run npm run test:integration:setup-azure to exercise the container-loopback relay")
 	}

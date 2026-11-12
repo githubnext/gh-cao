@@ -56,11 +56,11 @@ func TestExecutorKeepsUnconfirmedContainerClaimAcrossRestart(t *testing.T) {
 			if err != nil || command == nil {
 				t.Fatalf("claim: %v", err)
 			}
-			runner, docker, _ := containerTest(t)
-			base := docker.run
+			runner, engine, _ := containerTest(t)
+			base := engine.run
 			cleanupFails := true
 			var workspace string
-			docker.run = func(runCtx context.Context, p Process, output OutputFunc) (int, error) {
+			engine.run = func(runCtx context.Context, p Process, output OutputFunc) (int, error) {
 				switch p.Args[2] {
 				case "create":
 					executions, err := queue.(operational.CLICommandExecutionQueue).UnsettledExecutions(ctx, lease)
@@ -97,7 +97,7 @@ func TestExecutorKeepsUnconfirmedContainerClaimAcrossRestart(t *testing.T) {
 					return 0, nil
 				case "rm":
 					if cleanupFails {
-						return 1, errors.New("Docker cleanup unavailable")
+						return 1, errors.New("container cleanup unavailable")
 					}
 				}
 				return base(runCtx, p, output)

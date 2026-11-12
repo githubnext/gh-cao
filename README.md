@@ -27,15 +27,15 @@ gh cao dashboard --repo OWNER/REPOSITORY
 ```
 
 No CAO cloud deployment, Azure setup, hosted dashboard, Redis, or separate
-Node.js or gh-aw installation is required. A running Docker or Podman engine
-provides PostgreSQL automatically unless a connection is specified. From an
+Node.js or gh-aw installation is required. A running local Podman engine (on
+macOS, `podman machine start`) provides PostgreSQL automatically unless a connection is specified. From an
 existing repository checkout, use `gh cao dashboard` without `--repo`.
 No `gh cao setup` or control-repository configuration is needed.
 
 Open the **Dashboard:** URL printed in the terminal. The bundled Go server
 serves on loopback and queries local PostgreSQL. Managed data is bind-mounted
 under the ignored `.github/cao/dashboard/<scope>/postgres/` cache.
-`CAO_CONTAINER_ENGINE` selects Docker or Podman; `--postgres-url` or
+Podman is the only managed container engine; `--postgres-url` or
 `CAO_POSTGRES_URL` bypasses container management and uses provisioned storage.
 Collection uses your GitHub CLI identity to read GitHub evidence and refreshes
 automatically every five minutes: **no cloud deployment does not mean offline**.

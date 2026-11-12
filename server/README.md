@@ -210,7 +210,7 @@ See [setup combinations and live gaps](../docs/setup-compatibility.md).
 ## Local Azure setup integration
 
 Run `npm run test:integration:setup-azure` with Go 1.27.3 or newer on PATH, Git, GitHub CLI, the
-policy-pinned gh-aw prerequisite, and Docker installed. The Go Extension CI
+policy-pinned gh-aw prerequisite, and local Linux Podman installed. The Go Extension CI
 setup job runs this command alongside the GitHub-only setup suite on path-matched
 pushes to `main`, not pull requests. It uses the
 same digest-pinned official Azurite image as `scripts/azure-local/azure-local.sh`,
@@ -220,7 +220,7 @@ Prerequisites must already be local: run `go mod download`,
 `scripts/azure-local/azure-local.sh` before entering the simulation. CI does this
 in a separate prerequisite step. The simulation disables module downloads and
 implicit toolchain/image pulls; missing prerequisites fail instead of accessing a registry.
-Without Docker, set `CAO_SETUP_AZURITE_BINARY` to an installed official
+Without local Linux Podman (for example on macOS), set `CAO_SETUP_AZURITE_BINARY` to an installed official
 `azurite-blob` executable; its process and storage are also isolated and removed.
 Set `POSTGRES_URL` to a disposable numeric-loopback PostgreSQL instance. The
 successful deployment builds `cao-dashboard` from the exact simulated ACR
@@ -246,10 +246,11 @@ GitHub and Functions HTTPS names terminate at the loopback CONNECT proxy with
 an ephemeral CA; the proxy never forwards to those hosts. Azure command and
 storage clients use exact numeric-loopback transports, rejecting redirects,
 environment proxies, metadata-service addresses, and nonlocal destinations.
-The Azurite container uses a disposable internal-only Docker network and a local
-Unix Docker socket; remote Docker contexts and TCP/SSH daemons are refused.
-Docker does not publish ports on internal-only networks, so a host-loopback
-relay carries blob traffic through `docker exec` to the container's loopback
+The Azurite container uses a disposable internal-only Podman network on the
+local engine (`--remote=false`); `CONTAINER_HOST`, `CONTAINER_CONNECTION`,
+`CONTAINER_SSHKEY` and Podman machines are refused. Ports are not published on
+internal-only networks, so a host-loopback
+relay carries blob traffic through `podman exec` to the container's loopback
 listener without adding a network with external access or publishing a port.
 Regression probes verify live GitHub, ARM, Entra, and metadata destinations are
 rejected or handled only by local fixtures, and ambient GitHub/Azure/OIDC
@@ -588,7 +589,7 @@ container without Node or dashboard assets, build the dedicated nonroot
 (UID 65532) target; the Dockerfile's default final dashboard image is unchanged:
 
 ```bash
-docker build -f server/Dockerfile --target webhook-gateway-runtime \
+podman build --file server/Dockerfile --target webhook-gateway-runtime \
   -t cao-webhook-gateway .
 ```
 
@@ -1306,7 +1307,7 @@ go -C server test -race ./internal/simulator ./internal/admission \
 
 The tests start real HTTP listeners on ephemeral numeric-loopback ports, use a
 private temporary PostgreSQL gateway queue, and close every listener and database
-on completion. No GitHub credentials, `id-token: write`, Docker, PostgreSQL,
+on completion. No GitHub credentials, `id-token: write`, Podman, PostgreSQL,
 Redis, public callback URL, or live GitHub API is required. Go dependencies
 must already be available or downloadable, as for the ordinary Go test suite.
 The Go CI `server-quality` job runs the same command in the explicitly named
@@ -1449,18 +1450,18 @@ YAML or prove that a real GitHub Actions run started.
 The separately pinned upstream client conformance tests remain available via
 `GH_AW_ADMISSION_PROTOCOL_PATH` and `GH_AW_CONCLUSION_RUNTIME_DIR`.
 
-### Docker samples runtime
+### Podman samples runtime
 
 Run the small, test-only workflow executor and its signed-webhook integration:
 
 ```bash
 npm ci
-docker pull node:24-bookworm
+podman pull docker.io/library/node:24-bookworm
 npm run test:integration:actions-runtime
 ```
 
 Prerequisites are Node.js 24+, Go at the version in `server/go.mod`, the pinned
-`gh aw` compiler, Git, curl, tar, and a local Docker daemon supporting bind mounts.
+`gh aw` compiler, Git, curl, tar, and a local Podman engine supporting bind mounts.
 The first run downloads the immutable `github/gh-aw-actions` setup revision
 declared by the compiled lock and a checksum-verified jq binary for the image's
 architecture. Downloads are cached under `.tmp/actions-runtime/`. No GitHub
@@ -1494,7 +1495,7 @@ start/stop, MCP CLI mounting, and online compiler-version checks. These are not
 coverage of inference, firewall isolation, network MCP transport, hosted
 OIDC, or live GitHub writes. Samples use the real stdio MCP server instead.
 The runner's loopback-only GitHub API supplies bounded fixture reads and
-rejects every mutation. Docker has no network, Docker socket, host credentials,
+rejects every mutation. The container has no network, container-engine socket, host credentials,
 privileges, or writable host checkout; only the explicit results directory is
 writable, with bounded memory, CPUs, PIDs and temporary storage. This runs
 trusted test fixtures, not arbitrary untrusted workflows.
@@ -1711,8 +1712,8 @@ flowchart LR
 | GitHub OAuth sessions | `internal/server/oauth.go` | Implements the GitHub OAuth authorization-code flow, active organization/team authorization, refresh-token rotation, server-side encrypted sessions in Redis, logout revocation, and CSRF protection for mutating requests. |
 | Shared API model | `internal/model/` | Defines logical sources, diagnostics, and query metrics. |
 | Telemetry | `internal/telemetry/` | Configures OpenTelemetry trace, metric, and opt-in log providers, exposes the server's tracer, and writes W3C trace/span id response headers. |
-| Local Redis | `docker-compose.yml` | Runs plain Redis on `127.0.0.1:6379`. |
-| Container image | `Dockerfile` | Builds the dashboard and Go service into a non-root image for host-neutral deployments. |
+| Local Redis | `compose.yml` | Runs plain Redis on `127.0.0.1:6379`. |
+| Container image | `Dockerfile` | Builds the dashboard and Go service into a non-root OCI image (for example with `podman build`) for host-neutral deployments. |
 
 ### Host capability profiles
 
@@ -2016,28 +2017,31 @@ CLI inside the digest-pinned `ghcr.io/github/gh-aw` container. Campaign-package
 and standalone-workflow source update actions are translated to `gh-aw update`;
 the server never invokes
 repository shell scripts or checks out and executes control-repository code. The executor
-requires a local Docker daemon using its `default` context. Each container has a
+requires a local rootless Linux Podman engine (`--remote=false`; remote
+connections and Podman machines are refused). Each container has a
 read-only root filesystem, no added capabilities, and only its per-command
 workspace mounted writable. A temporary mode-`0600` environment file passes the
-scoped token; the executor's home, Docker socket, App key, and database
+scoped token; the executor's home, container-engine socket, App key, and database
 credentials are not mounted or passed into the container. A fixed in-container
 bootstrap initializes the private Git root required by `gh-aw update/upgrade
 --repo`, then execs the planned CLI with unchanged positional arguments.
 Cancellation, deadlines, and lease loss attempt bounded forced removal.
-The container name and original Docker daemon identity are stored before
-creation. Docker CLI exit is not workload exit evidence: failed confirmation
+The container name and original Podman runtime identity (host, user, engine
+storage and private namespace records) are stored before creation. Podman CLI
+exit is not workload exit evidence: failed confirmation
 retains the execution claim and workspace, preventing reuse of that capacity.
-Recovery acknowledgement requires the old executor and its Docker requests to
-have stopped and successful reconciliation on the original daemon. Remove any
-retained workspace only after reconciliation; never switch Docker contexts to
-bypass recovery.
+Recovery acknowledgement requires the old executor and its Podman requests to
+have stopped and successful reconciliation on the original runtime. Remove any
+retained workspace only after reconciliation; never replace engine storage or
+switch engines to bypass recovery.
 
 `ContainerRunner` delegates runtime identity, creation, startup, inspection,
-stopping, and output collection to `ContainerLifecycle`. Docker remains the
-production adapter: it starts detached, then replays and follows logs while
-workload exit evidence remains a separate inspection. explicit local PostgreSQL local
+stopping, and output collection to `ContainerLifecycle`. Rootless Podman is the
+default and only production adapter: it starts detached, then replays and follows
+logs while workload exit evidence remains a separate inspection. There is no
+Docker adapter. Explicit local PostgreSQL local
 development may explicitly use Apple container or Windows Sandbox as described
-below. These profiles do not enable Podman or managed jobs, change retry policy,
+below. These profiles do not enable managed jobs, change retry policy,
 or promise exactly-once effects. Idempotent updates may overlap within the
 configured concurrency limit; workflow dispatch does not inherit that
 idempotency assumption.
@@ -2063,12 +2067,11 @@ Never put the key in checked-in configuration, command arguments, logs, or the
 | `CAO_HOSTED_CLI_GITHUB_API_URL`, `CAO_HOSTED_CLI_GITHUB_URL` | GitHub API and web URLs for GHES. |
 | `CAO_HOSTED_CLI_DASHBOARD_URL` | Dashboard URL used in command backlinks. |
 | `CAO_HOSTED_CLI_CONTAINER_IMAGE` | Optional digest-pinned gh-aw image or approved mirror; defaults to `ghcr.io/github/gh-aw@sha256:7ff77dc03182d4edcebc902fa94b0239eb9cde65ea212509aef700bcab354090`. |
-| `CAO_HOSTED_CLI_DOCKER` | Optional Docker CLI path; defaults to `docker`. |
-| `CAO_HOSTED_CLI_CONTAINER_RUNTIME` | `docker` (default), `podman`, `apple`, `windows-sandbox`; no fallback. Alternates require `execute-cli --local-development` and matching OS. Podman: rootless Linux only; no remote/machine, production PostgreSQL or egress settings. |
+| `CAO_HOSTED_CLI_CONTAINER_RUNTIME` | `podman` (default), `apple`, `windows-sandbox`; no fallback, and the former `docker` value is rejected. Podman requires rootless local Linux (no remote connection or machine). `apple` and `windows-sandbox` require `execute-cli --local-development` and matching OS. |
 | `CAO_HOSTED_CLI_PODMAN` | Podman binary override; defaults to `podman`. |
-| `CAO_HOSTED_CLI_EGRESS_POLICY_FILE` | Required production Docker exact-host HTTPS policy file; see the rollout contract below. No implicit allowed hosts. |
+| `CAO_HOSTED_CLI_EGRESS_POLICY_FILE` | Required production Podman exact-host HTTPS policy file; see the rollout contract below. No implicit allowed hosts. |
 | `CAO_HOSTED_CLI_EGRESS_RELAY` | Required production path to the static Linux relay artifact built from the reviewed server source. |
-| `CAO_HOSTED_CLI_EGRESS_RELAY_SHA256` | Required reviewed SHA-256 of that relay artifact. Startup snapshots and verifies the bytes; each create verifies the Linux daemon architecture. |
+| `CAO_HOSTED_CLI_EGRESS_RELAY_SHA256` | Required reviewed SHA-256 of that relay artifact. Startup snapshots and verifies the bytes; each create verifies the local Linux Podman engine's architecture. |
 | `CAO_HOSTED_CLI_APPLE_CONTAINER` | Optional Apple container CLI path for the `apple` development profile; defaults to `container`. |
 | `CAO_HOSTED_CLI_WINDOWS_SANDBOX` | Optional Windows Sandbox CLI path for the `windows-sandbox` development profile. |
 | `CAO_HOSTED_CLI_WINDOWS_BUNDLE` | Required path to the approved ZIP archive containing Windows gh, gh-aw, and portable Git, including dependencies. |
@@ -2077,27 +2080,36 @@ Never put the key in checked-in configuration, command arguments, logs, or the
 | `CAO_SESSION_SECRET`, `CAO_SESSION_SECRET_PREVIOUS` | Required current encryption secret (at least 32 characters) and optional previous key for the executor's durable token cleanup journal. Keep previous keys until their cleanup debt is cleared or expires. |
 | `CAO_AUDIT_LOG` | Optional append-only file (mode `0600`) for the JSON mirror of audit events from `serve-hosted` and `execute-cli`; defaults to standard error. The authoritative trail is the PostgreSQL `cao_operational_audit_events` table. |
 
-#### Production Docker egress rollout
+#### Production Podman egress rollout
 
-**Migration gate:** production `execute-cli` now refuses startup without all
+**Migration gate:** production `execute-cli` refuses startup without all
 three `CAO_HOSTED_CLI_EGRESS_*` settings above. Before upgrading, stop admission
 or drain the queue, build and approve the relay and policy with the executor
 release, and configure every standby replica. Do not disable isolation to
 recover an interrupted command. Keep the previous executor stopped and use the
-existing original-daemon reconciliation procedure; changing egress configuration
-never releases unsettled claims. No policy, campaign, or global feature enablement
+existing original-runtime reconciliation procedure; changing egress configuration
+never releases unsettled claims.
+
+**Moving from a Docker executor:** the Docker adapter and `CAO_HOSTED_CLI_DOCKER`
+are removed, and `CAO_HOSTED_CLI_CONTAINER_RUNTIME=docker` now fails startup.
+Executions recorded with a Docker daemon identity cannot be reconciled by the
+Podman runtime and stay claimed (fail closed). Settle or reconcile every Docker
+execution with the previous release before switching, then preload the pinned
+image into the executor user's rootless Podman storage. No policy, campaign, or global feature enablement
 is implied by deploying these files.
 
-Each production workload uses Docker **`--network none`**: it has only loopback,
+Each production workload uses Podman **`--network none`**: it has only loopback,
 not a bridge interface, default route, or directly usable external DNS. A
 per-command mode-`0600` Unix socket in a mode-`0700` directory is the only egress
 path. The directory contains only the verified relay and socket, is bind-mounted
-read-only at `/cao-egress`, and its writable workspace alias is hidden behind a
-read-only tmpfs. The relay makes that socket available as a loopback HTTP proxy
+read-only (with private SELinux relabeling) at `/cao-egress`, and its writable
+workspace alias is hidden behind a read-only, no-copy-up tmpfs. Effective-isolation
+inspection rejects the workload before start unless Podman reports exactly that
+network mode and those mounts. The relay makes that socket available as a loopback HTTP proxy
 for `gh`, `gh-aw`, and HTTPS Git; it holds no policy or host credentials. Clearing
 proxy variables, connecting by IP, using IPv6, UDP, custom DNS, or selecting SSH
-does not bypass Docker's network namespace. The executor does not modify global
-Docker configuration or shared host networks.
+does not bypass the workload's network namespace. The executor does not modify global
+Podman configuration or shared host networks.
 
 The executor-side proxy permits **CONNECT to exact approved DNS names on port
 443 only**, never plaintext HTTP, arbitrary ports, IP-literal authorities, or
@@ -2129,15 +2141,16 @@ explicit entry such as `"privateEndpoints": [{"host": "github.corp.example",
 "addresses": ["10.20.30.40"]}]` for a private deployment. Redirected asset hosts
 must be independently approved. HTTPS certificate validation in gh/Git remains
 enabled; custom GHES trust must already be in the approved pinned workload
-image. Artifact registries used by the Docker daemon to pull that image are not
-workload egress. No package-manager or arbitrary HTTP/SSH reach is implied.
+image. The executor never pulls (`--pull=never`); registries used to
+preload that image are not workload egress. No package-manager or arbitrary HTTP/SSH reach is implied.
 
 Build the authenticated relay artifact **from the reviewed release checkout**
-using the existing pinned build image (repository root, choose the daemon's
-`linux/amd64` or `linux/arm64` platform):
+using the existing pinned build image (repository root, choose the executor's
+`linux/amd64` or `linux/arm64` platform, as reported by
+`podman info --format '{{.Host.OS}}/{{.Host.Arch}}'`):
 
 ```bash
-docker --context default buildx build --platform linux/amd64 \
+podman --remote=false build --platform linux/amd64 \
   --file server/Dockerfile --target hosted-cli-relay-artifact \
   --build-arg REVISION="$(git rev-parse HEAD)" \
   --output type=local,dest=./.tmp/hosted-cli-relay .
@@ -2154,14 +2167,14 @@ checksum separately in deployment configuration. Do not compute the expected
 checksum from an untrusted installed file at startup. The loader rejects
 digest mismatch, non-ELF/dynamically linked binaries, and unsupported
 architectures, snapshots verified bytes to prevent later path substitution,
-and refuses a mismatched daemon at command creation. Upgrades require a newly
+and refuses a mismatched Podman host architecture at command creation. Upgrades require a newly
 reviewed digest. The gh-aw image remains separately OCI-digest-pinned.
 
-Run `execute-cli` on the same Linux host/kernel and filesystem as the local
-default Docker daemon, with a short `CAO_HOSTED_CLI_WORK_ROOT` (for example a
+Run `execute-cli` as the rootless Podman user on the same Linux host/kernel and
+filesystem as its local engine, with a short `CAO_HOSTED_CLI_WORK_ROOT` (for example a
 private directory under `/var/lib/cao`) so Unix socket paths fit the OS limit.
-The host must allow execution of the read-only relay bind mount. Docker Desktop
-socket forwarding or remote filesystems are not production substitutes; failure
+The host must allow execution of the read-only relay bind mount. Podman machine
+or remote connections, socket forwarding and remote filesystems are not production substitutes; failure
 to mount/connect/execute the relay fails the command with no bridge fallback.
 The proxy has 32 connection slots per command, 8 KiB configured HTTP headers,
 a 5-second header timeout, 10-second DNS/dial limits, 30-second tunnel I/O idle
@@ -2170,27 +2183,30 @@ cancellation. Closing the proxy or losing the executor kills tunnels but does
 not prove workload termination: the retained identity, claim, token-revocation
 obligations, and workspace follow existing bounded stop/recovery rules.
 
-explicit local PostgreSQL Docker development keeps its previous bridge behavior **only when
-all three egress settings are absent**. Supplying any setting opts into the
-complete boundary and fails closed if anything is unavailable. Podman, Apple and Windows
-remain explicit explicit local PostgreSQL development profiles, not production fallbacks.
+Explicit local PostgreSQL Podman development (`execute-cli --local-development`)
+uses bridge networking **only when all three egress settings are absent**.
+Supplying any setting opts into the complete boundary and fails closed if
+anything is unavailable. Apple and Windows remain explicit local PostgreSQL
+development profiles, not production fallbacks.
 
 Before enabling production admission, run the credential-free real-boundary
 test on the intended dedicated Linux executor:
 
 ```bash
 cd server
-CAO_TEST_DOCKER_EGRESS=1 go test ./internal/hostedcli \
-  -run '^TestDockerEgressRealBoundary$' -count=1 -v
+CAO_TEST_PODMAN_EGRESS=1 go test ./internal/hostedcli \
+  -run '^TestContainerEgressRealBoundary$' -count=1 -v
 ```
 
 It uses only its own named container/workspace, checks loopback-only interfaces
 and direct TCP/UDP/DNS denial, protected relay mounts, approved GitHub HTTPS Git,
 gh reaching GitHub's expected unauthenticated `401`, and denied CONNECT targets.
-It does not write to GitHub or use real credentials. Missing
-`/var/run/docker.sock` is an explicit skip, not successful runtime validation;
-do not switch contexts to avoid it. Deterministic policy, proxy and lifecycle
-tests run without Docker but are not evidence of the kernel boundary.
+It does not write to GitHub or use real credentials, and never pulls: preload
+the pinned image (or set `CAO_TEST_PODMAN_IMAGE` to another preloaded
+digest-pinned image). Without `CAO_TEST_PODMAN_EGRESS=1` the test is an
+explicit skip, not successful runtime validation; once enabled, missing Podman,
+image or a non-Linux host fails the test. Deterministic policy, proxy and
+lifecycle tests run without Podman but are not evidence of the kernel boundary.
 
 #### Alternate runtimes for local development
 
@@ -2199,7 +2215,10 @@ session secrets, scoped tokens and local PostgreSQL; never use disposable
 secrets or run hosted commands directly on the host. Production PostgreSQL
 rejects alternates.
 
-See [Podman and private SELinux label requirements](../specs/server-hosted-cli.md#6a-alternate-local-development-profiles).
+Rootless Podman on Linux also serves local development with
+`execute-cli --local-development`, using bridge networking unless egress
+settings are supplied. See
+[Podman and private SELinux label requirements](../specs/server-hosted-cli.md#6a-container-runtimes-and-local-development-profiles).
 
 On **Apple Silicon macOS 26**, install Apple's
 [`container` CLI](https://github.com/apple/container) and start its services:
@@ -2270,7 +2289,7 @@ independently confirmed stopped or absent. Failed ownership or termination
 checks remain blocked for explicit recovery.
 
 This conservative profile also requires **no other HCS-managed VM**, including
-WSL2 or Docker Desktop VMs. It checks Windows Host Compute Service inventory
+WSL2 or Podman machine VMs. It checks Windows Host Compute Service inventory
 before launch and after exact-owned-ID shutdown; it never stops foreign VMs.
 The provider does not assume Sandbox IDs equal host-compute VM IDs. Missing
 host-compute inventory access fails closed rather than relying on a guest
@@ -2452,7 +2471,7 @@ same.
 Build from the repository root:
 
 ```bash
-docker build -f server/Dockerfile \
+podman build --file server/Dockerfile \
   --build-arg VERSION=0.0.0-alpha \
   --build-arg REVISION="$(git rev-parse HEAD)" \
   --build-arg CREATED="$(git show -s --format=%cI HEAD)" \
@@ -2462,7 +2481,7 @@ docker build -f server/Dockerfile \
 The official `.github/workflows/cao-package.yml` workflow publishes the same
 image as `ghcr.io/githubnext/gh-cao/cao-server`. Pushes to `main` receive an
 immutable `sha-<full-commit>` identity; published releases receive their exact
-Docker-safe semantic version tag. Use the resulting digest in downstream
+OCI-tag-safe semantic version tag. Use the resulting digest in downstream
 Compose files. Multiple services can share that digest and select
 `serve-hosted`, `collect`, `backfill`, or `doctor` through `command`.
 Maintainers and administrators may also dispatch the workflow from current
@@ -3814,9 +3833,8 @@ On macOS with Homebrew:
 npm run dashboard:server:setup:macos
 ```
 
-Installs Go, Node.js 24, npm packages and Docker/Compose/Colima.
-`CAO_CONTAINER_ENGINE=podman` selects Podman/Compose (no Colima); default Docker
-never falls back. See [setup](../scripts/azure-local/README.md#local-service-engine-setup).
+Installs Go, Node.js 24, npm packages, Podman and `podman-compose`; there is
+no other container engine or fallback. See [setup](../scripts/azure-local/README.md#local-service-engine-setup).
 PostgreSQL is required for local development; Redis remains optional.
 
 From the repository root, with CAO_POSTGRES_URL configured and storage provisioned:
@@ -3834,7 +3852,7 @@ provision storage per
 [`POSTGRES.md`](POSTGRES.md) before ingesting:
 
 ```bash
-bash scripts/container-compose.sh -f server/docker-compose.yml up -d
+podman compose -f server/compose.yml up -d
 
 go -C server run ./cmd/cao-dashboard ingest \
   --source /absolute/path/to/deployed-dashboard
@@ -3865,8 +3883,9 @@ From the repository root, run:
 npm run test:integration:dashboard-backfill
 ```
 
-The harness requires Go, Docker, Compose (plugin or standalone), curl, and
-OpenSSL. It starts isolated PostgreSQL, Redis, and OpenObserve containers using
+The harness requires Go, Podman with a Compose v2 provider for `podman compose`
+(configured through `PODMAN_COMPOSE_PROVIDER`; `podman-compose` lacks the
+required `up --wait` support), curl, and OpenSSL. It starts isolated PostgreSQL, Redis, and OpenObserve containers using
 `server/backfill-compose.yml`, generates ephemeral credentials, waits for
 readiness, and starts a real loopback Go HTTP server inside the test. Random
 host ports and a unique Compose project avoid interfering with existing local
@@ -4161,7 +4180,7 @@ curl http://127.0.0.1:8443/api/v1/query \
 Stop Redis:
 
 ```bash
-docker-compose -f server/docker-compose.yml down
+podman compose -f server/compose.yml down
 ```
 
 ## Validation and CI
@@ -4182,7 +4201,7 @@ visible views and their Redis-backed HTTP queries resolve. CI uploads a
 per-page report and posts the results to same-repository pull requests:
 
 ```bash
-docker-compose -f server/docker-compose.yml up -d
+podman compose -f server/compose.yml up -d
 npm ci
 npm --prefix dashboard/site ci
 npm run dashboard:server:build

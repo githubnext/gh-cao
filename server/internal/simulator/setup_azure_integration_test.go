@@ -28,7 +28,7 @@ func testCAOSetupAzureIntegration(t *testing.T, scenarios ...string) {
 	}
 	tools := []string{"go", "gh", "git", "sh"}
 	if os.Getenv("CAO_SETUP_AZURITE_BINARY") == "" {
-		tools = append(tools, "docker")
+		tools = append(tools, "podman")
 	}
 	for _, tool := range tools {
 		if _, err := exec.LookPath(tool); err != nil {

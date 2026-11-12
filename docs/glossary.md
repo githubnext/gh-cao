@@ -161,7 +161,7 @@ The control repository's exclusive right to admit a `live` worker for a campaign
 ## Local PostgreSQL namespace
 
 The canonical and operational PostgreSQL storage used by local Go serving.
-`gh cao dashboard` manages a Docker or Podman container and ignored private cache
+`gh cao dashboard` manages a Podman container and ignored private cache
 unless a connection is supplied. Its separate provisioning process owns DDL;
 the query server uses non-owner runtime credentials. Verified canonical JSONL
 is ingested explicitly, and there is no database-file conversion or fallback.

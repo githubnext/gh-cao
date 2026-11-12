@@ -9,11 +9,11 @@ Shared monitoring and automation are separate, optional steps.
 ## Open a local dashboard (no deployment)
 
 Use an installed CAO release, your **locally authenticated GitHub CLI**, and a
-running Docker or Podman engine. The command automatically pulls PostgreSQL,
+running local Podman engine (on macOS, `podman machine start`). The command automatically pulls PostgreSQL,
 starts or reuses its owned loopback-only container, provisions canonical and
 operational storage, and configures a separate non-owner runtime login.
-Set `CAO_CONTAINER_ENGINE=docker` or `podman` to select the engine explicitly.
-Otherwise the command detects an available local engine.
+Podman is the only managed engine; the command never falls back to another
+engine and fails closed when local Podman is unavailable.
 
 Persistent data and private local credentials live under
 `.github/cao/dashboard/<repository-scope>/postgres/`; the PostgreSQL data directory

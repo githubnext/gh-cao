@@ -13,7 +13,7 @@ isolate archive, receive and dispatch. Only reviewed CIDRs reach public HTTPS.
 SSH is NOT exposed; arrange approved private administration/Run Command.
 A NAT gateway provides explicit egress, not an outbound allowlist.
 Ubuntu 24.04 Trusted Launch VMs have distinct identities, ACR-pull permission,
-Docker and an ACTIVATION-REQUIRED marker, NOT running CAO services.
+Podman and an ACTIVATION-REQUIRED marker, NOT running CAO services.
 Review patching, image pinning, disk protection, egress, logging, cost and
 recovery; default VM and ADX SKUs are development choices, not production advice.
 
@@ -88,10 +88,11 @@ database password, policy or GitHub permission merely by being provisioned.
 - [ ] Retrieve each role's credentials through approved secret handling and
   separately reviewed secret-scoped grants. No Key Vault wildcard grant or
   cross-role copying is generated.
-- [ ] Push digest-pinned webhook-gateway-runtime to ACR and authenticate Docker
-  with each host's managed identity. Copy scripts/run-gateway.sh to that host.
+- [ ] Push digest-pinned webhook-gateway-runtime to ACR and authenticate Podman
+  (`podman login` with an `az acr login --expose-token` token) using each
+  host's managed identity. Copy scripts/run-gateway.sh to that host.
   Keep policy/key files readable by container UID 65532 only, and environment
-  files and credential directories owner-only. Verify cloud-init and Docker.
+  files and credential directories owner-only. Verify cloud-init and Podman.
 - [ ] Start dispatch FIRST so its authorization primer can populate admission
   proofs, then receive. Retain signature, admission, live grant-refresh,
   bounded dispatch, revision, retry/ambiguity and revocation evidence.

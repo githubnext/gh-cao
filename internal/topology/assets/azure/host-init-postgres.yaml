@@ -1,7 +1,7 @@
 #cloud-config
 package_update: true
 packages:
-  - docker.io
+  - podman
   - python3
   - postgresql-16
 write_files:
@@ -14,5 +14,3 @@ write_files:
       Identify and mount the persistent data disk before storing CAO data.
       Owner-provision distinct database roles/schemas before runtime startup.
       Complete README.md and TODO.md from the generated deployment bundle.
-runcmd:
-  - [systemctl, enable, --now, docker]

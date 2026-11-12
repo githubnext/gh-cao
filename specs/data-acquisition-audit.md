@@ -16,7 +16,7 @@ editors:
 **PostgreSQL-only storage update:** Remaining SQLite descriptions in this dated
 inventory are historical, not supported commands or acquisition paths.
 Operational artifacts contain verified canonical JSONL, not database files.
-The native local dashboard operator can manage an owned Docker/Podman PostgreSQL
+The native local dashboard operator can manage an owned Podman PostgreSQL
 container; query-server and workflow-agent access do not grant that setup authority.
 
 **Actions publication retirement (2026-11-12):** The legacy Activity,

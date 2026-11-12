@@ -54,7 +54,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
-      CAO_CONTAINER_ENGINE: podman
       CAO_TEST_PODMAN: "1"
     steps:
       - &checkout
@@ -138,8 +137,6 @@ jobs:
     name: Real Azure services with rootless Podman
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    env:
-      CAO_CONTAINER_ENGINE: podman
     steps:
       - *checkout
       - *node

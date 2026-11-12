@@ -65,6 +65,12 @@ func TestPodmanRejectsUnsafeEffectiveIsolationBeforeStart(t *testing.T) {
 		{"overridden tmpfs size", func(_ map[string]any, host map[string]any) {
 			host["Tmpfs"] = map[string]string{"/tmp": "rw,nosuid,nodev,noexec,size=64m,size=1g"}
 		}},
+		{"egress mount without egress", func(value map[string]any, _ map[string]any) {
+			value["Mounts"] = append(value["Mounts"].([]map[string]any), map[string]any{
+				"Type": "bind", "Source": "/host/egress", "Destination": "/cao-egress", "RW": false,
+			})
+		}},
+		{"network none without egress", func(_ map[string]any, host map[string]any) { host["NetworkMode"] = "none" }},
 		{"wrong working directory", func(value map[string]any, _ map[string]any) { value["Workdir"] = "/" }},
 		{"wrong user", func(value map[string]any, _ map[string]any) { value["User"] = "other-user" }},
 	}

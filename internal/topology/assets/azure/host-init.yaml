@@ -1,7 +1,7 @@
 #cloud-config
 package_update: true
 packages:
-  - docker.io
+  - podman
   - python3
 write_files:
   - path: /opt/cao/ACTIVATION-REQUIRED
@@ -10,5 +10,3 @@ write_files:
     content: |
       Infrastructure staged only. No CAO runtime, policy or credentials installed.
       Complete the generated OPTIONAL-FEATURES.md before starting services.
-runcmd:
-  - [systemctl, enable, --now, docker]

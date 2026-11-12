@@ -41,10 +41,10 @@ func egressFixture(t *testing.T) (string, string, string) {
 	return policy, relay, hex.EncodeToString(hash[:])
 }
 
-func TestDockerEgressRequiresReviewedDigestAndImmutablePolicySnapshot(t *testing.T) {
+func TestContainerEgressRequiresReviewedDigestAndImmutablePolicySnapshot(t *testing.T) {
 	policy, relay, digest := egressFixture(t)
-	egress, err := LoadDockerEgress(policy, relay, digest)
-	if err != nil || egress.architecture != "x86_64" {
+	egress, err := LoadContainerEgress(policy, relay, digest)
+	if err != nil || egress.architecture != "amd64" {
 		t.Fatalf("valid reviewed artifact rejected: %v", err)
 	}
 	for _, tc := range [][3]string{
@@ -52,7 +52,7 @@ func TestDockerEgressRequiresReviewedDigestAndImmutablePolicySnapshot(t *testing
 		{policy, relay, strings.Repeat("0", 64)}, {policy + ".missing", relay, digest},
 		{policy, filepath.Dir(relay), digest},
 	} {
-		if _, err := LoadDockerEgress(tc[0], tc[1], tc[2]); err == nil {
+		if _, err := LoadContainerEgress(tc[0], tc[1], tc[2]); err == nil {
 			t.Fatal("unavailable or unverified configuration accepted")
 		}
 	}
@@ -71,13 +71,13 @@ func TestDockerEgressRequiresReviewedDigestAndImmutablePolicySnapshot(t *testing
 			t.Fatal(err)
 		}
 		sum := sha256.Sum256(data)
-		if _, err := LoadDockerEgress(policy, relay, hex.EncodeToString(sum[:])); err == nil {
+		if _, err := LoadContainerEgress(policy, relay, hex.EncodeToString(sum[:])); err == nil {
 			t.Fatal("verified digest alone accepted a non-Linux relay")
 		}
 	}
 }
 
-func TestDockerEgressAcceptsBuiltRelayForBothLinuxArchitectures(t *testing.T) {
+func TestContainerEgressAcceptsBuiltRelayForBothLinuxArchitectures(t *testing.T) {
 	for _, arch := range []string{"amd64", "arm64"} {
 		t.Run(arch, func(t *testing.T) {
 			policy, path, _ := egressFixture(t)
@@ -96,8 +96,8 @@ func TestDockerEgressAcceptsBuiltRelayForBothLinuxArchitectures(t *testing.T) {
 				t.Fatal(err)
 			}
 			sum := sha256.Sum256(data)
-			config, err := LoadDockerEgress(policy, path, hex.EncodeToString(sum[:]))
-			if err != nil || config.architecture != map[string]string{"amd64": "x86_64", "arm64": "aarch64"}[arch] {
+			config, err := LoadContainerEgress(policy, path, hex.EncodeToString(sum[:]))
+			if err != nil || config.architecture != arch {
 				t.Fatalf("built artifact failed validation: %v", err)
 			}
 		})
@@ -116,15 +116,15 @@ func egressContainerTest(t *testing.T) (*ContainerRunner, *containerCommandRunne
 	t.Cleanup(func() { _ = os.RemoveAll(workspace) })
 	process.Workspace, process.Dir = workspace, workspace
 	policy, relay, digest := egressFixture(t)
-	lifecycle := runner.Lifecycle.(*DockerContainerLifecycle)
-	lifecycle.Egress, err = LoadDockerEgress(policy, relay, digest)
+	lifecycle := runner.Lifecycle.(testOCILifecycle)
+	lifecycle.egress, err = LoadContainerEgress(policy, relay, digest)
 	if err != nil {
 		t.Fatal(err)
 	}
 	base := commands.run
 	commands.run = func(ctx context.Context, p Process, output OutputFunc) (int, error) {
-		if slices.Contains(p.Args, "--format={{.OSType}}/{{.Architecture}}") {
-			output("stdout", []byte("linux/x86_64\n"))
+		if slices.Contains(p.Args, podmanPlatformFormat) {
+			output("stdout", []byte("linux/amd64\n"))
 			return 0, nil
 		}
 		return base(ctx, p, output)
@@ -132,7 +132,7 @@ func egressContainerTest(t *testing.T) (*ContainerRunner, *containerCommandRunne
 	return runner, commands, process
 }
 
-func TestDockerEgressUsesNetworkNoneAndPrivateReadOnlyRelay(t *testing.T) {
+func TestContainerEgressUsesNetworkNoneAndPrivateReadOnlyRelay(t *testing.T) {
 	runner, commands, process := egressContainerTest(t)
 	registered := false
 	process.RegisterContainer = func(context.Context, operational.CLICommandExecution) error { registered = true; return nil }
@@ -144,8 +144,12 @@ func TestDockerEgressUsesNetworkNoneAndPrivateReadOnlyRelay(t *testing.T) {
 				t.Fatal("egress did not follow registration with a network-none workload")
 			}
 			if slices.Contains(p.Args, "bridge") || slices.Contains(p.Args, "--privileged") ||
-				!slices.Contains(p.Args, "/workspace/.cao-egress:ro,nosuid,nodev,noexec,size=4k") {
+				!slices.Contains(p.Args, "/workspace/.cao-egress:ro,nosuid,nodev,noexec,size=4k,notmpcopyup") {
 				t.Fatal("unrestricted networking or writable relay alias")
+			}
+			resolved, err := filepath.EvalSymlinks(filepath.Dir(socket))
+			if err != nil || !slices.Contains(p.Args, "type=bind,src="+resolved+",dst=/cao-egress,readonly") {
+				t.Fatal("relay directory is not mounted read-only")
 			}
 			if p.Args[slices.Index(p.Args, "--entrypoint")+1] != cliegress.RelayPath {
 				t.Fatal("verified relay is not the entrypoint")
@@ -178,18 +182,18 @@ func TestDockerEgressUsesNetworkNoneAndPrivateReadOnlyRelay(t *testing.T) {
 	}
 }
 
-func TestDockerEgressFailureNeverCreatesBridgeWorkload(t *testing.T) {
+func TestContainerEgressFailureNeverCreatesBridgeWorkload(t *testing.T) {
 	for _, scenario := range []string{"daemon-unavailable", "architecture", "socket-unavailable", "canceled"} {
 		t.Run(scenario, func(t *testing.T) {
 			runner, commands, process := egressContainerTest(t)
 			base := commands.run
 			commands.run = func(ctx context.Context, p Process, output OutputFunc) (int, error) {
-				if slices.Contains(p.Args, "--format={{.OSType}}/{{.Architecture}}") {
+				if slices.Contains(p.Args, podmanPlatformFormat) {
 					if scenario == "daemon-unavailable" {
 						return 1, errors.New("unavailable secret-response")
 					}
 					if scenario == "architecture" {
-						output("stdout", []byte("linux/aarch64\n"))
+						output("stdout", []byte("linux/arm64\n"))
 						return 0, nil
 					}
 				}
@@ -217,7 +221,7 @@ func TestDockerEgressFailureNeverCreatesBridgeWorkload(t *testing.T) {
 	}
 }
 
-func TestDockerEgressCancellationCutsProxyButRetainsUnconfirmedClaim(t *testing.T) {
+func TestContainerEgressCancellationCutsProxyButRetainsUnconfirmedClaim(t *testing.T) {
 	runner, commands, process := egressContainerTest(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -251,19 +255,19 @@ func TestDockerEgressCancellationCutsProxyButRetainsUnconfirmedClaim(t *testing.
 	}
 }
 
-func TestDockerEgressStopWaitsForConcurrentProxyShutdown(t *testing.T) {
+func TestContainerEgressStopWaitsForConcurrentProxyShutdown(t *testing.T) {
 	closing := make(chan struct{})
 	release := make(chan struct{})
 	closed := make(chan struct{})
-	lifecycle := &DockerContainerLifecycle{
-		egressClosers: map[string]func(){
+	lifecycle := &ociContainerLifecycle{relays: &egressRelays{
+		closers: map[string]func(){
 			"command": func() {
 				close(closing)
 				<-release
 				close(closed)
 			},
 		},
-	}
+	}}
 	firstDone := make(chan struct{})
 	go func() {
 		lifecycle.stopEgress("command")
@@ -288,7 +292,7 @@ func TestDockerEgressStopWaitsForConcurrentProxyShutdown(t *testing.T) {
 	default:
 		t.Fatal("stop returned without closing the proxy")
 	}
-	if len(lifecycle.egressClosers) != 0 {
+	if len(lifecycle.relays.closers) != 0 {
 		t.Fatal("stopped proxy retained its cleanup callback")
 	}
 }

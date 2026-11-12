@@ -111,16 +111,17 @@ func TestSetupAzureEnvironmentDoesNotInheritCloudCredentials(t *testing.T) {
 	}
 }
 
-func TestSetupAzureDockerRejectsRemoteDaemons(t *testing.T) {
-	for _, endpoint := range []string{"unix:///var/run/docker.sock", "unix:///home/test/.docker/run/docker.sock"} {
-		if !validSetupDockerHost(endpoint) {
-			t.Fatalf("local Docker socket rejected: %s", endpoint)
-		}
+func TestSetupAzurePodmanRejectsRemoteEngines(t *testing.T) {
+	local := map[string]string{"CONTAINER_HOST": "", "PATH": "/usr/bin"}
+	if name := setupPodmanRemoteSetting(func(name string) (string, bool) { value, ok := local[name]; return value, ok }); name != "" {
+		t.Fatalf("local Podman environment rejected: %s", name)
 	}
-	for _, endpoint := range []string{"", "tcp://127.0.0.1:2375", "tcp://remote.example:2376",
-		"ssh://remote.example", "https://management.azure.com", "unix://remote/docker.sock", "unix:relative.sock"} {
-		if validSetupDockerHost(endpoint) {
-			t.Fatalf("simulation accepted a remote or ambiguous Docker endpoint: %s", endpoint)
+	for _, name := range setupPodmanRemoteSettings {
+		for _, value := range []string{"unix:///run/podman/podman.sock", "ssh://core@remote.example/run/podman/podman.sock", "machine-default"} {
+			remote := map[string]string{name: value}
+			if got := setupPodmanRemoteSetting(func(name string) (string, bool) { value, ok := remote[name]; return value, ok }); got != name {
+				t.Fatalf("simulation accepted remote Podman setting %s=%s", name, value)
+			}
 		}
 	}
 }

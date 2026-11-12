@@ -12,12 +12,12 @@ import (
 	wg "github.com/githubnext/gh-cao/server/internal/webhookgateway"
 )
 
-// The Node integration owns Docker and compilation. This bridge exercises the
+// The Node integration owns the Podman container and compilation. This bridge exercises the
 // production ingress, durable queue, worker and HTTP dispatcher before handing
 // the exact accepted repository_dispatch event to the lightweight runner.
-func TestGitHubSimulatorDockerDispatch(t *testing.T) {
-	directory := os.Getenv("CAO_DOCKER_ACTIONS_WORKSPACE")
-	eventFile := os.Getenv("CAO_DOCKER_ACTIONS_EVENT")
+func TestGitHubSimulatorContainerDispatch(t *testing.T) {
+	directory := os.Getenv("CAO_CONTAINER_ACTIONS_WORKSPACE")
+	eventFile := os.Getenv("CAO_CONTAINER_ACTIONS_EVENT")
 	if directory == "" || eventFile == "" {
 		t.Skip("run npm run test:integration:actions-runtime")
 	}
@@ -45,7 +45,7 @@ func TestGitHubSimulatorDockerDispatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	server := gateway.serve(t)
-	delivery := discoveryDelivery(t, "docker-actions-delivery", 1)
+	delivery := discoveryDelivery(t, "container-actions-delivery", 1)
 	deliverDiscovered(t, server, delivery, "incorrect-key", 401)
 	deliverDiscovered(t, server, delivery, "boundary-webhook-key", 202)
 	deliverDiscovered(t, server, delivery, "boundary-webhook-key", 202)

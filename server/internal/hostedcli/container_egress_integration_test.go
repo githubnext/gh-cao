@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -14,26 +15,50 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
-// Requires the real default local daemon. Never switches contexts, starts a
-// daemon, mutates host networks, or treats mock command output as kernel proof.
-func TestDockerEgressRealBoundary(t *testing.T) {
-	if os.Getenv("CAO_TEST_DOCKER_EGRESS") != "1" {
-		t.Skip("set CAO_TEST_DOCKER_EGRESS=1 on a dedicated Linux Docker executor")
+// Requires a real local rootless Podman engine and a preloaded pinned image.
+// Never pulls images, configures the host, mutates host networks, or treats
+// mock command output as kernel proof.
+func TestContainerEgressRealBoundary(t *testing.T) {
+	if os.Getenv("CAO_TEST_PODMAN_EGRESS") != "1" {
+		t.Skip("set CAO_TEST_PODMAN_EGRESS=1 on a dedicated Linux rootless Podman executor")
 	}
-	if info, err := os.Stat("/var/run/docker.sock"); err != nil || info.Mode()&os.ModeSocket == 0 {
-		t.Skip("/var/run/docker.sock is absent; real network boundary is not validated")
+	if runtime.GOOS != "linux" {
+		t.Fatal("real Podman egress boundary requires Linux")
+	}
+	binary := strings.TrimSpace(os.Getenv("CAO_HOSTED_CLI_PODMAN"))
+	if binary == "" {
+		binary = "podman"
+	}
+	if _, err := exec.LookPath(binary); err != nil {
+		t.Fatal("Podman is unavailable; real network boundary is not validated")
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	defer cancel()
-	lifecycle := NewDockerContainerLifecycle("", nil)
+	// The relay is attached after its build; the platform query needs none.
+	lifecycle, err := NewPodmanContainerLifecycle(binary, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	runtimeID, err := lifecycle.RuntimeID(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	platform, code, err := lifecycle.capture(ctx, []string{"info", "--format={{.OSType}}/{{.Architecture}}"})
-	arch := map[string]string{"linux/x86_64": "amd64", "linux/aarch64": "arm64"}[strings.TrimSpace(platform)]
+	engine, err := lifecycle.executionEngine(operational.CLICommandExecution{RuntimeID: runtimeID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	platform, code, err := engine.capture(ctx, []string{"info", podmanPlatformFormat})
+	arch := map[string]string{"linux/amd64": "amd64", "linux/arm64": "arm64"}[strings.TrimSpace(platform)]
 	if err != nil || code != 0 || arch == "" {
-		t.Fatal("integration test requires a supported local Linux Docker daemon")
+		t.Fatal("integration test requires a supported local Linux Podman engine")
+	}
+	image := strings.TrimSpace(os.Getenv("CAO_TEST_PODMAN_IMAGE"))
+	runner, err := NewContainerRunner(image, lifecycle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, code, err := engine.capture(ctx, []string{"image", "exists", runner.Image}); err != nil || code != 0 {
+		t.Fatal("the pinned test image is absent; preload it or set CAO_TEST_PODMAN_IMAGE; the egress boundary is NOT validated")
 	}
 	workspace, err := os.MkdirTemp("", "cao-net-")
 	if err != nil {
@@ -47,8 +72,7 @@ func TestDockerEgressRealBoundary(t *testing.T) {
 	t.Cleanup(func() {
 		cleanup, stop := context.WithTimeout(context.Background(), 10*time.Second)
 		defer stop()
-		runner, err := NewContainerRunner("", lifecycle)
-		if err != nil || runner.Reconcile(cleanup, execution) != nil {
+		if runner.Reconcile(cleanup, execution) != nil {
 			t.Errorf("test workload termination unconfirmed; retained workspace %s", workspace)
 			return
 		}
@@ -75,8 +99,13 @@ func TestDockerEgressRealBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	sum := sha256.Sum256(data)
-	lifecycle.Egress, err = LoadDockerEgress(policyPath, filepath.Join(workspace, "relay"), hex.EncodeToString(sum[:]))
+	egress, err := LoadContainerEgress(policyPath, filepath.Join(workspace, "relay"), hex.EncodeToString(sum[:]))
 	if err != nil {
+		t.Fatal(err)
+	}
+	// Derived engines share the adapter's egress configuration and relays.
+	lifecycle.engine.egress = egress
+	if _, err := lifecycle.RuntimeID(ctx); err != nil {
 		t.Fatal(err)
 	}
 	// Record the test identity before any create, like the production queue.
@@ -84,7 +113,7 @@ func TestDockerEgressRealBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := lifecycle.Create(ctx, execution, ContainerSpec{
-		Image: DefaultContainerImage, Workspace: workspace, Directory: workspace,
+		Image: runner.Image, Workspace: workspace, Directory: workspace,
 		Program: "/workspace/probe", Env: []string{"HOME=/workspace", "GH_PROMPT_DISABLED=1", "GIT_TERMINAL_PROMPT=0"},
 	}); err != nil {
 		t.Fatal(err)

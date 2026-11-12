@@ -60,17 +60,20 @@ func (output *dashboardEngineOutput) Write(value []byte) (int, error) {
 	return output.Buffer.Write(value)
 }
 
-func newDashboardEngine(name string) (dashboardEngine, error) {
-	binary, err := exec.LookPath(name)
+// dashboardEngineName is the only container engine that manages local PostgreSQL.
+const dashboardEngineName = "podman"
+
+func newDashboardEngine() (dashboardEngine, error) {
+	binary, err := exec.LookPath(dashboardEngineName)
 	if err != nil {
-		return dashboardEngine{}, fmt.Errorf("%s is not installed; install Docker/Podman or supply --postgres-url", name)
+		return dashboardEngine{}, errors.New("podman is not installed; install Podman or supply --postgres-url")
 	}
-	return dashboardEngine{name: name, run: func(ctx context.Context, args ...string) ([]byte, error) {
+	return dashboardEngine{name: dashboardEngineName, run: func(ctx context.Context, args ...string) ([]byte, error) {
 		var output, diagnostic dashboardEngineOutput
 		command := exec.CommandContext(ctx, binary, args...)
 		command.Stdout, command.Stderr = &output, &diagnostic
 		if err := command.Run(); err != nil {
-			return nil, fmt.Errorf("%s %s failed: %w", name, args[0], err)
+			return nil, fmt.Errorf("%s %s failed: %w", dashboardEngineName, args[0], err)
 		}
 		return output.Bytes(), nil
 	}}, nil
@@ -85,59 +88,39 @@ func dashboardLocalEngineEndpoint(endpoint string) bool {
 }
 
 func (engine dashboardEngine) verifyLocal(ctx context.Context) error {
-	if engine.name == "docker" {
-		endpoint := os.Getenv("DOCKER_HOST")
-		if endpoint == "" || os.Getenv("DOCKER_CONTEXT") != "" {
-			content, err := engine.run(ctx, "context", "inspect", "--format", "{{json .Endpoints.docker.Host}}")
-			if err != nil {
-				return err
+	if endpoint := os.Getenv("CONTAINER_HOST"); endpoint != "" && !dashboardLocalEngineEndpoint(endpoint) {
+		return errors.New("managed PostgreSQL requires a local Podman endpoint")
+	}
+	content, err := engine.run(ctx, "system", "connection", "list", "--format", "json")
+	if err != nil {
+		return err
+	}
+	var connections []struct {
+		Name    string
+		Default bool
+		URI     string
+	}
+	if err := json.Unmarshal(content, &connections); err != nil {
+		return errors.New("podman did not identify its local connections")
+	}
+	selected := os.Getenv("CONTAINER_CONNECTION")
+	if selected != "" && os.Getenv("CONTAINER_HOST") != "" {
+		return errors.New("managed PostgreSQL requires an unambiguous local Podman connection")
+	}
+	found := selected == ""
+	for _, connection := range connections {
+		if (selected == "" && connection.Default) || (selected != "" && connection.Name == selected) {
+			found = true
+			if dashboardLocalEngineEndpoint(connection.URI) {
+				continue
 			}
-			if err := json.Unmarshal(bytes.TrimSpace(content), &endpoint); err != nil {
-				return errors.New("docker did not identify its local endpoint")
-			}
-		}
-		if !dashboardLocalEngineEndpoint(endpoint) {
-			return errors.New("managed PostgreSQL requires a local Docker endpoint")
-		}
-	} else {
-		if endpoint := os.Getenv("CONTAINER_HOST"); endpoint != "" && !dashboardLocalEngineEndpoint(endpoint) {
-			return errors.New("managed PostgreSQL requires a local Podman endpoint")
-		}
-		content, err := engine.run(ctx, "system", "connection", "list", "--format", "json")
-		if err != nil {
-			return err
-		}
-		var connections []struct {
-			Name    string
-			Default bool
-			URI     string
-		}
-		if err := json.Unmarshal(content, &connections); err != nil {
-			return errors.New("podman did not identify its local connections")
-		}
-		selected := os.Getenv("CONTAINER_CONNECTION")
-		if selected != "" && os.Getenv("CONTAINER_HOST") != "" {
-			return errors.New("managed PostgreSQL requires an unambiguous local Podman connection")
-		}
-		found := selected == ""
-		for _, connection := range connections {
-			if (selected == "" && connection.Default) || (selected != "" && connection.Name == selected) {
-				found = true
-				if dashboardLocalEngineEndpoint(connection.URI) {
-					continue
-				}
-				return errors.New("managed PostgreSQL cannot use a remote Podman connection")
-			}
-		}
-		if !found {
-			return errors.New("the selected Podman connection is unavailable")
+			return errors.New("managed PostgreSQL cannot use a remote Podman connection")
 		}
 	}
-	format := "{{.OSType}}"
-	if engine.name == "podman" {
-		format = "{{.Host.OS}}"
+	if !found {
+		return errors.New("the selected Podman connection is unavailable")
 	}
-	content, err := engine.run(ctx, "info", "--format", format)
+	content, err = engine.run(ctx, "info", "--format", "{{.Host.OS}}")
 	if err != nil {
 		return err
 	}
@@ -148,27 +131,16 @@ func (engine dashboardEngine) verifyLocal(ctx context.Context) error {
 }
 
 func selectDashboardEngine(ctx context.Context) (dashboardEngine, error) {
-	names := []string{"docker", "podman"}
-	if selected, present := os.LookupEnv("CAO_CONTAINER_ENGINE"); present {
-		if selected != "docker" && selected != "podman" {
-			return dashboardEngine{}, errors.New("CAO_CONTAINER_ENGINE must be docker or podman")
-		}
-		names = []string{selected}
+	engine, err := newDashboardEngine()
+	if err == nil {
+		probe, cancel := context.WithTimeout(ctx, 10*time.Second)
+		err = engine.verifyLocal(probe)
+		cancel()
 	}
-	var failures []error
-	for _, name := range names {
-		engine, err := newDashboardEngine(name)
-		if err == nil {
-			probe, cancel := context.WithTimeout(ctx, 10*time.Second)
-			err = engine.verifyLocal(probe)
-			cancel()
-		}
-		if err == nil {
-			return engine, nil
-		}
-		failures = append(failures, err)
+	if err != nil {
+		return dashboardEngine{}, fmt.Errorf("no usable local Podman engine; start Podman (on macOS, podman machine start) or supply --postgres-url: %w", err)
 	}
-	return dashboardEngine{}, fmt.Errorf("no usable local container engine; start Docker/Podman or supply --postgres-url: %w", errors.Join(failures...))
+	return engine, nil
 }
 
 func dashboardPostgresSecret() (string, error) {
@@ -295,7 +267,13 @@ func startDashboardPostgres(ctx context.Context, engine dashboardEngine, directo
 		return "", "", err
 	}
 	if state.Engine != engine.name {
-		return "", "", errors.New("this dashboard cache belongs to another container engine; select it or use a different --cache-dir")
+		container := state.ContainerID
+		if container == "" {
+			container = "none recorded"
+		}
+		return "", "", fmt.Errorf("the dashboard cache at %s was created with %s, which CAO no longer uses; "+
+			"remove its container (%s) with that engine, then delete %s or use a different --cache-dir",
+			directory, state.Engine, container, directory)
 	}
 	passwordFile := filepath.Join(directory, "password")
 	if info, err := os.Lstat(passwordFile); err == nil && (!info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0) {

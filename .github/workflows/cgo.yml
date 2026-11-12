@@ -113,7 +113,7 @@ jobs:
         working-directory: dashboard/site
         run: npx playwright install --with-deps chromium
       - name: Pull isolated Activity runner image
-        run: docker pull node:24-bookworm
+        run: podman pull docker.io/library/node:24-bookworm
       - name: Verify the implemented daily aggregate contract across backends
         env:
           POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_daily_test?sslmode=disable

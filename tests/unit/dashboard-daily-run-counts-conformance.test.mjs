@@ -115,7 +115,7 @@ test('daily run-count CI keeps cross-backend checks off pull requests but availa
   assert.equal(job.services.postgres.image, 'postgres:16-alpine');
   assert.equal(job.env?.POSTGRES_URL, undefined);
   assert.ok(job.steps.some((step) => step.run === 'npx playwright install --with-deps chromium'));
-  assert.ok(job.steps.some((step) => step.run === 'docker pull node:24-bookworm'));
+  assert.ok(job.steps.some((step) => step.run === 'podman pull docker.io/library/node:24-bookworm'));
   const conformance = job.steps.find((step) => step.run === 'npm run test:conformance:daily-run-counts');
   assert.ok(conformance);
   assert.match(conformance.env.POSTGRES_URL, /job\.services\.postgres\.ports/);

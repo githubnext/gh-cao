@@ -1,4 +1,4 @@
-// A credential-free probe used only by the opt-in real Docker boundary test.
+// A credential-free probe used only by the opt-in real Podman boundary test.
 package main
 
 import (
@@ -33,7 +33,7 @@ func probe(ctx context.Context) error {
 			return fmt.Errorf("non-loopback interface present")
 		}
 	}
-	for _, address := range []string{"1.1.1.1:443", "[2606:4700:4700::1111]:443", "172.17.0.1:443", "169.254.169.254:80"} {
+	for _, address := range []string{"1.1.1.1:443", "[2606:4700:4700::1111]:443", "10.88.0.1:443", "172.17.0.1:443", "169.254.169.254:80"} {
 		conn, err := (&net.Dialer{Timeout: time.Second}).DialContext(ctx, "tcp", address)
 		if err == nil {
 			_ = conn.Close()
@@ -47,7 +47,7 @@ func probe(ctx context.Context) error {
 			return fmt.Errorf("direct UDP bypass sent a packet")
 		}
 	}
-	for _, address := range []string{"8.8.8.8:53", "127.0.0.11:53"} {
+	for _, address := range []string{"8.8.8.8:53", "10.88.0.1:53", "127.0.0.11:53"} {
 		resolver := &net.Resolver{PreferGo: true, Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
 			return (&net.Dialer{}).DialContext(ctx, network, address)
 		}}

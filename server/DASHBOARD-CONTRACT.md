@@ -1,7 +1,7 @@
 # Canonical read contract inner loop (explicitly synthetic)
 
 Run these bounded scenarios from the repository root with Go installed; neither
-needs production credentials, PostgreSQL, Redis, Docker, a dashboard build, or
+needs production credentials, PostgreSQL, Redis, a container engine, a dashboard build, or
 an Activity download:
 
 ```sh

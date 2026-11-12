@@ -23,6 +23,28 @@ func (r *containerCommandRunner) Run(ctx context.Context, process Process, outpu
 	return r.run(ctx, process, output)
 }
 
+// testOCILifecycle supplies the runtime identity that a real adapter (Podman)
+// discovers, so the shared OCI mechanics are testable on every platform.
+type testOCILifecycle struct{ *ociContainerLifecycle }
+
+var _ ContainerLifecycle = testOCILifecycle{}
+
+func (l testOCILifecycle) RuntimeID(ctx context.Context) (string, error) {
+	value, code, err := l.capture(ctx, []string{"info", "--format={{.ID}}"})
+	id := strings.TrimSpace(value)
+	if err != nil || code != 0 || id == "" {
+		return "", errors.New("test runtime identity is unavailable")
+	}
+	return id, nil
+}
+
+func newTestOCILifecycle(commands Runner) testOCILifecycle {
+	return testOCILifecycle{&ociContainerLifecycle{
+		binary: "podman-test", commands: commands, relays: &egressRelays{},
+		commandPrefix: []string{"--remote=false", "--db-backend=sqlite"},
+	}}
+}
+
 func containerTest(t *testing.T) (*ContainerRunner, *containerCommandRunner, Process) {
 	t.Helper()
 	workspace := t.TempDir()
@@ -33,8 +55,6 @@ func containerTest(t *testing.T) (*ContainerRunner, *containerCommandRunner, Pro
 	commands := &containerCommandRunner{}
 	commands.run = func(_ context.Context, process Process, output OutputFunc) (int, error) {
 		switch process.Args[2] {
-		case "context":
-			output("stdout", []byte("unix:///var/run/docker.sock\n"))
 		case "info":
 			output("stdout", []byte("original-daemon\n"))
 		case "create":
@@ -45,11 +65,11 @@ func containerTest(t *testing.T) (*ContainerRunner, *containerCommandRunner, Pro
 		case "container":
 			output("stdout", []byte(strings.Repeat("a", 64)+"\n"))
 		default:
-			t.Fatalf("unexpected Docker call %v", process.Args)
+			t.Fatalf("unexpected container engine call %v", process.Args)
 		}
 		return 0, nil
 	}
-	runner, err := NewContainerRunner("", NewDockerContainerLifecycle("", commands))
+	runner, err := NewContainerRunner("", newTestOCILifecycle(commands))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +86,7 @@ func containerTest(t *testing.T) (*ContainerRunner, *containerCommandRunner, Pro
 
 func TestContainerRunnerUsesPinnedImageAndPrivateEnvironmentFile(t *testing.T) {
 	runner, commands, process := containerTest(t)
-	runner.Lifecycle.(*DockerContainerLifecycle).HostEnv = dockerHostEnvironment([]string{"PATH=/usr/bin", "HOME=/operator", "CAO_PRIVATE_KEY=excluded"})
+	runner.Lifecycle.(testOCILifecycle).hostEnv = podmanHostEnvironment([]string{"PATH=/usr/bin", "HOME=/operator", "CAO_PRIVATE_KEY=excluded"})
 	var environmentFile string
 	registered := false
 	process.RegisterContainer = func(_ context.Context, execution operational.CLICommandExecution) error {
@@ -87,7 +107,7 @@ func TestContainerRunnerUsesPinnedImageAndPrivateEnvironmentFile(t *testing.T) {
 				t.Fatalf("environment file remained after creation: %v", err)
 			}
 		case "logs":
-			if !slices.Equal(p.Args[:4], []string{"--context", "default", "logs", "--follow"}) {
+			if !slices.Equal(p.Args[:4], []string{"--remote=false", "--db-backend=sqlite", "logs", "--follow"}) {
 				t.Fatalf("output must replay from startup and follow: %v", p.Args)
 			}
 		case "create":
@@ -95,7 +115,7 @@ func TestContainerRunnerUsesPinnedImageAndPrivateEnvironmentFile(t *testing.T) {
 				t.Fatal("create must follow durable registration")
 			}
 			if slices.Contains(p.Env, "CAO_PRIVATE_KEY=excluded") || strings.Contains(strings.Join(p.Args, " "), "scoped-value") {
-				t.Fatal("server credentials or scoped token leaked to Docker arguments/environment")
+				t.Fatal("server credentials or scoped token leaked to container engine arguments/environment")
 			}
 			environmentFile = p.Args[slices.Index(p.Args, "--env-file")+1]
 			info, err := os.Stat(environmentFile)
@@ -107,7 +127,7 @@ func TestContainerRunnerUsesPinnedImageAndPrivateEnvironmentFile(t *testing.T) {
 			if err != nil || !strings.Contains(string(contents), "GH_TOKEN=scoped-value\n") {
 				t.Fatal("missing scoped token in private environment file")
 			}
-			for _, arg := range []string{"--context", "default", "--read-only", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--network", "bridge"} {
+			for _, arg := range []string{"--remote=false", "--read-only", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--network", "bridge"} {
 				if !slices.Contains(p.Args, arg) {
 					t.Fatalf("missing isolation flag %q", arg)
 				}
@@ -172,7 +192,7 @@ func TestContainerRunnerCreateFailureDoesNotInventWorkloadResult(t *testing.T) {
 		code int
 		err  error
 	}{
-		{name: "docker-exit", code: 125},
+		{name: "engine-exit", code: 125},
 		{name: "missing-container-id", code: 0},
 		{name: "lost-response", code: 1, err: errors.New("create response lost")},
 	} {
@@ -279,7 +299,7 @@ func TestContainerRunnerRequiresConfirmedTermination(t *testing.T) {
 	}
 }
 
-func TestContainerRunnerUsesWorkloadExitNotDockerExit(t *testing.T) {
+func TestContainerRunnerUsesWorkloadExitNotEngineExit(t *testing.T) {
 	runner, commands, process := containerTest(t)
 	base := commands.run
 	commands.run = func(ctx context.Context, p Process, output OutputFunc) (int, error) {
@@ -336,23 +356,9 @@ func TestContainerReconciliationRequiresOriginalDaemonAndConfirmedRemoval(t *tes
 	}
 }
 
-func TestContainerRunnerRejectsRemoteDockerDefaultContext(t *testing.T) {
-	runner, commands, process := containerTest(t)
-	commands.run = func(_ context.Context, _ Process, output OutputFunc) (int, error) {
-		output("stdout", []byte("ssh://docker.example.test\n"))
-		return 0, nil
-	}
-	if _, err := runner.Run(t.Context(), process, nil); err == nil || !strings.Contains(err.Error(), "local socket") {
-		t.Fatalf("remote Docker context was not rejected: %v", err)
-	}
-	if len(commands.processes) != 1 {
-		t.Fatalf("Docker calls = %d, want context inspection only", len(commands.processes))
-	}
-}
-
 func TestContainerRunnerRejectsMutableImagesAndOutsideWorkspaces(t *testing.T) {
 	for _, image := range []string{"ghcr.io/github/gh-aw:latest", "ghcr.io/github/gh-aw@sha256:abc"} {
-		if _, err := NewContainerRunner(image, NewDockerContainerLifecycle("", nil)); err == nil {
+		if _, err := NewContainerRunner(image, newTestOCILifecycle(nil)); err == nil {
 			t.Errorf("mutable or invalid image %q was accepted", image)
 		}
 	}

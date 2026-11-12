@@ -1,4 +1,4 @@
-// cao-cli-relay runs only inside the network-none Docker workload. It holds
+// cao-cli-relay runs only inside the network-none Podman workload. It holds
 // neither the policy nor host credentials and cannot select another socket.
 package main
 
@@ -67,7 +67,7 @@ func run() int {
 			cancel()
 		}
 	}()
-	// #nosec G204 G702 -- fixed bootstrap and validated CLI arguments supplied by the Docker lifecycle, never host execution.
+	// #nosec G204 G702 -- fixed bootstrap and validated CLI arguments supplied by the container lifecycle, never host execution.
 	command := exec.CommandContext(ctx, os.Args[1], os.Args[2:]...)
 	command.Stdin, command.Stdout, command.Stderr = os.Stdin, os.Stdout, os.Stderr
 	command.Env = workloadEnv(os.Environ())

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
@@ -324,7 +324,7 @@ test("Go extension setup simulator runs only on main pushes, independently witho
   assert.ok(steps.indexOf(install) < steps.indexOf(azure));
   assert.ok(steps.indexOf(azurePrerequisites) < steps.indexOf(azure));
   assert.match(azurePrerequisites.run, /go mod download/);
-  assert.match(azurePrerequisites.run, /docker pull mcr\.microsoft\.com\/azure-storage\/azurite:3\.37\.0@sha256:[a-f0-9]{64}/);
+  assert.match(azurePrerequisites.run, /podman pull mcr\.microsoft\.com\/azure-storage\/azurite:3\.37\.0@sha256:[a-f0-9]{64}/);
   assert.deepEqual(run.env, {
     GH_TOKEN: "",
     GITHUB_TOKEN: "",
@@ -360,7 +360,7 @@ test("Go extension setup simulator runs only on main pushes, independently witho
   assert.match(scripts["test:integration:azure-install-journey"], /-run '\^TestCAOAzureInstallJourneyIntegration\$'/);
 });
 
-test("Docker samples runtime has an independent read-only workflow", () => {
+test("Container samples runtime has an independent read-only workflow", () => {
   const runtime = parse(workflow("actions-runtime.yml"));
   const contracts = parse(workflow("workflow-contracts.yml"));
   for (const pattern of ["server/**", "!server/**/*.md", "dashboard/report/**", "dashboard/site/src/data/**",
@@ -380,12 +380,13 @@ test("Docker samples runtime has an independent read-only workflow", () => {
   assert.equal(job.if, undefined);
   assert.equal(job["timeout-minutes"], 10);
   assert.ok(job.steps.some(step => step.run === "npm run test:integration:actions-runtime"));
+  assert.ok(job.steps.some(step => step.run === "podman pull docker.io/library/node:24-bookworm"));
   const diagnostics = job.steps.find(step => step.name === "Retain failed simulator diagnostics");
   assert.equal(diagnostics.if, "failure()");
   assert.equal(diagnostics.with["retention-days"], 7);
 });
 
-test("Docker runtime runs automatically for simulator, Activity and shared data-boundary changes", () => {
+test("Container Actions runtime runs automatically for simulator, Activity and shared data-boundary changes", () => {
   for (const event of ["pull_request", "push"]) {
     for (const file of [
       "server/internal/webhookgateway/worker.go",
@@ -555,4 +556,26 @@ test("PR reporters do not start for skipped main-only producers", () => {
       assert.ok(jobs[report].if.includes(`needs.${producer}.result != 'skipped'`));
     }
   }
+});
+
+test("CI workflows invoke Podman rather than the Docker CLI or daemon", () => {
+  const sources = readdirSync(join(root, ".github/workflows"))
+    .filter(file => file.endsWith(".yml") && !file.endsWith(".lock.yml"))
+    .map(file => `.github/workflows/${file}`);
+  assert.ok(sources.length > 0);
+  for (const file of sources) {
+    const source = readFileSync(join(root, file), "utf8");
+    assert.doesNotMatch(source, /\bdocker (?:build|buildx|exec|image|inspect|load|login|logs|port|pull|push|restart|rm|run|save|tag)\b/, file);
+    assert.doesNotMatch(source, /docker\.sock|docker\/(?:login|setup-buildx|build-push)-action/, file);
+  }
+  const unit = parse(workflow("workflow-contracts.yml")).jobs.unit;
+  assert.equal(unit.services, undefined);
+  const prepare = unit.steps.find(step => step.id === "postgres-fixtures");
+  assert.match(prepare.run, /podman run --detach --name "\$POSTGRES_CONTAINER"/);
+  assert.match(prepare.run, /--publish 127\.0\.0\.1::5432 docker\.io\/library\/postgres:16-alpine/);
+  assert.match(prepare.run, /postgres -c max_locks_per_transaction=512/);
+  const cleanup = unit.steps.find(step => step.name === "Stop partition-heavy PostgreSQL");
+  assert.match(cleanup.if, /^always\(\)/);
+  assert.match(cleanup.run, /podman rm --force --ignore --volumes cao-contracts-postgres/);
+  assert.ok(unit.steps.indexOf(prepare) < unit.steps.indexOf(cleanup));
 });

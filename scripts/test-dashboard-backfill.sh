@@ -6,18 +6,16 @@ cd "$(dirname "$0")/.."
 source scripts/container-engine.sh
 cao_container_engine_init
 compose=(bash scripts/container-compose.sh)
-if [[ "$CAO_CONTAINER_ENGINE" == podman ]]; then
-  provider_error() {
-    echo "Backfill requires a Docker Compose v2 provider with up --wait, --wait-timeout and --pull never; configure PODMAN_COMPOSE_PROVIDER to its executable. podman-compose is not supported for backfill." >&2
-    exit 1
-  }
-  provider_version="$("${compose[@]}" version --short)" || provider_error
-  [[ "$provider_version" =~ ^v?2\. ]] || provider_error
-  provider_help="$("${compose[@]}" up --help)" || provider_error
-  for option in --wait --wait-timeout --pull; do
-    grep -Eq -- "(^|[[:space:]])${option}([[:space:]=]|$)" <<<"$provider_help" || provider_error
-  done
-fi
+provider_error() {
+  echo "Backfill requires a Compose v2 provider for podman compose with up --wait, --wait-timeout and --pull never; configure PODMAN_COMPOSE_PROVIDER to its executable. podman-compose is not supported for backfill." >&2
+  exit 1
+}
+provider_version="$("${compose[@]}" version --short)" || provider_error
+[[ "$provider_version" =~ ^v?2\. ]] || provider_error
+provider_help="$("${compose[@]}" up --help)" || provider_error
+for option in --wait --wait-timeout --pull; do
+  grep -Eq -- "(^|[[:space:]])${option}([[:space:]=]|$)" <<<"$provider_help" || provider_error
+done
 project="cao-backfill-$(openssl rand -hex 6)"
 compose+=(-p "$project" -f server/backfill-compose.yml)
 export CAO_LOCAL_POSTGRES_PASSWORD

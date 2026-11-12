@@ -32,17 +32,15 @@ async function standaloneDashboard(t, directory, env, requests) {
   const gh = process.env.PATH.split(delimiter).map((path) => join(path, ghName)).find(existsSync);
   assert.ok(gh, "the release check requires the real GitHub CLI");
   copyFileSync(gh, join(bin, ghName));
-  const engineName = process.env.CAO_CONTAINER_ENGINE || "docker";
-  assert.ok(["docker", "podman"].includes(engineName));
-  const executable = engineName + (process.platform === "win32" ? ".exe" : "");
+  const executable = "podman" + (process.platform === "win32" ? ".exe" : "");
   const engine = process.env.PATH.split(delimiter).map((path) => join(path, executable)).find(existsSync);
-  assert.ok(engine, "the release check requires its selected local container engine");
+  assert.ok(engine, "the release check requires local Podman");
   copyFileSync(engine, join(bin, executable));
   const cache = join(directory, "dashboard-cache");
   requests.length = 0;
   const child = spawn(join(bin, ghName), ["cao", "dashboard", "--repo", "octo/api",
     "--cache-dir", cache, "--duration", "20s"], {
-    cwd, env: { ...env, PATH: bin, CAO_CONTAINER_ENGINE: engineName }, stdio: ["ignore", "pipe", "pipe"], timeout: 120_000,
+    cwd, env: { ...env, PATH: bin }, stdio: ["ignore", "pipe", "pipe"], timeout: 120_000,
     detached: process.platform !== "win32",
   });
   let output = "";
@@ -259,7 +257,7 @@ test("real GitHub CLI discovers, installs, and dispatches native release assets"
       const manifest = join(data, "gh", "extensions", "gh-cao", "manifest.yml");
       assert.match(readFileSync(manifest, "utf8"), new RegExp(`tag: ${scenario.pinned ? "v1.2.4" : "v1.2.3"}`));
       if (!scenario.pinned) {
-        await t.test("dashboard runs with gh, its installed extension and the selected container engine", async (t) => {
+        await t.test("dashboard runs with gh, its installed extension and Podman", async (t) => {
           await standaloneDashboard(t, directory, env, requests);
         });
       }

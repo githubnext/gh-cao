@@ -34,7 +34,7 @@ import sys
 
 policy, environment, directory, *names = sys.argv[1:]
 if any("," in path for path in (policy, environment, directory)):
-    sys.exit("Docker bind paths must not contain commas")
+    sys.exit("Podman bind paths must not contain commas")
 info = os.lstat(directory)
 if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
     sys.exit("Credential directory must be private")
@@ -44,7 +44,7 @@ for path in [policy, environment, *(os.path.join(directory, name) for name in na
         sys.exit("Policy, environment and credential files must be private regular files")
 PY
 if [ "$role" = receive ]; then
-  exec docker run --rm --name cao-gateway-receive --read-only --cap-drop ALL \
+  exec podman run --rm --name cao-gateway-receive --read-only --cap-drop ALL \
     --security-opt no-new-privileges --tmpfs /tmp:rw,noexec,nosuid \
     --env-file "$environment" --publish 443:8443 \
     --mount "type=bind,source=$policy,target=/run/policy.json,readonly" \
@@ -53,7 +53,7 @@ if [ "$role" = receive ]; then
     "$image" --role receive --policy /run/policy.json --listen 0.0.0.0:8443 \
     --tls-cert /run/cao/tls.crt --tls-key /run/cao/tls.key
 fi
-exec docker run --rm --name cao-gateway-dispatch --read-only --cap-drop ALL \
+exec podman run --rm --name cao-gateway-dispatch --read-only --cap-drop ALL \
   --security-opt no-new-privileges --tmpfs /tmp:rw,noexec,nosuid \
   --env-file "$environment" \
   --env CAO_GATEWAY_RECEIVE_KEY_FILE=/run/cao/receive.pem \

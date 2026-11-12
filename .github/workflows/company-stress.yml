@@ -54,20 +54,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$CAO_COMPANY_REPORT_DIR"
-          docker run --detach --name cao-company-stress-postgres \
+          podman run --detach --name cao-company-stress-postgres \
             --env POSTGRES_HOST_AUTH_METHOD=trust --env POSTGRES_DB=cao_company \
-            --publish 127.0.0.1::5432 postgres:16-alpine \
+            --publish 127.0.0.1::5432 docker.io/library/postgres:16-alpine \
             postgres -c max_locks_per_transaction=1024
           ready=false
           for ((attempt = 1; attempt <= 60; attempt++)); do
-            if docker exec cao-company-stress-postgres pg_isready -U postgres -d cao_company; then
+            if podman exec cao-company-stress-postgres pg_isready -U postgres -d cao_company; then
               ready=true
               break
             fi
             sleep 1
           done
           test "$ready" = true
-          address=$(docker port cao-company-stress-postgres 5432/tcp)
+          address=$(podman port cao-company-stress-postgres 5432/tcp)
           echo "POSTGRES_URL=postgres://postgres@$address/cao_company?sslmode=disable" >> "$GITHUB_ENV"
       - name: Resolve explicit company configuration
         shell: bash
@@ -109,8 +109,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$CAO_COMPANY_REPORT_DIR"
-          docker logs cao-company-stress-postgres > "$CAO_COMPANY_REPORT_DIR/postgres.log" 2>&1
-          docker rm --force --volumes cao-company-stress-postgres
+          podman logs cao-company-stress-postgres > "$CAO_COMPANY_REPORT_DIR/postgres.log" 2>&1
+          podman rm --force --volumes cao-company-stress-postgres
       - name: Upload stress evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

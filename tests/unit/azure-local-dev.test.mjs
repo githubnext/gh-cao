@@ -49,10 +49,7 @@ test("GitHub Azure profile requires explicit credentials, orgs and exact loopbac
   }
   assert.throws(() => validateEnvironment({ ...credentials, GITHUB_SERVER_URL: "https://github.example.com" }), /GitHub.com only/);
   for (const engine of ["docker", "podman"]) {
-    assert.equal(validateEnvironment({ ...credentials, CAO_CONTAINER_ENGINE: engine }).port, "7071");
-  }
-  for (const engine of ["", "auto", "podman --remote"]) {
-    assert.throws(() => validateEnvironment({ ...credentials, CAO_CONTAINER_ENGINE: engine }), /must be docker or podman/);
+    assert.throws(() => validateEnvironment({ ...credentials, CAO_CONTAINER_ENGINE: engine }), /unset other CAO/);
   }
 });
 
@@ -76,8 +73,8 @@ test("GitHub settings safely serialize credentials and use built server queries"
   }
 });
 
-for (const engine of ["docker", "podman"]) {
-test(`GitHub stack uses built assets, explicit or empty evidence, isolated environment and exact teardown (${engine})`, async () => {
+test("GitHub stack uses built assets, explicit or empty evidence, isolated environment and exact teardown", async () => {
+  const engine = "podman";
   const dir = await directory();
   const script = join(dir, "scripts/azure-local/azure-local.sh");
   const state = join(dir, "state");
@@ -95,7 +92,6 @@ test(`GitHub stack uses built assets, explicit or empty evidence, isolated envir
     PATH: `${tools}:${process.env.PATH}`,
     HOME: process.env.HOME,
     ...credentials,
-    CAO_CONTAINER_ENGINE: engine,
     AZURE_LOCAL_STATE_DIR: state,
     AZURE_LOCAL_PROFILE: "github",
     AZURE_LOCAL_FUNCTIONS_PORT: port,
@@ -126,6 +122,7 @@ case "$1" in
 esac
 `);
     await executable(join(tools, "curl"), "echo 200\n");
+    await executable(join(tools, "docker"), `echo "docker $*" >> "${trace}"\nexit 99\n`);
     await executable(join(tools, "npm"), `
 echo "npm $*" >> "${trace}"
 if [[ "\${HARNESS_FAIL_BUILD:-}" == 1 ]]; then
@@ -157,7 +154,7 @@ setInterval(() => {}, 1000);
       const selectedEnv = { ...env, ...(source ? { AZURE_LOCAL_SOURCE_DIRECTORY: source } : {}) };
       await run("start", selectedEnv);
       await run("wait", selectedEnv);
-      // The stub host runs a real process but does not emulate Functions or Docker.
+      // The stub host runs a real process but does not emulate Functions or containers.
       for (let attempt = 0; attempt < 50; attempt++) {
         try { await access(join(dir, "host-observed.json")); break; }
         catch { await new Promise((done) => setTimeout(done, 20)); }
@@ -213,7 +210,7 @@ setInterval(() => {}, 1000);
     const commands = await readFile(trace, "utf8");
     assert.equal((commands.match(new RegExp(`${engine} rm -f postgres-id`, "g")) ?? []).length, 2);
     assert.equal((commands.match(new RegExp(`${engine} rm -f azurite-id`, "g")) ?? []).length, 2);
-    assert.doesNotMatch(commands, new RegExp(`^${engine === "docker" ? "podman" : "docker"} `, "m"));
+    assert.doesNotMatch(commands, /^docker /m);
     const { CAO_GITHUB_CLIENT_SECRET: omitted, ...missingSecret } = env;
     assert.ok(omitted);
     await assert.rejects(run("dev", missingSecret), /requires real GitHub.com OAuth credentials/);
@@ -288,4 +285,3 @@ setInterval(() => {}, 1000);
     await rm(dir, { recursive: true, force: true });
   }
 });
-}

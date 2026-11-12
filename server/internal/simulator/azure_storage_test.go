@@ -12,10 +12,10 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -41,33 +41,32 @@ func startSetupAzurite(t *testing.T, ctx context.Context) *azureBlobStore {
 	if binary := os.Getenv("CAO_SETUP_AZURITE_BINARY"); binary != "" {
 		port = startSetupAzuriteProcess(t, ctx, binary, account)
 	} else {
-		host := setupDockerHost(t, ctx)
-		env := setupAzureEnvironment(setupAzureToolEnvironment("PATH", "HOME", "TMPDIR", "XDG_CONFIG_HOME", "DOCKER_CONFIG"), map[string]string{
-			"DOCKER_CONTEXT": "", "DOCKER_HOST": host, "DOCKER_TLS_VERIFY": "", "DOCKER_CERT_PATH": "",
+		requireSetupLocalPodman(t)
+		env := setupAzureEnvironment(setupAzureToolEnvironment("PATH", "HOME", "TMPDIR", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR"), map[string]string{
 			"AZURITE_ACCOUNTS": strings.TrimPrefix(account, "AZURITE_ACCOUNTS="),
 		})
-		docker := func(ctx context.Context, args ...string) string {
-			return bootstrapRun(t, ctx, ".", env, "docker", append([]string{"--host", host}, args...)...)
+		podman := func(ctx context.Context, args ...string) string {
+			return bootstrapRun(t, ctx, ".", env, "podman", append([]string{"--remote=false"}, args...)...)
 		}
-		docker(ctx, "image", "inspect", setupAzuriteImage, "--format", "{{.Id}}")
-		network := strings.TrimSpace(docker(ctx, "network", "create", "--internal", "cao-setup-"+rand.Text()))
+		podman(ctx, "image", "inspect", setupAzuriteImage, "--format", "{{.Id}}")
+		network := strings.TrimSpace(podman(ctx, "network", "create", "--internal", "cao-setup-"+rand.Text()))
 		t.Cleanup(func() {
 			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 			defer cancel()
-			docker(cleanup, "network", "rm", network)
+			podman(cleanup, "network", "rm", network)
 		})
-		id := strings.TrimSpace(docker(ctx, "run", "--pull=never", "--detach", "--rm",
+		id := strings.TrimSpace(podman(ctx, "run", "--pull=never", "--detach", "--rm",
 			"--env", "AZURITE_ACCOUNTS", "--network", network, setupAzuriteImage,
 			"azurite-blob", "--blobHost", "127.0.0.1", "--silent"))
 		t.Cleanup(func() {
 			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 			defer cancel()
-			docker(cleanup, "rm", "--force", id)
+			podman(cleanup, "rm", "--force", id)
 		})
-		// Docker does not publish ports on an internal-only network. Relay over
-		// the validated local Unix socket instead of granting container egress.
+		// Ports are not published on an internal-only network. Relay through the
+		// local Podman engine instead of granting container egress.
 		port = startSetupAzuriteRelay(t, ctx, func(ctx context.Context) *exec.Cmd {
-			command := exec.CommandContext(ctx, "docker", "--host", host, "exec", "--interactive", id, "node", "-e", setupAzuriteRelayScript, "10000") // #nosec G204 -- local Docker socket, test-owned container, and fixed container-loopback relay.
+			command := exec.CommandContext(ctx, "podman", "--remote=false", "exec", "--interactive", id, "node", "-e", setupAzuriteRelayScript, "10000") // #nosec G204 -- local Podman engine, test-owned container, and fixed container-loopback relay.
 			command.Env = env
 			return command
 		})
@@ -103,27 +102,27 @@ func startSetupAzurite(t *testing.T, ctx context.Context) *azureBlobStore {
 	}
 }
 
-func setupDockerHost(t *testing.T, ctx context.Context) string {
+// setupPodmanRemoteSettings are the Podman variables that select a remote
+// engine or connection; the simulation runs only on the local Linux engine.
+var setupPodmanRemoteSettings = []string{"CONTAINER_HOST", "CONTAINER_CONNECTION", "CONTAINER_SSHKEY"}
+
+func requireSetupLocalPodman(t *testing.T) {
 	t.Helper()
-	host := os.Getenv("DOCKER_HOST")
-	if selected := os.Getenv("DOCKER_CONTEXT"); selected != "" || host == "" {
-		args := []string{"context", "inspect", "--format", "{{.Endpoints.docker.Host}}"}
-		if selected != "" {
-			args = append(args, "--", selected)
-		}
-		environment := setupAzureToolEnvironment("PATH", "HOME", "TMPDIR", "XDG_CONFIG_HOME", "DOCKER_CONFIG", "DOCKER_CONTEXT", "DOCKER_HOST")
-		host = strings.TrimSpace(bootstrapRun(t, ctx, ".", environment, "docker", args...))
+	if runtime.GOOS != "linux" {
+		t.Fatal("Azure simulation requires local Linux Podman (--remote=false); Podman machines are not supported; use CAO_SETUP_AZURITE_BINARY instead")
 	}
-	if !validSetupDockerHost(host) {
-		t.Fatal("Azure simulation requires a local Unix Docker socket; remote Docker endpoints are forbidden; use CAO_SETUP_AZURITE_BINARY instead")
+	if name := setupPodmanRemoteSetting(os.LookupEnv); name != "" {
+		t.Fatalf("Azure simulation requires local Podman; remote engine setting %s is forbidden; use CAO_SETUP_AZURITE_BINARY instead", name)
 	}
-	return host
 }
 
-func validSetupDockerHost(host string) bool {
-	endpoint, err := url.Parse(host)
-	return err == nil && endpoint.Scheme == "unix" && endpoint.Host == "" && endpoint.User == nil &&
-		endpoint.RawQuery == "" && endpoint.Fragment == "" && filepath.IsAbs(endpoint.Path)
+func setupPodmanRemoteSetting(lookup func(string) (string, bool)) string {
+	for _, name := range setupPodmanRemoteSettings {
+		if value, ok := lookup(name); ok && value != "" {
+			return name
+		}
+	}
+	return ""
 }
 
 func startSetupAzuriteProcess(t *testing.T, ctx context.Context, binary, account string) string {
