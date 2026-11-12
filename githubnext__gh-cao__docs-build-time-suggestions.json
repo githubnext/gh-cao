@@ -1,35 +1,7 @@
 {
-  "source_sha": "ad8a18d82268b16bbf7ab4f4773488006d866d9a",
+  "source_sha": "c1c7297513a5d32239e70a05238debb50e97a57f",
   "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-10T17:53:02.696348Z",
-      "worker_run_id": "42868979857",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42868247499,
-        42865784030,
-        42864725603,
-        42863193567,
-        42862394688,
-        42860599143,
-        42860280975,
-        42857825785,
-        42855326967,
-        42853035371,
-        42850425874,
-        42849499413,
-        42847763667,
-        42845157691,
-        42842608884,
-        42841965351,
-        42840041041,
-        42837407680,
-        42834919026,
-        42832438146
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T14:16:37Z to 2026-11-10T17:46:01Z) was within 14 days and contained 16 successful runs and four skipped workflow_run callbacks; there were no failed or cancelled runs. Trusted Actions job and step metadata verified only one successful full build-and-deploy publication: push run 42860280975 at source 825ed82cc3a0fe45d86652db8f3e70d2cb437eaf. It took 143 seconds from creation to completion with no workflow-level queue delay, an 81-second build job, and a 51-second deploy job; checkout took 30 seconds, npm ci 14 seconds, Astro documentation generation 9 seconds, dashboard cache restore 3 seconds, Pages artifact upload 14 seconds, and Pages deployment 48 seconds. The dashboard cache was a verified hit because fallback dashboard lookup and artifact download steps were skipped. The other 15 successful runs were freshness-only schedules, and the four workflow_run callbacks skipped every job. One comparable successful publication is below the required five, so queue-versus-execution distributions, full-workflow and dashboard/build/deploy median and p90 measurements, and repeated artifact-transfer/Pages-packaging analysis across a sufficient sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
     {
       "evaluated_at": "2026-11-10T18:20:01Z",
       "worker_run_id": "42873440569",
@@ -841,6 +813,34 @@
         43076120883
       ],
       "outcome": "incomplete, gate not met: latest 20 completed docs.yml runs (created 2026-11-11T18:16:01Z to 2026-11-12T00:47:12Z; within 14 days; 0 cancelled) contained 4 successful current-design push publications (43104481579 d57c4c821; 43121504364 3707d46; 43124416558 f1cdd83; 43129836945 ad8a18d), below the required 5. docs.yml is unchanged across d57c4c821..ad8a18d (compare API). Excluded as not like-for-like: 3 pre-design successful full publications (43078552939, 43081415171, 43083249533; schedule-freshness job and Restore/Find/Mount CAO Dashboard steps, no demo step), 4 successful freshness-only schedules (build and deploy skipped; 43076367701, 43080844329, 43085628886, 43087935698), 6 failed pre-design schedules (43090243002, 43092616318 at 770e465dd; 43094878868, 43099316175, 43101943628, 43103737760 at 93614994e; failed at Mount latest CAO Dashboard artifact), 3 skipped workflow_run callbacks (43076120883, 43078618882, 43085139761). Descriptive n=4, not a gate pass: create-to-deploy-complete median 99.5 s (nearest-rank p90 113 s; runs 77, 88, 111, 113 s); build job median 81 s (p90 93 s); deploy job median 11 s; checkout median 29 s (21-40 s); npm install step median 21 s (13-25 s); Astro docs median 11.5 s (10-15 s); demo 3 s; Pages upload 2.5 s; Deploy Pages step 7 s; queue 3-4 s. Cache hit/miss for setup-node npm and checkout fetch depth unverified (job logs HTTP 403, DIFC policy). cao-dashboard.yml last 8 runs are skipped workflow_run callbacks (latest 2026-11-12T00:35:12Z). docs.yml has no dashboard job; dashboard steps are inside build. No suggestion; next_category not advanced. Earliest 5th comparable run: scheduled full publication 2026-11-12T05:23Z (current design has no freshness gate). Leads only, unverified: fetch-depth 0 checkout (21-40 s) and npm install variance (13-25 s)."
+    },
+    {
+      "evaluated_at": "2026-11-12T01:19:46Z",
+      "worker_run_id": "43133221143",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175,
+        43094878868,
+        43092616318,
+        43090243002,
+        43087935698,
+        43085628886,
+        43085139761,
+        43083249533,
+        43081415171,
+        43080844329,
+        43078618882,
+        43078552939,
+        43076367701,
+        43076120883
+      ],
+      "outcome": "incomplete, gate not met: latest 20 completed docs.yml runs (created 2026-11-11T18:16:01Z to 2026-11-12T00:47:12Z; within 14 days; 0 cancelled) contained 11 successful runs: 4 full build-and-deploy publications on the current design (43129836945 push ad8a18d; 43124416558 push f1cdd83; 43121504364 push 3707d46; 43104481579 push d57c4c8), 3 pre-design full publications (43083249533, 43081415171, 43078552939; schedule-freshness job and CAO Dashboard restore/mount steps; excluded as not like-for-like), and 4 freshness-only schedules (build and deploy skipped). Also 6 failed pre-design schedules (43090243002, 43092616318, 43094878868, 43099316175, 43101943628, 43103737760; build failed at Mount latest CAO Dashboard artifact after 55-83 s; excluded) and 3 skipped workflow_run callbacks. docs.yml is unchanged since d57c4c821 (compare API; HEAD c1c7297 adds one commit that does not touch docs paths). Required 5 comparable current-design publications; found 4, so no suggestion and next_category unchanged. Descriptive current n=4, not a gate pass: run created-to-updated median 100.5 s (nearest-rank p90 114 s; 78, 89, 112, 114 s); build median 81 s (p90 93 s); deploy median 11 s; queue to build 3-4 s; checkout median 29 s (21-40 s); npm install median 21 s (13-25 s); Astro docs median 11.5 s (10-15 s); demo 3 s; Pages upload 2.5 s. Cache hit or miss unverified: setup-node cache is internal to its step and job logs were not re-read after prior HTTP 403 (DIFC policy). cao-dashboard.yml: last 6 runs are skipped workflow_run callbacks (latest 2026-11-12T01:01:43Z). Earliest 5th current-design publication: scheduled run 2026-11-12T05:23Z (daily cron). Leads only, unverified: fetch-depth 0 checkout (21-40 s) appears unneeded by docs:build; not a suggestion."
     }
   ]
 }
