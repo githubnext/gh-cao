@@ -59,7 +59,7 @@ The server MUST apply the following token buckets.
 | Class | Requests | Capacity | Refill period | Subject |
 | --- | --- | ---: | ---: | --- |
 | Query | `POST /api/v1/query`, `/mcp` query tools | 30 cost units | 1 minute | authenticated GitHub login or validated GitHub Actions actor |
-| OAuth | `/auth/login`, `/auth/callback` | 10 | 5 minutes | client address for login; OAuth state for callback when present |
+| OAuth | `/auth/login`, `/auth/callback`, `/auth/select-account` | 10 | 5 minutes | client address for login; OAuth state for callback when present |
 | General | other `/api/` and `/auth/` requests | 120 | 1 minute | authenticated GitHub login, otherwise client address |
 | Hosted edge | non-public hosted requests before session loading | 1,200 | 1 minute | client address |
 | Hosted public probes | `GET /api/health`, `GET /api/v1/health`, `GET /api/readiness` | 600 | 1 minute | client address, shared across probe paths |
