@@ -68,22 +68,25 @@ safe-outputs:
           const issues = output.items.filter(item => item.type === 'create_issue');
           if (issues.length === 0) return;
           const reports = issues.filter(item => !item.parent);
-          if (reports.length !== 1 || reports[0].temporary_id !== 'framework-health-report') {
+          if (reports.length !== 1 || reports[0].temporary_id !== 'aw_fh_report') {
             throw new Error('Refusing report: expected one parent report with a temporary ID');
           }
           const report = reports[0];
-          const childReference = `#aw_${report.temporary_id}`;
+          const childReference = `#${report.temporary_id}`;
           const reportBody = String(report.body ?? '').replace(/\r\n?/g, '\n');
           const children = issues.filter(item => item !== report);
           if (children.length > 3) throw new Error('Refusing report: more than three child issues');
-          const temporaryIds = new Set([report.temporary_id]);
+          const temporaryIds = new Set([report.temporary_id.toLowerCase()]);
+          const linkedIds = new Set([...reportBody.matchAll(/#(aw_[A-Za-z0-9_]{3,12})(?![A-Za-z0-9_-])/gi)]
+            .map(match => match[1].toLowerCase()));
           for (const child of children) {
             if (child.parent !== childReference || typeof child.temporary_id !== 'string'
-              || child.temporary_id.length === 0 || temporaryIds.has(child.temporary_id)
-              || !reportBody.includes(`#aw_${child.temporary_id}`)) {
+              || !/^aw_[A-Za-z0-9_]{3,12}$/i.test(child.temporary_id)
+              || temporaryIds.has(child.temporary_id.toLowerCase())
+              || !linkedIds.has(child.temporary_id.toLowerCase())) {
               throw new Error('Refusing report: child issue is not linked to the parent report');
             }
-            temporaryIds.add(child.temporary_id);
+            temporaryIds.add(child.temporary_id.toLowerCase());
             const body = String(child.body ?? '');
             if (!String(child.title ?? '').trim() || !body.includes('### Scope')
               || !body.includes('### Acceptance checks')) {
@@ -94,6 +97,13 @@ safe-outputs:
           const reviewed = counts.length === 1 ? Number(counts[0][1]) : 0;
           if (!Number.isInteger(reviewed) || reviewed < 1 || reviewed > 16) {
             throw new Error('Refusing report: missing or zero core review');
+          }
+          // gh-aw links children at creation and backfills forward references in the report body.
+          if (issues[0] !== report) {
+            const ordered = [report, ...children];
+            let index = 0;
+            output.items = output.items.map(item => item.type === 'create_issue' ? ordered[index++] : item);
+            fs.writeFileSync(file, JSON.stringify(output));
           }
 steps:
   - name: Fix scope, window and report history
@@ -880,17 +890,19 @@ snapshot; persistent risks and unknowns do not disappear without new activity.
 
 ## Publish one report with bounded follow-up issues
 
-Call `create_issue` once for the parent report with the unprefixed title exactly
+Call `create_issue` first for the parent report with the unprefixed title exactly
 `context.title` (`YYYY-MM-DD run RUN-ATTEMPT`); the configured title prefix is
-added automatically. Give the report the temporary ID `framework-health-report`.
+added automatically. Give the report the temporary ID `aw_fh_report`.
 Create zero to three child issues only for the highest-priority, evidence-backed
 actions that have a concrete owner or human decision and an observable closure
 check. Do not create placeholder issues for unknown evidence or speculative
 recommendations. Each child must be one independently actionable increment, use
 a report-specific unprefixed title, include `### Scope` and `### Acceptance checks`,
-and set `parent` to `#aw_framework-health-report`. Give each child a unique
-temporary ID and link it from its corresponding row in the report's
-`### Blockers and next increments` table using `#aw_<temporary-id>`. These are
+and set `parent` to `#aw_fh_report`. Give each child a unique temporary ID
+in gh-aw's `aw_` format (3–12 letters, digits or underscores after the prefix,
+for example `aw_fh_dec`). Link it from its corresponding row in the report's
+`### Blockers and next increments` table using `#` followed by that exact ID
+(for example `#aw_fh_dec`, not `#aw_aw_fh_dec`). These are
 sub-issues of this run's report, not a second finding or approval database.
 The handler deduplicates titles and closes older issues from this workflow;
 their closed snapshots remain the history. Do not close findings or other issues,
