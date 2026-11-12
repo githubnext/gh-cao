@@ -1,35 +1,7 @@
 {
   "source_sha": "d4bf131be13d9899c0f16a32f4207027e1b19d8d",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-11T21:52:59Z",
-      "worker_run_id": "43106215706",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43104481579,
-        43103737760,
-        43101943628,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886,
-        43085139761,
-        43083249533,
-        43080844329,
-        43078618882,
-        43078552939,
-        43076367701,
-        43076120883,
-        43073764764,
-        43071291945,
-        43068939179,
-        43066601169,
-        43066186678
-      ],
-      "outcome": "incomplete: latest-20 completed docs.yml window (2026-11-11T17:14:20Z to 2026-11-11T21:36:04Z; within 14 days; 0 cancelled) contained 11 successful runs, 5 failed runs and 4 skipped workflow_run callbacks. Only 3 successful full build-and-deploy publications: push 43104481579 at d57c4c821 (current source; wall 78 s, build 57 s, deploy 11 s), schedule 43083249533 at 494560796 (wall 114 s, build 82 s, deploy 13 s) and schedule 43078552939 at c56d4216d (wall 135 s, build 84 s, deploy 30 s). Eight successful schedule runs were freshness-only (6-13 s). Five failed runs (43090243002, 43092616318, 43094878868, 43101943628, 43103737760; sources 770e465dd and 93614994e) failed at 'Mount latest CAO Dashboard artifact' after 55-83 s of build work; that step is absent from the current docs.yml. Compare 93614994e...d57c4c821 (ahead_by 1) changed docs.yml: removed schedule-freshness and dashboard gating, removed workflow_run, and changed cron from */15 to '23 5 * * *'. Pre-change runs are not like-for-like, leaving 1 comparable current-revision publication (5 required). Cache hit/miss unverified: run logs return HTTP 403 (DIFC policy); cache listing shows node npm caches but cannot tie them to run restores. No suggestion made; next_category not advanced."
-    },
     {
       "evaluated_at": "2026-11-11T22:19:48Z",
       "worker_run_id": "43110121889",
@@ -796,6 +768,35 @@
         43085628886
       ],
       "outcome": "complete, not actionable: window created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z = latest 20 completed docs.yml runs (none in progress, 0 cancelled, all within 14 days; unchanged since the 07:36Z evaluation). Composition: 12 successful current-shape full publications (11 push d57c4c82..d4bf131, 1 schedule 9537899; n=12 meets the 5-run minimum), 6 failed retired-Mount schedules (excluded), 2 freshness-only schedules (excluded). Trusted job and step metadata only (logs HTTP 403 difc_forbidden). Build documentation step (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery node test): median 14.0 s, p90 15 s (nearest-rank), range 10-15 s; wall (created to deploy complete) median 89.5 s, p90 112 s; build job median 72.5 s, p90 93 s. Gate: 15% of median wall = 13.4 s (60 s is out of reach). The step is 15.6% of wall, so only removing it entirely reaches the gate, and generated docs plus validation are required for publication. Lead, unverified, not a suggestion: resolveBuildProvenance (docs/plugins/starlight-agent/agent-resource.json.ts -> resource.ts) runs one git log -1 per docs entry (about 61) with a commit-date lookup; its share of the step is unmeasured (logs 403, local checkout shallow), and batching it could save only part of the step. No suggestion; no issue created. next_category advanced to reusable dashboard generation. Dashboard job remains absent; dashboard steps run inside build.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T08:22:27Z",
+      "worker_run_id": "43181865707",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175,
+        43094878868,
+        43092616318,
+        43090243002,
+        43087935698,
+        43085628886
+      ],
+      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z; all within 14 days; 0 cancelled; none in progress; unchanged since the 07:53Z evaluation, no new runs). Composition: 12 successful current-shape full publications (11 push d57c4c82..d4bf131, 1 schedule 9537899; n=12 meets the 5-run minimum), 6 failed retired-Mount schedules (excluded; dashboard artifact reuse removed in d57c4c821), 2 freshness-only schedules (excluded). There is no dashboard job; dashboard generation is the build-job step 'Build synthetic enterprise demo'. Current n=12 metadata medians (p90, nearest-rank, second-resolution timestamps): workflow created-to-deploy wall 90 s (113 s); build job 72.5 s (93 s); deploy job 10 s (11 s); dashboard demo step 3 s (4 s), range 2-4 s, 3.3% of median wall. 15% gate = 13.5 s; removing the step entirely would not reach the gate, and 60 s is out of reach. Freshness: the step regenerates synthetic dates on each publication; caching or reusing it would weaken freshness. Cross-run dashboard artifact reuse (restore/find/mount) failed 6 times and is retired; no evidence supports reintroducing it. Logs not read (HTTP 403 difc); metadata only. No suggestion; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
     }
   ]
