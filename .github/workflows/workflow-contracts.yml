@@ -98,6 +98,14 @@ jobs:
       - name: Install dashboard dependencies
         if: matrix.area == 'dashboard'
         run: npm ci --prefix dashboard/site
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        if: matrix.area == 'dashboard'
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Prepare native dashboard contract build
+        if: matrix.area == 'dashboard'
+        run: go test -c -o /dev/null ./internal/cli
       - name: Install gh-aw
         uses: ./.github/actions/setup-gh-aw # zizmor: ignore[self-repository] - Local actions use the syntax accepted by GitHub Actions and actionlint.
       - name: Run ${{ matrix.area }} unit contracts
