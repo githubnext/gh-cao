@@ -292,7 +292,7 @@ jobs:
     needs: resolve-version
     if: needs.resolve-version.outputs.release_tag != ''
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -313,6 +313,20 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
+      # Topology contract tests compare full compiled ARM output, so the
+      # compiler must match the version used to generate the embedded assets.
+      - name: Install official Bicep validator for topology samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error \
+            https://github.com/Azure/bicep/releases/download/v0.49.2/bicep-linux-x64 \
+            --output "$RUNNER_TEMP/bicep"
+          printf '%s  %s\n' \
+            '0ab9de90c2493f206f8281bae74f9ee2d5ed3605548dab1adf41fef185e1f7c5' \
+            "$RUNNER_TEMP/bicep" | sha256sum --check
+          chmod 700 "$RUNNER_TEMP/bicep"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - name: Check extension
         run: make lint test
       - name: Setup Node for release asset compilation
