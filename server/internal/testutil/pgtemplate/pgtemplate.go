@@ -137,20 +137,36 @@ func hostHash() string {
 // exited, and any older than a day. Live processes' databases stay intact.
 func removeStale(t testing.TB, ctx context.Context, admin *sql.DB) {
 	t.Helper()
+	for _, current := range staleDatabases(ctx, admin) {
+		if current.template {
+			if _, err := admin.ExecContext(ctx, "ALTER DATABASE "+pgx.Identifier{current.name}.Sanitize()+" WITH IS_TEMPLATE false"); err != nil {
+				continue
+			}
+		}
+		drop(ctx, admin, current.name)
+		t.Logf("removed stale Postgres test database %s", current.name)
+	}
+}
+
+type staleDatabase struct {
+	name     string
+	template bool
+}
+
+// staleDatabases lists removable test databases. Cleanup is best effort, so a
+// failed listing removes nothing rather than acting on a partial result.
+func staleDatabases(ctx context.Context, admin *sql.DB) []staleDatabase {
 	rows, err := admin.QueryContext(ctx, `SELECT datname, datistemplate FROM pg_database WHERE datname LIKE 'cao\_test\_%'`)
 	if err != nil {
-		return
+		return nil
 	}
-	type candidate struct {
-		name     string
-		template bool
-	}
-	var stale []candidate
+	defer func() { _ = rows.Close() }()
+	var stale []staleDatabase
 	cutoff := time.Now().Add(-24 * time.Hour).Unix()
 	for rows.Next() {
-		var current candidate
+		var current staleDatabase
 		if rows.Scan(&current.name, &current.template) != nil {
-			break
+			return nil
 		}
 		var host string
 		var pid int
@@ -162,16 +178,10 @@ func removeStale(t testing.TB, ctx context.Context, admin *sql.DB) {
 			stale = append(stale, current)
 		}
 	}
-	_ = rows.Close()
-	for _, current := range stale {
-		if current.template {
-			if _, err := admin.ExecContext(ctx, "ALTER DATABASE "+pgx.Identifier{current.name}.Sanitize()+" WITH IS_TEMPLATE false"); err != nil {
-				continue
-			}
-		}
-		drop(ctx, admin, current.name)
-		t.Logf("removed stale Postgres test database %s", current.name)
+	if rows.Err() != nil {
+		return nil
 	}
+	return stale
 }
 
 func processAlive(pid int) bool {
