@@ -89,7 +89,13 @@ Cached JSONL can repeat the same run in later snapshots. These are repeated obse
 
 The retired Activity Actions job graph and its simulator fixture are removed.
 `npm run test:integration:actions-runtime` validates the remaining staged workflow
-samples. Canonical ingestion and daily-count behavior retain their independent
+samples and signed webhook delivery through the durable PostgreSQL gateway.
+It requires a running Docker daemon, the `node:24-bookworm` image, and
+`POSTGRES_URL` selecting a disposable numeric-loopback or Unix-socket PostgreSQL
+database whose role can create isolated test schemas. Missing PostgreSQL fails
+the integration rather than skipping the gateway bridge; CI provisions its own
+disposable service.
+Canonical ingestion and daily-count behavior retain their independent
 worker, native browser, native CLI and PostgreSQL conformance suites.
 
 ## Create a historical archive

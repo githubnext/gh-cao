@@ -279,7 +279,7 @@ func TestPipelineCommandsAreNotMigrated(t *testing.T) {
 		"audit-jsonl", "cluster-problems", "compact-jsonl",
 		"dashboard-complexity", "discover-workflows", "hash-payloads", "ingest",
 		"ingest-jsonl", "issue-status", "operational-value", "prune-dashboard",
-		"recycle-cache",
+		"recycle-cache", "repair-database",
 	} {
 		t.Run(name, func(t *testing.T) {
 			root, _, _ := testCommand(t, nil, nil)

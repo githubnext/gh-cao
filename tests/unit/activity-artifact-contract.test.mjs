@@ -3,10 +3,9 @@ import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, cp, readFile, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { hashActivityPayloads } from '../../activity/cli/payloads.mjs';
-import { normalizedPhaseBatch, relationshipSafeEvidenceBatch } from '../../activity/normalized-phase.mjs';
-import { NORMALIZED_COLLECTIONS } from '../../activity/cli-usage.mjs';
-import { runCli } from '../../activity/cao.mjs';
+import { normalizeSnapshotPayloads } from '../../dashboard/report/normalized-payloads.mjs';
+import { normalizedPhaseBatch, relationshipSafeEvidenceBatch } from '../../dashboard/report/normalized-phase.mjs';
+import { NORMALIZED_COLLECTIONS } from '../../dashboard/report/collections.mjs';
 
 test('normalized phase partition emits every relational experiment collection exactly once', () => {
   const batch = Object.fromEntries(NORMALIZED_COLLECTIONS.map(collection => [collection, [{ id: collection }]]));
@@ -46,7 +45,7 @@ test('Activity publishes checksummed normalized JSONL without a database artifac
   const source = path.join(shardDirectory, 'logs-1000.jsonl');
   await cp('dashboard/site/test/fixtures/gh-aw-logs/cached-v2.jsonl', source);
   const options = { shardDirectory, runsDirectory, recordsDirectory, maxBytes: 2048 };
-  const hashes = await hashActivityPayloads(options);
+  const hashes = await normalizeSnapshotPayloads(options);
   assert.ok(Object.keys(hashes).some(name => name.startsWith('gh-aw-logs-runs/')));
   assert.ok(Object.keys(hashes).some(name => name.startsWith('gh-aw-logs-records/')));
   assert.ok(Object.keys(hashes).every(name => name.endsWith('.jsonl')));
@@ -56,13 +55,6 @@ test('Activity publishes checksummed normalized JSONL without a database artifac
   const phaseHashes = entries => Object.fromEntries(Object.entries(entries)
     .filter(([name]) => !name.startsWith('gh-aw-logs-shards/')));
   await cp(source, path.join(shardDirectory, 'logs-2000.jsonl'));
-  assert.deepEqual(phaseHashes(await hashActivityPayloads(options)), phaseHashes(hashes));
+  assert.deepEqual(phaseHashes(await normalizeSnapshotPayloads(options)), phaseHashes(hashes));
   assert.deepEqual((await readdir(root)).sort(), ['gh-aw-logs-records', 'gh-aw-logs-runs', 'gh-aw-logs-shards']);
-});
-
-test('removed database preparation commands fail before accepting any input', async () => {
-  for (const command of ['ingest', 'ingest-jsonl', 'repair-database', 'cluster-problems']) {
-    await assert.rejects(runCli([command]), /Unknown command/);
-  }
-  await assert.rejects(runCli(['hash-payloads', '--database', 'ignored']), /Unknown option/);
 });
