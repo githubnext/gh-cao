@@ -61,7 +61,14 @@ for (const width of [1200, 390, 320]) {
     await expect(horizon.locator('.filter-tuning-controls')).toHaveCSS('transform', 'none');
     const bounds = await horizon.locator('.filter-tuning-controls').boundingBox();
     assert(bounds);
-    expect(bounds.width).toBeLessThanOrEqual(280);
+    if (width < 700) {
+      const drawerBounds = await page.locator('.mobile-nav-menu-list').boundingBox();
+      assert(drawerBounds);
+      expect(bounds.x).toBeGreaterThanOrEqual(drawerBounds.x);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(drawerBounds.x + drawerBounds.width);
+    } else {
+      expect(bounds.width).toBeLessThanOrEqual(280);
+    }
     expect(bounds.x).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
     const assertNoOverflow = async () => {

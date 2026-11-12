@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -25,12 +27,37 @@ type LocalOperatorActionsConfig struct {
 	Repositories []string `json:"repositories"`
 }
 
+// LocalOperatorConfig binds terminal-approved maintenance independently of
+// canvas presentation or the canonical SQLite ingestion connection.
+type LocalOperatorConfig struct {
+	AdapterURL      string                      `json:"adapterUrl"`
+	OperatorActions *LocalOperatorActionsConfig `json:"operatorActions,omitempty"`
+}
+
 func (c *LocalOperatorActionsConfig) allows(repository string) bool {
 	return slices.Contains(c.Repositories, strings.ToLower(repository))
 }
 
+func (a *App) operatorConnection() *LocalOperatorConfig {
+	connection := a.config.OperatorActions
+	if connection == nil && a.config.Canvas != nil {
+		connection = &LocalOperatorConfig{AdapterURL: a.config.Canvas.AdapterURL, OperatorActions: a.config.Canvas.OperatorActions}
+	}
+	return connection
+}
+
 func (a *App) enableOperatorActions(ctx context.Context) error {
-	config := a.config.Canvas.OperatorActions
+	connection := a.operatorConnection()
+	if connection == nil || connection.OperatorActions == nil {
+		return errors.New("operator actions require an explicit native adapter")
+	}
+	adapter, err := url.Parse(connection.AdapterURL)
+	if err != nil || adapter.Scheme != "http" || adapter.User != nil || adapter.RawQuery != "" ||
+		adapter.Fragment != "" || !canvasPrefix.MatchString(adapter.Path) ||
+		net.ParseIP(adapter.Hostname()) == nil || !net.ParseIP(adapter.Hostname()).IsLoopback() || adapter.Port() == "" {
+		return errors.New("operator adapter requires a private numeric loopback HTTP address")
+	}
+	config := connection.OperatorActions
 	if a.oauth != nil || len(config.Repositories) == 0 || len(config.Repositories) > 20 || !filepath.IsAbs(config.QueuePath) {
 		return errors.New("operator actions require a private queue and bounded exact repository scope")
 	}
@@ -191,6 +218,10 @@ func (a *App) executeOperatorCommand(parent context.Context, lease operational.C
 }
 
 func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICommand, output func(string, []byte)) (*int, error) {
+	connection := a.operatorConnection()
+	if connection == nil {
+		return nil, errors.New("native operator adapter is unavailable")
+	}
 	plan, err := hostedcli.PlanCommand(command.Command, command.Repository)
 	if err != nil {
 		return nil, err
@@ -203,7 +234,7 @@ func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICo
 	// the owning CLI confirms that its subprocess has actually exited.
 	rpcCtx, stop := context.WithTimeout(context.WithoutCancel(ctx), 16*time.Minute)
 	defer stop()
-	request, err := http.NewRequestWithContext(rpcCtx, http.MethodPost, a.config.Canvas.AdapterURL+"/execute", bytes.NewReader(content))
+	request, err := http.NewRequestWithContext(rpcCtx, http.MethodPost, connection.AdapterURL+"/execute", bytes.NewReader(content))
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +253,7 @@ func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICo
 		case <-ctx.Done():
 			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 			defer cancel()
-			request, err := http.NewRequestWithContext(cleanup, http.MethodPost, a.config.Canvas.AdapterURL+"/cancel", nil)
+			request, err := http.NewRequestWithContext(cleanup, http.MethodPost, connection.AdapterURL+"/cancel", nil)
 			if err == nil {
 				request.Header.Set("X-Command-ID", fmt.Sprint(command.ID))
 				response, cancelErr := client.Do(request)

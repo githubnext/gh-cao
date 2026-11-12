@@ -165,11 +165,6 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 		_, err := rand.Read(data)
 		return "/" + hex.EncodeToString(data), err
 	}
-	prefix, err := capability()
-	if err != nil {
-		_ = listener.Close()
-		return "", nil, err
-	}
 	adapterPrefix, err := capability()
 	if err != nil {
 		_ = listener.Close()
@@ -303,7 +298,7 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 	config, err := os.CreateTemp(cache, ".operator-actions-*.json")
 	if err == nil {
 		settings := map[string]any{
-			"prefix": prefix, "adapterUrl": "http://" + listener.Addr().String() + adapterPrefix,
+			"adapterUrl": "http://" + listener.Addr().String() + adapterPrefix,
 		}
 		if runtime.GOOS != "windows" {
 			settings["operatorActions"] = map[string]any{

@@ -42,7 +42,7 @@ fi
 mkdir -p "$bundle"
 trap 'rm -rf -- "$bundle"' EXIT
 node scripts/generate-dashboard-ingest.mjs --check
-CAO_VERSION="$version" CAO_DASHBOARD_PROFILE=immediate npm --prefix dashboard/site run build -- "$bundle/site" "$root/.github/workflows/cao.json"
+CAO_VERSION="$version" CAO_DASHBOARD_PROFILE=server npm --prefix dashboard/site run build -- "$bundle/site" "$root/.github/workflows/cao.json"
 node scripts/prepare-dashboard-embed.mjs "$bundle/site"
 for platform in "${platforms[@]}"; do
   goos="${platform%-*}"
