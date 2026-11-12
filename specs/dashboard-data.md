@@ -923,14 +923,17 @@ Normalization SHALL have explicit input, output and execution bounds and SHALL
 have no exposed filesystem, process or network authority. Raw artifact reads
 SHALL be confined to selected matching-attempt run directories and SHALL reject
 symlinks, nonregular files and oversized input.
-Its packaged dashboard SHALL preserve the standard landing page and normal
-operational navigation, templates, controls and drill-downs. Settings and
-Ingestion SHALL be omitted. The immediate profile MUST classify every page, view
-and query against its declared acquisition capabilities, omit unsupported views,
-and prune their unreachable queries without disabling independent rich evidence.
-Intrinsic `workflow-identities`
-and `overview-run-identities` sources MAY supply the corresponding table shapes
-without campaign joins; absent campaign/rollout fields SHALL stay unknown.
+The CLI SHALL bind its ingestion pipeline to the explicit
+`serve --sqlite-ingestion --sqlite PATH` server mode. This mode SHALL serve the
+same built-in dashboard document, page composition, canonical queries, HTTP API
+and revision subscriptions as other servers, with `server-http` and SQLite
+backend configuration. It MUST NOT select an immediate/local presentation model,
+rewrite query sources, discover legacy campaign dashboard bundles, or require
+`local-preview` routing. Ordinary declarative capability requirements SHALL
+control page and action availability; absent campaign/rollout evidence SHALL
+stay unknown. Canonical publication and GitHub acquisition remain owned by the
+CLI ingestion adapter, outside the read-only HTTP/query process. The server
+MUST NOT acquire those credentials or infer hosted collection authority.
 Valid uncollected canonical sources in a verified local snapshot SHALL return
 typed unavailable evidence rather than failing independent page queries or
 fabricating zero counts. Unknown sources and real query/storage errors SHALL
@@ -940,6 +943,8 @@ NOT grant local rollout, dispatch or hosted execution authority. Separately,
 declared repository maintenance MAY use a private operational command queue
 outside the canonical database. Execution MUST require an exact selected repository,
 pull-request publication, and fresh trusted terminal approval per command.
+The native maintenance adapter SHALL be independent of canvas presentation and
+require ordinary server bearer authentication plus same-origin mutation checks.
 Credentials and subprocesses MUST remain in the owning CLI, not the read-only
 query server. Cancellation MUST terminate the owned execution; loss of transport
 MUST NOT be treated as confirmation of process exit or authorize replay.

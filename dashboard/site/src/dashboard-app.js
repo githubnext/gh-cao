@@ -225,7 +225,7 @@
       const previewMode = new URLSearchParams(window.location.search).get("local-preview");
       /** @type {WebSocket | undefined} */
       let dashboardSocket;
-      if (previewMode && previewMode !== "operator") {
+      if (previewMode === "canvas" || previewMode === "admin") {
         const dashboardSocketUrl = new URL("./__dashboard_socket", window.location.href);
         dashboardSocketUrl.protocol = dashboardSocketUrl.protocol.replace(/^http/, "ws");
         dashboardSocket = new WebSocket(dashboardSocketUrl);
@@ -275,7 +275,7 @@
       */
       const renderSources = (sources, state = "ready", prepared = false, loadPageSources, retryRefresh, snapshot = null) => {
         const canExecuteCliActions = previewMode === "canvas" || previewMode === "admin"
-          || (previewMode === "operator" && localCliQueueAvailable());
+          || localCliQueueAvailable();
         renderedSources = sources;
         renderedSourcesPrepared = prepared;
         renderedPageSourceLoader = loadPageSources;

@@ -9,9 +9,7 @@ import { readCanonicalBatch } from '../../src/data/storage/indexeddb.js';
 import { createSqliteIndexedDB, SqliteIDBKeyRange } from '../../src/data/storage/sqlite-indexeddb.js';
 import { normalizedActivityShards } from './normalized-shard.js';
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
-import immediateContract from '../fixtures/local-dashboard-contract.json' with { type: 'json' };
-import immediateProfile from '../../dashboard-fragments/immediate-profile.json' with { type: 'json' };
-import { composeImmediateDashboard } from '../../../report/compose-immediate-dashboard.mjs';
+import canonicalContract from '../fixtures/canonical-dashboard-contract.json' with { type: 'json' };
 
 const siteRoot = fileURLToPath(new URL('../..', import.meta.url));
 const databaseName = 'gh-aw-cao-dashboard-data';
@@ -523,9 +521,9 @@ async function selectLocalDashboardMode(page, mode, width) {
 }
 
 for (const width of [1200, 390]) {
-  test(`Local acquisition preserves normal navigation and daily views at ${width}px`, async ({ page }) => {
+  test(`Canonical ingestion preserves standard navigation and views at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
-    const document = composeImmediateDashboard(authoritativeDashboard, immediateProfile);
+    const document = authoritativeDashboard;
     await page.evaluate(async ({ input, batch }) => {
       const storage = await import(`${location.origin}/src/data/storage/indexeddb.js`);
       batch.runs[0].startedAt = new Date().toISOString();
@@ -534,7 +532,7 @@ for (const width of [1200, 390]) {
       const processor = await import(`${location.origin}/src/data-processor.js`);
       const chunks = await import(`${location.origin}/src/dashboard-chunks.js`);
       let sources = {};
-      for (const selected of input.dashboard.pages.filter((page) => ['overview', 'repositories', 'workflows', 'runs', 'cost'].includes(page.id ?? ''))) {
+      for (const selected of input.dashboard.pages.filter((/** @type {{ id?: string }} */ page) => ['overview', 'repositories', 'workflows', 'runs', 'cost'].includes(page.id ?? ''))) {
         const names = chunks.dashboardPageAllSourceNames({
           languageVersion: input['language-version'], dashboard: input.dashboard
         }, selected.id ?? '', 'all');
@@ -546,14 +544,10 @@ for (const width of [1200, 390]) {
       const presenter = await import(`${location.origin}/src/presenter.js`);
       window.history.replaceState(null, '', '#page-overview');
       window.document.body.append(presenter.renderDashboard({ document: input, sources }));
-    }, { input: document, batch: structuredClone(immediateContract.batch) });
+    }, { input: document, batch: structuredClone(canonicalContract.batch) });
     await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
-    await expect(page.locator('[data-view-id="overview-retained-run-count"]')).toContainText('Retained recent runs');
-    await expect(page.locator('[data-view-id="overview-header"], [data-view-id="overview-floor"]')).toHaveCount(0);
-    await expect(page.locator('#page-overview')).toContainText('partial collection');
-    await expect(page.locator('#page-overview')).not.toContainText('Your factory');
-    await expect(page.locator('#page-overview')).not.toContainText(/\d+\/\d+ healthy workflows/);
-    await expect(page.locator('#page-overview')).not.toContainText('Grader observations');
+    await expect(page.locator('[data-view-id="overview-retained-run-count"]')).toHaveCount(0);
+    await expect(page.locator('[data-view-id="overview-header"], [data-view-id="overview-floor"]')).toHaveCount(2);
     for (const id of ['repositories', 'workflows', 'runs', 'cost']) {
       if (width < 768) await page.getByRole('button', { name: 'Select view', exact: true }).click();
       else if (!await page.locator(`a[href="#page-${id}"]:visible`).first().isVisible()) {
@@ -577,16 +571,10 @@ for (const width of [1200, 390]) {
         await expect(active.locator('[data-view-id="runs-runs-source"]')).toContainText('octo/api');
       }
       if (id === 'cost') {
-        await expect(active.locator('[data-section-id="cost-estimates"]')).toHaveCount(0);
         await expect(active.locator('[data-view-id="cost-by-repository"]')).toContainText('All costs shown are estimates.');
       }
     }
     await expect(page.locator('a[href="#page-immediate-operations"]')).toHaveCount(0);
-    for (const id of immediateProfile['excluded-pages']) {
-      await expect(page.locator(`a[href="#page-${id}"]`)).toHaveCount(0);
-      await page.evaluate((id) => { window.location.hash = `page-${id}`; }, id);
-      await expect(page.locator('.dashboard-page:visible')).toHaveAttribute('data-page-id', 'overview');
-    }
   });
 }
 
