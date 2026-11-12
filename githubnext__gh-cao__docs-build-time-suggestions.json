@@ -1,35 +1,7 @@
 {
   "source_sha": "9e373f748f8bdc30b2a3d1fff4e7c272ea918cfb",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T02:25:29.929Z",
-      "worker_run_id": "43140516780",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886,
-        43085139761,
-        43083249533,
-        43081415171,
-        43080844329,
-        43078618882,
-        43078552939
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:31:17Z to 2026-11-12T02:14:10Z; within 14 days; 0 cancelled; none in progress) = 6 comparable successful current-design push publications (43104481579 d57c4c821, 43121504364 3707d46, 43124416558 f1cdd83, 43129836945 ad8a18d, 43138878761 f0777fe, 43139972486 874fa75; docs.yml unchanged from d57c4c821 through 874fa75 per pairwise compare), meeting the n>=5 gate. Excluded as not like-for-like: 3 pre-design full publications (43078552939, 43081415171, 43083249533), 3 pre-design freshness-only schedules, 6 pre-design failed schedules (build failed at Mount latest CAO Dashboard artifact after 55-83 s), and 2 skipped workflow_run callbacks. Current-design baseline n=6: created-to-updated median 95 s (nearest-rank p90 114 s; range 78-114); build median 76.5 s (p90 93 s); deploy median 10.5 s (p90 11 s); build queue median 3 s; deploy queue median 5 s (max 6 s); checkout median 24 s (21-40 s); setup-node median 6.5 s; npm install median 21 s (13-25 s); Astro docs median 11.5 s (10-15 s); synthetic demo median 3 s; Pages upload median 2.5 s; Deploy Pages median 7 s. docs.yml has no dashboard job; dashboard steps run inside build. Scheduling/concurrency: queue waits <=6 s; no overlapping current-design runs; no cancellations; every push changed at least one input path (docs/**, dashboard/site/**, activity/**, scripts/dashboard-demo-data.mjs, or package.json), so no avoidable path-filter rebuild was observed. The daily 05:23Z cron is the intentional synthetic-date refresh; its first current-design run is not yet observed, and removing it would weaken freshness. cao-dashboard.yml runs are skipped workflow_run callbacks in a separate concurrency group. Setup-node cache hit or miss unverified (job logs HTTP 403, DIFC policy). No suggestion. Lead for the next category, not a suggestion: fetch-depth 0 checkout (median 24 s, largest step); scripts/validate-agent-docs.mjs uses only git ls-files and rev-parse HEAD, which work on a shallow checkout, but the synthetic demo path is unverified."
-    },
     {
       "evaluated_at": "2026-11-12T02:36:52Z",
       "worker_run_id": "43141890351",
@@ -744,6 +716,34 @@
         43104481579
       ],
       "outcome": "complete, not actionable: latest 20 completed docs.yml runs (43206235849 back to 43094878868; created 2026-11-11T20:16:01Z to 2026-11-12T11:06:25Z; within 14 days) = 15 comparable successes on the current build+deploy shape (since d57c4c821; 14 push, 1 schedule 43161224542), 1 cancelled (43206161686, cause unverified, excluded), 4 failed pre-shape runs (failed at Mount latest CAO Dashboard artifact; excluded). docs.yml since d57c4c821 changed only by 063cbe911 (trigger path filter activity/** removed; job/step shape unchanged). Medians (p90), n=15: wall 89 s (124 s); build job 72 s (103 s); deploy job 11 s (18 s). Artifact chain (Upload Pages artifact 2 s + build-to-deploy handoff 5 s + deploy setup 1 s + Deploy Pages 7 s) median 16 s (p90 23 s), about 18% of median wall, but removable only by merging build and deploy, which would move id-token and github-pages environment into the job running npm and docs builds (deployment-safety regression) and saves about 6 s (about 7%), below the 60 s / 15% gate. github-pages artifact 8.3 MB (7.7 MB through 3707d46; growth from f1cdd83 with no upload-time change, 2-3 s). Latest two pushes Deploy Pages 14-15 s vs 6-8 s typical; not explained by metadata, not workflow-controllable. Observed for scheduling category: 43206235849 queued 30 s behind 43206080696 in the documentation-pages concurrency group; no suggestion; next_category advanced."
+    },
+    {
+      "evaluated_at": "2026-11-12T12:26:37.589Z",
+      "worker_run_id": "43216894469",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175,
+        43094878868
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T20:16:01Z to 2026-11-12T11:06:25Z; within 14 days). Excluded and disclosed: 1 cancelled superseded pending run 43206161686 (no jobs; concurrency replaced it), 4 failed pre-design schedules (43094878868, 43099316175, 43101943628, 43103737760; failed at Mount latest CAO Dashboard artifact). Comparable successes n=15 = 14 push + 1 schedule 43161224542, all build+deploy with identical job and step names. Correction: docs.yml changed at 063cbe91 (06:17Z; removed activity/** trigger), so the earlier unchanged-since-d57c4c82 note was wrong; build and deploy steps are identical across the sample. Medians (p90), n=15: run start to build start 4 s (4 s; one 30 s outlier); build queue 3 s; build end to deploy start 5 s (6 s); deploy queue 5 s (6 s); build job 72 s (103 s); deploy job 11 s (18 s); wall 89 s (124 s). Concurrency: 1 of 15 waited 30 s; 43206235849 queued until 43206080696 finished its deploy (workflow-level group). Path audit: each of 14 push commits matched a Pages-build input (docs/**, dashboard/site/**, dashboard/report/**, astro.config.mjs, package.json, shared/policy.mjs); 0 avoidable path-triggered rebuilds. Schedule 43161224542 is the intentional daily synthetic-date refresh and removing it would weaken freshness. Removing all orchestration overhead (about 9 s, 10% of median wall) misses the 60 s and 15% (about 13 s) gates; merging build and deploy saves about 5 s and weakens environment and id-token separation; cancel-in-progress true could cancel an in-flight Pages deploy and saves at most about 30 s on rare overlaps. No suggestion. Carry-forward lead for the dependency category: Checkout fetch-depth 0 (median 24 s, p90 47 s; 47-49 s on 43206235849 and 43167070179); provenance git-log dependency unverified."
     }
   ]
 }
