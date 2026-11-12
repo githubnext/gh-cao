@@ -3,7 +3,7 @@ import { access, glob, readFile } from "node:fs/promises";
 import test from "node:test";
 import { parse } from "yaml";
 
-import { parsePackageManifest } from "../../activity/marketplace.mjs";
+import { parsePackageManifest } from "../../dashboard/report/package-manifest.mjs";
 
 const root = new URL("../../", import.meta.url);
 
@@ -13,7 +13,7 @@ test("every catalog package declares a supported marketplace Octicon", async () 
   )));
   let packageCount = 0;
 
-  for await (const manifestPath of glob(["aw.yml", "*/aw.yml", ".experimental/*/aw.yml"], { cwd: root })) {
+  for await (const manifestPath of glob(["aw.yml", "*/aw.yml"], { cwd: root })) {
     const source = await readFile(new URL(manifestPath, root), "utf8");
     const manifest = parse(source);
     assert.equal(typeof manifest.icon, "string", `${manifestPath} must declare a marketplace icon`);

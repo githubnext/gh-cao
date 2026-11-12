@@ -142,45 +142,39 @@ test("dashboard build uses an explicit packaged CAO version rather than the sour
   }
 });
 
-test("immediate build publishes only audited pages and reachable rich query contracts", async () => {
+test("server build ignores legacy campaign bundles and preserves the standard dashboard model", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "cao-immediate-build-"));
   try {
+    await mkdir(path.join(root, "legacy-campaign"));
+    await writeFile(path.join(root, "legacy-campaign/dashboard.json"), "invalid retired dashboard bundle");
     await buildDashboardSite({
       destination: path.join(root, "output"),
-      controlSettings: { campaigns: { activity: {} }, web: { experimental: false } },
-      profile: "immediate",
+      controlSettings: { campaigns: { "legacy-campaign": {} }, web: { experimental: false } },
+      repositoryRoot: root,
+      profile: "server",
     });
     const document = JSON.parse(await readFile(path.join(root, "output/dashboard.json"), "utf8"));
     const ids = document.dashboard.pages.map((page) => page.id);
-    assert.equal(ids.length, 46);
-    for (const id of ["configuration", "indexing", "campaigns", "workflow-value", "value", "governance", "wizard", "marketplace", "maintenance-campaigns"]) {
-      assert.ok(!ids.includes(id), `unsupported immediate page ${id}`);
-    }
-    for (const id of ["overview", "repositories", "repository-detail", "workflows", "workflow-detail", "runs", "run-events", "issues", "friction", "firewall", "skills", "experiments", "evals", "graders", "maintenance", "commands", "command"]) {
-      assert.ok(ids.includes(id), `missing normal page ${id}`);
-    }
+    const { document: standard } = await loadDashboardSource(path.resolve("dashboard/site/dashboard.json"));
+    const expected = filterExperimentalDashboardViews(standard);
+    assert.deepEqual(ids, expected.dashboard.pages.map((page) => page.id));
     assert.equal(document.dashboard.pages.find((page) => page.id === "overview").title, "Overview");
     assert.ok(document.dashboard["data-status"]);
-    assert.equal(document.dashboard.callouts, undefined);
+    assert.deepEqual(document.dashboard.callouts, expected.dashboard.callouts);
     const queries = JSON.parse(await readFile(path.join(root, "output/src/agent/queries.generated.json"), "utf8"));
     assert.ok(queries.some((query) => query.name === "repository-run-inventory"));
     assert.ok(queries.some((query) => query.name === "runs-daily-conclusions"));
     assert.ok(queries.some((query) => query.name === "issue-repository-totals"));
-    assert.ok(!queries.some((query) => query.from === "collection-health"));
-    assert.ok(!queries.some((query) => query.name === "maintenance-campaign-packages"));
-    assert.ok(!queries.some((query) => query.name === "overview-delivery-summary"));
-    assert.ok(!queries.some((query) => query.name === "overview-workflow-health-summary"));
-    assert.ok(!queries.some((query) => query.name === "overview-header-presentation"));
-    assert.ok(!queries.some((query) => query.name === "overview-value-station"));
-    assert.ok(queries.some((query) => query.name === "immediate-retained-run-count"));
-    assert.deepEqual(document.dashboard["cli-actions"].map((action) => action.id), [
-      "upgrade-repository", "upgrade-target-repository",
-    ]);
+    assert.deepEqual(queries, expected.dashboard.queries);
+    assert.deepEqual(document.dashboard["cli-actions"], expected.dashboard["cli-actions"]);
+    const overview = document.dashboard.pages.find((page) => page.id === "overview");
+    const chunk = JSON.parse(await readFile(path.join(root, "output", overview.chunk), "utf8"));
+    assert.deepEqual(chunk.page.views,
+      expected.dashboard.pages.find((page) => page.id === "overview").views);
     const catalog = JSON.parse(await readFile(path.join(root, "output/src/agent/catalog.generated.json"), "utf8"));
     assert.ok(catalog.pages.every((page) => ids.includes(page.id)));
     assert.ok(catalog.pages.some((page) => page.id === "maintenance"));
-    assert.ok(!catalog.pages.some((page) => page.id === "maintenance-campaigns"));
-    assert.equal(document.dashboard.repository, undefined);
+    assert.equal(document.dashboard.repository, expected.dashboard.repository);
   } finally {
     await rm(root, { force: true, recursive: true });
   }

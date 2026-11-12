@@ -11,6 +11,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/collect"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
+	"github.com/githubnext/gh-cao/server/internal/ingest"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/redisx"
@@ -92,6 +93,9 @@ func newSyntheticBackfill(t *testing.T, ctx context.Context, scenario simulator.
 	if _, err := scenario.WriteLake(ctx, lake.Directory, 7); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := ingest.Run(ctx, data, lake.Directory, ingest.Options{DatabaseQueriesPath: backfillDatabaseQueries}); err != nil {
+		t.Fatal(err)
+	}
 	github, api, proxy, restart := syntheticGitHub(t, scenario)
 	quota, err := githubquota.New(store, githubquota.Options{SafetyReserve: 1})
 	if err != nil {
@@ -101,7 +105,6 @@ func newSyntheticBackfill(t *testing.T, ctx context.Context, scenario simulator.
 	return syntheticBackfill{
 		ops: store,
 		backfill: collect.Backfill{StateStore: store, Metadata: store, Lake: lake, Enrollment: enrollment, Queue: collect.Queue{Tasks: store, Admission: store, Metadata: store, Leases: store, Deliveries: store, Metrics: store, MaxLength: 5_000_000},
-			Projector:  collect.Projector{State: store, Leases: store, Data: data, Lake: lake, Enrollment: enrollment, DatabaseQueriesPath: backfillDatabaseQueries},
 			Enumerator: github, RunEnumerator: github, Quota: quota, QuotaApp: "simulator", WindowDays: 7,
 		},
 		data: data, api: api, proxy: proxy, restart: restart, quota: quota,

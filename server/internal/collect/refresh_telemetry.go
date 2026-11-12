@@ -34,20 +34,6 @@ func admissionOutcome(admission Admission, err error) string {
 	}
 }
 
-func recordRefreshQueueAge(ctx context.Context, task Task, kind string) {
-	if task.EnqueuedAt.IsZero() {
-		return
-	}
-	age, err := otel.Meter(backfillMeterName).Float64Histogram(
-		"cao_dashboard.collection.refresh.queue_age", metric.WithUnit("s"))
-	if err != nil {
-		workerLog.Printf("refresh queue age metric creation failed")
-		return
-	}
-	age.Record(ctx, max(0, time.Since(task.EnqueuedAt).Seconds()),
-		metric.WithAttributes(attribute.String("cao_dashboard.collection.kind", kind)))
-}
-
 func startRefreshTelemetry(ctx context.Context, stage, kind string) (context.Context, func(string, error)) {
 	started := time.Now()
 	name := telemetry.SpanCollectionRefresh

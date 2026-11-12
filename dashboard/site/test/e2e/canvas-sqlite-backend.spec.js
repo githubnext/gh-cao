@@ -2,7 +2,7 @@ import { writeCanvasArtifact } from './canvas-fixture.js';
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-const { startCanvasServer } = await import(new URL("../../../canvas-server.mjs", import.meta.url).href);
+const { startCanvasServer } = await import(new URL("../../../../tests/helpers/canvas-snapshot.mjs", import.meta.url).href);
 
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
   test(`canvas queries SQLite without opening browser IndexedDB at ${viewport.width}px`, async ({ page }, testInfo) => {
@@ -16,7 +16,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       output: () => {},
       requestOutput: () => {},
       traceOutput: () => {},
-      downloadData: async (/** @type {string} */ destination) => {
+      prepareSnapshot: async (/** @type {string} */ destination) => {
         await mkdir(destination, { recursive: true });
         await writeCanvasArtifact(destination, { sources: {
           repositories: {

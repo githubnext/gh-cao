@@ -1,17 +1,16 @@
 import { execFile, spawn } from "node:child_process";
-import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import { hashFileContents } from "../../activity/cli/files.mjs";
-import { loadDashboardControlSettings } from "../../dashboard/site/scripts/build.mjs";
 import { prepareDashboardPages } from "../../scripts/simulate-dashboard-pages.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const execute = promisify(execFile);
 
-export async function startDashboardPagesPreview({ downloadData, basePath = "/gh-cao/", fixture = false, fixtureExperimental = false } = {}) {
+export async function startDashboardPagesPreview({ basePath = "/gh-cao/", experimental = false, ...unsupported } = {}) {
+  if (Object.keys(unsupported).length) throw new Error("Pages preview accepts only the synthetic enterprise demo");
   const scratch = join(root, ".tmp");
   await mkdir(scratch, { recursive: true });
   const directory = await mkdtemp(join(scratch, "pages-preview-"));
@@ -33,26 +32,7 @@ export async function startDashboardPagesPreview({ downloadData, basePath = "/gh
     await rm(directory, { recursive: true, force: true });
   };
   try {
-    if (downloadData) {
-      if (fixture) throw new Error("Choose downloaded evidence or an explicit fixture, not both.");
-      const activityDir = join(directory, "activity");
-      await downloadData(activityDir);
-      const settings = await loadDashboardControlSettings(join(root, ".github/workflows/cao.json"));
-      await writeFile(join(activityDir, "control-settings.json"), JSON.stringify(settings));
-      const hashes = {};
-      for (const phase of ["runs", "records"]) {
-        const phaseDirectory = `gh-aw-logs-${phase}`;
-        for (const name of await readdir(join(activityDir, phaseDirectory))) {
-          if (/^[A-Za-z0-9._-]+\.jsonl$/.test(name)) {
-            hashes[`${phaseDirectory}/${name}`] = await hashFileContents(join(activityDir, phaseDirectory, name));
-          }
-        }
-      }
-      await writeFile(join(activityDir, "payload-hashes.json"), JSON.stringify(hashes));
-      await prepareDashboardPages({ activityDir, output: site, includeSqlite: false });
-    } else {
-      await prepareDashboardPages({ fixture, fixtureExperimental, output: site });
-    }
+    await prepareDashboardPages({ experimental, output: site });
     await execute("go", ["-C", "server", "build", "-o", executable, "./cmd/cao-dashboard"], {
       cwd: root, timeout: 180_000, maxBuffer: 1024 * 1024,
     });

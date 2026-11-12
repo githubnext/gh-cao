@@ -112,7 +112,7 @@ func nativeRuntimeArchiveFixture(t *testing.T, revision string, corrupt bool) st
 	}
 	files["cao-runtime.json"] = string(metadata)
 	if corrupt {
-		files["activity/cao.mjs"] += "tampered"
+		files["dashboard/report/configure-site.mjs"] += "tampered"
 	}
 	archive := map[string]string{}
 	for name, content := range files {
@@ -127,7 +127,7 @@ func TestNativeManagementRuntimeAttestationAndHashChecks(t *testing.T) {
 			nativeManagementDirectory(t)
 			revision := strings.Repeat("c", 40)
 			writeTestFile(t, ".github/aw/packages/root.json", `{"package":"githubnext/gh-cao","source":"githubnext/gh-cao@v1.2.3","resolvedCommit":"`+revision+`"}`)
-			writeTestFile(t, "activity/existing", "operator original")
+			writeTestFile(t, "dashboard/existing", "operator original")
 			writeTestFile(t, "cao.sh", nativeRetiredLauncherFixture)
 			archive := nativeRuntimeArchiveFixture(t, revision, failure == "hash")
 			attested := false
@@ -160,7 +160,7 @@ func TestNativeManagementRuntimeAttestationAndHashChecks(t *testing.T) {
 				t.Fatalf("runtime error = %v, attested = %v", err, attested)
 			}
 			if failure != "" {
-				content, err := os.ReadFile("activity/existing")
+				content, err := os.ReadFile("dashboard/existing")
 				if err != nil || string(content) != "operator original" {
 					t.Fatal("unverified runtime replaced installed resources")
 				}
@@ -177,7 +177,7 @@ func TestNativeManagementRuntimeAttestationAndHashChecks(t *testing.T) {
 						t.Fatalf("runtime is missing %s", name)
 					}
 				}
-				if _, err := os.Stat("activity/existing"); !errors.Is(err, os.ErrNotExist) {
+				if _, err := os.Stat("dashboard/existing"); !errors.Is(err, os.ErrNotExist) {
 					t.Fatal("retired runtime resource survived replacement")
 				}
 			}

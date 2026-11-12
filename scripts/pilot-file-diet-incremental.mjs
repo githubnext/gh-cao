@@ -12,7 +12,7 @@ import {
 } from "../.github/skills/add-operational-value/examples/acquire-file-diet.mjs";
 import { fileDietEvents, readFileDietProof } from "../.github/skills/add-operational-value/examples/daily-file-diet.mjs";
 import { githubReader } from "../.github/skills/add-operational-value/scripts/github-evidence.mjs";
-import { prepareGithubApiBudget, readGithubApiBudget, consumeGithubApiBudget } from "../activity/github-api-budget.mjs";
+import { prepareGithubApiBudget, readGithubApiBudget, consumeGithubApiBudget } from "../.github/skills/add-operational-value/scripts/github-api-budget.mjs";
 import { loadPolicyFile } from "../.github/workflows/shared/policy.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");

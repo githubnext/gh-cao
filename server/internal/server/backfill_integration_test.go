@@ -18,6 +18,7 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
+	"github.com/githubnext/gh-cao/server/internal/ingest"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
@@ -74,10 +75,7 @@ func TestPostgresBackfillIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	backfill := collect.Backfill{StateStore: store, Metadata: store, Lake: lake, Enrollment: enrollment,
-		Queue: collect.Queue{Tasks: store, Admission: store, Metadata: store, Leases: store, Deliveries: store, Metrics: store, MaxLength: 100},
-		Projector: collect.Projector{State: store, Leases: store, Data: data, Lake: lake, Enrollment: enrollment,
-			DatabaseQueriesPath: backfillDatabaseQueries,
-		},
+		Queue:      collect.Queue{Tasks: store, Admission: store, Metadata: store, Leases: store, Deliveries: store, Metrics: store, MaxLength: 100},
 		Enumerator: github, RunEnumerator: github, Quota: quota, QuotaApp: "simulator", WindowDays: 7,
 	}
 	app, err := New(ctx, store, Config{
@@ -94,13 +92,17 @@ func TestPostgresBackfillIntegration(t *testing.T) {
 	var expected map[string]model.Source
 	var queryTrace string
 
-	if !t.Run("cold start publishes native rows and admits durable tasks", func(t *testing.T) {
+	if !t.Run("snapshot ingestion and backfill admission remain independent", func(t *testing.T) {
 		backfillReadiness(t, ctx, local, http.StatusServiceUnavailable)
+		_, err := ingest.Run(ctx, data, lake.Directory, ingest.Options{DatabaseQueriesPath: backfillDatabaseQueries})
+		if err != nil {
+			t.Fatal(err)
+		}
 		state, err := backfill.Run(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if state.Phase != "collecting" || !state.LakeReplayed || state.Revision != 1 ||
+		if state.Phase != "collecting" || state.LakeReplayed || state.Revision != 0 ||
 			state.Repositories != 1 || state.Installations != 1 || state.QueuedRepositories != 1 ||
 			state.QueuedRunTasks != 1 || state.EnumerationFailures != 0 || state.CompletedAt == "" {
 			t.Fatalf("unexpected cold-start result: %+v", state)
@@ -132,7 +134,7 @@ func TestPostgresBackfillIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if state.Revision != committed.Revision || state.QueuedRepositories != 0 || state.QueuedRunTasks != 0 ||
+		if state.Revision != 0 || state.QueuedRepositories != 0 || state.QueuedRunTasks != 0 ||
 			state.Phase != "collecting" || proxy.RequestCount("/repos/simulator/repo-00001/actions/runs", 1) != 2 {
 			t.Fatalf("rerun advanced revision, duplicated work, or ignored cursor: %+v", state)
 		}
@@ -153,7 +155,7 @@ func TestPostgresBackfillIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 		backfillReadiness(t, ctx, local, http.StatusServiceUnavailable)
-		replayed, err := backfill.Replay(ctx)
+		replayed, err := ingest.Run(ctx, data, lake.Directory, ingest.Options{DatabaseQueriesPath: backfillDatabaseQueries})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -202,14 +204,11 @@ func TestPostgresBackfillIntegration(t *testing.T) {
 		if err := os.WriteFile(lake.ManifestPath(), changedManifest, 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := backfill.Replay(ctx); err == nil {
+		if _, err := ingest.Run(ctx, data, lake.Directory, ingest.Options{DatabaseQueriesPath: backfillDatabaseQueries}); err == nil {
 			t.Fatal("backfill accepted a hash-valid but malformed record shard")
 		}
 		if got := backfillState(t, ctx, data); !reflect.DeepEqual(got, committed) {
 			t.Fatalf("failed replay replaced committed state: %+v", got)
-		}
-		if pending, err := backfill.Projector.PendingProjection(ctx); err != nil || !pending {
-			t.Fatalf("failed replay did not leave a retry marker: %t, %v", pending, err)
 		}
 		result, _ := backfillHTTPQuery(t, ctx, local)
 		if !reflect.DeepEqual(result.Sources, expected) {
@@ -222,12 +221,9 @@ func TestPostgresBackfillIntegration(t *testing.T) {
 		if err := os.WriteFile(lake.ManifestPath(), manifest, 0o600); err != nil { // #nosec G703 -- fixed manifest in the test's temporary lake.
 			t.Fatal(err)
 		}
-		repaired, err := backfill.Replay(ctx)
+		repaired, err := ingest.Run(ctx, data, lake.Directory, ingest.Options{DatabaseQueriesPath: backfillDatabaseQueries})
 		if err != nil || repaired.Revision != committed.Revision {
 			t.Fatalf("repaired replay failed or advanced unchanged data: %+v, %v", repaired, err)
-		}
-		if pending, err := backfill.Projector.PendingProjection(ctx); err != nil || pending {
-			t.Fatalf("successful replay did not clear retry marker: %t, %v", pending, err)
 		}
 	}) {
 		return
@@ -239,7 +235,7 @@ func TestPostgresBackfillIntegration(t *testing.T) {
 		if err := empty.Lake.Prepare(); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := empty.Replay(ctx); err == nil {
+		if _, err := ingest.Run(ctx, data, empty.Lake.Directory, ingest.Options{DatabaseQueriesPath: backfillDatabaseQueries}); err == nil {
 			t.Fatal("empty evidence lake was accepted")
 		}
 		if got := backfillState(t, ctx, data); !reflect.DeepEqual(got, committed) {

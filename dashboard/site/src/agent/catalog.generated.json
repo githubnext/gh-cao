@@ -5716,6 +5716,25 @@
       }
     },
     {
+      "id": "local-ingestion-progress",
+      "subject": "Show local CLI history discovery, collection status and observed GitHub API headroom.",
+      "objective": "Distinguish ongoing seven-day backfill, quota pauses and failures from complete upstream or artifact coverage.",
+      "acceptance": "Use the persisted acquisition checkpoint independently of page filters. Scanned repository-hours describe completed discovery intervals, not a percentage of upstream runs or artifacts. Missing status remains unavailable; all coverage remains partial.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "transactions"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "sqlite",
+        "requirements": [
+          "transactions"
+        ]
+      }
+    },
+    {
       "id": "dashboard-ingestion-health",
       "subject": "Expose the current collection state for the global ingestion indicator.",
       "objective": "Distinguish reported ingestion failure or recovery from the age of retained workflow evidence.",

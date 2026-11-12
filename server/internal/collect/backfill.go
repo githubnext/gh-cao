@@ -69,17 +69,13 @@ type RunQuotaService interface {
 	Park(ctx context.Context, bucket githubquota.BucketID, until time.Time, reason string) error
 }
 
-// Backfill performs resumable cold start.
-//
-// It replays the evidence lake first, because a populated lake repopulates an
-// empty canonical database with zero GitHub requests. GitHub enumeration then
-// repairs enrollment and admits durable repository and historical-run tasks.
+// Backfill repairs enrollment and admits durable historical-run tasks.
+// Native recovery replays durable PostgreSQL publications, never an Activity lake.
 type Backfill struct {
 	StateStore    operational.StateStore
 	Metadata      operational.CollectionMetadata
 	Enrollment    Enrollment
 	Queue         Queue
-	Projector     Projector
 	Lake          Lake
 	Enumerator    Enumerator
 	RunEnumerator WorkflowRunEnumerator
@@ -116,12 +112,12 @@ type BackfillState struct {
 	Error               string `json:"error,omitempty"`
 }
 
-// Run performs cold start: replay, enumerate, seed repository tasks, and admit
+// Run performs cold start: enumerate, seed repository tasks, and admit
 // paginated historical workflow-run tasks. It does not process run artifacts.
 func (b Backfill) Run(ctx context.Context) (result BackfillState, err error) {
 	ctx, finish := startBackfillTelemetry(ctx, b.WindowDays)
 	defer func() { finish(result, err) }()
-	state := BackfillState{Phase: "replaying", StartedAt: time.Now().UTC().Format(time.RFC3339Nano)}
+	state := BackfillState{Phase: "enumerating", StartedAt: time.Now().UTC().Format(time.RFC3339Nano)}
 	backfillLog.Printf("cold start backfill started")
 	if err := b.publish(ctx, state); err != nil {
 		return b.fail(ctx, state, err)
@@ -135,19 +131,6 @@ func (b Backfill) Run(ctx context.Context) (result BackfillState, err error) {
 	}
 	if b.AcquisitionScopes != nil || b.NativePublications != nil {
 		return b.runNative(ctx, state)
-	}
-	populated, err := b.Lake.Populated()
-	if err != nil {
-		return b.fail(ctx, state, err)
-	}
-	if populated && !b.ReconstructScope {
-		result, err := b.replay(ctx)
-		if err != nil {
-			return b.fail(ctx, state, err)
-		}
-		state.LakeReplayed = true
-		state.Revision = result.Revision
-		backfillLog.Printf("replayed evidence lake revision=%d", result.Revision)
 	}
 	state.Phase = "enumerating"
 	if err := b.publish(ctx, state); err != nil {
@@ -165,14 +148,6 @@ func (b Backfill) Run(ctx context.Context) (result BackfillState, err error) {
 	}
 	if err != nil {
 		return b.fail(ctx, state, err)
-	}
-	if populated && b.ReconstructScope {
-		result, replayErr := b.replay(ctx)
-		if replayErr != nil {
-			return b.fail(ctx, state, replayErr)
-		}
-		state.LakeReplayed = true
-		state.Revision = result.Revision
 	}
 	if b.ScopeReady != nil {
 		if err := b.ScopeReady(ctx); err != nil {
@@ -216,25 +191,10 @@ func (b Backfill) Run(ctx context.Context) (result BackfillState, err error) {
 	return state, nil
 }
 
-// Replay repopulates from the evidence lake alone. It issues no GitHub
-// requests and is the normal recovery path.
+// Replay activates retained native PostgreSQL publications without GitHub requests.
 func (b Backfill) Replay(ctx context.Context) (ingest.Result, error) {
-	if b.AcquisitionScopes != nil || b.NativePublications != nil {
-		result, _, err := b.replayNative(ctx)
-		return result, err
-	}
-	populated, err := b.Lake.Populated()
-	if err != nil {
-		return ingest.Result{}, err
-	}
-	if !populated {
-		return ingest.Result{}, errors.New("evidence lake holds no collected shards")
-	}
-	return b.replay(ctx)
-}
-
-func (b Backfill) replay(ctx context.Context) (ingest.Result, error) {
-	return b.Projector.Project(ctx)
+	result, _, err := b.replayNative(ctx)
+	return result, err
 }
 
 type enrolledRepository struct {
@@ -714,11 +674,6 @@ func (b Backfill) seed(ctx context.Context, repositories []enrolledRepository) (
 		if b.Lake.Directory != "" {
 			if err := b.Lake.mineCachedInfo(ctx, repository.name); err != nil {
 				return queued, fmt.Errorf("backfill recorded episodes: %w", err)
-			}
-			if b.Projector.State != nil {
-				if err := b.Projector.RequestProjection(ctx); err != nil {
-					return queued, err
-				}
 			}
 		}
 		installationID, err := b.Enrollment.InstallationFor(ctx, repository.name)

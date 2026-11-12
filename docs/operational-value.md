@@ -290,15 +290,15 @@ complete, including genuine zeroes; otherwise it emits missing measurements
 and preserves earlier accepted captures. This registration does not change
 the Dependabot campaign's rollout mode or grant another repository access.
 
-It does not override `campaigns.dashboard.deploy: false`:
-this repository intentionally disables standalone Pages deployment because
-Documentation Pages owns the combined site. The existing publication chain is
-CAO Activity, then the CAO Dashboard artifact/cache, then Documentation Pages
-mounting that artifact at `/cao/`. No hosted OAuth session is needed for this
-Pages path. Verify the collected packet in the deployed snapshot after that
-chain completes; acquisition or merge alone does not prove publication.
-A separately selected hosted publication still needs its actual server URL and
-administrator OAuth session.
+Collected packets remain in bounded operational artifacts and canonical
+operational stores. Verify the packet in the successful Activity snapshot or
+authorized hosted query result; acquisition or merge alone does not prove
+canonical publication. Download the selected Activity run's `cao-activity-index`
+artifact as described in [Agent analysis](agent-analysis.md).
+Documentation Pages independently builds a synthetic enterprise demo, not a
+view of this repository's measurements. It consumes no operational artifact,
+and the former `campaigns.dashboard.deploy` setting is removed. Direct hosted
+publication requires its actual server URL and administrator OAuth session.
 
 ## Existing compact repository measurements
 
@@ -309,7 +309,7 @@ CAO uses one shared campaign module for both collection paths:
 
 Both paths import the same frozen evidence contract, collector, and scoring functions. Default routine collection does not rebuild repository history, and a metric cannot drift between the dashboard record and its historical report.
 
-Accepted operational-value observations are queryable from any local or downloaded canonical SQLite snapshot with `cao query --collection operationalValues`. Querying alone does not publish or reconstruct history. An explicit historical evaluation may query missing cadence observations for a named campaign while their authoritative source evidence remains in its bounded canonical database. The automatic local lane does not request that backfill. No history archive is installed with the campaign. Completed numeric records use the ordinary Activity snapshot pipeline; Dashboard artifact production and the configured Pages deployment owner remain unchanged.
+Accepted operational-value observations are queryable from any local or downloaded canonical SQLite snapshot with `cao query --collection operationalValues`. Querying alone does not publish or reconstruct history. An explicit historical evaluation may query missing cadence observations for a named campaign while their authoritative source evidence remains in its bounded canonical database. The automatic local lane does not request that backfill. No history archive is installed with the campaign. Completed numeric records use the ordinary operational Activity snapshot pipeline; they never become Pages demo inputs.
 
 The rolling Activity database is a query source for current observations, not the definition of operational-value history. Explicit evaluation schedules observations from adoption and incrementally preserves accepted snapshots. Git and other immutable repository facts can be reconstructed at historical cutoffs. Ephemeral run, usage, artifact, queue, and tool-call facts can be backfilled only while their source remains available; an expired interval without a contemporaneous snapshot is missing, not zero. Compact operational-value history retains its separate 365-day window, compacted to each metric's declared cadence plus its latest open-bucket observation, while the explicit evidence archive is the durable since-adoption record.
 

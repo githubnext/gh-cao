@@ -67,6 +67,15 @@
       ]
     },
     "workflows": {
+      "cao-issue-handoff": {
+        "mode": "review",
+        "max-repositories": 1,
+        "targets": {
+          "githubnext/gh-cao": {
+            "mode": "live"
+          }
+        }
+      },
       "daily-repo-status": {
         "enabled": false,
         "mode": "review",
@@ -75,9 +84,6 @@
       }
     },
     "campaigns": {
-      "dashboard": {
-        "deploy": false
-      },
       "continuous-architecture-review": {
         "icon": "code",
         "enabled": false,
@@ -310,9 +316,6 @@
           },
           "glossary": {
             "workflow": "self-care-glossary"
-          },
-          "open-source-failures": {
-            "workflow": "self-care-open-source-failures"
           },
           "pages-health": {
             "workflow": "self-care-pages-health"

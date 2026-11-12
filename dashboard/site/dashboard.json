@@ -8,6 +8,7 @@
     "data-status": {
       "freshness-source": "dashboard-data-freshness",
       "health-source": "dashboard-ingestion-health",
+      "ingestion-source": "local-ingestion-progress",
       "stale-after-hours": 24
     },
     "callouts": [

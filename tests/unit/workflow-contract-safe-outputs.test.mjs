@@ -85,6 +85,30 @@ test("Repo Assist triage grader accepts one target-bound live assignment and rej
   assert.equal(score([{ type: "noop" }]), null);
 });
 
+test("workflow labels fit GitHub's 50-character label name limit", () => {
+  const labels = [];
+  const collect = (value, path) => {
+    if (Array.isArray(value)) value.forEach((item, index) => collect(item, `${path}[${index}]`));
+    else if (value && typeof value === "object") {
+      for (const [key, child] of Object.entries(value)) {
+        if (/(^|-)labels$/.test(key)) {
+          for (const label of [child].flat()) {
+            if (typeof label === "string" && !label.includes("${{")) labels.push({ path: `${path}.${key}`, label });
+          }
+        }
+        collect(child, `${path}.${key}`);
+      }
+    }
+  };
+  for (const name of readdirSync(workflowsDirectory).filter((entry) => entry.endsWith(".md")).sort()) {
+    const frontmatter = /^---\n([\s\S]*?)\n---/.exec(workflow(name));
+    if (frontmatter) collect(parse(frontmatter[1]), name);
+  }
+
+  assert.deepEqual(labels.filter(({ label }) => label.length > 50), []);
+  assert.ok(labels.some(({ label }) => label === "software-development-practices:well-architected"));
+});
+
 test("operations creation guidance scopes detection and omits worker evals", () => {
   const campaignSkill = portableSkill("create-cao-campaign");
 
@@ -92,6 +116,7 @@ test("operations creation guidance scopes detection and omits worker evals", () 
   assert.match(campaignSkill, /default new dispatchers to `hourly`/);
   assert.match(campaignSkill, /`safe-outputs\.create-issue` or `safe-outputs\.create-pull-request`[\s\S]*?`labels: \[<campaign-slug>, <campaign-slug>:<worker-slug>\]`[\s\S]*?`title-prefix: "\[<campaign-slug>:<worker-slug>\] "`/);
   assert.match(campaignSkill, /every created issue or pull request identifies both its owning operation and worker/);
+  assert.match(campaignSkill, /every label must be 50 characters or fewer/);
   assert.match(campaignSkill, /when `safe-outputs\.create-issue` is enabled, configure `deduplicate-by-title: true`/);
   assert.match(campaignSkill, /canonical unprefixed subject that remains identical for the same unresolved repository work across reruns/);
   assert.match(campaignSkill, /search all open campaign-worker issues in the safe-output repository and reuse or comment on matching work, or call `noop`/);
@@ -143,11 +168,15 @@ test("issue-creating workers use campaign and worker title prefixes and labels",
       `[${controlImport.with.campaign}:${controlImport.with.worker}] `,
       name,
     );
-    assert.deepEqual(
-      config["safe-outputs"]["create-issue"].labels,
-      [controlImport.with.campaign, `${controlImport.with.campaign}:${controlImport.with.worker}`],
-      name,
-    );
+    const workerLabel = `${controlImport.with.campaign}:${controlImport.with.worker}`;
+    const labels = config["safe-outputs"]["create-issue"].labels;
+    if (workerLabel.length <= 50) {
+      assert.deepEqual(labels, [controlImport.with.campaign, workerLabel], name);
+    } else {
+      assert.equal(labels.length, 2, name);
+      assert.equal(labels[0], controlImport.with.campaign, name);
+      assert.ok(labels[1].startsWith(`${controlImport.with.campaign}:`) && labels[1].length <= 50, name);
+    }
   }
 });
 
@@ -495,6 +524,7 @@ test("comment-producing safe outputs expose one formatting contract", () => {
     ["cao-evolution-efficiency.md", ["add-comment"]],
     ["cao-evolution-integrity.md", ["add-comment"]],
     ["cao-evolution-reliability.md", ["add-comment"]],
+    ["cao-issue-handoff.md", ["add-comment"]],
     ["dependabot-update-planner.md", ["add-comment"]],
     ["design-decision-gate.md", ["add-comment"]],
     ["mattpocock-skills-reviewer.md", [

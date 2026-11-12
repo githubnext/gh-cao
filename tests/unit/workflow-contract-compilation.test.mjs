@@ -38,10 +38,10 @@ test("clean-room compilation emits the expected GitHub Actions settings", { time
     cpSync(join(root, "AGENTS.md"), join(temporaryRoot, "AGENTS.md"));
     cpSync(join(root, "aw.yml"), join(temporaryRoot, "aw.yml"));
     cpSync(join(root, "README.md"), join(temporaryRoot, "README.md"));
-    for (const campaignDirectory of ["activity", "cao-evolution", "dashboard", "dependabot", "optimization", "repo-assist"]) {
+    for (const campaignDirectory of ["cao-evolution", "dashboard", "dependabot", "optimization", "repo-assist"]) {
       cpSync(join(root, campaignDirectory), join(temporaryRoot, campaignDirectory), { recursive: true });
     }
-    for (const manifest of ["aw.yml", "activity/aw.yml", "cao-evolution/aw.yml", "dashboard/aw.yml", "dependabot/aw.yml", "optimization/aw.yml", "repo-assist/aw.yml"]) {
+    for (const manifest of ["aw.yml", "cao-evolution/aw.yml", "dependabot/aw.yml", "optimization/aw.yml", "repo-assist/aw.yml"]) {
       const manifestPath = join(temporaryRoot, manifest);
       writeFileSync(manifestPath, readFileSync(manifestPath, "utf8").replaceAll(ghAwVersion, "v0.89.4"));
     }
@@ -93,7 +93,7 @@ test("clean-room compilation emits the expected GitHub Actions settings", { time
       assert.match(preActivation, /actions: read/);
       assert.match(preActivation, /name: Evaluate Central Agentic Ops admission/);
       assert.match(preActivation, /name: Checkout CAO control modules/);
-      assert.match(preActivation, /sparse-checkout: \|\n\s+\.github\/\n\s+\/activity\/value-acquisition\.mjs/);
+      assert.match(preActivation, /sparse-checkout: \|\n\s+\.github\/\n\s+\/\.github\/workflows\/shared\/value-acquisition\.mjs/);
       assert.match(preActivation, /sparse-checkout-cone-mode: false/);
       assert.match(preActivation, /name: Resolve CAO control runtime/);
       assert.match(preActivation, /\.cao\/\.github\/workflows\/shared\/control\.mjs/);

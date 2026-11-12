@@ -1,12 +1,12 @@
 import { expect, test as baseTest } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
 import {
   activateTableViewMode,
   configureDeployedStorageQuota,
   DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS,
   DEPLOYED_REFRESH_TIMEOUT_MS,
-  deployedDashboardUrl as dashboardUrl,
   deployedStorageContext,
   populatedDashboardPages,
   populatedOverviewStations,
@@ -16,8 +16,18 @@ import {
 
 const test = baseTest.extend({ context: deployedStorageContext });
 const outputDirectory = resolve("test-results/dashboard-deployed");
+let preview;
 
-test("deployed dashboard refreshes and renders populated views", async ({ page }, testInfo) => {
+test.beforeAll(async () => {
+  preview = await startDashboardPagesPreview();
+});
+
+test.afterAll(async () => {
+  await preview?.close();
+});
+
+test("synthetic enterprise demo refreshes and renders populated views", async ({ page }, testInfo) => {
+  const dashboardUrl = `${preview.url}/`;
   await mkdir(outputDirectory, { recursive: true });
   const browserErrors = [];
   const failedRequests = [];
@@ -35,6 +45,7 @@ test("deployed dashboard refreshes and renders populated views", async ({ page }
       errorText,
       reloading,
       hadSuccessResponse: succeededRequests.has(request),
+      dashboardUrl,
     })) return;
     failedRequests.push(`${request.method()} ${request.url()}: ${errorText}`);
   });
@@ -145,6 +156,8 @@ test("deployed dashboard refreshes and renders populated views", async ({ page }
     await storageSession?.detach();
     const summary = {
       generatedAt: new Date().toISOString(),
+      evidenceKind: "synthetic-enterprise-demo",
+      evidenceLimits: "Browser UX only; not operational freshness or completeness evidence.",
       dashboardUrl,
       diagnostics: diagnostics ?? null,
       browserErrors,

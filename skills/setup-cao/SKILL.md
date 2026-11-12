@@ -77,7 +77,7 @@ or local Node.js.
 
 Setup offers authentication choices based on that scope.
 A separate default-No prompt can publish reviewed CAO files; declining/CI stays
-local. Push returns deployment-pending links without waiting.
+local. Push links to Actions artifacts. Setup never configures synthetic-only Pages.
 
 ## Agent procedure
 
@@ -122,7 +122,7 @@ Stop without weakening boundaries for:
 - a declared standalone workflow or direct operation, even when disabled;
 - a public control repository that could expose non-public evidence;
 - no compatible authentication, or declined/incomplete credentials;
-- setup fails after approved mutations, until you inspect policy, Pages, and
+- setup fails after approved mutations, until you inspect policy, runtime, and
   credential configuration metadata; never expose secret values;
 - installation or validation failure;
 - conflicting pre-existing files without approval; or

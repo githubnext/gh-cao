@@ -1,0 +1,3544 @@
+{
+  "runtime-health:802124840818643dcd429806cca133b9ffd5a20aa0a371d0b56a9def81c87a1f": {
+    "campaignResults": [
+      {
+        "answer": "unknown",
+        "attentionPartitionCount": 1,
+        "campaignId": "campaign:blocked",
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "orchestratorCount": 1,
+        "partitionRunCount": 0,
+        "recordsVisited": 0,
+        "skippedWorkerPartitionCount": 0,
+        "skippedWorkerRunCount": 0,
+        "workerEvaluationState": "indeterminate-orchestrator",
+        "workerPartitionCount": 0
+      },
+      {
+        "answer": "no",
+        "attentionPartitionCount": 1,
+        "campaignId": "campaign:maintenance",
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "orchestratorCount": 1,
+        "partitionRunCount": 60,
+        "recordsVisited": 56,
+        "skippedWorkerPartitionCount": 0,
+        "skippedWorkerRunCount": 0,
+        "workerEvaluationState": "eligible",
+        "workerPartitionCount": 1
+      },
+      {
+        "answer": "unknown",
+        "attentionPartitionCount": 1,
+        "campaignId": "campaign:unobserved",
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "orchestratorCount": 1,
+        "partitionRunCount": 0,
+        "recordsVisited": 0,
+        "skippedWorkerPartitionCount": 0,
+        "skippedWorkerRunCount": 0,
+        "workerEvaluationState": "indeterminate-orchestrator",
+        "workerPartitionCount": 0
+      }
+    ],
+    "diagnostics": {
+      "failures": [
+        {
+          "actionsRun": null,
+          "changedRuntimeFields": {},
+          "errorGroup": {
+            "campaignId": "campaign:maintenance",
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "error-0",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 60,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:50",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 35,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:25",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 10,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:0",
+                "status": "completed",
+                "url": null
+              }
+            ],
+            "targetRepositoryId": "repository:expected",
+            "targetScopeMembership": "expected",
+            "workflowId": "workflow:worker",
+            "workflowRole": "worker"
+          },
+          "evidence": {
+            "audits": [],
+            "firewallBlocks": [],
+            "safeOutputs": [],
+            "toolErrors": []
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-0",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 60,
+              "highPriorityAuditItems": null,
+              "id": "run:50",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-0",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 35,
+              "highPriorityAuditItems": null,
+              "id": "run:25",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-0",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 10,
+              "highPriorityAuditItems": null,
+              "id": "run:0",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            }
+          ],
+          "latestSuccess": null,
+          "omittedEvidence": {
+            "audits": 0,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        },
+        {
+          "actionsRun": null,
+          "changedRuntimeFields": {},
+          "errorGroup": {
+            "campaignId": "campaign:maintenance",
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "error-1",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 61,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:51",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 36,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:26",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 11,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:1",
+                "status": "completed",
+                "url": null
+              }
+            ],
+            "targetRepositoryId": "repository:expected",
+            "targetScopeMembership": "expected",
+            "workflowId": "workflow:worker",
+            "workflowRole": "worker"
+          },
+          "evidence": {
+            "audits": [],
+            "firewallBlocks": [],
+            "safeOutputs": [],
+            "toolErrors": []
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-1",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 61,
+              "highPriorityAuditItems": null,
+              "id": "run:51",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-1",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 36,
+              "highPriorityAuditItems": null,
+              "id": "run:26",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-1",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 11,
+              "highPriorityAuditItems": null,
+              "id": "run:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            }
+          ],
+          "latestSuccess": null,
+          "omittedEvidence": {
+            "audits": 0,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        },
+        {
+          "actionsRun": null,
+          "changedRuntimeFields": {},
+          "errorGroup": {
+            "campaignId": "campaign:maintenance",
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "error-2",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 62,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:52",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 37,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:27",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 12,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:2",
+                "status": "completed",
+                "url": null
+              }
+            ],
+            "targetRepositoryId": "repository:expected",
+            "targetScopeMembership": "expected",
+            "workflowId": "workflow:worker",
+            "workflowRole": "worker"
+          },
+          "evidence": {
+            "audits": [],
+            "firewallBlocks": [],
+            "safeOutputs": [],
+            "toolErrors": []
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-2",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 62,
+              "highPriorityAuditItems": null,
+              "id": "run:52",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-2",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 37,
+              "highPriorityAuditItems": null,
+              "id": "run:27",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-2",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 12,
+              "highPriorityAuditItems": null,
+              "id": "run:2",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            }
+          ],
+          "latestSuccess": null,
+          "omittedEvidence": {
+            "audits": 0,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        },
+        {
+          "actionsRun": null,
+          "changedRuntimeFields": {},
+          "errorGroup": {
+            "campaignId": "campaign:maintenance",
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "error-3",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 63,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:53",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 38,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:28",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 13,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:3",
+                "status": "completed",
+                "url": null
+              }
+            ],
+            "targetRepositoryId": "repository:expected",
+            "targetScopeMembership": "expected",
+            "workflowId": "workflow:worker",
+            "workflowRole": "worker"
+          },
+          "evidence": {
+            "audits": [],
+            "firewallBlocks": [],
+            "safeOutputs": [],
+            "toolErrors": []
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-3",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 63,
+              "highPriorityAuditItems": null,
+              "id": "run:53",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-3",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 38,
+              "highPriorityAuditItems": null,
+              "id": "run:28",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-3",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 13,
+              "highPriorityAuditItems": null,
+              "id": "run:3",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            }
+          ],
+          "latestSuccess": null,
+          "omittedEvidence": {
+            "audits": 0,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        },
+        {
+          "actionsRun": null,
+          "changedRuntimeFields": {},
+          "errorGroup": {
+            "campaignId": "campaign:maintenance",
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "error-4",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 64,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:54",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 39,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:29",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 14,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:4",
+                "status": "completed",
+                "url": null
+              }
+            ],
+            "targetRepositoryId": "repository:expected",
+            "targetScopeMembership": "expected",
+            "workflowId": "workflow:worker",
+            "workflowRole": "worker"
+          },
+          "evidence": {
+            "audits": [
+              {
+                "error": null,
+                "id": "audit:00",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:01",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:02",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:03",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:04",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:05",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:06",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:07",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:08",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:09",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:10",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:11",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:12",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:13",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:14",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:15",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:16",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:17",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:18",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              },
+              {
+                "error": null,
+                "id": "audit:19",
+                "observedAt": null,
+                "runId": "run:54",
+                "source": null,
+                "status": null,
+                "summary": "bounded evidence",
+                "timestamp": "2026-10-01T11:00:00Z",
+                "type": null
+              }
+            ],
+            "firewallBlocks": [],
+            "safeOutputs": [],
+            "toolErrors": []
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-4",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 64,
+              "highPriorityAuditItems": null,
+              "id": "run:54",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-4",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 39,
+              "highPriorityAuditItems": null,
+              "id": "run:29",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": null,
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "error-4",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 14,
+              "highPriorityAuditItems": null,
+              "id": "run:4",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": null,
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": null,
+              "startedAt": "2026-10-01T10:01:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            }
+          ],
+          "latestSuccess": null,
+          "omittedEvidence": {
+            "audits": 5,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        }
+      ],
+      "groupLimit": 5,
+      "omittedGroupCount": 15
+    },
+    "errorGroups": [
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 3
+        },
+        "count": 3,
+        "distinctRunAttemptCount": 3,
+        "errorKey": "error-0",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 60,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:50",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 35,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:25",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 10,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:0",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 3
+        },
+        "count": 3,
+        "distinctRunAttemptCount": 3,
+        "errorKey": "error-1",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 61,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:51",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 36,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:26",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 11,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:1",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 3
+        },
+        "count": 3,
+        "distinctRunAttemptCount": 3,
+        "errorKey": "error-2",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 62,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:52",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 37,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:27",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 12,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:2",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 3
+        },
+        "count": 3,
+        "distinctRunAttemptCount": 3,
+        "errorKey": "error-3",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 63,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:53",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 38,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:28",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 13,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:3",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 3
+        },
+        "count": 3,
+        "distinctRunAttemptCount": 3,
+        "errorKey": "error-4",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 64,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:54",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 39,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:29",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 14,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:4",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-10",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 45,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:35",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 20,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:10",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-11",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 46,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:36",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 21,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:11",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-12",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 47,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:37",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 22,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:12",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-13",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 48,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:38",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 23,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:13",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-14",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 49,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:39",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 24,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:14",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-15",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 50,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:40",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 25,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:15",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-16",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 51,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:41",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 26,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:16",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-17",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 52,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:42",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 27,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:17",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-18",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 53,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:43",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 28,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:18",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-19",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 54,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:44",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 29,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:19",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-20",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 55,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:45",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 30,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:20",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-21",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 56,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:46",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 31,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:21",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-22",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 57,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:47",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 32,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:22",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-23",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 58,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:48",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 33,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:23",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 2
+        },
+        "count": 2,
+        "distinctRunAttemptCount": 2,
+        "errorKey": "error-24",
+        "failureJobs": [],
+        "failureSteps": [],
+        "latestObservedAt": "2026-10-01T10:01:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 59,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:49",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 34,
+            "observedAt": "2026-10-01T10:01:00.000Z",
+            "runId": "run:24",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      }
+    ],
+    "measureId": "runtime-health",
+    "measureVersion": "1.0.0",
+    "partitionResults": [
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "not-observed",
+        "campaignId": "campaign:blocked",
+        "errorGroupCount": 0,
+        "errorGroupLimit": 20,
+        "errorGroups": [],
+        "evidenceQuality": null,
+        "latestRun": null,
+        "latestSuccess": null,
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "orchestrator",
+        "partitionRunCount": 0,
+        "recordsVisited": 0,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 0,
+        "successBoundary": "not-observed",
+        "terminalNonSuccessesSinceSuccess": 0,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:blocked",
+        "workflowRole": "orchestrator",
+        "workflowState": "unknown"
+      },
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "yes",
+        "campaignId": "campaign:maintenance",
+        "errorGroupCount": 0,
+        "errorGroupLimit": 20,
+        "errorGroups": [],
+        "evidenceQuality": null,
+        "latestRun": {
+          "attempt": 1,
+          "conclusion": "success",
+          "githubRunId": 1,
+          "observedAt": "2026-10-01T10:01:00.000Z",
+          "runId": "github:run:1:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/1"
+        },
+        "latestSuccess": {
+          "attempt": 1,
+          "conclusion": "success",
+          "githubRunId": 1,
+          "observedAt": "2026-10-01T10:01:00.000Z",
+          "runId": "github:run:1:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/1"
+        },
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": false,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "orchestrator",
+        "partitionRunCount": 1,
+        "recordsVisited": 1,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 0,
+        "successBoundary": "observed",
+        "terminalNonSuccessesSinceSuccess": 0,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:orchestrator",
+        "workflowRole": "orchestrator",
+        "workflowState": "active"
+      },
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "no",
+        "campaignId": "campaign:maintenance",
+        "errorGroupCount": 25,
+        "errorGroupLimit": 20,
+        "errorGroups": [
+          {
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "error-0",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 60,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:50",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 35,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:25",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 10,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:0",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "error-1",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 61,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:51",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 36,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:26",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 11,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:1",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "error-2",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 62,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:52",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 37,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:27",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 12,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:2",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "error-3",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 63,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:53",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 38,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:28",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 13,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:3",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "error-4",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 64,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:54",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 39,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:29",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 14,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:4",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-10",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 45,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:35",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 20,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:10",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-11",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 46,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:36",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 21,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:11",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-12",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 47,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:37",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 22,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:12",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-13",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 48,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:38",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 23,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:13",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-14",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 49,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:39",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 24,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:14",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-15",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 50,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:40",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 25,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:15",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-16",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 51,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:41",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 26,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:16",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-17",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 52,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:42",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 27,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:17",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-18",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 53,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:43",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 28,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:18",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-19",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 54,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:44",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 29,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:19",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-20",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 55,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:45",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 30,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:20",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-21",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 56,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:46",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 31,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:21",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-22",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 57,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:47",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 32,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:22",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-23",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 58,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:48",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 33,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:23",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          },
+          {
+            "conclusionCounts": {
+              "failure": 2
+            },
+            "count": 2,
+            "distinctRunAttemptCount": 2,
+            "errorKey": "error-24",
+            "failureJobs": [],
+            "failureSteps": [],
+            "latestObservedAt": "2026-10-01T10:01:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 59,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:49",
+                "status": "completed",
+                "url": null
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 34,
+                "observedAt": "2026-10-01T10:01:00.000Z",
+                "runId": "run:24",
+                "status": "completed",
+                "url": null
+              }
+            ]
+          }
+        ],
+        "evidenceQuality": null,
+        "latestRun": {
+          "attempt": 1,
+          "conclusion": "failure",
+          "githubRunId": 64,
+          "observedAt": "2026-10-01T10:01:00.000Z",
+          "runId": "run:54",
+          "status": "completed",
+          "url": null
+        },
+        "latestSuccess": null,
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 5,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "worker-target",
+        "partitionRunCount": 59,
+        "recordsVisited": 55,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 55,
+        "successBoundary": "not-observed",
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "terminalNonSuccessesSinceSuccess": 55,
+        "unknownDateRunCount": 4,
+        "unknownDateRunReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "success",
+            "githubRunId": 100,
+            "observedAt": null,
+            "runId": "unknown:<nil>",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "success",
+            "githubRunId": 100,
+            "observedAt": null,
+            "runId": "unknown:",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "success",
+            "githubRunId": 100,
+            "observedAt": null,
+            "runId": "unknown:invalid-z",
+            "status": "completed",
+            "url": null
+          },
+          {
+            "attempt": 1,
+            "conclusion": "success",
+            "githubRunId": 100,
+            "observedAt": null,
+            "runId": "unknown:invalid-a",
+            "status": "completed",
+            "url": null
+          }
+        ],
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker",
+        "workflowState": "active"
+      },
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "not-observed",
+        "campaignId": "campaign:unobserved",
+        "errorGroupCount": 0,
+        "errorGroupLimit": 20,
+        "errorGroups": [],
+        "evidenceQuality": null,
+        "latestRun": null,
+        "latestSuccess": null,
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "orchestrator",
+        "partitionRunCount": 0,
+        "recordsVisited": 0,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 0,
+        "successBoundary": "not-observed",
+        "terminalNonSuccessesSinceSuccess": 0,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:unobserved",
+        "workflowRole": "orchestrator",
+        "workflowState": "unknown"
+      }
+    ]
+  },
+  "runtime-health:8aded6762d45a9b4401aa470092477deeab81da754887ce53177867f4893b6f1": {
+    "campaignResults": [
+      {
+        "answer": "no",
+        "attentionPartitionCount": 2,
+        "campaignId": "campaign:maintenance",
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "orchestratorCount": 1,
+        "partitionRunCount": 8,
+        "recordsVisited": 8,
+        "skippedWorkerPartitionCount": 0,
+        "skippedWorkerRunCount": 0,
+        "workerEvaluationState": "eligible",
+        "workerPartitionCount": 3
+      }
+    ],
+    "diagnostics": {
+      "failures": [
+        {
+          "actionsRun": {
+            "reason": "Canonical evidence does not contain the exact process error; inspect job logs and stderr.",
+            "url": "https://github.com/octo/control/actions/runs/9"
+          },
+          "changedRuntimeFields": {},
+          "errorGroup": {
+            "campaignId": "campaign:maintenance",
+            "conclusionCounts": {
+              "failure": 1
+            },
+            "count": 1,
+            "distinctRunAttemptCount": 1,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:09:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 9,
+                "observedAt": "2026-10-01T10:09:00.000Z",
+                "runId": "github:run:9:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/9"
+              }
+            ],
+            "targetRepositoryId": "repository:expected",
+            "targetScopeMembership": "expected",
+            "workflowId": "workflow:recovery",
+            "workflowRole": "worker"
+          },
+          "evidence": {
+            "audits": [],
+            "firewallBlocks": [],
+            "safeOutputs": [],
+            "toolErrors": []
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": "copilot",
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "driver-exit",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 9,
+              "highPriorityAuditItems": null,
+              "id": "github:run:9:attempt:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": "model-1",
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": "https://github.com/octo/control/actions/runs/9",
+              "startedAt": "2026-10-01T10:09:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            }
+          ],
+          "latestSuccess": null,
+          "omittedEvidence": {
+            "audits": 0,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        },
+        {
+          "actionsRun": {
+            "reason": "Canonical evidence does not contain the exact process error; inspect job logs and stderr.",
+            "url": "https://github.com/octo/control/actions/runs/5"
+          },
+          "changedRuntimeFields": {
+            "requestedModel": {
+              "failed": "model-2",
+              "latestSuccess": "model-1"
+            }
+          },
+          "errorGroup": {
+            "campaignId": "campaign:maintenance",
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:05:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 5,
+                "observedAt": "2026-10-01T10:05:00.000Z",
+                "runId": "github:run:5:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/5"
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 4,
+                "observedAt": "2026-10-01T10:04:00.000Z",
+                "runId": "github:run:4:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/4"
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 3,
+                "observedAt": "2026-10-01T10:03:00.000Z",
+                "runId": "github:run:3:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/3"
+              }
+            ],
+            "targetRepositoryId": "repository:expected",
+            "targetScopeMembership": "expected",
+            "workflowId": "workflow:worker",
+            "workflowRole": "worker"
+          },
+          "evidence": {
+            "audits": [
+              {
+                "error": null,
+                "id": "audit:1",
+                "observedAt": null,
+                "runId": "github:run:5:attempt:1",
+                "source": null,
+                "status": null,
+                "summary": "Post-run failed",
+                "timestamp": null,
+                "type": null
+              }
+            ],
+            "firewallBlocks": [
+              {
+                "decision": "blocked",
+                "domain": "example.com",
+                "id": "domain:1",
+                "observedAt": null,
+                "requestCount": 2,
+                "runId": "github:run:5:attempt:1",
+                "timestamp": null
+              }
+            ],
+            "safeOutputs": [
+              {
+                "correlationId": null,
+                "id": "issue:1",
+                "observedAt": null,
+                "runId": "github:run:5:attempt:1",
+                "safeOutputType": null,
+                "status": null,
+                "summary": "Review required",
+                "timestamp": null,
+                "type": null
+              }
+            ],
+            "toolErrors": [
+              {
+                "id": "tool:1",
+                "mcpServer": "github",
+                "mcpTool": "get_file_contents",
+                "observedAt": null,
+                "runId": "github:run:5:attempt:1",
+                "status": "error",
+                "summary": null,
+                "timestamp": null,
+                "type": null
+              }
+            ]
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": "copilot",
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "driver-exit",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 5,
+              "highPriorityAuditItems": null,
+              "id": "github:run:5:attempt:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": "model-2",
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": "https://github.com/octo/control/actions/runs/5",
+              "startedAt": "2026-10-01T10:05:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": "copilot",
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "driver-exit",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 4,
+              "highPriorityAuditItems": null,
+              "id": "github:run:4:attempt:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": "model-1",
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": "https://github.com/octo/control/actions/runs/4",
+              "startedAt": "2026-10-01T10:04:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            },
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": "copilot",
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "driver-exit",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 3,
+              "highPriorityAuditItems": null,
+              "id": "github:run:3:attempt:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": "model-1",
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": "https://github.com/octo/control/actions/runs/3",
+              "startedAt": "2026-10-01T10:03:00Z",
+              "status": "completed",
+              "targetRepository": "octo/expected"
+            }
+          ],
+          "latestSuccess": {
+            "agentVersion": null,
+            "attempt": 1,
+            "classification": null,
+            "completedAt": null,
+            "conclusion": "success",
+            "duration": null,
+            "engine": "copilot",
+            "engineVersion": null,
+            "errorCount": null,
+            "failureKind": null,
+            "firewallAllowedCalls": null,
+            "firewallBlockedCalls": null,
+            "firewallVersion": null,
+            "ghAwVersion": null,
+            "githubRunId": 2,
+            "highPriorityAuditItems": null,
+            "id": "github:run:2:attempt:1",
+            "mcpToolCalls": null,
+            "mediumPriorityAuditItems": null,
+            "requestedModel": "model-1",
+            "resolvedModel": null,
+            "rolloutMode": null,
+            "runLink": "https://github.com/octo/control/actions/runs/2",
+            "startedAt": "2026-10-01T10:02:00Z",
+            "status": "completed",
+            "targetRepository": "octo/expected"
+          },
+          "omittedEvidence": {
+            "audits": 0,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        },
+        {
+          "actionsRun": {
+            "reason": "Canonical evidence does not contain the exact process error; inspect job logs and stderr.",
+            "url": "https://github.com/octo/control/actions/runs/6"
+          },
+          "changedRuntimeFields": {},
+          "errorGroup": {
+            "campaignId": "campaign:maintenance",
+            "conclusionCounts": {
+              "failure": 1
+            },
+            "count": 1,
+            "distinctRunAttemptCount": 1,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:06:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 6,
+                "observedAt": "2026-10-01T10:06:00.000Z",
+                "runId": "github:run:6:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/6"
+              }
+            ],
+            "targetRepositoryId": "repository:extra",
+            "targetScopeMembership": "observed-extra",
+            "workflowId": "workflow:worker",
+            "workflowRole": "worker"
+          },
+          "evidence": {
+            "audits": [],
+            "firewallBlocks": [],
+            "safeOutputs": [],
+            "toolErrors": []
+          },
+          "failedRuns": [
+            {
+              "agentVersion": null,
+              "attempt": 1,
+              "classification": null,
+              "completedAt": null,
+              "conclusion": "failure",
+              "duration": null,
+              "engine": "copilot",
+              "engineVersion": null,
+              "errorCount": null,
+              "failureKind": "driver-exit",
+              "firewallAllowedCalls": null,
+              "firewallBlockedCalls": null,
+              "firewallVersion": null,
+              "ghAwVersion": null,
+              "githubRunId": 6,
+              "highPriorityAuditItems": null,
+              "id": "github:run:6:attempt:1",
+              "mcpToolCalls": null,
+              "mediumPriorityAuditItems": null,
+              "requestedModel": "model-1",
+              "resolvedModel": null,
+              "rolloutMode": null,
+              "runLink": "https://github.com/octo/control/actions/runs/6",
+              "startedAt": "2026-10-01T10:06:00Z",
+              "status": "completed",
+              "targetRepository": "octo/extra"
+            }
+          ],
+          "latestSuccess": null,
+          "omittedEvidence": {
+            "audits": 0,
+            "firewallBlocks": 0,
+            "safeOutputs": 0,
+            "toolErrors": 0
+          },
+          "omittedFailedRunCount": 0
+        }
+      ],
+      "groupLimit": 5,
+      "omittedGroupCount": 0
+    },
+    "errorGroups": [
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 1
+        },
+        "count": 1,
+        "distinctRunAttemptCount": 1,
+        "errorKey": "driver-exit",
+        "failureJobs": [
+          "agent"
+        ],
+        "failureSteps": [
+          "Run agent"
+        ],
+        "latestObservedAt": "2026-10-01T10:09:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 9,
+            "observedAt": "2026-10-01T10:09:00.000Z",
+            "runId": "github:run:9:attempt:1",
+            "status": "completed",
+            "url": "https://github.com/octo/control/actions/runs/9"
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:recovery",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 3
+        },
+        "count": 3,
+        "distinctRunAttemptCount": 3,
+        "errorKey": "driver-exit",
+        "failureJobs": [
+          "agent"
+        ],
+        "failureSteps": [
+          "Run agent"
+        ],
+        "latestObservedAt": "2026-10-01T10:05:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 5,
+            "observedAt": "2026-10-01T10:05:00.000Z",
+            "runId": "github:run:5:attempt:1",
+            "status": "completed",
+            "url": "https://github.com/octo/control/actions/runs/5"
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 4,
+            "observedAt": "2026-10-01T10:04:00.000Z",
+            "runId": "github:run:4:attempt:1",
+            "status": "completed",
+            "url": "https://github.com/octo/control/actions/runs/4"
+          },
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 3,
+            "observedAt": "2026-10-01T10:03:00.000Z",
+            "runId": "github:run:3:attempt:1",
+            "status": "completed",
+            "url": "https://github.com/octo/control/actions/runs/3"
+          }
+        ],
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      },
+      {
+        "campaignId": "campaign:maintenance",
+        "conclusionCounts": {
+          "failure": 1
+        },
+        "count": 1,
+        "distinctRunAttemptCount": 1,
+        "errorKey": "driver-exit",
+        "failureJobs": [
+          "agent"
+        ],
+        "failureSteps": [
+          "Run agent"
+        ],
+        "latestObservedAt": "2026-10-01T10:06:00.000Z",
+        "omittedRunReferenceCount": 0,
+        "runReferenceLimit": 20,
+        "runReferences": [
+          {
+            "attempt": 1,
+            "conclusion": "failure",
+            "githubRunId": 6,
+            "observedAt": "2026-10-01T10:06:00.000Z",
+            "runId": "github:run:6:attempt:1",
+            "status": "completed",
+            "url": "https://github.com/octo/control/actions/runs/6"
+          }
+        ],
+        "targetRepositoryId": "repository:extra",
+        "targetScopeMembership": "observed-extra",
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker"
+      }
+    ],
+    "measureId": "runtime-health",
+    "measureVersion": "1.0.0",
+    "partitionResults": [
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "yes",
+        "campaignId": "campaign:maintenance",
+        "errorGroupCount": 0,
+        "errorGroupLimit": 20,
+        "errorGroups": [],
+        "evidenceQuality": null,
+        "latestRun": {
+          "attempt": 1,
+          "conclusion": "success",
+          "githubRunId": 1,
+          "observedAt": "2026-10-01T10:01:00.000Z",
+          "runId": "github:run:1:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/1"
+        },
+        "latestSuccess": {
+          "attempt": 1,
+          "conclusion": "success",
+          "githubRunId": 1,
+          "observedAt": "2026-10-01T10:01:00.000Z",
+          "runId": "github:run:1:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/1"
+        },
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": false,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "orchestrator",
+        "partitionRunCount": 1,
+        "recordsVisited": 1,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 0,
+        "successBoundary": "observed",
+        "terminalNonSuccessesSinceSuccess": 0,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:orchestrator",
+        "workflowRole": "orchestrator",
+        "workflowState": "active"
+      },
+      {
+        "activeRunsSinceSuccess": 1,
+        "answer": "no",
+        "campaignId": "campaign:maintenance",
+        "errorGroupCount": 1,
+        "errorGroupLimit": 20,
+        "errorGroups": [
+          {
+            "conclusionCounts": {
+              "failure": 1
+            },
+            "count": 1,
+            "distinctRunAttemptCount": 1,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:09:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 9,
+                "observedAt": "2026-10-01T10:09:00.000Z",
+                "runId": "github:run:9:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/9"
+              }
+            ]
+          }
+        ],
+        "evidenceQuality": null,
+        "latestRun": {
+          "attempt": 1,
+          "conclusion": null,
+          "githubRunId": 10,
+          "observedAt": "2026-10-01T10:10:00.000Z",
+          "runId": "github:run:10:attempt:1",
+          "status": "in_progress",
+          "url": "https://github.com/octo/control/actions/runs/10"
+        },
+        "latestSuccess": null,
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "worker-target",
+        "partitionRunCount": 2,
+        "recordsVisited": 2,
+        "recoveryMayBeInProgress": true,
+        "runsSinceSuccess": 2,
+        "successBoundary": "not-observed",
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "terminalNonSuccessesSinceSuccess": 1,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:recovery",
+        "workflowRole": "worker",
+        "workflowState": "unknown"
+      },
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "no",
+        "campaignId": "campaign:maintenance",
+        "errorGroupCount": 1,
+        "errorGroupLimit": 20,
+        "errorGroups": [
+          {
+            "conclusionCounts": {
+              "failure": 3
+            },
+            "count": 3,
+            "distinctRunAttemptCount": 3,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:05:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 5,
+                "observedAt": "2026-10-01T10:05:00.000Z",
+                "runId": "github:run:5:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/5"
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 4,
+                "observedAt": "2026-10-01T10:04:00.000Z",
+                "runId": "github:run:4:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/4"
+              },
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 3,
+                "observedAt": "2026-10-01T10:03:00.000Z",
+                "runId": "github:run:3:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/3"
+              }
+            ]
+          }
+        ],
+        "evidenceQuality": null,
+        "latestRun": {
+          "attempt": 1,
+          "conclusion": "failure",
+          "githubRunId": 5,
+          "observedAt": "2026-10-01T10:05:00.000Z",
+          "runId": "github:run:5:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/5"
+        },
+        "latestSuccess": {
+          "attempt": 1,
+          "conclusion": "success",
+          "githubRunId": 2,
+          "observedAt": "2026-10-01T10:02:00.000Z",
+          "runId": "github:run:2:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/2"
+        },
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "worker-target",
+        "partitionRunCount": 4,
+        "recordsVisited": 4,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 3,
+        "successBoundary": "observed",
+        "targetRepositoryId": "repository:expected",
+        "targetScopeMembership": "expected",
+        "terminalNonSuccessesSinceSuccess": 3,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker",
+        "workflowState": "active"
+      },
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "no",
+        "campaignId": "campaign:maintenance",
+        "errorGroupCount": 1,
+        "errorGroupLimit": 20,
+        "errorGroups": [
+          {
+            "conclusionCounts": {
+              "failure": 1
+            },
+            "count": 1,
+            "distinctRunAttemptCount": 1,
+            "errorKey": "driver-exit",
+            "failureJobs": [
+              "agent"
+            ],
+            "failureSteps": [
+              "Run agent"
+            ],
+            "latestObservedAt": "2026-10-01T10:06:00.000Z",
+            "omittedRunReferenceCount": 0,
+            "runReferenceLimit": 20,
+            "runReferences": [
+              {
+                "attempt": 1,
+                "conclusion": "failure",
+                "githubRunId": 6,
+                "observedAt": "2026-10-01T10:06:00.000Z",
+                "runId": "github:run:6:attempt:1",
+                "status": "completed",
+                "url": "https://github.com/octo/control/actions/runs/6"
+              }
+            ]
+          }
+        ],
+        "evidenceQuality": null,
+        "latestRun": {
+          "attempt": 1,
+          "conclusion": "failure",
+          "githubRunId": 6,
+          "observedAt": "2026-10-01T10:06:00.000Z",
+          "runId": "github:run:6:attempt:1",
+          "status": "completed",
+          "url": "https://github.com/octo/control/actions/runs/6"
+        },
+        "latestSuccess": null,
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "worker-target",
+        "partitionRunCount": 1,
+        "recordsVisited": 1,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 1,
+        "successBoundary": "not-observed",
+        "targetRepositoryId": "repository:extra",
+        "targetScopeMembership": "observed-extra",
+        "terminalNonSuccessesSinceSuccess": 1,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:worker",
+        "workflowRole": "worker",
+        "workflowState": "active"
+      }
+    ]
+  }
+}

@@ -16,7 +16,7 @@ let workspace = '';
 let artifactDirectory = '';
 
 test.beforeAll(async () => {
-  const { startCanvasServer } = await import(new URL('../../../canvas-server.mjs', import.meta.url).href);
+  const { startCanvasServer } = await import(new URL('../../../../tests/helpers/canvas-snapshot.mjs', import.meta.url).href);
   workspace = await mkdtemp(fileURLToPath(new URL('../../../../.cao-dashboard-e2e-', import.meta.url)));
   const siteRoot = fileURLToPath(new URL('../../', import.meta.url));
   await cp(siteRoot, join(workspace, 'site'), {
@@ -33,7 +33,7 @@ test.beforeAll(async () => {
     enhanceQueryIntent: async (/** @type {Record<string, string>} */ request) => Object.fromEntries(
       ['intent', 'subject', 'objective', 'acceptance'].map((name) => [name, `Enhanced ${name}: ${request[name] || 'measurable criteria'}`])
     ),
-    downloadData: async (/** @type {string} */ destination) => {
+    prepareSnapshot: async (/** @type {string} */ destination) => {
       artifactDirectory = destination;
       await writeCanvasArtifact(destination, {
         sources, shards: [normalizedRunShard(await readFile(new URL('../fixtures/query-editor-runs.jsonl', import.meta.url), 'utf8'))]

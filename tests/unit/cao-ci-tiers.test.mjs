@@ -17,10 +17,10 @@ test("documentation-only contract plans omit integration but unknown changes wid
   assert.deepEqual(testPlan(["scripts/ci-test-plan.mjs"]).matrix.area, Object.keys(unitTestAreas));
   assert.deepEqual(testPlan(["package-lock.json"]).matrix.area, Object.keys(unitTestAreas));
   assert.deepEqual(testPlan(["tests/unit/workflow-contract-ci-triggers.test.mjs"]).matrix.area, ["workflows"]);
-  assert.deepEqual(testPlan(["activity/cao.mjs"]).matrix.area, ["activity", "dashboard", "tooling"]);
+  assert.deepEqual(testPlan(["dashboard/report/agent-catalog.mjs"]).matrix.area, ["dashboard", "tooling"]);
   assert.deepEqual(testPlan(["server/internal/server/server.go"]).matrix.area, ["dashboard", "tooling"]);
-  assert.deepEqual(testPlan(["docs/glossary.md", "activity/cao.mjs"]).matrix.area,
-    ["activity", "dashboard", "tooling", "documentation"]);
+  assert.deepEqual(testPlan(["docs/glossary.md", "dashboard/report/agent-catalog.mjs"]).matrix.area,
+    ["dashboard", "tooling", "documentation"]);
   assert.deepEqual(testPlan(["docs/glossary.md"], true).matrix.area, Object.keys(unitTestAreas));
   assert.deepEqual(testPlan([]).matrix.area, Object.keys(unitTestAreas));
 });
@@ -44,7 +44,7 @@ test("daily calls every suite at the same revision and reports even on failure",
   assert.equal(daily.on.schedule.length, 1);
   assert.equal(daily.concurrency["cancel-in-progress"], false);
   const suites = Object.entries(daily.jobs).filter(([, job]) => job.uses);
-  assert.equal(suites.length, 17);
+  assert.equal(suites.length, 15);
   for (const [id, job] of suites) {
     assert.match(job.uses, /^\.\/\.github\/workflows\/[^/]+\.yml$/);
     assert.equal(job.needs, "revision");
@@ -83,13 +83,16 @@ test("daily/manual campaign validation cannot pass with quota-limited evidence",
   }
 });
 
-test("frequent deployed health checks omit costly benchmarks but daily runs include them", () => {
+test("frequent synthetic UI checks stay separate from daily operational benchmarks", () => {
   const deployed = load("dashboard-deployed-integration.yml");
   assert.ok(deployed.on.schedule);
-  for (const id of ["query-cost", "query-performance"]) {
-    assert.equal(deployed.jobs[id].if, "github.event_name != 'schedule' || inputs.full == true");
-  }
+  assert.match(deployed.jobs.integration.name, /synthetic/i);
+  assert.doesNotMatch(JSON.stringify(deployed.jobs.integration),
+    /test:performance:dashboard-quer|dashboard:data:download|cao-activity-index|DASHBOARD_DATA_URL/);
+  assert.equal(deployed.jobs["query-performance"], undefined);
+  assert.equal(deployed.jobs["query-cost"].if, "inputs.full == true || (github.event_name != 'schedule' && vars.CAO_DASHBOARD_DATA_URL != '')");
   assert.equal(deployed.on.workflow_call.inputs.full.default, false);
+  assert.deepEqual(load("ci-daily.yml").jobs.deployed.with, { full: true });
 });
 
 test("daily reporting counts runner time, ranks slow jobs, and rejects incomplete suites", () => {

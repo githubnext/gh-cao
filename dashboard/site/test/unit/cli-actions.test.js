@@ -28,8 +28,6 @@ import { subscribeCanonicalDashboardView } from '../../src/data-processor.js';
 import { shellStyles } from '../../src/styles-shell.js';
 import dashboardDocument from '../../dashboard.json' with { type: 'json' };
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
-import immediateProfile from '../../dashboard-fragments/immediate-profile.json' with { type: 'json' };
-import { composeImmediateDashboard } from '../../../report/compose-immediate-dashboard.mjs';
 
 beforeEach(() => {
   vi.stubGlobal('__CLI_QUEUE__', true);
@@ -45,11 +43,10 @@ afterEach(() => {
 });
 
 describe('CLI actions', () => {
-  it('activates immediate maintenance with exact repository targets and PR defaults without CAO context', async () => {
-    const immediate = composeImmediateDashboard(authoritativeDashboard, immediateProfile);
+  it('activates standard server maintenance with exact repository targets and PR defaults', async () => {
     setDeclaredCliActions(
-      /** @type {Parameters<typeof setDeclaredCliActions>[0]} */ (immediate.dashboard['cli-actions']),
-      { canExecute: true }
+      /** @type {Parameters<typeof setDeclaredCliActions>[0]} */ (authoritativeDashboard.dashboard['cli-actions']),
+      { canExecute: true, context: { 'cao-repository-url': 'https://github.com/octo/control', 'cao-url': 'https://ops.example.com/' } }
     );
     const root = renderDeclaredCliAction('upgrade-repository', {}, {
       rows: [{ repository: 'octo/api' }, { repository: 'octo/web' }],
@@ -60,14 +57,13 @@ describe('CLI actions', () => {
     document.body.append(root);
     root.querySelector('.cli-action-trigger')?.dispatchEvent(new MouseEvent('click'));
     expect(/** @type {HTMLButtonElement} */ (root.querySelector('.cli-action-confirm')).disabled).toBe(false);
-    expect(root.querySelector('.cli-action-command')?.textContent).toContain(
-      'gh aw upgrade --repo octo/api --create-pull-request'
+    expect(root.querySelector('.cli-action-command')?.textContent).toMatch(
+      /gh aw upgrade --repo octo\/api --pr-message '[^']+' --create-pull-request/
     );
-    expect(root.querySelector('.cli-action-command')?.textContent).toContain(
-      'gh aw upgrade --repo octo/web --create-pull-request'
+    expect(root.querySelector('.cli-action-command')?.textContent).toMatch(
+      /gh aw upgrade --repo octo\/web --pr-message '[^']+' --create-pull-request/
     );
-    expect(root.querySelector('.cli-action-command')?.textContent).not.toMatch(/cao-|pr-message|auto-merge/);
-    expect(root.querySelectorAll('input[type="checkbox"]')).toHaveLength(2);
+    expect(root.querySelectorAll('input[type="checkbox"]')).toHaveLength(3);
     expect(/** @type {HTMLInputElement} */ (root.querySelector('input[type="checkbox"]')).checked).toBe(true);
     expect(queue.enqueue).not.toHaveBeenCalled();
     root.querySelector('.cli-action-confirm')?.dispatchEvent(new MouseEvent('click'));
@@ -75,11 +71,11 @@ describe('CLI actions', () => {
     expect(queue.enqueue.mock.calls.map(([request]) => request)).toEqual([
       expect.objectContaining({
         id: 'upgrade-repository', values: { repository: 'octo/api' },
-        arguments: { 'create-pull-request': true, 'pre-releases': false }
+        arguments: { 'create-pull-request': true, 'pre-releases': false, 'auto-merge': false }
       }),
       expect.objectContaining({
         id: 'upgrade-repository', values: { repository: 'octo/web' },
-        arguments: { 'create-pull-request': true, 'pre-releases': false }
+        arguments: { 'create-pull-request': true, 'pre-releases': false, 'auto-merge': false }
       })
     ]);
     root.remove();

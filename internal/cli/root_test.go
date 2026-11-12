@@ -82,7 +82,7 @@ func TestCommandReferenceCoversRegisteredOperatorCommands(t *testing.T) {
 	}
 	for _, summary := range []string{
 		"Optionally initialize local policy only, without runtime or remote setup",
-		"Prepare monitoring runtime, policy, Pages, scope, and authentication",
+		"Prepare monitoring runtime, policy, scope, and authentication",
 	} {
 		if !strings.Contains(output.String(), summary) {
 			t.Errorf("root help missing %q", summary)

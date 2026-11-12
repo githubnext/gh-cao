@@ -28,11 +28,18 @@ var (
 )
 
 func addOperatorCommands(root *cobra.Command, execute runtimeExecutor, github ghExecutor) {
-	download := operatorCommand("download", "Download the deployed CAO evidence snapshot", cobra.NoArgs, []operatorFlag{
-		textFlag("url", "Dashboard payload-hashes.json URL"),
+	download := operatorCommand("download", "Download an explicitly configured operational CAO evidence snapshot", cobra.NoArgs, []operatorFlag{
+		textFlag("url", "Explicit payload-hashes.json URL (or DASHBOARD_DATA_URL; no default)"),
 		textFlag("output", "Local output directory (default .cao)"),
 		textFlag("manifest-sha256", "Trusted SHA-256 digest of the manifest"),
 	}, execute)
+	download.Long = `Download and checksum-verify an operational Activity snapshot.
+
+Pass --url or set DASHBOARD_DATA_URL to an explicit payload-hashes.json URL.
+Public Pages demos are synthetic-only and cannot supply operational evidence.
+Alternatively, import the cao-activity-index artifact from a selected CAO Activity run:
+  gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao
+Then query the local cache, or select another snapshot with --database FILE.`
 	pages := operatorCommand("pages [PAGE_ID]", "List or describe agent-facing dashboard pages", cobra.MaximumNArgs(1), []operatorFlag{dashboardFlag, jsonFlag}, execute)
 	queries := operatorCommand("queries", "List reviewed dashboard queries", cobra.NoArgs, []operatorFlag{dashboardFlag, jsonFlag}, execute)
 	info := operatorCommand("query-info QUERY_ID", "Describe one reviewed dashboard query", cobra.ExactArgs(1), []operatorFlag{dashboardFlag, jsonFlag}, execute)

@@ -64,6 +64,94 @@ func nativeDownloadServer(t *testing.T, payloads map[string]string) *httptest.Se
 	return server
 }
 
+type nativeDownloadTestTransport func(*http.Request) (*http.Response, error)
+
+func (f nativeDownloadTestTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	return f(request)
+}
+
+func TestNativeDownloadRequiresExplicitSource(t *testing.T) {
+	nativeManagementDirectory(t)
+	t.Setenv("DASHBOARD_DATA_URL", "")
+	previous := http.DefaultTransport
+	http.DefaultTransport = nativeDownloadTestTransport(func(*http.Request) (*http.Response, error) {
+		t.Error("unconfigured sources must never use the network")
+		return nil, errors.New("unexpected network request")
+	})
+	t.Cleanup(func() { http.DefaultTransport = previous })
+	for _, cached := range []bool{false, true} {
+		if cached {
+			writeTestFile(t, ".cao/gh-aw-logs.sqlite", "existing cache")
+		}
+		cmd, _ := nativeManagementCommand()
+		if err := nativeDownload(cmd, nil); err == nil ||
+			!strings.Contains(err.Error(), "gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao") {
+			t.Fatalf("missing source must explain artifact acquisition: %v", err)
+		}
+		if !cached {
+			if _, err := os.Stat(".cao"); !errors.Is(err, os.ErrNotExist) {
+				t.Fatal("missing source created a cache")
+			}
+		}
+	}
+	for _, source := range []string{"https://snapshot.example/", "https://snapshot.example/cao/", "https://snapshot.example/index.html"} {
+		if _, err := nativeDownloadSnapshot(t.Context(), source, ".cao", "", nil); err == nil || !strings.Contains(err.Error(), "must identify payload-hashes.json") {
+			t.Fatalf("directory must not trigger discovery: %v", err)
+		}
+	}
+	content, err := os.ReadFile(".cao/gh-aw-logs.sqlite")
+	if err != nil || string(content) != "existing cache" {
+		t.Fatalf("missing source changed the cache: %q, %v", content, err)
+	}
+}
+
+func TestNativeDownloadRejectsSyntheticAndSQLiteFreeManifest(t *testing.T) {
+	for _, manifest := range []string{
+		`{"synthetic":true,"gh-aw-logs.sqlite":"` + strings.Repeat("a", 64) + `"}`,
+		`{"gh-aw-logs-runs/demo.jsonl":"` + strings.Repeat("a", 64) + `"}`,
+	} {
+		t.Run(manifest, func(t *testing.T) {
+			output := t.TempDir()
+			writeTestFile(t, filepath.Join(output, "gh-aw-logs.sqlite"), "existing cache")
+			var requests atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests.Add(1)
+				if r.URL.Path != "/payload-hashes.json" {
+					t.Errorf("unexpected payload request: %s", r.URL.Path)
+				}
+				_, _ = w.Write([]byte(manifest))
+			}))
+			defer server.Close()
+			_, err := nativeDownloadSnapshot(t.Context(), server.URL+"/payload-hashes.json", output, "", server.Client())
+			if err == nil || (!strings.Contains(err.Error(), "Synthetic Pages demo") && !strings.Contains(err.Error(), "no valid SQLite checksum")) {
+				t.Fatalf("non-operational manifest accepted: %v", err)
+			}
+			if requests.Load() != 1 {
+				t.Fatalf("requested payloads for a rejected manifest: %d", requests.Load())
+			}
+			content, err := os.ReadFile(filepath.Join(output, "gh-aw-logs.sqlite"))
+			if err != nil || string(content) != "existing cache" {
+				t.Fatal("rejected manifest changed cache")
+			}
+		})
+	}
+}
+
+func TestNativeDownloadExplicitEnvironmentSource(t *testing.T) {
+	nativeManagementDirectory(t)
+	payloads, _ := nativeDownloadFixture(t, true)
+	server := nativeDownloadServer(t, payloads)
+	t.Setenv("DASHBOARD_DATA_URL", server.URL+"/data/payload-hashes.json")
+	cmd, _ := nativeManagementCommand()
+	if err := nativeDownload(cmd, nil); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(".cao/gh-aw-logs.sqlite")
+	if err != nil || string(content) != payloads["gh-aw-logs.sqlite"] {
+		t.Fatalf("explicit environment source not published: %q, %v", content, err)
+	}
+}
+
 func TestNativeDownloadPublishesOnlyVerifiedSnapshot(t *testing.T) {
 	for _, normalized := range []bool{true, false} {
 		t.Run(map[bool]string{true: "normalized", false: "raw"}[normalized], func(t *testing.T) {

@@ -1,29 +1,13 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
 import { createHmac, randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import http from "node:http";
-import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import test from "node:test";
+import { goCase, localEndpoint } from "../helpers/azure-local-go.mjs";
 
 const runtimePath = process.argv[2];
 if (!runtimePath) throw new Error("runtime state JSON path is required");
 const runtime = JSON.parse(await readFile(runtimePath, "utf8"));
-const root = fileURLToPath(new URL("../../", import.meta.url));
-const execute = promisify(execFile);
-
-function localEndpoint(value, protocol) {
-  const url = new URL(value);
-  assert.equal(url.protocol, protocol);
-  assert.equal(url.hostname, "127.0.0.1", "service tests require numeric loopback");
-  assert.ok(url.port, "service tests require an explicit port");
-  assert.equal(url.username, "");
-  assert.equal(url.password, "");
-  assert.equal(url.search, "");
-  assert.equal(url.hash, "");
-  return url;
-}
 
 function storageRequest(service, method, path, body = "", headers = {}, invalidKey = false) {
   const endpoint = localEndpoint(runtime.storage[`${service}Endpoint`], "http:");
@@ -156,83 +140,21 @@ test("Azure Storage Table: entity persistence and stale ETag rejection", async (
     `/${table}(PartitionKey='synthetic',RowKey='missing')`, "", headers)).status, 404);
 });
 
-async function goCase(directory, packages, pattern, services = {}) {
-  const env = Object.fromEntries([
-    "PATH", "HOME", "TMPDIR", "GOPATH", "GOMODCACHE", "GOCACHE", "SDKROOT", "DEVELOPER_DIR",
-  ].filter((name) => process.env[name] !== undefined).map((name) => [name, process.env[name]]));
-  Object.assign(env, {
-    GOTOOLCHAIN: "local", GOPROXY: "off", GOSUMDB: "off", GOVCS: "*:off",
-    GOENV: "off", GOFLAGS: "-mod=readonly", DO_NOT_TRACK: "1", GH_TELEMETRY: "0",
-    OTEL_SDK_DISABLED: "true",
-  });
-  if (services.postgres) {
-    const url = new URL(runtime.postgresUrl);
-    assert.equal(url.protocol, "postgres:");
-    assert.equal(url.hostname, "127.0.0.1");
-    assert.ok(url.port);
-    assert.equal(url.search, "?sslmode=disable", "connection overrides are forbidden");
-    env.POSTGRES_URL = url.href;
-  }
-  if (services.blob) {
-    localEndpoint(runtime.storage.blobEndpoint, "http:");
-    Object.assign(env, {
-      CAO_AZURITE_BLOB_URL: runtime.storage.blobEndpoint,
-      CAO_AZURITE_ACCOUNT: runtime.storage.account,
-      CAO_AZURITE_KEY: runtime.storage.key,
-    });
-  }
-  const { stdout } = await execute("go", [
-    "test", "-race", ...packages, "-run", pattern, "-count=1", "-timeout=3m", "-json",
-  ], { cwd: `${root}${directory}`, env, timeout: 240_000, maxBuffer: 8 << 20 });
-  const events = stdout.trim().split("\n").map((line) => JSON.parse(line));
-  assert.ok(events.some((event) => event.Test && event.Action === "pass"), "selector must execute tests");
-  assert.deepEqual(events.filter((event) => event.Action === "skip"), [], "selected service coverage cannot skip");
-}
-
-test("Azure PostgreSQL canonical adapter: publication, reopen and contract drift", async () => {
-  await goCase("server", ["./internal/postgresx"], "^TestFreshSchemaReopen$", { postgres: true });
-});
-
-test("Azure PostgreSQL operational adapter: sessions, CAS, queue capacity and leases", async () => {
-  await goCase("server", ["./internal/operational"], "^TestAdapters$/^postgres$", { postgres: true });
-});
-
-test("Azure Blob archive adapter: real Azurite immutable objects, leases and pointer CAS", async () => {
-  await goCase("server", ["./internal/sessionarchiveblob"], "^TestAzuriteBlobStoreIntegration$", { blob: true });
-});
-
-test("Azure archive service interfaces: injection, activation gates and HTTP recovery", async () => {
-  await goCase("server", ["./internal/sessionarchiveblob"], "^TestArchive(ServiceInjectionPreservesActivationGates|InjectedServicesHTTPIntegration)$");
-});
-
-test("Azure Key Vault and managed identity: local HTTP protocol integration", async () => {
-  await goCase("server", ["./internal/tokenbroker"], "^TestAzureKeyVaultHTTPIntegration$");
-});
-
-test("Azure monitoring: template-driven OTLP receipts and exporter failure isolation", async () => {
-  await goCase("server", ["./internal/telemetry"], "^TestAzureDeploymentTelemetryReceipts$");
-});
-
-test("Azure Container Registry protocol: digest bindings and configured-image read-back", async () => {
-  await goCase("", ["./internal/cli"],
-    "^TestDeployAzure(ImageBindingsFailClosed|ImageReadBackBlocksJobsOnMismatch)$");
-});
-
-test("Azure Container Apps jobs protocol: bounded cancellation", async () => {
-  await goCase("", ["./internal/cli"], "^TestDeployAzureJobWaitCancellation$");
-});
-
-test("Azure Functions configuration protocol: unresolved Key Vault references fail closed", async () => {
-  await goCase("", ["./internal/cli"], "^TestDeployAzureApplyFailsClosedWhenKeyVaultReferencesStayUnresolved$");
-});
-
-test("Azure Resource Manager protocol: read-only planning and required preflight checks", async () => {
-  await goCase("", ["./internal/cli"], "^TestDeployAzure(PlanRunsOnlyReadOnlyCommands|PreflightChecks|PreflightHealthy)$");
-});
-
-test("Azure networking, RBAC and optional ADX: exhaustive Bicep contract coverage", async () => {
-  await execute(process.execPath, [
-    "--test", "tests/unit/server-azure-service-coverage.test.mjs",
-    "tests/unit/server-azure-bicep.test.mjs", "tests/unit/server-azure-adx.test.mjs",
-  ], { cwd: root, timeout: 30_000, maxBuffer: 4 << 20 });
+test("Azure Go service contracts", { concurrency: true }, async (t) => {
+  await Promise.all([
+    t.test("Azure PostgreSQL operational adapter: sessions, CAS, queue capacity and leases", async () => {
+      await goCase("server", ["./internal/operational"], ["^TestAdapters$/^postgres$"], { postgres: true }, runtime);
+    }),
+    t.test("Azure server adapters: canonical PostgreSQL, Blob archive, Key Vault and monitoring", async () => {
+      await goCase("server", [
+        "./internal/postgresx", "./internal/sessionarchiveblob", "./internal/tokenbroker", "./internal/telemetry",
+      ], [
+        "^TestFreshSchemaReopen$",
+        "^TestAzuriteBlobStoreIntegration$",
+        "^TestArchive(ServiceInjectionPreservesActivationGates|InjectedServicesHTTPIntegration)$",
+        "^TestAzureKeyVaultHTTPIntegration$",
+        "^TestAzureDeploymentTelemetryReceipts$",
+      ], { postgres: true, blob: true }, runtime);
+    }),
+  ]);
 });

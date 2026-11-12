@@ -2,7 +2,7 @@ import { writeCanvasArtifact } from './canvas-fixture.js';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-const { startCanvasServer } = await import(new URL('../../../canvas-server.mjs', import.meta.url).href);
+const { startCanvasServer } = await import(new URL('../../../../tests/helpers/canvas-snapshot.mjs', import.meta.url).href);
 
 for (const { width, height = 900, empty = false, crowded = false } of [
   { width: 1440 }, { width: 390 }, { width: 489 }, { width: 320 }, { width: 1440, empty: true },
@@ -40,7 +40,7 @@ for (const { width, height = 900, empty = false, crowded = false } of [
         onOutput({ stream: 'stdout', data: 'Repository staged in review mode.\n' });
         return { ok: true };
       },
-      downloadData: async (/** @type {string} */ destination) => {
+      prepareSnapshot: async (/** @type {string} */ destination) => {
         await mkdir(destination, { recursive: true });
         await writeCanvasArtifact(destination, { sources: {
           campaigns: {

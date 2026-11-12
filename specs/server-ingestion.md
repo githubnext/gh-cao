@@ -31,9 +31,9 @@ dashboard request abuse protection is defined separately by
 It does not define dashboard presentation, workflow rollout policy, or durable
 operational outcomes. It does not define the canonical data model, the shard
 format, or the `gh aw` audit mapping: those remain owned by
-`specs/activity.md` and `specs/dashboard-gh-aw-jsonl-mapping.md`.
+`specs/server-ingestion.md` and `specs/dashboard-gh-aw-jsonl-mapping.md`.
 
-This specification **conforms to** `specs/activity.md`. It supersedes nothing.
+This specification **conforms to** `specs/server-ingestion.md`. It supersedes nothing.
 Nothing in this document changes the obligations of the Actions profile.
 
 ## 1. Status and conformance
@@ -58,7 +58,7 @@ CAO defines two acquisition profiles.
 
 - The **Actions profile** is the default. Activity publishes an immutable
   snapshot directory, and the server ingests it. It is specified by
-  `specs/activity.md` and is unaffected by this document.
+  `specs/server-ingestion.md` and is unaffected by this document.
 - The **collector profile** is defined here. The server acquires evidence
   directly from a GitHub App.
 
@@ -466,9 +466,9 @@ The implementation MUST receive events on the existing CAO webhook endpoint.
   MUST NOT trigger refresh. Incomplete/truncated commit lists MAY conservatively
   request refresh; admission MUST NOT fetch commit details from GitHub.
 - Inventory-only refresh tasks MUST have independent debounce keys from run
-  collection tasks. Workers MUST recheck installation ownership and persist the
-  coalesced projection request before acknowledging the task, without acquiring
-  run logs for a push.
+  collection tasks. Workers MUST recheck installation ownership and durably
+  publish the native inventory refresh before acknowledging the task, without
+  acquiring run logs for a push.
 - In the optional collector profile, eligible issue, pull-request and completed
   run deliveries and default-branch pushes MAY also carry a durable remote
   Operational Value invalidation for the exact enrolled repository. A push
@@ -592,7 +592,7 @@ not in an Activity directory, local overlay, or approved-content trace store.
 Native activation MUST enforce cold start, retention and scope erasure through
 that shared durable representation, and reject backends unable to satisfy
 those contracts. The Actions snapshot layout remains specified separately in
-`specs/activity.md`; it is not an App-backed collector fallback.
+`specs/server-ingestion.md`; it is not an App-backed collector fallback.
 
 ## 7. Projection
 
@@ -607,6 +607,11 @@ ownership contract.
 - Native publication MUST process bounded pending batches under its exact
   digest and epoch fences. Snapshot replacement and native publication MUST
   NOT be interleaved as compatibility paths.
+- The collector MUST NOT replay an Activity snapshot, regenerate payloads, or
+  schedule a legacy whole-lake replacement. Recovery MUST replay only durable
+  native PostgreSQL publications. The separately selected native Value service
+  MUST NOT enable snapshot ingestion or legacy collection. The Actions profile
+  retains its independent manifest-validated snapshot ingestion boundary.
 - A replacement MUST commit all current sources, source documents, diagnostics,
   revision state, and evaluation time in one PostgreSQL transaction. A failed
   projection MUST leave the previously committed dataset serving.
@@ -629,8 +634,8 @@ ownership contract.
   NOT create, copy, open, rebuild, or ingest SQLite as an intermediate store.
 - Hosted Operational Value publication MUST compare the starting canonical
   revision under the namespace writer lock and reject a stale revision. It MUST
-  also reject a changed completed-projection generation, reviewed policy,
-  local-eligibility request, or exact enrollment set. A successful publication
+  also reject changed reviewed policy, native preparation inputs, or exact
+  enrollment epochs. A successful publication
   atomically replaces canonical `operationalValues`, advances the ordinary
   canonical revision without changing the Activity data revision, and notifies
   existing revision consumers. Actions/static reconstruction remains an

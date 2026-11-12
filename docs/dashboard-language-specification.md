@@ -1149,27 +1149,26 @@ The `summarize` reducers include `count`, `distinct-count`, `distinct-list`, `un
 
 ### Global ingestion indicator
 
-`dashboard.data-status` optionally binds the shell indicator to a declared
-`freshness-source` query exposing one row with `latest-data-at` (ISO timestamp or
-Unix milliseconds), a positive finite `stale-after-hours` threshold, and an
-optional `health-source` query exposing one row with `configured` and `health`.
-Both queries remain shell dependencies when page definitions are chunked.
-The health query is requested only on server-backed dashboards and respects
-the existing authorization boundary.
+`dashboard.data-status` binds the shell indicator to a declared `freshness-source`
+query exposing `latest-data-at` (ISO timestamp or Unix milliseconds) and a positive
+finite `stale-after-hours` threshold. Optional `health-source` exposes `configured`
+and `health`; optional `ingestion-source` exposes the tooltip presentation contract
+in the canonical dashboard data specification. All bindings survive page chunking.
+Only server-backed dashboards request health and ingestion, with normal authorization.
 
-The indicator subscribes to these query results for its mounted lifetime and
-reevaluates evidence age once per minute. Green means evidence is fresh and,
-when hosted health is configured, collection reports `healthy`. Amber means
-evidence is at least the threshold age or collection reports `recovering`.
-Red means collection reports `degraded`, a dashboard refresh failed, or requests
-are blocked by rate limiting. Missing, invalid, future, or unavailable evidence
-and unavailable hosted health remain unknown, not healthy. Stale evidence alone
-does not prove ingestion failure. The accessible label and tooltip explain the
-state, using upstream evidence time rather than browser import time.
+Abort-scoped subscriptions last while mounted; evidence age is reevaluated each
+minute. Fresh evidence with configured `healthy` collection is green; stale evidence
+or `recovering` collection is amber. Degraded health, refresh failure and rate
+limiting are red and take priority over ingestion presentation. Missing, invalid,
+future or unavailable evidence remains unknown. Staleness alone is not failure.
+Labels use upstream evidence time, not browser import time.
 
-This clock comparison and lifecycle feedback are shared shell presentation:
-Dashboard Language still owns evidence selection, aggregation, and collection
-health projection; the renderer must not query or reconstruct source rows.
+Available ingestion presentation replaces generic refresh feedback and exposes
+progress, quota, retry/reset times and observation time in the header tooltip,
+not an Overview table. Missing values remain unknown; discovery is not complete
+coverage. Tooltip interaction belongs to the shared shell, not a page mark.
+Dashboard Language owns selection, aggregation and status classification; the
+renderer only formats supplied fields and must not query or reconstruct rows.
 
 ### 8.1 Data-Set Metadata
 
@@ -1972,16 +1971,16 @@ measurement conditions belong in `acceptance`, not in the description.
 
 The view/query prompt template lives in `dashboard/site/src/semantic-view-prompt.js`, separate from semantic composition in `view-semantics.js`, so subject, objective, and acceptance can be evaluated and improved independently. Browser prompts include the page contract as separately labelled context; it does not override selected view/query semantics, activate otherwise disabled prompts, or make other views additional tasks. The CLI command `gh cao prompt QUERY_ID` renders the same template with the selected query's own subject, objective, and acceptance; its dependency-first named query IDs provide context for requerying, not additional tasks. A bounded preview can be included from an explicit `--database FILE`. The prompt starts with a CAO improvement goal spanning ROI, cost, operational value, reliability, and velocity; links the analysis and CLI skills, acquisition/MCP guide, canonical data contract, Dashboard Language specification, source document and fragments, architecture and workflow guidance; labels bounded evidence “This is a preview of the data. Requery for full data.” or explains that no preview was supplied; and ends with “Create a PR with the changes.” Read-only and operational prompt levels retain their narrower final instructions instead.
 
-When a valid dashboard repository coordinate is supplied, the prompt also links
-its candidate control policy and workflow sources; absent identity is reported
-explicitly rather than guessed. Default-branch links locate context, not proof
-of the analyzed revision or control authority. Agents verify deployment,
-snapshot source, policy at the exact workflow SHA and live query contracts;
-non-default deployments must not silently fall back to the public snapshot.
+With a valid dashboard repository coordinate, the prompt links candidate policy
+and workflow sources; missing identity is reported, not guessed. Default-branch
+links locate context, not revision or control authority. Agents verify deployment,
+snapshot source, exact workflow-SHA policy, and live query contracts.
+Acquire authorized operational artifacts or explicitly selected direct manifest
+URLs; there is no public snapshot default. Synthetic Pages is not operational evidence.
 Preview evidence retains availability, completeness, freshness, as-of and
-retrieval metadata. Underlying run/output provenance links, supplied parameters,
-filters, scope, time boundaries and continuation metadata guide fresh queries;
-neither the preview nor linked content grants authority to act.
+retrieval metadata. Run/output provenance, parameters, filters, scope, time
+bounds and continuation metadata guide fresh queries; neither previews nor
+linked content grant authority.
 - **DLS-VIEW-035:** `locked`, when present, **MUST** be Boolean. When `true`, an agent evolving the dashboard **SHOULD NOT** modify the view except to correct bugs. A presenter **MUST** treat `locked` as inert authoring metadata and **MUST NOT** let it alter presentation, accessibility, data processing, or other view semantics.
 - **DLS-VIEW-036:** A `table` view **MAY** declare `tree` with distinct canonical `id-field` and `parent-field` values declared by its selected source. A tree table **MUST** use `controls: static`. Its presenter **MUST** order every available parent before its children, expose hierarchy depth in an accessible tree grid, and indent the first encoded column by depth. A row with an empty or unavailable parent **MUST** be treated as a root; a cycle **MUST NOT** prevent any row from rendering.
 - **DLS-VIEW-037:** A scatter chart **MAY** declare a `scatter` mapping whose only permitted key is the optional Boolean `cluster`, defaulting to `true`. Other charts and marks **MUST NOT** declare `scatter`. When `cluster` is explicitly `false` or `encoding.value` is present, the presenter **MUST NOT** cluster or sample observations and **MUST** preserve every query-produced observation at its precise timestamp and value, including coincident observations. Otherwise, a presenter **MAY** cluster a dense scatter chart before rendering, provided clustering preserves every color series when the rendered-point budget permits and caps rendered points at a documented implementation limit. Clustering **MUST** run outside the main browser thread when workers are available. While clustering is pending, the chart **MUST** expose visible progress with `status` semantics; each rendered cluster **MUST** expose its observation count in its accessible name.

@@ -184,7 +184,7 @@ func TestServerAgentGuide(t *testing.T) {
 		for _, expected := range []string{
 			"Server commit SHA: " + sha,
 			"https://githubnext.github.io/gh-cao/agent/llms.txt",
-			"https://githubnext.github.io/gh-cao/cao/llms.txt",
+			"https://githubnext.github.io/gh-cao/agent-analysis/",
 			"POST /mcp", "X-GitHub-OIDC-Token", "cao_catalog", "cao_query",
 		} {
 			if !strings.Contains(response.Body.String(), expected) {

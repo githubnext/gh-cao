@@ -8,7 +8,7 @@ on:
       - internal/cli/**
       - go.mod
       - go.sum
-      - activity/**
+
       - dashboard/site/**
       - package.json
       - package-lock.json
@@ -23,7 +23,6 @@ on:
       - tests/unit/dashboard-daily-run-counts-conformance.test.mjs
       - tests/integration/activity-actions-runtime.test.mjs
       - tests/helpers/actions-runtime/**
-      - .github/workflows/cao-activity.yml
       - .github/actions/setup-cao-runtime/**
       - server/**
       - tests/fixtures/company-stress/**
@@ -38,7 +37,7 @@ on:
       - internal/cli/**
       - go.mod
       - go.sum
-      - activity/**
+
       - dashboard/site/**
       - server/**
       - tests/fixtures/company-stress/**
@@ -57,7 +56,6 @@ on:
       - tests/unit/dashboard-daily-run-counts-conformance.test.mjs
       - tests/integration/activity-actions-runtime.test.mjs
       - tests/helpers/actions-runtime/**
-      - .github/workflows/cao-activity.yml
       - .github/actions/setup-cao-runtime/**
       - tests/e2e/dashboard-server.spec.mjs
       - tests/playwright/configs/dashboard-server.config.mjs

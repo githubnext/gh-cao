@@ -96,3 +96,32 @@ func TestDashboardCollectionBudgetDoesNotMaskErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestDashboardLogsShareQuotaCeilingAndHistoryBounds(t *testing.T) {
+	calls := 0
+	limited := false
+	request := dashboardLogRequest{
+		Repository: "octo/api", Cache: filepath.Join(t.TempDir(), "cache.jsonl"),
+		WorkflowIDs: []string{"1", "2"}, WorkflowCounts: map[string]int{"1": 3, "2": 1}, Count: 4,
+		StartDate: "2026-11-05T00:00:00Z", EndDate: "2026-11-06T00:00:00Z",
+		BeforeRunID: 101, AfterRunID: 90, MaxAPIUsed: 350, Limited: &limited,
+		CheckQuota: func(context.Context, int) error {
+			if calls > 0 {
+				return errDashboardQuota
+			}
+			return nil
+		},
+	}
+	err := downloadDashboardLogs(t.Context(), request, func(_ context.Context, options ghaw.LogsDownloadOptions) error {
+		calls++
+		if options.MaxGitHubAPIRateLimit != 350 || options.Count != 3 ||
+			options.BeforeRunID != 101 || options.AfterRunID != 90 ||
+			options.StartDate != request.StartDate || options.EndDate != request.EndDate {
+			t.Fatalf("collector widened shared quota or historical scope: %+v", options)
+		}
+		return nil
+	})
+	if err != nil || calls != 1 || !limited {
+		t.Fatalf("quota limit did not preserve partial bounded acquisition: calls=%d limited=%v err=%v", calls, limited, err)
+	}
+}
