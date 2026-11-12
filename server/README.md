@@ -3466,6 +3466,19 @@ GitHub's own cookies: if GitHub shows only the existing account's permission
 dialogue, use GitHub's profile menu to add or switch to another account,
 then retry sign-in.
 
+**Multiple GitHub accounts in one browser.** Browsers are often signed in to several GitHub accounts, such as a personal
+account and an Enterprise Managed User account. Each OAuth callback that
+resolves a GitHub identity records its login, account ID and whether it was
+allowed in an encrypted, HttpOnly `cao_accounts` cookie scoped to `/auth/`
+(at most five accounts; it grants no access). When sign-in is denied for one
+account and this browser has used another, CAO redirects to
+`/auth/select-account` instead of the error page. The dialog lists the known
+accounts, previously allowed accounts first, and each **Continue as** link
+restarts sign-in with GitHub's `login` hint and account chooser. It also names
+the configured GitHub host: accounts on another host (another GHE.com
+subdomain or a GitHub Enterprise Server instance) cannot sign in to this
+dashboard. Signing out clears the remembered accounts.
+
 The older `{"error":"GitHub authorization failed"}` response corresponds to
 an authorization failure; current versions show a help page instead. This
 failure can mean the selected account is not an active member of an allowed

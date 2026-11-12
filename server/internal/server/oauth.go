@@ -69,7 +69,7 @@ var oauthFailureStyleHash = oauthPageStyleHash(oauthFailureHTML)
 var oauthLoggedOutScriptHash = oauthPageScriptHash(oauthLoggedOutHTML)
 var oauthLoggedOutStyleHash = oauthPageStyleHash(oauthLoggedOutHTML)
 
-func writeOAuthFailure(response http.ResponseWriter, status int, reason string, traceID trace.TraceID) {
+func writeOAuthFailure(response http.ResponseWriter, status int, reason string, traceID trace.TraceID, providerHome, providerHost string) {
 	response.Header().Set("Cache-Control", "no-store")
 	response.Header().Set("Referrer-Policy", "no-referrer")
 	response.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'sha256-"+oauthFailureStyleHash+"'; script-src 'sha256-"+oauthFailureScriptHash+"'; connect-src 'self'; base-uri 'none'; form-action 'none'")
@@ -82,7 +82,9 @@ func writeOAuthFailure(response http.ResponseWriter, status int, reason string, 
 	_ = oauthFailurePage.Execute(response, struct {
 		TraceID             string
 		AuthorizationFailed bool
-	}{id, reason == "authorization_failed"})
+		ProviderHome        string
+		ProviderHost        string
+	}{id, reason == "authorization_failed", providerHome, providerHost})
 }
 
 const (
@@ -384,6 +386,15 @@ func (oauth *githubOAuth) login(response http.ResponseWriter, request *http.Requ
 			Login: session.Login, ExpiresAt: time.Now().Add(10 * time.Minute).Unix(),
 		}
 	}
+	loginHint := ""
+	if values, requested := request.URL.Query()["login"]; requested {
+		if len(values) != 1 || !githubLoginPattern.MatchString(values[0]) {
+			oauth.logBranch(request.Context(), "login.login_hint_invalid")
+			writeError(request.Context(), response, http.StatusBadRequest, "Invalid GitHub login hint")
+			return
+		}
+		loginHint = values[0]
+	}
 	state, err := randomToken(32)
 	if err != nil {
 		oauth.logBranch(request.Context(), "login.state_generation_failed")
@@ -428,6 +439,10 @@ func (oauth *githubOAuth) login(response http.ResponseWriter, request *http.Requ
 		values.Set("scope", scope)
 	}
 	values.Set("prompt", "select_account")
+	if loginHint != "" {
+		values.Set("login", loginHint)
+		oauth.logBranch(request.Context(), "login.login_hint_requested")
+	}
 	oauth.logBranch(request.Context(), "login.account_selection_requested")
 	target.RawQuery = values.Encode()
 	oauth.logBranch(request.Context(), "login.redirected")
@@ -438,6 +453,7 @@ func (oauth *githubOAuth) loggedOut(response http.ResponseWriter, request *http.
 	oauth.logBranch(request.Context(), "logged_out.rendered")
 	oauth.clearSessionCookies(response)
 	oauth.clearStateCookie(response)
+	oauth.clearAccountHints(response)
 	response.Header().Set("Cache-Control", "no-store")
 	response.Header().Set("Referrer-Policy", "no-referrer")
 	response.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'sha256-"+oauthLoggedOutStyleHash+"'; script-src 'sha256-"+oauthLoggedOutScriptHash+"'; base-uri 'none'; form-action 'none'")
@@ -479,7 +495,8 @@ func (oauth *githubOAuth) callback(response http.ResponseWriter, request *http.R
 		if status >= http.StatusInternalServerError {
 			span.SetStatus(codes.Error, "OAuth callback failed")
 		}
-		writeOAuthFailure(response, status, reason, span.SpanContext().TraceID())
+		home, host := oauth.providerHome()
+		writeOAuthFailure(response, status, reason, span.SpanContext().TraceID(), home, host)
 	}
 	consent, validState := oauth.loginState(request)
 	if !validState {
@@ -558,6 +575,17 @@ func (oauth *githubOAuth) callback(response http.ResponseWriter, request *http.R
 	if err != nil {
 		serverLog.PrintfContext(ctx, "oauth authorization failed")
 		oauth.logBranch(ctx, "callback.authorization_failed")
+		if consent == nil && errors.Is(err, errAccountNotAuthorized) {
+			// Users signed in to several GitHub accounts (for example a
+			// personal and an Enterprise Managed User account) often reach
+			// GitHub's consent with the wrong one. Offer explicit selection.
+			if hints := oauth.rememberAccount(response, request, account, false); hasOtherAccount(hints, account.ID) {
+				outcome, errorType = "failure", "authorization_failed"
+				oauth.logBranch(ctx, "callback.account_selection_redirected")
+				http.Redirect(response, request, "/auth/select-account", http.StatusFound)
+				return
+			}
+		}
 		fail(http.StatusForbidden, "authorization_failed")
 		return
 	}
@@ -604,6 +632,7 @@ func (oauth *githubOAuth) callback(response http.ResponseWriter, request *http.R
 	retained = true
 	oauth.setSessionCookies(response, session)
 	oauth.clearStateCookie(response)
+	oauth.rememberAccount(response, request, account, true)
 	serverLog.PrintfContext(ctx, "oauth callback completed")
 	oauth.logBranch(ctx, "callback.succeeded")
 	http.Redirect(response, request, "/", http.StatusFound)
@@ -1014,7 +1043,7 @@ func (oauth *githubOAuth) authorizedAccount(ctx context.Context, accessToken str
 	if oauth.config.LocalDevelopmentUser != "" {
 		if account.ID <= 0 || !strings.EqualFold(account.Login, oauth.config.LocalDevelopmentUser) {
 			oauth.logBranch(ctx, "authorization.local_user_rejected")
-			return githubAccount{}, errors.New("GitHub account is not the configured local developer")
+			return account, fmt.Errorf("GitHub account is not the configured local developer: %w", errAccountNotAuthorized)
 		}
 		oauth.logBranch(ctx, "authorization.local_user_allowed")
 		return account, nil
@@ -1042,7 +1071,8 @@ func (oauth *githubOAuth) authorizedAccount(ctx context.Context, accessToken str
 		}
 	}
 	oauth.logBranch(ctx, "authorization.denied")
-	return githubAccount{}, errors.New("GitHub user is not authorized")
+	// The identity is returned only to support account selection hints.
+	return account, errAccountNotAuthorized
 }
 
 func (oauth *githubOAuth) githubAccount(ctx context.Context, accessToken string) (githubAccount, error) {
