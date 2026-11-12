@@ -52,8 +52,9 @@ separate Bicep deployment for isolated persistent hosts and dedicated private
 Blob/ADX resources. These hosts remain staged until reviewed policy,
 credentials and real destination/runtime acceptance gates are satisfied; the
 Functions baseline is unchanged.
-`MANIFEST.md` includes Mermaid diagrams; the underlying deployment model is
-TOSCA Simple Profile 1.3, validated and resolved by the embedded Puccini engine.
+`MANIFEST.md` includes Mermaid diagrams; the deployment template is generated
+as TOSCA Simple Profile 1.3 from CAO's bounded feature-dependency graph. The CLI
+does not parse arbitrary TOSCA documents or cloud archives.
 
 ### Native fresh-deployment command
 

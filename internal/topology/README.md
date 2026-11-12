@@ -5,10 +5,11 @@ review-only Azure deployment bundles. It also supplies the dependency engine
 and embedded provider contract used by native Azure preflight, planning and
 guarded development apply.
 
-The solver uses **Puccini** to validate and resolve a bounded, generated
-**TOSCA Simple Profile 1.3** template, then **Gonum** to produce a deterministic
-dependency-first order and reject cycles. It is not a general-purpose TOSCA
-orchestrator, an ARM scheduler, or a source of deployment authority.
+The solver resolves CAO's bounded feature-dependency graph and uses **Gonum**
+to produce a deterministic dependency-first order and reject cycles. It emits
+a generated **TOSCA Simple Profile 1.3** template for deployment; it does not
+parse arbitrary TOSCA or cloud archives, and is not an ARM scheduler or source
+of deployment authority.
 
 For operator instructions and the requirements schema, see the
 [deployment bundle guide](../../docs/deployment-topology.md). The
@@ -60,10 +61,10 @@ combinations fail rather than silently adding services or changing profiles.
    `container_apps.go`, `azure.go`): `Solve` checks feature compatibility,
    parameters, OAuth allowlists, explicit retention and Key Vault references
    against the selected embedded ARM parameter definitions.
-3. **Resolve dependencies** (`tosca.go`, `graph.go`): generate typed nodes and
-   `DependsOn` requirements, validate/compile/resolve/coerce them through
-   Puccini, project the resolved relationships into `Topology`, then order
-   and verify the exact component, dependency and node-kind contract.
+3. **Resolve dependencies** (`tosca.go`, `graph.go`): derive nodes and edges
+   from the declared feature graph, then order and verify the exact component,
+   dependency and node-kind contract. `tosca.go` emits the corresponding TOSCA
+   deployment template; the solver does not parse cloud formats.
 4. **Review declared architecture** (`rules.go`): `ReviewRules` produces strict
    errors and advisory warnings. Bundle generation rejects strict errors;
    findings describe declared configuration, not observed readiness.
@@ -93,7 +94,7 @@ Requirements contain non-secret parameters and existing Key Vault secret
 **names/references**, never credential values. The package does not acquire
 credentials, contact Azure, deploy resources or grant access.
 
-Only generated, import-free templates enter Puccini. Arbitrary TOSCA imports,
+The generated TOSCA template is an output artifact; arbitrary TOSCA imports,
 CSARs, lifecycle operations and user scriptlets are not supported. External
 prerequisites remain explicitly unverified: dependency order does not prove
 vault access, network connectivity, successful provisioning, runtime activation,

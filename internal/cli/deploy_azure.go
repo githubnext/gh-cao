@@ -52,10 +52,11 @@ func deployCommand(deps deployAzureDeps) *cobra.Command {
 	deploy := &cobra.Command{
 		Use:   "deploy",
 		Short: "Generate, check, plan and apply CAO deployments",
-		Long: `Resolve deployment dependencies with the embedded Puccini TOSCA 1.3 engine.
+		Long: `Resolve deployment dependencies from the bounded CAO feature graph.
 
 init, generate and check prepare offline, review-only deployment bundles from
-YAML feature choices. Templates, examples and runbooks are embedded in Go;
+YAML feature choices and emit a TOSCA 1.3 deployment template. Templates,
+examples and runbooks are embedded in Go;
 generation requires Microsoft's official Bicep CLI on PATH.
 
 azure plans or explicitly applies a fresh development Functions deployment from

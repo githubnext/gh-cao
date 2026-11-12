@@ -53,38 +53,17 @@ func withHosts(t *testing.T) Requirements {
 	return input
 }
 
-func TestTOSCAEngineRejectsInvalidRequirementsAndConstraints(t *testing.T) {
-	input := exampleRequirements(t)
-	source, err := serviceTemplate(input.Features)
+func TestTopologyResolvedFromFeatureGraph(t *testing.T) {
+	features := exampleRequirements(t).Features
+	topology, err := resolveTopology(context.Background(), features)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"missing-provider", "incompatible-capability", "invalid-property", "wrong-target-type"} {
-		t.Run(name, func(t *testing.T) {
-			var document map[string]any
-			if err := yaml.Unmarshal(source, &document); err != nil {
-				t.Fatal(err)
-			}
-			nodes := document["topology_template"].(map[string]any)["node_templates"].(map[string]any)
-			types := document["node_types"].(map[string]any)
-			switch name {
-			case "missing-provider":
-				delete(nodes, "postgres")
-			case "incompatible-capability":
-				types[typeName("postgres")].(map[string]any)["requirements"].([]any)[0].(map[string]any)["network"].(map[string]any)["capability"] = "tosca.capabilities.Container"
-			case "invalid-property":
-				nodes["postgres"].(map[string]any)["properties"].(map[string]any)["configuration_kind"] = "not-allowed"
-			case "wrong-target-type":
-				nodes["postgres"].(map[string]any)["requirements"].([]any)[0].(map[string]any)["network"].(map[string]any)["node"] = "registry"
-			}
-			broken, err := yaml.Marshal(document)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := resolveTOSCA(context.Background(), broken, input.Features); err == nil {
-				t.Fatal("real TOSCA engine accepted a broken contract")
-			}
-		})
+	if err := CheckTopology(topology); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(topology.Order, []string{"monitoring", "network", "job-environment", "postgres", "registry", "runtime-storage", "sign-in-app", "secrets", "database-provisioning", "dashboard", "snapshot-ingestion"}) {
+		t.Fatalf("unexpected topology order: %v", topology.Order)
 	}
 }
 
@@ -302,6 +281,15 @@ func TestBundleDeterminismAndSymlinks(t *testing.T) {
 	b, err := os.ReadFile(filepath.Join(second, "manifest.json"))
 	if err != nil {
 		t.Fatal(err)
+	}
+	var manifest struct {
+		Engine string `json:"engine"`
+	}
+	if err := json.Unmarshal(a, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Engine != "cao-feature-dependency-graph-v1" {
+		t.Fatalf("unexpected topology engine: %s", manifest.Engine)
 	}
 	if !bytes.Equal(a, b) {
 		t.Fatal("resolved topology or manifest is nondeterministic")

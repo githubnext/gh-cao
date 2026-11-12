@@ -4,16 +4,12 @@ description: Generate and check review-only Azure deployment bundles using nativ
 ---
 
 `gh cao deploy init`, `generate` and `check` provide native Go, offline
-configuration generation within the deployment command. A small YAML
-file selects features and backend parameters. **Puccini v0.22.7** validates,
-compiles and resolves the generated **TOSCA Simple Profile 1.3** service template:
-typed nodes, capabilities, requirement occurrences, constraints and standard
-`tosca.relationships.DependsOn` relationships. Gonum orders the resolved directed
-graph and rejects cycles. There is no proprietary deployment-topology language,
-handwritten graph solver, Node.js runtime, cloud call or automatic deployment.
-This is deliberately a **bounded CAO-specific profile**, not full TOSCA support
-or a general-purpose orchestrator. Only generated typed nodes, capabilities,
-requirements, DependsOn relationships and basic property constraints are used.
+configuration generation within the deployment command. A small YAML file
+selects features and backend parameters. The solver derives the bounded component
+graph from CAO's declared dependencies, validates closure and cycles, and uses
+Gonum to order it. It emits a **TOSCA Simple Profile 1.3** service template for
+the deployment workflow, but does not parse arbitrary TOSCA or cloud archives.
+There is no Node.js runtime, cloud call or automatic deployment.
 
 Generation requires [Microsoft's official Bicep CLI](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install)
 on `PATH`. Every emitted `.bicep` file is compiled with
@@ -153,9 +149,9 @@ unmet requirements fail instead of silently choosing another implementation.
 | File | Purpose |
 | --- | --- |
 | `MANIFEST.md` | Mermaid architecture and resolved dependency diagrams, with credential boundaries and external/staged gates |
-| `topology.yaml` | Standard TOSCA 1.3 types, requirements and service topology validated by the real engine |
-| `topology.json` | Deterministic projection of the engine-resolved relationships and bootstrap order |
-| `manifest.json` | SHA-256 bindings for the output and engine/profile identity |
+| `topology.yaml` | Generated TOSCA 1.3 types, requirements and service topology |
+| `topology.json` | Deterministic projection of the CAO feature graph and bootstrap order |
+| `manifest.json` | SHA-256 bindings for the output and graph/profile identity |
 | `RULES.md`, `rules.json` | Strict architecture failures and advisory tradeoffs with Microsoft guidance |
 | `requirements.yaml`, `parameters.json` | Normalized feature choices and Azure parameters with Key Vault references |
 | `*.bicep` | Byte-identical copies of the authoritative Azure baseline |
@@ -167,8 +163,7 @@ unmet requirements fail instead of silently choosing another implementation.
 TOSCA is the deployment representation, not a new authorization source or ARM
 scheduler. The CLI supports its generated CAO profile; it does not accept or
 execute arbitrary imported TOSCA, CSARs, lifecycle operations or user scriptlets.
-Puccini's bundled profiles and resolver execute inside Go. The dependency
-diagram and JSON report derive from the resolved topology. The architecture
+The dependency diagram and JSON report derive from the CAO feature graph. The architecture
 view additionally marks optional trust flows and external activation gates;
 these reference paths do not add enabled resources or capabilities.
 
@@ -261,7 +256,7 @@ revocation or evidence deletion.
 
 ## Checking and embedded source maintenance
 
-Checking re-runs the real TOSCA engine, verifies the resolved dependency
+Checking re-solves the CAO feature graph, verifies the dependency
 contract/order/cycles, feature/parameter/secret consistency and file hashes,
 and rejects stale/orphaned outputs and symlinks. External prerequisites remain
 unverified; a valid template is not live readiness, deployment acceptance,
@@ -271,7 +266,7 @@ Keep the generating CLI release when checking older bundles. The CLI embeds
 deterministic, reviewable snapshots of every bundled template, example,
 script and runbook, including the canonical Bicep sources and ARM parameter
 contract. It never needs a source checkout or downloads resources at runtime.
-`deploy azure` uses the same embedded ARM template and TOSCA dependency engine
+`deploy azure` uses the same embedded ARM template and feature-dependency graph
 for its guarded JSON-config preflight, plan and development apply path.
 The YAML bundles are review-only outputs, not apply plan files; their optional
 profiles do not expand native apply support. The separate `topology` command

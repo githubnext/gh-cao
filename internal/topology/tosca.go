@@ -2,15 +2,9 @@ package topology
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
 	"slices"
 	"strings"
 
-	"github.com/tliron/exturl"
-	"github.com/tliron/puccini/clout/js"
-	"github.com/tliron/puccini/tosca/parser"
 	"gopkg.in/yaml.v3"
 )
 
@@ -117,83 +111,15 @@ func providerServiceTemplate(features Features, parameters map[string]Parameter,
 	})
 }
 
-type engineMetadata struct {
-	Puccini struct {
-		Kind string `json:"kind"`
-	} `json:"puccini"`
-}
-
-type engineVertex struct {
-	Metadata   engineMetadata `json:"metadata"`
-	Properties struct {
-		Name string `json:"name"`
-	} `json:"properties"`
-	EdgesOut []struct {
-		Metadata engineMetadata `json:"metadata"`
-		TargetID string         `json:"targetID"`
-	} `json:"edgesOut"`
-}
-
-func resolveTOSCA(ctx context.Context, content []byte, features Features) (result Topology, err error) {
+func resolveTopology(ctx context.Context, features Features) (result Topology, err error) {
 	result = Topology{Version: 1, Backend: "azure", Features: features, Nodes: []Node{}}
 	if err := ctx.Err(); err != nil {
 		return result, err
 	}
-	urlContext := exturl.NewContext()
-	defer func() { err = errors.Join(err, urlContext.Release()) }()
-	// Only generated, import-free templates enter the engine. Built-in profiles
-	// and scriptlets stay inside the Go process; there is no Node.js or user code.
-	source := urlContext.NewInternalURL("/cao/topology.yaml")
-	source.SetContent(content)
-	parserContext := parser.NewParser().NewContext()
-	parserContext.URL = source
-	normalized, err := parserContext.Parse(ctx)
-	if err != nil {
-		return result, fmt.Errorf("TOSCA validation failed: %w; %v", errors.Join(err, ctx.Err()), parserContext.GetProblems())
-	}
-	clout, err := normalized.Compile()
-	if err != nil {
-		return result, fmt.Errorf("compile TOSCA: %w", err)
-	}
-	execution := js.ExecContext{Clout: clout, Problems: parserContext.GetProblems(), URLContext: urlContext, Strict: true, History: false}
-	execution.Resolve()
-	if !execution.Problems.Empty() {
-		return result, fmt.Errorf("TOSCA requirement resolution failed: %v", execution.Problems)
-	}
-	execution.Coerce()
-	if !execution.Problems.Empty() {
-		return result, fmt.Errorf("TOSCA constraint validation failed: %v", execution.Problems)
-	}
-	if err := ctx.Err(); err != nil {
-		return result, err
-	}
-	content, err = json.Marshal(clout)
-	if err != nil {
-		return result, err
-	}
-	var graph struct {
-		Vertexes map[string]engineVertex `json:"vertexes"`
-	}
-	if err := json.Unmarshal(content, &graph); err != nil {
-		return result, err
-	}
-	for _, vertex := range graph.Vertexes {
-		if vertex.Metadata.Puccini.Kind != "NodeTemplate" {
-			continue
-		}
-		node := Node{ID: vertex.Properties.Name, Kind: "managed", DependsOn: []string{}}
-		if external[node.ID] {
+	for _, id := range componentIDs(features) {
+		node := Node{ID: id, Kind: "managed", DependsOn: dependencies(id, features)}
+		if external[id] {
 			node.Kind = "external"
-		}
-		for _, edge := range vertex.EdgesOut {
-			if edge.Metadata.Puccini.Kind != "Relationship" {
-				continue
-			}
-			target, exists := graph.Vertexes[edge.TargetID]
-			if !exists || target.Properties.Name == "" {
-				return result, fmt.Errorf("TOSCA engine returned an unresolved relationship")
-			}
-			node.DependsOn = append(node.DependsOn, target.Properties.Name)
 		}
 		slices.Sort(node.DependsOn)
 		result.Nodes = append(result.Nodes, node)
@@ -204,6 +130,9 @@ func resolveTOSCA(ctx context.Context, content []byte, features Features) (resul
 		return result, err
 	}
 	if err := CheckTopology(result); err != nil {
+		return result, err
+	}
+	if err := ctx.Err(); err != nil {
 		return result, err
 	}
 	return result, nil

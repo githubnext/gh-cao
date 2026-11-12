@@ -8,8 +8,8 @@ import (
 func renderManifest(t Topology) string {
 	var out strings.Builder
 	out.WriteString("# Configuration topology manifest\n\n")
-	out.WriteString("**Azure / TOSCA Simple Profile 1.3 / Puccini v0.22.7.**\n\n")
-	out.WriteString("[topology.yaml](topology.yaml) is the standard service template. Puccini\nvalidates types, requirement occurrences/capabilities and resolves relationships.\nGonum orders the resolved DependsOn graph and rejects cycles. topology.json is\nonly a deterministic projection; manifest.json hashes every generated document.\n\n")
+	out.WriteString("**Azure / TOSCA Simple Profile 1.3 / CAO feature dependency graph.**\n\n")
+	out.WriteString("[topology.yaml](topology.yaml) is the generated service template. The bounded\nCAO graph validates dependency closure and cycles; Gonum determines bootstrap order.\ntopology.json is its deterministic projection; manifest.json hashes every generated document.\n\n")
 	out.WriteString("| Choice | Selected |\n| --- | --- |\n")
 	for _, row := range []struct {
 		name  string
@@ -24,7 +24,7 @@ func renderManifest(t Topology) string {
 	}
 	out.WriteString("\n## Architecture and authority boundaries\n\nSolid arrows show baseline connections; dashed arrows show external prerequisites\nor gated optional flows, NOT proof of activation. Secret values never appear.\n\n```mermaid\n")
 	out.WriteString(architecture(t.Features))
-	out.WriteString("\n```\n\n## Resolved TOSCA dependency topology\n\nArrows point from prerequisite to consumer (the reverse of TOSCA's consumer-to-target\nDependsOn assignment). External nodes remain UNVERIFIED. This is bootstrap order,\nnot replacement ARM scheduling.\n\n```mermaid\nflowchart TD\n")
+	out.WriteString("\n```\n\n## Resolved feature dependency topology\n\nArrows point from prerequisite to consumer (the reverse of generated TOSCA's consumer-to-target\nDependsOn assignment). External nodes remain UNVERIFIED. This is bootstrap order,\nnot replacement ARM scheduling.\n\n```mermaid\nflowchart TD\n")
 	ids := map[string]string{}
 	for index, node := range t.Nodes {
 		ids[node.ID] = fmt.Sprintf("n%d", index)

@@ -70,6 +70,6 @@ func resolveAzureParameters(ctx context.Context, features Features, parameters m
 	if err != nil {
 		return nil, Topology{}, err
 	}
-	result, err := resolveTOSCA(ctx, source, features)
+	result, err := resolveTopology(ctx, features)
 	return source, result, err
 }

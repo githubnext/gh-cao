@@ -91,7 +91,7 @@ func solveCompact(ctx context.Context, input Requirements) (Solution, error) {
 	if err != nil {
 		return result, err
 	}
-	result.Topology, err = resolveTOSCA(ctx, result.TOSCA, input.Features)
+	result.Topology, err = resolveTopology(ctx, input.Features)
 	return result, err
 }
 

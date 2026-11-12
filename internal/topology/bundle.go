@@ -145,7 +145,7 @@ func filesFor(ctx context.Context, content []byte) (map[string][]byte, Topology,
 		hashes[name] = hex.EncodeToString(sum[:])
 	}
 	files["manifest.json"], err = jsonBytes(map[string]any{
-		"version": 1, "backend": "azure", "engine": "puccini v0.22.7", "profile": "tosca_simple_yaml_1_3", "files": hashes,
+		"version": 1, "backend": "azure", "engine": "cao-feature-dependency-graph-v1", "profile": "tosca_simple_yaml_1_3", "files": hashes,
 	})
 	return files, solution.Topology, err
 }
