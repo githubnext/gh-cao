@@ -181,6 +181,22 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 	}
 }
 
+func TestDashboardRepositoryAccessFailureExplainsRecovery(t *testing.T) {
+	gh := func(context.Context, ...string) (string, string, error) {
+		return "", "", errors.New("private upstream diagnostic")
+	}
+	logs := func(context.Context, dashboardLogRequest) error {
+		t.Fatal("repository access failure must not collect artifacts")
+		return nil
+	}
+	_, err := collectDashboard(t.Context(), []string{"octo/api"}, t.TempDir(),
+		dashboardOptions{window: dashboardMaximumDuration, count: 2}, gh, logs)
+	if err == nil || !strings.Contains(err.Error(), "gh auth status --hostname github.com") ||
+		!strings.Contains(err.Error(), "octo/api") || strings.Contains(err.Error(), "private upstream diagnostic") {
+		t.Fatalf("repository failure lost safe recovery instructions: %v", err)
+	}
+}
+
 func TestDashboardCacheFailsClosed(t *testing.T) {
 	cache := t.TempDir()
 	options := dashboardOptions{window: dashboardMaximumDuration, count: 2}

@@ -65,12 +65,19 @@ supports up to 20 explicitly named GitHub.com repositories.
 Both the recent evidence window and server lifetime default to **48 hours** and
 cannot exceed that bound. The command stays in the foreground, selects an
 available loopback port, prints the access URL, and refreshes every five minutes.
+Startup reports that collection is in progress before displaying a clearly
+labelled browser URL, repository scope, SQLite cache path, refresh interval, and
+session lifetime. The ready message also reminds you that Ctrl-C stops the
+server without deleting the cache. If repository access fails, check
+`gh auth status --hostname github.com` in the same terminal that runs the command.
 Ctrl-C closes its server and stops collection. `--listen 127.0.0.1:8443`,
 `--window 12h`, `--duration 2h`, `--refresh 2m`, and `--count 100` narrow or adjust
 the session. The count caps each repository's recent-run lookup and usage sample
 separately (maximum 1000 each); their deduplicated union contains at most twice
 that count. It is not a guarantee of complete history.
 
+The local operator profile uses the built-in dashboard and does not discover or
+load legacy campaign dashboard bundles.
 The landing page remains the standard **Overview**, with the existing factory
 header, factory stations, normal navigation and drill-downs. The shared Runs page presents recent
 executions and daily observations through canonical SQLite and revision subscriptions,

@@ -58,6 +58,13 @@ async function standaloneDashboard(t, directory, env, requests) {
     assert.ok(!exited && Date.now() < deadline, `standalone dashboard did not start:\n${output}\n${requests.join("\n")}`);
     await setTimeout(25);
   }
+  assert.match(output, /Starting local CAO dashboard for octo\/api/);
+  assert.match(output, /browser URL will appear when ready/);
+  assert.match(output, /Open this URL in your browser/);
+  assert.match(output, /Refresh: every 5m0s/);
+  assert.match(output, /press Ctrl\+C to stop\. Cached data is kept/);
+  assert.ok(output.includes(`SQLite cache: ${join(cache, "gh-aw-logs.sqlite")}`));
+  assert.equal((output.match(/Dashboard: http:\/\//g) ?? []).length, 1);
   const url = new URL(match[1]);
   url.search = "";
   url.hash = "";

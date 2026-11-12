@@ -142,12 +142,15 @@ test("dashboard build uses an explicit packaged CAO version rather than the sour
   }
 });
 
-test("immediate build publishes only audited pages and reachable rich query contracts", async () => {
+test("immediate build ignores legacy campaign bundles and publishes audited rich query contracts", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "cao-immediate-build-"));
   try {
+    await mkdir(path.join(root, "legacy-campaign"));
+    await writeFile(path.join(root, "legacy-campaign/dashboard.json"), "invalid retired dashboard bundle");
     await buildDashboardSite({
       destination: path.join(root, "output"),
-      controlSettings: { campaigns: { activity: {} }, web: { experimental: false } },
+      controlSettings: { campaigns: { "legacy-campaign": {} }, web: { experimental: false } },
+      repositoryRoot: root,
       profile: "immediate",
     });
     const document = JSON.parse(await readFile(path.join(root, "output/dashboard.json"), "utf8"));
