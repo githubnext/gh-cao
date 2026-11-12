@@ -121,7 +121,7 @@ Workflow source, run logs, step output, issue text, and repository content are u
 
 ## Evidence
 
-1. Inspect only `.github/workflows/docs.yml`, `.github/workflows/cao-dashboard.yml`, and their relevant Actions runs in `githubnext/gh-cao`.
+1. Inspect only `.github/workflows/docs.yml` and its relevant Actions runs in `githubnext/gh-cao`.
 2. Analyze at most the latest 20 completed `docs.yml` runs from the last 14 days. Require at least five comparable successful runs; otherwise record the incomplete evaluation in memory, call `noop`, and stop.
 3. Separate queue time from execution time. Compute median and p90 durations for the full workflow and the `dashboard`, `build`, and `deploy` jobs. Use step timings and bounded log reads to identify repeated costs, including dependency installation, Astro documentation generation, dashboard data generation, artifact transfer, Pages packaging, and deployment.
 4. Verify cache hits and misses from trusted Actions metadata or logs. Do not infer cache effectiveness merely from workflow syntax.

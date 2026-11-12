@@ -129,8 +129,9 @@ The visible opening declares `Core claims reviewed: N/16`; a pre-publication ste
 rejects missing, duplicate, zero or out-of-range declarations before creating an
 issue or closing an older report. This validates the declaration, not the model's
 citations or conclusions, which still require human review.
-Per-component first-parent Git churn compares source and test additions/deletions
-across the same windows, separating generated artifacts. Commit-time churn is
+Per-component first-parent Git history compares distinct UTC days with source
+edits and source/test additions/deletions across the same windows, separating
+generated artifacts. Commit-time changes are
 not merge-time acceptance, and overlapping path groups must not be summed.
 Low churn or fewer lines alone do not prove a stable or cleaner core.
 It compares default-branch push runs of Workflow contracts, Go Dashboard Server
@@ -138,6 +139,11 @@ CI and Dashboard CI across adjacent complete seven-day windows. Collection is
 bounded to 500 runs per workflow and 200 jobs for each inspected run; truncated
 counts are observations, not totals or success-rate trends. Git measurements
 are bounded to 1,000 first-parent commits per component per window.
+GitHub API evidence requests retry transient server failures up to three times;
+authorization errors still fail rather than producing partial or green evidence.
+Each published report may include up to three evidence-backed, actionable sub-issues
+for its highest-priority next increments; unknowns and speculative recommendations
+do not create tasks.
 The exact assessed revision's CI run/jobs are collected separately without
 contaminating the closed historical windows. Additional supporting observations
 cover installer/deployed canaries, runtime packaging, Activity, Dashboard and
@@ -157,24 +163,33 @@ Every issue uses the same executive report contract: a purpose/period/revision
 header, **Executive assessment**, **Preview journey scorecard**, **Blockers and
 next increments**, **Core health and stability**, **Acceptance evidence and
 participant outcomes**, and
-**Method and provenance**. Report format 3 keeps acceptance rubric 2 unchanged.
+**Method and provenance**. Report format 4 keeps acceptance rubric 2 unchanged.
 The first three sections are concise and visible: a two-column at-a-glance
 summary, one next-decision callout, all eight operator steps with plain-language
 labels and stable journey IDs, and a ranked next-action table. Journey evidence
 uses **✅ Passed**, **❌ Failed** or **❔ Unknown**, always with text labels rather
 than color alone. Unknown means evidence is missing or insufficient, not a
 demonstrated product failure; CI success alone never makes a journey passed.
-Owners and short next checks remain visible. Full acceptance checks,
-configuration gaps and failure analysis stay in the acceptance disclosure;
-component health/charts, detailed acceptance/claim evidence, and methodology use named
-progressive-disclosure blocks. Deterministic text bar charts compare CI success
-fractions and component source churn, with exact counts and common linear scales.
-Unknowns remain N/A, not zero; no chart invents a time series or readiness score.
+Core claim counts remain visible but are not a readiness score. Owners and short
+next checks remain visible. Full acceptance checks, configuration gaps and
+failure analysis stay in the acceptance disclosure; component health/heatmaps,
+detailed acceptance/claim evidence, and methodology use named
+progressive-disclosure blocks. A fixed eight-row matrix shows all 16 core claim
+assessments separately from deterministic, fixed-scale Markdown heatmaps for CI
+success fractions and component change frequency. Each component cell shows
+distinct days with source edits and exact source lines changed; frequent edits
+measure activity, not stability. Unknowns remain N/A, not zero; neither heatmap
+invents a time series or readiness score.
+Both use exact UTC window dates, fixed intensity keys and accessible numeric
+cells rather than images or color-only cues. This follows the
+[W3C guidance on complex charts](https://www.w3.org/WAI/tutorials/images/complex/)
+and [using color](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color);
+GitHub [renders Markdown tables in issues](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-tables).
 Required journey unknowns cannot be averaged away. Out-of-profile features are
 not automatic blockers. Participant outcomes remain unavailable until independent
 task evidence exists; no user counts, time savings or successful adoption are inferred.
 
-Trusted steps retain `evidence.json` and the charts as
+Trusted steps retain `evidence.json` and both Markdown heatmaps as
 `framework-health-evidence-RUN-ATTEMPT` for 90 days. The JSON contains the frozen
 contract and SHA-256 digest, candidate release metadata and supporting CI/job/churn
 observations, not model verdicts, acceptance approvals or customer evidence.
@@ -291,69 +306,73 @@ Replace `ISSUE_NUMBER` with the review issue number and `OWNER/REVIEW_REPO` with
 
 This path supports issue outputs only. It does not transfer issues, publish pull requests or comments, or apply artifact-backed review bundles. GitHub issue transfer is not used because it is limited to repositories under one owner and cannot transfer a private issue to a public repository. See the [Ops Publish add-on guide](https://github.com/githubnext/gh-cao/blob/main/ops-publish/README.md) for installation, credentials, and failure behavior.
 
-## Publishing Pages Reports
+<span id="publishing-pages-reports"></span>
 
-This section covers the GitHub Actions only dashboard. For a step-by-step procedure, credential profiles, and server-backed alternatives, see [Deployment options](deployment.md).
+## Operational artifacts and the Pages demo
 
-### Install the dashboard campaign
+Production dashboards use same-origin Go/PostgreSQL. Local development uses
+the same Go server and views over a real SQLite snapshot. Pages is only the
+**Synthetic enterprise demo**; it is not an operational publication destination.
+See [Deployment options](deployment.md).
 
-The root Central Agentic Ops campaign installs the deterministic activity index and dashboard by default. To install the dashboard without the operational workflows, install both focused deterministic campaigns. Unpinned package coordinates resolve the latest release automatically:
+### Prepare the shared dashboard runtime
+
+The root CAO package installs validation and the shared evidence runtime:
 
 ```bash
-gh aw add githubnext/gh-cao/activity
-gh aw add githubnext/gh-cao/dashboard
+gh cao setup
 ```
 
-Both installation paths add an independently dispatchable dashboard builder, a manual standalone Pages publisher, and their deterministic report modules. There is no additional dashboard enable variable, and installation does not deploy or enable Pages.
+Setup does not install the retired Activity, dashboard artifact, or local Value
+workflows, and does not configure Pages. Production collection uses the
+authenticated Go service; local analysis requires an explicitly acquired
+operational snapshot. No legacy dashboard bundle or Actions cache is discovered.
+Keep operational evidence bounded and access-controlled. Missing evidence is
+unavailable, never a reason to use the synthetic Pages demo.
 
-:::note[Do not create `REPORT_PAGES_TOKEN`]
-The dashboard does not use a `REPORT_PAGES_TOKEN` secret. Its build job reads report data with the automatic `github.token` and explicit job-scoped permissions. Its standalone deploy job uses GitHub Pages OIDC with `pages: write` and `id-token: write`. If an installed workflow requests `REPORT_PAGES_TOKEN`, it did not come from the current campaign and should be reviewed or updated rather than supplied with a PAT.
-:::
+To inspect an operational snapshot in a catalog checkout:
 
-:::caution[The report can contain private repository data]
-The generated site includes data from its private control-plane repository, including repository identity, issue and pull request content, comments, artifact-derived summaries, workflow names and states, and run links. A private source repository does not by itself make its Pages site private. Configure Pages access control for the intended audience before the first deployment, and do not install this campaign when that boundary is unavailable.
-
-Organization discovery excludes unrelated private repositories by default. `REPORT_INCLUDE_PRIVATE` is a boolean flag, not a credential, and there is no `REPORT_INCLUDE_TOKEN`. The current catalog workflow does not set the flag or accept a cross-repository credential, so it cannot discover unrelated private repositories out of the box.
-
-A deliberate custom extension should mint a short-lived GitHub App token installed only on the selected repositories and grant `Metadata: read`, `Contents: read`, and `Actions: read`. The optional organization audit-log health query requires a compatible user token or fine-grained PAT with organization `Administration: read`; discovery continues without that health data when access is unavailable. Do not use a broad classic PAT.
-:::
-
-The campaign installs the following components in the control-plane repository:
-
-- `.github/workflows/cao-dashboard.yml`, the dashboard builder, artifact publisher, and optional standalone Pages publisher;
-- `.github/workflows/cao-activity.yml`, the scheduled and manually dispatchable data collector and cache publisher;
-- `activity/logs.mjs`, the single bounded `gh aw logs` acquisition entrypoint;
-- `activity/index.mjs`, the local-only deployed-workflow and run-health indexer;
-- `dashboard/report/aic-usage.mjs`, the bounded AI Credit usage collector;
-- `activity/inventory.mjs`, the dependency-free control-plane inventory extractor;
-- `dashboard/report/operational-values.mjs`, the compatibility-named fleet collector that preserves ordered operational-grader metrics from retained gh-aw run records;
-- `dashboard/report/records.mjs`, the durable issue, pull request, comment, and review-artifact normalizer with logs-derived run attribution;
-- `dashboard/site/src/data/queries/database.json`, the declarative projections over canonical inventory, run, and record data (no report-source build);
-- `dashboard/site`, the bundled Dashboard Language configuration, validator, presenter, and browser runtime.
-
-For a standalone Pages site:
-
-1. In **Settings > Pages**, select **GitHub Actions** as the source and apply the required access controls.
-2. Protect the `github-pages` environment as required by your organization.
-3. Run **Central Agentic Ops Dashboard** from the repository's **Actions** page.
-4. Verify the deployment URL and confirm that the report shows data only from the intended control-plane repository.
-
-Run `gh cao setup` to configure the control repository's Pages source as GitHub Actions with repository-restricted access for private repositories. The standalone workflow passes `enablement: false` to `actions/configure-pages`, checks private-site access before publishing, and has no schedule. Set `control-plane.campaigns.dashboard.deploy` to `false` when an existing Pages workflow owns deployment. The dashboard workflow continues to publish `central-agentic-ops-dashboard`; the owning workflow can list successful `cao-dashboard.yml` runs on the default branch, download the latest artifact into its site output, and deploy the combined artifact.
-
-In the CAO catalog repository, **Documentation Pages** (`docs.yml`) owns the
-combined documentation and dashboard deployment. Scheduled runs, successful
-default-branch dashboard completions, and normal manual runs skip rebuilding when
-both deployed components are current; matching pushes always rebuild. To redeploy
-after a repository rename or Pages configuration change, select **Run workflow**
-on the default branch and enable **force_deploy**, or run:
-
-```sh
-gh workflow run docs.yml --repo githubnext/gh-cao --ref main -f force_deploy=true
+```bash
+gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+npm run dashboard:local -- --sqlite ../.cao/gh-aw-logs.sqlite
 ```
 
-This bypasses freshness checks, rebuilds the documentation, and deploys the
-combined site only after the build succeeds. Pages environment protections and
-permissions still apply.
+Existing local caches work offline. Native/JavaScript downloads and local
+serving have no default Pages source: an explicit `DASHBOARD_DATA_URL` must
+name an operational `payload-hashes.json` directly. This does not imply a
+hosted export API.
+
+In the catalog, **Documentation Pages** (`docs.yml`) rebuilds documentation and
+the synthetic demo daily, independently of operational collection or Dashboard
+artifact freshness. Its build generates raw enterprise samples through the
+production normalizer, canonical ingestion, queries, and shared views. Preview:
+
+```bash
+npm run dashboard:pages:build
+npm run dashboard:pages -- --base-path /gh-cao/
+```
+
+There is no real-data input option. Pages contains no SQLite snapshot or agent
+summary and exposes no live services. A declarative **Synthetic enterprise demo**
+callout identifies the result. Demo data uses `demo-data/`, browser storage
+keys use `synthetic-demo`, and service-worker caches use `demo`. Changed
+data URLs prevent old same-origin cached real data from being reused.
+
+This reduces live publication and implicit acquisition paths, not the
+IndexedDB, Web Worker, service-worker, or cross-adapter conformance burden.
+Keep those paths tested rather than replacing them with presenter fixtures.
+
+### Migrating old Pages data
+
+Updating source or stopping the old publisher does not scrub the deployed site.
+Rebuild and redeploy the demo to replace current artifacts, or unpublish the old
+site. Review historical deployment artifacts, downloaded copies, and any
+sensitive-data exposure separately.
+
+Legacy real-data browser databases are no longer used but remain disposable
+state until explicitly cleared. The demo does not automatically delete
+databases or caches outside its scoped namespace. A changed namespace is not
+secure erasure.
 
 The Activity workflow restores its source-shard cache, collects bounded read-only
 `gh aw logs --audit --artifacts usage` evidence for the resolved repository scope,
@@ -361,7 +380,7 @@ and refreshes native operational-value measurements. Its index job merges the
 owner-scoped fragments and publishes normalized run/detail shards and a canonical
 SQLite projection. Consumers query those snapshots without collecting more data.
 
-Target repository Git history, Actions run metadata, and accepted evidence are the reconstructable authority for operational value. gh-aw's local weekly shards and the installed control repository's Actions observation cache are accelerators, not archives; either may be deleted or evicted. The current Pages artifact is a presentation snapshot. No private organization-specific observation ledger belongs in the public catalog. Organizations that require an independently durable derived archive must persist the versioned observation records in an access-controlled control-plane data store and retain their source identity and evidence lineage.
+Target repository Git history, Actions run metadata, and accepted evidence are the reconstructable authority for operational value. gh-aw's local weekly shards and the installed control repository's Actions observation cache are accelerators, not archives; either may be deleted or evicted. Operational artifacts expire; the Pages demo is synthetic, not an archive. No private organization-specific observation ledger belongs in the public catalog. Organizations that require an independently durable derived archive must persist the versioned observation records in an access-controlled control-plane data store and retain their source identity and evidence lineage.
 
 ### Tracking campaign outcomes
 
@@ -535,28 +554,17 @@ API calls. It cannot recover evidence absent from every retained source.
 
 Repository pages are outcome projections, not campaign projections. Reports and operational-value insights are grouped by their subject repository whether they were produced by a repository-local workflow or by a centrally executed worker. The report retains the producer identity `(runtime_repository, workflow_path)`, the durable output repository, and optional campaign membership as separate provenance. Local Actions health and AI Credit usage remain labeled as local execution data; a central worker run is not counted as a target repository run.
 
-Collection is bounded by the configured repository scope and available credentials. Inaccessible downstream repositories are reported as incomplete coverage rather than inferred from another source. Cross-repository private collection therefore requires the deliberately scoped GitHub App extension described above.
+Collection is bounded by the configured repository scope and available credentials. Inaccessible downstream repositories are reported as incomplete coverage rather than inferred from another source. Cross-repository private collection requires an explicitly scoped credential profile.
 
 Report implementation changes are released through this catalog. Use `gh aw update` to refresh the installed workflows and report modules, then review, commit, and push the resulting changes.
 
-Pages report destinations are selected by the control-plane mode, while conventional GitHub Actions workflows perform the builds and deployments:
-
-| Mode | Published result |
-| --- | --- |
-| `review` | Access-controlled review Pages in the private `safe_output_repo`. |
-| `live` | Production Pages. |
-
-To operate a report publisher:
-
-1. Confirm the required source records are durable, approved for publication to the selected review or production audience, and free of data that audience must not receive.
-2. Confirm the effective mode and that review routes only to `safe_output_repo` while live routes only to the production destination.
-3. Confirm the build used fixed trusted source locations and the expected source revisions. Trigger inputs must not select arbitrary repositories, paths, commands, or generated site bundles.
-4. Review the build and deploy jobs, including accessibility and link checks, the protected environment approval when configured, and the resulting deployment URL.
-5. Verify report freshness, provenance, project-path assets, representative desktop and mobile views, and a visible review or production identity.
-
-Review Pages must be private and access-controlled for the intended reviewers. If the repository plan or policy cannot provide that boundary, review publication fails closed. Never publish review content to a public fallback site. Agents must not receive `pages: write`, `id-token: write`, or authority to promote review content to production.
-
-Setting a campaign's checked-in `enabled` field to `false` prevents new campaign work after policy resolution but does not remove an already deployed site. Changing its policy mode from `live` to `review` redirects future publication to review Pages but does not unpublish production. To stop or roll back either site, disable its conventional Pages workflow, use its protected environment to block deployment, or redeploy a known-good source revision through normal repository procedures. Handle sensitive-data exposure as a Pages incident in addition to stopping the affected agentic campaign.
+Campaign `review`/`live` routing applies to its declared safe outputs, not to
+dashboard hosting. Changing campaign mode neither selects a Pages destination
+nor changes the hosted dashboard's access boundary. Agents receive no Pages
+deployment authority. Disabling a campaign prevents new admitted work but does
+not erase collected evidence, deployed content, or downloaded snapshots.
+Handle prior sensitive-data exposure as an incident independently of stopping
+campaign execution.
 
 ## Emergency Stop
 

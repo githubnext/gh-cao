@@ -146,7 +146,7 @@ function declaredQueryReferences(value) {
   if (Array.isArray(value)) return value.flatMap(declaredQueryReferences);
   const configured = /** @type {Record<string, unknown>} */ (value);
   return Object.entries(configured).flatMap(([key, nested]) => {
-    if (['from', 'source', 'partial-source', 'query', 'freshness-source', 'health-source'].includes(key) && typeof nested === 'string' && queryNames.has(nested)) {
+    if (['from', 'source', 'partial-source', 'query', 'freshness-source', 'health-source', 'ingestion-source'].includes(key) && typeof nested === 'string' && queryNames.has(nested)) {
       return [nested];
     }
     if ((key === 'sources' || key === 'union') && Array.isArray(nested)) {

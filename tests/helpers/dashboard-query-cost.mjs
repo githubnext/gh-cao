@@ -10,14 +10,12 @@
  * without a browser in focused tests.
  */
 import { DatabaseSync } from "node:sqlite";
-import { execFileSync } from "node:child_process";
 import { copyFile, mkdtemp, readFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { loadDashboardSource } from "../../dashboard/report/bundle-dashboards.mjs";
-import { analyzeDashboardComplexity } from "../../activity/dashboard-complexity.mjs";
+import { analyzeDashboardComplexity } from "../../dashboard/report/query-complexity.mjs";
 import {
   executeDashboardQueries,
   executeDashboardQuery,
@@ -37,8 +35,6 @@ import {
 } from "../../dashboard/site/src/data/storage/indexeddb.js";
 import { installSqliteIndexedDB } from "../../dashboard/site/src/data/storage/sqlite-indexeddb.js";
 import { dashboardBenchmarkQueries } from "./dashboard-benchmark-queries.mjs";
-
-const CAO_CLI = fileURLToPath(new URL("../../activity/cao.mjs", import.meta.url));
 
 export const DEFAULT_QUERY_COST_CANDIDATES = 10;
 export const QUERY_COST_PAGE_LIMIT = 500;
@@ -96,24 +92,6 @@ export function deployedPayloadSources(databasePath) {
 }
 
 /**
- * Rebuilds a canonical database at the current schema version from the
- * deployed JSONL payloads using the shipped ingestion path.
- *
- * @param {ReturnType<typeof deployedPayloadSources>} payloads
- * @param {string} destination
- */
-function rebuildCanonicalDatabase(payloads, destination) {
-  execFileSync(process.execPath, [
-    CAO_CLI,
-    "ingest-jsonl",
-    "--database", destination,
-    ...(payloads?.arguments ?? []),
-    "--retention-days", "all",
-    "--run-retention-days", "all",
-  ], { stdio: ["ignore", "ignore", "pipe"] });
-}
-
-/**
  * Prepares a measurable canonical database and installs the SQLite-backed
  * IndexedDB shim over it, returning a disposer that removes the working copy
  * and restores the previously installed globals.
@@ -121,40 +99,27 @@ function rebuildCanonicalDatabase(payloads, destination) {
  * The snapshot is never opened in place: opening the canonical database
  * deletes every object store when the stored schema version is older than
  * `DATABASE_VERSION`, so measuring the downloaded file directly would destroy
- * it and silently report an empty projection. When the published snapshot
- * lags the reader, the deployed JSONL payloads are re-ingested at the current
- * schema version so the benchmark still measures real deployed data.
+ * it and silently report an empty projection. An incompatible snapshot must
+ * be explicitly replaced by its producer; the benchmark does not repair it.
  *
  * @param {string} databasePath
  */
 export async function openDeployedDatabase(databasePath) {
   const previousIndexedDB = globalThis.indexedDB;
   const previousKeyRange = globalThis.IDBKeyRange;
-  const directory = await mkdtemp(path.join(tmpdir(), "cao-query-cost-snapshot-"));
-  const working = path.join(directory, "snapshot.sqlite");
   const snapshot = path.resolve(databasePath);
   const version = readSnapshotDatabaseVersion(snapshot);
-  const payloads = version === DATABASE_VERSION ? null : deployedPayloadSources(snapshot);
-  let rebuilt = false;
-  let rebuildFailure;
-  if (payloads) {
-    try {
-      rebuildCanonicalDatabase(payloads, working);
-      rebuilt = true;
-    } catch (error) {
-      rebuildFailure = error instanceof Error ? error.message : String(error);
-      await rm(working, { force: true });
-    }
+  if (version !== DATABASE_VERSION) {
+    throw new Error(`A verified canonical SQLite snapshot at schema version ${DATABASE_VERSION} is required; Activity repair is retired.`);
   }
-  if (!rebuilt && existsSync(snapshot)) {
-    await copyFile(snapshot, working);
-  }
+  const directory = await mkdtemp(path.join(tmpdir(), "cao-query-cost-snapshot-"));
+  const working = path.join(directory, "snapshot.sqlite");
+  await copyFile(snapshot, working);
   const indexedDB = installSqliteIndexedDB(working);
   return {
     indexedDB,
     path: working,
-    rebuilt,
-    ...(rebuildFailure ? { rebuildFailure } : {}),
+    rebuilt: false,
     async close() {
       globalThis.indexedDB = previousIndexedDB;
       globalThis.IDBKeyRange = previousKeyRange;

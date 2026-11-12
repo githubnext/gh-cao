@@ -9,10 +9,10 @@ metadata:
 
 # Analyze CAO Data
 
-In agentic workflows, use JavaScript under `activity/` and `dashboard/`:
-[`node activity/cao.mjs`](../cao-cli/references/workflow-runtime.md) or read-only
-MCP. Never build, install, or invoke native `gh cao`. The operator procedure below
-does not apply.
+In agentic workflows, query explicitly prepared snapshots with an already
+available native `gh cao` or read-only MCP. Never build or install the `gh cao`
+extension as a fallback. Follow [workflow runtime](../cao-cli/references/workflow-runtime.md);
+the acquisition procedure below is for separately authorized operator use.
 
 ## Procedure
 
@@ -26,8 +26,8 @@ does not apply.
 
 ## Deterministic boundary
 
-Use `gh cao download`, `node activity/cao.mjs audit-jsonl`, `node activity/cao.mjs repair-database`, and reviewed `gh cao query`
-commands for acquisition, validation, filtering, and projection. The agent
+Use `gh cao download` and reviewed `gh cao query`
+commands for acquisition, filtering, and projection. The agent
 chooses the question and interprets availability, freshness, completeness, and
 results. Do not reproduce Dashboard Language queries or filter canonical rows
 in ad hoc code when an existing CLI query can answer the request.
@@ -50,32 +50,31 @@ Do you have shell access?
   NO / MCP only -> cao_catalog to discover pages and queries, then cao_query
 ```
 
-Without a shell, the workflow has already installed CAO, downloaded the snapshot,
-and started the read-only MCP server; call `cao_catalog` and `cao_query` instead of
-running commands. See [Agent analysis](https://github.com/githubnext/gh-cao/blob/main/docs/agent-analysis.md).
+Without a shell, use `cao_catalog` and `cao_query` against the prepared snapshot.
+See [Agent analysis](https://githubnext.github.io/gh-cao/agent-analysis/).
 
-1. Verify `gh cao --version`. Use the [CAO installer](https://github.com/githubnext/gh-cao/blob/main/docs/cao-cli.md#github-cli-extension) if the extension is unavailable. The retained `node activity/cao.mjs` audit and snapshot-repair tools additionally need the installed Node.js runtime.
-2. Download the current published activity snapshot:
+1. Verify `gh cao --version`; operators may use the [installer](https://github.com/githubnext/gh-cao/blob/main/docs/cao-cli.md#github-cli-extension) if absent.
+2. With Actions read access, select a successful default-branch Activity run:
 
    ```bash
-   gh cao download
+   gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
    ```
 
-   This writes `.cao/payload-hashes.json`, `.cao/gh-aw-logs-shards/`, and `.cao/gh-aw-logs.sqlite` by default.
-3. For another deployment, prefer the explicit source requested by the user:
+   This supplies SQLite and normalized shards under `.cao/`; verified caches
+   work offline.
+3. Or select a trusted operational manifest:
 
    ```bash
    gh cao download --url URL
    ```
 
-   `DASHBOARD_DATA_URL=URL gh cao download` is equivalent. The URL must point at `payload-hashes.json`; the CLI derives sibling shard and `gh-aw-logs.sqlite` URLs. Pass `--output DIRECTORY` only when the user requests a non-default destination.
-4. Check source coverage before treating the snapshot as complete:
-
-   ```bash
-   node activity/cao.mjs audit-jsonl
-   ```
-
-   Pass `--input FILE` only when auditing a non-default JSONL path.
+   `DASHBOARD_DATA_URL=URL` is equivalent. URLs must end in `/payload-hashes.json`.
+   No default Pages source, directory discovery, or hosted export is implied.
+   Synthetic manifests and missing SQLite checksums fail closed. Pages supplies
+   neither operational SQLite nor an agent summary. Use `--output DIRECTORY`
+   only for an explicit destination.
+4. Check query availability, completeness, freshness, and source scope before
+   treating the snapshot as complete. Missing evidence is not zero.
 5. Prefer the reviewed named queries the dashboard itself renders. Discover and run them with:
 
    ```bash
@@ -126,15 +125,10 @@ running commands. See [Agent analysis](https://github.com/githubnext/gh-cao/blob
    gh cao query --collection sessions --id SESSION_ID
    ```
 
-10. If database health is in doubt, run:
-
-   ```bash
-   node activity/cao.mjs repair-database
-   ```
-
-   This backs up and mutates the snapshot, applying retention even without
-   corruption. Use `--ttl-days all --run-ttl-days all` for historical detail,
-   not daily counts; see [daily-count limits](../cao-cli/SKILL.md#daily-run-counts).
+10. If database health is in doubt, treat the snapshot as unavailable and
+    reacquire verified evidence through an authorized preparation step. The
+    legacy JavaScript audit and repair commands are retired; never mutate a
+    workflow's supplied snapshot.
 
 ## Collections
 

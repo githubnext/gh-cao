@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,12 +12,37 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
+	"github.com/githubnext/gh-cao/server/internal/githubquota"
+	"github.com/githubnext/gh-cao/server/internal/operational"
+	"github.com/githubnext/gh-cao/server/internal/postgresx"
 )
 
 // NativeValueService is a separately selected execution lane for reviewed
 // Value programs. Native acquisition never stages an Activity lake for it.
 type NativeValueService struct {
-	Projector Projector
+	State                    operational.StateStore
+	Leases                   operational.LeaseStore
+	Data                     *postgresx.Store
+	Enrollment               Enrollment
+	CatalogRoot              string
+	GitHubAPIURL             string
+	Tokens                   TokenProvider
+	QuotaApp                 string
+	RemoteQuota              *githubquota.Service
+	RemoteSearchQuota        *githubquota.Service
+	RemoteHTTP               *http.Client
+	RemoteValuePlan          *RemoteValuePlanCache
+	PolicyPath               string
+	MinInterval              time.Duration
+	InventoryRepositoryLimit int
+	nativeValueScope         *collectnative.EnrollmentScope
+}
+
+func (s NativeValueService) minInterval() time.Duration {
+	if s.MinInterval <= 0 {
+		return 5 * time.Minute
+	}
+	return s.MinInterval
 }
 
 func nativeValueCatalog(root string) (string, error) {
@@ -31,7 +57,7 @@ func nativeValueCatalog(root string) (string, error) {
 }
 
 func (s NativeValueService) Validate() error {
-	p := s.Projector
+	p := s
 	if p.Data == nil || !p.Data.Open() || p.State == nil || p.Leases == nil ||
 		p.Enrollment.Authority == nil || p.CatalogRoot == "" || p.PolicyPath == "" ||
 		p.RemoteQuota == nil || p.RemoteSearchQuota == nil || p.Tokens == nil {
@@ -43,7 +69,7 @@ func (s NativeValueService) Validate() error {
 // ValidateRuntime checks only the selected Value lane's deployed policy,
 // without opening credentials or requiring backend handles.
 func (s NativeValueService) ValidateRuntime() error {
-	p := s.Projector
+	p := s
 	if p.CatalogRoot == "" || p.PolicyPath == "" {
 		return errors.New("selected native Value execution requires its reviewed catalog and policy")
 	}
@@ -65,24 +91,24 @@ func (s NativeValueService) ValidateRuntime() error {
 }
 
 func (s NativeValueService) InvalidateValue(ctx context.Context, scope collectnative.EnrollmentScope) error {
-	return s.Projector.Data.Acquisition().InvalidateValue(ctx, scope)
+	return s.Data.Acquisition().InvalidateValue(ctx, scope)
 }
 
 func (s NativeValueService) RunValues(ctx context.Context) error {
 	if err := s.Validate(); err != nil {
 		return err
 	}
-	root, err := nativeValueCatalog(s.Projector.CatalogRoot)
+	root, err := nativeValueCatalog(s.CatalogRoot)
 	if err != nil {
 		return err
 	}
-	s.Projector.CatalogRoot = root
+	s.CatalogRoot = root
 	lifetime, cancel := context.WithCancel(ctx)
 	defer cancel()
 	remote := make(chan struct{})
 	go func() {
 		defer close(remote)
-		(Worker{Projector: s.Projector}).remoteValueLoop(lifetime)
+		s.remoteValueLoop(lifetime)
 	}()
 	defer func() { cancel(); <-remote }()
 	timer := time.NewTimer(0)
@@ -92,16 +118,15 @@ func (s NativeValueService) RunValues(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-timer.C:
-			if err := s.Projector.CollectNativeLocalValues(ctx); err != nil && ctx.Err() == nil {
+			if err := s.CollectNativeLocalValues(ctx); err != nil && ctx.Err() == nil {
 				workerLog.Printf("native local Value deferred error_type=%T; accepted evidence retained", err)
 			}
-			timer.Reset(s.Projector.minInterval())
+			timer.Reset(s.minInterval())
 		}
 	}
 }
 
-func (w Worker) collectNativeRemoteValue(ctx context.Context, repository string, now time.Time) error {
-	p := w.Projector
+func (p NativeValueService) collectNativeRemoteValue(ctx context.Context, repository string, now time.Time) error {
 	scope, err := p.Enrollment.Authority.CurrentScope(ctx, repository)
 	if err != nil {
 		return err

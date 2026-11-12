@@ -2,7 +2,7 @@ import { writeCanvasArtifact } from './canvas-fixture.js';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-const { startCanvasServer } = await import(new URL('../../../canvas-server.mjs', import.meta.url).href);
+const { startCanvasServer } = await import(new URL('../../../../tests/helpers/canvas-snapshot.mjs', import.meta.url).href);
 
 for (const width of [1440, 390]) {
   test(`Governance is hidden in canvas development at ${width}px`, async ({ page }, testInfo) => {
@@ -14,7 +14,7 @@ for (const width of [1440, 390]) {
       output: () => {}, requestOutput: () => {}, traceOutput: () => {},
       approveCliAction: async () => false,
       executeCliAction: async () => { throw new Error('Hidden Governance must not execute commands.'); },
-      downloadData: async (/** @type {string} */ destination) => {
+      prepareSnapshot: async (/** @type {string} */ destination) => {
         await mkdir(destination, { recursive: true });
         await writeCanvasArtifact(destination, { sources: {
           repositories: { metadata: { 'as-of': new Date().toISOString() },

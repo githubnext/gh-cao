@@ -5,7 +5,7 @@ import { request } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { startCanvasServer } from "../../dashboard/canvas-server.mjs";
+import { startCanvasServer } from "../helpers/canvas-snapshot.mjs";
 import { writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
 import { refreshDashboardCompilerRelease } from "../../dashboard/local-release-metadata.mjs";
 
@@ -95,7 +95,7 @@ test("local GitHub routes enforce read-only same-origin access and advertise the
   await writeFile(path.join(siteRoot, "dashboard.json"), dashboard("preview"));
   const preview = await startCanvasServer({
     siteRoot, catalogRoot, workingDirectory: root, port: 0,
-    downloadData: async (destination) => {
+    prepareSnapshot: async (destination) => {
       await writeCanvasSnapshot(destination);
     },
     output: () => {},
@@ -157,7 +157,7 @@ test("local dashboard server composes campaign dashboards and reloads after upda
     JSON.stringify(campaignOne),
   );
   await writeFile(path.join(stalePreviewDirectory, "dashboard.json"), dashboard("built-in"));
-  const downloadData = async (destination) => {
+  const prepareSnapshot = async (destination) => {
     await writeCanvasSnapshot(destination);
   };
   const requestLogs = [];
@@ -165,7 +165,7 @@ test("local dashboard server composes campaign dashboards and reloads after upda
   const preview = await startCanvasServer({
     siteRoot,
     catalogRoot: campaignRoot,
-    downloadData,
+    prepareSnapshot,
     allowMissingOrigin: true,
     workingDirectory: root,
     requestOutput: (message) => requestLogs.push(message),
@@ -259,7 +259,7 @@ test("canvas actions stream incrementally, reject untrusted requests, and surviv
     approveCliAction: async () => true, siteRoot: root, catalogRoot: null, workingDirectory: root, port: 0,
     cliQueueAdmission: async () => ({ concurrency: 1 }),
     output: () => {}, traceOutput: () => {}, requestOutput: () => {},
-    downloadData: async (destination) => {
+    prepareSnapshot: async (destination) => {
       await writeCanvasSnapshot(destination);
     },
     executeCliAction: async ({ command, onOutput, signal }) => {
@@ -333,7 +333,7 @@ test("queued commands retain IDs across server restart and replay output by curs
   ]));
   const options = {
     approveCliAction: async () => true, siteRoot: root, catalogRoot: null, workingDirectory: root, port: 0, output: () => {}, traceOutput: () => {}, requestOutput: () => {},
-    downloadData: async (destination) => {
+    prepareSnapshot: async (destination) => {
       await writeCanvasSnapshot(destination);
     },
     executeCliAction: async ({ onOutput }) => {
@@ -386,7 +386,7 @@ test("canvas queue refuses a persistence directory symlink outside the workspace
     await assert.rejects(startCanvasServer({
       approveCliAction: async () => true, executeCliAction: async () => {}, siteRoot: root, catalogRoot: null, workingDirectory: root, port: 0,
       cliQueuePath: path.join(root, ".queue", "cli-actions.sqlite"), output: () => {}, traceOutput: () => {}, requestOutput: () => {},
-      downloadData: async (destination) => {
+      prepareSnapshot: async (destination) => {
         await writeCanvasSnapshot(destination);
       },
       cliQueueAdmission: async () => ({ concurrency: 1 }),
@@ -408,7 +408,7 @@ test("local dashboard server fails when dashboard data cannot be downloaded", as
       startCanvasServer({
         siteRoot: root,
         catalogRoot: null,
-        downloadData: async () => {
+        prepareSnapshot: async () => {
           throw new Error("artifact unavailable");
         },
         workingDirectory: root,
@@ -416,6 +416,20 @@ test("local dashboard server fails when dashboard data cannot be downloaded", as
       }),
       /artifact unavailable/,
     );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("canvas does not discover operational data inside a Pages artifact", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "dashboard-canvas-pages-rejected-"));
+  await writeFile(path.join(root, "index.html"), "<!doctype html><body>preview</body>");
+  await writeFile(path.join(root, "dashboard.json"), dashboard("built-in"));
+  try {
+    await assert.rejects(startCanvasServer({
+      siteRoot: root, catalogRoot: null, workingDirectory: root,
+      prepareSnapshot: (destination) => writeCanvasSnapshot(path.join(destination, "cao")),
+    }), /Prepare a checksum-verified operational snapshot/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -430,8 +444,8 @@ test("local dashboard server serves repository memory from canonical dashboard d
   const preview = await startCanvasServer({
     siteRoot,
     catalogRoot: null,
-    downloadData: async (destination) => {
-      const dataRoot = path.join(destination, "cao");
+    prepareSnapshot: async (destination) => {
+      const dataRoot = destination;
       await writeCanvasSnapshot(dataRoot);
       await mkdir(path.join(dataRoot, "memory", "ambient-context"), { recursive: true });
       const content = "bounded memory";
@@ -541,7 +555,7 @@ test("canvas dashboard executes only declared CLI actions through the provided e
   const preview = await startCanvasServer({
     siteRoot: root,
     catalogRoot: null,
-    downloadData: async (destination) => {
+    prepareSnapshot: async (destination) => {
       await writeCanvasSnapshot(destination);
     },
 
@@ -737,13 +751,13 @@ test("local dashboard server rejects paths outside its workspace", async () => {
   }
 });
 
-test("local dashboard server downloads dashboard-build data with GitHub CLI", {
+test("local dashboard server uses a prepared snapshot without artifact or Pages discovery", {
   skip: process.platform === "win32",
 }, async () => {
   const root = await mkdtemp(path.join(tmpdir(), "dashboard-local-server-"));
   const ghExecutable = path.join(root, "gh");
   const commands = [];
-  const artifact = path.join(root, "artifact");
+  const artifact = path.join(root, ".cao");
   await writeCanvasSnapshot(artifact);
   await writeFile(path.join(root, "index.html"), "<!doctype html><head></head><body>preview</body>");
   await writeFile(path.join(root, "dashboard.json"), dashboard("built-in", [{
@@ -752,41 +766,16 @@ test("local dashboard server downloads dashboard-build data with GitHub CLI", {
   await writeFile(ghExecutable, `#!/bin/sh
 [ "$(pwd -P)" = ${JSON.stringify(await realpath(root))} ] || exit 4
 if [ "$1" = "api" ]; then
-  if [ "$2" = "repos/acme/control" ]; then
-    printf 'main\\tacme/control\\n'
-    exit
-  fi
-  if [ "$2" = "repos/acme/control/pages" ]; then
-    [ ! -f ${JSON.stringify(path.join(root, "pages-unavailable"))} ] || exit 5
-    printf 'https://ops.example.com/central/\\n'
-    exit
-  fi
-  if [ "$2" = "repos/acme/control/actions/artifacts?name=central-agentic-ops-dashboard&per_page=100" ]; then
-    printf '42\\n'
-    exit
-  fi
-  if [ "$2" = "repos/acme/control/actions/runs/42" ]; then
-    printf 'success\\tmain\\t.github/workflows/cao-dashboard.yml\\n'
-    exit
-  fi
   if [ "$2" = "repos/github/gh-aw/releases/latest" ]; then
     [ ! -f ${JSON.stringify(path.join(root, "release-unavailable"))} ] || exit 5
     printf 'v0.92.0\\n'
     exit
   fi
+  touch ${JSON.stringify(path.join(root, "unexpected-discovery"))}
   exit 2
 fi
-[ "$1" = "run" ] &&
-  [ "$2" = "download" ] &&
-  [ "$3" = "42" ] &&
-  [ "$4" = "--name" ] &&
-  [ "$5" = "central-agentic-ops-dashboard" ] &&
-  [ "$6" = "--dir" ] &&
-  [ "$8" = "--repo" ] &&
-  [ "$9" = "acme/control" ] || exit 3
-mkdir -p "$7/cao"
-cp ${JSON.stringify(path.join(artifact, "gh-aw-logs.sqlite"))} "$7/cao/gh-aw-logs.sqlite"
-cp ${JSON.stringify(path.join(artifact, "payload-hashes.json"))} "$7/cao/payload-hashes.json"
+touch ${JSON.stringify(path.join(root, "unexpected-discovery"))}
+exit 3
 `);
   await chmod(ghExecutable, 0o755);
 
@@ -794,6 +783,7 @@ cp ${JSON.stringify(path.join(artifact, "payload-hashes.json"))} "$7/cao/payload
     siteRoot: root,
     catalogRoot: null,
     repository: "acme/control",
+    caoUrl: "https://ops.example.com/central/",
     approveCliAction: async () => true,
     cliQueueAdmission: async () => ({ concurrency: 1 }),
     executeCliAction: async ({ command }) => { commands.push(command); return { ok: true, exitCode: 0 }; },
@@ -817,7 +807,6 @@ cp ${JSON.stringify(path.join(artifact, "payload-hashes.json"))} "$7/cao/payload
     for (const pathname of ["gh-aw-logs-runs/logs-1.jsonl", "payload-hashes.json", "inventory-sources.json"]) {
       assert.equal((await fetch(`${preview.url}/${pathname}`)).status, 404);
     }
-    await writeFile(path.join(root, "pages-unavailable"), "");
     const executionOptions = {
       siteRoot: root, catalogRoot: null, repository: "acme/control", approveCliAction: async () => true,
       ghExecutable, workingDirectory: root, port: 0,
@@ -845,6 +834,9 @@ cp ${JSON.stringify(path.join(artifact, "payload-hashes.json"))} "$7/cao/payload
       const hostedHtml = await (await fetch(`${hosted.url}/`)).text();
       assert.match(hostedHtml, /<meta name="cao-url" content="https:\/\/custom\.example\.com\/ops\/">/);
     } finally { await hosted.close(); }
+    await assert.rejects(readFile(path.join(root, "unexpected-discovery")), { code: "ENOENT" });
+    await rm(path.join(artifact, "payload-hashes.json"));
+    await assert.rejects(startCanvasServer(executionOptions), /Prepare a checksum-verified operational snapshot/);
   } finally {
     await preview.close();
     await rm(root, { recursive: true, force: true });

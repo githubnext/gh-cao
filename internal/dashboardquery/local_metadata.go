@@ -41,7 +41,7 @@ func LocalDashboardMetadata(ctx context.Context, db SnapshotReader) (metadata ma
 	observed, observedErr := time.Parse(time.RFC3339Nano, record.CreatedAt)
 	if record.Kind != "local-dashboard" || record.Completeness != "partial" ||
 		startErr != nil || endErr != nil || observedErr != nil || !end.After(start) ||
-		end.Sub(start) > 48*time.Hour || len(record.Repositories) == 0 || len(record.Repositories) > 20 {
+		end.Sub(start) > 7*24*time.Hour || len(record.Repositories) == 0 || len(record.Repositories) > 20 {
 		return nil, errors.New("local dashboard observation contract is invalid")
 	}
 	freshness := "unknown"

@@ -31,6 +31,13 @@ the override and these compatibility checks together when upgrading the plugin.
 Do not edit or commit these outputs. The Pages workflow publishes them from the
 same `dist/` tree as the human site.
 
+Operational agent access routes to [Agent analysis](agent-analysis.md) at
+`/agent-analysis/`, which describes authorized Activity artifacts, explicit
+operational manifests, and bounded CLI/MCP queries. The dashboard under
+`/cao/` is a synthetic enterprise demo, not an operational agent-summary
+endpoint or bulk snapshot source. Documentation indexes must route operational
+analysis to the access guide, not a demo agent-summary URL.
+
 The validator limits `llms.txt` to 4 KiB, `llms-small.txt` to 64 KiB, and each
 routed `skills/*/SKILL.md` entry point to 12 KiB. It also requires every common
 task in `llms.txt` to resolve to exactly one skill in one hop and verifies that

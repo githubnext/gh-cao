@@ -28,11 +28,9 @@ func pagesFixture(t *testing.T) (string, map[string]string) {
 		"src/main.js":                    "export const original = true;",
 		"data/payload-hashes.json":       `{"inventory.json":"hash"}`,
 		"data/inventory.json":            `{"repositories":["owner/repo"]}`,
-		"data/activity.sqlite":           "SQLite format 3\x00\x00binary",
 		"data/shards/2026-10-21.json":    `{"runs":[{"id":1}]}`,
 		"data/shards/2026-10-21.json.gz": "\x1f\x8b\x08\x00compressed",
 		"nested/index.html":              "<!doctype html><main>Nested</main>",
-		"payload-hashes.json":            `{"data/inventory.json":"hash"}`,
 	}
 	for name, body := range files {
 		filename := filepath.Join(directory, filepath.FromSlash(name))
@@ -43,7 +41,26 @@ func pagesFixture(t *testing.T) (string, map[string]string) {
 			t.Fatal(err)
 		}
 	}
+	if err := os.WriteFile(filepath.Join(directory, ".cao-pages-demo.json"),
+		[]byte(`{"tool":"cao-pages-demo","synthetic":true}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	return directory, files
+}
+
+func TestServePagesRejectsOperationalArtifacts(t *testing.T) {
+	for _, name := range []string{".cao-pages-demo.json", "gh-aw-logs.sqlite", "agent-summary.json", "payload-hashes.json"} {
+		t.Run(name, func(t *testing.T) {
+			directory, _ := pagesFixture(t)
+			if err := os.WriteFile(filepath.Join(directory, name), []byte(`{}`), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if root, _, err := newPagesHandler(directory, "/"); err == nil {
+				_ = root.Close()
+				t.Fatal("accepted operational or unlabelled data as a Pages demo")
+			}
+		})
+	}
 }
 
 func testPagesHandler(t *testing.T, directory, basePath string) *pagesHandler {
@@ -191,14 +208,14 @@ func TestServePagesRedirectsStayOnOrigin(t *testing.T) {
 func TestServePagesRangeAndConditional(t *testing.T) {
 	directory, files := pagesFixture(t)
 	handler := testPagesHandler(t, directory, "/")
-	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/data/activity.sqlite", nil)
+	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/assets/engine.wasm", nil)
 	request.Header.Set("Range", "bytes=0-5")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
-	if response.Code != http.StatusPartialContent || response.Body.String() != files["data/activity.sqlite"][:6] {
-		t.Fatal("SQLite partial download failed")
+	if response.Code != http.StatusPartialContent || response.Body.String() != files["assets/engine.wasm"][:6] {
+		t.Fatal("binary asset partial download failed")
 	}
-	request = httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/data/activity.sqlite", nil)
+	request = httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/assets/engine.wasm", nil)
 	request.Header.Set("If-Modified-Since", response.Header().Get("Last-Modified"))
 	response = httptest.NewRecorder()
 	handler.ServeHTTP(response, request)

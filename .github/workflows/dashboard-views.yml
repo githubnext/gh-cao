@@ -1,4 +1,4 @@
-name: Dashboard views
+name: Synthetic demo dashboard views
 
 on:
   workflow_dispatch:
@@ -79,7 +79,6 @@ jobs:
         id: assessment
         continue-on-error: true
         env:
-          DASHBOARD_DATA_URL: https://githubnext.github.io/gh-cao/cao/payload-hashes.json
           DASHBOARD_VIEWS_OUTPUT_DIR: test-results/dashboard-views
           EVENT_NAME: ${{ github.event_name }}
           SELECTED_PAGE_IDS: ${{ steps.selection.outputs.page-ids }}
@@ -141,7 +140,7 @@ jobs:
               core.info(`Dashboard view assessment summary is unavailable at ${summaryPath}.`)
               body = [
                 marker,
-                '### Dashboard view assessment',
+                '### Synthetic enterprise demo view assessment',
                 '',
                 'The informational assessment did not produce a summary.',
                 '',
@@ -214,7 +213,8 @@ jobs:
               ].join('\n') : ''
               body = [
                 marker,
-                '### Dashboard view assessment',
+                '### Synthetic enterprise demo view assessment',
+                'Synthetic browser UX evidence only; not operational freshness or completeness evidence.',
                 '',
                 results.length === 0
                   ? isPullRequest

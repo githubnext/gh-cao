@@ -9,7 +9,7 @@ import {
   refreshFileDiet,
 } from '../skills/add-operational-value/examples/acquire-file-diet.mjs';
 import { readFileDietProof } from '../skills/add-operational-value/examples/daily-file-diet.mjs';
-import { assertValueHistory } from '../../activity/workflow-value-history.mjs';
+import { assertValueHistory } from './history.mjs';
 import { validateOperationalValueEvidence } from '../../dashboard/site/src/data/model/operational-value-evidence.js';
 
 // Runtime identity of the existing retrospective instrument, not a new evaluator.

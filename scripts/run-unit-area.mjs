@@ -20,7 +20,7 @@ export const unitTestAreas = {
     /^install-script\./, /^installer-canary\./, /^repository-/, /^no-hardcoded-github-actions-url\./,
     /^token-optimization-data-contract\./, /^unit-area-selection\./,
     /^backfill-stress-report\./, /^company-stress\./, /^source-map-compat\./,
-    /^maintainer-simulation\./,
+    /^maintainer-simulation\./, /^local-artifacts\./,
     /^(?:native-value-import|value-session-archive)\./,
   ],
   documentation: [

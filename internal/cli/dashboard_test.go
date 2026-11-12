@@ -17,6 +17,7 @@ import (
 
 func dashboardTestGH(t *testing.T, now time.Time) ghExecutor {
 	t.Helper()
+	reset := time.Now().Add(time.Hour).Unix()
 	return func(_ context.Context, args ...string) (string, string, error) {
 		encode := func(value any) (string, string, error) {
 			content, err := json.Marshal(value)
@@ -35,6 +36,13 @@ func dashboardTestGH(t *testing.T, now time.Time) ghExecutor {
 			return encode(map[string]any{"nameWithOwner": repository, "url": "https://github.com/" + repository, "id": "R_" + repository})
 		}
 		switch args[0] + " " + args[1] {
+		case "api --hostname":
+			if args[len(args)-1] == "rate_limit" {
+				return encode(map[string]any{"resources": map[string]any{"core": dashboardQuota{
+					Limit: 5000, Remaining: 5000, Reset: reset,
+				}}})
+			}
+			return `{"total_count":0,"workflow_runs":[]}`, "", nil
 		case "workflow list":
 			return encode([]dashboardWorkflow{{42, "Agent", ".github/workflows/agent.lock.yml", "active"},
 				{43, "Tests", ".github/workflows/tests.yml", "active"}})
@@ -77,7 +85,7 @@ func dashboardTestLogs(t *testing.T) dashboardLogsCollector {
 func TestDashboardValidationBeforeCollection(t *testing.T) {
 	for _, args := range [][]string{
 		{"--repo", "octo/*"}, {"--repo", "octo/../api"}, {"--repo", "evil.example/octo/api"},
-		{"--repo", "octo/api", "--window", "49h"}, {"--repo", "octo/api", "--duration", "0s"},
+		{"--repo", "octo/api", "--window", "169h"}, {"--repo", "octo/api", "--duration", "0s"},
 		{"--repo", "octo/api", "--count", "0"}, {"--repo", "octo/api", "--count", "1001"},
 		{"--repo", "octo/api", "--listen", "0.0.0.0:8080"}, {"--repo", "octo/api", "--refresh", "1s"},
 		{"--repo", "octo/api", "--repo", "octo/web", "--logs-dir", "."},
@@ -121,6 +129,9 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 	cache := filepath.Join(t.TempDir(), "private cache #1")
 	options := dashboardOptions{window: dashboardMaximumDuration, count: 200}
 	repositories := []string{"octo/api", "octo/web"}
+	if _, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), dashboardTestLogs(t)); err != nil {
+		t.Fatal(err)
+	}
 	metadata, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), dashboardTestLogs(t))
 	if err != nil {
 		t.Fatal(err)
@@ -159,17 +170,14 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 	if _, err := readDashboardStatus(t.Context(), cache, []string{"octo/api"}); err == nil {
 		t.Fatal("shared cache scope widened or narrowed without rejection")
 	}
-	before, err := os.ReadFile(filepath.Join(cache, "gh-aw-logs.sqlite"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	before := runs
 	fail := func(context.Context, dashboardLogRequest) error { return errors.New("unavailable") }
 	if _, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), fail); err == nil {
 		t.Fatal("failed collection did not propagate")
 	}
-	after, _ := os.ReadFile(filepath.Join(cache, "gh-aw-logs.sqlite"))
-	if !bytes.Equal(before, after) {
-		t.Fatal("failed collection modified the previous snapshot")
+	after, err := readNativeCollection(t.Context(), db, "runs")
+	if err != nil || !reflect.DeepEqual(before, after) {
+		t.Fatal("failed collection modified the previous evidence")
 	}
 	updated, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), dashboardTestLogs(t))
 	if err != nil || updated["createdAt"] == metadata["createdAt"] {
@@ -178,6 +186,26 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 	status, err := readDashboardStatus(t.Context(), cache, repositories)
 	if err != nil || status["createdAt"] != updated["createdAt"] {
 		t.Fatalf("refresh metadata is not atomically visible: %v %v", status, err)
+	}
+}
+
+func TestDashboardRepositoryAccessFailureExplainsRecovery(t *testing.T) {
+	base := dashboardTestGH(t, time.Now())
+	gh := func(ctx context.Context, args ...string) (string, string, error) {
+		if args[0] == "api" {
+			return base(ctx, args...)
+		}
+		return "", "", errors.New("private upstream diagnostic")
+	}
+	logs := func(context.Context, dashboardLogRequest) error {
+		t.Fatal("repository access failure must not collect artifacts")
+		return nil
+	}
+	_, err := collectDashboard(t.Context(), []string{"octo/api"}, t.TempDir(),
+		dashboardOptions{window: dashboardMaximumDuration, count: 2}, gh, logs)
+	if err == nil || !strings.Contains(err.Error(), "gh auth status --hostname github.com") ||
+		!strings.Contains(err.Error(), "octo/api") || strings.Contains(err.Error(), "private upstream diagnostic") {
+		t.Fatalf("repository failure lost safe recovery instructions: %v", err)
 	}
 }
 
@@ -256,6 +284,35 @@ func TestDashboardHelpIsServeOnly(t *testing.T) {
 		if !strings.Contains(output.String(), flag) {
 			t.Fatalf("dashboard help lost serving option %s", flag)
 		}
+	}
+}
+
+func TestDashboardServerAssetsRequireCompleteBundle(t *testing.T) {
+	files := []string{"cao-dashboard", "site/index.html", "site/dashboard.json",
+		"site/src/agent/queries.generated.json", "site/src/data/queries/database.json",
+		"site/src/agent/catalog.generated.json", "site/src/agent/mcp-contract.json"}
+	for _, missing := range append([]string{""}, files...) {
+		t.Run(missing, func(t *testing.T) {
+			directory := t.TempDir()
+			for _, name := range files {
+				if name != missing {
+					writeTestFile(t, filepath.Join(directory, filepath.FromSlash(name)), "{}")
+				}
+			}
+			_, _, cleanup, err := dashboardServerAssets(dashboardOptions{
+				server: filepath.Join(directory, "cao-dashboard"), site: filepath.Join(directory, "site"),
+			})
+			if cleanup != nil {
+				defer cleanup()
+			}
+			if missing == "" {
+				if err != nil {
+					t.Fatal(err)
+				}
+			} else if err == nil || !strings.Contains(err.Error(), filepath.Base(missing)) {
+				t.Fatalf("missing bundled resource %s was not rejected: %v", missing, err)
+			}
+		})
 	}
 }
 
@@ -435,8 +492,12 @@ func TestDashboardRejectsInvalidExistingCacheWithoutObservedRuns(t *testing.T) {
 			if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, base, dashboardTestLogs(t)); err != nil {
 				t.Fatal(err)
 			}
-			filename := filepath.Join(cache, "gh-aw-logs.sqlite")
-			before, err := os.ReadFile(filename)
+			db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = db.Close() }()
+			before, err := readNativeCollection(t.Context(), db, "runs")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -456,8 +517,8 @@ func TestDashboardRejectsInvalidExistingCacheWithoutObservedRuns(t *testing.T) {
 			if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, gh, logs); err == nil {
 				t.Fatal("invalid cached evidence was silently discarded")
 			}
-			after, err := os.ReadFile(filename)
-			if err != nil || !bytes.Equal(before, after) {
+			after, err := readNativeCollection(t.Context(), db, "runs")
+			if err != nil || !reflect.DeepEqual(before, after) {
 				t.Fatalf("invalid cached evidence changed the previous snapshot: %v", err)
 			}
 		})
@@ -482,6 +543,11 @@ func TestDashboardArtifactCachesKeepExactScopeAndOwnership(t *testing.T) {
 		if _, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, time.Now()), logs); err != nil {
 			t.Fatal(err)
 		}
+		if !external {
+			if _, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, time.Now()), logs); err != nil {
+				t.Fatal(err)
+			}
+		}
 		for _, request := range requests {
 			if request.ManagedCache == external {
 				t.Fatalf("external artifact ownership was changed: %+v", request)
@@ -490,5 +556,41 @@ func TestDashboardArtifactCachesKeepExactScopeAndOwnership(t *testing.T) {
 		if !external && (requests[0].Directory == requests[1].Directory || requests[0].Cache == requests[1].Cache) {
 			t.Fatal("distinct repositories shared an artifact cache")
 		}
+	}
+}
+
+func TestDashboardOptionalLocalArtifactCache(t *testing.T) {
+	for _, present := range []bool{false, true} {
+		t.Run(map[bool]string{false: "without local files", true: "with local cache"}[present], func(t *testing.T) {
+			t.Chdir(t.TempDir())
+			local := filepath.Join(".github", "aw", "logs")
+			if present {
+				if err := os.MkdirAll(local, 0o700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			cache := t.TempDir()
+			writeLogs := dashboardTestLogs(t)
+			logs := func(ctx context.Context, request dashboardLogRequest) error {
+				if request.ManagedCache == present {
+					t.Fatalf("local artifact cache selection changed: %+v", request)
+				}
+				if present {
+					expected, err := filepath.Abs(local)
+					if err != nil || request.Directory != expected {
+						t.Fatalf("existing local cache was not reused: %+v, %v", request, err)
+					}
+				}
+				return writeLogs(ctx, request)
+			}
+			if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache,
+				dashboardOptions{window: dashboardMaximumDuration, count: 2},
+				dashboardTestGH(t, time.Now().UTC().Add(-time.Second)), logs); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := os.Stat(policyPath); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("dashboard must not require or create local CAO policy: %v", err)
+			}
+		})
 	}
 }

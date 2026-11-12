@@ -4,7 +4,9 @@
 
 Treat top-level Central Agentic Ops campaigns as operational campaigns by default. They contain an orchestrator and at least one independently dispatchable worker, use `shared/control.md`, and follow `skills/create-cao-campaign/SKILL.md`.
 
-The `dashboard/` campaign is the deterministic exception. It contains conventional GitHub Actions workflows, data producers, and the Dashboard Language renderer under `dashboard/site/`, not an orchestrator or workers. Install it from root `aw.yml`; `dashboard/aw.yml` remains a component manifest included by the root campaign and is not a standalone installation entry point because gh-aw cannot run the required materialization hook for component manifests. Never fold it into an operational campaign.
+The `dashboard/` directory contains the shared Dashboard Language runtime,
+not an installable campaign. The legacy Activity, dashboard artifact, and local
+Value workflows and their component manifests are removed.
 
 ## CAO and gh-aw authority
 
@@ -63,29 +65,29 @@ required. See `docs/configuration.md` for the policy and import contract.
 
 ## Agent runtime
 
-Agentic workflows execute the installed JavaScript runtime under `activity/`
-and `dashboard/`, using `node activity/cao.mjs <command>` or the relevant
-JavaScript module directly. Do not build, install, or invoke the native `gh cao`
-extension as an agent runtime dependency. The native extension and root
-`install-gh-cao.sh` are operator tools; their dedicated build, release, and installation
-tests do not change the agent runtime boundary.
+The obsolete Activity JavaScript CLI is retired. Shared dashboard helpers live
+under `dashboard/`, and collection and Value services remain native Go.
+An authorized workflow may query an explicitly prepared operational snapshot
+with an already available native `gh cao` or bounded read-only tools. Do not
+build or install the `gh cao` extension as a missing-evidence fallback.
+The root `install-gh-cao.sh` remains an operator tool, not a workflow bootstrap.
 
 For Activity-backed analysis, follow
 `skills/cao-cli/references/workflow-runtime.md`: use the restored cache with an
 explicit database path, or fall back to bounded read-only tools when the runtime
 or evidence is unavailable. Do not install the operator extension as a fallback.
 
-## Deterministic core campaigns
+## Operational snapshot inputs
 
-- Install the `activity/` campaign from the root manifest. It owns the scheduled and manually dispatchable data-collection workflow, cache key contract, and activity index schema.
-- Keep data collection and cache publication out of operational campaigns and dashboard build jobs. Consumers may restore the activity cache and must fall back narrowly when its scope, freshness, or completeness is insufficient.
-- The activity cache is an evictable optimization, not historical authority. Do not use it to widen CAO policy or credential reach.
+- The legacy Activity, Dashboard artifact, and local Value workflows are retired. The root manifest installs validation; the runtime still supplies explicit snapshot analysis and hosted collection tooling.
+- Keep data collection and cache publication out of operational campaigns and dashboard build jobs. Consumers must validate the scope, freshness, and completeness of explicitly prepared operational evidence.
+- Prepared snapshots are evidence, not historical authority or permission to widen CAO policy or credential reach.
 
 ## Dashboard contract
 
-- Install Activity and Dashboard together through the root CAO installer. Do not document direct component-manifest installation as complete because it omits canonical runtime materialization.
-- Keep `.github/workflows/cao-dashboard.yml` as the single dashboard builder and optional Pages publisher. It must support manual dispatch, rebuild after changes to CAO policy or dashboard campaign files, and rebuild after a successful default-branch Activity run. It must always upload the reusable dashboard artifact, honor `control-plane.campaigns.dashboard.deploy` (default `true`) for Pages publication, pass `enablement: false` to `actions/configure-pages`, and must not add a schedule or another enable variable.
+- Materialize the shared dashboard runtime through the root CAO installer. Do not reinstall the retired component workflows or their manifests.
+- Use an explicitly acquired, verified operational snapshot for local analysis or the authenticated hosted collector. Do not discover legacy dashboard bundles or treat Pages as operational evidence.
 - Keep report source modules under `dashboard/report/`; the CAO materializer preserves those canonical paths in control repositories.
-- Restore the complete collected-data snapshot from the activity cache; do not recreate collection or cache publication in the dashboard builder.
+- Preserve scope, freshness, and completeness metadata when reading a prepared snapshot.
 - Keep the production renderer under `dashboard/site/`; the CAO materializer preserves that canonical path in control repositories.
-- Require Pages to be configured for GitHub Actions with appropriate access control before any standalone deployment.
+- Only the documentation workflow publishes Pages, using generated synthetic enterprise data. It must not restore operational artifacts, collection caches, credentials, or live services. Cloud production and local development are the real-data paths.

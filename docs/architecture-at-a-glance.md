@@ -2,8 +2,8 @@
 title: What is Central Agentic Ops?
 description: Monitor and govern GitHub Agentic Workflows across repositories, with shared evidence and policy-controlled execution.
 next:
-  link: /gh-cao/architecture/
-  label: Architecture
+  link: /gh-cao/personas/
+  label: Who is CAO for?
 ---
 
 **Central Agentic Ops (CAO)** is a system for monitoring and governing

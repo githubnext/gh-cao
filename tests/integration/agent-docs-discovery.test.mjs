@@ -144,7 +144,11 @@ test("consolidated guides retain section links and expose their canonical source
     "setup-one-organization": ["install", "configure-the-apps", "validate-and-commit"],
     "setup-multiple-organizations": ["install", "create-and-install-the-apps", "configure-the-control-repository", "validate-and-commit"],
     "setup-fine-grained-pat": ["install", "configure-the-tokens", "validate-and-commit"],
-    "deployment-actions": ["choosing-a-credential-profile", "deploying-the-dashboard", "keeping-the-site-up-to-date", "publishing-from-an-existing-pages-workflow"],
+    "deployment-actions": [
+      "choosing-a-credential-profile", "preparing-operational-evidence",
+      "reading-a-snapshot-locally", "building-the-synthetic-pages-demo",
+      "migrating-an-older-pages-deployment",
+    ],
     deployment: ["about-the-shared-data-flow", "what-every-option-guarantees"],
     "execution-and-safety": ["standard-control-envelope", "invariants", "failure-posture"],
     "rollout-and-routing": ["promotion-at-a-glance", "live-authority-check"],

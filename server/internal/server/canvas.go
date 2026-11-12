@@ -115,9 +115,6 @@ func (a *App) canvasHandler(next http.Handler) http.Handler {
 			if !request.URL.Query().Has("local-preview") {
 				query := request.URL.Query()
 				mode := "canvas"
-				if config.OperatorActions != nil {
-					mode = "operator"
-				}
 				query.Set("local-preview", mode)
 				http.Redirect(response, request, config.Prefix+"/?"+query.Encode(), http.StatusFound)
 				return

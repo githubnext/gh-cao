@@ -17,7 +17,7 @@ const extensionUrl = new URL("../../com.github.copilot/extensions/cao-dashboard/
 async function fixture() {
   const workspace = await realpath(await mkdtemp(join(tmpdir(), "cao-canvas-test-")));
   const ghExecutable = join(workspace, "gh");
-  const artifact = join(workspace, "artifact");
+  const artifact = join(workspace, ".cao");
   await writeCanvasSnapshot(artifact, normalize(queryDashboardSourceObservations({
     repositories: {
       metadata: { "as-of": "2026-10-10T00:00:00Z" },
@@ -25,26 +25,10 @@ async function fixture() {
     },
   }).observations));
   await writeFile(ghExecutable, `#!${process.execPath}
-import { mkdirSync, copyFileSync } from "node:fs";
-import { join } from "node:path";
 if (process.cwd() !== ${JSON.stringify(workspace)}) process.exit(4);
 const args = process.argv.slice(2);
-if (args[0] === "api") {
-  if (args[1].endsWith("/actions/runs/42")) {
-    process.stdout.write("success\\tmain\\t.github/workflows/cao-dashboard.yml\\n");
-  } else if (args[1].includes("/actions/artifacts?")) {
-    process.stdout.write("42\\n");
-  } else if (args[1] === "repos/github/gh-aw/releases/latest") {
-    process.stdout.write("v0.92.0\\n");
-  } else {
-    process.stdout.write("main\\n");
-  }
-} else if (args[0] === "run" && args[1] === "download") {
-  const destination = args[args.indexOf("--dir") + 1];
-  mkdirSync(destination, { recursive: true });
-  for (const file of ["gh-aw-logs.sqlite", "payload-hashes.json"]) {
-    copyFileSync(join(${JSON.stringify(artifact)}, file), join(destination, file));
-  }
+if (args[0] === "api" && args[1] === "repos/github/gh-aw/releases/latest") {
+  process.stdout.write("v0.92.0\\n");
 } else {
   process.exit(3);
 }
@@ -134,18 +118,24 @@ test("plugin canvas stages its site inside a foreign workspace and cleans up", {
   }
 });
 
-test("canvas fails closed when downloaded canonical data is corrupt", {
+for (const invalid of ["corrupt", "synthetic"]) test(`canvas fails closed when downloaded canonical data is ${invalid}`, {
   skip: process.platform === "win32",
 }, async () => {
   const { workspace, ghExecutable } = await fixture();
   try {
-    await writeFile(join(workspace, "artifact", "gh-aw-logs.sqlite"), "invalid snapshot");
+    if (invalid === "corrupt") {
+      await writeFile(join(workspace, ".cao", "gh-aw-logs.sqlite"), "invalid snapshot");
+    } else {
+      const manifestPath = join(workspace, ".cao", "payload-hashes.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+      await writeFile(manifestPath, JSON.stringify({ ...manifest, synthetic: true }));
+    }
     await assert.rejects(startLocalDashboardPreview({
       workingDirectory: workspace,
       executeCliAction: async () => {},
       approveCliAction: async () => false,
       ghExecutable,
-    }), /checksum/);
+    }), invalid === "corrupt" ? /checksum/ : /Synthetic Pages demo/);
     assert.deepEqual(await previewDirectories(workspace), []);
   } finally {
     await rm(workspace, { recursive: true, force: true });
@@ -190,13 +180,13 @@ test("failed plugin canvas startup removes staged assets", {
 }, async () => {
   const { workspace, ghExecutable } = await fixture();
   try {
-    await writeFile(ghExecutable, `#!${process.execPath}\nprocess.exit(2);\n`);
+    await rm(join(workspace, ".cao", "payload-hashes.json"));
     await assert.rejects(startLocalDashboardPreview({
       workingDirectory: workspace,
       executeCliAction: async () => {},
       approveCliAction: async () => false,
       ghExecutable,
-    }), /Unable to query the dashboard data artifact/);
+    }), /Prepare a checksum-verified operational snapshot/);
     assert.deepEqual(await previewDirectories(workspace), []);
   } finally {
     await rm(workspace, { recursive: true, force: true });

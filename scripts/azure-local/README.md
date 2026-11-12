@@ -25,6 +25,8 @@ or managed PostgreSQL TLS; those remain real-Azure smoke-test concerns.
 Azure Functions Core Tools 4.15.1 is downloaded on first use from its official
 GitHub release for the host OS and architecture and verified by a pinned SHA-256.
 Each platform has a separate cache protected by an exclusive installation lock.
+Only the custom-handler host is extracted: unused .NET in-process hosts and
+Java, Node.js, PowerShell and Python workers are excluded from this Go-only harness.
 The host runs natively, including on Apple Silicon; PostgreSQL 16 and Azurite 3.37.0 images
 are pinned by tag or digest.
 
@@ -42,6 +44,32 @@ The selected engine is persisted in `runtime.env`; subsequent `wait`, `logs` and
 `stop` restore that selection even if the caller selects another engine.
 State created before engine selection was introduced belongs to Docker.
 Keep the original engine's context/connection unchanged while a stack is running.
+
+The Podman integration workflow overlaps the independent hosted-CLI boundary,
+Azure service suite and portable harness checks, and waits for all three before
+reporting success or failure. Race-instrumented test executables and the dashboard
+server are cached against the complete Go source, embedded resources, module
+lockfiles and build recipe, with no stale-key restoration. On a miss, the build
+also reuses Go's module and compilation cache. The checksum-verified Core Tools installation is cached
+separately by platform and harness revision; runtime state, credentials and
+container storage are never cached. Cold-cache runs still download tools and
+compile the real adapters; cache hits do not replace test execution.
+Service checks batch compatible Go selectors so packages share compilation and
+race-instrumented test processes. Every selector and package must execute tests,
+and any skipped service evidence still fails the suite.
+CI explicitly supplies `AZURE_LOCAL_TEST_BINARIES` from this exact-source cache.
+The harness copies that server and runs those test executables through Go's
+cached `test2json`; a missing executable fails rather than falling back to another build.
+Without that setting, local runs continue to build and test the current checkout.
+The deployment-protocol suite runs while the real service stack starts, and the
+independently namespaced PostgreSQL adapter suites run concurrently. Synthetic
+PostgreSQL data lives on container tmpfs to avoid overlay-filesystem write costs;
+this is still real PostgreSQL, but does not establish host-crash durability.
+The explicit GitHub development profile retains its original storage behavior.
+CI gives hosted-CLI workloads, real Azure services and CPU-heavy deployment
+protocols separate parallel jobs to avoid engine-store and CPU contention.
+The real service job uses `run-services`; all three jobs run on every invocation.
+The ordinary `run` command still runs both suites and propagates either failure.
 
 ## Local service engine setup
 

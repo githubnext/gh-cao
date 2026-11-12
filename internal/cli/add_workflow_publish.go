@@ -113,7 +113,7 @@ func finishWorkflowAdd(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupProm
 	if !repositoryPattern.MatchString(repository) {
 		return errors.New("unable to determine control repository for publication")
 	}
-	publication, err := publishCAOChanges(cmd, gh, prompt, repository, "", files,
+	publication, err := publishCAOChanges(cmd, gh, prompt, repository, files,
 		"Commit and push these CAO workflow changes?", "Add CAO workflow "+name,
 		"Pushing publishes the workflow and policy; scheduled or event triggers may start work. A first manual run requires separate approval.")
 	if err != nil {

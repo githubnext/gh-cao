@@ -12,6 +12,11 @@ need to understand what a dashboard record represents or how records connect.
 Views query this source-neutral model instead of interpreting upstream formats
 directly.
 
+Production Go/PostgreSQL and local Go/SQLite snapshots use this same model.
+Pages demonstrates it with generated synthetic enterprise evidence through
+production normalization, canonical ingestion, queries, and shared views—not
+presenter fixtures. The demo has no live services or operational-data input.
+
 For deployment topologies, trust boundaries, consistency and recovery, start
 with [Data architecture for cloud architects](dashboard-data-architecture.md).
 
@@ -124,15 +129,36 @@ distinguish them.
 
 Run-owned records use a source sequence when one exists. Otherwise, source timestamp plus a deterministic ID tie-breaker defines order. Related calls, policy checks, responses, and results share a `correlationId` where available.
 
-The activity collector requests the compact gh-aw `usage` artifact with audit generation enabled. The offline adapter prefers authoritative agent `events.jsonl`, MCP Gateway `gateway.jsonl` or `rpc-messages.jsonl`, and firewall `audit.jsonl` records when an older cache contains them; otherwise it derives tool records from `run_summary.json`. It also retains normalized audit aggregates and `aw_info.json` agent, model, runtime, compiler, firewall, and gateway versions. Run evidence is scanned once, checkout and prompt trees are excluded, and raw messages, prompts, arguments, response bodies, and artifact bodies are not shipped to Pages.
+The activity collector requests the compact gh-aw `usage` artifact with audit generation enabled. The offline adapter prefers authoritative agent `events.jsonl`, MCP Gateway `gateway.jsonl` or `rpc-messages.jsonl`, and firewall `audit.jsonl` records when an older cache contains them; otherwise it derives tool records from `run_summary.json`. It also retains normalized audit aggregates and `aw_info.json` agent, model, runtime, compiler, firewall, and gateway versions. Run evidence is scanned once, checkout and prompt trees are excluded, and raw messages, prompts, arguments, response bodies, and artifact bodies are excluded from the canonical dashboard projection. No real operational records are shipped to Pages.
 
-SQL uses the versioned `gh-aw-cao.dashboard-sql-export` interchange contract. Database owners map their schema to the contract and export static JSON before deployment. Local and deployed environments use the same contract, validator, adapter, and canonical queries; the static dashboard never opens a database connection.
+SQL uses the versioned `gh-aw-cao.dashboard-sql-export` interchange contract.
+Database owners map their schema to the contract and export JSON for authorized
+canonical ingestion, not real-data Pages publication. All profiles use the same
+contract, validator, adapter, and canonical queries; the demo never opens a
+database connection.
 
 ## Update and retain browser data
 
+The browser rules below apply to the synthetic demo and adapter conformance.
+Operational artifacts feed local SQLite or hosted PostgreSQL, not Pages.
+
 Observations can arrive at different times and enrich an existing entity. Explicit source precedence and observation time resolve conflicting fields; arrival order alone never decides the result.
 
-The activity shard manifest is the dashboard's published operational input. Normalized run-information and record shards are JSONL streams: a metadata envelope is followed by one canonical record envelope per line. The worker imports every run-information stream before downloading the larger record streams and writes bounded batches as response bytes arrive; it never parses a normalized shard as one JSON object. Run records include immutable agent, model, duration, firewall, MCP, operational-grader, and audit-priority aggregates; every Domain, Tool, Audit, and Issue includes its owning `runId`. Run queries may refresh between phases, but that intermediate state is not a complete snapshot and record-dependent queries remain stale until record ingestion succeeds. Legacy schema-v2 JSONL remains a compatibility input. `github_api_rate_limit` envelopes create Audits only when explicit collection context identifies their owning run; browser ingestion does not fabricate that ownership. Unknown kinds and unsupported non-empty schema versions fail explicitly.
+The demo manifest uses the same normalized transport contract as operational
+artifacts, with synthetic-only content under `demo-data/`. Normalized
+run-information and record shards are JSONL streams: a metadata envelope is
+followed by one canonical record envelope per line. The worker imports every
+run-information stream before downloading larger record streams and writes
+bounded batches as bytes arrive; it never parses a normalized shard as one JSON
+object. Run records include immutable agent, model, duration, firewall, MCP,
+operational-grader, and audit-priority aggregates; every Domain, Tool, Audit,
+and Issue includes its owning `runId`. Run queries may refresh between phases,
+but that intermediate state is not complete and record-dependent queries remain
+stale until record ingestion succeeds. Schema-v2 JSONL remains an adapter input,
+not a Pages raw-shard fallback. `github_api_rate_limit` envelopes create Audits
+only when explicit collection context identifies their owning run; browser
+ingestion does not fabricate ownership. Unknown kinds and unsupported non-empty
+schema versions fail explicitly.
 
 The complete normative [cached gh-aw JSONL mapping](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-gh-aw-jsonl-mapping.md) describes source fields, canonical entities, identity, ownership, and accounting.
 

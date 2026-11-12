@@ -13,7 +13,10 @@ test("SelfCare agent discoverability audits bounded access-path routing", () => 
   const source = workflow("self-care-agent-discoverability.md");
 
   assert.match(source, /worker: agent-discoverability/);
-  assert.match(source, /https:\/\/githubnext\.github\.io\/gh-cao\/cao\//);
+  assert.match(source, /canonical `skills\/analyze-cao\/SKILL\.md` entry point/);
+  assert.match(source, /explicitly selected snapshot or the authenticated cloud service/);
+  assert.doesNotMatch(source, /https:\/\/githubnext\.github\.io\/gh-cao\/cao\//);
+  assert.match(source, /unavailable evidence stays unavailable, with no synthetic fallback/);
   assert.match(source, /Start only at/);
   assert.match(source, /at most 25 total HTTP fetches, 8 MCP calls, and 5 local CLI commands/);
   assert.match(source, /`cao_catalog`, then one bounded `cao_query`/);
@@ -43,45 +46,22 @@ test("dashboard view assessment comments only on pull requests", () => {
   assert.match(source, /queryUsageGraphSection/);
 });
 
-test("SelfCare dashboard data schema worker tracks every deployed source with Data Health inference", () => {
+test("SelfCare dashboard data schema worker compares canonical contracts without Pages inference", () => {
   const source = workflow("self-care-dashboard-data-schema.md");
 
   assert.match(source, /campaign: self-care\n\s+role: worker\n\s+worker: dashboard-data-schema/);
   assert.match(source, /safe_output_mode` is `live`/);
-  assert.match(source, /https:\/\/githubnext\.github\.io\/gh-cao\/cao\/sources/);
-  assert.match(source, /deriveDataHealthSources/);
-  assert.match(source, /manifest\.sources\.sort\(\)/);
+  assert.match(source, /CANONICAL_DATABASE_SCHEMA/);
+  assert.match(source, /CANONICAL_SCHEMA_VERSION/);
+  assert.match(source, /canonical-source-contract/);
+  assert.match(source, /Never replace the specification wholesale/);
+  assert.doesNotMatch(source, /https:\/\/githubnext\.github\.io|deriveDataHealthSources|curl |manifest\.sources/);
   assert.match(source, /allowed-files:\n\s+- "specs\/dashboard-data\.md"/);
   assert.match(source, /if-no-changes: ignore/);
   assert.match(source, /labels: \[self-care, self-care:dashboard-data-schema\]/);
   assert.doesNotMatch(source, /npm (?:install|ci)|npx /);
 });
 
-test("SelfCare open source failures uses complete dashboard activity evidence", () => {
-  const source = workflow("self-care-open-source-failures.md");
-
-  assert.match(source, /^name: "SelfCare \/ Open Source Failures"$/m);
-  assert.match(source, /tracker-id: self-care-open-source-failures/);
-  assert.match(source, /uses: shared\/activity-cache\.md/);
-  assert.match(source, /deployed-workflows\.json/);
-  assert.match(source, /snapshot\.schemaVersion !== 1/);
-  assert.match(source, /snapshot\.runHealth\?\.available !== true/);
-  assert.match(source, /snapshot\.runHealth\?\.complete !== true/);
-  assert.match(source, /snapshot\.runHealth\.windowHours < 168/);
-  assert.match(source, /workflow\.visibility === "public"/);
-  assert.match(source, /failures\.slice\(0, 100\)/);
-  assert.match(source, /exactly `githubnext\/gh-cao`/);
-  assert.match(source, /safe_output_mode` is `live`/);
-  assert.match(source, /Do not discover repositories/);
-  assert.match(source, /conclusion-only runs[\s\S]*?corroborating recurrence/);
-  assert.match(source, /labels: \[self-care, self-care:open-source-failures\]/);
-  assert.match(source, /title-prefix: "\[self-care:open-source-failures\] "/);
-  assert.match(source, /max: 3/);
-  assert.match(source, /select the single most important action with the highest expected return on investment/i);
-  assert.match(source, /<details><summary><b>Agent prompt<\/b><\/summary>/);
-  assert.doesNotMatch(source, /^evals:/m);
-  assert.doesNotMatch(source, /^graders:/m);
-});
 
 test("SelfCare Primer brand checker audits the dashboard against retrieved guidance", () => {
   const source = workflow("self-care-primer-brand-checker.md");
@@ -205,8 +185,12 @@ test("SelfCare dashboard reviewer checks deployments through stakeholder persona
   assert.match(source, /name: "SelfCare \/ Dashboard"/);
   assert.match(source, /campaign: self-care\n\s+role: worker\n\s+worker: dashboard-review/);
   assert.match(source, /safe_output_mode` is `live`/);
-  assert.match(source, /REPORT_INVENTORY=\/tmp\/gh-aw\/agent\/self-care-dashboard-review\/expected-inventory\.json/);
+  assert.match(source, /Reviewed policy and workflow declarations: `\.github\/workflows\/cao\.json` and the checked-out workflow sources/);
+  assert.doesNotMatch(source, /expected-inventory\.json|activity\/inventory\.mjs/);
   assert.match(source, /githubnext\.github\.io\/gh-cao\/cao\//);
+  assert.match(source, /Never compare its displayed values to real Actions or policy values/);
+  assert.match(source, /not operational records/);
+  assert.match(source, /operational freshness and completeness as not assessed/);
   assert.match(source, /^  playwright:\s*$/m);
   assert.match(source, /version: "0\.1\.18"/);
   assert.match(source, /browsers: \[chromium\]/);
@@ -219,22 +203,20 @@ test("SelfCare dashboard reviewer checks deployments through stakeholder persona
   assert.match(source, /playwright-cli -s=preflight-chrome open about:blank[\s\S]*--browser=chromium/);
   assert.match(source, /toolsets: \[repos, issues, actions\]/);
   assert.match(source, /githubnext\.github\.io/);
-  assert.match(source, /at most the latest 100 runs from the last 24 hours/);
+  assert.match(source, /Record the checked-out commit as contract provenance/);
   assert.match(source, /overview, dispatches, campaigns, repositories, workflows, runs, and coverage routes/);
   assert.match(source, /title-prefix: "\[self-care:dashboard-review\] "/);
   assert.match(source, /close-older-key: self-care-dashboard-review/);
   assert.match(source, /labels: \[self-care, self-care:dashboard-review\]/);
-  const expectedInventory = stepBlock(source, "Build expected control-plane inventory");
-  const dashboardArtifact = stepBlock(source, "Download and grade the live dashboard artifact");
+  const dashboardArtifact = stepBlock(source, "Build and grade the checked-out dashboard contract");
   const targetGuard = /^\s+if: \$\{\{ inputs\.target_repo == 'githubnext\/gh-cao' \}\}$/m;
-  assert.match(expectedInventory, targetGuard);
   assert.match(dashboardArtifact, targetGuard);
-  assert.match(source, /central-agentic-ops-dashboard/);
+  assert.doesNotMatch(source, /central-agentic-ops-dashboard|actions\/artifacts|gh run download/);
   assert.match(source, /view-grader\.mjs/);
-  assert.match(source, /dashboard-artifact/);
+  assert.match(source, /dashboard-contract/);
   assert.doesNotMatch(dashboardArtifact, /sources\.json/);
-  assert.match(dashboardArtifact, /must contain exactly one dashboard\.json/);
-  assert.match(source, /successful trusted default-branch build/);
+  assert.match(dashboardArtifact, /npm --prefix dashboard\/site run build/);
+  assert.match(dashboardArtifact, /--dashboard "\$review_dir\/dashboard-contract\/dashboard\.json"/);
   assert.match(source, /normalized Shannon entropy/);
   assert.match(source, /Reject major page, navigation, information-architecture, or view redesigns/);
   assert.match(source, /<details><summary><b>Agent prompt<\/b><\/summary>/);
@@ -343,6 +325,8 @@ test("SelfCare Pages health worker audits every deployed view on three profiles"
   assert.match(source, /campaign: self-care\n\s+role: worker\n\s+worker: pages-health/);
   assert.match(source, /safe_output_mode` is `live`/);
   assert.match(source, /https:\/\/githubnext\.github\.io\/gh-cao\/cao\//);
+  assert.match(source, /synthetic demo UI health, accessibility, and browser performance evidence/);
+  assert.match(source, /operational freshness and completeness were not assessed/);
   assert.doesNotMatch(source, /close-older-issues: true/);
   assert.doesNotMatch(source, /close-older-key: self-care-pages-health/);
   assert.match(source, /create-pull-request:/);
@@ -421,7 +405,7 @@ test("SelfCare view reuse worker generalizes one Dashboard Language view", () =>
   assert.match(source, /docs\/dashboard-language-specification\.md/);
   assert.match(source, /dashboard\/site\/src\/specification\.js/);
   assert.match(source, /at least one additional existing or test-fixture composition/);
-  assert.match(source, /Update both `dashboard\/aw\.yml` and root `aw\.yml` only when a new runtime file must be bundled/);
+  assert.match(source, /Update the runtime manifest only when a new runtime file must be bundled/);
   assert.match(source, /npm --prefix dashboard\/site run validate:corpus/);
   assert.match(source, /uses: actions\/cache@/);
   assert.match(source, /path: ~\/\.cache\/ms-playwright/);

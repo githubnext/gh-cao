@@ -146,7 +146,9 @@ install_core_tools_locked() {
       rm -rf "$temp_dir"
       fail "Azure Functions Core Tools checksum verification failed"
     }
-  unzip -q "$archive" -d "$temp_dir"
+  unzip -q "$archive" -d "$temp_dir" -x \
+    'in-proc6/*' 'in-proc8/*' \
+    'workers/java/*' 'workers/node/*' 'workers/powershell/*' 'workers/python/*'
   chmod +x "$temp_dir/func"
   rm -f "$archive"
   rm -rf "$tools_dir"
@@ -317,8 +319,14 @@ prepare_application() {
   fi
   cp "$ROOT/.github/workflows/cao.json" "$APP_DIR/.github/workflows/cao.json"
   cp "$ROOT/.github/workflows/cao.azure.json" "$APP_DIR/.github/workflows/cao.azure.json"
-  run_logged "dashboard server build" server-build.log \
-    go -C "$ROOT/server" build -o "$APP_DIR/cao-dashboard" ./cmd/cao-dashboard
+  if [[ -n "${AZURE_LOCAL_TEST_BINARIES:-}" ]]; then
+    [[ -x "$AZURE_LOCAL_TEST_BINARIES/cao-dashboard" ]] ||
+      fail "explicit test binary is missing or not executable"
+    cp "$AZURE_LOCAL_TEST_BINARIES/cao-dashboard" "$APP_DIR/cao-dashboard"
+  else
+    run_logged "dashboard server build" server-build.log \
+      go -C "$ROOT/server" build -o "$APP_DIR/cao-dashboard" ./cmd/cao-dashboard
+  fi
   cat >"$APP_DIR/host.json" <<'JSON'
 {
   "version": "2.0",
@@ -359,6 +367,8 @@ JSON
 }
 
 start() {
+  [[ "$PROFILE" == synthetic || -z "${AZURE_LOCAL_TEST_BINARIES:-}" ]] ||
+    fail "prebuilt test executables require the synthetic profile"
   check_state_profile
   select_platform
   if [[ "$PROFILE" == github ]]; then
@@ -419,6 +429,7 @@ PY
       -p 127.0.0.1::5432 -e POSTGRES_DB=cao -e POSTGRES_PASSWORD "$POSTGRES_IMAGE")"
   else
     POSTGRES_CONTAINER_ID="$(cao_container run -d --name "$postgres_name" -p 127.0.0.1::5432 \
+      --tmpfs /var/lib/postgresql/data:rw \
       -e POSTGRES_DB=cao -e POSTGRES_HOST_AUTH_METHOD=trust "$POSTGRES_IMAGE")"
   fi
   write_env_value POSTGRES_CONTAINER_ID "$POSTGRES_CONTAINER_ID"
@@ -560,6 +571,7 @@ test_stack() {
     node "$ROOT/tests/integration/azure-local-services.test.mjs" "$RUNTIME_JSON"
   run_logged "Azure Functions integration" integration-test.log \
     node "$ROOT/tests/integration/azure-local-functions.test.mjs" "$RUNTIME_JSON"
+  cat "$LOG_DIR/service-integration-test.log" "$LOG_DIR/integration-test.log"
 }
 
 logs() {
@@ -604,10 +616,31 @@ run_all() {
     RUNTIME_ENV="$STATE_DIR/runtime.env"
     RUNTIME_JSON="$STATE_DIR/runtime.json"
   fi
-  start
-  trap 'status=$?; trap - EXIT INT TERM; stop_internal; exit "$status"' EXIT INT TERM
-  wait_for_stack
-  test_stack
+  prepare_state
+  if [[ "${1:-}" == services ]]; then
+    start
+    trap 'status=$?; trap - EXIT INT TERM; stop_internal; exit "$status"' EXIT INT TERM
+    wait_for_stack
+    test_stack
+    return
+  fi
+  (
+    start
+    trap 'status=$?; trap - EXIT INT TERM; stop_internal; exit "$status"' EXIT INT TERM
+    wait_for_stack
+    test_stack
+  ) &
+  local stack_pid=$!
+  node "$ROOT/tests/integration/azure-local-protocols.test.mjs" >"$LOG_DIR/protocol-test.log" 2>&1 &
+  local protocol_pid=$!
+  trap 'trap - INT TERM; kill -TERM "$stack_pid" "$protocol_pid" 2>/dev/null || true; wait "$stack_pid" || true; wait "$protocol_pid" || true; exit 143' INT TERM
+  local status=0 protocol_status=0
+  wait "$stack_pid" || status=$?
+  wait "$protocol_pid" || protocol_status=$?
+  if (( status == 0 )); then status="$protocol_status"; fi
+  trap - INT TERM
+  cat "$LOG_DIR/protocol-test.log"
+  return "$status"
 }
 
 dev() {
@@ -633,9 +666,13 @@ case "${1:-}" in
   dev) dev ;;
   start) start ;;
   wait) wait_for_stack ;;
-  test) test_stack ;;
+  test)
+    [[ "$PROFILE" == synthetic ]] || fail "integration tests require the synthetic profile"
+    node "$ROOT/tests/integration/azure-local-protocols.test.mjs"
+    test_stack ;;
   logs) logs ;;
   stop) stop ;;
   run) run_all ;;
-  *) fail "usage: $0 {dev|start|wait|test|logs|stop|run}" ;;
+  run-services) run_all services ;;
+  *) fail "usage: $0 {dev|start|wait|test|logs|stop|run|run-services}" ;;
 esac

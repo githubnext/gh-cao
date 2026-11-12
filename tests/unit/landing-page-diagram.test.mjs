@@ -630,7 +630,8 @@ test("wizard page, UI, styles, and policy helpers are removed", () => {
 
 test("the campaign catalog remains independent of setup wizard configuration", () => {
   assert.match(catalog, /import rootManifestSource from "\.\.\/\.\.\/aw\.yml\?raw"/);
-  assert.match(catalog, /\.experimental\/\*\/aw\.\{yml,yaml\}/);
+  assert.match(catalog, /\.\.\/\.\.\/\*\/aw\.\{yml,yaml\}/);
+  assert.doesNotMatch(catalog, /\.experimental\//);
   assert.match(catalog, /export const catalogEntries = campaignEntries\s+\.filter\(\(entry\) => !entry\.private\)/);
   assert.doesNotMatch(catalog, /controlPolicy|configuredOperationEntries|selectConfiguredOperations/);
 });

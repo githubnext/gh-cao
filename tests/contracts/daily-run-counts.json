@@ -1,7 +1,7 @@
 {
   "version": 1,
   "specification": "specs/dashboard-data.md#722-additive-daily-run-counts",
-  "scope": "Implemented additive daily run counts only; not the proposed three-tier architecture.",
+  "scope": "Implemented additive daily run counts in native SQLite publication, IndexedDB and PostgreSQL only; not the proposed three-tier architecture. The Activity JavaScript SQLite writer is retired.",
   "deferred": [
     "sampling",
     "hot-tier limits",
@@ -10,7 +10,6 @@
     "full scope-level evidence reconciliation"
   ],
   "requirements": {
-    "activity-runtime": "Checked-in cao-activity workflow collects GitHub simulator evidence with real gh-aw, ingests and publishes daily counts, restores cache, replays, corrects reruns and rebuilds recycle-only snapshots",
     "classification": "UTC execution-start days and exclusive health counters summing to total",
     "reconciliation": "Replay, winning attempts, explicit nulls, corrections and atomic replacement",
     "retention": "Independent detail expiry, three UTC weeks, rollover, future exclusion and replay fences",
@@ -25,24 +24,26 @@
     {
       "id": "coverage-contract",
       "runner": "node",
-      "files": ["tests/unit/dashboard-daily-run-counts-conformance.test.mjs"],
+      "files": [
+        "tests/unit/dashboard-daily-run-counts-conformance.test.mjs"
+      ],
       "coverage": {}
     },
     {
-      "id": "activity-sqlite",
-      "runner": "node",
-      "files": ["tests/unit/activity-daily-run-counts.test.mjs"],
+      "id": "native-sqlite-publication",
+      "runner": "go",
+      "directory": ".",
+      "packages": [
+        "./internal/cli"
+      ],
+      "pattern": "^TestDashboardDailyCounts(GoldenCases|RetentionAndAtomicPublication|CanonicalQueries|ReplayGuardsAndCorruption|CachedStartPreservesAttemptScope)$",
+      "files": [
+        "internal/cli/dashboard_daily_test.go"
+      ],
       "coverage": {
-        "retention": "Activity doctor publishes UTC rollover eviction independently of detail TTL and fences changed-shard replay",
-        "backfill": "Activity SQLite v44 upgrade backfills multiple cursor pages without rewriting retained detail"
-      }
-    },
-    {
-      "id": "activity-actions-runtime",
-      "runner": "node",
-      "files": ["tests/integration/activity-actions-runtime.test.mjs"],
-      "coverage": {
-        "activity-runtime": "cao-activity publishes replay-safe daily counts and statistical queries through the Actions runtime"
+        "classification": "TestDashboardDailyCountsGoldenCases",
+        "reconciliation": "TestDashboardDailyCountsReplayGuardsAndCorruption",
+        "retention": "TestDashboardDailyCountsRetentionAndAtomicPublication"
       }
     },
     {
@@ -67,7 +68,9 @@
     {
       "id": "chromium-worker",
       "runner": "playwright",
-      "files": ["dashboard/site/test/e2e/indexeddb-stress.spec.js"],
+      "files": [
+        "dashboard/site/test/e2e/indexeddb-stress.spec.js"
+      ],
       "pattern": "(production data worker preserves daily health and repository chart coverage after detail eviction|native IndexedDB ingestion expires detail and weekly counts on unchanged-shard finalization)$",
       "coverage": {
         "retention": "native IndexedDB ingestion expires detail and weekly counts on unchanged-shard finalization",
@@ -78,24 +81,30 @@
       "id": "native-cli",
       "runner": "go",
       "directory": ".",
-      "packages": ["./internal/cli"],
-      "pattern": "^Test(Native(DailyCountsSource|RepositoryRunInventoryDailyAvailability)|DashboardDailyCounts(GoldenCases|RetentionAndAtomicPublication|CanonicalQueries|ReplayGuardsAndCorruption|CachedStartPreservesAttemptScope))$",
-      "files": ["internal/cli/native_daily_counts_test.go", "internal/cli/native_daily_inventory_test.go", "internal/cli/dashboard_daily_test.go"],
+      "packages": [
+        "./internal/cli"
+      ],
+      "pattern": "^TestNative(DailyCountsSource|RepositoryRunInventoryDailyAvailability)$",
+      "files": [
+        "internal/cli/native_daily_counts_test.go",
+        "internal/cli/native_daily_inventory_test.go"
+      ],
       "coverage": {
         "availability": "TestNativeDailyCountsSource",
-        "repository-chart": "TestNativeRepositoryRunInventoryDailyAvailability",
-        "classification": "TestDashboardDailyCountsGoldenCases",
-        "reconciliation": "TestDashboardDailyCountsReplayGuardsAndCorruption",
-        "retention": "TestDashboardDailyCountsRetentionAndAtomicPublication"
+        "repository-chart": "TestNativeRepositoryRunInventoryDailyAvailability"
       }
     },
     {
       "id": "hosted-sqlite",
       "runner": "go",
       "directory": "server",
-      "packages": ["./internal/sqlitex"],
+      "packages": [
+        "./internal/sqlitex"
+      ],
       "pattern": "^Test(DailyCounts|RepositoryRunInventoryDailyAvailability)",
-      "files": ["server/internal/sqlitex/daily_counts_test.go"],
+      "files": [
+        "server/internal/sqlitex/daily_counts_test.go"
+      ],
       "coverage": {
         "retention": "TestDailyCountsSnapshotSourceWithoutDetail",
         "availability": "TestDailyCountsOldSnapshotUnavailable",
@@ -106,7 +115,9 @@
       "id": "postgresql",
       "runner": "go",
       "directory": "server",
-      "packages": ["./internal/postgresx"],
+      "packages": [
+        "./internal/postgresx"
+      ],
       "pattern": "^Test(DailyCounts|DailyAggregateLeftJoinMetadata|RepositoryRunInventoryDailyAvailability)",
       "files": [
         "server/internal/postgresx/daily_counts_test.go",

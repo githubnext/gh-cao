@@ -1,17 +1,14 @@
 package cli
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 )
 
 func nodeRuntime(t *testing.T) (string, string) {
@@ -35,84 +32,6 @@ func nodeRuntime(t *testing.T) (string, string) {
 		t.Fatal(err)
 	}
 	return node, repository
-}
-
-func TestNativeOperatorOutputParity(t *testing.T) {
-	node, repository := nodeRuntime(t)
-	t.Setenv("CAO_RUNTIME_ROOT", repository)
-	t.Setenv("CAO_DEBUG", "")
-	t.Setenv("NODE_NO_WARNINGS", "1")
-	directory := t.TempDir()
-	database := filepath.Join(directory, "snapshot.sqlite")
-	for _, tt := range []struct {
-		args, legacy []string
-		input        string
-		code         int
-	}{
-		{args: []string{"pages", "--json"}},
-		{args: []string{"pages", "overview", "--json"}},
-		{args: []string{"queries", "--json"}},
-		{args: []string{"query-info", "campaign-inventory", "--json"}},
-		{args: []string{"prompt", "campaign-runs", "--param", "campaign=dependabot"}},
-		{args: []string{"query", "--database", database, "--collection", "runs", "--where", "conclusion=failure", "--limit", "3"}},
-		{args: []string{"query", "--database", database, "--stdin"}, input: `{"name":"empty-runs","from":"runs","limit":3}`},
-		{args: []string{"gh", "runs", "--database", database, "-R", "owner/repo", "-L", "3"}},
-		{args: []string{"download", "--url", "file:///not-an-http-snapshot"}, code: 1},
-		{args: []string{"query-info", "not-a-real-query", "--json"}, code: 1},
-	} {
-		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-			defer cancel()
-			legacy := tt.legacy
-			if legacy == nil {
-				legacy = tt.args
-			}
-			baseline := exec.CommandContext(ctx, node, append([]string{filepath.Join(repository, "activity", "cao.mjs")}, legacy...)...)
-			baseline.Stdin = strings.NewReader(tt.input)
-			var wantOut, wantErr bytes.Buffer
-			baseline.Stdout, baseline.Stderr = &wantOut, &wantErr
-			baselineErr := baseline.Run()
-			baselineCode := 0
-			if baselineErr != nil {
-				var exit *exec.ExitError
-				if !errors.As(baselineErr, &exit) {
-					t.Fatal(baselineErr)
-				}
-				baselineCode = exit.ExitCode()
-			}
-			if baselineCode != tt.code {
-				t.Fatalf("baseline failed with %d (want %d): %s", baselineCode, tt.code, wantErr.String())
-			}
-			root := NewRootCommand("test")
-			var stdout, stderr bytes.Buffer
-			root.SetOut(&stdout)
-			root.SetErr(&stderr)
-			root.SetIn(strings.NewReader(tt.input))
-			root.SetArgs(tt.args)
-			err := root.ExecuteContext(ctx)
-			code := 0
-			if err != nil {
-				code = 1
-				var exit *ExitError
-				if errors.As(err, &exit) {
-					code = exit.Code
-				} else {
-					stderr.WriteString("Error: " + err.Error() + "\n")
-				}
-			}
-			equalOutput := bytes.Equal(stdout.Bytes(), wantOut.Bytes())
-			if !equalOutput {
-				var gotJSON, wantJSON any
-				if json.Unmarshal(stdout.Bytes(), &gotJSON) == nil && json.Unmarshal(wantOut.Bytes(), &wantJSON) == nil {
-					equalOutput = reflect.DeepEqual(gotJSON, wantJSON)
-				}
-			}
-			if code != baselineCode || !equalOutput || !bytes.Equal(stderr.Bytes(), wantErr.Bytes()) {
-				t.Fatalf("runtime parity mismatch:\nstatus=%d (want %d)\nstdout=%s\nwant stdout=%s\nstderr=%s\nwant stderr=%s",
-					code, baselineCode, &stdout, &wantOut, &stderr, &wantErr)
-			}
-		})
-	}
 }
 
 func TestNativePolicyMatchesProductionContract(t *testing.T) {

@@ -81,6 +81,7 @@ export default defineConfig({
             "operational-*",
             "operations",
             "orchestrators-*",
+            "personas",
             "rollout-*",
             "setup-compatibility",
             "setup-fine-*",
@@ -126,7 +127,7 @@ export default defineConfig({
             },
             {
               label: "Dashboard data access",
-              url: "https://githubnext.github.io/gh-cao/cao/llms.txt",
+              url: "https://githubnext.github.io/gh-cao/agent-analysis/",
               description: "Choose bounded dashboard artifacts, MCP queries, or local SQLite analysis.",
             },
             {
@@ -255,6 +256,7 @@ export default defineConfig({
           label: "Introduction",
           items: [
             { label: "What is Central Agentic Ops?", link: "/architecture-at-a-glance/" },
+            { label: "Who is CAO for?", link: "/personas/" },
             { label: "Architecture", link: "/architecture/" },
           ],
         },

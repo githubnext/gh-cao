@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
 import test from "node:test";
 import { parse } from "yaml";
-import { FINE_GRAINED_PAT_PROFILES } from "../../activity/authentication.mjs";
 import { APP_PROFILES } from "../../.github/workflows/shared/github-apps.mjs";
 import { workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
 
@@ -70,18 +69,12 @@ test("shared control exposes target security metadata as declarable read inputs"
 
 test("read App grants every declarable target read permission without widening read PATs", () => {
   const readApp = APP_PROFILES.find((profile) => profile.role === "read");
-  const readPat = FINE_GRAINED_PAT_PROFILES.find((profile) => profile.role === "read");
   assert.ok(readApp);
-  assert.ok(readPat);
 
   for (const input of readInputs) {
     assert.equal(readApp.permissions[permissionName(input)], "read", `read App must grant ${permissionName(input)}`);
   }
-  for (const permission of Object.keys(readPat.permissions)) {
-    assert.equal(readApp.permissions[permission], "read", `read PAT permission ${permission} must also be granted by the read App`);
-  }
   assert.ok(Object.values(readApp.permissions).every((level) => level === "read"), "read App must stay read-only");
-  assert.ok(Object.values(readPat.permissions).every((level) => level === "read"), "read PAT must stay read-only");
 
   for (const { name, controlImport } of controlledWorkflows) {
     for (const [input, value] of Object.entries(controlImport.with)) {

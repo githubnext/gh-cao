@@ -65,7 +65,7 @@ time without presenting cached data as a successful refresh.
 ## Where the data comes from
 
 Overview uses the shared snapshot published by [CAO Activity](activity.md). The
-[Activity Specification](https://github.com/githubnext/gh-cao/blob/main/specs/activity.md)
+[Activity Specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-ingestion.md)
 defines the snapshot and its requirements.
 
 | Source | How Overview uses it |

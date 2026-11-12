@@ -544,7 +544,7 @@ describe('repository activity query optimization', () => {
 
     const estimates = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', `
       import { readFileSync } from 'node:fs';
-      import { analyzeDashboardComplexity } from '../../activity/dashboard-complexity.mjs';
+      import { analyzeDashboardComplexity } from '../../dashboard/report/query-complexity.mjs';
       const definitions = JSON.parse(readFileSync(0, 'utf8'));
       console.log(JSON.stringify(definitions.map((queries) =>
         analyzeDashboardComplexity({ dashboard: { queries } }).inventory.find((query) => query.name === 'repository-activity')

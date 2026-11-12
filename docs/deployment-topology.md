@@ -63,6 +63,10 @@ Existing vaults are external prerequisites, not free or verified resources.
 The compact profiles deliberately support Actions snapshots only. Select the
 Functions profile for optional collection, archive, gateway, ADX and telemetry;
 incompatible combinations fail rather than carrying hidden full-stack services.
+These are operational artifacts acquired with authorized Actions access, not
+the public synthetic Pages demo. Production serves the complete Go/PostgreSQL
+application on one origin; local Go/SQLite uses the same views over a real
+read-only snapshot. No topology uses Pages as an operational data host.
 
 ### Azure Container Apps
 

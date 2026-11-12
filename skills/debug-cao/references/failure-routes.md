@@ -25,8 +25,8 @@ Source map:
 - generated workflow: `.github/workflows/<workflow>.lock.yml`;
 - installed identity: `.github/aw/packages/*.json` and
   `.github/aw/campaigns/*.json`;
-- Activity: `.github/workflows/cao-activity.yml` and `activity/`;
-- dashboard: `.github/workflows/cao-dashboard.yml` and `dashboard/`;
+- Activity inputs: explicitly prepared snapshots and `activity/`;
+- dashboard: the Go server and `dashboard/`;
 - architecture: `ARCHITECTURE.md` and `specs/`.
 
 For browser-only failures, use the narrowest `?debug=` category from

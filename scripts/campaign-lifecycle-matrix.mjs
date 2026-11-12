@@ -10,7 +10,6 @@ const suites = [
     manifest: "aw.yml",
     testPattern: "root campaign",
     prefixes: [
-      "activity/",
       "dashboard/",
       "install-gh-cao.sh",
       ".github/actions/setup-cao-runtime/",
@@ -21,12 +20,6 @@ const suites = [
       ".github/workflows/shared/",
       ".github/workflows/daily-repo-status.",
     ],
-  },
-  {
-    name: "activity",
-    manifest: "activity/aw.yml",
-    testPattern: "focused activity installation remains incomplete",
-    prefixes: ["activity/", ".github/workflows/activity."],
   },
   {
     name: "CAO Evolution",
@@ -80,12 +73,6 @@ const suites = [
       ".github/workflows/shared/",
       ".github/workflows/software-development-practices",
     ],
-  },
-  {
-    name: "dashboard",
-    manifest: "dashboard/aw.yml",
-    testPattern: "dashboard campaign contract|--force restores dashboard",
-    prefixes: ["dashboard/", ".github/workflows/dashboard-"],
   },
   {
     name: "Dependabot",

@@ -1,13 +1,10 @@
 import { createHash } from "node:crypto";
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { executeCanonicalQuery } from "../../activity/canonical-query.mjs";
+import { executeCanonicalQuery } from "../../.github/skills/add-operational-value/scripts/canonical-query.mjs";
 import { executeDashboardQuery } from "../../dashboard/site/src/data/queries/declarative.js";
 
 const DAY_MS = 86_400_000;
-const ACTIVITY_CLI = fileURLToPath(new URL("../../activity/cao.mjs", import.meta.url));
 const MINIMUM_COMPLETED_RUNS = 3;
 const TERMINAL_CONCLUSIONS = [
   "success",
@@ -172,15 +169,6 @@ function fail(message) {
   throw new Error(message);
 }
 
-function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
-    encoding: "utf8",
-    input: options.input,
-    maxBuffer: 1024 * 1024 * 1024,
-  });
-  if (result.status !== 0) fail(String(result.stderr || `${command} failed`).trim());
-  return result.stdout;
-}
 
 function round(value) {
   return Math.round(value * 1_000_000_000) / 1_000_000_000;
@@ -404,61 +392,10 @@ export async function collectBatch(requests, context = {}) {
         && Date.parse(request.observedAt) >= Date.parse(request.windowEnd);
     });
   if (!valid) fail("invalid batch collection request");
-  if (!process.env.CAO_DASHBOARD_QUERY_SOCKET && !existsSync(ACTIVITY_CLI)) {
-    fail("CAO Activity CLI is unavailable");
+  const database = context.database || path.join(process.cwd(), ".cao", "gh-aw-logs.sqlite");
+  if (!hosted && !existsSync(database)) {
+    fail("An explicitly prepared canonical SQLite snapshot is required");
   }
-
-  let temporary;
-  let database = context.database;
-  try {
-    if (!database && !hosted) {
-      const localDatabase = path.join(process.cwd(), ".cao", "gh-aw-logs.sqlite");
-      if (existsSync(localDatabase)) {
-        database = localDatabase;
-      } else {
-        temporary = mkdtempSync(path.join(process.cwd(), ".aw-value-optimization-token-optimizer."));
-        run(process.execPath, [ACTIVITY_CLI, "download", "--output", temporary]);
-        database = path.join(temporary, "collector.sqlite");
-        const runsDirectory = path.join(temporary, "gh-aw-logs-runs");
-        const recordsDirectory = path.join(temporary, "gh-aw-logs-records");
-        const shardsDirectory = path.join(temporary, "gh-aw-logs-shards");
-        if (existsSync(runsDirectory) && existsSync(recordsDirectory)) {
-          run(process.execPath, [
-            ACTIVITY_CLI,
-            "ingest-jsonl",
-            "--database",
-            database,
-            "--runs-dir",
-            runsDirectory,
-            "--records-dir",
-            recordsDirectory,
-            "--retention-days",
-            "all",
-            "--run-retention-days",
-            "all",
-          ]);
-        } else if (existsSync(shardsDirectory)) {
-          run(process.execPath, [
-            ACTIVITY_CLI,
-            "ingest-jsonl",
-            "--database",
-            database,
-            "--input-dir",
-            shardsDirectory,
-            "--retention-days",
-            "all",
-            "--run-retention-days",
-            "all",
-          ]);
-        } else {
-          fail("Downloaded CAO Activity data contains no canonical JSONL shards");
-        }
-      }
-    }
-    if (!process.env.CAO_DASHBOARD_QUERY_SOCKET && !existsSync(database)) {
-      fail("CAO Activity database is unavailable");
-    }
-
     const canonicalSource = await queryEfficiencyWindows(database, requests);
     const canonicalRows = canonicalSource.rows;
     const rowsByWindow = new Map();
@@ -508,7 +445,4 @@ export async function collectBatch(requests, context = {}) {
         }],
       };
     });
-  } finally {
-    if (temporary) rmSync(temporary, { recursive: true, force: true });
-  }
 }

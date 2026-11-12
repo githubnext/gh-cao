@@ -21,7 +21,7 @@ import previewContract from '../fixtures/campaign-inventory-preview-contract.jso
 /** @typedef {Omit<Source, 'metadata'> & { metadata?: Metadata }} InputSource */
 
 // The CLI estimator is outside the dashboard's strict TypeScript project.
-const complexityModule = resolve('../../activity/dashboard-complexity.mjs');
+const complexityModule = resolve('../../dashboard/report/query-complexity.mjs');
 /** @type {{ analyzeDashboardComplexity: (document: unknown) => { inventory: Array<{ name: string, 'total-row-read-units': number, 'total-materialized-field-units': number }> } }} */
 const { analyzeDashboardComplexity } = createRequire(resolve('package.json'))(complexityModule);
 /** @type {Record<string, string[]>} */

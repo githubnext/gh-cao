@@ -5,12 +5,13 @@ OpenAPI 3.1 and selected JSON Schemas; consult it before changing server routes.
 
 The `server/` module is the unified serving runtime for the Central Agentic Ops
 dashboard with server-owned persistence and query execution. It ingests the
-same compacted data published with the deployed dashboard, stores current
+same compacted data retained in operational artifacts, stores current
 native entity rows in PostgreSQL and executes hosted Dashboard Language plans
 as SQL through the bounded PostgreSQL query engine,
 and serves the built dashboard either over loopback HTTP or through an
 authenticated host-neutral service profile. Local `serve` defaults to a cached
-SQLite snapshot, downloading deployed data only when the file is missing.
+real operational SQLite snapshot. Missing caches require explicit acquisition;
+there is no public Pages default.
 PostgreSQL is the hosted default operational adapter, so the default deployment
 requires no Redis service.
 Explicit Redis configuration remains supported; an acknowledged single-process memory adapter supports the
@@ -32,7 +33,7 @@ the focused contracts.
 The browser never connects directly to Postgres or Redis and never receives
 database credentials. It communicates only with the same-origin HTTP(S) API.
 
-### Local development and Pages simulation
+### Local development and synthetic Pages demo
 
 From the repository root, `npm run dev` or `npm run dashboard:local` builds
 the dashboard and starts Go `serve` with its verified SQLite cache. The Node
@@ -85,28 +86,28 @@ SQLite snapshot. Registry failures remain explicit in source availability or
 registry diagnostics; they never trigger synthetic packages or snapshot-inventory
 fallback.
 
-For explicit Pages/IndexedDB testing:
+For synthetic-only Pages/IndexedDB testing:
 
 ```sh
-npm run dashboard:pages:build -- --fixture
+npm run dashboard:pages:build
 npm run dashboard:pages -- --base-path /gh-cao/
 npm run test:e2e:dashboard-pages
 ```
 
-Use `--activity-dir PATH` instead of `--fixture` to prepare an existing Activity
-snapshot offline. Preparation runs production normalization, SQLite ingestion,
-hashing and Dashboard building; fixture data is explicitly synthetic. It does
-not simulate collection, Actions permissions, cache/artifact transport, TLS or
-GitHub Pages infrastructure. The current Actions runtime simulator accepts
-compiled dry-run agentic locks, not the ordinary Activity/Dashboard workflows.
+Synthetic enterprise raw samples use production normalization, canonical ingestion,
+hashing, queries, and views. No real-data input, SQLite export, or agent summary
+is supported. A declarative **Synthetic enterprise demo** callout labels the sample.
+This does not simulate collection, Actions permissions, transport, TLS, or Pages;
+the Actions runtime simulator supports compiled dry-run locks only.
 
-`serve-pages --site ../.tmp/dashboard-pages --listen 127.0.0.1:8080`
-serves the prepared artifact unchanged, optionally below `--base-path /REPO/`.
-It provides no hosted bootstrap, authentication or query API, so the page uses
-its real browser IndexedDB data path. The listener is numeric-loopback-only,
-and directory listings and escaping symlinks are refused. Paths in npm Go
-commands resolve relative to `server/`. Static Pages is an explicit mode,
-never a fallback for hosted serving.
+Loopback `serve-pages --site ../.tmp/dashboard-pages --listen 127.0.0.1:8080`
+serves bytes unchanged, optionally under `--base-path /REPO/`, with IndexedDB
+and no hosted bootstrap, authentication, or query API. It rejects directory
+listings and escaping symlinks. npm Go paths resolve from `server/`.
+This demo is never hosted failover. `demo-data/` data URLs,
+`synthetic-demo` storage keys, and `demo` service-worker caches exclude
+legacy real data. Rebuilds replace current artifacts, not historical deployments
+or browser storage; cleanup never deletes outside the demo namespace.
 
 [Canonical read contract inner loop (explicitly synthetic)](DASHBOARD-CONTRACT.md).
 
@@ -140,8 +141,8 @@ node scripts/maintainer-simulation.mjs serve
 
 Read `.tmp/maintainer-simulation/environment.json` for the browser URL and
 fixture limits. The two servers bind only to `127.0.0.1` (ports 18443 and 18081);
-Ctrl-C stops both. Preparation reuses the Pages artifact builder only to
-produce the snapshot/assets; the dashboard is served with the `server-http`
+Ctrl-C stops both. Preparation produces synthetic snapshot/assets through
+production normalization; the dashboard is served with the `server-http`
 bootstrap and Go query API, not as a Pages/IndexedDB application.
 
 ## Local GitHub bootstrap integration
@@ -160,7 +161,7 @@ commands, and HTTPS Git push/clone against the simulator's test-only
 reader are not compiled into production binaries. The fixture's
 stateful surface implements repository creation and visibility, the GraphQL
 selections used by gh, release metadata and checksum-verified asset downloads,
-workflow-sourced Pages, and Actions variables. Unknown routes and fields fail
+and Actions variables. Setup makes no Pages configuration calls. Unknown routes and fields fail
 explicitly. The root campaign is installed and materialized from the current
 checkout, not a published CAO revision.
 
@@ -202,8 +203,8 @@ available on that host, and same/cross/mixed resource owners. Public controls
 reject non-public evidence. PAT cases retain simulated existing secret names
 and check exact owner-scoped read maps and control-only writes. App previews
 cover both hosts, separate permissions, reuse plans, and cross-owner rejection
-for newly created organization Apps. Capability failures exercise denied Pages,
-secret lookup and variable writes, declined public Pages, and unchanged consumer
+for newly created organization Apps. Capability failures exercise denied
+secret lookup and variable writes, no Pages calls, and unchanged consumer
 files/index. The recorded public monitoring flow and a private GHE.com PAT flow
 also publish reviewed files through real HTTPS Git to local bare repositories.
 GHE.com requests must remain on its selected web/API hosts.
@@ -362,7 +363,8 @@ handler owns the built HTML and assets as well as OAuth, query APIs, and revisio
 events on the same origin. A reverse proxy or platform listener must forward
 the complete application, not just `/api/`. Do not deploy the frontend separately
 to Pages, a static website host, or an object-storage website endpoint.
-Pages is a different deployment mode whose browser owns ingestion and queries.
+Pages is only a synthetic enterprise demo whose browser owns ingestion and
+queries through the same canonical pipeline and views; it has no live services.
 
 Hosted revision streams reconnect before membership authorization, token-refresh
 eligibility or administrator health entitlement expires. A 20-second session
@@ -384,24 +386,25 @@ inventory quality stays unknown. Inventory rows never replace SQLite query data.
 The owner receives a machine-readable readiness URL and keeps stdin open for
 the lifetime of the child; EOF shuts the host down. This is an internal extension
 contract, not a second dashboard CLI. Canvas startup requires a verified
-published SQLite artifact and never falls back to Node queries or browser ingestion.
+`cao-activity-index` SQLite artifact from a successful default-branch Activity
+run and never falls back to Node queries or browser ingestion. Synthetic
+manifests and missing SQLite checksums fail closed.
 
-Build the dashboard once, then run the local server without PostgreSQL, Redis,
-`gh`, or a separate download command:
+Acquire an operational artifact, then build and serve it read-only:
 
 ```bash
 # From the repository root:
+gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
 npm ci
 npm --prefix dashboard/site ci
 npm --prefix dashboard/site run build
-go -C server run ./cmd/cao-dashboard serve
+go -C server run ./cmd/cao-dashboard serve --sqlite ../.cao/gh-aw-logs.sqlite
 ```
 
-Plain `serve` reuses `.cao/gh-aw-logs.sqlite` in this checkout without downloading
-it again. If that cache is missing, startup downloads the public CAO Pages snapshot,
-or `DASHBOARD_DATA_URL` when set. `--sqlite PATH` selects another cache and has the
-same download-if-missing behavior. Database service environment variables alone
-do not change this local default.
+Plain `serve` reuses `.cao/gh-aw-logs.sqlite` offline. Missing caches require
+`DASHBOARD_DATA_URL` or `--download-sqlite[=URL]`, otherwise startup stops with
+artifact-acquisition guidance. `--sqlite PATH` selects another cache.
+Database service environment variables alone do not override local SQLite.
 
 The selected snapshot stays **read-only**. SQLite creation, normalization,
 backfill, and maintenance remain in the JavaScript `cao-activity` pipeline.
@@ -416,25 +419,19 @@ are no longer supported. Previously created `.local.sqlite` files are preserved
 but are not attached or merged. Ordinary local and internal Copilot canvas
 serving use the same read-only boundary.
 
-Use `--download-sqlite` to explicitly refresh the cache, even when it exists.
-Its optional URL overrides `DASHBOARD_DATA_URL` and accepts any GitHub Pages site,
-including project sites and custom domains:
+`--download-sqlite` refreshes even existing caches. Its URL overrides
+`DASHBOARD_DATA_URL` and must name a trusted operational `payload-hashes.json`:
 
 ```bash
 go -C server run ./cmd/cao-dashboard serve \
-  --download-sqlite https://OWNER.github.io/REPOSITORY/
-
-# A dashboard directory or direct payload-hashes.json URL also works.
-go -C server run ./cmd/cao-dashboard serve \
-  --download-sqlite=https://dashboard.example.org/cao/ \
+  --download-sqlite=https://evidence.example/operational/payload-hashes.json \
   --sqlite ../.cao/custom.sqlite
 ```
 
-For a site URL, the downloader looks for `payload-hashes.json` in that directory,
-then under `cao/` if the first location returns HTTP 404. The image is fetched
-beside the discovered manifest; the hostname is not restricted to
-`githubnext.github.io`. URLs must use HTTP or HTTPS without embedded credentials
-or fragments. HTTPS redirects cannot downgrade to HTTP.
+This example implies no hosted export API. No site-root or `cao/` discovery
+occurs; SQLite is fetched beside the manifest. URLs require HTTP(S), without
+credentials or fragments; HTTPS cannot downgrade. Synthetic manifests and
+missing SQLite checksums are rejected.
 
 The download streams only the SQLite image, not inventory or JSONL shards.
 It verifies the manifest's SHA-256 checksum and canonical database version
@@ -460,11 +457,11 @@ go -C server run ./cmd/cao-dashboard serve \
 The server defaults to embedded resources. Use `--site` for a disk-backed
 build directory and `--mcp-enabled` to expose the existing read-only MCP endpoint.
 Paths in this example resolve from `server/` because of `go -C server`.
-`gh cao download` prepares the default CAO snapshot; use `--url` with another
-dashboard's `payload-hashes.json` URL to select different data.
+`gh cao download --url URL` requires an explicit operational
+`payload-hashes.json` URL, or `DASHBOARD_DATA_URL`. It has no default Pages source.
 The snapshot must use
 the canonical IndexedDB-compatible SQLite layout and database version 45.
-Only a genuinely missing cache triggers automatic acquisition. Unreadable or
+Only a genuinely missing cache with an explicit source triggers acquisition. Unreadable or
 invalid existing files, dangling symlinks, unsupported versions, and missing
 requested stores fail closed without a repair download. Startup never creates
 an empty snapshot, repairs, migrates, or ingests the downloaded file. Acquisition installs
@@ -2918,15 +2915,15 @@ enforceable shared-budget admission. Health publication is credential-free and
 keeps enabled registrations visibly deferred, with original capture/cutoff dates.
 It does not mint a token or treat a quota preflight as a shared reservation.
 
-Bounded local-only computation has its own `value-local` lease, a verified private
-Activity snapshot and one attempt per completed projection generation. It does
-not hold the projection lease or evidence lock while computing. The two-minute
-batch/30-second adapter budgets cancel the owned process tree. Computation uses
-a frozen policy copy; final publication uses a short evidence lock, rechecks
-enrollment, and compares the input generation, manifest, policy and retained
-evidence with its starting state. A changed precondition defers the result
-rather than overwriting newer accepted evidence. Completed output waits for
-the next ordinary projection, avoiding a Value-generated retry loop. An
+Native local-only computation has its own `value-local` lease and reads one
+canonical PostgreSQL revision. The separately selected `NativeValueService`
+uses bounded invocation scratch, never an Activity snapshot or recovery lake.
+The two-minute batch/30-second adapter budgets cancel the owned process tree.
+Computation uses resolved reviewed policy; publication rechecks that policy,
+the canonical revision, native preparation inputs, and exact enrollment epochs.
+A changed precondition defers the result rather than overwriting newer accepted
+evidence. Accepted output is published directly through PostgreSQL, without
+a completed-projection generation or a follow-up snapshot replacement. An
 unsupported adapter, missing input, timeout or failure preserves accepted history.
 This improves health visibility and core isolation, not guaranteed fresh Value
 collection or separate capacity for external consumers.
@@ -3109,10 +3106,10 @@ alternatives, not layers, because a canonical database has one writer.
 
 | | Published snapshots (default) | Server collection (optional) |
 |---|---|---|
-| Evidence acquired by | `cao-activity.yml` in GitHub Actions | the server's collection workers |
+| Evidence acquired by | explicitly acquired operational snapshots | the server's collection workers |
 | Server configuration | `CAO_SOURCE_DIRECTORY` | `CAO_COLLECT_APP_ID` and the other `CAO_COLLECT_*` settings |
-| GitHub credentials | held by the workflow | a GitHub App held by the deployment |
-| Event source | workflow schedule | webhook deliveries |
+| GitHub credentials | held by the explicit acquisition process | a GitHub App held by the deployment |
+| Event source | explicit snapshot acquisition | webhook deliveries |
 | Deployment | Function App only | Function App plus Container Apps workers |
 
 The default profile is unchanged: with only `CAO_SOURCE_DIRECTORY` configured
@@ -3144,42 +3141,23 @@ Collection separates three concerns that fail differently:
    request refresh rather than fetching commit details in the receiver.
    Inventory refresh and run collection have separate debounce keys, so neither
    can suppress the other.
-2. **Collection.** Workers lease tasks and run the same
-   `gh aw logs --audit` and `activity/cao.mjs` commands the Activity workflow
-   runs, writing into the evidence lake. One repository is collected at a time,
-   and GitHub budget is reserved per installation before each collection.
-3. **Canonical ingestion.** Collected evidence is written to PostgreSQL by the existing
-   `internal/ingest` package. Before finalizing the payload manifest, projection
-   resolves the reviewed deployment policy, overlays the exact operational enrollment
-   set, and enriches the packaged source-bound inventory with a short-lived
-   token for the control repository installation. The first activation fails
-   without valid campaign inventory; later transient inventory refresh failures
-   retain the previous valid inventory. Projection then
-   builds a temporary Activity database and runs the native Go
-   operational-value orchestrator, whose output is equivalence-tested against
-   `cao operational-value`. Campaign adapters remain shared JavaScript modules,
-   invoked with one installation-scoped token per repository. Operational-value
-   failure remains best-effort and does not block newer Activity evidence.
-   Canonical replacement uses a dirty flag and minimum interval, so ingestion
-   cost tracks collection rather than events.
+2. **Collection.** Native Go workers acquire exact run attempts through
+   installation-scoped GitHub APIs with shared quota, byte, entry, pagination,
+   timeout, and enrollment-epoch bounds. They do not execute `gh aw logs` or
+   `gh cao`, or write an Activity evidence lake.
+3. **Canonical publication.** Durable PostgreSQL publications activate under
+   digest, enrollment, inventory, and retention fences. First activation requires
+   valid reviewed inventory. Native recovery replays bounded retained
+   publications, not snapshot ingestion. Separately selected native Value
+   services publish directly through their PostgreSQL contracts without
+   blocking run acquisition.
 
 See [remote Value](../docs/operational-value.md).
 
-The evidence lake is laid out byte-compatibly with a snapshot published by the
-Activity workflow:
-
-```text
-gh-aw-logs-shards/     collected, not yet compacted
-gh-aw-logs-runs/*.jsonl
-gh-aw-logs-records/*.jsonl
-payload-hashes.json
-control-settings.json
-control-plane-inventory.json
-inventory-sources.json
-```
-
-That is what makes the profiles interchangeable, and it is why cold start needs
-no GitHub access: a retained lake is replayed directly.
+Activity snapshots remain inputs to the independent Actions profile through
+`internal/ingest`. The collector has no snapshot Projector, coalesced
+whole-lake replay loop, dirty/completed projection markers, or `collect --project`
+flag. An Activity directory cannot be used as native recovery.
 
 Enrollment is derived from GitHub App installations. A delivery for a
 repository outside the enrollment set is acknowledged and dropped rather than
@@ -3198,13 +3176,12 @@ Repository creation, unarchive, rename, transfer, archive, and deletion events q
 independent hints that reconcile current authenticated installation coverage.
 Complete discovery removes archived or absent coordinates, persists erasure work
 before withdrawing enrollment, and queues collection of verified active repositories.
-Renamed-away coordinates and archived/deleted repositories are evicted from the
-evidence lake and retained inventory, then removed by canonical projection.
+Renamed-away coordinates and archived/deleted repositories are erased under
+native PostgreSQL enrollment ownership, including their retained publications.
 Delayed or reordered webhooks cannot restore stale names or historical lifecycle
 states. No webhook performs GitHub calls, enrollment mutations, or projection
-inline. Refresh workers persist projection requests before acknowledging work;
-transient inventory failures keep the previous inventory and retain a pending
-refresh for the next projection interval.
+inline. Native refresh workers durably publish inventory updates before
+acknowledging work; transient failures retain pending refresh work.
 
 Workers also refresh the App's active installation list on startup and every
 hour, then queue the same quota-governed repository reconciliation used
@@ -3232,24 +3209,16 @@ references. Merge/completed, rejection, bot lifecycle closure, pending, and
 unknown remain distinct from workflow success. Other safe-output action types
 are not evaluated by this lifecycle-only profile.
 
-Replicas coordinate a server-only repair pass every projection interval
-(five minutes by default): at most ten REST calls total, including quota probes,
-with a one-minute deadline and a durable output cursor. Repair reads only
-already attributed objects in currently enrolled repositories and shares the
-installation quota governor. It does not enumerate issue inventories, fetch
-comments/reviews, or expand episode scope. Missing evidence remains partial.
-
 Mined facts reuse existing canonical Audit tables (`episode.membership`,
-`episode.root`, `outcome.observed`) and participate atomically in snapshot
-publication and revision notifications. No schema migration is needed.
-Bounded packets under the evidence lake's `server-mining/` directory support
-API-free replay and are erased on scope withdrawal, including volatile restart
-repair. This feature is not installed in or run by `cao-activity`. See
+`episode.root`, `outcome.observed`) through native epoch-fenced publication.
+The legacy lake-backed outcome repair pass and snapshot supplement are retired;
+they are not recovery or acquisition fallbacks. Missing evidence remains
+partial. See
 `specs/dashboard-data.md` section 11.2 for the field mapping.
 
 Rate limits are governed per installation. Each collection reserves budget
-before it starts and passes the reserve to the collection subprocess, so the
-subprocess stops before exhausting the installation. An installation that
+before its provider request, so acquisition stops before exhausting the
+installation. An installation that
 receives a rate-limit response is parked with jitter; other installations keep
 running.
 
@@ -3284,7 +3253,7 @@ The same binary runs every role:
 |---|---|
 | `cao-dashboard serve-hosted` | serve the dashboard and admit webhook deliveries |
 | `cao-dashboard collect` | lease tasks, collect repositories, and project |
-| `cao-dashboard backfill` | cold start: replay the lake, enumerate installations, seed tasks |
+| `cao-dashboard backfill` | cold start: enumerate current scope, repair inventory, and replay native PostgreSQL publications |
 | `cao-dashboard backfill --repositories-only` | force repository-list repair without replaying history; workers apply queued reconciliation |
 | `cao-dashboard backfill --replay-only` | repopulate the database from retained evidence with no GitHub requests |
 | `cao-dashboard doctor` | run a read-only, systematic check-up of Redis, canonical data, queries, and collection |
@@ -3408,6 +3377,8 @@ deployment-scoped operational store. The old filesystem collector is retired;
 an App identifier without native selection fails at startup. Unsupported
 audit/intelligence requests reject rather than fall back to Activity. Optional
 Value dependencies are validated only when selected.
+Retired filesystem Runner calls reject before credentials or evidence changes;
+no Activity subprocess fallback exists.
 
 Native run acquisition, projection, approved trace destinations and optional
 `NativeValues` use Go and shared PostgreSQL fences, without Node, Activity
@@ -3431,9 +3402,9 @@ See `ARCHITECTURE.md` and `specs/value.md` for the feature-specific boundaries.
 | `CAO_POLICY_PATH` | reviewed policy for the separately selected Go Value lane |
 | `CAO_COLLECT_WORKERS` | in-process workers; zero when workers scale separately |
 | `CAO_COLLECT_RATE_LIMIT_FLOOR` | requests reserved per installation |
-| `CAO_COLLECT_PROJECTION_INTERVAL` | minimum interval between projections (default 5 minutes) |
+| `CAO_COLLECT_PROJECTION_INTERVAL` | legacy setting name retained for the native Value sweep interval (default 5 minutes); does not schedule snapshot projection |
 | `CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL` | repository-list reconciliation cadence as a Go duration (default `1h`); runs on collection workers |
-| `CAO_COLLECT_INVENTORY_LIMIT` | optional cap on enrolled repositories; exceeding it fails the projection |
+| `CAO_COLLECT_INVENTORY_LIMIT` | optional cap on enrolled repositories; exceeding it fails rather than publishing partial inventory |
 | `CAO_COLLECT_RECOVER_DELIVERIES` | replay failed webhook deliveries to close gaps |
 | `CAO_COLLECT_QUEUE_MAX_LENGTH` | admission backpressure limit for outstanding collection tasks (default 200 000); tasks are never trimmed |
 | `CAO_COLLECT_ADMIT_ONLY` | admit deliveries without collecting; requires no private key |
@@ -3454,28 +3425,22 @@ internet-facing front end holds no credential it cannot use. The Azure Function
 App is deployed this way; the collection workers hold the key.
 
 Withdrawing scope still takes effect: an admission-only process queues erasure
-for a worker that has the evidence lake, and administrative rebuild fails
+for a native worker with durable PostgreSQL ownership, and administrative rebuild fails
 closed with an instruction to run the `collect` or `backfill` role.
 
 ### Retention and erasure
 
-The evidence lake is retained collected evidence, not a cache: cold start
-replays it without contacting GitHub. Retention therefore has to be governed
-deliberately.
-
 Leaving ingestion scope erases evidence. When an installation is deleted or
 suspended, or repositories are removed from it, the server deletes that
-repository's shards from the lake and requests a projection, so the canonical
+repository's native evidence and retained publications under its enrollment
+epoch, so the canonical
 database stops reporting it. Uninstalling the GitHub App is the supported way
 to withdraw consent, and it takes effect without operator action.
 
-Erasure workers persist the projection request before acknowledging the task.
-If that write fails or is cancelled, the task stays leased and reclaimable.
-Projection retains its requested generation until canonical publication succeeds,
-then records the completed generation separately. Interrupted publication or
-completion writes therefore leave recoverable work, and a newer request arriving
-during projection remains pending for the next pass. Recovery can repeat a
-projection that already committed; it does not require restoring a cleared marker.
+Native ownership changes and erasure commit through PostgreSQL. Exact epoch
+and digest fences prevent stale tasks or retained publications from restoring
+withdrawn evidence. Recovery replays only authorized pending publications;
+there is no filesystem replay or dirty-generation marker to repair.
 
 `specs/server-ingestion.md` is the normative contract, and
 `adr/server-webhook-driven-ingestion.md` records why the design is shaped this
@@ -3489,20 +3454,11 @@ not staging or rollback generations. Size Postgres for current source rows and
 transactional replacement; size Redis separately for operational queues,
 sessions, and caches.
 
-The evidence lake is *many small per-repository shards*, so it is bound by file
-metadata operations rather than throughput. The lake share therefore defaults
-to a premium (provisioned SSD) file share; a Standard share's IOPS scale only
-with provisioned size and become the projection bottleneck well before capacity
-does. Set `collectorLakeStorageSku` to a `Standard_*` value only for small
-deployments where cost matters more than projection latency.
-
 Known limits, in the order they will be felt at scale:
 
-- Every projection rehashes the whole lake twice before it can decide whether
-  anything changed: once in `activity/cao.mjs hash-payloads` and once in the
-  Go manifest validation. That is the structural ceiling on projection
-  frequency, and it is why `CAO_COLLECT_PROJECTION_INTERVAL` defaults to five
-  minutes rather than to seconds.
+- Native acquisition is bounded by shared installation quota and configured
+  attempt, archive, and publication budgets. It does not rehash an Activity
+  lake or perform coalesced snapshot replacement.
 - Redis is still an always-on operational cost. Size it for queues, sessions,
   and caches. Size Postgres separately for current dashboard entity sources.
 - The Elastic Premium Function plan is always-on. It is sized for webhook
@@ -4076,7 +4032,7 @@ npm run dashboard:server:build
 go -C server run ./cmd/cao-dashboard serve
 ```
 
-Missing deployed snapshots are downloaded and reused offline.
+Missing operational snapshots require an explicit source; verified caches are reused offline.
 For PostgreSQL, start the optional stack, configure `CAO_POSTGRES_URL`, and
 provision storage per
 [`POSTGRES.md`](POSTGRES.md) before ingesting:

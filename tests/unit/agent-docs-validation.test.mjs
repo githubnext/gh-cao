@@ -151,7 +151,7 @@ async function createFixture() {
     `- [Full](${pagesBase}/llms-full.txt)`,
     `- [Scoped resources](${pagesBase}/agent/llms.txt)`,
     `- [Machine resources](${pagesBase}/agent/resources.json)`,
-    `- [Dashboard agent guide](${pagesBase}/cao/llms.txt)`,
+    `- [Dashboard agent guide](${pagesBase}/agent-analysis/)`,
     ...skillLinks,
   ].join("\n"));
   await writeFile(path.join(dist, "llms-small.txt"), "# Compact\nUseful.");
@@ -171,7 +171,7 @@ async function createFixture() {
   }));
   await writeFile(path.join(dist, "agent", "llms.txt"), [
     "# Agent resources",
-    `- [Dashboard agent guide](${pagesBase}/cao/llms.txt)`,
+    `- [Dashboard agent guide](${pagesBase}/agent-analysis/)`,
     ...Object.keys(routeTypes).flatMap((route) => [
       `- [${route}](${pagesBase}/${route}/)`,
       `- [${route} metadata](${pagesBase}/${route}/index.json)`,
@@ -263,11 +263,11 @@ test("setup-cao entry point honors its budget and links existing local reference
   }
 });
 
-test("requires the separately assembled dashboard agent guide", async () => {
+test("requires the operational data access guide, not the Pages demo", async () => {
   const root = await createFixture();
   const indexPath = path.join(root, "dist", "llms.txt");
   const index = await import("node:fs/promises").then(({ readFile }) => readFile(indexPath, "utf8"));
-  await writeFile(indexPath, index.replace(`- [Dashboard agent guide](${pagesBase}/cao/llms.txt)\n`, ""));
+  await writeFile(indexPath, index.replace(`- [Dashboard agent guide](${pagesBase}/agent-analysis/)\n`, ""));
   assert.ok((await validateAgentDocs({ root })).some((error) =>
     error.includes("dashboard agent access guide")
   ));

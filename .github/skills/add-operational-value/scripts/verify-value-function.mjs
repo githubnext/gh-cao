@@ -2,7 +2,7 @@
 
 import { existsSync } from "node:fs";
 import { operationalValuePeriod } from "../../../../dashboard/site/src/data/model/schema.js";
-import { normalizeValueAcquisition } from "../../../../activity/value-acquisition.mjs";
+import { normalizeValueAcquisition } from "../../../workflows/shared/value-acquisition.mjs";
 import {
   fail, importValueModule, isIsoUtc, isRepository, isSlug, run, shiftDays,
 } from "./common.mjs";

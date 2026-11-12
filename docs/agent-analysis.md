@@ -13,6 +13,12 @@ browser, a database schema, or credentials. Dashboard pages and named Dashboard
 Language queries are the agent API; SQLite is only the local execution engine
 beneath them.
 
+This is the operational agent entry point at `/agent-analysis/`. The public
+Pages dashboard is only a **Synthetic enterprise demo**, not an operational
+snapshot or agent-summary service. Production uses same-origin Go/PostgreSQL;
+local analysis uses real operational SQLite snapshots through the same canonical
+queries. Never use demo data as evidence about a repository.
+
 One catalog is shared by every transport, so none of them maintains a second
 list of pages or queries:
 
@@ -27,21 +33,27 @@ list of pages or queries:
 The installed Node `cao` runtime provides supported evidence APIs for workflow
 agents. These are production interfaces, not deprecated duplicates or test-only
 parity implementations of the operator CLI. Invoke them directly from the
-control-repository runtime root:
+control-repository runtime root. Pass an explicitly prepared operational
+snapshot with `--database`; no shared Activity cache is restored. Missing
+operational evidence remains unavailable, with no public-demo fallback:
 
 ```bash
-node activity/cao.mjs download
-node activity/cao.mjs queries --json
-node activity/cao.mjs query-info campaign-runs --json
-node activity/cao.mjs prompt campaign-runs
-node activity/cao.mjs query campaign-runs --param campaign=CAMPAIGN_SLUG --limit 50
-node activity/cao.mjs gh runs --repo OWNER/REPO --limit 20
-node activity/cao.mjs gh issues --repo OWNER/REPO
-node activity/cao.mjs gh prs --repo OWNER/REPO
-node activity/cao.mjs computation runtime-health
-node activity/cao.mjs computation intelligence
-node activity/cao.mjs mcp --host 127.0.0.1 --port 8765
+db=".cao/gh-aw-logs.sqlite"
+gh cao queries --json
+gh cao query-info campaign-runs --json
+gh cao prompt campaign-runs
+gh cao query campaign-runs --database "$db" --param campaign=CAMPAIGN_SLUG --limit 50
+gh cao gh runs --database "$db" --repo OWNER/REPO --limit 20
+gh cao gh issues --database "$db" --repo OWNER/REPO
+gh cao gh prs --database "$db" --repo OWNER/REPO
+gh cao computation runtime-health --database "$db"
+gh cao computation intelligence --database "$db"
+gh cao mcp --database "$db" --host 127.0.0.1 --port 8765
 ```
+
+Check the cache exists and is non-empty before invoking a query. A cache miss
+is missing evidence, not permission to invent an empty projection. Use only
+already authorized, bounded read-only tools for any independent investigation.
 
 Workflow execution and evidence preparation do not build, install, or invoke
 `gh cao`. The Node commands and their dependencies ship in the verified runtime.
@@ -62,7 +74,7 @@ apply. Missing evidence is not a successful empty observation.
 
 ```
 Inside an agentic workflow?
-  YES           -> node activity/cao.mjs (or the prepared job-local MCP endpoint)
+  YES           -> gh cao (or the prepared job-local MCP endpoint)
   NO            -> choose the operator/interactive transport below
 Do you have shell access?
   YES           -> gh cao
@@ -72,20 +84,28 @@ Do you have shell access?
 ## For a shell-capable agent
 
 1. Verify `gh cao --version`, using the [CAO installer](cao-cli.md#github-cli-extension)
-   if needed, then download the current snapshot:
+   if needed. Select a successful default-branch Activity run in the intended
+   control repository and download its operational artifact with Actions read access:
 
    ```bash
-   gh cao download
+   gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
    ```
 
-   In Copilot cloud-agent sessions, the repository's setup steps download the
-   snapshot before the agent starts. To use a deployment other than the public
-   default, set the `CAO_DASHBOARD_DATA_URL` repository variable to its
-   `payload-hashes.json` URL. The setup step passes it as `DASHBOARD_DATA_URL`;
-   do not put credentials in the URL. If the deployment is unavailable or
-   network access is blocked, the setup download fails and there is no fresh
-   evidence to query. Do not treat an empty locally created database as a
-   successful download or infer zero firewall blocks from it.
+   The artifact supplies `.cao/payload-hashes.json`, normalized shards, and
+   `.cao/gh-aw-logs.sqlite`. Existing verified caches can be queried offline.
+   Keep the source run, repository, timestamp, and coverage with your analysis.
+
+   If an operator already provides a trusted operational payload location, use
+   `gh cao download --url URL` or `DASHBOARD_DATA_URL=URL gh cao download`.
+   The URL must end in `/payload-hashes.json`; no default Pages source,
+   site-root discovery, or hosted export API is implied. Synthetic manifests
+   and manifests missing a SQLite checksum are rejected.
+
+   Cloud-agent preparation must select operational evidence before analysis.
+   If a setup step maps `CAO_DASHBOARD_DATA_URL` to `DASHBOARD_DATA_URL`, that
+   variable must contain the same direct operational manifest URL, with no
+   credentials. Failed acquisition is not fresh evidence: never treat an empty
+   locally created database as a successful download or infer zero findings.
 
 2. Discover the dashboard pages an operator reads:
 
@@ -133,8 +153,9 @@ When the dashboard declares a repository, the prompt links its candidate policy
 and editable workflow sources. Verify that repository's control role, the
 analyzed deployment revision and the exact workflow-SHA policy; documentation
 links to `main` or `HEAD` are navigation aids, not revision evidence. For another
-deployment, establish its verified `payload-hashes.json` URL and use
-`gh cao download --url URL` rather than silently querying the public default.
+deployment, acquire its authorized Activity artifact or explicitly select its
+verified operational `payload-hashes.json` URL with `gh cao download --url URL`.
+There is no public operational default.
 
 The existing generic escape hatches remain available for advanced shell agents:
 `gh cao query --collection runs --limit 20` reads a canonical collection, and
@@ -222,63 +243,18 @@ its sources.
 
 ## Run the MCP server
 
-```bash
-gh cao mcp --database .cao/gh-aw-logs.sqlite --host 127.0.0.1 --port 8765
-```
-
-The server implements the stateless MCP revision `2026-07-28`. It stores no
-protocol session state, requires the `MCP-Protocol-Version` and `Mcp-Method`
-headers to agree with the JSON-RPC body, and serves one endpoint, `POST /mcp`,
-plus `GET /healthz` for orchestration.
-
-The endpoint speaks plain HTTP. It carries no TLS material and no self-signed
-certificate: the client and the server share one host or one isolated job-local
-container network, so a private certificate authority would add operational
-cost without adding a trust boundary. Reach the endpoint over loopback or an
-isolated network, and do not publish it to a routable interface.
-
-## Bootstrap in GitHub Actions
-
-Preparation has network access; serving does not need any.
-
-```
-install CAO -> gh cao download -> start CAO MCP container -> start agent
-```
-
-```yaml
-steps:
-  - name: Verify the preinstalled CAO extension
-    run: gh cao --version
-  - name: Download the CAO activity snapshot
-    run: gh cao download
-  - name: Start CAO MCP
-    run: |
-      docker run --detach \
-        --name cao-mcp \
-        --read-only \
-        --tmpfs /tmp \
-        -v "$PWD/.cao:/data:ro" \
-        -p 127.0.0.1:8765:8765 \
-        ghcr.io/githubnext/gh-cao-mcp:${CAO_VERSION}
-```
-
-Point the workflow's MCP server configuration at `http://127.0.0.1:8765/mcp`.
-Provision `gh cao` on the runner with the [CAO installer](cao-cli.md#github-cli-extension)
-before these steps; the version check does not install it.
-Take the remote-MCP declaration syntax from the gh-aw version the workflow pins
-rather than from a CAO-specific dialect. Publishing the port on `127.0.0.1`
-keeps the endpoint on the runner; an equivalent job-local bridge network shared
-only with the agent runtime also works.
-
-Build the image from `Dockerfile.mcp` in this repository. It runs as a non-root
-user on a read-only filesystem, mounts the snapshot read-only at `/data`, and
-copies the snapshot into container scratch space so the mounted evidence is
-never modified.
+With the native extension installed and an explicitly prepared canonical SQLite
+snapshot, run `gh cao mcp --database .cao/gh-aw-logs.sqlite`.
+The server is read-only and binds to loopback by default. The former Node MCP
+image and Activity runtime are removed.
 
 ## Safety
 
 - The service is read-only by construction: no database writes, no arbitrary
   SQL, no arbitrary Dashboard Language over MCP.
+- Evidence acquisition is separately authorized and bounded. The synthetic
+  Pages demo supplies neither operational SQLite nor an agent summary; do not
+  scrape it or use its samples to replace missing evidence.
 - It needs no GitHub credentials, makes no GitHub API calls, and requires no
   outbound network access, so the container can be isolated from the Internet.
 - Request bodies, result sizes, parameter counts, and parameter lengths are all

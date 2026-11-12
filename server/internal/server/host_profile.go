@@ -57,6 +57,13 @@ func localHostProfile() HostProfile {
 	}
 }
 
+func sqliteIngestionHostProfile() HostProfile {
+	profile := localHostProfile()
+	profile.Name = "sqlite-ingestion"
+	profile.SupportsCollection = false
+	return profile
+}
+
 func hostedHostProfile() HostProfile {
 	return HostProfile{
 		Name:               "hosted",

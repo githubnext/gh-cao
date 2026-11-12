@@ -106,7 +106,7 @@ afterEach(() => {
 describe("dashboard app page-chunk debug logging", () => {
   it.each([false, true])("gates native actions on queue authority without a canvas editing socket: %s", async (available) => {
     const previousUrl = window.location.href;
-    window.history.replaceState(null, "", "?local-preview=operator#page-overview");
+    window.history.replaceState(null, "", "#page-overview");
     const socket = vi.fn();
     vi.stubGlobal("WebSocket", socket);
     vi.stubGlobal("__CLI_QUEUE__", available);

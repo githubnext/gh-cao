@@ -142,8 +142,8 @@ for (const moduleFile of moduleFiles) {
       ] },
       "order-by": [{ field: "timestamp", direction: "desc" }],
     };
-    const result = spawnSync(process.execPath, [
-      process.env.CAO_ACTIVITY_CLI || fileURLToPath(new URL("../activity/cao.mjs", import.meta.url)),
+    const result = spawnSync("gh", [
+      "cao",
       "query", "--database", request.database, "--stdin",
     ], { input: JSON.stringify(query), encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
     if (result.error || result.status !== 0) fail("Unable to query retained operational-value measurements");

@@ -107,11 +107,12 @@ export function renderLabeledSpan(label, value) {
  *   className?: string,
  *   contentClassName?: string,
  *   viewportAnchored?: boolean,
+ *   mobilePopup?: boolean,
  *   signal?: AbortSignal
  * }} options
  * @returns {HTMLElement}
  */
-export function renderTooltip({ id, label, description, icon, content, trigger, className, contentClassName, viewportAnchored = false, signal }) {
+export function renderTooltip({ id, label, description, icon, content, trigger, className, contentClassName, viewportAnchored = false, mobilePopup = false, signal }) {
   const tooltipTrigger = trigger ?? h(
     'button',
     {
@@ -139,8 +140,9 @@ export function renderTooltip({ id, label, description, icon, content, trigger, 
   let pointerInside = false;
   let focusInside = false;
   let trackingViewport = false;
+  let popupOpen = false;
   const updatePosition = () => {
-    if (!pointerInside && !focusInside) return;
+    if (!pointerInside && !focusInside && !popupOpen) return;
     const triggerRect = tooltipTrigger.getBoundingClientRect();
     const rootRect = tooltip.getBoundingClientRect();
     const contentRect = tooltipContent.getBoundingClientRect();
@@ -156,9 +158,10 @@ export function renderTooltip({ id, label, description, icon, content, trigger, 
     const top = below + contentRect.height <= viewportHeight - margin
       ? below
       : Math.max(margin, above);
-    tooltipContent.style.left = `${viewportAnchored ? left : left - rootRect.left}px`;
+    const fixed = viewportAnchored || tooltip.classList.contains('tooltip-mobile-popup');
+    tooltipContent.style.left = `${fixed ? left : left - rootRect.left}px`;
     tooltipContent.style.right = 'auto';
-    tooltipContent.style.top = `${viewportAnchored ? top : top - rootRect.top}px`;
+    tooltipContent.style.top = `${fixed ? top : top - rootRect.top}px`;
   };
   const startViewportTracking = () => {
     if (trackingViewport || scope.signal.aborted) return;
@@ -167,7 +170,7 @@ export function renderTooltip({ id, label, description, icon, content, trigger, 
     window.addEventListener('scroll', updatePosition, { capture: true, signal: scope.signal });
   };
   const stopViewportTracking = () => {
-    if (!trackingViewport || pointerInside || focusInside) return;
+    if (!trackingViewport || pointerInside || focusInside || popupOpen) return;
     trackingViewport = false;
     window.removeEventListener('resize', updatePosition);
     window.removeEventListener('scroll', updatePosition, true);
@@ -190,7 +193,53 @@ export function renderTooltip({ id, label, description, icon, content, trigger, 
     focusInside = event.relatedTarget instanceof Node && tooltip.contains(event.relatedTarget);
     stopViewportTracking();
   }, { signal: scope.signal });
+  if (mobilePopup) {
+    if (!(tooltipTrigger instanceof HTMLButtonElement)) throw new TypeError('Mobile popups require a button trigger.');
+    const media = window.matchMedia?.('(max-width: 700px)');
+    const syncMode = () => {
+      if (popupOpen && tooltipContent.isConnected) tooltipContent.hidePopover();
+      popupOpen = false;
+      const mobile = media?.matches === true;
+      tooltip.classList.toggle('tooltip-mobile-popup', mobile);
+      if (mobile) {
+        tooltipContent.setAttribute('popover', 'auto');
+        tooltipContent.setAttribute('role', 'dialog');
+        tooltipContent.setAttribute('aria-label', label);
+        tooltipTrigger.removeAttribute('aria-describedby');
+        tooltipTrigger.setAttribute('popovertarget', id);
+        tooltipTrigger.setAttribute('aria-controls', id);
+        tooltipTrigger.setAttribute('aria-haspopup', 'dialog');
+        tooltipTrigger.setAttribute('aria-expanded', 'false');
+      } else {
+        tooltipContent.removeAttribute('popover');
+        tooltipContent.removeAttribute('aria-label');
+        tooltipContent.setAttribute('role', 'tooltip');
+        tooltipTrigger.setAttribute('aria-describedby', id);
+        for (const attribute of ['popovertarget', 'aria-controls', 'aria-haspopup', 'aria-expanded']) {
+          tooltipTrigger.removeAttribute(attribute);
+        }
+      }
+      stopViewportTracking();
+    };
+    tooltipContent.addEventListener('toggle', (event) => {
+      if (!tooltip.classList.contains('tooltip-mobile-popup')) return;
+      popupOpen = 'newState' in event && event.newState === 'open';
+      tooltipTrigger.setAttribute('aria-expanded', String(popupOpen));
+      if (popupOpen) {
+        startViewportTracking();
+        updatePosition();
+      } else stopViewportTracking();
+    }, { signal: scope.signal });
+    tooltip.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && popupOpen) event.stopPropagation();
+    }, { signal: scope.signal });
+    media?.addEventListener('change', syncMode, { signal: scope.signal });
+    syncMode();
+  }
   scope.signal.addEventListener('abort', () => {
+    if (popupOpen && tooltipContent.isConnected) tooltipContent.hidePopover();
+    popupOpen = false;
+    if (tooltip.classList.contains('tooltip-mobile-popup')) tooltipTrigger.setAttribute('aria-expanded', 'false');
     pointerInside = false;
     focusInside = false;
     stopViewportTracking();
