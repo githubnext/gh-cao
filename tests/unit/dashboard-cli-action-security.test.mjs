@@ -196,20 +196,20 @@ test("unavailable approval is explicit and does not execute commands", async () 
   } finally { await testCase.close(); }
 });
 
-describe("approval deadlines with provisioned PostgreSQL", () => {
+describe("approval deadlines with a running PostgreSQL-backed preview", () => {
   let postgres;
-  before(async () => { postgres = await prepareCanvasPostgres(); });
-  after(async () => { await postgres?.close(); });
+  let testCase;
+  let approve;
+  let entered;
+  const waiting = new Promise((resolve) => { entered = resolve; });
+  let secondEntered;
+  const secondWaiting = new Promise((resolve) => { secondEntered = resolve; });
+  const approvals = [];
+  const executions = [];
 
-  test("every command has a fresh bound approval and concurrent requests are rejected", { timeout: 10_000 }, async () => {
-    let approve;
-    let entered;
-    const waiting = new Promise((resolve) => { entered = resolve; });
-    let secondEntered;
-    const secondWaiting = new Promise((resolve) => { secondEntered = resolve; });
-    const approvals = [];
-    const executions = [];
-    const testCase = await fixture({
+  before(async () => {
+    postgres = await prepareCanvasPostgres();
+    testCase = await fixture({
       postgresURL: postgres.postgresURL,
       namespace: postgres.namespace,
       approveCliAction: async (request) => {
@@ -226,6 +226,14 @@ describe("approval deadlines with provisioned PostgreSQL", () => {
         return { ok: true, exitCode: 0 };
       },
     });
+  });
+  after(async () => {
+    approve?.(false);
+    try { await testCase?.close(); }
+    finally { await postgres?.close(); }
+  });
+
+  test("every command has a fresh bound approval and concurrent requests are rejected", { timeout: 10_000 }, async () => {
     try {
       const first = testCase.post({ id: "create-task", input: "exact approved input" });
       await waiting;
