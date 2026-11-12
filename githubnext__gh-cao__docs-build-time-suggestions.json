@@ -1,24 +1,7 @@
 {
-  "source_sha": "11644f966934821d0b9e3db7cb9681664911f8ed",
-  "next_category": "dependency installation and caching",
+  "source_sha": "15db22444d5fed8cc7182fce1fa83f870cf5787f",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T05:54:46Z",
-      "worker_run_id": "43163833615",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:49:35Z to 2026-11-12T05:24:50Z; 14-day window; 0 cancelled). Excluded: 6 failed schedules at retired Mount step, 2 pre-design full publications (43081415171, 43083249533), skipped callbacks. n=9 comparable successful current-design publications (8 push + 1 schedule; source d57c4c82..9537899c; compare API shows no docs.yml change). Medians (p90): Install dependencies 19 s (25 s; 13-25); Set up Node.js 3 s (8 s); Checkout 24 s (40 s); build job 72 s (93 s); deploy job 10 s (11 s); build-start to deploy-end 85 s (109 s). Gate 15% = 12.8 s; install share ~26% of build median but warm installs show no evidence of a 13 s saving. Cache hit/miss unverified: job logs HTTP 403 (DIFC); cache listing shares keys across workflows. Checkout fetch-depth 0 is not a safe shallow candidate: docs/plugins/starlight-agent/resource.ts derives per-file sourceCommittedAt via git log -- <file>, validated by scripts/validate-agent-docs.mjs. Open issues #20380 and #20131 checked; no new suggestion. next_category advanced to Astro documentation generation."
-    },
     {
       "evaluated_at": "2026-11-12T06:26:08Z",
       "worker_run_id": "43167557630",
@@ -768,6 +751,34 @@
         43121504364
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T23:39:34Z to 2026-11-12T14:58:38Z; all within 14 days; 0 in progress or queued in window; 0 failed). Excluded: 1 cancelled 43206161686 (no jobs; cancelled as pending run after 43206235849 was queued). n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; source 11644f96, the head of the latest publication; docs.yml unchanged since 063cbe9). Concurrency (run created to build job created): median 1 s, p90 27 s, max 43 s; only 43228124764 (43 s, behind in-progress 43228046118) and 43206235849 (27 s, behind in-progress 43206080696) waited. Created-to-build-start median 4 s (p90 30 s, max 46 s). Execution (build start to deploy end) median 85 s (p90 123 s); 15 percent gate = 12.75 s; wall created-to-deploy-complete median 90 s (p90 157 s). Avoidable rebuilds: commit file lists (commits API, 18 push heads) show every push matched at least one build-consumed trigger path; no push touched only test or non-consumed trigger paths, so narrowing triggers would avoid 0 of 18 runs. Rejected: cancel-in-progress true (would cancel in-progress Pages deploys; affects only the 2 queue waits); moving builds out of the group (risk of stale out-of-order deploys; saves only queue waits); removing the 05:23 UTC schedule (required synthetic-date freshness). Queued pending runs are already coalesced by GitHub concurrency. Job logs HTTP 403 DIFC re-verified; cache hit/miss unverified. Cache listing (metadata): 71 entries totalling 10.65 GB, above the 10 GB repository cap; carry-forward to dependency category. Open issue 20380 (other category, retired input path) not revived; no duplicate. No suggestion; next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T15:55:04Z",
+      "worker_run_id": "43251635548",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T23:39:34Z to 2026-11-12T15:38:01Z; 0 in progress; 1 cancelled excluded: 43206161686 (no jobs); 0 failed). Comparable n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; identical job/step shape; source 15db224 = HEAD; docs.yml last changed 063cbe9, path filter only). Medians (p90): execution build start to deploy end 85 s (123 s); build job 68 s (104 s); build-created to deploy-end 88 s (126 s); build queue 3 s (4 s); Checkout 24 s (47 s); Set up Node.js 3 s (8 s); Install dependencies 17 s (25 s); Build documentation 14 s (15 s); demo 4 s; Upload 2 s; deploy job 11 s (18 s). 15% gate = 12.75 s. Cache: 'Post Set up Node.js' 0 s in 17 of 19 runs and 1 s in 2 (a miss would save a 279-318 MB archive) = consistent with exact-key restore hits; inferred from step timing (job logs HTTP 403; cache list shows node-cache-Linux-x64-npm entries accessed by these runs; repo cache total 11.66 GB vs 10 GB cap, node entries accessed recently). Lead, not suggestion: Checkout fetch-depth 0 fetches all 1,256 branches, 63 tags, 3,731 main commits (repo size 1.45 GB, HEAD tree 3,365 files / 52 MB). Calibration: shallow checkout in same repo (csh.yml ShellCheck, n=6 jobs, same runner label) median 3 s, so ~21 s excess (~25% of median execution). Not actionable: fetch-depth 1 breaks resource.ts per-file git-log sourceCommittedAt (agent-docs-discovery test asserts finite); a main-line blobless history fetch would keep it but residual cost is unmeasured, so expected saving (24 - 3 - residual) cannot be shown >= 12.75 s. Open #20380 is a different topic (retired input path); no duplicate. next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
     }
   ]
