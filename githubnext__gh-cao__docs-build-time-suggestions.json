@@ -1,35 +1,7 @@
 {
-  "source_sha": "874fa758143a08c680f29b3efa709b6837f3385d",
-  "next_category": "dependency installation and caching",
+  "source_sha": "3bd066dd1f825f6178c002e23615a02c429316e8",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-10T19:15:58.731759Z",
-      "worker_run_id": "42882958180",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42882863950,
-        42881074442,
-        42880898081,
-        42880862291,
-        42878502714,
-        42876007544,
-        42875512132,
-        42873697320,
-        42870930998,
-        42868247499,
-        42865784030,
-        42864725603,
-        42863193567,
-        42862394688,
-        42860599143,
-        42860280975,
-        42857825785,
-        42855326967,
-        42853035371,
-        42850425874
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T16:01:31Z to 2026-11-10T19:12:06Z) was within 14 days and contained 12 successful runs, three failed runs, two cancelled runs, and three skipped workflow_run callbacks. Trusted Actions job metadata verified only two successful full build-and-deploy publications: schedule run 42881074442 and push run 42860280975. Ten other successful runs were freshness-only schedules with build and deploy skipped. The three failed runs reached successful build jobs but failed deployment, and the two cancelled runs produced no completed job sample. Two comparable successful publications are below the required five, so queue-versus-execution timing, full-workflow and dashboard/build/deploy median and p90 distributions, repeated artifact-transfer/Pages-packaging analysis, step timing analysis, and cache-hit verification across a sufficient successful sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
     {
       "evaluated_at": "2026-11-10T19:32:05.332486Z",
       "worker_run_id": "42885638794",
@@ -841,6 +813,21 @@
         43078552939
       ],
       "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:31:17Z to 2026-11-12T02:14:10Z; within 14 days; 0 cancelled; none in progress) = 6 comparable successful current-design push publications (43104481579 d57c4c821, 43121504364 3707d46, 43124416558 f1cdd83, 43129836945 ad8a18d, 43138878761 f0777fe, 43139972486 874fa75; docs.yml unchanged from d57c4c821 through 874fa75 per pairwise compare), meeting the n>=5 gate. Excluded as not like-for-like: 3 pre-design full publications (43078552939, 43081415171, 43083249533), 3 pre-design freshness-only schedules, 6 pre-design failed schedules (build failed at Mount latest CAO Dashboard artifact after 55-83 s), and 2 skipped workflow_run callbacks. Current-design baseline n=6: created-to-updated median 95 s (nearest-rank p90 114 s; range 78-114); build median 76.5 s (p90 93 s); deploy median 10.5 s (p90 11 s); build queue median 3 s; deploy queue median 5 s (max 6 s); checkout median 24 s (21-40 s); setup-node median 6.5 s; npm install median 21 s (13-25 s); Astro docs median 11.5 s (10-15 s); synthetic demo median 3 s; Pages upload median 2.5 s; Deploy Pages median 7 s. docs.yml has no dashboard job; dashboard steps run inside build. Scheduling/concurrency: queue waits <=6 s; no overlapping current-design runs; no cancellations; every push changed at least one input path (docs/**, dashboard/site/**, activity/**, scripts/dashboard-demo-data.mjs, or package.json), so no avoidable path-filter rebuild was observed. The daily 05:23Z cron is the intentional synthetic-date refresh; its first current-design run is not yet observed, and removing it would weaken freshness. cao-dashboard.yml runs are skipped workflow_run callbacks in a separate concurrency group. Setup-node cache hit or miss unverified (job logs HTTP 403, DIFC policy). No suggestion. Lead for the next category, not a suggestion: fetch-depth 0 checkout (median 24 s, largest step); scripts/validate-agent-docs.mjs uses only git ls-files and rev-parse HEAD, which work on a shallow checkout, but the synthetic demo path is unverified."
+    },
+    {
+      "evaluated_at": "2026-11-12T02:36:52Z",
+      "worker_run_id": "43141890351",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579
+      ],
+      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:31:43Z to 2026-11-12T02:27:22Z, all within 14 days; no cancelled runs). docs.yml unchanged since d57c4c82 (2026-11-11T21:35:58Z), so the 7 successful push publications from d57c4c82 onward form the like-for-like sample (n=7). Excluded and disclosed: 2 successful publications on the superseded file (push 43081415171, schedule 43083249533), 6 failed superseded schedule runs (Mount latest CAO Dashboard artifact failed, 19:46-21:31Z), freshness-only schedules, and 2 workflow_run skips. Like-for-like medians: full workflow created-to-updated 92 s (p90 114 s); build queue 3 s; build job 73 s (p90 93 s); deploy job 10 s; install deps (two npm ci) 22 s (p90 25 s, range 13-25); setup-node npm cache restore 6 s (1-8 s); checkout fetch-depth 0 24 s (p90 40 s); astro docs build 12 s; synthetic demo 3 s; Pages upload 2 s; deploy step 7 s. Job logs return 403 difc_forbidden, so per-run cache hit/miss is unverified; main-scope node-cache entries appeared only at lockfile-hash changes (2026-11-11T21:38-21:40, 2026-11-12T02:28). Best-case node_modules caching saves at most install minus unmeasured restore cost (est. net 5-12 s), below 15% of the 92 s median workflow (13.8 s). fetch-depth 0 is required: resolveBuildProvenance runs git log per source file for sourceCommittedAt, so shallow checkout would change provenance; not proposed. docs.yml has no dashboard or freshness job; dashboard generation is the Build synthetic enterprise demo step. No suggestion made. Carry-forward for Astro category: resolveBuildProvenance per-page git log calls inside the docs build. next_category advanced."
     }
   ]
 }
