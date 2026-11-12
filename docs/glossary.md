@@ -86,6 +86,10 @@ The checked-in Value evidence packet that recurring collection uses as its start
 
 The `collection-health` registered runtime source: a bounded, read-only snapshot of the server-side webhook and collection profile's queue depth, pending tasks, dead letters, backfill state, and recent webhook and collection outcomes. It is exposed only through the authorized Dashboard Language query boundary, never stored in browser IndexedDB, and returns no raw error messages or credentials. See the Dashboard Language Specification, Section 5.4.
 
+## Container engine
+
+The Docker or Podman runtime that `gh cao dashboard` uses to start its owned local PostgreSQL container. Docker is tried first, then Podman; `--container-engine docker|podman` or `CAO_CONTAINER_ENGINE` selects one engine exclusively. An explicit PostgreSQL connection bypasses container management. See the [CAO CLI guide](cao-cli.md).
+
 ## Coordinator
 
 The CAO operator-facing name for the workflow that selects and dispatches work for a campaign. The canonical gh-aw term is [Orchestrator Workflow](https://github.github.com/gh-aw/reference/glossary/#orchestrator-workflow). Workflow source, policy, campaign manifests, and other technical contracts use the role name `orchestrator`.
@@ -245,6 +249,10 @@ An agentic workflow that participates directly in CAO without a campaign, orches
 ## Statistical runs
 
 The `statistical-runs` source: a separate, bounded sampling layer over the current canonical snapshot that never replaces exact `runs`, retention, or linked detail. Selection runs inside the canonical storage query boundary or PostgreSQL publication transaction against a recorded logical UTC watermark, so every consumer of a snapshot and sampling policy shares one frame. It draws a deterministic, seeded sample of terminal Runs from the seven days before the watermark, stratified by execution UTC date and outcome, and is marked unavailable rather than exact-empty when no recorded clock or sampling input limit is exceeded. See the Dashboard Language Data Specification, Section 5.1.1.
+
+## Synthetic enterprise demo
+
+The generated sample dashboard published to GitHub Pages. Raw samples pass through production normalization, canonical ingestion, worker queries, and shared views, but the demo publishes no operational SQLite snapshot or agent summary, enables no live services, and keeps its browser storage under a `synthetic-demo` scope separate from operational data. See [Dashboard](dashboard.md).
 
 ## Target repository
 
