@@ -1,35 +1,7 @@
 {
   "source_sha": "11644f966934821d0b9e3db7cb9681664911f8ed",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T05:35:37Z",
-      "worker_run_id": "43161737477",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886,
-        43085139761,
-        43083249533,
-        43081415171
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:49:35Z to 2026-11-12T05:24:50Z; within 14 days; 0 cancelled; none in progress) = 9 successful current-design full publications (push d57c4c821, 3707d467, f1cdd833, ad8a18d8, f0777fe2, 874fa758, 3bd066dd, 62f179a2; schedule 9537899; docs.yml unchanged since d57c4c821 per commit history; n=9 meets the minimum), 2 pre-design full publications (43083249533, 43081415171; excluded), 2 pre-design freshness-only schedules, 6 failed pre-design schedules (retired Mount latest CAO Dashboard step; excluded and disclosed), 1 skipped workflow_run. Current-design medians (p90), n=9: run created to build start 4 s (4 s); build job 72 s (93 s); build-end to deploy-start 5 s (6 s); deploy job 10 s (11 s); created to deploy-complete 88 s (113 s). Build steps: checkout 24 s (40 s), npm ci 19 s (25 s), docs build 15 s (15 s), demo 3 s (4 s), Pages upload 2 s (3 s). Concurrency: zero queueing; no two runs in the documentation-pages group overlapped (smallest inter-run gap about 9 min against runs of at most 113 s). Avoidable rebuilds: every push publication matched a docs-consumed trigger path (docs/**, dashboard/site/src, package.json, activity/empirical-behavior.mjs); no test-only or non-consumed trigger commit in window (path matcher uses GitHub glob semantics). The daily 05:23 UTC schedule refreshes synthetic dates from Date.now() in scripts/simulate-dashboard-pages.mjs, so removing it would weaken freshness. Open issue 20131 (superseded-build coalescing, 49 s concurrency-delay premise) not reproduced in this window, so no duplicate issue. No suggestion; next_category advanced to dependency installation and caching. Logs not read (job and step metadata plus commit file lists only)."
-    },
     {
       "evaluated_at": "2026-11-12T05:54:46Z",
       "worker_run_id": "43163833615",
@@ -767,6 +739,35 @@
         43121504364
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T23:39:34Z to 2026-11-12T14:58:38Z; all within 14 days; 1 cancelled excluded: 43206161686; 0 failed). Comparable n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; identical job and step shape; source 11644f96). Category artifact transfer and Pages packaging, median (p90): Configure Pages 1 s (1 s); Upload Pages artifact 2 s (3 s); build-end to deploy-start handoff 6 s (7 s); deploy job queue 5 s (6 s); deploy Set up job 1 s; Deploy Pages step 7 s (14 s; 14-15 s on 43206235849 and 43206080696, unexplained by metadata); demo packaging step 4 s (4 s). Removable transfer overhead excluding the required Deploy Pages step = 9 s (11 s), 10.6% of median execution 85 s (p90 123 s); 15% gate = 12.8 s. Merging deploy into build would remove about 7 s median (8 s p90), below the gate, and would weaken github-pages environment and id-token isolation. Artifact github-pages median 8.3 MB (7.7 to 8.3 MB); shrinking it would save about 1 s. Wall created-to-deploy-complete median 90 s (p90 157 s), driven by queue waits of 30 s and 46 s, not by transfer. Job logs re-verified HTTP 403 difc_forbidden; cache hit/miss unverified (docs.yml uses only setup-node npm cache; no transfer-step cache). No suggestion; no issue created. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T15:36:05Z",
+      "worker_run_id": "43248582279",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T23:39:34Z to 2026-11-12T14:58:38Z; all within 14 days; 0 in progress or queued in window; 0 failed). Excluded: 1 cancelled 43206161686 (no jobs; cancelled as pending run after 43206235849 was queued). n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; source 11644f96, the head of the latest publication; docs.yml unchanged since 063cbe9). Concurrency (run created to build job created): median 1 s, p90 27 s, max 43 s; only 43228124764 (43 s, behind in-progress 43228046118) and 43206235849 (27 s, behind in-progress 43206080696) waited. Created-to-build-start median 4 s (p90 30 s, max 46 s). Execution (build start to deploy end) median 85 s (p90 123 s); 15 percent gate = 12.75 s; wall created-to-deploy-complete median 90 s (p90 157 s). Avoidable rebuilds: commit file lists (commits API, 18 push heads) show every push matched at least one build-consumed trigger path; no push touched only test or non-consumed trigger paths, so narrowing triggers would avoid 0 of 18 runs. Rejected: cancel-in-progress true (would cancel in-progress Pages deploys; affects only the 2 queue waits); moving builds out of the group (risk of stale out-of-order deploys; saves only queue waits); removing the 05:23 UTC schedule (required synthetic-date freshness). Queued pending runs are already coalesced by GitHub concurrency. Job logs HTTP 403 DIFC re-verified; cache hit/miss unverified. Cache listing (metadata): 71 entries totalling 10.65 GB, above the 10 GB repository cap; carry-forward to dependency category. Open issue 20380 (other category, retired input path) not revived; no duplicate. No suggestion; next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ]
