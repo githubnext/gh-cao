@@ -11,7 +11,7 @@ export const unitTestAreas = {
   dashboard: [/^dashboard-/, /^cli-action-/, /^server-azure-/],
   workflows: [
     /^workflow-contract-/, /^control-/, /^campaign-/, /^contoso-/,
-    /^github-apps\./, /^gh-aw-version-/, /^release-workflow\./, /^build-release\./,
+    /^github-apps\./, /^gh-aw-version-/, /^release-workflow\./, /^release-schedule\./, /^build-release\./,
     /^add-operational-value-skill\./, /^token-intervention-lifecycle\./,
   ],
   tooling: [

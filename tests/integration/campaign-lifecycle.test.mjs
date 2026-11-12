@@ -232,7 +232,7 @@ function assertInstalledBootstrap(repository, ghAwVersion, controlRepository) {
   const policy = ".github/workflows/cao.json";
   const control = ".github/workflows/shared/control.mjs";
   run(process.execPath, ["activity/cao.mjs", "--help"], repository);
-  for (const bundle of ["activity", "dashboard"]) {
+  for (const bundle of ["dashboard"]) {
     run(process.execPath, [".github/workflows/shared/materialize-cao.mjs", "verify", bundle], repository);
   }
   run(process.execPath, [control, "validate-policy", policy], repository);

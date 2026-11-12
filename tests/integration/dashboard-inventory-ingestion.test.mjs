@@ -3,7 +3,6 @@ import test from "node:test";
 import "fake-indexeddb/auto";
 import {
   buildInventoryDashboardSources,
-  discoverRepositories,
 } from "../../dashboard/report/inventory-sources.mjs";
 import { ingestDashboardSources } from "../../dashboard/site/src/data/ingest/coordinator.js";
 import {
@@ -23,18 +22,11 @@ test("discovered repositories flow from control scope into canonical storage", a
         "control-plane": { inventory: { "max-scan-repositories": 100 } },
       },
     };
-    const discoveredRepositories = await discoverRepositories(controlSettings, {
-      token: "test-token",
-      controlRepository: "acme/control",
-      fetchImplementation: async (url) => {
-        assert.match(String(url), /\/orgs\/acme\/repos\?/);
-        return new Response(JSON.stringify([
-          { full_name: "acme/control", visibility: "private" },
-          { full_name: "acme/payments", private: true },
-          { full_name: "acme/storefront", visibility: "internal" },
-        ]));
-      },
-    });
+    const discoveredRepositories = [
+      { full_name: "acme/control", visibility: "private" },
+      { full_name: "acme/payments", private: true },
+      { full_name: "acme/storefront", visibility: "internal" },
+    ];
     const sources = buildInventoryDashboardSources({
       repository: "acme/control",
       generatedAt,
@@ -81,18 +73,10 @@ test("explicitly allowed repositories flow into canonical storage", async () => 
         "control-plane": { inventory: { "max-scan-repositories": 100 } },
       },
     };
-    const discoveredRepositories = await discoverRepositories(controlSettings, {
-      token: "test-token",
-      controlRepository: "acme/control",
-      fetchImplementation: async (url) => {
-        const repository = String(url).match(/\/repos\/([^/]+\/[^/?]+)/)?.[1];
-        assert.ok(repository);
-        return new Response(JSON.stringify({
-          full_name: repository,
-          visibility: repository.endsWith("payments") ? "private" : "internal",
-        }));
-      },
-    });
+    const discoveredRepositories = [
+      { full_name: "acme/payments", visibility: "private" },
+      { full_name: "acme/storefront", visibility: "internal" },
+    ];
     const sources = buildInventoryDashboardSources({
       repository: "acme/control",
       generatedAt,

@@ -513,7 +513,7 @@ test("mixed workflows keep fast checks on PRs and gate expensive jobs off PRs", 
   const cases = [
     ["workflow-contracts.yml", ["unit", "test"], [
       "agent-plugin", "installer",
-      "full-contracts", "github-issue-query",
+      "full-contracts",
       "dependabot-operational-value", "campaign-lifecycle-changes",
     ]],
     ["cgo.yml", ["server-quality", "server-spec"], [
