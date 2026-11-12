@@ -12,7 +12,7 @@ need to understand what a dashboard record represents or how records connect.
 Views query this source-neutral model instead of interpreting upstream formats
 directly.
 
-Production Go/PostgreSQL and local Go/SQLite snapshots use this same model.
+Production and local Go/PostgreSQL namespaces use this same model.
 Pages demonstrates it with generated synthetic enterprise evidence through
 production normalization, canonical ingestion, queries, and shared views—not
 presenter fixtures. The demo has no live services or operational-data input.
@@ -24,7 +24,7 @@ When changing canonical entities or storage, continue to the
 [Dashboard Data Architecture Specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md),
 then `dashboard/site/src/data/`. See
 [Data ingestion](/gh-cao/dashboard-data-ingestion/) for collection, JSONL
-publication, retention, browser updates, and SQLite projections.
+publication, retention, browser updates, and PostgreSQL projections.
 
 ## Entity map
 
@@ -140,7 +140,7 @@ database connection.
 ## Update and retain browser data
 
 The browser rules below apply to the synthetic demo and adapter conformance.
-Operational artifacts feed local SQLite or hosted PostgreSQL, not Pages.
+Operational artifacts feed local PostgreSQL or hosted PostgreSQL, not Pages.
 
 Observations can arrive at different times and enrich an existing entity. Explicit source precedence and observation time resolve conflicting fields; arrival order alone never decides the result.
 

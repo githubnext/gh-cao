@@ -68,7 +68,7 @@ test("canvas-reviewed actions execute through command validation without host el
   const executions = [];
   const testCase = await fixture({
     approveCliAction: approveDashboardCommand,
-    executeCliAction: async ({ command }) => { executions.push(command); return { ok: true }; },
+    executeCliAction: async ({ command }) => { executions.push(command); return { ok: true, exitCode: 0 }; },
   });
   try {
     const response = await testCase.post({ id: "compile" });
@@ -153,7 +153,7 @@ test("selected repository is bound to fresh trusted approval before cao add runs
   const executions = [];
   const testCase = await fixture({
     approveCliAction: async (request) => { approvals.push(request); return true; },
-    executeCliAction: async (request) => { executions.push(request.command); return { ok: true }; },
+    executeCliAction: async (request) => { executions.push(request.command); return { ok: true, exitCode: 0 }; },
   });
   try {
     const response = await testCase.post({ id: "add-repository", values: { repository: "octo/repo" } });
@@ -216,7 +216,7 @@ test("every command has a fresh bound approval and concurrent requests are rejec
       assert.ok(signal instanceof AbortSignal);
       assert.equal(signal.aborted, false);
       executions.push(request);
-      return { ok: true };
+      return { ok: true, exitCode: 0 };
     },
   });
   try {
@@ -242,7 +242,7 @@ test("large valid prompts, including worst-case JSON escaping, reach approval in
   const received = [];
   const testCase = await fixture({
     approveCliAction: async () => true,
-    executeCliAction: async ({ input }) => { received.push(input); return { ok: true }; },
+    executeCliAction: async ({ input }) => { received.push(input); return { ok: true, exitCode: 0 }; },
   });
   try {
     for (const prompt of ["x".repeat(23_898), "\u0001".repeat(maximumCliActionInputCharacters)]) {
@@ -257,7 +257,7 @@ test("large valid prompts, including worst-case JSON escaping, reach approval in
   } finally { await testCase.close(); }
 });
 
-test("closing a preview cancels the execution authority of pending approval", { timeout: 10_000 }, async () => {
+test("closing a preview cancels the execution authority of pending approval", { timeout: 30_000 }, async () => {
   let approve;
   let entered;
   const waiting = new Promise((resolve) => { entered = resolve; });
@@ -272,7 +272,9 @@ test("closing a preview cancels the execution authority of pending approval", { 
   try {
     const request = testCase.post({ id: "compile" }).catch((error) => error);
     await waiting;
+    const closing = performance.now();
     await testCase.preview.close();
+    assert.ok(performance.now() - closing < 10_000, "preview shutdown exceeded its cancellation deadline");
     approve(true);
     const response = await request;
     assert.ok(response instanceof Error);

@@ -117,16 +117,15 @@ deployed with the database-role hardening change (no schema initialization,
 maintenance, or write locks during open). Keep database credentials in the
 existing `CAO_POSTGRES_URL` secret environment and select the same reviewed
 policy and operational namespace as the primary store. No ordinary runtime
-audit-delete right is needed. SQLite is debugging only.
+audit-delete right is needed.
 
-For local testing, first run `database bootstrap --store operational --sqlite
-PATH`, then pass that file to `audit deliver --sqlite PATH`. Delivery opens it
-in SQLite read-only mode, never creates a missing file or schema, and never
-retains old events. It verifies a committed snapshot without taking a writer
-lock. `audit verify --sqlite PATH` remains deliberately writable so it can
-record its own result. The HTTPS destination, checkpoint protocol, and enrollment
+Local testing also uses PostgreSQL. Provision an isolated operational namespace,
+then select it with `CAO_POSTGRES_URL` and `CAO_OPERATIONAL_NAMESPACE`.
+Delivery uses the SELECT-only evidence-reader role; it never creates storage
+or retains old events. Verification needs runtime append authority to record
+its result. The HTTPS destination, checkpoint protocol, and enrollment
 anchor requirements below are unchanged. See
-[local SQLite testing](../POSTGRES.md#local-sqlite-testing) for self-contained
+[local PostgreSQL testing](../POSTGRES.md#local-postgresql-development) for self-contained
 tests with an in-process TLS fixture; these do not establish production role
 isolation or independent storage durability.
 

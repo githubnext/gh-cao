@@ -81,7 +81,7 @@ test("dashboard integration main push trigger watches demo and operational bench
     "tests/integration/dashboard-deployed-data.test.mjs",
     "tests/e2e/dashboard-view-assessment.mjs",
     "tests/helpers/dashboard-query-cost.mjs",
-    "tests/performance/dashboard-query-cost.test.mjs",
+    "tests/performance/dashboard-query-cost-postgres.test.mjs",
     "tests/playwright/configs/dashboard-deployed.config.mjs",
   ]) {
     assert.ok(paths.includes(path), `expected trigger path ${path}`);

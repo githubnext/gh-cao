@@ -43,3 +43,4 @@ public/cao/
 /.cao-review.sqlite-wal
 /.cao-review.sqlite-shm
 /_diff_presenter.txt
+.github/cao/dashboard/

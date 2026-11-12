@@ -23,6 +23,7 @@ var databaseLog = debuglogger.New("cao:dashboard:database")
 // never administrator credentials from runtime policy.
 func newDatabaseCommand() *cobra.Command {
 	cmd := &cobra.Command{Use: "database", Short: "explicit PostgreSQL provisioning and maintenance"}
+	cmd.AddCommand(newLocalDatabaseCommand())
 	for _, action := range []string{"bootstrap", "maintain", "retain-audit"} {
 		cmd.AddCommand(newDatabaseAction(action))
 	}

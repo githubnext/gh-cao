@@ -46,7 +46,7 @@ Operational-grader design and result semantics belong to gh-aw's `operational-va
 
 For real feature-development evidence, download a selected `cao-activity-index` Actions artifact into `.cao/`, or run `cao download --url URL` with an explicit operational `payload-hashes.json` endpoint. There is no default remote source; Pages contains synthetic demo data only. Query the canonical PostgreSQL data with `cao query`. Real data is development evidence, not schema authority; follow the specifications and JSONL schema.
 
-Before treating a source as complete, run `cao audit-jsonl --input FILE`. Distinguish repeated source observations from duplicate canonical records, and distinguish run-summary coverage from enriched artifact coverage. Use a separate SQLite database plus `--retention-days all` and `repair-database --ttl-days all --run-ttl-days all` for historical backfills; repair mutates the database and otherwise applies retention even without corruption. Do not turn browser IndexedDB into an archive.
+Before treating a source as complete, preserve canonical source availability and coverage metadata. Historical analysis requires explicitly retained evidence and a separately provisioned PostgreSQL namespace; never repair or reinterpret a database file. Browser IndexedDB is not an operational archive.
 
 These flags preserve run/detail history only. Daily buckets and contribution
 receipts retain the current UTC Monday-start week and its two preceding weeks

@@ -8,12 +8,24 @@ Shared monitoring and automation are separate, optional steps.
 
 ## Open a local dashboard (no deployment)
 
-Use an installed CAO release, your **locally authenticated GitHub CLI**, and
-an explicitly provisioned local PostgreSQL connection. Set `CAO_POSTGRES_URL`;
-the exact repository-scoped namespace printed by the command must already be
-provisioned for canonical and operational storage. See the
+Use an installed CAO release, your **locally authenticated GitHub CLI**, and a
+running Docker or Podman engine. The command automatically pulls PostgreSQL,
+starts or reuses its owned loopback-only container, provisions canonical and
+operational storage, and configures a separate non-owner runtime login.
+Set `CAO_CONTAINER_ENGINE=docker` or `podman` to select the engine explicitly.
+Otherwise the command detects an available local engine.
+
+Persistent data and private local credentials live under
+`.github/cao/dashboard/<repository-scope>/postgres/`; the PostgreSQL data directory
+is bind-mounted into the container. The cache is added to `.gitignore`.
+Image layers remain in the container engine. `--cache-dir` overrides the cache.
+The container and data are retained for subsequent dashboard sessions.
+
+To use your own database instead, pass `--postgres-url` or set `CAO_POSTGRES_URL`.
+That connection bypasses container management and automatic provisioning;
+provision its exact printed namespace using the
 [PostgreSQL setup contract](https://github.com/githubnext/gh-cao/blob/main/server/POSTGRES.md).
-Runtime does not create schemas or convert database files. No cloud deployment,
+The query server itself never gains bootstrap credentials. No cloud deployment,
 Azure setup, Redis, or separate Node.js, npm or gh-aw installation is required.
 The release includes the Go server, built dashboard and pinned gh-aw log collector.
 
@@ -52,7 +64,7 @@ acquisition or bypassing GitHub access controls.
 in background passes separated by **five minutes** while the command runs.
 The recent evidence window defaults to **seven days** (maximum `168h`), while
 server lifetime defaults to, and cannot exceed, **48 hours** per invocation.
-History checkpoints survive restarts, and admitted pages remain in SQLite
+History checkpoints survive restarts, and admitted pages remain in PostgreSQL
 inside the selected window. The header's data-status tooltip shows ingestion progress, quota headroom,
 pauses and errors. A shared 100-point core API pass ceiling reserves at least
 1000 points or 20% of core quota for other work.
@@ -260,7 +272,7 @@ Activity or dashboard artifact publication workflows.
 <span id="step-4---wait-for-collection-and-inspect-your-dashboard"></span>
 
 Open the authenticated hosted dashboard, or prepare an explicit operational
-snapshot for local Go/SQLite serving. See [Agent analysis](agent-analysis.md).
+canonical JSONL for local Go/PostgreSQL ingestion. See [Agent analysis](agent-analysis.md).
 Missing evidence remains unavailable, not proof of zero cost or success.
 CAO monitors Agentic Workflows, not every ordinary Actions job.
 The [sample dashboard](https://githubnext.github.io/gh-cao/cao/) is synthetic

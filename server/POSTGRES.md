@@ -11,7 +11,21 @@ PostgreSQL bootstrap, runtime, retention and evidence-reader lifecycle.
 ## Local PostgreSQL development
 
 Local development uses the production PostgreSQL canonical and operational
-adapters. Start PostgreSQL with the existing server/docker-compose.yml or use
+adapters. The native `gh cao dashboard` operator command starts an owned Docker
+or Podman PostgreSQL container automatically when no connection is specified.
+It bind-mounts `.github/cao/dashboard/<repository-scope>/postgres/data`, ignores
+the cache in Git, and keeps image layers in the selected container engine.
+`CAO_CONTAINER_ENGINE` explicitly selects `docker` or `podman`; otherwise the
+operator detects an available local engine. The container and cache persist
+across invocations. Ownership, cache mounts and loopback port bindings are
+verified before reuse; foreign containers are never replaced or removed.
+Only the separate operator provisioning subprocess receives administrator
+credentials. The web server and ingestion subprocess receive a non-owner
+runtime login using the existing canonical and operational grant contracts.
+
+An explicit `--postgres-url` or `CAO_POSTGRES_URL` bypasses this management:
+the operator neither starts a container nor provisions the selected external
+database. For manually configured services, start PostgreSQL with the existing server/docker-compose.yml or use
 an explicitly selected local instance. Set CAO_POSTGRES_URL for runtime access
 and CAO_DATABASE_ADMIN_URL only for separately invoked schema-owner bootstrap.
 

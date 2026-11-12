@@ -36,7 +36,7 @@ In Copilot CLI, open the **Central Agentic Ops** canvas for the current
 repository or an explicit `OWNER/REPOSITORY`. You need:
 
 - A prepared operational snapshot in the workspace's `.cao/` directory,
-  including `payload-hashes.json` and `gh-aw-logs.sqlite`.
+  including `payload-hashes.json` and its verified canonical JSONL shards.
 - GitHub CLI authentication for optional bounded GitHub reads.
 - Go compatible with the bundled server module, or `CAO_DASHBOARD_EXECUTABLE`
   set to an absolute path to a compatible `cao-dashboard` binary.
@@ -92,7 +92,7 @@ limit**, counted as Unicode characters; keep extra detail in intent. The
 sparkle action can condense an overlong draft, but its result must meet the limit.
 
 The browser data worker validates the document; Go executes the query against
-canonical SQLite data without opening browser IndexedDB. Accepted previews
+canonical PostgreSQL data without opening browser IndexedDB. Accepted previews
 remain subscribed to data changes. Invalid documents show diagnostics without
 replacing the previous preview. Generation can feed validation errors and the
 rejected draft back to Copilot for at most ten attempts per click. Each attempt

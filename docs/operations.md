@@ -301,7 +301,7 @@ This path supports issue outputs only. It does not transfer issues, publish pull
 ## Operational artifacts and the Pages demo
 
 Production dashboards use same-origin Go/PostgreSQL. Local development uses
-the same Go server and views over a real SQLite snapshot. Pages is only the
+the same Go server and views over a canonical PostgreSQL data. Pages is only the
 **Synthetic enterprise demo**; it is not an operational publication destination.
 See [Deployment options](deployment.md).
 
@@ -324,7 +324,7 @@ To inspect an operational snapshot in a catalog checkout:
 
 ```bash
 gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
-npm run dashboard:local -- --sqlite ../.cao/gh-aw-logs.sqlite
+npm run dashboard:local -- --source ../.cao --postgres-url "$CAO_POSTGRES_URL"
 ```
 
 Existing local caches work offline. Native/JavaScript downloads and local
@@ -368,7 +368,7 @@ The Activity workflow restores its source-shard cache, collects bounded read-onl
 `gh aw logs --audit --artifacts usage` evidence for the resolved repository scope,
 and refreshes native operational-value measurements. Its index job merges the
 owner-scoped fragments and publishes normalized run/detail shards and a canonical
-SQLite projection. Consumers query those snapshots without collecting more data.
+PostgreSQL projection. Consumers query those snapshots without collecting more data.
 
 Target repository Git history, Actions run metadata, and accepted evidence are the reconstructable authority for operational value. gh-aw's local weekly shards and the installed control repository's Actions observation cache are accelerators, not archives; either may be deleted or evicted. Operational artifacts expire; the Pages demo is synthetic, not an archive. No private organization-specific observation ledger belongs in the public catalog. Organizations that require an independently durable derived archive must persist the versioned observation records in an access-controlled control-plane data store and retain their source identity and evidence lineage.
 
@@ -463,8 +463,8 @@ acquisition. Opening the dashboard performs queries, not collection or API calls
 
 The Actions and hosted collectors carry retained compact observations forward
 for **365 days**, independently of the run collection window. Browser storage,
-the SQLite projection and `repair-database` also keep a year of outcomes without retaining
-extra run details; an explicitly longer SQLite run archive remains longer.
+the PostgreSQL projection and `repair-database` also keep a year of outcomes without retaining
+extra run details; an explicitly longer PostgreSQL history namespace remains longer.
 At weekly cadence this is about 52 observation instants per repository and
 measure, rather than a copy of every run. Select a wider dashboard time window
 to inspect older retained observations.
@@ -519,14 +519,7 @@ instants (at most 366) to its adapter in one call, reads the bounded canonical
 run/workflow evidence once, and applies the unchanged declarative efficiency
 query to each distinct window. Repositories sharing a window reuse its result.
 This performs no GitHub API acquisition and requires a prepared local Activity
-SQLite database. Use an explicit repository scope and retain the output shard:
-
-```sh
-node activity/cao.mjs operational-value \
-  --database .cao/gh-aw-logs.sqlite --root . --campaign optimization \
-  --history-campaign optimization --retention-days 365 \
-  --repository github/gh-aw --output .cao/optimization-values.jsonl
-```
+PostgreSQL query service. Historical reconstruction is a separately authorized operation; the removed Node CLI is not a backfill interface:
 
 Accepted cadence-bucket observations keep their real timestamps, and rerunning fills only missing
 points. Expired run or AI Credit evidence cannot be recovered by this command;

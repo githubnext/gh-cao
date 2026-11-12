@@ -104,7 +104,7 @@ The compact adapter exchange is one UTF-8 JSON request on stdin and JSONL
 records on stdout. For example, an orchestrator requests one observation:
 
 ```json
-{"schemaVersion":1,"timestamp":"2026-09-24T10:00:00.000Z","repositories":["githubnext/gh-cao"],"database":"/absolute/path/activity.sqlite"}
+{"schemaVersion":1,"timestamp":"2026-09-24T10:00:00.000Z","repositories":["githubnext/gh-cao"]}
 ```
 
 The adapter first declares the workflow's namespaced metric IDs, then emits
@@ -193,7 +193,7 @@ Default canonical retention is:
 - rich evidence and collection health: their bounded current canonical records,
   independently of Run-detail eviction.
 
-Explicitly longer historical SQLite windows MUST preserve the corresponding
+Explicitly longer historical PostgreSQL namespaces MUST preserve the corresponding
 longer compact Value history. Shortening Run or detail retention MUST NOT
 shorten compact Value retention. The seven-day `statistical-runs` frame is an
 independent frozen statistical sample; it does not replace exact sources,

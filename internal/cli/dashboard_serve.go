@@ -116,9 +116,16 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		"Starting local CAO dashboard for %s...\n"+
 			"Collecting up to %s of recent activity; cached artifacts are reused.\n"+
 			"History fills in bounded background passes. The dashboard shows progress and quota pauses.\n"+
-			"PostgreSQL namespace: %s (provision canonical and operational storage before serving).\n",
+			"PostgreSQL namespace: %s.\n",
 		strings.Join(repositories, ", "), options.window, namespace)
+	if err := ensureDashboardCacheIgnored(cache); err != nil {
+		return err
+	}
 	if err := initializeDashboardSnapshot(ctx, cache, repositories, options); err != nil {
+		return err
+	}
+	options.postgresURL, err = configureDashboardPostgres(ctx, server, cache, namespace, options.postgresURL)
+	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(ctx, options.duration)
@@ -147,6 +154,13 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	child.Stdout = serverOutputWriter
 	defer func() { _ = serverOutput.Close(); _ = serverOutputWriter.Close() }()
 	addressDone := make(chan error, 1)
+	ready := make(chan struct{}, 1)
+	markReady := func() {
+		select {
+		case ready <- struct{}{}:
+		default:
+		}
+	}
 	readAddress := func() {
 		scanner := bufio.NewScanner(serverOutput)
 		for scanner.Scan() {
@@ -155,6 +169,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 			}
 			if json.Unmarshal(scanner.Bytes(), &ready) == nil && ready.URL != "" {
 				printDashboardReady(cmd.ErrOrStderr(), ready.URL+"#page-overview", repositories, cache, options)
+				markReady()
 			} else {
 				_, _ = fmt.Fprintln(cmd.OutOrStdout(), scanner.Text())
 			}
@@ -184,6 +199,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 			const marker = "serving local dashboard at "
 			if _, address, found := strings.Cut(line, marker); found {
 				printDashboardReady(cmd.ErrOrStderr(), address+"#page-overview", repositories, cache, options)
+				markReady()
 			} else {
 				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), line)
 			}
@@ -213,8 +229,9 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		}
 		return nil
 	}
-	ticker := time.NewTimer(0)
+	ticker := time.NewTimer(options.duration)
 	defer ticker.Stop()
+	started := false
 	for {
 		select {
 		case result := <-serverDone:
@@ -222,6 +239,11 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		case <-ctx.Done():
 			_ = stdin.Close()
 			return finish(<-serverDone)
+		case <-ready:
+			if !started {
+				started = true
+				ticker.Reset(0)
+			}
 		case <-ticker.C:
 			if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil && ctx.Err() == nil {
 				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard refresh failed; previous snapshot retained: %v\n", err)

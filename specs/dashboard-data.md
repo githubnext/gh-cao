@@ -886,6 +886,17 @@ refresh a separate private PostgreSQL namespace through its native
 acquisition adapter, outside the Go server. It MUST select the current verified
 GitHub.com repository or an explicit bounded list of exact repositories, retain
 at most a seven-day recent window, and serve for at most 48 hours per invocation.
+When no PostgreSQL connection is supplied, this operator profile SHALL manage
+an owned local Docker or Podman PostgreSQL container, pull its required image,
+bind-mount private persistent data beneath `.github/cao/dashboard/<scope>/postgres/`,
+and ensure the cache is ignored by Git. `--cache-dir` MAY select another private
+cache. The operator SHALL validate resource ownership and loopback bindings
+before reuse, and SHALL NOT start or replace a foreign container.
+Its separate provisioning subprocess MAY initialize canonical and operational
+storage using owner credentials; query and ingestion processes SHALL receive
+only the non-owner runtime login and the reviewed privilege contracts.
+An explicit `--postgres-url` or `CAO_POSTGRES_URL` SHALL bypass container
+management and automatic provisioning, without fallback after connection failure.
 The adapter MUST use the pinned gh-aw collector and canonical repository,
 workflow, and repository-scoped Run identities; fresh Actions observations MUST
 take precedence over cached status and mismatched-attempt enrichment MUST NOT

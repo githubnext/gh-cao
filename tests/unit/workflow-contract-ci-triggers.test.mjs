@@ -492,7 +492,7 @@ test("operational ingestion fails closed without an explicit real snapshot", () 
   for (const [source, manifest, expected] of [
     [undefined, {}, /Select exactly one operational source/],
     ["https://snapshot.example/payload-hashes.json", { synthetic: true }, /Synthetic demo data is not operational evidence/],
-    ["https://snapshot.example/payload-hashes.json", {}, /Operational evidence must include a checksum/],
+    ["https://snapshot.example/payload-hashes.json", {}, /contains no compacted run-information shards/],
   ]) {
     const result = spawnSync(process.execPath, ["--input-type=module", "-e", `
       globalThis.fetch = async () => Response.json(${JSON.stringify(manifest)});

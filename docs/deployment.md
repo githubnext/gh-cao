@@ -19,9 +19,9 @@ Choosing a deployment option never changes campaign policy, rollout mode, creden
 For your own investigation, install the release extension and run
 `gh cao dashboard --repo OWNER/REPOSITORY` with your locally authenticated
 GitHub CLI. It bundles the server, dashboard, and collector, serves on loopback,
-and automatically refreshes a private canonical SQLite cache on your machine.
-No CAO cloud deployment, Azure setup, hosted dashboard, PostgreSQL, Redis,
-containers, separate Node.js or gh-aw installation, or control-repository setup
+and automatically refreshes a private canonical PostgreSQL cache on your machine.
+No CAO cloud deployment, Azure setup, hosted dashboard, Redis,
+separate Node.js or gh-aw installation, or control-repository setup
 is required. GitHub remains the online, authenticated evidence source.
 
 Open the printed **Dashboard:** URL and stop with **Ctrl-C**; the cache remains.
@@ -33,15 +33,15 @@ the hosted choices below are optional, not prerequisites.
 
 Dashboard hosting and collection credentials are separate choices. Production
 serves the dashboard through the same-origin Go/PostgreSQL host. Local
-development uses the same Go server and views over a real operational SQLite
+development uses the same Go server and views over a canonical PostgreSQL namespace
 snapshot. Pages is only a synthetic enterprise demo, never a real-data host.
 PostgreSQL also provides separate operational state by default.
 
 | Option | Dashboard host | Where queries run | Who can sign in | Infrastructure you operate |
 | --- | --- | --- | --- | --- |
 | [Synthetic enterprise demo](deployment-actions.md#building-the-synthetic-pages-demo) | GitHub Pages | Web Worker over isolated browser IndexedDB | No operational sign-in or live services | Documentation/demo workflow only; no operational artifacts |
-| [On-demand local dashboard](setup-quickstarts.md#open-a-local-dashboard-no-deployment) | Bundled loopback Go server | Go over private canonical SQLite cache | Local capability URL; collection uses authenticated `gh` | None; installed release and GitHub CLI |
-| [Local development](dashboard-data-ingestion.md#use-local-postgresql) | Loopback Go server | Go over read-only operational SQLite | Private local capability URL | Explicitly acquired operational snapshot |
+| [On-demand local dashboard](setup-quickstarts.md#open-a-local-dashboard-no-deployment) | Bundled loopback Go server | Go over a private PostgreSQL cache | Local capability URL; collection uses authenticated `gh` | Docker/Podman, or an explicitly configured provisioned database |
+| [Local development](dashboard-data-ingestion.md#use-local-postgresql) | Loopback Go server | Go over canonical PostgreSQL | Private local capability URL | Explicitly acquired operational snapshot |
 | [Azure Functions](deployment-azure.md) | Azure Functions | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Function App, Elastic Premium plan, PostgreSQL, Key Vault, ACR, runtime storage, jobs and monitoring |
 | [Azure Container Apps](deployment-topology.md#azure-container-apps) | Container Apps Consumption, one hosted Go replica | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Container Apps environment, PostgreSQL, Key Vault, ACR, jobs and Log Analytics; no Functions, runtime Storage or Premium plan |
 
@@ -58,7 +58,7 @@ For shared operational hosting, rather than the on-demand local command:
    PATs only when eligible and explicitly accepted. See
    [Choosing a credential profile](deployment-actions.md#choosing-a-credential-profile).
 3. **Use Go/PostgreSQL for shared operational hosting.** Choose an Azure topology
-   or your own container platform. Use Go/SQLite for local development and
+   or your own container platform. Use Go/PostgreSQL for local development and
    snapshot investigations. Use Pages only to explore the synthetic demo.
 
 Azure runs the host-neutral Go service from the `server/` directory, with authentication, authorization, cross-site request forgery (CSRF), webhook, rate-limit, and logging protections. You can also deploy that service on your own container platform; you are responsible for secret management, ingress, and delivery.

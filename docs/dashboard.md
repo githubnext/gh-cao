@@ -52,7 +52,7 @@ Every view follows the same data flow:
 	publishes bounded operational snapshots for shared monitoring.
 2. **The selected backend prepares and queries the data.** Production Go
 	serving uses PostgreSQL; local development uses the same Go server over a real
-	SQLite snapshot. Each evaluates Dashboard Language.
+	PostgreSQL namespace. Each evaluates Dashboard Language.
 3. **The active view presents the result.** When the underlying data changes, the
 	query runs again and the view updates.
 

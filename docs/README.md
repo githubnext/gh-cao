@@ -43,10 +43,11 @@ gh cao dashboard --repo OWNER/REPOSITORY
 ```
 
 Open the **Dashboard:** URL printed in your terminal. The bundled server serves
-on loopback and queries canonical SQLite cached on your machine, automatically
+on loopback and queries canonical PostgreSQL cached on your machine, automatically
 collecting and refreshing bounded recent evidence from GitHub.
-No CAO cloud deployment, Azure setup, hosted dashboard, PostgreSQL, Redis,
-containers, or separate Node.js or gh-aw installation is required.
+No cloud, Azure, Redis, Node.js or gh-aw setup is needed. Docker/Podman provides
+PostgreSQL unless a connection is specified. Data binds to the ignored
+`.github/cao/dashboard/` cache.
 GitHub authentication and online access are still needed for collection.
 Press **Ctrl-C** to stop; the cache remains.
 

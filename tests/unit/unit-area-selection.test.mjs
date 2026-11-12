@@ -51,7 +51,7 @@ test("terminal contract jobs build the dashboard's native dependencies before te
 
 test("dashboard unit contracts prepare native Go tests before the bounded contract runner", () => {
   const steps = parse(readFileSync(".github/workflows/workflow-contracts.yml", "utf8")).jobs.unit.steps;
-  const go = steps.find((step) => step.uses?.startsWith("actions/setup-go@"));
+  const go = steps.find((step) => step.uses?.startsWith("actions/setup-go@") && step.with?.["go-version-file"] === "go.mod");
   const build = steps.find((step) => step.name === "Prepare native dashboard contract build");
   const contracts = steps.find((step) => step.run?.includes("npm run test:unit:area"));
   assert.ok(go, "provision the native contract's Go toolchain and cache");

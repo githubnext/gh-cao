@@ -1,7 +1,7 @@
 {
   "version": 1,
   "specification": "specs/dashboard-data.md#722-additive-daily-run-counts",
-  "scope": "Implemented additive daily run counts in native SQLite publication, IndexedDB and PostgreSQL only; not the proposed three-tier architecture. The Activity JavaScript SQLite writer is retired.",
+  "scope": "Implemented additive daily run counts in IndexedDB and PostgreSQL, including native CLI canonical reads; not the proposed three-tier architecture.",
   "deferred": [
     "sampling",
     "hot-tier limits",

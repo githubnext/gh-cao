@@ -528,7 +528,7 @@ func projectDashboardEvidence(evidence []dashboardRepositoryEvidence, cutoff, no
 			path := strings.TrimSuffix(strings.ToLower(workflow.Path), ".lock.yml") + ".md"
 			batch["workflows"] = append(batch["workflows"], map[string]any{
 				"id": "workflow:" + dashboardCoordinate(source.Repository+":"+path), "repositoryId": repositoryID,
-				"githubId": workflow.ID, "name": workflow.Name, "path": path, "state": workflow.State, "observedAt": observed,
+				"githubId": strconv.FormatInt(workflow.ID, 10), "name": workflow.Name, "path": path, "state": workflow.State, "observedAt": observed,
 				"organizationLink": "https://github.com/" + parts[0],
 				"repositoryLink":   "https://github.com/" + source.Repository,
 				"workflowLink":     "https://github.com/" + source.Repository + "/actions/workflows/" + filepath.Base(workflow.Path),

@@ -92,7 +92,7 @@ an evaluation artifact by itself is not a published dashboard result.
   or was an exact idempotent retry (`updated: false`). Open the same workflow's
   Value card and report on the Go-hosted origin. The active view requeries on
   committed revisions; the browser must not read the Pages cache if the hosted
-  query fails. Local Go/SQLite can query a downloaded snapshot but cannot
+  query fails. Local Go/PostgreSQL can query a downloaded snapshot but cannot
   accept direct Value publication.
 
 Compare the report identity, native unit and direction, original capture,
@@ -309,7 +309,7 @@ CAO uses one shared campaign module for both collection paths:
 
 Both paths import the same frozen evidence contract, collector, and scoring functions. Default routine collection does not rebuild repository history, and a metric cannot drift between the dashboard record and its historical report.
 
-Accepted operational-value observations are queryable from any local or downloaded canonical SQLite snapshot with `cao query --collection operationalValues`. Querying alone does not publish or reconstruct history. An explicit historical evaluation may query missing cadence observations for a named campaign while their authoritative source evidence remains in its bounded canonical database. The automatic local lane does not request that backfill. No history archive is installed with the campaign. Completed numeric records use the ordinary operational Activity snapshot pipeline; they never become Pages demo inputs.
+Accepted operational-value observations are queryable from any local or downloaded canonical PostgreSQL namespace with `cao query --collection operationalValues`. Querying alone does not publish or reconstruct history. An explicit historical evaluation may query missing cadence observations for a named campaign while their authoritative source evidence remains in its bounded canonical database. The automatic local lane does not request that backfill. No history archive is installed with the campaign. Completed numeric records use the ordinary operational Activity snapshot pipeline; they never become Pages demo inputs.
 
 The rolling Activity database is a query source for current observations, not the definition of operational-value history. Explicit evaluation schedules observations from adoption and incrementally preserves accepted snapshots. Git and other immutable repository facts can be reconstructed at historical cutoffs. Ephemeral run, usage, artifact, queue, and tool-call facts can be backfilled only while their source remains available; an expired interval without a contemporaneous snapshot is missing, not zero. Compact operational-value history retains its separate 365-day window, compacted to each metric's declared cadence plus its latest open-bucket observation, while the explicit evidence archive is the durable since-adoption record.
 

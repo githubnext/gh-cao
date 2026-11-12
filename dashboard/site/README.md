@@ -28,7 +28,7 @@ The built-in dashboard keeps its shared query foundations and its controls, repo
 ## Data pipeline
 
 1. The activity action collects bounded raw inventory and run evidence for operational artifacts. The collectors under `dashboard/report/` retain evidence acquisition and normalization, not dashboard query projections.
-2. Activity artifacts contain `inventory-sources.json`, normalized run and record JSONL shards, SQLite, and their `payload-hashes.json` manifest. Production uses same-origin Go/PostgreSQL; local development uses the same Go server with a real operational SQLite snapshot.
+2. Operational artifacts contain `inventory-sources.json`, normalized run and record JSONL shards and their `payload-hashes.json` manifest, not database files. Production and local development use the same Go/PostgreSQL boundary.
 3. Pages instead generates synthetic enterprise raw samples through production normalization, then the data Web Worker incrementally ingests them into canonical IndexedDB. It has no operational input, SQLite download, agent summary, or live services.
 4. Dashboard Language queries in `src/data/queries/database.json` and the composed dashboard document perform selection, joins, aggregation, and projection at the production data-layer boundary. Supplied report rows cannot override canonical producers; undeclared sources are unavailable.
 5. The renderer loads the active page declaration and subscribes to its query payload with an abort-scoped lifetime. Database updates refresh the active view; only requested sources cross the worker boundary.
@@ -43,11 +43,11 @@ selected. Operational downloaders require an explicit direct manifest URL or
 authenticated Activity artifact acquisition; Pages is not their default.
 
 The browser caching and ingestion behavior below applies to the synthetic
-demo, not hosted PostgreSQL or local Go/SQLite. Removing real-data Pages
+demo, not hosted or local Go/PostgreSQL. Removing real-data Pages
 publication does not eliminate IndexedDB, Web Worker, service-worker caching,
 or cross-adapter conformance obligations.
 
-The Ingestion page identifies browser-local IndexedDB, local-server SQLite, or server PostgreSQL storage from deployment configuration, not activity evidence. Server deployments declare `dashboard-storage-backend` metadata (`sqlite` or `postgres`); undeclared server storage is shown as unknown. Table counts use canonical table/object-store names.
+The Ingestion page identifies browser-local IndexedDB or server PostgreSQL storage from deployment configuration, not activity evidence. Server deployments declare `dashboard-storage-backend` metadata as `postgres`; undeclared server storage is shown as unknown. Table counts use canonical table/object-store names.
 
 Work-item queries rank runs by canonical `startedAt`, falling back to `createdAt`, then break ties by run identity and attempt. Inventory observation times are not Run timestamps.
 

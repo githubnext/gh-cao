@@ -948,13 +948,23 @@ committed revisions notify active subscriptions through the ordinary query
 boundary. Local storage does not grant hosted collection or execution authority.
 
 `gh cao dashboard` is a separately selected native operator acquisition profile
+that also owns local PostgreSQL setup unless a connection is supplied. It
+selects Docker or Podman (`CAO_CONTAINER_ENGINE` pins the choice), verifies an
+owned loopback-only container, and bind-mounts its persistent data beneath the
+ignored `.github/cao/dashboard/<scope>/postgres/` cache. The operator invokes
+separate provisioning with owner credentials, then passes only a non-owner
+runtime login to ingestion and the query server. An explicit connection bypasses
+both container management and provisioning. Image layers remain engine-owned;
+the container and cache persist across dashboard sessions.
+
+The acquisition profile runs
 for investigations lasting at most 48 hours per invocation, retaining up to seven
 days of evidence. It resolves the current repository
 or up to 20 exact `--repo` selections, calls the embedded pinned gh-aw log collector
 with all available artifact sets, audit evidence and its normal artifact/JSONL
 cache semantics, and combines that evidence with fresh
 bounded GitHub workflow/run reads. It publishes verified canonical JSONL in the
-user's scope-keyed cache and ingests it into explicitly configured PostgreSQL,
+scope-keyed `.github/cao/dashboard/` cache and ingests it into PostgreSQL,
 never a browser database or writable server overlay. Its trusted generated
 ingestion bundle reuses `gh-aw-logs.js` and the canonical normalizer in a bounded
 pure-Go JavaScript runtime. No filesystem, process or network APIs are exposed

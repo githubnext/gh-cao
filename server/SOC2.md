@@ -1,5 +1,11 @@
 # Go server SOC 2 readiness assessment
 
+> Historical evidence: the assessments below apply to their cited source SHAs,
+> not the current PostgreSQL-only implementation. SQLite backends are removed;
+> recorded SQLite results are not current validation or supported deployment
+> guidance. See `ARCHITECTURE.md` and `server/POSTGRES.md` for current boundaries.
+> This note does not reassess controls or establish operating effectiveness.
+
 ## Current-source reassessment - 2026-10-22 UTC
 
 Assessed source **`53458a46d983356cdc2b8c5f27903026ca707a82`**, RFC-035

@@ -32,11 +32,11 @@ backend. Secret values and access tokens are never serialized.
 Removing a registry changes only discovery and display, never execution
 permissions.
 
-Local Go/SQLite serving uses the same runtime registry source as hosted
+Local Go/PostgreSQL serving uses the same runtime registry source as hosted
 serving. An empty or populated snapshot collection MUST NOT shadow that
 registered source when a runtime provider is configured. Without a runtime
 provider, snapshot-only readers continue to read retained package inventory.
-Registry resolution remains read-only and MUST NOT write to the SQLite
+Registry resolution remains read-only and MUST NOT write to canonical
 snapshot.
 
 ## Package contract

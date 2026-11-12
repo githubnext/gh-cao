@@ -1,6 +1,6 @@
 import databaseQueries from '../site/src/data/queries/database.json' with { type: 'json' };
 import { dashboardQueryOutputFields } from '../site/src/data/queries/declarative.js';
-import { executeCanonicalQuery } from '../../.github/skills/add-operational-value/scripts/canonical-query.mjs';
+import { executeCanonicalQuery } from './canonical-query.mjs';
 
 const DATABASE_SOURCE_TABLES = databaseSourceTables(databaseQueries);
 const DATABASE_SOURCE_FIELDS = databaseSourceFields(databaseQueries);

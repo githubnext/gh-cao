@@ -27,7 +27,7 @@ must resolve to its canonical name and visibility before setup proceeds.
 Setup does not configure Pages or request public-publication consent.
 Repository contents, logs, review outputs, and operational artifacts each need
 suitable access controls. Production dashboards use same-origin Go/PostgreSQL;
-local analysis uses real SQLite snapshots. Pages is a synthetic-only demo.
+local analysis uses canonical PostgreSQL data. Pages is a synthetic-only demo.
 
 Interactive `OWNER/*` expands accessible repositories and saves exact names.
 For a public control, any non-public match fails setup. The unattended

@@ -5728,7 +5728,7 @@
       "used-by-pages": [],
       "execution": {
         "local": true,
-        "backend": "sqlite",
+        "backend": "postgres",
         "requirements": [
           "transactions"
         ]

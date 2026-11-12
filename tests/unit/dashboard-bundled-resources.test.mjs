@@ -84,7 +84,7 @@ test("a relocated plugin builds its own Go host and child lifetime follows its o
   const root = await mkdtemp(join(tmpdir(), "cao-plugin-go-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const plugin = await relocatedPlugin(root);
-  for (const path of ["server/go.mod", "server/go.sum", "server/cmd/cao-dashboard", "server/internal", "internal/dashboardquery"]) {
+  for (const path of ["server/go.mod", "server/go.sum", "server/cmd/cao-dashboard", "server/internal", "server/postgres", "internal/dashboardquery"]) {
     await mkdir(join(plugin, path, ".."), { recursive: true });
     await cp(join(repositoryRoot, path), join(plugin, path), { recursive: true });
   }

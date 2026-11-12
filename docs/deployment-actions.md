@@ -12,12 +12,12 @@ GitHub Actions runs the control plane and collects operational evidence.
 It is not a real-data Pages hosting option:
 
 1. **CAO Activity** collects bounded evidence and publishes the
-   `cao-activity-index` artifact, including SQLite and normalized shards.
+   `cao-activity-index` artifact, including verified normalized shards.
 2. **CAO Dashboard** builds and retains an operational
    `central-agentic-ops-dashboard` artifact for authorized consumers. It does
    not deploy the artifact to Pages.
 3. Production dashboards use the same-origin **Go/PostgreSQL** host. Local
-   development and analysis use the same Go server with a real **SQLite**
+   development and analysis use the same Go server with a provisioned **PostgreSQL** namespace
    snapshot.
 4. The catalog's **Documentation Pages** workflow builds documentation and a
    **Synthetic enterprise demo**. It never downloads operational artifacts.
@@ -71,12 +71,12 @@ access:
 
 ```bash
 gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
-npm run dashboard:local -- --sqlite ../.cao/gh-aw-logs.sqlite
+npm run dashboard:local -- --source ../.cao --postgres-url "$CAO_POSTGRES_URL"
 ```
 
 The npm command runs from a catalog checkout; relative Go paths resolve from
 `server/`. The selected snapshot is served read-only. For native CLI queries,
-use `gh cao query --database .cao/gh-aw-logs.sqlite ...`.
+use `gh cao query --postgres-url "$CAO_POSTGRES_URL" ...`.
 
 If an operator already provides a trusted operational payload location,
 `DASHBOARD_DATA_URL` or `gh cao download --url` must name its

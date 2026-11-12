@@ -1,6 +1,6 @@
 ---
 title: Agent analysis
-description: Give agents canonical evidence through the Node workflow runtime, the operator Go extension, or a read-only MCP server.
+description: Give agents canonical PostgreSQL evidence through the native Go extension or a read-only MCP server.
 agent:
   type: agent-interface
   prominent: true
@@ -10,13 +10,13 @@ agent:
 
 Central Agentic Ops can answer questions for an agent without giving it a
 browser, a database schema, or credentials. Dashboard pages and named Dashboard
-Language queries are the agent API; SQLite is only the local execution engine
+Language queries are the agent API; PostgreSQL is the operational query backend
 beneath them.
 
 This is the operational agent entry point at `/agent-analysis/`. The public
 Pages dashboard is only a **Synthetic enterprise demo**, not an operational
 snapshot or agent-summary service. Production uses same-origin Go/PostgreSQL;
-local analysis uses real operational SQLite snapshots through the same canonical
+local analysis uses real operational PostgreSQL data through the same canonical
 queries. Never use demo data as evidence about a repository.
 
 One catalog is shared by every transport, so none of them maintains a second
@@ -30,38 +30,35 @@ list of pages or queries:
 
 ## Inside an agentic workflow
 
-The installed Node `cao` runtime provides supported evidence APIs for workflow
-agents. These are production interfaces, not deprecated duplicates or test-only
-parity implementations of the operator CLI. Invoke them directly from the
-control-repository runtime root. Pass an explicitly prepared operational
-snapshot with `--database`; no shared Activity cache is restored. Missing
+Workflow agents use the native Go `gh cao` interface or an explicitly supplied
+read-only query service. The retired Node workflow CLI and file-database query
+paths are not supported. Supply `CAO_POSTGRES_URL` and the exact provisioned
+`CAO_DATABASE_NAMESPACE`; runtime queries never create storage. Missing
 operational evidence remains unavailable, with no public-demo fallback:
 
 ```bash
-db=".cao/gh-aw-logs.sqlite"
 gh cao queries --json
 gh cao query-info campaign-runs --json
 gh cao prompt campaign-runs
-gh cao query campaign-runs --database "$db" --param campaign=CAMPAIGN_SLUG --limit 50
-gh cao gh runs --database "$db" --repo OWNER/REPO --limit 20
-gh cao gh issues --database "$db" --repo OWNER/REPO
-gh cao gh prs --database "$db" --repo OWNER/REPO
-gh cao computation runtime-health --database "$db"
-gh cao computation intelligence --database "$db"
-gh cao mcp --database "$db" --host 127.0.0.1 --port 8765
+gh cao query campaign-runs --param campaign=CAMPAIGN_SLUG --limit 50
+gh cao gh runs --repo OWNER/REPO --limit 20
+gh cao gh issues --repo OWNER/REPO
+gh cao gh prs --repo OWNER/REPO
+gh cao computation runtime-health
+gh cao computation intelligence
+gh cao mcp --host 127.0.0.1 --port 8765
 ```
 
-Check the cache exists and is non-empty before invoking a query. A cache miss
+Check the selected PostgreSQL namespace has verified canonical evidence. A cache miss
 is missing evidence, not permission to invent an empty projection. Use only
 already authorized, bounded read-only tools for any independent investigation.
 
-Workflow execution and evidence preparation do not build, install, or invoke
-`gh cao`. The Node commands and their dependencies ship in the verified runtime.
-Human/operator commands belong to `gh cao`; server hosting and administration
-belong to `cao-dashboard`. Overlapping read capabilities are intentional, not a
-reason to migrate workflow consumers to the Go extension.
+Workflow execution does not authorize installing services, starting containers
+or provisioning databases. The automatically managed container belongs only to
+the explicitly selected interactive `gh cao dashboard` operator command.
+Server hosting and administration belong to `cao-dashboard`.
 
-The Node query APIs use the canonical snapshot and reviewed Dashboard Language
+The native query APIs use canonical PostgreSQL and reviewed Dashboard Language
 definitions, including declared parameters, bounds and availability metadata.
 `gh runs|issues|prs` reads local evidence, not the live GitHub API; issue and PR
 results describe recorded safe outputs, not every item in a target repository.
@@ -92,14 +89,14 @@ Do you have shell access?
    ```
 
    The artifact supplies `.cao/payload-hashes.json`, normalized shards, and
-   `.cao/gh-aw-logs.sqlite`. Existing verified caches can be queried offline.
+   no database file. Explicit PostgreSQL ingestion is required before querying.
    Keep the source run, repository, timestamp, and coverage with your analysis.
 
    If an operator already provides a trusted operational payload location, use
    `gh cao download --url URL` or `DASHBOARD_DATA_URL=URL gh cao download`.
    The URL must end in `/payload-hashes.json`; no default Pages source,
    site-root discovery, or hosted export API is implied. Synthetic manifests
-   and manifests missing a SQLite checksum are rejected.
+   and manifests missing canonical shard or inventory checksums are rejected.
 
    Cloud-agent preparation must select operational evidence before analysis.
    If a setup step maps `CAO_DASHBOARD_DATA_URL` to `DASHBOARD_DATA_URL`, that
@@ -227,14 +224,14 @@ at all:
 ```json
 {
   "id": "campaign-overview",
-  "execution": { "local": true, "backend": "sqlite", "requirements": ["runs", "workflows"] }
+  "execution": { "local": true, "backend": "postgres", "requirements": ["runs", "workflows"] }
 }
 ```
 
 ```json
 {
   "id": "work-item-history",
-  "execution": { "local": false, "reason": "Requires work-items, which the local SQLite projection does not provide." }
+  "execution": { "local": false, "reason": "Requires work-items, which the canonical PostgreSQL source does not provide." }
 }
 ```
 
@@ -243,8 +240,8 @@ its sources.
 
 ## Run the MCP server
 
-With the native extension installed and an explicitly prepared canonical SQLite
-snapshot, run `gh cao mcp --database .cao/gh-aw-logs.sqlite`.
+With the native extension installed and `CAO_POSTGRES_URL` and its exact namespace
+configured, run `gh cao mcp`.
 The server is read-only and binds to loopback by default. The former Node MCP
 image and Activity runtime are removed.
 

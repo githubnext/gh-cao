@@ -7,7 +7,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
-import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import { parse } from "yaml";
 import {

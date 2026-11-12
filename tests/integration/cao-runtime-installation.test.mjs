@@ -65,7 +65,7 @@ test("a producer archive runs and builds the dashboard from a fresh documented i
     }
     writeFileSync(path.join(installed, ".github/workflows/cao.json"), JSON.stringify({version: 1, "gh-aw-version": manifest["min-version"], "control-plane": {scope: {"allowed-owners": ["example"], "allowed-repositories": ["example/control"]}, campaigns: {}}}));
     run("git", ["init", "--quiet"], installed);
-    run("git", ["add", ".github", "activity", "dashboard"], installed);
+    run("git", ["add", ".github", "dashboard"], installed);
     run("git", ["diff", "--cached", "--check"], installed);
     assert.equal(run("git", ["ls-files", "--others", "--exclude-standard"], installed), "");
     run("git", [
@@ -74,55 +74,12 @@ test("a producer archive runs and builds the dashboard from a fresh documented i
       "commit", "--quiet", "-m", "Install CAO runtime",
     ], installed);
     run("git", ["clone", "--quiet", "--no-local", installed, checkout], temporary);
-    for (const bundle of ["activity", "dashboard"]) {
+    for (const bundle of ["dashboard"]) {
       run(process.execPath, [".github/workflows/shared/materialize-cao.mjs", "verify", bundle], checkout);
     }
-    const help = run(process.execPath, ["activity/cao.mjs", "--help"], checkout);
-    assert.doesNotMatch(help, /cao add --repository/);
-    assert.equal(existsSync(path.join(checkout, "activity/cli/repositories.mjs")), false);
-    for (const arguments_ of [
-      ...["init", "setup", "setup-auth", "add", "mode", "enable", "disable", "update", "upgrade-gh-aw"]
-        .flatMap(command => [[command, "must-not-exist.sqlite"], [command, "--help"]]),
-      ["add", "--repository", "owner/repo"],
-      ["add", "--repository=owner/repo"],
-      ["add", "catalog/repo/demo", "--repository", "owner/repo"],
-      ...["github-app", "enterprise-app", "token"].map(profile => ["setup-auth", profile, "--dry-run"]),
-    ]) {
-      const result = spawnSync(process.execPath, ["activity/cao.mjs", ...arguments_], {
-        cwd: checkout, encoding: "utf8", timeout: 30_000, env: { ...process.env, PATH: "" },
-      });
-      assert.equal(result.status, 1, result.error?.message);
-      assert.equal(result.stdout, "");
-      assert.ok(result.stderr.startsWith(`Error: Node cao ${arguments_[0]} has been retired; use gh cao `));
-      assert.equal(existsSync(path.join(checkout, "must-not-exist.sqlite")), false);
-    }
-    run("git", ["diff", "--exit-code"], checkout);
-    assert.match(help, /cao repair-database\b/);
-    assert.doesNotMatch(help, /cao doctor\b/);
-    assert.equal(existsSync(path.join(checkout, "activity/commands/repair-database.mjs")), true);
-    assert.equal(existsSync(path.join(checkout, "activity/commands/doctor.mjs")), false);
-    const database = path.join(temporary, "snapshot.sqlite");
-    const shards = path.join(temporary, "shards");
-    mkdirSync(shards);
-    run(process.execPath, ["activity/cao.mjs", "ingest-jsonl", "--input-dir", shards, "--database", database], checkout);
-    const repair = JSON.parse(run(process.execPath, [
-      "activity/cao.mjs", "repair-database", "--database", database,
-      "--ttl-days", "all", "--run-ttl-days", "all",
-    ], checkout));
-    assert.equal(repair.command, "repair-database");
-    assert.equal(repair.healthy, true);
-    const retired = spawnSync(process.execPath, ["activity/cao.mjs", "doctor", database], { cwd: checkout, encoding: "utf8" });
-    assert.equal(retired.status, 1);
-    assert.match(retired.stderr, /Unknown command: doctor; use repair-database/);
-    const retiredAuth = spawnSync(process.execPath, [
-      "activity/cao.mjs", "setup-auth", "hosted-cli", "--repo", "example/control",
-      "--private-key-out", path.join(checkout, "must-not-exist.pem"),
-    ], { cwd: checkout, encoding: "utf8", env: { ...process.env, PATH: "" } });
-    assert.equal(retiredAuth.status, 1, retiredAuth.stderr);
-    assert.match(retiredAuth.stderr, /Node cao setup-auth has been retired; use gh cao setup auth/);
-    assert.equal(existsSync(path.join(checkout, "must-not-exist.pem")), false);
-    assert.doesNotMatch(help, /cao setup-auth hosted-cli/);
-    assert.equal(existsSync(path.join(checkout, ".github/workflows/shared/setup-hosted-cli-app.mjs")), false);
+    assert.equal(existsSync(path.join(checkout, "activity")), false);
+    assert.equal(existsSync(path.join(checkout, "dashboard/site/src/data/storage/sqlite-indexeddb.js")), false);
+    assert.equal(existsSync(path.join(checkout, "cao.sh")), false);
     const appHelpers = await import(pathToFileURL(path.join(checkout, ".github/workflows/shared/github-apps.mjs")));
     assert.equal(appHelpers.APP_PROFILES.length, 2);
     assert.equal(typeof appHelpers.repositoryState, "function");
@@ -143,10 +100,8 @@ test("a producer archive runs and builds the dashboard from a fresh documented i
       assert.ok(existsSync(path.join(output, asset)), `missing built asset: ${asset}`);
     }
     for (const [name, content] of Object.entries({
-      "agent-summary.json": '{"schemaVersion":1}\n',
       "inventory-sources.json": "{}\n",
       "payload-hashes.json": "{}\n",
-      "gh-aw-logs.sqlite": "sqlite fixture",
     })) writeFileSync(path.join(output, name), content);
     run(process.execPath, ["dashboard/site/scripts/llms.mjs", "generate", path.join(output, "llms.txt"), output], checkout);
     run(process.execPath, ["dashboard/site/scripts/llms.mjs", "validate", output], checkout);

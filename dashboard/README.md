@@ -4,7 +4,7 @@
 > **Research prototype:** Features and interfaces may change as the project evolves.
 
 The shared dashboard runtime consumes canonical operational evidence. Production serves the dashboard through same-origin Go/PostgreSQL;
-local development uses the same Go server and views with a real SQLite snapshot.
+local development uses the same Go server and views with PostgreSQL.
 
 > [!NOTE]
 > GitHub Pages is only the **Synthetic enterprise demo**. It uses generated raw
@@ -22,7 +22,7 @@ local development uses the same Go server and views with a real SQLite snapshot.
 - `.github/workflows/shared/control.mjs`: deterministic policy command adapter used by the build workflow.
 - `dashboard/report`: deterministic collection modules executed by the activity action plus Dashboard Language source adaptation.
 - `dashboard/site`: the bundled Dashboard Language validator, presenter, configuration, and browser runtime.
-- `server/`: unified Go serving for real local SQLite, hosted PostgreSQL, and synthetic-only Pages preview.
+- `server/`: unified Go/PostgreSQL serving locally and hosted, plus synthetic-only Pages preview.
 - `dashboard/canvas-server.mjs`: internal loopback-only Copilot canvas authoring bridge, with JSON live reload; not a standalone server.
 
 The legacy Actions collector and dashboard artifact publisher are removed.
@@ -77,18 +77,20 @@ the dashboard through the Go server:
 npm ci
 npm --prefix dashboard/site ci
 gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
-npm run dashboard:local -- --sqlite ../.cao/gh-aw-logs.sqlite
+npm run dashboard:local -- --source ../.cao --postgres-url "$CAO_POSTGRES_URL"
 ```
 
 `npm run dev` is the same entrypoint. The build composes the campaign documents
-and fragments, and Go `serve` uses a verified canonical SQLite snapshot cached
-under `server/` by default, or at the explicit path above. Existing caches work
-offline. A missing cache requires an explicit operational manifest URL through
-`DASHBOARD_DATA_URL` or `--download-sqlite=URL`; there is no default Pages source.
+and fragments. Go `serve` ingests verified canonical JSONL into the selected,
+provisioned PostgreSQL namespace. Explicit artifact acquisition can use
+`DASHBOARD_DATA_URL`; there is no default Pages source or database-file import.
 URLs must end in `/payload-hashes.json`, not a site root. Synthetic manifests,
-missing SQLite checksums, and invalid existing caches fail closed.
-Use `--listen 127.0.0.1:8443`, `--sqlite PATH`, or `--site PATH` to override the
-listener, cache, or built site. Paths resolve from the `server/` module.
+missing canonical checksums and invalid inputs fail closed.
+Use `--listen 127.0.0.1:8443`, `--postgres-url URL`, or `--site PATH` to override the
+listener, connection, or built site. Paths resolve from the `server/` module.
+For managed local setup, use `gh cao dashboard`: Docker or Podman is selected,
+PostgreSQL is started and provisioned, and data is bind-mounted under the ignored
+`.github/cao/dashboard/<scope>/postgres/` cache. Explicit connections bypass setup.
 Open the access URL printed by Go. Artifact acquisition is separate from
 read-only serving; there is no standalone Node preview, admin flag, automatic
 process replacement, or Node Go launcher.
@@ -132,7 +134,7 @@ volatile memory explicit alternatives. OAuth, authorization and HTTPS/proxy
 protections remain required. See [`../server/README.md`](../server/README.md).
 
 The Copilot canvas launches the same Go server against a prepared,
-checksum-verified operational SQLite snapshot in the workspace's `.cao/`
+checksum-verified canonical JSONL artifact in the workspace's `.cao/`
 directory. It does not discover or download legacy Actions artifacts. Go owns its public
 loopback origin, static assets, query/diagnostics/memory APIs and revision events.
 It proxies only Copilot integration routes to a private Node adapter, which
@@ -191,7 +193,7 @@ action with an explicit message; queue admission rejects missing or overridden
 host context. Substitutions are literal, not expressions, and never run a shell.
 
 Trusted canvas sessions share one durable FIFO queue per
-checkout, stored in `.cao/cli-actions.sqlite`. The online dashboard and ordinary
+checkout's PostgreSQL operational namespace. The online dashboard and ordinary
 read-only previews do not initialize a queue or request its APIs. Execution
 continues while the local server is running, even with every browser closed.
 Stopping the server terminates running work; interrupted executions are recorded
@@ -248,10 +250,10 @@ the matching total count are applied before pagination.
 Mutations require same-origin JSON requests as well as the preview capability.
 Queue retention defaults to 30 days and removes terminal history only in wholly
 expired UTC Monday-based seven-day windows, including while idle; active commands never expire. Queue
-files contain operational command history and must remain local and uncommitted.
-Storage is bounded to 10,000 retained entries, 1 MiB output per command, 64 MiB
-retained output overall and a 128 MiB main SQLite database (excluding WAL
-overhead). Output is framed by line for cross-chunk credential redaction;
+records contain operational command history and remain in the private PostgreSQL
+namespace. PostgreSQL operational capacity and per-command output limits bound
+storage; there is no separate database-file quota or file-backed queue.
+Output is framed by line for cross-chunk credential redaction;
 overlong lines above 16 KiB and output beyond the budgets are discarded with an
 explicit truncation warning. Terminal output can therefore lag until a line
 ends or execution finishes.
