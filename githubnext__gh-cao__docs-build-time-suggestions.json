@@ -1,35 +1,7 @@
 {
   "source_sha": "d4bf131be13d9899c0f16a32f4207027e1b19d8d",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-11T21:26:12.819852Z",
-      "worker_run_id": "43102030712",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886,
-        43085139761,
-        43083249533,
-        43081415171,
-        43080844329,
-        43078618882,
-        43078552939,
-        43076367701,
-        43076120883,
-        43073764764,
-        43071291945,
-        43068939179,
-        43066601169,
-        43066186678
-      ],
-      "outcome": "incomplete: latest-20 completed docs.yml runs (2026-11-11T17:14:20Z to 2026-11-11T21:18:46Z; within 14 days; 0 cancelled) contained 11 successful runs (8 freshness-only schedules, build and deploy skipped, 6-13 s job; 3 full build-and-deploy publications: 43078552939 schedule c56d4216d, 43081415171 push 494560796, 43083249533 schedule 494560796), 5 failed runs and 4 skipped workflow_run callbacks. Only 3 comparable publications exist (5 required), so no suggestion was made and next_category was not advanced. Full publications (n=3, p90 not meaningful): run wall median 114 s (106-135), build median 82 s (66-84), deploy job median 27 s (13-30); checkout 24 s (20-25), npm ci 15 s (10-17), Astro docs 11 s (9-13), dashboard cache restore 3 s (hit in all three), Pages upload 17 s (15-20). Critical: all 5 failed runs (19:46Z-21:18Z) missed the central-agentic-ops-dashboard cache, resolved CAO Dashboard run 42770239542 (2026-11-10T06:41Z) and failed at Mount latest CAO Dashboard artifact after 55-64 s of build work. The artifact listing returns no entries (1-day retention); the cache key is absent from 41 repo caches (listing totals 10.48 GB; eviction suspected, unverified). Job logs return HTTP 403 (policy), so error text is unverified. Leads for next complete evaluation: (5) freshness compares only deployed vs current main SHA with no path filter; 6 of 8 build executions in the window were for SHAs touching no docs.yml push path (c56d4216d: 1 success 135 s; 770e465dd: 2 failures; 93614994e: 3 failures). (5) 494560796 rebuilt at 19:01Z although deployed at 18:51Z; visible logic should skip; cause unverified (403). (5) fail-fast: dashboard resolution runs after about 50 s of checkout/npm/Astro work. (1) checkout fetch-depth 0 (median 24 s); docs:build uses only git ls-files and rev-parse HEAD, so a shallow checkout needs measurement."
-    },
     {
       "evaluated_at": "2026-11-11T21:34:38.645552Z",
       "worker_run_id": "43103511925",
@@ -795,6 +767,35 @@
         43085628886
       ],
       "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z; within 14 days; 0 cancelled; none in progress; no new runs since the 06:55Z evaluation) = 12 successful current-shape full publications (11 push d57c4c82..d4bf131, 1 daily schedule 9537899), 6 failed retired-Mount schedules (excluded), 2 freshness-only schedules (excluded). Current n=12 medians (p90): build queue 3 s (4 s); build job 72.5 s (93 s); deploy-job queue 5 s (6 s); deploy job 10 s (11 s); build-start to deploy-end 86.5 s (109 s); create-to-deploy-complete 89.5 s (112 s). Concurrency: 0 overlapping publications across the window (min gap 133 s); queue waits 2-4 s, so the documentation-pages group adds no measurable wait. Trigger audit (commit file lists, GitHub glob semantics): all 11 push publications matched a docs-consumed path (docs/**, dashboard/site/**, dashboard/report/**, astro.config.mjs, aw.yml manifests read by docs/lib/catalog.ts, .github/workflows/shared/policy.mjs imported by the dashboard build, docs.yml itself); 063cbe9 removed activity/** from push paths and its run matched on docs.yml and shared/policy.mjs; no trigger-only publication. Daily 05:23Z cron is the intentional synthetic-date refresh (9537899, 88 s) and removing it would weaken freshness. Coalescing superseded builds would remove runs, not shorten the per-run median (89.5 s; 15 percent = 13.4 s); the open issue 20131 concurrency-delay premise is not present in this window. Job logs not read (metadata only). No suggestion; next_category advanced to dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-11-12T07:36:01Z",
+      "worker_run_id": "43175634734",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175,
+        43094878868,
+        43092616318,
+        43090243002,
+        43087935698,
+        43085628886
+      ],
+      "outcome": "not actionable: evaluated dependency installation and caching. Window: latest 20 completed docs.yml runs (created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z; all within 14 days; 0 cancelled). Comparable: 12 successful build+deploy publications with identical build/deploy steps (43104481579 onward). docs.yml changed after d57c4c821 only in 063cbe911 (activity/** path filter removed). Excluded: 6 failed pre-d57c4c821 schedules (dashboard mount step) and 2 freshness-only schedules. Median/p90 n=12: workflow wall 90.5/114 s; build 72.5/93 s; deploy 10/11 s; queue 4/4 s; dashboard job not applicable (absent). Steps: checkout 24/40 s; npm ci 18.5/23 s; setup-node 3/8 s; Astro 14/15 s. Cache hit/miss unverified: build-job logs return HTTP 403 (DIFC). Rejected: fetch-depth 1 would save about 18 s median but silently changes freshness.sourceCommittedAt (docs/plugins/starlight-agent/resource.ts resolveBuildProvenance runs git log -- file; verified locally that a depth-1 clone returns the HEAD date for every file). Unmeasured leads with no evidence of 13 s or more (15% of 86.5 s median execution): blobless history-preserving checkout, node_modules cache, npm ci --no-audit --no-fund. Correction: docs:build also runs git log per resource, not only git ls-files and rev-parse. Next category: Astro documentation generation.",
+      "suggestion_fingerprint": null
     }
   ]
 }
