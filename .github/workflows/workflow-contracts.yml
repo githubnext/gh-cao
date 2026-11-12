@@ -205,16 +205,39 @@ jobs:
     permissions:
       contents: read
       issues: read
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+        env:
+          POSTGRES_DB: cao_value_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cao_value_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
+        with:
+          go-version: 1.27.3
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
+      - name: Set up Node for the frozen value oracle
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
+      - name: Verify native Dependabot operational value
+        env:
+          CAO_TEST_POSTGRES_URL: postgres://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_value_test?sslmode=disable
+        run: >-
+          go -C server test -race ./internal/collect ./internal/operationalvalue
+          -run '^(TestDependabot|TestHostedDependabot|TestNativeLocalValueNumericDependabot)'
+          -count=1 -timeout=3m -v
   campaign-lifecycle-changes:
     name: Select campaign lifecycle tests
     if: github.event_name != 'pull_request'

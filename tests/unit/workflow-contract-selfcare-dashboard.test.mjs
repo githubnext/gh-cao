@@ -185,7 +185,8 @@ test("SelfCare dashboard reviewer checks deployments through stakeholder persona
   assert.match(source, /name: "SelfCare \/ Dashboard"/);
   assert.match(source, /campaign: self-care\n\s+role: worker\n\s+worker: dashboard-review/);
   assert.match(source, /safe_output_mode` is `live`/);
-  assert.match(source, /REPORT_INVENTORY=\/tmp\/gh-aw\/agent\/self-care-dashboard-review\/expected-inventory\.json/);
+  assert.match(source, /Reviewed policy and workflow declarations: `\.github\/workflows\/cao\.json` and the checked-out workflow sources/);
+  assert.doesNotMatch(source, /expected-inventory\.json|activity\/inventory\.mjs/);
   assert.match(source, /githubnext\.github\.io\/gh-cao\/cao\//);
   assert.match(source, /Never compare its displayed values to real Actions or policy values/);
   assert.match(source, /not operational records/);
@@ -207,10 +208,8 @@ test("SelfCare dashboard reviewer checks deployments through stakeholder persona
   assert.match(source, /title-prefix: "\[self-care:dashboard-review\] "/);
   assert.match(source, /close-older-key: self-care-dashboard-review/);
   assert.match(source, /labels: \[self-care, self-care:dashboard-review\]/);
-  const expectedInventory = stepBlock(source, "Build expected control-plane inventory");
   const dashboardArtifact = stepBlock(source, "Build and grade the checked-out dashboard contract");
   const targetGuard = /^\s+if: \$\{\{ inputs\.target_repo == 'githubnext\/gh-cao' \}\}$/m;
-  assert.match(expectedInventory, targetGuard);
   assert.match(dashboardArtifact, targetGuard);
   assert.doesNotMatch(source, /central-agentic-ops-dashboard|actions\/artifacts|gh run download/);
   assert.match(source, /view-grader\.mjs/);

@@ -65,12 +65,12 @@ required. See `docs/configuration.md` for the policy and import contract.
 
 ## Agent runtime
 
-Agentic workflows execute the installed JavaScript runtime under `activity/`
-and `dashboard/`, using `gh cao COMMAND` or the relevant
-JavaScript module directly. Do not build, install, or invoke the native `gh cao`
-extension as an agent runtime dependency. The native extension and root
-`install-gh-cao.sh` are operator tools; their dedicated build, release, and installation
-tests do not change the agent runtime boundary.
+The obsolete Activity JavaScript CLI is retired. Shared dashboard helpers live
+under `dashboard/`, and collection and Value services remain native Go.
+An authorized workflow may query an explicitly prepared operational snapshot
+with an already available native `gh cao` or bounded read-only tools. Do not
+build or install the `gh cao` extension as a missing-evidence fallback.
+The root `install-gh-cao.sh` remains an operator tool, not a workflow bootstrap.
 
 For Activity-backed analysis, follow
 `skills/cao-cli/references/workflow-runtime.md`: use the restored cache with an

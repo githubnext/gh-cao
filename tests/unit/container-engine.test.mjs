@@ -168,26 +168,30 @@ test("macOS Podman setup installs its provider but not Docker or Colima", async 
 });
 
 for (const selection of [undefined, "docker", "podman"]) {
-  test(`MCP subprocess skips unavailable ${selection ?? "default Docker"} without fallback`, async (t) => {
-    const f = await fixture(t, { docker: "exit 1", podman: "exit 1" }, selection);
-    const result = await execute(process.execPath, [resolve("tests/e2e/cao-mcp-container.mjs")], {
-      env: { ...f.env, TMPDIR: f.directory },
-      timeout: 10_000,
-    });
+  test(`Compose subprocess rejects unavailable ${selection ?? "default Docker"} without fallback`, async (t) => {
+    const f = await fixture(t, {
+      docker: "exit 1", podman: "exit 1", dirname: 'echo "$SCRIPT_DIRECTORY"',
+    }, selection);
+    f.env.SCRIPT_DIRECTORY = resolve("scripts");
     const engine = selection ?? "docker";
-    assert.equal(result.stdout, `Skipping CAO MCP container test: ${engine} is unavailable.\n`);
-    assert.deepEqual(await f.commands(), [engine, "info"]);
+    await assert.rejects(execute("/bin/bash", [resolve("scripts/container-compose.sh"), "up"], {
+      env: f.env, timeout: 10_000,
+    }), /Compose is unavailable/);
+    assert.deepEqual(await f.commands(), ["dirname", resolve("scripts/container-compose.sh"), engine, "compose", "version"]);
   });
 }
 
 for (const selection of ["", "auto", "nerdctl"]) {
-  test(`MCP subprocess rejects invalid engine '${selection}' before invoking engines`, async (t) => {
-    const f = await fixture(t, { docker: "exit 1", podman: "exit 1" }, selection);
-    await assert.rejects(execute(process.execPath, [resolve("tests/e2e/cao-mcp-container.mjs")], {
-      env: { ...f.env, TMPDIR: f.directory },
+  test(`Compose subprocess rejects invalid engine '${selection}' before invoking engines`, async (t) => {
+    const f = await fixture(t, {
+      docker: "exit 1", podman: "exit 1", dirname: 'echo "$SCRIPT_DIRECTORY"',
+    }, selection);
+    f.env.SCRIPT_DIRECTORY = resolve("scripts");
+    await assert.rejects(execute("/bin/bash", [resolve("scripts/container-compose.sh"), "up"], {
+      env: f.env,
       timeout: 10_000,
     }), /CAO_CONTAINER_ENGINE must be docker or podman/);
-    await assert.rejects(f.commands(), { code: "ENOENT" });
+    assert.deepEqual(await f.commands(), ["dirname", resolve("scripts/container-compose.sh")]);
   });
 }
 

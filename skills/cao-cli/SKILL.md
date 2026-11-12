@@ -18,8 +18,9 @@ rewrite its behavior in agent-authored code.
 
 ## Procedure
 
-Inside an agentic workflow, use the installed JavaScript runtime under
-`activity/` and `dashboard/`, never the native `gh cao` extension. Follow
+Inside an agentic workflow, query explicitly prepared snapshots with an
+already available native `gh cao`. Never build or install the `gh cao` extension
+as a fallback. Follow
 [workflow runtime](references/workflow-runtime.md) before the operator routes
 below; do not build or install the extension when the runtime or cache is absent.
 
@@ -32,14 +33,14 @@ below; do not build or install the extension when the runtime or cache is absent
    - dashboard query cost or reuse: follow
      [dashboard query maintenance](references/dashboard-query-maintenance.md);
    - CLI implementation work: read [CAO Commands](https://github.com/githubnext/gh-cao/blob/main/docs/cao-cli.md) and the
-     matching Go command under `internal/cli/` or pipeline module under `activity/commands/`.
-2. Run `gh cao --help` for operator commands or `gh cao --help` for pipeline tools from
+     matching Go command under `internal/cli/`.
+2. Run `gh cao --help` for native commands from
    the repository root. Do not guess command syntax.
 3. Use the narrowest command that answers the task. Prefer reviewed named
    queries, then canonical collection queries, then raw Dashboard Language.
 4. Preserve result `availability`, `completeness`, `freshness`, and `as-of`.
    Missing, stale, partial, zero, and complete evidence are different states.
-5. Run `node activity/cao.mjs repair-database` to repair a snapshot whose health is uncertain. This mutates the snapshot, backs up before repair, and applies retention even without corruption; use `--ttl-days all --run-ttl-days all` for historical data.
+5. Treat an unhealthy snapshot as unavailable. Reacquire verified operational evidence through an explicitly authorized preparation step; there is no legacy JavaScript audit or repair command.
 6. Report the command form, source snapshot, filters, record identifiers, and
    evidence limitations. Keep downloaded `.cao/` data uncommitted.
 
@@ -53,12 +54,12 @@ below; do not build or install the extension when the runtime or cache is absent
 | Enroll one exact repository in review mode | `gh cao repos add OWNER/REPO` |
 | Acquire Activity evidence | `gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao` |
 | Download an explicit operational manifest | `gh cao download --url URL` |
-| Audit source coverage | `node activity/cao.mjs audit-jsonl` |
+| Inspect source coverage | Preserve the query result's availability, completeness, and freshness metadata |
 | Discover reviewed dashboard queries | `gh cao pages`, `gh cao queries`, `gh cao query-info QUERY_ID` |
 | Run a reviewed query | `gh cao query QUERY_ID --limit N [--param NAME=VALUE]` |
 | Query a canonical collection | `gh cao query --collection COLLECTION [--where FIELD=VALUE] --limit N` |
 | Query one known record | `gh cao query --collection COLLECTION --id ID` |
-| Repair the projection and apply retention | `node activity/cao.mjs repair-database` |
+| Unhealthy projection | Reacquire verified evidence; do not mutate a workflow's supplied snapshot |
 
 Use `--database FILE` only for a non-default SQLite projection. Use `--json`
 when another tool will consume the result. For raw Dashboard Language, pipe one

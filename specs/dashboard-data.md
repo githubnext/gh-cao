@@ -5173,12 +5173,10 @@ Run `POSTGRES_URL=... npm run test:conformance:daily-run-counts` from the
 repository root against an isolated PostgreSQL database whose test role can
 create schemas. The suite requires real PostgreSQL and rejects skipped or
 unexecuted Go tests; an unset connection is a failure, not a passing backend.
-Docker must be running with `node:24-bookworm` available (`docker pull
-node:24-bookworm`). The Activity runtime test downloads checksum-verified GitHub
-CLI, jq, and the policy-pinned gh-aw collector before executing the checked-in
-workflow in a credential-free, network-isolated container. It runs a loopback-only
-GitHub simulator, not a mocked `gh aw logs` command; missing tools or Docker fail
-the suite rather than skip coverage.
+Native Go tests exercise the supported SQLite publisher. The obsolete Activity
+JavaScript SQLite writer, doctor and legacy upgrade runner are retired, so the
+gate does not bootstrap their container runtime. Bounded legacy backfill remains
+required for the supported IndexedDB and PostgreSQL writers.
 Chromium must be installed for the native-browser test; Node's IndexedDB
 emulation alone is not conformance (§50). Browser reports also reject empty,
 skipped, failed, or retry-only success. Node and Vitest reports reject empty,
@@ -5196,7 +5194,7 @@ evidence. The command runs these existing production-boundary suites:
 
 | Suite | Implemented contract exercised |
 | --- | --- |
-| Activity SQLite | CLI normalization, phased ingestion, doctor repair, replay, publication, and bounded legacy backfill |
+| Native SQLite publication | Exclusive UTC counters, canonical queries, atomic corrections, detail-independent retention, rollover and replay fences |
 | IndexedDB and worker | Shared reconciliation cases, exclusive UTC counters, atomic corrections, logical retention, resumed backfill, unavailable state, and all three migrated query consumers |
 | Native Chromium worker | Real IndexedDB and a module Web Worker preserve all three migrated consumers through corrections, detail expiry, aggregate rollover, and unavailable state |
 | Native CLI | Canonical SQLite daily source and unavailable legacy snapshots |

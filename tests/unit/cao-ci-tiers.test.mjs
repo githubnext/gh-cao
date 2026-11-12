@@ -17,10 +17,10 @@ test("documentation-only contract plans omit integration but unknown changes wid
   assert.deepEqual(testPlan(["scripts/ci-test-plan.mjs"]).matrix.area, Object.keys(unitTestAreas));
   assert.deepEqual(testPlan(["package-lock.json"]).matrix.area, Object.keys(unitTestAreas));
   assert.deepEqual(testPlan(["tests/unit/workflow-contract-ci-triggers.test.mjs"]).matrix.area, ["workflows"]);
-  assert.deepEqual(testPlan(["activity/cao.mjs"]).matrix.area, ["activity", "dashboard", "tooling"]);
+  assert.deepEqual(testPlan(["dashboard/report/agent-catalog.mjs"]).matrix.area, ["dashboard", "tooling"]);
   assert.deepEqual(testPlan(["server/internal/server/server.go"]).matrix.area, ["dashboard", "tooling"]);
-  assert.deepEqual(testPlan(["docs/glossary.md", "activity/cao.mjs"]).matrix.area,
-    ["activity", "dashboard", "tooling", "documentation"]);
+  assert.deepEqual(testPlan(["docs/glossary.md", "dashboard/report/agent-catalog.mjs"]).matrix.area,
+    ["dashboard", "tooling", "documentation"]);
   assert.deepEqual(testPlan(["docs/glossary.md"], true).matrix.area, Object.keys(unitTestAreas));
   assert.deepEqual(testPlan([]).matrix.area, Object.keys(unitTestAreas));
 });
@@ -44,7 +44,7 @@ test("daily calls every suite at the same revision and reports even on failure",
   assert.equal(daily.on.schedule.length, 1);
   assert.equal(daily.concurrency["cancel-in-progress"], false);
   const suites = Object.entries(daily.jobs).filter(([, job]) => job.uses);
-  assert.equal(suites.length, 17);
+  assert.equal(suites.length, 15);
   for (const [id, job] of suites) {
     assert.match(job.uses, /^\.\/\.github\/workflows\/[^/]+\.yml$/);
     assert.equal(job.needs, "revision");
