@@ -6,7 +6,6 @@ import { runCli } from './cli/run.mjs';
 export { compactJsonlShards } from './cli/jsonl.mjs';
 export { downloadDeployedDashboardData } from './cli/download.mjs';
 export { ingestGhAwLogDirectory } from './cli/ingestion.mjs';
-export { activityWorkflowStats } from './cli/activity-stats.mjs';
 export { queryCanonicalData, queryGhData } from './cli/queries.mjs';
 export { issueStatusQuery, updateIssueStatuses } from './cli/issue-status.mjs';
 export { discoverWorkflows, pruneDashboardFile, analyzeDashboardComplexityFile } from './cli/dashboard.mjs';

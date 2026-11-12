@@ -4,12 +4,12 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { startCanvasServer } from "../../dashboard/canvas-server.mjs";
+import { startCanvasServer } from "../helpers/canvas-snapshot.mjs";
 import { writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
 import { normalize } from "../../dashboard/site/src/data/normalize/index.js";
 import { queryDashboardSourceObservations } from "../../dashboard/site/src/data/queries/ingestion.js";
 
-async function fixture(t, downloadData, options = {}) {
+async function fixture(t, prepareSnapshot, options = {}) {
   const root = await mkdtemp(join(tmpdir(), "cao-canvas-go-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   await writeFile(join(root, "index.html"), "<html><head></head><body>preview</body></html>");
@@ -19,7 +19,7 @@ async function fixture(t, downloadData, options = {}) {
       pages: [{ id: "test", title: "Test", kind: "custom", views: [] }] },
   }));
   return { root, start: () => startCanvasServer({
-    workingDirectory: root, siteRoot: root, catalogRoot: null, port: 0, downloadData,
+    workingDirectory: root, siteRoot: root, catalogRoot: null, port: 0, prepareSnapshot,
     output: () => {}, traceOutput: () => {}, requestOutput: () => {}, ...options,
   }) };
 }
@@ -129,7 +129,7 @@ test("canvas rejects legacy, corrupt and invalid canonical evidence without fall
       }
     });
     await assert.rejects(start(), kind === "legacy"
-      ? /CAO Activity artifact requires gh-aw-logs\.sqlite and payload-hashes\.json at its root/
+      ? /Prepare a checksum-verified operational snapshot/
       : kind === "checksum" ? /checksum/ : /Go host exited/);
     assert.equal((await readdir(root)).filter((name) => name.startsWith(".cao-dashboard-preview-")).length, 0);
   }

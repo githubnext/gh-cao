@@ -489,7 +489,7 @@ to invoke it as `gh cao`.
 | Workflow-agent evidence APIs | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `mcp` | Supported `node activity/cao.mjs <command>` APIs inside agentic workflows, including their installed runtime dependencies; intentional overlap with operator reads, not deprecated duplicates. |
 | Active ingestion and packaging | `ingest-jsonl`, `compact-jsonl`, `hash-payloads` | Node Actions pipeline: import raw or normalized JSONL into SQLite, compact raw shards per repository, and generate normalized run/record shards plus payload checksums. |
 | Manual artifact import | `ingest` | Supported `node activity/cao.mjs ingest --context FILE --logs DIRECTORY` importer for extracted gh-aw artifacts; not used by the Activity or Dashboard pipelines and not deprecated. |
-| Actions pipeline and maintainer tools | `discover-workflows`, `audit-jsonl`, `recycle-cache`, `issue-status`, `activity-stats`, `validate-activity-data`, `operational-value`, `cluster-problems`, `dashboard-complexity`, `prune-dashboard` | Invoke with `node activity/cao.mjs <command>`; not migrated to the extension. |
+| Actions pipeline and maintainer tools | `discover-workflows`, `audit-jsonl`, `recycle-cache`, `issue-status`, `operational-value`, `cluster-problems`, `dashboard-complexity`, `prune-dashboard` | Invoke with `node activity/cao.mjs <command>`; not migrated to the extension. |
 | Control-plane validation | `node activity/cao.mjs validate --json` | Actions-only JavaScript runtime invoked by `cao-validate.yml`; no Go or shell-wrapper command. |
 | Node-only administration | `node activity/cao.mjs repair-database` | Mutating SQLite repair/retention; no equivalent Go command. |
 
@@ -998,14 +998,8 @@ gh aw run CAMPAIGN --ref BRANCH \
   --raw-field safe_output_mode="review"
 ```
 
-CAO Activity and CAO Dashboard are conventional GitHub Actions workflows, not
-Agentic Workflows, so operate them with GitHub CLI instead of `gh aw`:
-
-```bash
-gh workflow run cao-activity.yml
-gh run list --workflow cao-activity.yml
-gh run list --workflow cao-dashboard.yml
-```
+The legacy Activity and dashboard artifact workflows are removed. Operational
+analysis uses an explicitly prepared snapshot or the authenticated hosted service.
 
 Then use GitHub CLI to find and watch the orchestrator:
 

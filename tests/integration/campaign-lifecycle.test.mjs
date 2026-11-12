@@ -44,7 +44,6 @@ function focusedCampaignSource(slug, source = campaignSource) {
   return `${source.slice(0, separator)}/${slug}${source.slice(separator)}`;
 }
 const ukAiAdvisoryCampaignSource = focusedCampaignSource("uk-ai-advisory");
-const activityCampaignSource = focusedCampaignSource("activity");
 const caoEvolutionCampaignSource = focusedCampaignSource("cao-evolution");
 const craCampaignSource = focusedCampaignSource("eu-cra-compliance");
 const dashboardCampaignSource = focusedCampaignSource("dashboard");
@@ -60,7 +59,6 @@ const activityExpectedFiles = [
   "activity/campaign-intelligence.mjs",
   "activity/cao.mjs",
   "activity/cli-usage.mjs",
-  "activity/commands/activity-stats.mjs",
   "activity/commands/audit-jsonl.mjs",
   "activity/commands/cluster-problems.mjs",
   "activity/commands/compact-jsonl.mjs",
@@ -78,7 +76,6 @@ const activityExpectedFiles = [
   "activity/commands/operational-value.mjs",
   "activity/commands/prune-dashboard.mjs",
   "activity/commands/query.mjs",
-  "activity/collect-logs.sh",
   "activity/collect-workflow-logs.mjs",
   "activity/computations/intelligence-contracts.mjs",
   "activity/computations/intelligence.mjs",
@@ -94,7 +91,6 @@ const activityExpectedFiles = [
   "activity/repository-visibility.mjs",
   "activity/token-intervention-lifecycle.mjs",
   "activity/version.mjs",
-  ".github/workflows/cao-activity.yml",
 ];
 const caoEvolutionExpectedFiles = [
   ".github/workflows/cao-evolution-failures-investigator.md",
@@ -103,7 +99,6 @@ const caoEvolutionExpectedFiles = [
   ".github/workflows/cao-evolution-integrity.md",
   ".github/workflows/cao-evolution-reliability.md",
   ".github/workflows/cao-evolution.md",
-  ".github/workflows/shared/activity-cache.md",
   ".github/workflows/shared/control.md",
 ];
 const ukAiAdvisoryExpectedFiles = [
@@ -126,20 +121,13 @@ const craExpectedFiles = [
   ".github/workflows/eu-cra-compliance.md",
   ".github/workflows/shared/control.md",
 ];
-const dashboardExpectedFiles = [
-  ".github/workflows/cao-dashboard.yml",
-  ...[...readFileSync(
-    new URL("../../dashboard/aw.yml", import.meta.url),
-    "utf8",
-  ).matchAll(/^\s+destination: (.+)$/gm)].map((match) => match[1]),
-];
+const dashboardExpectedFiles = ["dashboard/site/dashboard.json", "dashboard/site/scripts/build.mjs"];
 const optimizationExpectedFiles = [
   "optimization/operational-value.mjs",
   "optimization/operational-value/optimization-token-optimizer.mjs",
   ".github/workflows/optimization-token-auditor.md",
   ".github/workflows/optimization-token-optimizer.md",
   ".github/workflows/optimization.md",
-  ".github/workflows/shared/activity-cache.md",
   ".github/workflows/shared/control.md",
 ];
 const selfCareExpectedFiles = [
@@ -163,7 +151,6 @@ const selfCareExpectedFiles = [
   ".github/workflows/self-care-server-go-logging.md",
   ".github/workflows/self-care-specs-maintainer.md",
   ".github/workflows/self-care.md",
-  ".github/workflows/shared/activity-cache.md",
   ".github/workflows/shared/control.md",
 ];
 const softwareDevelopmentPracticesExpectedFiles = [
@@ -402,16 +389,6 @@ test("root campaign bootstraps an empty CAO and preserves resources during workf
   }
 });
 
-test("direct focused activity installation remains incomplete without the CAO materializer", { timeout: 180_000 }, async () => {
-  const consumer = await installCampaign(activityCampaignSource);
-  try {
-    assert.ok(existsSync(join(consumer, ".github", "workflows", "cao-activity.yml")));
-    assert.equal(existsSync(join(consumer, "activity", "cao.mjs")), false);
-    assert.equal(existsSync(join(consumer, ".github", "actions", "setup-cao-runtime", "action.yml")), false);
-  } finally {
-    rmSync(consumer, { recursive: true, force: true });
-  }
-});
 
 test("gh aw add installs the focused EU CRA campaign contract", { timeout: 180_000 }, async () => {
   const consumer = await installCampaign(craCampaignSource);
@@ -612,31 +589,9 @@ test("root CAO installation materializes the dashboard campaign contract", { tim
 
     assert.equal(existsSync(join(consumer, ".github", "aw", "dashboard")), false);
 
-    const dashboardWorkflow = readFileSync(join(consumer, ".github", "workflows", "cao-dashboard.yml"), "utf8");
-    assert.doesNotMatch(dashboardWorkflow, /workflow_call:|cao-dashboard-build|dispatch-workflow/);
-    assert.match(dashboardWorkflow, /workflow_dispatch:/);
-    assert.match(dashboardWorkflow, /actions\/upload-artifact@[0-9a-f]{40}/);
-    assert.match(dashboardWorkflow, /actions\/cache\/save@[0-9a-f]{40}/);
-    assert.match(dashboardWorkflow, /actions\/(?:upload-pages-artifact|deploy-pages)@[0-9a-f]{40}/);
-    assert.match(dashboardWorkflow, /name: CAO Dashboard/);
-    assert.match(dashboardWorkflow, /enablement: false/);
-    assert.match(dashboardWorkflow, /deploy: \$\{\{ steps\.deployment-policy\.outputs\.deploy \}\}/);
-    assert.match(dashboardWorkflow, /if: needs\.build\.outputs\.deploy == 'true'/);
-    assert.doesNotMatch(dashboardWorkflow, /^\s+run:/m);
-    assert.doesNotMatch(dashboardWorkflow, /actions\/github-script@(?![0-9a-f]{40}\b)/);
-    assert.match(dashboardWorkflow, /Standalone Pages deployment:[\s\S]*?Dashboard artifact assembly completed/);
-    assert.doesNotMatch(dashboardWorkflow, /schedule:/);
-    assert.match(dashboardWorkflow, /workflow_run:[\s\S]*?workflows:[\s\S]*?- CAO Activity[\s\S]*?types:[\s\S]*?- completed/);
-    assert.doesNotMatch(dashboardWorkflow, /^  push:/m);
-    assert.doesNotMatch(dashboardWorkflow, /\.github\/aw\/(?:dashboard|dashboards)/);
-    assert.match(dashboardWorkflow, /github\.event\.workflow_run\.conclusion == 'success'/);
-    assert.match(dashboardWorkflow, /github\.event\.workflow_run\.head_branch == github\.event\.repository\.default_branch/);
-    assert.match(dashboardWorkflow, /ref: \$\{\{ github\.workflow_sha \}\}/);
-
     const dashboardSite = join(consumer, "dashboard", "site");
     const dashboardOutput = join(consumer, "dashboard-output");
     const controlSettings = join(consumer, "control-settings.json");
-    run("gh", ["aw", "add", activityCampaignSource, "--force", "--no-security-scanner"], consumer);
     writeFileSync(controlSettings, "{}\n");
     run("npm", ["ci", "--ignore-scripts"], dashboardSite);
     run("npm", ["run", "build", "--", dashboardOutput, controlSettings], dashboardSite);
@@ -652,12 +607,12 @@ test("root CAO rematerialization restores dashboard workflows, producers, and re
   const consumer = await installCampaign(campaignSource);
 
   try {
-    const deployPath = join(consumer, ".github", "workflows", "cao-dashboard.yml");
+    const deployPath = join(consumer, "dashboard", "site", "index.html");
     const deployWorkflow = readFileSync(deployPath, "utf8");
     writeFileSync(deployPath, `${deployWorkflow}\n# local integration-test change\n`);
 
     const removedFiles = [
-      "dashboard/report/records.mjs",
+      "dashboard/report/configure-site.mjs",
       "dashboard/site/index.html",
       "dashboard/site/scripts/build.mjs",
     ];

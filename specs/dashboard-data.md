@@ -479,9 +479,9 @@ callout SHALL identify the sample; live services SHALL be unavailable.
 `npm run dashboard:pages:build` SHALL accept no real-data input option.
 Its published output SHALL contain neither SQLite nor an operational agent
 summary. Daily documentation/demo builds SHALL be independent of Activity and
-Dashboard operational-artifact freshness. `cao-dashboard.yml` SHALL retain
-bounded operational artifacts for authorized consumers, not deploy them to
-Pages; Activity's `cao-activity-index` SHALL remain a SQLite/shard transport.
+operational snapshot freshness. The legacy Actions Activity and dashboard
+artifact publication chain is removed; operational evidence SHALL remain an
+explicitly selected, access-controlled input, never a Pages transport.
 
 Native and JavaScript snapshot acquisition SHALL have no default Pages source.
 An explicit `DASHBOARD_DATA_URL` or URL argument SHALL name an operational
@@ -489,9 +489,9 @@ An explicit `DASHBOARD_DATA_URL` or URL argument SHALL name an operational
 Authenticated Actions artifact acquisition followed by cached `--sqlite`
 serving remains supported. This contract does not introduce a hosted export API.
 Operational downloaders and canvas acquisition SHALL reject synthetic manifests
-and manifests without a SQLite checksum. The canvas SHALL select
-`cao-activity-index` from a successful default-branch `cao-activity.yml` run;
-it SHALL NOT acquire from Pages or infer a dashboard backlink from Pages settings.
+and manifests without a SQLite checksum. The canvas SHALL read a prepared workspace snapshot with a verified SQLite
+checksum; it SHALL NOT discover Actions artifacts, legacy dashboard bundles,
+Pages data, or a dashboard backlink from Pages settings.
 
 The demo SHALL put data files under `demo-data/`, not root
 `payload-hashes.json`, suffix browser storage keys with `synthetic-demo`,
@@ -1903,7 +1903,7 @@ Example:
   githubId: 98765,
 
   name: "Dashboard",
-  path: ".github/workflows/cao-dashboard.yml",
+  path: ".github/workflows/example.yml",
 
   state: "active",
   sourceKind: "source-managed",
@@ -2681,7 +2681,7 @@ A missing canonical data point MUST NOT immediately be treated as zero, empty, o
 
 Before classifying it as missing, an implementation agent SHALL inspect the current [`gh aw logs` schema](https://github.com/github/gh-aw/blob/main/schemas/logs.schema.json) and determine whether any field in the applicable output variant contains an authoritative observation that can be normalized into the canonical model. This inspection SHALL include nested and aggregate structures, not only fields whose names match the canonical property.
 
-This discovery and normalization SHALL run in the activity-campaign JavaScript invoked by `.github/workflows/cao-activity.yml`, before the activity snapshot is published. The workflow YAML orchestrates that JavaScript and MUST NOT embed source-field mappings.
+Discovery and normalization SHALL run in the owned collection adapters before canonical publication. The retired Actions publication chain MUST NOT be restored as a compatibility path.
 
 When the schema exposes suitable data, the activity-campaign source adapter SHOULD normalize it. The mapping MUST:
 
@@ -5192,7 +5192,6 @@ evidence. The command runs these existing production-boundary suites:
 | Suite | Implemented contract exercised |
 | --- | --- |
 | Activity SQLite | CLI normalization, phased ingestion, doctor repair, replay, publication, and bounded legacy backfill |
-| Activity Actions runtime | Full checked-in `cao-activity.yml` planning, collection with real gh-aw and simulated GitHub logs/artifacts, phased ingestion, SQLite digest publication, cache restoration, replay, higher-attempt correction, recycle-only reconstruction without API reads, and shipped daily health query after detail expiry |
 | IndexedDB and worker | Shared reconciliation cases, exclusive UTC counters, atomic corrections, logical retention, resumed backfill, unavailable state, and all three migrated query consumers |
 | Native Chromium worker | Real IndexedDB and a module Web Worker preserve all three migrated consumers through corrections, detail expiry, aggregate rollover, and unavailable state |
 | Native CLI | Canonical SQLite daily source and unavailable legacy snapshots |

@@ -72,7 +72,6 @@ imports:
       read_contents: read
       read_issues: read
       read_pull_requests: read
-  - uses: shared/activity-cache.md
 
 permissions:
   contents: read
@@ -108,7 +107,7 @@ Read `/tmp/gh-aw/agent/control-precompute.json` first. Treat its candidate repos
 
 ## Discovery
 
-Prefer the restored Activity cache through the `cao` CLI. Validate cache scope, freshness, requested window, and completeness before using it. If the cache is absent or incomplete, use bounded read-only GitHub calls only for candidate repositories admitted by precompute.
+Use bounded read-only GitHub or `agentic-workflows` calls only for candidate repositories admitted by precompute. Validate source scope, freshness, requested window, and completeness; unavailable evidence stays unavailable.
 
 Rank eligible repositories:
 

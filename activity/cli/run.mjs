@@ -12,7 +12,6 @@ import { DEFAULT_COMPACTED_JSONL_SHARD_BYTES, auditJsonlDirectory, compactJsonlS
 import { databaseCounts, ingestGhAwLogDirectory, ingestJsonlShardDirectory, ingestNormalizedShardDirectories, ingestJsonlFile, createDatabase } from './ingestion.mjs';
 import { downloadDeployedDashboardData } from './download.mjs';
 import { hashActivityPayloads } from './payloads.mjs';
-import { activityWorkflowStats } from './activity-stats.mjs';
 import { queryCanonicalData, queryGhData, queryRawCanonicalData } from './queries.mjs';
 import { updateIssueStatuses } from './issue-status.mjs';
 import { discoverWorkflows, pruneDashboardFile, analyzeDashboardComplexityFile } from './dashboard.mjs';
@@ -94,7 +93,6 @@ export async function runCli(arguments_, input = process.stdin, { signal } = {})
     auditJsonlDirectory,
     compactJsonlShards,
     hashActivityPayloads,
-    activityWorkflowStats,
     doctorSqliteDatabase,
     runProblemClustering,
     updateIssueStatuses,

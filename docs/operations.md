@@ -300,48 +300,20 @@ the same Go server and views over a real SQLite snapshot. Pages is only the
 **Synthetic enterprise demo**; it is not an operational publication destination.
 See [Deployment options](deployment.md).
 
-### Install the dashboard campaign
+### Prepare the shared dashboard runtime
 
-The root Central Agentic Ops runtime installs Activity and Dashboard together.
-Prepare the runtime and review scope and authentication:
+The root CAO package installs validation and the shared evidence runtime:
 
 ```bash
 gh cao setup
 ```
 
-Setup installs no operational campaign and does not configure Pages or ask for
-public-publication consent. It keeps publication subject to separate review.
-`cao-dashboard.yml` builds and retains an operational artifact; it has no Pages
-deploy job. The former `control-plane.campaigns.dashboard.deploy` setting is
-removed.
-
-:::note[Operational artifacts remain necessary]
-Activity's `cao-activity-index` supplies verified SQLite and normalized shards
-for authorized local analysis and hosted ingestion. Dashboard's
-`central-agentic-ops-dashboard` remains a bounded operational artifact, not a
-bundle to copy into Pages. Keep Actions access and artifact retention scoped.
-:::
-
-:::caution[Operational evidence can be non-public]
-Repository identities, workflow metadata, outcomes, and artifact-derived
-evidence belong behind the reviewed operational access boundary. Public source
-code or a synthetic demo grants no permission to publish that evidence.
-Cross-repository collection still requires an appropriate scoped
-[credential profile](deployment-actions.md#choosing-a-credential-profile).
-:::
-
-The campaign installs the following components in the control-plane repository:
-
-- `.github/workflows/cao-dashboard.yml`, the operational dashboard builder and artifact publisher;
-- `.github/workflows/cao-activity.yml`, the scheduled and manually dispatchable data collector and cache publisher;
-- `activity/logs.mjs`, the single bounded `gh aw logs` acquisition entrypoint;
-- `activity/index.mjs`, the local-only deployed-workflow and run-health indexer;
-- `dashboard/report/aic-usage.mjs`, the bounded AI Credit usage collector;
-- `activity/inventory.mjs`, the dependency-free control-plane inventory extractor;
-- `dashboard/report/operational-values.mjs`, the compatibility-named fleet collector that preserves ordered operational-grader metrics from retained gh-aw run records;
-- `dashboard/report/records.mjs`, the durable issue, pull request, comment, and review-artifact normalizer with logs-derived run attribution;
-- `dashboard/site/src/data/queries/database.json`, the declarative projections over canonical inventory, run, and record data (no report-source build);
-- `dashboard/site`, the bundled Dashboard Language configuration, validator, presenter, and browser runtime.
+Setup does not install the retired Activity, dashboard artifact, or local Value
+workflows, and does not configure Pages. Production collection uses the
+authenticated Go service; local analysis requires an explicitly acquired
+operational snapshot. No legacy dashboard bundle or Actions cache is discovered.
+Keep operational evidence bounded and access-controlled. Missing evidence is
+unavailable, never a reason to use the synthetic Pages demo.
 
 To inspect an operational snapshot in a catalog checkout:
 

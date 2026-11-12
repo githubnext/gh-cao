@@ -373,7 +373,7 @@ test("preview observations retain unapproved scope, unassigned owners and no inf
   assert.ok(packet.configuration_blockers.includes("recovery-or-retention-decision-missing"));
   assert.equal(packet.configuration_blockers.filter(value => value.startsWith("owner-missing:")).length, 8);
   assert.equal(packet.contract_sha256, createHash("sha256").update(JSON.stringify(previewContract)).digest("hex"));
-  assert.equal(packet.signals.length, 9);
+  assert.equal(packet.signals.length, 7);
   for (const signal of packet.signals) {
     assert.equal(signal.candidate_head_match, null);
     assert.equal(signal.latest.conclusion, "failure");

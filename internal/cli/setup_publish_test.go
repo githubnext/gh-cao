@@ -150,7 +150,7 @@ func TestSetupPublishesAllPreparedComponentsWithoutUnrelatedFiles(t *testing.T) 
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, name := range []string{"activity/cao.mjs", "dashboard/site/package.json", "cao-activity.yml", "cao-dashboard.yml", "cao-validate.yml", policyPath} {
+		for _, name := range []string{"activity/cao.mjs", "dashboard/site/package.json", "cao-validate.yml", policyPath} {
 			if !strings.Contains(string(diff), name) {
 				t.Fatalf("review omitted %s", name)
 			}

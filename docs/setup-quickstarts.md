@@ -20,11 +20,10 @@ other topologies, see [setup combinations](setup-compatibility.md).
   `gh auth login` if needed.
 - **Repository:** exact `OWNER/REPOSITORY`; Agentic Workflow history is optional.
 
-Use a **private control repository** for private or internal evidence. A private
-repository does **not** guarantee a private Pages site: confirm restricted access
-in **Settings → Pages** before publishing non-public evidence. Setup asks before
-allowing a public dashboard. This walkthrough uses **GitHub Pages**, not the
-separate [hosted server deployment](deployment.md).
+Use a **private control repository** for private or internal evidence. Production
+dashboard access belongs to the authenticated [hosted server](deployment.md).
+Pages is synthetic-only; setup does not configure Pages or request public
+publication consent.
 
 ## Step 1 - Install CAO
 
@@ -76,7 +75,7 @@ cd CONTROL_REPOSITORY
 
 Create a **public** control with
 `gh repo create OWNER/CONTROL_REPOSITORY --public --clone`, then enter `OWNER/*`
-at **Repositories**, review the exact names, accept public Pages, and approve
+at **Repositories**, review the exact names, and approve
 commit-and-push. All evidence must be public. Interactive wildcards containing
 private/internal targets are rejected for public controls, not silently trimmed.
 
@@ -116,7 +115,7 @@ gh cao setup
 ```
 
 Setup prepares missing runtime and policy, reuses existing installations, and configures scope,
-authentication, and Pages. No separate `init` is needed.
+and authentication. No separate `init` is needed.
 See [details](cao-cli.md#guided-runtime-preparation).
 
 1. At **Repositories**, enter your exact `OWNER/REPOSITORY`.
@@ -127,8 +126,7 @@ See [details](cao-cli.md#guided-runtime-preparation).
    even when the control repository is private. Private/internal remote targets require credentials;
    see [Authentication](authentication.md#choose-cross-repository-authentication).
 3. Review the exact read scope, output scope, and authentication, then confirm
-   **Apply this setup?** Setup configures Pages and asks **Is a public dashboard
-   OK?** if the site is public. Decline for non-public evidence.
+   **Apply this setup?** This grants no dashboard publication authority.
 4. Store secrets in Actions, never in policy or committed files.
    Credentials do not expand scope.
 5. Review the one-line change summary; open the full-diff path for details.
@@ -139,7 +137,7 @@ No campaigns or agentic work are installed. Publication requires a synchronized
 default branch, matching origin, and empty index; no protection bypass.
 Declining, blocked, or unattended setup stays local.
 
-If setup stops, inspect its error, local files, and Pages or credential changes
+If setup stops, inspect its error, local files, and credential changes
 before retrying; do not publish incomplete setup. For unattended public-only
 setup, see [Authentication](authentication.md#public-only-monitoring-quickstart).
 
@@ -175,31 +173,18 @@ git push
 ```
 
 Check **CAO validation** in Actions for full policy and workflow validation.
-The installation includes scheduled collection; pushing the policy also triggers
-it. This collects evidence, not new agentic work.
+The installation prepares shared runtime tools; it does not install scheduled
+Activity or dashboard artifact publication workflows.
 
 <span id="4-open-your-dashboard"></span>
 <span id="step-4---wait-for-collection-and-inspect-your-dashboard"></span>
 
-Check **CAO Activity**, then **CAO Dashboard**, including its Pages deployment.
-Only then is the dashboard ready. Open its link or **Settings → Pages**.
-
-If collection has not started, request it once from the control checkout:
-
-```bash
-gh workflow run cao-activity.yml
-```
-
-Activity collects evidence, not new agentic work. Successful collection triggers
-dashboard publication. Check Actions for progress instead of dispatching again.
-
-**Ready:** your dashboard opens. From **Overview**, open **Runs** and inspect evidence.
-Costs and outcomes appear where available;
-missing evidence is not proof of zero cost or success.
-
-**No Agentic Workflow history yet?** An empty dashboard is expected. CAO monitors
-GitHub Agentic Workflows, not every ordinary Actions job.
-Preview the [sample dashboard](https://githubnext.github.io/gh-cao/cao/).
+Open the authenticated hosted dashboard, or prepare an explicit operational
+snapshot for local Go/SQLite serving. See [Agent analysis](agent-analysis.md).
+Missing evidence remains unavailable, not proof of zero cost or success.
+CAO monitors Agentic Workflows, not every ordinary Actions job.
+The [sample dashboard](https://githubnext.github.io/gh-cao/cao/) is synthetic
+and cannot verify operational results.
 
 ## Optional: add automation later
 
