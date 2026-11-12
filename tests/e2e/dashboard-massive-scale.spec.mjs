@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { once } from "node:events";
+import { normalizeSnapshotPayloads } from "../../dashboard/report/normalized-payloads.mjs";
 
 const siteRoot = resolve("dashboard/site");
 const repositories = numberSetting("DASHBOARD_STRESS_REPOSITORIES", 10_000);
@@ -115,7 +116,6 @@ test.beforeAll(async () => {
   rawShardDirectory = join(root, "gh-aw-logs-shards");
   const runsDirectory = join(root, "gh-aw-logs-runs");
   const recordsDirectory = join(root, "gh-aw-logs-records");
-  const manifestPath = join(root, "payload-hashes.json");
   generationMemory = await runMeasuredCommand(process.execPath, [
     resolve("tests/helpers/dashboard-stress-data.mjs"),
     "--output", rawShardDirectory,
@@ -126,15 +126,11 @@ test.beforeAll(async () => {
     "--workflows", String(workflows),
   ]);
   manifest = JSON.parse(generationMemory.stdout);
-  await runMeasuredCommand(process.execPath, [
-    resolve("activity/cao.mjs"),
-    "hash-payloads",
-    "--shard-dir", rawShardDirectory,
-    "--runs-dir", runsDirectory,
-    "--records-dir", recordsDirectory,
-    "--output", manifestPath,
-  ]);
-  payloadHashes = JSON.parse(await readFile(manifestPath, "utf8"));
+  payloadHashes = await normalizeSnapshotPayloads({
+    shardDirectory: rawShardDirectory,
+    runsDirectory,
+    recordsDirectory,
+  });
 
   server = createServer(async (request, response) => {
     try {

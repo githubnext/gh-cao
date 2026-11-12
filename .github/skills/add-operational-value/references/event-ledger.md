@@ -214,10 +214,6 @@ original ledger, not the computed pulse model, and makes no remote requests:
 ```bash
 node .github/skills/add-operational-value/scripts/export-evidence.mjs \
   ledger.json .cao/gh-aw-logs-shards/workflow-value-evidence.jsonl
-node activity/cao.mjs hash-payloads \
-  --shard-dir .cao/gh-aw-logs-shards --normalized-dir .cao/gh-aw-logs-normalized \
-  --runs-dir .cao/gh-aw-logs-runs --records-dir .cao/gh-aw-logs-records \
-  --output .cao/payload-hashes.json
 ```
 
 Use an existing, appropriately scoped publication directory. Import is not
