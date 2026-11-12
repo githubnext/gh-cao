@@ -33,7 +33,7 @@ installation is required.
 
 **Open and stop:** Keep the command running in the terminal. After initial
 collection, open the full **Dashboard:** URL it prints in your browser; the
-command also prints the **Snapshot:** path. The Go server binds to loopback
+command also prints the **SQLite cache:** path. The Go server binds to loopback
 on an available local port and evaluates the normal dashboard queries against
 canonical SQLite on your machine, not a hosted service or browser IndexedDB.
 Press **Ctrl-C** in that terminal to stop the server and collection. The cache
