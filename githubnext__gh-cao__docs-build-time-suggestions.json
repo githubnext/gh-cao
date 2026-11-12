@@ -1,35 +1,7 @@
 {
   "source_sha": "62f179a2a9b359fc88aee92cefa9a0f54a1422eb",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-10T20:52:23Z",
-      "worker_run_id": "42898958972",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42898468486,
-        42896004811,
-        42893528446,
-        42893241575,
-        42891091809,
-        42888486035,
-        42886082405,
-        42883487961,
-        42882863950,
-        42881074442,
-        42880898081,
-        42880862291,
-        42878502714,
-        42876007544,
-        42875512132,
-        42873697320,
-        42870930998,
-        42868247499,
-        42865784030,
-        42864725603
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T17:25:02Z to 2026-11-10T20:46:12Z) was within 14 days and contained 12 successful runs, three failed runs, two cancelled runs, and three skipped workflow_run callbacks. Trusted Actions job metadata verified newly observed schedule run 42898468486 was freshness-only: it queued for 7 seconds and executed the schedule-freshness job for 8 seconds while build and deploy were skipped. Prior bounded evaluations verify the overlapping runs. Only one successful full build-and-deploy publication was available: schedule run 42881074442 at source 2fbe39c5cfd0cf1af046a5e3e21ff67f327f20ac. Prior bounded evidence records 203 seconds before its first job, a 168-second build, and a 27-second deploy; dependency installation took 51 seconds, Astro generation 15 seconds, dashboard cache restore 4 seconds, Pages artifact upload 19 seconds, and Pages deployment 23 seconds. Its dashboard cache was a verified hit because fallback lookup and artifact download steps were skipped. The other 11 successful runs were freshness-only schedules; the failed, cancelled, and skipped runs were disclosed and excluded. One comparable successful publication is below the required five, so full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer/Pages-packaging analysis across a sufficient sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
     {
       "evaluated_at": "2026-11-10T21:17:32.831849Z",
       "worker_run_id": "42902966047",
@@ -818,6 +790,22 @@
         43080844329
       ],
       "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z; 14-day window; 0 cancelled, none in progress) = 8 current-design push publications (d57c4c821..62f179a2; docs.yml unchanged since d57c4c821, which removed the */15 freshness job and workflow_run trigger), 4 successful pre-design full publications (3 schedule, 1 push), 6 failed pre-design schedules (retired Mount latest CAO Dashboard artifact step; excluded), 1 skipped workflow_run callback. Current-design medians (p90), n=8: run created to build start 3.5 s (4 s); build end to deploy start 5 s (6 s); build 72.5 s (90.9 s); deploy 10 s (11 s); wall 90.0 s (111.6 s). Concurrency: 0 of 8 runs overlapped, so no group waits. Path audit: each publication changed at least one Pages-build input (dashboard/site, docs, activity, scripts, or .github/workflows/shared/policy.mjs, imported by dashboard/site/scripts/build.mjs); no trigger-only churn. Daily cron 23 5 * * * is intentional synthetic-date refresh; no current-design schedule run exists yet. No queue, concurrency, or trigger change lowers median execution time, so the 60 s / 15% gate is not met. No suggestion; next_category advanced to dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-11-12T04:23:52Z",
+      "worker_run_id": "43153755219",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579
+      ],
+      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z; 14-day window; 0 cancelled) = 13 successes (8 current build+deploy push publications at d57c4c82..62f179a2, n=8 meets minimum; 5 older-shape successes), 6 failed retired-Mount schedules (excluded), 1 skipped workflow_run. Current-design medians (p90), n=8: Install dependencies 20.5s (25s); Set up Node.js 4.5s (8s); Checkout 24s (40s, out of category); build job 72.5s (93s); deploy 10s (11s); build-start to deploy-end 86.5s (109s). Cache evidence from trusted Actions cache metadata plus step timings (job logs returned HTTP 403 DIFC, so hit/miss is inferred from cache-entry timing, not log lines): docs.yml uses default setup-node npm cache keyed on root package-lock.json only (key 40717a8d... recomputed from HEAD lockfile; dashboard/site lockfile not in key). Root lock changed at 9b5a7f99 (16:13Z 11-11; key 4f957eab saved 16:14Z) and at 3bd066dd (02:27Z 11-12; key 40717a8d saved on main 02:28Z by run 43141528595). Seven of eight runs were restores (Set up 3-8s, post-save 0-1s); the first run after the 3bd066dd lock change was the one miss (Set up 1s, post-save 1s, install 22s). Install remains 13-25s on hits, so warm-cache npm ci work is not dominated by downloads; no measured change (--no-audit, --prefer-offline, node_modules caching, workspace merge) has evidence of saving the 13s (15%) threshold. Latent: dashboard-only lock changes would not change the docs cache key; no dashboard/site/package-lock.json commits since 2026-10-25 so no observed cost. Carry-forward for a later eligible cycle: Checkout fetch-depth 0 is the largest build-job step (median 24s, p90 40s); docs build reads git only via rev-parse HEAD supplied by PUBLIC_PAGES_BUILD_COMMIT; history need and savings not verified. No suggestion; next_category advanced to Astro documentation generation."
     }
   ]
 }
