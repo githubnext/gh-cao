@@ -129,11 +129,10 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 	cache := filepath.Join(t.TempDir(), "private cache #1")
 	options := dashboardOptions{window: dashboardMaximumDuration, count: 200}
 	repositories := []string{"octo/api", "octo/web"}
-	metadata, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), dashboardTestLogs(t))
-	if err != nil {
+	if _, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), dashboardTestLogs(t)); err != nil {
 		t.Fatal(err)
 	}
-	metadata, err = collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), dashboardTestLogs(t))
+	metadata, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), dashboardTestLogs(t))
 	if err != nil {
 		t.Fatal(err)
 	}
