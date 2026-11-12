@@ -1,35 +1,7 @@
 {
-  "source_sha": "313a3853580ceffa735f9de11ebbc341264a63dd",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "source_sha": "3eed0d6ab4a1153af6f03873d2d4151a6fd36d87",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T03:54:30Z",
-      "worker_run_id": "43150696264",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886,
-        43085139761,
-        43083249533,
-        43081415171,
-        43080844329
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z; 14-day window; 0 cancelled, none in progress) = 8 current-design push publications (d57c4c821..62f179a2; docs.yml unchanged since d57c4c821, which removed the */15 freshness job and workflow_run trigger), 4 successful pre-design full publications (3 schedule, 1 push), 6 failed pre-design schedules (retired Mount latest CAO Dashboard artifact step; excluded), 1 skipped workflow_run callback. Current-design medians (p90), n=8: run created to build start 3.5 s (4 s); build end to deploy start 5 s (6 s); build 72.5 s (90.9 s); deploy 10 s (11 s); wall 90.0 s (111.6 s). Concurrency: 0 of 8 runs overlapped, so no group waits. Path audit: each publication changed at least one Pages-build input (dashboard/site, docs, activity, scripts, or .github/workflows/shared/policy.mjs, imported by dashboard/site/scripts/build.mjs); no trigger-only churn. Daily cron 23 5 * * * is intentional synthetic-date refresh; no current-design schedule run exists yet. No queue, concurrency, or trigger change lowers median execution time, so the 60 s / 15% gate is not met. No suggestion; next_category advanced to dependency installation and caching."
-    },
     {
       "evaluated_at": "2026-11-12T04:23:52Z",
       "worker_run_id": "43153755219",
@@ -755,6 +727,34 @@
         43104481579
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43225202834 back to 43099316175; created 2026-11-11T21:00:12Z to 2026-11-12T13:13:14Z; within 14 days; no new completed runs since the 13:19Z evaluation; in-progress 43228046118 and pending 43228124764 not sampled). Excluded: 1 cancelled 43206161686; 3 failed pre-design schedules (retired Mount step). Comparable n=16 build+deploy publications (15 push, 1 schedule 43161224542). Job and step metadata only (log reads not used). Medians (p90): wall 89 s (124 s); queue created-to-build-start 4 s; build job 71 s (103 s); deploy job 10.5 s (18 s); build-end to deploy-start handoff 5 s (6 s); deploy setup 2 s; Upload Pages artifact 2 s (3 s); Configure Pages 1 s; Deploy Pages 7 s (14 s; 14-15 s outliers on 43206235849 and 43206080696 not explained by metadata); artifact chain 16 s (24 s) = 18% of wall; Build synthetic demo incl. copy to dist/cao 3 s. github-pages artifact 8.3 MB (7.7 MB before 3707d46). Only removing the build/deploy split (handoff+setup, about 7 s, 8% of wall) reduces transfer time, and merging jobs would move id-token and github-pages environment into the job running npm and docs builds (deployment-safety regression); below 60 s / 15% gate. docs.yml file history (GitHub API path log): last change 063cbe911 (2026-11-12T06:17Z); no change since, 313a385 does not touch docs.yml (local shallow diff is a clone artifact). Carry-forward for dependency/caching cycle: Checkout median 24 s remains largest build-job step, partial-clone idea unmeasured. No suggestion; next_category advanced to scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-11-12T13:55:04Z",
+      "worker_run_id": "43230759467",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:31:05Z to 2026-11-12T13:31:34Z; 14-day window; source 3eed0d6a). Excluded: 1 cancelled pending run 43206161686 (no jobs; superseded by 43206235849, commit included in 203826e4) and 1 failed pre-design schedule 43103737760 (retired Mount step). n=18 successes (17 push, 1 schedule 43161224542). Medians (p90): queue created-to-build-start 4 s (30 s; max 46 s; only 43228124764 46 s and 43206235849 30 s waited behind an in-progress publication); build-start-to-deploy-end execution 85 s (123 s); created-to-updated wall 89 s (157 s). Avoidable rebuilds: compare API on 17 push ranges; every publication changed at least one build-consumed file (docs/, dashboard/site/src, dashboard/report, scripts, package or astro config); 9 publications also carried trigger-only files (dashboard/site/test/**, aw.yml, dashboard/aw.yml, shared/cao.schema.json), so narrowing trigger paths would avoid 0 of 17 runs. Schedule 05:23 UTC is required for synthetic date refresh (1 run per day). Concurrency documentation-pages with cancel-in-progress false already coalesces pending runs; cancelling in-progress publications would risk deploy safety and only trims queue latency, not execution. Open 20380 is another category; closed 20131 not revived. Anomaly for maintainers, outside window and not sampled: workflow_run run 37642403569 (created 2026-10-07) still queued. Logs not read (job and step metadata plus compare file lists only). No suggestion; next_category advanced to dependency installation and caching."
     }
   ]
 }
