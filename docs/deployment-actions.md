@@ -101,7 +101,21 @@ New data URLs prevent old same-origin service-worker caches from returning
 previous real-data payloads.
 
 The enterprise sample includes two campaigns and standalone workflows across
-12 repositories, with 672 runs spanning two weeks. It exercises mixed outcomes,
+12 repositories, with a reproducible probabilistic run population spanning two
+weeks. Repository-specific activity rates, weekday/weekend seasonality and
+bursty Poisson run arrivals produce quiet periods and busy services. Each
+repository/workflow pair has persistent activity, failure, output, acceptance,
+and resolution traits. Some workflows produce no outputs over the sample
+window; others produce batches of findings. Review workflows favor issues,
+while repair and documentation workflows favor pull requests. Tool-call counts,
+skill use and evaluation coverage vary rather than appearing once per run.
+Log-normal workload complexity drives long-tailed durations, tokens and illustrative
+model-relative credit costs; model selection, failures and friction depend on
+that workload, with a shared two-day incident increasing failure risk.
+Experiment variants are assigned independently of the day. Output resolution
+and Value acceptance have variable delays, while daily backlogs reflect new
+findings and accepted repairs. These are illustrative distributions, not fitted
+enterprise telemetry or provider price quotations. It exercises mixed outcomes,
 dispatches, models and token costs, tool and skill calls, firewall decisions,
 issues and pull requests, experiments, graders/evals, accepted Value evidence,
 collection deferrals, catalog updates, and synthetic repository-memory files.

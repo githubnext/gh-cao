@@ -1,12 +1,16 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
 import { scrollRenderedViewsIntoView } from "./dashboard-deployed-refresh-helpers.mjs";
 
 let preview;
+let expectedRuns;
 
 test.beforeAll(async () => {
   test.setTimeout(240_000);
   preview = await startDashboardPagesPreview({ experimental: true });
+  expectedRuns = JSON.parse(await readFile(join(preview.site, ".cao-pages-demo.json"), "utf8")).runs;
 });
 
 test.afterAll(async () => { await preview?.close(); });
@@ -152,7 +156,7 @@ for (const width of [1440, 390]) {
           request.onerror = () => reject(request.error);
         });
       } finally { database.close(); }
-    }), { timeout: 90_000 }).toBe(672);
+    }), { timeout: 90_000 }).toBe(expectedRuns);
     const demoRunIds = await page.evaluate(async () => {
       const descriptor = (await indexedDB.databases()).find(({ name }) => name?.includes("synthetic-demo"));
       const db = await new Promise((resolve, reject) => {
@@ -168,7 +172,7 @@ for (const width of [1440, 390]) {
         });
       } finally { db.close(); }
     });
-    expect(demoRunIds).toHaveLength(672);
+    expect(demoRunIds).toHaveLength(expectedRuns);
     expect(demoRunIds.every(id => String(id).includes("sample-enterprise/"))).toBe(true);
     await expect(page.locator("body")).toContainText("Synthetic enterprise demo");
     await expect(page.locator('meta[name="dashboard-deployment"]')).toHaveAttribute("content", "synthetic-demo");
