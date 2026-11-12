@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
@@ -82,27 +81,6 @@ func (w Worker) consumer() string {
 	return name
 }
 
-func (w Worker) batchSize() int {
-	if w.BatchSize <= 0 {
-		return 4
-	}
-	return w.BatchSize
-}
-
-func (w Worker) blockInterval() time.Duration {
-	if w.BlockInterval <= 0 {
-		return 5 * time.Second
-	}
-	return w.BlockInterval
-}
-
-func (w Worker) reclaimAfter() time.Duration {
-	if w.ReclaimAfter <= 0 {
-		return 30 * time.Minute
-	}
-	return w.ReclaimAfter
-}
-
 func (w Worker) repositoryLockTTL() time.Duration {
 	if w.RepositoryLockTTL <= 0 {
 		return 30 * time.Minute
@@ -115,91 +93,7 @@ func (w Worker) Run(ctx context.Context) error {
 	if w.Native != nil {
 		return w.Native.Run(ctx)
 	}
-	if w.Enrollment.Authority != nil {
-		return collectnative.ErrUnsupported
-	}
-	if err := w.Runner.Validate(); err != nil {
-		return err
-	}
-	if err := w.Queue.Ensure(ctx); err != nil {
-		return err
-	}
-	consumer := w.consumer()
-	workerLog.Printf("worker started projection_role=%t", w.Project)
-	if w.Discovery.Client != nil {
-		discoveryCtx, cancelDiscovery := context.WithCancel(ctx)
-		discoveryDone := make(chan struct{})
-		go func() {
-			defer close(discoveryDone)
-			w.Discovery.Run(discoveryCtx)
-		}()
-		defer func() {
-			cancelDiscovery()
-			<-discoveryDone
-		}()
-	}
-	if w.Project {
-		projectionCtx, cancelProjection := context.WithCancel(ctx)
-		projectionDone := make(chan struct{})
-		valueDone := make(chan struct{})
-		remoteValueDone := make(chan struct{})
-		go func() {
-			defer close(projectionDone)
-			w.projectionLoop(projectionCtx)
-		}()
-		go func() {
-			defer close(valueDone)
-			w.localValueLoop(projectionCtx)
-		}()
-		go func() {
-			defer close(remoteValueDone)
-			w.remoteValueLoop(projectionCtx)
-		}()
-		defer func() {
-			cancelProjection()
-			<-projectionDone
-			<-valueDone
-			<-remoteValueDone
-		}()
-	}
-	for ctx.Err() == nil {
-		reclaimed, err := w.Queue.Reclaim(ctx, consumer, w.reclaimAfter(), w.batchSize())
-		if err != nil {
-			workerLog.Printf("task reclaim failed")
-		}
-		leases := reclaimed
-		if len(leases) < w.batchSize() {
-			fresh, err := w.Queue.Lease(ctx, consumer, w.batchSize()-len(leases), w.blockInterval())
-			if err != nil {
-				if ctx.Err() != nil {
-					break
-				}
-				workerLog.Printf("task lease failed")
-				sleep(ctx, w.blockInterval())
-				continue
-			}
-			leases = append(leases, fresh...)
-		}
-		if len(leases) == 0 {
-			continue
-		}
-		collected := false
-		for _, lease := range leases {
-			if ctx.Err() != nil {
-				break
-			}
-			if w.process(ctx, lease) {
-				collected = true
-			}
-		}
-		if collected {
-			if err := w.Projector.RequestProjection(ctx); err != nil {
-				workerLog.Printf("projection request failed")
-			}
-		}
-	}
-	workerLog.Printf("worker stopped")
-	return ctx.Err()
+	return w.Runner.Validate()
 }
 
 // process handles one lease and reports whether evidence changed.
@@ -344,25 +238,11 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 		}
 		return false
 	}
-	if err := w.Runner.Collect(ctx, task); err != nil {
-		workerLog.Printf("collection failed attempt=%d", task.Attempt)
-		if retryErr := w.Queue.Retry(ctx, lease, err); retryErr != nil {
-			workerLog.Printf("task retry failed")
-		}
-		return false
+	workerLog.Printf("collection rejected attempt=%d", task.Attempt)
+	if err := w.Queue.Retry(ctx, lease, w.Runner.Collect(ctx, task)); err != nil {
+		workerLog.Printf("task retry failed")
 	}
-	if task.ValueRefresh {
-		if err := w.Projector.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
-			w.retryRefresh(ctx, lease, err)
-			return false
-		}
-	}
-	if err := w.Queue.Complete(ctx, lease); err != nil {
-		workerLog.Printf("task acknowledgement failed")
-		return true
-	}
-	workerLog.Printf("collection completed repository=%s completed_at=%s", task.Repository, time.Now().UTC().Format(time.RFC3339Nano))
-	return true
+	return false
 }
 
 func (w Worker) processEnrolledErasure(ctx context.Context, lease Lease) bool {
