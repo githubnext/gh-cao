@@ -259,7 +259,10 @@ test("real GitHub CLI discovers, installs, and dispatches native release assets"
       const manifest = join(data, "gh", "extensions", "gh-cao", "manifest.yml");
       assert.match(readFileSync(manifest, "utf8"), new RegExp(`tag: ${scenario.pinned ? "v1.2.4" : "v1.2.3"}`));
       if (!scenario.pinned) {
-        await t.test("dashboard runs with gh, its installed extension and the selected container engine", async (t) => {
+        // Source builds embed no dashboard bundle; the release workflow supplies a release binary.
+        await t.test("dashboard runs with gh, its installed extension and the selected container engine", {
+          skip: !process.env.CAO_EXTENSION_BINARY && "requires a release binary via CAO_EXTENSION_BINARY",
+        }, async (t) => {
           await standaloneDashboard(t, directory, env, requests);
         });
       }

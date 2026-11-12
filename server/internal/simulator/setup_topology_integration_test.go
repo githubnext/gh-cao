@@ -335,7 +335,7 @@ func testSetupQuickstartPublication(t *testing.T, ctx context.Context, root, cat
 			f.api.mu.Unlock()
 			bootstrapRun(t, ctx, f.checkout, f.env, "git", "config", "user.name", "CAO simulator")
 			bootstrapRun(t, ctx, f.checkout, f.env, "git", "config", "user.email", "simulator@example.invalid")
-			bootstrapRun(t, ctx, f.checkout, f.env, "git", "add", ".github", "activity", "dashboard")
+			bootstrapRun(t, ctx, f.checkout, f.env, "git", "add", ".github", "dashboard")
 			bootstrapRun(t, ctx, f.checkout, f.env, "git", "commit", "-qm", "Installed runtime fixture")
 			bootstrapRun(t, ctx, f.checkout, f.env, "git", "push", "origin", "HEAD:main")
 			// The GitHub.com case follows the recording; GHE.com uses a private
