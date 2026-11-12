@@ -65,7 +65,7 @@ func (config *CollectorConfig) ApplyNativeEnvironment(lookup func(string) string
 		name  string
 		value *time.Duration
 	}{
-		{"CAO_COLLECT_PROJECTION_INTERVAL", &config.MinProjectionInterval},
+		{"CAO_COLLECT_PROJECTION_INTERVAL", &config.MinValueInterval},
 		{"CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL", &config.RepositoryRefreshInterval},
 		{"CAO_COLLECT_TIMEOUT", &config.CollectionTimeout},
 	} {
@@ -100,7 +100,7 @@ func (config *CollectorConfig) validateNative() error {
 	}
 	if config.Workers < 0 || config.WindowDays < 0 || config.InventoryLimit < 0 ||
 		config.QueueMaxLength < 0 || config.RateLimitFloor < 0 ||
-		config.RepositoryRefreshInterval < 0 || config.CollectionTimeout < 0 || config.MinProjectionInterval < 0 {
+		config.RepositoryRefreshInterval < 0 || config.CollectionTimeout < 0 || config.MinValueInterval < 0 {
 		return errors.New("native collection limits and intervals must not be negative")
 	}
 	if config.RunLimit != 0 || config.MaxStorageMB != 0 || config.RequestTimeoutMinutes != 0 {

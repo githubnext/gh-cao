@@ -15,13 +15,12 @@ import (
 
 var workerLog = logger.New("cao:collect:worker")
 
-// Worker leases collection tasks, collects one repository at a time, and
-// requests a coalesced projection.
+// Worker leases collection tasks and collects one repository at a time.
 type Worker struct {
 	Native         *NativeWorker
 	Queue          Queue
 	Runner         Runner
-	Projector      Projector
+	Values         NativeValueService
 	Enrollment     Enrollment
 	ScopeRefresher ScopeRefresher
 	Discovery      RepositoryDiscovery
@@ -36,12 +35,6 @@ type Worker struct {
 	ReclaimAfter time.Duration
 	// RepositoryLockTTL bounds the per-repository lease.
 	RepositoryLockTTL time.Duration
-	// Project enables the projection loop on this worker. Every worker may
-	// request projection; whichever wins the lease performs it.
-	Project bool
-	// OnProjection is notified after a successful projection so the server can
-	// broadcast the new revision.
-	OnProjection func(revision int64)
 }
 
 // consumerNameSource identifies which input determined a worker's resolved
@@ -125,7 +118,7 @@ func (w Worker) Run(ctx context.Context) error {
 		return err
 	}
 	consumer := w.consumer()
-	workerLog.Printf("worker started projection_role=%t", w.Project)
+	workerLog.Printf("worker started")
 	if w.Discovery.Client != nil {
 		discoveryCtx, cancelDiscovery := context.WithCancel(ctx)
 		discoveryDone := make(chan struct{})
@@ -136,30 +129,6 @@ func (w Worker) Run(ctx context.Context) error {
 		defer func() {
 			cancelDiscovery()
 			<-discoveryDone
-		}()
-	}
-	if w.Project {
-		projectionCtx, cancelProjection := context.WithCancel(ctx)
-		projectionDone := make(chan struct{})
-		valueDone := make(chan struct{})
-		remoteValueDone := make(chan struct{})
-		go func() {
-			defer close(projectionDone)
-			w.projectionLoop(projectionCtx)
-		}()
-		go func() {
-			defer close(valueDone)
-			w.localValueLoop(projectionCtx)
-		}()
-		go func() {
-			defer close(remoteValueDone)
-			w.remoteValueLoop(projectionCtx)
-		}()
-		defer func() {
-			cancelProjection()
-			<-projectionDone
-			<-valueDone
-			<-remoteValueDone
 		}()
 	}
 	for ctx.Err() == nil {
@@ -183,19 +152,11 @@ func (w Worker) Run(ctx context.Context) error {
 		if len(leases) == 0 {
 			continue
 		}
-		collected := false
 		for _, lease := range leases {
 			if ctx.Err() != nil {
 				break
 			}
-			if w.process(ctx, lease) {
-				collected = true
-			}
-		}
-		if collected {
-			if err := w.Projector.RequestProjection(ctx); err != nil {
-				workerLog.Printf("projection request failed")
-			}
+			w.process(ctx, lease)
 		}
 	}
 	workerLog.Printf("worker stopped")
@@ -303,13 +264,8 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 			w.retryRefresh(ctx, lease, err)
 			return false
 		}
-		// Persist projection intent before ACK: a crash cannot strand evidence.
-		if err := w.Projector.RequestProjection(ctx); err != nil {
-			w.retryRefresh(ctx, lease, err)
-			return false
-		}
 		if task.ValueRefresh {
-			if err := w.Projector.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
+			if err := w.Values.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
 				w.retryRefresh(ctx, lease, err)
 				return false
 			}
@@ -319,8 +275,8 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 		}
 		return true
 	}
-	if w.Projector.Data != nil {
-		active, err := w.Projector.Data.RepositoryActive(ctx, task.Repository)
+	if w.Values.Data != nil {
+		active, err := w.Values.Data.RepositoryActive(ctx, task.Repository)
 		if err != nil {
 			if retryErr := w.Queue.Retry(ctx, lease, err); retryErr != nil {
 				workerLog.Printf("task retry failed")
@@ -335,7 +291,7 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 		}
 	}
 	if task.ValueRefresh && task.Reason == "push.value" {
-		if err := w.Projector.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
+		if err := w.Values.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
 			w.retryRefresh(ctx, lease, err)
 			return false
 		}
@@ -352,7 +308,7 @@ func (w Worker) process(ctx context.Context, lease Lease) bool {
 		return false
 	}
 	if task.ValueRefresh {
-		if err := w.Projector.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
+		if err := w.Values.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
 			w.retryRefresh(ctx, lease, err)
 			return false
 		}
@@ -402,81 +358,32 @@ func (w Worker) processErasure(ctx context.Context, lease Lease) bool {
 		}
 		return false
 	}
-	if w.Projector.Lake.Directory != "" {
-		if err := w.Projector.ForgetRemoteValueWorkspace(ctx, lease.Task.Repository); err != nil {
+	if w.Values.Data != nil && w.Values.Data.Open() {
+		if err := w.Values.Data.DeleteValueProofs(ctx, lease.Task.Repository); err != nil {
 			workerLog.Printf("remote Value proof erasure failed repository=%s", lease.Task.Repository)
 			w.retryRefresh(ctx, lease, err)
 			return false
 		}
 	}
-	if w.Projector.State != nil {
-		if err := w.Projector.State.SetOperationalState(ctx, remoteValueHintKey(lease.Task.Repository), nil); err != nil {
-			workerLog.Printf("remote Value hint erasure failed repository=%s", lease.Task.Repository)
+	if w.Runner.Lake.Directory != "" {
+		if err := w.Runner.Lake.ForgetRemoteValueWorkspace(ctx, lease.Task.Repository); err != nil {
+			workerLog.Printf("remote Value proof erasure failed repository=%s", lease.Task.Repository)
 			w.retryRefresh(ctx, lease, err)
 			return false
 		}
 	}
-	// The task remains reclaimable if the follow-up cannot be persisted.
-	// Repeating Forget is safe; acknowledging without projection intent is not.
-	if err := w.Projector.RequestProjection(ctx); err != nil {
-		workerLog.Printf("erasure projection request failed repository=%s", lease.Task.Repository)
-		return false
+	if w.Values.State != nil {
+		if err := w.Values.State.SetOperationalState(ctx, remoteValueHintKey(lease.Task.Repository), nil); err != nil {
+			workerLog.Printf("remote Value hint erasure failed repository=%s", lease.Task.Repository)
+			w.retryRefresh(ctx, lease, err)
+			return false
+		}
 	}
 	if err := w.Queue.Complete(ctx, lease); err != nil {
 		workerLog.Printf("task acknowledgement failed repository=%s", lease.Task.Repository)
 	}
 	workerLog.Printf("erased retained evidence repository=%s", lease.Task.Repository)
 	return true
-}
-
-// projectionLoop performs coalesced projection. Any worker may run it; the
-// global projection lease decides which one actually does.
-func (w Worker) projectionLoop(ctx context.Context) {
-	interval := w.Projector.minInterval()
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-		}
-		if err := w.Projector.CollectOutcomeEvidence(ctx); err != nil && ctx.Err() == nil {
-			workerLog.Printf("bounded outcome repair incomplete")
-		}
-		pending, err := w.Projector.PendingProjection(ctx)
-		if err != nil {
-			continue
-		}
-		if !pending {
-			continue
-		}
-		result, err := w.Projector.Project(ctx)
-		if err != nil {
-			if !errors.Is(err, ErrProjectionBusy) {
-				workerLog.Printf("projection failed")
-			}
-			continue
-		}
-		if w.OnProjection != nil {
-			w.OnProjection(result.Revision)
-		}
-	}
-}
-
-func (w Worker) localValueLoop(ctx context.Context) {
-	ticker := time.NewTicker(w.Projector.minInterval())
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if err := w.Projector.CollectLocalValues(ctx); err != nil && !errors.Is(err, ErrLocalValueBusy) && ctx.Err() == nil {
-				workerLog.Printf("local Value computation deferred or failed; core Activity publication is independent")
-			}
-		}
-	}
 }
 
 func sleep(ctx context.Context, duration time.Duration) {

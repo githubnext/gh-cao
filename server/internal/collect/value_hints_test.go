@@ -18,7 +18,7 @@ func TestRemoteValueHintsPreserveChangesDuringRefresh(t *testing.T) {
 	if err := worker.withRemoteValueHint(t.Context(), repository, advance); err != nil {
 		t.Fatal(err)
 	}
-	started, err := worker.Projector.readRemoteValueHint(t.Context(), repository)
+	started, err := worker.Values.readRemoteValueHint(t.Context(), repository)
 	if err != nil || started.Dirty != 1 {
 		t.Fatalf("initial hint = %+v, %v", started, err)
 	}
@@ -31,7 +31,7 @@ func TestRemoteValueHintsPreserveChangesDuringRefresh(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	current, err := worker.Projector.readRemoteValueHint(t.Context(), repository)
+	current, err := worker.Values.readRemoteValueHint(t.Context(), repository)
 	if err != nil || current.Dirty != 2 || current.Processed != 1 {
 		t.Fatalf("concurrent invalidation lost = %+v, %v", current, err)
 	}
@@ -39,11 +39,11 @@ func TestRemoteValueHintsPreserveChangesDuringRefresh(t *testing.T) {
 
 func TestRemoteValueHintRejectsInvalidGenerations(t *testing.T) {
 	worker := refreshWorker(t)
-	if err := worker.Projector.State.SetOperationalState(context.Background(),
+	if err := worker.Values.State.SetOperationalState(context.Background(),
 		remoteValueHintKey("octo/api"), []byte(`{"dirty":1,"processed":2}`)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := worker.Projector.readRemoteValueHint(t.Context(), "octo/api"); err == nil {
+	if _, err := worker.Values.readRemoteValueHint(t.Context(), "octo/api"); err == nil {
 		t.Fatal("invalid persisted generation was silently accepted")
 	}
 }
@@ -60,7 +60,7 @@ func TestWithdrawalErasesRemoteValueHintsAndPrivateProof(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	workspace, err := worker.Projector.remoteValueWorkspace(t.Context(), repository, "daily-file-diet")
+	workspace, err := worker.Runner.Lake.remoteValueWorkspace(t.Context(), repository, "daily-file-diet")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestWithdrawalErasesRemoteValueHintsAndPrivateProof(t *testing.T) {
 	if _, err := os.Stat(workspace); !os.IsNotExist(err) {
 		t.Fatalf("withdrawn private proof remains: %v", err)
 	}
-	hint, err := worker.Projector.readRemoteValueHint(t.Context(), repository)
+	hint, err := worker.Values.readRemoteValueHint(t.Context(), repository)
 	if err != nil || hint != (remoteValueHint{}) {
 		t.Fatalf("withdrawn hint remains: %+v, %v", hint, err)
 	}
@@ -87,7 +87,7 @@ func TestRemoteValueSweepAttemptsWithoutAWebhookAndBacksOffOnFailure(t *testing.
 	if err := worker.collectRemoteValue(t.Context(), repository, now); !errors.Is(err, ErrRemoteValueDeferred) {
 		t.Fatalf("daily repair did not try missing collection prerequisites: %v", err)
 	}
-	hint, err := worker.Projector.readRemoteValueHint(t.Context(), repository)
+	hint, err := worker.Values.readRemoteValueHint(t.Context(), repository)
 	if err != nil || hint.RetryAt == "" || hint.AttemptDay != "" {
 		t.Fatalf("failed sweep did not persist its retry clock: %+v, %v", hint, err)
 	}

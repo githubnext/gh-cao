@@ -37,7 +37,7 @@ func TestNativeValueLaneRequiresExplicitSharedDependencies(t *testing.T) {
 	if err := (NativeValueService{}).Validate(); !errors.Is(err, collectnative.ErrUnsupported) {
 		t.Fatalf("unconfigured Value lane was silently selected: %v", err)
 	}
-	if err := (Projector{}).CollectScopedRemoteValues(t.Context(), collectnative.EnrollmentScope{
+	if err := (NativeValueService{}).CollectScopedRemoteValues(t.Context(), collectnative.EnrollmentScope{
 		Repository: "octo/api", InstallationID: 7, Epoch: 1,
 	}); !errors.Is(err, collectnative.ErrUnsupported) {
 		t.Fatalf("native Value bypassed authoritative enrollment: %v", err)
@@ -65,11 +65,11 @@ func TestNativeValuePlanTracksComposedPolicyAuthority(t *testing.T) {
 	}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	projector := Projector{
+	values := NativeValueService{
 		CatalogRoot: root, PolicyPath: profile, RemoteValuePlan: &RemoteValuePlanCache{},
 		Enrollment: Enrollment{Authority: new(postgresx.Store).NativeEnrollment()},
 	}
-	entries, digest, err := projector.remoteValuePlan(t.Context())
+	entries, digest, err := values.remoteValuePlan(t.Context())
 	if err != nil || len(entries) == 0 {
 		t.Fatalf("composed reviewed registrations unavailable: entries=%d err=%v", len(entries), err)
 	}
@@ -85,12 +85,12 @@ func TestNativeValuePlanTracksComposedPolicyAuthority(t *testing.T) {
 	if err := os.WriteFile(base, content, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	current, changed, err := projector.remoteValuePlan(t.Context())
+	current, changed, err := values.remoteValuePlan(t.Context())
 	if err != nil || len(current) != 0 || changed == digest {
 		t.Fatalf("base-policy revocation hidden by unchanged profile: entries=%d changed=%v err=%v",
 			len(current), changed != digest, err)
 	}
-	if projector.RemoteValuePlan.loaded {
+	if values.RemoteValuePlan.loaded {
 		t.Fatal("native authority was cached by entry-profile bytes")
 	}
 }

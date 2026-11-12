@@ -68,7 +68,7 @@ func TestRunnerCompactionAndReplayKeepCollidingRepositoriesIsolated(t *testing.T
 }
 
 // compactActivitySnapshot uses the independent Actions producer as a test
-// oracle. Projector only replays its output; it cannot regenerate it.
+// oracle for legacy snapshot layout tests, not a native collection dependency.
 func compactActivitySnapshot(t *testing.T, lake Lake) {
 	t.Helper()
 	node, err := exec.LookPath("node")

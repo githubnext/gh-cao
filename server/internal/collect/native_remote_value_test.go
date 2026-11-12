@@ -64,27 +64,27 @@ func TestRemoteValueRepositoriesReviewedPolicyCacheAndEnrollment(t *testing.T) {
 	if err := os.WriteFile(path, policy, 0o600); err != nil { // #nosec G703 -- fixed filename beneath t.TempDir.
 		t.Fatal(err)
 	}
-	projector := Projector{CatalogRoot: root, PolicyPath: path, Enrollment: b.Enrollment,
+	values := NativeValueService{CatalogRoot: root, PolicyPath: path, Enrollment: b.Enrollment,
 		RemoteValuePlan: &RemoteValuePlanCache{}}
-	if names, err := projector.RemoteValueRepositories(t.Context()); err != nil || len(names) != 0 {
+	if names, err := values.RemoteValueRepositories(t.Context()); err != nil || len(names) != 0 {
 		t.Fatalf("unenrolled registration was admitted: %v, %v", names, err)
 	}
 	if err := b.Enrollment.AddRepositories(t.Context(), 7, []string{"github/gh-aw"}); err != nil {
 		t.Fatal(err)
 	}
 	for range 2 {
-		names, err := projector.RemoteValueRepositories(t.Context())
+		names, err := values.RemoteValueRepositories(t.Context())
 		if err != nil || !slices.Equal(names, []string{"github/gh-aw"}) {
 			t.Fatalf("reviewed registered repository = %v, %v", names, err)
 		}
 	}
 	foundFileDiet := false
-	for _, entry := range projector.RemoteValuePlan.entries {
+	for _, entry := range values.RemoteValuePlan.entries {
 		if entry.Workflow == dailyFileDietWorkflow {
 			foundFileDiet = entry.APIRequests == 700
 		}
 	}
-	if !projector.RemoteValuePlan.loaded || !foundFileDiet {
+	if !values.RemoteValuePlan.loaded || !foundFileDiet {
 		t.Fatal("reviewed API-bound registration was not cached")
 	}
 	disabled := strings.Replace(string(policy), `"api-requests": 700,`, `"api-requests": 700, "enabled": false,`, 1)
@@ -94,11 +94,11 @@ func TestRemoteValueRepositoriesReviewedPolicyCacheAndEnrollment(t *testing.T) {
 	if err := os.WriteFile(path, []byte(disabled), 0o600); err != nil { // #nosec G703 -- fixed filename beneath t.TempDir.
 		t.Fatal(err)
 	}
-	if names, err := projector.RemoteValueRepositories(t.Context()); err != nil ||
+	if names, err := values.RemoteValueRepositories(t.Context()); err != nil ||
 		!slices.Equal(names, []string{"github/gh-aw"}) {
 		t.Fatalf("disabling File Diet suppressed the independent registration: %v, %v", names, err)
 	}
-	for _, entry := range projector.RemoteValuePlan.entries {
+	for _, entry := range values.RemoteValuePlan.entries {
 		if entry.Workflow == dailyFileDietWorkflow {
 			t.Fatal("stale policy cache admitted disabled File Diet registration")
 		}
@@ -646,19 +646,19 @@ func TestRemoteValueArtifactRedirectRejectsOtherDestinations(t *testing.T) {
 }
 
 func TestRemoteValueDefersWithoutHostedServices(t *testing.T) {
-	err := (Projector{}).CollectRemoteValues(t.Context(), "octo/api")
+	err := (NativeValueService{}).CollectRemoteValues(t.Context(), "octo/api")
 	if !errors.Is(err, ErrRemoteValueDeferred) {
 		t.Fatalf("without Postgres or App quota must defer, got %v", err)
 	}
 }
 
 func TestRemoteValueWorkspaceWithdrawn(t *testing.T) {
-	projector := Projector{Lake: Lake{Directory: t.TempDir()}}
-	root, err := projector.remoteValueWorkspace(t.Context(), "octo/api", "my-workflow")
+	values := Lake{Directory: t.TempDir()}
+	root, err := values.remoteValueWorkspace(t.Context(), "octo/api", "my-workflow")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := projector.ForgetRemoteValueWorkspace(t.Context(), "octo/api"); err != nil {
+	if err := values.ForgetRemoteValueWorkspace(t.Context(), "octo/api"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Lstat(root); !errors.Is(err, os.ErrNotExist) {
@@ -668,11 +668,11 @@ func TestRemoteValueWorkspaceWithdrawn(t *testing.T) {
 
 func TestRemoteValueWorkspaceRejectsUnconfiguredOrRelativeLake(t *testing.T) {
 	for _, directory := range []string{"", ".", "relative/lake"} {
-		projector := Projector{Lake: Lake{Directory: directory}}
-		if _, err := projector.remoteValueWorkspace(t.Context(), "octo/api", "my-workflow"); err == nil {
+		values := Lake{Directory: directory}
+		if _, err := values.remoteValueWorkspace(t.Context(), "octo/api", "my-workflow"); err == nil {
 			t.Errorf("workspace accepted unsafe lake directory %q", directory)
 		}
-		if err := projector.ForgetRemoteValueWorkspace(t.Context(), "octo/api"); err == nil {
+		if err := values.ForgetRemoteValueWorkspace(t.Context(), "octo/api"); err == nil {
 			t.Errorf("withdrawal scanned unsafe lake directory %q", directory)
 		}
 	}

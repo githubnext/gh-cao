@@ -5,13 +5,11 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
-	"github.com/githubnext/gh-cao/server/internal/query"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
 )
 
@@ -118,71 +116,8 @@ func TestRepositoryDiscoveryThroughGitHubSimulator(t *testing.T) {
 			if erase != wantErase {
 				t.Fatalf("erasure tasks = %d, want %d", erase, wantErase)
 			}
-			if pending, err := w.Projector.PendingProjection(t.Context()); err != nil || !pending {
-				t.Fatalf("simulator discovery did not schedule canonical refresh: %t, %v", pending, err)
-			}
 			t.Logf("%s: %d paginated API requests, %d enrolled repositories, %d evictions",
 				action, api.Stats().Requests, len(repositories), erase)
-		})
-	}
-}
-
-func TestRepositoryLifecycleCanonicalEviction(t *testing.T) {
-	for _, action := range []string{"archived", "deleted", "renamed"} {
-		t.Run(action, func(t *testing.T) {
-			w := refreshWorker(t)
-			ctx := t.Context()
-			w.Projector.Data = integrationPostgres(t, ctx)
-			w.Projector.DatabaseQueriesPath = databaseQueries
-			seedErasureProjection(t, w.Projector)
-			if err := w.Enrollment.AddRepositories(ctx, 7, []string{"octo/withdrawn", "octo/kept"}); err != nil {
-				t.Fatal(err)
-			}
-			// Retained inventory is a legitimate fallback when GitHub is down.
-			// It must not reintroduce the removed coordinate on replay.
-			if err := WriteFileAtomic(w.Runner.Lake.InventoryPath(), []byte(`{
-				"repositories":{"rows":[
-					{"organization":"octo","repository":"withdrawn"},
-					{"organization":"octo","repository":"kept"}]},
-				"workflows":{"rows":[
-					{"organization":"octo","repository":"withdrawn","workflow":".github/workflows/test.lock.yml"}]}
-			}`)); err != nil {
-				t.Fatal(err)
-			}
-			w.ScopeRefresher = ScopeRefresher{Client: &refreshEnumerator{
-				pages: map[int][]githubapp.Repository{1: {{FullName: "octo/kept"}}},
-			}, Quota: &fakeRunQuota{}, QuotaApp: "test"}
-			body := []byte(fmt.Sprintf(`{"action":%q,"repository":{"id":42,"full_name":"octo/withdrawn"},"installation":{"id":7}}`, action))
-			admitter := Admitter{Enrollment: w.Enrollment, Queue: w.Queue}
-			if _, err := admitter.AdmitDelivery(ctx, "repository", body, action, time.Hour); err != nil {
-				t.Fatal(err)
-			}
-			w.process(ctx, refreshLease(t, w.Queue))
-			erasure := refreshLease(t, w.Queue)
-			if !erasure.Task.Erase || !w.process(ctx, erasure) {
-				t.Fatalf("repository eviction was not applied: %+v", erasure)
-			}
-			writeErasureManifest(t, w.Runner.Lake)
-			result, err := w.Projector.Project(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			results, _, err := w.Projector.Data.ExecuteSQLPlan(ctx,
-				[]query.Definition{{Name: "repositories", From: "$repositories"}}, []string{"repositories"})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(results["repositories"].Rows) == 0 {
-				t.Fatal("eviction removed unrelated repository evidence")
-			}
-			for _, row := range results["repositories"].Rows {
-				if row["owner"] != "octo" || row["name"] != "kept" {
-					t.Fatalf("evicted repository survived canonical publication: %+v", row)
-				}
-			}
-			if result.Counts["$workflows"] != 0 {
-				t.Fatalf("evicted workflow remains queryable: %+v", result.Counts)
-			}
 		})
 	}
 }

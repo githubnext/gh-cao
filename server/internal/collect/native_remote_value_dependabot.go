@@ -426,7 +426,7 @@ func dependabotValuePacket(metric dependabotValueMetric, previous model.Row, cut
 	return packet, nil
 }
 
-func (p Projector) collectDependabotValue(
+func (p NativeValueService) collectDependabotValue(
 	ctx context.Context, repository string, installation int64, entry remoteValueEntry,
 	policyDigest [sha256.Size]byte, base *url.URL, cache *remoteValueResponseCache,
 	sharedRequirements map[string]remoteValueRequirement,

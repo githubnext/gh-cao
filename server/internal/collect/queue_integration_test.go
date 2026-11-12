@@ -639,7 +639,7 @@ func TestAdmitterErasesEvidenceWhenScopeIsWithdrawn(t *testing.T) {
 	if err := enrollment.AddRepositories(ctx, 11, []string{"acme/kept", "acme/withdrawn"}); err != nil {
 		t.Fatal(err)
 	}
-	projector := Projector{State: store, Leases: store, Lake: lake, Enrollment: enrollment}
+	values := NativeValueService{State: store, Leases: store, Enrollment: enrollment}
 	queue := Queue{Tasks: store, Admission: store, Metadata: store, Leases: store, Deliveries: store, Metrics: store}
 	if err := queue.Ensure(ctx); err != nil {
 		t.Fatal(err)
@@ -647,7 +647,6 @@ func TestAdmitterErasesEvidenceWhenScopeIsWithdrawn(t *testing.T) {
 	admitter := Admitter{
 		Enrollment: enrollment,
 		Queue:      queue,
-		Projection: projector,
 	}
 	if _, err := queue.Enqueue(ctx, Task{Repository: "acme/withdrawn", InstallationID: 11}); err != nil {
 		t.Fatal(err)
@@ -674,7 +673,7 @@ func TestAdmitterErasesEvidenceWhenScopeIsWithdrawn(t *testing.T) {
 		t.Fatal("scope withdrawal was not durably queued")
 	}
 	worker := Worker{
-		Queue: queue, Runner: Runner{Lake: lake}, Enrollment: enrollment, Projector: projector,
+		Queue: queue, Runner: Runner{Lake: lake}, Enrollment: enrollment, Values: values,
 	}
 	// The earlier collection is already leased when the queued scope change
 	// is processed; it must still recheck enrollment before reading evidence.
@@ -699,13 +698,6 @@ func TestAdmitterErasesEvidenceWhenScopeIsWithdrawn(t *testing.T) {
 			t.Fatalf("enrolled evidence was erased from %s: %v", directory, err)
 		}
 	}
-	dirty, err := projector.PendingProjection(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !dirty {
-		t.Fatal("erasure did not request a projection, so the database keeps the rows")
-	}
 }
 
 // An admission-only process has no evidence lake, so withdrawing consent must
@@ -725,7 +717,7 @@ func TestAdmitterQueuesErasureWithoutALake(t *testing.T) {
 	if _, err := admitter.Admit(ctx, "installation", payload); err != nil {
 		t.Fatal(err)
 	}
-	worker := Worker{Queue: queue, Enrollment: enrollment, Projector: Projector{State: store}}
+	worker := Worker{Queue: queue, Enrollment: enrollment, Values: NativeValueService{State: store}}
 	if err := worker.processRefresh(ctx, refreshLease(t, queue)); err != nil {
 		t.Fatal(err)
 	}
@@ -843,7 +835,7 @@ func TestStaleRemovalErasureDoesNotDeleteTransferredEvidence(t *testing.T) {
 		t.Fatalf("lease = %+v, err = %v; want stale erasure task", leases, err)
 	}
 	worker := Worker{
-		Queue: queue, Runner: Runner{Lake: lake}, Enrollment: enrollment, Projector: Projector{State: store},
+		Queue: queue, Runner: Runner{Lake: lake}, Enrollment: enrollment, Values: NativeValueService{State: store},
 	}
 	if worker.process(ctx, leases[0]) {
 		t.Fatal("stale erasure should not report evidence changed")

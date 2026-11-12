@@ -26,7 +26,7 @@ var ErrRemoteValueDeferred = errors.New("remote Value acquisition deferred")
 
 // CollectScopedRemoteValues uses the reviewed Go acquisition under one exact
 // enrollment epoch, independently of native run acquisition.
-func (p Projector) CollectScopedRemoteValues(ctx context.Context, scope collectnative.EnrollmentScope) error {
+func (p NativeValueService) CollectScopedRemoteValues(ctx context.Context, scope collectnative.EnrollmentScope) error {
 	if p.Enrollment.Authority == nil || p.Data == nil {
 		return collectnative.ErrUnsupported
 	}
@@ -42,7 +42,7 @@ func (p Projector) CollectScopedRemoteValues(ctx context.Context, scope collectn
 	return p.CollectRemoteValues(ctx, scope.Repository)
 }
 
-func (p Projector) nativeValueCurrent(ctx context.Context) error {
+func (p NativeValueService) nativeValueCurrent(ctx context.Context) error {
 	if p.nativeValueScope == nil {
 		return nil
 	}
@@ -58,7 +58,7 @@ func (p Projector) nativeValueCurrent(ctx context.Context) error {
 
 // CollectRemoteValues works on one exact enrolled repository. The caller owns
 // the per-repository lease and durable dirty hint.
-func (p Projector) CollectRemoteValues(ctx context.Context, repository string) error {
+func (p NativeValueService) CollectRemoteValues(ctx context.Context, repository string) error {
 	name, err := NormalizeRepository(repository)
 	if err != nil {
 		return err
@@ -135,7 +135,7 @@ func supportedRemoteValueEntries(entries []remoteValueEntry) ([]remoteValueEntry
 	return valid, failures
 }
 
-func (p Projector) collectRemoteValue(
+func (p NativeValueService) collectRemoteValue(
 	ctx context.Context, repository string, installation int64, entry remoteValueEntry,
 	policyDigest [sha256.Size]byte, base *url.URL, cache *remoteValueResponseCache,
 	sharedRequirements map[string]remoteValueRequirement,
@@ -256,7 +256,7 @@ func nativeRemoteValueFailure(ctx context.Context, err error) string {
 	}
 }
 
-func (p Projector) remoteValueRegistrationCurrent(
+func (p NativeValueService) remoteValueRegistrationCurrent(
 	ctx context.Context, repository string, installation int64, entry remoteValueEntry, digest [sha256.Size]byte,
 ) error {
 	if err := p.nativeValueCurrent(ctx); err != nil {
@@ -285,13 +285,13 @@ func (p Projector) remoteValueRegistrationCurrent(
 	return fmt.Errorf("%w: reviewed registration or enrollment changed", ErrRemoteValueDeferred)
 }
 
-func (p Projector) remoteValueWorkspace(ctx context.Context, repository, workflow string) (string, error) {
-	path, err := p.remoteValueWorkspacePath(repository, workflow)
+func (l Lake) remoteValueWorkspace(ctx context.Context, repository, workflow string) (string, error) {
+	path, err := l.remoteValueWorkspacePath(repository, workflow)
 	if err != nil {
 		return "", err
 	}
 	parent := filepath.Dir(path)
-	for _, directory := range []string{p.Lake.Directory, parent, path} {
+	for _, directory := range []string{l.Directory, parent, path} {
 		if err := os.MkdirAll(directory, 0o700); err != nil {
 			return "", err
 		}
@@ -299,7 +299,7 @@ func (p Projector) remoteValueWorkspace(ctx context.Context, repository, workflo
 		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 			return "", errors.New("remote Value workspace is not a private directory")
 		}
-		if directory != p.Lake.Directory && info.Mode().Perm()&0o077 != 0 {
+		if directory != l.Directory && info.Mode().Perm()&0o077 != 0 {
 			return "", errors.New("remote Value workspace is accessible to other users")
 		}
 	}
@@ -322,35 +322,30 @@ func (p Projector) remoteValueWorkspace(ctx context.Context, repository, workflo
 	return path, nil
 }
 
-func (p Projector) remoteValueWorkspacePath(repository, workflow string) (string, error) {
-	if !filepath.IsAbs(p.Lake.Directory) || strings.TrimSpace(p.Lake.Directory) == "" {
+func (l Lake) remoteValueWorkspacePath(repository, workflow string) (string, error) {
+	if !filepath.IsAbs(l.Directory) || strings.TrimSpace(l.Directory) == "" {
 		return "", errors.New("remote Value requires an absolute private lake directory")
 	}
 	if _, err := NormalizeRepository(repository); err != nil || workflow == "" || strings.ContainsAny(workflow, "/\\.") {
 		return "", errors.New("invalid remote Value workspace identity")
 	}
 	digest := sha256.Sum256([]byte(repository + ":" + workflow))
-	parent := filepath.Join(p.Lake.Directory, ".remote-value-workspaces")
+	parent := filepath.Join(l.Directory, ".remote-value-workspaces")
 	return filepath.Join(parent, hex.EncodeToString(digest[:])), nil
 }
 
 // ForgetRemoteValueWorkspace removes durable private proofs after enrollment
 // withdrawal. Publication independently rechecks enrollment under its mutation
 // lock, so a withdrawn repository cannot publish after this cleanup.
-func (p Projector) ForgetRemoteValueWorkspace(ctx context.Context, repository string) error {
-	if !filepath.IsAbs(p.Lake.Directory) || strings.TrimSpace(p.Lake.Directory) == "" {
+func (l Lake) ForgetRemoteValueWorkspace(ctx context.Context, repository string) error {
+	if !filepath.IsAbs(l.Directory) || strings.TrimSpace(l.Directory) == "" {
 		return errors.New("remote Value requires an absolute private lake directory")
 	}
 	name, err := NormalizeRepository(repository)
 	if err != nil {
 		return err
 	}
-	if p.Data != nil && p.Data.Open() {
-		if err := p.Data.DeleteValueProofs(ctx, name); err != nil {
-			return err
-		}
-	}
-	parent := filepath.Join(p.Lake.Directory, ".remote-value-workspaces")
+	parent := filepath.Join(l.Directory, ".remote-value-workspaces")
 	entries, err := os.ReadDir(parent)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -379,7 +374,7 @@ func (p Projector) ForgetRemoteValueWorkspace(ctx context.Context, repository st
 			return err
 		}
 		if metadata.Repository == name {
-			expected, err := p.remoteValueWorkspacePath(name, metadata.Workflow)
+			expected, err := l.remoteValueWorkspacePath(name, metadata.Workflow)
 			if err != nil || expected != directory {
 				return errors.New("remote Value workspace identity mismatch")
 			}

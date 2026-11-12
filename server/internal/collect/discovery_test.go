@@ -25,7 +25,7 @@ func repositoryDiscovery(t *testing.T) (RepositoryDiscovery, Worker, *discoveryI
 	w := refreshWorker(t)
 	client := &discoveryInstallations{items: []githubapp.Installation{{ID: 7}}}
 	d := RepositoryDiscovery{Client: client, Enrollment: w.Enrollment, Queue: w.Queue,
-		State: w.Projector.State, Leases: w.Enrollment.Leases}
+		State: w.Values.State, Leases: w.Enrollment.Leases}
 	return d, w, client
 }
 

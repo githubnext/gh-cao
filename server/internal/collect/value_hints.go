@@ -24,7 +24,7 @@ func remoteValueHintKey(repository string) string {
 	return "collect:value-remote:" + hex.EncodeToString(digest[:])
 }
 
-func (p Projector) readRemoteValueHint(ctx context.Context, repository string) (remoteValueHint, error) {
+func (p NativeValueService) readRemoteValueHint(ctx context.Context, repository string) (remoteValueHint, error) {
 	content, err := p.State.OperationalState(ctx, remoteValueHintKey(repository))
 	if err != nil || len(content) == 0 {
 		return remoteValueHint{}, err
@@ -49,7 +49,7 @@ func (p Projector) readRemoteValueHint(ctx context.Context, repository string) (
 	return hint, nil
 }
 
-func (p Projector) writeRemoteValueHint(ctx context.Context, repository string, hint remoteValueHint) error {
+func (p NativeValueService) writeRemoteValueHint(ctx context.Context, repository string, hint remoteValueHint) error {
 	content, err := json.Marshal(hint)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func (p Projector) writeRemoteValueHint(ctx context.Context, repository string, 
 
 // MarkRemoteValueDirty runs under the collection worker's repository lease.
 // The webhook records an invalidation, never an accepted Value outcome.
-func (p Projector) MarkRemoteValueDirty(ctx context.Context, repository string) error {
+func (p NativeValueService) MarkRemoteValueDirty(ctx context.Context, repository string) error {
 	if p.State == nil || p.CatalogRoot == "" || p.PolicyPath == "" {
 		return nil
 	}
@@ -101,21 +101,21 @@ func (w Worker) withRemoteValueHint(ctx context.Context, repository string, upda
 		defer cancel()
 		_ = w.Queue.UnlockRepository(release, repository, token)
 	}()
-	hint, err := w.Projector.readRemoteValueHint(ctx, repository)
+	hint, err := w.Values.readRemoteValueHint(ctx, repository)
 	if err != nil {
 		return err
 	}
 	if err := update(&hint); err != nil {
 		return err
 	}
-	return w.Projector.writeRemoteValueHint(ctx, repository, hint)
+	return w.Values.writeRemoteValueHint(ctx, repository, hint)
 }
 
 func (w Worker) collectRemoteValue(ctx context.Context, repository string, now time.Time) error {
-	if w.Projector.Enrollment.Authority != nil {
-		return w.collectNativeRemoteValue(ctx, repository, now)
+	if w.Values.Enrollment.Authority != nil {
+		return w.Values.collectNativeRemoteValue(ctx, repository, now)
 	}
-	hint, err := w.Projector.readRemoteValueHint(ctx, repository)
+	hint, err := w.Values.readRemoteValueHint(ctx, repository)
 	if err != nil {
 		return err
 	}
@@ -129,23 +129,23 @@ func (w Worker) collectRemoteValue(ctx context.Context, repository string, now t
 		return err
 	}
 	lease := "collect:value-remote-run:" + strings.TrimPrefix(remoteValueHintKey(repository), "collect:value-remote:")
-	acquired, err := w.Projector.Leases.TryLock(ctx, lease, token, 12*time.Minute)
+	acquired, err := w.Values.Leases.TryLock(ctx, lease, token, 12*time.Minute)
 	if err != nil || !acquired {
 		return err
 	}
 	defer func() {
 		release, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 		defer cancel()
-		_ = w.Projector.Leases.Unlock(release, lease, token)
+		_ = w.Values.Leases.Unlock(release, lease, token)
 	}()
-	hint, err = w.Projector.readRemoteValueHint(ctx, repository)
+	hint, err = w.Values.readRemoteValueHint(ctx, repository)
 	if err != nil || (hint.AttemptDay == day && hint.Dirty == hint.Processed) {
 		return err
 	}
 	startedDirty := hint.Dirty
 	runCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
-	collectErr := w.Projector.CollectRemoteValues(runCtx, repository)
+	collectErr := w.Values.CollectRemoteValues(runCtx, repository)
 	updateErr := w.withRemoteValueHint(ctx, repository, func(current *remoteValueHint) error {
 		if collectErr != nil {
 			current.RetryAt = now.Add(time.Hour).UTC().Format(time.RFC3339Nano)
@@ -164,8 +164,8 @@ func remoteValueRetry(value string) time.Time {
 	return at
 }
 
-func (w Worker) remoteValueLoop(ctx context.Context) {
-	ticker := time.NewTicker(w.Projector.minInterval())
+func (p NativeValueService) remoteValueLoop(ctx context.Context) {
+	ticker := time.NewTicker(p.minInterval())
 	defer ticker.Stop()
 	for {
 		select {
@@ -173,10 +173,10 @@ func (w Worker) remoteValueLoop(ctx context.Context) {
 			return
 		case <-ticker.C:
 		}
-		if w.Projector.State == nil || w.Projector.Leases == nil || w.Projector.PolicyPath == "" {
+		if p.State == nil || p.Leases == nil || p.PolicyPath == "" {
 			continue
 		}
-		targets, err := w.Projector.RemoteValueTargets(ctx)
+		targets, err := p.RemoteValueTargets(ctx)
 		if err != nil {
 			workerLog.Printf("remote Value eligibility unavailable; acquisition deferred")
 			continue
@@ -205,7 +205,7 @@ func (w Worker) remoteValueLoop(ctx context.Context) {
 					case <-ctx.Done():
 						return
 					}
-					err := w.collectRemoteValue(ctx, target.Repository, time.Now().UTC())
+					err := p.collectNativeRemoteValue(ctx, target.Repository, time.Now().UTC())
 					<-slot
 					if err != nil &&
 						!errors.Is(err, ErrRepositoryBusy) && ctx.Err() == nil {

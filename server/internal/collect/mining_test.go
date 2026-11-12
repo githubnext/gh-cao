@@ -130,10 +130,6 @@ func TestMiningWebhooksPreserveDistinctObjectsAndDeliveryDedupe(t *testing.T) {
 	if err != nil || len(packet.Outcomes) != 2 {
 		t.Fatalf("repository debounce lost an object: %+v, %v", packet, err)
 	}
-	pending, err := w.Projector.PendingProjection(t.Context())
-	if err != nil || !pending {
-		t.Fatal("evidence ACKed without durable projection intent")
-	}
 	if content, err := json.Marshal(packet); err != nil || strings.Contains(string(content), "pull_request") {
 		t.Fatal("raw webhook payload was retained")
 	}

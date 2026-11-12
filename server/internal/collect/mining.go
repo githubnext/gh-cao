@@ -2,8 +2,6 @@ package collect
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,7 +15,6 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/mining"
-	"github.com/githubnext/gh-cao/server/internal/postgresx"
 )
 
 const miningPacketLimit = 16 << 20
@@ -246,67 +243,4 @@ func (l Lake) mineDownloadedInfo(ctx context.Context, repository, directory stri
 		return err
 	}
 	return l.recordMining(ctx, repository, memberships, nil)
-}
-
-// miningSupplement is called under the lake lock. Hashing and application see
-// the same evidence; ingestion publishes the supplement in its own transaction.
-func (p Projector) miningSupplement(ctx context.Context) (string, func(context.Context, *postgresx.Writer) error, error) {
-	entries, err := os.ReadDir(p.Lake.miningDirectory())
-	if errors.Is(err, os.ErrNotExist) {
-		return "", nil, nil
-	}
-	if err != nil {
-		return "", nil, err
-	}
-	hasher := sha256.New()
-	var paths []string
-	for _, entry := range entries {
-		if !entry.Type().IsRegular() || !strings.HasSuffix(entry.Name(), ".json") {
-			return "", nil, errors.New("unrecognized server mining evidence")
-		}
-		path := filepath.Join(p.Lake.miningDirectory(), entry.Name())
-		packet, content, err := readMiningPacket(path)
-		if err != nil {
-			return "", nil, err
-		}
-		if path != p.Lake.miningPath(packet.Repository) {
-			return "", nil, errors.New("mining evidence filename ownership mismatch")
-		}
-		if p.Enrollment.Metadata != nil {
-			enrolled, err := p.Enrollment.Enrolled(ctx, packet.Repository)
-			if err != nil {
-				return "", nil, err
-			}
-			if !enrolled {
-				continue
-			}
-		}
-		_, _ = hasher.Write([]byte(entry.Name() + "\x00"))
-		_, _ = hasher.Write(content)
-		paths = append(paths, path)
-	}
-	if len(paths) == 0 {
-		return "", nil, nil
-	}
-	revision := "server-mining-v1:" + hex.EncodeToString(hasher.Sum(nil))
-	apply := func(ctx context.Context, writer *postgresx.Writer) error {
-		for _, path := range paths {
-			packet, _, err := readMiningPacket(path)
-			if err != nil {
-				return err
-			}
-			for _, membership := range packet.Episodes {
-				if err := writer.AppendEpisode(ctx, membership); err != nil {
-					return err
-				}
-			}
-			for _, outcome := range packet.Outcomes {
-				if err := writer.AppendOutcome(ctx, outcome); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-	return revision, apply, nil
 }

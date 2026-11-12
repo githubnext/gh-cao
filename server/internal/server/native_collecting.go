@@ -26,7 +26,7 @@ type nativeCollection struct {
 	values      *collect.NativeValueService
 }
 
-// Keep native assembly separate from the legacy lake/Runner/Projector: none of
+// Keep native assembly separate from the legacy lake/Runner: none of
 // their constructors or filesystem validation may run for this boundary.
 func newNativeCollector(ctx context.Context, services operational.OperationalServices, capabilities operational.Capabilities,
 	data *postgresx.Store, config CollectorConfig, quota *githubquota.Service, queue collect.Queue,
@@ -114,15 +114,15 @@ func newNativeCollector(ctx context.Context, services operational.OperationalSer
 		if err != nil {
 			return nil, err
 		}
-		values := &collect.NativeValueService{Projector: collect.Projector{
+		values := &collect.NativeValueService{
 			Data: data, State: services.State, Leases: services.Leases, Enrollment: enrollment,
 			CatalogRoot: config.CatalogRoot, PolicyPath: config.PolicyPath,
 			GitHubAPIURL: config.BaseURL, Tokens: client, QuotaApp: quotaApp,
 			RemoteQuota: quota, RemoteSearchQuota: search, RemoteValuePlan: &collect.RemoteValuePlanCache{},
 			RemoteHTTP: &http.Client{Transport: config.Transport, Timeout: 65 * time.Second,
 				CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
-			MinInterval: config.MinProjectionInterval, InventoryRepositoryLimit: config.InventoryLimit,
-		}}
+			MinInterval: config.MinValueInterval, InventoryRepositoryLimit: config.InventoryLimit,
+		}
 		if err := values.Validate(); err != nil {
 			return nil, fmt.Errorf("configure selected native Value lane: %w", err)
 		}
@@ -165,6 +165,6 @@ func (c *Collector) nativeAuthority(authority collectnative.EnrollmentAuthority)
 	c.native.worker.Enrollment = c.enrollment
 	c.native.worker.Runs.Scopes = authority
 	if c.native.values != nil {
-		c.native.values.Projector.Enrollment = c.enrollment
+		c.native.values.Enrollment = c.enrollment
 	}
 }

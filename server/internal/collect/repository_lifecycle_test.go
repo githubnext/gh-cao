@@ -109,9 +109,6 @@ func TestRepositoryReconciliationScenarios(t *testing.T) {
 			if _, err := os.Stat(kept); err != nil {
 				t.Fatalf("unrelated evidence removed: %v", err)
 			}
-			if pending, err := w.Projector.PendingProjection(ctx); err != nil || !pending {
-				t.Fatalf("canonical refresh not persisted: %t, %v", pending, err)
-			}
 			if depth, err := w.Queue.Depth(ctx); err != nil || depth != 0 {
 				t.Fatalf("work leaked after reconciliation: %d, %v", depth, err)
 			}

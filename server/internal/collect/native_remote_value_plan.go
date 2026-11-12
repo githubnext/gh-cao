@@ -120,7 +120,7 @@ func remoteValueAcquisitionEqual(left, right *remoteValueAcquisition) bool {
 	return leftErr == nil && rightErr == nil && bytes.Equal(leftJSON, rightJSON)
 }
 
-func (p Projector) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sha256.Size]byte, error) {
+func (p NativeValueService) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sha256.Size]byte, error) {
 	var zero [sha256.Size]byte
 	if p.PolicyPath == "" || p.CatalogRoot == "" {
 		return nil, zero, errors.New("reviewed remote Value policy and catalog are required")
@@ -225,7 +225,7 @@ func (p Projector) remoteValuePlan(ctx context.Context) ([]remoteValueEntry, [sh
 // RemoteValueRepositories returns only reviewed, enabled, API-bound remote
 // registrations that remain enrolled. It never acquires an App token or calls
 // GitHub; policy resolution does not invoke a subprocess.
-func (p Projector) RemoteValueRepositories(ctx context.Context) ([]string, error) {
+func (p NativeValueService) RemoteValueRepositories(ctx context.Context) ([]string, error) {
 	targets, err := p.RemoteValueTargets(ctx)
 	if err != nil {
 		return nil, err
@@ -237,7 +237,7 @@ func (p Projector) RemoteValueRepositories(ctx context.Context) ([]string, error
 	return names, nil
 }
 
-func (p Projector) RemoteValueTargets(ctx context.Context) ([]remoteValueTarget, error) {
+func (p NativeValueService) RemoteValueTargets(ctx context.Context) ([]remoteValueTarget, error) {
 	entries, _, err := p.remoteValuePlan(ctx)
 	if err != nil {
 		return nil, err

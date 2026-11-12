@@ -61,10 +61,11 @@ type CollectorConfig struct {
 	MaxStorageMB          int
 	RequestTimeoutMinutes int
 	RateLimitFloor        int
-	MinProjectionInterval time.Duration
+	// MinValueInterval controls only the separately selected native Value sweeps.
+	MinValueInterval time.Duration
 	// InventoryLimit optionally caps enrolled repositories named during
 	// inventory discovery. Zero means unbounded; exceeding a configured limit
-	// fails the projection rather than publishing a partial inventory.
+	// fails rather than publishing a partial inventory.
 	InventoryLimit    int
 	CollectionTimeout time.Duration
 
@@ -211,11 +212,11 @@ func (c *Collector) Admit(ctx context.Context, event GitHubWebhook) (map[string]
 }
 
 // Start launches cold start, in-process workers, and delivery recovery.
-func (c *Collector) Start(ctx context.Context, onProjection func(revision int64)) error {
-	return c.start(ctx, ctx, onProjection, func(work func()) { go work() })
+func (c *Collector) Start(ctx context.Context, _ func(revision int64)) error {
+	return c.start(ctx, ctx, func(work func()) { go work() })
 }
 
-func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(revision int64), launch func(func())) error {
+func (c *Collector) start(startupCtx, ctx context.Context, launch func(func())) error {
 	if err := c.queue.EnsureRuns(startupCtx); err != nil {
 		return err
 	}
@@ -241,7 +242,6 @@ func (c *Collector) start(startupCtx, ctx context.Context, onProjection func(rev
 	})
 	for index := 0; index < c.config.Workers; index++ {
 		worker := c.Worker(fmt.Sprintf("%s-%d", c.consumer(), index))
-		worker.OnProjection = onProjection
 		launch(func() {
 			if err := worker.Run(ctx); err != nil && ctx.Err() == nil {
 				serverLog.PrintfContext(startupCtx, "collection worker stopped")

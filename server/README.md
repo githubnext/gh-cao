@@ -2915,15 +2915,15 @@ enforceable shared-budget admission. Health publication is credential-free and
 keeps enabled registrations visibly deferred, with original capture/cutoff dates.
 It does not mint a token or treat a quota preflight as a shared reservation.
 
-Bounded local-only computation has its own `value-local` lease, a verified private
-Activity snapshot and one attempt per completed projection generation. It does
-not hold the projection lease or evidence lock while computing. The two-minute
-batch/30-second adapter budgets cancel the owned process tree. Computation uses
-a frozen policy copy; final publication uses a short evidence lock, rechecks
-enrollment, and compares the input generation, manifest, policy and retained
-evidence with its starting state. A changed precondition defers the result
-rather than overwriting newer accepted evidence. Completed output waits for
-the next ordinary projection, avoiding a Value-generated retry loop. An
+Native local-only computation has its own `value-local` lease and reads one
+canonical PostgreSQL revision. The separately selected `NativeValueService`
+uses bounded invocation scratch, never an Activity snapshot or recovery lake.
+The two-minute batch/30-second adapter budgets cancel the owned process tree.
+Computation uses resolved reviewed policy; publication rechecks that policy,
+the canonical revision, native preparation inputs, and exact enrollment epochs.
+A changed precondition defers the result rather than overwriting newer accepted
+evidence. Accepted output is published directly through PostgreSQL, without
+a completed-projection generation or a follow-up snapshot replacement. An
 unsupported adapter, missing input, timeout or failure preserves accepted history.
 This improves health visibility and core isolation, not guaranteed fresh Value
 collection or separate capacity for external consumers.
@@ -3141,42 +3141,23 @@ Collection separates three concerns that fail differently:
    request refresh rather than fetching commit details in the receiver.
    Inventory refresh and run collection have separate debounce keys, so neither
    can suppress the other.
-2. **Collection.** Workers lease tasks and run the same
-   `gh aw logs --audit` and `activity/cao.mjs` commands the Activity workflow
-   runs, writing into the evidence lake. One repository is collected at a time,
-   and GitHub budget is reserved per installation before each collection.
-3. **Canonical ingestion.** Collected evidence is written to PostgreSQL by the existing
-   `internal/ingest` package. Before finalizing the payload manifest, projection
-   resolves the reviewed deployment policy, overlays the exact operational enrollment
-   set, and enriches the packaged source-bound inventory with a short-lived
-   token for the control repository installation. The first activation fails
-   without valid campaign inventory; later transient inventory refresh failures
-   retain the previous valid inventory. Projection then
-   builds a temporary Activity database and runs the native Go
-   operational-value orchestrator, whose output is equivalence-tested against
-   `cao operational-value`. Campaign adapters remain shared JavaScript modules,
-   invoked with one installation-scoped token per repository. Operational-value
-   failure remains best-effort and does not block newer Activity evidence.
-   Canonical replacement uses a dirty flag and minimum interval, so ingestion
-   cost tracks collection rather than events.
+2. **Collection.** Native Go workers acquire exact run attempts through
+   installation-scoped GitHub APIs with shared quota, byte, entry, pagination,
+   timeout, and enrollment-epoch bounds. They do not execute `gh aw logs` or
+   `activity/cao.mjs`, or write an Activity evidence lake.
+3. **Canonical publication.** Durable PostgreSQL publications activate under
+   digest, enrollment, inventory, and retention fences. First activation requires
+   valid reviewed inventory. Native recovery replays bounded retained
+   publications, not snapshot ingestion. Separately selected native Value
+   services publish directly through their PostgreSQL contracts without
+   blocking run acquisition.
 
 See [remote Value](../docs/operational-value.md).
 
-The evidence lake is laid out byte-compatibly with a snapshot published by the
-Activity workflow:
-
-```text
-gh-aw-logs-shards/     collected, not yet compacted
-gh-aw-logs-runs/*.jsonl
-gh-aw-logs-records/*.jsonl
-payload-hashes.json
-control-settings.json
-control-plane-inventory.json
-inventory-sources.json
-```
-
-That is what makes the profiles interchangeable, and it is why cold start needs
-no GitHub access: a retained lake is replayed directly.
+Activity snapshots remain inputs to the independent Actions profile through
+`internal/ingest`. The collector has no snapshot Projector, coalesced
+whole-lake replay loop, dirty/completed projection markers, or `collect --project`
+flag. An Activity directory cannot be used as native recovery.
 
 Enrollment is derived from GitHub App installations. A delivery for a
 repository outside the enrollment set is acknowledged and dropped rather than
@@ -3195,13 +3176,12 @@ Repository creation, unarchive, rename, transfer, archive, and deletion events q
 independent hints that reconcile current authenticated installation coverage.
 Complete discovery removes archived or absent coordinates, persists erasure work
 before withdrawing enrollment, and queues collection of verified active repositories.
-Renamed-away coordinates and archived/deleted repositories are evicted from the
-evidence lake and retained inventory, then removed by canonical projection.
+Renamed-away coordinates and archived/deleted repositories are erased under
+native PostgreSQL enrollment ownership, including their retained publications.
 Delayed or reordered webhooks cannot restore stale names or historical lifecycle
 states. No webhook performs GitHub calls, enrollment mutations, or projection
-inline. Refresh workers persist projection requests before acknowledging work;
-transient inventory failures keep the previous inventory and retain a pending
-refresh for the next projection interval.
+inline. Native refresh workers durably publish inventory updates before
+acknowledging work; transient failures retain pending refresh work.
 
 Workers also refresh the App's active installation list on startup and every
 hour, then queue the same quota-governed repository reconciliation used
@@ -3229,24 +3209,16 @@ references. Merge/completed, rejection, bot lifecycle closure, pending, and
 unknown remain distinct from workflow success. Other safe-output action types
 are not evaluated by this lifecycle-only profile.
 
-Replicas coordinate a server-only repair pass every projection interval
-(five minutes by default): at most ten REST calls total, including quota probes,
-with a one-minute deadline and a durable output cursor. Repair reads only
-already attributed objects in currently enrolled repositories and shares the
-installation quota governor. It does not enumerate issue inventories, fetch
-comments/reviews, or expand episode scope. Missing evidence remains partial.
-
 Mined facts reuse existing canonical Audit tables (`episode.membership`,
-`episode.root`, `outcome.observed`) and participate atomically in snapshot
-publication and revision notifications. No schema migration is needed.
-Bounded packets under the evidence lake's `server-mining/` directory support
-API-free replay and are erased on scope withdrawal, including volatile restart
-repair. This feature is not installed in or run by `cao-activity`. See
+`episode.root`, `outcome.observed`) through native epoch-fenced publication.
+The legacy lake-backed outcome repair pass and snapshot supplement are retired;
+they are not recovery or acquisition fallbacks. Missing evidence remains
+partial. See
 `specs/dashboard-data.md` section 11.2 for the field mapping.
 
 Rate limits are governed per installation. Each collection reserves budget
-before it starts and passes the reserve to the collection subprocess, so the
-subprocess stops before exhausting the installation. An installation that
+before its provider request, so acquisition stops before exhausting the
+installation. An installation that
 receives a rate-limit response is parked with jitter; other installations keep
 running.
 
@@ -3281,7 +3253,7 @@ The same binary runs every role:
 |---|---|
 | `cao-dashboard serve-hosted` | serve the dashboard and admit webhook deliveries |
 | `cao-dashboard collect` | lease tasks, collect repositories, and project |
-| `cao-dashboard backfill` | cold start: replay the lake, enumerate installations, seed tasks |
+| `cao-dashboard backfill` | cold start: enumerate current scope, repair inventory, and replay native PostgreSQL publications |
 | `cao-dashboard backfill --repositories-only` | force repository-list repair without replaying history; workers apply queued reconciliation |
 | `cao-dashboard backfill --replay-only` | repopulate the database from retained evidence with no GitHub requests |
 | `cao-dashboard doctor` | run a read-only, systematic check-up of Redis, canonical data, queries, and collection |
@@ -3428,9 +3400,9 @@ See `ARCHITECTURE.md` and `specs/value.md` for the feature-specific boundaries.
 | `CAO_POLICY_PATH` | reviewed policy for the separately selected Go Value lane |
 | `CAO_COLLECT_WORKERS` | in-process workers; zero when workers scale separately |
 | `CAO_COLLECT_RATE_LIMIT_FLOOR` | requests reserved per installation |
-| `CAO_COLLECT_PROJECTION_INTERVAL` | minimum interval between projections (default 5 minutes) |
+| `CAO_COLLECT_PROJECTION_INTERVAL` | legacy setting name retained for the native Value sweep interval (default 5 minutes); does not schedule snapshot projection |
 | `CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL` | repository-list reconciliation cadence as a Go duration (default `1h`); runs on collection workers |
-| `CAO_COLLECT_INVENTORY_LIMIT` | optional cap on enrolled repositories; exceeding it fails the projection |
+| `CAO_COLLECT_INVENTORY_LIMIT` | optional cap on enrolled repositories; exceeding it fails rather than publishing partial inventory |
 | `CAO_COLLECT_RECOVER_DELIVERIES` | replay failed webhook deliveries to close gaps |
 | `CAO_COLLECT_QUEUE_MAX_LENGTH` | admission backpressure limit for outstanding collection tasks (default 200 000); tasks are never trimmed |
 | `CAO_COLLECT_ADMIT_ONLY` | admit deliveries without collecting; requires no private key |
@@ -3451,28 +3423,22 @@ internet-facing front end holds no credential it cannot use. The Azure Function
 App is deployed this way; the collection workers hold the key.
 
 Withdrawing scope still takes effect: an admission-only process queues erasure
-for a worker that has the evidence lake, and administrative rebuild fails
+for a native worker with durable PostgreSQL ownership, and administrative rebuild fails
 closed with an instruction to run the `collect` or `backfill` role.
 
 ### Retention and erasure
 
-The evidence lake is retained collected evidence, not a cache: cold start
-replays it without contacting GitHub. Retention therefore has to be governed
-deliberately.
-
 Leaving ingestion scope erases evidence. When an installation is deleted or
 suspended, or repositories are removed from it, the server deletes that
-repository's shards from the lake and requests a projection, so the canonical
+repository's native evidence and retained publications under its enrollment
+epoch, so the canonical
 database stops reporting it. Uninstalling the GitHub App is the supported way
 to withdraw consent, and it takes effect without operator action.
 
-Erasure workers persist the projection request before acknowledging the task.
-If that write fails or is cancelled, the task stays leased and reclaimable.
-Projection retains its requested generation until canonical publication succeeds,
-then records the completed generation separately. Interrupted publication or
-completion writes therefore leave recoverable work, and a newer request arriving
-during projection remains pending for the next pass. Recovery can repeat a
-projection that already committed; it does not require restoring a cleared marker.
+Native ownership changes and erasure commit through PostgreSQL. Exact epoch
+and digest fences prevent stale tasks or retained publications from restoring
+withdrawn evidence. Recovery replays only authorized pending publications;
+there is no filesystem replay or dirty-generation marker to repair.
 
 `specs/server-ingestion.md` is the normative contract, and
 `adr/server-webhook-driven-ingestion.md` records why the design is shaped this
@@ -3486,20 +3452,11 @@ not staging or rollback generations. Size Postgres for current source rows and
 transactional replacement; size Redis separately for operational queues,
 sessions, and caches.
 
-The evidence lake is *many small per-repository shards*, so it is bound by file
-metadata operations rather than throughput. The lake share therefore defaults
-to a premium (provisioned SSD) file share; a Standard share's IOPS scale only
-with provisioned size and become the projection bottleneck well before capacity
-does. Set `collectorLakeStorageSku` to a `Standard_*` value only for small
-deployments where cost matters more than projection latency.
-
 Known limits, in the order they will be felt at scale:
 
-- Every projection rehashes the whole lake twice before it can decide whether
-  anything changed: once in `activity/cao.mjs hash-payloads` and once in the
-  Go manifest validation. That is the structural ceiling on projection
-  frequency, and it is why `CAO_COLLECT_PROJECTION_INTERVAL` defaults to five
-  minutes rather than to seconds.
+- Native acquisition is bounded by shared installation quota and configured
+  attempt, archive, and publication budgets. It does not rehash an Activity
+  lake or perform coalesced snapshot replacement.
 - Redis is still an always-on operational cost. Size it for queues, sessions,
   and caches. Size Postgres separately for current dashboard entity sources.
 - The Elastic Premium Function plan is always-on. It is sized for webhook

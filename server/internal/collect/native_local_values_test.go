@@ -20,7 +20,23 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
-func nativeLocalValueFixture(t *testing.T) (Projector, string) {
+type workflowValueLease struct {
+	operational.LeaseStore
+	acquire bool
+	locks   int
+}
+
+func (l *workflowValueLease) TryLock(_ context.Context, name, _ string, _ time.Duration) (bool, error) {
+	if name != localValueLockName {
+		return false, errors.New("native local Value must use only its own lease")
+	}
+	l.locks++
+	return l.acquire, nil
+}
+
+func (l *workflowValueLease) Unlock(context.Context, string, string) error { return nil }
+
+func nativeLocalValueFixture(t *testing.T) (NativeValueService, string) {
 	t.Helper()
 	data := testutil.Postgres(t, t.Context(), "CAO_TEST_POSTGRES_URL", "POSTGRES_URL")
 	queue, _, _ := nativeRunQueue(t)
@@ -111,7 +127,7 @@ func nativeLocalValueFixture(t *testing.T) (Projector, string) {
 	if _, err := writer.Publish(t.Context(), "native-value-fixture"); err != nil {
 		t.Fatal(err)
 	}
-	return Projector{Data: data, State: services.State, Leases: services.Leases, Enrollment: enrollment,
+	return NativeValueService{Data: data, State: services.State, Leases: services.Leases, Enrollment: enrollment,
 		CatalogRoot: root, PolicyPath: filepath.Join(root, "cao.json")}, root
 }
 
@@ -158,9 +174,6 @@ func TestNativeLocalValuesProductionCanonicalQueriesHealthAndReviewedImports(t *
 	if err != nil || packet["observedAt"] != "2026-10-20T12:00:00Z" {
 		t.Fatalf("reviewed import missing: %+v %v", packet, err)
 	}
-	if p.Lake.Directory != "" {
-		t.Fatal("native fixture unexpectedly has an Activity lake")
-	}
 	before, err := p.Data.State(t.Context())
 	if err != nil {
 		t.Fatal(err)
@@ -201,10 +214,10 @@ func TestNativeLocalValuesFailureDoesNotConsumeInputs(t *testing.T) {
 }
 
 func TestNativeLocalValuesUnselectedAndMisconfigured(t *testing.T) {
-	if err := (Projector{}).CollectNativeLocalValues(t.Context()); err != nil {
+	if err := (NativeValueService{}).CollectNativeLocalValues(t.Context()); err != nil {
 		t.Fatal("unselected Value must need no runtime", err)
 	}
-	if err := (Projector{CatalogRoot: "selected", PolicyPath: "selected"}).CollectNativeLocalValues(t.Context()); !errors.Is(err, collectnative.ErrUnsupported) {
+	if err := (NativeValueService{CatalogRoot: "selected", PolicyPath: "selected"}).CollectNativeLocalValues(t.Context()); !errors.Is(err, collectnative.ErrUnsupported) {
 		t.Fatalf("selected incomplete native Value configuration did not fail closed: %v", err)
 	}
 }

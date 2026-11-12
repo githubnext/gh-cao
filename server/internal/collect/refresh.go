@@ -151,7 +151,7 @@ func (w Worker) processRefresh(ctx context.Context, lease Lease) (err error) {
 		if !known || (owner != 0 && owner != task.InstallationID) {
 			return w.Queue.Complete(ctx, lease)
 		}
-		if err := w.ScopeRefresher.discover(ctx, w.Enrollment, w.Queue, w.Projector.Data, task.InstallationID); err != nil {
+		if err := w.ScopeRefresher.discover(ctx, w.Enrollment, w.Queue, w.Values.Data, task.InstallationID); err != nil {
 			return err
 		}
 	case task.Scope != nil:
@@ -159,7 +159,7 @@ func (w Worker) processRefresh(ctx context.Context, lease Lease) (err error) {
 			return errors.New("unsupported scope refresh kind")
 		}
 		if task.Scope.Kind == IntentEnroll {
-			if err := w.ScopeRefresher.discover(ctx, w.Enrollment, w.Queue, w.Projector.Data, task.InstallationID); err != nil {
+			if err := w.ScopeRefresher.discover(ctx, w.Enrollment, w.Queue, w.Values.Data, task.InstallationID); err != nil {
 				return err
 			}
 		} else {
@@ -195,13 +195,8 @@ func (w Worker) processRefresh(ctx context.Context, lease Lease) (err error) {
 			return w.Queue.Complete(ctx, lease)
 		}
 	}
-	// Persist the follow-up before acknowledging: a crash cannot lose the
-	// inventory refresh after committing scope changes.
-	if err := w.Projector.RequestProjection(ctx); err != nil {
-		return err
-	}
 	if task.ValueRefresh {
-		if err := w.Projector.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
+		if err := w.Values.MarkRemoteValueDirty(ctx, task.Repository); err != nil {
 			return err
 		}
 	}

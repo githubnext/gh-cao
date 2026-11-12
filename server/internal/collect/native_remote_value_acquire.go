@@ -125,7 +125,7 @@ func fileDietDeliveriesPreserved(before, after fileDietLedger) error {
 	return nil
 }
 
-func (p Projector) acquireNativeDailyFileDiet(
+func (p NativeValueService) acquireNativeDailyFileDiet(
 	ctx context.Context, entry remoteValueEntry, api *remoteValueAPI,
 	previous model.Row, restored []postgresx.ValueProofFile, observedAt time.Time,
 ) (model.Row, []postgresx.ValueProofFile, bool, error) {

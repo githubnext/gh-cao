@@ -111,7 +111,7 @@ func CollectorConfigFromEnv() (*CollectorConfig, error) {
 		Workers:                   envInt("CAO_COLLECT_WORKERS"),
 		QueueMaxLength:            envInt("CAO_COLLECT_QUEUE_MAX_LENGTH"),
 		InventoryLimit:            envInt("CAO_COLLECT_INVENTORY_LIMIT"),
-		MinProjectionInterval:     envDuration("CAO_COLLECT_PROJECTION_INTERVAL"),
+		MinValueInterval:          envDuration("CAO_COLLECT_PROJECTION_INTERVAL"),
 		CollectionTimeout:         envDuration("CAO_COLLECT_TIMEOUT"),
 		RecoverDeliveries:         envBool("CAO_COLLECT_RECOVER_DELIVERIES"),
 		RepositoryRefreshInterval: envStrictDuration("CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL"),

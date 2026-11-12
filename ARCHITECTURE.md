@@ -648,18 +648,17 @@ and background work stop before an owned store is closed.
 
 The memory adapter requires mandatory GitHub OAuth, HTTPS, explicit single-process
 and volatile-state acknowledgements, and one owning process for HTTP admission,
-quota, collectors, projection, and backfill. Platform listeners, multiple replicas,
-admission-only deployment, and detached collection/backfill roles are rejected.
+quota, and snapshot ingestion. Platform listeners and multiple replicas are
+rejected. App-backed collection requires durable PostgreSQL ownership and is
+not available with the memory adapter.
 Its protected state has separate accounting-byte and entry bounds; cache eviction
 cannot evict sessions or accepted work. These bounds do not claim to measure RSS.
 On restart all CAO sessions and pending login states are invalid, while GitHub
 tokens themselves are not expired or revoked. Revocation retry and acknowledged
-unfinished deliveries can be lost. A fresh GitHub scope enumeration gates
-admission and workers; partial enumeration never authorizes destructive scope
-inference. Retained evidence is replayed through the existing projector, fresh
-quota observations fail closed, and backfill is rerun idempotently. The protected
-rebuild action also reruns backfill in this mode. Recovery repairs observable
-state and available history, not every missed event or expired artifact. There
+unfinished deliveries can be lost. Fresh quota observations fail closed.
+Snapshot recovery uses the explicitly selected verified input, not a collector
+Projector or filesystem collection fallback. Recovery repairs observable
+state and available evidence, not every missed event or expired artifact. There
 is no memory disk journal, automatic failover, or dual-write path.
 `specs/server-operational-storage.md` specifies these guarantees.
 
@@ -1128,12 +1127,13 @@ The Go server profile acquires evidence through exactly one of two mutually
 exclusive ingestion profiles. By default the Activity workflow collects
 evidence in GitHub Actions and publishes a snapshot that the server ingests.
 As an alternative, the server itself collects evidence from GitHub App
-installations, admitting webhook deliveries into a queue, collecting one
-repository at a time with the same `gh aw logs --audit` and `activity/cao.mjs`
-commands the workflow runs, and writing into an evidence lake laid out exactly
-like a published snapshot. Because the layout is the same, one projector serves
-both profiles and a retained lake repopulates a database on cold start without
-contacting GitHub. Configuring both profiles fails at startup: a canonical
+installations through bounded native Go acquisition and epoch-fenced PostgreSQL
+publication. It does not execute `activity/cao.mjs`, stage an Activity lake,
+or schedule snapshot replacement. Native recovery replays durable PostgreSQL
+publications; the default Actions profile independently ingests verified
+published snapshots. The separately selected `NativeValueService` owns reviewed
+Value execution without a snapshot Projector or its dirty-generation lifecycle.
+Configuring both profiles fails at startup: a canonical
 database has one writer. The collection profile also persists allowlisted
 Redis-backed operational counters and exposes a read-only health status API.
 Verified GitHub issue lifecycle deliveries for enrolled repositories enqueue

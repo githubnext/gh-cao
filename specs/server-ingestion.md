@@ -466,9 +466,9 @@ The implementation MUST receive events on the existing CAO webhook endpoint.
   MUST NOT trigger refresh. Incomplete/truncated commit lists MAY conservatively
   request refresh; admission MUST NOT fetch commit details from GitHub.
 - Inventory-only refresh tasks MUST have independent debounce keys from run
-  collection tasks. Workers MUST recheck installation ownership and persist the
-  coalesced projection request before acknowledging the task, without acquiring
-  run logs for a push.
+  collection tasks. Workers MUST recheck installation ownership and durably
+  publish the native inventory refresh before acknowledging the task, without
+  acquiring run logs for a push.
 - In the optional collector profile, eligible issue, pull-request and completed
   run deliveries and default-branch pushes MAY also carry a durable remote
   Operational Value invalidation for the exact enrolled repository. A push
@@ -607,11 +607,11 @@ ownership contract.
 - Native publication MUST process bounded pending batches under its exact
   digest and epoch fences. Snapshot replacement and native publication MUST
   NOT be interleaved as compatibility paths.
-- The snapshot Projector MUST only replay already-compacted, manifest-validated
-  evidence through snapshot ingestion. It MUST NOT launch Node.js, discover
-  inventory, or regenerate Activity payloads. An invalidated or uncompacted
-  snapshot MUST fail closed until its producer repairs it; configuring the
-  separately selected native Value catalog MUST NOT enable legacy collection.
+- The collector MUST NOT replay an Activity snapshot, regenerate payloads, or
+  schedule a legacy whole-lake replacement. Recovery MUST replay only durable
+  native PostgreSQL publications. The separately selected native Value service
+  MUST NOT enable snapshot ingestion or legacy collection. The Actions profile
+  retains its independent manifest-validated snapshot ingestion boundary.
 - A replacement MUST commit all current sources, source documents, diagnostics,
   revision state, and evaluation time in one PostgreSQL transaction. A failed
   projection MUST leave the previously committed dataset serving.
@@ -634,8 +634,8 @@ ownership contract.
   NOT create, copy, open, rebuild, or ingest SQLite as an intermediate store.
 - Hosted Operational Value publication MUST compare the starting canonical
   revision under the namespace writer lock and reject a stale revision. It MUST
-  also reject a changed completed-projection generation, reviewed policy,
-  local-eligibility request, or exact enrollment set. A successful publication
+  also reject changed reviewed policy, native preparation inputs, or exact
+  enrollment epochs. A successful publication
   atomically replaces canonical `operationalValues`, advances the ordinary
   canonical revision without changing the Activity data revision, and notifies
   existing revision consumers. Actions/static reconstruction remains an

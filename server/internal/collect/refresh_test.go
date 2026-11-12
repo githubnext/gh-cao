@@ -52,7 +52,7 @@ func refreshWorker(t *testing.T) Worker {
 		t.Fatal(err)
 	}
 	return Worker{Queue: b.Queue, Enrollment: b.Enrollment, Runner: Runner{Lake: b.Lake},
-		Projector: Projector{State: b.StateStore, Leases: b.Enrollment.Leases, Lake: b.Lake}}
+		Values: NativeValueService{State: b.StateStore, Leases: b.Enrollment.Leases}}
 }
 
 func refreshLease(t *testing.T, queue Queue) Lease {
@@ -90,13 +90,7 @@ func TestPushRefreshIsIndependentOfRunCollectionAndRechecksScope(t *testing.T) {
 	if !lease.Task.InventoryRefresh {
 		t.Fatalf("not a workflow refresh: %+v", lease)
 	}
-	if dirty, err := w.Projector.PendingProjection(ctx); err != nil || dirty {
-		t.Fatalf("webhook admission projected inline: %t, %v", dirty, err)
-	}
 	w.process(ctx, lease)
-	if dirty, err := w.Projector.PendingProjection(ctx); err != nil || !dirty {
-		t.Fatalf("worker failed to request projection: %t, %v", dirty, err)
-	}
 	// No Runner configuration or credentials exist: inventory-only work must
 	// not try to download run evidence.
 	if pending, err := w.Queue.Pending(ctx); err != nil || pending != 0 {
@@ -110,13 +104,7 @@ func TestPushRefreshIsIndependentOfRunCollectionAndRechecksScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	lease = refreshLease(t, w.Queue)
-	if err := w.Projector.State.SetOperationalState(ctx, projectionDirtyKey, nil); err != nil {
-		t.Fatal(err)
-	}
 	w.process(ctx, lease)
-	if dirty, err := w.Projector.PendingProjection(ctx); err != nil || dirty {
-		t.Fatalf("stale push refreshed withdrawn repository: %t, %v", dirty, err)
-	}
 }
 
 func TestDefaultBranchValuePushOnlyQueuesAValueHint(t *testing.T) {
@@ -144,9 +132,6 @@ func TestDefaultBranchValuePushOnlyQueuesAValueHint(t *testing.T) {
 	w.process(ctx, lease)
 	if pending, err := w.Queue.Pending(ctx); err != nil || pending != 0 {
 		t.Fatalf("value-only push was not acknowledged: %d, %v", pending, err)
-	}
-	if dirty, err := w.Projector.PendingProjection(ctx); err != nil || dirty {
-		t.Fatalf("value-only push requested Activity projection: %t, %v", dirty, err)
 	}
 }
 
@@ -218,9 +203,6 @@ func TestScopeDiscoveryIsQueuedCoalescedPaginatedAndVerified(t *testing.T) {
 	}
 	if enrolled, _ := w.Enrollment.Enrolled(ctx, "octo/archived"); enrolled {
 		t.Fatal("archived repository was discovered")
-	}
-	if pending, err := w.Projector.PendingProjection(ctx); err != nil || !pending {
-		t.Fatalf("new repository inventory was not scheduled: %t, %v", pending, err)
 	}
 }
 
