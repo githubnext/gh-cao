@@ -12,6 +12,10 @@ when `safe-outputs.create-issue` or `safe-outputs.create-pull-request` is
 enabled, use `labels: [<campaign-slug>, <campaign-slug>:<worker-slug>]` and
 `title-prefix: "[<campaign-slug>:<worker-slug>] "` so every created issue or
 pull request identifies both its owning operation and worker.
+GitHub rejects label names longer than 50 characters, so every label must be
+50 characters or fewer. When `<campaign-slug>:<worker-slug>` is longer, keep
+the campaign slug and use a shorter worker part in the label only; keep the
+full worker slug in the title prefix.
 
 when `safe-outputs.create-issue` is enabled, configure
 `deduplicate-by-title: true`, explicit expiry, bounded `max`, a canonical
