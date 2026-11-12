@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,7 +19,7 @@ import (
 func TestDashboardPostgresExplicitConnectionDoesNotManageContainers(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	connection := "postgres://explicit.example/database"
-	got, err := configureDashboardPostgres(t.Context(), "must-not-run", t.TempDir(), "scope", connection)
+	got, err := configureDashboardPostgres(t.Context(), io.Discard, "must-not-run", t.TempDir(), "scope", connection)
 	if err != nil || got != connection {
 		t.Fatalf("explicit connection was not preserved: %q %v", got, err)
 	}
@@ -62,7 +63,7 @@ func TestDashboardEngineUsesOnlyPodman(t *testing.T) {
 	}
 	t.Setenv("PATH", directory)
 	t.Setenv("CAO_CONTAINER_ENGINE", "docker")
-	_, err := selectDashboardEngine(t.Context())
+	_, err := selectDashboardEngine(t.Context(), io.Discard)
 	if err == nil || !strings.Contains(err.Error(), "podman was not found on PATH") ||
 		!strings.Contains(err.Error(), dashboardPodmanInstallSteps(runtime.GOOS)) ||
 		!strings.Contains(err.Error(), dashboardPodmanInstallGuide) || !strings.Contains(err.Error(), "--postgres-url") {
@@ -226,7 +227,7 @@ func TestDashboardManagedPostgresContainer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	engine, err := selectDashboardEngine(t.Context())
+	engine, err := selectDashboardEngine(t.Context(), io.Discard)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,11 +250,11 @@ func TestDashboardManagedPostgresContainer(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	connection, err := configureDashboardPostgres(t.Context(), server, cache, "managed-test", "")
+	connection, err := configureDashboardPostgres(t.Context(), io.Discard, server, cache, "managed-test", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	reused, err := configureDashboardPostgres(t.Context(), server, cache, "managed-test", "")
+	reused, err := configureDashboardPostgres(t.Context(), io.Discard, server, cache, "managed-test", "")
 	if err != nil || reused != connection {
 		t.Fatalf("real managed PostgreSQL did not reuse its runtime connection: %v", err)
 	}
@@ -272,5 +273,52 @@ func TestDashboardManagedPostgresContainer(t *testing.T) {
 	command.Env = append(dashboardServerEnvironment(), "CAO_DATABASE_ADMIN_URL="+connection)
 	if err := command.Run(); err == nil {
 		t.Fatal("runtime role unexpectedly gained bootstrap authority")
+	}
+}
+
+func TestDashboardStartsExistingPodmanMachineWithoutCreatingOne(t *testing.T) {
+	t.Setenv("CONTAINER_HOST", "")
+	t.Setenv("CONTAINER_CONNECTION", "")
+	stopped := &dashboardEngineError{err: errors.New("podman system failed: exit status 125")}
+	fake := func(machines string, calls *[]string) dashboardEngine {
+		running := false
+		return dashboardEngine{name: "podman", run: func(_ context.Context, args ...string) ([]byte, error) {
+			*calls = append(*calls, strings.Join(args, " "))
+			switch {
+			case args[0] == "machine" && args[1] == "list":
+				return []byte(machines), nil
+			case args[0] == "machine" && args[1] == "start":
+				running = true
+				return nil, nil
+			case !running:
+				return nil, stopped
+			case args[0] == "system":
+				return []byte(`[{"Name":"podman-machine-default","Default":true,"URI":"unix:///tmp/podman.sock"}]`), nil
+			default:
+				return []byte("linux\n"), nil
+			}
+		}}
+	}
+	var calls []string
+	var progress strings.Builder
+	machines := `[{"Name":"other","Default":false},{"Name":"podman-machine-default","Default":true,"Running":false}]`
+	if err := fake(machines, &calls).ensureRunning(t.Context(), "darwin", &progress); err != nil {
+		t.Fatalf("stopped machine was not started: %v", err)
+	}
+	if !slices.Contains(calls, "machine start podman-machine-default") ||
+		!strings.Contains(progress.String(), "Starting Podman machine podman-machine-default") {
+		t.Fatalf("default machine start was not requested or reported: %v %q", calls, progress.String())
+	}
+	for name, goos := range map[string]string{`[]`: "darwin", machines: "linux"} {
+		calls = nil
+		err := fake(name, &calls).ensureRunning(t.Context(), goos, io.Discard)
+		if !errors.Is(err, stopped) {
+			t.Fatalf("%s %s: unavailable engine was hidden: %v", goos, name, err)
+		}
+		for _, call := range calls {
+			if strings.HasPrefix(call, "machine init") || strings.HasPrefix(call, "machine start") {
+				t.Fatalf("%s: dashboard created or started a machine it must not: %v", goos, calls)
+			}
+		}
 	}
 }

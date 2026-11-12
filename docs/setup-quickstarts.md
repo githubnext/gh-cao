@@ -9,7 +9,8 @@ Shared monitoring and automation are separate, optional steps.
 ## Open a local dashboard (no deployment)
 
 Use an installed CAO release, your **locally authenticated GitHub CLI**, and a
-running local Podman engine (on macOS, `podman machine start`). The command automatically pulls PostgreSQL,
+installed local Podman engine. On macOS and Windows, the command starts an existing stopped
+Podman machine but never installs Podman or creates a machine (run `podman machine init` once). It automatically pulls PostgreSQL,
 starts or reuses its owned loopback-only container, provisions canonical and
 operational storage, and configures a separate non-owner runtime login.
 Podman is the only managed engine; the command never falls back to another

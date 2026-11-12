@@ -27,8 +27,8 @@ gh cao dashboard --repo OWNER/REPOSITORY
 ```
 
 No CAO cloud deployment, Azure setup, hosted dashboard, Redis, or separate
-Node.js or gh-aw installation is required. A running local Podman engine (on
-macOS, `podman machine start`) provides PostgreSQL automatically unless a connection is specified. From an
+Node.js or gh-aw installation is required. An installed local Podman engine (on
+macOS, after a one-time `podman machine init`; a stopped machine is started automatically) provides PostgreSQL automatically unless a connection is specified. From an
 existing repository checkout, use `gh cao dashboard` without `--repo`.
 No `gh cao setup` or control-repository configuration is needed.
 

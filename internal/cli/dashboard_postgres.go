@@ -9,12 +9,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -116,7 +118,7 @@ func dashboardPodmanUnavailable(goos string, err error) error {
 	}
 	start := "check that podman info succeeds for your user"
 	if goos == "darwin" || goos == "windows" {
-		start = "podman machine start (run podman machine init first if podman machine list shows no machine)"
+		start = "gh cao dashboard starts an existing machine but never creates one; if podman machine list shows no machine, run podman machine init, otherwise run podman machine start and check its output"
 	}
 	return fmt.Errorf("podman is installed but not responding (%s).\n  Start Podman: %s\n  Troubleshooting: %s\n%s",
 		message, start, dashboardPodmanInstallGuide, dashboardPostgresAlternative)
@@ -190,18 +192,73 @@ func (engine dashboardEngine) verifyLocal(ctx context.Context) error {
 	return nil
 }
 
-func selectDashboardEngine(ctx context.Context) (dashboardEngine, error) {
+func selectDashboardEngine(ctx context.Context, progress io.Writer) (dashboardEngine, error) {
 	engine, err := newDashboardEngine()
 	if err != nil {
 		return dashboardEngine{}, err
 	}
-	probe, cancel := context.WithTimeout(ctx, 10*time.Second)
-	err = engine.verifyLocal(probe)
-	cancel()
-	if err != nil {
+	if err := engine.ensureRunning(ctx, runtime.GOOS, progress); err != nil {
 		return dashboardEngine{}, dashboardPodmanUnavailable(runtime.GOOS, err)
 	}
 	return engine, nil
+}
+
+type dashboardPodmanMachine struct {
+	Name              string
+	Default           bool
+	Running, Starting bool
+}
+
+// ensureRunning verifies the local engine and, on macOS and Windows, starts an
+// existing stopped Podman machine. It never installs Podman or creates a
+// machine; those remain explicit operator steps.
+func (engine dashboardEngine) ensureRunning(ctx context.Context, goos string, progress io.Writer) error {
+	verify := func() error {
+		probe, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		return engine.verifyLocal(probe)
+	}
+	err := verify()
+	var failure *dashboardEngineError
+	if err == nil || !errors.As(err, &failure) || (goos != "darwin" && goos != "windows") ||
+		os.Getenv("CONTAINER_HOST") != "" || os.Getenv("CONTAINER_CONNECTION") != "" {
+		return err
+	}
+	content, listErr := engine.run(ctx, "machine", "list", "--format", "json")
+	if listErr != nil {
+		return err
+	}
+	var machines []dashboardPodmanMachine
+	if json.Unmarshal(content, &machines) != nil {
+		return err
+	}
+	index := slices.IndexFunc(machines, func(machine dashboardPodmanMachine) bool { return machine.Default })
+	if index < 0 && len(machines) == 1 {
+		index = 0
+	}
+	if index < 0 {
+		return err
+	}
+	machine := machines[index]
+	if !machine.Running && !machine.Starting {
+		_, _ = fmt.Fprintf(progress, "Starting Podman machine %s...\n", machine.Name)
+		start, cancel := context.WithTimeout(ctx, 3*time.Minute)
+		_, startErr := engine.run(start, "machine", "start", machine.Name)
+		cancel()
+		if startErr != nil {
+			return startErr
+		}
+	}
+	for attempt := 0; ; attempt++ {
+		if err = verify(); err == nil || attempt == 5 {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(2 * time.Second):
+		}
+	}
 }
 
 func dashboardPostgresSecret() (string, error) {
@@ -430,13 +487,13 @@ func startDashboardPostgres(ctx context.Context, engine dashboardEngine, directo
 	return address.String(), state.RuntimePassword, nil
 }
 
-func configureDashboardPostgres(ctx context.Context, server, cache, namespace, supplied string) (string, error) {
+func configureDashboardPostgres(ctx context.Context, progress io.Writer, server, cache, namespace, supplied string) (string, error) {
 	if strings.TrimSpace(supplied) != "" {
 		return supplied, nil
 	}
 	setup, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	engine, err := selectDashboardEngine(setup)
+	engine, err := selectDashboardEngine(setup, progress)
 	if err != nil {
 		return "", err
 	}
