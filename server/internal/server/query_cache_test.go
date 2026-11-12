@@ -522,6 +522,8 @@ func TestQueryCacheSharedByAuthenticatedHTTPAndMCP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The local bearer profile bypasses Redis; exercise the hosted cache path.
+	app.config.QueryCache.Disabled = false
 	alias := "agent:campaign-runs"
 	definition.Name = alias + ":source"
 	limit := 2
