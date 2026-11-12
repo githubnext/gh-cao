@@ -11,16 +11,10 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/auditlifecycle"
 	"github.com/githubnext/gh-cao/server/internal/operational"
-	"github.com/githubnext/gh-cao/server/internal/server"
 )
 
-func TestAuditLifecyclesSQLiteReadOnly(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "cao.sqlite")
-	bootstrapSQLite(t, path)
-	store, err := server.OpenHostedCLISQLite(t.Context(), path)
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestAuditLifecyclesPostgresReadOnly(t *testing.T) {
+	store, _, _ := operationalCommandFixture(t)
 	defer func() { _ = store.Close() }()
 	attrs := map[string]string{"rebuild_id": strings.Repeat("a", 64), "state": "running"}
 	if _, err := store.AppendAudit(t.Context(), operational.AuditEvent{
@@ -36,7 +30,7 @@ func TestAuditLifecyclesSQLiteReadOnly(t *testing.T) {
 	// command must neither append audit rows nor open the JSON mirror.
 	mirror := filepath.Join(t.TempDir(), "must-not-exist.jsonl")
 	t.Setenv("CAO_AUDIT_LOG", mirror)
-	output, err := runAudit(t, "lifecycles", "--sqlite", path)
+	output, err := runAudit(t, "lifecycles")
 	var result auditlifecycle.Result
 	if err != nil || json.Unmarshal([]byte(output), &result) != nil || result.Status != "ok" || result.Pending != 1 {
 		t.Fatalf("output=%q err=%v", output, err)
@@ -54,33 +48,30 @@ func TestAuditLifecyclesSQLiteReadOnly(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	output, err = runAudit(t, "lifecycles", "--sqlite", path)
+	output, err = runAudit(t, "lifecycles")
 	if err != nil || json.Unmarshal([]byte(output), &result) != nil || result.Completed != 1 {
 		t.Fatalf("output=%q err=%v", output, err)
 	}
-	output, err = runAudit(t, "lifecycles", "--sqlite", path, "--max-events", "1")
+	output, err = runAudit(t, "lifecycles", "--max-events", "1")
 	if err == nil || json.Unmarshal([]byte(output), &result) != nil || result.Status != "incomplete" || result.MissingTerminal != 0 {
 		t.Fatalf("truncated output=%q err=%v", output, err)
 	}
-	output, err = runAudit(t, "lifecycles", "--sqlite", path, "--after", "1")
+	output, err = runAudit(t, "lifecycles", "--after", "1")
 	if err == nil || json.Unmarshal([]byte(output), &result) != nil || result.HistoryComplete {
 		t.Fatalf("suffix output=%q err=%v", output, err)
 	}
 }
 
 func TestAuditLifecyclesRejectsInvalidOptionsAndMissingStore(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "missing.sqlite")
+	t.Setenv("CAO_POLICY_PATH", filepath.Join(t.TempDir(), "missing-policy.json"))
 	for _, flags := range [][]string{
 		{"--grace", "1m"}, {"--grace", "169h"}, {"--max-events", "0"},
 		{"--max-events", "100001"}, {"--timeout", "0s"}, {"--timeout", "31m"}, {"--after", "-1"}, {},
 	} {
-		args := append([]string{"lifecycles", "--sqlite", path}, flags...)
+		args := append([]string{"lifecycles"}, flags...)
 		if _, err := runAudit(t, args...); err == nil {
 			t.Fatalf("accepted %v", args)
 		}
-	}
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		t.Fatalf("read-only command created storage: %v", err)
 	}
 }
 

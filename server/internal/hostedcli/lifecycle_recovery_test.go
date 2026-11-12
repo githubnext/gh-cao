@@ -14,7 +14,7 @@ import (
 )
 
 func TestLifecycleBrokerRecovery(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		for name, run := range map[string]func(*testing.T, string){
 			"receipt-past-expiry":         testBrokerReceiptSurvivesAuditOutagePastExpiry,
 			"crash-after-revoke":          testBrokerCrashAfterRevokeBeforeReceiptPersistence,

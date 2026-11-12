@@ -1,6 +1,4 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
 import { executeCanonicalQuery } from "../../.github/skills/add-operational-value/scripts/canonical-query.mjs";
 import { executeDashboardQuery } from "../../dashboard/site/src/data/queries/declarative.js";
 
@@ -168,7 +166,6 @@ export const definition = {
 function fail(message) {
   throw new Error(message);
 }
-
 
 function round(value) {
   return Math.round(value * 1_000_000_000) / 1_000_000_000;
@@ -351,7 +348,7 @@ export function efficiencyQuery(start, end) {
   };
 }
 
-async function queryEfficiencyWindows(database, requests) {
+async function queryEfficiencyWindows(requests) {
   const start = new Date(Math.min(...requests.map((request) => Date.parse(request.windowStart)))).toISOString();
   const end = new Date(Math.max(...requests.map((request) => Date.parse(request.windowEnd)))).toISOString();
   const projection = efficiencyQuery(start, end);
@@ -364,17 +361,11 @@ async function queryEfficiencyWindows(database, requests) {
     "owner", "repository", "declaredWorkflowPath", "githubRunId", "startedAt",
     "conclusion", "aicTotal",
   ].map((field) => ({ field }));
-  return executeCanonicalQuery(projection, { database });
+  return executeCanonicalQuery(projection);
 }
 
-export async function collectBatch(requests, context = {}) {
-  const hosted = Boolean(process.env.CAO_DASHBOARD_QUERY_SOCKET);
-  if (context.localOnly && !context.database && !hosted) {
-    fail("Local-only Optimization collection requires an existing Activity database");
-  }
-  if (context.history && !context.database && !hosted) {
-    fail("Historical Optimization collection requires a preserved Activity database; remote acquisition is disabled");
-  }
+export async function collectBatch(requests) {
+  if (!process.env.CAO_DASHBOARD_QUERY_SOCKET) fail("Optimization collection requires the PostgreSQL canonical query service");
   const supported = new Set(
     definition.evidence.repositories.map((repository) => repository.toLowerCase()),
   );
@@ -392,11 +383,7 @@ export async function collectBatch(requests, context = {}) {
         && Date.parse(request.observedAt) >= Date.parse(request.windowEnd);
     });
   if (!valid) fail("invalid batch collection request");
-  const database = context.database || path.join(process.cwd(), ".cao", "gh-aw-logs.sqlite");
-  if (!hosted && !existsSync(database)) {
-    fail("An explicitly prepared canonical SQLite snapshot is required");
-  }
-    const canonicalSource = await queryEfficiencyWindows(database, requests);
+    const canonicalSource = await queryEfficiencyWindows(requests);
     const canonicalRows = canonicalSource.rows;
     const rowsByWindow = new Map();
     const readWindow = (start, end) => {
@@ -414,12 +401,10 @@ export async function collectBatch(requests, context = {}) {
       }
       return rowsByWindow.get(key);
     };
-    const digest = hosted
-      ? createHash("sha256").update(String(
+    const digest = createHash("sha256").update(String(
           canonicalSource.metadata?.["canonical-revision"]
             ?? fail("Canonical PostgreSQL query did not identify its revision"),
-        )).digest("hex")
-      : createHash("sha256").update(readFileSync(database)).digest("hex");
+        )).digest("hex");
 
     return requests.map((request) => {
       const rows = readWindow(request.windowStart, request.windowEnd);
@@ -440,7 +425,7 @@ export async function collectBatch(requests, context = {}) {
         },
         provenance: [{
           repository: request.repository ?? definition.repository,
-          kind: "cao-canonical-query-sqlite-sha256",
+          kind: "cao-canonical-query-postgres-revision-sha256",
           ref: digest,
         }],
       };

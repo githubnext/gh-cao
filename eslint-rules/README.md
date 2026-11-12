@@ -38,15 +38,14 @@ All six workflows share one repo-memory branch, `memory/eslint-rules`.
 - `rules/<rule-key>.json` is a flat directory holding the current normalized state of each rule.
 - Only compact evidence references and outcomes are persisted — permalinks, numbers, paths, counts, and classifications. Review comment text, agent transcripts, diffs, logs, and source dumps are never stored.
 
-[`rules-db.mjs`](./rules-db.mjs) rebuilds a queryable SQLite database from those logs. It is installed as a campaign resource at `eslint-rules/rules-db.mjs` and uses only the Node.js standard library:
+[`rules-db.mjs`](./rules-db.mjs) validates the authoritative logs and emits deterministic summaries directly. It uses only the Node.js standard library and creates no database or shadow memory:
 
 ```bash
-node eslint-rules/rules-db.mjs build \
-  --memory "$GH_AW_MEMORY_DIR" \
-  --database /tmp/gh-aw/eslint-rules/rules.sqlite
+node eslint-rules/rules-db.mjs verify --memory "$GH_AW_MEMORY_DIR"
+node eslint-rules/rules-db.mjs summary --memory "$GH_AW_MEMORY_DIR"
 ```
 
-The rebuild validates the transaction schema and version of every line, orders rows deterministically, writes to a temporary file and replaces the destination by rename, and fails closed on any malformed line, unsupported version, or duplicate transaction id — leaving a previously built database untouched. `verify` validates the logs without writing a database.
+Both commands fail closed on malformed lines, unsupported versions and duplicate transaction IDs. Summaries retain original evidence and observation order without changing the source logs.
 
 ## Install
 

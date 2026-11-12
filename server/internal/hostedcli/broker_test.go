@@ -4,12 +4,9 @@ import (
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -18,8 +15,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/audit"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/operational"
-	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 type rejectingMinter struct{ *fakeMinter }
@@ -212,38 +208,12 @@ func (q *faultRevocations) TransitionRevocation(ctx context.Context, id, expecte
 
 func testTokenJournal(t *testing.T) (*Revocations, *faultRevocations) {
 	t.Helper()
-	return testTokenJournalDialect(t, "sqlite")
+	return testTokenJournalDialect(t, "postgres")
 }
 
-func testTokenJournalDialect(t *testing.T, dialect string) (*Revocations, *faultRevocations) {
+func testTokenJournalDialect(t *testing.T, _ string) (*Revocations, *faultRevocations) {
 	t.Helper()
-	var store operational.RevocationQueue
-	if dialect == "postgres" {
-		dsn := os.Getenv("POSTGRES_URL")
-		if dsn == "" {
-			t.Skip("POSTGRES_URL is required for real PostgreSQL token lifecycle tests")
-		}
-		pg, err := postgres.New(t.Context(), dsn, "token_lifecycle_"+strings.ToLower(rand.Text()), postgres.Config{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			if err := pg.DeleteNamespace(ctx); err != nil {
-				t.Error(err)
-			}
-			_ = pg.Close()
-		})
-		store = pg
-	} else {
-		local, err := sqlite.Open(t.Context(), filepath.Join(t.TempDir(), "tokens.sqlite"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() { _ = local.Close() })
-		store = local
-	}
+	store, _, _ := testutil.OperationalPostgres(t)
 	queue := &faultRevocations{RevocationQueue: store}
 	block, err := aes.NewCipher([]byte(strings.Repeat("k", 32)))
 	if err != nil {

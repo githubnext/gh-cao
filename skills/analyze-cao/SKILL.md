@@ -60,8 +60,8 @@ See [Agent analysis](https://githubnext.github.io/gh-cao/agent-analysis/).
    gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
    ```
 
-   This supplies SQLite and normalized shards under `.cao/`; verified caches
-   work offline.
+   This supplies verified canonical JSONL under `.cao/`, not a database file.
+   An authorized operator must ingest it into the selected PostgreSQL namespace.
 3. Or select a trusted operational manifest:
 
    ```bash
@@ -70,11 +70,13 @@ See [Agent analysis](https://githubnext.github.io/gh-cao/agent-analysis/).
 
    `DASHBOARD_DATA_URL=URL` is equivalent. URLs must end in `/payload-hashes.json`.
    No default Pages source, directory discovery, or hosted export is implied.
-   Synthetic manifests and missing SQLite checksums fail closed. Pages supplies
-   neither operational SQLite nor an agent summary. Use `--output DIRECTORY`
+   Synthetic manifests and missing canonical checksums fail closed. Pages supplies
+   neither operational exports nor an agent summary. Use `--output DIRECTORY`
    only for an explicit destination.
 4. Check query availability, completeness, freshness, and source scope before
-   treating the snapshot as complete. Missing evidence is not zero.
+   treating the snapshot as complete. Require `CAO_POSTGRES_URL` and its exact
+   `CAO_DATABASE_NAMESPACE`; queries do not bootstrap storage or start containers.
+   Missing evidence is not zero.
 5. Prefer the reviewed named queries the dashboard itself renders. Discover and run them with:
 
    ```bash
@@ -88,7 +90,7 @@ See [Agent analysis](https://githubnext.github.io/gh-cao/agent-analysis/).
    to narrow a query by a declared parameter. Prefer a query whose `execution.local`
    is `true`, and preserve the `availability`, `completeness`, `freshness`, and
    `as-of` metadata each result carries.
-6. When no named query answers the question, query the downloaded SQLite projection with canonical collection names:
+6. When no named query answers the question, query PostgreSQL through canonical collection names:
 
    ```bash
    gh cao query --collection runs --limit 20
@@ -103,7 +105,7 @@ See [Agent analysis](https://githubnext.github.io/gh-cao/agent-analysis/).
      --limit 20
    ```
 
-   Pass `--database FILE` only when querying a non-default SQLite path.
+   Use `--postgres-url` only to select another explicitly authorized connection.
 8. For generated or complex queries, pass a raw Dashboard Language query object through standard input:
 
    ```bash
@@ -145,7 +147,7 @@ Use `cao help` for the current command syntax and collection list. The canonical
 ## Analysis guidance
 
 - Start broad with counts and recent records, then narrow with `--where` filters or record IDs.
-- Prefer the SQLite projection for summaries and joins performed outside the browser.
+- Use the native PostgreSQL canonical query boundary for summaries and joins outside the browser.
 - Use JSONL audit results to explain source completeness and enrichment coverage.
 - Attribute findings to the collection, record ID, workflow, run ID, and timestamp whenever available.
 - Report uncertainty explicitly when evidence is unavailable, stale, partial, or outside the requested scope.

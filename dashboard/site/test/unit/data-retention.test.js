@@ -127,7 +127,7 @@ describe('canonical retention merge', () => {
     expect(merged.repositories.map((repository) => repository.id)).toEqual(['repository:1']);
   });
 
-  it('prunes run-linked browser detail after seven days without shortening the SQLite window', () => {
+  it('prunes run-linked browser detail after seven days without shortening the server window', () => {
     const previous = batch([
       { eventId: 'event:old', timestamp: '2026-09-01T04:00:00Z' },
       { eventId: 'event:recent', timestamp: '2026-09-09T04:00:00Z' }

@@ -2,11 +2,8 @@ package dashboardquery
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -17,42 +14,25 @@ const MaxEvidenceFacts = 20000
 
 type EvidenceSelection struct{ Field, Value string }
 
-var evidenceWorkflowRoute = regexp.MustCompile(`^([a-zA-Z0-9][a-zA-Z0-9-]*/[a-zA-Z0-9._-]+):\.github/workflows/([a-z0-9]+(?:-[a-z0-9]+)*)\.md$`)
-
 // ReadEvidencePackets restricts primary-key ranges before reading JSON bodies.
 // Workflow ranges follow the declared packet identity, not an arbitrary inverse
 // of a dashboard computed expression.
 func ReadEvidencePackets(ctx context.Context, db SnapshotReader, selections []EvidenceSelection) ([]map[string]any, error) {
-	var clauses []string
-	var args []any
 	for _, selection := range selections {
 		switch selection.Field {
-		case "report-id":
-			key, _ := json.Marshal(selection.Value)
-			clauses = append(clauses, "record_key=?")
-			args = append(args, string(key))
-		case "workflow-route":
-			parts := evidenceWorkflowRoute.FindStringSubmatch(selection.Value)
-			if parts == nil {
-				clauses = append(clauses, "0")
-				continue
-			}
-			encoded := strings.ReplaceAll(url.QueryEscape(strings.ToLower(parts[1])+":"+parts[2]+":"), "+", "%20")
-			prefix := `"operational-value-evidence:` + encoded
-			clauses = append(clauses, "(record_key>=? AND record_key<?)")
-			args = append(args, prefix, prefix+"\x7f")
+		case "report-id", "workflow-route":
 		default:
 			return nil, errors.New("unsupported evidence selection")
 		}
 	}
-	where := ""
-	if len(clauses) > 0 {
-		where = " AND (" + strings.Join(clauses, " OR ") + ")"
-	}
-	rows, err := readCollectionFields(ctx, db, "operationalValueEvidence", nil, MaxEvidencePackets, MaxEvidenceBytes, where, args)
+	result, err := db.ReadCanonical(ctx, CanonicalReadRequest{
+		Kind: "evidence", Collection: "operationalValueEvidence", Selections: selections,
+		MaxRows: MaxEvidencePackets, MaxBytes: MaxEvidenceBytes,
+	})
 	if err != nil {
 		return nil, err
 	}
+	rows := result.Rows
 	count := 0
 	for _, row := range rows {
 		facts, _ := row["facts"].([]any)

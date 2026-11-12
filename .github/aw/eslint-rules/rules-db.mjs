@@ -1,27 +1,11 @@
 #!/usr/bin/env node
-// ESLint Factory rules database builder.
-//
-// Rebuilds a queryable SQLite database from the append-only JSONL transaction
-// logs that are the authoritative memory of the `eslint-rules` campaign. The
-// JSONL logs always win: the database is a disposable derived artifact that can
-// be thrown away and rebuilt from the same logs.
-//
-// Deliberate properties:
-//   * Standard library only (`node:sqlite`, `node:fs`, `node:path`).
-//   * Deterministic: identical logs produce an identical database file.
-//   * Atomic: the destination is replaced by rename, never written in place.
-//   * Fail closed: any malformed line, unknown schema, unsupported version, or
-//     duplicate transaction id aborts the rebuild and leaves the previous
-//     database untouched.
-
-import { DatabaseSync } from "node:sqlite";
-import { readdirSync, readFileSync, rmSync, renameSync, mkdirSync, existsSync } from "node:fs";
+// Validate and summarize the authoritative append-only campaign transaction logs.
+import { readdirSync, readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const TRANSACTION_SCHEMA = "cao.eslint-rules.transaction";
 export const SUPPORTED_SCHEMA_VERSIONS = [1];
-export const DATABASE_SCHEMA_VERSION = 1;
 export const TRANSACTION_KINDS = [
   "adoption-request",
   "lint-inventory",
@@ -213,152 +197,21 @@ function summarisePriorities(transactions) {
   return [...priorities.values()].sort((left, right) => left.targetRepo.localeCompare(right.targetRepo));
 }
 
-const DDL = [
-  "CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT",
-  `CREATE TABLE transactions (
-    seq INTEGER PRIMARY KEY,
-    txn_id TEXT NOT NULL UNIQUE,
-    recorded_at TEXT NOT NULL,
-    worker TEXT NOT NULL,
-    kind TEXT NOT NULL,
-    rule_key TEXT NOT NULL,
-    target_repo TEXT NOT NULL,
-    central_repo TEXT NOT NULL,
-    correlation_id TEXT NOT NULL,
-    run_url TEXT NOT NULL,
-    source_file TEXT NOT NULL,
-    source_line INTEGER NOT NULL,
-    payload TEXT NOT NULL
-  ) STRICT`,
-  `CREATE TABLE rules (
-    rule_key TEXT PRIMARY KEY,
-    first_seen_at TEXT NOT NULL,
-    last_seen_at TEXT NOT NULL,
-    candidate_count INTEGER NOT NULL,
-    outcome_count INTEGER NOT NULL,
-    normalization_count INTEGER NOT NULL,
-    adoption_request_count INTEGER NOT NULL,
-    target_count INTEGER NOT NULL
-  ) STRICT`,
-  `CREATE TABLE lint_inventory (
-    target_repo TEXT PRIMARY KEY,
-    recorded_at TEXT NOT NULL,
-    txn_id TEXT NOT NULL,
-    payload TEXT NOT NULL
-  ) STRICT`,
-  `CREATE TABLE repository_priority (
-    target_repo TEXT PRIMARY KEY,
-    recorded_at TEXT NOT NULL,
-    txn_id TEXT NOT NULL,
-    payload TEXT NOT NULL
-  ) STRICT`,
-  "CREATE INDEX transactions_rule_key ON transactions (rule_key, seq)",
-  "CREATE INDEX transactions_target_repo ON transactions (target_repo, seq)",
-];
-
-function writeDatabase(databasePath, transactions) {
-  const database = new DatabaseSync(databasePath);
-  try {
-    database.exec("PRAGMA journal_mode = DELETE");
-    for (const statement of DDL) database.exec(statement);
-    const insertTransaction = database.prepare(
-      `INSERT INTO transactions
-        (seq, txn_id, recorded_at, worker, kind, rule_key, target_repo, central_repo, correlation_id, run_url, source_file, source_line, payload)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
-    transactions.forEach((transaction, index) => {
-      insertTransaction.run(
-        index + 1,
-        transaction.txnId,
-        transaction.recordedAt,
-        transaction.worker,
-        transaction.kind,
-        transaction.ruleKey,
-        transaction.targetRepo,
-        transaction.centralRepo,
-        transaction.correlationId,
-        transaction.runUrl,
-        transaction.sourceFile,
-        transaction.sourceLine,
-        transaction.payload,
-      );
-    });
-    const rules = summariseRules(transactions);
-    const insertRule = database.prepare(
-      "INSERT INTO rules (rule_key, first_seen_at, last_seen_at, candidate_count, outcome_count, normalization_count, adoption_request_count, target_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-    );
-    for (const rule of rules) {
-      insertRule.run(
-        rule.ruleKey,
-        rule.firstSeenAt,
-        rule.lastSeenAt,
-        rule.candidates,
-        rule.outcomes,
-        rule.normalizations,
-        rule.adoptionRequests,
-        rule.targets.size,
-      );
-    }
-    const inventory = summariseInventory(transactions);
-    const insertInventory = database.prepare(
-      "INSERT INTO lint_inventory (target_repo, recorded_at, txn_id, payload) VALUES (?, ?, ?, ?)",
-    );
-    for (const entry of inventory) {
-      insertInventory.run(entry.targetRepo, entry.recordedAt, entry.txnId, entry.payload);
-    }
-    const priorities = summarisePriorities(transactions);
-    const insertPriority = database.prepare(
-      "INSERT INTO repository_priority (target_repo, recorded_at, txn_id, payload) VALUES (?, ?, ?, ?)",
-    );
-    for (const entry of priorities) {
-      insertPriority.run(entry.targetRepo, entry.recordedAt, entry.txnId, entry.payload);
-    }
-    const insertMeta = database.prepare("INSERT INTO meta (key, value) VALUES (?, ?)");
-    for (const [key, value] of [
-      ["database_schema_version", String(DATABASE_SCHEMA_VERSION)],
-      ["inventory_count", String(inventory.length)],
-      ["repository_priority_count", String(priorities.length)],
-      ["rule_count", String(rules.length)],
-      ["transaction_count", String(transactions.length)],
-      ["transaction_schema", TRANSACTION_SCHEMA],
-    ]) {
-      insertMeta.run(key, value);
-    }
-    return { rules: rules.length, inventory: inventory.length, priorities: priorities.length };
-  } finally {
-    database.close();
-  }
-}
-
-const TEMPORARY_SUFFIXES = ["", "-journal", "-wal", "-shm"];
-
-/**
- * Rebuilds `databasePath` from the JSONL transaction logs under `memoryDirectory`.
- * Throws without touching an existing database when the logs are malformed.
- */
-export function rebuildDatabase({ memoryDirectory, databasePath }) {
+export function summarizeMemory(memoryDirectory) {
   const transactions = collectTransactions(memoryDirectory);
-  const resolved = path.resolve(databasePath);
-  const temporaryPath = `${resolved}.rebuild.tmp`;
-  mkdirSync(path.dirname(resolved), { recursive: true });
-  for (const suffix of TEMPORARY_SUFFIXES) rmSync(`${temporaryPath}${suffix}`, { force: true });
-  let summary;
-  try {
-    summary = writeDatabase(temporaryPath, transactions);
-  } catch (error) {
-    for (const suffix of TEMPORARY_SUFFIXES) rmSync(`${temporaryPath}${suffix}`, { force: true });
-    throw error;
-  }
-  renameSync(temporaryPath, resolved);
-  return { transactions: transactions.length, ...summary };
+  return {
+    transactions: transactions.length,
+    rules: summariseRules(transactions).map(({ targets, ...rule }) => ({ ...rule, targets: [...targets].sort() })),
+    inventory: summariseInventory(transactions),
+    priorities: summarisePriorities(transactions),
+  };
 }
 
 function parseArguments(argv) {
-  const options = { command: argv[0] || "", memoryDirectory: "", databasePath: "" };
+  const options = { command: argv[0] || "", memoryDirectory: "" };
   for (let index = 1; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--memory") options.memoryDirectory = argv[++index] || "";
-    else if (argument === "--database") options.databasePath = argv[++index] || "";
     else fail(`unknown argument ${JSON.stringify(argument)}`);
   }
   return options;
@@ -366,19 +219,14 @@ function parseArguments(argv) {
 
 export function run(argv) {
   const options = parseArguments(argv);
-  if (options.command !== "build" && options.command !== "verify") {
-    fail("usage: rules-db.mjs <build|verify> --memory <directory> [--database <path>]");
+  if (options.command !== "summary" && options.command !== "verify") {
+    fail("usage: rules-db.mjs <summary|verify> --memory <directory>");
   }
   if (!options.memoryDirectory) fail("--memory is required");
   if (options.command === "verify") {
     return { command: "verify", transactions: collectTransactions(options.memoryDirectory).length };
   }
-  if (!options.databasePath) fail("--database is required for build");
-  return {
-    command: "build",
-    database: options.databasePath,
-    ...rebuildDatabase({ memoryDirectory: options.memoryDirectory, databasePath: options.databasePath }),
-  };
+  return { command: "summary", ...summarizeMemory(options.memoryDirectory) };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

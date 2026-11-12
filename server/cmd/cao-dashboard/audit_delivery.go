@@ -26,7 +26,6 @@ func newAuditDeliverCommand() *cobra.Command {
 		Args:  cobra.NoArgs,
 	}
 	stream := cmd.Flags().String("stream", "", "stable deployment/namespace identity at the independent destination")
-	sqlitePath := cmd.Flags().String("sqlite", "", "local debugging only: SQLite file used by --hosted-cli-sqlite")
 	bootstrapPath := cmd.Flags().String("bootstrap-anchor", "", "independently preserved JSON anchor; only used if destination has no checkpoint")
 	maxEvents := cmd.Flags().Int("max-events", 100, "maximum committed events per invocation (1-1000)")
 	maxAge := cmd.Flags().Duration("max-anchor-age", 24*time.Hour, "maximum age of independent verification evidence (1m-168h)")
@@ -47,7 +46,7 @@ func newAuditDeliverCommand() *cobra.Command {
 			ctx, cancel := context.WithTimeout(ctx, *timeout)
 			defer cancel()
 			result.Stage = "source_open"
-			store, closeStore, err := server.OpenAuditReader(ctx, *sqlitePath)
+			store, closeStore, err := server.OpenAuditReader(ctx)
 			if err != nil {
 				return errors.New("audit delivery could not open the configured audit reader")
 			}

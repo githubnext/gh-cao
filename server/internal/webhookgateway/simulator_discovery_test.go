@@ -152,7 +152,7 @@ func (g *discoverySimulator) discover(ctx context.Context) error {
 		worker := webhookgatewayhost.DiscoveryWorker{Policies: g.base, Registry: registry, GitHub: g.receiving}
 		return worker.RunOnce(ctx)
 	}
-	// SQLite's local queue has no hosted registry. Exercise the real HTTP
+	// Exercise the real HTTP
 	// discovery client and policy compiler, retaining inventory in this test only.
 	base := g.base.snapshot
 	binding := base.Policy.Discovery.Repositories[0]
@@ -248,10 +248,6 @@ func (g *discoverySimulator) assertJobs(t *testing.T, count int, state wg.JobSta
 			t.Fatal("discovered job retained an unprojected webhook field")
 		}
 	}
-}
-
-func TestGitHubSimulatorDiscoverySQLite(t *testing.T) {
-	runDiscoverySimulatorSuite(t, sqliteSimulatorStorage)
 }
 
 func TestGitHubSimulatorDiscoveryPostgres(t *testing.T) {

@@ -10,18 +10,13 @@ import (
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/operational"
-	"github.com/githubnext/gh-cao/server/internal/server"
+	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
 )
 
-func TestHostedCLIQueueOperationsSQLite(t *testing.T) {
-	sqlitePath := filepath.Join(t.TempDir(), "hosted-cli.sqlite")
+func TestHostedCLIQueueOperationsPostgres(t *testing.T) {
 	auditPath := filepath.Join(t.TempDir(), "audit.jsonl")
 	t.Setenv("CAO_AUDIT_LOG", auditPath)
-	bootstrapSQLite(t, sqlitePath)
-	store, err := server.OpenHostedCLISQLite(t.Context(), sqlitePath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	store, dsn, namespace := operationalCommandFixture(t)
 	options, err := (operational.CLICommandQueueOptions{}).Resolve()
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +39,7 @@ func TestHostedCLIQueueOperationsSQLite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	output, err := runHostedCLIQueueTestCommand(t, sqlitePath, "list", "--status", "queued", "--limit", "2")
+	output, err := runHostedCLIQueueTestCommand(t, "list", "--status", "queued", "--limit", "2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +62,7 @@ func TestHostedCLIQueueOperationsSQLite(t *testing.T) {
 		t.Fatalf("queue summary disclosed command text: %s", output)
 	}
 	firstPageLastID := page.Commands[1]["id"]
-	output, err = runHostedCLIQueueTestCommand(t, sqlitePath, "list", "--status", "queued", "--limit", "2", "--continuation-token", page.NextContinuationToken)
+	output, err = runHostedCLIQueueTestCommand(t, "list", "--status", "queued", "--limit", "2", "--continuation-token", page.NextContinuationToken)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,14 +74,14 @@ func TestHostedCLIQueueOperationsSQLite(t *testing.T) {
 		page.Limit != 2 || page.HasMore || page.NextContinuationToken != "" {
 		t.Fatalf("unexpected final queue page: %s", output)
 	}
-	if _, err := runHostedCLIQueueTestCommand(t, sqlitePath, "list", "--continuation-token", "not-a-token"); err == nil {
+	if _, err := runHostedCLIQueueTestCommand(t, "list", "--continuation-token", "not-a-token"); err == nil {
 		t.Fatal("invalid continuation token was accepted")
 	}
 	if firstPageLastID == page.Commands[0]["id"] {
 		t.Fatal("continuation token repeated the final item from the previous page")
 	}
 
-	output, err = runHostedCLIQueueTestCommand(t, sqlitePath, "show", "1")
+	output, err = runHostedCLIQueueTestCommand(t, "show", "1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,14 +89,14 @@ func TestHostedCLIQueueOperationsSQLite(t *testing.T) {
 		t.Fatalf("unexpected command summary: %s", output)
 	}
 
-	if _, err := runHostedCLIQueueTestCommand(t, sqlitePath, "cancel", "1", "--actor", "ops-user"); err != nil {
+	if _, err := runHostedCLIQueueTestCommand(t, "cancel", "1", "--actor", "ops-user"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := runHostedCLIQueueTestCommand(t, sqlitePath, "cancel", "1"); err == nil {
+	if _, err := runHostedCLIQueueTestCommand(t, "cancel", "1"); err == nil {
 		t.Fatal("cancel without an operator identity succeeded")
 	}
 
-	verifyStore, err := server.OpenHostedCLISQLite(t.Context(), sqlitePath)
+	verifyStore, err := postgres.Open(t.Context(), dsn, namespace, postgres.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,13 +129,13 @@ func TestHostedCLIQueueOperationsSQLite(t *testing.T) {
 	}
 }
 
-func runHostedCLIQueueTestCommand(t *testing.T, sqlitePath string, args ...string) (string, error) {
+func runHostedCLIQueueTestCommand(t *testing.T, args ...string) (string, error) {
 	t.Helper()
 	root := newRootCommand()
 	var output bytes.Buffer
 	root.SetOut(&output)
 	root.SetErr(&output)
-	root.SetArgs(append([]string{"hosted-cli", "queue"}, append(args, "--sqlite", sqlitePath)...))
+	root.SetArgs(append([]string{"hosted-cli", "queue"}, args...))
 	err := root.Execute()
 	return output.String(), err
 }

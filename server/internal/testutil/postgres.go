@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -12,6 +13,20 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 )
+
+func ConnectionString(t testing.TB, config *pgx.ConnConfig) string {
+	t.Helper()
+	endpoint, err := url.Parse(config.ConnString())
+	if err != nil {
+		t.Fatal(err)
+	}
+	parameters := endpoint.Query()
+	for name, value := range config.RuntimeParams {
+		parameters.Set(name, value)
+	}
+	endpoint.RawQuery = parameters.Encode()
+	return endpoint.String()
+}
 
 // Postgres creates a private schema, including when initialization fails.
 // Service-backed tests never replace another test's or the operator's data.

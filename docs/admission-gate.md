@@ -29,7 +29,7 @@ not merely that the initial proposal or a compiler release exists.
 You need:
 
 - An HTTPS hosted CAO server using the PostgreSQL operational backend. Local
-  SQLite, Redis, and volatile memory cannot enable this service.
+  Redis and volatile memory cannot enable this service.
 - Explicit enrollment for each immutable repository ID, owner ID, workflow
   reference and revision, subject, event, and original actor ID.
 - A trusted publisher that atomically supplies complete, fresh AI Credits

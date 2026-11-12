@@ -133,7 +133,7 @@ describe("agent catalog", () => {
   it("resolves transitive source requirements", () => {
     const execution = queryExecutionRequirements(document, "usage-by-workflow");
     expect(execution.local).toBe(true);
-    expect(execution.backend).toBe("sqlite");
+    expect(execution.backend).toBe("postgres");
     expect(execution.requirements).toEqual(["runs"]);
   });
 
@@ -486,7 +486,7 @@ describe("agent catalog over the authoritative dashboard", () => {
     expect(ids.every((id) => id.length > 0)).toBe(true);
     for (const query of queries) {
       expect(typeof query.execution.local).toBe("boolean");
-      if (query.execution.local) expect(query.execution.backend).toBe("sqlite");
+      if (query.execution.local) expect(query.execution.backend).toBe("postgres");
       else expect(query.execution.reason).toBeTruthy();
     }
   });

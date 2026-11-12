@@ -19,7 +19,7 @@ const usage = `Usage: node .github/skills/add-operational-value/examples/native-
   [--archive-server ORIGIN]
 
 Recompute retained File Diet inventories or reuse a digest-verified original
-envelope, then ingest it into native CAO SQLite and execute the shipped Value
+envelope, then ingest it into explicitly configured CAO PostgreSQL and execute the shipped Value
 query. No HTML renderer, GitHub acquisition, collection registration or deployment.
 --archive-server requires --proof and existing approved private read access;
 CAO_VALUE_ARCHIVE_TOKEN supplies a local bearer token, not an approval.

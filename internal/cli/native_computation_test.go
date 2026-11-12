@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -13,6 +12,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -479,7 +479,8 @@ func TestNativeComputationCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(directory) })
-	database, inventory := filepath.Join(directory, "activity.sqlite"), filepath.Join(directory, "inventory-sources.json")
+	database := nativeTestSnapshot(t, nil)
+	inventory := filepath.Join(directory, "inventory-sources.json")
 	content, _ := json.Marshal(ncInventoryFixture())
 	if err := os.WriteFile(inventory, content, 0600); err != nil {
 		t.Fatal(err)
@@ -487,11 +488,11 @@ func TestNativeComputationCLI(t *testing.T) {
 	run := func(name string, args ...string) (ncRecord, error) {
 		command := &cobra.Command{Use: name}
 		command.SetContext(context.Background())
-		for _, flag := range []string{"database", "inventory", "campaign", "previous", "feedback"} {
+		for _, flag := range []string{"postgres-url", "inventory", "campaign", "previous", "feedback"} {
 			command.Flags().String(flag, "", "")
 		}
 		command.Flags().Bool("diagnose", false, "")
-		if err := command.ParseFlags(append([]string{"--database", database}, args...)); err != nil {
+		if err := command.ParseFlags(append([]string{"--postgres-url", database, "--inventory", inventory}, args...)); err != nil {
 			return nil, err
 		}
 		var output bytes.Buffer
@@ -510,9 +511,6 @@ func TestNativeComputationCLI(t *testing.T) {
 	if result["command"] != "computation" || result["computation"] != "runtime-health" || ncObject(result["result"])["measureVersion"] != "1.0.0" {
 		t.Fatalf("invalid command output contract: %#v", result)
 	}
-	if _, err := os.Stat(database); !os.IsNotExist(err) {
-		t.Fatalf("read-only computation created missing database: %v", err)
-	}
 	for _, args := range [][]string{
 		{"--diagnose"}, {"--campaign", "missing"},
 		{"--inventory", filepath.Join(directory, "missing.json")},
@@ -522,23 +520,18 @@ func TestNativeComputationCLI(t *testing.T) {
 			t.Fatalf("invalid CLI accepted: %v", args)
 		}
 	}
-	// Persist a canonical run to exercise the actual read-only SQLite boundary.
-	db, err := sql.Open("sqlite", database)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := db.Exec(`CREATE TABLE __idb_records (database_name TEXT, store_name TEXT, record_key TEXT, value TEXT)`); err != nil {
-		t.Fatal(err)
-	}
 	data, _ := ncInventory(ncInventoryFixture())
-	runRecord := ncRecord{"id": "run:1", "workflowId": data.workflows[0]["id"], "githubRunId": 1, "attempt": 1, "startedAt": "2026-10-01T11:00:00Z", "status": "completed", "conclusion": "failure"}
-	content, _ = json.Marshal(runRecord)
-	if _, err := db.ExecContext(context.Background(), `INSERT INTO __idb_records VALUES (?,?,?,?)`, nativeDatabaseName, "runs", `"run:1"`, string(content)); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Close(); err != nil {
-		t.Fatal(err)
-	}
+	runRecord := ncRecord{"id": "run:1", "repositoryId": data.workflows[0]["repositoryId"],
+		"workflowId": data.workflows[0]["id"], "githubRunId": "1", "attempt": 1,
+		"startedAt": time.Now().UTC().Add(-time.Hour).Format(time.RFC3339),
+		"status":    "completed", "conclusion": "failure"}
+	database = nativeTestSnapshot(t, map[string][]map[string]any{
+		"repositories": {{"id": data.workflows[0]["repositoryId"], "owner": data.workflows[0]["organization"],
+			"name": data.workflows[0]["repository"]}},
+		"workflows": {{"id": data.workflows[0]["id"], "repositoryId": data.workflows[0]["repositoryId"],
+			"path": data.workflows[0]["path"]}},
+		"runs": {runRecord},
+	})
 	result, err = run("intelligence")
 	if err != nil {
 		t.Fatal(err)
@@ -558,7 +551,7 @@ func TestNativeComputationCLI(t *testing.T) {
 	decision := ncRows(ncObject(result["result"])["decisions"])[0]
 	feedbackPath := filepath.Join(directory, "feedback.json")
 	content, _ = json.Marshal(ncRecord{"contractVersion": "1.0.0", "records": []any{ncRecord{
-		"decisionId": decision["decisionId"], "inputFingerprint": decision["inputFingerprint"], "disposition": "accepted", "observedAt": "2026-10-02T10:00:00Z",
+		"decisionId": decision["decisionId"], "inputFingerprint": decision["inputFingerprint"], "disposition": "accepted", "observedAt": time.Now().UTC().Format(time.RFC3339),
 	}}})
 	if err := os.WriteFile(feedbackPath, content, 0600); err != nil {
 		t.Fatal(err)

@@ -46,7 +46,7 @@ it('prepares only the generated enterprise demo and an empty version without net
       const inventory = JSON.parse(await readFile(join(dataRoot, 'inventory-sources.json'), 'utf8'));
       expect(Object.values(inventory).every((source) => source.metadata['source-kind'] === 'synthetic')).toBe(true);
       if (root === emptyRoot) expect(Object.values(inventory).every((source) => source.rows.length === 0)).toBe(true);
-      for (const path of ['payload-hashes.json', 'gh-aw-logs.sqlite', 'agent-summary.json']) {
+      for (const path of ['payload-hashes.json', 'agent-summary.json']) {
         await expect(readFile(join(root, path))).rejects.toThrow(/ENOENT/);
       }
     }

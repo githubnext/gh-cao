@@ -164,7 +164,7 @@ func TestHostedSnapshotQueriesCanonicalDataWithoutSQLite(t *testing.T) {
 	rows, err := ReadMeasurements(output)
 	if err != nil || len(rows) != 3 || rows[0]["repository"] != "githubnext/gh-cao" ||
 		rows[0]["value"] != json.Number("2.5") ||
-		rows[0]["evidence-digest"] != "33fb3591bb9abb77f977f73e85b162b3d9035554e4374334698e82fc5978d136" {
+		rows[0]["evidence-digest"] != "8e0afbc48b035a6fd8170cdabc2eb53adef034ede18b9b1f4a1e0ff47894285d" {
 		t.Fatalf("hosted result is not a canonical native assessment: %+v %v", rows, err)
 	}
 	for _, row := range rows {

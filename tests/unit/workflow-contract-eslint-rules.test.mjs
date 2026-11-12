@@ -65,7 +65,7 @@ test("ESLint Factory orchestrator owns discovery and dispatches only its declare
   assert.match(source, /transactions\/orchestrator__<owner>__<repository>\.jsonl/);
   assert.match(
     source,
-    /node eslint-rules\/rules-db\.mjs build --memory "\$GH_AW_MEMORY_DIR" --database \/tmp\/gh-aw\/eslint-rules\/rules\.sqlite/,
+    /node eslint-rules\/rules-db\.mjs verify --memory "\$GH_AW_MEMORY_DIR"/,
   );
 });
 
@@ -109,7 +109,7 @@ test("ESLint Factory workers share one append-only memory branch with collision-
     assert.match(source, /rules\/<rule-key>\.json` is a flat directory/, name);
     assert.match(
       source,
-      /node eslint-rules\/rules-db\.mjs build --memory "\$GH_AW_MEMORY_DIR" --database \/tmp\/gh-aw\/eslint-rules\/rules\.sqlite/,
+      /node eslint-rules\/rules-db\.mjs verify --memory "\$GH_AW_MEMORY_DIR"/,
       name,
     );
     assert.match(source, /fails closed on malformed lines/, name);

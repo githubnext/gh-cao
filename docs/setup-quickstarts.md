@@ -8,11 +8,26 @@ Shared monitoring and automation are separate, optional steps.
 
 ## Open a local dashboard (no deployment)
 
-An installed CAO release and your **locally authenticated GitHub CLI** are
-sufficient. You do not need a CAO cloud deployment, Azure setup, a hosted
-dashboard, PostgreSQL, Redis, containers, or a separate Node.js, npm, or gh-aw
-installation. The release includes the Go server, built dashboard, and pinned
-gh-aw log collector.
+Use an installed CAO release, your **locally authenticated GitHub CLI**, and a
+running Docker or Podman engine. The command automatically pulls PostgreSQL,
+starts or reuses its owned loopback-only container, provisions canonical and
+operational storage, and configures a separate non-owner runtime login.
+Set `CAO_CONTAINER_ENGINE=docker` or `podman` to select the engine explicitly.
+Otherwise the command detects an available local engine.
+
+Persistent data and private local credentials live under
+`.github/cao/dashboard/<repository-scope>/postgres/`; the PostgreSQL data directory
+is bind-mounted into the container. The cache is added to `.gitignore`.
+Image layers remain in the container engine. `--cache-dir` overrides the cache.
+The container and data are retained for subsequent dashboard sessions.
+
+To use your own database instead, pass `--postgres-url` or set `CAO_POSTGRES_URL`.
+That connection bypasses container management and automatic provisioning;
+provision its exact printed namespace using the
+[PostgreSQL setup contract](https://github.com/githubnext/gh-cao/blob/main/server/POSTGRES.md).
+The query server itself never gains bootstrap credentials. No cloud deployment,
+Azure setup, Redis, or separate Node.js, npm or gh-aw installation is required.
+The release includes the Go server, built dashboard and pinned gh-aw log collector.
 
 Verify GitHub CLI authentication, install the extension, and select the
 GitHub.com repository you can read:
@@ -33,10 +48,10 @@ installation is required.
 
 **Open and stop:** Keep the command running in the terminal. After initial
 collection, open the full **Dashboard:** URL it prints in your browser; the
-command also prints the **SQLite cache:** path. The Go server binds to loopback
+command also prints the **PostgreSQL namespace**. The Go server binds to loopback
 on an available local port and evaluates the normal dashboard queries against
-canonical SQLite on your machine, not a hosted service or browser IndexedDB.
-Press **Ctrl-C** in that terminal to stop the server and collection. The cache
+canonical PostgreSQL on your machine, not a hosted service or browser IndexedDB.
+Press **Ctrl-C** in that terminal to stop the server and collection. The namespace
 remains for later sessions with the same repository scope.
 
 **Online evidence, local serving:** GitHub remains the authenticated upstream
@@ -49,7 +64,7 @@ acquisition or bypassing GitHub access controls.
 in background passes separated by **five minutes** while the command runs.
 The recent evidence window defaults to **seven days** (maximum `168h`), while
 server lifetime defaults to, and cannot exceed, **48 hours** per invocation.
-History checkpoints survive restarts, and admitted pages remain in SQLite
+History checkpoints survive restarts, and admitted pages remain in PostgreSQL
 inside the selected window. The header's data-status tooltip shows ingestion progress, quota headroom,
 pauses and errors. A shared 100-point core API pass ceiling reserves at least
 1000 points or 20% of core quota for other work.
@@ -59,7 +74,7 @@ recent-run lookup and cached usage sample, not a promise of complete history.
 Only agentic `.lock.yml` workflows are included. Acquisition budgets, API
 access, and artifact availability can leave evidence partial or unavailable;
 ordinary Actions jobs and missing evidence must not look like healthy zeros.
-A failed refresh reports the error and retains the previous SQLite snapshot.
+A failed refresh reports the error and retains the last accepted PostgreSQL revision.
 
 **Optional reuse:** Existing local setup can stay in place, but the command
 does not require or adopt its CAO policy as collection scope; use the current
@@ -257,7 +272,7 @@ Activity or dashboard artifact publication workflows.
 <span id="step-4---wait-for-collection-and-inspect-your-dashboard"></span>
 
 Open the authenticated hosted dashboard, or prepare an explicit operational
-snapshot for local Go/SQLite serving. See [Agent analysis](agent-analysis.md).
+canonical JSONL for local Go/PostgreSQL ingestion. See [Agent analysis](agent-analysis.md).
 Missing evidence remains unavailable, not proof of zero cost or success.
 CAO monitors Agentic Workflows, not every ordinary Actions job.
 The [sample dashboard](https://githubnext.github.io/gh-cao/cao/) is synthetic

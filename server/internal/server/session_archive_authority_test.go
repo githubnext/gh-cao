@@ -9,16 +9,14 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 	"github.com/githubnext/gh-cao/server/internal/sessionarchiveblob"
-	"github.com/githubnext/gh-cao/server/internal/sqlitex"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 func TestSessionArchiveAuthorityConfigurationRejectsUnavailableCanonicalBackend(t *testing.T) {
 	for name, app := range map[string]*App{
-		"missing":      {},
-		"typed nil":    {database: (*postgresx.Store)(nil)},
-		"unopened":     {database: &postgresx.Store{}},
-		"noncanonical": {database: &sqlitex.Store{}},
+		"missing":   {},
+		"typed nil": {database: (*postgresx.Store)(nil)},
+		"unopened":  {database: &postgresx.Store{}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			authority, err := app.nativeSessionArchiveAuthority(t.Context())

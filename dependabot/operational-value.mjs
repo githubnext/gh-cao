@@ -128,7 +128,7 @@ for (const moduleFile of moduleFiles) {
     .update(readFileSync(fileURLToPath(import.meta.url)))
     .update(readFileSync(path.join(moduleDirectory, moduleFile)))
     .digest("hex");
-  if (request.database && !selectedModule) {
+  if (process.env.CAO_DASHBOARD_QUERY_SOCKET && !selectedModule) {
     const query = {
       name: "reusable-operational-values",
       from: "operationalValues",
@@ -142,12 +142,9 @@ for (const moduleFile of moduleFiles) {
       ] },
       "order-by": [{ field: "timestamp", direction: "desc" }],
     };
-    const result = spawnSync("gh", [
-      "cao",
-      "query", "--database", request.database, "--stdin",
-    ], { input: JSON.stringify(query), encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
-    if (result.error || result.status !== 0) fail("Unable to query retained operational-value measurements");
-    const rows = JSON.parse(result.stdout);
+    const { executeCanonicalQuery } = await import(process.env.CAO_CANONICAL_QUERY_MODULE
+      || new URL("../.github/skills/add-operational-value/scripts/canonical-query.mjs", import.meta.url).href);
+    const { rows } = await executeCanonicalQuery(query);
     if (!Array.isArray(rows)) fail("Invalid retained operational-value measurements");
     const cached = repositories.flatMap((repository) => definition.metrics.map((metric) => rows.find((row) => (
       row.repository === repository && row.valueId === `${definition.slug}.${metric.id}`

@@ -51,7 +51,7 @@ test("canvas serves canonical queries, pagination, diagnostics and memory throug
   t.after(() => preview.close());
   const html = await (await fetch(preview.url)).text();
   assert.match(html, /name="dashboard-data-backend" content="server-http"/);
-  assert.match(html, /name="dashboard-storage-backend" content="sqlite"/);
+  assert.match(html, /name="dashboard-storage-backend" content="postgres"/);
   assert.match(html, /name="dashboard-api-base"/);
   const query = async (pagination) => {
     const response = await fetch(`${preview.url}/api/v1/query`, {
@@ -118,18 +118,18 @@ test("canvas rejects legacy, corrupt and invalid canonical evidence without fall
         await mkdir(destination, { recursive: true });
         await writeFile(join(destination, "sources.json"), "{}");
       } else {
-        await writeCanvasSnapshot(destination);
+        const shard = await writeCanvasSnapshot(destination);
         if (kind === "invalid") {
-          const content = Buffer.from("not sqlite");
-          await writeFile(join(destination, "gh-aw-logs.sqlite"), content);
-          await writeFile(join(destination, "payload-hashes.json"), JSON.stringify({
-            "gh-aw-logs.sqlite": createHash("sha256").update(content).digest("hex"),
-          }));
-        } else await writeFile(join(destination, "gh-aw-logs.sqlite"), "corrupted snapshot");
+          const content = Buffer.from("not canonical JSONL");
+          await writeFile(shard, content);
+          const manifest = JSON.parse(await readFile(join(destination, "payload-hashes.json"), "utf8"));
+          manifest["gh-aw-logs-runs/canonical.jsonl"] = createHash("sha256").update(content).digest("hex");
+          await writeFile(join(destination, "payload-hashes.json"), JSON.stringify(manifest));
+        } else await writeFile(shard, "corrupted snapshot");
       }
     });
     await assert.rejects(start(), kind === "legacy"
-      ? /Prepare a checksum-verified operational snapshot/
+      ? /Prepare a checksum-verified canonical JSONL artifact/
       : kind === "checksum" ? /checksum/ : /Go host exited/);
     assert.equal((await readdir(root)).filter((name) => name.startsWith(".cao-dashboard-preview-")).length, 0);
   }

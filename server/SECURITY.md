@@ -149,8 +149,7 @@ The supported deployment is:
 - one local checkout or worktree;
 - an HTTP listener on loopback for debugging, or HTTPS with an
   operator-supplied certificate and key;
-- a read-only SQLite snapshot for default local serving, or an explicit
-  PostgreSQL profile with access-controlled operational storage;
+- PostgreSQL canonical and operational storage with separate owner/runtime roles;
 - dashboard artifacts obtained from a trusted local workflow or download;
 - browser access through the capability URL printed by the server.
 
@@ -159,10 +158,12 @@ hosting, reverse proxies, tunnels, and webhook ingestion are not part of the
 local profile. Use `serve-hosted` rather than exposing `serve` through a tunnel
 or public reverse proxy.
 
-Default local startup downloads and verifies a deployed snapshot only when the
-cache is missing; existing invalid or unreadable caches fail closed without an
-automatic repair download. `--download-sqlite` explicitly refreshes the cache
-before opening it read-only and does not relax the local security boundary.
+The query server opens provisioned PostgreSQL and never downloads or repairs
+database files. The explicitly selected `gh cao dashboard` operator may manage
+an owned local Docker/Podman database and provision it before starting the
+unprivileged runtime. An explicit connection bypasses that management.
+Acquired canonical JSONL is checksum-verified; missing or invalid evidence
+remains incomplete rather than triggering a legacy storage fallback.
 
 ## Repository metadata input limits
 
@@ -392,7 +393,7 @@ Snapshot download redirects must not downgrade HTTPS to HTTP. Use a trusted
 HTTPS origin: a downloaded manifest and its SHA-256 checksums share the same
 trust boundary and are not a publisher signature. The native CLI additionally
 supports `--manifest-sha256` / `DASHBOARD_MANIFEST_SHA256` for a manifest digest
-obtained independently. The server SQLite downloader does not provide this
+obtained independently. No implicit database-file downloader provides this
 independent pin; use an independently verified local snapshot for that boundary.
 
 ### Listener and response protections
@@ -1053,11 +1054,11 @@ contract is [`specs/server-hosted-cli.md`](../specs/server-hosted-cli.md).
   subnet, metadata, loopback, or link-local exception. This is destination
   control, not TLS SNI or content inspection. Cancellation closes tunnels but
   cannot settle an unconfirmed workload. Native development profiles are
-  unchanged; SQLite Docker alone retains its previous bridge mode when no
+  unchanged; Explicit local Docker alone retains its previous bridge mode when no
   egress settings are supplied. See the
   [production rollout contract](README.md#production-docker-egress-rollout)
   for provenance, limits, compatibility, and real-runtime evidence requirements.
-- **Native development profiles**: only `execute-cli --sqlite` may explicitly
+- **Native development profiles**: only `execute-cli --local-development` may explicitly
   select Apple container on Apple Silicon or Windows Sandbox on Windows.
   Apple uses the pinned Linux image, a private VM, resource limits, and a fixed
   in-guest no-new-privileges bootstrap. Its API's stopped state must be backed
@@ -1164,18 +1165,12 @@ contract is [`specs/server-hosted-cli.md`](../specs/server-hosted-cli.md).
   pending IDs may still be active; no result infers an outcome or repairs history.
   Follow the [operator reconciliation runbook](README.md#missing-rebuild-terminal-evidence);
   independent verification/delivery and deployment cadence remain operator-owned.
-- **SQLite debug store**: `--hosted-cli-sqlite` and `execute-cli --sqlite`
-  replace the hosted-CLI PostgreSQL queue/audit/journal with one local SQLite
-  file for debugging. Explicit `database bootstrap --store operational
-  --sqlite PATH` creates it with mode `0600`; runtime opens only existing state.
-  Bootstrap, runtime, and appends never perform audit retention. Local
-  `database retain-audit --store operational --sqlite PATH` performs a bounded
-  retention batch. `audit deliver --sqlite PATH` uses a read-only connection,
-  unlike `audit verify`, which appends its own verification result.
-  The server refuses it unless it listens on loopback. Its append-only
-  triggers protect only against accidental edits, because anyone who can
-  write the file can drop them or run retention; SQLite does not model
-  PostgreSQL database-role separation. Do not use it in production.
+- **Local development**: `--local-development` selects development-only
+  execution providers, not another database backend. Queue, audit and recovery
+  state use PostgreSQL with the same role separation and transaction contracts.
+  Bootstrap and audit retention remain separate privileged operations.
+  `audit deliver` uses the evidence-reader role; `audit verify` needs runtime
+  append authority to record its own result.
 
 The executor's authorization and token lifecycle are model-checked in
 [`specs/tla/HostedCLIActions.tla`](../specs/tla/README.md#hosted-cli-actions-model).

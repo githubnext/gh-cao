@@ -23,7 +23,7 @@ func hostedTestSite(t *testing.T) string {
 }
 
 func TestDashboardServesHTMLJavaScriptAndCSS(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	for name, content := range map[string]string{
 		"index.html": `<html><head><link rel="stylesheet" href="/app.css"></head><body><main>Dashboard</main><script type="module" src="/app.js"></script></body></html>`,
 		"app.js":     `document.querySelector("main").textContent = "Dashboard loaded";`,
@@ -57,9 +57,9 @@ func TestDashboardServesHTMLJavaScriptAndCSS(t *testing.T) {
 			}
 			if test.contentType == "text/html" &&
 				(!strings.Contains(response.Body.String(), `content="server-http"`) ||
-					!strings.Contains(response.Body.String(), `content="sqlite"`) ||
+					!strings.Contains(response.Body.String(), `content="postgres"`) ||
 					response.Header().Get("Cache-Control") != "no-store") {
-				t.Fatal("dashboard entry did not select the uncached Go/SQLite bootstrap")
+				t.Fatal("dashboard entry did not select the uncached Go/PostgreSQL bootstrap")
 			}
 		})
 	}

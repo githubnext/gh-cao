@@ -13,6 +13,12 @@ editors:
 **Status:** Working Draft  
 **Audit date:** 2026-11-06
 
+**PostgreSQL-only storage update:** Remaining SQLite descriptions in this dated
+inventory are historical, not supported commands or acquisition paths.
+Operational artifacts contain verified canonical JSONL, not database files.
+The native local dashboard operator can manage an owned Docker/Podman PostgreSQL
+container; query-server and workflow-agent access do not grant that setup authority.
+
 **Actions publication retirement (2026-11-12):** The legacy Activity,
 dashboard-artifact, and local Value workflows, their component manifests,
 shared cache restoration, artifact discovery, and workflow-only JavaScript

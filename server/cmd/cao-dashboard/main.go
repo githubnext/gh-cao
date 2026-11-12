@@ -341,6 +341,8 @@ func newRootCommand() *cobra.Command {
 		newServePagesCommand(),
 		newServeHostedCommand(),
 		newIngestCommand(),
+		newReadCommand(),
+		newLocalQueueCommand(),
 		newCollectCommand(),
 		newExecuteCLICommand(),
 		newHostedCLICommand(),
@@ -584,17 +586,16 @@ func newServeHostedCommand() *cobra.Command {
 	experimental := cmd.Flags().Bool("experimental", false, "enable experimental server features")
 	hostedCLIActions := cmd.Flags().Bool("hosted-cli-actions", false,
 		"accept CLI action commands from authorized administrators into the hosted queue drained by execute-cli")
+	localDevelopment := cmd.Flags().Bool("local-development", false, "permit explicitly selected local execution profiles on loopback only")
 	cliActionsCatalog := cmd.Flags().String("cli-actions-catalog", "",
 		"dashboard document declaring the CLI actions accepted by --hosted-cli-actions")
-	hostedCLISQLite := cmd.Flags().String("hosted-cli-sqlite", "",
-		"local debugging only: SQLite file holding the hosted CLI queue and audit table, shared with execute-cli --sqlite; requires --experimental, --hosted-cli-actions, and a loopback --listen")
 	cmd.RunE = func(*cobra.Command, []string) error {
 		resolveServeResources(cmd, *siteDirectory)
 		if *hostedCLIActions && !*experimental {
 			return errors.New("--hosted-cli-actions requires --experimental")
 		}
-		if *hostedCLISQLite != "" && !*hostedCLIActions {
-			return errors.New("--hosted-cli-sqlite requires --hosted-cli-actions")
+		if *localDevelopment && !*hostedCLIActions {
+			return errors.New("--local-development requires --hosted-cli-actions")
 		}
 		commandLog.Printf("serve-hosted flags parsed tls=%s hosted_cli_actions=%t", resolveHostedTLSMode(*cert), *hostedCLIActions)
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -618,14 +619,7 @@ func newServeHostedCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if *hostedCLISQLite != "" {
-				debugStore, err := server.OpenHostedCLISQLite(ctx, *hostedCLISQLite)
-				if err != nil {
-					return err
-				}
-				defer func() { _ = debugStore.Close() }()
-				config.DebugStore = debugStore
-			}
+			config.LocalDevelopment = *localDevelopment
 			if err := app.EnableHostedCLIActions(ctx, config); err != nil {
 				return err
 			}
@@ -671,15 +665,11 @@ func (e actionsEnvironment) present() string {
 func newServeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: "serve dashboard data locally from SQLite, with explicit Postgres support",
+		Short: "serve dashboard data locally from Postgres",
+		Args:  cobra.NoArgs,
 	}
 	redisURL := cmd.Flags().String("redis-url", defaultRedisURL, "explicitly opt in to Redis operational state instead of Postgres")
-	postgresURL := cmd.Flags().String("postgres-url", "", "opt in to Postgres dashboard storage; an empty value uses CAO_POSTGRES_URL")
-	sqlitePath := cmd.Flags().String("sqlite", defaultSQLitePath, "local SQLite snapshot cache; acquire missing data only from an explicit DASHBOARD_DATA_URL")
-	dataURLDefault := strings.TrimSpace(os.Getenv("DASHBOARD_DATA_URL"))
-	const environmentDownloadURL = "DASHBOARD_DATA_URL"
-	downloadURL := cmd.Flags().String("download-sqlite", "", "refresh the SQLite cache from an explicit payload-hashes.json URL; omit URL only when DASHBOARD_DATA_URL is configured")
-	cmd.Flags().Lookup("download-sqlite").NoOptDefVal = environmentDownloadURL
+	postgresURL := cmd.Flags().String("postgres-url", "", "Postgres dashboard storage URL; defaults to CAO_POSTGRES_URL")
 	redisNamespace, namespaceErr := registerRedisNamespaceFlag(cmd, "Redis key and index namespace")
 	siteDirectory := cmd.Flags().String("site", "", "serve a built dashboard directory from disk instead of embedded resources")
 	listen := cmd.Flags().String("listen", "127.0.0.1:8443", "loopback HTTP listen address; HTTPS when --cert and --key are set")
@@ -693,26 +683,9 @@ func newServeCommand() *cobra.Command {
 	mcpContract := cmd.Flags().String("mcp-contract", "", "shared MCP tool contract (default: selected dashboard resources)")
 	mcpEnabled := cmd.Flags().Bool("mcp-enabled", false, "serve the read-only MCP endpoint at /mcp")
 	canvasConfigPath := cmd.Flags().String("canvas-config", "", "private local Copilot adapter configuration; stdin owns the host lifetime")
-	sqliteIngestion := cmd.Flags().Bool("sqlite-ingestion", false, "serve canonical SQLite refreshed by an owning ingestion process with ordinary server rendering")
-	operatorConfigPath := cmd.Flags().String("operator-config", "", "private native maintenance adapter configuration for SQLite ingestion mode")
-	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "canvas-config")
-	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "postgres-url")
-	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "redis-url")
-	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "source")
-	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "download-sqlite")
-	exitOnStdinClose := cmd.Flags().Bool("exit-on-stdin-close", false, "stop local SQLite serving when the owning CLI closes stdin")
-	cmd.MarkFlagsMutuallyExclusive("sqlite", "postgres-url")
-	cmd.MarkFlagsMutuallyExclusive("sqlite", "redis-url")
-	cmd.MarkFlagsMutuallyExclusive("sqlite", "source")
-	cmd.MarkFlagsMutuallyExclusive("download-sqlite", "postgres-url")
-	cmd.MarkFlagsMutuallyExclusive("download-sqlite", "redis-url")
-	cmd.MarkFlagsMutuallyExclusive("download-sqlite", "source")
-	cmd.Args = func(cmd *cobra.Command, args []string) error {
-		if len(args) == 1 && cmd.Flags().Changed("download-sqlite") && *downloadURL == environmentDownloadURL {
-			return nil
-		}
-		return cobra.NoArgs(cmd, args)
-	}
+	operatorConfigPath := cmd.Flags().String("operator-config", "", "private native maintenance adapter configuration")
+	cmd.MarkFlagsMutuallyExclusive("operator-config", "canvas-config")
+	exitOnStdinClose := cmd.Flags().Bool("exit-on-stdin-close", false, "stop local serving when the owning CLI closes stdin")
 	cmd.RunE = func(_ *cobra.Command, args []string) error {
 		resolveServeResources(cmd, *siteDirectory)
 		if namespaceErr != nil {
@@ -725,16 +698,6 @@ func newServeCommand() *cobra.Command {
 		if selected {
 			return errors.New("reviewed operational-store selection requires serve-hosted or an external OAuth host; local bearer serve cannot override it")
 		}
-		downloadSnapshot := cmd.Flags().Changed("download-sqlite")
-		snapshotURL := dataURLDefault
-		if downloadSnapshot && *downloadURL != environmentDownloadURL {
-			snapshotURL = *downloadURL
-		}
-		if len(args) == 1 {
-			snapshotURL = args[0]
-		}
-		localSQLite := !cmd.Flags().Changed("postgres-url") &&
-			!cmd.Flags().Changed("redis-url") && !cmd.Flags().Changed("source")
 		canvas, err := readCanvasConfig(*canvasConfigPath)
 		if err != nil {
 			return err
@@ -743,46 +706,11 @@ func newServeCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		if operator != nil && !*sqliteIngestion {
-			return errors.New("--operator-config requires --sqlite-ingestion")
+		if err := server.ValidateListen(*listen, *cert, *key); err != nil {
+			return err
 		}
-		if *sqliteIngestion && (!localSQLite || !cmd.Flags().Changed("sqlite")) {
-			return errors.New("--sqlite-ingestion requires an explicit canonical --sqlite database")
-		}
-		if canvas != nil && !localSQLite {
-			return errors.New("canvas integration requires local SQLite serving")
-		}
-		if *exitOnStdinClose && !localSQLite {
-			return errors.New("--exit-on-stdin-close requires local SQLite serving")
-		}
-		snapshotPath := strings.TrimSpace(*sqlitePath)
-		if localSQLite {
-			if snapshotPath == "" {
-				return errors.New("--sqlite requires a local snapshot cache path")
-			}
-			if err := server.ValidateListen(*listen, *cert, *key); err != nil {
-				return err
-			}
-			if !downloadSnapshot {
-				_, err := os.Lstat(snapshotPath)
-				if errors.Is(err, os.ErrNotExist) {
-					if *sqliteIngestion {
-						return errors.New("SQLite ingestion requires a canonical database initialized by its owning ingestion process")
-					}
-					downloadSnapshot = true
-				} else if err != nil {
-					return fmt.Errorf("inspect local SQLite cache: %w", err)
-				}
-			}
-			if downloadSnapshot {
-				if _, err := sqliteManifestURL(snapshotURL); err != nil {
-					return err
-				}
-			}
-		} else {
-			if _, _, err := resolvePostgresEndpoint(*postgresURL, os.Getenv("CAO_POSTGRES_URL")); err != nil {
-				return err
-			}
+		if _, _, err := resolvePostgresEndpoint(*postgresURL, os.Getenv("CAO_POSTGRES_URL")); err != nil {
+			return err
 		}
 		commandLog.Printf("serve flags parsed tls=%t source_ingestion=%t", *cert != "", *source != "")
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
@@ -827,7 +755,7 @@ func newServeCommand() *cobra.Command {
 				Canvas:               canvas,
 				OperatorActions:      operator,
 			}
-			if localSQLite {
+			if canvas != nil || operator != nil {
 				// Ambient local credentials are not an Actions identity
 				// admitted through the MCP endpoint.
 				config.GitHubActionsToken, config.GitHubActionsActor = "", ""
@@ -840,31 +768,6 @@ func newServeCommand() *cobra.Command {
 				}
 			}
 			return config, nil
-		}
-		if localSQLite {
-			config, err := configure()
-			if err != nil {
-				return err
-			}
-			if downloadSnapshot {
-				if err := server.ValidateSite(config.SiteDirectory); err != nil {
-					return fmt.Errorf("build the dashboard before downloading, or select an existing build with --site: %w", err)
-				}
-				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Downloading and verifying the deployed SQLite snapshot...")
-				if err := downloadSQLite(ctx, snapshotURL, snapshotPath); err != nil {
-					return err
-				}
-				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "SQLite snapshot ready.")
-			}
-			newApp := server.NewLocalSQLiteApp
-			if *sqliteIngestion {
-				newApp = server.NewSQLiteIngestionApp
-			}
-			app, err := newApp(ctx, snapshotPath, config)
-			if err != nil {
-				return err
-			}
-			return app.Serve(ctx)
 		}
 		var store operational.Store
 		if cmd.Flags().Changed("redis-url") {
@@ -989,8 +892,7 @@ func newExecuteCLICommand() *cobra.Command {
 		"resume claiming after commands interrupted by a previous executor were marked failed")
 	prefetch := cmd.Flags().Int("prefetch", 2, "queued commands whose tokens are minted ahead of execution; 0 disables")
 	maxPooled := cmd.Flags().Int("max-pooled-tokens", 8, "unused pre-minted tokens held at once; 0 disables pooling")
-	sqlitePath := cmd.Flags().String("sqlite", "",
-		"local debugging only: SQLite file shared with serve-hosted --hosted-cli-sqlite instead of the operational store")
+	localDevelopment := cmd.Flags().Bool("local-development", false, "permit explicitly selected development-only execution profiles with PostgreSQL storage")
 	cmd.RunE = func(*cobra.Command, []string) error {
 		if *prefetch < 0 || *maxPooled < 0 {
 			return errors.New("--prefetch and --max-pooled-tokens must not be negative")
@@ -1011,7 +913,7 @@ func newExecuteCLICommand() *cobra.Command {
 			AcknowledgeRecovery: *acknowledgeRecovery,
 			Prefetch:            *prefetch,
 			MaxPooledTokens:     *maxPooled,
-			SQLitePath:          *sqlitePath,
+			LocalDevelopment:    *localDevelopment,
 			Logger:              log.New(os.Stderr, "cao-dashboard: ", log.LstdFlags),
 		})
 		if err != nil {

@@ -5,16 +5,28 @@ import { chmod, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } fro
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
-import { test } from "node:test";
+import { after, before, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { startLocalDashboardPreview } from "../../com.github.copilot/extensions/cao-dashboard/local-preview.mjs";
-import { writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
+import { prepareCanvasPostgres, writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
 import { normalize } from "../../dashboard/site/src/data/normalize/index.js";
 import { queryDashboardSourceObservations } from "../../dashboard/site/src/data/queries/ingestion.js";
 
 const extensionUrl = new URL("../../com.github.copilot/extensions/cao-dashboard/extension.mjs", import.meta.url);
 
-async function fixture() {
+async function fixture(t, postgres) {
+  postgres ??= await prepareCanvasPostgres();
+  const previousURL = process.env.CAO_POSTGRES_URL;
+  const previousNamespace = process.env.CAO_DATABASE_NAMESPACE;
+  process.env.CAO_POSTGRES_URL = postgres.postgresURL;
+  process.env.CAO_DATABASE_NAMESPACE = postgres.namespace;
+  t.after(async () => {
+    if (previousURL === undefined) delete process.env.CAO_POSTGRES_URL;
+    else process.env.CAO_POSTGRES_URL = previousURL;
+    if (previousNamespace === undefined) delete process.env.CAO_DATABASE_NAMESPACE;
+    else process.env.CAO_DATABASE_NAMESPACE = previousNamespace;
+    await postgres.close();
+  });
   const workspace = await realpath(await mkdtemp(join(tmpdir(), "cao-canvas-test-")));
   const ghExecutable = join(workspace, "gh");
   const artifact = join(workspace, ".cao");
@@ -45,8 +57,8 @@ async function previewDirectories(workspace) {
 
 test("plugin canvas stages its site inside a foreign workspace and cleans up", {
   skip: process.platform === "win32",
-}, async () => {
-  const { workspace, ghExecutable } = await fixture();
+}, async (t) => {
+  const { workspace, ghExecutable } = await fixture(t);
   let preview;
   try {
     preview = await startLocalDashboardPreview({
@@ -120,11 +132,11 @@ test("plugin canvas stages its site inside a foreign workspace and cleans up", {
 
 for (const invalid of ["corrupt", "synthetic"]) test(`canvas fails closed when downloaded canonical data is ${invalid}`, {
   skip: process.platform === "win32",
-}, async () => {
-  const { workspace, ghExecutable } = await fixture();
+}, async (t) => {
+  const { workspace, ghExecutable } = await fixture(t);
   try {
     if (invalid === "corrupt") {
-      await writeFile(join(workspace, ".cao", "gh-aw-logs.sqlite"), "invalid snapshot");
+      await writeFile(join(workspace, ".cao", "gh-aw-logs-runs", "canonical.jsonl"), "invalid snapshot");
     } else {
       const manifestPath = join(workspace, ".cao", "payload-hashes.json");
       const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
@@ -145,8 +157,8 @@ for (const invalid of ["corrupt", "synthetic"]) test(`canvas fails closed when d
 for (const layout of ["dashboard", ".github/aw/dashboard"]) {
   test(`canvas ignores executable code and site assets in the ${layout} workspace layout`, {
     skip: process.platform === "win32",
-  }, async () => {
-    const { workspace, ghExecutable } = await fixture();
+  }, async (t) => {
+    const { workspace, ghExecutable } = await fixture(t);
     const dashboardDirectory = join(workspace, layout);
     let preview;
     try {
@@ -177,8 +189,8 @@ throw new Error("Workspace server must never execute.");
 
 test("failed plugin canvas startup removes staged assets", {
   skip: process.platform === "win32",
-}, async () => {
-  const { workspace, ghExecutable } = await fixture();
+}, async (t) => {
+  const { workspace, ghExecutable } = await fixture(t);
   try {
     await rm(join(workspace, ".cao", "payload-hashes.json"));
     await assert.rejects(startLocalDashboardPreview({
@@ -186,20 +198,25 @@ test("failed plugin canvas startup removes staged assets", {
       executeCliAction: async () => {},
       approveCliAction: async () => false,
       ghExecutable,
-    }), /Prepare a checksum-verified operational snapshot/);
+    }), /Prepare a checksum-verified canonical JSONL artifact/);
     assert.deepEqual(await previewDirectories(workspace), []);
   } finally {
     await rm(workspace, { recursive: true, force: true });
   }
 });
 
-test("extension SIGTERM closes live previews before exiting", {
-  skip: process.platform === "win32",
-  timeout: 30_000,
-}, async () => {
-  const { workspace } = await fixture();
-  const sdkUrl = import.meta.resolve("@github/copilot-sdk/extension");
-  const shim = `export { CanvasError, createCanvas } from ${JSON.stringify(sdkUrl)};
+describe("extension lifecycle with provisioned PostgreSQL", { skip: process.platform === "win32" }, () => {
+  let postgres;
+  before(async () => { postgres = await prepareCanvasPostgres(); });
+  after(async () => { await postgres?.close(); });
+
+  test("extension SIGTERM closes live previews before exiting", {
+    skip: process.platform === "win32",
+    timeout: 30_000,
+  }, async (t) => {
+    const { workspace } = await fixture(t, postgres);
+    const sdkUrl = import.meta.resolve("@github/copilot-sdk/extension");
+    const shim = `export { CanvasError, createCanvas } from ${JSON.stringify(sdkUrl)};
 export async function joinSession(config) {
   const preview = await config.canvases[0].open({
     sessionId: "test", extensionId: "test:cao", canvasId: "cao-dashboard",
@@ -207,45 +224,46 @@ export async function joinSession(config) {
   });
   setImmediate(() => process.stdout.write(JSON.stringify(preview) + "\\n"));
 }`;
-  const shimUrl = `data:text/javascript,${encodeURIComponent(shim)}`;
-  const preload = `import { registerHooks } from "node:module";
+    const shimUrl = `data:text/javascript,${encodeURIComponent(shim)}`;
+    const preload = `import { registerHooks } from "node:module";
 registerHooks({ resolve(specifier, context, next) {
   return specifier === "@github/copilot-sdk/extension"
     ? { url: ${JSON.stringify(shimUrl)}, shortCircuit: true }
     : next(specifier, context);
 } });`;
-  const child = spawn(process.execPath, [
-    "--import", `data:text/javascript,${encodeURIComponent(preload)}`,
-    fileURLToPath(extensionUrl),
-  ], {
-    cwd: workspace,
-    env: { ...process.env, PATH: `${workspace}:${process.env.PATH}` },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let stderr = "";
-  child.stderr.setEncoding("utf8").on("data", (chunk) => { stderr += chunk; });
-  const lines = createInterface({ input: child.stdout });
-  let exited = false;
-  const exit = once(child, "exit").then((result) => { exited = true; return result; });
-  try {
-    const line = await Promise.race([
-      once(lines, "line").then(([line]) => line),
-      exit.then(() => { throw new Error(`Extension exited before opening: ${stderr}`); }),
-    ]);
-    const { url } = JSON.parse(line);
-    assert.equal((await fetch(url)).status, 200);
-    assert.equal((await previewDirectories(workspace)).length, 2);
-    child.kill("SIGTERM");
-    const [code, signal] = await exit;
-    assert.equal(code, 0, stderr);
-    assert.equal(signal, null);
-    assert.deepEqual(await previewDirectories(workspace), []);
-  } finally {
-    lines.close();
-    if (!exited) {
+    const child = spawn(process.execPath, [
+      "--import", `data:text/javascript,${encodeURIComponent(preload)}`,
+      fileURLToPath(extensionUrl),
+    ], {
+      cwd: workspace,
+      env: { ...process.env, PATH: `${workspace}:${process.env.PATH}` },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stderr = "";
+    child.stderr.setEncoding("utf8").on("data", (chunk) => { stderr += chunk; });
+    const lines = createInterface({ input: child.stdout });
+    let exited = false;
+    const exit = once(child, "exit").then((result) => { exited = true; return result; });
+    try {
+      const line = await Promise.race([
+        once(lines, "line").then(([line]) => line),
+        exit.then(() => { throw new Error(`Extension exited before opening: ${stderr}`); }),
+      ]);
+      const { url } = JSON.parse(line);
+      assert.equal((await fetch(url)).status, 200);
+      assert.equal((await previewDirectories(workspace)).length, 2);
       child.kill("SIGTERM");
-      await exit;
+      const [code, signal] = await exit;
+      assert.equal(code, 0, stderr);
+      assert.equal(signal, null);
+      assert.deepEqual(await previewDirectories(workspace), []);
+    } finally {
+      lines.close();
+      if (!exited) {
+        child.kill("SIGTERM");
+        await exit;
+      }
+      await rm(workspace, { recursive: true, force: true });
     }
-    await rm(workspace, { recursive: true, force: true });
-  }
+  });
 });

@@ -199,7 +199,7 @@ func TestOperatorRuntimeArguments(t *testing.T) {
 		{[]string{"queries", "--dashboard", "custom.json"}, []string{"queries", "--dashboard", "custom.json"}},
 		{[]string{"query-info", "cost-by-campaign", "--json"}, []string{"query-info", "cost-by-campaign", "--json"}},
 		{[]string{"prompt", "campaign-runs", "--param", "campaign=one,two", "--param", "label=a=b"}, []string{"prompt", "campaign-runs", "--param", "campaign=one,two", "--param", "label=a=b"}},
-		{[]string{"query", "--database", "local.sqlite", "--stdin"}, []string{"query", "--database", "local.sqlite", "--stdin"}},
+		{[]string{"query", "--postgres-url", "postgres://127.0.0.1/cao", "--stdin"}, []string{"query", "--postgres-url", "postgres://127.0.0.1/cao", "--stdin"}},
 		{[]string{"query", "--collection", "runs", "--where", "status=failure", "--where", "workflowId=a,b"}, []string{"query", "--collection", "runs", "--where", "status=failure", "--where", "workflowId=a,b"}},
 		{[]string{"gh", "runs", "-R", "owner/repo", "-w", "activity", "-s", "failure", "-L", "5"}, []string{"gh", "runs", "--limit", "5", "--repo", "owner/repo", "--status", "failure", "--workflow", "activity"}},
 		{[]string{"gh", "prs", "--since", "2026-09-01"}, []string{"gh", "prs", "--since", "2026-09-01"}},
@@ -279,7 +279,7 @@ func TestPipelineCommandsAreNotMigrated(t *testing.T) {
 		"audit-jsonl", "cluster-problems", "compact-jsonl",
 		"dashboard-complexity", "discover-workflows", "hash-payloads", "ingest",
 		"ingest-jsonl", "issue-status", "operational-value", "prune-dashboard",
-		"recycle-cache",
+		"recycle-cache", "repair-database",
 	} {
 		t.Run(name, func(t *testing.T) {
 			root, _, _ := testCommand(t, nil, nil)

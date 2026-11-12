@@ -1,21 +1,19 @@
 package cli
 
 import (
+	"bytes"
 	"context"
-	"database/sql"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
+	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 	"time"
-
-	_ "modernc.org/sqlite"
-
-	"github.com/githubnext/gh-cao/internal/dashboardquery"
 )
 
 func prepareDashboardCache(directory string) error {
@@ -29,42 +27,30 @@ func prepareDashboardCache(directory string) error {
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return errors.New("dashboard cache must be a real directory")
 	}
-	if err := os.Chmod(directory, 0o700); err != nil {
-		return err
-	}
-	for _, suffix := range []string{"", "-wal", "-shm", "-journal"} {
-		info, err := os.Lstat(filepath.Join(directory, "gh-aw-logs.sqlite"+suffix))
-		if err == nil && !info.Mode().IsRegular() {
-			return errors.New("dashboard database and sidecars must be regular files")
-		}
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-	}
-	return nil
+	return os.Chmod(directory, 0o700)
 }
 
-func readDashboardStatus(ctx context.Context, cache string, repositories []string) (metadata map[string]any, err error) {
-	filename := filepath.Join(cache, "gh-aw-logs.sqlite")
-	info, err := os.Lstat(filename)
-	if err != nil {
-		return nil, fmt.Errorf("no local dashboard snapshot; run gh cao dashboard: %w", err)
-	}
-	if !info.Mode().IsRegular() {
-		return nil, errors.New("dashboard database must be a regular file")
-	}
-	db, err := openNativeSnapshot(filename)
-	if err != nil {
+func readDashboardStatus(ctx context.Context, cache string, repositories []string) (map[string]any, error) {
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	defer func() { err = errors.Join(err, db.Close()) }()
-	var content string
-	if err := db.QueryRowContext(ctx, `SELECT value FROM __idb_records WHERE database_name=? AND store_name='transactions' AND record_key='"local-dashboard"'`,
-		dashboardquery.DatabaseName).Scan(&content); err != nil {
-		return nil, errors.New("cache is not an on-demand dashboard database; select a separate --cache-dir")
+	content, err := os.ReadFile(filepath.Join(cache, "inventory-sources.json"))
+	if err != nil {
+		return nil, fmt.Errorf("no local dashboard evidence; run gh cao dashboard: %w", err)
 	}
-	if err := json.Unmarshal([]byte(content), &metadata); err != nil {
+	var inventory struct {
+		Repositories struct {
+			Metadata struct {
+				LocalDashboard map[string]any `json:"local-dashboard"`
+			} `json:"metadata"`
+		} `json:"repositories"`
+	}
+	if err := json.Unmarshal(content, &inventory); err != nil {
 		return nil, errors.New("local dashboard metadata is malformed")
+	}
+	metadata := inventory.Repositories.Metadata.LocalDashboard
+	if metadata == nil {
+		return nil, errors.New("cache is not on-demand dashboard evidence; select a separate --cache-dir")
 	}
 	scope := []string{}
 	for _, value := range nativeArray(metadata["repositories"]) {
@@ -89,196 +75,298 @@ func initializeDashboardSnapshot(ctx context.Context, cache string, repositories
 		return errors.New("dashboard collection is already locked")
 	}
 	defer func() { _ = os.Remove(lock) }()
-	if _, err := os.Stat(filepath.Join(cache, "gh-aw-logs.sqlite")); err == nil {
+	if _, err := os.Stat(filepath.Join(cache, "inventory-sources.json")); err == nil {
 		_, err = readDashboardStatus(ctx, cache, repositories)
 		return err
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	now := time.Now().UTC()
-	metadata := dashboardObservationMetadata(repositories, options, now, nil)
+	metadata := dashboardObservationMetadata(repositories, options, time.Now().UTC(), nil)
 	metadata["coverage"] = "Initial collection pending; upstream evidence is not yet available."
 	return publishDashboardSnapshot(ctx, cache, map[string][]map[string]any{"transactions": {metadata}})
 }
 
-func publishDashboardSnapshot(ctx context.Context, cache string, batch map[string][]map[string]any) (err error) {
+func publishDashboardSnapshot(ctx context.Context, cache string, batch map[string][]map[string]any) error {
 	return writeDashboardSnapshot(ctx, cache, batch, false)
 }
 
+// The cache retains verified canonical input, not a second query backend.
+// PostgreSQL owns query execution and daily-count reconciliation.
 func writeDashboardSnapshot(ctx context.Context, cache string, batch map[string][]map[string]any, keepHistory bool) (err error) {
-	filename := filepath.Join(cache, "gh-aw-logs.sqlite")
-	created := false
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-	if err == nil {
-		created = true
-		if err := file.Close(); err != nil {
-			return err
-		}
-	} else if !errors.Is(err, os.ErrExist) {
+	if err := ctx.Err(); err != nil {
 		return err
 	}
-	defer func() {
-		if err != nil && created {
-			err = errors.Join(err, os.Remove(filename))
-		}
-	}()
-	location := &url.URL{Scheme: "file", Path: "/" + strings.TrimPrefix(filepath.ToSlash(filename), "/")}
-	parameters := location.Query()
-	parameters.Set("_pragma", "busy_timeout(5000)")
-	location.RawQuery = parameters.Encode()
-	db, err := sql.Open("sqlite", location.String())
-	if err != nil {
-		return err
-	}
-	db.SetMaxOpenConns(1)
-	defer func() { err = errors.Join(err, db.Close()) }()
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
-	if created {
-		if _, err := tx.ExecContext(ctx, `
-			CREATE TABLE __idb_databases(name TEXT PRIMARY KEY, version INTEGER NOT NULL);
-			CREATE TABLE __idb_stores(database_name TEXT NOT NULL, name TEXT NOT NULL, key_path TEXT NOT NULL, PRIMARY KEY(database_name,name));
-			CREATE TABLE __idb_indexes(database_name TEXT NOT NULL, store_name TEXT NOT NULL, name TEXT NOT NULL, key_path TEXT NOT NULL, PRIMARY KEY(database_name,store_name,name));
-			CREATE TABLE __idb_records(database_name TEXT NOT NULL, store_name TEXT NOT NULL, record_key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(database_name,store_name,record_key));
-		`); err != nil {
-			return err
-		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO __idb_databases VALUES(?,?)`, dashboardquery.DatabaseName, dashboardquery.DatabaseVersion); err != nil {
-			return err
-		}
-	} else {
-		var version int
-		if err := tx.QueryRowContext(ctx, `SELECT version FROM __idb_databases WHERE name=?`, dashboardquery.DatabaseName).Scan(&version); err != nil {
-			return err
-		}
-		if version != dashboardquery.DatabaseVersion {
-			return errors.New("local dashboard schema changed; select a new --cache-dir (existing database is not migrated)")
-		}
-	}
-	if err := reconcileDashboardDailyCounts(ctx, tx, batch["runs"], time.Now().UTC()); err != nil {
+	if err := prepareDashboardCache(cache); err != nil {
 		return err
 	}
 	if keepHistory {
-		if err := retainDashboardHistory(ctx, tx, batch); err != nil {
-			return err
-		}
-	} else {
-		if _, err := tx.ExecContext(ctx, `DELETE FROM __idb_records WHERE database_name=?
-		AND store_name NOT IN ('dailyRunCounts','runCountContributions','dailyRunCountState')`, dashboardquery.DatabaseName); err != nil {
-			return err
-		}
-		if _, err := tx.ExecContext(ctx, `DELETE FROM __idb_stores WHERE database_name=?
-		AND name NOT IN ('dailyRunCounts','runCountContributions','dailyRunCountState')`, dashboardquery.DatabaseName); err != nil {
-			return err
-		}
-		if _, err := tx.ExecContext(ctx, `DELETE FROM __idb_indexes WHERE database_name=?
-		AND store_name NOT IN ('dailyRunCounts','runCountContributions','dailyRunCountState')`, dashboardquery.DatabaseName); err != nil {
+		batch, err = retainDashboardHistory(ctx, cache, batch)
+		if err != nil {
 			return err
 		}
 	}
-	for store, records := range batch {
-		if _, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO __idb_stores VALUES(?,?,'"id"')`, dashboardquery.DatabaseName, store); err != nil {
+	staging, err := os.MkdirTemp(cache, ".deployed-dashboard-")
+	if err != nil {
+		return err
+	}
+	defer func() { err = errors.Join(err, os.RemoveAll(staging)) }()
+	manifest := map[string]string{}
+	published := map[string][]map[string]any{}
+	for store, rows := range batch {
+		if store == "transactions" {
+			rows = slices.DeleteFunc(slices.Clone(rows), func(row map[string]any) bool {
+				return row["id"] != "local-dashboard-ingestion"
+			})
+		}
+		published[store] = rows
+	}
+	stores := make([]string, 0, len(published))
+	for store := range published {
+		stores = append(stores, store)
+	}
+	slices.Sort(stores)
+	for _, phase := range []string{"runs", "records"} {
+		var content bytes.Buffer
+		count := 0
+		for _, store := range stores {
+			runPhase := slices.Contains([]string{"campaigns", "repositories", "workflows", "runs", "experiments", "experimentAssignments"}, store)
+			if runPhase == (phase == "runs") {
+				count += len(published[store])
+			}
+		}
+		encoder := json.NewEncoder(&content)
+		if err := encoder.Encode(map[string]any{"kind": "metadata", "phase": phase, "records": count}); err != nil {
 			return err
 		}
-		for _, record := range records {
-			key, err := json.Marshal(record["id"])
-			if err != nil {
-				return err
+		for _, store := range stores {
+			runPhase := slices.Contains([]string{"campaigns", "repositories", "workflows", "runs", "experiments", "experimentAssignments"}, store)
+			if runPhase != (phase == "runs") {
+				continue
 			}
-			content, err := json.Marshal(record)
-			if err != nil {
-				return err
-			}
-			if _, err := tx.ExecContext(ctx, `INSERT INTO __idb_records VALUES(?,?,?,?)
-				ON CONFLICT(database_name,store_name,record_key) DO UPDATE SET value=excluded.value`,
-				dashboardquery.DatabaseName, store, string(key), string(content)); err != nil {
-				return err
+			for _, row := range published[store] {
+				if err := encoder.Encode(map[string]any{"kind": "record", "collection": store, "record": row}); err != nil {
+					return err
+				}
 			}
 		}
+		directory := "gh-aw-logs-" + phase
+		if err := os.MkdirAll(filepath.Join(staging, directory), 0o700); err != nil {
+			return err
+		}
+		name := directory + "/local.jsonl"
+		if err := os.WriteFile(filepath.Join(staging, name), content.Bytes(), 0o600); err != nil {
+			return err
+		}
+		hash := sha256.Sum256(content.Bytes())
+		manifest[name] = hex.EncodeToString(hash[:])
 	}
-	return tx.Commit()
+	var local, ingestion map[string]any
+	for _, row := range batch["transactions"] {
+		switch row["id"] {
+		case "local-dashboard":
+			local = row
+		case "local-dashboard-ingestion":
+			ingestion = row
+		}
+	}
+	quality := map[string]any{"availability": "available", "completeness": "partial", "freshness": "unknown"}
+	if local != nil {
+		quality["as-of"], quality["local-dashboard"] = local["windowEnd"], local
+	}
+	if ingestion != nil {
+		quality["local-dashboard-ingestion"] = ingestion
+	}
+	inventory, err := json.Marshal(map[string]any{
+		"repositories": map[string]any{"rows": []any{}, "metadata": quality},
+		"workflows":    map[string]any{"rows": []any{}, "metadata": quality},
+	})
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(staging, "inventory-sources.json"), inventory, 0o600); err != nil {
+		return err
+	}
+	hash := sha256.Sum256(inventory)
+	manifest["inventory-sources.json"] = hex.EncodeToString(hash[:])
+	content, err := json.Marshal(manifest)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(staging, "payload-hashes.json"), content, 0o600); err != nil {
+		return err
+	}
+	return nativePublishDownload(staging, cache, []string{"gh-aw-logs-runs", "gh-aw-logs-records", "inventory-sources.json", "payload-hashes.json"})
 }
 
-func retainDashboardHistory(ctx context.Context, tx *sql.Tx, batch map[string][]map[string]any) error {
-	var cutoff string
-	for _, row := range batch["transactions"] {
+func readDashboardArtifactBatch(ctx context.Context, cache string) (map[string][]map[string]any, error) {
+	batch := map[string][]map[string]any{}
+	content, err := os.ReadFile(filepath.Join(cache, "payload-hashes.json"))
+	if errors.Is(err, os.ErrNotExist) {
+		return batch, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var manifest map[string]string
+	if err := json.Unmarshal(content, &manifest); err != nil {
+		return nil, err
+	}
+	for _, phase := range []string{"runs", "records"} {
+		name := "gh-aw-logs-" + phase + "/local.jsonl"
+		if err := readDashboardArtifactPhase(ctx, cache, name, manifest[name], batch); err != nil {
+			return nil, err
+		}
+	}
+	return batch, nil
+}
+
+func readDashboardArtifactPhase(ctx context.Context, cache, name, expected string, batch map[string][]map[string]any) (err error) {
+	file, err := os.Open(filepath.Join(cache, filepath.FromSlash(name)))
+	if err != nil {
+		return err
+	}
+	defer func() { err = errors.Join(err, file.Close()) }()
+	hash := sha256.New()
+	decoder := json.NewDecoder(io.TeeReader(file, hash))
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		var row struct {
+			Kind       string         `json:"kind"`
+			Collection string         `json:"collection"`
+			Record     map[string]any `json:"record"`
+		}
+		if err := decoder.Decode(&row); errors.Is(err, io.EOF) {
+			break
+		} else if err != nil {
+			return err
+		}
+		if row.Kind == "metadata" {
+			continue
+		}
+		if row.Kind != "record" || row.Collection == "" || nativeText(row.Record["id"]) == "" {
+			return errors.New("local dashboard canonical artifact contains an invalid record")
+		}
+		batch[row.Collection] = append(batch[row.Collection], row.Record)
+	}
+	if expected == "" || hex.EncodeToString(hash.Sum(nil)) != expected {
+		return errors.New("local dashboard canonical artifact checksum mismatch")
+	}
+	return nil
+}
+
+func retainDashboardHistory(ctx context.Context, cache string, incoming map[string][]map[string]any) (map[string][]map[string]any, error) {
+	previous, err := readDashboardArtifactBatch(ctx, cache)
+	if err != nil {
+		return nil, err
+	}
+	cutoff := ""
+	for _, row := range incoming["transactions"] {
 		if row["id"] == "local-dashboard" {
 			cutoff = nativeText(row["windowStart"])
 		}
 	}
-	if _, err := time.Parse(time.RFC3339Nano, cutoff); err != nil {
-		return errors.New("history publication requires a valid detail retention cutoff")
+	retainAfter, err := time.Parse(time.RFC3339Nano, cutoff)
+	if err != nil {
+		return nil, errors.New("history publication requires a valid detail retention cutoff")
 	}
-	rejected := map[string]bool{}
-	accepted := make([]map[string]any, 0, len(batch["runs"]))
-	for _, incoming := range batch["runs"] {
-		id := nativeText(incoming["id"])
-		previous, err := dashboardDailyRecord(ctx, tx, "runs", id)
-		if err != nil {
-			return err
+	merged := map[string]map[string]map[string]any{}
+	for collection, rows := range previous {
+		merged[collection] = map[string]map[string]any{}
+		for _, row := range rows {
+			merged[collection][nativeText(row["id"])] = row
 		}
-		before, after := nativeNumber(previous["attempt"]), nativeNumber(incoming["attempt"])
-		if previous != nil && (after < before ||
-			after == before && dashboardDailyRevision(incoming) < dashboardDailyRevision(previous)) {
-			rejected[id] = true
+	}
+	rejected, replaced := map[string]bool{}, map[string]bool{}
+	revision := func(row map[string]any) float64 {
+		return math.Max(0, math.Max(nativeTimestamp(row["updatedAt"]), nativeTimestamp(row["completedAt"])))
+	}
+	for _, row := range incoming["runs"] {
+		id := nativeText(row["id"])
+		before := merged["runs"][id]
+		if before == nil {
 			continue
 		}
-		if previous != nil && before == after {
-			for key, value := range previous {
-				if _, present := incoming[key]; !present {
-					incoming[key] = value
+		oldAttempt, newAttempt := nativeNumber(before["attempt"]), nativeNumber(row["attempt"])
+		if newAttempt < oldAttempt || newAttempt == oldAttempt && revision(row) < revision(before) {
+			rejected[id] = true
+		} else if oldAttempt == newAttempt {
+			for field, value := range before {
+				if _, exists := row[field]; !exists {
+					row[field] = value
 				}
 			}
-		} else if previous != nil {
-			if _, err := tx.ExecContext(ctx, `DELETE FROM __idb_records WHERE database_name=?
-				AND store_name NOT IN ('dailyRunCounts','runCountContributions','dailyRunCountState')
-				AND json_extract(value,'$.runId')=?`, dashboardquery.DatabaseName, id); err != nil {
-				return err
+		} else {
+			replaced[id] = true
+		}
+	}
+	for collection, rows := range merged {
+		if collection != "runs" {
+			for id, row := range rows {
+				if replaced[nativeText(row["runId"])] {
+					delete(rows, id)
+				}
 			}
 		}
-		accepted = append(accepted, incoming)
 	}
-	batch["runs"] = accepted
-	if len(rejected) > 0 {
-		for store, rows := range batch {
-			batch[store] = slices.DeleteFunc(rows, func(row map[string]any) bool {
-				return rejected[nativeText(row["runId"])]
-			})
+	for collection, rows := range incoming {
+		if merged[collection] == nil {
+			merged[collection] = map[string]map[string]any{}
+		}
+		for _, row := range rows {
+			if collection == "runs" && rejected[nativeText(row["id"])] || rejected[nativeText(row["runId"])] {
+				continue
+			}
+			merged[collection][nativeText(row["id"])] = row
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM __idb_records WHERE database_name=? AND store_name='runs'
-		AND julianday(json_extract(value,'$.createdAt')) < julianday(?)`, dashboardquery.DatabaseName, cutoff); err != nil {
-		return err
+	for id, row := range merged["runs"] {
+		if created, err := time.Parse(time.RFC3339Nano, nativeText(row["createdAt"])); err == nil && created.Before(retainAfter) {
+			delete(merged["runs"], id)
+		}
 	}
-	_, err := tx.ExecContext(ctx, `DELETE FROM __idb_records WHERE database_name=?
-		AND store_name NOT IN ('dailyRunCounts','runCountContributions','dailyRunCountState')
-		AND json_extract(value,'$.runId') IS NOT NULL
-		AND NOT EXISTS (SELECT 1 FROM __idb_records runs WHERE runs.database_name=?
-			AND runs.store_name='runs' AND json_extract(runs.value,'$.id')=json_extract(__idb_records.value,'$.runId'))`,
-		dashboardquery.DatabaseName, dashboardquery.DatabaseName)
-	return err
+	batch := map[string][]map[string]any{}
+	for collection, rows := range merged {
+		ids := make([]string, 0, len(rows))
+		for id, row := range rows {
+			if runID := nativeText(row["runId"]); runID == "" || merged["runs"][runID] != nil {
+				ids = append(ids, id)
+			}
+		}
+		slices.Sort(ids)
+		for _, id := range ids {
+			batch[collection] = append(batch[collection], rows[id])
+		}
+	}
+	return batch, nil
 }
 
 func readDashboardIngestion(ctx context.Context, cache string) (state dashboardIngestion, err error) {
 	state.Cursors = map[string]dashboardHistoryCursor{}
-	db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
-	if err != nil {
+	if err := ctx.Err(); err != nil {
 		return state, err
 	}
-	defer func() { err = errors.Join(err, db.Close()) }()
-	var content string
-	err = db.QueryRowContext(ctx, `SELECT value FROM __idb_records WHERE database_name=?
-		AND store_name='transactions' AND record_key='"local-dashboard-ingestion"'`, dashboardquery.DatabaseName).Scan(&content)
-	if errors.Is(err, sql.ErrNoRows) {
+	content, err := os.ReadFile(filepath.Join(cache, "inventory-sources.json"))
+	if errors.Is(err, os.ErrNotExist) {
 		return state, nil
 	}
 	if err != nil {
 		return state, err
 	}
-	if err := json.Unmarshal([]byte(content), &state); err != nil || state.Cursors == nil {
+	var inventory struct {
+		Repositories struct {
+			Metadata map[string]json.RawMessage `json:"metadata"`
+		} `json:"repositories"`
+	}
+	if err := json.Unmarshal(content, &inventory); err != nil {
+		return state, err
+	}
+	content = inventory.Repositories.Metadata["local-dashboard-ingestion"]
+	if len(content) == 0 {
+		return state, nil
+	}
+	if err := json.Unmarshal(content, &state); err != nil || state.Cursors == nil {
 		return state, errors.New("local dashboard ingestion checkpoint is malformed")
 	}
 	if state.ID != "local-dashboard-ingestion" || state.Kind != "local-dashboard-ingestion" || state.NextRepo < 0 {
@@ -302,23 +390,29 @@ func dashboardIngestionRecord(state dashboardIngestion) (map[string]any, error) 
 	return record, err
 }
 
-func writeDashboardIngestion(ctx context.Context, cache string, state dashboardIngestion) (err error) {
-	content, err := json.Marshal(state)
+func writeDashboardIngestion(ctx context.Context, cache string, state dashboardIngestion) error {
+	content, err := os.ReadFile(filepath.Join(cache, "inventory-sources.json"))
 	if err != nil {
 		return err
 	}
-	location := &url.URL{Scheme: "file", Path: filepath.ToSlash(filepath.Join(cache, "gh-aw-logs.sqlite"))}
-	parameters := location.Query()
-	parameters.Set("mode", "rw")
-	parameters.Set("_pragma", "busy_timeout(5000)")
-	location.RawQuery = parameters.Encode()
-	db, err := sql.Open("sqlite", location.String())
+	var inventory map[string]struct {
+		Metadata map[string]any `json:"metadata"`
+	}
+	if err := json.Unmarshal(content, &inventory); err != nil {
+		return err
+	}
+	metadata, ok := inventory["repositories"].Metadata["local-dashboard"].(map[string]any)
+	if !ok {
+		return errors.New("local dashboard metadata is missing")
+	}
+	record, err := dashboardIngestionRecord(state)
 	if err != nil {
 		return err
 	}
-	defer func() { err = errors.Join(err, db.Close()) }()
-	_, err = db.ExecContext(ctx, `INSERT INTO __idb_records VALUES(?, 'transactions', '"local-dashboard-ingestion"', ?)
-		ON CONFLICT(database_name,store_name,record_key) DO UPDATE SET value=excluded.value`,
-		dashboardquery.DatabaseName, string(content))
-	return err
+	batch, err := readDashboardArtifactBatch(ctx, cache)
+	if err != nil {
+		return err
+	}
+	batch["transactions"] = []map[string]any{metadata, record}
+	return publishDashboardSnapshot(ctx, cache, batch)
 }

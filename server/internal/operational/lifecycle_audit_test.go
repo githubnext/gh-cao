@@ -35,7 +35,7 @@ func lifecycleEvents(t *testing.T, f *auditFixture, name string, count int) []op
 }
 
 func TestLifecycleResultAndSettlementAreAtomicAndIdempotent(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		for _, phase := range []string{"result", "finished"} {
 			t.Run(dialect+"/"+phase, func(t *testing.T) {
 				f := newAuditFixture(t, dialect)
@@ -91,15 +91,11 @@ func TestLifecycleResultAndSettlementAreAtomicAndIdempotent(t *testing.T) {
 
 func expireLifecycleLease(t *testing.T, f *auditFixture) {
 	t.Helper()
-	if f.dialect == "postgres" {
-		f.exec(t, `UPDATE cao_operational_cli_queues SET lease_until=clock_timestamp()-interval '1 second' WHERE namespace=$1`, f.namespace)
-	} else {
-		f.exec(t, `UPDATE cao_operational_cli_queues SET lease_until=1`)
-	}
+	f.exec(t, `UPDATE cao_operational_cli_queues SET lease_until=clock_timestamp()-interval '1 second' WHERE namespace=$1`, f.namespace)
 }
 
 func TestLifecycleRecoveryBeforeRegistrationRetainsClaimsOnAuditFailure(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		for _, phase := range []string{"interruption", "acknowledgement"} {
 			t.Run(dialect+"/"+phase, func(t *testing.T) {
 				f := newAuditFixture(t, dialect)
@@ -161,7 +157,7 @@ func TestLifecycleRecoveryBeforeRegistrationRetainsClaimsOnAuditFailure(t *testi
 }
 
 func TestLifecycleCancellationWinsLateResult(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		t.Run(dialect, func(t *testing.T) {
 			f := newAuditFixture(t, dialect)
 			lease := acquireAuditLease(t, f)
@@ -188,7 +184,7 @@ func TestLifecycleCancellationWinsLateResult(t *testing.T) {
 }
 
 func TestLifecycleReceiptAppendAndDeletionAreAtomic(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		t.Run(dialect, func(t *testing.T) {
 			f := newAuditFixture(t, dialect)
 			journal := f.store.(operational.RevocationTransitions)

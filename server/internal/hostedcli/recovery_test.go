@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
-	"testing/synctest"
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/operational"
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
+	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 type queueWithoutExecutionStorage struct{ operational.CLICommandQueue }
@@ -27,15 +26,10 @@ func TestExecutorRequiresDurableExecutionStorage(t *testing.T) {
 
 func TestExecutorKeepsUnconfirmedContainerClaimAcrossRestart(t *testing.T) {
 	for _, scenario := range []string{"create", "start", "output-error", "output-zero", "cancel", "timeout", "crash"} {
-		// Advance deadlines only while blocked, not during SQLite or workspace I/O.
-		// execute is called directly here, without the drain loop's lease renewal.
+		// execute is called directly, without the drain loop's lease renewal.
 		run := func(t *testing.T) {
 			ctx := t.Context()
-			path := filepath.Join(t.TempDir(), "queue.sqlite")
-			store, err := sqlite.Open(ctx, path)
-			if err != nil {
-				t.Fatal(err)
-			}
+			store, dsn, namespace := testutil.OperationalPostgres(t)
 			defer func() { _ = store.Close() }()
 			options := operational.CLICommandQueueOptions{MaxConcurrency: 1}
 			if scenario == "timeout" {
@@ -152,7 +146,7 @@ func TestExecutorKeepsUnconfirmedContainerClaimAcrossRestart(t *testing.T) {
 			if err := store.Close(); err != nil {
 				t.Fatal(err)
 			}
-			store, err = sqlite.Open(ctx, path)
+			store, err = postgres.Open(ctx, dsn, namespace, postgres.Config{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -189,7 +183,7 @@ func TestExecutorKeepsUnconfirmedContainerClaimAcrossRestart(t *testing.T) {
 				t.Fatalf("confirmed recovery did not release capacity: %+v %v", next, err)
 			}
 		}
-		t.Run(scenario, func(t *testing.T) { synctest.Test(t, run) })
+		t.Run(scenario, run)
 	}
 }
 

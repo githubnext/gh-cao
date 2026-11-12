@@ -67,7 +67,6 @@ test("query cost measures a bounded page without truncating input computation", 
 test("operational artifacts feed SQL benchmarks separately from synthetic UI checks", async () => {
   const workflow = await readFile(".github/workflows/dashboard-deployed-integration.yml", "utf8");
   const { jobs } = parse(workflow);
-  assert.match(workflow, /tests\/performance\/dashboard-query-cost\.test\.mjs/);
   assert.match(workflow, /tests\/performance\/dashboard-query-cost-postgres\.test\.mjs/);
   assert.match(workflow, /tests\/helpers\/dashboard-query-cost\.mjs/);
   assert.match(jobs.integration.name, /synthetic/i);
@@ -76,7 +75,6 @@ test("operational artifacts feed SQL benchmarks separately from synthetic UI che
   const benchmarkCommands = jobs["query-cost"].steps.map((step) => step.run ?? "").join("\n");
   assert.match(benchmarkCommands, /go run \.\/cmd\/gh-cao download/);
   assert.doesNotMatch(benchmarkCommands, /gh run download|github\.io/);
-  assert.match(benchmarkCommands, /npm run test:performance:dashboard-query-cost\n/);
   assert.match(benchmarkCommands, /npm run test:performance:dashboard-query-cost-postgres\n/);
   assert.match(workflow, /image: postgres:16-alpine/);
   assert.equal(jobs["query-cost"].env.CAO_POSTGRES_RUN_RETENTION_DAYS, "90");
@@ -86,7 +84,7 @@ test("operational artifacts feed SQL benchmarks separately from synthetic UI che
   const manifest = JSON.parse(await readFile("package.json", "utf8"));
   assert.equal(
     manifest.scripts["test:performance:dashboard-query-cost"],
-    "node --expose-gc --test tests/performance/dashboard-query-cost.test.mjs",
+    "node --test tests/performance/dashboard-query-cost-postgres.test.mjs",
   );
   assert.equal(
     manifest.scripts["test:performance:dashboard-query-cost-postgres"],
@@ -122,11 +120,9 @@ test("deployed integration reports the query cost report in a pull request comme
   const comment = job.steps.find((step) => step.uses?.startsWith("actions/github-script@"));
   assert.match(comment.with.script, /<!-- dashboard-query-cost-results -->/);
   assert.match(comment.with.script, /summary\.md/);
-  assert.match(comment.with.script, /<details><summary><b>SQLite query cost report<\/b><\/summary>/);
-  assert.match(comment.with.script, /summary,[\s\S]*?<\/details>/);
   assert.match(comment.with.script, /<details><summary><b>Postgres query cost report<\/b><\/summary>/);
   assert.match(comment.with.script, /postgres,[\s\S]*?<\/details>/);
-  assert.match(comment.with.script, /sqlite=success/);
+  assert.doesNotMatch(comment.with.script, /sqlite/i);
   assert.match(comment.with.script, /postgres=success/);
   assert.match(comment.with.script, /issues\.createComment/);
   assert.match(comment.with.script, /issues\.updateComment/);

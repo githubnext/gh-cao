@@ -138,7 +138,7 @@ WebMCP requires a secure context, so use `https://` or `localhost`.
 
    ```bash
    gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
-   npm run dashboard:local -- --sqlite ../.cao/gh-aw-logs.sqlite
+   npm run dashboard:local -- --source ../.cao --postgres-url "$CAO_POSTGRES_URL"
    ```
 
    Relative Go paths resolve from `server/`. Pages is only the synthetic

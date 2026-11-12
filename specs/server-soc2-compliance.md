@@ -105,7 +105,7 @@ version, component owners, evaluated profiles/features, data classes, system
 boundaries, external dependencies, explicit exclusions, and deployed evidence
 availability. The component inventory in `server/SOC2.md` is the coverage index.
 
-**S2-S02** Local SQLite/capability access, hosted/external listeners, Azure Functions,
+**S2-S02** Local PostgreSQL/capability access, hosted/external listeners, Azure Functions,
 PostgreSQL/Redis/memory operational adapters, admission-only operation,
 gateway ingress/dispatch, and experimental CLI executor platforms MUST be
 distinguished. Optional features MUST NOT be assumed enabled. A checked-in
@@ -385,7 +385,7 @@ remain separate gates under S2-H03 and the repository's contributor rules.
 ### 13.2 Informative references
 
 - [RFC-033: Policy-governed webhook gateway](rfc-033-webhook-gateway.md).
-- [RFC-034: Local webhook gateway simulation and SQLite conformance](rfc-034-local-webhook-gateway.md).
+- [RFC-034: Local webhook gateway simulation and PostgreSQL conformance](rfc-034-local-webhook-gateway.md).
 - [Current assessment register](../server/SOC2.md).
 - [Assessment changelog](../server/SOC2-CHANGELOG.md).
 - [Assessment skill](../.github/skills/soc2-server-assessment/SKILL.md).

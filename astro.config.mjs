@@ -128,7 +128,7 @@ export default defineConfig({
             {
               label: "Dashboard data access",
               url: "https://githubnext.github.io/gh-cao/agent-analysis/",
-              description: "Choose bounded dashboard artifacts, MCP queries, or local SQLite analysis.",
+              description: "Choose bounded dashboard artifacts, MCP queries, or local PostgreSQL analysis.",
             },
             {
               label: "Machine-readable resource index",

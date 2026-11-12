@@ -454,7 +454,6 @@ describe('dashboard service worker', () => {
     const { listeners, worker, fetch, entries } = serviceWorkerHarness();
     const runName = `gh-aw-logs-runs/logs-${'a'.repeat(64)}-${'b'.repeat(16)}.jsonl`;
     const payloadHashes = JSON.stringify({
-      'gh-aw-logs.sqlite': 'b'.repeat(64),
       [runName]: 'c'.repeat(64)
     });
     fetch.mockImplementation(async (url) => new Response(

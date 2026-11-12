@@ -12,7 +12,7 @@ need to understand what a dashboard record represents or how records connect.
 Views query this source-neutral model instead of interpreting upstream formats
 directly.
 
-Production Go/PostgreSQL and local Go/SQLite snapshots use this same model.
+Production and local Go/PostgreSQL namespaces use this same model.
 Pages demonstrates it with generated synthetic enterprise evidence through
 production normalization, canonical ingestion, queries, and shared views—not
 presenter fixtures. The demo has no live services or operational-data input.
@@ -24,7 +24,7 @@ When changing canonical entities or storage, continue to the
 [Dashboard Data Architecture Specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md),
 then `dashboard/site/src/data/`. See
 [Data ingestion](/gh-cao/dashboard-data-ingestion/) for collection, JSONL
-publication, retention, browser updates, and SQLite projections.
+publication, retention, browser updates, and PostgreSQL projections.
 
 ## Entity map
 
@@ -140,7 +140,7 @@ database connection.
 ## Update and retain browser data
 
 The browser rules below apply to the synthetic demo and adapter conformance.
-Operational artifacts feed local SQLite or hosted PostgreSQL, not Pages.
+Operational artifacts feed local PostgreSQL or hosted PostgreSQL, not Pages.
 
 Observations can arrive at different times and enrich an existing entity. Explicit source precedence and observation time resolve conflicting fields; arrival order alone never decides the result.
 
@@ -239,20 +239,15 @@ IndexedDB stores this canonical data as disposable derived state. Clearing brows
 
 ## Query the model locally
 
-Node.js 24 can apply the same ingestion and query layer to a persistent SQLite
-file. The database remains local, disposable derived state and does not change
-the static dashboard's deployment boundary.
+Provision PostgreSQL and ingest a verified canonical JSONL artifact using the
+[local PostgreSQL procedure](dashboard-data-ingestion.md#use-local-postgresql).
+Native gh cao queries lists reviewed Dashboard Language queries; gh cao query
+QUERY_ID executes one through a consistent PostgreSQL canonical read session.
+Database credentials remain in the native server process. Browser IndexedDB is
+used only by the synthetic demo and is not a local operational backend.
 
-Campaigns are first-class stored entities even when no workflows have run.
-IndexedDB uses the `campaigns` store; SQLite exposes a transactional `campaigns`
-table keyed by `(database_name, id)` and indexed by `(database_name, slug)`.
-The SQLite table exposes inventory and maintenance columns alongside the full
-canonical record, and is populated from existing canonical records when first
-created. The hosted PostgreSQL implementation also uses a native `campaigns`
-table, keyed by `(namespace, id)`. Refreshing a campaign version preserves its
-identity, and run-detail retention does not remove the campaign.
-
-See [Data ingestion](dashboard-data-ingestion.md#use-local-sqlite) for download,
-ingestion, query, and repair commands.
-
-For normative requirements, failure behavior, and implementation phases, see the [Dashboard Data Architecture Specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md).
+PostgreSQL persists Campaign as a first-class namespace-scoped table, including
+campaigns with no Workflows or Runs. Typed storage columns and relational child
+values are generated from server/spec/storage.tsp; there are no IndexedDB-emulation
+metadata tables or duplicate serialized row mirrors. Missing evidence remains
+partial or unavailable rather than becoming an empty successful result.

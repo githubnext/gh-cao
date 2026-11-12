@@ -20,11 +20,11 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
+	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 	"github.com/githubnext/gh-cao/server/internal/sessionarchiveblob"
-	"github.com/githubnext/gh-cao/server/internal/sqlitex"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
 
@@ -403,8 +403,8 @@ func resolveSessionArchiveConfig(config Config) (sessionarchive.Config, SessionA
 	if config.Collector != nil && (config.Collector.AdmitOnly || config.Collector.Workers <= 0) {
 		return archive, SessionArchiveReadAccess{}, errors.New("session archive requires co-resident collection workers")
 	}
-	if _, local := config.Database.(*sqlitex.Store); !local && config.Collector == nil {
-		return archive, SessionArchiveReadAccess{}, errors.New("session archive requires local SQLite or co-resident collection")
+	if config.GitHubOAuth != nil && config.Collector == nil {
+		return archive, SessionArchiveReadAccess{}, errors.New("hosted session archive requires co-resident collection")
 	}
 	read := SessionArchiveReadAccess{}
 	if config.SessionArchiveRead != nil {
@@ -458,20 +458,32 @@ func (a *App) configureSessionArchive(ctx context.Context) error {
 		}
 		return nil
 	}
-	if database, local := a.database.(*sqlitex.Store); local {
+	if a.oauth == nil {
 		if config.NativeProducer {
 			return errors.New("native session archive requires the hosted Blob profile")
 		}
 		if blob.Enabled {
-			return errors.New("local SQLite session archive cannot select hosted Blob/ADX analytics")
+			return errors.New("local session archive cannot select hosted Blob/ADX analytics")
 		}
-		repositories, err := database.SnapshotRepositories(ctx)
+		var repositories []string
+		err := a.database.WithReadTransaction(ctx, func(ctx context.Context, reader dashboardstore.Reader) error {
+			sources, _, err := reader.ExecuteSQLPlan(ctx, nil, []string{"$repositories"})
+			if err != nil {
+				return err
+			}
+			for _, row := range sources["$repositories"].Rows {
+				owner, _ := row["owner"].(string)
+				name, _ := row["name"].(string)
+				repositories = append(repositories, owner+"/"+name)
+			}
+			return nil
+		})
 		if err != nil {
 			return err
 		}
 		for _, repository := range config.Repositories {
 			if !slices.Contains(repositories, repository) {
-				return errors.New("session archive scope must be contained in the local snapshot inventory")
+				return errors.New("session archive scope must be contained in the local canonical inventory")
 			}
 		}
 	} else {

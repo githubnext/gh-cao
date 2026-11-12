@@ -19,11 +19,6 @@ func TestDatabaseScopeValidate(t *testing.T) {
 		{"postgres missing namespace", databaseScope{action: "bootstrap", store: "canonical", namespace: "  "}, "", "--namespace is required"},
 		{"maintain operational", databaseScope{action: "maintain", store: "operational", namespace: "ns"}, "", "maintain requires canonical"},
 		{"retain canonical", databaseScope{action: "retain-audit", store: "canonical", namespace: "ns"}, "", "retain-audit requires operational"},
-		{"sqlite operational bootstrap", databaseScope{action: "bootstrap", store: "operational", sqliteSet: true, sqlitePath: "a.db"}, "sqlite", ""},
-		{"sqlite blank path", databaseScope{action: "bootstrap", store: "operational", sqliteSet: true, sqlitePath: " "}, "", "requires a local database file path"},
-		{"sqlite canonical", databaseScope{action: "bootstrap", store: "canonical", sqliteSet: true, sqlitePath: "a.db"}, "", "canonical storage requires PostgreSQL"},
-		{"sqlite maintain", databaseScope{action: "maintain", store: "operational", sqliteSet: true, sqlitePath: "a.db"}, "", "supports operational bootstrap"},
-		{"sqlite namespace", databaseScope{action: "bootstrap", store: "operational", sqliteSet: true, sqlitePath: "a.db", namespaceSet: true}, "", "--namespace is not supported"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -61,7 +61,7 @@ below; do not build or install the extension when the runtime or cache is absent
 | Query one known record | `gh cao query --collection COLLECTION --id ID` |
 | Unhealthy projection | Reacquire verified evidence; do not mutate a workflow's supplied snapshot |
 
-Use `--database FILE` only for a non-default SQLite projection. Use `--json`
+Use `--postgres-url` only for an explicitly selected PostgreSQL connection. Use `--json`
 when another tool will consume the result. For raw Dashboard Language, pipe one
 query object to `gh cao query --stdin`; do not combine `--stdin` with
 `--collection`, `--id`, `--where`, or `--limit`.
@@ -70,7 +70,7 @@ Canonical collections are `repositories`, `workflows`, `runs`, `jobs`,
 `sessions`, `events`, and `transactions`.
 
 Acquire authorized Activity artifacts or pass `--url`/`DASHBOARD_DATA_URL`
-ending in `/payload-hashes.json`. Synthetic manifests and missing SQLite checksums
+ending in `/payload-hashes.json`. Synthetic manifests and missing canonical shard/inventory checksums
 fail closed. Pages has no operational exports or default; directory discovery
 and hosted exports are not implied. Reuse verified caches offline.
 

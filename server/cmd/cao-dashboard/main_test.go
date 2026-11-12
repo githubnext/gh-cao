@@ -79,10 +79,21 @@ func TestServeWithExistingPostgresOperationalTables(t *testing.T) {
 	cmd := newServeCommand()
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true
-	cmd.SetArgs([]string{"--postgres-url=", "--dashboard-queries", filepath.Join(t.TempDir(), "missing-dashboard-queries.json")})
+	cmd.SetArgs([]string{"--redis-namespace", namespace, "--dashboard-queries", filepath.Join(t.TempDir(), "missing-dashboard-queries.json")})
 	err = cmd.Execute()
 	if err == nil || !strings.Contains(err.Error(), "missing-dashboard-queries.json") {
 		t.Fatalf("serve must reach dashboard query loading after both stores initialize: %v", err)
+	}
+}
+
+func TestServeRequiresPostgresConfiguration(t *testing.T) {
+	t.Setenv("CAO_POSTGRES_URL", "")
+	t.Setenv("CAO_POLICY_PATH", "")
+	t.Setenv("CAO_MARKETPLACE_POLICY_PATH", "")
+	cmd := newServeCommand()
+	cmd.SetArgs(nil)
+	if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "--postgres-url or CAO_POSTGRES_URL is required") {
+		t.Fatalf("local serving did not require PostgreSQL: %v", err)
 	}
 }
 
@@ -789,7 +800,7 @@ func TestActionsEnvironmentPresentReportsPresenceNotValues(t *testing.T) {
 }
 
 func TestRootCommandRegistersEverySubcommand(t *testing.T) {
-	want := []string{"admission", "adx", "app-key-check", "audit", "azure-functions", "backfill", "benchmark-queries", "collect", "compile-queries", "database", "doctor", "execute-cli", "hosted-cli", "ingest", "otel-smoke", "serve", "serve-hosted", "serve-pages", "simulate-api", "simulate-webhooks"}
+	want := []string{"admission", "adx", "app-key-check", "audit", "azure-functions", "backfill", "benchmark-queries", "collect", "compile-queries", "database", "doctor", "execute-cli", "hosted-cli", "ingest", "local-queue", "otel-smoke", "read", "serve", "serve-hosted", "serve-pages", "simulate-api", "simulate-webhooks"}
 	root := newRootCommand()
 
 	got := make([]string, 0, len(want))

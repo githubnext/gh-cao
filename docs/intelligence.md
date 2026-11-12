@@ -61,7 +61,7 @@ Actions read access:
 gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
 ```
 
-Existing verified SQLite snapshots work offline. For a trusted explicit
+Provisioned PostgreSQL namespaces can be queried without further GitHub acquisition. For a trusted explicit
 operational manifest URL, use `gh cao download --url URL`. There is no public
 snapshot default; the Pages demo is synthetic and cannot establish operational
 facts. See [Agent analysis](agent-analysis.md).

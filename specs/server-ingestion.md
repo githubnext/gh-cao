@@ -639,7 +639,7 @@ ownership contract.
   atomically replaces canonical `operationalValues`, advances the ordinary
   canonical revision without changing the Activity data revision, and notifies
   existing revision consumers. Actions/static reconstruction remains an
-  independent SQLite path.
+  independent database-file reconstruction path.
 - Inventory discovery MUST NOT silently truncate the enrolled repository set. An
   implementation MAY enforce a configured bound, but exceeding it MUST fail the
   projection rather than publish a partial inventory.

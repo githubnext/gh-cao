@@ -251,13 +251,14 @@ test("docs dashboard installs renderer assets without experimental campaign page
       "## Skills",
       "## Published Activity artifacts",
       "## Targeted queries with MCP",
-      "## Bulk analysis with CAO CLI and SQLite",
+      "## Bulk analysis with CAO CLI and PostgreSQL",
       "## Schema and freshness",
     ]) {
       assert.match(llms, new RegExp(section));
     }
     assert.match(llms, /raw\.githubusercontent\.com\/githubnext\/gh-cao\/main\/skills\/debug-cao\/SKILL\.md/);
-    assert.match(llms, /\[Agent summary\]\(\.\/agent-summary\.json\)/);
+    assert.match(llms, /Pages is a synthetic-only demo/);
+    assert.doesNotMatch(llms, /gh-aw-logs\.sqlite/);
     const mainHash = builtIndex.match(/script\.src = '\.\/src\/main\.js\?sha=([a-f0-9]{64})'/)?.[1];
     assert.ok(mainHash, "entry module includes the site content SHA");
     assert.ok(builtIndex.includes(`rel="modulepreload" href="./src/main.js?sha=${mainHash}"`));
@@ -381,10 +382,8 @@ test("dashboard agent guide describes and validates the assembled public artifac
   const activityDataPath = path.join(root, "activity");
   const destination = path.join(root, "cao");
   const artifacts = {
-    "agent-summary.json": '{"schemaVersion":1,"generatedAt":"2026-09-27T00:00:00Z"}\n',
     "inventory-sources.json": "{}\n",
     "payload-hashes.json": "{}\n",
-    "gh-aw-logs.sqlite": "sqlite fixture",
   };
 
   try {
@@ -411,7 +410,7 @@ test("dashboard agent guide describes and validates the assembled public artifac
       sitePath: destination,
     });
     const llms = await readFile(path.join(destination, "llms.txt"), "utf8");
-    assert.match(llms, /Agent summary.*57 bytes/);
+    assert.match(llms, /Inventory sources.*3 bytes/);
     assert.doesNotMatch(llms, /(?:token|secret|password|private[-_ ]key)\s*[:=]\s*\S+/i);
     await writeFile(path.join(destination, "llms.txt"), llms.replace(
       "https://raw.githubusercontent.com/githubnext/gh-cao/main/skills/setup-cao/SKILL.md", "missing-skill-url",

@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -16,7 +15,6 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
 	wg "github.com/githubnext/gh-cao/server/internal/webhookgateway"
 )
 
@@ -25,34 +23,9 @@ type simulatorStorage struct {
 	jobs func(*testing.T) []wg.Job
 }
 
-func sqliteSimulatorStorage(t *testing.T, options wg.QueueOptions) simulatorStorage {
+func localSimulatorStorage(t *testing.T, options wg.QueueOptions) simulatorStorage {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "gateway.sqlite")
-	return simulatorStorage{
-		open: func(t *testing.T) (wg.Queue, func() error) {
-			t.Helper()
-			queue, err := sqlite.OpenWebhookQueue(t.Context(), path, "github-simulator", options)
-			if err != nil {
-				t.Fatal(err)
-			}
-			return queue, queue.Close
-		},
-		jobs: func(t *testing.T) []wg.Job {
-			t.Helper()
-			db, err := sql.Open("sqlite", "file:"+path+"?mode=ro")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer func() {
-				if err := db.Close(); err != nil {
-					t.Error(err)
-				}
-			}()
-			return readSimulatorJobs(t, db, false, "", `SELECT document,state,
-				json_extract(document,'$.attempt'),coalesce(json_extract(document,'$.acceptedStatus'),0),
-				json_extract(document,'$.reason') FROM jobs ORDER BY id`)
-		},
-	}
+	return postgresSimulatorStorage(t, simulatorPostgresDSN(t), options)
 }
 
 func simulatorPostgresDSN(t *testing.T) string {
@@ -164,19 +137,15 @@ func postgresSimulatorStorage(t *testing.T, dsn string, options wg.QueueOptions)
 					t.Error(err)
 				}
 			}()
-			return readSimulatorJobs(t, db, true, namespace, `SELECT document,state,attempt,accepted_status,reason
+			return readSimulatorJobs(t, db, namespace, `SELECT document,state,attempt,accepted_status,reason
 				FROM cao_operational_webhook_jobs WHERE namespace=$1 AND queue='github-simulator' ORDER BY id`)
 		},
 	}
 }
 
-func readSimulatorJobs(t *testing.T, db *sql.DB, postgres bool, namespace, query string) []wg.Job {
+func readSimulatorJobs(t *testing.T, db *sql.DB, namespace, query string) []wg.Job {
 	t.Helper()
-	var args []any
-	if postgres {
-		args = append(args, namespace)
-	}
-	rows, err := db.QueryContext(t.Context(), query, args...)
+	rows, err := db.QueryContext(t.Context(), query, namespace)
 	if err != nil {
 		t.Fatal("read durable simulator jobs", err)
 	}

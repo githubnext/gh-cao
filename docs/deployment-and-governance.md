@@ -10,7 +10,7 @@ for the architectural model. To choose where the dashboard is hosted, see
 [Deployment options](deployment.md).
 
 Operational hosting is same-origin Go/PostgreSQL; local analysis uses the same
-Go server with real SQLite snapshots. Pages is only a synthetic enterprise demo.
+Go server with canonical PostgreSQL data. Pages is only a synthetic enterprise demo.
 Actions operational artifacts remain bounded and access-controlled; neither
 demo publication nor a successful local query grants rollout authority.
 

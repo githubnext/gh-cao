@@ -11,7 +11,7 @@ npm run test:integration:dashboard-contract
 
 The first starts the real local Go application in the test process. The second
 builds and starts a **separate `cao-dashboard serve` process**, explicitly
-selecting a disposable canonical snapshot with `--sqlite`.
+selecting a disposable PostgreSQL namespace with `--postgres-url`.
 Both run the same deterministic, labelled synthetic scenario through numeric
 loopback HTTP using the simulator's endpoint-allowlisted `LocalTransport`.
 The subprocess gets an isolated home and an allowlisted environment without
@@ -27,10 +27,10 @@ go -C server test ./internal/simulator -run '^TestDashboardReadSyntheticScenario
 go -C server test ./internal/simulator -run '^TestDashboardReadSyntheticProcessScenario$' -count=1 -timeout=3m -v
 ```
 
-The fixture uses `testutil.SQLiteSnapshot` and canonical `model.Row` records:
+The fixture uses isolated PostgreSQL provisioning and canonical `model.Row` records:
 two fictional repositories, one workflow and a sparse admitted Run at a fixed
 timestamp. It is not a parallel data model or query engine. Both scenarios use
-the production `dashboardstore` read boundary via the local SQLite adapter,
+the production `dashboardstore` read boundary via the local PostgreSQL adapter,
 ordinary `/api/repositories`, `/api/v1/query` and `/api/v1/events` routes,
 and server-executed Dashboard Language. Their small labelled HTML placeholder
 is **not** a dashboard rendering or browser test.

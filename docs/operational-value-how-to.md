@@ -193,7 +193,7 @@ node .github/skills/add-operational-value/examples/native-file-diet.mjs \
 npm --prefix dashboard/site run build
 cd server
 go run ./cmd/cao-dashboard serve \
-  --sqlite ../.tmp/file-diet-native/dashboard.sqlite
+  --source ../.tmp/file-diet-native --postgres-url "$CAO_POSTGRES_URL"
 ```
 
 Open the server's private local launch URL, then the `reportRoute` or

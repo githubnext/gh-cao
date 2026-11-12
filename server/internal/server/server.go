@@ -52,7 +52,6 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/repositorymemory"
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 	"github.com/githubnext/gh-cao/server/internal/sessionarchiveblob"
-	"github.com/githubnext/gh-cao/server/internal/sqlitex"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
 	"github.com/githubnext/gh-cao/server/internal/tokenbroker"
 )
@@ -174,12 +173,21 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 		return nil, fmt.Errorf("operational storage is required: %w", err)
 	}
 	postgresDatabase, isPostgres := config.Database.(*postgresx.Store)
-	sqliteDatabase, localSQLite := config.Database.(*sqlitex.Store)
-	if err := validateLocalCanvas(config, localSQLite); err != nil {
+	local := config.HostProfile == (HostProfile{}) || config.HostProfile == localHostProfile()
+	if err := validateLocalCanvas(config, local); err != nil {
 		return nil, err
 	}
-	if config.Database == nil || isPostgres && postgresDatabase == nil || localSQLite && sqliteDatabase == nil {
+	if config.Database == nil || isPostgres && postgresDatabase == nil {
 		return nil, errors.New("dashboard database is required")
+	}
+	if config.OperatorActions != nil && (!local || config.GitHubOAuth != nil || config.Canvas != nil) {
+		return nil, errors.New("native operator configuration requires local bearer serving")
+	}
+	if local && config.RateLimits.Query.Capacity == 0 {
+		config.RateLimits.Query.Capacity = 300
+	}
+	if local {
+		config.QueryCache.Disabled = true
 	}
 	if config.SiteDirectory == "" {
 		if config.DatabaseQueriesPath == "" {
@@ -212,14 +220,8 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 		return nil, err
 	}
 	config.ADXTraces = &traceConfig
-	if localSQLite {
-		if err := validateLocalSQLiteConfig(config); err != nil {
-			return nil, err
-		}
-		config.QueryCache.Disabled = true
-	}
 	if !isPostgres && (config.Collector != nil || config.SourceDirectory != "") {
-		return nil, errors.New("server ingestion and collection require PostgreSQL; local SQLite serves an existing snapshot")
+		return nil, errors.New("server ingestion and collection require PostgreSQL")
 	}
 	var databaseQueries []query.Definition
 	if config.DatabaseQueriesPath != "" {
@@ -239,7 +241,7 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	services := store.OperationalServices()
 	capabilities := store.Capabilities()
 	requirements := operational.Requirements{
-		SingleProcess: localSQLite || (config.HostProfile.SingleProcess && config.SingleReplicaConfirmed) || config.HostProfile.IsolateProcessNamespace,
+		SingleProcess: (config.HostProfile.SingleProcess && config.SingleReplicaConfirmed) || config.HostProfile.IsolateProcessNamespace,
 		AllowVolatile: config.AllowVolatile || config.HostProfile.IsolateProcessNamespace,
 		OAuth:         config.HostProfile.Authentication == HostAuthenticationOAuth,
 		Collection:    config.Collector != nil,
@@ -428,6 +430,12 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	}
 	if err := app.configureSessionArchive(ctx); err != nil {
 		return nil, fmt.Errorf("configure session archive: %w", err)
+	}
+	if config.Canvas != nil && config.Canvas.OperatorActions != nil ||
+		config.OperatorActions != nil && config.OperatorActions.OperatorActions != nil {
+		if err := app.enableOperatorActions(ctx); err != nil {
+			return nil, err
+		}
 	}
 	return app, nil
 }
@@ -2116,9 +2124,6 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 	}
 	html := string(content)
 	storageBackend := "postgres"
-	if _, local := a.database.(*sqlitex.Store); local {
-		storageBackend = "sqlite"
-	}
 	injections := `<meta name="dashboard-data-backend" content="server-http"><meta name="dashboard-storage-backend" content="` + storageBackend + `">`
 	if a.config.OperatorActions != nil && a.config.OperatorActions.OperatorActions != nil {
 		injections += `<script>globalThis.__CLI_QUEUE__ = true; globalThis.__LOCAL_CLI_QUEUE__ = true;</script>`

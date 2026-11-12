@@ -83,7 +83,7 @@ async function inTables(page, width, check) {
   }).toPass({ timeout: 20000 });
 }
 
-  test.describe('Go SQLite model routing', () => {
+  test.describe('Go PostgreSQL model routing', () => {
     /** @type {{ url: string, close: () => Promise<void> }} */
     let server;
     let workspace = '';
@@ -217,7 +217,7 @@ async function inTables(page, width, check) {
     }
   });
 
-  test.describe('Go SQLite model resolution', () => {
+  test.describe('Go PostgreSQL model resolution', () => {
     /** @type {{ url: string, close: () => Promise<void> }} */
     let server;
     let workspace = '';

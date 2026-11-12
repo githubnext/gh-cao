@@ -259,7 +259,7 @@ evaluator rule.
 
 `job_details[]` items are not canonical entities. Producers MAY retain them for
 the published `job-performance` logical source, but normalized canonical shards,
-SQLite, and IndexedDB MUST omit them.
+PostgreSQL and IndexedDB MUST omit them.
 
 ## 4 Run-owned record ownership
 

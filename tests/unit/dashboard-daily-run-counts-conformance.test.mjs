@@ -10,7 +10,7 @@ import {
 test('daily run-count conformance maps every implemented requirement to runnable existing tests', () => {
   const suites = validateContract(contract);
   assert.deepEqual(suites.map((suite) => suite.id), [
-    'coverage-contract', 'native-sqlite-publication', 'indexeddb-worker', 'chromium-worker', 'native-cli', 'hosted-sqlite', 'postgresql'
+    'coverage-contract', 'indexeddb-worker', 'chromium-worker', 'native-cli', 'postgresql'
   ]);
   for (const id of ['indexeddb-worker', 'postgresql']) {
     const suite = suites.find((entry) => entry.id === id);
@@ -83,7 +83,7 @@ test('daily run-count Node reports reject skipped, todo, empty and omitted requi
 
 test('daily run-count Vitest reports reject successful skipped, todo and omitted required tests', () => {
   const report = (assertionResults) => JSON.stringify({ testResults: [{ assertionResults }] });
-  const passed = { title: 'retains rows in sqlite', status: 'passed' };
+  const passed = { title: 'retains rows in postgres', status: 'passed' };
   assert.equal(verifyVitestResults(report([passed]), ['retains rows in %s']), 1);
   for (const tests of [[], [{ ...passed, status: 'skipped' }], [{ ...passed, status: 'pending' }], [{ ...passed, status: 'todo' }]]) {
     assert.throws(() => verifyVitestResults(report(tests), ['retains rows in %s']), /without skips or todos/);

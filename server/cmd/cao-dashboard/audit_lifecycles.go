@@ -47,7 +47,6 @@ func newAuditLifecyclesCommand() *cobra.Command {
 		Short: "read-only bounded check for missing administrative rebuild terminal evidence",
 		Args:  cobra.NoArgs,
 	}
-	sqlitePath := cmd.Flags().String("sqlite", "", "local debugging only: existing SQLite audit file")
 	after := cmd.Flags().Int64("after", 0, "scan a selected suffix; earlier lifecycle evidence remains unknown")
 	maxEvents := cmd.Flags().Int("max-events", 10000, "maximum rows scanned, plus one lookahead (1-100000)")
 	grace := cmd.Flags().Duration("grace", auditlifecycle.DefaultGrace, "minimum age before missing-terminal alert (35m-168h)")
@@ -65,7 +64,7 @@ func newAuditLifecyclesCommand() *cobra.Command {
 		ctx, cancel := context.WithTimeout(ctx, *timeout)
 		defer cancel()
 		// Unlike audit verify, this path never records its own outcome.
-		store, closeStore, err := server.OpenAuditReader(ctx, *sqlitePath)
+		store, closeStore, err := server.OpenAuditReader(ctx)
 		if err != nil {
 			return errors.New("audit lifecycle scan could not open the configured audit reader")
 		}

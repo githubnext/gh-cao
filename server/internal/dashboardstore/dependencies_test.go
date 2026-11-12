@@ -18,8 +18,8 @@ func TestContractDependencies(t *testing.T) {
 	}
 	for _, dependency := range strings.Fields(string(output)) {
 		switch {
-		case strings.HasSuffix(dependency, "/postgresx"), strings.HasSuffix(dependency, "/sqlitex"),
-			strings.HasPrefix(dependency, "github.com/jackc/"), strings.HasPrefix(dependency, "modernc.org/"):
+		case strings.HasSuffix(dependency, "/postgresx"),
+			strings.HasPrefix(dependency, "github.com/jackc/"):
 			t.Errorf("canonical read contract depends on a storage implementation: %s", dependency)
 		}
 	}

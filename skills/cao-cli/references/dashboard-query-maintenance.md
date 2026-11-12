@@ -7,7 +7,7 @@ Use this reference only when adding or changing Dashboard Language queries.
    ```bash
    cao dashboard-complexity \
      --input dashboard/site/dashboard.json \
-     --database .cao/gh-aw-logs.sqlite
+     --postgres-url "$CAO_POSTGRES_URL"
    ```
 
    Pass a query ID before the options to inspect one query. Use

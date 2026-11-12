@@ -1,537 +1,264 @@
-import { DatabaseSync } from "node:sqlite";
-import { chmodSync, lstatSync, mkdirSync, realpathSync, statSync } from "node:fs";
-import { dirname, resolve, basename } from "node:path";
-import { createHash } from "node:crypto";
 import { parseDashboardCommand } from "./cli-actions.mjs";
 import { lastPullRequestUrl } from "./cli-command-result.mjs";
-import { maximumCliActionInputCharacters, maximumCliActionRequestBytes } from "./cli-action-contract.mjs";
+import { openServerProcess } from "./server-process.mjs";
+import { maximumCliActionRequestBytes } from "./cli-action-contract.mjs";
 
 export const dashboardQueueLimits = Object.freeze({
-  maxConcurrency: 32,
-  maxJobs: 10000,
-  maxInputBytes: maximumCliActionRequestBytes,
-  maxChunkBytes: 16 * 1024,
-  maxOutputBytes: 1024 * 1024,
-  maxDatabaseOutputBytes: 64 * 1024 * 1024,
-  maxDatabaseBytes: 128 * 1024 * 1024,
-  maxOutputChunks: 4096,
-  maxPageSize: 500,
-  maxPreviewBytes: 64 * 1024,
-  retentionDays: 30,
+  maxConcurrency: 32, maxJobs: 10000, maxInputBytes: maximumCliActionRequestBytes,
+  maxChunkBytes: 16 * 1024, maxOutputBytes: 1024 * 1024, maxDatabaseOutputBytes: 64 * 1024 * 1024,
+  maxOutputChunks: 4096, maxPageSize: 500, maxPreviewBytes: 64 * 1024, retentionDays: 30,
 });
-
 const terminal = new Set(["completed", "failed", "canceled", "timed-out"]);
-const statuses = new Set(["queued", "running", ...terminal]);
-const sensitiveKey = /(?:token|secret|password|credential|authorization|private[-_]?key)/i;
-const secretText = /(?:\b(?:gh[pousr]_[a-z0-9_]+|github_pat_[a-z0-9_]+|AKIA[A-Z0-9]{16})|-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+\S+|(?:token|secret|password|credential|authorization|private[-_]?key)\s*["']?\s*[:=]\s*["']?\S+|--[\w-]*(?:token|password|secret|credential)\b)/i;
-const redact = (text) => text
-  .replace(/\b(?:gh[pousr]_[a-z0-9_]+|github_pat_[a-z0-9_]+)/gi, "[REDACTED]")
-  .replace(/\bAKIA[A-Z0-9]{16}\b/g, "[REDACTED]")
-  .replace(/\bBearer\s+\S+/gi, "******")
-  .replace(/((?:token|secret|password|credential|authorization|private[-_]?key)\s*["']?\s*[:=]\s*).*/gi, "$1[REDACTED]")
-  .replace(/-----BEGIN .*PRIVATE KEY-----.*/gi, "[REDACTED]");
+const sensitiveKey = /token|secret|password|credential|authorization|private[-_]?key/i;
 
-function monday(timestamp) {
-  const date = new Date(timestamp);
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 6) % 7);
-  return date.toISOString().slice(0, 10);
+function command(value) {
+  if (!value) return null;
+  const stamp = (value) => value ? new Date(value).getTime() : null;
+  return {
+    id: value.ID, actionId: value.actionId, command: value.command,
+    arguments: value.arguments ?? {}, values: value.values ?? {},
+    ...(value.input === undefined ? {} : { input: value.input }),
+    status: value.Status, createdAt: stamp(value.CreatedAt), startedAt: stamp(value.StartedAt),
+    completedAt: stamp(value.CompletedAt), deadline: stamp(value.Deadline),
+    completionWeek: value.CompletionWeek, idempotencyKey: value.IdempotencyKey,
+    retryOf: value.RetryOf || null, exitCode: value.ExitCode, error: value.Error || null,
+    outputBytes: value.OutputBytes, outputChunks: value.OutputChunks,
+    outputTruncated: value.OutputTruncated, ok: terminal.has(value.Status) ? value.Status === "completed" : null,
+  };
 }
 
-function integer(value, minimum, maximum, label) {
-  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
-    throw new Error(`Invalid queue ${label}.`);
+/** PostgreSQL owns persistence, leases, capacity, recovery and atomic audit. */
+export async function createCliActionQueue({
+  executable = process.env.CAO_DASHBOARD_EXECUTABLE,
+  postgresURL = process.env.CAO_POSTGRES_URL,
+  namespace = process.env.CAO_OPERATIONAL_NAMESPACE,
+  execute, admission = async () => ({ concurrency: maxConcurrency }),
+  maxConcurrency = 1, timeoutMs = 15 * 60 * 1000, admissionPollMs = 1000,
+  acknowledgeRecovery = false, sensitiveValues = [],
+  ...unsupportedOptions
+} = {}) {
+  if (Object.keys(unsupportedOptions).length) throw new Error("Unsupported queue configuration; PostgreSQL owns persistence and clock settings.");
+  if (!executable || !postgresURL || typeof execute !== "function") {
+    throw new Error("The CLI queue requires PostgreSQL, a cao-dashboard executable, and an executor.");
   }
-  return value;
-}
-
-function validateInvocation(invocation, maxBytes) {
-  if (!invocation || typeof invocation !== "object") throw new Error("Invalid queue invocation.");
-  const { actionId, command, arguments: args = {}, values = {}, input } = invocation;
-  if (typeof actionId !== "string" || !actionId || actionId.length > 256
-    || !args || typeof args !== "object" || Array.isArray(args)
-    || Object.values(args).some((arg) => typeof arg !== "boolean")
-    || !values || typeof values !== "object" || Array.isArray(values)
-    || Object.values(values).some((value) => typeof value !== "string")
-    || (input !== undefined && (typeof input !== "string" || input.length > maximumCliActionInputCharacters))) {
-    throw new Error("Invalid queue invocation.");
-  }
-  parseDashboardCommand(command);
-  const normalized = { actionId, command, arguments: args, values, ...(input === undefined ? {} : { input }) };
-  const json = JSON.stringify(normalized);
-  if (Buffer.byteLength(json) > maxBytes) throw new Error("Queue input limit exceeded.");
-  if (secretText.test(json) || Object.keys(values).some((key) => sensitiveKey.test(key) && values[key])) {
-    throw new Error("Secret-bearing CLI input cannot be persisted.");
-  }
-  return json;
-}
-
-/**
- * Single-owner durable queue. The caller supplies its database filename and the
- * existing executeDashboardCommand adapter; credentials stay outside invocations.
- * Admission is rechecked before every start and periodically while blocked.
- */
-export function createCliActionQueue({
-  filename, execute, admission = async () => ({ concurrency: maxConcurrency }),
-  maxConcurrency = 1, timeoutMs = 15 * 60 * 1000,
-  limits: overrides = {}, now = Date.now, admissionPollMs = 1000, sensitiveValues = [],
-  retentionDays = overrides.retentionDays ?? dashboardQueueLimits.retentionDays,
-  retentionIntervalMs = 60_000, acknowledgeRecovery = false,
-}) {
-  if (typeof filename !== "string" || !filename || filename === ":memory:"
-    || typeof execute !== "function") throw new Error("A durable filename and executor are required.");
-  const limits = { ...dashboardQueueLimits, ...overrides, retentionDays };
-  for (const [key, value] of Object.entries(limits)) {
-    integer(value, key === "retentionDays" ? 7 : 1,
-      key === "retentionDays" ? 3650 : dashboardQueueLimits[key], key);
-  }
-  integer(maxConcurrency, 1, limits.maxConcurrency, "concurrency");
-  integer(timeoutMs, 1, 15 * 60 * 1000, "timeout");
-  integer(admissionPollMs, 1, 60000, "admission interval");
-  integer(retentionIntervalMs, 1, 86400000, "retention interval");
-  if (typeof acknowledgeRecovery !== "boolean") throw new Error("Invalid queue recovery acknowledgement.");
-  if (!Array.isArray(sensitiveValues) || sensitiveValues.some((value) => typeof value !== "string" || value.length < 4)) {
-    throw new Error("Invalid queue sensitive values.");
+  if (!Number.isInteger(maxConcurrency) || maxConcurrency < 1 || maxConcurrency > 32
+      || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 15 * 60 * 1000
+      || !Number.isInteger(admissionPollMs) || admissionPollMs < 1 || admissionPollMs > 60_000
+      || typeof admission !== "function" || typeof acknowledgeRecovery !== "boolean"
+      || !Array.isArray(sensitiveValues)) {
+    throw new Error("Invalid queue concurrency or timeout.");
   }
   const secrets = [...new Set([...sensitiveValues, ...Object.entries(process.env)
-    .filter(([key, value]) => sensitiveKey.test(key) && value?.length >= 8
-      && !["true", "false", "enabled", "disabled"].includes(value.toLowerCase()))
+    .filter(([name, value]) => sensitiveKey.test(name) && value?.length >= 8)
     .map(([, value]) => value)])];
-  const sanitize = (text) => {
-    for (const secret of secrets) text = text.replaceAll(secret, "[REDACTED]");
-    return redact(text);
-  };
-  const requested = resolve(filename);
-  mkdirSync(dirname(requested), { recursive: true, mode: 0o700 });
-  if (lstatSync(dirname(requested)).isSymbolicLink()) throw new Error("Queue directory cannot be a symbolic link.");
-  const parentPath = realpathSync(dirname(requested));
-  const parent = statSync(parentPath);
-  if (process.getuid && parent.uid !== process.getuid()) throw new Error("Queue directory must be owned by the current user.");
-  if (parent.mode & 0o077) {
-    if (basename(parentPath) !== ".cao") throw new Error("Queue directory must be owner-only.");
-    chmodSync(parentPath, 0o700);
-  }
-  const checkFile = (filename) => {
-    try {
-      const file = lstatSync(filename);
-      if (!file.isFile() || file.isSymbolicLink() || file.nlink !== 1
-        || (process.getuid && file.uid !== process.getuid())) {
-        throw new Error("Queue files must be regular, single-link files owned by the current user.");
-      }
-    } catch (error) { if (error.code !== "ENOENT") throw error; }
-  };
-  const ownershipPath = `${requested}.owner.sqlite`;
-  for (const databasePath of [requested, ownershipPath]) {
-    for (const suffix of ["", "-wal", "-shm", "-journal"]) checkFile(`${databasePath}${suffix}`);
-  }
-  let path;
-  try {
-    path = realpathSync(requested);
-    if (statSync(path).nlink !== 1) throw new Error("Hard-linked queue databases are not supported.");
-  } catch (error) {
-    if (error.code !== "ENOENT") throw error;
-    path = resolve(parentPath, basename(requested));
-  }
-  // An OS-backed SQLite exclusive transaction releases ownership on a crash.
-  // Keep this separate from the WAL database so normal commits cannot release it.
-  const ownership = new DatabaseSync(`${path}.owner.sqlite`);
-  let db;
-  try {
-    ownership.exec("PRAGMA busy_timeout=0; PRAGMA journal_mode=DELETE; BEGIN EXCLUSIVE");
-    chmodSync(`${path}.owner.sqlite`, 0o600);
-    db = new DatabaseSync(path);
-    chmodSync(path, 0o600);
-    db.exec(`
-      PRAGMA foreign_keys=ON;
-      PRAGMA journal_mode=WAL;
-      PRAGMA synchronous=FULL;
-      PRAGMA wal_autocheckpoint=128;
-      PRAGMA journal_size_limit=1048576;
-      CREATE TABLE IF NOT EXISTS jobs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, invocation TEXT NOT NULL,
-        idempotency_key TEXT UNIQUE, fingerprint TEXT NOT NULL,
-        status TEXT NOT NULL, created_at INTEGER NOT NULL, started_at INTEGER,
-        completed_at INTEGER, completion_week TEXT, deadline INTEGER,
-        ok INTEGER, exit_code INTEGER, error TEXT, output_bytes INTEGER NOT NULL DEFAULT 0,
-        output_chunks INTEGER NOT NULL DEFAULT 0, output_truncated INTEGER NOT NULL DEFAULT 0
-      );
-      CREATE INDEX IF NOT EXISTS jobs_fifo ON jobs(status,id);
-      CREATE INDEX IF NOT EXISTS jobs_retention ON jobs(completion_week);
-      CREATE TABLE IF NOT EXISTS output (
-        job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-        seq INTEGER NOT NULL, stream TEXT NOT NULL, data TEXT NOT NULL,
-        PRIMARY KEY(job_id,seq)
-      );
-      CREATE TABLE IF NOT EXISTS queue_state (key TEXT PRIMARY KEY,value TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS execution_claims (
-        job_id INTEGER PRIMARY KEY REFERENCES jobs(id) ON DELETE RESTRICT
-      );
-    `);
-    const pageSize = db.prepare("PRAGMA page_size").get().page_size;
-    const maxPages = Math.floor(limits.maxDatabaseBytes / pageSize);
-    if (db.prepare("PRAGMA page_count").get().page_count > maxPages) throw new Error("Queue database size limit exceeded.");
-    db.exec(`PRAGMA max_page_count=${maxPages}`);
-    if (!db.prepare("PRAGMA table_info(jobs)").all().some(({ name }) => name === "retry_of")) {
-      db.exec("ALTER TABLE jobs ADD COLUMN retry_of INTEGER");
-    }
-    if (!db.prepare("PRAGMA table_info(jobs)").all().some(({ name }) => name === "pull_request_url")) {
-      db.exec("BEGIN IMMEDIATE");
-      try {
-        db.exec("ALTER TABLE jobs ADD COLUMN pull_request_url TEXT");
-        const update = db.prepare("UPDATE jobs SET pull_request_url=? WHERE id=?");
-        for (const chunk of db.prepare("SELECT job_id,data FROM output ORDER BY job_id,seq").iterate()) {
-          const url = lastPullRequestUrl(chunk.data);
-          if (url) update.run(url, chunk.job_id);
-        }
-        db.exec("COMMIT");
-      } catch (error) { db.exec("ROLLBACK"); throw error; }
-    }
-    if (db.prepare("SELECT count(*) AS count FROM jobs WHERE status='running'").get().count
-      || db.prepare("SELECT count(*) AS count FROM execution_claims").get().count) {
-      db.exec("BEGIN IMMEDIATE");
-      try {
-        db.prepare("INSERT OR REPLACE INTO queue_state VALUES('recovery_blocked',?)")
-          .run("CLI queue recovery is blocked: interrupted subprocess termination is unverified. Operator reconciliation is required.");
-        db.prepare(`UPDATE jobs SET status='failed',ok=0,error='CLI action interrupted; subprocess termination is unverified.',
-          completed_at=?,completion_week=? WHERE status='running'`).run(now(), monday(now()));
-        db.exec("COMMIT");
-      } catch (error) { db.exec("ROLLBACK"); throw error; }
-    }
-    if (acknowledgeRecovery) {
-      db.exec(`BEGIN IMMEDIATE;
-        DELETE FROM execution_claims;
-        DELETE FROM queue_state WHERE key='recovery_blocked';
-        COMMIT;`);
-    }
-  } catch {
-    db?.close();
-    ownership.close();
-    throw new Error("CLI queue database is unavailable or already owned.");
-  }
+  if (secrets.some((value) => typeof value !== "string" || value.length < 4)) throw new Error("Invalid sensitive values.");
+  const adapter = await openServerProcess(executable, ["local-queue",
+    `--concurrency=${maxConcurrency}`, `--timeout=${timeoutMs}ms`,
+    ...(acknowledgeRecovery ? ["--acknowledge-recovery"] : []),
+  ], { env: { ...process.env, CAO_POSTGRES_URL: postgresURL,
+    ...(namespace ? { CAO_OPERATIONAL_NAMESPACE: namespace } : {}) } });
   const listeners = new Set();
   const active = new Map();
   let closed = false;
-  let pumping = false;
-  let pumpTimer;
+  let pausedReason;
+  let timer;
+  let pumping = Promise.resolve();
   let closePromise;
-  let pumpTask = Promise.resolve();
-  const recoveryReason = db.prepare("SELECT value FROM queue_state WHERE key='recovery_blocked'").get()?.value;
-  let reconciliationFailed = Boolean(recoveryReason);
-  let admissionReason = recoveryReason;
-  let revision = 0;
-  const assertOpen = () => { if (closed) throw new Error("CLI queue is closed."); };
-  const emit = (event) => {
-    revision += 1;
+  const emit = () => {
     for (const listener of listeners) {
-      try { listener(event); } catch { /* Subscribers cannot break persistence. */ }
+      try { listener(); } catch { /* Observers own their failures. */ }
     }
   };
-  function retain() {
-    // Keep the partial cutoff week; only earlier, fully expired weeks can drop.
-    const cutoff = monday(now() - limits.retentionDays * 86400000);
-    const { changes } = db.prepare(`DELETE FROM jobs WHERE completion_week < ? AND status NOT IN ('queued','running')
-      AND id NOT IN (SELECT job_id FROM execution_claims)`).run(cutoff);
-    if (changes) emit({ type: "retained", removed: Number(changes) });
-  }
-  retain();
-  const retentionTimer = setInterval(() => {
-    try { retain(); } catch {
-      reconciliationFailed = true;
-      admissionReason = "CLI queue retention is unavailable.";
-      emit({ type: "unavailable" });
+  const request = async (operation, values = {}) => {
+    const result = await adapter.request({ operation, ...values });
+    if (["enqueue", "cancel", "append", "finish", "settle", "retain"].includes(operation)) emit();
+    return result;
+  };
+  const sanitize = (text) => {
+    for (const secret of secrets) text = text.replaceAll(secret, "[REDACTED]");
+    return text;
+  };
+  const detail = async (id) => {
+    const value = command(await request("detail", { id: Number(id) }));
+    if (!value) return null;
+    const chunks = await request("output", { id: value.id, limit: 500 });
+    value.stdout = "";
+    value.stderr = "";
+    let remaining = dashboardQueueLimits.maxPreviewBytes;
+    let pullRequestUrl;
+    for (const chunk of chunks ?? []) {
+      if (Buffer.byteLength(chunk.Data) > remaining) break;
+      value[chunk.Stream] += chunk.Data;
+      remaining -= Buffer.byteLength(chunk.Data);
+      pullRequestUrl = lastPullRequestUrl(chunk.Data) ?? pullRequestUrl;
     }
-  }, retentionIntervalMs);
-  retentionTimer.unref();
-  function detail(id) {
-    assertOpen();
-    const row = db.prepare("SELECT * FROM jobs WHERE id=?").get(integer(Number(id), 1, Number.MAX_SAFE_INTEGER, "id"));
-    if (!row) return null;
-    const preview = { stdout: "", stderr: "" };
-    let remaining = limits.maxPreviewBytes;
-    for (const chunk of db.prepare("SELECT stream,data FROM output WHERE job_id=? ORDER BY seq").iterate(row.id)) {
-      const bytes = Buffer.from(chunk.data);
-      if (bytes.length > remaining) break;
-      preview[chunk.stream] += chunk.data;
-      remaining -= bytes.length;
-      if (remaining === 0) break;
-    }
-    return {
-      id: row.id, ...JSON.parse(row.invocation), status: row.status,
-      createdAt: row.created_at, startedAt: row.started_at, completedAt: row.completed_at,
-      completionWeek: row.completion_week, deadline: row.deadline,
-      idempotencyKey: row.idempotency_key, outputBytes: row.output_bytes,
-      ...preview, ok: row.ok === null ? null : Boolean(row.ok),
-      exitCode: row.exit_code, error: row.error, retryOf: row.retry_of,
-      outputChunks: row.output_chunks, outputTruncated: Boolean(row.output_truncated),
-      result: row.ok === null ? null : {
-        ok: Boolean(row.ok), exitCode: row.exit_code,
-        ...(row.error ? { error: row.error } : {}),
-        ...(row.pull_request_url ? { pullRequestUrl: row.pull_request_url } : {}),
-      },
-      ...(row.status === "queued" && admissionReason ? { reason: admissionReason } : {}),
+    value.result = value.ok === null ? null : {
+      ok: value.ok, exitCode: value.exitCode, ...(value.error ? { error: value.error } : {}),
+      ...(pullRequestUrl ? { pullRequestUrl } : {}),
     };
-  }
-  function finish(id, status, result) {
-    const completedAt = now();
-    const changed = db.prepare(`UPDATE jobs SET status=?,ok=?,exit_code=?,error=?,completed_at=?,completion_week=?
-      WHERE id=? AND status IN ('queued','running')`).run(status, result.ok ? 1 : 0,
-      Number.isInteger(result.exitCode) ? result.exitCode : null,
-      result.error ?? null, completedAt, monday(completedAt), id).changes;
-    if (changed) {
-      emit({ type: status, id, status });
-      retain();
-    }
-  }
-  function append(id, stream, data) {
-    if (!data || closed) return;
-    const row = db.prepare("SELECT status,output_bytes,output_chunks FROM jobs WHERE id=?").get(id);
-    if (row?.status !== "running") return;
-    const bytes = Buffer.byteLength(data);
-    const total = db.prepare("SELECT coalesce(sum(output_bytes),0) AS bytes FROM jobs").get().bytes;
-    if (bytes > limits.maxChunkBytes || row.output_bytes + bytes > limits.maxOutputBytes
-      || row.output_chunks >= limits.maxOutputChunks || total + bytes > limits.maxDatabaseOutputBytes) {
-      db.prepare("UPDATE jobs SET output_truncated=1 WHERE id=?").run(id);
-      return;
-    }
-    const seq = row.output_chunks + 1;
-    db.exec("BEGIN IMMEDIATE");
-    try {
-      db.prepare("INSERT INTO output VALUES(?,?,?,?)").run(id, seq, stream, data);
-      db.prepare("UPDATE jobs SET output_bytes=output_bytes+?,output_chunks=? WHERE id=?").run(bytes, seq, id);
-      const url = lastPullRequestUrl(data);
-      if (url) db.prepare("UPDATE jobs SET pull_request_url=? WHERE id=?").run(url, id);
-      db.exec("COMMIT");
-    } catch (error) { db.exec("ROLLBACK"); throw error; }
-    emit({ type: "output", status: "running", id, chunk: { sequence: seq, stream, data } });
-  }
-  function recordTerminalExitCode(id, exitCode) {
-    if (!Number.isInteger(exitCode)) return;
-    const changed = db.prepare(`UPDATE jobs SET exit_code=? WHERE id=? AND status IN ('canceled','timed-out')`)
-      .run(exitCode, id).changes;
-    if (changed) emit({ type: "settled", id });
-  }
-  function start(row, decision) {
-    const id = row.id;
-    const controller = new AbortController();
-    const deadline = now() + timeoutMs;
-    db.prepare("UPDATE jobs SET status='running',started_at=?,deadline=? WHERE id=? AND status='queued'").run(now(), deadline, id);
-    db.prepare("INSERT INTO execution_claims(job_id) VALUES(?)").run(id);
+    if (value.status === "queued" && pausedReason) value.reason = pausedReason;
+    return value;
+  };
+  const schedule = (delay = admissionPollMs) => {
+    if (closed || timer) return;
+    timer = setTimeout(() => {
+      timer = undefined;
+      pumping = pump();
+    }, delay);
+    timer.unref();
+  };
+  async function run(value, decision, controller) {
     const buffers = { stdout: "", stderr: "" };
     const streamed = { stdout: false, stderr: false };
-    const dropping = { stdout: false, stderr: false };
     const privateKey = { stdout: false, stderr: false };
-    const persistLine = (stream, line) => {
-      if (/-----BEGIN .*PRIVATE KEY-----/.test(line)) privateKey[stream] = true;
-      if (privateKey[stream]) {
-        if (/-----END .*PRIVATE KEY-----/.test(line)) privateKey[stream] = false;
-        append(id, stream, "[REDACTED]\n");
-      } else append(id, stream, sanitize(line));
+    let output = Promise.resolve();
+    let executionResult;
+    const append = (stream, data) => {
+      output = output.then(() => request("append", { id: value.id, stream, data: sanitize(data) }));
     };
     const consume = ({ stream, data }) => {
-      if (closed || controller.signal.aborted) return;
-      if (!(stream === "stdout" || stream === "stderr") || typeof data !== "string") throw new Error("Invalid CLI output.");
-      // Frame before redaction: secrets split across subprocess chunks cannot leak.
-      // Overlong lines are discarded rather than persisting an unclassifiable tail.
-      let cursor = 0;
-      while (cursor < data.length) {
-        const end = data.indexOf("\n", cursor);
-        const stop = end < 0 ? data.length : end + 1;
-        if (!dropping[stream]) {
-          if (Buffer.byteLength(buffers[stream]) + Buffer.byteLength(data.slice(cursor, stop)) > limits.maxChunkBytes) {
-            buffers[stream] = "";
-            dropping[stream] = true;
-            db.prepare("UPDATE jobs SET output_truncated=1 WHERE id=?").run(id);
-          } else buffers[stream] += data.slice(cursor, stop);
-        }
-        if (end >= 0) {
-          if (!dropping[stream]) persistLine(stream, buffers[stream]);
-          buffers[stream] = "";
-          dropping[stream] = false;
-        }
-        cursor = stop;
+      if (!["stdout", "stderr"].includes(stream) || typeof data !== "string") throw new Error("Invalid CLI output.");
+      buffers[stream] += data;
+      const lines = buffers[stream].split("\n");
+      buffers[stream] = lines.pop();
+      for (const line of lines) {
+        if (/-----BEGIN .*PRIVATE KEY-----/.test(line)) privateKey[stream] = true;
+        if (privateKey[stream]) {
+          append(stream, "[REDACTED]\n");
+          if (/-----END .*PRIVATE KEY-----/.test(line)) privateKey[stream] = false;
+        } else if (Buffer.byteLength(line) < dashboardQueueLimits.maxChunkBytes) append(stream, line + "\n");
       }
+      if (Buffer.byteLength(buffers[stream]) > dashboardQueueLimits.maxChunkBytes) buffers[stream] = "[Overlong output suppressed.]";
     };
-    const timer = setTimeout(() => {
-      controller.abort();
-      finish(id, "timed-out", { ok: false, error: "The CLI action exceeded its time limit." });
-    }, timeoutMs);
-    const state = { controller, promise: null };
-    let executionResult;
-    active.set(id, state);
-    state.promise = Promise.resolve().then(() => {
-      controller.signal.throwIfAborted();
-      return execute({
-        ...JSON.parse(row.invocation), signal: controller.signal, deadline, timeoutMs,
+    const deadline = setTimeout(() => controller.abort(new Error("CLI command timed out.")), timeoutMs);
+    const monitor = setInterval(async () => {
+      try {
+        const latest = command(await request("detail", { id: value.id }));
+        if (!latest || terminal.has(latest.status)) controller.abort();
+      } catch {
+        pausedReason = "CLI queue ownership is unavailable.";
+        controller.abort();
+      }
+    }, 1000);
+    try {
+      executionResult = await execute({
+        ...value, signal: controller.signal, timeoutMs, deadline: value.deadline,
         onOutput: async (chunk) => {
           await decision.onOutput?.(chunk);
           consume(chunk);
-          if (chunk.data) streamed[chunk.stream] = true;
+          streamed[chunk.stream] = true;
+          await output;
         },
       });
-    }).then((result) => {
-      executionResult = result;
-      recordTerminalExitCode(id, result?.exitCode);
-      if (!controller.signal.aborted) {
-        for (const stream of ["stdout", "stderr"]) {
-          if (!streamed[stream] && typeof result?.[stream] === "string" && result[stream]) {
-            consume({ stream, data: result[stream] });
-          }
-          persistLine(stream, buffers[stream]);
-        }
-        finish(id, result?.ok ? "completed" : "failed", {
-          ok: Boolean(result?.ok), exitCode: result?.exitCode,
-          ...(!result?.ok ? { error: "The CLI action did not complete successfully." } : {}),
-        });
+      for (const stream of ["stdout", "stderr"]) {
+        if (executionResult?.[stream] && !streamed[stream]) consume({ stream, data: executionResult[stream] });
+        if (buffers[stream]) consume({ stream, data: "\n" });
       }
-    }).catch((error) => {
+      await output;
+    } catch (error) {
       executionResult = { ok: false, exitCode: Number.isInteger(error?.code) ? error.code : null };
-      recordTerminalExitCode(id, executionResult.exitCode);
-      finish(id, "failed", { ok: false, error: "The CLI action did not complete successfully." });
-    }).finally(async () => {
-      clearTimeout(timer);
-      await completeAdmission(decision, { started: true, result: executionResult });
-      db.prepare("DELETE FROM execution_claims WHERE job_id=?").run(id);
-      active.delete(id);
-      schedule();
-    });
-    emit({ type: "running", id, status: "running" });
-  }
-  async function completeAdmission(decision, result) {
-    try {
-      if (!result.started && typeof decision?.release === "function") await decision.release();
-      else await decision?.complete?.(result);
-    } catch {
-      reconciliationFailed = true;
-      admissionReason = "CLI action admission reconciliation is unavailable.";
+    } finally {
+      clearTimeout(deadline);
+      clearInterval(monitor);
     }
-  }
-  function schedule(delay = 0) {
-    if (closed || pumpTimer) return;
-    pumpTimer = setTimeout(() => { pumpTimer = undefined; pumpTask = pump(); }, delay);
-    pumpTimer.unref();
+    const exitCode = Number.isInteger(executionResult?.exitCode) ? executionResult.exitCode : null;
+    try {
+      const latest = command(await request("detail", { id: value.id }));
+      if (exitCode === null) {
+        pausedReason = "Command exit is unconfirmed; operator recovery is required.";
+        return;
+      }
+      if (!terminal.has(latest.status)) {
+        await request("finish", { id: value.id, result: {
+          Status: executionResult?.ok && exitCode === 0 ? "completed" : "failed", ExitCode: exitCode,
+          Error: executionResult?.ok && exitCode === 0 ? "" : "The CLI action did not complete successfully.",
+        } });
+      }
+      await request("settle", { id: value.id, result: { ExitCode: exitCode } });
+      await decision.complete?.({ started: true, result: executionResult });
+    } catch {
+      pausedReason = "CLI command reconciliation is unavailable.";
+    } finally {
+      active.delete(value.id);
+      schedule(0);
+    }
   }
   async function pump() {
-    if (closed || pumping) return;
-    pumping = true;
+    if (closed || pausedReason === "Command exit is unconfirmed; operator recovery is required.") return;
     try {
-      while (!closed && !reconciliationFailed && active.size < maxConcurrency) {
-        const row = db.prepare("SELECT id,invocation FROM jobs WHERE status='queued' ORDER BY id LIMIT 1").get();
-        if (!row) break;
-        let decision;
-        try { decision = await admission({ id: row.id, running: active.size, ...JSON.parse(row.invocation) }); } catch { decision = { concurrency: 0 }; }
-        if (closed) {
-          await completeAdmission(decision, { started: false });
-          break;
-        }
+      await request("retain");
+      while (!closed && active.size < maxConcurrency) {
+        let page = await request("list", { statuses: ["queued"], limit: 1, offset: 0 });
+        if (!page.Commands?.length) break;
+        if (page.Total > 1) page = await request("list", { statuses: ["queued"], limit: 1, offset: page.Total - 1 });
+        const next = command(page.Commands[0]);
+        const decision = await admission({ ...next, running: active.size });
         const concurrency = Number.isInteger(decision?.concurrency)
           ? Math.max(0, Math.min(maxConcurrency, decision.concurrency)) : 0;
-        const diagnostic = [decision?.reason, decision?.message]
-          .filter((value) => typeof value === "string" && value).join(": ");
-        admissionReason = concurrency === 0
-          ? (diagnostic ? sanitize(diagnostic.slice(0, 512)) : "CLI action admission is currently blocked.")
-          : undefined;
-        if (active.size >= concurrency) {
-          await completeAdmission(decision, { started: false });
-          schedule(admissionPollMs);
+        if (active.size >= concurrency || closed) {
+          await decision?.release?.();
+          pausedReason = "CLI action admission is currently blocked.";
           break;
         }
-        // Cancellation may have occurred during the asynchronous admission check.
-        if (db.prepare("SELECT status FROM jobs WHERE id=?").get(row.id)?.status === "queued") {
-          try { start(row, decision); } catch {
-            await completeAdmission(decision, { started: false });
-            throw new Error("CLI queue could not claim its next action.");
-          }
-        } else await completeAdmission(decision, { started: false });
+        const claimed = command(await request("claim"));
+        if (!claimed) { await decision?.release?.(); break; }
+        if (claimed.id !== next.id) throw new Error("CLI command changed during admission.");
+        pausedReason = undefined;
+        const controller = new AbortController();
+        const state = { controller, promise: null };
+        active.set(claimed.id, state);
+        state.promise = run(claimed, decision, controller);
       }
     } catch {
-      admissionReason = "CLI queue execution is unavailable.";
-      schedule(admissionPollMs);
-    } finally { pumping = false; }
+      pausedReason = "CLI queue execution is unavailable.";
+      emit();
+    } finally { schedule(); }
   }
-  function enqueue(invocation, idempotencyKey, retryOf = null) {
-    assertOpen();
-    retain();
-    const json = validateInvocation(invocation, limits.maxInputBytes);
-    if (secrets.some((secret) => json.includes(secret))) throw new Error("Secret-bearing CLI input cannot be persisted.");
-    const fingerprint = createHash("sha256").update(json).digest("hex");
-    if (idempotencyKey !== undefined) {
-      if (typeof idempotencyKey !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(idempotencyKey)
-        || secretText.test(idempotencyKey)) throw new Error("Invalid queue idempotency key.");
-      const existing = db.prepare("SELECT id,fingerprint FROM jobs WHERE idempotency_key=?").get(idempotencyKey);
-      if (existing) {
-        if (existing.fingerprint !== fingerprint) throw new Error("Queue idempotency key conflicts with another invocation.");
-        return detail(existing.id);
-      }
-    }
-    if (db.prepare("SELECT count(*) AS count FROM jobs").get().count >= limits.maxJobs) throw new Error("CLI queue capacity exceeded.");
-    const inserted = db.prepare(`INSERT INTO jobs(invocation,idempotency_key,fingerprint,status,created_at,retry_of)
-      VALUES(?,?,?,'queued',?,?)`).run(json, idempotencyKey ?? null, fingerprint, now(), retryOf);
-    const id = Number(inserted.lastInsertRowid);
-    emit({ type: "queued", id, status: "queued" });
-    schedule();
-    return detail(id);
-  }
-  const api = {
+  const enqueue = async (invocation, key, retryOf = 0) => {
+    parseDashboardCommand(invocation.command);
+    const content = JSON.stringify(invocation);
+    if (secrets.some((value) => content.includes(value))) throw new Error("Secret-bearing CLI input cannot be persisted.");
+    const value = command(await request("enqueue", { invocation, key, retryOf }));
+    schedule(0);
+    return detail(value.id);
+  };
+  schedule(0);
+  return {
     enqueue, detail,
-    list({ status, limit = 50, offset = 0 } = {}) {
-      assertOpen();
-      integer(limit, 1, limits.maxPageSize, "page size");
-      integer(offset, 0, Number.MAX_SAFE_INTEGER, "offset");
-      const selected = status === undefined ? [] : typeof status === "string" ? status.split(",") : [status];
-      if (selected.some((value) => !statuses.has(value))) throw new Error("Invalid queue status.");
-      const filter = selected.length ? `WHERE status IN (${selected.map(() => "?").join(",")})` : "";
-      const commands = db.prepare(`SELECT id FROM jobs ${filter} ORDER BY id DESC LIMIT ? OFFSET ?`)
-        .all(...selected, limit, offset).map(({ id }) => detail(id));
-      const total = db.prepare(`SELECT count(*) AS count FROM jobs ${filter}`).get(...selected).count;
-      return { commands, total, running: active.size, pausedReason: admissionReason ?? null, revision };
+    async list({ status, limit = 50, offset = 0 } = {}) {
+      const page = await request("list", { statuses: status?.split(","), limit, offset });
+      return { commands: await Promise.all((page.Commands ?? []).map((value) => detail(value.ID))),
+        total: page.Total, running: page.Running, revision: page.Revision,
+        pausedReason: page.RecoveryBlocked ? "Operator recovery is required." : pausedReason ?? null };
     },
-    output(id, after = 0, limit = 100) {
-      assertOpen();
-      if (!detail(id)) return [];
-      integer(after, 0, Number.MAX_SAFE_INTEGER, "cursor");
-      integer(limit, 1, limits.maxPageSize, "page size");
-      return db.prepare("SELECT seq AS sequence,stream,data FROM output WHERE job_id=? AND seq>? ORDER BY seq LIMIT ?")
-        .all(Number(id), after, limit).map((row) => ({ ...row }));
+    async output(id, after = 0, limit = 100) {
+      const values = await request("output", { id: Number(id), after, limit });
+      return (values ?? []).map((value) => ({ sequence: value.Sequence, stream: value.Stream, data: value.Data }));
     },
-    cancel(id) {
-      assertOpen();
-      const row = detail(id);
-      if (!row || terminal.has(row.status)) return row;
+    async cancel(id) {
+      await request("cancel", { id: Number(id) });
       active.get(Number(id))?.controller.abort();
-      finish(Number(id), "canceled", { ok: false, error: "The CLI action was canceled." });
-      schedule();
       return detail(id);
     },
-    retry(id, idempotencyKey) {
-      assertOpen();
-      const row = detail(id);
-      if (!row || !terminal.has(row.status)) throw new Error("Only terminal CLI actions can be retried.");
-      return enqueue(row, idempotencyKey, row.id);
+    async retry(id, key) {
+      const value = await detail(id);
+      if (!value || !["failed", "timed-out"].includes(value.status)) throw new Error("Only failed or timed-out CLI actions can be retried.");
+      await active.get(Number(id))?.promise;
+      return enqueue(value, key, value.id);
     },
-    subscribe(listener) {
-      assertOpen();
-      if (typeof listener !== "function") throw new Error("Invalid queue listener.");
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     close() {
       if (closePromise) return closePromise;
       closed = true;
-      clearTimeout(pumpTimer);
-      clearInterval(retentionTimer);
+      clearTimeout(timer);
       for (const { controller } of active.values()) controller.abort();
-      closePromise = Promise.allSettled([pumpTask, ...[...active.values()].map(({ promise }) => promise)]).then(() => {
-        db.prepare(`UPDATE jobs SET status='failed',ok=0,error='CLI action interrupted by server shutdown.',
-          completed_at=?,completion_week=? WHERE status='running'`).run(now(), monday(now()));
-        db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-        db.close();
-        ownership.exec("ROLLBACK");
-        ownership.close();
+      closePromise = (async () => {
+        await pumping;
+        await Promise.all([...active.values()].map(({ promise }) => promise));
         listeners.clear();
-      });
+        await adapter.close();
+      })();
       return closePromise;
     },
   };
-  schedule();
-  return api;
 }

@@ -1,63 +1,10 @@
 package operational_test
 
 import (
-	"database/sql"
-	"database/sql/driver"
-	"errors"
-	"os"
-	"os/exec"
 	"testing"
 
-	sqlitedriver "modernc.org/sqlite"
-
 	"github.com/githubnext/gh-cao/server/internal/operational"
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
 )
-
-func TestAuditedSQLiteCrashDuringAppend(t *testing.T) {
-	if path := os.Getenv("CAO_TEST_AUDIT_CRASH_DB"); path != "" {
-		if err := sqlitedriver.RegisterScalarFunction("crash_during_audit", 0, func(*sqlitedriver.FunctionContext, []driver.Value) (driver.Value, error) {
-			os.Exit(23)
-			return int64(0), nil
-		}); err != nil {
-			t.Fatal(err)
-		}
-		store, err := sqlite.Open(t.Context(), path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer func() { _ = store.Close() }()
-		queue, err := store.OpenCLICommandQueue(t.Context(), "commands", operational.CLICommandQueueOptions{MaxConcurrency: 1})
-		if err != nil {
-			t.Fatal(err)
-		}
-		db, err := sql.Open("sqlite", path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer func() { _ = db.Close() }()
-		if _, err := db.ExecContext(t.Context(), `CREATE TRIGGER crash_audit BEFORE INSERT ON cao_operational_audit_events BEGIN SELECT crash_during_audit(); END`); err != nil {
-			t.Fatal(err)
-		}
-		_, _, err = queue.(operational.AuditedCLICommandQueue).EnqueueAudited(t.Context(), auditInvocation, "request", 0, admissionEvent(0))
-		t.Fatalf("expected process exit inside audit INSERT, got %v", err)
-	}
-	f := newAuditFixture(t, "sqlite")
-	lease := acquireAuditLease(t, f)
-	executable, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	child := exec.CommandContext(t.Context(), executable, "-test.run=^TestAuditedSQLiteCrashDuringAppend$") // #nosec G204 -- rerun this test binary with an isolated temporary database.
-	child.Env = append(os.Environ(), "CAO_TEST_AUDIT_CRASH_DB="+f.sqlitePath)
-	output, err := child.CombinedOutput()
-	var exited *exec.ExitError
-	if !errors.As(err, &exited) || exited.ExitCode() != 23 {
-		t.Fatalf("audit crash helper: %v\n%s", err, output)
-	}
-	f.exec(t, `DROP TRIGGER crash_audit`)
-	verifyAuditCrashRecovery(t, f, lease)
-}
 
 func TestAuditedPostgresConnectionLossDuringAppend(t *testing.T) {
 	f := newAuditFixture(t, "postgres")

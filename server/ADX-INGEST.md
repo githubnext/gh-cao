@@ -111,7 +111,7 @@ guarantees are required, do not enable this free-compatible add-on for that data
 4. Deploy exactly **one exporter replica** with a persistent worker lifecycle
    and durable deployment-scoped operational coordination/state. The existing
    PostgreSQL operational backend is recommended. Volatile memory, local
-   SQLite/Pages, admission-only hosts and per-request platform workers are
+   The synthetic Pages demo, admission-only hosts and per-request platform workers are
    unsupported. Normal hosted OAuth/authorization requirements still apply.
 
 The public-cloud query endpoint must be HTTPS under `.kusto.windows.net`,

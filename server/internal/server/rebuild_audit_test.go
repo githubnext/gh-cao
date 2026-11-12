@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -19,6 +20,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 type rebuildDatabase struct {
@@ -66,19 +68,21 @@ func (f rebuildFunc) Reconcile(ctx context.Context, _ GitHubWebhook) (ingest.Res
 	return f(ctx)
 }
 
-func newRebuildAuditApp(t *testing.T) (*App, *rebuildAuditProbe, string) {
+func newRebuildAuditApp(t *testing.T) (*App, *rebuildAuditProbe) {
 	t.Helper()
 	store, err := memory.New(memory.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
-	path := filepath.Join(t.TempDir(), "audit.sqlite")
-	auditStore, err := newHostedCLISQLiteTestStore(t, path)
-	if err != nil {
+	auditStore, dsn, namespace := testutil.OperationalPostgres(t)
+	path := filepath.Join(t.TempDir(), "cao.json")
+	if err := os.WriteFile(path, []byte(`{"control-plane":{"web":{"host":{"target":{"module":"container"},"operational-store":{"backend":"postgres"}}}}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = auditStore.Close() })
+	t.Setenv("CAO_POLICY_PATH", path)
+	t.Setenv("CAO_POSTGRES_URL", dsn)
+	t.Setenv("CAO_OPERATIONAL_NAMESPACE", namespace)
 	probe := &rebuildAuditProbe{AuditLog: auditStore}
 	app := &App{
 		services: store.OperationalServices(), database: &rebuildDatabase{},
@@ -88,7 +92,7 @@ func newRebuildAuditApp(t *testing.T) (*App, *rebuildAuditProbe, string) {
 			return ingest.Result{Revision: 5, DataRevision: "snapshot-5"}, nil
 		}),
 	}
-	return app, probe, path
+	return app, probe
 }
 
 func rebuildRequest(t *testing.T, app *App, session oauthSession) *httptest.ResponseRecorder {
@@ -116,7 +120,7 @@ func rebuildEvents(t *testing.T, store operational.AuditLog) []operational.Audit
 }
 
 func TestRebuildAuditLifecycleIndependentHistory(t *testing.T) {
-	app, _, path := newRebuildAuditApp(t)
+	app, _ := newRebuildAuditApp(t)
 	ids := make([]string, 0, 2)
 	for range 2 {
 		response := rebuildRequest(t, app, assuredSession("operator"))
@@ -141,7 +145,7 @@ func TestRebuildAuditLifecycleIndependentHistory(t *testing.T) {
 		t.Fatal("rebuild correlation was reused")
 	}
 	// The reader uses a separate read-only connection, not the replaceable status.
-	reader, closeReader, err := OpenAuditReader(t.Context(), path)
+	reader, closeReader, err := OpenAuditReader(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +174,7 @@ func TestRebuildAuditLifecycleIndependentHistory(t *testing.T) {
 func TestRebuildAuditDeniedAndUnavailableAdmission(t *testing.T) {
 	for _, test := range []string{"not_admin", "step_up", "denial_outage", "admission_outage", "missing_durable", "database_outage", "status_outage", "draining"} {
 		t.Run(test, func(t *testing.T) {
-			app, probe, _ := newRebuildAuditApp(t)
+			app, probe := newRebuildAuditApp(t)
 			calls := 0
 			app.reconciler = rebuildFunc(func(context.Context) (ingest.Result, error) {
 				calls++
@@ -232,7 +236,7 @@ func TestRebuildAuditDeniedAndUnavailableAdmission(t *testing.T) {
 func TestRebuildAuditTerminalFailures(t *testing.T) {
 	for _, test := range []string{"failure", "canceled", "timeout", "start_outage", "terminal_outage", "status_outage", "mirror_outage", "joined_outage"} {
 		t.Run(test, func(t *testing.T) {
-			app, probe, _ := newRebuildAuditApp(t)
+			app, probe := newRebuildAuditApp(t)
 			runCtx, cancelRun := context.WithCancel(t.Context())
 			defer cancelRun()
 			app.startContext = runCtx
@@ -324,7 +328,7 @@ func TestRebuildAuditTerminalFailures(t *testing.T) {
 }
 
 func TestRebuildLocalCapabilityCompatibility(t *testing.T) {
-	app, _, _ := newRebuildAuditApp(t)
+	app, _ := newRebuildAuditApp(t)
 	app.oauth = nil
 	var mirror strings.Builder
 	app.config.Audit = audit.New(&mirror)
@@ -347,7 +351,7 @@ func TestRebuildPostgresAuditIndependentHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = store.Close() }()
-	app, _, _ := newRebuildAuditApp(t)
+	app, _ := newRebuildAuditApp(t)
 	app.services = store.OperationalServices()
 	app.config.Audit = audit.New(io.Discard).WithStore(app.services.Audit)
 	response := rebuildRequest(t, app, assuredSession("operator"))

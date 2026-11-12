@@ -51,7 +51,7 @@ describe('independent frozen statistical sampling', () => {
     expect(hot.rows.some((row) => row.id === fixture.rows[5].id)).toBe(false);
     expect(await statisticalPriority('github:run:o/r:1', 'different-seed'))
       .not.toEqual(await statisticalPriority('github:run:o/r:1'));
-    expect(STATISTICAL_CAPACITIES).toEqual({ postgres: 64000, sqlite: 8000, indexeddb: 16000 });
+    expect(STATISTICAL_CAPACITIES).toEqual({ postgres: 64000, indexeddb: 16000 });
   });
 
   it('matches full-sort bottom-k selection across strata, capacities, and input orders', async () => {
@@ -418,10 +418,10 @@ describe('independent frozen statistical sampling', () => {
     const result = await executeNamedQuery({
       indexedDB: factory,
       document: { dashboard: { queries: [{ name: 'sample', from: 'statistical-runs' }] } },
-      queryId: 'sample', statisticalCapacity: STATISTICAL_CAPACITIES.sqlite
+      queryId: 'sample', statisticalCapacity: STATISTICAL_CAPACITIES.postgres
     });
     expect(result.metadata['statistical-frame']).toMatchObject({
-      capacity: STATISTICAL_CAPACITIES.sqlite, 'population-count': 6, 'weight-valid': false,
+      capacity: STATISTICAL_CAPACITIES.postgres, 'population-count': 6, 'weight-valid': false,
       watermark: fixture.watermark
     });
     expect(result.metadata['sample-frame']).toEqual(result.metadata['statistical-frame']);

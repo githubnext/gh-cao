@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -14,25 +13,21 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/audit"
 	"github.com/githubnext/gh-cao/server/internal/hostedcli"
 	"github.com/githubnext/gh-cao/server/internal/operational"
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
+	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
-func hostedSQLiteFixture(t *testing.T) (*hostedCLIFixture, *sqlite.Store, *sql.DB) {
+func hostedPostgresFixture(t *testing.T) (*hostedCLIFixture, *postgres.Store, *sql.DB) {
 	t.Helper()
 	f := newHostedCLIFixture(t, []string{"octocat"})
-	path := filepath.Join(t.TempDir(), "hosted.sqlite")
-	store, err := sqlite.Open(t.Context(), path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = store.Close() })
+	store, dsn, _ := testutil.OperationalPostgres(t)
 	queue, err := store.OpenCLICommandQueue(t.Context(), hostedcli.QueueName, operational.CLICommandQueueOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	f.app.hostedCLI.queue = queue.(operational.AuditedCLICommandQueue)
 	f.app.config.Audit = f.app.config.Audit.WithStore(store)
-	db, err := sql.Open("sqlite", path)
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,8 +35,8 @@ func hostedSQLiteFixture(t *testing.T) (*hostedCLIFixture, *sqlite.Store, *sql.D
 	return f, store, db
 }
 
-func TestHostedSQLiteAuditFailureCannotAdmitOrCancel(t *testing.T) {
-	f, store, db := hostedSQLiteFixture(t)
+func TestHostedPostgresAuditFailureCannotAdmitOrCancel(t *testing.T) {
+	f, store, db := hostedPostgresFixture(t)
 	queue := f.app.hostedCLI.queue
 	lease, err := queue.Acquire(t.Context(), "executor", time.Minute)
 	if err != nil {
@@ -50,9 +45,11 @@ func TestHostedSQLiteAuditFailureCannotAdmitOrCancel(t *testing.T) {
 	if response := f.do(t, http.MethodPost, "/__cli_commands", hostedUpgradeRequest, true); response.Code != http.StatusAccepted {
 		t.Fatalf("original enqueue = %d: %s", response.Code, response.Body)
 	}
-	if _, err := db.ExecContext(t.Context(), `CREATE TRIGGER fail_audit BEFORE INSERT ON cao_operational_audit_events
-		WHEN NEW.event IN ('cli_command.admitted','cli_command.retried','cli_command.cancel_requested')
-		BEGIN SELECT RAISE(ABORT,'injected audit failure'); END`); err != nil {
+	if _, err := db.ExecContext(t.Context(), `CREATE FUNCTION fail_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+		BEGIN RAISE EXCEPTION 'injected audit failure'; END $$;
+		CREATE TRIGGER fail_audit BEFORE INSERT ON cao_operational_audit_events FOR EACH ROW
+		WHEN (NEW.event IN ('cli_command.admitted','cli_command.retried','cli_command.cancel_requested'))
+		EXECUTE FUNCTION fail_audit()`); err != nil {
 		t.Fatal(err)
 	}
 	for _, path := range []string{"/__cli_commands", "/__cli_commands/1/cancel"} {
@@ -111,8 +108,8 @@ func (q *lostAdmissionReply) EnqueueAudited(ctx context.Context, invocation oper
 	return command, stored, err
 }
 
-func TestHostedSQLiteUnknownCommitDoesNotCompensate(t *testing.T) {
-	f, store, _ := hostedSQLiteFixture(t)
+func TestHostedPostgresUnknownCommitDoesNotCompensate(t *testing.T) {
+	f, store, _ := hostedPostgresFixture(t)
 	f.app.hostedCLI.queue = &lostAdmissionReply{AuditedCLICommandQueue: f.app.hostedCLI.queue, lose: true}
 	body := `{"id":"upgrade-target-repository","values":{"repository":"octo/app"},"idempotencyKey":"lost-reply"}`
 	if response := f.do(t, http.MethodPost, "/__cli_commands", body, true); response.Code != http.StatusServiceUnavailable {
@@ -153,8 +150,8 @@ type failingHostedMirror struct{}
 
 func (failingHostedMirror) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
 
-func TestHostedSQLiteMirrorFailureReportsCommittedCommand(t *testing.T) {
-	f, store, _ := hostedSQLiteFixture(t)
+func TestHostedPostgresMirrorFailureReportsCommittedCommand(t *testing.T) {
+	f, store, _ := hostedPostgresFixture(t)
 	f.app.config.Audit = audit.New(failingHostedMirror{}).WithStore(store)
 	body := `{"id":"upgrade-target-repository","values":{"repository":"octo/app"},"idempotencyKey":"mirror-failure"}`
 	for range 2 {

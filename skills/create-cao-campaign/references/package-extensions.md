@@ -28,7 +28,7 @@ configured.
 
 Add `<campaign-slug>/problem-clustering.mjs` only for a deterministic bounded
 problem definition; do not add campaign-specific clustering steps to the
-Activity workflow. Read the isolated Activity SQLite snapshot without acquiring
+Activity workflow. Read the explicitly provided canonical PostgreSQL namespace without acquiring
 new evidence. Emit a JSONL sequence: zero or more newline-delimited JSON objects
 with stable lowercase `id`, non-empty `title`, and an actionable `fixPrompt`
 that an agent can follow. Activity runs contributors in a fault-isolated, timed,

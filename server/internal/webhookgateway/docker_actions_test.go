@@ -26,7 +26,7 @@ func TestGitHubSimulatorDockerDispatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = workspace.Close() })
-	gateway := newDiscoverySimulator(t, sqliteSimulatorStorage)
+	gateway := newDiscoverySimulator(t, localSimulatorStorage)
 	// The pinned compiler's webhook manifest conformance fixture supplies the
 	// subscription; the sibling sample locks consume its repository_dispatch.
 	files := map[string][]byte{".github/workflows/test.lock.yml": gateway.lock}

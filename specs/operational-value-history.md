@@ -117,9 +117,7 @@ A reconstruction invocation MUST receive:
 
 It MUST receive exactly one canonical evidence boundary:
 
-- Actions and static reconstruction receive an Activity SQLite database path;
-  or
-- a collector-enabled hosted server receives a private canonical query
+- local and hosted reconstruction receive a private canonical query
   transport backed by one repeatable-read PostgreSQL transaction and carrying
   its canonical revision.
 
@@ -160,8 +158,7 @@ to the adapter's standard input:
 {
   "schemaVersion": 1,
   "timestamp": "2026-09-24T10:00:00.000Z",
-  "repositories": ["githubnext/gh-cao"],
-  "database": "/absolute/path/activity.sqlite"
+  "repositories": ["githubnext/gh-cao"]
 }
 ```
 

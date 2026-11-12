@@ -42,7 +42,7 @@ namespace Value {
    * PostgreSQL. No workflow discovery, acquisition, evaluator execution or
    * scheduled evaluation is performed. Requires a hosted administrator OAuth
    * session with current step-up assurance and CSRF, or a local bearer
-   * capability backed by PostgreSQL; local SQLite is read-only.
+   * capability backed by PostgreSQL.
    *
    * Repository and workflow must already be observed. Publication is atomic,
    * namespace-scoped and survives Activity snapshot replacement. Exact retries

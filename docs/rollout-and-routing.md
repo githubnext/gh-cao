@@ -91,7 +91,7 @@ Campaign mode selects destinations for declared safe outputs, not dashboard
 hosting. `safe_output_repo` remains the review-output destination; it does not
 need a Pages site. Production dashboards serve operational evidence through the
 same-origin Go/PostgreSQL host, and local development uses the same Go server
-over an authorized real SQLite snapshot.
+over an authorized canonical PostgreSQL data.
 
 Pages publishes only the synthetic enterprise demo, independently of campaign
 mode and operational freshness. No operational artifacts or review outputs

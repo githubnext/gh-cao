@@ -150,15 +150,11 @@ volatile memory do not provide this service, so hosted CLI actions require
 PostgreSQL. `server/POSTGRES.md` defines operator provisioning and rollout.
 `specs/server-hosted-cli.md` §7 defines the events.
 
-For local debugging only, `server/internal/operational/sqlite` provides the
-`CLICommandQueues` and `AuditLog` contracts in one SQLite file (mode `0600`,
-WAL, immediate transactions) shared by `serve-hosted --hosted-cli-sqlite` and
-`execute-cli --sqlite` on one host. It is not an `operational.Store` backend,
-has one global namespace and no capacity accounting, uses host-clock
-timestamps, and its append-only triggers can be dropped by anyone who can
-write the file; the hash chain still detects edits that do not rewrite every
-later hash. `specs/server-hosted-cli.md` §2 restricts it to loopback
-listeners.
+Local development MUST use the same PostgreSQL command, audit, capacity,
+namespace and database-clock contracts as hosted deployments. Runtime opens
+pre-provisioned storage; schema-owner bootstrap and evidence-reader privileges
+remain separate. No file-database adapter, automatic conversion or fallback
+is supported.
 
 ## Administrative rebuild evidence
 
@@ -217,8 +213,7 @@ A subsequent rebuild MUST use a new ID and MUST NOT erase retained history.
 `OpenAuditReader` and `ListAudit`. It MUST NOT append audit events (including
 its own result), acquire leases, replay work, write status, mutate canonical
 data, perform maintenance, or infer a cross-store transaction. PostgreSQL
-operators MUST use the independent SELECT-only evidence role. `--sqlite`
-uses the existing read-only local debugging adapter, not a production substitute.
+operators MUST use the independent SELECT-only evidence role.
 
 The check reads ascending, unfiltered sequence pages of at most 1,000 rows,
 up to `--max-events` (default 10,000; hard maximum 100,000) plus one lookahead
@@ -283,7 +278,7 @@ requiring CLI commands MUST set `Requirements.CLICommands` and reject an absent,
 typed-nil, unsupported, or volatile service. Storage support MUST NOT enable
 hosted execution, expose new HTTP actions, bypass declared-action validation or
 trusted approval, or provide credentials, quota admission, or subprocess control.
-The existing local-admin/canvas SQLite queue remains unchanged. Hosted
+The local-admin/canvas queue MUST use PostgreSQL. Hosted
 execution is a separate opt-in contract defined by
 [`server-hosted-cli.md`](server-hosted-cli.md).
 
@@ -307,7 +302,7 @@ current declaration and obtain fresh approval before enqueueing it.
 
 Attributed invocations MUST encode a positive numeric GitHub `ActorID`
 (`actorId` in invocation JSON) alongside their `Actor` login. Unattributed
-local invocations MAY omit both. PostgreSQL and SQLite MUST preserve the ID
+local invocations MAY omit both. PostgreSQL MUST preserve the ID
 through detail, list/history, and claim reads. Idempotency fingerprints MUST
 include it; the same login with a different ID is a different requester.
 A fresh retry MAY replace both attribution fields in the new command, but
@@ -373,7 +368,7 @@ local-dashboard CLI or JavaScript Go launcher.
 
 | Invocation | Runtime | Operational authority |
 | --- | --- | --- |
-| `serve` | Go local SQLite snapshot and same-origin HTTP query API | Loopback bearer profile; no hosted collection or OAuth |
+| `serve` | Go local PostgreSQL storage and same-origin HTTP query API | Loopback bearer profile; no implicit collection or OAuth |
 | `serve-pages` | Go static serving of an explicitly prepared Pages artifact | No API or operational services; browser IndexedDB |
 | `serve-hosted --operational-store redis` | Go hosted service | Resolved reviewed host policy selecting Redis |
 | `serve-hosted --operational-store memory` | Go hosted service | Resolved reviewed host policy selecting memory with every volatile-memory guard above |
@@ -406,7 +401,7 @@ authorize access. Explicit `serve-pages` MUST serve prepared static bytes
 without injecting hosted bootstrap, authentication, or API routes. It MUST
 accept only loopback listeners and confine file access to its selected site;
 directory listings and escaping symlinks MUST be rejected. It MUST NOT become
-a fallback for a failed hosted or SQLite service.
+a fallback for a failed PostgreSQL service.
 
 `dashboard/canvas-server.mjs` remains an internal, loopback-only authoring
 bridge. It has no standalone CLI, admin mode or process-replacement facility.

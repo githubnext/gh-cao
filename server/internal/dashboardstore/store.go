@@ -1,5 +1,5 @@
-// Package dashboardstore defines the canonical read boundary shared by hosted
-// PostgreSQL and explicitly selected local SQLite snapshots.
+// Package dashboardstore defines the canonical PostgreSQL read boundary for
+// local and hosted servers.
 package dashboardstore
 
 import (
@@ -48,10 +48,7 @@ type ExecutionOptions struct {
 	Repositories   []string
 }
 
-// Reader is scoped to the callback's consistent read transaction. The historical
-// ExecuteSQLPlan names do not require SQL execution: PostgreSQL compiles SQL,
-// while local SQLite uses the bounded Go evaluator and rejects resource-limit
-// overrides.
+// Reader is scoped to the callback's consistent read transaction.
 type Reader interface {
 	State(context.Context) (State, error)
 	ExecuteSQLPlan(context.Context, []query.Definition, []string) (map[string]model.Source, model.Metrics, error)

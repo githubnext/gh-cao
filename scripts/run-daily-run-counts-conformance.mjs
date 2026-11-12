@@ -125,6 +125,12 @@ export function runConformance(environment = process.env, value = contract) {
   const scratch = resolve(root, '.tmp/drc');
   mkdirSync(scratch, { recursive: true });
   const env = { ...environment, TMPDIR: scratch, TMP: scratch, TEMP: scratch };
+  const binary = resolve(root, '.tmp/cao-dashboard');
+  const build = spawnSync('go', ['-C', resolve(root, 'server'), 'build', '-o', binary, './cmd/cao-dashboard'], {
+    env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024
+  });
+  if (build.status !== 0) throw new Error(`Build PostgreSQL canonical reader: ${build.stderr || build.error?.message}`);
+  env.CAO_DASHBOARD_EXECUTABLE = binary;
   for (const suite of suites) {
     console.log(`\n${title} conformance: ${suite.id}`);
     let command = process.execPath;

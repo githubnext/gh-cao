@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/url"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -93,7 +92,16 @@ func TestDashboardQuotaPauseIsVisibleThroughCanonicalQuery(t *testing.T) {
 	if err != nil || calls != 1 {
 		t.Fatalf("quota pause did not retain a queryable snapshot: %v", err)
 	}
-	db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
+	state, err := readDashboardIngestion(t.Context(), cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := dashboardIngestionRecord(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dsn := nativeTestSnapshot(t, map[string][]map[string]any{"transactions": {record}})
+	db, err := openNativeSnapshot(dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,19 +147,14 @@ func TestDashboardHistoryPublicationRetentionAndAttempts(t *testing.T) {
 	if err := writeDashboardSnapshot(t.Context(), cache, batch, true); err != nil {
 		t.Fatal(err)
 	}
-	db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = db.Close() }()
-	runs, err := readNativeCollection(t.Context(), db, "runs")
+	runs, err := readDashboardCachedCollection(t.Context(), cache, "runs")
 	if err != nil || len(runs) != 1 || runs[0]["resolvedModel"] != "observed" {
 		t.Fatalf("retention or same-attempt sparse merge lost evidence: %v %v", runs, err)
 	}
 	if value, present := runs[0]["outputTokens"]; !present || value != nil {
 		t.Fatal("explicit null was converted into a missing field during sparse enrichment")
 	}
-	tools, err := readNativeCollection(t.Context(), db, "tools")
+	tools, err := readDashboardCachedCollection(t.Context(), cache, "tools")
 	if err != nil || len(tools) != 1 || tools[0]["id"] != "tool:recent" {
 		t.Fatalf("run-linked retention removed unrelated evidence: %v %v", tools, err)
 	}
@@ -159,11 +162,11 @@ func TestDashboardHistoryPublicationRetentionAndAttempts(t *testing.T) {
 	if err := writeDashboardSnapshot(t.Context(), cache, batch, true); err != nil {
 		t.Fatal(err)
 	}
-	runs, err = readNativeCollection(t.Context(), db, "runs")
+	runs, err = readDashboardCachedCollection(t.Context(), cache, "runs")
 	if err != nil || runs[0]["resolvedModel"] != nil {
 		t.Fatalf("prior-attempt run evidence survived: %v %v", runs, err)
 	}
-	tools, err = readNativeCollection(t.Context(), db, "tools")
+	tools, err = readDashboardCachedCollection(t.Context(), cache, "tools")
 	if err != nil || len(tools) != 0 {
 		t.Fatalf("prior-attempt dependent evidence survived: %v %v", tools, err)
 	}
@@ -172,11 +175,11 @@ func TestDashboardHistoryPublicationRetentionAndAttempts(t *testing.T) {
 	if err := writeDashboardSnapshot(t.Context(), cache, batch, true); err != nil {
 		t.Fatal(err)
 	}
-	runs, err = readNativeCollection(t.Context(), db, "runs")
+	runs, err = readDashboardCachedCollection(t.Context(), cache, "runs")
 	if err != nil || runs[0]["attempt"] != float64(2) || runs[0]["resolvedModel"] != nil {
 		t.Fatalf("cached earlier attempt replaced newer retained evidence: %v %v", runs, err)
 	}
-	tools, err = readNativeCollection(t.Context(), db, "tools")
+	tools, err = readDashboardCachedCollection(t.Context(), cache, "tools")
 	if err != nil || len(tools) != 0 {
 		t.Fatalf("stale cached children were attached to a newer attempt: %v %v", tools, err)
 	}
@@ -264,12 +267,7 @@ func TestDashboardHistoryPersistsAcrossPassesAndFailures(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = db.Close() }()
-	runs, err := readNativeCollection(t.Context(), db, "runs")
+	runs, err := readDashboardCachedCollection(t.Context(), cache, "runs")
 	if err != nil || len(runs) != 3 {
 		t.Fatalf("earlier history page was replaced: %v %v", runs, err)
 	}
@@ -285,8 +283,14 @@ func TestDashboardHistoryPersistsAcrossPassesAndFailures(t *testing.T) {
 	if err != nil || failed.Status != "failed" || !reflect.DeepEqual(failed.Cursors, state.Cursors) {
 		t.Fatalf("failure lost status or advanced history: %+v %v", failed, err)
 	}
-	after, err := readNativeCollection(t.Context(), db, "runs")
+	after, err := readDashboardCachedCollection(t.Context(), cache, "runs")
 	if err != nil || !reflect.DeepEqual(runs, after) {
 		t.Fatalf("failure changed retained evidence: %v", err)
 	}
+
+}
+
+func readDashboardCachedCollection(ctx context.Context, cache, collection string) ([]map[string]any, error) {
+	batch, err := readDashboardArtifactBatch(ctx, cache)
+	return batch[collection], err
 }

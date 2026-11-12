@@ -46,7 +46,7 @@ on the operator's workstation with the operator's own credentials.
    experimental server feature.
 2. `serve-hosted` MUST admit CLI actions only when started with both
    `--experimental` and `--hosted-cli-actions`. Without either flag, the server
-   MUST NOT register the `/__cli_commands` routes. The local SQLite debugging
+   MUST NOT register the `/__cli_commands` routes. The local development
    mode is subject to the same experimental gate.
 3. Enablement MUST fail at startup unless GitHub OAuth and the PostgreSQL
    operational store are configured. The mode MUST NOT fall back to the
@@ -55,27 +55,14 @@ on the operator's workstation with the operator's own credentials.
    `--cli-actions-catalog`. A request MUST NOT name an arbitrary command.
 5. A separate `execute-cli` process MUST drain the queue. The web server
    process MUST NOT hold the App private key.
-6. For local debugging only, `serve-hosted --experimental
-   --hosted-cli-actions --hosted-cli-sqlite PATH` and `execute-cli --sqlite
-   PATH` MAY replace the PostgreSQL queue and audit
-   table with one SQLite file shared by both processes on one host.
-   `--hosted-cli-sqlite` MUST be rejected unless both `--experimental` and
-   `--hosted-cli-actions` are present and MUST fail at startup unless `--listen`
-   is a loopback address. The file
-   MUST be created with mode `0600`, and the path MUST NOT carry URI
-   parameters. The SQLite store MUST implement the same queue and audit
-   contracts (§7 items 1–2), with these differences: one global namespace,
-   timestamps from the host clock, and triggers that anyone with write access
-   to the file can drop. It MUST NOT be used in production.
-   `database bootstrap --store operational --sqlite PATH` MUST explicitly
-   provision that file before runtime use. Runtime and evidence readers MUST
-   NOT create missing state, execute schema DDL, or implicitly retain audit
-   history. `database retain-audit --store operational --sqlite PATH` MUST
-   perform only a bounded expired-prefix audit retention batch. SQLite
-   `audit deliver` MUST use a read-only connection and deferred verification
-   transaction; `audit verify` MUST remain writable to record its outcome.
-   SQLite MUST NOT be presented as enforcing PostgreSQL role separation or
-   as an alternative canonical dashboard store.
+6. Local debugging MUST retain PostgreSQL queue and audit storage, namespace
+   isolation, database-clock timestamps and role separation. Explicit
+   `--local-development` MAY enable development-only container providers;
+   the web process MUST reject that selection on non-loopback listeners.
+   The flag grants no database-bootstrap, OAuth, repository or token authority.
+   Runtime and evidence readers MUST NOT create missing state, execute DDL,
+   or implicitly retain audit history. There is no file-database backend or
+   legacy conversion path.
 
 ## 3. Administrator step-up
 
@@ -336,7 +323,7 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    PostgreSQL operational namespace. Admission and queue state MUST survive process
    restart. Web replicas MAY admit requests concurrently; executor replicas
    MUST coordinate through one durable queue lease, and only its current holder
-   may claim work. SQLite is limited to the single-host debugging profile.
+   may claim work. Local development retains PostgreSQL storage and fencing.
 2. The queue MUST serialize lease acquisition, renewal, release, and command
    claims transactionally. Each claim MUST atomically persist its running state
    and execution claim before the command starts. The execution claim MUST
@@ -452,7 +439,7 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
 
 1. `CAO_HOSTED_CLI_CONTAINER_RUNTIME` MUST default to `docker`; unknown values
    MUST fail startup. Explicit `podman`, `apple`, or `windows-sandbox` selection MUST
-   require `execute-cli --sqlite` and the matching host platform. Missing
+   require `execute-cli --local-development` and the matching host platform. Missing
    runtime prerequisites MUST fail closed, never select Docker or host execution
    automatically. Admission, live permission rechecks, token scope, audit
    requirements, deadlines, and retained-claim recovery remain unchanged.
@@ -481,7 +468,7 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    for this profile, and missing tools MUST NOT fall back to host binaries.
 5. Windows Sandbox MUST enforce its single-instance limit across local
    executor namespaces and processes, not just a queue's concurrency setting.
-   Its SQLite queue concurrency MUST be one and MUST match between admission
+   Its PostgreSQL queue concurrency MUST be one and MUST match between admission
    and execution; existing queue configuration MUST NOT be silently rewritten.
    An unrelated or user-started Sandbox MUST cause admission to the native
    runtime to fail; it MUST NOT be attached to, reused, or stopped. Ownership
@@ -516,7 +503,7 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    operator-managed; the executor MUST NOT install OS features or change
    global runtime configuration automatically.
 
-8. Podman MUST be an explicitly selected SQLite-only Linux development
+8. Podman MUST be an explicitly selected explicit local PostgreSQL Linux development
    adapter, not a production Docker replacement or a macOS/Windows Podman
    machine connection. Every engine command MUST select `--remote=false`.
    The fixed `cao-hosted-cli` execution namespace MUST use an owned private
@@ -539,7 +526,7 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    creation MUST fail with no isolation relaxation. Runtime identity MUST be
    backend-scoped and bind the local host/user, canonical graph and run roots,
    fixed namespace, storage driver, stable filesystem identity of the graph/run
-   and execution-state directories and owned SQLite database file, and durable private random records within
+   and execution-state directories and owned PostgreSQL database file, and durable private random records within
    the graph root and execution namespace. Replacing a directory MUST change
    identity even if its path or copied marker contents remain the same.
    Replacing the owned database file MUST likewise change runtime identity.
@@ -606,7 +593,7 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    intended Linux executor. Mock command tests or missing-Docker skips MUST NOT
    count as real-boundary evidence. No global Docker or shared host-network
    modification is required or authorized by this mechanism.
-7. SQLite-only Docker development MAY retain its previous bridge behavior only
+7. explicit local PostgreSQL Docker development MAY retain its previous bridge behavior only
    when every egress setting is absent. Any supplied setting MUST require the
    complete boundary with no silent fallback. The explicitly selected native
    profiles in section 6a remain development-only.
@@ -654,8 +641,8 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    closed when their event cannot be stored: a minted token is revoked and not
    used; a command is failed before it runs when `cli_command.started` cannot
    be stored. Admission, retry, and cancellation MUST commit the queue mutation
-   and its hash-chained event in the same transaction, in both PostgreSQL and
-   SQLite. Hosted enablement MUST require `AuditedCLICommandQueue`; a separate
+   and its hash-chained event in the same PostgreSQL transaction.
+   Hosted enablement MUST require `AuditedCLICommandQueue`; a separate
    enqueue followed by append and compensating cancellation is prohibited.
    Append failure MUST roll back the mutation, idempotency reservation, queue
    revision, and capacity accounting. A failed or uncertain commit returns
@@ -706,8 +693,8 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
     deadline; it MUST NOT use an unbounded `WithoutCancel` context for storage.
     Atomic administrator mutations MUST also honor earlier caller deadlines
     and cancellation. PostgreSQL MUST bound transaction-local lock, statement,
-    and idle-in-transaction waits before acquiring the namespace lock. SQLite
-    MUST bound its busy wait to one second. Deadline and storage failures MUST
+    and idle-in-transaction waits before acquiring the namespace lock.
+    Deadline and storage failures MUST
     remain observable and MUST NOT be interpreted as confirmed rollback.
     PostgreSQL MUST preserve any stricter nonzero session timeout rather than
     replacing an operator's ceiling with a longer caller budget; limits MUST
@@ -715,7 +702,7 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
 
 ### 7.1. Durable completion and token cleanup
 
-PostgreSQL and SQLite MUST commit a command's result transition with
+PostgreSQL MUST commit a command's result transition with
 `cli_command.result`, and its claim settlement with `cli_command.finished`,
 in the same transaction as the corresponding audit append. Events MUST use
 the stored actor, repository, queue, command ID, authoritative status and exit
@@ -875,7 +862,7 @@ workload termination in this model.
   refresh non-extension, and the `401` and `403` responses.
 - `server/internal/server/hosted_cli_test.go`: flag gating, admission order,
   and requester permission.
-- `server/internal/server/hosted_cli_atomic_test.go`: real SQLite admission,
+- `server/internal/server/hosted_cli_atomic_test.go`: real PostgreSQL admission,
   retry and cancellation rollback, lost commit acknowledgements, same-key
   recovery, and rejection of non-atomic queues.
 - `server/internal/operational/cli_command_audit*_test.go`: both
@@ -897,7 +884,7 @@ workload termination in this model.
 - `server/internal/hostedcli/container_runner_test.go` and `recovery_test.go`:
   private Git-root initialization, immutable pre-create identity registration,
   Docker/workload exit distinction, failed cleanup retaining capacity across
-  SQLite restart, crash preservation, and original-daemon recovery.
+  PostgreSQL restart, crash preservation, and original-daemon recovery.
 - `server/internal/hostedcli/podman_integration_test.go`: opt-in
   `CAO_TEST_PODMAN=1 go test ./internal/hostedcli -run '^TestPodmanRealBoundary$' -v`
   from `server/`, with an already present digest-pinned image containing Git,
@@ -912,7 +899,7 @@ workload termination in this model.
   preloads the production digest-pinned image, and runs the real Azure local
   service integration with `CAO_CONTAINER_ENGINE=podman`. Enforcing-SELinux
   validation still requires a separate host with SELinux enabled.
-- `server/internal/operational/{postgres,sqlite}/cli_execution_test.go`:
+- `server/internal/operational/postgres/cli_execution_test.go`:
   durable execution identity, immutable registration, and lease-fenced recovery.
 - `server/internal/hostedcli/executor_test.go`
   (`TestExecutorVerifiesRequesterBeforeIssuingWorkTokens`,
@@ -928,11 +915,7 @@ workload termination in this model.
 - `server/internal/server/hosted_cli_test.go` and
   `server/internal/hostedcli/executor_test.go`: hosted CLI requires the table,
   and unaudited admission, cancel, token mint, and command start fail closed.
-- `server/internal/operational/sqlite/store_test.go`: the SQLite debug store
-  shares one file between two handles for queue leases, idempotent admission,
-  recovery, the audit chain, rejected `UPDATE`/`DELETE`, tamper detection, and
-  retention; `hosted_cli_test.go` rejects it on a non-loopback listener.
-- `server/internal/operational/sqlite/store_test.go`
+- `server/internal/operational/postgres/audit_test.go`
   (`TestAuditAnchorsDetectRewriteAndRollback`) and
   `server/cmd/cao-dashboard/audit_test.go`: anchors detect a consistent
   rewrite and a rollback, malformed anchors are rejected, verification is

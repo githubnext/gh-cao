@@ -1,12 +1,9 @@
 import 'fake-indexeddb/auto';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { rmSync } from 'node:fs';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
   deleteCanonicalDatabase, readCollections
 } from '../../src/data/storage/indexeddb.js';
-import { installSqliteIndexedDB } from '../../src/data/storage/sqlite-indexeddb.js';
 import {
   finalizeNormalizedJsonlIngestion, ingestNormalizedJsonl, NORMALIZED_JSONL_INGESTION_VERSION
 } from '../../src/data/ingest/coordinator.js';
@@ -52,15 +49,6 @@ async function* payload(runs, tools = []) {
   }
 }
 
-/** @param {string} backend */
-function installBackend(backend) {
-  if (backend === 'sqlite') {
-    const directory = mkdtempSync(join(tmpdir(), 'cao-retention-path-'));
-    directories.push(directory);
-    installSqliteIndexedDB(join(directory, 'canonical.sqlite'));
-  }
-}
-
 /** @param {Awaited<ReturnType<typeof readCollections>>} records */
 function expectAccounting(records) {
   const bytes = (/** @type {Record<string, unknown>[]} */ rows) => rows.reduce((sum, row) =>
@@ -73,10 +61,9 @@ function expectAccounting(records) {
   });
 }
 
-it.each(['indexeddb', 'sqlite'])(
+it.each(['indexeddb'])(
   'runs independent TTL and weekly eviction through deferred ingestion and unchanged replay in %s',
-  async (backend) => {
-    installBackend(backend);
+  async () => {
     await deleteCanonicalDatabase(indexedDB);
     vi.spyOn(Date, 'now').mockReturnValue(sunday);
     const expired = Array.from({ length: 251 }, (_, index) =>
@@ -134,10 +121,9 @@ it.each(['indexeddb', 'sqlite'])(
   }
 );
 
-it.each(['indexeddb', 'sqlite'])(
+it.each(['indexeddb'])(
   'maintains retired replay guards and incomplete undated evidence through ingestion in %s',
-  async (backend) => {
-    installBackend(backend);
+  async () => {
     await deleteCanonicalDatabase(indexedDB);
     vi.spyOn(Date, 'now').mockReturnValue(sunday);
     const original = run('corrected', '2026-10-12T00:00:00Z');

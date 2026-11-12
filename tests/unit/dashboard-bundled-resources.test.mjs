@@ -8,7 +8,7 @@ import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createInterface } from "node:readline";
 import { executeDashboardQueryRequest, readDashboardDataSpecification } from "../../com.github.copilot/extensions/cao-dashboard/dashboard-agent-tools.mjs";
-import { writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
+import { prepareCanvasPostgres, writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
 
 const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -84,7 +84,7 @@ test("a relocated plugin builds its own Go host and child lifetime follows its o
   const root = await mkdtemp(join(tmpdir(), "cao-plugin-go-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const plugin = await relocatedPlugin(root);
-  for (const path of ["server/go.mod", "server/go.sum", "server/cmd/cao-dashboard", "server/internal", "internal/dashboardquery"]) {
+  for (const path of ["server/go.mod", "server/go.sum", "server/cmd/cao-dashboard", "server/internal", "server/postgres", "internal/dashboardquery"]) {
     await mkdir(join(plugin, path, ".."), { recursive: true });
     await cp(join(repositoryRoot, path), join(plugin, path), { recursive: true });
   }
@@ -93,7 +93,9 @@ test("a relocated plugin builds its own Go host and child lifetime follows its o
     assert.ok((await resources.resolveBundledResource(name)).startsWith(plugin));
   }
   const directory = join(root, "preview");
-  const sqlite = await writeCanvasSnapshot(directory);
+  await writeCanvasSnapshot(directory);
+  const postgres = await prepareCanvasPostgres();
+  t.after(() => postgres.close());
   const site = join(directory, "site");
   await mkdir(site);
   await writeFile(join(site, "index.html"), "<html><head></head><body>relocated</body></html>");
@@ -106,7 +108,7 @@ test("a relocated plugin builds its own Go host and child lifetime follows its o
   delete environment.CAO_DASHBOARD_EXECUTABLE;
   const owner = spawn(process.execPath, ["--input-type=module", "-e", `
     import { startCanvasGoHost } from ${JSON.stringify(moduleUrl)};
-    const host = await startCanvasGoHost(${JSON.stringify({ directory, site, sqlite, config, host: "127.0.0.1", port: 0 })});
+    const host = await startCanvasGoHost(${JSON.stringify({ directory, site, source: directory, postgresURL: postgres.postgresURL, namespace: postgres.namespace, config, host: "127.0.0.1", port: 0 })});
     console.log(host.url);
   `], { env: environment, stdio: ["ignore", "pipe", "pipe"] });
   let stderr = "";

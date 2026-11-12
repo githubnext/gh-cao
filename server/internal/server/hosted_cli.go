@@ -38,17 +38,8 @@ type HostedCLIConfig struct {
 	DashboardURL string
 	// Queue overrides the operational queue; tests only.
 	Queue operational.CLICommandQueue
-	// DebugStore replaces the PostgreSQL queue and audit table with a local
-	// single-host store (serve-hosted --hosted-cli-sqlite). It is accepted
-	// only on a loopback listener.
-	DebugStore HostedCLIDebugStore
-}
-
-// HostedCLIDebugStore is a local queue and audit table, such as the SQLite
-// store used for debugging.
-type HostedCLIDebugStore interface {
-	operational.CLICommandQueues
-	operational.AuditLog
+	// LocalDevelopment permits local container profiles only on loopback.
+	LocalDevelopment bool
 }
 
 type hostedCLI struct {
@@ -77,20 +68,18 @@ func (a *App) EnableHostedCLIActions(ctx context.Context, config HostedCLIConfig
 		return err
 	}
 	queues := a.services.CLICommands
-	if config.DebugStore != nil {
+	if config.LocalDevelopment {
 		if !isLoopbackListen(a.config.Listen) {
-			return errors.New("hosted CLI SQLite debug store requires a loopback listen address")
+			return errors.New("hosted CLI local development requires a loopback listen address")
 		}
-		queues = config.DebugStore
-		a.config.Audit = a.config.Audit.WithStore(config.DebugStore)
-		a.config.Logger.Printf("hosted CLI actions use a local SQLite debug store; not for production")
+		a.config.Logger.Printf("hosted CLI actions use a local development execution profile; not for production")
 	}
 	queue := config.Queue
 	if queue == nil {
 		if queues == nil {
-			return errors.New("hosted CLI actions require the postgres operational store or --hosted-cli-sqlite")
+			return errors.New("hosted CLI actions require the postgres operational store")
 		}
-		options, err := hostedCLIQueueOptions(config.DebugStore != nil)
+		options, err := hostedCLIQueueOptions(config.LocalDevelopment)
 		if err != nil {
 			return err
 		}
@@ -100,7 +89,7 @@ func (a *App) EnableHostedCLIActions(ctx context.Context, config HostedCLIConfig
 		}
 	}
 	if !a.config.Audit.Durable() {
-		return errors.New("hosted CLI actions require the postgres operational audit table or --hosted-cli-sqlite")
+		return errors.New("hosted CLI actions require the postgres operational audit table")
 	}
 	audited, ok := queue.(operational.AuditedCLICommandQueue)
 	if !ok {

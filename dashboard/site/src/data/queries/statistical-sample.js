@@ -7,7 +7,7 @@ import { timestampMilliseconds } from '../model/schema.js';
 import { createDashboardQueryBudget, DashboardQueryCancelledError, DASHBOARD_QUERY_LIMITS } from './declarative.js';
 import { createDebug } from '../../debug.js';
 
-export const STATISTICAL_CAPACITIES = Object.freeze({ postgres: 64000, sqlite: 8000, indexeddb: 16000 });
+export const STATISTICAL_CAPACITIES = Object.freeze({ postgres: 64000, indexeddb: 16000 });
 export const STATISTICAL_VERSION = 'canonical-snapshot-bottom-k-v1';
 export const STATISTICAL_FRAME_VERSION = 'canonical-snapshot-frame-v2';
 export const STATISTICAL_INPUT_LIMITS = Object.freeze({

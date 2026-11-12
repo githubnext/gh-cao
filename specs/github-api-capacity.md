@@ -152,7 +152,7 @@ and MUST remain separate from the modeled maximum.
 collector. The retained scenario obtains the tracked-output population only
 through the canonical `operational-value-evidence` logical source. The native
 operator executes the same Dashboard Language query against a downloaded
-SQLite snapshot by default or against the Go server's PostgreSQL database with
+PostgreSQL namespace locally or the hosted query service with
 `--server URL`. It MUST NOT read `.github/value-evidence/`, an Activity
 workspace, or a compiled-in population fallback. Missing, empty or unavailable
 database evidence MUST fail closed instead of producing a result with invented

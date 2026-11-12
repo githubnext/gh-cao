@@ -83,7 +83,20 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: ${{ (matrix.area == 'dashboard' || matrix.area == 'tooling') && 'postgres:16-alpine' || '' }}
+        env:
+          POSTGRES_DB: cao_contracts
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cao_contracts"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 30
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -94,6 +107,33 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Set up native PostgreSQL query runtime
+        if: matrix.area == 'dashboard' || matrix.area == 'tooling'
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: |
+            go.sum
+            server/go.sum
+            internal/dashboardquery/go.sum
+      - name: Prepare partition-heavy PostgreSQL fixtures
+        id: postgres-fixtures
+        if: matrix.area == 'dashboard' || matrix.area == 'tooling'
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          docker exec "$POSTGRES_CONTAINER" psql -U postgres -d cao_contracts -c 'ALTER SYSTEM SET max_locks_per_transaction=512'
+          docker restart "$POSTGRES_CONTAINER"
+          for ((attempt = 1; attempt <= 30; attempt++)); do
+            if docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres -d cao_contracts; then break; fi
+            sleep 1
+          done
+          docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres -d cao_contracts
+          # Docker restart can reassign the host port; job.services retains the original.
+          postgres_port="$(docker inspect --format '{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}' "$POSTGRES_CONTAINER")"
+          echo "port=$postgres_port" >> "$GITHUB_OUTPUT"
+          mkdir -p .tmp
+          go -C server build -o ../.tmp/cao-dashboard ./cmd/cao-dashboard
       # Terminal contracts need node-pty's native build and terminal preparation.
       - name: Install dashboard dependencies
         if: matrix.area == 'dashboard'
@@ -111,6 +151,8 @@ jobs:
       - name: Run ${{ matrix.area }} unit contracts
         env:
           UNIT_AREA: ${{ matrix.area }}
+          POSTGRES_URL: ${{ (matrix.area == 'dashboard' || matrix.area == 'tooling') && format('postgresql://postgres@127.0.0.1:{0}/cao_contracts?sslmode=disable', steps.postgres-fixtures.outputs.port) || '' }}
+          CAO_DASHBOARD_EXECUTABLE: ${{ github.workspace }}/.tmp/cao-dashboard
         run: npm run test:unit:area -- "$UNIT_AREA"
 
   fast-contracts:

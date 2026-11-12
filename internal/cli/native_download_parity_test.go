@@ -52,10 +52,10 @@ func TestNativeDownloadExplicitExternalOutputParity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if result["database"] != filepath.Join(resolved, "gh-aw-logs.sqlite") {
+			if result["manifest"] != filepath.Join(resolved, "payload-hashes.json") {
 				t.Fatalf("resolved output = %#v", result)
 			}
-			for _, name := range []string{"gh-aw-logs.sqlite", "gh-aw-logs-runs/one.jsonl", "gh-aw-logs-records/one.jsonl"} {
+			for _, name := range []string{"inventory-sources.json", "gh-aw-logs-runs/one.jsonl", "gh-aw-logs-records/one.jsonl"} {
 				content, err := os.ReadFile(filepath.Join(actual, filepath.FromSlash(name)))
 				if err != nil || string(content) != payloads[name] {
 					t.Fatalf("external payload %s = %q, %v", name, content, err)
@@ -82,7 +82,7 @@ func TestNativeDownloadExternalOutputRejectsDangerousManifestEntries(t *testing.
 			nativeManagementDirectory(t)
 			base := mustNativeWorkingDirectory(t)
 			output := filepath.Join(base, "external")
-			writeTestFile(t, filepath.Join(output, "gh-aw-logs.sqlite"), "previous snapshot")
+			writeTestFile(t, filepath.Join(output, "inventory-sources.json"), "previous snapshot")
 			payloads, _ := nativeDownloadFixture(t, true)
 			var manifest map[string]string
 			if err := json.Unmarshal([]byte(payloads["payload-hashes.json"]), &manifest); err != nil {
@@ -105,7 +105,7 @@ func TestNativeDownloadExternalOutputRejectsDangerousManifestEntries(t *testing.
 			if err := nativeDownload(cmd, nil); err == nil || !strings.Contains(err.Error(), "unsafe path") {
 				t.Fatalf("dangerous external manifest error = %v", err)
 			}
-			content, err := os.ReadFile(filepath.Join(output, "gh-aw-logs.sqlite"))
+			content, err := os.ReadFile(filepath.Join(output, "inventory-sources.json"))
 			if err != nil || string(content) != "previous snapshot" {
 				t.Fatal("dangerous manifest replaced the previous snapshot")
 			}
@@ -119,15 +119,15 @@ func TestNativeDownloadExternalOutputRejectsDangerousManifestEntries(t *testing.
 func TestNativeDownloadRootedPublicationRejectsEscapes(t *testing.T) {
 	nativeManagementDirectory(t)
 	staging := ".deployed-dashboard-boundary"
-	writeTestFile(t, filepath.Join(staging, "gh-aw-logs.sqlite"), "verified")
+	writeTestFile(t, filepath.Join(staging, "inventory-sources.json"), "verified")
 	root := mustNativeWorkingDirectory(t)
 	if err := nativePublishDownload(filepath.Join(root, staging), root, []string{"../escape.jsonl"}); err == nil {
 		t.Fatal("publication accepted a name outside its output root")
 	}
-	if err := nativePublishDownload(filepath.Dir(root), root, []string{"gh-aw-logs.sqlite"}); err == nil {
+	if err := nativePublishDownload(filepath.Dir(root), root, []string{"inventory-sources.json"}); err == nil {
 		t.Fatal("publication accepted staging outside its output root")
 	}
-	content, err := os.ReadFile(filepath.Join(staging, "gh-aw-logs.sqlite"))
+	content, err := os.ReadFile(filepath.Join(staging, "inventory-sources.json"))
 	if err != nil || string(content) != "verified" {
 		t.Fatal("rejected publication changed its staged payload")
 	}

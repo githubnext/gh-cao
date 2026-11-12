@@ -7,10 +7,9 @@ import path from "node:path";
 import { finished } from "node:stream/promises";
 import test from "node:test";
 
-test("cao reads and ingests one million cached JSONL rows within a 32 MB JavaScript heap", async () => {
+test("canonical normalization streams one million cached JSONL rows within a 32 MB JavaScript heap", async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "cao-jsonl-load-"));
   const input = path.join(directory, "activity-shard.jsonl");
-  const database = path.join(directory, "gh-aw-logs.sqlite");
   const output = createWriteStream(input);
   const row = `${JSON.stringify({
     schema_version: 2,
@@ -51,15 +50,24 @@ test("cao reads and ingests one million cached JSONL rows within a 32 MB JavaScr
     assert.deepEqual(JSON.parse(reader.stdout), { records: 1_000_000, checksum: 1_000_000 });
 
     const result = spawnSync(process.execPath, [
-      "--max-old-space-size=32",
-      "activity/cao.mjs",
-      "ingest-jsonl",
-      "--database",
-      database,
-      "--input-dir",
+      "--max-old-space-size=32", "--input-type=module", "-e",
+      `import { normalizeSnapshotPayloads } from './dashboard/report/normalized-payloads.mjs';
+       import { readJsonlRecords } from './dashboard/report/jsonl.mjs';
+       import path from 'node:path';
+       const directory = process.argv[1];
+       const hashes = await normalizeSnapshotPayloads({
+         shardDirectory: directory,
+         runsDirectory: path.join(directory, 'gh-aw-logs-runs'),
+         recordsDirectory: path.join(directory, 'gh-aw-logs-records')
+       });
+       const counts = {};
+       for (const name of Object.keys(hashes).filter(name => name.startsWith('gh-aw-logs-runs/'))) {
+         for (const { value } of readJsonlRecords(path.join(directory, name))) {
+           if (value.kind === 'record') counts[value.collection] = (counts[value.collection] ?? 0) + 1;
+         }
+       }
+       console.log(JSON.stringify(counts));`,
       directory,
-      "--run-retention-days",
-      "all",
     ], {
       cwd: process.cwd(),
       encoding: "utf8",
@@ -68,22 +76,7 @@ test("cao reads and ingests one million cached JSONL rows within a 32 MB JavaScr
 
     assert.equal(result.signal, null, result.stderr);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(JSON.parse(result.stdout).result, {
-      updated: true,
-      committedBatches: 0,
-      committedRecords: 3,
-      records: 1_000_000,
-      rawPayloadRecords: 0,
-      rawRuns: 0,
-      agenticRunRecords: 1_000_000,
-      agenticRuns: 1,
-      duplicateRawRunObservations: 0,
-      duplicateAgenticRunObservations: 999_999,
-      unenrichedRuns: 0,
-      rateLimits: 0,
-      mappedRateLimits: 0,
-      shards: [{ shard: "activity-shard.jsonl", skipped: false, committedRecords: 3 }],
-    });
+    assert.deepEqual(JSON.parse(result.stdout), { repositories: 1, workflows: 1, runs: 1 });
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
