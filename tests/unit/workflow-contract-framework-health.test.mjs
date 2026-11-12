@@ -565,10 +565,15 @@ test("compiled framework reports remain local read-only observation with only de
   assert.equal(compiled.jobs.safe_outputs.permissions.issues, "write");
   const handler = compiled.jobs.safe_outputs.steps.find(step => step.env?.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG);
   const outputs = JSON.parse(handler.env.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG);
-  assert.equal(outputs.create_issue.max, 1);
+  assert.equal(outputs.create_issue.max, 4);
+  assert.equal(outputs.create_issue.require_temporary_id, true);
   assert.equal(outputs.create_issue.close_older_issues, true);
   assert.equal(outputs.create_issue.deduplicate_by_title, true);
   assert.equal(config["safe-outputs"]["report-failure-as-issue"], false);
+  assert.equal(config["safe-outputs"]["create-issue"].max, 4);
+  assert.equal(config["safe-outputs"]["create-issue"]["require-temporary-id"], true);
+  assert.match(source, /Create zero to three child issues/);
+  assert.match(source, /parent` to `#aw_framework-health-report`/);
   assert.equal(config["safe-outputs"]["report-missing-tool"]["create-issue"], false);
   assert.equal(config["safe-outputs"]["report-incomplete"]["create-issue"], false);
   for (const job of Object.values(compiled.jobs)) {
@@ -635,6 +640,10 @@ test("publication rejects missing, zero, duplicate and invalid review declaratio
   const validate = output => execute("Validate core review before publication", {
     files: new Map([[path, JSON.stringify(output)]]), env: { GH_AW_AGENT_OUTPUT: path },
   });
+  const report = {
+    type: "create_issue", title: "2026-11-09 run 123-1",
+    body: "Core claims reviewed: 16/16", temporary_id: "framework-health-report",
+  };
   for (const body of [
     "Incomplete assessment; source and tests were not reviewed.",
     "Core claims reviewed: 0/16",
@@ -645,15 +654,38 @@ test("publication rejects missing, zero, duplicate and invalid review declaratio
     "Core claims reviewed: 1/16\nCore claims reviewed: 16/16",
     "Core claims reviewed: 16/16\nCore claims reviewed: 0/16",
   ]) {
-    await assert.rejects(validate({ items: [{ type: "create_issue", body }] }), /Refusing report/);
+    await assert.rejects(validate({ items: [{ ...report, body }] }), /Refusing report/);
   }
   await assert.rejects(validate({ items: {} }), /Invalid agent output/);
   await assert.rejects(execute("Validate core review before publication"), /Missing agent output/);
   for (const count of [1, 8, 16]) {
     await validate({ items: [{
-      type: "create_issue",
+      ...report,
       body: `Core claims reviewed: ${count}/16\r\nAll verdicts unknown; tests mapped but not executed.`,
     }] });
+  }
+  const child = {
+    type: "create_issue", title: "2026-11-09 run 123-1: verify preview acceptance",
+    body: "### Scope\nReview the blocked journey.\n\n### Acceptance checks\nRecord the independent evidence.",
+    temporary_id: "preview-acceptance", parent: "#aw_framework-health-report",
+  };
+  const withChildren = children => ({
+    ...report,
+    body: `${report.body}\n${children.map(issue => `#aw_${issue.temporary_id}`).join("\n")}`,
+  });
+  await validate({ items: [withChildren([child]), child] });
+  const threeChildren = [1, 2, 3].map(index => ({
+    ...child, temporary_id: `action-${index}`, parent: "#aw_framework-health-report",
+  }));
+  await validate({ items: [withChildren(threeChildren), ...threeChildren] });
+  for (const invalid of [
+    { items: [withChildren([child, ...threeChildren]), child, ...threeChildren] },
+    { items: [withChildren([child]), { ...child, parent: "#aw_another-report" }] },
+    { items: [withChildren([child]), { ...child, body: "No acceptance checks" }] },
+    { items: [withChildren([child, child]), child, { ...child }] },
+    { items: [child] },
+  ]) {
+    await assert.rejects(validate(invalid), /Refusing report/);
   }
   for (const type of ["noop", "report_incomplete"]) await validate({ items: [{ type }] });
 
@@ -728,7 +760,7 @@ test("at-a-glance reports use labelled statuses, complete journey rows and short
   assert.deepEqual([...journeys.matchAll(/^\| [^|\n]+ \(`([^`]+)`\) \|/gm)].map(match => match[1]),
     previewContract.journeys.map(journey => journey.id));
   assert.match(overview, /\| Priority \/ journey \| Next action → closure check \| Owner \|/);
-  assert.match(overview, /\| \{rank \/ journey ID\} \| \{next action → observable closure\} \| \{owner or unassigned\} \|/);
+  assert.match(overview, /\| \{rank \/ journey ID\} \| \{child issue link — next action → observable closure\} \| \{owner or unassigned\} \|/);
   assert.match(source, /Always pair each icon with its text label/);
   assert.match(source, /Unknown is not failed/);
   assert.match(source, /Report format changes alone do not invalidate/);

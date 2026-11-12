@@ -49,7 +49,8 @@ safe-outputs:
     close-older-issues: true
     deduplicate-by-title: true
     expires: 14d
-    max: 1
+    require-temporary-id: true
+    max: 4
   noop:
     report-as-issue: false
   steps:
@@ -64,14 +65,35 @@ safe-outputs:
           if (!file) throw new Error('Missing agent output');
           const output = JSON.parse(fs.readFileSync(file, 'utf8'));
           if (!Array.isArray(output.items)) throw new Error('Invalid agent output');
-          for (const item of output.items) {
-            if (item.type !== 'create_issue') continue;
-            const body = String(item.body ?? '').replace(/\r\n?/g, '\n');
-            const counts = [...body.matchAll(/^Core claims reviewed: (\d+)\/16$/gm)];
-            const reviewed = counts.length === 1 ? Number(counts[0][1]) : 0;
-            if (!Number.isInteger(reviewed) || reviewed < 1 || reviewed > 16) {
-              throw new Error('Refusing report: missing or zero core review');
+          const issues = output.items.filter(item => item.type === 'create_issue');
+          if (issues.length === 0) return;
+          const reports = issues.filter(item => !item.parent);
+          if (reports.length !== 1 || reports[0].temporary_id !== 'framework-health-report') {
+            throw new Error('Refusing report: expected one parent report with a temporary ID');
+          }
+          const report = reports[0];
+          const childReference = `#aw_${report.temporary_id}`;
+          const reportBody = String(report.body ?? '').replace(/\r\n?/g, '\n');
+          const children = issues.filter(item => item !== report);
+          if (children.length > 3) throw new Error('Refusing report: more than three child issues');
+          const temporaryIds = new Set([report.temporary_id]);
+          for (const child of children) {
+            if (child.parent !== childReference || typeof child.temporary_id !== 'string'
+              || child.temporary_id.length === 0 || temporaryIds.has(child.temporary_id)
+              || !reportBody.includes(`#aw_${child.temporary_id}`)) {
+              throw new Error('Refusing report: child issue is not linked to the parent report');
             }
+            temporaryIds.add(child.temporary_id);
+            const body = String(child.body ?? '');
+            if (!String(child.title ?? '').trim() || !body.includes('### Scope')
+              || !body.includes('### Acceptance checks')) {
+              throw new Error('Refusing report: child issue is not actionable');
+            }
+          }
+          const counts = [...reportBody.matchAll(/^Core claims reviewed: (\d+)\/16$/gm)];
+          const reviewed = counts.length === 1 ? Number(counts[0][1]) : 0;
+          if (!Number.isInteger(reviewed) || reviewed < 1 || reviewed > 16) {
+            throw new Error('Refusing report: missing or zero core review');
           }
 steps:
   - name: Fix scope, window and report history
@@ -856,13 +878,23 @@ in the daily window; do not treat unrelated activity as framework progress.
 If no progress was verified, say so plainly. A quiet day still gets a health
 snapshot; persistent risks and unknowns do not disappear without new activity.
 
-## Publish one report
+## Publish one report with bounded follow-up issues
 
-Call `create_issue` once with the unprefixed title exactly `context.title`
-(`YYYY-MM-DD run RUN-ATTEMPT`); the configured title prefix is added automatically. Do not create
-remediation issues or PRs, comment on contributor work or update human content.
-The handler deduplicates titles and closes older reports from this workflow;
-their closed snapshots remain the history. Do not close findings or other issues.
+Call `create_issue` once for the parent report with the unprefixed title exactly
+`context.title` (`YYYY-MM-DD run RUN-ATTEMPT`); the configured title prefix is
+added automatically. Give the report the temporary ID `framework-health-report`.
+Create zero to three child issues only for the highest-priority, evidence-backed
+actions that have a concrete owner or human decision and an observable closure
+check. Do not create placeholder issues for unknown evidence or speculative
+recommendations. Each child must be one independently actionable increment, use
+a report-specific unprefixed title, include `### Scope` and `### Acceptance checks`,
+and set `parent` to `#aw_framework-health-report`. Give each child a unique
+temporary ID and link it from its corresponding row in the report's
+`### Blockers and next increments` table using `#aw_<temporary-id>`. These are
+sub-issues of this run's report, not a second finding or approval database.
+The handler deduplicates titles and closes older issues from this workflow;
+their closed snapshots remain the history. Do not close findings or other issues,
+create PRs, comment on contributor work or update human content.
 If duplicate ownership is ambiguous or required context cannot be read, call
 `report_incomplete` without creating a report. A bounded/partial CI or source
 assessment may produce a clearly marked **incomplete assessment** with unknowns,
@@ -928,7 +960,7 @@ Core claims reviewed: {reviewed count}/16
 
 | Priority / journey | Next action → closure check | Owner |
 | --- | --- | --- |
-| {rank / journey ID} | {next action → observable closure} | {owner or unassigned} |
+| {rank / journey ID} | {child issue link — next action → observable closure} | {owner or unassigned} |
 
 {Use at most three ranked rows. One sentence on impact and change since comparable baseline. Group configuration gaps with their exact count; list every missing decision in the acceptance disclosure.}
 
