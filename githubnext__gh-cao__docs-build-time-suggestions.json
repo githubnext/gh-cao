@@ -1,35 +1,7 @@
 {
   "source_sha": "926141fc7e06d046045347e86beb9b216eb806cd",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T07:22:13.978Z",
-      "worker_run_id": "43174065246",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z; within 14 days; 0 cancelled; none in progress; no new runs since the 06:55Z evaluation) = 12 successful current-shape full publications (11 push d57c4c82..d4bf131, 1 daily schedule 9537899), 6 failed retired-Mount schedules (excluded), 2 freshness-only schedules (excluded). Current n=12 medians (p90): build queue 3 s (4 s); build job 72.5 s (93 s); deploy-job queue 5 s (6 s); deploy job 10 s (11 s); build-start to deploy-end 86.5 s (109 s); create-to-deploy-complete 89.5 s (112 s). Concurrency: 0 overlapping publications across the window (min gap 133 s); queue waits 2-4 s, so the documentation-pages group adds no measurable wait. Trigger audit (commit file lists, GitHub glob semantics): all 11 push publications matched a docs-consumed path (docs/**, dashboard/site/**, dashboard/report/**, astro.config.mjs, aw.yml manifests read by docs/lib/catalog.ts, .github/workflows/shared/policy.mjs imported by the dashboard build, docs.yml itself); 063cbe9 removed activity/** from push paths and its run matched on docs.yml and shared/policy.mjs; no trigger-only publication. Daily 05:23Z cron is the intentional synthetic-date refresh (9537899, 88 s) and removing it would weaken freshness. Coalescing superseded builds would remove runs, not shorten the per-run median (89.5 s; 15 percent = 13.4 s); the open issue 20131 concurrency-delay premise is not present in this window. Job logs not read (metadata only). No suggestion; next_category advanced to dependency installation and caching."
-    },
     {
       "evaluated_at": "2026-11-12T07:36:01Z",
       "worker_run_id": "43175634734",
@@ -779,6 +751,35 @@
         43124416558
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; 0 in progress; 1 cancelled excluded: 43206161686 (no jobs); no new run since the 16:35Z evaluation through 16:52Z). Sample n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; 5-run minimum met). HEAD 926141f; docs.yml last changed 063cbe9. Medians (p90, nearest-rank): Upload Pages artifact 2 s (3); Configure Pages 1 s (1); build-completed to deploy-created handoff 0 s (1); deploy queue 5 s (6); Deploy Pages 7 s (14); deploy job 11 s (18); build-start to deploy-end 85 s (123). github-pages artifact 8.3 MB (8.27-8.34 MB, stable). 15 percent gate = 12.75 s. Removable without weakening deployment safety: upload plus configure about 3 s; artifact size reduction at most about 1 s. Merging build and deploy saves at most about 6 s (handoff, deploy queue, setup) and moves the github-pages environment and id-token write boundary, so rejected. Open issues: #20380 and #20131 are closed; no open docs-build-time-investigator issue, no duplicate. Scope: docs.yml, Actions job, step and artifact metadata only; no source read; build logs not read. No suggestion; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T17:20:40Z",
+      "worker_run_id": "43267264818",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T23:39:34Z to 2026-11-12T15:38:00Z; 0 in progress; 0 failed; source HEAD 926141fc). Excluded: 1 cancelled superseded pending run 43206161686 (no jobs). n=19 successful comparable build+deploy publications (18 push, 1 schedule 43161224542; identical job and step shape; docs.yml last changed 063cbe91, before the window steps). Concurrency (documentation-pages, cancel-in-progress false): run created to build created median 1 s (p90 27 s, max 43 s; 2 of 19 waited behind an in-progress publication: 43206235849 and 43228124764); build queue median 3 s; build-end to deploy-start median 6 s; deploy queue median 5 s; execution build start to deploy end median 85 s (p90 123 s); 15 percent gate 12.75 s. Avoidable rebuilds: compare-API file sets for each consecutive head range (19 ranges) each contain at least one build-consumed path (docs/**, dashboard/report, dashboard/site/src, astro or package config, root or campaign aw.yml, shared policy or actions-log, docs.yml); 0 of 18 push runs provably avoidable, so narrowing triggers saves 0. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy; saves only rare overlap waits), per-job concurrency split (parallel builds risk out-of-order Pages deploys; saves queue only), removing the 05:23 UTC schedule (required synthetic-date refresh). Caveat: stale queued workflow_run run 37642403569 (created 2026-10-07, outside window) remains queued; it did not block window runs. Job logs not read (not required for this category). No suggestion; no issue created; next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ]
