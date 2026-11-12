@@ -47,7 +47,7 @@ func TestNativeValueHintsFenceConcurrentInvalidationAndAcknowledgement(t *testin
 	if err := a.InvalidateValue(t.Context(), scope); err != nil {
 		t.Fatal(err)
 	}
-	now := time.Now().UTC()
+	now := time.Now().UTC().Truncate(time.Microsecond)
 	if err := b.CompleteValueHint(t.Context(), scope, hint.Dirty, now, time.Time{}); err != nil {
 		t.Fatal(err)
 	}
