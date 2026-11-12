@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -154,6 +155,9 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	serverOutput, serverOutputWriter := io.Pipe()
 	child.Stdout = serverOutputWriter
 	defer func() { _ = serverOutput.Close(); _ = serverOutputWriter.Close() }()
+	ready := make(chan struct{})
+	var readyOnce sync.Once
+	markReady := func() { readyOnce.Do(func() { close(ready) }) }
 	addressDone := make(chan error, 1)
 	readAddress := func() {
 		scanner := bufio.NewScanner(serverOutput)
@@ -163,6 +167,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 			}
 			if json.Unmarshal(scanner.Bytes(), &ready) == nil && ready.URL != "" {
 				printDashboardReady(cmd.ErrOrStderr(), ready.URL+"#page-overview", repositories, cache, options)
+				markReady()
 			} else {
 				_, _ = fmt.Fprintln(cmd.OutOrStdout(), scanner.Text())
 			}
@@ -192,6 +197,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 			const marker = "serving local dashboard at "
 			if _, address, found := strings.Cut(line, marker); found {
 				printDashboardReady(cmd.ErrOrStderr(), address+"#page-overview", repositories, cache, options)
+				markReady()
 			} else {
 				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), line)
 			}
@@ -233,9 +239,11 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	// Publish the "collecting" status before the pass ends so the dashboard
 	// shows ingestion as running while GitHub evidence is acquired.
 	options.onCollecting = ingest
-	// PostgreSQL and the initial snapshot are ready before the server starts,
-	// so the first pass begins immediately instead of waiting for the URL.
-	ticker := time.NewTimer(0)
+	// The server ingests the cache during startup and announces its URL only
+	// afterwards. Republishing the multi-file snapshot before then races that
+	// read, so the first pass starts once the server is ready.
+	ticker := time.NewTimer(time.Hour)
+	ticker.Stop()
 	defer ticker.Stop()
 	pass := func() {
 		if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil && ctx.Err() == nil {
@@ -255,6 +263,9 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		select {
 		case result := <-serverDone:
 			return finish(result)
+		case <-ready:
+			ready = nil
+			pass()
 		case <-ctx.Done():
 			_ = stdin.Close()
 			return finish(<-serverDone)
