@@ -84,7 +84,7 @@ func TestHostedDependabotRegistrationConsumesOnlyCanonicalCompleteCutoff(t *test
 	at, _ := time.Parse(time.RFC3339, dependabotAdoption)
 	at = at.Add(7 * 24 * time.Hour)
 	config := Config{Root: root, Repositories: []string{dependabotRepository},
-		ObservedAt: at.Add(2 * time.Hour), NodeBinary: "/nonexistent-node"}
+		ObservedAt: at.Add(2 * time.Hour)}
 	if err := WriteCollectionHealth(t.Context(), config, policy, snapshot); err != nil {
 		t.Fatal(err)
 	}

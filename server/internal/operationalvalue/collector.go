@@ -1,39 +1,27 @@
-// Package operationalvalue implements the server-side operational-value
-// orchestration contract shared with the Activity CLI.
+// Package operationalvalue implements native Value evaluation and the
+// operational-value publication contract shared with the Activity CLI.
 package operationalvalue
 
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"sort"
-	"strconv"
 	"strings"
-	"sync"
 	"time"
-
-	"github.com/githubnext/gh-cao/server/internal/logger"
 )
-
-var collectLog = logger.New("cao:operationalvalue")
 
 const (
 	// DefaultRetention keeps compact outcome observations independent of run detail.
-	DefaultRetention       = 365 * 24 * time.Hour
-	baselineObservations   = 3
-	maxHistoryObservations = 366
-	defaultWorkerTimeout   = 2 * time.Minute
-	day                    = 24 * time.Hour
-	maxWorkerOutput        = 16 * 1024 * 1024
+	DefaultRetention = 365 * 24 * time.Hour
+	day              = 24 * time.Hour
+	maxWorkerOutput  = 16 * 1024 * 1024
 )
 
 var (
@@ -42,37 +30,14 @@ var (
 	slugPattern       = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 )
 
-// Config describes one operational-value collection.
+// Config describes native Value evaluation.
 type Config struct {
-	Root             string
-	Database         string
-	Output           string
-	ObservedAt       time.Time
-	Repositories     []string
-	HistoryCampaign  string
-	Retention        time.Duration
-	NodeBinary       string
-	GitHubBinary     string
-	Environment      []string
-	RedactValues     []string
-	RateLimitReserve int
-	WorkerTimeout    time.Duration
-}
-
-// Result summarizes values collected during one invocation.
-type Result struct {
-	Values        int
-	HistoryValues int
-	Warnings      []string
-}
-
-type script struct {
-	campaign string
-	path     string
+	Root         string
+	ObservedAt   time.Time
+	Repositories []string
 }
 
 type definition struct {
-	HistoryBatch   bool
 	WorkflowSlug   string
 	AdoptedAt      time.Time
 	EvaluationMode string
@@ -82,7 +47,6 @@ type definition struct {
 }
 
 type definitionRecord struct {
-	HistoryBatch   bool     `json:"historyBatch"`
 	Kind           string   `json:"kind"`
 	WorkflowSlug   string   `json:"workflowSlug"`
 	AdoptedAt      string   `json:"adoptedAt"`
@@ -162,190 +126,6 @@ type operationalValue struct {
 	RollupDenominator *float64 `json:"rollup_denominator,omitempty"`
 }
 
-// Collect discovers campaign adapters, executes them, reconstructs requested
-// history, and atomically updates the retained operational-value shard.
-func Collect(ctx context.Context, config Config) (Result, error) {
-	var result Result
-	if len(config.Repositories) == 0 {
-		return result, errors.New("operational value requires at least one repository")
-	}
-	if config.HistoryCampaign != "" && config.Retention <= 0 {
-		return result, errors.New("operational value history requires a retention window")
-	}
-	observedAt := config.ObservedAt.UTC()
-	if observedAt.IsZero() {
-		observedAt = time.Now().UTC()
-	}
-	config.ObservedAt = observedAt
-	repositories, err := normalizeRepositories(config.Repositories)
-	if err != nil {
-		return result, err
-	}
-	scripts, err := discoverScripts(config.Root)
-	if err != nil {
-		return result, err
-	}
-	collectLog.Printf("discovered campaign adapters count=%d", len(scripts))
-	if config.HistoryCampaign != "" && !hasCampaign(scripts, config.HistoryCampaign) {
-		return result, fmt.Errorf("operational value history campaign not found: %s", config.HistoryCampaign)
-	}
-	cutoff := time.Time{}
-	if config.Retention > 0 {
-		cutoff = observedAt.Add(-config.Retention)
-	}
-	retained, err := readRetained(config.Output, cutoff)
-	if err != nil {
-		return result, err
-	}
-	retainedKeys := make(map[string]struct{}, len(retained))
-	for _, item := range retained {
-		retainedKeys[valueKey(item.OperationalValue)] = struct{}{}
-	}
-	activeIDs := map[string]map[string]struct{}{}
-	definitions := map[string]definition{}
-	values := make([]envelope, 0)
-	for _, entry := range scripts {
-		if config.RateLimitReserve > 0 {
-			remaining, rateErr := githubAPIRemaining(ctx, config)
-			if rateErr != nil {
-				result.Warnings = append(result.Warnings, rateErr.Error())
-				continue
-			}
-			check := evaluateRateLimitReserve(remaining, config.RateLimitReserve, rateLimitCheckBlocking)
-			if check.warning != "" {
-				result.Warnings = append(result.Warnings, check.warning)
-			}
-			if check.skipAdapter {
-				continue
-			}
-		}
-		current, workerErr := runAdapter(ctx, config, entry, observedAt, repositories, "")
-		if workerErr != nil {
-			result.Warnings = append(result.Warnings, workerErr.Error())
-			continue
-		}
-		values = append(values, envelopes(entry.campaign, current.values)...)
-		result.Warnings = append(result.Warnings, current.deferred...)
-		if len(current.definitions) > 0 {
-			activeIDs[entry.campaign] = map[string]struct{}{}
-			for _, item := range current.definitions {
-				for _, valueID := range item.ValueIDs {
-					activeIDs[entry.campaign][valueID] = struct{}{}
-					definitions[definitionKey(entry.campaign, valueID)] = item
-				}
-			}
-		}
-		if entry.campaign != config.HistoryCampaign {
-			continue
-		}
-	historyDefinitions:
-		for _, item := range current.definitions {
-			supported := supportedRepositories(repositories, item.Repositories)
-			if len(supported) == 0 {
-				continue
-			}
-			if item.HistoryBatch {
-				for _, retainedItem := range retained {
-					value := retainedItem.OperationalValue
-					if value.Campaign == entry.campaign && slices.Contains(item.ValueIDs, value.ValueID) {
-						retainedKeys[cadenceKey(value, item)] = struct{}{}
-					}
-				}
-			}
-			times, historyErr := historicalTimes(item, observedAt, config.Retention)
-			if historyErr != nil {
-				result.Warnings = append(result.Warnings, historyErr.Error())
-				break historyDefinitions
-			}
-			var missing []time.Time
-			for _, timestamp := range times {
-				if historyComplete(entry.campaign, supported, item.ValueIDs, timestamp, retainedKeys) {
-					continue
-				}
-				missing = append(missing, timestamp)
-			}
-			var batches [][]time.Time
-			if item.HistoryBatch && len(missing) > 0 {
-				batches = append(batches, missing)
-			} else {
-				for _, timestamp := range missing {
-					batches = append(batches, []time.Time{timestamp})
-				}
-			}
-			for _, batch := range batches {
-				var historyTimes []time.Time
-				if item.HistoryBatch {
-					historyTimes = batch
-				}
-				history, historyErr := runAdapter(
-					ctx, config, entry, batch[len(batch)-1], supported, item.WorkflowSlug, historyTimes...,
-				)
-				if historyErr != nil {
-					result.Warnings = append(result.Warnings, historyErr.Error())
-					break historyDefinitions
-				}
-				expected := make(map[string]struct{}, len(item.ValueIDs))
-				for _, valueID := range item.ValueIDs {
-					expected[valueID] = struct{}{}
-				}
-				valid := true
-				expectedTimes := make(map[string]bool, len(batch))
-				for _, timestamp := range batch {
-					expectedTimes[formatTimestamp(timestamp)] = true
-				}
-				for _, value := range history.values {
-					if !expectedTimes[value.Timestamp] {
-						valid = false
-					}
-					if _, ok := expected[value.ValueID]; !ok {
-						valid = false
-					}
-				}
-				if !valid {
-					result.Warnings = append(result.Warnings,
-						fmt.Sprintf("%s emitted values outside the requested history observation", entry.path))
-					break historyDefinitions
-				}
-				historyEnvelopes := envelopes(entry.campaign, history.values)
-				for _, value := range historyEnvelopes {
-					if _, exists := retainedKeys[valueKey(value.OperationalValue)]; exists {
-						continue
-					}
-					if value.OperationalValue.WindowStart != nil {
-						if _, exists := retainedKeys[cadenceKey(value.OperationalValue, item)]; exists {
-							continue
-						}
-					}
-					values = append(values, value)
-					result.HistoryValues++
-					retainedKeys[valueKey(value.OperationalValue)] = struct{}{}
-				}
-			}
-		}
-	}
-	if config.RateLimitReserve > 0 {
-		remaining, rateErr := githubAPIRemaining(ctx, config)
-		if rateErr != nil {
-			result.Warnings = append(result.Warnings, rateErr.Error())
-		} else {
-			check := evaluateRateLimitReserve(remaining, config.RateLimitReserve, rateLimitCheckFinal)
-			if check.warning != "" {
-				result.Warnings = append(result.Warnings, check.warning)
-			}
-			collectLog.Printf("rate limit reserve checked point=%s crossed=%t", rateLimitCheckFinal, check.warning != "")
-		}
-	}
-	result.Values = len(values)
-	if config.Output != "" {
-		merged := persistValues(retained, values, activeIDs, definitions)
-		if err := writeEnvelopes(config.Output, merged); err != nil {
-			return result, err
-		}
-		collectLog.Printf("persisted operational values total=%d history=%d", len(merged), result.HistoryValues)
-	}
-	return result, nil
-}
-
 // persistValues combines this run's freshly collected values with the
 // previously retained shard, retiring any retained value whose campaign no
 // longer declares it active and resolving duplicates by cadence bucket or
@@ -356,226 +136,6 @@ func persistValues(
 ) []envelope {
 	currentRetained := retireValues(retained, activeIDs)
 	return mergeValues(append(currentRetained, values...), definitions)
-}
-
-func discoverScripts(root string) ([]script, error) {
-	entries, err := os.ReadDir(root)
-	if err != nil {
-		return nil, err
-	}
-	var scripts []script
-	for _, entry := range entries {
-		if !entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
-			continue
-		}
-		candidate := filepath.Join(root, entry.Name(), "operational-value.mjs")
-		info, err := os.Stat(candidate)
-		if err == nil && info.Mode().IsRegular() {
-			scripts = append(scripts, script{campaign: entry.Name(), path: candidate})
-		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-	}
-	sort.Slice(scripts, func(i, j int) bool { return scripts[i].campaign < scripts[j].campaign })
-	return scripts, nil
-}
-
-func runAdapter(
-	ctx context.Context,
-	config Config,
-	entry script,
-	timestamp time.Time,
-	repositories []string,
-	module string,
-	historyTimes ...time.Time,
-) (parsedOutput, error) {
-	payload := map[string]any{
-		"schemaVersion": 1,
-		"timestamp":     formatTimestamp(timestamp),
-		"repositories":  repositories,
-		"database":      absolute(config.Database),
-	}
-	if len(historyTimes) > 0 {
-		timestamps := make([]string, len(historyTimes))
-		for index, timestamp := range historyTimes {
-			timestamps[index] = formatTimestamp(timestamp)
-		}
-		payload["historyTimestamps"] = timestamps
-	}
-	request, err := json.Marshal(payload)
-	if err != nil {
-		return parsedOutput{}, err
-	}
-	node := config.NodeBinary
-	if strings.TrimSpace(node) == "" {
-		node = "node"
-	}
-	timeout := config.WorkerTimeout
-	if timeout <= 0 {
-		timeout = defaultWorkerTimeout
-	}
-	workerCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	command := exec.CommandContext(workerCtx, node, entry.path) // #nosec G204 -- operator-configured Node and discovered adapter.
-	configureProcessTree(command)
-	command.Cancel = func() error {
-		return terminateProcessTree(command.Process)
-	}
-	command.WaitDelay = 5 * time.Second
-	command.Dir = config.Root
-	command.Env = append([]string{}, config.Environment...)
-	command.Env = append(command.Env,
-		"CAO_DATABASE="+absolute(config.Database),
-		"CAO_ACTIVITY_CLI="+absolute(filepath.Join(config.Root, "activity", "cao.mjs")),
-		"CAO_OPERATIONAL_VALUE_TIMESTAMP="+formatTimestamp(config.ObservedAt),
-	)
-	if module != "" {
-		command.Env = append(command.Env, "CAO_OPERATIONAL_VALUE_MODULE="+module)
-	}
-	command.Stdin = bytes.NewReader(append(request, '\n'))
-	stdout := newLimitedBuffer(maxWorkerOutput, cancel)
-	stderr := newLimitedBuffer(maxWorkerOutput, cancel)
-	command.Stdout = stdout
-	command.Stderr = stderr
-	runErr := command.Run()
-	_ = terminateProcessTree(command.Process)
-	if runErr != nil {
-		message := strings.TrimSpace(stderr.String())
-		switch {
-		case errors.Is(workerCtx.Err(), context.DeadlineExceeded):
-			message = fmt.Sprintf("timed out after %d ms", timeout.Milliseconds())
-		case stdout.Exceeded():
-			message = "stdout exceeded maxBuffer"
-		case stderr.Exceeded():
-			message = "stderr exceeded maxBuffer"
-		case message == "":
-			message = runErr.Error()
-		}
-		return parsedOutput{}, fmt.Errorf("%s failed: %s", entry.path, redact(message, config.RedactValues))
-	}
-	return parseOutput(stdout.Bytes(), entry.path, repositories)
-}
-
-type limitedBuffer struct {
-	mu       sync.Mutex
-	buffer   bytes.Buffer
-	limit    int
-	exceeded bool
-	cancel   context.CancelFunc
-}
-
-func newLimitedBuffer(limit int, cancel context.CancelFunc) *limitedBuffer {
-	return &limitedBuffer{limit: limit, cancel: cancel}
-}
-
-func (b *limitedBuffer) Write(content []byte) (int, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	remaining := b.limit - b.buffer.Len()
-	if remaining <= 0 {
-		b.exceeded = true
-		b.cancel()
-		return len(content), nil
-	}
-	write := content
-	if len(write) > remaining {
-		write = write[:remaining]
-		b.exceeded = true
-	}
-	_, _ = b.buffer.Write(write)
-	if b.exceeded {
-		b.cancel()
-	}
-	return len(content), nil
-}
-
-func (b *limitedBuffer) Bytes() []byte {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return append([]byte{}, b.buffer.Bytes()...)
-}
-
-func (b *limitedBuffer) String() string {
-	return string(b.Bytes())
-}
-
-func (b *limitedBuffer) Exceeded() bool {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.exceeded
-}
-
-// rateLimitCheckPoint names where in Collect a GitHub API rate-limit reserve
-// check occurred, stable for logging without exposing the remaining count.
-type rateLimitCheckPoint string
-
-const (
-	rateLimitCheckBlocking rateLimitCheckPoint = "blocking"
-	rateLimitCheckFinal    rateLimitCheckPoint = "final"
-)
-
-// rateLimitReserveCheck is the outcome evaluateRateLimitReserve derives from
-// a remaining-request count and the configured reserve floor.
-type rateLimitReserveCheck struct {
-	warning     string
-	skipAdapter bool
-}
-
-// evaluateRateLimitReserve decides whether the GitHub API core rate limit has
-// crossed the configured reserve floor and, for a blocking check, whether the
-// current adapter must be skipped. It is a pure function so the blocking
-// (<=) and final (<) comparisons are testable independently of the exec.Cmd
-// call githubAPIRemaining performs. The blocking check reserves headroom for
-// the adapter about to run; the final check only reports whether that
-// headroom was crossed after every adapter ran.
-func evaluateRateLimitReserve(remaining, reserve int, point rateLimitCheckPoint) rateLimitReserveCheck {
-	if point == rateLimitCheckBlocking {
-		if remaining <= reserve {
-			return rateLimitReserveCheck{
-				warning: fmt.Sprintf(
-					"GitHub API core remaining is at or below the reserved %d requests", reserve,
-				),
-				skipAdapter: true,
-			}
-		}
-		return rateLimitReserveCheck{}
-	}
-	if remaining < reserve {
-		return rateLimitReserveCheck{
-			warning: fmt.Sprintf(
-				"operational value crossed the reserved GitHub API floor of %d requests", reserve,
-			),
-		}
-	}
-	return rateLimitReserveCheck{}
-}
-
-func githubAPIRemaining(ctx context.Context, config Config) (int, error) {
-	gh := config.GitHubBinary
-	if strings.TrimSpace(gh) == "" {
-		gh = "gh"
-	}
-	rateCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	command := exec.CommandContext(rateCtx, gh, // #nosec G204 -- operator-configured GitHub CLI.
-		"api", "rate_limit", "--jq", ".resources.core.remaining")
-	command.Env = append([]string{}, config.Environment...)
-	output, err := command.CombinedOutput()
-	if err != nil {
-		message := strings.TrimSpace(string(output))
-		if errors.Is(rateCtx.Err(), context.DeadlineExceeded) {
-			message = "timed out after 30000 ms"
-		} else if message == "" {
-			message = err.Error()
-		}
-		return 0, fmt.Errorf("unable to read GitHub API rate limit: %s",
-			redact(message, config.RedactValues))
-	}
-	remaining, err := strconv.Atoi(strings.TrimSpace(string(output)))
-	if err != nil || remaining < 0 {
-		return 0, errors.New("GitHub API returned an invalid core rate limit")
-	}
-	return remaining, nil
 }
 
 func parseOutput(content []byte, source string, repositories []string) (parsedOutput, error) {
@@ -671,7 +231,6 @@ func validateDefinition(
 		WorkflowSlug: record.WorkflowSlug, AdoptedAt: adoptedAt,
 		EvaluationMode: record.EvaluationMode, CadenceDays: record.CadenceDays,
 		Repositories: repositories, ValueIDs: append([]string{}, record.ValueIDs...),
-		HistoryBatch: record.HistoryBatch,
 	}, nil
 }
 
@@ -816,46 +375,6 @@ func validatePeriod(record *valueRecord, fields map[string]json.RawMessage, obse
 	return nil
 }
 
-func envelopes(campaign string, records []valueRecord) []envelope {
-	output := make([]envelope, 0, len(records))
-	for _, record := range records {
-		role, name, direction, maturity := "primary", record.ValueID, "increase", "matured"
-		if record.MetricRole != nil {
-			role = *record.MetricRole
-		}
-		if record.MetricName != nil {
-			name = *record.MetricName
-		}
-		if record.MetricDirection != nil {
-			direction = *record.MetricDirection
-		}
-		if record.MaturityStatus != nil {
-			maturity = *record.MaturityStatus
-		}
-		output = append(output, envelope{
-			SchemaVersion: 2, Kind: "operational_value",
-			OperationalValue: operationalValue{
-				Timestamp: record.Timestamp, Repository: record.Repository,
-				Campaign: campaign, CampaignID: "campaign:" + campaign,
-				ValueID: record.ValueID, Value: record.Value,
-				WindowStart: record.WindowStart, WindowEnd: record.WindowEnd,
-				MeasurementKind: record.MeasurementKind, CoverageStatus: record.CoverageStatus,
-				MissingReason: record.MissingReason, EligibleCount: record.EligibleCount,
-				PopulationDigest: record.PopulationDigest, EvidenceDigest: record.EvidenceDigest,
-				MetricRole: role, MetricName: name, MetricUnit: record.MetricUnit,
-				MetricDirection: direction, MaturityStatus: maturity,
-				AdoptionAt: record.AdoptionAt, EvaluationMode: record.EvaluationMode,
-				WorkflowSlug: record.WorkflowSlug, WorkflowName: record.WorkflowName,
-				EvaluatorDigest:   record.EvaluatorDigest,
-				CadenceDays:       record.CadenceDays,
-				RollupNumerator:   record.RollupNumerator,
-				RollupDenominator: record.RollupDenominator,
-			},
-		})
-	}
-	return output
-}
-
 func readRetained(path string, cutoff time.Time) ([]envelope, error) {
 	if path == "" {
 		return nil, nil
@@ -974,48 +493,6 @@ func writeContent(path string, content []byte) error {
 	return os.Rename(name, path)
 }
 
-func historicalTimes(
-	item definition, observedAt time.Time, retention time.Duration,
-) ([]time.Time, error) {
-	cadence := time.Duration(item.CadenceDays * float64(day))
-	origin := item.AdoptedAt
-	if item.EvaluationMode == "baseline-comparable" {
-		origin = origin.Add(-baselineObservations * cadence)
-	} else {
-		origin = origin.Add(cadence)
-	}
-	cutoff := origin
-	if retainedCutoff := observedAt.Add(-retention); retainedCutoff.After(cutoff) {
-		cutoff = retainedCutoff
-	}
-	var times []time.Time
-	for timestamp := origin; timestamp.Before(observedAt); timestamp = timestamp.Add(cadence) {
-		if !timestamp.Before(cutoff) {
-			times = append(times, timestamp)
-		}
-		if len(times) > maxHistoryObservations {
-			return nil, fmt.Errorf("operational value history exceeds %d observations",
-				maxHistoryObservations)
-		}
-	}
-	return times, nil
-}
-
-func historyComplete(
-	campaign string, repositories, valueIDs []string, timestamp time.Time, retained map[string]struct{},
-) bool {
-	for _, repository := range repositories {
-		for _, valueID := range valueIDs {
-			key := strings.ToLower(campaign) + "\x00" + strings.ToLower(repository) +
-				"\x00" + valueID + "\x00" + formatTimestamp(timestamp)
-			if _, exists := retained[key]; !exists {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func valueKey(value operationalValue) string {
 	return strings.ToLower(strings.TrimSpace(value.Campaign)) + "\x00" +
 		strings.ToLower(value.Repository) + "\x00" + value.ValueID + "\x00" + value.Timestamp
@@ -1064,20 +541,6 @@ func normalizeRepositories(repositories []string) ([]string, error) {
 	return output, nil
 }
 
-func supportedRepositories(requested, supported []string) []string {
-	allowed := map[string]struct{}{}
-	for _, repository := range supported {
-		allowed[strings.ToLower(repository)] = struct{}{}
-	}
-	var output []string
-	for _, repository := range requested {
-		if _, ok := allowed[strings.ToLower(repository)]; ok {
-			output = append(output, repository)
-		}
-	}
-	return output
-}
-
 func uniqueLower(values []string) []string {
 	seen := map[string]struct{}{}
 	output := make([]string, 0, len(values))
@@ -1091,29 +554,12 @@ func uniqueLower(values []string) []string {
 	return output
 }
 
-func hasCampaign(scripts []script, campaign string) bool {
-	for _, script := range scripts {
-		if script.campaign == campaign {
-			return true
-		}
-	}
-	return false
-}
-
 func parseTimestamp(value string) (time.Time, error) {
 	return time.Parse(time.RFC3339Nano, value)
 }
 
 func formatTimestamp(value time.Time) string {
 	return value.UTC().Format("2006-01-02T15:04:05.000Z")
-}
-
-func absolute(path string) string {
-	value, err := filepath.Abs(path)
-	if err != nil {
-		return path
-	}
-	return value
 }
 
 func finiteNonNegative(value float64) bool {
@@ -1136,13 +582,4 @@ func oneOf(value string, options ...string) bool {
 func fieldIsNull(fields map[string]json.RawMessage, name string) bool {
 	value, exists := fields[name]
 	return exists && bytes.Equal(bytes.TrimSpace(value), []byte("null"))
-}
-
-func redact(value string, secrets []string) string {
-	for _, secret := range secrets {
-		if secret != "" {
-			value = strings.ReplaceAll(value, secret, "***")
-		}
-	}
-	return value
 }
