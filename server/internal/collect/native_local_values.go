@@ -112,7 +112,7 @@ func (p Projector) CollectNativeLocalValues(ctx context.Context) error {
 	if err := writeNativeValueInputs(workspace, inputs); err != nil {
 		return err
 	}
-	config := operationalvalue.Config{Root: root, Repositories: repositories, WorkerTimeout: 30 * time.Second}
+	config := operationalvalue.Config{Root: root, Repositories: repositories}
 	if err := operationalvalue.WriteCollectionHealth(ctx, config, policyPath, workspace); err != nil {
 		return err
 	}
@@ -225,7 +225,6 @@ func (p Projector) computeNativeLocalValues(
 	enrolled, selected []string, expectedRevision int64,
 ) (int64, error) {
 	output := filepath.Join(workspace, "operational-values.jsonl")
-	config.WorkerTimeout = 2 * time.Minute
 	var retained []model.Row
 	err := p.Data.WithReadTransaction(ctx, func(readCtx context.Context, reader postgresx.NativeReader) error {
 		state, err := reader.State(readCtx)

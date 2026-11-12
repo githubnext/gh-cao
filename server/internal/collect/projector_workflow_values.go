@@ -35,8 +35,7 @@ func (p Projector) refreshWorkflowValueHealth(ctx context.Context) error {
 		return nil
 	}
 	return operationalvalue.WriteCollectionHealth(ctx, operationalvalue.Config{
-		Root: p.CatalogRoot, NodeBinary: p.node(), Repositories: repositories,
-		Environment: collectionEnvironment(p.GitHubAPIURL), WorkerTimeout: 30 * time.Second,
+		Root: p.CatalogRoot, Repositories: repositories,
 	}, p.PolicyPath, p.Lake.Directory)
 }
 
@@ -104,8 +103,7 @@ func (p Projector) CollectLocalValues(ctx context.Context) error {
 		return err
 	}
 	plan, err := operationalvalue.ReadLocalValuePlan(ctx, operationalvalue.Config{
-		Root: p.CatalogRoot, NodeBinary: p.node(),
-		Environment: collectionEnvironment(p.GitHubAPIURL), WorkerTimeout: 30 * time.Second,
+		Root: p.CatalogRoot,
 	}, policyPath, p.Lake.Directory)
 	if err != nil {
 		return err
@@ -124,8 +122,7 @@ func (p Projector) CollectLocalValues(ctx context.Context) error {
 	}
 	output := filepath.Join(workspace, "operational-values.jsonl")
 	config := operationalvalue.Config{
-		Root: p.CatalogRoot, NodeBinary: p.node(), Output: output,
-		Environment: collectionEnvironment(p.GitHubAPIURL), WorkerTimeout: 2 * time.Minute,
+		Root: p.CatalogRoot,
 	}
 	var databaseRevision int64
 	if err := p.Data.WithReadTransaction(ctx, func(readCtx context.Context, reader postgresx.NativeReader) error {

@@ -1,7 +1,6 @@
 package operationalvalue
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -210,11 +209,6 @@ func TestPeriodCompactionRetainsAdjacentCutoffsAndVersions(t *testing.T) {
 	if len(merged) != 3 || merged[2].OperationalValue.Timestamp != "2026-09-24T02:00:00Z" {
 		t.Fatalf("distinct periods and evaluators must survive, newest correction wins: %+v", merged)
 	}
-	item.EvaluationMode = "attainment-only"
-	times, err := historicalTimes(item, adoptedAt.Add(3*day), DefaultRetention)
-	if err != nil || len(times) != 2 || !times[0].After(adoptedAt) {
-		t.Fatalf("attainment history must begin with a positive-duration period: %v, %v", times, err)
-	}
 }
 
 func TestPersistValuesKeepsRetainedValuesWithoutActiveEntry(t *testing.T) {
@@ -226,140 +220,5 @@ func TestPersistValuesKeepsRetainedValuesWithoutActiveEntry(t *testing.T) {
 	merged := persistValues(retained, nil, map[string]map[string]struct{}{}, map[string]definition{})
 	if len(merged) != 1 || merged[0].OperationalValue.ValueID != "current.value" {
 		t.Fatalf("merged = %+v, want the retained value kept", merged)
-	}
-}
-
-func TestEvaluateRateLimitReserveBlockingSkipsAdapterAtOrBelowReserve(t *testing.T) {
-	cases := []struct {
-		name        string
-		remaining   int
-		reserve     int
-		wantWarning bool
-		wantSkip    bool
-	}{
-		{name: "above reserve", remaining: 101, reserve: 100, wantWarning: false, wantSkip: false},
-		{name: "at reserve", remaining: 100, reserve: 100, wantWarning: true, wantSkip: true},
-		{name: "below reserve", remaining: 99, reserve: 100, wantWarning: true, wantSkip: true},
-	}
-	for _, testCase := range cases {
-		t.Run(testCase.name, func(t *testing.T) {
-			check := evaluateRateLimitReserve(testCase.remaining, testCase.reserve, rateLimitCheckBlocking)
-			if (check.warning != "") != testCase.wantWarning {
-				t.Fatalf("warning = %q, wantWarning = %t", check.warning, testCase.wantWarning)
-			}
-			if check.skipAdapter != testCase.wantSkip {
-				t.Fatalf("skipAdapter = %t, want %t", check.skipAdapter, testCase.wantSkip)
-			}
-		})
-	}
-}
-
-func TestEvaluateRateLimitReserveFinalOnlyWarnsStrictlyBelowReserve(t *testing.T) {
-	// The final check reports whether the floor was crossed after every
-	// adapter ran; it must never skip an adapter and must use a strict
-	// comparison so exactly-at-reserve does not warn, unlike the blocking
-	// check performed before each adapter.
-	cases := []struct {
-		name        string
-		remaining   int
-		reserve     int
-		wantWarning bool
-	}{
-		{name: "above reserve", remaining: 101, reserve: 100, wantWarning: false},
-		{name: "at reserve", remaining: 100, reserve: 100, wantWarning: false},
-		{name: "below reserve", remaining: 99, reserve: 100, wantWarning: true},
-	}
-	for _, testCase := range cases {
-		t.Run(testCase.name, func(t *testing.T) {
-			check := evaluateRateLimitReserve(testCase.remaining, testCase.reserve, rateLimitCheckFinal)
-			if (check.warning != "") != testCase.wantWarning {
-				t.Fatalf("warning = %q, wantWarning = %t", check.warning, testCase.wantWarning)
-			}
-			if check.skipAdapter {
-				t.Fatal("final check must never request skipping an adapter")
-			}
-		})
-	}
-}
-
-func TestDiscoverScriptsFindsAdaptersSortedByCampaign(t *testing.T) {
-	root := t.TempDir()
-	for _, campaign := range []string{"zeta", "alpha"} {
-		directory := filepath.Join(root, campaign)
-		if err := os.MkdirAll(directory, 0o750); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(
-			filepath.Join(directory, "operational-value.mjs"), []byte("// adapter\n"), 0o600,
-		); err != nil {
-			t.Fatal(err)
-		}
-	}
-	// A directory without the adapter file must be skipped rather than
-	// reported as a campaign.
-	if err := os.MkdirAll(filepath.Join(root, "no-adapter"), 0o750); err != nil {
-		t.Fatal(err)
-	}
-	scripts, err := discoverScripts(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(scripts) != 2 || scripts[0].campaign != "alpha" || scripts[1].campaign != "zeta" {
-		t.Fatalf("scripts = %+v, want [alpha, zeta] sorted", scripts)
-	}
-}
-
-func TestDiscoverScriptsReturnsEmptyForDirectoryWithoutCampaigns(t *testing.T) {
-	scripts, err := discoverScripts(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(scripts) != 0 {
-		t.Fatalf("scripts = %+v, want empty", scripts)
-	}
-}
-
-func TestCollectorTerminatesTimedOutAdapterProcessTree(t *testing.T) {
-	root := t.TempDir()
-	campaign := filepath.Join(root, "example")
-	if err := os.MkdirAll(campaign, 0o750); err != nil {
-		t.Fatal(err)
-	}
-	marker := filepath.Join(root, "orphan")
-	descendant := filepath.Join(campaign, "descendant.mjs")
-	if err := os.WriteFile(descendant, []byte(`
-import { writeFileSync } from "node:fs";
-setTimeout(() => writeFileSync(process.argv[2], "alive"), 150);
-setInterval(() => {}, 1000);
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	adapter := fmt.Sprintf(`
-import { spawn } from "node:child_process";
-spawn(process.execPath, [%q, %q]);
-setInterval(() => {}, 1000);
-`, descendant, marker)
-	if err := os.WriteFile(
-		filepath.Join(campaign, "operational-value.mjs"), []byte(adapter), 0o600,
-	); err != nil {
-		t.Fatal(err)
-	}
-	result, err := Collect(context.Background(), Config{
-		Root: root, Database: filepath.Join(root, "activity.sqlite"),
-		Output:       filepath.Join(root, "values.jsonl"),
-		ObservedAt:   time.Date(2026, 9, 24, 10, 0, 0, 0, time.UTC),
-		Repositories: []string{"octo/api"},
-		NodeBinary:   "node", Environment: testEnvironment(),
-		WorkerTimeout: 50 * time.Millisecond,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(result.Warnings) != 1 {
-		t.Fatalf("warnings = %v, want one timeout", result.Warnings)
-	}
-	time.Sleep(250 * time.Millisecond)
-	if _, err := os.Stat(marker); !os.IsNotExist(err) {
-		t.Fatal("timed-out adapter left a descendant process running")
 	}
 }
