@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -14,8 +13,6 @@ const MaxEvidenceBytes = 16 << 20
 const MaxEvidenceFacts = 20000
 
 type EvidenceSelection struct{ Field, Value string }
-
-var evidenceWorkflowRoute = regexp.MustCompile(`^([a-zA-Z0-9][a-zA-Z0-9-]*/[a-zA-Z0-9._-]+):\.github/workflows/([a-z0-9]+(?:-[a-z0-9]+)*)\.md$`)
 
 // ReadEvidencePackets restricts primary-key ranges before reading JSON bodies.
 // Workflow ranges follow the declared packet identity, not an arbitrary inverse

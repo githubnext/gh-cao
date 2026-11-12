@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
 import { partitionUnitTests, unitTestAreas } from "../../scripts/run-unit-area.mjs";
@@ -66,4 +68,36 @@ test("dashboard unit contracts prepare native Go tests before the bounded contra
     assert.equal(step.if, "matrix.area == 'dashboard'");
     assert.equal(step["continue-on-error"], undefined);
   }
+});
+
+test("PostgreSQL contracts use the host port discovered after the fixture container restarts", (t) => {
+  const steps = parse(readFileSync(".github/workflows/workflow-contracts.yml", "utf8")).jobs.unit.steps;
+  const prepare = steps.find((step) => step.name === "Prepare partition-heavy PostgreSQL fixtures");
+  const contracts = steps.find((step) => step.run?.includes("npm run test:unit:area"));
+  const directory = mkdtempSync(path.resolve(".ci-postgres-contract-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const output = path.join(directory, "output");
+  writeFileSync(path.join(directory, "docker"), `#!/bin/sh
+set -eu
+case "$1" in
+  restart) touch "$RESTART_MARKER" ;;
+  inspect) test -f "$RESTART_MARKER"; printf '55440\\n' ;;
+  exec) ;;
+  *) exit 1 ;;
+esac
+`, { mode: 0o700 });
+  writeFileSync(path.join(directory, "go"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+  execFileSync("bash", ["-e", "-o", "pipefail", "-c", prepare.run], {
+    env: {
+      ...process.env,
+      PATH: `${directory}${path.delimiter}${process.env.PATH}`,
+      POSTGRES_CONTAINER: "fixture",
+      RESTART_MARKER: path.join(directory, "restarted"),
+      GITHUB_OUTPUT: output,
+    },
+  });
+  assert.equal(readFileSync(output, "utf8"), "port=55440\n");
+  assert.ok(steps.indexOf(prepare) < steps.indexOf(contracts));
+  assert.ok(contracts.env.POSTGRES_URL.includes(`steps.${prepare.id}.outputs.port`));
+  assert.ok(!contracts.env.POSTGRES_URL.includes("job.services.postgres.ports"));
 });

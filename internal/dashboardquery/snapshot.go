@@ -12,7 +12,6 @@ import (
 
 const DatabaseName = "gh-aw-cao-dashboard-data"
 const DatabaseVersion = 49
-const workflowSubjectStateRecordKey = `"workflow-subject-state"`
 
 var ErrSnapshotInputBudget = errors.New("snapshot input budget exceeded")
 
