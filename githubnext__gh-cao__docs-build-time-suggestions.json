@@ -1,35 +1,7 @@
 {
   "source_sha": "d4bf131be13d9899c0f16a32f4207027e1b19d8d",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-11T22:53:58.163Z",
-      "worker_run_id": "43114901720",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886,
-        43085139761,
-        43083249533,
-        43081415171,
-        43080844329,
-        43078618882,
-        43078552939,
-        43076367701,
-        43076120883,
-        43073764764,
-        43071291945,
-        43068939179
-      ],
-      "outcome": "incomplete: latest 20 completed docs.yml runs from the unfiltered workflow listing (2026-11-11T17:31:08Z to 2026-11-11T21:36:04Z; within 14 days; no cancelled runs in this window) contained 4 successful full build-and-deploy publications across 3 revisions: push 43104481579 at d57c4c821 (current; wall 78 s, build 57 s, deploy 11 s), schedule 43083249533 at 494560796 (wall 114 s, build 82 s, deploy 13 s), push 43081415171 at 494560796 (wall 106 s, build 66 s, deploy 27 s), schedule 43078552939 at c56d4216d (wall 135 s, build 84 s, deploy 30 s). Also 7 successful freshness-only schedules (build and deploy skipped, 6-13 s), 3 skipped workflow_run callbacks, and 6 failed schedules at 93614994e/770e465dd (43103737760, 43101943628, 43099316175, 43094878868, 43092616318, 43090243002) that failed at Mount latest CAO Dashboard artifact after 55-83 s of build work. Gate failed: 4 comparable publications versus 5 required (1 on the current revision), so no suggestion was made and next_category was not advanced. Descriptive only across mixed revisions: wall median 110 s (nearest-rank p90 135 s), build median 74 s, deploy median 20 s. Cache: dashboard Find/Mount steps skipped (restore hit) in the 3 full publications on prior revisions and ran (miss) in the 6 failed runs; current revision has no dashboard steps; setup-node npm cache hit/miss unverified because job log reads return HTTP 403 (DIFC policy). Caveat: gh run list with status=completed and the REST status filter omitted 43099316175 and 43081415171, which the unfiltered listing and direct run lookups confirm as completed; use the unfiltered listing. cao-dashboard.yml: no successful run since 2026-11-10T06:41Z; recent runs are skipped workflow_run callbacks."
-    },
     {
       "evaluated_at": "2026-11-11T23:19:19.556Z",
       "worker_run_id": "43118232282",
@@ -790,6 +762,26 @@
         43085628886
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z; within 14 days; 0 cancelled; none in progress) = 12 successful current-shape publications (11 push, 1 schedule 43161224542; gate of 5 met), 6 failed retired-Mount schedules (excluded), 2 freshness-only schedules (excluded). Queue (build job created to started) median 3 s, p90 3 s; 0 overlapping adjacent runs, so no concurrency wait in the window. Wall created-to-updated median 90.5 s (p90 114 s); 15 percent gate = 13.6 s. Each of the 11 pushes changed at least one published input (docs/**, dashboard/site/**, dashboard/report/**, astro, package, or aw.yml), so none was avoidable by path-filter narrowing; the daily schedule is required for synthetic-date refresh. Open issue 20131 (coalesce superseded builds) rests on a 49 s burst delay that this window does not reproduce; not repeated. Job and step metadata only (logs not read). No suggestion; no issue created. next_category advanced to dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-11-12T09:21:41Z",
+      "worker_run_id": "43190048607",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        43104481579,
+        43121504364,
+        43124416558,
+        43129836945,
+        43138878761,
+        43139972486,
+        43141528595,
+        43145803206,
+        43161224542,
+        43165397534,
+        43167070179,
+        43167568535
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z; 0 cancelled; none in progress; unchanged since the 08:53Z evaluation, no new runs). Comparable n=12 current-shape publications (11 push, 1 schedule 43161224542; gate of 5 met). Excluded: 6 failed retired-Mount schedules and 2 freshness-only schedules. Median (p90, nearest-rank): build job 72.5 (93) s; created-to-deploy wall 89.5 (112) s; Install dependencies 18.5 (23) s; Set up Node.js 3 (8) s; Checkout 24 (40) s; Build documentation 14 (15) s; Deploy Pages 7 (7) s. Gate = 15 percent of 89.5 s = 13.4 s. Cache: node-cache-Linux-x64-npm-e62f... (278.9 MB, refs/heads/main) is present in cache metadata; Post Set up Node.js was 0-1 s in 12/12 runs, consistent with restore hits but inferred only (build job logs HTTP 403 DIFC; re-checked this run). The single install step covers two npm ci invocations and cannot be split from metadata. Bounds: npm ci --no-audit --no-fund is an unmeasured audit-request saving, likely a few seconds; a node_modules cache would remove only the install-minus-restore delta, unmeasured and unlikely to reach 13.4 s; no verified change reaches the gate. Checkout (fetch-depth 0, 24 s median) remains the largest unresolved lead; depth-1 is rejected for freshness (sourceCommittedAt), blobless history is unmeasured. No suggestion; no issue created; open issues 20131 and 20380 not repeated. next_category advanced to Astro documentation generation."
     }
   ]
 }
