@@ -12,9 +12,12 @@ import (
 	"github.com/githubnext/gh-cao/internal/dashboardquery"
 
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
 )
+
+var readLog = logger.New("cao:dashboard:read")
 
 func newReadCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -55,15 +58,17 @@ func newReadCommand() *cobra.Command {
 	return cmd
 }
 
-func readCanonical(ctx context.Context, reader dashboardstore.Reader, request dashboardquery.CanonicalReadRequest) (dashboardquery.CanonicalReadResult, error) {
+// canonicalReadDefinition validates a native read request and builds the query
+// definition that serves it, without touching storage.
+func canonicalReadDefinition(request dashboardquery.CanonicalReadRequest) (query.Definition, bool, error) {
 	source := "$" + request.Collection
 	switch request.Kind {
 	case "collection", "evidence", "measurements", "statistical-runs":
 		if !postgresx.IsCanonicalCollection(request.Collection) && request.Collection != "transactions" {
-			return dashboardquery.CanonicalReadResult{}, fmt.Errorf("unknown canonical collection: %s", request.Collection)
+			return query.Definition{}, false, fmt.Errorf("unknown canonical collection: %s", request.Collection)
 		}
 		if request.Collection == "operationalValueEvidence" {
-			return dashboardquery.CanonicalReadResult{}, errors.New("raw evidence packet reads are unsupported; use a named Value query")
+			return query.Definition{}, false, errors.New("raw evidence packet reads are unsupported; use a named Value query")
 		}
 	case "evidence-facts":
 		source = "$operationalValueEvidence"
@@ -72,12 +77,12 @@ func readCanonical(ctx context.Context, reader dashboardstore.Reader, request da
 	case "daily-run-count-records":
 		source = "$dailyRunCounts"
 	case "local-metadata":
-		return dashboardquery.CanonicalReadResult{Available: false}, nil
+		return query.Definition{}, true, nil
 	default:
-		return dashboardquery.CanonicalReadResult{}, errors.New("unsupported canonical read kind")
+		return query.Definition{}, false, errors.New("unsupported canonical read kind")
 	}
 	if request.MaxRows < 0 || request.MaxRows > 500_000 || request.MaxBytes < 0 || request.MaxBytes > 1<<30 {
-		return dashboardquery.CanonicalReadResult{}, errors.New("invalid canonical read budget")
+		return query.Definition{}, false, errors.New("invalid canonical read budget")
 	}
 	definition := query.Definition{Name: "native-read", From: source}
 	if request.Kind == "daily-run-count-metadata" {
@@ -100,12 +105,24 @@ func readCanonical(ctx context.Context, reader dashboardstore.Reader, request da
 		supported := request.Kind == "evidence-facts" && (field == "report-id" || field == "workflow-route") ||
 			request.Kind == "measurements" && (field == "id" || field == "workflow-route")
 		if !supported {
-			return dashboardquery.CanonicalReadResult{}, errors.New("unsupported canonical selection")
+			return query.Definition{}, false, errors.New("unsupported canonical selection")
 		}
 		predicates = append(predicates, query.Predicate{Field: field, Equals: value})
 	}
 	if len(predicates) > 0 {
 		definition.Filter = &query.Filter{Predicates: predicates}
+	}
+	return definition, false, nil
+}
+
+func readCanonical(ctx context.Context, reader dashboardstore.Reader, request dashboardquery.CanonicalReadRequest) (dashboardquery.CanonicalReadResult, error) {
+	definition, localOnly, err := canonicalReadDefinition(request)
+	if err != nil {
+		readLog.Printf("canonical read rejected")
+		return dashboardquery.CanonicalReadResult{}, err
+	}
+	if localOnly {
+		return dashboardquery.CanonicalReadResult{Available: false}, nil
 	}
 	sources, _, err := reader.ExecuteSQLPlan(ctx, []query.Definition{definition}, []string{definition.Name})
 	if err != nil {
@@ -121,6 +138,7 @@ func readCanonical(ctx context.Context, reader dashboardstore.Reader, request da
 		}
 	}
 	if request.MaxRows > 0 && len(value.Rows) > request.MaxRows {
+		readLog.Printf("canonical read exceeded row budget: rows=%d max_rows=%d", len(value.Rows), request.MaxRows)
 		return result, dashboardquery.ErrSnapshotInputBudget
 	}
 	var bytes int64
@@ -132,6 +150,7 @@ func readCanonical(ctx context.Context, reader dashboardstore.Reader, request da
 		}
 		bytes += int64(len(content))
 		if request.MaxBytes > 0 && bytes > request.MaxBytes {
+			readLog.Printf("canonical read exceeded byte budget: rows=%d max_bytes=%d", len(value.Rows), request.MaxBytes)
 			return dashboardquery.CanonicalReadResult{}, dashboardquery.ErrSnapshotInputBudget
 		}
 	}
