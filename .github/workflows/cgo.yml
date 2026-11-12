@@ -217,7 +217,7 @@ jobs:
         run: golangci-lint run ./...
 
   server-tests:
-    name: Go unit tests (${{ matrix.area }})
+    name: Go unit tests (${{ matrix.area }}, shard ${{ matrix.shard }})
     needs: changes
     if: needs.changes.outputs.tests == 'true'
     strategy:
@@ -251,6 +251,8 @@ jobs:
       - name: Unit tests
         env:
           GO_TEST_AREA: ${{ matrix.area }}
+          TEST_SHARD: ${{ matrix.shard }}
+          TEST_SHARD_COUNT: ${{ matrix.shards }}
           GO_TEST_MODE: ${{ github.event_name == 'pull_request' && '-short' || '-count=1' }}
           POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_server_test?sslmode=disable
           CAO_TEST_POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_server_test?sslmode=disable
@@ -267,7 +269,21 @@ jobs:
             *) echo "Unknown Go test area: $GO_TEST_AREA" >&2; exit 1 ;;
           esac
           test "${#packages[@]}" -gt 0
-          go -C server test -p 1 "$GO_TEST_MODE" "${packages[@]}"
+          if (( TEST_SHARD_COUNT > 1 )); then
+            pattern="$(go -C server test -p 1 "$GO_TEST_MODE" -list '^(Test|Example|Fuzz)' "${packages[@]}" |
+              LC_ALL=C sort -u |
+              awk -v shard="$TEST_SHARD" -v count="$TEST_SHARD_COUNT" '
+                /^(Test|Example|Fuzz)[^[:space:]]*$/ {
+                  if (position++ % count == shard) {
+                    printf "%s%s", separator, $0
+                    separator = "|"
+                  }
+                }')"
+            test -n "$pattern"
+            go -C server test -p 1 "$GO_TEST_MODE" -run "^($pattern)$" "${packages[@]}"
+          else
+            go -C server test -p 1 "$GO_TEST_MODE" "${packages[@]}"
+          fi
 
   server-integration:
     name: Local Actions, OIDC, admission, and webhook gateway integration

@@ -43,7 +43,12 @@ export function goTestPlan(files, full = false) {
     }
   }
   return {
-    matrix: { area: goTestAreas.filter((area) => selected.has(area)) },
+    matrix: {
+      include: goTestAreas.filter((area) => selected.has(area)).flatMap((area) =>
+        Array.from({ length: area === "storage" ? 4 : 1 }, (_, shard) => ({
+          area, shard, shards: area === "storage" ? 4 : 1,
+        }))),
+    },
     tests: selected.size > 0,
     lint,
     query,
