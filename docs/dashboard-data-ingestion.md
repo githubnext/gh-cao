@@ -146,6 +146,40 @@ node activity/cao.mjs repair-database \
 
 "Full" means all run summaries discoverable in the selected range plus every artifact still available from GitHub. Expired artifacts remain visible as unenriched runs rather than being silently counted as complete.
 
+## Estimate empirical workflow behavior
+
+The offline estimator fits workflow-conditional descriptive weights from a
+privately acquired operational cached JSONL file:
+
+```bash
+node scripts/fit-aw-behavior.mjs \
+  --input /private/operational/gh-aw-history.jsonl \
+  --repo OWNER/REPO \
+  --since 2026-10-12T00:00:00Z \
+  --until 2026-11-12T00:00:00Z \
+  --output /private/operational/behavior-model.json
+```
+
+Acquire evidence through authenticated Actions artifacts or bounded `gh aw logs`
+collection, never the synthetic Pages demo. The estimator uses the production
+gh-aw adapter, canonical normalizer and Dashboard Language query engine. It
+selects the exact execution repository and half-open UTC creation-time window,
+converges repeated run observations, and writes a new owner-readable aggregate
+with the input digest. Keep raw evidence and operational models outside committed
+or public demo assets.
+
+The versioned JSON contains outcome weights, numeric quantiles and histograms,
+exact safe-item count weights, tool/skill observation lower bounds and coarse
+joint cells for resampling within a workflow. Every fitted metric carries its
+observed denominator; fewer than ten observations are marked small-sample.
+Zero-creation estimates require count-reconciled manifests, not absent detail.
+Safe items include dispatches and comments, not just created issues and PRs.
+Quiet-day probabilities, complete-cost claims and acceptance/closure delays
+remain unavailable without the required collection and lifecycle evidence.
+Newest-run selection, retention and missing artifacts limit generalization;
+these weights describe the selected observations, not enterprise population
+rates or causal effects. No workflow policy or synthetic generator is changed.
+
 ## Browser data pipeline
 
 This is the synthetic Pages demo and adapter-conformance path, not operational
