@@ -1,35 +1,7 @@
 {
-  "source_sha": "3eed0d6ab4a1153af6f03873d2d4151a6fd36d87",
-  "next_category": "Astro documentation generation",
+  "source_sha": "a5dfc3677ef56c2b0a22ef712d69c29556d95e3b",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T04:34:34Z",
-      "worker_run_id": "43155255291",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886,
-        43085139761,
-        43083249533,
-        43081415171,
-        43080844329
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z; 14-day window; 0 cancelled, none in progress) = 13 successes: 8 current-design push publications (d57c4c82..62f179a2; n=8 meets minimum), 2 pre-design full publications (43083249533 schedule, 43081415171 push; excluded from Astro sample), 3 freshness-only schedules (about 11 s); 6 failed schedules (43090243002, 43092616318, 43094878868, 43099316175, 43101943628, 43103737760; build failed at retired Mount latest CAO Dashboard artifact; excluded and disclosed); 1 skipped workflow_run callback. Trusted job and step metadata only; log reads still return 403 difc_forbidden (re-verified). Build documentation step (npm run docs:build) per-run durations 10,15,11,12,15,11,15,15 s: median 13.5 s, p90 15 s (nearest-rank), range 10-15 s. Against per-run median wall 89.5 s (p90 112 s) that is about 15% (gate about 13.4 s); against median build job 72.5 s it is about 19%. Only removing the whole step would reach the gate, and generated docs are required for publication, so no safe Astro-internal change is expected to save 60 s or 15%; split between astro build and validation/tests inside docs:build is not visible without logs. Cache evidence: Set up Node.js restore median 4.5 s (1-8 s); npm install median 20.5 s (13-25 s); node-cache-Linux-x64-npm-40717a8d present (saved on main 02:28Z). No suggestion; open issues 20380 (dashboard input caching) and 20131 (superseded-build coalescing) cover other categories. Carry-forward lead, not a suggestion: fetch-depth 0 checkout (median 24 s, p90 40 s, largest build-job step) may be coupled to per-file provenance git-log reads; any partial-history alternative must preserve sourceCommittedAt semantics and needs measurement. next_category advanced to reusable dashboard generation."
-    },
     {
       "evaluated_at": "2026-11-12T04:52:56Z",
       "worker_run_id": "43157187994",
@@ -767,6 +739,34 @@
         43103737760
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:31:05Z to 2026-11-12T13:31:34Z; 14-day window; source 3eed0d6a = local HEAD). Excluded and disclosed: 1 cancelled 43206161686 (no jobs), 1 failed pre-design schedule 43103737760 (retired Mount step); in-progress 43236057780 (a5dfc367, created 14:19Z) not sampled. n=18 successful current-design publications (17 push, 1 schedule 43161224542). Medians (p90) from job and step metadata: Install dependencies 17.5 s (23 s; range 11-25 s) = about 21% of median wall 85 s (p90 119 s); Set up Node.js 3 s (8 s); Post Set up Node.js 0 s median; Checkout 24 s (45 s), largest build step; build job 71 s (103 s); deploy 10.5 s (12 s); queue 4 s. 15% gate = 12.8 s. Cache: Actions listing = 56 entries totalling 10.18 GB, above the 10 GB per-repo cap, so LRU eviction pressure from CodeQL (about 1.46 GB x2) and setup-go caches; node npm entries recreated repeatedly (latest 2026-11-12 11:01Z, 312 MB). The HEAD root-lock hash (91e8e843, local sha256, root-only key assumption) has no listed entry, which conflicts with the 0 s post-save; unresolved. Log reads re-verified 403 difc_forbidden, so hit/miss is unverified. Candidates, none meeting the threshold: --no-audit/--no-fund on both installs (unmeasured, fraction of install); cache-dependency-path including dashboard/site lock (latent, no measured cost); actions/cache for node_modules (no gain evidence); merging the two installs (architectural). Carry-forward, unmeasured: checkout partial clone (filter: blob:none) for the 24 s checkout; savings unknown and safety needs maintainer-run measurement. No suggestion; next_category advanced to Astro documentation generation."
+    },
+    {
+      "evaluated_at": "2026-11-12T14:36:46Z",
+      "worker_run_id": "43237912044",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:36:04Z to 2026-11-12T14:19:54Z; all within 14 days; 1 cancelled excluded: 43206161686; 0 failed). Comparable sample n=19 successful full build+deploy publications (18 push, 1 schedule 43161224542; docs.yml job and step structure unchanged since d57c4c82; source a5dfc367). Medians (p90), n=19: created-to-updated wall 89 s (157 s); queue to build start 4 s (30 s); build job 70 s (104 s); build-end to deploy-start 6 s; deploy job 11 s (18 s). Build steps: Checkout 24 s (47 s); Install dependencies 17 s (25 s); Build documentation 14 s (15 s); demo 3 s; Upload 2 s; Deploy Pages step 7 s. No separate dashboard job exists; dashboard work is the build job step Build synthetic enterprise demo. Astro category: the docs step is about 16 percent of median wall, but it cannot be removed (generated docs are required for publication) and its internal astro build versus validate-agent-docs versus node --test split is not visible; job logs return 403 difc_forbidden (re-verified). Checkout lead, not a suggestion: fetch-depth 0 fetches all history for all branches and tags per the actions/checkout README; repo has 1,257 branches, 63 tags, 1.45 GB. Docs provenance (resource.ts resolveBuildProvenance git log -1 <sha> -- file; validate-agent-docs git ls-files and rev-parse; agent-docs-discovery test) needs only history reachable from HEAD, so a HEAD-ancestry fetch could preserve sourceCommittedAt, but the saving is unmeasured and must reach about 13 s of a 24 s median checkout. Cache: node-cache-Linux-x64-npm keys exist on main; hit or miss not log-verified and last_accessed_at is shared across workflows. Open issue 20380 targets a retired input path; no duplicate created. next_category advanced to reusable dashboard generation."
     }
   ]
 }
