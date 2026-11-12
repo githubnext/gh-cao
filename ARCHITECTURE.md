@@ -1698,8 +1698,9 @@ runner before extraction, then checks the inventory, checksums and ownership.
 When the exact main/SHA runtime build is queued or running, materialization
 waits for it for at most five minutes; failed, missing, expired, timed-out, or
 unverifiable artifacts fail closed without source/npm packing or latest-release
-fallback. Explicit local source materialization remains a developer path using
-npm. Normal operator installation needs Node.js and authenticated GitHub CLI
+fallback. Runtime packaging from a catalog checkout belongs to
+`scripts/build-cao-runtime.mjs`; local source materialization is not an
+installation path. Normal operator installation needs Node.js and authenticated GitHub CLI
 artifact/attestation access, not npm.
 The materializer installs only owned canonical destinations from the archive
 and does not replace consumer-owned root package metadata. Installed control
@@ -1808,7 +1809,7 @@ readiness before installing or upgrading anything. Repository creation and
 cloning are private-only and require an explicit `--create-repo OWNER/NAME`;
 existing clone directories are never overwritten. Bare installation ends with
 the explicit `gh cao setup` next step. `--setup` attaches guided setup directly
-to the controlling terminal after verified materialization when one is
+to the controlling terminal after control-plane installation when one is
 available. Without a terminal or when `CI` is set, setup applies only an exact
 public-control-repository profile: self-only read and Activity scope, no
 campaigns, no Pages configuration, and repository workflow-token
