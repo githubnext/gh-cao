@@ -3,7 +3,7 @@ import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { promisify } from "node:util";
-import { startCanvasServer } from "../../dashboard/canvas-server.mjs";
+import { startCanvasServer } from "../helpers/canvas-snapshot.mjs";
 
 test("ordinary dashboard development uses Go, not the canvas server", async () => {
   const root = JSON.parse(await readFile(new URL("../../package.json", import.meta.url)));

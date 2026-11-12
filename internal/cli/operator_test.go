@@ -276,10 +276,10 @@ func TestOperatorInvalidInputDoesNotExecute(t *testing.T) {
 
 func TestPipelineCommandsAreNotMigrated(t *testing.T) {
 	for _, name := range []string{
-		"activity-stats", "audit-jsonl", "cluster-problems", "compact-jsonl",
+		"audit-jsonl", "cluster-problems", "compact-jsonl",
 		"dashboard-complexity", "discover-workflows", "hash-payloads", "ingest",
 		"ingest-jsonl", "issue-status", "operational-value", "prune-dashboard",
-		"recycle-cache", "validate-activity-data",
+		"recycle-cache",
 	} {
 		t.Run(name, func(t *testing.T) {
 			root, _, _ := testCommand(t, nil, nil)

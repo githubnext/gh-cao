@@ -312,17 +312,6 @@ export async function runWorkflowValues(options) {
   }
   retained = [...accepted.values()];
   const health = await workflowValueStatusContext(options, policy, retained);
-  if (options.localRequest) {
-    if (!options.snapshot) throw new Error('Local Value request requires a snapshot identity');
-    await mkdir(path.dirname(options.localRequest), { recursive: true });
-    await writeFile(`${options.localRequest}.pending`, JSON.stringify([{
-      schemaVersion: 1, snapshot: options.snapshot, policyDigest: health.policyDigest,
-      eligible: !health.activityDisabled && options.defer === 'shared-budget-unavailable',
-      reason: health.activityDisabled ? 'activity-disabled' : options.defer,
-      repositories: options.repositories.filter(repository => valueRepositoryInScope(policy, options.repositories, repository, true)),
-    }]) + '\n', { mode: 0o600 });
-    await rename(`${options.localRequest}.pending`, options.localRequest);
-  }
   const result = { imported: imported.length, collected: 0, skipped: 0, deferred: 0, failed: 0,
     cost: { apiRequests: 0, unmeteredAttempts: 0, capacityChecks: 0, collectorWallMs: 0, outputBytes: 0 },
     warnings: [] };
@@ -490,7 +479,7 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
       const options = { repositories: [] };
       for (let i = 2; i < process.argv.length; i += 2) {
         const key = process.argv[i].slice(2), value = process.argv[i + 1];
-        if (!value || !['root', 'policy', 'database', 'output', 'workspace', 'repository', 'previous', 'observedAt', 'defer', 'inventory', 'healthOutput', 'localRequest', 'snapshot', 'apiBudget', 'apiReserve'].includes(key)) throw new Error('Invalid workflow-values option');
+        if (!value || !['root', 'policy', 'database', 'output', 'workspace', 'repository', 'previous', 'observedAt', 'defer', 'inventory', 'healthOutput', 'apiBudget', 'apiReserve'].includes(key)) throw new Error('Invalid workflow-values option');
         if (key === 'repository') options.repositories.push(value);
         else options[key] = value;
       }

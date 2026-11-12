@@ -3,7 +3,7 @@ import { getPrimerStyles } from '../../src/styles.js';
 import { fileURLToPath } from 'node:url';
 import { writeCanvasArtifact } from './canvas-fixture.js';
 
-const { startCanvasServer } = await import(new URL('../../../canvas-server.mjs', import.meta.url).href);
+const { startCanvasServer } = await import(new URL('../../../../tests/helpers/canvas-snapshot.mjs', import.meta.url).href);
 
 registerSmokeRoutes();
 
@@ -136,7 +136,7 @@ test.describe('populated dashboard wizard', () => {
           commands.push({ id: request.id, command: request.command, input: request.input });
           return { ok: true, exitCode: 0 };
         },
-        downloadData: async (/** @type {string} */ destination) => {
+        prepareSnapshot: async (/** @type {string} */ destination) => {
           const metadata = { 'as-of': new Date().toISOString(), availability: 'available', completeness: 'complete', freshness: 'fresh' };
           await writeCanvasArtifact(destination, { sources: {
             repositories: { metadata, rows: [{ organization: 'acme', repository: 'control' }] },

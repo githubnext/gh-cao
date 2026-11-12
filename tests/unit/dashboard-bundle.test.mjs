@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { bundleDashboards, loadDashboardSource } from "../../dashboard/report/bundle-dashboards.mjs";
+import { bundleDashboardFiles, loadDashboardSource } from "../../dashboard/report/bundle-dashboards.mjs";
 
 function document(id, navigationLabel) {
   return {
@@ -27,7 +27,7 @@ test("bundles canonical campaign dashboards into one deterministic document", as
   await writeFile(path.join(additions, "alpha.json"), `${JSON.stringify(document("alpha", "Campaign operations"))}\n`);
 
   try {
-    await bundleDashboards(output, additions);
+    await bundleDashboardFiles(output, [path.join(additions, "zeta.json"), path.join(additions, "alpha.json")]);
     const bundled = JSON.parse(await readFile(output, "utf8"));
     assert.deepEqual(bundled.dashboard.pages.map(({ id }) => id), ["overview", "alpha", "zeta"]);
     assert.deepEqual(bundled.dashboard.navigation, [
@@ -73,7 +73,7 @@ test("composes feature fragments with multiple related queries and views before 
   })}\n`);
 
   try {
-    await bundleDashboards(output, additions);
+    await bundleDashboardFiles(output, []);
     const bundled = JSON.parse(await readFile(output, "utf8"));
     assert.equal(bundled.fragments, undefined);
     assert.deepEqual(bundled.dashboard.queries.map(({ name }) => name), [

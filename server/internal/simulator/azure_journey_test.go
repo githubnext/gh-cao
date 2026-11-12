@@ -48,7 +48,7 @@ func setupAzurePrivateFarm(t *testing.T, ctx context.Context, f *setupFixture, c
 	}
 	installerEnv := setupAzureEnvironment(f.env, map[string]string{"PATH": os.Getenv("PATH")})
 	bootstrapRun(t, ctx, f.checkout, installerEnv, "bash", filepath.Join(catalog, "install-gh-cao.sh"), catalog)
-	for _, name := range []string{"activity/cao.mjs", ".github/workflows/cao-activity.yml", ".github/workflows/cao-validate.yml"} {
+	for _, name := range []string{"activity/cao.mjs", ".github/workflows/cao-validate.yml"} {
 		if len(setupRead(t, filepath.Join(f.checkout, name))) == 0 {
 			t.Fatalf("installer omitted %s", name)
 		}

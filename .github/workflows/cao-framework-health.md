@@ -466,7 +466,7 @@ steps:
         const ids = ['install', 'connect', 'collect', 'inspect-refresh', 'access-withdraw',
           'update-recover', 'offboard', 'participant-value'];
         const workflows = ['workflow-contracts.yml', 'cid.yml', 'cgo.yml', 'installer-canary.yml',
-          'cao-runtime.yml', 'cao-activity.yml', 'cao-dashboard.yml',
+          'cao-runtime.yml',
           'dashboard-deployed-integration.yml', 'release-promote.yml'];
         const text = value => typeof value === 'string' && value.trim().length > 0;
         const nullableText = value => value === null || text(value);

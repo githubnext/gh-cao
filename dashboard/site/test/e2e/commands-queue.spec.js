@@ -2,7 +2,7 @@ import { writeCanvasArtifact } from './canvas-fixture.js';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-const { startCanvasServer } = await import(new URL('../../../canvas-server.mjs', import.meta.url).href);
+const { startCanvasServer } = await import(new URL('../../../../tests/helpers/canvas-snapshot.mjs', import.meta.url).href);
 
 for (const width of [1440, 390]) {
   test(`Commands is absent without queue support at ${width}px`, async ({ page }, testInfo) => {
@@ -10,7 +10,7 @@ for (const width of [1440, 390]) {
       workingDirectory: fileURLToPath(new URL('../../../../', import.meta.url)),
       repository: 'acme/control', port: 0,
       output: () => {}, requestOutput: () => {}, traceOutput: () => {},
-      downloadData: async (/** @type {string} */ destination) => {
+      prepareSnapshot: async (/** @type {string} */ destination) => {
         await mkdir(destination, { recursive: true });
         await writeCanvasArtifact(destination, { sources: {
           repositories: {
@@ -85,7 +85,7 @@ for (const width of [1440, 390]) {
         });
         return { ok: true, exitCode: 0 };
       },
-      downloadData: async (/** @type {string} */ destination) => {
+      prepareSnapshot: async (/** @type {string} */ destination) => {
         await mkdir(destination, { recursive: true });
         await writeCanvasArtifact(destination, { sources: {
           repositories: {

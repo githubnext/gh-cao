@@ -308,9 +308,6 @@
           "glossary": {
             "workflow": "self-care-glossary"
           },
-          "open-source-failures": {
-            "workflow": "self-care-open-source-failures"
-          },
           "pages-health": {
             "workflow": "self-care-pages-health"
           },

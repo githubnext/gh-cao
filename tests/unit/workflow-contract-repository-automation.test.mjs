@@ -73,8 +73,6 @@ test("comment-writing workflow actions are explicitly inventoried", () => {
     "action-lint.yml",
     "actions.yml",
     "backfill-stress.yml",
-    "cao-activity.yml",
-    "cao-dashboard.yml",
     "cgo.yml",
     "cid.yml",
     "dashboard-deployed-integration.yml",
