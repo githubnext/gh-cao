@@ -9,8 +9,9 @@ agent:
     id: overview
 ---
 
-The dashboard is the operational view of your Central Agentic Ops control
-plane. It turns retained activity evidence into focused views, each designed to
+The dashboard is the operational view of GitHub Agentic Workflow evidence,
+whether collected locally or by a Central Agentic Ops control plane.
+It turns retained activity evidence into focused views, each designed to
 answer a specific question:
 
 - What work is moving now?
@@ -18,20 +19,44 @@ answer a specific question:
 - What needs attention or a closer look?
 - Is the evidence complete and current enough to act on?
 
+## Open it locally without a cloud deployment
+
+With an installed release and locally authenticated GitHub CLI, run:
+
+```bash
+gh cao dashboard --repo OWNER/REPOSITORY
+```
+
+Or run `gh cao dashboard` in an existing repository checkout. Open the full
+**Dashboard:** URL printed in the terminal. The bundled Go server serves on
+loopback and queries a private canonical SQLite cache on your machine.
+No CAO cloud deployment, Azure setup, hosted dashboard, PostgreSQL, Redis,
+containers, or separate Node.js or gh-aw installation is needed.
+
+GitHub is still the authenticated upstream evidence source; collection needs
+network access and your repository permissions. The command collects bounded
+recent evidence automatically and refreshes every five minutes. Its evidence
+window and server lifetime default to, and cannot exceed, 48 hours; it does not
+promise complete historical backfill. Press **Ctrl-C** to stop while retaining
+the cache. See the [local quickstart](setup-quickstarts.md#open-a-local-dashboard-no-deployment)
+for installation, optional cache reuse, and evidence limits.
+
 ## How it works
 
 Every view follows the same data flow:
 
-1. **Activity collects evidence.** The Activity workflow publishes a bounded
-	snapshot of workflow activity.
+1. **A collector acquires evidence.** `gh cao dashboard` reads bounded recent
+	evidence using local GitHub CLI authentication; the separate Activity workflow
+	publishes bounded operational snapshots for shared monitoring.
 2. **The selected backend prepares and queries the data.** Production Go
 	serving uses PostgreSQL; local development uses the same Go server over a real
 	SQLite snapshot. Each evaluates Dashboard Language.
 3. **The active view presents the result.** When the underlying data changes, the
 	query runs again and the view updates.
 
-The dashboard is not a live feed. It reads the latest snapshot collected by the
-Activity workflow. [Data ingestion](dashboard-data-ingestion.md) follows that
+The dashboard is not a live feed. It reads the latest successfully collected
+evidence from the selected local or shared collection path.
+[Data ingestion](dashboard-data-ingestion.md) follows that
 evidence into each query backend, while the
 [Data model](dashboard-data-model.md) explains the records and relationships
 available to every view.

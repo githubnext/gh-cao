@@ -66,6 +66,86 @@ func newSQLiteTestApp(t *testing.T, mcpEnabled bool) (*App, string) {
 	return app, path
 }
 
+func TestSQLiteIngestionUsesStandardServerAndNativeAdapter(t *testing.T) {
+	original, path := newSQLiteTestApp(t, false)
+	config := original.config
+	config.Database, config.HostProfile = nil, HostProfile{}
+	adapterPrefix := "/" + strings.Repeat("c", 48)
+	adapter := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != adapterPrefix+"/execute" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = io.WriteString(w, "{\"complete\":true,\"exitCode\":1}\n")
+	}))
+	defer adapter.Close()
+	config.OperatorActions = &LocalOperatorConfig{
+		AdapterURL: adapter.URL + adapterPrefix,
+		OperatorActions: &LocalOperatorActionsConfig{
+			QueuePath: filepath.Join(t.TempDir(), "commands.sqlite"), Repositories: []string{"octo/one"},
+		},
+	}
+	if err := os.WriteFile(filepath.Join(config.SiteDirectory, "dashboard.json"), []byte(`{"dashboard":{"cli-actions":[
+		{"id":"upgrade-repository","command":"gh aw upgrade --repo {{repository}}",
+		"arguments":[{"id":"create-pull-request","flag":"--create-pull-request","default":true}]}
+	]}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	app, err := NewSQLiteIngestionApp(t.Context(), path, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := app.Start(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := app.Stop(context.WithoutCancel(t.Context())); err != nil {
+			t.Error(err)
+		}
+	})
+	if app.config.Canvas != nil || app.config.HostProfile.Name != "sqlite-ingestion" {
+		t.Fatal("SQLite ingestion selected a canvas or alternate model")
+	}
+	request := func(method, path, body, origin string, authenticated bool) *httptest.ResponseRecorder {
+		req := httptest.NewRequestWithContext(t.Context(), method, "http://127.0.0.1:8080"+path, strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		if origin != "" {
+			req.Header.Set("Origin", origin)
+		}
+		if authenticated {
+			authorize(req)
+		}
+		response := httptest.NewRecorder()
+		app.Handler().ServeHTTP(response, req)
+		return response
+	}
+	index := request(http.MethodGet, "/", "", "", true)
+	for _, required := range []string{`name="dashboard-data-backend" content="server-http"`,
+		`name="dashboard-storage-backend" content="sqlite"`, "__LOCAL_CLI_QUEUE__ = true"} {
+		if !strings.Contains(index.Body.String(), required) {
+			t.Fatalf("normal server bootstrap omitted %s: %s", required, index.Body.String())
+		}
+	}
+	if strings.Contains(index.Body.String(), "dashboard-api-base") || strings.Contains(index.Body.String(), "local-preview") {
+		t.Fatal("SQLite ingestion injected local presentation routing")
+	}
+	for _, test := range []struct {
+		origin string
+		auth   bool
+	}{
+		{"http://127.0.0.1:8080", false}, {"https://evil.example", true}, {"", true},
+	} {
+		response := request(http.MethodPost, "/__cli_commands", `{}`, test.origin, test.auth)
+		if response.Code != http.StatusForbidden {
+			t.Fatalf("native maintenance bypassed bearer or same-origin admission: %d", response.Code)
+		}
+	}
+	response := request(http.MethodPost, "/api/v1/query", `{"sourceNames":["repositories"]}`, "", true)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"repository":"one"`) {
+		t.Fatalf("normal query API failed: %d %s", response.Code, response.Body.String())
+	}
+}
+
 func TestLocalSQLitePreservesQueryAdmissionOverride(t *testing.T) {
 	original, path := newSQLiteTestApp(t, false)
 	config := original.config

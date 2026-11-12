@@ -11,7 +11,7 @@
     "install:gh-aw": "GH_AW_VERSION=$(node .github/workflows/shared/control.mjs compiler-version .github/workflows/cao.json) && curl -sL https://raw.githubusercontent.com/github/gh-aw/main/install-gh-aw.sh | bash -s -- \"$GH_AW_VERSION\"",
     "dashboard:local": "CAO_MARKETPLACE_POLICY_PATH=\"${CAO_MARKETPLACE_POLICY_PATH:-$PWD/.github/workflows/cao.json}\" go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist",
     "dashboard:local:azure": "bash scripts/azure-local/azure-local.sh dev",
-    "predashboard:local": "npm --prefix dashboard/site run build -- dist ../../.github/workflows/cao.json",
+    "predashboard:local": "CAO_DASHBOARD_PROFILE=server npm --prefix dashboard/site run build -- dist ../../.github/workflows/cao.json",
     "dashboard:pages": "go -C server run ./cmd/cao-dashboard serve-pages",
     "dashboard:pages:build": "node scripts/simulate-dashboard-pages.mjs",
     "dashboard:server:build": "npm run dashboard:server:spec:check && npm --prefix dashboard/site run build -- dist ../../.github/workflows/cao.json && node scripts/prepare-dashboard-embed.mjs",

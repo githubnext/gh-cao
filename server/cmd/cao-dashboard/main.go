@@ -693,6 +693,13 @@ func newServeCommand() *cobra.Command {
 	mcpContract := cmd.Flags().String("mcp-contract", "", "shared MCP tool contract (default: selected dashboard resources)")
 	mcpEnabled := cmd.Flags().Bool("mcp-enabled", false, "serve the read-only MCP endpoint at /mcp")
 	canvasConfigPath := cmd.Flags().String("canvas-config", "", "private local Copilot adapter configuration; stdin owns the host lifetime")
+	sqliteIngestion := cmd.Flags().Bool("sqlite-ingestion", false, "serve canonical SQLite refreshed by an owning ingestion process with ordinary server rendering")
+	operatorConfigPath := cmd.Flags().String("operator-config", "", "private native maintenance adapter configuration for SQLite ingestion mode")
+	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "canvas-config")
+	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "postgres-url")
+	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "redis-url")
+	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "source")
+	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "download-sqlite")
 	exitOnStdinClose := cmd.Flags().Bool("exit-on-stdin-close", false, "stop local SQLite serving when the owning CLI closes stdin")
 	cmd.MarkFlagsMutuallyExclusive("sqlite", "postgres-url")
 	cmd.MarkFlagsMutuallyExclusive("sqlite", "redis-url")
@@ -732,6 +739,16 @@ func newServeCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
+		operator, err := readOperatorConfig(*operatorConfigPath)
+		if err != nil {
+			return err
+		}
+		if operator != nil && !*sqliteIngestion {
+			return errors.New("--operator-config requires --sqlite-ingestion")
+		}
+		if *sqliteIngestion && (!localSQLite || !cmd.Flags().Changed("sqlite")) {
+			return errors.New("--sqlite-ingestion requires an explicit canonical --sqlite database")
+		}
 		if canvas != nil && !localSQLite {
 			return errors.New("canvas integration requires local SQLite serving")
 		}
@@ -749,6 +766,9 @@ func newServeCommand() *cobra.Command {
 			if !downloadSnapshot {
 				_, err := os.Lstat(snapshotPath)
 				if errors.Is(err, os.ErrNotExist) {
+					if *sqliteIngestion {
+						return errors.New("SQLite ingestion requires a canonical database initialized by its owning ingestion process")
+					}
 					downloadSnapshot = true
 				} else if err != nil {
 					return fmt.Errorf("inspect local SQLite cache: %w", err)
@@ -805,6 +825,7 @@ func newServeCommand() *cobra.Command {
 				GitHubAPIURL:         actionsEnv.APIURL,
 				Logger:               log.New(os.Stderr, "cao-dashboard: ", log.LstdFlags),
 				Canvas:               canvas,
+				OperatorActions:      operator,
 			}
 			if localSQLite {
 				// Ambient local credentials are not an Actions identity
@@ -835,7 +856,11 @@ func newServeCommand() *cobra.Command {
 				}
 				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "SQLite snapshot ready.")
 			}
-			app, err := server.NewLocalSQLiteApp(ctx, snapshotPath, config)
+			newApp := server.NewLocalSQLiteApp
+			if *sqliteIngestion {
+				newApp = server.NewSQLiteIngestionApp
+			}
+			app, err := newApp(ctx, snapshotPath, config)
 			if err != nil {
 				return err
 			}
