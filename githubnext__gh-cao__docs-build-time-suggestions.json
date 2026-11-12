@@ -1,35 +1,7 @@
 {
   "source_sha": "d4bf131be13d9899c0f16a32f4207027e1b19d8d",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-11T21:09:24.400Z",
-      "worker_run_id": "43099795387",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886,
-        43085139761,
-        43083249533,
-        43081415171,
-        43080844329,
-        43078618882,
-        43078552939,
-        43076367701,
-        43076120883,
-        43073764764,
-        43071291945,
-        43068939179,
-        43066601169,
-        43066186678,
-        43064053077
-      ],
-      "outcome": "incomplete: latest 20 completed docs.yml runs (2026-11-11T17:01:28Z to 2026-11-11T21:00:12Z; within 14 days; 0 cancelled) contained 12 successful runs (9 freshness-only schedules, median 8 s; 3 full build-and-deploy publications), 4 failed runs and 4 skipped workflow_run callbacks. Only 3 comparable successful full publications exist; 5 are required, so no suggestion was made and next_category was not advanced. Full publications (n=3, p90 not meaningful): create-to-deploy-complete median 114 s (104-135 s), build median 82 s, deploy median 27 s; checkout 24 s, npm ci 15 s, Astro docs 11 s, dashboard cache restore 3 s (hit in all three), Pages upload 17 s, Pages deploy 25 s; queue 2-6 s. Critical: 4 consecutive builds failed at Mount latest CAO Dashboard artifact after a central-agentic-ops-dashboard cache miss: 43090243002 (19:46Z, source 770e465), 43092616318 (20:01Z, 770e465), 43094878868 (20:16Z, 93614994e), 43099316175 (21:00Z, 93614994e). The cache key is absent from the repo cache listing (40 caches, 10.82 GB). The last successful CAO Dashboard run 42770239542 (2026-11-10T06:41Z) lists total_count 1 with no retrievable artifact (1-day retention). Run logs returned HTTP 403 (policy), so failure text is unverified. Last successful deploy: 43083249533 (19:03Z, source 494560796). Leads for the next complete evaluation: freshness compares only the deployed SHA, so docs-unrelated commits trigger rebuilds (770e465 note from prior evaluation not re-verified; not in local checkout); 43083249533 rebuilt 494560796 about 10 minutes after 43081415171 deployed it although the visible freshness conditions should skip, so its trigger is unverified."
-    },
     {
       "evaluated_at": "2026-11-11T21:26:12.819852Z",
       "worker_run_id": "43102030712",
@@ -795,6 +767,34 @@
         43085628886
       ],
       "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z; within 14 days; 0 cancelled) = 12 successful current-shape full publications (11 push, 1 schedule; sources d57c4c82..d4bf131; n=12 meets the 5-run minimum), 6 failed schedules at the retired Mount latest CAO Dashboard artifact step (excluded), 2 freshness-only schedules (excluded). Category artifact transfer and Pages packaging, median (p90): Upload Pages artifact 2 s (3); Configure Pages 1 s (1); build-end to deploy-start handoff 5 s (6); deploy job queue 5 s (6); Deploy Pages step 7 s (7); deploy job 10 s (11). github-pages artifact 8.3 MB (7.7-8.3 MB). Build start to deploy end median 86.5 s (p90 109); 15 percent gate = 13.0 s. Merging build and deploy would remove at most about 11 s of handoff, queue and setup overhead and would weaken the separate github-pages environment and id-token permission boundary; halving the artifact would save about 1 s. No suggestion. Job logs re-verified HTTP 403 difc_forbidden, so cache hit/miss unverified. Open issues #20380 and #20131 checked; no duplicate. next_category advanced to scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-11-12T07:22:13.978Z",
+      "worker_run_id": "43174065246",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175,
+        43094878868,
+        43092616318,
+        43090243002,
+        43087935698,
+        43085628886
+      ],
+      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z; within 14 days; 0 cancelled; none in progress; no new runs since the 06:55Z evaluation) = 12 successful current-shape full publications (11 push d57c4c82..d4bf131, 1 daily schedule 9537899), 6 failed retired-Mount schedules (excluded), 2 freshness-only schedules (excluded). Current n=12 medians (p90): build queue 3 s (4 s); build job 72.5 s (93 s); deploy-job queue 5 s (6 s); deploy job 10 s (11 s); build-start to deploy-end 86.5 s (109 s); create-to-deploy-complete 89.5 s (112 s). Concurrency: 0 overlapping publications across the window (min gap 133 s); queue waits 2-4 s, so the documentation-pages group adds no measurable wait. Trigger audit (commit file lists, GitHub glob semantics): all 11 push publications matched a docs-consumed path (docs/**, dashboard/site/**, dashboard/report/**, astro.config.mjs, aw.yml manifests read by docs/lib/catalog.ts, .github/workflows/shared/policy.mjs imported by the dashboard build, docs.yml itself); 063cbe9 removed activity/** from push paths and its run matched on docs.yml and shared/policy.mjs; no trigger-only publication. Daily 05:23Z cron is the intentional synthetic-date refresh (9537899, 88 s) and removing it would weaken freshness. Coalescing superseded builds would remove runs, not shorten the per-run median (89.5 s; 15 percent = 13.4 s); the open issue 20131 concurrency-delay premise is not present in this window. Job logs not read (metadata only). No suggestion; next_category advanced to dependency installation and caching."
     }
   ]
 }
