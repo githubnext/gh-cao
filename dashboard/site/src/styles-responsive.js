@@ -106,6 +106,8 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .dashboard-root.dashboard-full-view { height: 100dvh; min-height: 0; overflow: hidden; }
   .dashboard-full-view .app-shell { height: 100%; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
   .org-sidebar { height: auto; display: block; overflow: visible; margin-bottom: 8px; padding: 14px 12px 10px; border-right: 0; border-bottom: 1px solid var(--border); background: var(--canvas); }
+  /* The Overview hero is full-bleed, so the header must sit flush against it. */
+  .app-shell:has(.dashboard-overview-page:not([hidden])) > .org-sidebar { margin-bottom: 0; }
   /* --full-view-sidebar-max-height bounds the full-view mobile header (a single title/back/menu
      row, see .sidebar-header), which stays well under this cap, so animating max-height here can
      never clip real content; it only exists to give the collapse-on-scroll transition below a
