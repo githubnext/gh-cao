@@ -1,35 +1,7 @@
 {
   "source_sha": "503ee61668705626404139e4e3537a9a7c08767e",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T01:33:06Z",
-      "worker_run_id": "43134779199",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886,
-        43085139761,
-        43083249533,
-        43081415171,
-        43080844329,
-        43078618882,
-        43078552939,
-        43076367701,
-        43076120883
-      ],
-      "outcome": "incomplete, gate not met: latest 20 completed docs.yml runs (created 2026-11-11T18:16:01Z to 2026-11-12T00:47:12Z; within 14 days; 0 cancelled) contained 4 successful current-design full publications (push d57c4c821, 3707d46, f1cdd83, ad8a18d; docs.yml unchanged since d57c4c821 per compare API), below the required 5. Excluded as not like-for-like: 3 pre-design full publications (43083249533, 43081415171, 43078552939; schedule-freshness gate and CAO Dashboard restore steps), 4 freshness-only schedules, 6 failed pre-design schedules (Mount latest CAO Dashboard artifact), 3 skipped workflow_run callbacks. Descriptive n=4, not a gate pass: created-to-updated median 100.5 s (nearest-rank p90 114 s); build median 81 s (p90 93 s); deploy median 11 s; build queue 2-3 s; checkout median 29 s (21-40 s, about 36% of build median); npm install median 21 s (13-25 s); Astro docs median 11.5 s (10-15 s); demo 3 s; Pages upload 2.5 s; Deploy Pages 7 s. Cache hit/miss unverified: job logs HTTP 403 (DIFC policy); Actions cache list shows shared node-cache-Linux-x64-npm keys not attributable to docs runs. Lead only, not a suggestion: fetch-depth 0 checkout is the largest step; history need not verified within inspection scope. No suggestion; next_category not advanced. Earliest 5th comparable run: scheduled publication 2026-11-12T05:23Z."
-    },
     {
       "evaluated_at": "2026-11-12T01:52:46Z",
       "worker_run_id": "43137031508",
@@ -749,6 +721,34 @@
         43104481579
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T20:16:01Z to 2026-11-12T11:06:25Z; all within 14 days). Excluded and disclosed: 4 failed pre-design schedules (43094878868, 43099316175, 43101943628, 43103737760; failed at Mount latest CAO Dashboard artifact; wall 74-273 s); 1 cancelled push 43206161686 (no jobs started). Comparable sample n=15 successful build+deploy publications (14 push, 1 schedule 43161224542; one step-name shape; 'Build documentation' present in all). Build documentation step (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test): median 14 s, p90 15 s, range 10-15 s; 15.7% of wall median 89 s (p90 124 s) and 19.4% of build-job median 72 s. Gate needs >=13.3 s saved (15% of wall) or 60 s; that would require removing the whole step and its validation, so not met. Outliers disclosed: 43206235849 (wall 157 s) and 43167070179 (wall 124 s), checkout 47-49 s vs median 24 s; excluding them leaves the docs median at 14 s. Astro-internal vs validation/test split unmeasured: job-log reads were denied by policy in earlier evaluations and were not retried. No suggestion; next_category advanced to reusable dashboard generation (open issue #20380 is a candidate to check in that category)."
+    },
+    {
+      "evaluated_at": "2026-11-12T11:33:31Z",
+      "worker_run_id": "43209513017",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175,
+        43094878868
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T20:16:01Z to 2026-11-12T11:06:25Z; all within 14 days). Excluded and disclosed: 1 cancelled push 43206161686 (no jobs started) and 4 failed pre-design schedules (43094878868, 43099316175, 43101943628, 43103737760; failed at retired Mount step). Comparable n=15 successful current-shape publications (d57c4c821..203826e; 14 push + 1 schedule 43161224542; build 11-step and deploy 3-step shapes identical across all 15), meeting the n>=5 gate. Reusable dashboard generation = step 'Build synthetic enterprise demo' (npm run dashboard:pages:build plus cp to dist/cao): median 3 s, p90 4 s, range 2-4 s; 3.5% of median build-start-to-deploy-end wall 85 s (p90 119 s). 15% gate = 12.75 s; 60 s unreachable; complete removal saves at most about 3-4 s. Caching or reuse would weaken freshness (the step regenerates synthetic dates per publication) and a cache restore would cost similar time; running it in parallel with the docs build saves at most about 3 s. Logs not read this run (prior attempts HTTP 403 DIFC); metadata only. No suggestion; no issue created. next_category advanced to artifact transfer and Pages packaging. Carry-forward lead, outside this category and not evaluated: Checkout (fetch-depth 0) median 24 s, p90 47 s, the largest build step. docs/plugins/starlight-agent/resource.ts runs 'git log -1 --format=%cI <commit> -- <file>' for per-file sourceCommittedAt provenance, so fetch-depth 1 would change docs output; a blobless partial clone is untested and its saving unknown."
     }
   ]
 }
