@@ -28,13 +28,13 @@ export type CatalogEntry = {
   ReadmeContent?: CampaignReadme["Content"];
 };
 
-const manifests = import.meta.glob<string>(["../../*/aw.{yml,yaml}", "../../.experimental/*/aw.{yml,yaml}"], {
+const manifests = import.meta.glob<string>("../../*/aw.{yml,yaml}", {
   query: "?raw",
   import: "default",
   eager: true,
   exhaustive: true,
 });
-const readmes = import.meta.glob<CampaignReadme>(["../../*/README.md", "../../.experimental/*/README.md"], {
+const readmes = import.meta.glob<CampaignReadme>("../../*/README.md", {
   eager: true,
   exhaustive: true,
 });
