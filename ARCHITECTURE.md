@@ -949,8 +949,8 @@ boundary. Local storage does not grant hosted collection or execution authority.
 
 `gh cao dashboard` is a separately selected native operator acquisition profile
 that also owns local PostgreSQL setup unless a connection is supplied. It
-uses Docker by default (`--container-engine` or `CAO_CONTAINER_ENGINE` selects
-Podman, without fallback), verifies an
+tries Docker then Podman unless `--container-engine` or `CAO_CONTAINER_ENGINE`
+selects one engine exclusively, verifies an
 owned loopback-only container, and bind-mounts its persistent data beneath the
 ignored `.github/cao/dashboard/<scope>/postgres/` cache. The operator invokes
 separate provisioning with owner credentials, then passes only a non-owner

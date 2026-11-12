@@ -15,8 +15,8 @@ adapters. The native `gh cao dashboard` operator command starts an owned Docker
 or Podman PostgreSQL container automatically when no connection is specified.
 It bind-mounts `.github/cao/dashboard/<repository-scope>/postgres/data`, ignores
 the cache in Git, and keeps image layers in the selected container engine.
-Docker is the default; `--container-engine podman` (or
-`CAO_CONTAINER_ENGINE=podman`) selects Podman, with no automatic fallback. The container and cache persist
+Docker is tried first, then Podman; `--container-engine docker|podman` (or
+`CAO_CONTAINER_ENGINE`) selects one engine exclusively. The container and cache persist
 across invocations. Ownership, cache mounts and loopback port bindings are
 verified before reuse; foreign containers are never replaced or removed.
 Only the separate operator provisioning subprocess receives administrator

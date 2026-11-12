@@ -38,8 +38,8 @@ there is no separate gh-aw, Node.js, npm, or Redis setup. Without an explicit
 `--postgres-url` or `CAO_POSTGRES_URL`, the command pulls and starts an owned
 PostgreSQL container and provisions separate owner/runtime roles. Its data is
 bind-mounted under the ignored `.github/cao/dashboard/<scope>/postgres/` cache.
-Docker is the default engine; `--container-engine podman` (or
-`CAO_CONTAINER_ENGINE=podman`) selects Podman, with no automatic fallback. An explicit
+Docker is tried first, then Podman; `--container-engine docker|podman` (or
+`CAO_CONTAINER_ENGINE`) selects one engine exclusively. An explicit
 connection bypasses container management and requires pre-provisioned storage.
 By default, all dashboard code, static assets, query contracts, and the canonical
 artifact normalizer come from the installed extension binary, not a CAO checkout

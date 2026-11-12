@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -63,9 +64,11 @@ func TestDashboardEngineSelection(t *testing.T) {
 		want    string
 		err     string
 	}{
-		{want: "docker"},
+		{want: ""},
+		{env: ptr("docker"), want: "docker"},
 		{env: ptr("podman"), want: "podman"},
 		{flag: "podman", changed: true, env: ptr("docker"), want: "podman"},
+		{flag: "docker", changed: true, env: ptr("unsupported"), want: "docker"},
 		{flag: "auto", changed: true, err: "--container-engine must be docker or podman"},
 		{flag: "", changed: true, err: "--container-engine must be docker or podman"},
 		{env: ptr(""), err: "CAO_CONTAINER_ENGINE must be docker or podman"},
@@ -100,6 +103,70 @@ func TestDashboardRejectsInvalidContainerEngineBeforeCollection(t *testing.T) {
 }
 
 func ptr(value string) *string { return &value }
+
+func TestDashboardEngineAutomaticSelection(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("container engine fixtures require a POSIX shell")
+	}
+	for _, test := range []struct {
+		name      string
+		selected  string
+		docker    string
+		podman    bool
+		want      string
+		wantError string
+	}{
+		{name: "prefers docker", docker: "usable", podman: true, want: "docker"},
+		{name: "docker missing", podman: true, want: "podman"},
+		{name: "docker unusable", docker: "unusable", podman: true, want: "podman"},
+		{name: "neither installed", wantError: "no usable local container engine"},
+		{name: "explicit docker missing", selected: "docker", podman: true, wantError: "docker is not usable"},
+		{name: "explicit docker unusable", selected: "docker", docker: "unusable", podman: true, wantError: "docker is not usable"},
+		{name: "explicit podman", selected: "podman", docker: "usable", podman: true, want: "podman"},
+		{name: "explicit podman missing", selected: "podman", docker: "usable", wantError: "podman is not usable"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			directory := t.TempDir()
+			t.Setenv("PATH", directory)
+			for _, name := range []string{"DOCKER_HOST", "DOCKER_CONTEXT", "CONTAINER_HOST", "CONTAINER_CONNECTION"} {
+				t.Setenv(name, "")
+			}
+			calls := filepath.Join(directory, "calls")
+			t.Setenv("CAO_TEST_ENGINE_CALLS", calls)
+			for _, name := range []string{"docker", "podman"} {
+				if (name == "docker" && test.docker == "") || (name == "podman" && !test.podman) {
+					continue
+				}
+				script := "#!/bin/sh\nprintf '%s\\n' \"" + name + "\" >> \"$CAO_TEST_ENGINE_CALLS\"\n"
+				if name == "docker" && test.docker == "unusable" {
+					script += "exit 1\n"
+				} else {
+					script += "case \"$1\" in\ncontext) printf '\"unix:///var/run/docker.sock\"';;\nsystem) printf '[]';;\ninfo) printf 'linux';;\n*) exit 1;;\nesac\n"
+				}
+				if err := os.WriteFile(filepath.Join(directory, name), []byte(script), 0o700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			engine, err := selectDashboardEngine(t.Context(), test.selected)
+			if test.wantError != "" {
+				if err == nil || !strings.Contains(err.Error(), test.wantError) {
+					t.Fatalf("got %v, want %q", err, test.wantError)
+				}
+			} else if err != nil || engine.name != test.want {
+				t.Fatalf("got %q %v, want %q", engine.name, err, test.want)
+			}
+			content, err := os.ReadFile(calls)
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				t.Fatal(err)
+			}
+			for _, called := range strings.Fields(string(content)) {
+				if (test.selected != "" && called != test.selected) || (test.want == "docker" && called != "docker") {
+					t.Fatalf("unexpected engine %q was probed", called)
+				}
+			}
+		})
+	}
+}
 
 func TestDashboardPostgresOwnedContainerLifecycle(t *testing.T) {
 	for _, provider := range []string{"docker", "podman"} {

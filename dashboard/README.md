@@ -88,8 +88,8 @@ URLs must end in `/payload-hashes.json`, not a site root. Synthetic manifests,
 missing canonical checksums and invalid inputs fail closed.
 Use `--listen 127.0.0.1:8443`, `--postgres-url URL`, or `--site PATH` to override the
 listener, connection, or built site. Paths resolve from the `server/` module.
-For managed local setup, use `gh cao dashboard`: Docker (default) or Podman
-(`--container-engine podman`) is selected,
+For managed local setup, use `gh cao dashboard`: Docker then Podman is tried
+(use `--container-engine` or `CAO_CONTAINER_ENGINE` to select one exclusively),
 PostgreSQL is started and provisioned, and data is bind-mounted under the ignored
 `.github/cao/dashboard/<scope>/postgres/` cache. Explicit connections bypass setup.
 Open the access URL printed by Go. Artifact acquisition is separate from

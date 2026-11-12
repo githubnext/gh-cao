@@ -45,9 +45,9 @@ func dashboardCommand(version string, gh ghExecutor, logs dashboardLogsCollector
 No CAO configuration, repository enrollment, Actions installation, Node.js,
 or source checkout is required by release binaries. Unless --postgres-url or
 CAO_POSTGRES_URL is supplied, a local PostgreSQL container is pulled, started
-and provisioned automatically with Docker. Pass --container-engine podman (or
-set CAO_CONTAINER_ENGINE=podman) to use Podman instead; there is no automatic
-fallback. Data stays in the ignored local dashboard cache.
+and provisioned automatically using Docker or Podman (Docker is tried first).
+Pass --container-engine docker|podman (or set CAO_CONTAINER_ENGINE) to use only
+that engine. Data stays in the ignored local dashboard cache.
 GitHub CLI authentication is required for collection. The pinned gh-aw log
 collector is embedded; no separate gh-aw installation is needed. Existing
 gh-aw artifact caches are reused. The evidence window defaults to seven days;
@@ -67,7 +67,7 @@ Collection never changes policy, workflows, or remote repository state.`,
 	cmd.Flags().StringVar(&options.server, "server-executable", "", "Explicit existing cao-dashboard binary for source development")
 	cmd.Flags().StringVar(&options.site, "site", "", "Explicit built dashboard site for source development")
 	cmd.Flags().StringVar(&options.postgresURL, "postgres-url", "", "PostgreSQL connection URL (or CAO_POSTGRES_URL)")
-	cmd.Flags().StringVar(&options.containerEngine, "container-engine", dashboardDefaultContainerEngine, "Container engine for managed PostgreSQL: docker or podman (or CAO_CONTAINER_ENGINE)")
+	cmd.Flags().StringVar(&options.containerEngine, "container-engine", "", "Container engine for managed PostgreSQL: docker or podman (or CAO_CONTAINER_ENGINE; otherwise auto-detect)")
 	_ = cmd.RegisterFlagCompletionFunc("container-engine", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{"docker", "podman"}, cobra.ShellCompDirectiveNoFileComp
 	})

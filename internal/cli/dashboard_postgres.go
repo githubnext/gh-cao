@@ -147,13 +147,11 @@ func (engine dashboardEngine) verifyLocal(ctx context.Context) error {
 	return nil
 }
 
-const dashboardDefaultContainerEngine = "docker"
-
 func validDashboardContainerEngine(name string) bool {
 	return name == "docker" || name == "podman"
 }
 
-// resolveDashboardContainerEngine applies flag > CAO_CONTAINER_ENGINE > docker.
+// resolveDashboardContainerEngine applies flag > CAO_CONTAINER_ENGINE > automatic selection.
 func resolveDashboardContainerEngine(flag string, changed bool) (string, error) {
 	if changed {
 		if !validDashboardContainerEngine(flag) {
@@ -167,27 +165,38 @@ func resolveDashboardContainerEngine(flag string, changed bool) (string, error) 
 		}
 		return selected, nil
 	}
-	return dashboardDefaultContainerEngine, nil
+	return "", nil
 }
 
 func selectDashboardEngine(ctx context.Context, name string) (dashboardEngine, error) {
-	if !validDashboardContainerEngine(name) {
+	if name != "" && !validDashboardContainerEngine(name) {
 		return dashboardEngine{}, errors.New("container engine must be docker or podman")
 	}
-	engine, err := newDashboardEngine(name)
-	if err == nil {
-		probe, cancel := context.WithTimeout(ctx, 10*time.Second)
-		err = engine.verifyLocal(probe)
-		cancel()
+	names := []string{"docker", "podman"}
+	if name != "" {
+		names = []string{name}
 	}
-	if err != nil {
+	var failures []error
+	for _, candidate := range names {
+		engine, err := newDashboardEngine(candidate)
+		if err == nil {
+			probe, cancel := context.WithTimeout(ctx, 10*time.Second)
+			err = engine.verifyLocal(probe)
+			cancel()
+		}
+		if err == nil {
+			return engine, nil
+		}
+		failures = append(failures, err)
+	}
+	if name != "" {
 		alternative := "podman"
 		if name == "podman" {
 			alternative = "docker"
 		}
-		return dashboardEngine{}, fmt.Errorf("%s is not usable for managed PostgreSQL; start it, pass --container-engine %s, or supply --postgres-url: %w", name, alternative, err)
+		return dashboardEngine{}, fmt.Errorf("%s is not usable for managed PostgreSQL; start it, pass --container-engine %s, or supply --postgres-url: %w", name, alternative, errors.Join(failures...))
 	}
-	return engine, nil
+	return dashboardEngine{}, fmt.Errorf("no usable local container engine; start Docker/Podman or supply --postgres-url: %w", errors.Join(failures...))
 }
 
 func dashboardPostgresSecret() (string, error) {
