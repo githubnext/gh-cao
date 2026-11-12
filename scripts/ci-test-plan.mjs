@@ -6,6 +6,51 @@ import { unitTestAreas } from "./run-unit-area.mjs";
 
 const areas = Object.keys(unitTestAreas);
 
+export const goTestAreas = ["http", "hosted-cli", "storage", "core"];
+
+export function goTestArea(file) {
+  if (/^server\/internal\/server\/[^/]+$/.test(file)) return "http";
+  if (/^server\/internal\/hostedcli\/[^/]+$/.test(file)) return "hosted-cli";
+  if (/^server\/internal\/postgresx\/[^/]+$/.test(file)) return "storage";
+  return "core";
+}
+
+export function goTestPlan(files, full = false) {
+  let lint = full || files.length === 0;
+  let query = lint;
+  let integration = lint;
+  const selected = new Set(lint ? goTestAreas : []);
+  for (const file of files) {
+    if (/^server\/.*_test\.go$/.test(file)) {
+      lint = true;
+      selected.add(goTestArea(file));
+      integration ||= /^server\/(internal\/(simulator|admission|webhookgateway)|cmd\/cao-webhook-gateway)\//.test(file);
+    } else if (/^(server\/|internal\/cli\/|go\.(mod|sum)$)/.test(file)) {
+      goTestAreas.forEach((area) => selected.add(area));
+      lint = true;
+      integration = true;
+    } else if (file.startsWith("dashboard/site/")) {
+      // Native tests read dashboard documents, query fixtures, and JS parity oracles.
+      goTestAreas.forEach((area) => selected.add(area));
+      query = true;
+      integration = true;
+    } else {
+      // Shared query code, CI configuration, and unclassified inputs widen coverage.
+      goTestAreas.forEach((area) => selected.add(area));
+      lint = true;
+      query = true;
+      integration = true;
+    }
+  }
+  return {
+    matrix: { area: goTestAreas.filter((area) => selected.has(area)) },
+    tests: selected.size > 0,
+    lint,
+    query,
+    integration,
+  };
+}
+
 export function testPlan(files, full = false) {
   const selected = new Set(full || files.length === 0 ? areas : []);
   for (const file of files) {
@@ -53,7 +98,8 @@ export function changedFiles(base, head) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const full = ["schedule", "workflow_dispatch"].includes(process.env.GITHUB_EVENT_NAME);
   const files = full ? null : changedFiles(process.env.BASE_SHA, process.env.HEAD_SHA);
-  const plan = testPlan(files ?? [], full || files === null);
+  const planner = process.argv.includes("--go") ? goTestPlan : testPlan;
+  const plan = planner(files ?? [], full || files === null);
   const outputs = Object.entries(plan).map(([key, value]) =>
     `${key}=${typeof value === "object" ? JSON.stringify(value) : value}`).join("\n") + "\n";
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, outputs);

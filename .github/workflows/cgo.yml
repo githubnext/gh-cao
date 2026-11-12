@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - .github/workflows/cgo.yml
+      - .golangci.yml
+      - scripts/ci-test-plan.mjs
+      - scripts/run-unit-area.mjs
+      - tests/unit/cao-go-ci-plan.test.mjs
       - internal/dashboardquery/**
       - internal/cli/**
       - go.mod
@@ -33,6 +37,10 @@ on:
     branches: [main]
     paths:
       - .github/workflows/cgo.yml
+      - .golangci.yml
+      - scripts/ci-test-plan.mjs
+      - scripts/run-unit-area.mjs
+      - tests/unit/cao-go-ci-plan.test.mjs
       - internal/dashboardquery/**
       - internal/cli/**
       - go.mod
@@ -73,6 +81,30 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Select affected Go checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      tests: ${{ steps.plan.outputs.tests }}
+      lint: ${{ steps.plan.outputs.lint }}
+      query: ${{ steps.plan.outputs.query }}
+      integration: ${{ steps.plan.outputs.integration }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/ci-test-plan.mjs --go
+
   daily-run-counts-conformance:
     name: Daily run-count conformance
     # Full cross-backend and TLC checks run after merge or on explicit invocation.
@@ -160,7 +192,37 @@ jobs:
           -run '^TestEvidenceLock' -count=1 -timeout=1m -v
 
   server-quality:
-    name: Go format, lint, and tests
+    name: Go format and lint
+    needs: changes
+    if: needs.changes.outputs.lint == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version: 1.27.3
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+      - name: Check formatting
+        working-directory: server
+        run: golangci-lint fmt --diff
+      - name: Lint
+        working-directory: server
+        run: golangci-lint run ./...
+
+  server-tests:
+    name: Go unit tests (${{ matrix.area }})
+    needs: changes
+    if: needs.changes.outputs.tests == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -186,34 +248,102 @@ jobs:
           cache-dependency-path: |
             server/go.sum
             internal/dashboardquery/go.sum
-      - name: Install golangci-lint
-        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
-      - name: Check formatting
-        working-directory: server
-        run: golangci-lint fmt --diff
-      - name: Lint
-        working-directory: server
-        run: golangci-lint run ./...
       - name: Unit tests
         env:
+          GO_TEST_AREA: ${{ matrix.area }}
           GO_TEST_MODE: ${{ github.event_name == 'pull_request' && '-short' || '-count=1' }}
           POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_server_test?sslmode=disable
           CAO_TEST_POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_server_test?sslmode=disable
-        run: go -C server test -p 1 "$GO_TEST_MODE" ./...
+        run: |
+          set -euo pipefail
+          case "$GO_TEST_AREA" in
+            http) packages=(./internal/server) ;;
+            hosted-cli) packages=(./internal/hostedcli) ;;
+            storage) packages=(./internal/postgresx) ;;
+            core)
+              all_packages="$(go -C server list ./...)"
+              mapfile -t packages < <(printf '%s\n' "$all_packages" | grep -vE '/internal/(server|hostedcli|postgresx)$')
+              ;;
+            *) echo "Unknown Go test area: $GO_TEST_AREA" >&2; exit 1 ;;
+          esac
+          test "${#packages[@]}" -gt 0
+          go -C server test -p 1 "$GO_TEST_MODE" "${packages[@]}"
+
+  server-integration:
+    name: Local Actions, OIDC, admission, and webhook gateway integration
+    needs: changes
+    if: github.event_name != 'pull_request' && needs.changes.outputs.integration == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: cao_server_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cao_server_test"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version: 1.27.3
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
       - name: Local Actions, OIDC, admission, and webhook gateway integration
-        if: github.event_name != 'pull_request'
         env:
           POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_server_test?sslmode=disable
         run: >-
           go -C server test -race ./internal/simulator ./internal/admission
           ./internal/webhookgateway ./cmd/cao-webhook-gateway
           -run '^(TestLocalActions|TestSpecLocalHost|TestGatewayAPI|TestIssueServiceSimulator($|HTTP|GatewayPostgres)|TestGitHubSimulator(Gateway|Discovery)Postgres)' -count=1 -timeout=2m -v
+
+  shared-query:
+    name: Shared local query engine
+    needs: changes
+    if: needs.changes.outputs.query == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version: 1.27.3
+          cache-dependency-path: internal/dashboardquery/go.sum
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
       - name: Check shared local query engine
         working-directory: internal/dashboardquery
         run: |
           golangci-lint fmt --diff
           golangci-lint run ./...
           go test ./...
+
+  server-checks:
+    name: Go format, lint, and tests
+    needs: [changes, server-quality, server-tests, server-integration, shared-query]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require successful selected Go checks
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          jq -e '.changes.result == "success" and all(.[]; .result == "success" or .result == "skipped")' <<< "$RESULTS"
 
   actions-simulator-postgres:
     name: Local Actions and webhook PostgreSQL integration
