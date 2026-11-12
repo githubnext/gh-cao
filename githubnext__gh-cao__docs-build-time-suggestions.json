@@ -1,35 +1,7 @@
 {
   "source_sha": "a5dfc3677ef56c2b0a22ef712d69c29556d95e3b",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T04:52:56Z",
-      "worker_run_id": "43157187994",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886,
-        43085139761,
-        43083249533,
-        43081415171,
-        43080844329
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z; within 14 days; 0 cancelled, none in progress) = 8 current-design push publications (d57c4c821..62f179a2; docs.yml unchanged since d57c4c821 per commit history; n=8 meets the minimum), 2 pre-design full publications (43083249533 schedule, 43081415171 push; excluded), 3 freshness-only schedules, 6 failed pre-design schedules (retired Mount latest CAO Dashboard step; excluded and disclosed), 1 skipped workflow_run callback. Current-design Build synthetic enterprise demo step (npm run dashboard:pages:build plus cp to dist/cao): median 3 s, p90 4 s, range 2-4 s, about 3.4% of median run wall 89.5 s (p90 112 s); full elimination cannot reach the 60 s or 15 percent (about 13.4 s) gate. Build job median 72.5 s is dominated by Install dependencies 20.5 s (dashboard-site npm ci sits inside that same combined step and is not separately timed; dependency category already found no qualifying change), Checkout 24 s, and docs build 13.5 s. Current docs.yml has no operational snapshot or dashboard cache input; open issue 20380 (cache prepared dashboard inputs for unchanged activity snapshots) targets a retired input path and is not supported by this window. Evidence from Actions jobs/step metadata only; no logs read. Source 9537899 is 2 commits after 62f179a2; neither changes docs-trigger paths. No suggestion; next_category advanced to artifact transfer and Pages packaging."
-    },
     {
       "evaluated_at": "2026-11-12T05:20:03Z",
       "worker_run_id": "43160128413",
@@ -767,6 +739,35 @@
         43104481579
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:36:04Z to 2026-11-12T14:19:54Z; all within 14 days; 1 cancelled excluded: 43206161686; 0 failed). Comparable sample n=19 successful full build+deploy publications (18 push, 1 schedule 43161224542; docs.yml job and step structure unchanged since d57c4c82; source a5dfc367). Medians (p90), n=19: created-to-updated wall 89 s (157 s); queue to build start 4 s (30 s); build job 70 s (104 s); build-end to deploy-start 6 s; deploy job 11 s (18 s). Build steps: Checkout 24 s (47 s); Install dependencies 17 s (25 s); Build documentation 14 s (15 s); demo 3 s; Upload 2 s; Deploy Pages step 7 s. No separate dashboard job exists; dashboard work is the build job step Build synthetic enterprise demo. Astro category: the docs step is about 16 percent of median wall, but it cannot be removed (generated docs are required for publication) and its internal astro build versus validate-agent-docs versus node --test split is not visible; job logs return 403 difc_forbidden (re-verified). Checkout lead, not a suggestion: fetch-depth 0 fetches all history for all branches and tags per the actions/checkout README; repo has 1,257 branches, 63 tags, 1.45 GB. Docs provenance (resource.ts resolveBuildProvenance git log -1 <sha> -- file; validate-agent-docs git ls-files and rev-parse; agent-docs-discovery test) needs only history reachable from HEAD, so a HEAD-ancestry fetch could preserve sourceCommittedAt, but the saving is unmeasured and must reach about 13 s of a 24 s median checkout. Cache: node-cache-Linux-x64-npm keys exist on main; hit or miss not log-verified and last_accessed_at is shared across workflows. Open issue 20380 targets a retired input path; no duplicate created. next_category advanced to reusable dashboard generation."
+    },
+    {
+      "evaluated_at": "2026-11-12T14:55:17Z",
+      "worker_run_id": "43241124962",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:36:04Z to 2026-11-12T14:19:54Z; 0 in progress). Sample n=19 successful (18 push, 1 schedule 43161224542; source d57c4c821..a5dfc36, docs.yml last changed d57c4c821 per git log). Excluded: 43206161686 cancelled after 43206235849 was queued (likely pending-run replacement). No dashboard job exists (build and deploy only). Category step Build synthetic enterprise demo (npm run dashboard:pages:build = normalization + esbuild dashboard build + synthetic sample write, then cp to dist/cao): median 3 s, p90 4 s, range 2-4 s = 3.4% of workflow median wall 89 s (p90 157 s), 4.3% of build median 70 s; full removal cannot reach 60 s or 15% (13.4 s). Caching its output conflicts with the daily synthetic-date refresh (Date.now in simulate-dashboard-pages.mjs). Open #20380 premise targets cao-dashboard.yml, absent from workflows; not supported. Logs HTTP 403 re-verified; cache hit/miss unverified (setup-node npm cache only; no actions/cache in docs.yml). Carry-forward lead for scheduling category: concurrency waits 27-43 s (43206235849, 43228124764) and overlapping publications 13:31-13:32Z, unlike prior windows. No suggestion; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     }
   ]
 }
