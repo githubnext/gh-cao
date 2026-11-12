@@ -15,13 +15,33 @@ ready. It operates from a control repository across explicitly enrolled
 repositories. CAO does not replace repository permissions, branch protection,
 or human review.
 
-## Start safely
+## Open a local dashboard
 
-Install the extension:
+Use your locally authenticated [GitHub CLI](https://cli.github.com) to install
+the release extension and inspect a repository:
 
 ```bash
+gh auth status
 gh extension install githubnext/gh-cao
+gh cao dashboard --repo OWNER/REPOSITORY
 ```
+
+No CAO cloud deployment, Azure setup, hosted dashboard, PostgreSQL, Redis,
+containers, or separate Node.js or gh-aw installation is required. From an
+existing repository checkout, use `gh cao dashboard` without `--repo`.
+No `gh cao setup` or control-repository configuration is needed.
+
+Open the **Dashboard:** URL printed in the terminal. The bundled Go server
+serves on loopback and queries canonical SQLite cached on your machine.
+Collection uses your GitHub CLI identity to read GitHub evidence and refreshes
+automatically every five minutes: **no cloud deployment does not mean offline**.
+The recent evidence window and session lifetime default to, and cannot exceed,
+48 hours; collection is bounded, not a complete historical backfill.
+Press **Ctrl-C** to stop serving and collection while retaining the cache.
+See the [local dashboard quickstart](docs/setup-quickstarts.md#open-a-local-dashboard-no-deployment)
+for scope, cache reuse, and evidence limits.
+
+## Set up shared monitoring when ready
 
 Git and authenticated GitHub CLI 2.68+ are required. Need a repository?
 Create one with `gh repo create OWNER/REPOSITORY --private --clone`, then
