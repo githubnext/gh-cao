@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { startCanvasServer } from "../../dashboard/canvas-server.mjs";
+import { startCanvasServer } from "../helpers/canvas-snapshot.mjs";
 import { writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
 import { maximumCliActionInputCharacters, maximumCliActionRequestBytes } from "../../dashboard/cli-action-contract.mjs";
 import { executeDashboardCommand } from "../../dashboard/cli-actions.mjs";
@@ -37,7 +37,7 @@ async function fixture(options) {
       workingDirectory: root, siteRoot: root, catalogRoot: null, port: 0,
       cliQueueAdmission: async () => ({ concurrency: 4 }),
       output: () => {}, requestOutput: () => {}, traceOutput: () => {},
-      downloadData: async (destination) => { await writeCanvasSnapshot(destination); },
+      prepareSnapshot: async (destination) => { await writeCanvasSnapshot(destination); },
       ...options,
     });
     const base = new URL(`${preview.url}/`);

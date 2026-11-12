@@ -93,7 +93,6 @@ func TestCAOBootstrapIntegration(t *testing.T) {
 	consumer := filepath.Join(workspace, "control")
 	bootstrapAssertRepository(t, api, true)
 	for _, name := range []string{
-		".github/workflows/cao-activity.yml", ".github/workflows/cao-dashboard.yml",
 		".github/workflows/cao-validate.yml", ".github/workflows/shared/control.mjs",
 		".github/actions/setup-cao-runtime/action.yml", "activity/cao.mjs", ".github/workflows/shared/materialize-cao.mjs",
 	} {
@@ -141,7 +140,7 @@ func TestCAOBootstrapIntegration(t *testing.T) {
 	if strings.TrimSpace(published) != strings.TrimSpace(string(configured)) {
 		t.Fatal("published control-plane policy differs from verified local policy")
 	}
-	for _, workflow := range []string{"cao-activity.yml", "cao-dashboard.yml", "cao-validate.yml"} {
+	for _, workflow := range []string{"cao-validate.yml"} {
 		bootstrapRun(t, ctx, root, environment, "git", "--git-dir="+remote, "show", "main:.github/workflows/"+workflow)
 	}
 	cloned := filepath.Join(root, "verified-clone")

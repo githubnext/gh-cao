@@ -5,7 +5,6 @@ on:
   pull_request:
     paths:
       - .github/workflows/actions-runtime.yml
-      - .github/workflows/cao-activity.yml
       - .github/actions/setup-cao-runtime/**
       - .github/workflows/shared/**
       - activity/**
@@ -20,7 +19,6 @@ on:
     branches: [main]
     paths:
       - .github/workflows/actions-runtime.yml
-      - .github/workflows/cao-activity.yml
       - .github/actions/setup-cao-runtime/**
       - .github/workflows/shared/**
       - activity/**

@@ -222,7 +222,7 @@ test("CAO materialization preserves canonical production paths without installin
     assert.ok(existsSync(path.join(destination, ".github", "actions", "setup-cao-runtime", "action.yml")));
     assert.ok(existsSync(path.join(destination, ".github", "actions", "setup-gh-aw", "action.yml")));
     assert.ok(existsSync(path.join(destination, ".github", "cao", "instructions.md")));
-    assert.ok(existsSync(path.join(destination, ".github", "workflows", "shared", "activity-cache.md")));
+    assert.equal(existsSync(path.join(destination, ".github", "workflows", "shared", "activity-cache.md")), false);
     assert.ok(existsSync(path.join(destination, ".github", "workflows", "shared", "control.md")));
     assert.ok(existsSync(path.join(destination, ".github", "workflows", "shared", "review-bundle.md")));
     assert.equal(existsSync(path.join(destination, "cao.sh")), false);
@@ -392,7 +392,6 @@ test("root materialization preserves exact focused package revisions", () => {
           ".github/actions/setup-cao-runtime",
           ".github/actions/setup-gh-aw",
           ".github/cao/instructions.md",
-          ".github/workflows/shared/activity-cache.md",
           ".github/workflows/shared/control.md",
           ".github/workflows/shared/operation.md",
           ".github/workflows/shared/review-bundle.md",

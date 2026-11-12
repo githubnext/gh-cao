@@ -35,13 +35,13 @@ For shell or MCP analysis without a canvas, see [Agent analysis](agent-analysis.
 In Copilot CLI, open the **Central Agentic Ops** canvas for the current
 repository or an explicit `OWNER/REPOSITORY`. You need:
 
-- GitHub CLI authentication with Actions read access to that repository.
-- A current `cao-activity-index` artifact from a successful default-branch
-  `cao-activity.yml` run, including `payload-hashes.json` and `gh-aw-logs.sqlite`.
+- A prepared operational snapshot in the workspace's `.cao/` directory,
+  including `payload-hashes.json` and `gh-aw-logs.sqlite`.
+- GitHub CLI authentication for optional bounded GitHub reads.
 - Go compatible with the bundled server module, or `CAO_DASHBOARD_EXECUTABLE`
   set to an absolute path to a compatible `cao-dashboard` binary.
 
-The canvas downloads and checksum-verifies the snapshot, then starts the shared
+The canvas reads and checksum-verifies the prepared snapshot, then starts the shared
 Go server on loopback. Go serves assets, declarative queries, pagination,
 diagnostics, repository memory, and revision subscriptions behind one capability
 URL. Missing, corrupt, or unsupported snapshots stop startup. There is no canvas

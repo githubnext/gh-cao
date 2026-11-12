@@ -33,12 +33,12 @@ list of pages or queries:
 The installed Node `cao` runtime provides supported evidence APIs for workflow
 agents. These are production interfaces, not deprecated duplicates or test-only
 parity implementations of the operator CLI. Invoke them directly from the
-control-repository runtime root. Cache-backed workers reuse the snapshot
-prepared by `shared/activity-cache.md`, passing its database explicitly; they
-must not download a second snapshot or fall back to the public demo:
+control-repository runtime root. Pass an explicitly prepared operational
+snapshot with `--database`; no shared Activity cache is restored. Missing
+operational evidence remains unavailable, with no public-demo fallback:
 
 ```bash
-db="$RUNNER_TEMP/cao-activity/gh-aw-logs.sqlite"
+db=".cao/gh-aw-logs.sqlite"
 node activity/cao.mjs queries --json
 node activity/cao.mjs query-info campaign-runs --json
 node activity/cao.mjs prompt campaign-runs

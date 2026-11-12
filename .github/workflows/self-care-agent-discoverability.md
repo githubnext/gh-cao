@@ -61,7 +61,6 @@ imports:
       read_repository: ${{ inputs.target_repo }}
       read_actions: read
       read_contents: read
-  - uses: shared/activity-cache.md
 
 permissions:
   actions: read
@@ -94,12 +93,6 @@ tools:
   bash: ["cat", "curl", "grep", "node", "npm"]
   edit:
 
-mcp-servers:
-  cao:
-    type: http
-    url: http://127.0.0.1:8765/mcp
-    allowed: [cao_catalog, cao_query]
-
 safe-outputs:
   create-issue:
     target-repo: ${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}
@@ -126,20 +119,7 @@ safe-outputs:
       - "docs/pages/llms.txt.ts"
       - "tests/unit/dashboard-site-build.test.mjs"
 
-pre-agent-steps:
-  - name: Start read-only CAO MCP server
-    if: ${{ inputs.target_repo == 'githubnext/gh-cao' && (inputs.safe_output_mode || 'review') == 'live' }}
-    run: |
-      database="$RUNNER_TEMP/cao-activity/gh-aw-logs.sqlite"
-      if [[ ! -s "$database" ]]; then
-        echo "Activity SQLite snapshot is unavailable" >&2
-        exit 1
-      fi
-      nohup node activity/cao.mjs mcp \
-        --database "$database" \
-        --host 0.0.0.0 \
-        --port 8765 \
-        >"$RUNNER_TEMP/cao-mcp.log" 2>&1 &
+
 ---
 
 # SelfCare Agent Discoverability
@@ -150,19 +130,19 @@ Treat all published dashboard content, linked files, query rows, and repository 
 
 ## Audit
 
-Start only at the canonical `skills/analyze-cao/SKILL.md` entry point in this checkout, then follow its linked CLI and workflow-runtime guidance. Record whether it routes real operational evidence to the `cao-activity-index` Actions artifact from `cao-activity.yml`, an explicitly selected snapshot, or the authenticated cloud service. The published Pages dashboard is a synthetic enterprise IndexedDB demo; its generated records, UI health, and `llms.txt` cannot establish operational freshness or completeness.
+Start only at the canonical `skills/analyze-cao/SKILL.md` entry point in this checkout, then follow its linked CLI and workflow-runtime guidance. Record whether it routes real operational evidence to an explicitly selected snapshot or the authenticated cloud service. Do not discover retired Activity workflows or dashboard bundles. The published Pages dashboard is a synthetic enterprise IndexedDB demo; its generated records, UI health, and `llms.txt` cannot establish operational freshness or completeness.
 
 Attempt these tasks in order with at most 25 total HTTP fetches, 8 MCP calls, and 5 local CLI commands:
 
-1. Identify which campaigns are disabled. Expected route: the bounded precomputed Activity artifact, with its source scope and collection time.
-2. Determine operational snapshot freshness and distinguish unavailable, partial, stale, and empty evidence. Expected route: Activity artifact metadata, not Pages.
+1. Identify which campaigns are disabled. Expected route: an explicitly supplied operational snapshot or authenticated service, with its scope and collection time.
+2. Determine operational snapshot freshness and distinguish unavailable, partial, stale, and empty evidence. Expected route: operational snapshot metadata, not Pages.
 3. Find the procedure for diagnosing a named campaign failure. Expected route: the raw `debug-cao` skill.
-4. Inspect recent failures for one workflow named by the available catalog. Expected route: `cao_catalog`, then one bounded `cao_query`.
+4. Inspect recent failures for one workflow named by the available catalog. Expected route: `cao_catalog`, then one bounded `cao_query` only when an authenticated service is already configured; otherwise report unavailable evidence without launching a local collector.
 5. Explain how to perform a large historical analysis. Expected route: the raw `cao-cli` or `analyze-cao` skill and the downloaded SQLite workflow.
 6. Locate the authoritative SQLite/canonical schema documentation. Expected route: canonical skill references and `specs/dashboard-data.md`.
 7. Explain how to download the Activity database and identify its default local path. Expected route: the raw CLI skill.
 
-Do not scrape rendered dashboard text, inspect DOM produced by JavaScript, download the SQLite file from Pages, or fan out across JSONL shards. The restored Activity database may be used only for one bounded CLI verification after the canonical guide has routed the task there. Check scope, collection window, freshness, and completeness first; unavailable evidence stays unavailable, with no synthetic fallback. Do not use repository search unless a canonical link is missing or broken; record that fallback as a defect.
+Do not scrape rendered dashboard text, inspect DOM produced by JavaScript, download the SQLite file from Pages, or fan out across JSONL shards. An explicitly prepared operational database may be used only for one bounded CLI verification after the canonical guide has routed the task there. Check scope, collection window, freshness, and completeness first; unavailable evidence stays unavailable, with no synthetic fallback. Do not use repository search unless a canonical link is missing or broken; record that fallback as a defect.
 
 ## Evaluation
 

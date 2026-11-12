@@ -90,7 +90,7 @@ test("frequent synthetic UI checks stay separate from daily operational benchmar
   assert.doesNotMatch(JSON.stringify(deployed.jobs.integration),
     /test:performance:dashboard-quer|dashboard:data:download|cao-activity-index|DASHBOARD_DATA_URL/);
   assert.equal(deployed.jobs["query-performance"], undefined);
-  assert.equal(deployed.jobs["query-cost"].if, "github.event_name != 'schedule' || inputs.full == true");
+  assert.equal(deployed.jobs["query-cost"].if, "inputs.full == true || (github.event_name != 'schedule' && vars.CAO_DASHBOARD_DATA_URL != '')");
   assert.equal(deployed.on.workflow_call.inputs.full.default, false);
   assert.deepEqual(load("ci-daily.yml").jobs.deployed.with, { full: true });
 });

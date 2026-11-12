@@ -1,7 +1,0 @@
-name: CAO Dashboard
-icon: ":graph:"
-description: Root-package component that prepares canonical dashboard artifacts for cloud production and local development; not a standalone installation entry point.
-min-version: v1.2.2
-experimental: true
-includes:
-  - .github/workflows/cao-dashboard.yml

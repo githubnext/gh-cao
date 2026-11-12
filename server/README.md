@@ -3106,10 +3106,10 @@ alternatives, not layers, because a canonical database has one writer.
 
 | | Published snapshots (default) | Server collection (optional) |
 |---|---|---|
-| Evidence acquired by | `cao-activity.yml` in GitHub Actions | the server's collection workers |
+| Evidence acquired by | explicitly acquired operational snapshots | the server's collection workers |
 | Server configuration | `CAO_SOURCE_DIRECTORY` | `CAO_COLLECT_APP_ID` and the other `CAO_COLLECT_*` settings |
-| GitHub credentials | held by the workflow | a GitHub App held by the deployment |
-| Event source | workflow schedule | webhook deliveries |
+| GitHub credentials | held by the explicit acquisition process | a GitHub App held by the deployment |
+| Event source | explicit snapshot acquisition | webhook deliveries |
 | Deployment | Function App only | Function App plus Container Apps workers |
 
 The default profile is unchanged: with only `CAO_SOURCE_DIRECTORY` configured

@@ -21,7 +21,6 @@ test("unknown commands reject before filesystem, database, or stdin activity", (
 
 test("preserves CAO public exports from their focused implementation modules", async () => {
   const exportsByModule = {
-    "cli/activity-stats": ["activityWorkflowStats"],
     "cli/dashboard": ["discoverWorkflows", "pruneDashboardFile", "analyzeDashboardComplexityFile"],
     "cli/download": ["downloadDeployedDashboardData"],
     "cli/ingestion": ["ingestGhAwLogDirectory"],
