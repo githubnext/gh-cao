@@ -1,4 +1,4 @@
-import { parseVersion, updateState } from "../activity/version.mjs";
+import { parseVersion, updateState } from "./lib/version.mjs";
 import { repositoryCoordinateId, workflowSourcePath } from "./site/src/data/model/ids.js";
 
 function compilerVersionKey(repositoryId, path) {

@@ -26,6 +26,22 @@ func parseCanvasConfig(content []byte) (*server.LocalCanvasConfig, error) {
 	if err := json.Unmarshal(content, &config); err != nil {
 		return nil, errors.New("invalid local canvas configuration")
 	}
+
 	commandLog.Printf("loaded local canvas configuration: memory_directory=%t", config.MemoryDirectory != "")
+	return &config, nil
+}
+
+func readOperatorConfig(path string) (*server.LocalOperatorConfig, error) {
+	if path == "" {
+		return nil, nil //nolint:nilnil // An omitted adapter configuration disables native maintenance.
+	}
+	content, err := os.ReadFile(path) // #nosec G304 -- explicitly selected private native adapter configuration.
+	if err != nil {
+		return nil, errors.New("read native operator configuration")
+	}
+	var config server.LocalOperatorConfig
+	if err := json.Unmarshal(content, &config); err != nil {
+		return nil, errors.New("invalid native operator configuration")
+	}
 	return &config, nil
 }

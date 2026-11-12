@@ -24,15 +24,15 @@ must resolve to its canonical name and visibility before setup proceeds.
 | Private | Private/internal, or a mix with public | Approved private organization Apps, or permitted owner-scoped PATs | Approved enterprise Apps within one enterprise, or separate permitted PATs per owner |
 | Internal (where available) | Private/internal | Interactive setup with Apps or PATs | Same credential boundaries; internal visibility is not public visibility |
 
-Private/internal controls do **not** guarantee restricted Pages access. Check the
-actual site access and Actions/environment policies. Decline public Pages for
-non-public evidence. Repository contents, logs, review outputs, and published
-dashboard evidence each need suitable access controls.
+Setup does not configure Pages or request public-publication consent.
+Repository contents, logs, review outputs, and operational artifacts each need
+suitable access controls. Production dashboards use same-origin Go/PostgreSQL;
+local analysis uses real SQLite snapshots. Pages is a synthetic-only demo.
 
 Interactive `OWNER/*` expands accessible repositories and saves exact names.
 For a public control, any non-public match fails setup. The unattended
 `gh cao setup --repository 'OWNER/*'` shortcut instead selects **currently public**
-matches only, accepts public Pages, never commits/pushes, and requires a public
+matches only, leaves Pages untouched, never commits/pushes, and requires a public
 control. It cannot configure a private/internal control or credentials. A failed
 lookup is never evidence that a repository is public.
 
@@ -54,8 +54,8 @@ permissions, credential restrictions, and organization/enterprise policy.
 | --- | --- |
 | Enterprise owner or delegated enterprise administrator | Access to the designated organization-owned control repository, plus the required repository settings and publication permissions. Enterprise administration alone is not a repository grant, App installation, or private key. |
 | Organization owner or delegated organization administrator | Rights in each selected organization; authority in one organization does not carry into another. App creation, installation approval, repository selection, and key access are separate capabilities. |
-| Repository administrator | Pages configuration, required Actions variables/secrets, approved target access, and permitted Git publication. May extend an already-approved App installation only where GitHub and organization policy allow. |
-| Regular user with repository write access | Can contribute through the normal protected-branch/PR process, but write access alone does not guarantee Pages administration, Actions-secret management, App installation, or access to private targets. Ask an authorized administrator for those steps. |
+| Repository administrator | Required Actions variables/secrets, approved target access, and permitted Git publication. May extend an already-approved App installation only where GitHub and organization policy allow. |
+| Regular user with repository write access | Can contribute through the normal protected-branch/PR process, but write access alone does not guarantee Actions-secret management, App installation, or access to private targets. Ask an authorized administrator for those steps. |
 | Operator with only PATs | CLI sign-in needs the control settings permissions; automation needs separate approved fine-grained read/write tokens per resource owner. Tokens cannot exceed the user's repository access, bypass approval/SSO/IP policy, or access unsupported APIs. |
 
 For public-only monitoring, no **additional automation** PAT or App is configured.
@@ -124,11 +124,11 @@ repositories, credentials, campaigns, or workflow dispatches are created.
 | --- | --- |
 | Bootstrap | Real installer, local release/checksum verification, simulated repository creation, runtime preparation, Git push and fresh clone; no live repository provisioning |
 | Installer compatibility | Stable/prerelease minimums with missing, current, outdated and newer gh-aw; exact fresh-install version forwarding, byte-preserved existing extensions, noninteractive upgrade refusal, unchanged policy/index/HEAD, and rejection outside a checkout before distribution |
-| Recorded low-friction path | Public control, organization wildcard saved as exact names, no App/PAT prompt, public Pages consent, separately approved Git publication and deployment-pending result |
+| Recorded low-friction path | Public control, organization wildcard saved as exact names, no App/PAT prompt or Pages configuration, separately approved Git publication and monitoring-pending result |
 | Visibility and owner combinations | Public/private controls on GitHub.com; private/internal controls on GHE.com; same, cross, and mixed owners; public/private/internal/mixed targets as allowed by the host; public controls reject non-public evidence |
 | PAT path | Interactive retention of simulated existing secret names, exact owner read maps, control-only write map, and PAT-mode selection; no token issuance, decryption, or live approval |
 | App path | Native CLI previews on both hosts, separate read/write permissions and installation targets, reuse plans, rejection of new cross-owner organization Apps and invalid App-ID combinations; browser consent and real key/installation verification are not exercised by this suite |
-| Capability boundaries | Denied Pages administration, denied secret lookup, denied authentication-mode override, declined public Pages, protected consumer/index state; not a simulation of every GitHub role or custom-role policy |
+| Capability boundaries | No Pages calls, denied secret lookup, denied authentication-mode override, protected consumer/index state; not a simulation of every GitHub role or custom-role policy |
 | Enterprise host | Real CLI/API and HTTPS Git routing to the simulated GHE.com host, private/internal scope and publication; not a public-repository scenario or cross-host federation |
 
 The installer matrix follows the
@@ -140,10 +140,9 @@ execution compatibility. Environment unit tests reject inherited credentials,
 extension/configuration overrides and proxy bypasses; a missing-extension probe
 must not discover an ambient developer or runner installation.
 
-The simulator supplies Pages access metadata; it does not prove that a paid
-plan supports restricted Pages, or that the deployed site is inaccessible
-outside the enterprise. It does not execute the ordinary Activity/Dashboard
-Actions workflows or render their resulting deployed dashboard.
+The simulator verifies setup without Pages configuration. It does not execute
+ordinary Activity/Dashboard Actions workflows or establish real hosted
+authentication, access controls, or populated-dashboard readiness.
 
 ## Playground retirement gate
 
@@ -163,7 +162,8 @@ runs (less than 24 hours old), successful collection/indexing and build jobs,
 and a successful populated-dashboard browser check. Skipped jobs, missing
 evidence and a latest completed failure do not count as success. This reuses
 the existing deployment rather than creating or dispatching a second one;
-Pages deployment may intentionally be disabled for the hosted deployment.
+The hosted operational dashboard and synthetic Pages demo are separate;
+demo readiness does not establish operational evidence freshness.
 Run these read-only checks locally with:
 
 ```bash
@@ -183,13 +183,13 @@ Only in an approved disposable environment, have the actual operator and
 organization/enterprise administrators verify creation/reuse rights, selected
 App installations and key access, PAT resource owners and approval/expiry,
 SSO/IP restrictions, Actions availability, workflow-file publication rules,
-runner/network access, and restricted Pages entitlement/access. Include the
+runner/network access, and hosted dashboard authorization. Include the
 requested enterprise-owner/admin, organization-owner/admin, repository-admin,
 write-only-user, and PAT-only accounts with their **actual grants**, not assumed
 role equivalence. Check both allowed operations and expected denials.
 
 With explicit approval, verify current-revision CAO validation, Activity and
-Dashboard/Pages deployment, inspect the populated dashboard and partial-evidence
+Dashboard artifact production and hosted ingestion, inspect real operational data and partial-evidence
 diagnostics, and prove credential read/write boundaries using the
 [activation checks](control-plane-authentication.md#validate-before-activation).
 Monitoring success does not prove any campaign's model access or live authority.

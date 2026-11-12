@@ -1,4 +1,4 @@
-name: Deployed dashboard integration
+name: Dashboard demo and operational snapshot checks
 
 on:
   push:
@@ -27,22 +27,23 @@ on:
       - dashboard/site/package-lock.json
       - package.json
       - package-lock.json
-      - scripts/merge-dashboard-query-performance.mjs
       - tests/e2e/dashboard-deployed-refresh-helpers.mjs
-      - tests/e2e/dashboard-query-performance-helpers.mjs
-      - tests/e2e/dashboard-query-performance.spec.mjs
+      - tests/e2e/dashboard-deployed-refresh.spec.mjs
+      - tests/integration/dashboard-deployed-data.test.mjs
+      - scripts/simulate-dashboard-pages.mjs
+      - tests/helpers/dashboard-pages-preview.mjs
       - tests/e2e/dashboard-view-assessment.mjs
       - tests/helpers/dashboard-query-cost.mjs
       - tests/helpers/dashboard-query-cost-report.mjs
       - tests/performance/dashboard-query-cost-postgres.test.mjs
       - tests/performance/dashboard-query-cost.test.mjs
-      - tests/playwright/configs/dashboard-query-performance.config.mjs
+      - tests/playwright/configs/dashboard-deployed.config.mjs
       - "!server/**/*.md"
   workflow_dispatch:
   workflow_call:
     inputs:
       full:
-        description: Include expensive deployed-data benchmarks in the daily suite
+        description: Include operational Activity artifact benchmarks in the daily suite
         type: boolean
         default: false
   schedule:
@@ -57,7 +58,7 @@ concurrency:
 
 jobs:
   integration:
-    name: Test deployed dashboard
+    name: Test synthetic enterprise demo
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -70,7 +71,11 @@ jobs:
           node-version: 24
           cache: npm
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts && npm --prefix dashboard/site ci --omit=dev --ignore-scripts
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
       - name: Cache Chromium
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -80,7 +85,7 @@ jobs:
         run: |
           sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
           npx playwright install --with-deps chromium
-      - name: Test deployed dashboard
+      - name: Test synthetic demo refresh and navigation
         id: test
         continue-on-error: true
         run: npm run test:e2e:dashboard-deployed
@@ -96,52 +101,9 @@ jobs:
         if: steps.test.outcome == 'failure'
         run: exit 1
 
-  query-performance:
-    if: github.event_name != 'schedule' || inputs.full == true
-    name: Benchmark deployed dashboard queries (${{ matrix.shard }}/3)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3]
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24
-          cache: npm
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-      - name: Cache Chromium
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-${{ runner.arch }}-playwright-${{ hashFiles('package-lock.json') }}-chromium
-      - name: Install Chromium
-        run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
-          npx playwright install --with-deps chromium
-      - name: Benchmark queries
-        env:
-          DASHBOARD_QUERY_PERFORMANCE_SHARD: ${{ matrix.shard }}/3
-        run: npm run test:performance:dashboard-queries
-      - name: Upload query performance results
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: dashboard-query-performance-${{ matrix.shard }}
-          path: test-results/dashboard-query-performance/
-          if-no-files-found: warn
-          retention-days: 14
-
   query-cost:
-    name: Measure deployed SQLite and Postgres query cost
-    if: github.event_name != 'schedule' || inputs.full == true
+    name: Measure operational SQLite and Postgres query cost
+    if: inputs.full == true || (github.event_name != 'schedule' && vars.CAO_DASHBOARD_DATA_URL != '')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -165,6 +127,7 @@ jobs:
       CAO_POSTGRES_LINKED_RETENTION_DAYS: "7"
       DASHBOARD_SERVER_BINARY: ${{ github.workspace }}/.tmp/cao-dashboard
     permissions:
+      actions: read
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -184,8 +147,14 @@ jobs:
         run: |
           mkdir -p .tmp
           go -C server build -o ../.tmp/cao-dashboard ./cmd/cao-dashboard
-      - name: Download deployed artifacts
-        run: npm run dashboard:data:download
+      - name: Download explicitly configured operational snapshot
+        env:
+          DASHBOARD_DATA_URL: ${{ vars.CAO_DASHBOARD_DATA_URL }}
+        run: go run ./cmd/gh-cao download
+      - name: Verify operational artifact ingestion
+        env:
+          DASHBOARD_DATA_DIR: .cao
+        run: node --test tests/integration/dashboard-deployed-data.test.mjs
       - name: Measure SQLite query cost
         id: sqlite
         continue-on-error: true
@@ -214,95 +183,6 @@ jobs:
       - name: Fail when query analysis fails
         if: steps.sqlite.outcome != 'success' || steps.postgres.outcome != 'success'
         run: exit 1
-
-  query-performance-comment:
-    name: Report query performance results
-    if: >-
-      always() &&
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      needs.query-performance.result == 'success'
-    needs: query-performance
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      actions: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24
-      - name: Download query performance results
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: dashboard-query-performance-*
-          path: query-performance-shards
-      - name: Merge query performance shard results
-        run: |
-          node scripts/merge-dashboard-query-performance.mjs \
-            query-performance-results \
-            query-performance-shards/dashboard-query-performance-1 \
-            query-performance-shards/dashboard-query-performance-2 \
-            query-performance-shards/dashboard-query-performance-3
-      - name: Comment with query performance results
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const fs = require('fs')
-            const marker = '<!-- dashboard-query-performance-results -->'
-            const summaryPath = 'query-performance-results/summary.md'
-            const summary = fs.readFileSync(summaryPath, 'utf8').trim()
-            const runUrl =
-              `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
-            const body = [
-              marker,
-              '### Dashboard query performance',
-              '',
-              '<details><summary><b>Query performance measurements</b></summary>',
-              '',
-              summary,
-              '',
-              '</details>',
-              '',
-              `[View the workflow run and performance artifact](${runUrl}).`,
-            ].join('\n')
-            for (let attempt = 0; attempt < 2; attempt++) {
-              try {
-                const comments = await github.paginate(github.rest.issues.listComments, {
-                  ...context.repo,
-                  issue_number: context.issue.number,
-                  per_page: 100,
-                })
-                const existing = comments.find((comment) =>
-                  comment.user?.type === 'Bot' && comment.body?.includes(marker)
-                )
-                if (existing) {
-                  await github.rest.issues.updateComment({
-                    ...context.repo,
-                    comment_id: existing.id,
-                    body,
-                  })
-                } else {
-                  await github.rest.issues.createComment({
-                    ...context.repo,
-                    issue_number: context.issue.number,
-                    body,
-                  })
-                }
-                break
-              } catch (error) {
-                const headers = error.response?.headers
-                const reset = Number(headers?.['x-ratelimit-reset']) * 1000
-                const delay = reset - Date.now() + 2000
-                if (attempt || error.status !== 403 || headers?.['x-ratelimit-remaining'] !== '0'
-                    || !headers['x-ratelimit-reset']
-                    || !Number.isFinite(delay) || delay > 10 * 60 * 1000) throw error
-                await new Promise((resolve) => setTimeout(resolve, Math.max(1000, delay)))
-              }
-            }
 
   query-cost-comment:
     name: Report query cost results
@@ -397,7 +277,7 @@ jobs:
             }
 
   report-failure:
-    name: Report deployed dashboard failure
+    name: Report synthetic demo failure
     if: always() && needs.integration.result == 'failure'
     needs: integration
     runs-on: ubuntu-latest
@@ -410,12 +290,12 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const title = 'Deployed CAO dashboard integration failure'
+            const title = 'Synthetic CAO demo integration failure'
             const marker = '<!-- deployed-dashboard-integration-failure -->'
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             const body = [
               marker,
-              'The scheduled deployed dashboard integration check failed.',
+              'The synthetic enterprise demo browser check failed. This is not an operational freshness or completeness check.',
               '',
               `Workflow run: ${runUrl}`,
               '',

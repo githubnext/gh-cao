@@ -242,14 +242,14 @@ with the installed catalog's canonical schema URI. It MUST reject unknown
 mismatches and MUST NOT rewrite an existing policy or any authority fields.
 The installer MUST invoke `gh cao init` and `gh cao setup`.
 No shell launcher is installed. Actions and Node-only
-tools MUST invoke `node activity/cao.mjs <command>` or another explicit Node
+tools MUST invoke `gh cao COMMAND` or another explicit Node
 entry point directly, including SQLite `repair-database`.
 User-facing commands MUST live in the Go extension except the Node-only
 administration tools above. Actions execution
 support MUST live in the JavaScript runtime under `activity/` and `dashboard/`.
 Agentic workflow execution and agent evidence preparation MUST NOT build,
 install, or invoke the native extension as a runtime dependency. Copilot setup
-MUST stage dashboard evidence with `node activity/cao.mjs download`. Dedicated
+MUST stage dashboard evidence with `gh cao download`. Dedicated
 extension build, release, and operator-installer compatibility tests are separate
 from this runtime boundary.
 Control-plane validation MUST have
@@ -319,16 +319,13 @@ state from completed work. Animated presentation MUST be disabled when
 support.
 
 Guided setup MUST separate prompt presentation from policy authority, show the
-exact plan with default-No confirmation before applying settings, verify the
-Pages source without changing visibility, require separate default-No consent
-for a public dashboard before changing credentials, and atomically save policy only after both
-succeed. The repository-scope prompt MUST state that comma-separated names and
+exact plan with default-No confirmation before applying settings, and atomically
+save policy after scope and authentication succeed. Setup MUST NOT configure
+Pages, change its visibility, or request public-dashboard consent.
+The repository-scope prompt MUST state that comma-separated names and
 `*` wildcard patterns are accepted; wildcard patterns MUST be expanded before
 review so only exact repository names are saved. Cancellation before
-application MUST leave policy, credentials, and
-Pages unchanged. Declining or cancelling public-dashboard consent MUST remove
-only a newly created site where possible and leave an existing site with
-restriction or unpublication guidance. Failures after application starts MUST disclose possible
+application MUST leave policy and credentials unchanged. Failures after application starts MUST disclose possible
 partial external changes rather than imply rollback. Setup MUST NOT install
 campaigns, dispatch workflows, commit, or push. The UI and its license notices
 MUST be bundled so installed setup does not need npm or consumer node_modules.
@@ -337,9 +334,8 @@ Without explicit repository arguments, setup without an interactive terminal
 or with `CI` set MUST apply only a
 deterministic public-control-repository profile. It MUST require the control
 repository to be public, require an empty campaign map, and require existing
-scope to be absent or already exactly the control repository. It MUST configure
-and verify public GitHub Pages with GitHub Actions as its source, select
-repository `GITHUB_TOKEN` (`workflow-token`) authentication, set exact
+scope to be absent or already exactly the control repository. It MUST select
+repository `GITHUB_TOKEN` (`workflow-token`) authentication, leave Pages untouched, set exact
 self-only Activity scope, preserve unrelated policy fields, and write policy
 last. It MUST fail before external mutation for private/internal repositories,
 broader existing scope, or non-empty campaigns. It MUST use plain unstyled
@@ -382,8 +378,8 @@ variables before inherited organization variables shared with that repository.
 An existing conflicting effective mode MUST receive a repository-level
 `workflow-token` override; unreadable or malformed settings MUST fail closed.
 `gh cao setup --repository OWNER/REPO|OWNER/*` MAY configure
-that profile without prompts in a public control repository; this shortcut accepts public Pages
-publication. Wildcards MUST resolve only currently public repositories to saved
+that profile without prompts in a public control repository; it SHALL NOT
+publish operational evidence to Pages. Wildcards MUST resolve only currently public repositories to saved
 exact names, and exact non-public selections MUST fail before mutation. Setup
 MUST remain bare, with no campaign or agent execution, and MUST write policy
 last. No user-supplied App/PAT is required.

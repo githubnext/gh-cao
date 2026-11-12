@@ -78,11 +78,6 @@ func setupBootstrapGH(t *testing.T, failure string, calls *[]string) ghExecutor 
 				return "", "invalid attestation", errors.New("rejected")
 			}
 			return "", "", nil
-		case call == "api repos/org/control/pages":
-			if failure == "pages" {
-				return "", "HTTP 403", errors.New("denied")
-			}
-			return `{"build_type":"workflow","public":true}`, "", nil
 		case strings.HasPrefix(call, "api repos/org/control/actions/"):
 			return "", "", nil
 		case call == "variable set GH_AW_GITHUB_AUTH_MODE --repo org/control --body workflow-token":
@@ -105,7 +100,7 @@ func TestSetupBootstrapsFreshControlCheckout(t *testing.T) {
 			gh := setupBootstrapGH(t, "", &calls)
 			var prompt nativeSetupPrompt
 			if guided {
-				prompt = &nativeSetupTestPrompt{texts: []string{"org/control"}, confirms: []bool{true, true}}
+				prompt = &nativeSetupTestPrompt{texts: []string{"org/control"}, confirms: []bool{true}}
 			}
 			result, err := nativeSetupControl(nativeSetupTestCommand(), gh, prompt)
 			if err != nil || result["controlRepository"] != "org/control" {
@@ -156,11 +151,11 @@ func TestSetupBootstrapsFreshControlCheckout(t *testing.T) {
 }
 
 func TestSetupBootstrapFailures(t *testing.T) {
-	for _, failure := range []string{"package", "hash", "attestation", "old gh-aw", "conflict", "malformed policy", "pages"} {
+	for _, failure := range []string{"package", "hash", "attestation", "old gh-aw", "conflict", "malformed policy"} {
 		t.Run(failure, func(t *testing.T) {
 			nativeSetupTestDirectory(t)
 			if failure == "conflict" {
-				writeTestFile(t, "activity/cao.mjs", "consumer original")
+				writeTestFile(t, "dashboard/report/configure-site.mjs", "consumer original")
 			}
 			if failure == "malformed policy" {
 				writeTestFile(t, policyPath, "{invalid")
@@ -171,7 +166,7 @@ func TestSetupBootstrapFailures(t *testing.T) {
 				t.Fatal("failure reported success")
 			}
 			for _, call := range calls {
-				if failure != "pages" && (strings.Contains(call, "/pages") || strings.HasPrefix(call, "variable ") || strings.HasPrefix(call, "secret ")) {
+				if strings.Contains(call, "/pages") || strings.HasPrefix(call, "variable ") || strings.HasPrefix(call, "secret ") {
 					t.Fatalf("failed preparation changed external settings: %s", call)
 				}
 			}
@@ -184,15 +179,13 @@ func TestSetupBootstrapFailures(t *testing.T) {
 				t.Fatal("failed setup published policy")
 			}
 			if failure == "conflict" {
-				content, _ := os.ReadFile("activity/cao.mjs")
+				content, _ := os.ReadFile("dashboard/report/configure-site.mjs")
 				if string(content) != "consumer original" {
 					t.Fatal("runtime conflict overwritten")
 				}
 			}
-			if failure != "pages" {
-				if _, err := os.Stat(".github/workflows/cao-activity.yml"); !errors.Is(err, os.ErrNotExist) {
-					t.Fatal("failed preflight left installed workflows")
-				}
+			if _, err := os.Stat(".github/workflows/cao-activity.yml"); !errors.Is(err, os.ErrNotExist) {
+				t.Fatal("failed preflight left installed workflows")
 			}
 		})
 	}
@@ -222,7 +215,6 @@ func TestSetupProgressPrecedesSlowOperations(t *testing.T) {
 		"aw add ":                        "Preparing CAO workflows...",
 		"release download ":              "Downloading and verifying CAO runtime...",
 		"attestation verify":             "Downloading and verifying CAO runtime...",
-		"api repos/org/control/pages":    "Configuring GitHub Pages...",
 		"api repos/org/control/actions/": "Checking Actions token defaults...",
 	}
 	seen := map[string]bool{}
@@ -238,7 +230,7 @@ func TestSetupProgressPrecedesSlowOperations(t *testing.T) {
 		}
 		return run(ctx, args...)
 	}
-	prompt := &nativeSetupTestPrompt{texts: []string{"org/control"}, confirms: []bool{true, true}}
+	prompt := &nativeSetupTestPrompt{texts: []string{"org/control"}, confirms: []bool{true}}
 	if _, err := nativeSetupControl(cmd, gh, prompt); err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +249,6 @@ func TestSetupProgressPrecedesSlowOperations(t *testing.T) {
 		"Preparing CAO workflows...",
 		"Downloading and verifying CAO runtime...",
 		"Adding CAO runtime files...",
-		"Configuring GitHub Pages...",
 		"Checking Actions token defaults...",
 		"Saving CAO policy...",
 		"Preparing change summary...",
@@ -310,7 +301,7 @@ func TestSetupRuntimePublishedRelease(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeTestFile(t, policyPath, string(data))
-	result, err := setupPublish(cmd, publicationGH, &setupPublishPrompt{approve: true}, "org/control", "", append(files, policyPath))
+	result, err := setupPublish(cmd, publicationGH, &setupPublishPrompt{approve: true}, "org/control", append(files, policyPath))
 	if err != nil || result["status"] != "published" {
 		t.Fatalf("published runtime could not be committed/pushed to local fixture: %#v: %v", result, err)
 	}
@@ -371,7 +362,7 @@ func TestSetupMissingRuntimePreservesExistingPolicy(t *testing.T) {
 }
 
 func TestSetupRejectsSymlinkDestinations(t *testing.T) {
-	for _, name := range []string{policyPath, ".github", "activity"} {
+	for _, name := range []string{policyPath, ".github", "dashboard"} {
 		t.Run(name, func(t *testing.T) {
 			nativeSetupTestDirectory(t)
 			if err := os.MkdirAll(filepath.Dir(name), 0o755); err != nil {

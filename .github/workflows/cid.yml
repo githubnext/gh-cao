@@ -18,10 +18,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/cid.yml
-      - activity/cao.mjs
-      - activity/cli/**
-      - activity/commands/**
-      - activity/dashboard-complexity.mjs
+      - dashboard/report/query-complexity.mjs
       - dashboard/site/**
       - server/cmd/cao-dashboard/serve_pages*.go
       - scripts/simulate-dashboard-pages.mjs
@@ -325,14 +322,18 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci --ignore-scripts
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: go.mod
+          cache: false
       - name: Download deployed snapshot
-        run: npm run dashboard:data:download
+        env:
+          DASHBOARD_DATA_URL: ${{ vars.CAO_DASHBOARD_DATA_URL }}
+        run: go run ./cmd/gh-cao download
       - name: Analyze dashboard query complexity
         run: |
-          node activity/cao.mjs dashboard-complexity \
-            --input dashboard/site/dashboard.json \
-            --database .cao/gh-aw-logs.sqlite \
-            --format markdown > query-complexity.md
+          node scripts/dashboard-query-complexity.mjs \
+            dashboard/site/dashboard.json .cao/gh-aw-logs.sqlite > query-complexity.md
           cat query-complexity.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload query complexity report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

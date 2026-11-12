@@ -61,7 +61,6 @@ imports:
       read_contents: read
       read_issues: read
       read_pull_requests: read
-  - uses: shared/activity-cache.md
 
 permissions:
   contents: read
@@ -120,11 +119,11 @@ Read `/tmp/gh-aw/agent/control-precompute.json` first and verify that `TARGET_RE
 
 Use the last 7 full days ending at workflow start in UTC. Use the preceding 7 full days only as a comparison when both windows have complete evidence.
 
-Prefer the restored Activity database at `$RUNNER_TEMP/cao-activity/gh-aw-logs.sqlite` through `activity/cao.mjs`. Validate schema, repository scope, freshness, window coverage, and completeness before calculating metrics. Fetch only missing evidence with bounded read-only GitHub or `agentic-workflows` calls for `TARGET_REPO`. Never publish or mutate the shared cache.
+Use bounded read-only GitHub or `agentic-workflows` calls for `TARGET_REPO`. Explicitly prepared operational snapshots may be queried with `gh cao`; Validate schema, repository scope, freshness, window coverage, and completeness before calculating metrics. Fetch only missing evidence and never mutate the supplied snapshot.
 
 ### Collection completeness
 
-Do not infer the absence of activity from an empty Activity query. First, validate that the restored Activity database has complete run-summary coverage for `TARGET_REPO` and the exact 7-day window, then query it with `activity/cao.mjs gh runs --database "$RUNNER_TEMP/cao-activity/gh-aw-logs.sqlite" --repo "$TARGET_REPO" --status completed --since WINDOW_START --until WINDOW_END --limit 100`. A result at the 100-run limit is incomplete coverage, even when the cache is otherwise valid. If cache coverage is complete, use those results and do not call the Actions API. Only when the cache is missing, stale, invalid, reaches that query limit, or lacks required window coverage, independently discover the target's Actions workflow runs with one bounded, paginated, read-only Actions query (equivalent to `gh api --paginate --slurp repos/$TARGET_REPO/actions/runs?created=WINDOW_START_DATE..WINDOW_END_DATE&per_page=100`). In either path, retain only completed agentic-workflow runs whose workflow path is a compiled `.lock.yml` workflow. Keep the discovered run IDs and attempts separate from the Activity usage-artifact results.
+Do not infer the absence of activity from missing usage artifacts. Independently discover the target's Actions workflow runs with one bounded, paginated, read-only Actions query (equivalent to `gh api --paginate --slurp repos/$TARGET_REPO/actions/runs?created=WINDOW_START_DATE..WINDOW_END_DATE&per_page=100`). Retain only completed agentic-workflow runs whose workflow path is a compiled `.lock.yml` workflow. Keep discovered run IDs and attempts separate from usage-artifact results; incomplete window coverage remains unknown.
 
 Classify the collection before reporting:
 

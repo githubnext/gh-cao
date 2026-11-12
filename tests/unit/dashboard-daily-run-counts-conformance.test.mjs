@@ -10,7 +10,7 @@ import {
 test('daily run-count conformance maps every implemented requirement to runnable existing tests', () => {
   const suites = validateContract(contract);
   assert.deepEqual(suites.map((suite) => suite.id), [
-    'coverage-contract', 'activity-sqlite', 'activity-actions-runtime', 'indexeddb-worker', 'chromium-worker', 'native-cli', 'hosted-sqlite', 'postgresql'
+    'coverage-contract', 'native-sqlite-publication', 'indexeddb-worker', 'chromium-worker', 'native-cli', 'hosted-sqlite', 'postgresql'
   ]);
   for (const id of ['indexeddb-worker', 'postgresql']) {
     const suite = suites.find((entry) => entry.id === id);

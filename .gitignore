@@ -32,3 +32,14 @@ public/cao/
 
 # Playwright MCP session artifacts
 /.playwright-mcp/
+
+# Disposable local screenshots, test output, and review state
+/.copilot/
+/.queue-test-artifacts/
+/.review-events/
+/.review-runs/
+/.cao-review.sqlite
+/.cao-review.sqlite-journal
+/.cao-review.sqlite-wal
+/.cao-review.sqlite-shm
+/_diff_presenter.txt

@@ -60,7 +60,7 @@ test("Optimization workers are review-capped, target-scoped, and idempotent", ()
     const source = workflow(`${worker}.md`);
     const workerName = worker.replace("optimization-", "");
     assert.match(source, new RegExp(`worker: ${workerName}`));
-    assert.match(source, /uses: shared\/activity-cache\.md/);
+    assert.doesNotMatch(source, /uses: shared\/activity-cache\.md/);
     assert.match(source, /deduplicate-by-title: true/);
     assert.match(source, /group: "\$\{\{ github\.workflow \}\}-\$\{\{ inputs\.target_repo \}\}"/);
     assert.doesNotMatch(source, /dispatch-workflow:/);

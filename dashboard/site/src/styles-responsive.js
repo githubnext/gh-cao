@@ -112,10 +112,8 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
      finite value to animate toward, since CSS cannot transition to/from "none". */
   .dashboard-full-view .org-sidebar { --full-view-sidebar-max-height: 480px; /* generous headroom over the ~70px .sidebar-header row this cap actually bounds */ max-height: var(--full-view-sidebar-max-height); overflow: hidden; transition: max-height 200ms ease, padding 200ms ease, opacity 160ms ease, border-color 200ms ease, visibility 0s linear 0s; }
   .dashboard-root.dashboard-full-view-scrolled .org-sidebar { max-height: 0; overflow: hidden; margin-bottom: 0; padding-top: 0; padding-bottom: 0; border-color: transparent; opacity: 0; visibility: hidden; pointer-events: none; transition: max-height 200ms ease, padding 200ms ease, opacity 160ms ease, border-color 200ms ease, visibility 0s linear 200ms; }
-  /* The hamburger popover is anchored inside that header row, so it is taller than the row and
-     than the full-view shell allows. While the menu is open the header, shell, and root stop
-     clipping so the menu paints over the page content instead of being cut off by it. The
-     collapse-on-scroll state keeps its clip because the menu collapses away with the header. */
+  /* Let the viewport-height navigation drawer escape the full-view header's clipping.
+     The collapse-on-scroll state keeps its clip because the menu collapses with the header. */
   .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled) .org-sidebar:has(.mobile-nav-menu[open]) { overflow: visible; }
   .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled):has(.mobile-nav-menu[open]), .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled):has(.mobile-nav-menu[open]) .app-shell { overflow: visible; }
   .sidebar-header { position: relative; margin: 0 0 8px; }
@@ -144,6 +142,11 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .mobile-nav-menu-actions .dashboard-horizon.filter-bar-expanded > .filter-tuning-controls { position: static; width: 100%; max-height: none; overflow: visible; padding: 8px; box-shadow: none; }
   .mobile-nav-menu-actions .horizon-tooltip { top: calc(100% + 4px); right: 0; left: auto; }
   .mobile-nav-menu-actions .account-menu { width: 100%; }
+  .mobile-nav-menu-actions .dashboard-current-status { width: 100%; display: block; }
+  .mobile-nav-menu-actions .dashboard-current-status .tooltip-trigger { width: 100%; height: auto; min-height: 44px; display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 8px; border: 0; border-radius: 6px; background: transparent; text-align: left; }
+  .mobile-nav-menu-actions .dashboard-current-status .tooltip-trigger:hover { background: var(--neutral-muted); }
+  .mobile-nav-menu-actions .dashboard-current-status .tooltip-trigger > .octicon { width: 16px; height: 16px; flex: none; }
+  .mobile-nav-menu-actions .dashboard-current-status .action-label { position: static; width: auto; height: auto; overflow: visible; margin: 0; padding: 0; clip: auto; color: var(--fg); font-size: .8125rem; font-weight: 500; white-space: normal; }
   .mobile-nav-menu-actions :is(.horizon-toggle, .repository-link, .account-menu-avatar) { width: 100%; height: auto; min-height: 32px; display: flex; flex: none; align-items: center; justify-content: flex-start; place-items: unset; gap: 10px; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--fg); font-weight: 500; text-align: left; }
   .mobile-nav-menu-actions :is(.horizon-toggle, .repository-link, .account-menu-avatar):hover { background: var(--neutral-muted); }
   .mobile-nav-menu-actions :is(.horizon-toggle, .repository-link, .account-menu-avatar) > .octicon { width: 16px; height: 16px; color: var(--muted); }
@@ -162,14 +165,15 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .primary-nav .nav-item.mobile-nav-overflow { display: none; }
   .primary-nav .nav-item .nav-label { display: none; }
   .primary-nav a[aria-current="page"]::before { content: none; }
-  .mobile-nav-menu { display: block; position: relative; margin-left: 0; }
+  .mobile-nav-menu { width: 44px; height: 44px; display: block; flex: 0 0 44px; position: relative; margin-left: 0; }
   .mobile-nav-menu > summary { width: 44px; height: 44px; display: grid; place-items: center; position: relative; border: 1px solid var(--border); border-radius: 50%; background: var(--canvas-subtle); color: var(--fg); cursor: pointer; list-style: none; }
   .mobile-nav-menu > summary .dashboard-offline-status:not([hidden]) { display: inline-flex; position: absolute; right: -5px; bottom: -5px; padding: 2px; border-radius: 50%; background: var(--canvas); color: var(--muted); }
   .org-sidebar > .dashboard-offline-status { display: none; }
   .mobile-nav-menu > summary::-webkit-details-marker { display: none; }
   .mobile-nav-menu > summary:hover, .mobile-nav-menu[open] > summary { background: var(--neutral-muted); }
-  .mobile-nav-menu-list { width: min(280px, calc(100vw - 24px)); max-height: min(520px, calc(100vh - 140px)); display: flex; flex-direction: column; gap: 2px; overflow-y: auto; position: absolute; z-index: 30; top: calc(100% + 4px); right: 0; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--canvas); box-shadow: 0 8px 24px color-mix(in srgb, var(--canvas-inset) 45%, transparent); }
-  .mobile-nav-menu-list a { width: 100%; min-height: 40px; display: flex; flex: none; align-items: center; justify-content: flex-start; gap: 10px; padding: 8px; border-radius: 6px; color: var(--fg); font-weight: 500; text-decoration: none; }
+  .mobile-nav-menu[open] > summary { position: fixed; z-index: 31; top: max(14px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
+  .mobile-nav-menu-list { width: min(320px, calc(100vw - 44px)); height: 100dvh; max-height: none; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; overscroll-behavior: contain; position: fixed; z-index: 30; top: 0; right: 0; padding: calc(max(14px, env(safe-area-inset-top)) + 52px) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) 8px; border: 0; border-left: 1px solid var(--border); border-radius: 0; background: var(--canvas); box-shadow: -8px 0 24px color-mix(in srgb, var(--canvas-inset) 45%, transparent); }
+  .mobile-nav-menu-list a { width: 100%; min-height: 44px; display: flex; flex: none; align-items: center; justify-content: flex-start; gap: 10px; padding: 8px; border-radius: 6px; color: var(--fg); font-weight: 500; text-decoration: none; }
   .mobile-nav-menu-list a > .octicon { flex: none; color: var(--muted); }
   .mobile-nav-menu-list a:hover { background: var(--neutral-muted); }
   .mobile-nav-menu-list a[aria-current="page"] { background: var(--neutral-muted); font-weight: 600; }

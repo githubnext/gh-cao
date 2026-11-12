@@ -73,9 +73,6 @@ func testSetupTopology(t *testing.T, ctx context.Context, root, catalog, binary 
 								setupExistingPATs(f, targets)
 							}
 							steps = append(steps, [2]string{"Apply this setup?", "y"})
-							if !private {
-								steps = append(steps, [2]string{"Is a public dashboard OK?", "y"})
-							}
 							if visibility != "public" {
 								for _, secret := range f.api.Repositories["platform/control"].Secrets {
 									steps = append(steps, [2]string{"Repository secret " + secret + " already exists.", "y"})
@@ -211,9 +208,6 @@ func setupAssertTopology(t *testing.T, f *setupFixture, targets []string, pat bo
 		}
 	}
 	remote := f.api.Repositories["platform/control"]
-	if remote.Pages == nil || remote.Pages["build_type"] != "workflow" {
-		t.Fatal("setup did not configure workflow-backed Pages")
-	}
 	if !pat {
 		setupAssertJSON(t, control["activity"].(map[string]any)["repositories"], repositories)
 		if control["activity"].(map[string]any)["public-only"] != true || len(remote.Variables) != 0 {
@@ -248,12 +242,14 @@ func setupAssertTopologyRequests(t *testing.T, f *setupFixture) {
 		t.Fatalf("unhandled simulator routes: %v", f.api.Unhandled)
 	}
 	for _, request := range f.api.Requests {
+		if strings.HasSuffix(request, "/pages") {
+			t.Errorf("operational setup used Pages: %s", request)
+			continue
+		}
 		if request == "POST /graphql" || strings.HasPrefix(request, "GET ") {
 			continue
 		}
-		if request == "POST /repos/platform/control/pages" ||
-			request == "DELETE /repos/platform/control/pages" ||
-			request == "POST /repos/platform/control/actions/variables" ||
+		if request == "POST /repos/platform/control/actions/variables" ||
 			strings.HasPrefix(request, "PATCH /repos/platform/control/actions/variables/GH_AW_GITHUB_") {
 			continue
 		}
@@ -266,17 +262,13 @@ func testSetupCapabilityFailures(t *testing.T, ctx context.Context, root, catalo
 	for _, test := range []struct {
 		name, path, failure string
 		private, pat        bool
-		declinePages        bool
 	}{
-		{name: "write access without Pages administration", path: "/repos/platform/control/pages", failure: "unable to inspect dashboard Pages"},
 		{name: "owner without credential permission", private: true, pat: true, path: "/repos/platform/control/actions/secrets", failure: "HTTP 403"},
 		{name: "PAT cannot override inherited mode", path: "/repos/platform/control/actions/variables", failure: "HTTP 403"},
-		{name: "private evidence declines public Pages", private: true, pat: true, declinePages: true},
 	} {
 		t.Run("capability/"+test.name, func(t *testing.T) {
 			f := newSetupFixture(t, ctx, root, catalog, binary, runtimeFiles)
 			f.api.Repositories["platform/control"].Private = test.private
-			f.api.Repositories["platform/control"].Pages = map[string]any{"build_type": "workflow", "public": true}
 			f.api.Repositories["platform/control"].Variables["GH_AW_GITHUB_AUTH_MODE"] = "app"
 			target := "other/app"
 			f.api.Repositories[target].Private = test.pat
@@ -303,19 +295,9 @@ func testSetupCapabilityFailures(t *testing.T, ctx context.Context, root, catalo
 				steps = append(steps, [2]string{"Authentication (", "token"})
 			}
 			steps = append(steps, [2]string{"Apply this setup?", "y"})
-			if !strings.Contains(test.path, "/pages") {
-				answer := "y"
-				if test.declinePages {
-					answer = "n"
-				}
-				steps = append(steps, [2]string{"Is a public dashboard OK?", answer})
-			}
-			output := setupWalkTerminal(t, ctx, f, catalog, steps, test.failure)
-			if test.declinePages && !strings.Contains(output, `"cancelled": true`) {
-				t.Fatalf("declined public evidence publication continued: %s", output)
-			}
+			setupWalkTerminal(t, ctx, f, catalog, steps, test.failure)
 			if !bytes.Equal(before, setupRead(t, f.policyPath())) || !bytes.Equal(state, f.state(t)) {
-				t.Fatal("missing capability or declined Pages changed policy or repository state")
+				t.Fatal("missing capability changed policy or repository state")
 			}
 			setupAssertTopologyRequests(t, f)
 		})
@@ -357,7 +339,7 @@ func testSetupQuickstartPublication(t *testing.T, ctx context.Context, root, cat
 			bootstrapRun(t, ctx, f.checkout, f.env, "git", "commit", "-qm", "Installed runtime fixture")
 			bootstrapRun(t, ctx, f.checkout, f.env, "git", "push", "origin", "HEAD:main")
 			// The GitHub.com case follows the recording; GHE.com uses a private
-			// control, non-public scope, retained PATs and restricted Pages.
+			// control, non-public scope and retained PATs.
 			f.api.mu.Lock()
 			delete(f.api.Repositories, "platform/secret")
 			f.api.mu.Unlock()
@@ -370,19 +352,17 @@ func testSetupQuickstartPublication(t *testing.T, ctx context.Context, root, cat
 				for _, secret := range f.api.Repositories["platform/control"].Secrets {
 					steps = append(steps, [2]string{"Repository secret " + secret + " already exists.", "y"})
 				}
-			} else {
-				steps = append(steps, [2]string{"Is a public dashboard OK?", "y"})
 			}
 			steps = append(steps, [2]string{"Commit and push these CAO monitoring changes?", "y"})
 			output := setupWalkTerminal(t, ctx, f, catalog, steps, "")
-			if !strings.Contains(output, `"status": "published"`) || !strings.Contains(output, `"deploymentStatus": "pending"`) {
-				t.Fatalf("quickstart did not return a deployment-pending publication: %s", output)
+			if !strings.Contains(output, `"status": "published"`) || !strings.Contains(output, `"actionsStatus": "pending"`) {
+				t.Fatalf("quickstart did not return pending Actions status after publication: %s", output)
 			}
 			published := bootstrapRun(t, ctx, f.root, f.env, "git", "--git-dir="+remote, "show", "main:.github/workflows/cao.json")
 			if strings.TrimSpace(published) != strings.TrimSpace(string(setupRead(t, f.policyPath()))) {
 				t.Fatal("published policy differs from the reviewed local configuration")
 			}
-			for _, workflow := range []string{"cao-activity.yml", "cao-dashboard.yml", "cao-validate.yml"} {
+			for _, workflow := range []string{"cao-validate.yml"} {
 				bootstrapRun(t, ctx, f.root, f.env, "git", "--git-dir="+remote, "show", "main:.github/workflows/"+workflow)
 			}
 			if bootstrapRun(t, ctx, f.checkout, f.env, "git", "status", "--short", "--", "consumer.txt") != "?? consumer.txt\n" {

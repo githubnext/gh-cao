@@ -63,6 +63,7 @@ func TestAzureDeploymentTelemetryReceipts(t *testing.T) {
 		{name: "unavailable exporter does not gate requests", endpoint: true, logs: true, reject: true},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
 			var mu sync.Mutex
 			receipts := map[string]int{}
 			receiver := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

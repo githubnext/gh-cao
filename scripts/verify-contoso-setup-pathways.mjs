@@ -287,8 +287,6 @@ function verifyPathway(pathway) {
   verifyCampaign(pathway);
   const pagesUrl = verifyPages(pathway);
   const auth = assertRecentSuccessfulRun(pathway, "auth-e2e.yml", "authentication canary");
-  const activity = assertRecentSuccessfulRun(pathway, "cao-activity.yml", "Activity");
-  const dashboard = assertRecentSuccessfulRun(pathway, "cao-dashboard.yml", "Dashboard");
   const review = assertRecentSuccessfulRun(
     pathway,
     "repo-assist.lock.yml",
@@ -303,8 +301,6 @@ function verifyPathway(pathway) {
   );
   console.log(`${pathway.repository} (${pathway.name})`);
   console.log(`  auth: ${auth.html_url}`);
-  console.log(`  activity: ${activity.html_url}`);
-  console.log(`  dashboard: ${dashboard.html_url}`);
   console.log(`  private Pages: ${pagesUrl}`);
   console.log(`  review: ${review.html_url}`);
   console.log(`  live: ${live.html_url}`);
@@ -312,8 +308,6 @@ function verifyPathway(pathway) {
 
 async function dispatchAndVerifyPathway(pathway) {
   await dispatchWorkflow(pathway, "auth-e2e.yml");
-  await dispatchWorkflow(pathway, "cao-activity.yml");
-  await dispatchWorkflow(pathway, "cao-dashboard.yml");
 
   const issueNumber = createSyntheticIssue(pathway);
   const beforeReview = targetIssueState(pathway.targetRepository, issueNumber);

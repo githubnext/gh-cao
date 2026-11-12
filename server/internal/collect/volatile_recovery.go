@@ -98,7 +98,7 @@ func (b Backfill) reconstructScope(ctx context.Context) (repositories []enrolled
 			if err != nil {
 				return err
 			}
-			if err := b.Queue.LockRepository(ctx, name, token, b.Projector.lockTTL()); err != nil {
+			if err := b.Queue.LockRepository(ctx, name, token, 30*time.Minute); err != nil {
 				return err
 			}
 			owner, err := b.Enrollment.InstallationFor(ctx, name)

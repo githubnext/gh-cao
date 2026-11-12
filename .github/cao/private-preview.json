@@ -40,13 +40,13 @@
       "id": "collect",
       "owner": null,
       "acceptance": "Candidate Activity collection publishes a verified, repository-scoped snapshot; duplicate, missing, stale and partial inputs remain explicit rather than becoming successful empty evidence.",
-      "signals": ["cao-activity.yml", "workflow-contracts.yml"]
+      "signals": ["workflow-contracts.yml"]
     },
     {
       "id": "inspect-refresh",
       "owner": null,
       "acceptance": "An operator opens populated Overview and Runs, follows source provenance and observes a fresh query result after collection; required desktop/mobile views preserve unknown and partial states.",
-      "signals": ["cao-dashboard.yml", "dashboard-deployed-integration.yml", "cid.yml"]
+      "signals": ["dashboard-deployed-integration.yml", "cid.yml"]
     },
     {
       "id": "access-withdraw",

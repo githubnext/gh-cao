@@ -1,50 +1,50 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title description" data-visual-kind="diagram" data-visual-id="dashboard-data-flow">
-  <title id="title">One evidence snapshot, three query backends</title>
-  <desc id="description">Activity collects workflow logs into a published JSONL snapshot. The shared canonical model feeds independent SQLite, IndexedDB and PostgreSQL projections. Local Go, CLI and agents use SQLite; static Pages queries IndexedDB in a Web Worker; hosted Go queries PostgreSQL. These backends are not a fallback chain.</desc>
+  <title id="title">One canonical pipeline, distinct data profiles</title>
+  <desc id="description">Real Activity artifacts feed local Go and SQLite. Operational artifacts or an authorized collector feed same-origin hosted Go and PostgreSQL. Separately generated synthetic enterprise samples use production normalization and canonical ingestion for the Pages Web Worker and isolated IndexedDB. All profiles use the same declarative queries and views, without fallback.</desc>
   <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#59636e"/></marker></defs>
   <rect width="1200" height="650" fill="#f6f8fa"/>
   <g font-family="Mona Sans, system-ui, sans-serif" text-anchor="middle">
-    <text x="600" y="52" fill="#1f2328" font-size="28" font-weight="700">One evidence snapshot, three query backends</text>
+    <text x="600" y="52" fill="#1f2328" font-size="28" font-weight="700">One canonical pipeline, distinct data profiles</text>
     <g data-node="workflows">
       <rect x="60" y="100" width="320" height="100" rx="8" fill="#ffffff" stroke="#59636e" stroke-width="2"/>
-      <text x="220" y="143" fill="#1f2328" font-size="24" font-weight="700">Workflow logs</text>
-      <text x="220" y="177" fill="#59636e" font-size="20">GitHub Actions</text>
+      <text x="220" y="143" fill="#1f2328" font-size="24" font-weight="700">Operational snapshot</text>
+      <text x="220" y="177" fill="#59636e" font-size="20">Authorized Activity artifact</text>
     </g>
-    <path d="M380 150h48" stroke="#59636e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
     <g data-node="activity">
       <rect x="440" y="100" width="320" height="100" rx="8" fill="#ffffff" stroke="#59636e" stroke-width="2"/>
-      <text x="600" y="143" fill="#1f2328" font-size="24" font-weight="700">Activity</text>
-      <text x="600" y="177" fill="#59636e" font-size="20">Bounded collection</text>
+      <text x="600" y="143" fill="#1f2328" font-size="24" font-weight="700">Synthetic raw samples</text>
+      <text x="600" y="177" fill="#59636e" font-size="20">Generated enterprise demo</text>
     </g>
-    <path d="M760 150h48" stroke="#59636e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
     <g data-node="jsonl">
       <rect x="820" y="100" width="320" height="100" rx="8" fill="#ffffff" stroke="#59636e" stroke-width="2"/>
-      <text x="980" y="143" fill="#1f2328" font-size="24" font-weight="700">Published snapshot</text>
-      <text x="980" y="177" fill="#59636e" font-size="20">JSONL evidence</text>
+      <text x="980" y="143" fill="#1f2328" font-size="24" font-weight="700">Operational evidence</text>
+      <text x="980" y="177" fill="#59636e" font-size="20">Artifacts or hosted collector</text>
     </g>
-    <text x="600" y="252" fill="#59636e" font-size="22">Shared canonical model</text>
-    <path d="M980 200v90H220v48" stroke="#59636e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
-    <path d="M600 290v48" stroke="#59636e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
-    <path d="M980 290v48" stroke="#59636e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+    <text x="220" y="252" fill="#59636e" font-size="20">Shared canonical model</text>
+    <text x="600" y="252" fill="#59636e" font-size="20">Production normalization</text>
+    <text x="980" y="252" fill="#59636e" font-size="20">Shared canonical model</text>
+    <path d="M220 275v63" stroke="#59636e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+    <path d="M600 275v63" stroke="#59636e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+    <path d="M980 275v63" stroke="#59636e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
     <g data-node="sqlite">
       <rect x="60" y="350" width="320" height="180" rx="8" fill="#ffffff" stroke="#0969da" stroke-width="2"/>
       <text x="220" y="397" fill="#0550ae" font-size="28" font-weight="700">SQLite</text>
       <text x="220" y="442" fill="#1f2328" font-size="22">Local Go, CLI and agents</text>
-      <text x="220" y="482" fill="#59636e" font-size="20">Local queries</text>
+      <text x="220" y="482" fill="#59636e" font-size="20">Real read-only snapshot</text>
     </g>
     <g data-node="indexeddb">
       <rect x="440" y="350" width="320" height="180" rx="8" fill="#ffffff" stroke="#0969da" stroke-width="2"/>
       <text x="600" y="397" fill="#0550ae" font-size="28" font-weight="700">IndexedDB</text>
-      <text x="600" y="442" fill="#1f2328" font-size="22">Static Pages Web Worker</text>
-      <text x="600" y="482" fill="#59636e" font-size="20">Browser-local queries</text>
+      <text x="600" y="442" fill="#1f2328" font-size="22">Synthetic Pages Web Worker</text>
+      <text x="600" y="482" fill="#59636e" font-size="20">Isolated demo namespace</text>
     </g>
     <g data-node="postgres">
       <rect x="820" y="350" width="320" height="180" rx="8" fill="#ffffff" stroke="#0969da" stroke-width="2"/>
       <text x="980" y="397" fill="#0550ae" font-size="28" font-weight="700">PostgreSQL</text>
       <text x="980" y="442" fill="#1f2328" font-size="22">Hosted Go server</text>
-      <text x="980" y="482" fill="#59636e" font-size="20">Server-side SQL queries</text>
+      <text x="980" y="482" fill="#59636e" font-size="20">Same-origin production</text>
     </g>
-    <text x="600" y="586" fill="#1f2328" font-size="22">Dashboard Language queries return bounded results to views.</text>
-    <text x="600" y="620" fill="#59636e" font-size="20">Independent projections, not a fallback chain.</text>
+    <text x="600" y="586" fill="#1f2328" font-size="22">Same Dashboard Language queries and declarative views.</text>
+    <text x="600" y="620" fill="#59636e" font-size="20">No real data or live services on Pages. No backend fallback.</text>
   </g>
 </svg>

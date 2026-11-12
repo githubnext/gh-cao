@@ -6,11 +6,15 @@ on:
       - .github/workflows/podman.yml
       - scripts/container-*.sh
       - scripts/azure-local/**
+      - internal/**
       - server/**
       - tests/unit/container-engine.test.mjs
       - tests/unit/podman-ci.test.mjs
       - tests/unit/azure-local-*.test.mjs
       - tests/integration/azure-local-*.test.mjs
+      - tests/helpers/azure-local-go.mjs
+      - tests/integration/azure-local-*.test.mjs
+      - tests/helpers/azure-local-go.mjs
       - go.mod
       - go.sum
       - package.json
@@ -22,10 +26,12 @@ on:
       - .github/workflows/podman.yml
       - scripts/container-*.sh
       - scripts/azure-local/**
+      - internal/**
       - server/**
       - tests/unit/container-engine.test.mjs
       - tests/unit/podman-ci.test.mjs
       - tests/unit/azure-local-*.test.mjs
+      - tests/integration/azure-local-*.test.mjs
       - tests/integration/azure-local-*.test.mjs
       - go.mod
       - go.sum
@@ -51,38 +57,102 @@ jobs:
       CAO_CONTAINER_ENGINE: podman
       CAO_TEST_PODMAN: "1"
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - &checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - &node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      - &binaries
+        name: Restore exact-source race-instrumented executables
+        id: binaries
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/podman-bin
+          key: podman-bin-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/podman.yml', 'scripts/azure-local/prepare-test-binaries.sh', 'server/**', 'internal/**', 'go.mod', 'go.sum') }}
+      - &go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.binaries.outputs.cache-hit != 'true'
         with:
           go-version: 1.27.3
-          cache: false
-      - name: Prepare rootless Podman with a delegated user session
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            server/go.sum
+      - &podman-host
+        name: Prepare rootless Podman with a delegated user session
         run: |
-          sudo apt-get update
-          sudo apt-get install -y podman uidmap slirp4netns fuse-overlayfs crun
+          missing=()
+          for tool in podman newuidmap slirp4netns fuse-overlayfs crun; do
+            command -v "$tool" >/dev/null || missing+=("$tool")
+          done
+          if (( ${#missing[@]} )); then
+            sudo apt-get update
+            sudo apt-get install -y podman uidmap slirp4netns fuse-overlayfs crun
+          fi
           test "$(id -u)" -ne 0
           sudo loginctl enable-linger "$(id -un)"
           sudo systemctl start "user@$(id -u).service"
           echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
           echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus" >> "$GITHUB_ENV"
-      - name: Prepare Go dependencies before hermetic service tests
-        run: go mod download && go -C server mod download
-      - name: Check engine selection and harness contracts
-        run: node --test tests/unit/container-engine.test.mjs tests/unit/azure-local-*.test.mjs
-      - name: Preload the production digest-pinned CLI image
+      - &build
+        name: Build current-source executables on cache miss
+        if: steps.binaries.outputs.cache-hit != 'true'
+        run: bash scripts/azure-local/prepare-test-binaries.sh
+      - name: Run independent rootless and harness checks concurrently
         run: |
-          image="$(sed -n 's/^const DefaultContainerImage = "\(.*\)"$/\1/p' server/internal/hostedcli/container_runner.go)"
-          [[ "$image" =~ ^ghcr.io/github/gh-aw@sha256:[0-9a-f]{64}$ ]]
-          podman --remote=false pull "$image"
-      - name: Verify real rootless workload isolation, cancellation and recovery
-        run: |
-          systemd-run --user --scope --property=Delegate=yes \
-            go -C server test -race ./internal/hostedcli \
-            -run '^TestPodmanRealBoundary$' -count=1 -timeout=5m -v
-      - name: Run real local Azure services with Podman
-        run: npm run test:integration:azure-services
+          boundary() {
+            image="$(sed -n 's/^const DefaultContainerImage = "\(.*\)"$/\1/p' server/internal/hostedcli/container_runner.go)"
+            [[ "$image" =~ ^ghcr.io/github/gh-aw@sha256:[0-9a-f]{64}$ ]]
+            podman --remote=false pull "$image"
+            cd server/internal/hostedcli
+            systemd-run --user --scope --property=Delegate=yes \
+              "$GITHUB_WORKSPACE/.tmp/podman-bin/server/hostedcli.test" \
+              -test.run '^TestPodmanRealBoundary$' -test.count=1 -test.timeout=5m -test.v
+          }
+          boundary &
+          boundary_pid=$!
+          node --test tests/unit/container-engine.test.mjs tests/unit/azure-local-*.test.mjs &
+          contracts_pid=$!
+          status=0
+          wait "$boundary_pid" || status=$?
+          wait "$contracts_pid" || status=$?
+          exit "$status"
+  azure-protocols:
+    name: Azure deployment protocol contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - *checkout
+      - *node
+      - *binaries
+      - *go
+      - *build
+      - name: Verify deployment protocols without waiting for service startup
+        env:
+          AZURE_LOCAL_TEST_BINARIES: ${{ github.workspace }}/.tmp/podman-bin
+        run: node tests/integration/azure-local-protocols.test.mjs
+  azure-services:
+    name: Real Azure services with rootless Podman
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CAO_CONTAINER_ENGINE: podman
+    steps:
+      - *checkout
+      - *node
+      - *binaries
+      - *go
+      - name: Restore checksum-verified Azure Functions Core Tools
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/azure-local/tools
+          key: podman-core-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/azure-local/azure-local.sh') }}
+      - *podman-host
+      - *build
+      - name: Verify real Functions, Storage and PostgreSQL independently
+        env:
+          AZURE_LOCAL_TEST_BINARIES: ${{ github.workspace }}/.tmp/podman-bin
+        run: bash scripts/azure-local/azure-local.sh run-services

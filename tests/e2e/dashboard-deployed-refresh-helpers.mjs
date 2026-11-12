@@ -1,6 +1,9 @@
 import { isSpuriousAbortAfterSuccessResponse } from "./dashboard-view-assessment.mjs";
 
-export const deployedDashboardUrl = "https://githubnext.github.io/gh-cao/cao/";
+// Operational consumers must select a snapshot explicitly, never the Pages demo.
+export const deployedDashboardUrl = process.env.DASHBOARD_DATA_URL
+  ? new URL("./", process.env.DASHBOARD_DATA_URL).href
+  : undefined;
 // A fresh profile imports over 600 shards sequentially; CI can exceed ten minutes.
 export const DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS = 900_000;
 export const DEPLOYED_REFRESH_TIMEOUT_MS = 600_000;
@@ -15,7 +18,6 @@ export const populatedOverviewStations = [
   { href: "#page-workflows", detail: /^\d[\d,]*\/[1-9][\d,]* healthy workflows$/ },
   { href: "#page-repositories", detail: /^\d[\d,]*\/[1-9][\d,]* repositories reached$/ },
 ];
-const deployedDashboardBase = new URL(deployedDashboardUrl);
 const deployedActivityShardDirectories = new Set(["gh-aw-logs-runs", "gh-aw-logs-records"]);
 
 export async function deployedStorageContext({
@@ -108,10 +110,13 @@ export function legacyPhaseJsonToJsonl(content) {
   ].map((line) => JSON.stringify(line)).join("\n") + "\n";
 }
 
-export function shouldIgnoreRequestFailure({ method, url, errorText, reloading = false, hadSuccessResponse = false }) {
+export function shouldIgnoreRequestFailure({
+  method, url, errorText, reloading = false, hadSuccessResponse = false,
+  dashboardUrl = deployedDashboardUrl,
+}) {
   return isSpuriousAbortAfterSuccessResponse(errorText, hadSuccessResponse)
     || errorText === "net::ERR_ABORTED" && (
-    reloading || isDeployedDashboardShardProbe({ method, url })
+    reloading || isDeployedDashboardShardProbe({ method, url, dashboardUrl })
   );
 }
 
@@ -122,14 +127,17 @@ export async function activateTableViewMode(activePage) {
   return true;
 }
 
-function isDeployedDashboardShardProbe({ method, url }) {
-  if (method !== "HEAD" || typeof url !== "string") return false;
+function isDeployedDashboardShardProbe({ method, url, dashboardUrl }) {
+  if (method !== "HEAD" || typeof url !== "string" || !dashboardUrl) return false;
   try {
     const parsed = new URL(url);
+    const deployedDashboardBase = new URL(dashboardUrl);
     // Match flat deployed activity JSONL shard filenames in the run-information and record shard directories.
     return parsed.origin === deployedDashboardBase.origin
       && parsed.pathname.startsWith(deployedDashboardBase.pathname)
-      && isFlatDeployedActivityShardPath(parsed.pathname.slice(deployedDashboardBase.pathname.length));
+      && isFlatDeployedActivityShardPath(
+        parsed.pathname.slice(deployedDashboardBase.pathname.length).replace(/^demo-data\//, ""),
+      );
   } catch {
     return false;
   }

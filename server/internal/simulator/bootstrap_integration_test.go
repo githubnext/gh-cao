@@ -91,11 +91,10 @@ func TestCAOBootstrapIntegration(t *testing.T) {
 	}
 	bootstrapRun(t, ctx, workspace, environment, "bash", filepath.Join(catalog, "install-gh-cao.sh"), catalog, "--create-repo", "platform/control")
 	consumer := filepath.Join(workspace, "control")
-	bootstrapAssertRepository(t, api, true, false)
+	bootstrapAssertRepository(t, api, true)
 	for _, name := range []string{
-		".github/workflows/cao-activity.yml", ".github/workflows/cao-dashboard.yml",
 		".github/workflows/cao-validate.yml", ".github/workflows/shared/control.mjs",
-		".github/actions/setup-cao-runtime/action.yml", "activity/cao.mjs", ".github/workflows/shared/materialize-cao.mjs",
+		".github/actions/setup-cao-runtime/action.yml", "dashboard/report/configure-site.mjs", ".github/workflows/shared/materialize-cao.mjs",
 	} {
 		if info, err := os.Stat(filepath.Join(consumer, name)); err != nil || info.Size() == 0 {
 			t.Fatalf("missing or empty installed resource %s: %v", name, err)
@@ -117,12 +116,12 @@ func TestCAOBootstrapIntegration(t *testing.T) {
 	if err != nil || string(after) != string(policyBefore) {
 		t.Fatalf("failed private setup changed policy: %v", err)
 	}
-	bootstrapAssertRepository(t, api, true, false)
+	bootstrapAssertRepository(t, api, true)
 	// Explicitly select the documented public-monitoring profile on fixture
 	// data only, then exercise the installer's --setup path and idempotency.
 	bootstrapRun(t, ctx, consumer, environment, "gh", "api", "-X", "PATCH", "repos/platform/control", "-F", "private=false")
 	bootstrapRun(t, ctx, consumer, environment, "bash", filepath.Join(catalog, "install-gh-cao.sh"), catalog, "--setup")
-	bootstrapAssertRepository(t, api, false, true)
+	bootstrapAssertRepository(t, api, false)
 	bootstrapAssertPolicy(t, policyFile)
 	configured, err := os.ReadFile(policyFile) // #nosec G304 -- fixed installed filename in t.TempDir.
 	if err != nil {
@@ -141,7 +140,7 @@ func TestCAOBootstrapIntegration(t *testing.T) {
 	if strings.TrimSpace(published) != strings.TrimSpace(string(configured)) {
 		t.Fatal("published control-plane policy differs from verified local policy")
 	}
-	for _, workflow := range []string{"cao-activity.yml", "cao-dashboard.yml", "cao-validate.yml"} {
+	for _, workflow := range []string{"cao-validate.yml"} {
 		bootstrapRun(t, ctx, root, environment, "git", "--git-dir="+remote, "show", "main:.github/workflows/"+workflow)
 	}
 	cloned := filepath.Join(root, "verified-clone")
@@ -160,7 +159,7 @@ func TestCAOBootstrapIntegration(t *testing.T) {
 	if err == nil || !strings.Contains(string(output), "checksum verification failed") {
 		t.Fatalf("installer accepted a corrupted release: %v\n%s", err, output)
 	}
-	bootstrapAssertRepository(t, api, false, true)
+	bootstrapAssertRepository(t, api, false)
 	bootstrapRun(t, ctx, consumer, environment, "gh", "cao", "--version")
 	api.mu.Lock()
 	defer api.mu.Unlock()
@@ -171,7 +170,7 @@ func TestCAOBootstrapIntegration(t *testing.T) {
 		"GET /repos/platform/control", "POST /graphql",
 		"GET /repos/githubnext/gh-cao/releases", "GET /repos/githubnext/gh-cao/releases/tags/" + release,
 		"GET /githubnext/gh-cao/releases/download/" + release + "/checksums.txt",
-		"POST /repos/platform/control/pages", "GET /repos/platform/control/actions/variables",
+		"GET /repos/platform/control/actions/variables",
 		"GET /repos/platform/control/actions/organization-variables",
 		"POST /platform/control.git/git-receive-pack", "POST /platform/control.git/git-upload-pack",
 	} {
@@ -179,18 +178,14 @@ func TestCAOBootstrapIntegration(t *testing.T) {
 			t.Errorf("bootstrap did not exercise %s", required)
 		}
 	}
-	count := 0
 	for _, request := range api.Requests {
 		if request == "POST /repos/platform/control/actions/variables" ||
 			strings.HasPrefix(request, "PATCH /repos/platform/control/actions/variables/") {
 			t.Errorf("fresh setup unnecessarily configured authentication: %s", request)
 		}
-		if request == "POST /repos/platform/control/pages" {
-			count++
+		if strings.HasSuffix(request, "/pages") {
+			t.Errorf("operational bootstrap used Pages: %s", request)
 		}
-	}
-	if count != 1 {
-		t.Errorf("Pages was created %d times, want exactly once", count)
 	}
 	t.Logf("real installer, release verification, repository creation, setup and Git publication completed through %d simulated requests", len(api.Requests))
 }
@@ -292,7 +287,7 @@ func bootstrapInstallAW(t *testing.T, environment []string) {
 	t.Fatal("missing isolated extension directory")
 }
 
-func bootstrapAssertRepository(t *testing.T, api *BootstrapAPI, private, configured bool) {
+func bootstrapAssertRepository(t *testing.T, api *BootstrapAPI, private bool) {
 	t.Helper()
 	api.mu.Lock()
 	defer api.mu.Unlock()
@@ -300,16 +295,8 @@ func bootstrapAssertRepository(t *testing.T, api *BootstrapAPI, private, configu
 	if len(api.Repositories) != 1 || repo == nil || repo.Private != private {
 		t.Fatalf("unexpected control repository state: %+v", repo)
 	}
-	if (repo.Pages != nil) != configured {
-		t.Fatalf("unexpected Pages state: %v", repo.Pages)
-	}
-	if configured {
-		if repo.Pages["build_type"] != "workflow" || repo.Pages["public"] != true ||
-			len(repo.Variables) != 0 {
-			t.Fatalf("unexpected monitoring configuration: Pages=%v variables=%v", repo.Pages, repo.Variables)
-		}
-	} else if len(repo.Variables) != 0 {
-		t.Fatal("unconfigured repository has Actions variables")
+	if len(repo.Variables) != 0 {
+		t.Fatal("built-in token monitoring unexpectedly configured Actions variables")
 	}
 }
 

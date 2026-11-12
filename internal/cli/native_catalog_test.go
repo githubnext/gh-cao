@@ -18,7 +18,7 @@ func TestNativeCatalogMatchesDashboardContract(t *testing.T) {
 const { readAgentCatalog } = await import(process.argv[1]);
 process.stdout.write(JSON.stringify(await readAgentCatalog()));
 `
-	output, err := exec.Command(node, "--input-type=module", "-e", program, filepath.Join(repository, "activity", "agent-catalog.mjs")).Output()
+	output, err := exec.Command(node, "--input-type=module", "-e", program, filepath.Join(repository, "dashboard", "report", "agent-catalog.mjs")).Output()
 	if err != nil {
 		t.Fatal(err)
 	}

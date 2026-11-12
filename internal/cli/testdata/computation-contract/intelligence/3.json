@@ -1,0 +1,656 @@
+{
+  "intelligence:3d5c7d03ea096b87fa850836aac5fb419b1f0ad467b4f518a0f50ee469e919f1": {
+    "agentInvocations": 0,
+    "asOf": "2026-10-01T10:09:00.000Z",
+    "campaignContractCount": 3,
+    "campaignContracts": [
+      {
+        "authorityContext": {
+          "enabled": null,
+          "maxRepositories": {
+            "state": "missing",
+            "value": null
+          },
+          "mode": null,
+          "rolloutPercent": {
+            "state": "missing",
+            "value": null
+          },
+          "targets": null
+        },
+        "backoff": null,
+        "campaignId": "campaign:blocked",
+        "campaignSlug": "blocked",
+        "contractId": "campaign-intelligence-contract:1b3d2880def5de27ab98340d",
+        "contractVersion": "1.1.0",
+        "declaration": null,
+        "deduplication": null,
+        "eligibleOpportunity": null,
+        "inputFingerprint": "sha256:95e13002a3d044f30209062241bec212afefa22d46dad4e804e5830bc4a18d7d",
+        "intendedOutcome": null,
+        "interventionClass": null,
+        "maturationPeriod": null,
+        "maxDetectionDelay": null,
+        "operationalValueDefinition": null,
+        "outcomeAttainmentEvidence": null,
+        "outputApprovalPolicy": null,
+        "overlapIdentity": null,
+        "quality": {
+          "attributionCoverage": {
+            "denominator": null,
+            "numerator": null,
+            "state": "unknown"
+          },
+          "availability": "available",
+          "completeness": "partial",
+          "contractId": "evidence-quality",
+          "contractVersion": "1.0.0",
+          "contradictionState": "unknown",
+          "coverage": {
+            "denominator": 17,
+            "numerator": 1,
+            "state": "partial"
+          },
+          "freshness": {
+            "observedAt": null,
+            "state": "unknown"
+          },
+          "maturity": "unknown",
+          "provenance": {
+            "sources": [],
+            "state": "missing"
+          }
+        },
+        "repositoryNativeProblem": null,
+        "resourceEnvelope": {
+          "aiCreditAllowance": {
+            "state": "missing",
+            "value": null
+          },
+          "humanAttention": {
+            "state": "missing",
+            "value": null
+          },
+          "monthlyAiCreditBudget": {
+            "state": "missing",
+            "value": null
+          },
+          "workflows": [
+            {
+              "maxAiCredits": {
+                "state": "missing",
+                "value": null
+              },
+              "workflowId": "workflow:blocked"
+            },
+            {
+              "maxAiCredits": {
+                "state": "missing",
+                "value": null
+              },
+              "workflowId": "workflow:blocked-worker"
+            }
+          ]
+        },
+        "scheduleRationale": null,
+        "stopConditions": null,
+        "targetPopulation": null,
+        "triggerAndSchedule": null,
+        "workflows": [
+          {
+            "maxAiCredits": {
+              "state": "missing",
+              "value": null
+            },
+            "role": "orchestrator",
+            "rolloutMode": null,
+            "state": null,
+            "workflowId": "workflow:blocked"
+          },
+          {
+            "maxAiCredits": {
+              "state": "missing",
+              "value": null
+            },
+            "role": "worker",
+            "rolloutMode": null,
+            "state": null,
+            "workflowId": "workflow:blocked-worker"
+          }
+        ]
+      },
+      {
+        "authorityContext": {
+          "enabled": true,
+          "maxRepositories": {
+            "state": "missing",
+            "value": null
+          },
+          "mode": "review",
+          "rolloutPercent": {
+            "state": "missing",
+            "value": null
+          },
+          "targets": [
+            {
+              "repository": "octo/expected"
+            }
+          ]
+        },
+        "backoff": null,
+        "campaignId": "campaign:maintenance",
+        "campaignSlug": "maintenance",
+        "contractId": "campaign-intelligence-contract:c7a9c43d021c62fdc98fdc4f",
+        "contractVersion": "1.1.0",
+        "declaration": null,
+        "deduplication": null,
+        "eligibleOpportunity": null,
+        "inputFingerprint": "sha256:68450e49d050da4aeff1dc07069b383cae4dcebc27efab59ae8f450ba615997a",
+        "intendedOutcome": null,
+        "interventionClass": null,
+        "maturationPeriod": null,
+        "maxDetectionDelay": null,
+        "operationalValueDefinition": null,
+        "outcomeAttainmentEvidence": null,
+        "outputApprovalPolicy": null,
+        "overlapIdentity": null,
+        "quality": {
+          "attributionCoverage": {
+            "denominator": null,
+            "numerator": null,
+            "state": "unknown"
+          },
+          "availability": "available",
+          "completeness": "partial",
+          "contractId": "evidence-quality",
+          "contractVersion": "1.0.0",
+          "contradictionState": "unknown",
+          "coverage": {
+            "denominator": 17,
+            "numerator": 2,
+            "state": "partial"
+          },
+          "freshness": {
+            "observedAt": null,
+            "state": "unknown"
+          },
+          "maturity": "unknown",
+          "provenance": {
+            "sources": [],
+            "state": "missing"
+          }
+        },
+        "repositoryNativeProblem": null,
+        "resourceEnvelope": {
+          "aiCreditAllowance": {
+            "state": "missing",
+            "value": null
+          },
+          "humanAttention": {
+            "state": "missing",
+            "value": null
+          },
+          "monthlyAiCreditBudget": {
+            "state": "zero",
+            "value": 0
+          },
+          "workflows": [
+            {
+              "maxAiCredits": {
+                "state": "missing",
+                "value": null
+              },
+              "workflowId": "workflow:orchestrator"
+            },
+            {
+              "maxAiCredits": {
+                "state": "missing",
+                "value": null
+              },
+              "workflowId": "workflow:recovery"
+            },
+            {
+              "maxAiCredits": {
+                "state": "available",
+                "value": 123
+              },
+              "workflowId": "workflow:worker"
+            }
+          ]
+        },
+        "scheduleRationale": null,
+        "stopConditions": null,
+        "targetPopulation": [
+          {
+            "repository": "octo/expected"
+          }
+        ],
+        "triggerAndSchedule": null,
+        "workflows": [
+          {
+            "maxAiCredits": {
+              "state": "missing",
+              "value": null
+            },
+            "role": "orchestrator",
+            "rolloutMode": null,
+            "state": "active",
+            "workflowId": "workflow:orchestrator"
+          },
+          {
+            "maxAiCredits": {
+              "state": "missing",
+              "value": null
+            },
+            "role": "worker",
+            "rolloutMode": null,
+            "state": null,
+            "workflowId": "workflow:recovery"
+          },
+          {
+            "maxAiCredits": {
+              "state": "available",
+              "value": 123
+            },
+            "role": "worker",
+            "rolloutMode": null,
+            "state": "active",
+            "workflowId": "workflow:worker"
+          }
+        ]
+      },
+      {
+        "authorityContext": {
+          "enabled": null,
+          "maxRepositories": {
+            "state": "missing",
+            "value": null
+          },
+          "mode": null,
+          "rolloutPercent": {
+            "state": "missing",
+            "value": null
+          },
+          "targets": null
+        },
+        "backoff": null,
+        "campaignId": "campaign:unobserved",
+        "campaignSlug": "unobserved",
+        "contractId": "campaign-intelligence-contract:548c0fe89c376d5ce9be4b63",
+        "contractVersion": "1.1.0",
+        "declaration": null,
+        "deduplication": null,
+        "eligibleOpportunity": null,
+        "inputFingerprint": "sha256:5f3677a683bd593a3a3330728a6fce6d7a0b589cf71d9592c3337a97ec8da20b",
+        "intendedOutcome": null,
+        "interventionClass": null,
+        "maturationPeriod": null,
+        "maxDetectionDelay": null,
+        "operationalValueDefinition": null,
+        "outcomeAttainmentEvidence": null,
+        "outputApprovalPolicy": null,
+        "overlapIdentity": null,
+        "quality": {
+          "attributionCoverage": {
+            "denominator": null,
+            "numerator": null,
+            "state": "unknown"
+          },
+          "availability": "available",
+          "completeness": "partial",
+          "contractId": "evidence-quality",
+          "contractVersion": "1.0.0",
+          "contradictionState": "unknown",
+          "coverage": {
+            "denominator": 17,
+            "numerator": 1,
+            "state": "partial"
+          },
+          "freshness": {
+            "observedAt": null,
+            "state": "unknown"
+          },
+          "maturity": "unknown",
+          "provenance": {
+            "sources": [],
+            "state": "missing"
+          }
+        },
+        "repositoryNativeProblem": null,
+        "resourceEnvelope": {
+          "aiCreditAllowance": {
+            "state": "missing",
+            "value": null
+          },
+          "humanAttention": {
+            "state": "missing",
+            "value": null
+          },
+          "monthlyAiCreditBudget": {
+            "state": "missing",
+            "value": null
+          },
+          "workflows": [
+            {
+              "maxAiCredits": {
+                "state": "missing",
+                "value": null
+              },
+              "workflowId": "workflow:unobserved"
+            }
+          ]
+        },
+        "scheduleRationale": null,
+        "stopConditions": null,
+        "targetPopulation": null,
+        "triggerAndSchedule": null,
+        "workflows": [
+          {
+            "maxAiCredits": {
+              "state": "missing",
+              "value": null
+            },
+            "role": "orchestrator",
+            "rolloutMode": null,
+            "state": null,
+            "workflowId": "workflow:unobserved"
+          }
+        ]
+      }
+    ],
+    "correlatedCandidateCount": 2,
+    "decisionCount": 1,
+    "decisions": [
+      {
+        "alternatives": [
+          {
+            "action": "defer",
+            "condition": "Wait for another canonical runtime observation.",
+            "id": "defer"
+          },
+          {
+            "action": "do-nothing",
+            "consequence": "The observed failure condition remains unresolved.",
+            "id": "do-nothing"
+          },
+          {
+            "action": "obtain-additional-evidence",
+            "evidence": "Inspect the referenced workflow runs and bounded diagnostics.",
+            "id": "obtain-additional-evidence"
+          }
+        ],
+        "campaignContract": {
+          "contractId": "campaign-intelligence-contract:1b3d2880def5de27ab98340d",
+          "inputFingerprint": "sha256:95e13002a3d044f30209062241bec212afefa22d46dad4e804e5830bc4a18d7d"
+        },
+        "capacityRequirements": [],
+        "computedAt": "2026-10-01T10:07:00.000Z",
+        "consequences": {
+          "affectedPartitionCount": 1,
+          "distinctRunAttemptCount": 1,
+          "observedFailureCount": 1
+        },
+        "correlationGroup": {
+          "key": "campaign:blocked\u0000driver-exit",
+          "rule": "exact-campaign-and-runtime-error-key",
+          "signalCount": 1
+        },
+        "decisionClass": "protect",
+        "decisionId": "runtime-health-decision:e2343e190f3c89e2ad81b3e6",
+        "decisionTrace": {
+          "assumptions": [
+            "runtime-health error keys identify the same underlying condition"
+          ],
+          "capacityConstraints": [],
+          "excludedAlternatives": [],
+          "gates": [
+            "execution authority is not evaluated"
+          ],
+          "inputs": [
+            {
+              "inputFingerprint": "sha256:e0c40828173df80aeae20ed9f76ebf9fd13f96e1879810dbda053fa9dc48e086",
+              "signalId": "runtime-health-signal:7ce900f66b79e0643be78853"
+            }
+          ],
+          "measureVersions": {
+            "portfolio-decisions": "1.2.0",
+            "runtime-health": "1.0.0"
+          },
+          "rules": [
+            "correlate exact campaign and runtime error key",
+            "exclude observed targets outside declared scope",
+            "suppress while recovery may be in progress",
+            "preserve review-only advisory output"
+          ],
+          "thresholds": {
+            "actNowFailureCount": 3
+          },
+          "tieBreakers": [
+            "decision state priority",
+            "decisionId lexical order"
+          ]
+        },
+        "evidenceReferences": [
+          "github:run:7:attempt:1"
+        ],
+        "feedback": null,
+        "forecast": {
+          "method": "observed-recurrence",
+          "note": "No model-generated probability is used.",
+          "probability": null
+        },
+        "hardGates": [
+          {
+            "effect": "dispatch-prohibited",
+            "id": "execution-authority",
+            "status": "not-evaluated"
+          }
+        ],
+        "inputFingerprint": "sha256:21f0b6f84598694accb97d7af4418f965818e6b9c6960fb8b09cf535c2eede5d",
+        "measureId": "portfolio-decisions",
+        "measureVersion": "1.2.0",
+        "quality": {
+          "attributionCoverage": {
+            "denominator": 1,
+            "numerator": 0,
+            "state": "partial"
+          },
+          "availability": "available",
+          "completeness": "partial",
+          "contractId": "evidence-quality",
+          "contractVersion": "1.0.0",
+          "contradictionState": "unknown",
+          "correlationRule": "exact-campaign-and-runtime-error-key",
+          "coverage": {
+            "denominator": null,
+            "numerator": 1,
+            "state": "partial"
+          },
+          "evidenceReferenceCount": 1,
+          "freshness": {
+            "observedAt": "2026-10-01T10:07:00.000Z",
+            "state": "unknown"
+          },
+          "maturity": "unknown",
+          "provenance": {
+            "sources": [
+              "campaign-intelligence-contract",
+              "runtime-health"
+            ],
+            "state": "available"
+          }
+        },
+        "recommendation": {
+          "dispatchable": false,
+          "errorKey": "driver-exit",
+          "mode": "review",
+          "operation": "investigate-runtime-failure"
+        },
+        "sensitivity": [
+          {
+            "currentState": "decide-soon",
+            "parameter": "actNowFailureCount",
+            "value": 3
+          }
+        ],
+        "state": "decide-soon",
+        "subject": {
+          "campaignId": "campaign:blocked",
+          "targetRepositoryIds": [],
+          "workflowIds": [
+            "workflow:blocked"
+          ]
+        }
+      }
+    ],
+    "evaluatedDecisionClasses": [
+      "protect"
+    ],
+    "evidenceQuality": {
+      "attributionCoverage": {
+        "denominator": null,
+        "numerator": null,
+        "state": "unknown"
+      },
+      "availability": "available",
+      "completeness": "partial",
+      "contractId": "evidence-quality",
+      "contractVersion": "1.0.0",
+      "contradictionState": "unknown",
+      "coverage": {
+        "denominator": null,
+        "numerator": 3,
+        "state": "partial"
+      },
+      "freshness": {
+        "observedAt": "2026-10-01T10:09:00.000Z",
+        "state": "unknown"
+      },
+      "maturity": "unknown",
+      "provenance": {
+        "sources": [
+          "campaign-intelligence-contract",
+          "runtime-health"
+        ],
+        "state": "available"
+      }
+    },
+    "feedback": {
+      "appliedCount": 1,
+      "contractId": "decision-feedback",
+      "contractVersion": "1.0.0",
+      "recordCount": 3,
+      "records": [
+        {
+          "actor": "operator",
+          "actualCost": {
+            "1": 100000000000000000000,
+            "2": 1e-07,
+            "text": "<&> "
+          },
+          "authority": null,
+          "decisionId": "runtime-health-decision:9686b5f4375242436a0b5014",
+          "disposition": "rejected",
+          "feedbackId": "decision-feedback:435763463d9cc8f9a808e548",
+          "forecastAccuracy": null,
+          "inputFingerprint": "sha256:bc45744ccb80546a9831a00eb26c6af78505941ce5893af7adb83d59dfd615fb",
+          "observedAt": "2026-10-02T10:00:00.000Z",
+          "operationalValueMovement": null,
+          "outcomeDisposition": null,
+          "rationale": null,
+          "selectedAlternativeId": null,
+          "unexpectedEffects": null
+        },
+        {
+          "actor": null,
+          "actualCost": null,
+          "authority": null,
+          "decisionId": "unmatched",
+          "disposition": "unresolved",
+          "feedbackId": "decision-feedback:e5481746903910c79e71a5ec",
+          "forecastAccuracy": null,
+          "inputFingerprint": "sha256:bc45744ccb80546a9831a00eb26c6af78505941ce5893af7adb83d59dfd615fb",
+          "observedAt": "2026-10-02T11:00:00.000Z",
+          "operationalValueMovement": null,
+          "outcomeDisposition": null,
+          "rationale": null,
+          "selectedAlternativeId": null,
+          "unexpectedEffects": null
+        },
+        {
+          "actor": null,
+          "actualCost": null,
+          "authority": null,
+          "decisionId": "runtime-health-decision:9686b5f4375242436a0b5014",
+          "disposition": "unresolved",
+          "feedbackId": "decision-feedback:eae967ae65725dfc64856972",
+          "forecastAccuracy": null,
+          "inputFingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "observedAt": "2026-10-02T11:00:00.000Z",
+          "operationalValueMovement": null,
+          "outcomeDisposition": null,
+          "rationale": null,
+          "selectedAlternativeId": null,
+          "unexpectedEffects": null
+        }
+      ],
+      "staleCount": 1,
+      "staleFeedbackIds": [
+        "decision-feedback:eae967ae65725dfc64856972"
+      ],
+      "unmatchedCount": 1,
+      "unmatchedFeedbackIds": [
+        "decision-feedback:e5481746903910c79e71a5ec"
+      ]
+    },
+    "inputFingerprint": "sha256:4fffc6069ccabc1ee98a265f78ad7d2e5cdee751294f0b81e9bb8c04c526d193",
+    "measureId": "portfolio-decisions",
+    "measureVersion": "1.2.0",
+    "reusedDecisionIds": [
+      "runtime-health-decision:e2343e190f3c89e2ad81b3e6"
+    ],
+    "signalCount": 4,
+    "suppressionCount": 3,
+    "suppressions": [
+      {
+        "inputFingerprint": "sha256:42c87280880f7e0f8fbd331b776af3b146a347229d64dee17956b7077559377a",
+        "nextReconsideration": "Reconsider when the input fingerprint changes.",
+        "relatedDecisionId": "runtime-health-decision:9686b5f4375242436a0b5014",
+        "rule": "unchanged-terminal-result",
+        "signalId": "runtime-health-signal:e5888f902e723226d518cb1c",
+        "subject": {
+          "campaignId": "campaign:maintenance",
+          "targetRepositoryId": "repository:expected",
+          "workflowId": "workflow:worker"
+        },
+        "suppressionId": "suppression:ab5f8d5c3efb881fcc660c07"
+      },
+      {
+        "inputFingerprint": "sha256:715d00112dc646b5495a2cdff3d8c6c914982d0db4ddef2ddb5b277ac4469101",
+        "nextReconsideration": "Reconsider after the active run reaches a terminal state.",
+        "relatedDecisionId": null,
+        "rule": "recovery-in-progress",
+        "signalId": "runtime-health-signal:1b13ee39092e40365deb4414",
+        "subject": {
+          "campaignId": "campaign:maintenance",
+          "targetRepositoryId": "repository:expected",
+          "workflowId": "workflow:recovery"
+        },
+        "suppressionId": "suppression:ac55d0a9f6ad92ba2b863ee3"
+      },
+      {
+        "inputFingerprint": "sha256:0008b4e73710b29b99b0b0e29bf55e4c8753033ff5eef716690ea45194bff27c",
+        "nextReconsideration": "Reconsider when the repository is explicitly enrolled.",
+        "relatedDecisionId": null,
+        "rule": "outside-declared-target-scope",
+        "signalId": "runtime-health-signal:47dd770099eeb1921525ef5e",
+        "subject": {
+          "campaignId": "campaign:maintenance",
+          "targetRepositoryId": "repository:extra",
+          "workflowId": "workflow:worker"
+        },
+        "suppressionId": "suppression:b55b8ee843a9930c61af7bdc"
+      }
+    ]
+  }
+}

@@ -139,51 +139,6 @@ func TestSessionOtherAttemptAndUnknownEventsRemainExplicit(t *testing.T) {
 	}
 }
 
-func TestCompactActivityOracle(t *testing.T) {
-	input := `{"schema_version":5,"kind":"workflow_runs","request":{"repository":"octo/api"},"payload":[{"databaseId":303,"attempt":1},{"databaseId":404,"attempt":1}]}
-{"schema_version":5,"kind":"run","run":{"repository":"octo/api","run_id":303,"run_attempt":1,"workflow_path":".github/workflows/test.lock.yml","model":null}}
-{"schema_version":5,"kind":"run","run":{"repository":"octo/api","run_id":303,"run_attempt":1,"workflow_path":".github/workflows/test.lock.yml","model":null}}
-{"schema_version":5,"kind":"run","run":{"repository":"octo/api","run_id":303,"run_attempt":2,"workflow_path":".github/workflows/test.lock.yml","model":"new"}}
-{"schema_version":5,"kind":"run","run":{"repository":"octo/api","run_id":404,"run_attempt":1,"workflow_path":".github/workflows/ordinary.yml"}}
-{"schema_version":5,"kind":"safe_output_item","request":{"repository":"octo/api"},"safe_output":{"run_id":303}}
-{"schema_version":5,"kind":"safe_output_item","request":{"repository":"octo/api"},"safe_output":{"run_id":404}}
-{"schema_version":5,"kind":"token_efficiency_observation","request":{"repository":"octo/api"},"observation":{"optimizerRunId":303}}
-`
-	expected := oracle(t, `
-import { mkdtemp, writeFile, readdir, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { compactJsonlShards } from './activity/cli/jsonl.mjs';
-let content=''; for await (const chunk of process.stdin) content+=chunk;
-const directory=await mkdtemp(path.join(tmpdir(),'cao-native-oracle-'));
-try {
- await writeFile(path.join(directory,'test-1.jsonl'),content);
- await compactJsonlShards(directory,['octo/api=test-']);
- for (const name of (await readdir(directory)).filter(x=>x.endsWith('.jsonl')).sort())
-   process.stdout.write(await readFile(path.join(directory,name)));
-} finally { await rm(directory,{recursive:true,force:true}); }
-`, []byte(input))
-	var output bytes.Buffer
-	if err := Compact(t.Context(), "octo/api", strings.NewReader(input), &output, Limits{}); err != nil {
-		t.Fatal(err)
-	}
-	parse := func(content []byte) []any {
-		lines := bytes.Split(bytes.TrimSpace(content), []byte("\n"))
-		result := make([]any, 0, len(lines))
-		for _, line := range lines {
-			var value any
-			if err := json.Unmarshal(line, &value); err != nil {
-				t.Fatal(err)
-			}
-			result = append(result, value)
-		}
-		return result
-	}
-	if !reflect.DeepEqual(parse(output.Bytes()), parse(expected)) {
-		t.Fatalf("native compaction differs from Activity:\n%s\n%s", output.Bytes(), expected)
-	}
-}
-
 func TestCompactFailsBeforeWritingForeignEvidence(t *testing.T) {
 	for _, input := range []string{
 		`{"kind":"run","run":{"repository":"other/repo","run_id":303,"workflow_path":".github/workflows/test.lock.yml"}}`,

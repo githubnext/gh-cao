@@ -1,0 +1,548 @@
+{
+  "contracts:629c054d62e5697f6a73d2109a8ba861a829aa03ad7122a87d01057df5eca6ec": [
+    {
+      "authorityContext": {
+        "enabled": null,
+        "maxRepositories": {
+          "state": "missing",
+          "value": null
+        },
+        "mode": null,
+        "rolloutPercent": {
+          "state": "missing",
+          "value": null
+        },
+        "targets": null
+      },
+      "backoff": null,
+      "campaignId": "campaign:blocked",
+      "campaignSlug": "blocked",
+      "contractId": "campaign-intelligence-contract:1b3d2880def5de27ab98340d",
+      "contractVersion": "1.1.0",
+      "declaration": null,
+      "deduplication": null,
+      "eligibleOpportunity": null,
+      "inputFingerprint": "sha256:c03c817329534d06a21c6de4281e2f1b4a777567b3e439181ba3b481bff8055a",
+      "intendedOutcome": null,
+      "interventionClass": null,
+      "maturationPeriod": null,
+      "maxDetectionDelay": null,
+      "operationalValueDefinition": null,
+      "outcomeAttainmentEvidence": null,
+      "outputApprovalPolicy": null,
+      "overlapIdentity": null,
+      "quality": {
+        "attributionCoverage": {
+          "denominator": null,
+          "numerator": null,
+          "state": "unknown"
+        },
+        "availability": "available",
+        "completeness": "partial",
+        "contractId": "evidence-quality",
+        "contractVersion": "1.0.0",
+        "contradictionState": "unknown",
+        "coverage": {
+          "denominator": 17,
+          "numerator": 1,
+          "state": "partial"
+        },
+        "freshness": {
+          "observedAt": "2026-10-01T10:30:00.000Z",
+          "state": "unknown"
+        },
+        "maturity": "unknown",
+        "provenance": {
+          "sources": [
+            "inventory"
+          ],
+          "state": "available"
+        }
+      },
+      "repositoryNativeProblem": null,
+      "resourceEnvelope": {
+        "aiCreditAllowance": {
+          "state": "missing",
+          "value": null
+        },
+        "humanAttention": {
+          "state": "missing",
+          "value": null
+        },
+        "monthlyAiCreditBudget": {
+          "state": "missing",
+          "value": null
+        },
+        "workflows": [
+          {
+            "maxAiCredits": {
+              "state": "missing",
+              "value": null
+            },
+            "workflowId": "workflow:blocked"
+          },
+          {
+            "maxAiCredits": {
+              "state": "missing",
+              "value": null
+            },
+            "workflowId": "workflow:blocked-worker"
+          }
+        ]
+      },
+      "scheduleRationale": null,
+      "stopConditions": null,
+      "targetPopulation": null,
+      "triggerAndSchedule": null,
+      "workflows": [
+        {
+          "maxAiCredits": {
+            "state": "missing",
+            "value": null
+          },
+          "role": "orchestrator",
+          "rolloutMode": null,
+          "state": null,
+          "workflowId": "workflow:blocked"
+        },
+        {
+          "maxAiCredits": {
+            "state": "missing",
+            "value": null
+          },
+          "role": "worker",
+          "rolloutMode": null,
+          "state": null,
+          "workflowId": "workflow:blocked-worker"
+        }
+      ]
+    },
+    {
+      "authorityContext": {
+        "enabled": true,
+        "maxRepositories": {
+          "state": "missing",
+          "value": null
+        },
+        "mode": "review",
+        "rolloutPercent": {
+          "state": "missing",
+          "value": null
+        },
+        "targets": [
+          {
+            "repository": "octo/expected"
+          }
+        ]
+      },
+      "backoff": {
+        "declared": "backoff",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "campaignId": "campaign:maintenance",
+      "campaignSlug": "maintenance",
+      "contractId": "campaign-intelligence-contract:c7a9c43d021c62fdc98fdc4f",
+      "contractVersion": "1.1.0",
+      "declaration": {
+        "campaign": "maintenance",
+        "contractVersion": "1.0.0"
+      },
+      "deduplication": {
+        "declared": "deduplication",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "eligibleOpportunity": {
+        "declared": "eligibleOpportunity",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "inputFingerprint": "sha256:6221b25eee768bd1094dc6a7ecf1718972bc9dfc62fe7acf3324ec51bb4bbb40",
+      "intendedOutcome": {
+        "declared": "intendedOutcome",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "interventionClass": {
+        "declared": "interventionClass",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "maturationPeriod": {
+        "declared": "maturationPeriod",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "maxDetectionDelay": {
+        "declared": "maxDetectionDelay",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "operationalValueDefinition": {
+        "declared": "operationalValueDefinition",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "outcomeAttainmentEvidence": {
+        "declared": "outcomeAttainmentEvidence",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "outputApprovalPolicy": {
+        "declared": "outputApprovalPolicy",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "overlapIdentity": {
+        "declared": "overlapIdentity",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "quality": {
+        "attributionCoverage": {
+          "denominator": null,
+          "numerator": null,
+          "state": "unknown"
+        },
+        "availability": "available",
+        "completeness": "complete",
+        "contractId": "evidence-quality",
+        "contractVersion": "1.0.0",
+        "contradictionState": "unknown",
+        "coverage": {
+          "denominator": 17,
+          "numerator": 17,
+          "state": "complete"
+        },
+        "freshness": {
+          "observedAt": "2026-10-01T10:30:00.000Z",
+          "state": "unknown"
+        },
+        "maturity": "unknown",
+        "provenance": {
+          "sources": [
+            "campaign-intelligence-declaration",
+            "inventory"
+          ],
+          "state": "available"
+        }
+      },
+      "repositoryNativeProblem": {
+        "declared": "repositoryNativeProblem",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "resourceEnvelope": {
+        "declared": "resourceEnvelope",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "scheduleRationale": {
+        "declared": "scheduleRationale",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "stopConditions": {
+        "declared": "stopConditions",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "targetPopulation": {
+        "declared": "targetPopulation",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "triggerAndSchedule": {
+        "declared": "triggerAndSchedule",
+        "values": [
+          0,
+          false,
+          "<&> ",
+          "literal \\u003c",
+          "\u0000\b\f\n\r\t\"\\",
+          1e-07,
+          1e-06,
+          100000000000000000000,
+          1e+21
+        ]
+      },
+      "workflows": [
+        {
+          "maxAiCredits": {
+            "state": "missing",
+            "value": null
+          },
+          "role": "orchestrator",
+          "rolloutMode": null,
+          "state": "active",
+          "workflowId": "workflow:orchestrator"
+        },
+        {
+          "maxAiCredits": {
+            "state": "missing",
+            "value": null
+          },
+          "role": "worker",
+          "rolloutMode": null,
+          "state": null,
+          "workflowId": "workflow:recovery"
+        },
+        {
+          "maxAiCredits": {
+            "state": "available",
+            "value": 123
+          },
+          "role": "worker",
+          "rolloutMode": null,
+          "state": "active",
+          "workflowId": "workflow:worker"
+        }
+      ]
+    },
+    {
+      "authorityContext": {
+        "enabled": null,
+        "maxRepositories": {
+          "state": "missing",
+          "value": null
+        },
+        "mode": null,
+        "rolloutPercent": {
+          "state": "missing",
+          "value": null
+        },
+        "targets": null
+      },
+      "backoff": null,
+      "campaignId": "campaign:unobserved",
+      "campaignSlug": "unobserved",
+      "contractId": "campaign-intelligence-contract:548c0fe89c376d5ce9be4b63",
+      "contractVersion": "1.1.0",
+      "declaration": null,
+      "deduplication": null,
+      "eligibleOpportunity": null,
+      "inputFingerprint": "sha256:d558d0c38bec44814f36c0eb430723ad555c7f06c009dff6c2eab0488b6ee44e",
+      "intendedOutcome": null,
+      "interventionClass": null,
+      "maturationPeriod": null,
+      "maxDetectionDelay": null,
+      "operationalValueDefinition": null,
+      "outcomeAttainmentEvidence": null,
+      "outputApprovalPolicy": null,
+      "overlapIdentity": null,
+      "quality": {
+        "attributionCoverage": {
+          "denominator": null,
+          "numerator": null,
+          "state": "unknown"
+        },
+        "availability": "available",
+        "completeness": "partial",
+        "contractId": "evidence-quality",
+        "contractVersion": "1.0.0",
+        "contradictionState": "unknown",
+        "coverage": {
+          "denominator": 17,
+          "numerator": 1,
+          "state": "partial"
+        },
+        "freshness": {
+          "observedAt": "2026-10-01T10:30:00.000Z",
+          "state": "unknown"
+        },
+        "maturity": "unknown",
+        "provenance": {
+          "sources": [
+            "inventory"
+          ],
+          "state": "available"
+        }
+      },
+      "repositoryNativeProblem": null,
+      "resourceEnvelope": {
+        "aiCreditAllowance": {
+          "state": "missing",
+          "value": null
+        },
+        "humanAttention": {
+          "state": "missing",
+          "value": null
+        },
+        "monthlyAiCreditBudget": {
+          "state": "missing",
+          "value": null
+        },
+        "workflows": [
+          {
+            "maxAiCredits": {
+              "state": "missing",
+              "value": null
+            },
+            "workflowId": "workflow:unobserved"
+          }
+        ]
+      },
+      "scheduleRationale": null,
+      "stopConditions": null,
+      "targetPopulation": null,
+      "triggerAndSchedule": null,
+      "workflows": [
+        {
+          "maxAiCredits": {
+            "state": "missing",
+            "value": null
+          },
+          "role": "orchestrator",
+          "rolloutMode": null,
+          "state": null,
+          "workflowId": "workflow:unobserved"
+        }
+      ]
+    }
+  ]
+}

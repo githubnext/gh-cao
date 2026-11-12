@@ -74,13 +74,6 @@ func (task Task) debounceKey() string {
 	return debounceKey(task.Repository)
 }
 
-func (task Task) lockKey() string {
-	if task.Scope != nil || task.Lifecycle != "" {
-		return "scope:" + strconv.FormatInt(task.InstallationID, 10)
-	}
-	return task.Repository
-}
-
 // RunTask durably admits an exact historical attempt or a bounded enumeration
 // page. An enumeration never grants scope or implies artifact acquisition.
 type RunTask struct {

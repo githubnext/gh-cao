@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -21,35 +20,54 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
-func TestSQLiteManifestURLs(t *testing.T) {
-	for _, test := range []struct {
-		input string
-		want  []string
-	}{
-		{"https://owner.github.io/project", []string{"https://owner.github.io/project/payload-hashes.json", "https://owner.github.io/project/cao/payload-hashes.json"}},
-		{"https://owner.github.io/project/cao/", []string{"https://owner.github.io/project/cao/payload-hashes.json", "https://owner.github.io/project/cao/cao/payload-hashes.json"}},
-		{"https://dashboard.example.org", []string{"https://dashboard.example.org/payload-hashes.json", "https://dashboard.example.org/cao/payload-hashes.json"}},
-		{"https://dashboard.example.org/project/index.html", []string{"https://dashboard.example.org/project/payload-hashes.json", "https://dashboard.example.org/project/cao/payload-hashes.json"}},
-		{"https://dashboard.example.org/custom/payload-hashes.json", []string{"https://dashboard.example.org/custom/payload-hashes.json"}},
+func TestSQLiteManifestURL(t *testing.T) {
+	for _, input := range []string{
+		"https://snapshot.example.org/custom/payload-hashes.json",
+		"http://127.0.0.1:8080/payload-hashes.json",
 	} {
-		t.Run(test.input, func(t *testing.T) {
-			locations, err := sqliteManifestURLs(test.input)
+		t.Run(input, func(t *testing.T) {
+			location, err := sqliteManifestURL(input)
 			if err != nil {
 				t.Fatal(err)
 			}
-			got := make([]string, len(locations))
-			for index, location := range locations {
-				got[index] = location.String()
-			}
-			if !reflect.DeepEqual(got, test.want) {
-				t.Fatalf("locations = %v, want %v", got, test.want)
+			if location.String() != input {
+				t.Fatalf("location = %s, want %s", location, input)
 			}
 		})
 	}
-	for _, input := range []string{"", "file:///tmp/data", "/relative", "https://user:password@example.org", "https://example.org/#secret", "https://%"} {
-		if _, err := sqliteManifestURLs(input); err == nil || strings.Contains(err.Error(), input) && input != "" {
+	for _, input := range []string{"", "file:///data", "/relative", "https://user:password@example.org", "https://example.org/#secret", "https://%",
+		"https://owner.github.io/project", "https://owner.github.io/project/cao/", "https://dashboard.example.org", "https://dashboard.example.org/project/index.html"} {
+		if _, err := sqliteManifestURL(input); err == nil || strings.Contains(err.Error(), input) && input != "" {
 			t.Errorf("URL must fail without echoing unsafe input: %q: %v", input, err)
 		}
+	}
+}
+
+func TestDownloadSQLiteDoesNotDiscoverDirectories(t *testing.T) {
+	var requests atomic.Int32
+	remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer remote.Close()
+	directory := t.TempDir()
+	destination := filepath.Join(directory, "snapshot.sqlite")
+	for _, source := range []string{"", remote.URL, remote.URL + "/cao/", remote.URL + "/index.html"} {
+		if err := downloadSQLite(t.Context(), source, destination); err == nil {
+			t.Fatalf("accepted implicit manifest: %q", source)
+		}
+	}
+	if requests.Load() != 0 {
+		t.Fatalf("directory discovery requested %d URLs", requests.Load())
+	}
+	if err := downloadSQLite(t.Context(), remote.URL+"/payload-hashes.json", destination); err == nil {
+		t.Fatal("accepted missing explicit manifest")
+	}
+	if requests.Load() != 1 {
+		t.Fatalf("missing manifest must not probe alternate locations: %d", requests.Load())
+	}
+	if entries, err := os.ReadDir(directory); err != nil || len(entries) != 0 {
+		t.Fatalf("invalid source created a snapshot: %v, %v", entries, err)
 	}
 }
 
@@ -85,7 +103,7 @@ func TestDownloadSQLiteResolvesImageAfterManifestRedirect(t *testing.T) {
 	remote := httptest.NewServer(mux)
 	defer remote.Close()
 	destination := filepath.Join(t.TempDir(), "snapshot.sqlite")
-	if err := downloadSQLite(t.Context(), remote.URL+"/project/", destination); err != nil {
+	if err := downloadSQLite(t.Context(), remote.URL+"/project/payload-hashes.json", destination); err != nil {
 		t.Fatal(err)
 	}
 	got, err := os.ReadFile(destination) // #nosec G304 -- cache path is within testing.T.TempDir.
@@ -94,18 +112,14 @@ func TestDownloadSQLiteResolvesImageAfterManifestRedirect(t *testing.T) {
 	}
 }
 
-func TestDownloadSQLiteFromPagesSites(t *testing.T) {
+func TestDownloadSQLiteFromExplicitManifests(t *testing.T) {
 	content := sqliteDownloadFixture(t)
 	for _, test := range []struct {
 		name string
-		site string
 		base string
 	}{
-		{"project-site", "/project", "/project"},
-		{"dashboard-directory", "/project/cao/", "/project/cao"},
-		{"documentation-site", "/project/", "/project/cao"},
-		{"custom-domain-root", "/", ""},
-		{"manifest", "/custom/payload-hashes.json", "/custom"},
+		{"nested", "/project/data"},
+		{"root", ""},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -122,7 +136,7 @@ func TestDownloadSQLiteFromPagesSites(t *testing.T) {
 			remote := httptest.NewServer(mux)
 			defer remote.Close()
 			destination := filepath.Join(t.TempDir(), "cache", "snapshot.sqlite")
-			if err := downloadSQLite(t.Context(), remote.URL+test.site, destination); err != nil {
+			if err := downloadSQLite(t.Context(), remote.URL+test.base+"/payload-hashes.json", destination); err != nil {
 				t.Fatal(err)
 			}
 			got, err := os.ReadFile(destination) // #nosec G304 -- cache path is within testing.T.TempDir.
@@ -160,13 +174,16 @@ func TestDownloadSQLitePreservesCacheOnFailure(t *testing.T) {
 		{"invalid-json", "{", nil, 0, "JSON object"},
 		{"no-digest", "{}", nil, 0, "SHA-256"},
 		{"invalid-digest", `{"gh-aw-logs.sqlite":"invalid"}`, nil, 0, "SHA-256"},
+		{"synthetic", `{"synthetic":true,"gh-aw-logs.sqlite":"` + strings.Repeat("a", 64) + `"}`, content, 0, "synthetic Pages demo"},
 		{"empty-image", sqliteDownloadManifest(nil), nil, 0, "empty response"},
 		{"checksum", sqliteDownloadManifest(content), []byte("different"), 0, "checksum mismatch"},
 		{"not-sqlite", sqliteDownloadManifest([]byte("invalid")), []byte("invalid"), 0, "validate downloaded"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
+			var requests atomic.Int32
 			remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests.Add(1)
 				switch {
 				case test.status != 0:
 					w.WriteHeader(test.status)
@@ -181,9 +198,12 @@ func TestDownloadSQLitePreservesCacheOnFailure(t *testing.T) {
 			if err := os.WriteFile(destination, content, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			err := downloadSQLite(t.Context(), remote.URL, destination)
+			err := downloadSQLite(t.Context(), remote.URL+"/payload-hashes.json", destination)
 			if err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("expected %q, got %v", test.want, err)
+			}
+			if test.name == "synthetic" && requests.Load() != 1 {
+				t.Fatalf("synthetic manifest triggered payload acquisition: %d", requests.Load())
 			}
 			got, err := os.ReadFile(destination) // #nosec G304 -- cache path is within testing.T.TempDir.
 			if err != nil || !bytes.Equal(got, content) {
@@ -216,7 +236,7 @@ func TestDownloadSQLiteRetriesChangingDeployment(t *testing.T) {
 	if err := os.WriteFile(destination, []byte("previous cache"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := downloadSQLite(t.Context(), remote.URL, destination); err != nil {
+	if err := downloadSQLite(t.Context(), remote.URL+"/payload-hashes.json", destination); err != nil {
 		t.Fatal(err)
 	}
 	got, err := os.ReadFile(destination) // #nosec G304 -- cache path is within testing.T.TempDir.
@@ -240,7 +260,7 @@ func TestDownloadSQLiteRetriesTransientHTTPFailure(t *testing.T) {
 		}
 	}))
 	defer remote.Close()
-	if err := downloadSQLite(t.Context(), remote.URL, filepath.Join(t.TempDir(), "snapshot.sqlite")); err != nil {
+	if err := downloadSQLite(t.Context(), remote.URL+"/payload-hashes.json", filepath.Join(t.TempDir(), "snapshot.sqlite")); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -263,7 +283,7 @@ func TestDownloadSQLiteRejectsUnsafeDestinations(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if err := downloadSQLite(t.Context(), defaultSQLiteDataURL, destination); err == nil {
+			if err := downloadSQLite(t.Context(), "https://snapshot.example.org/payload-hashes.json", destination); err == nil {
 				t.Fatal("unsafe destination accepted")
 			}
 		})
@@ -304,7 +324,7 @@ func TestDownloadSQLiteCancellation(t *testing.T) {
 	defer cancel()
 	done := make(chan error, 1)
 	destination := filepath.Join(t.TempDir(), "snapshot.sqlite")
-	go func() { done <- downloadSQLite(ctx, remote.URL, destination) }()
+	go func() { done <- downloadSQLite(ctx, remote.URL+"/payload-hashes.json", destination) }()
 	<-started
 	cancel()
 	if err := <-done; err == nil || !strings.Contains(err.Error(), "context canceled") {

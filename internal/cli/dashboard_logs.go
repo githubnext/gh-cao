@@ -53,22 +53,45 @@ func downloadDashboardLogs(ctx context.Context, request dashboardLogRequest, dow
 		budget = 256
 	}
 	for index, id := range request.WorkflowIDs {
+		if request.CheckQuota != nil {
+			if err := request.CheckQuota(ctx, 1); err != nil {
+				if !errors.Is(err, errDashboardQuota) {
+					return err
+				}
+				if request.Limited != nil {
+					*request.Limited = true
+				}
+				return nil
+			}
+		}
 		count := request.Count / len(request.WorkflowIDs)
 		if index < request.Count%len(request.WorkflowIDs) {
 			count++
+		}
+		if request.WorkflowCounts != nil {
+			count = request.WorkflowCounts[id]
+		}
+		ceiling := request.MaxAPIUsed
+		if ceiling == 0 {
+			ceiling = -1000
 		}
 		// An omitted workflow makes the pinned collector discover local lock files.
 		// Explicit remote IDs work from an empty folder and cannot select a namesake.
 		err := download(ctx, ghaw.LogsDownloadOptions{
 			WorkflowName: id, RepoOverride: "github.com/" + request.Repository, Count: count,
-			StartDate: request.StartDate, OutputDir: request.Directory, CachedJSONL: request.Cache,
-			TimeoutMinutes: 2, MaxGitHubAPIRateLimit: -1000, MaxStorageMB: budget, MaxStorageMBSet: true,
+			StartDate: request.StartDate, EndDate: request.EndDate,
+			BeforeRunID: request.BeforeRunID, AfterRunID: request.AfterRunID,
+			OutputDir: request.Directory, CachedJSONL: request.Cache,
+			TimeoutMinutes: 2, MaxGitHubAPIRateLimit: ceiling, MaxStorageMB: budget, MaxStorageMBSet: true,
 			ArtifactSets: []string{"all"}, Audit: true, SuppressRender: true,
 			PruneOlderRuns: request.ManagedCache,
 		})
 		if ctx.Err() == context.DeadlineExceeded && caller.Err() == nil &&
 			(err == nil || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)) {
 			_, _ = fmt.Fprintln(os.Stderr, "Dashboard collection reached its two-minute budget; available cached evidence will be published with partial coverage.")
+			if request.Limited != nil {
+				*request.Limited = true
+			}
 			return nil
 		}
 		if err != nil {

@@ -64,17 +64,23 @@ test("query cost measures a bounded page without truncating input computation", 
   assert.equal(rows.length, QUERY_COST_PAGE_LIMIT * 3);
 });
 
-test("deployed integration runs both SQLite and Postgres query cost benchmarks", async () => {
+test("operational artifacts feed SQL benchmarks separately from synthetic UI checks", async () => {
   const workflow = await readFile(".github/workflows/dashboard-deployed-integration.yml", "utf8");
+  const { jobs } = parse(workflow);
   assert.match(workflow, /tests\/performance\/dashboard-query-cost\.test\.mjs/);
   assert.match(workflow, /tests\/performance\/dashboard-query-cost-postgres\.test\.mjs/);
   assert.match(workflow, /tests\/helpers\/dashboard-query-cost\.mjs/);
-  assert.match(workflow, /run: npm run dashboard:data:download/);
-  assert.match(workflow, /run: npm run test:performance:dashboard-query-cost/);
-  assert.match(workflow, /run: npm run test:performance:dashboard-query-cost-postgres/);
+  assert.match(jobs.integration.name, /synthetic/i);
+  assert.doesNotMatch(JSON.stringify(jobs.integration),
+    /test:performance:dashboard-quer|dashboard:data:download|cao-activity-index|DASHBOARD_DATA_URL/);
+  const benchmarkCommands = jobs["query-cost"].steps.map((step) => step.run ?? "").join("\n");
+  assert.match(benchmarkCommands, /go run \.\/cmd\/gh-cao download/);
+  assert.doesNotMatch(benchmarkCommands, /gh run download|github\.io/);
+  assert.match(benchmarkCommands, /npm run test:performance:dashboard-query-cost\n/);
+  assert.match(benchmarkCommands, /npm run test:performance:dashboard-query-cost-postgres\n/);
   assert.match(workflow, /image: postgres:16-alpine/);
-  assert.equal(parse(workflow).jobs["query-cost"].env.CAO_POSTGRES_RUN_RETENTION_DAYS, "90");
-  assert.equal(parse(workflow).jobs["query-cost"].env.CAO_POSTGRES_LINKED_RETENTION_DAYS, "7");
+  assert.equal(jobs["query-cost"].env.CAO_POSTGRES_RUN_RETENTION_DAYS, "90");
+  assert.equal(jobs["query-cost"].env.CAO_POSTGRES_LINKED_RETENTION_DAYS, "7");
   assert.match(workflow, /go -C server build -o \.\.\/\.tmp\/cao-dashboard/);
   assert.match(workflow, /name: dashboard-query-cost\n/);
   const manifest = JSON.parse(await readFile("package.json", "utf8"));
