@@ -30,8 +30,11 @@ gh cao dashboard --repo OWNER/REPOSITORY
 Or run `gh cao dashboard` in an existing repository checkout. Open the full
 **Dashboard:** URL printed in the terminal. The bundled Go server serves on
 loopback and queries a private PostgreSQL namespace on your machine.
-No CAO cloud deployment, Azure setup, hosted dashboard, PostgreSQL, Redis,
-containers, or separate Node.js or gh-aw installation is needed.
+No CAO cloud deployment, Azure setup, hosted dashboard, Redis, or separate
+Node.js or gh-aw installation is needed. PostgreSQL is required: the command
+manages a local Docker or Podman Linux container unless you supply
+`--postgres-url` (or `CAO_POSTGRES_URL`). On Windows and macOS, Docker Desktop
+must be running in Linux-container mode for the managed Docker path.
 
 GitHub is still the authenticated upstream evidence source; collection needs
 network access and your repository permissions. The command collects bounded
@@ -42,6 +45,36 @@ progress and quota pauses. Acquisition preserves API headroom and does not
 promise complete upstream or artifact coverage. Press **Ctrl-C** to stop while retaining
 the cache. See the [local quickstart](setup-quickstarts.md#open-a-local-dashboard-no-deployment)
 for installation, optional cache reuse, and evidence limits.
+
+### Cross-platform serving tests
+
+The **Local dashboard platforms** workflow builds the dashboard, native
+`gh-cao` command, and Go server on Linux, macOS, and Windows. Relevant source,
+generated dashboard assets, and build-input changes trigger it on pull requests
+and pushes to `main`. Hosted runners exercise real native PostgreSQL on all
+three platforms; Linux also exercises automatic Docker provisioning.
+
+GitHub-hosted Windows and macOS runners do not provide the Linux Docker daemon
+needed for managed PostgreSQL. Their native PostgreSQL results are not Docker
+Desktop evidence. To test that path, maintainers can manually dispatch the
+workflow on `main` with `docker_desktop` enabled. This requires the protected
+`dashboard-desktop-tests` environment and disposable self-hosted runners labelled
+`cao-dashboard-docker-ephemeral`, plus `Windows`, `X64` or `macOS`, `ARM64`.
+Configure environment approval before enabling these runners. Each must have
+Bash, Git, and a running local Docker Desktop Linux engine with host-directory
+sharing enabled. Never assign this label to a persistent or credential-bearing
+machine; these jobs do not run pull-request code.
+
+For a source checkout, build the server-profile site and both native commands,
+then select `TestDashboardServingIntegration` in the CLI Go tests with
+`CAO_DASHBOARD_SERVING_INTEGRATION=1`. Set absolute paths in
+`CAO_DASHBOARD_TEST_SITE`, `CAO_DASHBOARD_TEST_SERVER`, and
+`CAO_DASHBOARD_TEST_CLI`. Select a disposable numeric-loopback administrator
+connection with `CAO_DASHBOARD_TEST_POSTGRES_URL`, or set
+`CAO_DASHBOARD_TEST_DOCKER=1` for automatic local Docker provisioning.
+Selected backends fail rather than skip when prerequisites are unavailable.
+Synthetic GitHub evidence is test-only; the serving and query pipeline uses
+the production Go server and PostgreSQL.
 
 ## How it works
 

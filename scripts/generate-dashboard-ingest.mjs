@@ -1,9 +1,10 @@
 import { build } from "esbuild";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
 const { outputFiles } = await build({
-  entryPoints: [new URL("../dashboard/report/hydrate-local-logs.mjs", import.meta.url).pathname],
+  entryPoints: [fileURLToPath(new URL("../dashboard/report/hydrate-local-logs.mjs", import.meta.url))],
   bundle: true,
   format: "iife",
   globalName: "CaoIngest",

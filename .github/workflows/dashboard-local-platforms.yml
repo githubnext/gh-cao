@@ -1,0 +1,139 @@
+name: Local dashboard platforms
+
+on:
+  pull_request:
+    paths: &paths
+      - .github/workflows/dashboard-local-platforms.yml
+      - .github/workflows/cao.json
+      - .github/workflows/shared/**
+      - cmd/**
+      - internal/**
+      - dashboard/**
+      - server/**
+      - go.mod
+      - go.sum
+      - package.json
+      - package-lock.json
+      - .npmrc
+      - scripts/generate-dashboard-ingest.mjs
+      - scripts/prepare-dashboard-embed.mjs
+      - scripts/build-release.sh
+      - tests/unit/dashboard-local-platforms.test.mjs
+  push:
+    branches: [main]
+    paths: *paths
+  workflow_dispatch:
+    inputs:
+      docker_desktop:
+        description: Run protected ephemeral Windows/macOS Docker Desktop runners
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dashboard-local-platforms-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  serving:
+    name: ${{ matrix.os }} / ${{ matrix.backend }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: Linux, runner: ubuntu-24.04, backend: postgres, suffix: "" }
+          - { os: macOS, runner: macos-15, backend: postgres, suffix: "" }
+          - { os: Windows, runner: windows-2025, backend: postgres, suffix: ".exe" }
+          - { os: Linux, runner: ubuntu-24.04, backend: docker, suffix: "" }
+    steps: &serving-steps
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            server/go.sum
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            dashboard/site/package-lock.json
+      - name: Start native PostgreSQL
+        id: postgres
+        if: matrix.backend == 'postgres'
+        uses: ikalnytskyi/action-setup-postgres@c4dda34aae1c821e3a771b68b73b13af3198a7ee # v8
+        with:
+          postgres-version: "16"
+          database: cao_dashboard_test
+          port: 55432
+      - name: Verify Linux Docker engine
+        if: matrix.backend == 'docker'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(docker info --format '{{.OSType}}')" = linux
+          docker pull docker.io/library/postgres:16-alpine
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm --prefix dashboard/site ci --ignore-scripts --no-audit --no-fund
+      - name: Build dashboard and native commands
+        shell: bash
+        env:
+          CAO_DASHBOARD_PROFILE: server
+          EXE_SUFFIX: ${{ matrix.suffix }}
+        run: |
+          set -euo pipefail
+          node scripts/generate-dashboard-ingest.mjs --check
+          npm --prefix dashboard/site run build -- dist ../../.github/workflows/cao.json
+          mkdir -p .tmp
+          go -C server build -mod=readonly -o "../.tmp/cao-dashboard${EXE_SUFFIX}" ./cmd/cao-dashboard
+          go build -mod=readonly -o ".tmp/gh-cao${EXE_SUFFIX}" ./cmd/gh-cao
+      - name: Test real local serving
+        shell: bash
+        env:
+          CAO_DASHBOARD_SERVING_INTEGRATION: "1"
+          CAO_DASHBOARD_TEST_SERVER: ${{ github.workspace }}/.tmp/cao-dashboard${{ matrix.suffix }}
+          CAO_DASHBOARD_TEST_CLI: ${{ github.workspace }}/.tmp/gh-cao${{ matrix.suffix }}
+          CAO_DASHBOARD_TEST_SITE: ${{ github.workspace }}/dashboard/site/dist
+          CAO_DASHBOARD_TEST_POSTGRES_URL: ${{ steps.postgres.outputs.connection-uri }}
+          CAO_DASHBOARD_TEST_DOCKER: ${{ matrix.backend == 'docker' && '1' || '' }}
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+          GH_ENTERPRISE_TOKEN: ""
+          GITHUB_ENTERPRISE_TOKEN: ""
+        run: |
+          set -euo pipefail
+          export CAO_DASHBOARD_TEST_POSTGRES_URL="${CAO_DASHBOARD_TEST_POSTGRES_URL/localhost/127.0.0.1}"
+          go test ./internal/cli -run '^TestDashboardServingIntegration$' -count=1 -timeout=10m -v
+
+  docker-desktop:
+    # Never execute pull-request code on a persistent self-hosted machine.
+    # These labels must select isolated, single-job disposable desktop runners.
+    if: github.event_name == 'workflow_dispatch' && inputs.docker_desktop && github.ref == 'refs/heads/main'
+    environment: dashboard-desktop-tests
+    name: ${{ matrix.os }} / Docker Desktop
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: Windows
+            runner: [self-hosted, Windows, X64, cao-dashboard-docker-ephemeral]
+            backend: docker
+            suffix: ".exe"
+          - os: macOS
+            runner: [self-hosted, macOS, ARM64, cao-dashboard-docker-ephemeral]
+            backend: docker
+            suffix: ""
+    steps: *serving-steps
