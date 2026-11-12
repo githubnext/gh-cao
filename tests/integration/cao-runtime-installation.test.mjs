@@ -60,7 +60,7 @@ test("a producer archive runs and builds the dashboard from a fresh documented i
       mkdirSync(path.dirname(target), { recursive: true });
       cpSync(path.join(packedRoot, resource), target, { recursive: true });
     }
-    for (const workflow of ["cao-activity.yml", "cao-dashboard.yml", "cao-validate.yml"]) {
+    for (const workflow of ["cao-validate.yml"]) {
       cpSync(path.join(catalog, ".github/workflows", workflow), path.join(installed, ".github/workflows", workflow));
     }
     writeFileSync(path.join(installed, ".github/workflows/cao.json"), JSON.stringify({version: 1, "gh-aw-version": manifest["min-version"], "control-plane": {scope: {"allowed-owners": ["example"], "allowed-repositories": ["example/control"]}, campaigns: {}}}));

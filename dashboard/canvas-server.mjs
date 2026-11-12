@@ -46,10 +46,6 @@ const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const executeFile = promisify(execFile);
 const defaultCatalogRoot = resolve(scriptDirectory, "..");
 const socketEndpoint = "/__dashboard_socket";
-const dataArtifactName = "cao-activity-index";
-const trustedActivityWorkflowPaths = new Set([
-  ".github/workflows/cao-activity.yml",
-]);
 const contentTypes = new Map([
   [".avif", "image/avif"],
   [".css", "text/css; charset=utf-8"],
@@ -129,71 +125,11 @@ async function campaignDashboardPaths(catalogRoot) {
   return paths.toSorted();
 }
 
-async function downloadDashboardData(destination, repository, ghExecutable, workingDirectory) {
-  const options = { cwd: workingDirectory };
-  const repositoryPath = repository || "{owner}/{repo}";
-  let defaultBranch;
-  let controlRepository;
-  let runId;
-  try {
-    const repositoryResult = await executeFile(ghExecutable, [
-      "api",
-      `repos/${repositoryPath}`,
-      "--jq",
-      "[.default_branch, .full_name] | @tsv",
-    ], options);
-    [defaultBranch, controlRepository] = repositoryResult.stdout.trim().split("\t");
-    const result = await executeFile(ghExecutable, [
-      "api",
-      `repos/${repositoryPath}/actions/artifacts?name=${dataArtifactName}&per_page=100`,
-      "--jq",
-      "[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | last | .workflow_run.id // empty",
-    ], options);
-    runId = result.stdout.trim();
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
-      throw new Error("GitHub CLI is required to download dashboard data.");
-    }
-    throw new Error("Unable to query the dashboard data artifact. Authenticate GitHub CLI with Actions read access.");
-  }
-  if (!/^[1-9][0-9]*$/.test(runId)) {
-    throw new Error(`No current ${dataArtifactName} artifact is available. Run CAO Activity first.`);
-  }
-  if (!defaultBranch) throw new Error("Unable to determine the repository default branch.");
-
-  let provenance;
-  try {
-    const result = await executeFile(ghExecutable, [
-      "api",
-      `repos/${repositoryPath}/actions/runs/${runId}`,
-      "--jq",
-      "[.conclusion, .head_branch, .path] | @tsv",
-    ], options);
-    provenance = result.stdout.trim().split("\t");
-  } catch {
-    throw new Error(`Unable to verify ${dataArtifactName} from workflow run ${runId}.`);
-  }
-  if (provenance[0] !== "success"
-      || provenance[1] !== defaultBranch
-      || !trustedActivityWorkflowPaths.has(provenance[2])) {
-    throw new Error(`The latest ${dataArtifactName} artifact is not from a successful trusted CAO Activity workflow run.`);
-  }
-
-  const arguments_ = ["run", "download", runId, "--name", dataArtifactName, "--dir", destination];
-  if (repository) arguments_.push("--repo", repository);
-  try {
-    await executeFile(ghExecutable, arguments_, options);
-  } catch {
-    throw new Error(`Unable to download ${dataArtifactName} from workflow run ${runId}.`);
-  }
-  return { repository: controlRepository };
-}
-
 async function validateCanonicalActivityData(root) {
   const entries = await readdir(root, { withFileTypes: true });
   const names = new Set(entries.filter((entry) => entry.isFile()).map((entry) => entry.name));
   if (!names.has("gh-aw-logs.sqlite") || !names.has("payload-hashes.json")) {
-    throw new Error("The CAO Activity artifact requires gh-aw-logs.sqlite and payload-hashes.json at its root. Run CAO Activity to republish it.");
+    throw new Error("Prepare a checksum-verified operational snapshot with gh-aw-logs.sqlite and payload-hashes.json at its root.");
   }
   const snapshot = join(root, "gh-aw-logs.sqlite");
   if (!isWithin(await realpath(root), await realpath(snapshot))) {
@@ -397,7 +333,7 @@ function readWebsocketFrames(buffer) {
  *   repository?: string,
  *   caoUrl?: string,
  *   ghExecutable?: string,
- *   downloadData?: (destination: string, repository?: string, ghExecutable?: string, workingDirectory?: string) => Promise<void | { repository?: string }>,
+ *   snapshotDirectory?: string,
  *   generateQuery?: (intent: import('./query-editor-contract.mjs').QueryEditorIntent, options: { signal: AbortSignal }) => Promise<{ document: string }>,
  *   enhanceQueryIntent?: (request: import('./query-editor-contract.mjs').QueryEditorEnhancement, options: { signal: AbortSignal }) => Promise<import('./query-editor-contract.mjs').QueryEditorAuthoring>,
  *   startSession?: (prompt: string) => Promise<void>,
@@ -424,7 +360,7 @@ export async function startCanvasServer({
   repository,
   caoUrl = process.env.CAO_DASHBOARD_URL,
   ghExecutable = "gh",
-  downloadData = downloadDashboardData,
+  snapshotDirectory = ".cao",
   executeCliAction,
   approveCliAction,
   cliQueuePath,
@@ -498,7 +434,6 @@ export async function startCanvasServer({
   const baseDashboardPath = join(resolvedSiteRoot, "dashboard.json");
   const temporaryDirectory = await mkdtemp(join(resolvedWorkingDirectory, ".cao-dashboard-preview-"));
   const bundledDashboardPath = join(temporaryDirectory, "dashboard.json");
-  const dashboardDataDirectory = join(temporaryDirectory, "data");
   const servedSite = join(temporaryDirectory, "site");
   let canonicalDataDirectory;
   let goHost;
@@ -509,9 +444,16 @@ export async function startCanvasServer({
     })).stdout.trim(),
   });
   try {
-    const downloaded = await downloadData(dashboardDataDirectory, repository, ghExecutable, resolvedWorkingDirectory);
-    repository ??= downloaded?.repository;
-    canonicalDataDirectory = await validateCanonicalActivityData(dashboardDataDirectory);
+    const source = await canonicalPath(resolve(resolvedWorkingDirectory, snapshotDirectory));
+    if (!isWithin(resolvedWorkingDirectory, source)) {
+      throw new Error("The operational snapshot must remain within the workspace.");
+    }
+    try {
+      canonicalDataDirectory = await validateCanonicalActivityData(source);
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+      throw new Error("Prepare a checksum-verified operational snapshot in .cao or pass snapshotDirectory.", { cause: error });
+    }
     await stageCanvasAssets(resolvedSiteRoot, servedSite);
     if (terminalBundle) await writeCanvasAsset(servedSite, "src/components/cli-terminal-runtime.js", terminalBundle);
     if (queryEditorValidationBundle) await writeCanvasAsset(servedSite, "src/data/query-editor.js", queryEditorValidationBundle);

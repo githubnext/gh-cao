@@ -383,7 +383,7 @@ test("Docker samples runtime has an independent read-only workflow", () => {
   const runtime = parse(workflow("actions-runtime.yml"));
   const contracts = parse(workflow("workflow-contracts.yml"));
   for (const pattern of ["server/**", "!server/**/*.md", "activity/**", "dashboard/site/src/data/**",
-    "tests/helpers/actions-runtime/**", "tests/integration/*actions-runtime.test.mjs", ".github/workflows/cao-activity.yml"]) {
+    "tests/helpers/actions-runtime/**", "tests/integration/*actions-runtime.test.mjs"]) {
     assert.ok(runtime.on.pull_request.paths.includes(pattern), pattern);
   }
   assert.deepEqual(runtime.on.push.paths, runtime.on.pull_request.paths);
@@ -412,11 +412,10 @@ test("Docker runtime runs automatically for simulator, Activity and shared data-
       "server/go.mod",
       "server/go.sum",
       "tests/helpers/actions-runtime/runner.mjs",
-      "tests/integration/activity-actions-runtime.test.mjs",
-      "activity/collect-logs.sh",
+      "tests/integration/actions-runtime.test.mjs",
+      "activity/collect-workflow-logs.mjs",
       "dashboard/site/src/data/model/daily-run-counts.js",
       ".github/workflows/actions-runtime.yml",
-      ".github/workflows/cao-activity.yml",
       ".github/workflows/shared/control.md",
     ]) {
       assert.ok(runsForFile("actions-runtime.yml", event, file), `${event}: ${file}`);
@@ -499,11 +498,10 @@ test("demo browser CI cannot substitute synthetic Pages data for operational sna
   assert.match(jobs.integration.name, /synthetic/i);
   assert.equal(jobs["query-performance"], undefined);
   assert.equal(jobs["query-performance-comment"], undefined);
-  const artifact = jobs["query-cost"].steps.find(({ name }) => name === "Download operational Activity artifact");
-  assert.match(artifact.run, /--workflow cao-activity\.yml --branch "\$DEFAULT_BRANCH"/);
-  assert.match(artifact.run, /--status success/);
-  assert.match(artifact.run, /gh run download "\$run_id" --name cao-activity-index --dir \.cao/);
-  assert.doesNotMatch(artifact.run, /dashboard:data:download|github\.io/);
+  const artifact = jobs["query-cost"].steps.find(({ name }) => name === "Download explicitly configured operational snapshot");
+  assert.equal(artifact.run, "npm run dashboard:data:download");
+  assert.equal(artifact.env.DASHBOARD_DATA_URL, "${{ vars.CAO_DASHBOARD_DATA_URL }}");
+  assert.doesNotMatch(artifact.run, /gh run|github\.io/);
   const ingestion = jobs["query-cost"].steps.find(({ name }) => name === "Verify operational artifact ingestion");
   assert.equal(ingestion.env.DASHBOARD_DATA_DIR, ".cao");
 });

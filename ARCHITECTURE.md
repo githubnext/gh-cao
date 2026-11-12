@@ -218,12 +218,11 @@ flowchart LR
     Compute --> CLI
 ```
 
-Activity collects a bounded snapshot once and publishes read-only operational
-artifacts, not public Pages data. Its `cao-activity-index` artifact supplies
-SQLite, inventory, and compacted normalized run and record JSONL. The Dashboard
-workflow retains its operational artifact for authorized consumers; it does not
-deploy it to Pages. Raw Activity JSONL remains in the Activity cache for audits
-and projection rebuilds.
+The legacy Actions Activity publisher, dashboard artifact builder, local Value
+workflow, component manifests, and shared cache are removed. Hosted collection
+uses the authenticated Go server. Local analysis accepts explicitly prepared,
+checksum-verified operational SQLite and normalized JSONL snapshots; it never
+discovers a legacy dashboard bundle or bootstraps empty operational evidence.
 
 Production uses the same-origin Go/PostgreSQL host. Local development uses the
 same Go handler and declarative views over a real, read-only operational SQLite
@@ -315,8 +314,9 @@ The Copilot canvas also uses Go `serve`: `dashboard/canvas-go-host.mjs` launches
 the bundled server module or an explicitly selected compatible executable.
 Go owns the capability-protected browser origin, assets, verified canonical
 SQLite queries, diagnostics, read-only repository memory and revision events.
-Canvas startup downloads `cao-activity-index` from a successful default-branch
-`cao-activity.yml` run and requires its checksum-verified SQLite snapshot.
+Canvas startup reads the workspace's prepared `.cao/` snapshot, or its explicitly
+selected `snapshotDirectory`, and requires checksum-verified SQLite. It performs
+no Actions artifact or legacy dashboard-bundle discovery.
 Synthetic manifests and manifests without SQLite checksums are rejected.
 Dashboard backlinks require explicit `caoUrl` or `CAO_DASHBOARD_URL`, never a
 GitHub Pages API lookup. There is
@@ -973,8 +973,8 @@ webhook, or hosted execution capabilities. Query result caching is disabled;
 in-place commits change the revision and notify active subscriptions. Snapshot
 quality remains unknown without stronger evidence. This default local mode
 does not introduce a hosted SQLite backend or a fallback from PostgreSQL.
-Ordinary Activity SQLite creation, normalization, backfill, and maintenance belong to the
-JavaScript `cao-activity` pipeline, not the Go server. Local serving does not
+Explicit SQLite creation, normalization, backfill, and maintenance belong to the
+JavaScript `cao` evidence tools, not the read-only Go serving profile. Local serving does not
 look up GitHub credentials, launch acquisition or ingestion tools, create a
 writable delta, or attach previous `.local.sqlite` overlays. Existing overlay
 files are left unchanged. Ordinary and internal canvas serving both read only
@@ -1624,8 +1624,6 @@ intentional; the workflow APIs are neither deprecated duplicates nor test-only
 parity implementations. They preserve canonical Dashboard Language execution,
 bounded evidence/output contracts and existing authentication boundaries, without
 granting policy authority or GitHub writes.
-`activity/authentication.mjs` retains only Actions credential profiles, naming,
-and bounded Activity collection planning, not credential provisioning.
 Root runtime upgrades remove only
 content-verified retired launchers; consumer-owned files, links, and directories
 are preserved. Verified older archives may contain the retired launcher but

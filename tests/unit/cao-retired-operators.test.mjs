@@ -6,7 +6,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import * as cao from "../../activity/cao.mjs";
-import * as authentication from "../../activity/authentication.mjs";
 import { commandHandlers } from "../../activity/commands/index.mjs";
 import { UsageError } from "../../activity/cli/options.mjs";
 
@@ -93,10 +92,6 @@ test("Node has no administration API or obsolete implementation modules", async 
     "ensureGhAwMinimumVersion", "upgradeGhAw", "fineGrainedTokenSetups", "setupCaoAuthentication",
     "addCaoCampaign", "addCaoRepository", "updateCaoCampaigns", "setCaoCampaignMode", "setCaoCampaignWorkflowsEnabled",
   ]) assert.equal(name in cao, false, name);
-  assert.deepEqual(Object.keys(authentication).sort(), [
-    "FINE_GRAINED_PAT_PROFILES", "GITHUB_AUTH_MODES", "GITHUB_AUTH_MODE_VARIABLE",
-    "activityCollectionPlan", "ownerScopedPatSecret",
-  ].sort());
   for (const relative of [
     ...[...replacements.keys()].map(name => `commands/${name}.mjs`),
     ...["authentication", "campaigns", "gh-aw", "packages", "policy"].map(name => `cli/${name}.mjs`),

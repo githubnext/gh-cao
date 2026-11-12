@@ -126,7 +126,7 @@ live telemetry remain unavailable rather than being fabricated for the demo.
 `docs.yml` rebuilds the documentation and demo daily, independently of
 operational Activity or Dashboard freshness. Its deployment uses the ordinary
 Pages environment and OIDC permissions; agents receive no deployment authority.
-`cao-dashboard.yml` is not a Pages publisher, and there is no
+The legacy dashboard artifact workflow is removed, and there is no
 `control-plane.campaigns.dashboard.deploy` setting.
 
 This removes live-data publication and implicit acquisition paths, not the

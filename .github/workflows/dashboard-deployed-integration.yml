@@ -103,7 +103,7 @@ jobs:
 
   query-cost:
     name: Measure operational SQLite and Postgres query cost
-    if: github.event_name != 'schedule' || inputs.full == true
+    if: inputs.full == true || (github.event_name != 'schedule' && vars.CAO_DASHBOARD_DATA_URL != '')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -147,21 +147,10 @@ jobs:
         run: |
           mkdir -p .tmp
           go -C server build -o ../.tmp/cao-dashboard ./cmd/cao-dashboard
-      - name: Download operational Activity artifact
+      - name: Download explicitly configured operational snapshot
         env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: |
-          set -euo pipefail
-          test -n "$DEFAULT_BRANCH"
-          run_id=$(gh run list --workflow cao-activity.yml --branch "$DEFAULT_BRANCH" \
-            --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
-          [[ "$run_id" =~ ^[1-9][0-9]*$ ]] || { echo "No successful Activity snapshot run is available" >&2; exit 1; }
-          gh run download "$run_id" --name cao-activity-index --dir .cao
-          test -s .cao/gh-aw-logs.sqlite
-          test -s .cao/payload-hashes.json
-          printf 'Activity artifact run: %s\n' "$run_id" >> "$GITHUB_STEP_SUMMARY"
+          DASHBOARD_DATA_URL: ${{ vars.CAO_DASHBOARD_DATA_URL }}
+        run: npm run dashboard:data:download
       - name: Verify operational artifact ingestion
         env:
           DASHBOARD_DATA_DIR: .cao

@@ -110,11 +110,11 @@ remote fallback collector to fill missing runtime fields.
 
 ## 4. Snapshot contract
 
-The scheduled and manually dispatchable Activity workflow is the only
-publisher of the shared Activity cache. Each published snapshot MUST use an
-immutable identity derived from the publisher's workflow run ID and run
-attempt. A consumer that dispatches Activity MUST restore the exact snapshot
-for the completed run and attempt rather than an unspecified latest snapshot.
+The legacy scheduled Actions publisher and shared Activity cache are removed.
+Operational snapshots MUST be explicitly selected; consumers MUST NOT discover
+legacy dashboard bundles or bootstrap empty operational evidence. Each operational snapshot MUST use an
+immutable producer revision and acquisition identity. A consumer MUST select
+that exact snapshot rather than discover an unspecified latest snapshot.
 
 The snapshot consists of the JSONL produced by `gh aw logs`, compact
 run-information shards, detailed record shards, and rebuildable projections.

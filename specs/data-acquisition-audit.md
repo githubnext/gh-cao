@@ -13,6 +13,15 @@ editors:
 **Status:** Working Draft  
 **Audit date:** 2026-11-06
 
+**Actions publication retirement (2026-11-12):** The legacy Activity,
+dashboard-artifact, and local Value workflows, their component manifests,
+shared cache restoration, artifact discovery, and workflow-only JavaScript
+producers are removed. Hosted collection and explicit operational snapshot
+analysis remain supported; Pages uses independently generated synthetic data.
+The cache-only Open Source Failures worker is also retired.
+The Actions-profile inventories and request counts below are historical
+evidence, not current acquisition paths or compatibility requirements.
+
 **Hosted deployment retirement:** The hosted health worker and its four-hour
 cadence gate, hosted MCP smoke test, and hosted backfill freshness test have
 been removed with the deployment. SelfCare now has twenty workers and

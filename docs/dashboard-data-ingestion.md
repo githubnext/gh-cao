@@ -105,26 +105,12 @@ node activity/cao.mjs audit-jsonl
 
 The report separates raw observations, unique raw runs, enriched observations, unique enriched runs, repeated observations, unenriched runs, and the canonical record counts that ingestion will produce.
 
-### Simulated Activity integration
+### Collection and ingestion validation
 
-Run `npm run test:integration:actions-runtime` with Docker, Go, the repository's
-Node dependencies, the pinned gh-aw compiler, and a pulled `node:24-bookworm`
-image. Alongside the staged workflow samples, this runs the unmodified
-`cao-activity.yml` job graph with real collection and ingestion commands against
-a loopback-only GitHub simulator inside a network-isolated Docker container.
-No live GitHub credential or inference service is used. Downloads of
-checksum-verified runner tools happen before the container starts.
-
-The Activity case checks the published SQLite digest and daily-run counts,
-cache replay without double counting, higher-attempt corrections, and
-recycle-only reconstruction without GitHub API reads. It also executes the
-shipped workflow-health query after detail expiry, proving that daily counts
-survive independently. The collector's admitted evidence is not a complete
-population of every run returned by GitHub; skipped or unavailable evidence
-must not be represented as healthy zero counts.
-
-This test is also required by the
-[`daily-run-counts` cross-backend conformance suite](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md#daily-run-count-conformance).
+The retired Activity Actions job graph and its simulator fixture are removed.
+`npm run test:integration:actions-runtime` validates the remaining staged workflow
+samples. Canonical ingestion and daily-count behavior retain their independent
+SQLite, worker, browser, and PostgreSQL conformance suites.
 
 ## Create a historical archive
 
