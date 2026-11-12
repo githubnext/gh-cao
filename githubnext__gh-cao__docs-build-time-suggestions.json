@@ -1,23 +1,7 @@
 {
   "source_sha": "3eed0d6ab4a1153af6f03873d2d4151a6fd36d87",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T04:23:52Z",
-      "worker_run_id": "43153755219",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z; 14-day window; 0 cancelled) = 13 successes (8 current build+deploy push publications at d57c4c82..62f179a2, n=8 meets minimum; 5 older-shape successes), 6 failed retired-Mount schedules (excluded), 1 skipped workflow_run. Current-design medians (p90), n=8: Install dependencies 20.5s (25s); Set up Node.js 4.5s (8s); Checkout 24s (40s, out of category); build job 72.5s (93s); deploy 10s (11s); build-start to deploy-end 86.5s (109s). Cache evidence from trusted Actions cache metadata plus step timings (job logs returned HTTP 403 DIFC, so hit/miss is inferred from cache-entry timing, not log lines): docs.yml uses default setup-node npm cache keyed on root package-lock.json only (key 40717a8d... recomputed from HEAD lockfile; dashboard/site lockfile not in key). Root lock changed at 9b5a7f99 (16:13Z 11-11; key 4f957eab saved 16:14Z) and at 3bd066dd (02:27Z 11-12; key 40717a8d saved on main 02:28Z by run 43141528595). Seven of eight runs were restores (Set up 3-8s, post-save 0-1s); the first run after the 3bd066dd lock change was the one miss (Set up 1s, post-save 1s, install 22s). Install remains 13-25s on hits, so warm-cache npm ci work is not dominated by downloads; no measured change (--no-audit, --prefer-offline, node_modules caching, workspace merge) has evidence of saving the 13s (15%) threshold. Latent: dashboard-only lock changes would not change the docs cache key; no dashboard/site/package-lock.json commits since 2026-10-25 so no observed cost. Carry-forward for a later eligible cycle: Checkout fetch-depth 0 is the largest build-job step (median 24s, p90 40s); docs build reads git only via rev-parse HEAD supplied by PUBLIC_PAGES_BUILD_COMMIT; history need and savings not verified. No suggestion; next_category advanced to Astro documentation generation."
-    },
     {
       "evaluated_at": "2026-11-12T04:34:34Z",
       "worker_run_id": "43155255291",
@@ -755,6 +739,34 @@
         43103737760
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:31:05Z to 2026-11-12T13:31:34Z; 14-day window; source 3eed0d6a). Excluded: 1 cancelled pending run 43206161686 (no jobs; superseded by 43206235849, commit included in 203826e4) and 1 failed pre-design schedule 43103737760 (retired Mount step). n=18 successes (17 push, 1 schedule 43161224542). Medians (p90): queue created-to-build-start 4 s (30 s; max 46 s; only 43228124764 46 s and 43206235849 30 s waited behind an in-progress publication); build-start-to-deploy-end execution 85 s (123 s); created-to-updated wall 89 s (157 s). Avoidable rebuilds: compare API on 17 push ranges; every publication changed at least one build-consumed file (docs/, dashboard/site/src, dashboard/report, scripts, package or astro config); 9 publications also carried trigger-only files (dashboard/site/test/**, aw.yml, dashboard/aw.yml, shared/cao.schema.json), so narrowing trigger paths would avoid 0 of 17 runs. Schedule 05:23 UTC is required for synthetic date refresh (1 run per day). Concurrency documentation-pages with cancel-in-progress false already coalesces pending runs; cancelling in-progress publications would risk deploy safety and only trims queue latency, not execution. Open 20380 is another category; closed 20131 not revived. Anomaly for maintainers, outside window and not sampled: workflow_run run 37642403569 (created 2026-10-07) still queued. Logs not read (job and step metadata plus compare file lists only). No suggestion; next_category advanced to dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-11-12T14:24:10Z",
+      "worker_run_id": "43235551039",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:31:05Z to 2026-11-12T13:31:34Z; 14-day window; source 3eed0d6a = local HEAD). Excluded and disclosed: 1 cancelled 43206161686 (no jobs), 1 failed pre-design schedule 43103737760 (retired Mount step); in-progress 43236057780 (a5dfc367, created 14:19Z) not sampled. n=18 successful current-design publications (17 push, 1 schedule 43161224542). Medians (p90) from job and step metadata: Install dependencies 17.5 s (23 s; range 11-25 s) = about 21% of median wall 85 s (p90 119 s); Set up Node.js 3 s (8 s); Post Set up Node.js 0 s median; Checkout 24 s (45 s), largest build step; build job 71 s (103 s); deploy 10.5 s (12 s); queue 4 s. 15% gate = 12.8 s. Cache: Actions listing = 56 entries totalling 10.18 GB, above the 10 GB per-repo cap, so LRU eviction pressure from CodeQL (about 1.46 GB x2) and setup-go caches; node npm entries recreated repeatedly (latest 2026-11-12 11:01Z, 312 MB). The HEAD root-lock hash (91e8e843, local sha256, root-only key assumption) has no listed entry, which conflicts with the 0 s post-save; unresolved. Log reads re-verified 403 difc_forbidden, so hit/miss is unverified. Candidates, none meeting the threshold: --no-audit/--no-fund on both installs (unmeasured, fraction of install); cache-dependency-path including dashboard/site lock (latent, no measured cost); actions/cache for node_modules (no gain evidence); merging the two installs (architectural). Carry-forward, unmeasured: checkout partial clone (filter: blob:none) for the 24 s checkout; savings unknown and safety needs maintainer-run measurement. No suggestion; next_category advanced to Astro documentation generation."
     }
   ]
 }
