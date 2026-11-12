@@ -573,7 +573,7 @@ test("compiled framework reports remain local read-only observation with only de
   assert.equal(config["safe-outputs"]["create-issue"].max, 4);
   assert.equal(config["safe-outputs"]["create-issue"]["require-temporary-id"], true);
   assert.match(source, /Create zero to three child issues/);
-  assert.match(source, /parent` to `#aw_framework-health-report`/);
+  assert.match(source, /parent` to `#aw_fh_report`/);
   assert.equal(config["safe-outputs"]["report-missing-tool"]["create-issue"], false);
   assert.equal(config["safe-outputs"]["report-incomplete"]["create-issue"], false);
   for (const job of Object.values(compiled.jobs)) {
@@ -642,7 +642,7 @@ test("publication rejects missing, zero, duplicate and invalid review declaratio
   });
   const report = {
     type: "create_issue", title: "2026-11-09 run 123-1",
-    body: "Core claims reviewed: 16/16", temporary_id: "framework-health-report",
+    body: "Core claims reviewed: 16/16", temporary_id: "aw_fh_report",
   };
   for (const body of [
     "Incomplete assessment; source and tests were not reviewed.",
@@ -667,20 +667,29 @@ test("publication rejects missing, zero, duplicate and invalid review declaratio
   const child = {
     type: "create_issue", title: "2026-11-09 run 123-1: verify preview acceptance",
     body: "### Scope\nReview the blocked journey.\n\n### Acceptance checks\nRecord the independent evidence.",
-    temporary_id: "preview-acceptance", parent: "#aw_framework-health-report",
+    temporary_id: "aw_fh_dec", parent: "#aw_fh_report",
   };
   const withChildren = children => ({
     ...report,
-    body: `${report.body}\n${children.map(issue => `#aw_${issue.temporary_id}`).join("\n")}`,
+    body: `${report.body}\n${children.map(issue => `#${issue.temporary_id}`).join("\n")}`,
   });
   await validate({ items: [withChildren([child]), child] });
-  const threeChildren = [1, 2, 3].map(index => ({
-    ...child, temporary_id: `action-${index}`, parent: "#aw_framework-health-report",
+  const threeChildren = ["aw_fh_dec", "aw_fh_exec", "aw_fh_ci"].map(temporary_id => ({
+    ...child, temporary_id, parent: "#aw_fh_report",
   }));
   await validate({ items: [withChildren(threeChildren), ...threeChildren] });
+  const reordered = await validate({ items: [...threeChildren, { type: "noop" }, withChildren(threeChildren)] });
+  assert.deepEqual(JSON.parse(reordered.files.get(path)).items.map(item => item.temporary_id ?? item.type),
+    ["aw_fh_report", "aw_fh_dec", "aw_fh_exec", "noop", "aw_fh_ci"]);
   for (const invalid of [
     { items: [withChildren([child, ...threeChildren]), child, ...threeChildren] },
-    { items: [withChildren([child]), { ...child, parent: "#aw_another-report" }] },
+    { items: [{ ...report, temporary_id: "framework-health-report" }] },
+    { items: [withChildren([child]), { ...child, parent: "#aw_another_report" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "fh_dec" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "aw_fh-dec" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "aw_fh_dec_longer_than_12" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "AW_FH_DEC" }, child] },
+    { items: [{ ...report, body: `${report.body}\n#aw_fh_dec_extra` }, child] },
     { items: [withChildren([child]), { ...child, body: "No acceptance checks" }] },
     { items: [withChildren([child, child]), child, { ...child }] },
     { items: [child] },
@@ -696,6 +705,7 @@ test("publication rejects missing, zero, duplicate and invalid review declaratio
   assert.ok(guard >= 0 && guard < handler, "validation must run before issue creation and close-older");
   assert.equal(steps[guard].env.GH_AW_AGENT_OUTPUT,
     "${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}");
+  assert.equal(steps[guard].with.script, config["safe-outputs"].steps[0].with.script);
   assert.equal(steps[guard].if, undefined);
   assert.equal(steps[guard]["continue-on-error"], undefined);
   assert.equal(steps[handler].if, undefined, "publication must retain default success gating");
