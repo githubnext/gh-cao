@@ -7,7 +7,24 @@
       "acceptance": "Use the persisted acquisition checkpoint independently of page filters. Scanned repository-hours describe completed discovery intervals, not a percentage of upstream runs or artifacts. Missing status remains unavailable; all coverage remains partial.",
       "from": "transactions",
       "filter": { "predicates": [{ "field": "kind", "equals": "local-dashboard-ingestion" }] },
+      "compute": [
+        { "as": "_failed", "function": "equals-any", "args": [{ "field": "ingestionStatus" }, { "value": "failed" }] },
+        { "as": "_paused", "function": "equals-any", "args": [{ "field": "ingestionStatus" }, { "value": "paused" }] },
+        { "as": "_collecting", "function": "equals-any", "args": [{ "field": "ingestionStatus" }, { "value": "collecting" }] },
+        { "as": "_waiting", "function": "equals-any", "args": [{ "field": "ingestionStatus" }, { "value": "waiting" }, { "value": "watching" }, { "value": "paused" }] },
+        { "as": "_idle-icon", "function": "if", "args": [{ "field": "_waiting" }, { "value": "clock" }, { "value": "question" }] },
+        { "as": "_activity-icon", "function": "if", "args": [{ "field": "_collecting" }, { "value": "sync" }, { "field": "_idle-icon" }] },
+        { "as": "status-icon", "function": "if", "args": [{ "field": "_failed" }, { "value": "stop" }, { "field": "_activity-icon" }] },
+        { "as": "_pause-tone", "function": "if", "args": [{ "field": "_paused" }, { "value": "attention" }, { "value": "muted" }] },
+        { "as": "status-tone", "function": "if", "args": [{ "field": "_failed" }, { "value": "danger" }, { "field": "_pause-tone" }] },
+        { "as": "_status", "function": "coalesce", "args": [{ "field": "ingestionStatus" }, { "value": "unknown" }] },
+        { "as": "_status-title", "function": "title-case", "args": [{ "field": "_status" }] },
+        { "as": "status-label", "function": "concat", "args": [{ "value": "Data ingestion: " }, { "field": "_status-title" }] }
+      ],
       "select": [
+        { "field": "status-label" },
+        { "field": "status-icon" },
+        { "field": "status-tone" },
         { "field": "ingestionStatus", "as": "status" },
         { "field": "ingestionMessage", "as": "message" },
         { "field": "ingestionRepository", "as": "repository" },
@@ -1608,33 +1625,6 @@
           ]
         }
       ]
-    }
-  ],
-  "views": [
-    {
-      "id": "local-ingestion-progress",
-      "title": "Local data ingestion",
-      "description": "Resumable history discovery across the selected repositories. Scanned repository-hours are not complete run or artifact coverage. API quota is shared with other GitHub clients.",
-      "requires": { "backend": "hosted", "on-unavailable": "hide" },
-      "data": { "source": "local-ingestion-progress", "query-context": false },
-      "mark": "table",
-      "layout": "full",
-      "prompt": "none",
-      "empty-message": "No local CLI ingestion status is available for this server.",
-      "encoding": {
-        "columns": [
-          { "field": "status", "type": "nominal", "title": "Status", "display": "status" },
-          { "field": "repository", "type": "nominal", "title": "Collecting repository" },
-          { "field": "scanned-hours", "type": "quantitative", "title": "Scanned repository-hours" },
-          { "field": "target-hours", "type": "quantitative", "title": "Target repository-hours" },
-          { "field": "api-remaining", "type": "quantitative", "title": "Last observed API points remaining" },
-          { "field": "api-reserve", "type": "quantitative", "title": "API reserve" },
-          { "field": "api-reset-at", "type": "temporal", "title": "Quota reset", "format": "human-friendly-timestamp" },
-          { "field": "next-attempt-at", "type": "temporal", "title": "Next attempt", "format": "human-friendly-timestamp" },
-          { "field": "observed-at", "type": "temporal", "title": "Status observed", "format": "human-friendly-timestamp" },
-          { "field": "message", "type": "nominal", "title": "Coverage / status detail" }
-        ]
-      }
     }
   ],
   "pages": [

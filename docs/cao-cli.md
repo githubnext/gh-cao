@@ -83,7 +83,7 @@ SQLite until they age out of the selected window; restarting reuses the saved
 checkpoint. Discovery completion is not a guarantee of complete artifacts or
 upstream coverage.
 
-**Local data ingestion** on Overview shows collection status, the current
+The header's **data-status tooltip** shows collection status, the current
 repository, scanned versus target repository-hours, last observed API points
 remaining, reserved quota, reset time, and the next attempt. This status updates
 through the ordinary server revision subscription without navigation, and

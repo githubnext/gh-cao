@@ -1,6 +1,6 @@
 import { h } from '../dom.js';
 import { octicon } from '../octicons.js';
-import { formatMediumUtcDateTime, renderTooltip } from './ui-primitives.js';
+import { formatMediumUtcDateTime, formatUtcDateTime, renderTooltip } from './ui-primitives.js';
 import { publishNotification } from '../notification-service.js';
 import { createDebug } from '../debug.js';
 import { derived, effect, render, state } from '../reactive.js';
@@ -9,6 +9,7 @@ import { isDashboardRateLimited } from '../rate-limit-notification.js';
 import { createFactoryScope } from './factory-elements.js';
 import { usesRemoteDataBackend } from '../remote-data-backend.js';
 import { timestampMilliseconds } from '../data/model/schema.js';
+import { formatNumber, stringOrFallback } from '../view-formatters.js';
 
 const debugRefreshError = createDebug('refresh-error');
 
@@ -42,14 +43,20 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
   const phase = failed ? 'stale' : refreshing ? 'cached' : snapshot ? 'ready' : 'loading';
   const freshness = state(/** @type {import('../presenter.js').LogicalSourceInput | undefined} */ (sources[configuration?.['freshness-source'] ?? '']));
   const health = state(/** @type {import('../presenter.js').LogicalSourceInput | undefined} */ (sources[configuration?.['health-source'] ?? '']));
+  const ingestion = state(/** @type {import('../presenter.js').LogicalSourceInput | undefined} */ (sources[configuration?.['ingestion-source'] ?? '']));
   const clock = state(Date.now());
   const remote = usesRemoteDataBackend(document);
+  const ingestionRow = derived(() => {
+    const source = ingestion.get();
+    return remote && source?.metadata.availability !== 'unavailable' ? source?.rows[0] : undefined;
+  }, { signal: scope.signal });
   if (configuration) {
     const timer = setInterval(() => clock.set(Date.now()), 60_000);
     scope.signal.addEventListener('abort', () => clearInterval(timer), { once: true });
     const bindings = [
       { name: configuration['freshness-source'], result: freshness },
-      ...(remote && configuration['health-source'] ? [{ name: configuration['health-source'], result: health }] : [])
+      ...(remote && configuration['health-source'] ? [{ name: configuration['health-source'], result: health }] : []),
+      ...(remote && configuration['ingestion-source'] ? [{ name: configuration['ingestion-source'], result: ingestion }] : [])
     ];
     for (const { name, result } of bindings) {
       if (!loadPageSources?.subscribeBackgroundSources) continue;
@@ -73,7 +80,9 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
     label: 'Dashboard data status',
     trigger,
     content: description,
-    className: 'dashboard-current-status'
+    className: 'dashboard-current-status',
+    viewportAnchored: true,
+    signal: scope.signal
   });
   const presentation = derived(() => {
     const limited = isDashboardRateLimited();
@@ -88,6 +97,12 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
     if (row?.configured === true && row.health === 'degraded') return {
       icon: 'stop', tone: 'danger', label: 'Data ingestion is broken',
       detail: 'Collection reports degraded ingestion, with an unresolved failure or dead-lettered work. Check Ingestion for diagnostics.'
+    };
+    const progress = ingestionRow.get();
+    if (progress && typeof progress['status-label'] === 'string'
+        && typeof progress['status-icon'] === 'string' && typeof progress['status-tone'] === 'string') return {
+      icon: progress['status-icon'], tone: progress['status-tone'], label: progress['status-label'],
+      detail: typeof progress.message === 'string' ? progress.message : 'Ingestion details are unavailable.'
     };
     const value = latest?.metadata?.availability !== 'unavailable' ? latest?.rows?.[0]?.['latest-data-at'] : undefined;
     const timestamp = typeof value === 'number' && Number.isFinite(value) ? value : timestampMilliseconds(value);
@@ -112,16 +127,35 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
     };
   }, { signal: scope.signal });
   render(trigger, () => octicon(presentation.get().icon), { signal: scope.signal });
-  render(description, () => presentation.get().detail, { signal: scope.signal });
+  render(description, () => {
+    const current = presentation.get();
+    const progress = ingestionRow.get();
+    if (!progress) return current.detail;
+    return [
+      h('strong', null, current.label),
+      h('span', null, current.detail),
+      h('span', null, `Repository: ${stringOrFallback(progress.repository, 'Unknown')}`),
+      h('span', null, `History scanned: ${ingestionNumber(progress['scanned-hours'])} / ${ingestionNumber(progress['target-hours'])} repository-hours`),
+      h('span', null, `API points remaining: ${ingestionNumber(progress['api-remaining'])} (reserve ${ingestionNumber(progress['api-reserve'])})`),
+      h('span', null, `Next attempt: ${formatUtcDateTime(progress['next-attempt-at'])}`),
+      h('span', null, `Quota reset: ${formatUtcDateTime(progress['api-reset-at'])}`),
+      h('span', null, `Status observed: ${formatUtcDateTime(progress['observed-at'])}`)
+    ];
+  }, { signal: scope.signal });
   effect(() => {
-    const { tone, label } = presentation.get();
+    const { tone, label, icon } = presentation.get();
     trigger.setAttribute('aria-label', label);
     status.dataset.tone = tone;
-    status.classList.toggle('dashboard-current-status-refreshing', tone === 'muted' && refreshing);
+    status.classList.toggle('dashboard-current-status-refreshing', icon === 'sync');
     status.hidden = !configuration && !snapshot && !isDashboardRateLimited() && !failed;
   }, { signal: scope.signal });
   scope.bind(status);
   return status;
+}
+
+/** @param {unknown} value */
+function ingestionNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? formatNumber(value) : 'Unknown';
 }
 
 /** @param {AbortSignal} signal */

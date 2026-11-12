@@ -1038,7 +1038,8 @@ stale prior-attempt children, and preserves earlier history pages. Failed
 acquisition preserves evidence and its checkpoint while publishing a separate
 failure status. Acquisition progress, scanned repository-hours and observed
 quota are exposed through a bounded `transactions` receipt and a declarative
-Overview view, with ordinary abort-scoped query/revision subscriptions. Discovery
+shell data-status binding, rendered in the header tooltip with ordinary
+abort-scoped query/revision subscriptions. Discovery
 completion never implies complete artifact or upstream coverage.
 The server starts before acquisition. The CLI refreshes outside the server lifecycle
 and closes its owned server on interruption or expiry. Release binaries embed

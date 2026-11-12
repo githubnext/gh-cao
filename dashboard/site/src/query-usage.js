@@ -104,7 +104,7 @@ export function buildDashboardQueryUsageGraph(dashboard) {
     const node = addNode('data-status:$.dashboard.data-status');
     labels.set(node, 'Dashboard data status');
     roots.add(node);
-    addQueryEdges(node, [dashboard['data-status']['freshness-source'], dashboard['data-status']['health-source']]);
+    addQueryEdges(node, [dashboard['data-status']['freshness-source'], dashboard['data-status']['health-source'], dashboard['data-status']['ingestion-source']]);
   }
 
   if (Array.isArray(dashboard.callouts)) {

@@ -37,7 +37,7 @@ GitHub is still the authenticated upstream evidence source; collection needs
 network access and your repository permissions. The command collects bounded
 recent evidence automatically and refreshes every five minutes. Its evidence
 window defaults to seven days, with resumable historical discovery; the server
-lifetime remains capped at 48 hours per invocation. Overview shows ingestion
+lifetime remains capped at 48 hours per invocation. The data-status tooltip shows ingestion
 progress and quota pauses. Acquisition preserves API headroom and does not
 promise complete upstream or artifact coverage. Press **Ctrl-C** to stop while retaining
 the cache. See the [local quickstart](setup-quickstarts.md#open-a-local-dashboard-no-deployment)

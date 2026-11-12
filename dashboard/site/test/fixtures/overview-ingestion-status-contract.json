@@ -3,7 +3,6 @@
   "config": "data-status",
   "enabled": false,
   "local": {
-    "view": "local-ingestion-progress",
     "source": "local-ingestion-progress",
     "transaction": {
       "id": "local-dashboard-ingestion",
@@ -23,6 +22,7 @@
   "indicator": {
     "freshness-source": "dashboard-data-freshness",
     "health-source": "dashboard-ingestion-health",
+    "ingestion-source": "local-ingestion-progress",
     "stale-after-hours": 24
   },
   "cases": [

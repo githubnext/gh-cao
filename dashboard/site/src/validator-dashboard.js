@@ -948,15 +948,16 @@ export function validateDashboard(dashboard, dashboardNode, errors) {
       errors.push(createError(ERROR_CODES.missingOrInvalidRequiredField, 'data-status must be a mapping.', path));
       return;
     }
-    validateObjectKeys(statusNode, ['freshness-source', 'health-source', 'stale-after-hours'], path, errors);
+    validateObjectKeys(statusNode, ['freshness-source', 'health-source', 'ingestion-source', 'stale-after-hours'], path, errors);
     /** @type {Array<[string, string[]]>} */
     const bindings = [
       ['freshness-source', ['latest-data-at']],
-      ['health-source', ['configured', 'health']]
+      ['health-source', ['configured', 'health']],
+      ['ingestion-source', ['status-label', 'status-icon', 'status-tone', 'message', 'repository', 'scanned-hours', 'target-hours', 'api-remaining', 'api-reserve', 'api-reset-at', 'next-attempt-at', 'observed-at']]
     ];
     for (const [key, fields] of bindings) {
       const source = status[key];
-      if (key === 'health-source' && source === undefined) continue;
+      if (key !== 'freshness-source' && source === undefined) continue;
       validateSource(source, `${path}.${key}`, errors);
       if (typeof source === 'string' && !state.declaredQueries.has(source)) {
         errors.push(createError(ERROR_CODES.invalidScopeFilterTimeAggregationOrOrderReference, 'data-status sources must reference declared queries.', `${path}.${key}`));

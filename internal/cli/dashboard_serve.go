@@ -240,7 +240,7 @@ func printDashboardReady(output io.Writer, address string, repositories []string
 			"  Refresh: every %s\n"+
 			"  Session: %s; press Ctrl+C to stop. Cached data is kept.\n"+
 			"  Maintenance: %s\n"+
-			"  Ingestion: resumable history discovery; status and quota are shown on Overview.\n"+
+			"  Ingestion: resumable history discovery; status and quota are shown in the data tooltip.\n"+
 			"  Coverage: partial recent activity; uncollected evidence is unavailable.\n\n",
 		address, strings.Join(repositories, ", "), filepath.Join(cache, "gh-aw-logs.sqlite"),
 		options.refresh, options.duration, maintenance)

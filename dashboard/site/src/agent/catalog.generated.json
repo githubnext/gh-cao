@@ -1447,7 +1447,6 @@
       "experimental": false,
       "parameters": [],
       "queries": [
-        "local-ingestion-progress",
         "overview-factory-station",
         "overview-header-presentation",
         "overview-issue-station",
@@ -5726,9 +5725,7 @@
       "sources": [
         "transactions"
       ],
-      "used-by-pages": [
-        "overview"
-      ],
+      "used-by-pages": [],
       "execution": {
         "local": true,
         "backend": "sqlite",

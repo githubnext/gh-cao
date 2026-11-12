@@ -925,8 +925,15 @@ with `ingestionStatus`, `ingestionMessage`, `ingestionRepository`, `scannedHours
 freshness. Discovery hours SHALL describe scanned repository-time intervals,
 never a run-count denominator or complete artifact coverage. Status-only writes
 MAY report acquisition failure without modifying evidence or its checkpoint.
-The ordinary declarative Overview query/view SHALL expose this status
-independently of page filters and refresh through its active revision subscription.
+The ordinary declarative shell data-status binding SHALL expose this status in
+the header tooltip, independently of page filters, and refresh through its
+active revision subscription. The Overview hero SHALL NOT require an ingestion table.
+The optional shell `ingestion-source` query SHALL project `status-label`,
+`status-icon`, `status-tone`, `message`, `repository`, `scanned-hours`,
+`target-hours`, `api-remaining`, `api-reserve`, `api-reset-at`, `next-attempt-at`,
+and `observed-at`. Dashboard Language SHALL own status classification. The shared
+tooltip MAY format supplied numbers and timestamps, but MUST NOT derive business
+state or query rows. Unknown quota and progress MUST NOT become zero or healthy.
 The existing read-only Go query/server and revision-subscription contracts
 SHALL serve this projection unchanged. This exception does not authorize
 server-side acquisition, a hosted fallback, or a browser ingestion path.

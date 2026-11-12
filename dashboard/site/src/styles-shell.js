@@ -361,6 +361,8 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .tooltip-help:hover .tooltip-content, .tooltip-help:focus-within .tooltip-content { visibility: visible; opacity: 1; }
 .tooltip-content.tooltip-content-viewport { position: fixed; }
 .tooltip-description { color: var(--muted); }
+.dashboard-current-status .tooltip-description { display: grid; gap: 6px; overflow-wrap: anywhere; }
+.dashboard-current-status .tooltip-content { max-height: calc(100dvh - 28px); overflow-y: auto; pointer-events: auto; }
 .refresh-button { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--canvas-subtle); color: var(--fg); font: inherit; font-size: .75rem; font-weight: 500; text-decoration: none; cursor: pointer; transition: background-color 120ms ease; }
 .refresh-button:hover { background: var(--neutral-muted); }
 .refresh-button .octicon { width: 14px; height: 14px; }
