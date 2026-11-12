@@ -819,6 +819,9 @@ func (a *App) Handler() http.Handler {
 	register("GET /api/v1/memory/{campaign}", a.repositoryMemoryCampaign)
 	register("GET /api/v1/memory/{campaign}/content", a.repositoryMemoryContent)
 	register("POST /api/v1/refresh", a.refresh)
+	if a.oauth == nil {
+		register("POST /api/v1/ingestion/start", a.startIngestion)
+	}
 	register("GET /api/repositories", a.repositories)
 	register("GET /api/repositories/{id}", a.repository)
 	register("GET /api/repositories/{id}/runs", a.repositoryRuns)

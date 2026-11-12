@@ -388,6 +388,18 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .ingestion-status-card summary { cursor: pointer; }
 .ingestion-status-diagnostics { display: grid; gap: 6px; margin-top: 8px; overflow-wrap: anywhere; }
 .ingestion-status-unavailable { color: var(--muted); font-size: .75rem; }
+.ingestion-status-state { margin-left: auto; display: inline-flex; flex: none; align-items: center; gap: 4px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--canvas-subtle); color: var(--muted); font-size: .75rem; font-weight: 600; }
+.ingestion-status-heading .ingestion-status-state .octicon { width: 12px; height: 12px; color: currentColor; }
+.ingestion-status-state[data-state="running"] { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.ingestion-status-state[data-state="running"] .octicon-sync, .ingestion-status-start .octicon-sync { animation: dashboard-refresh-spin 1s linear infinite; }
+.ingestion-status-start { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 5px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--canvas-subtle); color: var(--fg); font: inherit; font-size: .8125rem; font-weight: 500; cursor: pointer; }
+.ingestion-status-start:hover:not(:disabled) { background: var(--neutral-muted); }
+.ingestion-status-start:disabled { color: var(--muted); cursor: default; }
+.ingestion-status-start .octicon { width: 14px; height: 14px; }
+.mobile-ingestion-indicator { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ingestion-status-state .octicon-sync, .ingestion-status-start .octicon-sync, .mobile-ingestion-indicator .octicon-sync { animation: none; }
+}
 .refresh-button { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--canvas-subtle); color: var(--fg); font: inherit; font-size: .75rem; font-weight: 500; text-decoration: none; cursor: pointer; transition: background-color 120ms ease; }
 .refresh-button:hover { background: var(--neutral-muted); }
 .refresh-button .octicon { width: 14px; height: 14px; }

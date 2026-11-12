@@ -131,6 +131,9 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		if err := writeDashboardIngestion(ctx, cache, *state); err != nil {
 			return nil, err
 		}
+		if options.onCollecting != nil {
+			options.onCollecting()
+		}
 		target := "github.com/" + repository
 		identity, _, err := gh(ctx, "repo", "view", target, "--json", "nameWithOwner,url,id")
 		if err != nil {

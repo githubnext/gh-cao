@@ -300,6 +300,14 @@ export async function refreshRemoteDashboard(sourceNames, context, pagination, o
   return { sources: result.sources, changed };
 }
 
+/**
+ * Asks the owning local `gh cao dashboard` process to start a collection pass.
+ * @param {AbortSignal} [signal]
+ */
+export function requestLocalIngestion(signal) {
+  return apiRequest("/api/v1/ingestion/start", { method: "POST" }, signal);
+}
+
 /** @param {AbortSignal} [signal] */
 export function queryRemoteDiagnostics(signal) {
   return apiRequest("/api/v1/diagnostics", {}, signal);

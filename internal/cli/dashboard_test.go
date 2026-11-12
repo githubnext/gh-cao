@@ -572,3 +572,27 @@ func TestDashboardOptionalLocalArtifactCache(t *testing.T) {
 		})
 	}
 }
+
+func TestDashboardRefreshIntervalIsAggressiveWhileEmpty(t *testing.T) {
+	cache := t.TempDir()
+	if got := dashboardRefreshInterval(cache, 5*time.Minute); got != dashboardEmptyRefresh {
+		t.Fatalf("missing snapshot interval = %s", got)
+	}
+	directory := filepath.Join(cache, "gh-aw-logs-runs")
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	write := func(content string) {
+		if err := os.WriteFile(filepath.Join(directory, "local.jsonl"), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(`{"kind":"record","collection":"repositories","record":{}}` + "\n")
+	if got := dashboardRefreshInterval(cache, 5*time.Minute); got != dashboardEmptyRefresh {
+		t.Fatalf("snapshot without runs interval = %s", got)
+	}
+	write(`{"kind":"record","collection":"repositories","record":{}}` + "\n" + `{"kind":"record","collection":"runs","record":{}}` + "\n")
+	if got := dashboardRefreshInterval(cache, 5*time.Minute); got != 5*time.Minute {
+		t.Fatalf("populated snapshot interval = %s", got)
+	}
+}

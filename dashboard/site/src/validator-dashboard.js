@@ -953,7 +953,7 @@ export function validateDashboard(dashboard, dashboardNode, errors) {
     const bindings = [
       ['freshness-source', ['latest-data-at']],
       ['health-source', ['configured', 'health']],
-      ['ingestion-source', ['status-name', 'status-label', 'status-icon', 'status-tone', 'message', 'repository', 'scanned-hours', 'target-hours', 'api-remaining', 'api-reserve', 'api-reset-at', 'next-attempt-at', 'observed-at']]
+      ['ingestion-source', ['status-name', 'status-label', 'status-icon', 'status-tone', 'activity', 'message', 'repository', 'scanned-hours', 'target-hours', 'api-remaining', 'api-reserve', 'api-reset-at', 'next-attempt-at', 'observed-at']]
     ];
     for (const [key, fields] of bindings) {
       const source = status[key];

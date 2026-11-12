@@ -26,7 +26,7 @@ const ingestion = (fields = {}) => ({
   source: configuration['ingestion-source'],
   rows: [{
     'status-name': 'Paused', 'status-label': 'Data ingestion: Paused', 'status-icon': 'clock', 'status-tone': 'attention',
-    repository: 'octo/api', 'scanned-hours': 48, 'target-hours': 168,
+    status: 'paused', activity: 'Idle', repository: 'octo/api', 'scanned-hours': 48, 'target-hours': 168,
     'api-remaining': 999, 'api-reserve': 1000,
     'next-attempt-at': contract.local.transaction.nextAttemptAt,
     'api-reset-at': contract.local.transaction.apiResetAt,
@@ -240,6 +240,64 @@ describe('global upstream ingestion indicator', () => {
     expect(signals.every((signal) => signal.aborted)).toBe(true);
     updates.get(configuration['ingestion-source'])({ [configuration['ingestion-source']]: ingestion() });
     expect(button?.getAttribute('aria-label')).toBe('Data ingestion: Collecting');
+  });
+
+  it('shows running or idle state and forces a local ingestion start', async () => {
+    hosted();
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ requested: true }), { status: 202, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const updates = new Map();
+    const initial = { [configuration['ingestion-source']]: ingestion() };
+    const loader = Object.assign(vi.fn(), {
+      subscribeBackgroundSources: vi.fn(async ([name], { onUpdate }) => {
+        updates.set(name, onUpdate);
+        return { [name]: initial[name] };
+      })
+    });
+    const status = renderStatus({ sources: initial, loadPageSources: loader });
+    await Promise.resolve();
+    expect(status.querySelector('.ingestion-status-state')?.getAttribute('data-state')).toBe('idle');
+    expect(status.querySelector('.ingestion-status-state')?.textContent).toBe('Idle');
+    const start = /** @type {HTMLButtonElement} */ (status.querySelector('.ingestion-status-start'));
+    expect(start.disabled).toBe(false);
+    expect(start.textContent).toBe('Start ingestion now');
+    start.click();
+    expect(status.querySelector('.ingestion-status-start')?.textContent).toBe('Starting…');
+    await vi.waitFor(() => expect(status.querySelector('.ingestion-status-start')?.textContent).toBe('Ingestion requested'));
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:3000/api/v1/ingestion/start', expect.objectContaining({ method: 'POST' }));
+    updates.get(configuration['ingestion-source'])({ [configuration['ingestion-source']]: ingestion({
+      'status-name': 'Collecting', 'status-icon': 'sync', 'status-tone': 'muted', status: 'collecting', activity: 'Running'
+    }) });
+    expect(status.querySelector('.ingestion-status-state')?.textContent).toBe('Running');
+    const running = /** @type {HTMLButtonElement} */ (status.querySelector('.ingestion-status-start'));
+    expect(running.disabled).toBe(true);
+    expect(running.textContent).toBe('Ingestion running');
+    updates.get(configuration['ingestion-source'])({ [configuration['ingestion-source']]: ingestion() });
+    expect(status.querySelector('.ingestion-status-start')?.textContent).toBe('Start ingestion now');
+    vi.unstubAllGlobals();
+  });
+
+  it('places a compact ingestion indicator beside the mobile menu', async () => {
+    hosted();
+    const header = document.createElement('div');
+    const menu = document.createElement('details');
+    menu.className = 'mobile-nav-menu';
+    header.append(menu);
+    document.body.append(header);
+    const status = renderStatus({
+      mobileHeader: header,
+      sources: { [configuration['ingestion-source']]: ingestion({ 'status-icon': 'sync', 'status-tone': 'muted', status: 'collecting', activity: 'Running' }) }
+    });
+    const indicator = /** @type {HTMLButtonElement} */ (header.querySelector('.mobile-ingestion-indicator'));
+    expect(indicator.nextElementSibling).toBe(menu);
+    expect(indicator.dataset.state).toBe('running');
+    expect(indicator.getAttribute('aria-label')).toBe('Data ingestion: Paused (running)');
+    expect(indicator.classList.contains('mobile-ingestion-indicator-refreshing')).toBe(true);
+    indicator.click();
+    expect(menu.open).toBe(true);
+    status.remove();
+    await Promise.resolve();
+    expect(header.querySelector('.mobile-ingestion-indicator')).toBeNull();
   });
 
   it('does not present unavailable ingestion as observed progress', () => {
