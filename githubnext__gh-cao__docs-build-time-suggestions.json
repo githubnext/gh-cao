@@ -1,35 +1,7 @@
 {
   "source_sha": "cd1e0ba023d17672e8e2a42170a9f57cc709522d",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T12:26:37.589Z",
-      "worker_run_id": "43216894469",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43206235849,
-        43206161686,
-        43206080696,
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T20:16:01Z to 2026-11-12T11:06:25Z; within 14 days). Excluded and disclosed: 1 cancelled superseded pending run 43206161686 (no jobs; concurrency replaced it), 4 failed pre-design schedules (43094878868, 43099316175, 43101943628, 43103737760; failed at Mount latest CAO Dashboard artifact). Comparable successes n=15 = 14 push + 1 schedule 43161224542, all build+deploy with identical job and step names. Correction: docs.yml changed at 063cbe91 (06:17Z; removed activity/** trigger), so the earlier unchanged-since-d57c4c82 note was wrong; build and deploy steps are identical across the sample. Medians (p90), n=15: run start to build start 4 s (4 s; one 30 s outlier); build queue 3 s; build end to deploy start 5 s (6 s); deploy queue 5 s (6 s); build job 72 s (103 s); deploy job 11 s (18 s); wall 89 s (124 s). Concurrency: 1 of 15 waited 30 s; 43206235849 queued until 43206080696 finished its deploy (workflow-level group). Path audit: each of 14 push commits matched a Pages-build input (docs/**, dashboard/site/**, dashboard/report/**, astro.config.mjs, package.json, shared/policy.mjs); 0 avoidable path-triggered rebuilds. Schedule 43161224542 is the intentional daily synthetic-date refresh and removing it would weaken freshness. Removing all orchestration overhead (about 9 s, 10% of median wall) misses the 60 s and 15% (about 13 s) gates; merging build and deploy saves about 5 s and weakens environment and id-token separation; cancel-in-progress true could cancel an in-flight Pages deploy and saves at most about 30 s on rare overlaps. No suggestion. Carry-forward lead for the dependency category: Checkout fetch-depth 0 (median 24 s, p90 47 s; 47-49 s on 43206235849 and 43167070179); provenance git-log dependency unverified."
-    },
     {
       "evaluated_at": "2026-11-12T12:41:27Z",
       "worker_run_id": "43219289794",
@@ -828,6 +800,35 @@
         43138878761
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; all within 14 days; source HEAD cd1e0ba equals source_sha; no docs.yml run since 20:35Z). Excluded and disclosed: 1 cancelled 43206161686 (no jobs); 1 failed 43297524311 (e465d28; Build documentation failed after 14 s, deploy skipped; fixed by cd1e0ba; cause unverified, logs 403). Comparable n=18 successes (17 push, 1 schedule 43161224542; identical build and deploy step shape; 5-run gate met). Medians (p90), job and step metadata only (log reads 403 DIFC): Upload Pages artifact 2 s (3); build-end to deploy-start handoff 6 s (6.3); deploy Set up job 1 s; Deploy Pages 7 s (11.2; 14-15 s outliers only on 43206235849 and 43206080696); artifact chain (upload+handoff+setup+deploy) 16 s (20.9) = 19% of median build-start-to-deploy-end 84.5 s (p90 120.2). github-pages artifact 8.27-8.36 MB, stable; packaging-size lever is at most about 2 s. Merging deploy into build saves about 7 s (8%), below the 60 s / 15% (12.7 s) gate, and drops the github-pages environment and id-token separation; Deploy Pages is GitHub-managed. No suggestion; no issue created. Open-issue check via REST: no open issue in this category (closed 19689, 20131, 18158 not repeated). next_category advanced to scheduling, concurrency, and avoidable rebuilds. Carry-forward lead, not evaluated here: Checkout fetch-depth 0 median 24 s (p90 47) largest build step; partial-clone candidate unmeasured.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T22:35:37Z",
+      "worker_run_id": "43320277521",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43301807773,
+        43297524311,
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04Z to 2026-11-12T20:35Z; within 14 days; source cd1e0ba0 = local HEAD = source_sha; no new completed runs since the 22:18Z evaluation; docs.yml last changed 063cbe91 at 06:17Z). Excluded and disclosed: 1 cancelled superseded pending run 43206161686 (no jobs; replaced by 43206235849); 1 failed push run 43297524311 (e465d28c; Build documentation failed at 14 s, correctness fault fixed by cd1e0ba0 about 25 min later, not a scheduling cost). Comparable n=18 successes (17 push, 1 schedule 43161224542). Medians (p90) from job and step metadata: run-created to build-start 4 s (12.5 s); build job 67 s (103 s); build-end to deploy-created handoff 0 s (1 s); deploy queue 5 s (6 s); deploy job 10.5 s (14.5 s); build-start to deploy-end 84.5 s (120 s); wall 88 s (133 s). 15% of median execution = 12.7 s. Concurrency: 2 of 18 waited behind an in-progress publication (43228124764 43 s, behind 43228046118; 43206235849 27 s, behind 43206080696); no other waits over 5 s; the 60 s/15% gate is not met because the median wait is 0 s. Avoidable rebuilds: compare API on all 20 pairs (two 500s retried successfully); 0 of 17 push runs changed only files outside build inputs; trigger-only dashboard/site/test/** files always rode with consumed src/docs/report changes; docs/lib/catalog.ts is consumed by docs/pages/catalog. Schedule 05:23 UTC daily is the one required synthetic-date refresh; removing it weakens freshness. Maintainer note, not a time saving: docs:build and the Pages builder read files outside the docs.yml paths filter (scripts/dashboard-demo-data.mjs, scripts/validate-agent-docs.mjs, tests/integration/agent-docs-discovery.test.mjs, .github/workflows/cao.json gh-aw-version read in dashboard/site/scripts/build.mjs); a change to these alone would not rebuild Pages until the next daily run; none occurred alone in this window. Carry-forward lead, unchanged and unmeasured: Checkout fetch-depth 0 median 24 s (p90 46 s), the largest build step, partial-clone (filter: blob:none) savings unmeasured; Install dependencies median 16 s (p90 22 s) in this window. No suggestion; next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ]
