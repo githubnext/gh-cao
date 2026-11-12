@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
@@ -74,7 +74,8 @@ test("PostgreSQL contracts use the host port discovered after the fixture contai
   const steps = parse(readFileSync(".github/workflows/workflow-contracts.yml", "utf8")).jobs.unit.steps;
   const prepare = steps.find((step) => step.name === "Prepare partition-heavy PostgreSQL fixtures");
   const contracts = steps.find((step) => step.run?.includes("npm run test:unit:area"));
-  const directory = mkdtempSync(path.resolve(".ci-postgres-contract-"));
+  mkdirSync(".tmp", { recursive: true });
+  const directory = mkdtempSync(path.resolve(".tmp/ci-postgres-contract-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const output = path.join(directory, "output");
   writeFileSync(path.join(directory, "docker"), `#!/bin/sh
