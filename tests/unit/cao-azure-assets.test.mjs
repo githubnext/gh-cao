@@ -73,6 +73,7 @@ test("Azure asset bundle contains exactly the allowlisted Docker build inputs", 
     ".github/workflows/shared/authority.mjs",
     ".github/workflows/shared/policy.mjs",
     ".github/workflows/shared/actions-log.mjs",
+    ".github/workflows/shared/value-acquisition.mjs",
     "dashboard/report/bundle-dashboards.mjs",
     "dashboard/report/compose-dashboard-documents.mjs",
     "dashboard/report/configure-site.mjs",
@@ -131,7 +132,7 @@ test("Azure asset bundle excludes policy, credentials, VCS data, dependencies, t
     [/(^|\/)(tests?|testdata|testutil|__tests__)\//, "tests"],
     [/_test\.go$|\.(test|spec)\.[cm]?[jt]sx?$/, "tests"],
     [/(^|\/)docs\/|\.md$/i, "documentation"],
-    [/^\.github\/(workflows\/(?!shared\/(?:authority|policy)\.mjs$)|aw\/|cao\/)/, "control-plane records"],
+    [/^\.github\/(workflows\/(?!shared\/(?:authority|policy|actions-log|value-acquisition)\.mjs$)|aw\/|cao\/)/, "control-plane records"],
   ];
   for (const [pattern, label] of forbidden) {
     const matches = files.filter((file) => pattern.test(file));
