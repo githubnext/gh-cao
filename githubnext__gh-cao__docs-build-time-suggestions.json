@@ -1,35 +1,7 @@
 {
-  "source_sha": "e465d28c4ad27a42094a61d34ed048198a94b493",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "source_sha": "cd1e0ba023d17672e8e2a42170a9f57cc709522d",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T10:35:38Z",
-      "worker_run_id": "43200867008",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T19:31:09Z to 2026-11-12T09:48:55Z; within 14 days; 0 cancelled; none in progress; HEAD 40b8a11). Comparable n=13 successful current-shape publications (12 push, 1 schedule 43161224542) meet the n>=5 gate. Excluded: 6 failed pre-design schedules (failed at Mount latest CAO Dashboard artifact) and 1 freshness-only schedule (43087935698). Concurrency: run-created to build-job-created median 1 s (max 1 s); no overlapping, cancelled, or pending-replaced runs; build queue median 3 s (2-4); deploy queue median 5 s (4-6); build-complete to deploy-start handoff median 5 s (4-6). Avoidable rebuilds: every push publication (head commits 40b8a11, d4bf131, 063cbe9, 912a57a, 62f179a, 3bd066d, 874fa75, f0777fe, ad8a18d, f1cdd83, 3707d46, d57c4c8) matched at least one output-relevant filter (docs/**, dashboard/site/**, dashboard/report/**, astro.config.mjs, package files, or docs.yml); none was driven only by control-plane paths (.github/workflows/shared/**, */aw.yml, aw.yml). Daily 05:23Z cron is the documented synthetic-date refresh, one run per day. Wall created-to-deploy-complete median 88 s (p90 113 s); build median 72 s (p90 93 s); deploy median 10 s. Queue plus handoff overhead totals about 14 s median and is runner-controlled; removing the handoff requires merging deploy into build and dropping the github-pages environment gate, so no safe change is expected to reach the 15 percent gate (13.2 s). Debounce or cancel-in-progress changes were considered and save nothing in this window (no bursts overlapped a running build). No suggestion; no issue created. Scope: docs.yml, Actions run/job/step metadata, and head-commit file lists for trigger attribution only. next_category advanced to dependency installation and caching."
-    },
     {
       "evaluated_at": "2026-11-12T10:54:15Z",
       "worker_run_id": "43203548448",
@@ -814,6 +786,35 @@
         43129836945
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:47:12Z to 2026-11-12T20:09:54Z; within 14 days; 0 in progress; HEAD e465d28c). Excluded and disclosed: 1 cancelled superseded pending run 43206161686 (no jobs); 1 FAILED push 43297524311 on HEAD e465d28 (build failed at Build documentation after 14 s, deploy skipped; job logs HTTP 403 difc_forbidden, annotation only exit code 1; cause unverified; Pages not refreshed for e465d28; flag to maintainers, re-check at next HEAD). Comparable n=18 successes (17 push, 1 schedule 43161224542; identical 11-step build and 3-step deploy shape; 5-run gate met). Medians (p90), job and step metadata only: Configure Pages 0.5 s (1); Upload Pages artifact 2 s (3); Deploy Pages step 7 s (14); build-complete to deploy-start handoff 6 s (7); deploy queue 5 s (6); artifact 7.7-8.3 MB. Execution build-start-to-deploy-end 85 s (p90 123); wall 89 s (p90 157, checkout outliers); 15 percent gate 12.75 s. Controllable ceiling: packaging at most 2.5 s; merging deploy into build removes about 7 s handoff and setup but drops the environment-gated deploy job (deployment safety), so total at most about 10 s, below gate. Deploy Pages is GitHub-managed polling. No suggestion; no issue created. Carry-forward (other category, not evaluated): Checkout fetch-depth 0 median 24 s (p90 47), 28 percent of median execution; load-bearing for per-file git log provenance; partial clone unmeasured. next_category advanced to scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-11-12T20:55:33Z",
+      "worker_run_id": "43304199631",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43301807773,
+        43297524311,
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; within 14 days; source HEAD cd1e0ba). Excluded: 1 cancelled superseded pending run 43206161686 (no jobs); 1 failed push 43297524311 on e465d28 (Build documentation failed after 14 s; deploy skipped; Pages kept prior deploy until fix cd1e0ba succeeded about 25 min later; cause per fix title, logs HTTP 403 not read). Comparable n=18 successes (17 push, 1 schedule 43161224542; 5-run gate met). Medians (p90), job/step metadata: run-to-build-start 1 s; build queue 3 s (4); build-end to deploy-start 0 s (1); deploy queue 5 s (6); non-execution overhead 9 s (p90 36, concurrency tail) = 10% of median wall 88 s; execution build-start-to-deploy-end 84.5 s (123); build job 67 s (104); deploy job 10.5 s (18). Concurrency: 2 of 18 waited behind the immediately preceding in-progress publication (43228124764 43 s behind 43228046118; 43206235849 27 s behind 43206080696); queue-only, median wait 0. Avoidable rebuilds: 0 of 17 pushes lacked an output-relevant head-commit file; 0 control-plane-only (head commit only; multi-commit pushes not expanded). Schedule 43161224542 is the intended daily freshness refresh. Gate 15% of 84.5 s = 12.7 s; 60 s unreachable; removing all overhead still misses. Rejected: cancel-in-progress (could cancel an in-flight Pages deploy; saves only tail waits), build/deploy merge (about 5 s; drops github-pages environment and id-token separation), schedule removal (freshness), path tightening (0 avoidable). No suggestion; no issue created; no open issues for this worker (closed 20131 coalescing and 19765 path-exclusion not repeated). next_category advanced to dependency installation and caching. Carry-forward (not evaluated here): Checkout fetch-depth 0 median 24 s, largest build step.",
+      "suggestion_fingerprint": null
     }
   ]
 }
