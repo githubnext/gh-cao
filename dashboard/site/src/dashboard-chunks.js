@@ -411,7 +411,7 @@ export function splitDashboardDocument(source, options = {}) {
     return typeof visibility?.source === 'string' ? [visibility.source] : [];
   });
   const status = isPlainObject(document.dashboard['data-status']) ? document.dashboard['data-status'] : {};
-  const statusSources = [status['freshness-source'], status['health-source']].filter((name) => typeof name === 'string');
+  const statusSources = [status['freshness-source'], status['health-source'], status['ingestion-source']].filter((name) => typeof name === 'string');
   const prerequisiteSources = document.dashboard.pages.filter(pageCapabilityAvailable).flatMap((page) => {
     const source = pageRequiredSource(page);
     return source ? [source] : [];

@@ -86,6 +86,7 @@
     "test:e2e:setup-pathways:contoso": "node scripts/verify-contoso-setup-pathways.mjs --verify-only",
     "test:e2e:dashboard-views": "playwright test --config=tests/playwright/configs/dashboard-views.config.mjs",
     "test:e2e:dashboard-server": "playwright test --config=tests/playwright/configs/dashboard-server.config.mjs",
+    "test:e2e:dashboard-local-ingestion": "CAO_DASHBOARD_PROFILE=server npm --prefix dashboard/site run build -- dist ../../.github/workflows/cao.json && go -C server build -o ../.tmp/cao-dashboard ./cmd/cao-dashboard && playwright test --config=tests/playwright/configs/dashboard-local-ingestion.config.mjs",
     "test:e2e:dashboard-pages": "playwright test --config=tests/playwright/configs/dashboard-pages.config.mjs",
     "test:e2e:cao-mcp-container": "node tests/e2e/cao-mcp-container.mjs",
     "test:e2e:dashboard-query-parity": "node tests/e2e/dashboard-query-parity.mjs",
