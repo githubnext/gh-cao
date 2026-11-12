@@ -38,7 +38,7 @@ func TestNativeControlRecoveryUsesSeparateProcessAndDurableValueHint(t *testing.
 	// #nosec G204 -- invokes this test executable without external collector tooling.
 	child := exec.CommandContext(t.Context(), executable, "-test.run=^TestNativeControlRecoverySubprocess$", "-test.v")
 	child.Env = append(os.Environ(), "PATH=/nonexistent", "CAO_NATIVE_CONTROL_DSN="+dsn,
-		"CAO_NATIVE_CONTROL_NAMESPACE="+namespace, "CAO_NATIVE_CONTROL_SCHEMA="+config.RuntimeParams["search_path"])
+		"CAO_NATIVE_CONTROL_NAMESPACE="+namespace, "CAO_NATIVE_CONTROL_SCHEMA="+config.RuntimeParams["search_path"], "CAO_NATIVE_CONTROL_CANONICAL_DSN="+config.ConnString())
 	if output, err := child.CombinedOutput(); err != nil {
 		t.Fatalf("separate native control process failed: %v\n%s", err, output)
 	}
@@ -68,7 +68,7 @@ func TestNativeControlRecoverySubprocess(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = store.Close() }()
-	config, err := pgx.ParseConfig(dsn)
+	config, err := pgx.ParseConfig(os.Getenv("CAO_NATIVE_CONTROL_CANONICAL_DSN"))
 	if err != nil {
 		t.Fatal(err)
 	}

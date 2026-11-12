@@ -40,6 +40,7 @@ func TestNativeEnumerationResumesAbandonedPageInSeparateProcess(t *testing.T) {
 	child.Env = append(os.Environ(), "PATH=/nonexistent",
 		"CAO_NATIVE_DISCOVERY_DSN="+dsn, "CAO_NATIVE_DISCOVERY_NAMESPACE="+namespace,
 		"CAO_NATIVE_DISCOVERY_SCHEMA="+config.RuntimeParams["search_path"],
+		"CAO_NATIVE_DISCOVERY_CANONICAL_DSN="+config.ConnString(),
 		"CAO_NATIVE_DISCOVERY_BEFORE="+before.Format(time.RFC3339))
 	if output, err := child.CombinedOutput(); err != nil {
 		t.Fatalf("separate native enumeration process failed: %v\n%s", err, output)
@@ -67,7 +68,7 @@ func TestNativeEnumerationRecoverySubprocess(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = store.Close() }()
-	config, err := pgx.ParseConfig(dsn)
+	config, err := pgx.ParseConfig(os.Getenv("CAO_NATIVE_DISCOVERY_CANONICAL_DSN"))
 	if err != nil {
 		t.Fatal(err)
 	}
