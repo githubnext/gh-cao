@@ -120,9 +120,11 @@ Successful executions are not verified outcomes.
 
 Canonical artifacts and per-repository caches are retained under the ignored
 `.github/cao/dashboard/` directory, keyed by exact repository scope. `--cache-dir PATH` selects another private
-directory; do not point it at an existing Activity database. For one repository,
-an existing `.github/aw/logs` artifact cache is reused automatically, or select
-it with `--logs-dir PATH`. Existing gh-aw artifacts and matching cached JSONL
+directory; do not point it at an existing Activity database. `--repo` may target
+any accessible github.com repository from any folder. When the single selected
+repository is the current checkout's repository, an existing `.github/aw/logs`
+artifact cache is reused automatically; other targets use a profile-owned
+cache. Select an external cache explicitly with `--logs-dir PATH`. Existing gh-aw artifacts and matching cached JSONL
 records are reused by the same gh-aw collector. Only profile-owned artifact
 caches receive the 256 MiB storage budget; existing external gh-aw caches are
 not pruned by this command.

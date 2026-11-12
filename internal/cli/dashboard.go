@@ -33,6 +33,9 @@ type dashboardOptions struct {
 	duration        time.Duration
 	refresh         time.Duration
 	count           int
+	// localRepository is the lowercase github.com repository of the working
+	// checkout, when known; only that target may reuse .github/aw/logs.
+	localRepository string
 	// onCollecting, when set, runs synchronously once a pass has published its
 	// "collecting" status so the serving process can show it before the pass ends.
 	onCollecting func()
@@ -125,19 +128,18 @@ func resolveDashboardOptions(cmd *cobra.Command, options *dashboardOptions, gh g
 		}
 	}
 	if len(repositories) == 0 {
-		stdout, _, err := gh(cmd.Context(), "repo", "view", "--json", "nameWithOwner,url")
+		current, err := currentDashboardRepository(cmd.Context(), gh)
 		if err != nil {
-			return nil, "", errors.New("cannot resolve the current GitHub repository; pass --repo OWNER/REPO")
+			return nil, "", err
 		}
-		var identity struct {
-			Name string `json:"nameWithOwner"`
-			URL  string `json:"url"`
+		repositories = []string{current}
+		options.localRepository = strings.ToLower(current)
+	} else if len(repositories) == 1 && options.logs == "" && dashboardLocalLogsPresent() {
+		// Explicit --repo may target any remote repository; reuse the local
+		// artifact cache only when it belongs to that same repository.
+		if current, err := currentDashboardRepository(cmd.Context(), gh); err == nil {
+			options.localRepository = strings.ToLower(current)
 		}
-		if json.Unmarshal([]byte(stdout), &identity) != nil || !repositoryPattern.MatchString(identity.Name) ||
-			identity.URL != "https://github.com/"+identity.Name {
-			return nil, "", errors.New("current repository must resolve to an exact github.com repository")
-		}
-		repositories = []string{identity.Name}
 	}
 	for index := range repositories {
 		// Explicit host prevents an ambient GH_HOST from silently changing scope.
@@ -159,6 +161,29 @@ func resolveDashboardOptions(cmd *cobra.Command, options *dashboardOptions, gh g
 	}
 	cache, err := filepath.Abs(cache)
 	return repositories, cache, err
+}
+
+const dashboardLocalLogs = ".github/aw/logs"
+
+func dashboardLocalLogsPresent() bool {
+	info, err := os.Stat(dashboardLocalLogs)
+	return err == nil && info.IsDir()
+}
+
+func currentDashboardRepository(ctx context.Context, gh ghExecutor) (string, error) {
+	stdout, _, err := gh(ctx, "repo", "view", "--json", "nameWithOwner,url")
+	if err != nil {
+		return "", errors.New("cannot resolve the current GitHub repository; pass --repo OWNER/REPO")
+	}
+	var identity struct {
+		Name string `json:"nameWithOwner"`
+		URL  string `json:"url"`
+	}
+	if json.Unmarshal([]byte(stdout), &identity) != nil || !repositoryPattern.MatchString(identity.Name) ||
+		identity.URL != "https://github.com/"+identity.Name {
+		return "", errors.New("current repository must resolve to an exact github.com repository")
+	}
+	return identity.Name, nil
 }
 
 func boundedDashboardGH(ctx context.Context, args ...string) (string, string, error) {
