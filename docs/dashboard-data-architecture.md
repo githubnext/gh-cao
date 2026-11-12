@@ -68,9 +68,9 @@ switch the client to a different data plane.
 ```mermaid
 flowchart TB
   accTitle: Three explicitly selected serving topologies
-  accDescr: Pages queries browser IndexedDB through a worker. Local serving queries read-only SQLite through Go. Hosted serving queries PostgreSQL through the same-origin Go handler.
+  accDescr: The synthetic Pages demo queries isolated browser IndexedDB through a worker. Real local snapshots use SQLite through Go. Production serving queries PostgreSQL through the same-origin Go handler.
   Browser["Dashboard client"] --> Selection{"Configured deployment"}
-  Selection -->|Explicit Pages| Worker["Browser data Web Worker"]
+  Selection -->|Synthetic demo only| Worker["Browser data Web Worker"]
   Worker --> IDB[("Disposable IndexedDB")]
   Selection -->|Local loopback| Local["Go query handler"]
   Local --> SQLite[("Read-only canonical SQLite")]
@@ -81,9 +81,9 @@ flowchart TB
 
 | Topology | Query execution | Persistence and ownership | Appropriate use |
 | --- | --- | --- | --- |
-| Explicit static Pages | Data Web Worker over IndexedDB | Authorized published inputs; disposable, per-browser state | Static evidence distribution where browser ingestion is acceptable |
+| Synthetic Pages demo | Data Web Worker over IndexedDB | Generated samples, production canonical ingestion; isolated disposable browser state | Enterprise sample exploration, never operational evidence distribution |
 | Local/headless | Go over a selected read-only canonical SQLite snapshot | The Activity pipeline owns ordinary snapshot creation, retention, and repair | Operator analysis, CLI consumption, and local development |
-| Hosted | Go over PostgreSQL using bounded, parameterized SQL | Server-side canonical namespace plus separately owned operational state | Authenticated shared dashboards and optionally native acquisition |
+| Production hosted | Go over PostgreSQL using bounded, parameterized SQL | Server-side canonical namespace plus separately owned operational state | Authenticated shared dashboards and optionally native acquisition |
 
 Containers, Azure Functions, and external-listener hosts use the **complete
 Go handler on one origin**: HTML, assets, OAuth, query APIs, and revision
@@ -95,6 +95,27 @@ Ordinary local SQLite serving is query-only: the Go server does not collect
 GitHub evidence, start an ingestion runtime, or create a writable overlay.
 The separately selected immediate operator CLI can acquire a private bounded
 projection outside that server; it is not a hosted failover mechanism.
+
+Pages generates raw synthetic samples, normalizes them through the production
+pipeline, and uses the same canonical queries and views. Its declarative
+**Synthetic enterprise demo** callout is not a live-service health indicator.
+Daily documentation/demo builds do not depend on operational artifact freshness
+and publish neither SQLite nor an agent summary.
+
+The demo's `demo-data/` data URLs, `synthetic-demo` browser storage-key
+suffix, and `demo` service-worker caches isolate it from old same-origin
+operational data, including cached responses at former URLs. This removes
+live-data publication and implicit acquisition paths, not the cost of the
+IndexedDB/worker/service-worker adapters and cross-backend conformance.
+Operational artifacts remain bounded read-only transport for authorized local
+and hosted consumers. Acquisition requires authenticated Actions access or an
+explicit direct operational `payload-hashes.json` URL; there is no default
+Pages download or implied hosted export API.
+
+Migration does not scrub old deployments or browser storage. Redeploying the
+demo replaces current Pages artifacts; legacy real-data browser databases stay
+unused and disposable until explicitly cleared. The demo never automatically
+deletes storage outside its namespace.
 
 **Source:** dashboard-data §5.2 Go server profile; [Deployment](deployment.md).
 
@@ -592,7 +613,7 @@ Before approving a deployment or boundary change, establish:
 | Review question | Required evidence |
 | --- | --- |
 | Which acquisition profile owns writes? | Explicit profile selection, enrollment, credential and fencing configuration |
-| Which serving/query backend is selected? | Pages, local SQLite, or hosted `server-http`; no automatic fallback |
+| Which serving/query backend is selected? | Synthetic-only Pages, real local SQLite, or production hosted `server-http`; no automatic fallback |
 | Where are atomicity and durability promised? | Browser phase/receipt semantics versus PostgreSQL publication and protected-state contracts |
 | What population does each metric describe? | Exact retained evidence, daily observations, or a labelled statistical frame |
 | Is private full-session evidence separately approved? | Archive content/read grants, exact scope, fenced Parquet membership, independent retention and real destination acceptance |

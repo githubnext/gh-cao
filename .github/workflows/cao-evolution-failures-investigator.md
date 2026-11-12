@@ -73,7 +73,6 @@ imports:
       read_actions: read
       read_contents: read
       read_issues: read
-  - uses: shared/activity-cache.md
 
 permissions:
   contents: read

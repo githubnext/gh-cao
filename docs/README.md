@@ -32,6 +32,27 @@ hero:
       icon: right-arrow
 ---
 
+## Start locally, without a cloud deployment
+
+Use your locally authenticated GitHub CLI and the installed CAO release:
+
+```bash
+gh auth status
+gh extension install githubnext/gh-cao
+gh cao dashboard --repo OWNER/REPOSITORY
+```
+
+Open the **Dashboard:** URL printed in your terminal. The bundled server serves
+on loopback and queries canonical SQLite cached on your machine, automatically
+collecting and refreshing bounded recent evidence from GitHub.
+No CAO cloud deployment, Azure setup, hosted dashboard, PostgreSQL, Redis,
+containers, or separate Node.js or gh-aw installation is required.
+GitHub authentication and online access are still needed for collection.
+Press **Ctrl-C** to stop; the cache remains.
+
+Follow the [local dashboard quickstart](setup-quickstarts.md#open-a-local-dashboard-no-deployment)
+for scope, limits, and cache reuse. Shared monitoring and automation can come later.
+
 <!-- The desktop header's Start slideshow button presents this landing page.
 Use arrow keys, Page Up/Down, Home/End, or the navigation buttons; Escape exits.
 Drawing tools annotate slides, and code snippets or dashboard previews expand

@@ -7,8 +7,7 @@ import {
   analyzeDashboardComplexity,
   formatDashboardComplexityMarkdown,
   readDashboardTableCounts
-} from '../../activity/dashboard-complexity.mjs';
-import { runCli } from '../../activity/cao.mjs';
+} from '../../dashboard/report/query-complexity.mjs';
 import { DatabaseSync } from 'node:sqlite';
 import { SQLITE_INDEXEDDB_METADATA_SCHEMA } from '../../dashboard/site/src/data/storage/sqlite-indexeddb.js';
 
@@ -156,39 +155,6 @@ test('warns when a wide raw union materializes more field-units than aggregated 
   assert.equal(analysis.ranking[0].name, 'event-base');
 });
 
-test('cao dashboard-complexity reports the full graph or one query id', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'cao-dashboard-complexity-'));
-  const inputPath = path.join(directory, 'dashboard.json');
-  try {
-    await writeFile(inputPath, JSON.stringify(dashboard()));
-
-    const report = await runCli(['dashboard-complexity', '--input', inputPath]);
-    assert.equal(report.command, 'dashboard-complexity');
-    assert.equal(report.queries, 3);
-    assert.equal(report.ranking[0].name, 'joined');
-
-    const selected = await runCli(['dashboard-complexity', 'summary', '--input', inputPath]);
-    assert.equal(selected.command, 'dashboard-complexity');
-    assert.equal(selected.query.name, 'summary');
-    assert.equal(selected.query.rank, 2);
-    assert.deepEqual(selected.query['used-by'], ['page:overview/view:summary-card']);
-    assert.equal(selected.query['total-row-read-units'], 5);
-
-    const markdown = await runCli([
-      'dashboard-complexity',
-      'summary',
-      '--input',
-      inputPath,
-      '--format',
-      'markdown'
-    ]);
-    assert.match(markdown, /Selected query: `summary`/);
-    assert.match(markdown, /\| 2 \| `summary` \|/);
-    assert.doesNotMatch(markdown, /\| 1 \| `joined` \|/);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-});
 
 test('weights database tables by normalized deployed row counts', async (t) => {
   const directory = await mkdtemp(path.join(tmpdir(), 'cao-dashboard-complexity-database-'));
@@ -236,22 +202,4 @@ test('weights database tables by normalized deployed row counts', async (t) => {
   });
   assert.equal(emptyTable.summary['materialize-all-row-read-units'], 0);
   assert.deepEqual(emptyTable.summary['source-coefficients'], { campaigns: 0 });
-});
-
-test('cao dashboard-complexity rejects unknown queries and invalid limits', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'cao-dashboard-complexity-errors-'));
-  const inputPath = path.join(directory, 'dashboard.json');
-  try {
-    await writeFile(inputPath, JSON.stringify(dashboard()));
-    await assert.rejects(
-      runCli(['dashboard-complexity', 'missing', '--input', inputPath]),
-      /Unknown dashboard query: missing/
-    );
-    await assert.rejects(
-      runCli(['dashboard-complexity', '--input', inputPath, '--limit', '0']),
-      /--limit must be a positive integer/
-    );
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
 });

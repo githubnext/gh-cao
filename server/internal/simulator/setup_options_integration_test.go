@@ -91,7 +91,7 @@ func testSetupOptions(t *testing.T, ctx context.Context, root, catalog, binary s
 				!reflect.DeepEqual(tree, setupCheckoutState(t, f.checkout)) {
 				t.Fatal("credential dry-run changed local files or remote state")
 			}
-			f.assertRequests(t, ctx, "", false)
+			f.assertRequests(t, ctx, false)
 			if len(f.api.Requests) != 0 {
 				t.Fatalf("explicit credential dry-run unexpectedly accessed GitHub: %v", f.api.Requests)
 			}
@@ -119,7 +119,7 @@ func testSetupOptions(t *testing.T, ctx context.Context, root, catalog, binary s
 			if !bytes.Equal(before, f.state(t)) || !reflect.DeepEqual(tree, setupCheckoutState(t, f.checkout)) {
 				t.Fatal("failed credential dry-run changed files or remote state")
 			}
-			f.assertRequests(t, ctx, "", true)
+			f.assertRequests(t, ctx, true)
 		})
 	}
 	t.Run("admission dry-run apply and repeat", func(t *testing.T) {

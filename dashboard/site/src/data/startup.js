@@ -21,6 +21,7 @@ import { browserFirstLoad, recordPreparationEvent, recordPreparationStorage, res
 import { inspectBrowserStorage, TEMPORARY_STORAGE_WARNING } from "../browser-storage.js";
 import { dashboardDataStatus } from "../dashboard-data-status.js";
 import { mountFirstLoadOverlay } from "../components/first-load-overlay.js";
+import { DEMO_MODE } from "../deployment-profile.js";
 
 const debugStartup = createDebug("startup");
 
@@ -369,7 +370,7 @@ export async function startDashboardData(options) {
   void storageInspection?.then((diagnostics) => {
     if (cleanup.signal.aborted) return;
     recordPreparationStorage(diagnostics);
-    if (diagnostics.persisted === true) {
+    if (DEMO_MODE || diagnostics.persisted === true) {
       resolveNotification("dashboard:browser-storage", document);
     } else {
       const notice = publishNotification({

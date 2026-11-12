@@ -104,7 +104,7 @@ export async function generateDashboardLlms({ outputPath, activityDataPath } = {
     "## Bulk analysis with CAO CLI and SQLite",
     "",
     "1. Install or use the repository-local CAO CLI.",
-    "2. Run `cao download --url https://githubnext.github.io/gh-cao/cao/payload-hashes.json`.",
+    "2. Download a selected operational Actions snapshot: `gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao`. Alternatively use `cao download --url https://SNAPSHOT-HOST/payload-hashes.json` with an explicitly configured operational endpoint.",
     "3. Query `.cao/gh-aw-logs.sqlite` with `cao query`, reviewed named queries, or local SQLite tooling.",
     "4. Use this route for large joins, historical analysis, aggregate computation, exploratory SQL, or analysis across many repositories and runs.",
     "",

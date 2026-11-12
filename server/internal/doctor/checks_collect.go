@@ -666,9 +666,9 @@ func (d Doctor) checkTooling(context.Context) Check {
 		return Check{ID: id, Area: areaRuntime, Title: title, Status: StatusPass,
 			Summary: "native Go collection requires no Node or Activity CLI"}
 	}
-	values := collect.NativeValueService{Projector: collect.Projector{
+	values := collect.NativeValueService{
 		CatalogRoot: d.getenv("CAO_COLLECT_CATALOG_ROOT"), PolicyPath: d.getenv("CAO_POLICY_PATH"),
-	}}
+	}
 	if err := values.ValidateRuntime(); err != nil {
 		return failed(id, areaRuntime, title, err)
 	}

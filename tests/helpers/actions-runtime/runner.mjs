@@ -1,7 +1,6 @@
 import { spawn } from "node:child_process";
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { parse } from "yaml";
 import { condition, evaluate, interpolate } from "./expressions.mjs";
 import { githubAPI } from "./github-api.mjs";
 import { sampleWorkflow } from "./workflow.mjs";
@@ -30,8 +29,7 @@ const supportedActions = new Set([
   "github/gh-aw-actions/setup", "actions/github-script", "actions/checkout",
   "actions/upload-artifact", "actions/download-artifact",
   "actions/create-github-app-token",
-  "actions/setup-node", "actions/cache/restore", "actions/cache/save",
-  "github/gh-aw-actions/setup-cli", "./.github/actions/setup-cao-runtime",
+  "actions/setup-node",
 ]);
 const report = { identity: { uid: process.getuid(), gid: process.getgid() }, jobs: {}, requests: [], unhandled: [], simulated: [], artifacts: [] };
 
@@ -171,97 +169,17 @@ async function executeStep(step, input, env, context, workspace, log) {
     case "actions/setup-node":
       if (String(input["node-version"]) !== process.versions.node.split(".")[0]) throw new Error("Runner Node version mismatch");
       break;
-    case "github/gh-aw-actions/setup-cli": {
-      await command("/tools/share/gh/extensions/gh-aw/gh-aw", ["version"], env, workspace, log);
-      if (!(await readFile(log, "utf8")).includes(` ${input.version}`)) throw new Error("Collector version mismatch");
-      break;
-    }
-    case "./.github/actions/setup-cao-runtime": {
-      const composite = parse(await readFile(path.join(workspace, step.uses, "action.yml"), "utf8"));
-      for (const nested of composite.runs.steps) {
-        const nestedContext = { ...context, inputs: input };
-        await executeStep(nested, {}, { ...env, ...stringify(render(nested.env, nestedContext)) },
-          nestedContext, workspace, log);
-      }
-      break;
-    }
-    case "actions/cache/restore": {
-      const available = (await readdir("/tmp/cache").catch(error => {
-        if (error.code !== "ENOENT") throw error;
-        return [];
-      })).sort().reverse();
-      const prefixes = String(input["restore-keys"] || "").trim().split("\n").filter(Boolean);
-      const key = available.includes(input.key) ? input.key
-        : available.find(key => prefixes.some(prefix => key.startsWith(prefix)));
-      if (key) {
-        for (const name of String(input.path).trim().split("\n")) {
-          const source = beneath(`/tmp/cache/${key}`, path.basename(name.trim()));
-          try {
-            await stat(source);
-            await mkdir(path.dirname(name.trim()), { recursive: true });
-            await cp(source, beneath("/tmp", path.relative("/tmp", name.trim())), { recursive: true });
-          } catch (error) { if (error.code !== "ENOENT") throw error; }
-        }
-        await writeFile(env.GITHUB_OUTPUT, `cache-matched-key=${key}\ncache-hit=${key === input.key}\n`);
-      }
-      break;
-    }
-    case "actions/cache/save": {
-      const destination = beneath("/tmp/cache", input.key);
-      await mkdir(destination, { recursive: true });
-      let saved = 0;
-      for (const name of String(input.path).trim().split("\n")) {
-        try {
-          await stat(name.trim());
-          await cp(beneath("/tmp", path.relative("/tmp", name.trim())), path.join(destination, path.basename(name.trim())),
-            { recursive: true });
-          saved++;
-        } catch (error) { if (error.code !== "ENOENT") throw error; }
-      }
-      if (!saved) throw new Error("Cannot save an empty Actions cache");
-      break;
-    }
     default: throw new Error(`Unsupported action: ${step.uses}`);
   }
-}
-
-async function activityAPI() {
-  const child = spawn("/tools/activity-github", [], { stdio: ["ignore", "pipe", "pipe"] });
-  let pending = "", errors = "";
-  child.stderr.on("data", data => { errors += data; });
-  const ready = new Promise((resolve, reject) => {
-    child.once("error", reject);
-    child.once("exit", code => reject(new Error(`Activity GitHub simulator exited (${code}): ${errors}`)));
-    child.stdout.on("data", data => {
-      pending += data;
-      let end;
-      while ((end = pending.indexOf("\n")) >= 0) {
-        const entry = JSON.parse(pending.slice(0, end));
-        pending = pending.slice(end + 1);
-        if (entry.url) resolve(entry.url);
-        else if (entry.unhandled) report.unhandled.push(entry.unhandled);
-        else report.requests.push(entry);
-      }
-    });
-  });
-  const timer = setTimeout(() => child.kill("SIGTERM"), 10_000);
-  let url;
-  try { url = await ready; } finally { clearTimeout(timer); }
-  return { url: url + "/api/v3", close: () => new Promise(resolve => {
-    child.once("exit", resolve);
-    child.kill("SIGTERM");
-  }) };
 }
 
 async function run() {
   const config = JSON.parse(await readFile("/fixture/simulator.json", "utf8"));
   const lock = await readFile(beneath("/fixture", config.workflow), "utf8");
-  if (config.activity && config.workflow !== ".github/workflows/cao-activity.yml") throw new Error("Activity requires its checked-in workflow");
-  const workflow = config.activity ? parse(lock)
-    : sampleWorkflow(lock, { allowStaged: config.workflow === ".github/workflows/cao.lock.yml" });
+  const workflow = sampleWorkflow(lock, { allowStaged: config.workflow === ".github/workflows/cao.lock.yml" });
   if (workflow.defaults) throw new Error("Workflow defaults are unsupported");
   for (const job of Object.values(workflow.jobs)) {
-    if (job.strategy && !config.activity || job.services || job.container || job.uses || job.environment || job.defaults || !job.steps) {
+    if (job.strategy || job.services || job.container || job.uses || job.environment || job.defaults || !job.steps) {
       throw new Error("Unsupported job topology");
     }
     for (const step of job.steps) {
@@ -277,12 +195,9 @@ async function run() {
   if (!Object.hasOwn(workflow.on, config.eventName) || trigger?.types && !trigger.types.includes(event.action)) {
     throw new Error("Event does not match the compiled workflow trigger");
   }
-  const api = config.activity ? await activityAPI() : await githubAPI("/fixture", event, report, config);
+  const api = await githubAPI("/fixture", event, report, config);
   try {
-    if (!config.activity) await cp("/upstream/setup", "/tmp/upstream/setup", { recursive: true });
-    await cp("/cache-seed", "/tmp/cache", { recursive: true }).catch(error => {
-      if (error.code !== "ENOENT") throw error;
-    });
+    await cp("/upstream/setup", "/tmp/upstream/setup", { recursive: true });
     const pending = new Map(Object.entries(workflow.jobs));
     while (pending.size) {
       let progress = false;
@@ -298,10 +213,10 @@ async function run() {
           workflow: workflow.name, workflow_ref: `${event.repository.full_name}/${config.workflow}@refs/heads/main`,
           workflow_sha: config.sha, sha: config.sha, ref: "refs/heads/main", ref_name: "main",
           actor: event.sender.login, triggering_actor: event.sender.login,
-          run_id: String(config.activity?.runId ?? 1), run_attempt: "1",
+          run_id: "1", run_attempt: "1",
           event_name: config.eventName, event, job: id, token: "simulator-not-a-real-token",
-          workspace, server_url: config.activity ? new URL(api.url).origin : "https://github.com",
-          api_url: config.activity ? api.url : "https://api.github.com",
+          workspace, server_url: "https://github.com",
+          api_url: "https://api.github.com",
         };
         const context = {
           github, runner: { temp, tool_cache: "/tmp/tool-cache", debug: "0", os: "Linux", arch: process.arch === "arm64" ? "ARM64" : "X64" },
@@ -311,11 +226,6 @@ async function run() {
           status: dependencies.every(name => report.jobs[name].result === "success") ? "success" : "failure",
         };
         if (!condition(job.if, context)) { report.jobs[id] = { result: "skipped", outputs: {}, steps: {} }; continue; }
-        if (job.strategy) {
-          const matrix = interpolate(job.strategy.matrix, context);
-          if (!Array.isArray(matrix.include) || matrix.include.length !== 1) throw new Error("Activity fixture requires exactly one matrix scope");
-          context.matrix = matrix.include[0];
-        }
         await rm("/tmp/gh-aw", { force: true, recursive: true });
         await mkdir(workspace, { recursive: true });
         await mkdir(temp, { recursive: true });
@@ -335,11 +245,6 @@ async function run() {
           GITHUB_ACTOR: github.actor, GITHUB_TRIGGERING_ACTOR: github.actor, GITHUB_EVENT_NAME: config.eventName,
           GITHUB_EVENT_PATH: `${temp}/event.json`, GITHUB_API_URL: github.api_url, GITHUB_SERVER_URL: github.server_url,
           SIMULATOR_GITHUB_API_URL: api.url,
-          ...(config.activity ? {
-            XDG_DATA_HOME: "/tools/share", GH_CONFIG_DIR: `${temp}/home/gh`,
-            GH_ENTERPRISE_TOKEN: github.token, SSL_CERT_FILE: "/output/github-ca.pem",
-            NODE_EXTRA_CA_CERTS: "/output/github-ca.pem",
-          } : {}),
           GITHUB_TOKEN: github.token, GH_TOKEN: github.token, ...stringify(context.env),
           GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: `${temp}/home/.gitconfig`, GIT_TERMINAL_PROMPT: "0",
         };
@@ -386,9 +291,6 @@ try { await run(); }
 catch (error) { report.error = error.message; process.exitCode = 1; }
 finally {
   await cp("/tmp/artifacts", "/output/artifacts", { recursive: true }).catch(error => {
-    if (error.code !== "ENOENT") throw error;
-  });
-  await cp("/tmp/cache", "/output/cache", { recursive: true }).catch(error => {
     if (error.code !== "ENOENT") throw error;
   });
   await writeFile("/output/report.json", JSON.stringify(report, null, 2));

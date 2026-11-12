@@ -179,7 +179,7 @@ func TestNativeInventoryActivityOracle(t *testing.T) {
 	// The production implementation never invokes Node. This independent
 	// producer oracle freezes the existing Activity source contract.
 	command := exec.CommandContext(t.Context(), "node", "--input-type=module", "-e", `
-import { buildInventoryDashboardSources } from "./activity/inventory-sources.mjs";
+import { buildInventoryDashboardSources } from "./dashboard/report/inventory-sources.mjs";
 const generatedAt = "2026-10-01T00:00:00Z";
 const input = {
  repository:"octo/api",generatedAt,

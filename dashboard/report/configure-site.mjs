@@ -2,7 +2,7 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { actionsLog as log } from "../../activity/actions-log.mjs";
+import { actionsLog as log } from "../../.github/workflows/shared/actions-log.mjs";
 
 const DEFAULT_FAVICON_LINK = '<link rel="icon" href="./favicon.svg">';
 

@@ -675,13 +675,11 @@ func newServeCommand() *cobra.Command {
 	}
 	redisURL := cmd.Flags().String("redis-url", defaultRedisURL, "explicitly opt in to Redis operational state instead of Postgres")
 	postgresURL := cmd.Flags().String("postgres-url", "", "opt in to Postgres dashboard storage; an empty value uses CAO_POSTGRES_URL")
-	sqlitePath := cmd.Flags().String("sqlite", defaultSQLitePath, "local SQLite snapshot cache; download deployed data if missing")
+	sqlitePath := cmd.Flags().String("sqlite", defaultSQLitePath, "local SQLite snapshot cache; acquire missing data only from an explicit DASHBOARD_DATA_URL")
 	dataURLDefault := strings.TrimSpace(os.Getenv("DASHBOARD_DATA_URL"))
-	if dataURLDefault == "" {
-		dataURLDefault = defaultSQLiteDataURL
-	}
-	downloadURL := cmd.Flags().String("download-sqlite", "", "refresh the SQLite cache from a Pages site even if it exists; optional URL defaults to DASHBOARD_DATA_URL or CAO Pages")
-	cmd.Flags().Lookup("download-sqlite").NoOptDefVal = dataURLDefault
+	const environmentDownloadURL = "DASHBOARD_DATA_URL"
+	downloadURL := cmd.Flags().String("download-sqlite", "", "refresh the SQLite cache from an explicit payload-hashes.json URL; omit URL only when DASHBOARD_DATA_URL is configured")
+	cmd.Flags().Lookup("download-sqlite").NoOptDefVal = environmentDownloadURL
 	redisNamespace, namespaceErr := registerRedisNamespaceFlag(cmd, "Redis key and index namespace")
 	siteDirectory := cmd.Flags().String("site", "", "serve a built dashboard directory from disk instead of embedded resources")
 	listen := cmd.Flags().String("listen", "127.0.0.1:8443", "loopback HTTP listen address; HTTPS when --cert and --key are set")
@@ -695,6 +693,13 @@ func newServeCommand() *cobra.Command {
 	mcpContract := cmd.Flags().String("mcp-contract", "", "shared MCP tool contract (default: selected dashboard resources)")
 	mcpEnabled := cmd.Flags().Bool("mcp-enabled", false, "serve the read-only MCP endpoint at /mcp")
 	canvasConfigPath := cmd.Flags().String("canvas-config", "", "private local Copilot adapter configuration; stdin owns the host lifetime")
+	sqliteIngestion := cmd.Flags().Bool("sqlite-ingestion", false, "serve canonical SQLite refreshed by an owning ingestion process with ordinary server rendering")
+	operatorConfigPath := cmd.Flags().String("operator-config", "", "private native maintenance adapter configuration for SQLite ingestion mode")
+	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "canvas-config")
+	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "postgres-url")
+	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "redis-url")
+	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "source")
+	cmd.MarkFlagsMutuallyExclusive("sqlite-ingestion", "download-sqlite")
 	exitOnStdinClose := cmd.Flags().Bool("exit-on-stdin-close", false, "stop local SQLite serving when the owning CLI closes stdin")
 	cmd.MarkFlagsMutuallyExclusive("sqlite", "postgres-url")
 	cmd.MarkFlagsMutuallyExclusive("sqlite", "redis-url")
@@ -703,7 +708,7 @@ func newServeCommand() *cobra.Command {
 	cmd.MarkFlagsMutuallyExclusive("download-sqlite", "redis-url")
 	cmd.MarkFlagsMutuallyExclusive("download-sqlite", "source")
 	cmd.Args = func(cmd *cobra.Command, args []string) error {
-		if len(args) == 1 && cmd.Flags().Changed("download-sqlite") && *downloadURL == dataURLDefault {
+		if len(args) == 1 && cmd.Flags().Changed("download-sqlite") && *downloadURL == environmentDownloadURL {
 			return nil
 		}
 		return cobra.NoArgs(cmd, args)
@@ -722,7 +727,7 @@ func newServeCommand() *cobra.Command {
 		}
 		downloadSnapshot := cmd.Flags().Changed("download-sqlite")
 		snapshotURL := dataURLDefault
-		if downloadSnapshot {
+		if downloadSnapshot && *downloadURL != environmentDownloadURL {
 			snapshotURL = *downloadURL
 		}
 		if len(args) == 1 {
@@ -733,6 +738,16 @@ func newServeCommand() *cobra.Command {
 		canvas, err := readCanvasConfig(*canvasConfigPath)
 		if err != nil {
 			return err
+		}
+		operator, err := readOperatorConfig(*operatorConfigPath)
+		if err != nil {
+			return err
+		}
+		if operator != nil && !*sqliteIngestion {
+			return errors.New("--operator-config requires --sqlite-ingestion")
+		}
+		if *sqliteIngestion && (!localSQLite || !cmd.Flags().Changed("sqlite")) {
+			return errors.New("--sqlite-ingestion requires an explicit canonical --sqlite database")
 		}
 		if canvas != nil && !localSQLite {
 			return errors.New("canvas integration requires local SQLite serving")
@@ -751,13 +766,16 @@ func newServeCommand() *cobra.Command {
 			if !downloadSnapshot {
 				_, err := os.Lstat(snapshotPath)
 				if errors.Is(err, os.ErrNotExist) {
+					if *sqliteIngestion {
+						return errors.New("SQLite ingestion requires a canonical database initialized by its owning ingestion process")
+					}
 					downloadSnapshot = true
 				} else if err != nil {
 					return fmt.Errorf("inspect local SQLite cache: %w", err)
 				}
 			}
 			if downloadSnapshot {
-				if _, err := sqliteManifestURLs(snapshotURL); err != nil {
+				if _, err := sqliteManifestURL(snapshotURL); err != nil {
 					return err
 				}
 			}
@@ -807,6 +825,7 @@ func newServeCommand() *cobra.Command {
 				GitHubAPIURL:         actionsEnv.APIURL,
 				Logger:               log.New(os.Stderr, "cao-dashboard: ", log.LstdFlags),
 				Canvas:               canvas,
+				OperatorActions:      operator,
 			}
 			if localSQLite {
 				// Ambient local credentials are not an Actions identity
@@ -837,7 +856,11 @@ func newServeCommand() *cobra.Command {
 				}
 				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "SQLite snapshot ready.")
 			}
-			app, err := server.NewLocalSQLiteApp(ctx, snapshotPath, config)
+			newApp := server.NewLocalSQLiteApp
+			if *sqliteIngestion {
+				newApp = server.NewSQLiteIngestionApp
+			}
+			app, err := newApp(ctx, snapshotPath, config)
 			if err != nil {
 				return err
 			}
@@ -1012,7 +1035,6 @@ func newCollectCommand() *cobra.Command {
 	databaseQueries := cmd.Flags().String("database-queries",
 		"../dashboard/site/src/data/queries/database.json", "canonical database projection queries")
 	consumer := cmd.Flags().String("consumer", "", "consumer name; defaults to the hostname")
-	project := cmd.Flags().Bool("project", true, "participate in coalesced projection")
 	cmd.RunE = func(*cobra.Command, []string) error {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
@@ -1030,7 +1052,6 @@ func newCollectCommand() *cobra.Command {
 			return err
 		}
 		worker := collector.Worker(name)
-		worker.Project = *project
 		commandLog.Printf("collect resolved consumer name source=%s", nameSource)
 		log.Printf("collection worker %s started", name)
 		runErr := worker.Run(ctx)

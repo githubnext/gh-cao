@@ -115,7 +115,7 @@ test("CAO Evolution is review-first, role-scoped, and deduplicated", () => {
   assert.match(catalogAdvisor, /Use `githubnext\/gh-cao` as the official Operations Catalog/);
   assert.match(catalogAdvisor, /Never install or update a campaign, edit policy, dispatch a workflow/);
   assert.match(catalogAdvisor, /installation and enablement require separate reviewed changes/);
-  assert.match(workflow("cao-evolution-reliability.md"), /uses: shared\/activity-cache\.md/);
+  assert.doesNotMatch(workflow("cao-evolution-reliability.md"), /uses: shared\/activity-cache\.md/);
   const efficiency = workflow("cao-evolution-efficiency.md");
   assert.match(efficiency, /same authoritative activity and safe-output evidence that the dashboard normalizes into browser IndexedDB/);
   assert.match(efficiency, /Never attempt to open, download, or treat browser IndexedDB as shared or authoritative storage/);

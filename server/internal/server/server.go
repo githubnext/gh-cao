@@ -70,6 +70,7 @@ type Config struct {
 	KeyFile                string
 	AccessToken            string
 	Canvas                 *LocalCanvasConfig
+	OperatorActions        *LocalOperatorConfig
 	OnListen               func(string) error
 	HostProfile            HostProfile
 	SingleReplicaConfirmed bool
@@ -482,7 +483,7 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 		a.config.Logger.Printf("activated dashboard revision %d", result.Revision)
 	}
 	if collector := a.Collector(); collector != nil {
-		if err := collector.start(startupCtx, runCtx, a.hub.Broadcast, a.startTask); err != nil {
+		if err := collector.start(startupCtx, runCtx, a.startTask); err != nil {
 			a.cancelAndWaitTasks(cancel, startupCtx)
 			return fmt.Errorf("start collection: %w", err)
 		}
@@ -1373,7 +1374,7 @@ Server commit SHA: %s
 ## Agent documentation
 
 - CAO agent resources: https://githubnext.github.io/gh-cao/agent/llms.txt
-- Published dashboard agent guide: https://githubnext.github.io/gh-cao/cao/llms.txt
+- Operational data access guide: https://githubnext.github.io/gh-cao/agent-analysis/
 - Agent analysis and MCP setup: https://githubnext.github.io/gh-cao/agent-analysis/
 
 ## Configure MCP
@@ -2119,6 +2120,9 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 		storageBackend = "sqlite"
 	}
 	injections := `<meta name="dashboard-data-backend" content="server-http"><meta name="dashboard-storage-backend" content="` + storageBackend + `">`
+	if a.config.OperatorActions != nil && a.config.OperatorActions.OperatorActions != nil {
+		injections += `<script>globalThis.__CLI_QUEUE__ = true; globalThis.__LOCAL_CLI_QUEUE__ = true;</script>`
+	}
 	if a.config.Canvas != nil {
 		injections += `<meta name="dashboard-api-base" content="` + a.config.Canvas.Prefix + `/">`
 		if a.config.Canvas.OperatorActions != nil {

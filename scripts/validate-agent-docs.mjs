@@ -3,15 +3,14 @@ import { createHash } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadAgentDashboardDocument } from "../activity/agent-catalog.mjs";
-import { commandHandlers } from "../activity/commands/index.mjs";
-import { MCP_TOOLS } from "../activity/mcp-server.mjs";
+import { loadAgentDashboardDocument } from "../dashboard/report/agent-catalog.mjs";
+import mcpContract from "../dashboard/site/src/agent/mcp-contract.json" with { type: "json" };
 import { webMCPManifestForDashboard } from "../dashboard/site/src/webmcp/manifest.js";
 
 const artifactNames = ["llms.txt", "llms-small.txt", "llms-full.txt"];
 const scopedIndexPath = "agent/llms.txt";
 const resourceIndexPath = "agent/resources.json";
-const dashboardAgentGuide = "https://githubnext.github.io/gh-cao/cao/llms.txt";
+const dashboardAgentGuide = "https://githubnext.github.io/gh-cao/agent-analysis/";
 const artifactSizeLimits = {
   "llms.txt": 4 * 1024,
   "llms-small.txt": 64 * 1024,
@@ -291,8 +290,8 @@ export async function validateAgentDocs({
   const interfaceKinds = new Set();
   const resourceIds = new Set();
   const resourceInterfaces = new Map();
-  const cliCommands = new Set(commandHandlers.keys());
-  const cliMcpCapabilities = new Map(MCP_TOOLS.map((tool) => [tool.name, tool]));
+  const cliCommands = new Set(["pages", "queries", "query-info", "prompt", "query", "gh", "computation", "mcp", "download"]);
+  const cliMcpCapabilities = new Map(mcpContract.tools.map((tool) => [tool.name, tool]));
   const dashboardDocument = await loadAgentDashboardDocument();
   const webMcpTools = new Map(
     webMCPManifestForDashboard(dashboardDocument).map((tool) => [tool.name, tool]),

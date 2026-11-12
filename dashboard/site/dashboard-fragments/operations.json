@@ -1,6 +1,45 @@
 {
   "queries": [
     {
+      "name": "local-ingestion-progress",
+      "subject": "Show local CLI history discovery, collection status and observed GitHub API headroom.",
+      "objective": "Distinguish ongoing seven-day backfill, quota pauses and failures from complete upstream or artifact coverage.",
+      "acceptance": "Use the persisted acquisition checkpoint independently of page filters. Scanned repository-hours describe completed discovery intervals, not a percentage of upstream runs or artifacts. Missing status remains unavailable; all coverage remains partial.",
+      "from": "transactions",
+      "filter": { "predicates": [{ "field": "kind", "equals": "local-dashboard-ingestion" }] },
+      "compute": [
+        { "as": "_failed", "function": "equals-any", "args": [{ "field": "ingestionStatus" }, { "value": "failed" }] },
+        { "as": "_paused", "function": "equals-any", "args": [{ "field": "ingestionStatus" }, { "value": "paused" }] },
+        { "as": "_collecting", "function": "equals-any", "args": [{ "field": "ingestionStatus" }, { "value": "collecting" }] },
+        { "as": "_waiting", "function": "equals-any", "args": [{ "field": "ingestionStatus" }, { "value": "waiting" }, { "value": "watching" }, { "value": "paused" }] },
+        { "as": "_idle-icon", "function": "if", "args": [{ "field": "_waiting" }, { "value": "clock" }, { "value": "question" }] },
+        { "as": "_activity-icon", "function": "if", "args": [{ "field": "_collecting" }, { "value": "sync" }, { "field": "_idle-icon" }] },
+        { "as": "status-icon", "function": "if", "args": [{ "field": "_failed" }, { "value": "stop" }, { "field": "_activity-icon" }] },
+        { "as": "_pause-tone", "function": "if", "args": [{ "field": "_paused" }, { "value": "attention" }, { "value": "muted" }] },
+        { "as": "status-tone", "function": "if", "args": [{ "field": "_failed" }, { "value": "danger" }, { "field": "_pause-tone" }] },
+        { "as": "_status", "function": "coalesce", "args": [{ "field": "ingestionStatus" }, { "value": "unknown" }] },
+        { "as": "_status-title", "function": "title-case", "args": [{ "field": "_status" }] },
+        { "as": "status-label", "function": "concat", "args": [{ "value": "Data ingestion: " }, { "field": "_status-title" }] }
+      ],
+      "select": [
+        { "field": "_status-title", "as": "status-name" },
+        { "field": "status-label" },
+        { "field": "status-icon" },
+        { "field": "status-tone" },
+        { "field": "ingestionStatus", "as": "status" },
+        { "field": "ingestionMessage", "as": "message" },
+        { "field": "ingestionRepository", "as": "repository" },
+        { "field": "scannedHours", "as": "scanned-hours" },
+        { "field": "targetHours", "as": "target-hours" },
+        { "field": "apiRemaining", "as": "api-remaining" },
+        { "field": "apiReserve", "as": "api-reserve" },
+        { "field": "apiResetAt", "as": "api-reset-at" },
+        { "field": "nextAttemptAt", "as": "next-attempt-at" },
+        { "field": "createdAt", "as": "observed-at" }
+      ],
+      "limit": 1
+    },
+    {
       "name": "dashboard-ingestion-health",
       "subject": "Expose the current collection state for the global ingestion indicator.",
       "objective": "Distinguish reported ingestion failure or recovery from the age of retained workflow evidence.",

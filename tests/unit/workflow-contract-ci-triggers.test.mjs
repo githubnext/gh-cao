@@ -10,9 +10,7 @@ const mainOnlyWorkflows = [
   "actions.yml",
   "azure-local-integration.yml",
   "dashboard-deployed-integration.yml",
-  "dashboard-query-parity.yml",
   "dashboard-views.yml",
-  "mcp-parity.yml",
 ];
 const fastWorkflows = [
   "action-lint.yml",
@@ -58,6 +56,23 @@ test("dashboard WebKit uses an OS-specific browser cache on its supported Ubuntu
   assert.match(install.run, /playwright install --with-deps chromium webkit/);
 });
 
+test("Windows installer prepares the native Go build before bounded installer tests", () => {
+  const steps = parse(workflow("install-windows.yml")).jobs.install.steps;
+  const go = steps.find((step) => step.uses?.startsWith("actions/setup-go@"));
+  const build = steps.find((step) => step.name === "Prepare native installer fixture build");
+  const tests = steps.find((step) => step.run === "node --test tests/unit/install-script.test.mjs");
+  assert.ok(go, "provision the module's Go toolchain and cache");
+  assert.equal(go.with["go-version-file"], "go.mod");
+  assert.equal(go.with["cache-dependency-path"], "go.sum");
+  assert.ok(build, "download dependencies and warm the native build outside the test deadline");
+  assert.equal(build.run, "go build -o .tmp/gh-cao-installer.exe ./cmd/gh-cao");
+  assert.ok(tests);
+  assert.ok(steps.indexOf(go) < steps.indexOf(build));
+  assert.ok(steps.indexOf(build) < steps.indexOf(tests));
+  assert.equal(build.if, undefined);
+  assert.equal(build["continue-on-error"], undefined);
+});
+
 test("slow integration workflows run on relevant main pushes, not pull requests", () => {
   for (const name of mainOnlyWorkflows) {
     const triggers = parse(workflow(name)).on;
@@ -75,25 +90,8 @@ test("slow integration workflows run on relevant main pushes, not pull requests"
   assert.ok(parse(workflow("dashboard-deployed-integration.yml")).on.schedule.length > 0);
 });
 
-test("MCP parity keeps service-backed Go integration tests out of its contract step", () => {
-  const job = parse(workflow("mcp-parity.yml")).jobs.parity;
-  const steps = job.steps;
-  const contract = steps.find((step) => step.name === "Run contract tests");
-  const parity = steps.find((step) => step.name === "Compare MCP contracts and behavior");
-  assert.match(contract.run, /env -u REDIS_URL -u CAO_POSTGRES_URL go -C server test \.\/internal\/server \.\/cmd\/cao-dashboard/);
-  assert.equal(parity.run, "npm run test:e2e:dashboard-query-parity");
-  assert.ok(job.env.REDIS_URL);
-  assert.ok(job.env.CAO_POSTGRES_URL);
-});
 
 test("service integration harnesses provision canonical storage before starting runtime processes", () => {
-  const parity = readFileSync(join(root, "tests/e2e/dashboard-query-parity.mjs"), "utf8");
-  assert.match(parity, /const namespace = `query-parity-\$\{process\.pid\}`/);
-  assert.match(parity, /execFileSync\(binary, \[\s*"database", "bootstrap", "--store", "canonical", "--namespace", namespace,/);
-  assert.match(parity, /env: \{ \.\.\.process\.env, CAO_DATABASE_ADMIN_URL: process\.env\.CAO_POSTGRES_URL \}/);
-  assert.match(parity, /"--redis-namespace", namespace/);
-  assert.ok(parity.indexOf('execFileSync(binary, [') < parity.indexOf('const child = spawn(binary, ['));
-
   const azure = readFileSync(join(root, "scripts/azure-local/azure-local.sh"), "utf8");
   assert.match(azure, /CAO_DATABASE_ADMIN_URL="\$CAO_POSTGRES_URL" run_logged "canonical database bootstrap" database-bootstrap\.log \\\n\s+"\$APP_DIR\/cao-dashboard" database bootstrap --store canonical --namespace "\$namespace"/);
   assert.ok(azure.indexOf('"$APP_DIR/cao-dashboard" database bootstrap') < azure.indexOf('"$APP_DIR/cao-dashboard" ingest'));
@@ -365,8 +363,8 @@ test("Go extension setup simulator runs only on main pushes, independently witho
 test("Docker samples runtime has an independent read-only workflow", () => {
   const runtime = parse(workflow("actions-runtime.yml"));
   const contracts = parse(workflow("workflow-contracts.yml"));
-  for (const pattern of ["server/**", "!server/**/*.md", "activity/**", "dashboard/site/src/data/**",
-    "tests/helpers/actions-runtime/**", "tests/integration/*actions-runtime.test.mjs", ".github/workflows/cao-activity.yml"]) {
+  for (const pattern of ["server/**", "!server/**/*.md", "dashboard/report/**", "dashboard/site/src/data/**",
+    "tests/helpers/actions-runtime/**", "tests/integration/*actions-runtime.test.mjs"]) {
     assert.ok(runtime.on.pull_request.paths.includes(pattern), pattern);
   }
   assert.deepEqual(runtime.on.push.paths, runtime.on.pull_request.paths);
@@ -395,11 +393,10 @@ test("Docker runtime runs automatically for simulator, Activity and shared data-
       "server/go.mod",
       "server/go.sum",
       "tests/helpers/actions-runtime/runner.mjs",
-      "tests/integration/activity-actions-runtime.test.mjs",
-      "activity/collect-logs.sh",
+      "tests/integration/actions-runtime.test.mjs",
+      "dashboard/report/normalized-payloads.mjs",
       "dashboard/site/src/data/model/daily-run-counts.js",
       ".github/workflows/actions-runtime.yml",
-      ".github/workflows/cao-activity.yml",
       ".github/workflows/shared/control.md",
     ]) {
       assert.ok(runsForFile("actions-runtime.yml", event, file), `${event}: ${file}`);
@@ -425,7 +422,7 @@ test("pull request triggers route frontend, control, server, and test changes se
     ["docs/glossary.md", ["workflow-contracts.yml"]],
     ["docs/assets/logo-day.svg", ["cid.yml", "svg-contrast-check.yml", "workflow-contracts.yml"]],
     ["public/favicon.svg", ["cid.yml", "workflow-contracts.yml"]],
-    ["activity/dashboard-complexity.mjs", ["actions-runtime.yml", "cgo.yml", "workflow-contracts.yml"]],
+    ["dashboard/report/query-complexity.mjs", ["actions-runtime.yml", "workflow-contracts.yml"]],
     ["tests/e2e/dashboard-ingestion-scale.spec.mjs", ["workflow-contracts.yml"]],
     ["server/internal/query/query.go", ["actions-runtime.yml", "cgo.yml", "workflow-contracts.yml"]],
     ["server/spec/main.tsp", ["actions-runtime.yml", "cgo.yml", "workflow-contracts.yml"]],
@@ -457,12 +454,10 @@ test("main pushes retain browser and integration coverage for representative inp
     ["azure-local-integration.yml", "scripts/azure-local/azure-local.sh"],
     ["dashboard-deployed-integration.yml", "server/go.mod"],
     ["dashboard-deployed-integration.yml", "dashboard/site/package-lock.json"],
-    ["dashboard-query-parity.yml", "server/internal/query/query.go"],
     ["dashboard-views.yml", "self-care/dashboard.json"],
     ["dashboard-views.yml", "tests/e2e/dashboard-views-live.spec.mjs"],
     ["dashboard-views.yml", "tests/e2e/dashboard-deployed-refresh-helpers.mjs"],
     ["dashboard-views.yml", "dashboard/report/bundle-dashboards.mjs"],
-    ["mcp-parity.yml", "activity/mcp-server.mjs"],
     ["cgo.yml", "dashboard/site/src/dashboard-app.js"],
     ["cid.yml", "tests/e2e/dashboard-ingestion-scale.spec.mjs"],
   ];
@@ -470,6 +465,48 @@ test("main pushes retain browser and integration coverage for representative inp
     assert.ok(runsForFile(name, "push", file), `${name}: ${file}`);
   }
   assert.equal(parse(workflow("actions.yml")).jobs.mobile.if, undefined);
+});
+
+test("demo browser CI cannot substitute synthetic Pages data for operational snapshots", () => {
+  for (const name of ["actions.yml", "dashboard-views.yml"]) {
+    const source = workflow(name);
+    assert.doesNotMatch(source, /DASHBOARD_DATA_URL|githubnext\.github\.io/);
+    assert.match(source, /not operational freshness or completeness evidence/);
+  }
+  const { jobs } = parse(workflow("dashboard-deployed-integration.yml"));
+  assert.match(jobs.integration.name, /synthetic/i);
+  assert.equal(jobs["query-performance"], undefined);
+  assert.equal(jobs["query-performance-comment"], undefined);
+  const artifact = jobs["query-cost"].steps.find(({ name }) => name === "Download explicitly configured operational snapshot");
+  assert.equal(artifact.run, "go run ./cmd/gh-cao download");
+  assert.equal(artifact.env.DASHBOARD_DATA_URL, "${{ vars.CAO_DASHBOARD_DATA_URL }}");
+  assert.doesNotMatch(artifact.run, /gh run|github\.io/);
+  const ingestion = jobs["query-cost"].steps.find(({ name }) => name === "Verify operational artifact ingestion");
+  assert.equal(ingestion.env.DASHBOARD_DATA_DIR, ".cao");
+});
+
+test("operational ingestion fails closed without an explicit real snapshot", () => {
+  const environment = { ...process.env };
+  delete environment.DASHBOARD_DATA_URL;
+  delete environment.DASHBOARD_DATA_DIR;
+  for (const [source, manifest, expected] of [
+    [undefined, {}, /Select exactly one operational source/],
+    ["https://snapshot.example/payload-hashes.json", { synthetic: true }, /Synthetic demo data is not operational evidence/],
+    ["https://snapshot.example/payload-hashes.json", {}, /Operational evidence must include a checksum/],
+  ]) {
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", `
+      globalThis.fetch = async () => Response.json(${JSON.stringify(manifest)});
+      await import("./tests/integration/dashboard-deployed-data.test.mjs");
+    `], {
+      cwd: root,
+      env: { ...environment, ...(source ? { DASHBOARD_DATA_URL: source } : {}) },
+      encoding: "utf8",
+      timeout: 10_000,
+    });
+    assert.equal(result.error, undefined);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stdout + result.stderr, expected);
+  }
 });
 
 test("mixed workflows keep fast checks on PRs and gate expensive jobs off PRs", () => {

@@ -147,6 +147,50 @@ test("framework reports freeze complete UTC windows for each run attempt", async
   }
 });
 
+test("partial component history preserves complete-window measurements without plotting incomplete counts", async () => {
+  const files = await evidenceFiles();
+  const record = `\x1e${sha}\t2026-11-04T12:00:00Z\n1\t0\t.github/workflows/shared/authority.mjs\n`;
+  const result = await execute("Measure core component fluctuation", {
+    files, exec(_command, args) {
+      if (args[0] === "rev-parse") return args[1] === "HEAD" ? sha : "false";
+      if (args.includes(".github/workflows/shared/authority.mjs")
+        && args.includes("--since-as-filter=2026-11-03T00:00:00.000Z")) {
+        return record.repeat(1001);
+      }
+      return "";
+    },
+  });
+  const control = JSON.parse(result.files.get(`${directory}/components.json`)).components[0];
+  assert.equal(control.previous.coverage, "complete");
+  assert.equal(control.current.coverage, "partial");
+  assert.equal(control.current.source_days_changed, 1);
+  assert.match(result.files.get(`${directory}/component-heatmap.md`),
+    /\| control \| · 0\/7 days; 0 lines \| N\/A \(1\/7 observed days; 1000 lines; partial history\) \|/);
+});
+
+test("component heatmap distinguishes repeated edit days from a single large change", async () => {
+  const files = await evidenceFiles();
+  for (const [days, intensity] of [[0, "·"], [1, "▁"], [2, "▂"],
+    [3, "▂"], [4, "▄"], [5, "▄"], [6, "█"], [7, "█"]]) {
+    const records = Array.from({ length: days }, (_, index) =>
+      `\x1e${sha}\t2026-11-${String(index + 3).padStart(2, "0")}T12:00:00Z\n1\t0\t.github/workflows/shared/authority.mjs\n`).join("");
+    const result = await execute("Measure core component fluctuation", {
+      files, exec(_command, args) {
+        if (args[0] === "rev-parse") return args[1] === "HEAD" ? sha : "false";
+        if (args.includes(".github/workflows/shared/authority.mjs")
+          && args.includes("--since-as-filter=2026-11-03T00:00:00.000Z")) {
+          return records;
+        }
+        return "";
+      },
+    });
+    const control = JSON.parse(result.files.get(`${directory}/components.json`)).components[0];
+    assert.equal(control.current.source_days_changed, days);
+    assert.match(result.files.get(`${directory}/component-heatmap.md`),
+      new RegExp(`\\| control \\| · 0/7 days; 0 lines \\| ${intensity} ${days}/7 days; ${days} ${days === 1 ? "line" : "lines"} \\|`));
+  }
+});
+
 test("same-day dispatches and rerun attempts publish fresh reports but repeated attempts do not", async () => {
   for (const state of ["open", "closed"]) {
     for (const title of ["[cao-framework-health] 2026-11-09", "[cao-framework-health] 2026-11-09 run 100-1"]) {
@@ -259,9 +303,10 @@ test("CI comparisons preserve outcomes, pending runs, strict windows and skipped
     },
   } } } });
   const ci = JSON.parse(result.files.get(`${directory}/ci.json`));
-  const chart = result.files.get(`${directory}/ci-chart.txt`);
-  assert.match(chart, /Contracts C7\s+\|#{7}\s+\| 1\/3 \(33\.3%\)/);
-  assert.ok(chart.split("\n").every(line => line.length < 80));
+  const heatmap = result.files.get(`${directory}/ci-heatmap.md`);
+  assert.match(heatmap, /\| Contracts \| ▄ 1\/2 \(50\.0%\) \| ▂ 1\/3 \(33\.3%\) \|/);
+  assert.match(heatmap, /Previous: 2026-10-27 to 2026-11-03 UTC; current: 2026-11-03 to 2026-11-10 UTC \(end exclusive\)/);
+  assert.match(heatmap, /\| Workflow \| Previous 7 days \| Current 7 days \|/);
   for (const item of ci.workflows) {
     assert.equal(item.coverage, "complete");
     assert.equal(item.current.observed, 4);
@@ -300,9 +345,10 @@ test("empty, unknown, overlapping and bounded CI evidence never yields a false g
       if (mode === "overlap" || mode === "truncated") assert.equal(item.coverage, "partial");
       if (mode !== "empty") assert.equal(item.latest_jobs.coverage, "partial");
     }
-    const chart = result.files.get(`${directory}/ci-chart.txt`);
-    assert.ok(!chart.includes("#"), "unavailable fractions must not be plotted as measured values");
-    assert.match(chart, /N\/A/);
+    const heatmap = result.files.get(`${directory}/ci-heatmap.md`);
+    assert.match(heatmap, /\| Contracts \| N\/A/);
+    assert.doesNotMatch(heatmap, /\| Contracts \| [·▁▂▄▆█]/,
+      "unavailable fractions must not be plotted as measured values");
   }
   const files = await evidenceFiles();
   await assert.rejects(execute("Collect comparable CI evidence", { files, github: { rest: { actions: {
@@ -311,8 +357,10 @@ test("empty, unknown, overlapping and bounded CI evidence never yields a false g
   assert.equal(files.has(`${directory}/ci.json`), false);
 });
 
-test("CI charts distinguish small non-zero success fractions from measured zero", async () => {
-  for (const successes of [0, 1]) {
+test("CI heatmap uses fixed bins including zero, small non-zero and exact thresholds", async () => {
+  for (const [successes, intensity] of [[0, "·"], [1, "▁"], [24, "▁"],
+    [25, "▂"], [49, "▂"], [50, "▄"], [74, "▄"], [75, "▆"],
+    [99, "▆"], [100, "█"]]) {
     const rows = Array.from({ length: 100 }, (_, index) => ({
       id: index, created_at: "2026-11-04T00:00:00Z", status: "completed",
       conclusion: index < successes ? "success" : "failure",
@@ -322,11 +370,9 @@ test("CI charts distinguish small non-zero success fractions from measured zero"
       async listWorkflowRuns() { return { data: { total_count: rows.length, workflow_runs: rows } }; },
       async listJobsForWorkflowRun() { return { data: { total_count: 0, jobs: [] } }; },
     } } } });
-    const chart = result.files.get(`${directory}/ci-chart.txt`);
-    assert.match(chart, successes === 1
-      ? /Contracts C7\s+\|\. {19}\| 1\/100 \(1\.0%\)/
-      : /Contracts C7\s+\| {20}\| 0\/100 \(0\.0%\)/);
-    assert.ok(chart.split("\n").every(line => line.length < 80));
+    const heatmap = result.files.get(`${directory}/ci-heatmap.md`);
+    assert.ok(heatmap.includes(`| Contracts | N/A (0/0 observed; no completed runs) | ${intensity} ${successes}/100 (${successes.toFixed(1)}%) |`));
+    assert.match(heatmap, /Scale: · 0%; ▁ >0–<25%; ▂ 25–<50%; ▄ 50–<75%; ▆ 75–<100%; █ 100%/);
   }
 });
 
@@ -373,13 +419,13 @@ test("preview observations retain unapproved scope, unassigned owners and no inf
   assert.ok(packet.configuration_blockers.includes("recovery-or-retention-decision-missing"));
   assert.equal(packet.configuration_blockers.filter(value => value.startsWith("owner-missing:")).length, 8);
   assert.equal(packet.contract_sha256, createHash("sha256").update(JSON.stringify(previewContract)).digest("hex"));
-  assert.equal(packet.signals.length, 9);
+  assert.equal(packet.signals.length, 7);
   for (const signal of packet.signals) {
     assert.equal(signal.candidate_head_match, null);
     assert.equal(signal.latest.conclusion, "failure");
     assert.equal(signal.latest.jobs[0].steps[0].conclusion, "skipped");
   }
-  assert.equal(packet.report_version, 3);
+  assert.equal(packet.report_version, 4);
   assert.equal(packet.rubric_version, 2);
   assert.ok(!("reports" in packet), "prior issue bodies are not retained as acceptance evidence");
   const changed = structuredClone(previewContract);
@@ -502,6 +548,8 @@ test("component fluctuation measures real frozen Git history without conflating 
     writeFileSync(join(cwd, "server/spec/generated/openapi.json"), "{}\n");
     mkdirSync(join(cwd, "activity"));
     writeFileSync(join(cwd, "activity/collector.mjs"), "behavior\n".repeat(100));
+    mkdirSync(join(cwd, "server/internal/operational"), { recursive: true });
+    writeFileSync(join(cwd, "server/internal/operational/contract.go"), "behavior\n".repeat(1000));
     commit("2026-11-04T12:00:00Z");
     const files = await evidenceFiles();
     const data = JSON.parse(files.get(`${directory}/context.json`));
@@ -519,13 +567,17 @@ test("component fluctuation measures real frozen Git history without conflating 
     assert.equal(control.current.source_added, 1);
     assert.equal(control.current.test_added, 2);
     assert.equal(control.previous.source_added, 1);
+    assert.equal(control.current.source_days_changed, 1);
     const hosting = components.find(item => item.id === "hosting");
     assert.equal(hosting.current.generated_files_changed, 1);
     assert.equal(hosting.current.source_added, 0);
-    const chart = result.files.get(`${directory}/component-chart.txt`);
-    assert.match(chart, /control\s+P7 \|\. {9}\| 1\s+C7 \|\. {9}\| 1/);
-    assert.match(chart, /acquisition\s+P7 \| {10}\| 0\s+C7 \|#{10}\| 100/);
-    assert.ok(chart.split("\n").every(line => line.length < 80));
+    const heatmap = result.files.get(`${directory}/component-heatmap.md`);
+    assert.match(heatmap, /\| Component \| Previous 7 days \| Current 7 days \|/);
+    assert.match(heatmap, /\| control \| ▁ 1\/7 days; 1 line \| ▁ 1\/7 days; 1 line \|/);
+    assert.match(heatmap, /\| acquisition \| · 0\/7 days; 0 lines \| ▁ 1\/7 days; 100 lines \|/);
+    assert.match(heatmap, /\| operational \| · 0\/7 days; 0 lines \| ▁ 1\/7 days; 1000 lines \|/);
+    assert.match(heatmap, /\| hosting \| · 0\/7 days; 0 lines \| · 0\/7 days; 0 lines \|/);
+    assert.match(heatmap, /Fixed scale: · 0 days; ▁ 1; ▂ 2–3; ▄ 4–5; █ 6–7/);
     const claims = components.flatMap(item => item.claims);
     assert.equal(new Set(claims).size, 16);
     for (const claim of claims) assert.ok(source.includes(`\`${claim}\``), `missing assessed claim: ${claim}`);
@@ -565,10 +617,15 @@ test("compiled framework reports remain local read-only observation with only de
   assert.equal(compiled.jobs.safe_outputs.permissions.issues, "write");
   const handler = compiled.jobs.safe_outputs.steps.find(step => step.env?.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG);
   const outputs = JSON.parse(handler.env.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG);
-  assert.equal(outputs.create_issue.max, 1);
+  assert.equal(outputs.create_issue.max, 4);
+  assert.equal(outputs.create_issue.require_temporary_id, true);
   assert.equal(outputs.create_issue.close_older_issues, true);
   assert.equal(outputs.create_issue.deduplicate_by_title, true);
   assert.equal(config["safe-outputs"]["report-failure-as-issue"], false);
+  assert.equal(config["safe-outputs"]["create-issue"].max, 4);
+  assert.equal(config["safe-outputs"]["create-issue"]["require-temporary-id"], true);
+  assert.match(source, /Create zero to three child issues/);
+  assert.match(source, /parent` to `#aw_fh_report`/);
   assert.equal(config["safe-outputs"]["report-missing-tool"]["create-issue"], false);
   assert.equal(config["safe-outputs"]["report-incomplete"]["create-issue"], false);
   for (const job of Object.values(compiled.jobs)) {
@@ -587,11 +644,25 @@ test("compiled framework reports remain local read-only observation with only de
     "compiled runs must not be gated by daily AI Credit consumption");
   const compiledScope = compiled.jobs.agent.steps.find(step => step.name === "Fix scope, window and report history");
   assert.equal(compiledScope.with.script, config.steps[0].with.script);
+  for (const name of ["Collect comparable CI evidence", "Measure core component fluctuation"]) {
+    assert.equal(compiled.jobs.agent.steps.find(step => step.name === name).with.script,
+      config.steps.find(step => step.name === name).with.script,
+      `${name} must use the current heatmap implementation in the compiled workflow`);
+  }
+  for (const name of ["Fix scope, window and report history", "Collect comparable CI evidence",
+    "Collect preview acceptance evidence"]) {
+    const authored = config.steps.find(step => step.name === name);
+    const generated = compiled.jobs.agent.steps.find(step => step.name === name);
+    assert.equal(authored.with.retries, 3, `${name} must retry transient GitHub API failures`);
+    assert.equal(generated.with.retries, authored.with.retries, `${name} must retain retries after compilation`);
+  }
   const artifact = config.steps.find(step => step.name === "Retain deterministic framework evidence");
   assert.equal(artifact.with["retention-days"], 90);
   assert.equal(artifact.with["if-no-files-found"], "error");
   assert.equal(artifact.with.name, "framework-health-evidence-${{ github.run_id }}-${{ github.run_attempt }}");
   assert.equal(artifact.with.path.trim().split("\n").length, 3);
+  assert.match(artifact.with.path, /ci-heatmap\.md/);
+  assert.match(artifact.with.path, /component-heatmap\.md/);
   assert.ok(compiled.jobs.agent.steps.some(step =>
     step.name === artifact.name && /^actions\/upload-artifact@[a-f0-9]{40}$/.test(step.uses)));
   const architecture = readFileSync(join(root, "ARCHITECTURE.md"), "utf8");
@@ -628,6 +699,10 @@ test("publication rejects missing, zero, duplicate and invalid review declaratio
   const validate = output => execute("Validate core review before publication", {
     files: new Map([[path, JSON.stringify(output)]]), env: { GH_AW_AGENT_OUTPUT: path },
   });
+  const report = {
+    type: "create_issue", title: "2026-11-09 run 123-1",
+    body: "Core claims reviewed: 16/16", temporary_id: "aw_fh_report",
+  };
   for (const body of [
     "Incomplete assessment; source and tests were not reviewed.",
     "Core claims reviewed: 0/16",
@@ -638,15 +713,47 @@ test("publication rejects missing, zero, duplicate and invalid review declaratio
     "Core claims reviewed: 1/16\nCore claims reviewed: 16/16",
     "Core claims reviewed: 16/16\nCore claims reviewed: 0/16",
   ]) {
-    await assert.rejects(validate({ items: [{ type: "create_issue", body }] }), /Refusing report/);
+    await assert.rejects(validate({ items: [{ ...report, body }] }), /Refusing report/);
   }
   await assert.rejects(validate({ items: {} }), /Invalid agent output/);
   await assert.rejects(execute("Validate core review before publication"), /Missing agent output/);
   for (const count of [1, 8, 16]) {
     await validate({ items: [{
-      type: "create_issue",
+      ...report,
       body: `Core claims reviewed: ${count}/16\r\nAll verdicts unknown; tests mapped but not executed.`,
     }] });
+  }
+  const child = {
+    type: "create_issue", title: "2026-11-09 run 123-1: verify preview acceptance",
+    body: "### Scope\nReview the blocked journey.\n\n### Acceptance checks\nRecord the independent evidence.",
+    temporary_id: "aw_fh_dec", parent: "#aw_fh_report",
+  };
+  const withChildren = children => ({
+    ...report,
+    body: `${report.body}\n${children.map(issue => `#${issue.temporary_id}`).join("\n")}`,
+  });
+  await validate({ items: [withChildren([child]), child] });
+  const threeChildren = ["aw_fh_dec", "aw_fh_exec", "aw_fh_ci"].map(temporary_id => ({
+    ...child, temporary_id, parent: "#aw_fh_report",
+  }));
+  await validate({ items: [withChildren(threeChildren), ...threeChildren] });
+  const reordered = await validate({ items: [...threeChildren, { type: "noop" }, withChildren(threeChildren)] });
+  assert.deepEqual(JSON.parse(reordered.files.get(path)).items.map(item => item.temporary_id ?? item.type),
+    ["aw_fh_report", "aw_fh_dec", "aw_fh_exec", "noop", "aw_fh_ci"]);
+  for (const invalid of [
+    { items: [withChildren([child, ...threeChildren]), child, ...threeChildren] },
+    { items: [{ ...report, temporary_id: "framework-health-report" }] },
+    { items: [withChildren([child]), { ...child, parent: "#aw_another_report" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "fh_dec" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "aw_fh-dec" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "aw_fh_dec_longer_than_12" }] },
+    { items: [withChildren([child]), { ...child, temporary_id: "AW_FH_DEC" }, child] },
+    { items: [{ ...report, body: `${report.body}\n#aw_fh_dec_extra` }, child] },
+    { items: [withChildren([child]), { ...child, body: "No acceptance checks" }] },
+    { items: [withChildren([child, child]), child, { ...child }] },
+    { items: [child] },
+  ]) {
+    await assert.rejects(validate(invalid), /Refusing report/);
   }
   for (const type of ["noop", "report_incomplete"]) await validate({ items: [{ type }] });
 
@@ -657,6 +764,7 @@ test("publication rejects missing, zero, duplicate and invalid review declaratio
   assert.ok(guard >= 0 && guard < handler, "validation must run before issue creation and close-older");
   assert.equal(steps[guard].env.GH_AW_AGENT_OUTPUT,
     "${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}");
+  assert.equal(steps[guard].with.script, config["safe-outputs"].steps[0].with.script);
   assert.equal(steps[guard].if, undefined);
   assert.equal(steps[guard]["continue-on-error"], undefined);
   assert.equal(steps[handler].if, undefined, "publication must retain default success gating");
@@ -691,7 +799,15 @@ test("executive reports retain a fixed opening, section order and non-nested pro
   }
   assert.equal(depth, 0);
   assert.equal([...template.matchAll(/<details>/g)].length, 3);
-  assert.match(source, /copy `ci-chart\.txt` and `component-chart\.txt` verbatim/);
+  assert.match(source, /Copy `ci-heatmap\.md` and `component-heatmap\.md` verbatim/);
+  const core = template.split("### Core health and stability")[1].split("### Acceptance evidence")[0];
+  assert.match(core, /\| Component \| Claim 1 \| Claim 2 \| Applicability \/ behavioral coverage \/ change since comparable baseline \|/);
+  const register = source.split("## Core component and claim register, version 1")[1].split("## Fluctuation")[0];
+  const claims = [...register.matchAll(/`([a-z]+\.[a-z-]+)`: /g)].map(match => match[1]);
+  const matrix = [...core.matchAll(/`([a-z]+\.[a-z-]+)`: \{status\}/g)].map(match => match[1]);
+  assert.equal(claims.length, 16);
+  assert.deepEqual(matrix, claims, "the visual matrix must preserve every registered claim in order");
+  assert.match(source, /Unknown is not at risk, and churn does not determine status/);
   assert.match(source, /never plot unknowns as zero/);
   assert.match(source, /Required unknowns block a recommendation to expand/);
   assert.match(source, /the report never invites participants, approves risk or declares launch readiness/);
@@ -705,15 +821,16 @@ test("executive reports retain a fixed opening, section order and non-nested pro
 test("at-a-glance reports use labelled statuses, complete journey rows and short decision tables", async () => {
   const template = /````markdown\n([\s\S]*?)\n````/.exec(source)[1];
   const overview = template.split("### Core health and stability")[0];
-  assert.match(template, /\*\*Report \/ rubric version:\*\* 3 \/ 2/);
+  assert.match(template, /\*\*Report \/ rubric version:\*\* 4 \/ 2/);
   const files = await evidenceFiles();
   const metadata = JSON.parse(files.get(`${directory}/context.json`));
-  assert.equal(metadata.report_version, 3);
+  assert.equal(metadata.report_version, 4);
   assert.equal(metadata.rubric_version, 2, "visual changes must not change acceptance criteria");
   assert.match(overview, /\| At a glance \| Today \|/);
   for (const field of ["Preview evidence", "Candidate", "Change", "Confidence"]) {
     assert.ok(overview.includes(`| ${field} |`), `missing summary field: ${field}`);
   }
+  assert.match(overview, /\| Core evidence \| \{E\} evidenced · \{R\} at risk · \{U\} unknown \/ 16 claims/);
   assert.match(overview, /> \[!NOTE\]\n> \*\*Next decision:\*\*/);
   assert.match(overview, /✅ Passed · ❌ Failed · ❔ Unknown/);
   const journeys = overview.split("### Preview journey scorecard")[1].split("### Blockers and next increments")[0];
@@ -721,7 +838,7 @@ test("at-a-glance reports use labelled statuses, complete journey rows and short
   assert.deepEqual([...journeys.matchAll(/^\| [^|\n]+ \(`([^`]+)`\) \|/gm)].map(match => match[1]),
     previewContract.journeys.map(journey => journey.id));
   assert.match(overview, /\| Priority \/ journey \| Next action → closure check \| Owner \|/);
-  assert.match(overview, /\| \{rank \/ journey ID\} \| \{next action → observable closure\} \| \{owner or unassigned\} \|/);
+  assert.match(overview, /\| \{rank \/ journey ID\} \| \{child issue link — next action → observable closure\} \| \{owner or unassigned\} \|/);
   assert.match(source, /Always pair each icon with its text label/);
   assert.match(source, /Unknown is not failed/);
   assert.match(source, /Report format changes alone do not invalidate/);

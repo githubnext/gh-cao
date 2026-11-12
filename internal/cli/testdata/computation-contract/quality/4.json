@@ -1,0 +1,54 @@
+{
+  "quality:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a": {
+    "attributionCoverage": {
+      "denominator": null,
+      "numerator": null,
+      "state": "unknown"
+    },
+    "availability": "unknown",
+    "completeness": "unknown",
+    "contractId": "evidence-quality",
+    "contractVersion": "1.0.0",
+    "contradictionState": "unknown",
+    "coverage": {
+      "denominator": null,
+      "numerator": null,
+      "state": "unknown"
+    },
+    "freshness": {
+      "observedAt": null,
+      "state": "unknown"
+    },
+    "maturity": "unknown",
+    "provenance": {
+      "sources": [],
+      "state": "unknown"
+    }
+  },
+  "quality:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945": {
+    "attributionCoverage": {
+      "denominator": null,
+      "numerator": null,
+      "state": "malformed"
+    },
+    "availability": "malformed",
+    "completeness": "malformed",
+    "contractId": "evidence-quality",
+    "contractVersion": "1.0.0",
+    "contradictionState": "malformed",
+    "coverage": {
+      "denominator": null,
+      "numerator": null,
+      "state": "malformed"
+    },
+    "freshness": {
+      "observedAt": null,
+      "state": "malformed"
+    },
+    "maturity": "malformed",
+    "provenance": {
+      "sources": [],
+      "state": "malformed"
+    }
+  }
+}

@@ -7,14 +7,14 @@ import (
 )
 
 func setupCommand(execute runtimeExecutor, gh ghExecutor) *cobra.Command {
-	setup := operatorCommand("setup", "Prepare monitoring runtime, policy, Pages, scope, and authentication", cobra.NoArgs, []operatorFlag{
+	setup := operatorCommand("setup", "Prepare monitoring runtime, policy, scope, and authentication", cobra.NoArgs, []operatorFlag{
 		jsonFlag,
-		{name: "repository", description: "Public monitoring quickstart scope OWNER/REPO or OWNER/* (repeatable; accepts public Pages)", repeat: true},
+		{name: "repository", description: "Public monitoring quickstart scope OWNER/REPO or OWNER/* (repeatable)", repeat: true},
 	}, execute)
 	setup.Long = `Prepare monitoring in an existing control-repository checkout.
 
 Install missing bare runtime files and initialize missing policy, then configure
-repository scope, dashboard Pages, and authentication. No prior init or installer
+repository scope and authentication. No prior init or installer
 is required. Existing policy and unrelated files are preserved; conflicting
 runtime files stop preparation instead of being overwritten. Missing gh-aw is
 installed at the catalog's required version; existing older versions require
@@ -22,7 +22,9 @@ an explicit upgrade. Interactive setup then shows a one-line change summary
 and full-diff path before a separate default-No commit-and-push prompt.
 Publication requires the synchronized default branch, matching origin and an
 empty Git index. It commits only reviewed CAO files, respects branch protections,
-and returns immediately with deployment-pending links, without waiting for Actions.
+and returns immediately with an Actions link, without waiting for operational artifacts.
+Use those artifacts with the local or cloud dashboard. Setup does not configure
+GitHub Pages; Pages is a separate synthetic demo.
 Declining or unattended setup leaves files local. Setup never creates a
 repository, enrolls campaigns, or runs agentic work. Use gh repo create or
 gh repo clone explicitly before setup.
@@ -40,8 +42,8 @@ Admission does not require a workflow secret. Non-interactive setup applies only
 Setup and authentication run natively in Go; help works offline.
 
 Quickstart: gh cao setup --repository 'OWNER/*'
-This explicitly accepts a public dashboard, snapshots only currently public
-repositories, and uses Actions GITHUB_TOKEN. No campaign or agent execution is
+This snapshots only currently public repositories and uses Actions GITHUB_TOKEN.
+No campaign or agent execution is
 enabled. Logs/artifacts may be unavailable; evidence is marked partial.`
 	auth := &cobra.Command{
 		Use: "auth", Short: "Configure Actions and hosted-executor authentication", Args: cobra.NoArgs,

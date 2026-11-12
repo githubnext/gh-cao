@@ -18,6 +18,7 @@ import (
 )
 
 const dashboardMaximumDuration = 48 * time.Hour
+const dashboardMaximumWindow = 7 * 24 * time.Hour
 
 type dashboardOptions struct {
 	repositories []string
@@ -43,14 +44,15 @@ No CAO configuration, repository enrollment, Actions installation, Node.js,
 database service, or source checkout is required by release binaries.
 GitHub CLI authentication is required for collection. The pinned gh-aw log
 collector is embedded; no separate gh-aw installation is needed. Existing
-gh-aw artifact caches are reused. The evidence window and server lifetime
-default to 48 hours; collection is bounded and never promises complete history.
+gh-aw artifact caches are reused. The evidence window defaults to seven days;
+the server lifetime defaults to 48 hours. Bounded background passes resume
+historical discovery while reserving GitHub API quota for other work.
 Ctrl-C stops the server; the private local snapshot is retained for reuse.
 Collection never changes policy, workflows, or remote repository state.`,
 	}
 	cmd.Flags().StringArrayVarP(&options.repositories, "repo", "R", nil, "Exact OWNER/REPO (repeatable; defaults to current repository)")
 	cmd.Flags().StringVar(&options.cache, "cache-dir", "", "Private local cache directory (default user cache, keyed by repository scope)")
-	cmd.Flags().DurationVar(&options.window, "window", dashboardMaximumDuration, "Recent evidence window (positive, at most 48h)")
+	cmd.Flags().DurationVar(&options.window, "window", dashboardMaximumWindow, "Recent evidence window (positive, at most 168h)")
 	cmd.Flags().IntVar(&options.count, "count", 200, "Per-repository limit for recent runs and cached usage samples (1-1000 each)")
 	cmd.Flags().StringVar(&options.logs, "logs-dir", "", "Existing gh-aw artifact cache to reuse (single repository only)")
 	cmd.Flags().StringVar(&options.listen, "listen", "127.0.0.1:0", "Numeric loopback listener; port 0 selects an available port")
@@ -79,8 +81,8 @@ Collection never changes policy, workflows, or remote repository state.`,
 }
 
 func resolveDashboardOptions(cmd *cobra.Command, options *dashboardOptions, gh ghExecutor) ([]string, string, error) {
-	if options.window <= 0 || options.window > dashboardMaximumDuration {
-		return nil, "", errors.New("--window must be positive and at most 48h")
+	if options.window <= 0 || options.window > dashboardMaximumWindow {
+		return nil, "", errors.New("--window must be positive and at most 168h")
 	}
 	if options.count < 1 || options.count > 1000 {
 		return nil, "", errors.New("--count must be between 1 and 1000")

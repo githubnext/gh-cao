@@ -1,18 +1,3 @@
-import { recordTimestamp } from '../../src/data/storage/retention.js';
-
-/** @param {string} jsonl */
-export function performanceSnapshotTimestamp(jsonl) {
-  let latest = -Infinity;
-  for (const line of jsonl.split('\n')) {
-    if (!line.trim()) continue;
-    const envelope = JSON.parse(line);
-    if (envelope.kind !== 'record') continue;
-    const timestamp = recordTimestamp(envelope.collection, envelope.record);
-    if (timestamp !== null) latest = Math.max(latest, timestamp);
-  }
-  return latest;
-}
-
 /** @param {number[]} values */
 export function median(values) {
   if (!values.length || values.some((value) => !Number.isFinite(value))) {
@@ -44,8 +29,9 @@ export function performanceFailures(score, metrics, threshold, budgets) {
  * @param {'empty'|'full'} state
  * @param {Record<string, number>} counts
  * @param {number} shardCount
+ * @param {{ runs: number, repositories: number }} [expected]
  */
-export function assertCanonicalCounts(state, counts, shardCount) {
+export function assertCanonicalCounts(state, counts, shardCount, expected) {
   if (!Number.isSafeInteger(counts?.runs) || !Number.isSafeInteger(counts?.transactions)
       || Object.values(counts).some((count) => !Number.isSafeInteger(count) || count < 0)) {
     throw new Error('Canonical performance counts are incomplete or invalid.');
@@ -56,8 +42,9 @@ export function assertCanonicalCounts(state, counts, shardCount) {
       throw new Error('The empty performance dataset contains canonical entities.');
     }
   } else if (state === 'full') {
-    if (!counts.runs || !counts.repositories || !counts.audits || counts.transactions < shardCount) {
-      throw new Error('The full performance dataset is not completely ingested and populated.');
+    if (!counts.runs || !counts.repositories || !counts.tools || counts.transactions < shardCount
+        || counts.runs !== expected?.runs || counts.repositories !== expected?.repositories) {
+      throw new Error('The synthetic performance dataset is not completely ingested and populated.');
     }
   } else {
     throw new Error(`Unknown performance state: ${state}`);

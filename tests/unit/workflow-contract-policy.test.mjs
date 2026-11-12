@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 import { parse } from "yaml";
+import { effectivePolicy, parsePolicy } from "../../.github/workflows/shared/policy.mjs";
 import { policyCases, userFacingScenarios } from "./workflow-contract.matrix.mjs";
 import { controlPolicy, controlPrecompute, generatedJobs, modes, portableSkill, resolvePolicy, root, stepBlock, transitivelyNeeds, workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
 
@@ -13,6 +15,75 @@ function workflowConfig(name) {
   assert.ok(frontmatter, `${name} must have frontmatter`);
   return parse(frontmatter);
 }
+
+test("CAO handoff assigns only labelled issues in this repository under live standalone policy", () => {
+  const name = "cao-issue-handoff.md";
+  const config = workflowConfig(name);
+  const assignment = config["safe-outputs"]["assign-to-agent"];
+  const comment = config["safe-outputs"]["add-comment"];
+  const policy = parsePolicy(JSON.stringify(controlPolicy));
+  const resolve = (targetRepository, requestedMode = "") => effectivePolicy(policy, {
+    role: "standalone",
+    workflowName: "cao-issue-handoff",
+    controlRepository: "githubnext/gh-cao",
+    targetRepository,
+    requestedMode,
+  });
+
+  assert.equal(resolve("githubnext/gh-cao").safe_output_mode, "live");
+  assert.equal(resolve("githubnext/gh-cao", "review").safe_output_mode, "review");
+  assert.equal(resolve("github/gh-aw").safe_output_mode, "review");
+  assert.equal(config.env.CAO_DEFAULT_TARGET_REPOSITORY, "${{ github.repository }}");
+  assert.equal(config.on["skip-if-no-match"], "is:issue is:open label:cao-agent-ready");
+  assert.equal(config.if, "needs.pre_activation.outputs.cao_authorized == 'true' && needs.pre_activation.outputs.handoff_live == 'true'");
+  assert.deepEqual(assignment["required-labels"], ["cao-agent-ready"]);
+  assert.deepEqual(comment["required-labels"], ["cao-agent-ready"]);
+  assert.equal(assignment.max, 1);
+  assert.equal(assignment["target-repo"], "${{ github.repository }}");
+  assert.equal(assignment["pull-request-repo"], "${{ github.repository }}");
+  assert.equal(assignment.staged, "${{ inputs.safe_output_mode == 'review' }}");
+  assert.match(workflow(name), /precompute\.candidate_repositories.*exactly one|exactly one candidate/);
+  assert.match(workflow(name), /never assign an issue in review mode/i);
+  const compiled = parse(workflow("cao-issue-handoff.lock.yml"));
+  assert.equal(compiled.jobs.pre_activation.permissions.issues, "read");
+  assert.match(compiled.jobs.pre_activation.outputs.activated, /check_skip_if_no_match\.outputs\.skip_no_match_check_ok/);
+  const gate = compiled.jobs.pre_activation.steps.find((step) => step.id === "cao_handoff_live");
+  assert.ok(gate);
+  assert.equal(compiled.jobs.pre_activation.outputs.handoff_live, "${{ steps.cao_handoff_live.outputs.live == 'true' }}");
+  const liveCandidate = {
+    full_name: "githubnext/gh-cao",
+    safe_output_mode: "live",
+    safe_output_repo: "githubnext/gh-cao",
+  };
+  const admission = { authorized: true, control_role: "standalone", workflow: "cao-issue-handoff" };
+  const runGate = (precompute, repository = "githubnext/gh-cao") => {
+    let output;
+    const [owner, repo] = repository.split("/");
+    runInNewContext(gate.with.script, {
+      require: () => ({ readFileSync: () => JSON.stringify(precompute) }),
+      context: { repo: { owner, repo } },
+      core: { setOutput: (name, value) => {
+        assert.equal(name, "live");
+        output = value;
+      } },
+    });
+    return output;
+  };
+  assert.equal(runGate({ ...admission, candidate_repositories: [liveCandidate] }), "true");
+  assert.equal(runGate({ ...admission, candidate_repositories: [{ ...liveCandidate, safe_output_mode: "review" }] }), "false");
+  assert.equal(runGate({ ...admission, candidate_repositories: [liveCandidate, liveCandidate] }), "false");
+  assert.equal(runGate({ ...admission, candidate_repositories: [liveCandidate] }, "github/gh-aw"), "false");
+  assert.equal(runGate({ ...admission, candidate_repositories: [liveCandidate], authorized: false }), "false");
+  const handler = compiled.jobs.safe_outputs.steps.find((step) => step.id === "process_safe_outputs");
+  assert.ok(handler);
+  const output = JSON.parse(handler.env.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG).assign_to_agent;
+  assert.deepEqual(output.required_labels, ["cao-agent-ready"]);
+  assert.equal(output.max, 1);
+  assert.equal(output["target-repo"], "${{ github.repository }}");
+  assert.equal(output["pull-request-repo"], "${{ github.repository }}");
+  assert.equal(output.staged, "${{ inputs.safe_output_mode == 'review' }}");
+  assert.equal(handler.env.GH_AW_ASSIGN_TO_AGENT_TOKEN, "${{ secrets.GH_AW_AGENT_TOKEN }}");
+});
 
 function operationCampaigns() {
   const policyCampaigns = JSON.parse(
@@ -273,7 +344,7 @@ test("enterprise defaults, budgets, timeouts, and concurrency are finite", () =>
     "eu-cra-compliance.md": { credits: 200, timeout: 15, dispatchMax: 48, workers: 6 },
     "eu-cra-compliance-campaign-maintainer.md": { credits: 200, timeout: 20 },
     "optimization.md": { credits: 250, timeout: 15, dispatchMax: 12, workers: 2 },
-    "self-care.md": { credits: 200, timeout: 15, dispatchMax: 23, workers: 23 },
+    "self-care.md": { credits: 200, timeout: 15, dispatchMax: 22, workers: 22 },
     "cao-evolution-failures-investigator.md": { credits: 500, timeout: 30 },
     "cao-evolution-compiler-security.md": { credits: 500, timeout: 45 },
     "dependabot-update-planner.md": { credits: 600, timeout: 60 },
@@ -303,7 +374,6 @@ test("enterprise defaults, budgets, timeouts, and concurrency are finite", () =>
     "self-care-docs-build-time-investigator.md": { credits: 400, timeout: 30 },
     "self-care-docs-maintainer.md": { credits: 500, timeout: 30 },
     "self-care-glossary.md": { credits: 400, timeout: 30 },
-    "self-care-open-source-failures.md": { credits: 500, timeout: 30 },
     "self-care-pages-health.md": { credits: 400, timeout: 120 },
     "self-care-primer-brand-checker.md": { credits: 400, timeout: 25 },
     "self-care-reactive-ui-expert.md": { credits: 500, timeout: 45 },
@@ -387,7 +457,7 @@ test("control workflows deny before activation through one shared admission cont
   assert.match(sharedControl, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7\.0\.1/);
   assert.match(sharedControl, /ref: \$\{\{ github\.workflow_sha \}\}/);
   assert.match(sharedControl, /path: \.cao\n/);
-  assert.match(sharedControl, /sparse-checkout: \|\n\s+\.github\/\n\s+\/activity\/value-acquisition\.mjs/);
+  assert.match(sharedControl, /sparse-checkout: \|\n\s+\.github\/\n\s+\/\.github\/workflows\/shared\/value-acquisition\.mjs/);
   assert.match(sharedControl, /sparse-checkout-cone-mode: false/);
   assert.match(sharedControl, /fetch-depth: 1/);
   assert.doesNotMatch(sharedControl, /gh api --method GET "repos\/\$\{GITHUB_REPOSITORY\}\/contents\/\.github\/cao\/src/);
@@ -473,9 +543,11 @@ test("control workflows deny before activation through one shared admission cont
       name,
     );
     assert.match(source, /jobs:\n  pre-activation:\n    outputs:\n      cao_authorized: \$\{\{ steps\.cao_admission\.outputs\.authorized == 'true' && steps\.cao_precompute\.outputs\.authorized != 'false' \}\}/, name);
-    const expectedGuard = ["self-care-server-soc2.md", "self-care-calesi-design-principles.md", "self-care-database-architecture.md"].includes(name)
-      ? "needs.pre_activation.outputs.cao_authorized == 'true' && inputs.target_repo == 'githubnext/gh-cao' && inputs.safe_output_mode == 'live'"
-      : "needs.pre_activation.outputs.cao_authorized == 'true'";
+    const expectedGuard = name === "cao-issue-handoff.md"
+      ? "needs.pre_activation.outputs.cao_authorized == 'true' && needs.pre_activation.outputs.handoff_live == 'true'"
+      : ["self-care-server-soc2.md", "self-care-calesi-design-principles.md", "self-care-database-architecture.md"].includes(name)
+        ? "needs.pre_activation.outputs.cao_authorized == 'true' && inputs.target_repo == 'githubnext/gh-cao' && inputs.safe_output_mode == 'live'"
+        : "needs.pre_activation.outputs.cao_authorized == 'true'";
     assert.equal(workflowConfig(name).if, expectedGuard, name);
 
     const generatedName = name.replace(/\.md$/, ".lock.yml");

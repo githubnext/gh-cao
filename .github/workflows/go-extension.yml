@@ -27,7 +27,7 @@ on:
       - tests/unit/build-release.test.mjs
       - tests/unit/workflow-contract-ci-triggers.test.mjs
       - tests/integration/gh-extension-installation.test.mjs
-      - activity/**
+
       - dashboard/site/src/agent/**
       - dashboard/site/src/data/**
       - dashboard/site/src/semantic-view-prompt.js
@@ -61,7 +61,7 @@ on:
       - tests/unit/build-release.test.mjs
       - tests/unit/workflow-contract-ci-triggers.test.mjs
       - tests/integration/gh-extension-installation.test.mjs
-      - activity/**
+
       - dashboard/site/src/agent/**
       - dashboard/site/src/data/**
       - dashboard/site/src/semantic-view-prompt.js

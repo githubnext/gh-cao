@@ -25,7 +25,7 @@ func TestGoWorkflowPolicyComposesImportsAndBindsRegistrations(t *testing.T) {
 		"target":{"module":"container"}}}}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	snapshot, err := ResolveWorkflowPolicy(context.Background(), Config{NodeBinary: "/nonexistent-node"}, path)
+	snapshot, err := ResolveWorkflowPolicy(context.Background(), Config{}, path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestGoWorkflowPolicyResolvesCurrentCatalogAndHostedProfile(t *testing.T) {
 		t.Run(file, func(t *testing.T) {
 			path := filepath.Join(root, ".github", "workflows", file)
 			snapshot, err := ResolveWorkflowPolicy(t.Context(),
-				Config{NodeBinary: "/nonexistent-node"}, path)
+				Config{}, path)
 			if err != nil {
 				t.Fatal(err)
 			}

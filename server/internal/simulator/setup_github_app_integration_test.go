@@ -123,7 +123,7 @@ func testSetupGitHubApp(t *testing.T, ctx context.Context, root, catalog, binary
 					!reflect.DeepEqual(tree, setupCheckoutState(t, f.checkout)) {
 					t.Fatal("App preview or rejected setup changed local files or simulator state")
 				}
-				f.assertRequests(t, ctx, "", test.failure != "")
+				f.assertRequests(t, ctx, test.failure != "")
 				f.api.mu.Lock()
 				defer f.api.mu.Unlock()
 				if !test.explicitRepo && len(f.api.Requests) == 0 {

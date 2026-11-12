@@ -1,0 +1,28 @@
+{
+  "quality:74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b": {
+    "attributionCoverage": {
+      "denominator": null,
+      "numerator": null,
+      "state": "malformed"
+    },
+    "availability": "malformed",
+    "completeness": "malformed",
+    "contractId": "evidence-quality",
+    "contractVersion": "1.0.0",
+    "contradictionState": "malformed",
+    "coverage": {
+      "denominator": null,
+      "numerator": null,
+      "state": "malformed"
+    },
+    "freshness": {
+      "observedAt": null,
+      "state": "malformed"
+    },
+    "maturity": "malformed",
+    "provenance": {
+      "sources": [],
+      "state": "malformed"
+    }
+  }
+}

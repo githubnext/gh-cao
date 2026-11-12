@@ -797,7 +797,10 @@ export function executeDashboardQueries(definitions, sources, requested, options
         return {
           ...result,
           ...(paged.continuationToken ? { continuationToken: paged.continuationToken } : {}),
-          metadata: { ...result.metadata, ...paged.metadata, 'row-count': result.rows.length }
+          metadata: {
+            ...result.metadata, ...paged.metadata,
+            'row-count': result.rows.length, 'page-row-count': result.rows.length
+          }
         };
       }
       if (!page) return compiled[name];

@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import {
   GithubApiBudgetError, consumeGithubApiBudget, prepareGithubApiBudget, readGithubApiBudget,
-} from '../../activity/github-api-budget.mjs';
+} from '../../.github/skills/add-operational-value/scripts/github-api-budget.mjs';
 import { githubReader } from '../../.github/skills/add-operational-value/scripts/github-evidence.mjs';
 
 function fixture(t) {

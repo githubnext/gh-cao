@@ -80,17 +80,10 @@ grades or requirements for using CAO.
 
 ## 3. Collect and inspect evidence
 
-After inspecting the outcome, request collection:
-
-```bash
-gh workflow run cao-activity.yml
-```
-
-This dispatch returns without waiting. Normal Activity push and schedule
-triggers may also collect evidence independently. Inspect the Activity run,
-then the dashboard workflow and its successful Pages deployment job; workflow
-success with a skipped deployment is not publication. Follow
-[Set Up CAO](setup-quickstarts.md#4-open-your-dashboard) to open the dashboard.
+Inspect the result in the authorized hosted dashboard or an explicitly selected
+operational snapshot. Follow [Agent analysis](agent-analysis.md) for acquisition
+and bounded queries. The legacy scheduled Activity publication chain is removed.
+The public Pages demo is synthetic and cannot verify this run's result.
 Runtime success alone does not prove a proposal was applied or accepted.
 
 ## See more without running more
