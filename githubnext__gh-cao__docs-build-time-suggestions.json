@@ -1,31 +1,7 @@
 {
-  "source_sha": "cd1e0ba023d17672e8e2a42170a9f57cc709522d",
-  "next_category": "artifact transfer and Pages packaging",
+  "source_sha": "10f579c17725015e651bbde12d13cdfbfeddf79d",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T13:33:44Z",
-      "worker_run_id": "43227772552",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        43225202834,
-        43206235849,
-        43206080696,
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43225202834 back to 43099316175; created 2026-11-11T21:00:12Z to 2026-11-12T13:13:14Z; within 14 days; no new completed runs since the 13:19Z evaluation; in-progress 43228046118 and pending 43228124764 not sampled). Excluded: 1 cancelled 43206161686; 3 failed pre-design schedules (retired Mount step). Comparable n=16 build+deploy publications (15 push, 1 schedule 43161224542). Job and step metadata only (log reads not used). Medians (p90): wall 89 s (124 s); queue created-to-build-start 4 s; build job 71 s (103 s); deploy job 10.5 s (18 s); build-end to deploy-start handoff 5 s (6 s); deploy setup 2 s; Upload Pages artifact 2 s (3 s); Configure Pages 1 s; Deploy Pages 7 s (14 s; 14-15 s outliers on 43206235849 and 43206080696 not explained by metadata); artifact chain 16 s (24 s) = 18% of wall; Build synthetic demo incl. copy to dist/cao 3 s. github-pages artifact 8.3 MB (7.7 MB before 3707d46). Only removing the build/deploy split (handoff+setup, about 7 s, 8% of wall) reduces transfer time, and merging jobs would move id-token and github-pages environment into the job running npm and docs builds (deployment-safety regression); below 60 s / 15% gate. docs.yml file history (GitHub API path log): last change 063cbe911 (2026-11-12T06:17Z); no change since, 313a385 does not touch docs.yml (local shallow diff is a clone artifact). Carry-forward for dependency/caching cycle: Checkout median 24 s remains largest build-job step, partial-clone idea unmeasured. No suggestion; next_category advanced to scheduling, concurrency, and avoidable rebuilds."
-    },
     {
       "evaluated_at": "2026-11-12T13:55:04Z",
       "worker_run_id": "43230759467",
@@ -834,6 +810,35 @@
         43138878761
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; all within 14 days; no new completed runs since the 23:20Z evaluation; source cd1e0ba = HEAD = source_sha). Excluded and disclosed: 1 failed 43297524311 (e465d28c; Build documentation failed at 14 s; fixed by cd1e0ba; cause unverified, logs 403) and 1 cancelled 43206161686 (no jobs). Comparable n=18 successes (17 push, 1 schedule 43161224542; identical build+deploy step shape; 5-run gate met). Category step 'Build synthetic enterprise demo' (docs.yml lines 55-58: npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs, then cp to dist/cao): median 4 s, p90 4 s, range 2-5 s = 4.7% of median build-start-to-deploy-end 84.5 s (p90 120.2 s) and 6.0% of build job median 67 s. Full removal cannot reach 60 s or 15% (12.7 s). No dashboard job exists; the step has no cache (docs.yml uses only setup-node npm cache), so no hit/miss verification applies. Caching its output would conflict with the daily synthetic-date refresh (Date.now in simulate-dashboard-pages.mjs). The dashboard-site npm ci is inside the unsplit Install dependencies step (median 16 s, p90 22.3 s), so its share is not separable from metadata. Open-issue check via gh: no open issue with label self-care:docs-build-time-investigator; open [aw] failure-tracking issues 20440 and 20719 are operational, not improvement suggestions. Carry-forward, unchanged and unmeasured, not evaluated in this category: Checkout fetch-depth 0 median 24 s (p90 46 s), largest build step. No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T23:54:22Z",
+      "worker_run_id": "43332074164",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        43301807773,
+        43297524311,
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; all within 14 days; 0 in progress; source 10f579c). Excluded: 1 cancelled 43206161686 (superseded pending run); 1 failed 43297524311 (Build documentation failed at 14 s before Pages steps; fixed by cd1e0ba). n=18 successful (17 push, 1 schedule 43161224542). Medians (p90): Configure Pages 1 s (1); Upload Pages artifact 2 s (3); build-end to deploy-start handoff 6 s (7); deploy Set up job 1 s (1); Deploy Pages 7 s (14; 14-15 s on 43206235849 and 43206080696); demo packaging 4 s (4). Per-run removable transfer median 9 s (p90 11), 10.7% of median execution 84.5 s (p90 123 s); 15% gate 12.7 s and 60 s gate unmet. github-pages artifact median 8.32 MB (8.27 to 8.36 MB); shrinking saves about 1 s. Merging deploy into build saves about 7 s and would move id-token and github-pages environment into the build job (rejected). Wall created-to-deploy-end median 88 s (p90 157 s), driven by queue waits of 30 and 46 s (scheduling category). Job logs re-verified 403 difc_forbidden; cache hit/miss not part of this category. Compare cd1e0ba...10f579c: 3 commits, docs.yml and build inputs unchanged. No suggestion; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
       "suggestion_fingerprint": null
     }
   ]
