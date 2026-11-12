@@ -1,31 +1,7 @@
 {
   "source_sha": "cd1e0ba023d17672e8e2a42170a9f57cc709522d",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T12:55:32Z",
-      "worker_run_id": "43221392403",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        43206080696,
-        43206235849,
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T20:16:01Z to 2026-11-12T11:06:25Z; 14-day window; no new docs.yml runs since the 12:41Z evaluation; source HEAD 9e373f74 equals source_sha). Excluded and disclosed: 1 cancelled superseded run 43206161686; 4 failed retired-Mount schedules 43094878868, 43099316175, 43101943628, 43103737760. Comparable n=15 successful build+deploy runs (14 push, 1 schedule 43161224542). Medians (p90) from job and step metadata: 'Build documentation' 14 s (p90 15 s; range 10-15 s) = 16% of median wall 88 s (p90 122 s) and 19% of build job 72 s (p90 103 s). Only removing the whole step reaches the 15% gate, and generated docs are required for publication, so no Astro-internal change qualifies. Split of astro build vs validate-agent-docs vs agent-docs-discovery test is not visible: job logs return 403 DIFC. Per-file 'git log -1' in resolveBuildProvenance (docs/plugins/starlight-agent/resource.ts) sits inside that 14 s bound. Lead, not a suggestion: Checkout fetch-depth 0 is the largest build-job step (median 24 s, p90 47 s, 27% of median wall) and is required only by per-file sourceCommittedAt. Partial-history candidate: add 'filter: blob:none' to docs.yml checkout while keeping fetch-depth 0; the input exists on actions/checkout main and tag v7.0.1 maps to the pinned SHA; git rev-parse, show -s and ls-files need no blobs, and log -1 -- path should need only commits and trees (unverified). Savings unmeasured: repo size_kb 1449851 vs 10.67 MiB depth-1 pack hints at history-heavy bytes, but fork count 5 and size composition are unverified. Promotion needs a measured checkout comparison (at least 5 runs each) in a maintainer-run branch. No open issue covers fetch-depth or partial clone (open 20131 and 20380 are other categories, not repeated). next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-12T13:19:47Z",
       "worker_run_id": "43225574255",
@@ -832,6 +808,33 @@
         43138878761
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04Z to 2026-11-12T20:35Z; within 14 days; source cd1e0ba = HEAD = source_sha). Excluded: 1 failed 43297524311 (e465d28, fixed by cd1e0ba) and 1 cancelled 43206161686 (no jobs). n=18 successes (17 push, 1 schedule 43161224542). Medians (p90), job and step metadata: Install dependencies 16 s (23 s; range 11-25 s) = 19% of build-start-to-deploy-end 84.5 s (p90 123 s); Set up Node.js restore 3 s (8 s); Post Set up Node.js 0 s (1 s); build job 67 s (104 s); deploy job 10.5 s (18 s); 15% gate = 12.7 s. Cache verification from metadata: root package-lock git blob identical on every run commit from 063cbe9 through cd1e0ba; key sha256(raw sha256 of package-lock.json) = e62f6006, which exists (created 06:18:07Z, last accessed 22:43Z). setup-node cache-save.ts skips save on exact-key hit; post-save 1 s only on the first run per lock change (43138878761, 43141528595). Hits n=15: install median 15 s (p90 19); misses n=3 (lock changes): 21-23 s, penalty about 7 s on 3 of 18 runs, zero effect on the median. Resolves the prior unresolved 91e8e843 note (earlier hash method was wrong). Candidates, none meeting 12.7 s: node_modules caching (net est. 5-12 s, restore cost unmeasured); --no-audit/--no-fund (network audit/fund step only, unmeasured); pruning root devDependencies (unverified); root --ignore-scripts (node-pty native build declared needed by .github/workflows/workflow-contracts.yml:137 and dashboard/cli-terminal-process.mjs; cost unmeasured; upstream microsoft/node-pty unreadable, 403). Logs 403 DIFC (re-verified). No open issue with this worker label. No suggestion; next_category advanced to Astro documentation generation. Carry-forward, unmeasured: Checkout fetch-depth 0 median 24 s (p90 47), largest build step; partial-clone idea needs a maintainer-run A/B.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T23:20:00Z",
+      "worker_run_id": "43326962788",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43301807773,
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04Z to 2026-11-12T20:35Z; within 14 days; source cd1e0ba = HEAD = source_sha; no new completed runs since the 22:56Z evaluation). Excluded and disclosed: 1 failed 43297524311 (e465d28, fixed by cd1e0ba) and 1 cancelled 43206161686 (no jobs). n=18 successes (17 push, 1 schedule 43161224542). 'Build documentation' (npm run docs:build) from step metadata: median 14 s (p90 15 s; range 8-15 s; push-only median 14 s) = 16.6% of median build-start-to-deploy-end 84.5 s (p90 120 s) and 21% of build job median 67 s. 15% gate = 12.7 s, reachable only by removing nearly the whole step, which is required for publication, so no qualifying change. Internal Astro split not visible: job logs re-verified 403 difc_forbidden at 23:17Z. Cache list has no Astro-specific key (only setup-node npm keys); Astro-internal caching is unmeasured and cannot be shown to save 12.7 s. Only docs.yml-level option found: overlapping the dashboard step (median 4 s) saves at most 4 s. No suggestion; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ]
