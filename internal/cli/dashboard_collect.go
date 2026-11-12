@@ -219,12 +219,11 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 			if err != nil {
 				return nil, err
 			}
-		} else if len(repositories) == 1 {
-			// Reuse the operator's ordinary artifact cache when it exists.
-			existing, statErr := os.Stat(".github/aw/logs")
-			if statErr == nil && existing.IsDir() {
+		} else if len(repositories) == 1 && options.localRepository == repository {
+			// Reuse the operator's ordinary artifact cache only for its own repository.
+			if dashboardLocalLogsPresent() {
 				managedCache = false
-				directory, err = filepath.Abs(".github/aw/logs")
+				directory, err = filepath.Abs(dashboardLocalLogs)
 				if err != nil {
 					return nil, err
 				}

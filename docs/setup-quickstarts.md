@@ -78,8 +78,9 @@ A failed refresh reports the error and retains the last accepted PostgreSQL revi
 
 **Optional reuse:** Existing local setup can stay in place, but the command
 does not require or adopt its CAO policy as collection scope; use the current
-repository or explicit `--repo` selections. For a single repository, an existing
-`.github/aw/logs` artifact cache is reused automatically, or select one with
+repository or explicit `--repo` selections, which may name any accessible
+remote repository. When the single selected repository is the current checkout,
+an existing `.github/aw/logs` artifact cache is reused automatically, or select one with
 `--logs-dir PATH`. Otherwise caches live in your user cache directory, keyed by
 repository scope. `--cache-dir PATH` selects a separate private dashboard cache;
 do not point it at an existing Activity database. Cache files can contain
