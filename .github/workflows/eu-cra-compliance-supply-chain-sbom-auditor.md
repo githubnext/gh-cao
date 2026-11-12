@@ -126,6 +126,12 @@ safe-outputs:
     close-older-issues: true
     max: 1
     target-repo: ${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}
+  update-issue:
+    target: "*"
+    target-repo: ${{ (inputs.safe_output_mode || 'review') == 'review' && (inputs.safe_output_repo || github.repository) || inputs.target_repo }}
+    body: true
+    required-title-prefix: "[eu-cra-compliance:supply-chain-sbom-auditor] "
+    max: 1
 
 timeout-minutes: 30
 ---
@@ -195,5 +201,7 @@ Never output `CRA COMPLIANT`, `LEGALLY COMPLIANT`, `CERTIFIED`, or `CE APPROVED`
 Do not put secrets, personal data, exploit details, private advisory or incident content, or confidential regulatory evidence in a safe output. Summarize the gap and identify the access-controlled evidence location instead.
 
 If `correlation_id` is present, add `### Control Plane` with the correlation ID, central repository, and control-plane run URL. Use `noop` only when a current equivalent audit exists and no material supply-chain evidence or authoritative requirement changed.
+
+Before creating the issue, search open issues in `SAFE_OUTPUT_REPO` for this exact prefixed title. If an equivalent open audit issue exists and relevant evidence or authoritative requirements changed, replace that issue's complete body by calling `update_issue` with its issue number and `operation: "replace"`. Send the full refreshed report with the same heading and structure, exactly one operational-value marker with the new `target-sha`, and the `### Control Plane` section when `correlation_id` is present; never append to the existing body. Do not create a new issue or report incomplete. If nothing relevant changed, call `noop` naming that issue. Create a new issue only when no equivalent open issue exists.
 
 {{#runtime-import? .github/cao/eu-cra-compliance.md}}

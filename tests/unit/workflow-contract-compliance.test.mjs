@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
+import { parse } from "yaml";
 import { root, workflow } from "./workflow-contract.helpers.mjs";
 
 // Advisory compliance operation boundaries (UK AI, EU CRA, Dev Practices).
@@ -208,6 +209,46 @@ test("EU CRA workflows preserve advisory and human-review boundaries", () => {
   assert.match(ledger, /CRA-ART-014.*reportability requires human review \| (?:IMPLEMENTED|PARTIAL) \|/);
   assert.match(ledger, /CRA-ART-028-031.*final release require human review \| (?:IMPLEMENTED|PARTIAL) \|/);
   assert.match(ledger, /CRA-ANNEX-VIII.*Route selection requires human review \| (?:IMPLEMENTED|PARTIAL) \|/);
+});
+
+test("EU CRA auditors refresh their own open audit issue instead of failing", () => {
+  for (const worker of [
+    "scope-classifier",
+    "security-requirements-auditor",
+    "conformity-release-evidence",
+    "supply-chain-sbom-auditor",
+    "vulnerability-handling-auditor",
+    "article-14-reporting-readiness",
+  ]) {
+    const name = `eu-cra-compliance-${worker}.md`;
+    const source = workflow(name);
+    const frontmatter = /^---\n([\s\S]*?)\n---/.exec(source)?.[1];
+    assert.ok(frontmatter, `${name} must have frontmatter`);
+    const outputs = parse(frontmatter)["safe-outputs"];
+    const create = outputs["create-issue"];
+    const update = outputs["update-issue"];
+
+    assert.deepEqual(Object.keys(outputs).sort(), ["create-issue", "update-issue"], name);
+    assert.equal(create["title-prefix"], `[eu-cra-compliance:${worker}] `, name);
+    assert.equal(create["deduplicate-by-title"], true, name);
+    assert.equal(create.expires, "30d", name);
+    assert.ok(update, `${name} must declare update-issue`);
+    assert.equal(update["required-title-prefix"], create["title-prefix"], name);
+    assert.equal(update.target, "*", name);
+    assert.equal(update.body, true, name);
+    assert.equal(update.title, undefined, name);
+    assert.equal(update.status, undefined, name);
+    assert.equal(update.labels, undefined, name);
+    assert.equal(update.max, 1, name);
+    assert.equal(update["target-repo"], create["target-repo"], name);
+
+    assert.match(source, /search open issues in `SAFE_OUTPUT_REPO` for this exact prefixed title/, name);
+    assert.match(source, /evidence or authoritative requirements changed, replace that issue's complete body by calling `update_issue` with its issue number and `operation: "replace"`/, name);
+    assert.match(source, /Send the full refreshed report with the same heading and structure, exactly one operational-value marker with the new `target-sha`, and the `### Control Plane` section when `correlation_id` is present; never append to the existing body/, name);
+    assert.match(source, /Do not create a new issue or report incomplete/, name);
+    assert.match(source, /If nothing relevant changed, call `noop` naming that issue/, name);
+    assert.match(source, /Create a new issue only when no equivalent open issue exists/, name);
+  }
 });
 
 test("Dev Practices preserves evidence and advisory boundaries", () => {
