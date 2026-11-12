@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
+	"github.com/githubnext/gh-cao/server/internal/testutil/pgtemplate"
 )
 
 func ConnectionString(t testing.TB, config *pgx.ConnConfig) string {
@@ -28,16 +29,20 @@ func ConnectionString(t testing.TB, config *pgx.ConnConfig) string {
 	return endpoint.String()
 }
 
-// Postgres creates a private schema, including when initialization fails.
-// Service-backed tests never replace another test's or the operator's data.
+// Postgres creates a private database or schema, including when initialization
+// fails. Service-backed tests never replace another test's or the operator's data.
 func Postgres(t testing.TB, parent context.Context, environment ...string) *postgresx.Store {
 	t.Helper()
 	store, _ := PostgresWithConfig(t, parent, environment...)
 	return store
 }
 
-// PostgresWithConfig also exposes the isolated schema connection for operational
+// PostgresWithConfig also exposes the isolated connection for operational
 // adapters that need their own tables in the same disposable database.
+//
+// Each test receives a database cloned from a per-process template provisioned
+// through the production store; see pgtemplate. Roles that cannot create
+// databases fall back to a private schema in the named database.
 func PostgresWithConfig(t testing.TB, parent context.Context, environment ...string) (*postgresx.Store, *pgx.ConnConfig) {
 	t.Helper()
 	endpoint := ""
@@ -49,13 +54,36 @@ func PostgresWithConfig(t testing.TB, parent context.Context, environment ...str
 	if endpoint == "" {
 		t.Skipf("set one of %v to run Postgres integration tests", environment)
 	}
+	config, ok := pgtemplate.Clone(t, parent, endpoint, func(ctx context.Context, config *pgx.ConnConfig) error {
+		store, err := postgresx.NewConfig(ctx, config)
+		if err != nil {
+			return err
+		}
+		return store.Close()
+	})
+	if !ok {
+		config = isolatedSchema(t, parent, endpoint)
+	}
 	ctx, cancel := context.WithTimeout(parent, 30*time.Second)
 	defer cancel()
+	store, err := postgresx.NewConfig(ctx, config)
+	if err != nil {
+		t.Fatal("initialize isolated Postgres test store")
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	return store, config
+}
+
+// isolatedSchema provisions a private schema in the configured database.
+func isolatedSchema(t testing.TB, parent context.Context, endpoint string) *pgx.ConnConfig {
+	t.Helper()
 	admin, err := sql.Open("pgx", endpoint)
 	if err != nil {
 		t.Fatal("configure Postgres test connection")
 	}
 	t.Cleanup(func() { _ = admin.Close() })
+	ctx, cancel := context.WithTimeout(parent, 30*time.Second)
+	defer cancel()
 	schema := fmt.Sprintf("cao_test_%d", time.Now().UnixNano())
 	if _, err := admin.ExecContext(ctx, "CREATE SCHEMA "+schema); err != nil {
 		t.Fatal("create isolated Postgres test schema")
@@ -104,10 +132,5 @@ func PostgresWithConfig(t testing.TB, parent context.Context, environment ...str
 		t.Fatal("parse Postgres test configuration")
 	}
 	config.RuntimeParams["search_path"] = schema
-	store, err := postgresx.NewConfig(ctx, config)
-	if err != nil {
-		t.Fatal("initialize isolated Postgres test schema")
-	}
-	t.Cleanup(func() { _ = store.Close() })
-	return store, config
+	return config
 }
