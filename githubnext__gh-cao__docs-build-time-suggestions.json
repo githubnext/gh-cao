@@ -1,28 +1,7 @@
 {
   "source_sha": "433d9292506695ce6cecaed56525f0c059b8817a",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T09:53:03Z",
-      "worker_run_id": "43194721852",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T19:31:09Z to 2026-11-12T09:48:55Z; 0 cancelled; none in progress; new run 43194788185 push 40b8a11 added since the 09:35Z evaluation). Comparable n=13 current-shape successful full publications (12 push, 1 schedule 43161224542; 5-run minimum met). Excluded: 6 failed retired-Mount schedules and 1 freshness-only schedule (43087935698). Reusable dashboard generation = step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp to dist/cao): median 3 s, p90 4 s, range 2-4 s = 3.5% of median build-start to deploy-end wall 85 s (p90 109 s). 15 percent gate = 12.8 s; the 60 s threshold is unreachable, and complete removal saves at most about 4 s, so no suggestion. Dashboard-site npm ci is inside the Install dependencies step (median 18 s), not separable from metadata; build job log read returned HTTP 403 DIFC (single attempt). Correction: docs.yml changed at 063cbe9 (06:17Z) by removing the activity/** path filter only; steps unchanged, so current-shape grouping holds. Scope: docs.yml, Actions job/step metadata, and compare API only. No suggestion; no issue created. next_category advanced to artifact transfer and Pages packaging."
-    },
     {
       "evaluated_at": "2026-11-12T10:20:05Z",
       "worker_run_id": "43198696712",
@@ -803,6 +782,33 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; within 14 days; no docs.yml run since 15:38Z; workflow shape unchanged). Excluded: 1 cancelled superseded pending run 43206161686 (no jobs). Comparable n=19 successes (18 push + 1 schedule 43161224542; identical 11-step build and 3-step deploy shapes; 5-run minimum met). Medians (p90), metadata only: execution build-start-to-deploy-end 85 s (120 s); created-to-deploy wall 88 s (123 s); build job 68 s (103 s); deploy job 11 s (14 s); build queue 3 s; deploy queue 5 s; handoff 0 s (1 s). Astro step 'Build documentation' (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test): median 14 s, p90 15 s, range 8-15 s = 16.5% of median execution; 15% gate = 12.75 s needs about 91% of the step removed, which would drop the published docs build and validation. PUBLIC_PAGES_BUILD_COMMIT=github.sha keeps output commit-specific; output caching unmeasured and not shown safe. Build job log read returned HTTP 403 difc_forbidden (one attempt this run, not retried): Astro-internal split and cache hit/miss unverified from logs. Cache metadata: active node-cache key e62f... (278.9 MB, created 06:18Z, main); Post Set up Node.js 0-1 s in 19/19, consistent with restore hits. Carry-forward lead, not evaluated under this docs.yml-only scope: Checkout fetch-depth 0 median 24 s, p90 45 s, largest build step; a shallow or partial alternative needs history-correctness evidence first. Prior issues 20380 (closed 16:26Z) and 20131 (closed 13:13Z) not repeated. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T19:53:14Z",
+      "worker_run_id": 43294026575,
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; all within 14 days; 0 in progress, 0 failed; 1 cancelled excluded: 43206161686, no jobs). Comparable n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; 5-run gate met; no dashboard job exists, dashboard generation is build step 'Build synthetic enterprise demo'). Category median (p90): that step 4 s (4 s) = 4.7% of median build-start-to-deploy-end 85 s (p90 120 s). 15% gate 12.75 s; full removal saves at most 4 s; 60 s unreachable. Caching or reusing that output would weaken synthetic-date freshness and saves at most 4 s; a separate dashboard job needs checkout (median 24 s) plus artifact handoff, net negative. Dashboard-site npm ci sits inside unsplit 'Install dependencies' (median 17 s). Cache: root npm key e62f... last accessed 19:43Z (restore updates last-accessed); post Set up Node.js 0 s median in 19/19; job logs HTTP 403 difc_forbidden (one re-probe, not retried). Prior closed issues 20380 and 18929 (dashboard input caching) not repeated; no open issue with this worker label. No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging."
     }
   ]
 }
