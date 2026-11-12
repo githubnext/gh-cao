@@ -9,7 +9,7 @@ import (
 )
 
 func TestCLICommandIdentityRoundTripAndLegacyRetry(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		t.Run(dialect, func(t *testing.T) {
 			f := newAuditFixture(t, dialect)
 			lease := acquireAuditLease(t, f)
@@ -39,11 +39,7 @@ func TestCLICommandIdentityRoundTripAndLegacyRetry(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if dialect == "sqlite" {
-				f.exec(t, `UPDATE cao_operational_cli_commands SET invocation=? WHERE id=?`, data, command.ID)
-			} else {
-				f.exec(t, `UPDATE cao_operational_cli_commands SET invocation=$1 WHERE namespace=$2 AND id=$3`, data, f.namespace, command.ID)
-			}
+			f.exec(t, `UPDATE cao_operational_cli_commands SET invocation=$1 WHERE namespace=$2 AND id=$3`, data, f.namespace, command.ID)
 			detail, err := f.executor.Detail(t.Context(), command.ID)
 			if err != nil || detail.ActorID != 0 || detail.Actor != legacy.Actor || detail.Status != operational.CLICommandQueued {
 				t.Fatalf("legacy record must remain readable: %+v, %v", detail, err)

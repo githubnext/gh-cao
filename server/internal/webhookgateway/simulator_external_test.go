@@ -76,10 +76,6 @@ func deliverExternalSimulator(t *testing.T, service *simulator.IssueService, ser
 	}
 }
 
-func TestIssueServiceSimulatorGatewaySQLite(t *testing.T) {
-	runExternalSimulatorSuite(t, sqliteSimulatorStorage)
-}
-
 func TestIssueServiceSimulatorGatewayPostgres(t *testing.T) {
 	dsn := simulatorPostgresDSN(t)
 	runExternalSimulatorSuite(t, func(t *testing.T, options wg.QueueOptions) simulatorStorage {

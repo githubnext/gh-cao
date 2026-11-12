@@ -18,7 +18,8 @@ test("signed gateway delivery runs compiled AWI and CAO samples in Docker", { ti
   run("go", ["-C", "server", "test", "./internal/webhookgateway", "-run", "^TestGitHubSimulatorDockerDispatch$",
     "-count=1", "-timeout=90s"], {
     cwd: root,
-    env: { ...process.env, CAO_DOCKER_ACTIONS_WORKSPACE: workspace, CAO_DOCKER_ACTIONS_EVENT: eventFile },
+    env: { ...process.env, CAO_ACTIONS_SIMULATOR_POSTGRES: "1",
+      CAO_DOCKER_ACTIONS_WORKSPACE: workspace, CAO_DOCKER_ACTIONS_EVENT: eventFile },
   });
   const event = JSON.parse(readFileSync(eventFile, "utf8"));
   assert.equal(event.action, "gh-aw-webhook-9f86d081884c7d659a2feaa0");

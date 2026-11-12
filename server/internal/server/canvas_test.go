@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestLocalCanvasUsesSharedHandlerAndPrivateAdapter(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	prefix := "/" + strings.Repeat("a", 48)
 	adapterPrefix := "/" + strings.Repeat("b", 48)
 	var calls int
@@ -99,7 +98,7 @@ func TestLocalCanvasUsesSharedHandlerAndPrivateAdapter(t *testing.T) {
 }
 
 func TestLocalCanvasMarkdownUsesPlainTextRegardlessOfSystemMIME(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	app.config.Canvas = &LocalCanvasConfig{
 		Prefix:     "/" + strings.Repeat("a", 48),
 		AdapterURL: "http://127.0.0.1:1234/" + strings.Repeat("b", 48),
@@ -116,7 +115,7 @@ func TestLocalCanvasMarkdownUsesPlainTextRegardlessOfSystemMIME(t *testing.T) {
 }
 
 func TestLocalCanvasRejectsWidenedHosts(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	valid := LocalCanvasConfig{
 		Prefix:     "/" + strings.Repeat("a", 48),
 		AdapterURL: "http://127.0.0.1:1234/" + strings.Repeat("b", 48),
@@ -137,10 +136,9 @@ func TestLocalCanvasRejectsWidenedHosts(t *testing.T) {
 	if validateLocalCanvas(config, false) == nil {
 		t.Fatal("hosted canvas accepted")
 	}
-	// Config validation is also enforced before opening a local snapshot.
 	config.Database = nil
 	config.Listen = "0.0.0.0:1234"
-	if _, err := NewLocalSQLiteApp(context.Background(), "missing.sqlite", config); err == nil {
+	if err := validateLocalCanvas(config, true); err == nil {
 		t.Fatal("public canvas accepted")
 	}
 }

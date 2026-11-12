@@ -34,7 +34,7 @@ The execution boundary is the key architectural fact: orchestrators and workers 
 
 Safe-output routing does not select dashboard hosting. Production dashboards
 use same-origin Go/PostgreSQL, and local analysis uses the same Go server over
-real SQLite snapshots. Pages is only a synthetic enterprise demo, independent
+canonical PostgreSQL data. Pages is only a synthetic enterprise demo, independent
 of review/live modes; it must not receive operational artifacts or review
 outputs. AI agent jobs receive no Pages deployment authority.
 

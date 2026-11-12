@@ -27,7 +27,6 @@ describe('deployment storage information', () => {
   });
 
   it.each([
-    ['sqlite', 'Local server storage (SQLite)'],
     ['postgres', 'Server storage (PostgreSQL)']
   ])('uses declared %s deployment configuration, not supplied activity rows', (backend, label) => {
     meta('dashboard-data-backend', 'server-http');

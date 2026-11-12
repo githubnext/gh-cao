@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ingestGhAwLogs as ingestNodeGhAwLogs } from '../../src/data/ingest/coordinator.js';
 import { readCanonicalBatch } from '../../src/data/storage/indexeddb.js';
-import { createSqliteIndexedDB, SqliteIDBKeyRange } from '../../src/data/storage/sqlite-indexeddb.js';
+import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { normalizedActivityShards } from './normalized-shard.js';
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
 import canonicalContract from '../fixtures/canonical-dashboard-contract.json' with { type: 'json' };
@@ -1518,15 +1518,15 @@ test('Chromium ingests gh-aw artifacts as a Run and ordered run records', async 
   expect(result.issues).toEqual([]);
 });
 
-test('SQLite and browser IndexedDB ingestion produce identical populated tables', async ({ page }) => {
+test('canonical normalization and browser IndexedDB ingestion produce identical populated tables', async ({ page }) => {
   const originalKeyRange = globalThis.IDBKeyRange;
-  globalThis.IDBKeyRange = /** @type {typeof IDBKeyRange} */ (SqliteIDBKeyRange);
+  globalThis.IDBKeyRange = IDBKeyRange;
   const input = ghAwLogInput();
   const directory = mkdtempSync(join(tmpdir(), 'cao-ingestion-compliance-'));
   try {
-    const sqliteIndexedDB = createSqliteIndexedDB(join(directory, 'dashboard.sqlite'));
-    await ingestNodeGhAwLogs(sqliteIndexedDB, input, { now: Date.now() });
-    const sqliteRows = await readCanonicalBatch(sqliteIndexedDB);
+    const fixtureIndexedDB = new IDBFactory();
+    await ingestNodeGhAwLogs(fixtureIndexedDB, input, { now: Date.now() });
+    const fixtureRows = await readCanonicalBatch(fixtureIndexedDB);
 
     const downloadPromise = page.waitForEvent('download');
     await page.evaluate(async (browserInput) => {
@@ -1549,13 +1549,13 @@ test('SQLite and browser IndexedDB ingestion produce identical populated tables'
     expect(browserExportPath).not.toBeNull();
     const browserRows = JSON.parse(readFileSync(/** @type {string} */ (browserExportPath), 'utf8'));
 
-    for (const [backend, tables] of Object.entries({ SQLite: sqliteRows, IndexedDB: browserRows })) {
+    for (const [backend, tables] of Object.entries({ Fixture: fixtureRows, IndexedDB: browserRows })) {
       expect(Object.keys(tables).sort()).toEqual(canonicalEntityTables);
       for (const table of ['repositories', 'workflows', 'runs', 'domains', 'tools', 'audits']) {
         expect(tables[table].length, `${backend} ${table} should contain compliance fixture data`).toBeGreaterThan(0);
       }
     }
-    expect(browserRows).toEqual(sqliteRows);
+    expect(browserRows).toEqual(fixtureRows);
   } finally {
     globalThis.IDBKeyRange = originalKeyRange;
     rmSync(directory, { recursive: true, force: true });

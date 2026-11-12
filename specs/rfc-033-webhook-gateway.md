@@ -1121,7 +1121,7 @@ Admission fanout's `QueueOptions.MaxBatch` is a separate bound.
 
 `specs/fixtures/webhook-batch-conformance.json` generates signed-ingress-to-worker
 tests for unique contexts, separated kinds, and singleton array shape on both
-SQLite and PostgreSQL. The atomic, recovery, fairness/concurrency, replica, and
+PostgreSQL. The atomic, recovery, fairness/concurrency, replica, and
 packing tests reference BG-04–BG-08 directly. Unknown vector fields/versions fail.
 `WebhookDispatchBatch.tla` separately models bounded compatible claim groups,
 set-valued contexts, all-member reservation, one token charge, local revocation,
@@ -1133,7 +1133,7 @@ wall-clock fairness, transport bytes, or a compiler/hosted integration.
 
 ```bash
 go -C server test -p 1 -race ./internal/webhookgateway \
-  ./internal/operational/postgres ./internal/operational/sqlite \
+  ./internal/operational/postgres \
   ./internal/webhookgatewayhost ./internal/githubapp \
   ./internal/webhookgatewaylocal ./cmd/cao-webhook-gateway
 python3 scripts/check-webhook-gateway-model.py --jar "$TLA2TOOLS_JAR" \

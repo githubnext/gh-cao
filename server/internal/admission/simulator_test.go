@@ -7,17 +7,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
-	wg "github.com/githubnext/gh-cao/server/internal/webhookgateway"
-	"github.com/githubnext/gh-cao/server/internal/webhookgatewaylocal"
 )
 
 // Only this test-owned verifier routes the hard-coded production JWKS URL to
@@ -173,10 +169,7 @@ func TestLocalActionsAdmissionConclusionGateway(t *testing.T) {
 	if err := action.Run(t.Context(), simulator.ActionJob{
 		AdmissionURL: audience, ConclusionURL: server.URL + "/api/conclusion",
 		Admission: simulatorJSON(t, input), Conclusion: simulatorJSON(t, conclusion),
-		Work: func(ctx context.Context) error {
-			runLocalWebhookGateway(ctx, t, action)
-			return nil
-		},
+		Work: func(context.Context) error { return nil },
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -219,56 +212,6 @@ func TestLocalActionsAdmissionConclusionGateway(t *testing.T) {
 		t.Fatalf("unexpected lifecycle trace: %v", outcomes)
 	}
 	t.Logf("loopback Actions/OIDC lifecycle: %s", simulatorJSON(t, trace.Events()))
-}
-
-func runLocalWebhookGateway(ctx context.Context, t *testing.T, action simulator.Actions) {
-	t.Helper()
-	var repository webhookgatewaylocal.Repository
-	if err := json.Unmarshal([]byte(`{"id":1001,"full_name":"simulator/repo-00001","owner":{"id":42,"type":"Organization"}}`), &repository); err != nil {
-		t.Fatal(err)
-	}
-	simulation, err := webhookgatewaylocal.NewSimulation(repository, []string{"issues"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	policy, err := simulation.Load(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	queue, err := sqlite.OpenWebhookQueue(ctx, filepath.Join(t.TempDir(), "gateway.sqlite"), policy.Policy.Namespace, policy.Policy.Queue)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = queue.Close() }()
-	if err := queue.ApplyRevision(ctx, policy.Revision); err != nil {
-		t.Fatal(err)
-	}
-	gateway := httptest.NewServer(&wg.Ingress{SourceID: "local", Secrets: simulation, Policies: simulation, Queue: queue, Authorizer: simulation})
-	defer gateway.Close()
-	secret, _, err := simulation.WebhookSecrets(ctx, "local")
-	if err != nil {
-		t.Fatal(err)
-	}
-	delivery := simulator.Delivery{ID: "local-actions-completed", Event: "issues",
-		Payload: []byte(`{"action":"opened","repository":{"id":1001,"full_name":"simulator/repo-00001","owner":{"id":42}},"organization":{"id":42},"installation":{"id":1},"issue":{"number":1}}`)}
-	for _, signingKey := range []string{"wrong-signing-key", string(secret), string(secret)} {
-		status, err := action.DeliverWebhook(ctx, gateway.URL+"/webhooks/local", signingKey, delivery)
-		if signingKey == "wrong-signing-key" && (err == nil || status != http.StatusUnauthorized) ||
-			signingKey != "wrong-signing-key" && (err != nil || status != http.StatusAccepted && status != http.StatusNoContent) {
-			t.Fatalf("gateway HTTP status=%d err=%v", status, err)
-		}
-	}
-	worker := &wg.Worker{Policies: simulation, Queue: queue, Authorizer: simulation, Dispatcher: simulation,
-		Owner: "local-actions", HTTPTimeout: time.Second, LeaseDuration: time.Minute}
-	worked, err := worker.RunOnce(ctx)
-	if err != nil || !worked {
-		t.Fatalf("local gateway did not dispatch: worked=%t err=%v", worked, err)
-	}
-	counts, err := queue.Counts(ctx)
-	if err != nil || counts[wg.Succeeded] != 1 {
-		t.Fatalf("signed duplicate was not deduplicated: counts=%v err=%v", counts, err)
-	}
-	t.Log("loopback webhook gateway: bad signature rejected; signed duplicate deduplicated; one simulated dispatch succeeded")
 }
 
 func TestLocalActionsBrokenOIDC(t *testing.T) {

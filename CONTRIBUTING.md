@@ -263,7 +263,7 @@ On Windows, build `gh-cao.exe` with
 | Path | Responsibility |
 | --- | --- |
 | `cmd/gh-cao/` | Process entry point, interrupt cancellation, exit status, and link-time version (`-X main.version=...`). |
-| `internal/cli/` | Native Cobra operator commands, onboarding and authentication, policy and campaign management, read-only SQLite and Dashboard Language queries, computations, MCP, help, and diagnostics. |
+| `internal/cli/` | Native Cobra operator commands, onboarding and authentication, policy and campaign management, read-only PostgreSQL and Dashboard Language queries, computations, MCP, help, and diagnostics. |
 | `internal/ghcli/` | Context-aware GitHub CLI calls through `github.com/cli/go-gh/v2`, the same helper used by gh-aw. |
 | `dashboard/catalog.go` | Embeds the authoritative dashboard JSON, fragments, canonical query projections, and MCP contract in the standalone binary. |
 | `go.mod`, `go.sum` | Pinned extension dependencies, separate from `server/go.mod`. |
@@ -284,7 +284,7 @@ are grouped under `gh cao setup auth github-app|enterprise-app|hosted-cli|token`
 root-level `setup-auth` command. These native commands preserve the setup and
 setup-auth JSON result contracts and secure credential prompts.
 Actions and Node-only tools invoke `gh cao COMMAND` directly,
-including SQLite `repair-database`. Hosted-executor App creation belongs to native
+without a file-database repair command. Hosted-executor App creation belongs to native
 `gh cao setup auth hosted-cli`; its retired Node profile fails before side effects.
 There is no shell launcher;
 retained internal Node implementations serve Actions and parity tests, not operators.
@@ -301,7 +301,7 @@ runtime from a production extension command. Node.js 24+ and root `npm ci`
 enable parity-oracle coverage; tests skip those comparisons when Node is absent.
 Catalog definitions and canonical
 source mappings are embedded directly from their authoritative JSON; do not
-maintain a separate catalog. SQLite evidence access is read-only and does not
+maintain a separate catalog. PostgreSQL evidence access is read-only and does not
 migrate or repair downloaded projections. `TestNativeStandaloneBinary` runs
 the built binary with an empty `PATH` outside the checkout to enforce this boundary.
 Campaign installation through `add` and package updates through `update` pass

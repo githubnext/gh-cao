@@ -38,11 +38,11 @@ jobs:
             package-lock.json
             dashboard/site/package-lock.json
             server/spec/package-lock.json
-      - name: Install SQLite
+      - name: Install PostgreSQL client
         run: |
           sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
           sudo apt-get update
-          sudo apt-get install --yes sqlite3
+          sudo apt-get install --yes postgresql-client
       - name: Install root npm dependencies
         run: npm ci
       - name: Install dashboard npm dependencies

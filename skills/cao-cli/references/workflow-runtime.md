@@ -8,18 +8,16 @@ an already available native `gh cao`. Never build or install the `gh cao`
 extension or run the operator's `install-gh-cao.sh` inside a workflow as a
 missing-runtime or missing-evidence fallback.
 
-1. Check `.cao/gh-aw-logs.sqlite`. A missing or empty file
+1. Require `CAO_POSTGRES_URL` and its exact provisioned namespace. Missing canonical data
    means operational evidence is unavailable. Use only separately authorized,
    bounded read-only evidence tools; do not infer a snapshot or discover artifacts.
 2. Check that the native `gh cao` extension is already available. If it is
    absent, skip every CAO command and use only separately authorized bounded
    read-only tools.
-3. Pass the snapshot database explicitly:
+3. Use the authorized PostgreSQL connection; queries never start containers:
 
    ```bash
-   db=".cao/gh-aw-logs.sqlite"
    gh cao gh runs \
-     --database "$db" \
      --repo OWNER/REPOSITORY \
      --workflow WORKFLOW \
      --status failure \

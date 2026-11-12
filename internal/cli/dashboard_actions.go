@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
@@ -151,11 +150,13 @@ func (w *dashboardActionWriter) flush() error {
 	return w.send(dashboardActionEvent{Stream: w.stream, Data: data + "\n"})
 }
 
-func startDashboardActionAdapter(ctx context.Context, repositories []string, cache string) (string, func(), error) {
-	return startDashboardActionAdapterWithApproval(ctx, repositories, cache, approveDashboardAction)
+func startDashboardActionAdapter(ctx context.Context, repositories []string, cache string, ingest chan<- struct{}) (string, func(), error) {
+	return startDashboardActionAdapterWithApproval(ctx, repositories, cache, approveDashboardAction, ingest)
 }
 
-func startDashboardActionAdapterWithApproval(ctx context.Context, repositories []string, cache string, approve func(context.Context, []string) (bool, error)) (string, func(), error) {
+// ingest, when non-nil, receives coalesced operator requests to start an
+// ingestion pass now. It must be buffered; requests never block the adapter.
+func startDashboardActionAdapterWithApproval(ctx context.Context, repositories []string, cache string, approve func(context.Context, []string) (bool, error), ingest chan<- struct{}) (string, func(), error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", nil, err
@@ -190,6 +191,15 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 		executions.Unlock()
 		w.WriteHeader(http.StatusAccepted)
 	})
+	if ingest != nil {
+		mux.HandleFunc("POST "+adapterPrefix+"/ingest", func(w http.ResponseWriter, _ *http.Request) {
+			select {
+			case ingest <- struct{}{}:
+			default:
+			}
+			w.WriteHeader(http.StatusAccepted)
+		})
+	}
 	mux.HandleFunc("POST "+adapterPrefix+"/execute", func(w http.ResponseWriter, r *http.Request) {
 		var args []string
 		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&args) != nil ||
@@ -302,7 +312,7 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 		}
 		if runtime.GOOS != "windows" {
 			settings["operatorActions"] = map[string]any{
-				"queuePath": filepath.Join(cache, "commands.sqlite"), "repositories": repositories,
+				"repositories": repositories,
 			}
 		}
 		err = json.NewEncoder(config).Encode(settings)

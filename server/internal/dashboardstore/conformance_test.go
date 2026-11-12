@@ -2,7 +2,6 @@ package dashboardstore_test
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"maps"
 	"reflect"
@@ -14,7 +13,6 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/query"
-	"github.com/githubnext/gh-cao/server/internal/sqlitex"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
@@ -56,27 +54,6 @@ func TestReadContract(t *testing.T) {
 			}
 			publish(t)
 			return readFixture{store: store, publish: publish}
-		},
-		"sqlite": func(t *testing.T) readFixture {
-			t.Helper()
-			path := testutil.SQLiteSnapshot(t, map[string][]model.Row{"repositories": repositories})
-			store, err := sqlitex.Open(t.Context(), path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Cleanup(func() { _ = store.Close() })
-			return readFixture{store: store, publish: func(t *testing.T) {
-				t.Helper()
-				writer, err := sql.Open("sqlite", path)
-				if err != nil {
-					t.Fatal(err)
-				}
-				defer func() { _ = writer.Close() }()
-				if _, err := writer.ExecContext(t.Context(), `UPDATE __idb_records
-					SET value=json_set(value,'$.name','updated') WHERE store_name='repositories'`); err != nil {
-					t.Fatal(err)
-				}
-			}}
 		},
 	}
 	for name, factory := range factories {
@@ -125,8 +102,6 @@ func readConformance(t *testing.T, fixture readFixture, backend string) {
 				if !slices.Contains(metrics.PushedDown, "sql-plan") || len(metrics.FallbackOperations) != 0 {
 					t.Fatalf("PostgreSQL no longer reports native SQL execution: %+v", metrics)
 				}
-			} else if !slices.Contains(metrics.FallbackOperations, "local-go-plan") || len(metrics.PushedDown) != 0 {
-				t.Fatalf("SQLite no longer reports local Go execution: %+v", metrics)
 			}
 			diagnostics, err := reader.Diagnostics(ctx)
 			if err != nil {
@@ -202,24 +177,12 @@ func readConformance(t *testing.T, fixture readFixture, backend string) {
 		if backend == "postgres" && err != nil {
 			t.Fatal(err)
 		}
-		if backend == "sqlite" && (err == nil || !strings.Contains(err.Error(), "do not support overriding resource limits")) {
-			t.Fatalf("SQLite resource override must fail explicitly: %v", err)
-		}
 	})
 	t.Run("repository-scope", func(t *testing.T) {
 		err := store.WithReadTransaction(t.Context(), func(ctx context.Context, reader dashboardstore.Reader) error {
 			sources, _, err := reader.ExecuteSQLPlanWithOptions(ctx, nil, []string{"$repositories"}, dashboardstore.ExecutionOptions{
 				Repositories: []string{"octo/one"},
 			})
-			if err == nil && backend == "sqlite" {
-				t.Fatalf("SQLite ignored repository scope and returned %d rows", len(sources["$repositories"].Rows))
-			}
-			if err != nil && backend == "sqlite" {
-				if !strings.Contains(err.Error(), "do not support repository scoping") {
-					t.Fatalf("SQLite repository scope must fail explicitly: %v", err)
-				}
-				return nil
-			}
 			if err == nil && len(sources["$repositories"].Rows) != 1 {
 				t.Fatalf("PostgreSQL repository scope returned %d rows", len(sources["$repositories"].Rows))
 			}

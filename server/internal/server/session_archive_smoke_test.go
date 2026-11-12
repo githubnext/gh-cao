@@ -19,9 +19,8 @@ import (
 
 func TestSessionArchiveLocalHTTPIntegration(t *testing.T) {
 	duckdb := archiveRuntime(t)
-	original, snapshot := newSQLiteTestApp(t, false)
+	original, snapshot := newLocalPostgresTestApp(t, false)
 	config := original.config
-	config.Database = nil
 	config.ADX, config.ADXTraces = &adxingest.Config{}, &adxtrace.Config{}
 	config.SessionArchive = &sessionarchive.Config{
 		Enabled: true, DurableStorage: true, Directory: t.TempDir(), Namespace: "http-smoke",
@@ -35,10 +34,7 @@ func TestSessionArchiveLocalHTTPIntegration(t *testing.T) {
 	if err := os.Chmod(config.SessionArchive.Directory, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	app, err := NewLocalSQLiteApp(t.Context(), snapshot, config)
-	if err != nil {
-		t.Fatal(err)
-	}
+	app := snapshot.app(t, config)
 	t.Cleanup(func() {
 		if err := app.Stop(context.WithoutCancel(t.Context())); err != nil {
 			t.Error(err)

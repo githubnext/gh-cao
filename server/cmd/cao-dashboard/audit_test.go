@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/operational"
-	"github.com/githubnext/gh-cao/server/internal/server"
 )
 
 func runAudit(t *testing.T, args ...string) (string, error) {
@@ -22,14 +21,9 @@ func runAudit(t *testing.T, args ...string) (string, error) {
 	return out.String(), err
 }
 
-func TestAuditVerifyAndExportSQLite(t *testing.T) {
+func TestAuditVerifyAndExportPostgres(t *testing.T) {
 	t.Setenv("CAO_AUDIT_LOG", filepath.Join(t.TempDir(), "audit.jsonl"))
-	path := filepath.Join(t.TempDir(), "cao.sqlite")
-	bootstrapSQLite(t, path)
-	store, err := server.OpenHostedCLISQLite(t.Context(), path)
-	if err != nil {
-		t.Fatal(err)
-	}
+	store, _, _ := operationalCommandFixture(t)
 	for _, actor := range []string{"octocat", "hubot"} {
 		if _, err := store.AppendAudit(t.Context(), operational.AuditEvent{Event: "cli_command.admitted", Outcome: "success", Actor: actor}); err != nil {
 			t.Fatal(err)
@@ -37,7 +31,7 @@ func TestAuditVerifyAndExportSQLite(t *testing.T) {
 	}
 	_ = store.Close()
 
-	output, err := runAudit(t, "verify", "--sqlite", path)
+	output, err := runAudit(t, "verify")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,17 +40,17 @@ func TestAuditVerifyAndExportSQLite(t *testing.T) {
 		t.Fatalf("verify output = %q, %v", output, err)
 	}
 	anchor := strconv.FormatInt(head.LastSequence, 10) + ":" + head.LastHash
-	if _, err := runAudit(t, "verify", "--sqlite", path, "--anchor", anchor); err != nil {
+	if _, err := runAudit(t, "verify", "--anchor", anchor); err != nil {
 		t.Fatalf("anchored verify: %v", err)
 	}
-	if _, err := runAudit(t, "verify", "--sqlite", path, "--anchor", "1:"+head.LastHash); err == nil {
+	if _, err := runAudit(t, "verify", "--anchor", "1:"+head.LastHash); err == nil {
 		t.Fatal("mismatched anchor verified")
 	}
-	if _, err := runAudit(t, "verify", "--sqlite", path, "--anchor", "nope"); err == nil {
+	if _, err := runAudit(t, "verify", "--anchor", "nope"); err == nil {
 		t.Fatal("malformed anchor accepted")
 	}
 
-	output, err = runAudit(t, "export", "--sqlite", path)
+	output, err = runAudit(t, "export")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +59,7 @@ func TestAuditVerifyAndExportSQLite(t *testing.T) {
 	if len(lines) != 5 || !strings.Contains(lines[2], `"audit.verified"`) || !strings.Contains(lines[4], `"audit.verify_failed"`) {
 		t.Fatalf("export = %q", output)
 	}
-	output, err = runAudit(t, "export", "--sqlite", path, "--actor", "hubot")
+	output, err = runAudit(t, "export", "--actor", "hubot")
 	if err != nil || strings.Count(output, "\n") != 1 || !strings.Contains(output, `"hubot"`) {
 		t.Fatalf("filtered export = %q, %v", output, err)
 	}
@@ -107,12 +101,7 @@ func TestVerifyAttrs(t *testing.T) {
 }
 
 func TestExportAuditPaginatesInOrder(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "cao.sqlite")
-	bootstrapSQLite(t, path)
-	store, err := server.OpenHostedCLISQLite(t.Context(), path)
-	if err != nil {
-		t.Fatal(err)
-	}
+	store, _, _ := operationalCommandFixture(t)
 	defer func() { _ = store.Close() }()
 	total := operational.AuditListLimit + 3
 	for range total {

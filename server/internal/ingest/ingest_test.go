@@ -60,6 +60,45 @@ func TestValidateManifestFailsClosed(t *testing.T) {
 		}
 	}
 }
+
+func TestLocalIngestionReceiptsRejectForeignTransactions(t *testing.T) {
+	for _, row := range []model.Row{
+		{"id": "unrelated", "kind": "local-dashboard-ingestion"},
+		{"id": "local-dashboard-ingestion", "kind": "unrelated"},
+	} {
+		t.Run(row["id"].(string)+"/"+row["kind"].(string), func(t *testing.T) {
+			ctx, store := ingestTestStore(t)
+			directory := scratchDirectory(t)
+			record, err := json.Marshal(row)
+			if err != nil {
+				t.Fatal(err)
+			}
+			manifest := Manifest{}
+			for name, content := range map[string][]byte{
+				"inventory-sources.json":      []byte("{}"),
+				"gh-aw-logs-runs/local.jsonl": []byte("{\"kind\":\"metadata\",\"phase\":\"runs\",\"records\":0}\n"),
+				"gh-aw-logs-records/local.jsonl": []byte("{\"kind\":\"metadata\",\"phase\":\"records\",\"records\":1}\n" +
+					"{\"kind\":\"record\",\"collection\":\"transactions\",\"record\":" + string(record) + "}\n"),
+			} {
+				writeTestFile(t, filepath.Join(directory, name), content)
+				sum := sha256.Sum256(content)
+				manifest[name] = hex.EncodeToString(sum[:])
+			}
+			content, err := json.Marshal(manifest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			writeTestFile(t, filepath.Join(directory, "payload-hashes.json"), content)
+			_, err = Run(ctx, store, directory, Options{
+				DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json",
+			})
+			if err == nil || !strings.Contains(err.Error(), "only the local ingestion receipt") {
+				t.Fatalf("foreign bookkeeping transaction was not rejected: %v", err)
+			}
+		})
+	}
+}
+
 func TestInventoryAdapterHasDeterministicNativeIdentities(t *testing.T) {
 	source, row, err := inventoryRow("workflows", model.Row{"organization": "Octo", "repository": "API", "workflow": ".github/workflows/BUILD.lock.yml", "workflow-active": "true"})
 	if err != nil {

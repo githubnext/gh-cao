@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/githubnext/gh-cao/dashboard"
+	"github.com/githubnext/gh-cao/internal/dashboardquery"
 )
 
 func nativeMCP(cmd *cobra.Command) (err error) {
@@ -26,11 +26,6 @@ func nativeMCP(cmd *cobra.Command) (err error) {
 	if err != nil {
 		return err
 	}
-	db, err := openNativeSnapshot(nativeSnapshotPath(cmd))
-	if err != nil {
-		return err
-	}
-	defer func() { err = errors.Join(err, db.Close()) }()
 	host, port := nativeString(cmd, "host"), 8765
 	if host == "" {
 		host = "127.0.0.1"
@@ -41,7 +36,13 @@ func nativeMCP(cmd *cobra.Command) (err error) {
 			return fmt.Errorf("--port must be a port number between 1 and 65535")
 		}
 	}
-	handler, err := nativeMCPHandler(catalog, db)
+	handler, err := nativeMCPHandler(catalog, func(context.Context) (dashboardquery.CanonicalReader, func() error, error) {
+		db, err := openNativeSnapshot(nativeSnapshotPath(cmd))
+		if err != nil {
+			return nil, nil, err
+		}
+		return db, db.Close, nil
+	})
 	if err != nil {
 		return err
 	}
@@ -87,7 +88,7 @@ func nativeRPCResult(id, result any) map[string]any {
 	return map[string]any{"jsonrpc": "2.0", "id": id, "result": result}
 }
 
-func nativeMCPHandler(catalog *nativeCatalog, db *sql.DB) (http.Handler, error) {
+func nativeMCPHandler(catalog *nativeCatalog, openReader func(context.Context) (dashboardquery.CanonicalReader, func() error, error)) (http.Handler, error) {
 	contract, err := nativeReadJSON(dashboard.Catalog, "site/src/agent/mcp-contract.json")
 	if err != nil {
 		return nil, err
@@ -181,7 +182,19 @@ func nativeMCPHandler(catalog *nativeCatalog, db *sql.DB) (http.Handler, error) 
 					return
 				}
 			}
-			payload, err := nativeMCPCall(request.Context(), catalog, db, name, arguments)
+			var payload map[string]any
+			var err error
+			if name == "cao_query" {
+				var reader dashboardquery.CanonicalReader
+				var closeReader func() error
+				reader, closeReader, err = openReader(request.Context())
+				if err == nil {
+					payload, err = nativeMCPCall(request.Context(), catalog, reader, name, arguments)
+					err = errors.Join(err, closeReader())
+				}
+			} else {
+				payload, err = nativeMCPCall(request.Context(), catalog, nil, name, arguments)
+			}
 			if request.Context().Err() != nil {
 				send(499, nativeRPCError(id, -32800, "Request cancelled"))
 				return
@@ -206,7 +219,7 @@ func nativeMCPHandler(catalog *nativeCatalog, db *sql.DB) (http.Handler, error) 
 	}), nil
 }
 
-func nativeMCPCall(ctx context.Context, catalog *nativeCatalog, db *sql.DB, name string, args map[string]any) (map[string]any, error) {
+func nativeMCPCall(ctx context.Context, catalog *nativeCatalog, db dashboardquery.CanonicalReader, name string, args map[string]any) (map[string]any, error) {
 	id := nativeText(args["id"])
 	if name == "cao_catalog" {
 		if args["kind"] == "pages" {

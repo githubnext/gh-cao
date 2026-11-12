@@ -84,4 +84,32 @@ describe('browser first-load debug logging', () => {
 
     expect(browserFirstLoad.get()).toEqual({ status: 'failed', dismissed: false });
   });
+
+  it('logs preparation start and finish with scalar counts only', async () => {
+    const debugFn = vi.fn();
+    mockDebugModule(debugFn, '?debug=browser-first-load');
+    const { browserFirstLoad, resetPreparationDiagnostics, recordPreparationEvent, finishPreparationDiagnostics } = await import('../../src/browser-first-load.js');
+
+    browserFirstLoad.set({ status: 'loading', dismissed: false, ingestion: { id: 'secret-id', message: 'secret message' } });
+    resetPreparationDiagnostics();
+    recordPreparationEvent('step', { detail: 'secret-detail' });
+    finishPreparationDiagnostics();
+
+    expect(debugFn).toHaveBeenNthCalledWith(1, '[cao:browser-first-load]', { event: 'preparation-started' });
+    expect(debugFn).toHaveBeenNthCalledWith(2, '[cao:browser-first-load]', {
+      event: 'preparation-finished', wasRecording: true, entryCount: 1, status: 'loading'
+    });
+    expect(JSON.stringify(debugFn.mock.calls)).not.toContain('secret');
+  });
+
+  it('emits no preparation logs when disabled or for other categories', async () => {
+    const debugFn = vi.fn();
+    mockDebugModule(debugFn, '?debug=render:*');
+    const { resetPreparationDiagnostics, finishPreparationDiagnostics } = await import('../../src/browser-first-load.js');
+
+    resetPreparationDiagnostics();
+    finishPreparationDiagnostics();
+
+    expect(debugFn).not.toHaveBeenCalled();
+  });
 });

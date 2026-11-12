@@ -41,7 +41,7 @@ Authentication may contact GitHub. External checks
 have at most 15 seconds each; the GitHub CLI version probe has five seconds.
 No files, secrets, or repository settings are changed.
 
-This does not repair SQLite snapshots or replace the full policy and workflow
+This does not repair PostgreSQL data or replace the full policy and workflow
 validation performed by the CAO validation Actions workflow. No Node.js runtime
 is required for these installation checks. Explicit runtime credential verification:
 gh workflow run cao-validate.yml -f verify-credentials=true`,

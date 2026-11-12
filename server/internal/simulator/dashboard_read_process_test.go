@@ -43,12 +43,12 @@ func TestDashboardReadSyntheticProcessScenario(t *testing.T) {
 	// If another process wins the bind race, readiness/exit checks fail explicitly.
 	// #nosec G204 -- execute only the binary just built above with test-owned local fixture paths.
 	command := exec.CommandContext(ctx, binary, "serve",
-		"--listen="+address, "--sqlite="+fixture.snapshot, "--site="+fixture.config.SiteDirectory,
+		"--listen="+address, "--postgres-url="+fixture.endpoint, "--redis-namespace=default", "--site="+fixture.config.SiteDirectory,
 		"--access-token="+dashboardScenarioToken,
 		"--database-queries="+fixture.config.DatabaseQueriesPath,
 		"--dashboard-queries="+fixture.config.DashboardQueriesPath,
 		"--agent-catalog="+fixture.config.AgentCatalogPath, "--mcp-contract="+fixture.config.MCPContractPath)
-	command.Env = dashboardScenarioEnvironment(t, root)
+	command.Env = append(dashboardScenarioEnvironment(t, root), "CAO_OPERATIONAL_NAMESPACE=synthetic-contract")
 	output, err := os.CreateTemp(root, "synthetic-server-*.log")
 	if err != nil {
 		t.Fatal(err)

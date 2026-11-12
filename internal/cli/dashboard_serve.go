@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,7 +55,7 @@ func dashboardServerAssets(options dashboardOptions) (server, site string, clean
 		if _, err := fs.Stat(bundle, "site/index.html"); err != nil {
 			return "", "", nil, errors.New("source build has no local server bundle; use a release binary or pass --server-executable and --site")
 		}
-		directory, err := os.MkdirTemp("", "gh-cao-dashboard-")
+		directory, err := os.MkdirTemp(".", ".gh-cao-dashboard-")
 		if err != nil {
 			return "", "", nil, err
 		}
@@ -108,31 +109,42 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		return err
 	}
 	defer cleanup()
+	namespace := dashboardPostgresNamespace(repositories)
 	ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	_, _ = fmt.Fprintf(cmd.ErrOrStderr(),
 		"Starting local CAO dashboard for %s...\n"+
 			"Collecting up to %s of recent activity; cached artifacts are reused.\n"+
-			"History fills in bounded background passes. The dashboard shows progress and quota pauses.\n",
-		strings.Join(repositories, ", "), options.window)
+			"History fills in bounded background passes. The dashboard shows progress and quota pauses.\n"+
+			"PostgreSQL namespace: %s.\n",
+		strings.Join(repositories, ", "), options.window, namespace)
+	if err := ensureDashboardCacheIgnored(cache); err != nil {
+		return err
+	}
 	if err := initializeDashboardSnapshot(ctx, cache, repositories, options); err != nil {
+		return err
+	}
+	options.postgresURL, err = configureDashboardPostgres(ctx, server, cache, namespace, options.postgresURL, options.containerEngine)
+	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(ctx, options.duration)
 	defer cancel()
-	actionsConfig, stopActions, err := startDashboardActionAdapter(ctx, repositories, cache)
+	ingestRequests := make(chan struct{}, 1)
+	actionsConfig, stopActions, err := startDashboardActionAdapter(ctx, repositories, cache, ingestRequests)
 	if err != nil {
 		return err
 	}
 	defer stopActions()
-	child := exec.CommandContext(ctx, server, "serve", "--sqlite-ingestion", "--sqlite", filepath.Join(cache, "gh-aw-logs.sqlite"),
+	child := exec.CommandContext(ctx, server, "serve", "--source", cache,
+		"--redis-namespace", namespace,
 		"--site", site, "--listen", options.listen, "--exit-on-stdin-close",
 		"--operator-config", actionsConfig,
 		"--database-queries", filepath.Join(site, "src/data/queries/database.json"),
 		"--dashboard-queries", filepath.Join(site, "src/agent/queries.generated.json"),
 		"--agent-catalog", filepath.Join(site, "src/agent/catalog.generated.json"),
 		"--mcp-contract", filepath.Join(site, "src/agent/mcp-contract.json"))
-	child.Env = dashboardServerEnvironment()
+	child.Env = append(dashboardServerEnvironment(), "CAO_POSTGRES_URL="+options.postgresURL, "CAO_OPERATIONAL_NAMESPACE="+namespace)
 	stdin, err := child.StdinPipe()
 	if err != nil {
 		return err
@@ -209,8 +221,36 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		}
 		return nil
 	}
+	ingest := func() {
+		refresh := exec.CommandContext(ctx, server, "ingest", "--source", cache,
+			"--redis-namespace", namespace,
+			"--database-queries", filepath.Join(site, "src/data/queries/database.json"))
+		refresh.Env = append(dashboardServerEnvironment(), "CAO_POSTGRES_URL="+options.postgresURL)
+		if err := refresh.Run(); err != nil && ctx.Err() == nil {
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Dashboard PostgreSQL ingestion failed; previous canonical revision retained.")
+		}
+	}
+	// Publish the "collecting" status before the pass ends so the dashboard
+	// shows ingestion as running while GitHub evidence is acquired.
+	options.onCollecting = ingest
+	// PostgreSQL and the initial snapshot are ready before the server starts,
+	// so the first pass begins immediately instead of waiting for the URL.
 	ticker := time.NewTimer(0)
 	defer ticker.Stop()
+	pass := func() {
+		if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil && ctx.Err() == nil {
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard refresh failed; previous snapshot retained: %v\n", err)
+		}
+		if ctx.Err() == nil {
+			ingest()
+		}
+		// Requests made during this pass are satisfied by it.
+		select {
+		case <-ingestRequests:
+		default:
+		}
+		ticker.Reset(dashboardRefreshInterval(cache, options.refresh))
+	}
 	for {
 		select {
 		case result := <-serverDone:
@@ -218,13 +258,53 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		case <-ctx.Done():
 			_ = stdin.Close()
 			return finish(<-serverDone)
-		case <-ticker.C:
-			if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil && ctx.Err() == nil {
-				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard refresh failed; previous snapshot retained: %v\n", err)
+		case <-ingestRequests:
+			if !ticker.Stop() {
+				select {
+				case <-ticker.C:
+				default:
+				}
 			}
-			ticker.Reset(options.refresh)
+			pass()
+		case <-ticker.C:
+			pass()
 		}
 	}
+}
+
+// dashboardEmptyRefresh is the retry interval while the snapshot has no runs,
+// so a new dashboard populates quickly. Quota pauses still bound each pass.
+const dashboardEmptyRefresh = 30 * time.Second
+
+func dashboardRefreshInterval(cache string, refresh time.Duration) time.Duration {
+	if dashboardSnapshotHasRuns(cache) {
+		return refresh
+	}
+	return min(refresh, dashboardEmptyRefresh)
+}
+
+func dashboardSnapshotHasRuns(cache string) bool {
+	file, err := os.Open(filepath.Join(cache, "gh-aw-logs-runs", "local.jsonl"))
+	if err != nil {
+		return false
+	}
+	defer func() { _ = file.Close() }()
+	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 64<<10), 4<<20)
+	for scanner.Scan() {
+		var row struct {
+			Collection string `json:"collection"`
+		}
+		if json.Unmarshal(scanner.Bytes(), &row) == nil && row.Collection == "runs" {
+			return true
+		}
+	}
+	return false
+}
+
+func dashboardPostgresNamespace(repositories []string) string {
+	digest := sha256.Sum256([]byte(strings.Join(repositories, "\n")))
+	return fmt.Sprintf("dashboard-%x", digest[:12])
 }
 
 func printDashboardReady(output io.Writer, address string, repositories []string, cache string, options dashboardOptions) {
@@ -236,13 +316,13 @@ func printDashboardReady(output io.Writer, address string, repositories []string
 		"\nCAO dashboard is ready. Open this URL in your browser:\n\n"+
 			"  Dashboard: %s\n\n"+
 			"  Repositories: %s\n"+
-			"  SQLite cache: %s\n"+
+			"  Canonical artifact cache: %s\n"+
 			"  Refresh: every %s\n"+
 			"  Session: %s; press Ctrl+C to stop. Cached data is kept.\n"+
 			"  Maintenance: %s\n"+
 			"  Ingestion: resumable history discovery; status and quota are shown in the data tooltip.\n"+
 			"  Coverage: partial recent activity; uncollected evidence is unavailable.\n\n",
-		address, strings.Join(repositories, ", "), filepath.Join(cache, "gh-aw-logs.sqlite"),
+		address, strings.Join(repositories, ", "), cache,
 		options.refresh, options.duration, maintenance)
 }
 

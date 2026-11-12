@@ -3,125 +3,56 @@ package dashboardquery
 import (
 	"cmp"
 	"context"
-	"database/sql"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"math"
 	"slices"
-	"strings"
 	"time"
 	"unicode/utf8"
 )
 
 const DatabaseName = "gh-aw-cao-dashboard-data"
 const DatabaseVersion = 49
-const workflowSubjectStateRecordKey = `"workflow-subject-state"`
 
-// ReadDailyRunCounts reads only the independently retained aggregate store.
-// An absent store is unavailable, not an authoritative empty history.
-func ReadDailyRunCounts(ctx context.Context, db SnapshotReader, maxRows int, maxBytes int64) (result []map[string]any, available bool, undated int64, err error) {
-	return readDailyRunCounts(ctx, db, maxRows, maxBytes, false)
+var ErrSnapshotInputBudget = errors.New("snapshot input budget exceeded")
+
+func ReadDailyRunCounts(ctx context.Context, db CanonicalReader, maxRows int, maxBytes int64) ([]map[string]any, bool, int64, error) {
+	result, err := db.ReadCanonical(ctx, CanonicalReadRequest{Kind: "daily-run-counts", MaxRows: maxRows, MaxBytes: maxBytes})
+	return result.Rows, result.Available, result.Undated, err
 }
 
-// ReadDailyRunCountRecords exposes typed aggregate records to the declarative
-// database projection, without registering the store as retained Run detail.
-func ReadDailyRunCountRecords(ctx context.Context, db SnapshotReader, maxRows int, maxBytes int64) (result []map[string]any, available bool, undated int64, err error) {
-	return readDailyRunCounts(ctx, db, maxRows, maxBytes, true)
+func ReadDailyRunCountRecords(ctx context.Context, db CanonicalReader, maxRows int, maxBytes int64) ([]map[string]any, bool, int64, error) {
+	result, err := db.ReadCanonical(ctx, CanonicalReadRequest{Kind: "daily-run-count-records", MaxRows: maxRows, MaxBytes: maxBytes})
+	return result.Rows, result.Available, result.Undated, err
 }
 
-func readDailyRunCounts(ctx context.Context, db SnapshotReader, maxRows int, maxBytes int64, raw bool) (result []map[string]any, available bool, undated int64, err error) {
-	stores, err := db.QueryContext(ctx, `SELECT name FROM __idb_stores WHERE database_name=? AND name IN ('dailyRunCounts','runCountContributions','dailyRunCountState')`, DatabaseName)
-	if err != nil {
-		return nil, false, 0, err
-	}
-	found := map[string]bool{}
-	for stores.Next() {
-		var name string
-		if err := stores.Scan(&name); err != nil {
-			_ = stores.Close()
-			return nil, false, 0, err
-		}
-		found[name] = true
-	}
-	err = errors.Join(stores.Err(), stores.Close())
-	if err != nil || !found["dailyRunCounts"] || !found["runCountContributions"] || !found["dailyRunCountState"] {
-		return nil, false, 0, err
-	}
-	states, err := db.QueryContext(ctx, `SELECT json_extract(value,'$.status') FROM __idb_records
-		WHERE database_name=? AND store_name='dailyRunCountState' AND record_key='"daily-run-counts"'`, DatabaseName)
-	if err != nil {
-		return nil, false, 0, err
-	}
-	var status sql.NullString
-	if states.Next() {
-		err = states.Scan(&status)
-	}
-	err = errors.Join(err, states.Err(), states.Close())
-	if err != nil || status.String != "ready" {
-		return nil, false, 0, err
-	}
-	// Both public aliases and counts are projected by SQLite, never reconstructed
-	// from the detail Run collection.
-	contentSQL := `json_object(
-		'day',json_extract(value,'$.day'),'organization',json_extract(value,'$.owner'),
-		'repository',json_extract(value,'$.repository'),'workflow',json_extract(value,'$.workflowPath'),
-		'total',json_extract(value,'$.total'),'successful',json_extract(value,'$.successful'),
-		'failed',json_extract(value,'$.failed'),'approval',json_extract(value,'$.approval'),
-		'pending',json_extract(value,'$.pending'),'other',json_extract(value,'$.other'))`
-	if raw {
-		contentSQL = "value"
-	}
-	rows, err := db.QueryContext(ctx, `SELECT `+contentSQL+`,
-		length(CAST(value AS BLOB))
-		FROM __idb_records WHERE database_name=? AND store_name='dailyRunCounts' ORDER BY record_key`, DatabaseName)
-	if err != nil {
-		return nil, false, 0, err
-	}
-	defer func() { err = errors.Join(err, rows.Close()) }()
-	result = []map[string]any{}
-	var bytes int64
-	for rows.Next() {
-		var content string
-		var size int64
-		if err := rows.Scan(&content, &size); err != nil {
-			return nil, false, 0, err
-		}
-		bytes += size
-		if maxRows > 0 && len(result) >= maxRows || maxBytes > 0 && bytes > maxBytes {
-			return nil, false, 0, errors.New("daily run counts exceed local query input budget")
-		}
-		var row map[string]any
-		if err := json.Unmarshal([]byte(content), &row); err != nil {
-			return nil, false, 0, err
-		}
-		public := row
-		if raw {
-			public = make(map[string]any, len(row))
-			for field, value := range row {
-				public[field] = value
-			}
-			public["organization"], public["workflow"] = row["owner"], row["workflowPath"]
-		}
-		if err := validateDailyRunCounts(public); err != nil {
-			return nil, false, 0, err
-		}
-		result = append(result, row)
-	}
+func ReadCollection(ctx context.Context, db CanonicalReader, collection string, maxRows int, maxBytes int64) ([]map[string]any, error) {
+	return ReadCollectionFields(ctx, db, collection, nil, maxRows, maxBytes)
+}
 
-	if err := errors.Join(rows.Err(), rows.Close()); err != nil {
-		return nil, false, 0, err
+func ReadCollectionFields(ctx context.Context, db CanonicalReader, collection string, fields []string, maxRows int, maxBytes int64) ([]map[string]any, error) {
+	result, err := db.ReadCanonical(ctx, CanonicalReadRequest{
+		Kind: "collection", Collection: collection, Fields: fields, MaxRows: maxRows, MaxBytes: maxBytes,
+	})
+	return result.Rows, err
+}
+
+func ReadCollectionRecords(ctx context.Context, db CanonicalReader, collection string, recordIDs []string, fields []string, maxBytes int64) ([]map[string]any, error) {
+	if len(recordIDs) == 0 {
+		return []map[string]any{}, nil
 	}
-	diagnostics, err := db.QueryContext(ctx, `SELECT count(*) FROM __idb_records WHERE database_name=?
-		AND store_name='runCountContributions' AND json_extract(value,'$.run.startedAt') IS NULL`, DatabaseName)
-	if err != nil {
-		return nil, false, 0, err
-	}
-	defer func() { err = errors.Join(err, diagnostics.Close()) }()
-	if diagnostics.Next() {
-		err = diagnostics.Scan(&undated)
-	}
-	return result, true, undated, errors.Join(err, diagnostics.Err())
+	result, err := db.ReadCanonical(ctx, CanonicalReadRequest{
+		Kind: "collection", Collection: collection, Fields: fields, RecordIDs: recordIDs,
+		MaxRows: len(recordIDs), MaxBytes: maxBytes,
+	})
+	return result.Rows, err
+}
+
+func ReadStatisticalRunCandidates(ctx context.Context, db CanonicalReader, watermark string, fields []string, maxRows int, maxBytes int64) ([]map[string]any, string, error) {
+	result, err := db.ReadCanonical(ctx, CanonicalReadRequest{
+		Kind: "statistical-runs", Collection: "runs", Fields: fields, Watermark: watermark,
+		MaxRows: maxRows, MaxBytes: maxBytes,
+	})
+	return result.Rows, result.Watermark, err
 }
 
 func validateDailyRunCounts(row map[string]any) error {
@@ -147,152 +78,6 @@ func validateDailyRunCounts(row map[string]any) error {
 		return errors.New("daily run outcome counts do not sum to total")
 	}
 	return nil
-}
-
-var ErrSnapshotInputBudget = errors.New("snapshot input budget exceeded")
-
-// SnapshotReader accepts a database or an already pinned read transaction.
-type SnapshotReader interface {
-	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
-}
-
-// ReadCollection preserves canonical IndexedDB key order and omits storage-only
-// fields. Positive limits bound allocation before materializing a collection.
-func ReadCollection(ctx context.Context, db SnapshotReader, collection string, maxRows int, maxBytes int64) (result []map[string]any, err error) {
-	return ReadCollectionFields(ctx, db, collection, nil, maxRows, maxBytes)
-}
-
-// ReadCollectionFields projects known-live fields inside SQLite. A nil field
-// list preserves every public field, and limits still cover full stored records.
-func ReadCollectionFields(ctx context.Context, db SnapshotReader, collection string, fields []string, maxRows int, maxBytes int64) (result []map[string]any, err error) {
-	return readCollectionFields(ctx, db, collection, fields, maxRows, maxBytes, "", nil)
-}
-
-// ReadCollectionRecords reads exact canonical primary keys without scanning the
-// rest of the collection.
-func ReadCollectionRecords(ctx context.Context, db SnapshotReader, collection string, recordIDs []string, fields []string, maxBytes int64) ([]map[string]any, error) {
-	if len(recordIDs) == 0 {
-		return []map[string]any{}, nil
-	}
-	placeholders := make([]string, len(recordIDs))
-	selection := make([]any, len(recordIDs))
-	for index, id := range recordIDs {
-		placeholders[index] = "?"
-		key, _ := json.Marshal(id)
-		selection[index] = string(key)
-	}
-	return readCollectionFields(ctx, db, collection, fields, len(recordIDs), maxBytes,
-		" AND record_key IN ("+strings.Join(placeholders, ",")+")", selection)
-}
-
-// ReadStatisticalRunCandidates resolves the recorded canonical Run clock and
-// materializes only terminal Runs that can belong to its seven-day frame.
-// Terminal rows without a parseable execution clock remain in the bounded
-// input so the sampler can invalidate unsupported weights.
-func ReadStatisticalRunCandidates(ctx context.Context, db SnapshotReader, watermark string, fields []string, maxRows int, maxBytes int64) ([]map[string]any, string, error) {
-	if watermark == "" {
-		var value string
-		rows, queryErr := db.QueryContext(ctx, `WITH clocks(value) AS (
-			SELECT json_extract(value,'$.startedAt') FROM __idb_records WHERE database_name=? AND store_name='runs'
-			UNION ALL SELECT json_extract(value,'$.createdAt') FROM __idb_records WHERE database_name=? AND store_name='runs'
-			UNION ALL SELECT json_extract(value,'$.completedAt') FROM __idb_records WHERE database_name=? AND store_name='runs'
-			UNION ALL SELECT json_extract(value,'$.updatedAt') FROM __idb_records WHERE database_name=? AND store_name='runs'
-		) SELECT value FROM clocks WHERE julianday(value) IS NOT NULL ORDER BY julianday(value) DESC LIMIT 1`,
-			DatabaseName, DatabaseName, DatabaseName, DatabaseName)
-		if queryErr != nil {
-			return nil, "", queryErr
-		}
-		if rows.Next() {
-			if scanErr := rows.Scan(&value); scanErr != nil {
-				_ = rows.Close()
-				return nil, "", scanErr
-			}
-		}
-		if closeErr := rows.Close(); closeErr != nil {
-			return nil, "", closeErr
-		}
-		watermark = CanonicalStatisticalWatermark([]map[string]any{{"startedAt": value}})
-	}
-	instant, valid := statisticalInstant(watermark)
-	if !valid {
-		return nil, "", nil
-	}
-	normalized := instant.UTC().Format("2006-01-02T15:04:05.000Z")
-	start := instant.Add(-7 * 24 * time.Hour).UTC().Format(time.RFC3339Nano)
-	where := ` AND json_extract(value,'$.status')='completed' AND (
-		(coalesce(julianday(json_extract(value,'$.startedAt')),julianday(json_extract(value,'$.createdAt'))) >= julianday(?)
-		 AND coalesce(julianday(json_extract(value,'$.startedAt')),julianday(json_extract(value,'$.createdAt'))) < julianday(?))
-		OR (julianday(json_extract(value,'$.startedAt')) IS NULL AND julianday(json_extract(value,'$.createdAt')) IS NULL)
-	)`
-	result, err := readCollectionFields(ctx, db, "runs", fields, maxRows, maxBytes, where, []any{start, normalized})
-	return result, normalized, err
-}
-
-func readCollectionFields(ctx context.Context, db SnapshotReader, collection string, fields []string, maxRows int, maxBytes int64, where string, selection []any) (result []map[string]any, err error) {
-	if collection == "transactions" {
-		where = " AND record_key<>?" + where
-		selection = append([]any{workflowSubjectStateRecordKey}, selection...)
-	}
-	contentSQL := "value"
-	args := []any{}
-	if fields != nil {
-		placeholders := make([]string, len(fields))
-		for index, field := range fields {
-			placeholders[index] = "?"
-			args = append(args, field)
-		}
-		contentSQL = `CASE WHEN json_type(value)='object' THEN (
-			SELECT json_group_object(key,json(CASE type
-				WHEN 'true' THEN 'true' WHEN 'false' THEN 'false' WHEN 'null' THEN 'null'
-				WHEN 'array' THEN value WHEN 'object' THEN value
-				ELSE json_quote(value) END))
-			FROM json_each(__idb_records.value) WHERE key IN (` + strings.Join(placeholders, ",") + `)
-		) END`
-	}
-	args = append(args, DatabaseName, collection)
-	args = append(args, selection...)
-	rows, err := db.QueryContext(ctx, `SELECT record_key, `+contentSQL+`, length(CAST(value AS BLOB))
-		FROM __idb_records WHERE database_name=? AND store_name=?`+where, args...)
-	if err != nil {
-		return nil, fmt.Errorf("read canonical %s: %w", collection, err)
-	}
-	defer func() { err = errors.Join(err, rows.Close()) }()
-	type entry struct {
-		key    any
-		record map[string]any
-	}
-	entries := []entry{}
-	var bytes int64
-	for rows.Next() {
-		var keyJSON, content string
-		var storedBytes int64
-		if err := rows.Scan(&keyJSON, &content, &storedBytes); err != nil {
-			return nil, err
-		}
-		bytes += int64(len(keyJSON)) + storedBytes
-		if maxRows > 0 && len(entries) >= maxRows || maxBytes > 0 && bytes > maxBytes {
-			return nil, fmt.Errorf("canonical %s exceeds local query input budget: %w", collection, ErrSnapshotInputBudget)
-		}
-		var key any
-		if err := json.Unmarshal([]byte(keyJSON), &key); err != nil || !ValidRecordKey(key) {
-			return nil, fmt.Errorf("invalid canonical %s record key", collection)
-		}
-		var record map[string]any
-		if err := json.Unmarshal([]byte(content), &record); err != nil || record == nil {
-			return nil, fmt.Errorf("invalid canonical %s record JSON", collection)
-		}
-		if collection != "transactions" {
-			delete(record, "_queryKeys")
-			delete(record, "_storage")
-		}
-		entries = append(entries, entry{key: key, record: record})
-	}
-	slices.SortFunc(entries, func(left, right entry) int { return CompareRecordKeys(left.key, right.key) })
-	result = make([]map[string]any, len(entries))
-	for index, entry := range entries {
-		result[index] = entry.record
-	}
-	return result, rows.Err()
 }
 
 func ValidRecordKey(key any) bool {
@@ -333,7 +118,6 @@ func CompareRecordKeys(left, right any) int {
 	default:
 		return slices.CompareFunc(left.([]any), right.([]any), CompareRecordKeys)
 	}
-
 }
 
 func compareRecordStrings(left, right string) int {
@@ -341,8 +125,6 @@ func compareRecordStrings(left, right string) int {
 		l, leftSize := utf8.DecodeRuneInString(left)
 		r, rightSize := utf8.DecodeRuneInString(right)
 		if l != r {
-			// IndexedDB compares UTF-16 units, so supplementary characters sort
-			// by their high surrogate before BMP characters above U+DFFF.
 			leftUnit, rightUnit := l, r
 			if l >= 0x10000 {
 				leftUnit = 0xd800 + ((l - 0x10000) >> 10)

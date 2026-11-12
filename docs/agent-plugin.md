@@ -36,7 +36,7 @@ In Copilot CLI, open the **Central Agentic Ops** canvas for the current
 repository or an explicit `OWNER/REPOSITORY`. You need:
 
 - A prepared operational snapshot in the workspace's `.cao/` directory,
-  including `payload-hashes.json` and `gh-aw-logs.sqlite`.
+  including `payload-hashes.json` and its verified canonical JSONL shards.
 - GitHub CLI authentication for optional bounded GitHub reads.
 - Go compatible with the bundled server module, or `CAO_DASHBOARD_EXECUTABLE`
   set to an absolute path to a compatible `cao-dashboard` binary.
@@ -46,14 +46,14 @@ Go server on loopback. Go serves assets, declarative queries, pagination,
 diagnostics, repository memory, and revision subscriptions behind one capability
 URL. Missing, corrupt, or unsupported snapshots stop startup. There is no canvas
 backend selector, Node query engine, or browser IndexedDB fallback.
-Synthetic manifests and manifests without a SQLite checksum are rejected.
+Synthetic manifests and manifests without a canonical shard checksums are rejected.
 Pages is not an acquisition source. Dashboard backlinks require an explicit
 `caoUrl` or `CAO_DASHBOARD_URL`; the canvas does not discover a repository's
 Pages URL.
 
 Keep the capability URL private; do not expose or forward it to other users.
 For ordinary local serving or the synthetic-only Pages/IndexedDB demo instead,
-see [Choose a local serving mode](dashboard-data-ingestion.md#choose-a-local-serving-mode).
+see [Choose a local serving mode](dashboard-data-ingestion.md#use-local-postgresql).
 
 ### Code and process boundary
 
@@ -92,7 +92,7 @@ limit**, counted as Unicode characters; keep extra detail in intent. The
 sparkle action can condense an overlong draft, but its result must meet the limit.
 
 The browser data worker validates the document; Go executes the query against
-canonical SQLite data without opening browser IndexedDB. Accepted previews
+canonical PostgreSQL data without opening browser IndexedDB. Accepted previews
 remain subscribed to data changes. Invalid documents show diagnostics without
 replacing the previous preview. Generation can feed validation errors and the
 rejected draft back to Copilot for at most ten attempts per click. Each attempt

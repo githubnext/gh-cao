@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/operational"
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
+	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 type objectFixture struct {
@@ -84,13 +84,9 @@ func (f *objectFixture) serve(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func seededSource(t *testing.T, count int) (*sqlite.Store, Options) {
+func seededSource(t *testing.T, count int) (*postgres.Store, Options) {
 	t.Helper()
-	store, err := sqlite.Open(t.Context(), filepath.Join(t.TempDir(), "audit.sqlite"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = store.Close() })
+	store, _, _ := testutil.OperationalPostgres(t)
 	for range count {
 		if _, err := store.AppendAudit(t.Context(), operational.AuditEvent{Event: "cli_command.admitted", Outcome: "success"}); err != nil {
 			t.Fatal(err)

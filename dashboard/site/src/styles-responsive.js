@@ -106,6 +106,8 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .dashboard-root.dashboard-full-view { height: 100dvh; min-height: 0; overflow: hidden; }
   .dashboard-full-view .app-shell { height: 100%; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
   .org-sidebar { height: auto; display: block; overflow: visible; margin-bottom: 8px; padding: 14px 12px 10px; border-right: 0; border-bottom: 1px solid var(--border); background: var(--canvas); }
+  /* The Overview hero is full-bleed, so the header must sit flush against it. */
+  .app-shell:has(.dashboard-overview-page:not([hidden])) > .org-sidebar { margin-bottom: 0; }
   /* --full-view-sidebar-max-height bounds the full-view mobile header (a single title/back/menu
      row, see .sidebar-header), which stays well under this cap, so animating max-height here can
      never clip real content; it only exists to give the collapse-on-scroll transition below a
@@ -184,6 +186,15 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .report-actions { width: 100%; position: relative; margin-left: 0; }
   .report-actions .tooltip-help { position: static; }
   .report-actions .tooltip-content { width: min(320px, 100%); right: auto; left: 0; }
+  .dashboard-current-status.tooltip-mobile-popup .tooltip-content[popover] { width: auto !important; max-width: 480px; max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); inset: auto 12px calc(12px + env(safe-area-inset-bottom)) 12px !important; margin: 0 auto; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; }
+  .mobile-ingestion-indicator:not([hidden]) { width: 44px; height: 44px; display: grid; flex: 0 0 44px; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--canvas-subtle); color: var(--muted); cursor: pointer; }
+  .mobile-ingestion-indicator:hover { background: var(--neutral-muted); }
+  .mobile-ingestion-indicator .octicon { width: 16px; height: 16px; }
+  .mobile-ingestion-indicator[data-tone="success"] { color: var(--success); }
+  .mobile-ingestion-indicator[data-tone="attention"] { color: var(--attention); }
+  .mobile-ingestion-indicator[data-tone="danger"] { color: var(--danger); }
+  .mobile-ingestion-indicator[data-state="running"] { border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
+  .mobile-ingestion-indicator-refreshing .octicon-sync { animation: dashboard-refresh-spin 1s linear infinite; }
   .report-footer { justify-content: flex-start; }
   .report-footer-versions { justify-content: flex-start; }
   /* Keep full-width wrapping for the desktop header only; the same header moves into .mobile-page-header where it must stay content-sized. */

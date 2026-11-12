@@ -2,16 +2,13 @@ package cli
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math"
-	"os"
 	"slices"
 	"strings"
-	"time"
 	"unicode/utf16"
 
 	"github.com/spf13/cobra"
@@ -239,13 +236,13 @@ func nativeResolveOperands(value any, supplied map[string]any, container string)
 	return value
 }
 
-func (c *nativeCatalog) runQuery(ctx context.Context, db *sql.DB, id string, parameters map[string]any, limit int) (map[string]any, error) {
+func (c *nativeCatalog) runQuery(ctx context.Context, db dashboardquery.CanonicalReader, id string, parameters map[string]any, limit int) (map[string]any, error) {
 	return c.runQueryWithEvidenceSelections(ctx, db, id, parameters, limit, nil)
 }
 
 func (c *nativeCatalog) runQueryWithEvidenceSelections(
 	ctx context.Context,
-	db *sql.DB,
+	db dashboardquery.CanonicalReader,
 	id string,
 	parameters map[string]any,
 	limit int,
@@ -310,7 +307,7 @@ func (c *nativeCatalog) runQueryWithEvidenceSelections(
 			}
 			selected, frame, sampleErr := dashboardquery.SampleStatisticalRuns(candidates, dashboardquery.StatisticalOptions{
 				Context: ctx, Logf: log.Printf,
-				Watermark: watermark, Capacity: dashboardquery.StatisticalSQLiteCapacity,
+				Watermark: watermark, Capacity: dashboardquery.StatisticalPostgresCapacity,
 			})
 			if sampleErr != nil {
 				return nil, sampleErr
@@ -335,17 +332,12 @@ func (c *nativeCatalog) runQueryWithEvidenceSelections(
 			}
 		case source == "$operationalValueEvidence":
 			canonicalRead = true
-			if evidenceSelections == nil {
-				rows, err = readNativeCollection(ctx, db, "operationalValueEvidence")
-			} else {
-				rows, err = dashboardquery.ReadEvidencePackets(ctx, db, evidenceSelections)
-			}
-			if err == nil {
-				evidenceClocks, err = dashboardquery.OperationalValueEvidenceMetadata(rows)
-				if err == nil {
-					rows, err = dashboardquery.OperationalValueEvidenceRows(rows)
-				}
-			}
+			var facts dashboardquery.CanonicalReadResult
+			facts, err = db.ReadCanonical(ctx, dashboardquery.CanonicalReadRequest{
+				Kind: "evidence-facts", Selections: evidenceSelections,
+				MaxRows: dashboardquery.MaxEvidenceFacts, MaxBytes: dashboardquery.MaxEvidenceBytes,
+			})
+			rows, evidenceClocks = facts.Rows, facts.Metadata
 		case strings.HasPrefix(source, "$"):
 			canonicalRead, otherCanonicalRead = true, true
 			rows, err = readNativeCollection(ctx, db, strings.TrimPrefix(source, "$"))
@@ -462,53 +454,22 @@ func (c *nativeCatalog) runQueryWithEvidenceSelections(
 	return map[string]any{"query": id, "rows": rows, "metadata": metadata}, nil
 }
 
-func nativeDailyCountMetadata(ctx context.Context, db *sql.DB, undated int64) (map[string]any, error) {
-	states, err := dashboardquery.ReadCollectionFields(ctx, db, "dailyRunCountState",
-		[]string{"id", "coverage", "excludedRuns", "conflictedRuns", "retentionCutoff", "retentionWatermark"}, 1, 64<<10)
+func nativeDailyCountMetadata(ctx context.Context, db dashboardquery.CanonicalReader, undated int64) (map[string]any, error) {
+	result, err := db.ReadCanonical(ctx, dashboardquery.CanonicalReadRequest{Kind: "daily-run-count-metadata", MaxRows: 1, MaxBytes: 64 << 10})
 	if err != nil {
 		return nil, err
 	}
-	metadata := map[string]any{"aggregate-version": 1, "aggregate-time-grain": "utc-run-start-day",
-		"aggregate-coverage": "absent", "excluded-runs": float64(undated), "conflicted-runs": 0}
-	for _, state := range states {
-		if state["id"] != "daily-run-counts" {
-			continue
-		}
-		if state["coverage"] != nil {
-			metadata["aggregate-coverage"] = state["coverage"]
-		}
-		for field, key := range map[string]string{"excluded-runs": "excludedRuns", "conflicted-runs": "conflictedRuns"} {
-			if state[key] != nil {
-				metadata[field] = state[key]
-			}
-		}
-		if cutoff := nativeText(state["retentionCutoff"]); cutoff != "" {
-			if _, err := time.Parse("2006-01-02", cutoff); err != nil {
-				return nil, errors.New("daily run count retention cutoff must be a UTC date")
-			}
-			watermark, ok := state["retentionWatermark"].(float64)
-			if !ok || math.IsNaN(watermark) || math.IsInf(watermark, 0) || watermark < 0 || watermark > 253402300799999 {
-				return nil, errors.New("daily run count retention watermark must be Unix milliseconds")
-			}
-			metadata["aggregate-retention-start"] = cutoff
-			metadata["aggregate-retention-watermark"] = time.UnixMilli(int64(watermark)).UTC().Format("2006-01-02T15:04:05.000Z")
-		}
-		if state["coverage"] == "retained-v44" {
-			metadata["query-diagnostic"] = "Backfill covers retained v44 runs only; previously evicted history is unavailable."
-		} else if nativeNumber(metadata["excluded-runs"]) != 0 || nativeNumber(metadata["conflicted-runs"]) != 0 {
-			metadata["query-diagnostic"] = "Some runs have missing start/identity facts or unresolved equal-revision conflicts."
-		}
+	if !result.Available || result.Metadata == nil {
+		return nil, errors.New("daily run-count metadata is unavailable")
 	}
-	return metadata, nil
+	result.Metadata["excluded-runs"] = float64(undated)
+	return result.Metadata, nil
 }
 
 func nativeExistingPromptSnapshot(cmd *cobra.Command) (string, error) {
-	file := nativeString(cmd, "database")
-	if !cmd.Flags().Changed("database") {
+	file := nativeSnapshotPath(cmd)
+	if !cmd.Flags().Changed("postgres-url") && file == "" {
 		return "", nil
-	}
-	if _, err := os.Stat(file); err != nil {
-		return "", nativeErrorf("No CAO snapshot at %s; pass --database FILE for an existing snapshot or omit it for a definition-only prompt", file)
 	}
 	return file, nil
 }

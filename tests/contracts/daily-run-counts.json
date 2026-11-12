@@ -1,7 +1,7 @@
 {
   "version": 1,
   "specification": "specs/dashboard-data.md#722-additive-daily-run-counts",
-  "scope": "Implemented additive daily run counts in native SQLite publication, IndexedDB and PostgreSQL only; not the proposed three-tier architecture. The Activity JavaScript SQLite writer is retired.",
+  "scope": "Implemented additive daily run counts in IndexedDB and PostgreSQL, including native CLI canonical reads; not the proposed three-tier architecture.",
   "deferred": [
     "sampling",
     "hot-tier limits",
@@ -28,23 +28,6 @@
         "tests/unit/dashboard-daily-run-counts-conformance.test.mjs"
       ],
       "coverage": {}
-    },
-    {
-      "id": "native-sqlite-publication",
-      "runner": "go",
-      "directory": ".",
-      "packages": [
-        "./internal/cli"
-      ],
-      "pattern": "^TestDashboardDailyCounts(GoldenCases|RetentionAndAtomicPublication|CanonicalQueries|ReplayGuardsAndCorruption|CachedStartPreservesAttemptScope)$",
-      "files": [
-        "internal/cli/dashboard_daily_test.go"
-      ],
-      "coverage": {
-        "classification": "TestDashboardDailyCountsGoldenCases",
-        "reconciliation": "TestDashboardDailyCountsReplayGuardsAndCorruption",
-        "retention": "TestDashboardDailyCountsRetentionAndAtomicPublication"
-      }
     },
     {
       "id": "indexeddb-worker",
@@ -84,31 +67,13 @@
       "packages": [
         "./internal/cli"
       ],
-      "pattern": "^TestNative(DailyCountsSource|RepositoryRunInventoryDailyAvailability)$",
+      "pattern": "^TestNativePostgresDailyCounts$",
       "files": [
-        "internal/cli/native_daily_counts_test.go",
-        "internal/cli/native_daily_inventory_test.go"
+        "internal/cli/native_snapshot_test.go"
       ],
       "coverage": {
-        "availability": "TestNativeDailyCountsSource",
-        "repository-chart": "TestNativeRepositoryRunInventoryDailyAvailability"
-      }
-    },
-    {
-      "id": "hosted-sqlite",
-      "runner": "go",
-      "directory": "server",
-      "packages": [
-        "./internal/sqlitex"
-      ],
-      "pattern": "^Test(DailyCounts|RepositoryRunInventoryDailyAvailability)",
-      "files": [
-        "server/internal/sqlitex/daily_counts_test.go"
-      ],
-      "coverage": {
-        "retention": "TestDailyCountsSnapshotSourceWithoutDetail",
-        "availability": "TestDailyCountsOldSnapshotUnavailable",
-        "repository-chart": "TestRepositoryRunInventoryDailyAvailability"
+        "classification": "TestNativePostgresDailyCounts",
+        "availability": "TestNativePostgresDailyCounts"
       }
     },
     {

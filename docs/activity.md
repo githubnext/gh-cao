@@ -14,8 +14,8 @@ The Activity JavaScript runtime, scheduled publisher, cache, CLI, and Node MCP
 image are removed. There is no compatibility command or automatic fallback.
 Workflow execution is evidence of execution, not proof of accepted outcomes.
 
-Local analysis accepts an explicitly prepared, checksum-verified canonical
-SQLite snapshot. Supply its path to `gh cao query` or `gh cao mcp`, or download
+Local analysis uses a provisioned PostgreSQL namespace and verified canonical
+JSONL. Configure `CAO_POSTGRES_URL` for `gh cao query` or `gh cao mcp`, or download
 from an explicitly selected operational `payload-hashes.json` URL with
 `gh cao download --url URL`. No default artifact discovery or Pages download
 is provided.

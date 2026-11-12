@@ -41,7 +41,6 @@ func newAuditVerifyCommand() *cobra.Command {
 		Short: "recompute the audit hash chain, check external anchors, and print the chain head",
 		Args:  cobra.NoArgs,
 	}
-	sqlitePath := cmd.Flags().String("sqlite", "", "local debugging only: SQLite file used by --hosted-cli-sqlite")
 	rawAnchors := cmd.Flags().StringArray("anchor", nil,
 		"previously reported chain position SEQUENCE:HASH kept outside the database; repeatable")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
@@ -51,7 +50,7 @@ func newAuditVerifyCommand() *cobra.Command {
 		}
 		return runAuditCommand(func(ctx context.Context, store operational.AuditLog) error {
 			return verifyAudit(ctx, store, anchors, cmd.OutOrStdout())
-		}, *sqlitePath)
+		})
 	}
 	return cmd
 }
@@ -62,7 +61,6 @@ func newAuditExportCommand() *cobra.Command {
 		Short: "write retained audit events as JSON lines in ascending sequence order",
 		Args:  cobra.NoArgs,
 	}
-	sqlitePath := cmd.Flags().String("sqlite", "", "local debugging only: SQLite file used by --hosted-cli-sqlite")
 	after := cmd.Flags().Int64("after", 0, "export only events with a sequence greater than this")
 	event := cmd.Flags().String("event", "", "export only this event name")
 	actor := cmd.Flags().String("actor", "", "export only events by this actor")
@@ -72,12 +70,12 @@ func newAuditExportCommand() *cobra.Command {
 		}
 		return runAuditCommand(func(ctx context.Context, store operational.AuditLog) error {
 			return exportAudit(ctx, store, operational.AuditFilter{AfterSequence: *after, Event: *event, Actor: *actor}, cmd.OutOrStdout())
-		}, *sqlitePath)
+		})
 	}
 	return cmd
 }
 
-func runAuditCommand(run func(context.Context, operational.AuditLog) error, sqlitePath string) error {
+func runAuditCommand(run func(context.Context, operational.AuditLog) error) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	closeTelemetry, err := setupTelemetry(ctx, version, telemetry.Setup)
@@ -85,7 +83,7 @@ func runAuditCommand(run func(context.Context, operational.AuditLog) error, sqli
 		return err
 	}
 	defer closeTelemetry()
-	store, closeStore, err := server.OpenAuditStore(ctx, sqlitePath)
+	store, closeStore, err := server.OpenAuditStore(ctx)
 	if err != nil {
 		return err
 	}

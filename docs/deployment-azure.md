@@ -721,7 +721,7 @@ normative detail.
    1. Confirm that the dashboard refuses a user who isn't in an allowed organization or team.
 
 > [!TIP]
-> To test the Functions HTTP interface on Linux or macOS (Intel or Apple Silicon) without Azure credentials, run `npm run test:integration:azure-services` with a local Docker daemon running. The script builds the native Go server and starts platform-matched Azure Functions Core Tools, Azurite, and PostgreSQL.
+> To test the Functions HTTP interface on Linux or macOS (Intel or Apple Silicon) without Azure credentials, run `npm run test:integration:azure-services` with a local Docker daemon running. To use Podman instead, set `CAO_CONTAINER_ENGINE=podman`; only `docker` (the default) and `podman` are accepted, and there is no automatic fallback to another installed engine. The script builds the native Go server and starts platform-matched Azure Functions Core Tools, Azurite, and PostgreSQL.
 
 ### Infrastructure-only bootstrap
 
@@ -903,13 +903,15 @@ The Go server uses vendor-neutral OpenTelemetry and doesn't include the Azure Mo
 
 #### Inspect telemetry locally
 
-For development diagnostics, the repository provides loopback-only Docker Compose
+For development diagnostics, the repository provides loopback-only Compose
 backends for the same OTLP/HTTP exports. They are not part of any deployment.
 
 | Command | Backend |
 | --- | --- |
 | `npm run dashboard:server:aspire-up` / `aspire-down` | Standalone Aspire dashboard on `http://127.0.0.1:18888`, OTLP/HTTP on port `4318` |
 | `npm run dashboard:server:lgtm-up` / `lgtm-down` | Grafana LGTM (Grafana, Loki, Tempo, Prometheus) on `http://127.0.0.1:3000`, OTLP/HTTP on port `4318` |
+
+These commands use Docker by default. Set `CAO_CONTAINER_ENGINE=podman` to use `podman compose`, which needs a Compose provider (`podman-compose` or `docker-compose`, selectable with `PODMAN_COMPOSE_PROVIDER`). Use the same engine when bringing a stack down.
 
 Both publish port `4318`, so stop one before starting the other. Their receivers
 are unauthenticated and keep data only until the container is removed. Before

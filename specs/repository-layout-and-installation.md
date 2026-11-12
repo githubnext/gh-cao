@@ -243,7 +243,7 @@ mismatches and MUST NOT rewrite an existing policy or any authority fields.
 The installer MUST invoke `gh cao init` and `gh cao setup`.
 No shell launcher is installed. Actions and Node-only
 tools MUST invoke `gh cao COMMAND` or another explicit Node
-entry point directly, including SQLite `repair-database`.
+entry point directly, without a database-file repair command.
 User-facing commands MUST live in the Go extension except the Node-only
 administration tools above. Actions execution
 support MUST live in the JavaScript runtime under `activity/` and `dashboard/`.

@@ -21,7 +21,7 @@ const debugCatalog = createDebug('catalog');
 const RUN_RECORD_SOURCES = ['audits', 'domains', 'issues', 'tools'];
 
 /**
- * Source names that the local SQLite projection can materialize. A database
+ * Source names that the local PostgreSQL projection can materialize. A database
  * query is locally executable when it reads canonical stores; database queries
  * that declare no stores project a browser-supplied static source instead.
  */
@@ -466,7 +466,7 @@ function queryDependsOn(index, source, target) {
 }
 /**
  * Resolves the transitive source dependencies of one named query and reports
- * whether the local SQLite projection can materialize them.
+ * whether the local PostgreSQL projection can materialize them.
  * @param {unknown} document
  * @param {string} queryId
  * @returns {{ local: boolean, backend?: string, requirements: string[], missing: string[], reason?: string }}
@@ -520,10 +520,10 @@ function computeQueryExecutionRequirements(document, queryId) {
       local: false,
       requirements: sorted,
       missing: unavailable,
-      reason: `Requires ${unavailable.join(', ')}, which the local SQLite projection does not provide.`
+      reason: `Requires ${unavailable.join(', ')}, which the local PostgreSQL projection does not provide.`
     };
   }
-  return { local: true, backend: 'sqlite', requirements: sorted, missing: [] };
+  return { local: true, backend: 'postgres', requirements: sorted, missing: [] };
 }
 
 /**
@@ -592,7 +592,7 @@ function computeListQueries(document) {
       sources: queryInputNames(query).filter((name) => text(name)).toSorted(),
       'used-by-pages': (pagesByQuery.get(id) ?? []).toSorted(),
       execution: execution.local
-        ? { local: true, backend: 'sqlite', requirements: execution.requirements }
+        ? { local: true, backend: 'postgres', requirements: execution.requirements }
         : { local: false, requirements: execution.requirements, reason: String(execution.reason) }
     };
   });

@@ -6,10 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
-	"net/url"
-	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -17,18 +14,16 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 	"github.com/githubnext/gh-cao/server/internal/hostedcli"
 	"github.com/githubnext/gh-cao/server/internal/operational"
-	operationalsqlite "github.com/githubnext/gh-cao/server/internal/operational/sqlite"
 )
 
 // LocalOperatorActionsConfig is supplied only by the owning native CLI.
 // Credentials and terminal approval stay in that process, not in this server.
 type LocalOperatorActionsConfig struct {
-	QueuePath    string   `json:"queuePath"`
 	Repositories []string `json:"repositories"`
 }
 
 // LocalOperatorConfig binds terminal-approved maintenance independently of
-// canvas presentation or the canonical SQLite ingestion connection.
+// canvas presentation or the canonical PostgreSQL ingestion connection.
 type LocalOperatorConfig struct {
 	AdapterURL      string                      `json:"adapterUrl"`
 	OperatorActions *LocalOperatorActionsConfig `json:"operatorActions,omitempty"`
@@ -51,15 +46,12 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 	if connection == nil || connection.OperatorActions == nil {
 		return errors.New("operator actions require an explicit native adapter")
 	}
-	adapter, err := url.Parse(connection.AdapterURL)
-	if err != nil || adapter.Scheme != "http" || adapter.User != nil || adapter.RawQuery != "" ||
-		adapter.Fragment != "" || !canvasPrefix.MatchString(adapter.Path) ||
-		net.ParseIP(adapter.Hostname()) == nil || !net.ParseIP(adapter.Hostname()).IsLoopback() || adapter.Port() == "" {
+	if !validOperatorAdapterURL(connection.AdapterURL) {
 		return errors.New("operator adapter requires a private numeric loopback HTTP address")
 	}
 	config := connection.OperatorActions
-	if a.oauth != nil || len(config.Repositories) == 0 || len(config.Repositories) > 20 || !filepath.IsAbs(config.QueuePath) {
-		return errors.New("operator actions require a private queue and bounded exact repository scope")
+	if a.oauth != nil || len(config.Repositories) == 0 || len(config.Repositories) > 20 {
+		return errors.New("operator actions require bounded exact repository scope")
 	}
 	for _, repository := range config.Repositories {
 		if !hostedcli.ValidRepository(repository) || strings.Contains(repository, "..") || repository != strings.ToLower(repository) {
@@ -70,19 +62,23 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	store, err := operationalsqlite.Open(ctx, config.QueuePath)
+	if a.services.CLICommands == nil || a.services.Audit == nil {
+		return errors.New("operator actions require PostgreSQL command and audit services")
+	}
+	queue, err := a.services.CLICommands.OpenCLICommandQueue(ctx, "operator-cli", operational.CLICommandQueueOptions{MaxConcurrency: 1})
 	if err != nil {
 		return err
 	}
-	queue, err := store.OpenCLICommandQueue(ctx, "operator-cli", operational.CLICommandQueueOptions{MaxConcurrency: 1})
-	if err != nil {
-		_ = store.Close()
-		return err
+	audited, ok := queue.(operational.AuditedCLICommandQueue)
+	if !ok {
+		return errors.New("operator actions require atomic queue and audit persistence")
 	}
-	a.config.Audit = a.config.Audit.WithStore(store)
-	a.operatorStore = store
+	a.config.Audit = a.config.Audit.WithStore(a.services.Audit)
+	if !a.config.Audit.Durable() {
+		return errors.New("operator actions require durable audit persistence")
+	}
 	a.hostedCLI = &hostedCLI{
-		queue: queue.(operational.AuditedCLICommandQueue), catalog: catalog,
+		queue: audited, catalog: catalog,
 		context: hostedcli.TemplateContext{}, local: config,
 	}
 	return nil

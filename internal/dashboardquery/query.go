@@ -1,4 +1,4 @@
-// Package dashboardquery evaluates Dashboard Language for local SQLite
+// Package dashboardquery evaluates Dashboard Language over canonical
 // consumers. Hosted PostgreSQL execution remains independently SQL-backed.
 package dashboardquery
 

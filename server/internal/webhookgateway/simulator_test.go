@@ -198,10 +198,6 @@ func (g *simulatorGateway) assertJobs(t *testing.T, count int, state wg.JobState
 	}
 }
 
-func TestGitHubSimulatorGatewaySQLite(t *testing.T) {
-	runGatewaySimulatorSuite(t, sqliteSimulatorStorage)
-}
-
 func TestGitHubSimulatorGatewayPostgres(t *testing.T) {
 	dsn := simulatorPostgresDSN(t)
 	t.Run("isolated_schema", func(t *testing.T) {

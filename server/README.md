@@ -1,4 +1,4 @@
-# Go dashboard server with Postgres, local SQLite, and operational storage
+# Go dashboard server with PostgreSQL and operational storage
 
 The [TypeSpec HTTP contract](spec/README.md) is the source for generated
 OpenAPI 3.1 and selected JSON Schemas; consult it before changing server routes.
@@ -9,9 +9,8 @@ same compacted data retained in operational artifacts, stores current
 native entity rows in PostgreSQL and executes hosted Dashboard Language plans
 as SQL through the bounded PostgreSQL query engine,
 and serves the built dashboard either over loopback HTTP or through an
-authenticated host-neutral service profile. Local `serve` defaults to a cached
-real operational SQLite snapshot. Missing caches require explicit acquisition;
-there is no public Pages default.
+authenticated host-neutral service profile. Local serving requires explicitly configured PostgreSQL and pre-provisioned storage.
+Operational artifacts contain verified canonical JSONL shards, not database files.
 PostgreSQL is the hosted default operational adapter, so the default deployment
 requires no Redis service.
 Explicit Redis configuration remains supported; an acknowledged single-process memory adapter supports the
@@ -36,7 +35,7 @@ database credentials. It communicates only with the same-origin HTTP(S) API.
 ### Local development and synthetic Pages demo
 
 From the repository root, `npm run dev` or `npm run dashboard:local` builds
-the dashboard and starts Go `serve` with its verified SQLite cache. The Node
+the dashboard and starts Go serve with PostgreSQL. The Node
 server is retired; only an internal loopback canvas authoring bridge remains.
 
 ### Self-contained executable and disk-backed iteration
@@ -46,7 +45,7 @@ build from the repository root:
 
 ```sh
 npm run dashboard:server:bundle
-.tmp/cao-dashboard serve --sqlite /absolute/path/to/gh-aw-logs.sqlite
+.tmp/cao-dashboard serve --source /absolute/path/to/verified-artifact
 ```
 
 The executable embeds HTML, JavaScript, styles, icons, page chunks, queries,
@@ -65,24 +64,17 @@ Without staging, source-only Go builds require `--site`. Release and container
 builds embed automatically. CI verifies all embedded assets and an executable
 launched outside the checkout.
 
-The Go local SQLite server also runs natively on Windows, without PostgreSQL,
-Redis, Docker, or Linux process features. From PowerShell at the repository root,
-build the dashboard with `npm --prefix dashboard/site run build -- dist`, then
-run `go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist`.
-The POSIX environment-assignment syntax in the root npm launch commands is not supported by PowerShell's default
-npm shell; use the direct Go command there. Windows CI builds the native command
-and exercises snapshot download, offline startup, HTTP queries, and shutdown with
-local fixtures. Evidence-lake writers retain cross-process exclusion using
-Windows file locks instead of Unix `flock`; locking errors still fail closed.
-Local SQLite URLs preserve drive-letter paths and escaped spaces or `#` in names.
+The Go server runs natively on Linux, macOS and Windows. All local platforms
+require PostgreSQL. PowerShell users can invoke the Go serve command directly
+after building the dashboard.
 
 Local serving resolves Marketplace through the same read-only registry resolver
-as hosted serving, even when the cached SQLite snapshot has no packages.
+as hosted serving, even when the cached canonical JSONL artifact has no packages.
 The npm launch commands select this checkout's `.github/workflows/cao.json`;
 set `CAO_MARKETPLACE_POLICY_PATH` to an absolute path to use another policy.
 Provide the credentials named by its registries (for example, `GH_TOKEN`).
 Registry results use the process-local operational cache and never modify the
-SQLite snapshot. Registry failures remain explicit in source availability or
+canonical JSONL artifact. Registry failures remain explicit in source availability or
 registry diagnostics; they never trigger synthetic packages or snapshot-inventory
 fallback.
 
@@ -115,7 +107,7 @@ or browser storage; cleanup never deletes outside the demo namespace.
 
 The repository-private `dashboard-maintainer-simulation` agentic workflow runs
 daily and supports manual dispatch. It generates ten maintainer scenarios before
-testing, attempts them through Chromium on the real local Go/SQLite dashboard,
+testing, attempts them through Chromium on the real local Go/PostgreSQL dashboard,
 and preserves the frozen plan, all ten outcomes, screenshots and logs in a
 14-day artifact. It files at most three deduplicated issues with reproduction
 steps and potential fixes; blocked scenarios remain incomplete, not passed.
@@ -124,7 +116,7 @@ production dashboard access is involved.
 
 The harness reuses `simulate-api` to obtain 36 successful historical runs for
 three fictional repositories, adds explicitly synthetic cost/tool metadata,
-and uses production normalization and SQLite ingestion. It does not exercise
+and uses production normalization and PostgreSQL ingestion. It does not exercise
 hosted OAuth/PostgreSQL, live collection, dispatch or Actions execution, and
 the snapshot does not subscribe to subsequent simulator changes. Missing
 fixture data or hosted-only capabilities are coverage limits, not defects.
@@ -290,12 +282,12 @@ and 2% created, rounding down. Only drained targets retire; no PR is exempt from
 
 The compiler-manifest vulnerability-review fixture subscribes to
 `pull_request: ready_for_review`, exercising production discovery, policy
-intersection, signatures, admission, batching, durable SQLite queues, fencing,
+intersection, signatures, admission, batching, durable PostgreSQL queues, fencing,
 retry classification and dispatch. One reviewed policy, registry and queue serve
 one control repository and enrolled targets with empty workflow inventories.
 Enrollment/route ceilings (2,048), registry size (1 MiB), operational budgets,
 API limits, eight-repository discovery rounds and scope remain unchanged.
-SQLite batch rotation, capacity, recovery and retention use indexed plans,
+PostgreSQL batch rotation, capacity, recovery and retention use indexed plans,
 avoiding repeated retained-payload parsing. Future IDs are pre-enrolled but
 inactive until created. Registry/authority facts are in-memory fixtures,
 not PostgreSQL durability or GitHub authentication evidence.
@@ -374,161 +366,33 @@ already-flushed stream cannot. See [stream authorization bounds](SECURITY.md)
 for revocation latency and proxy-delivery limitations. Local bearer streams
 remain open until cancellation or server drain.
 
-## Local SQLite snapshot serving
+## Local PostgreSQL serving
 
-The Copilot canvas uses this same local Go host. Its internal `--canvas-config`
-file selects a random capability path, a private numeric-loopback integration
-adapter and downloaded read-only memory/inventory-quality evidence. Go owns all
-browser assets and canonical APIs; only JSON reload, authoring, approved command
-and local-user GitHub routes are forwarded to the adapter. This mode cannot
-enable hosted OAuth, PostgreSQL collection or hosted App authority. Missing
-inventory quality stays unknown. Inventory rows never replace SQLite query data.
-The owner receives a machine-readable readiness URL and keeps stdin open for
-the lifetime of the child; EOF shuts the host down. This is an internal extension
-contract, not a second dashboard CLI. Canvas startup requires a verified
-`cao-activity-index` SQLite artifact from a successful default-branch Activity
-run and never falls back to Node queries or browser ingestion. Synthetic
-manifests and missing SQLite checksums fail closed.
+Local and hosted servers use the same PostgreSQL canonical schema, bounded SQL
+planner, HTTP APIs and revision subscriptions. There is no file-database backend,
+legacy import, conversion, or fallback. Set CAO_POSTGRES_URL explicitly and
+provision canonical and operational namespaces as described in
+[POSTGRES.md](POSTGRES.md). Runtime credentials never bootstrap storage.
 
-Acquire an operational artifact, then build and serve it read-only:
+Acquire operational evidence explicitly with gh run download, then ingest its
+verified canonical JSONL shards with cao-dashboard ingest --source DIRECTORY.
+Start the local server with npm run dashboard:local. Paths passed through
+Go's -C server option resolve from server/.
 
-```bash
-# From the repository root:
-gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
-npm ci
-npm --prefix dashboard/site ci
-npm --prefix dashboard/site run build
-go -C server run ./cmd/cao-dashboard serve --sqlite ../.cao/gh-aw-logs.sqlite
-```
+Plain serve opens provisioned PostgreSQL storage without acquiring evidence.
+An explicit --source verifies the manifest and atomically publishes canonical
+rows before serving. Failed ingestion preserves the prior committed revision.
+External publications refresh active subscriptions; local request caching is
+disabled. The local profile requires loopback listeners and bearer authentication.
+Database credentials remain in the Go process.
 
-Plain `serve` reuses `.cao/gh-aw-logs.sqlite` offline. Missing caches require
-`DASHBOARD_DATA_URL` or `--download-sqlite[=URL]`, otherwise startup stops with
-artifact-acquisition guidance. `--sqlite PATH` selects another cache.
-Database service environment variables alone do not override local SQLite.
-
-The selected snapshot stays **read-only**. SQLite creation, normalization,
-backfill, and maintenance remain in the JavaScript `cao-activity` pipeline.
-The Go server only serves the existing canonical database: it does not look up
-GitHub credentials, run collection or ingestion tools, or create a writable
-overlay. Node.js, npm, `gh`, and Activity runtime files are not needed for this
-local serving path. Externally committed database changes refresh query results
-and notify active revision subscribers.
-
-The former `--sqlite-overlay`, `--backfill`, and `--backfill-interval` options
-are no longer supported. Previously created `.local.sqlite` files are preserved
-but are not attached or merged. Ordinary local and internal Copilot canvas
-serving use the same read-only boundary.
-
-`--download-sqlite` refreshes even existing caches. Its URL overrides
-`DASHBOARD_DATA_URL` and must name a trusted operational `payload-hashes.json`:
-
-```bash
-go -C server run ./cmd/cao-dashboard serve \
-  --download-sqlite=https://evidence.example/operational/payload-hashes.json \
-  --sqlite ../.cao/custom.sqlite
-```
-
-This example implies no hosted export API. No site-root or `cao/` discovery
-occurs; SQLite is fetched beside the manifest. URLs require HTTP(S), without
-credentials or fragments; HTTPS cannot downgrade. Synthetic manifests and
-missing SQLite checksums are rejected.
-
-The download streams only the SQLite image, not inventory or JSONL shards.
-It verifies the manifest's SHA-256 checksum and canonical database version
-before atomically replacing the selected cache. Transient failures and
-deployment-time checksum mismatches retry up to three times with fresh manifest
-requests; failures leave an existing cache unchanged and do not start a server
-against stale data. Requests have a five-minute timeout within a ten-minute
-overall deadline; manifests are limited to 8 MiB and images to 2 GiB.
-An unbuilt `--site` fails before downloading. Stop any existing snapshot users
-before refreshing; symlink destinations and existing SQLite journal sidecars
-are rejected rather than risking corruption. Checkpoint a locally modified
-snapshot with its owning tool, or select a different `--sqlite` path.
-
-For offline startup, use plain `serve` with an existing default cache, or select
-another existing snapshot:
-
-```bash
-go -C server run ./cmd/cao-dashboard serve \
-  --sqlite ../.cao/gh-aw-logs.sqlite \
-  --listen 127.0.0.1:8443
-```
-
-The server defaults to embedded resources. Use `--site` for a disk-backed
-build directory and `--mcp-enabled` to expose the existing read-only MCP endpoint.
-Paths in this example resolve from `server/` because of `go -C server`.
-`gh cao download --url URL` requires an explicit operational
-`payload-hashes.json` URL, or `DASHBOARD_DATA_URL`. It has no default Pages source.
-The snapshot must use
-the canonical IndexedDB-compatible SQLite layout and database version 45.
-Only a genuinely missing cache with an explicit source triggers acquisition. Unreadable or
-invalid existing files, dangling symlinks, unsupported versions, and missing
-requested stores fail closed without a repair download. Startup never creates
-an empty snapshot, repairs, migrates, or ingests the downloaded file. Acquisition installs
-a verified file before the read-only server opens it; it is not ingestion or a
-fallback from a failed database connection.
-
-This is the default **local bearer-only, read-only request** profile.
-Only loopback listeners are accepted; HTTP is supported locally, with optional
-`--cert` and `--key` for HTTPS. Existing access-token authentication and the HTTP
-query, canonical API, diagnostics, revision events, and optional MCP protocols
-remain in use. Queries execute in Go against one consistent SQLite read
-transaction, using the same bounded local Dashboard Language evaluator as
-`gh cao`. Both storage paths share the server's query validation, dependency
-traversal, generated runtime-source registry, and source-quality propagation;
-only storage reads and query execution differ. The local snapshot profile admits
-500,000 input/intermediate rows and 50 million operations per query plan, with
-1 GiB per working source and 2 GiB / 2 million rows of simultaneously retained
-results. Completed dependency inputs are released after their final consumer.
-Shared server dependency traversal is capped at 32 queries deep, accommodating
-the shipped routing-attribution plans without changing join, row, byte or
-operation budgets.
-The planner traces live fields across consumers, prunes unused row-local
-computations, and projects only required properties inside SQLite. Requested
-raw sources and unknown result shapes keep full documents; original-record byte
-limits, JSON types, missing fields, and canonical UTF-16 key order are preserved.
-Read-only SQLite memory mapping is capped at 1 GiB to reduce page-read overhead.
-These are bounded accounting limits, not an RSS guarantee; large snapshots can
-require several GiB of developer-machine memory. Hosted PostgreSQL and CLI
-row/memory defaults are unchanged. Wire results remain bounded to 100,000 rows per source;
-ordinary continuation pagination remains available. Local query admission has
-a 300-unit/minute token bucket so expensive snapshot plans do not exhaust the
-hosted 30-unit burst during ordinary page navigation; per-plan cost accounting,
-other request limits, and explicit embedding overrides remain enforced. Snapshot
-quality without explicit published inventory metadata is reported as unknown
-rather than inferred complete or current.
-In-place SQLite commits update revisions and active subscriptions without a
-server restart. Restart after replacing the snapshot file itself.
-
-After building the site, profile the production Repositories query against an
-existing snapshot without modifying it:
-
-```sh
-CAO_SQLITE_SNAPSHOT=/absolute/path/to/gh-aw-logs.sqlite \
-  go -C server test ./internal/sqlitex -run '^$' \
-  -bench '^BenchmarkSnapshotRepositoryActivity$' -benchtime=1x -benchmem
-```
-
-Repository queries reduce row-local counts and positive recorded AIC before
-repository-grain joins, and carry only run-attempt keys into import matching.
-PostgreSQL compiles the declarative plan to SQL; IndexedDB and the Node SQLite
-facade use bounded native storage scans and exact streaming reductions where
-eligible. The local Go SQLite server pushes field projection into SQL and runs
-the remaining bounded declarative operators in its shared Go evaluator.
-
-Operational request services are bounded, process-local, and volatile. Query
-result caching is disabled so a changed snapshot cannot serve stale results.
-OAuth, collection, ingestion, rebuilds, webhooks, and persisted GitHub-resource
-caching are unavailable in this profile. Neither `--sqlite` nor `--download-sqlite` can be combined with
-`--postgres-url`, `--redis-url`, or `--source`; database service environment
-variables are not used to select its storage. Reviewed hosted operational-store
-selection still requires `serve-hosted` and cannot be overridden by local serving.
-To select PostgreSQL locally, pass `--postgres-url="$CAO_POSTGRES_URL"`; an
-explicit empty `--postgres-url=` reads that environment variable instead.
-The existing PostgreSQL-specific `--source` and `--redis-url` flags also select
-the PostgreSQL profile and require its configured database. Hosted deployments
-and PostgreSQL SQL execution remain unchanged; SQLite is never a fallback from
-a failed PostgreSQL connection.
+The Copilot canvas uses this same host with --canvas-config, a private
+capability path and a loopback integration adapter. It requires verified
+canonical JSONL artifacts and PostgreSQL. GitHub resource reads and their cache
+are owned by Go/PostgreSQL; the Node adapter owns only authoring, session and
+approved execution callbacks. EOF on the owner's stdin stops the child host.
+Neither canvas nor local storage grants hosted OAuth, collection, dispatch or
+GitHub App authority. Missing evidence remains partial or unavailable.
 
 ## Single-process memory operational storage
 
@@ -560,7 +424,7 @@ the requested backend must match the resolved policy and cannot override it.
 It preserves the ordinary hosted authentication and transport requirements.
 Direct TLS uses the actual TLS connection without requiring forwarded headers
 unless `CAO_TRUSTED_PROXY_CIDRS` explicitly configures a proxy.
-Ordinary `npm run dashboard:local` instead selects local Go/SQLite serving.
+Ordinary npm run dashboard:local selects local Go/PostgreSQL serving.
 
 Use `serve-hosted` with the ordinary mandatory OAuth, HTTPS/proxy, organization
 or team, administrator, and webhook-secret configuration. Keep admission,
@@ -607,9 +471,9 @@ constructing an empty store. See the [normative operational contract](../specs/s
 existing state without DDL. Follow [PostgreSQL privilege separation and rollout](POSTGRES.md)
 to run owner-only `database bootstrap`, apply runtime/evidence/retention grants,
 and schedule separate canonical partition and audit-retention jobs. Do not mount
-owner credentials in runtime processes. Local SQLite hosted-CLI debugging uses
-the same explicit bootstrap/retention commands with `--sqlite PATH`; see that
-guide for the no-PostgreSQL local test command and the limits of SQLite testing.
+owner credentials in runtime processes. Local hosted-CLI debugging uses
+the same explicit PostgreSQL bootstrap and retention commands; see that
+guide for the local PostgreSQL test command and its explicit provisioning requirements.
 
 PostgreSQL is the default when a reviewed host has no backend selector or legacy
 `redis` configuration. No Redis connection or
@@ -635,7 +499,7 @@ Use `sslrootcert` for a private CA rather than disabling verification. The canon
 remains the existing `REDIS_NAMESPACE`; changing the operational namespace
 does not move canonical data. The explicit PostgreSQL profile of local bearer
 `serve` also defaults to PostgreSQL operational storage; supplying `--redis-url`
-opts in to Redis instead. Plain `serve` uses SQLite with bounded volatile
+opts in to Redis instead. Plain `serve` uses PostgreSQL with durable
 request services and requires neither database service. Hosted
 `serve-hosted`, external/platform hosts, collection roles, and `doctor` resolve
 the reviewed policy; the presence of a Redis credential never overrides it.
@@ -685,67 +549,14 @@ endpoint. It is disabled by default. This change does **not** activate the
 gateway in the root policy, enroll repositories, approve subscriptions, or grant
 Actions write access.
 
-### Local SQLite and GitHub polling
+### Local PostgreSQL and GitHub polling
 
-The [RFC-034 local simulation contract](../specs/rfc-034-local-webhook-gateway.md)
-defines the local profile, TLA+ model, and specification-derived conformance
-suites. No PostgreSQL, App installation, webhook registration, compiler emitter,
-or dispatch/write token is required:
-
-```bash
-# From the repository root; the parent directory must already exist and be private.
-# Optional GH_TOKEN supplies read-only access for private repositories/rate limits.
-go -C server run ./cmd/cao-webhook-gateway --role=local \
-  --repository=OWNER/REPO --sqlite="$PWD/local-gateway.sqlite" --once
-
-# Omit --once for a cancellation-scoped polling worker (Ctrl-C stops and joins it).
-go -C server run ./cmd/cao-webhook-gateway --role=local \
-  --repository=OWNER/REPO --sqlite="$PWD/local-gateway.sqlite" \
-  --events=issues,issue_comment,pull_request --poll-interval=60s
-
-# Inspect aggregate simulated outcomes without exposing projected payloads.
-sqlite3 local-gateway.sqlite 'SELECT state,count(*) FROM jobs GROUP BY state;'
-```
-
-The local client makes only GETs to that repository's metadata and Events API.
-`--api-url` supports an explicit HTTPS enterprise API base (including `/api/v3`);
-numeric-loopback HTTP is allowed for fixture servers, never hostname-based
-plaintext or redirects. The queue identity binds the API base, immutable
-repository/owner identities, and selected subscriptions. Reuse the same file and
-event selection to replay safely; use a different private file for a different
-configuration. Files must be private regular files (0600); SQLite WAL and durable
-receipts retain deduplication and fenced state across restart.
-
-Each newly observed event becomes an HMAC-signed **in-process HTTP request** to the real ingress;
-there is no local network listener. The real worker claims, renews, authorizes,
-reserves budgets, and finishes against SQLite. Only authorization evidence and
-dispatch acceptance are synthetic: the dispatcher cannot send GitHub writes.
-Startup/output explicitly say simulation; `succeeded` does not mean a remote
-workflow ran. The generated fixture projects only `simulation: true` and ingress
-provenance. This CLI does not load `--policy` or arbitrary compiler subscriptions
-and does not replace the production authorization/filter test suites.
-
-Do not provide `CAO_GATEWAY_RECEIVE_KEY_FILE`, `CAO_GATEWAY_DISPATCH_KEY_FILE`,
-`CAO_GATEWAY_WEBHOOK_SECRET`, or `CAO_GATEWAY_PREVIOUS_WEBHOOK_SECRET` to local
-mode; startup rejects production credentials. `GH_TOKEN` is optional and is never
-printed or persisted. The local fixture does not grant production authority or
-modify `cao.json`.
-
-Polling reads at most 300 visible events per pass, honors GitHub's
-`X-Poll-Interval`, and stops explicitly on API/admission failures. Restart retries
-the retained snapshot safely; an ETag advances only after all selected deliveries
-are admitted. Retained SQLite receipts recognize known event IDs even if GitHub
-changes their feed payloads; existing jobs are neither replaced nor replayed.
-New deliveries still undergo the ingress's body-digest conflict checks.
-There is no high-water ID cursor that skips late events.
-This is a delayed, bounded, best-effort feed, **not a lossless webhook journal**.
-It cannot recover feed gaps or simulate Projects v2 webhooks. Missing actions,
-filter operands, or transition data are not invented. Supported families are
-listed in RFC-034; one-shot mode reports deferred leased/rate-limited work as
-incomplete rather than claiming it was dispatched. Continuous mode waits for
-rate-budget recovery instead of stopping the host on normal backpressure.
-Malformed feeds, including JSON `null` instead of an array, do not advance
-polling progress.
+The explicit local gateway role requires a pre-provisioned PostgreSQL
+operational namespace and CAO_POSTGRES_URL. Select one exact repository and
+namespace with --repository OWNER/REPO --namespace local. Its GitHub client
+is read-only; ingress signing and dispatch acceptance remain an explicitly
+labelled local simulation. Missing credentials, enrollment, evidence or
+storage fail closed. Local storage does not grant hosted dispatch authority.
 
 ### Isolated production roles
 
@@ -1489,12 +1300,12 @@ npm run test:integration:actions-simulator
 # Equivalent without Node/npm (also suitable for a GitHub Actions run step):
 go -C server test -race ./internal/simulator ./internal/admission \
   ./internal/webhookgateway ./cmd/cao-webhook-gateway \
-  -run '^(TestLocalActions|TestSpecLocalHost|TestGatewayAPI|TestIssueServiceSimulator($|HTTP|GatewaySQLite)|TestGitHubSimulator(Gateway|Discovery)SQLite)' \
+  -run '^(TestLocalActions|TestSpecLocalHost|TestGatewayAPI|TestIssueServiceSimulator($|HTTP|GatewayPostgres)|TestGitHubSimulator(Gateway|Discovery)Postgres)' \
   -count=1 -timeout=2m -v
 ```
 
 The tests start real HTTP listeners on ephemeral numeric-loopback ports, use a
-private temporary SQLite gateway queue, and close every listener and database
+private temporary PostgreSQL gateway queue, and close every listener and database
 on completion. No GitHub credentials, `id-token: write`, Docker, PostgreSQL,
 Redis, public callback URL, or live GitHub API is required. Go dependencies
 must already be available or downloadable, as for the ordinary Go test suite.
@@ -1535,7 +1346,7 @@ production authority. Policy, admission-decision, and conclusion-receipt stores
 are isolated in-memory fixtures, not a substitute for PostgreSQL durability tests.
 
 An admitted job posts signed events to a real local webhook gateway ingress;
-the real SQLite queue and worker reject a bad signature, deduplicate replay,
+the real PostgreSQL queue and worker reject a bad signature, deduplicate replay,
 and finish exactly one simulated dispatch. The lifecycle trace is printed by
 the verbose test runner. Failure coverage includes expired/future tokens,
 incorrect audience/signature, malformed tokens, JWKS outage, failed bootstrap
@@ -1592,7 +1403,7 @@ These are webhook protocol simulators, not full issue-service API emulators.
 Provider-shaped HTTPS resource URLs are inert payload references and are never
 fetched. No Jira, Linear, Azure DevOps, or GitHub account, token, external
 callback, service container, or deployed service is required. All fixtures,
-listeners, secrets, and SQLite state are test-owned and cleaned up afterward.
+listeners, secrets, and PostgreSQL state are test-owned and cleaned up afterward.
 The ordinary local Actions integration command and Go CI also run these suites.
 
 The gateway tests discover compiled external declarations from the local GitHub
@@ -1604,11 +1415,11 @@ authentication failures, tenant/collection/resource mismatches, Linear timestamp
 freshness, replay deduplication across restart, minimal persisted/dispatched
 payloads, and cancellation when the discovered workflow changes.
 The PostgreSQL command above runs the same gateway suite against isolated local
-PostgreSQL state; it is optional for the fully self-contained SQLite command.
+PostgreSQL state; it is required for the local simulation as well.
 
 ### Discovered agentic workflows, webhooks, and dispatch
 
-The same commands also run shared gateway suites for SQLite and PostgreSQL.
+The same commands also run shared gateway suites for PostgreSQL.
 `NewGatewayAPI` provides an opt-in private `simulator/repo-00001` fixture with
 separate receiving and dispatch installations, repository-scoped token mints,
 numeric repository lookups, default-branch refs, commit-pinned workflow listings
@@ -1622,7 +1433,7 @@ The discovery suites fetch compiled `gh-aw-manifest` headers through the
 production GitHub client, apply reviewed discovery policy, receive signed
 security webhooks, and run the production live-authority checks and compiler
 dispatcher over loopback HTTP. PostgreSQL also exercises the production
-discovery worker and durable registry across queue reopen; SQLite has no hosted
+discovery worker and durable registry across queue reopen; the local simulation has no hosted
 registry and keeps its discovered inventory in the test while using the same
 HTTP discovery client and policy compiler. No simulator metadata grants
 production authority.
@@ -1692,7 +1503,7 @@ mount remains writable on Linux without restoring capabilities or broadening
 directory permissions. The report records that identity, and integration
 assertions verify it.
 
-The integration first uses production discovery, signed ingress, SQLite queue
+The integration first uses production discovery, signed ingress, PostgreSQL queue
 and authenticated GitHub HTTP dispatch against `NewGatewayAPI`. It rejects a
 bad signature and proves replay deduplication across queue reopen, then feeds
 the exact accepted compiler batch envelope to both compiled AWI and CAO fixtures.
@@ -2224,7 +2035,7 @@ bypass recovery.
 `ContainerRunner` delegates runtime identity, creation, startup, inspection,
 stopping, and output collection to `ContainerLifecycle`. Docker remains the
 production adapter: it starts detached, then replays and follows logs while
-workload exit evidence remains a separate inspection. SQLite-only local
+workload exit evidence remains a separate inspection. explicit local PostgreSQL local
 development may explicitly use Apple container or Windows Sandbox as described
 below. These profiles do not enable Podman or managed jobs, change retry policy,
 or promise exactly-once effects. Idempotent updates may overlap within the
@@ -2253,7 +2064,7 @@ Never put the key in checked-in configuration, command arguments, logs, or the
 | `CAO_HOSTED_CLI_DASHBOARD_URL` | Dashboard URL used in command backlinks. |
 | `CAO_HOSTED_CLI_CONTAINER_IMAGE` | Optional digest-pinned gh-aw image or approved mirror; defaults to `ghcr.io/github/gh-aw@sha256:7ff77dc03182d4edcebc902fa94b0239eb9cde65ea212509aef700bcab354090`. |
 | `CAO_HOSTED_CLI_DOCKER` | Optional Docker CLI path; defaults to `docker`. |
-| `CAO_HOSTED_CLI_CONTAINER_RUNTIME` | `docker` (default), `podman`, `apple`, `windows-sandbox`; no fallback. Alternates require `execute-cli --sqlite` and matching OS. Podman: rootless Linux only; no remote/machine, production PostgreSQL or egress settings. |
+| `CAO_HOSTED_CLI_CONTAINER_RUNTIME` | `docker` (default), `podman`, `apple`, `windows-sandbox`; no fallback. Alternates require `execute-cli --local-development` and matching OS. Podman: rootless Linux only; no remote/machine, production PostgreSQL or egress settings. |
 | `CAO_HOSTED_CLI_PODMAN` | Podman binary override; defaults to `podman`. |
 | `CAO_HOSTED_CLI_EGRESS_POLICY_FILE` | Required production Docker exact-host HTTPS policy file; see the rollout contract below. No implicit allowed hosts. |
 | `CAO_HOSTED_CLI_EGRESS_RELAY` | Required production path to the static Linux relay artifact built from the reviewed server source. |
@@ -2359,10 +2170,10 @@ cancellation. Closing the proxy or losing the executor kills tunnels but does
 not prove workload termination: the retained identity, claim, token-revocation
 obligations, and workspace follow existing bounded stop/recovery rules.
 
-SQLite-only Docker development keeps its previous bridge behavior **only when
+explicit local PostgreSQL Docker development keeps its previous bridge behavior **only when
 all three egress settings are absent**. Supplying any setting opts into the
 complete boundary and fails closed if anything is unavailable. Podman, Apple and Windows
-remain explicit SQLite-only development profiles, not production fallbacks.
+remain explicit explicit local PostgreSQL development profiles, not production fallbacks.
 
 Before enabling production admission, run the credential-free real-boundary
 test on the intended dedicated Linux executor:
@@ -2384,7 +2195,7 @@ tests run without Docker but are not evidence of the kernel boundary.
 #### Alternate runtimes for local development
 
 Alternate runtimes change isolation only. Keep OAuth/App configuration, durable
-session secrets, scoped tokens and loopback-only SQLite; never use disposable
+session secrets, scoped tokens and local PostgreSQL; never use disposable
 secrets or run hosted commands directly on the host. Production PostgreSQL
 rejects alternates.
 
@@ -2396,7 +2207,7 @@ On **Apple Silicon macOS 26**, install Apple's
 ```bash
 container system start --enable-kernel-install
 CAO_HOSTED_CLI_CONTAINER_RUNTIME=apple \
-  cao-dashboard execute-cli --sqlite ./.tmp/hosted-cli.sqlite
+  cao-dashboard execute-cli --local-development
 ```
 
 The adapter targets the verified container 1.2.2 CLI contract. It runs the
@@ -2447,7 +2258,7 @@ $env:CAO_HOSTED_CLI_CONTAINER_RUNTIME = 'windows-sandbox'
 $env:CAO_HOSTED_CLI_WINDOWS_BUNDLE = 'C:\dev\approved-hosted-cli-tools.zip'
 $env:CAO_HOSTED_CLI_WINDOWS_BUNDLE_SHA256 = '<reviewed SHA-256>'
 $env:CAO_HOSTED_CLI_WORK_ROOT = 'C:\dev\cao-private-work'
-cao-dashboard execute-cli --sqlite .\.tmp\hosted-cli.sqlite
+cao-dashboard execute-cli --local-development
 ```
 
 Windows Sandbox permits only one instance. This profile serializes execution
@@ -2488,9 +2299,9 @@ ACLs and ownership by the account, SYSTEM, or Administrators. It rejects
 reparse paths and unsafe ACLs rather than changing permissions. Unix `0700`
 modes alone do not establish Windows privacy.
 
-Set the same runtime selector for both `serve-hosted --hosted-cli-sqlite` and
-`execute-cli --sqlite`. Windows uses a queue concurrency limit of one, so use
-a separate SQLite file when switching from another profile: existing queue
+Set the same runtime selector for both `serve-hosted --local-development` and
+`execute-cli --local-development`. Windows uses a queue concurrency limit of one, so use
+a separate PostgreSQL namespace when switching from another profile: existing queue
 configuration is not silently rewritten. Never discard a database or ownership
 record to bypass unsettled execution recovery.
 
@@ -2529,27 +2340,12 @@ running executor. Use a two-key rollover:
 
 Never put either key in logs, command output, or checked-in configuration.
 
-For local hosted-CLI storage debugging, both processes can share one SQLite
-file holding the queue, audit table, and encrypted token cleanup journal. `--hosted-cli-sqlite` requires
-`--experimental`, `--hosted-cli-actions`, and a loopback `--listen`, and the
-explicit bootstrap creates the file with mode `0600`. Anyone who can write the SQLite file can
-drop its triggers, so never use this in production:
+For local hosted-CLI debugging, provision PostgreSQL operational storage and
+use the same namespace for web, executor and audit processes. Explicit
+--local-development selects development-only container providers without
+changing storage, token, repository, OAuth or audit authority. See
+[POSTGRES.md](POSTGRES.md#local-postgresql-development).
 
-```bash
-mkdir -p .tmp
-cao-dashboard database bootstrap --store operational --sqlite ./.tmp/hosted-cli.sqlite
-cao-dashboard serve-hosted --listen 127.0.0.1:8443 --experimental --hosted-cli-actions \
-  --hosted-cli-sqlite ./.tmp/hosted-cli.sqlite ...
-cao-dashboard execute-cli --sqlite ./.tmp/hosted-cli.sqlite
-```
-
-Runtime now requires the provisioned file and never performs audit retention.
-Use `database retain-audit --store operational --sqlite PATH` explicitly.
-`audit deliver --sqlite PATH` reads and verifies existing state through a
-read-only SQLite connection; `audit verify --sqlite PATH` still appends its own
-verification result. This only replaces hosted-CLI storage, not the full
-dashboard's canonical PostgreSQL backend or authentication configuration.
-See [POSTGRES.md](POSTGRES.md#local-sqlite-testing) for local end-to-end tests.
 
 Each command runs with a single-use installation token scoped to its target
 repository, and the token is revoked when the command finishes. The broker
@@ -2598,11 +2394,11 @@ Cancellation is a privileged backend operation and does not perform the
 dashboard user's repository-permission check. The supplied GitHub login is
 recorded in the append-only audit trail as a self-reported identity, not proof
 of the caller's identity. Only trusted operators should have access to the
-backend database and CLI environment. `--sqlite PATH` is for local debugging
+backend database and CLI environment. the explicitly selected PostgreSQL namespace is for local debugging
 only.
 
 Verify and export the audit trail with the same store settings (PostgreSQL
-from the environment, or `--sqlite PATH`):
+from the environment, or the explicitly selected PostgreSQL namespace):
 
 ```bash
 cao-dashboard audit verify                          # prints lastSequence and lastHash
@@ -2842,7 +2638,7 @@ runtime or schema-owner credential:
 ```bash
 cao-dashboard audit lifecycles --grace 1h --max-events 10000 --timeout 2m
 # Local debugging only, against an already provisioned file:
-cao-dashboard audit lifecycles --sqlite .tmp/hosted-cli.sqlite
+cao-dashboard audit lifecycles --local-development
 ```
 
 This is a one-shot read-only check; it does not append a verification event,
@@ -2899,7 +2695,7 @@ and exercise alert acknowledgement and outage/retention-gap response.
 observed repository/workflow; it neither enrolls targets nor runs uploaded code.
 Hosted calls require a listed administrator with current step-up assurance and
 the session's `X-CSRF-Token`. Local PostgreSQL uses the existing loopback bearer
-capability; local SQLite and static Pages do not support this write.
+capability; local PostgreSQL and static Pages do not support this write.
 Use `gh cao value publish OWNER/REPO WORKFLOW --server URL --input FILE`.
 The receipt preserves `id` and `observedAt` and returns `revision` and `updated`.
 An exact retry is a no-op; stale/conflicting captures, contract drift and
@@ -3670,6 +3466,19 @@ GitHub's own cookies: if GitHub shows only the existing account's permission
 dialogue, use GitHub's profile menu to add or switch to another account,
 then retry sign-in.
 
+**Multiple GitHub accounts in one browser.** Browsers are often signed in to several GitHub accounts, such as a personal
+account and an Enterprise Managed User account. Each OAuth callback that
+resolves a GitHub identity records its login, account ID and whether it was
+allowed in an encrypted, HttpOnly `cao_accounts` cookie scoped to `/auth/`
+(at most five accounts; it grants no access). When sign-in is denied for one
+account and this browser has used another, CAO redirects to
+`/auth/select-account` instead of the error page. The dialog lists the known
+accounts, previously allowed accounts first, and each **Continue as** link
+restarts sign-in with GitHub's `login` hint and account chooser. It also names
+the configured GitHub host: accounts on another host (another GHE.com
+subdomain or a GitHub Enterprise Server instance) cannot sign in to this
+dashboard. Signing out clears the remembered accounts.
+
 The older `{"error":"GitHub authorization failed"}` response corresponds to
 an authorization failure; current versions show a help page instead. This
 failure can mean the selected account is not an active member of an allowed
@@ -4021,9 +3830,9 @@ npm run dashboard:server:setup:macos
 Installs Go, Node.js 24, npm packages and Docker/Compose/Colima.
 `CAO_CONTAINER_ENGINE=podman` selects Podman/Compose (no Colima); default Docker
 never falls back. See [setup](../scripts/azure-local/README.md#local-service-engine-setup).
-SQLite needs neither containers nor native Redis.
+PostgreSQL is required for local development; Redis remains optional.
 
-From the repository root (default SQLite):
+From the repository root, with CAO_POSTGRES_URL configured and storage provisioned:
 
 ```bash
 npm --prefix dashboard/site ci

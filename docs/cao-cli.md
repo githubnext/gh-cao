@@ -33,8 +33,14 @@ gh cao dashboard --repo octo/api --repo octo/web
 ```
 
 Release binaries embed the pinned gh-aw log collector, the existing Go server,
-and the built dashboard. Only an authenticated GitHub CLI is required at runtime;
-there is no separate gh-aw, Node.js, npm, PostgreSQL, Redis, or container setup.
+and the built dashboard. Use an authenticated GitHub CLI and Docker or Podman;
+there is no separate gh-aw, Node.js, npm, or Redis setup. Without an explicit
+`--postgres-url` or `CAO_POSTGRES_URL`, the command pulls and starts an owned
+PostgreSQL container and provisions separate owner/runtime roles. Its data is
+bind-mounted under the ignored `.github/cao/dashboard/<scope>/postgres/` cache.
+Docker is tried first, then Podman; `--container-engine docker|podman` (or
+`CAO_CONTAINER_ENGINE`) selects one engine exclusively. An explicit
+connection bypasses container management and requires pre-provisioned storage.
 By default, all dashboard code, static assets, query contracts, and the canonical
 artifact normalizer come from the installed extension binary, not a CAO checkout
 or separately installed runtime files. Existing GitHub CLI configuration and
@@ -43,8 +49,8 @@ explicit source-development overrides described below; none requires installing
 separate CAO runtime files. The command extracts its bundled resources
 to a private temporary directory and removes them on shutdown; only the local
 evidence cache is retained. Release installation checks start the dashboard from
-an empty directory with only `gh` on `PATH` and exercise its embedded collector,
-HTTP assets, and SQLite queries.
+an empty directory with the required native executables and exercise its
+embedded collector, HTTP assets, and PostgreSQL queries.
 The command resolves the current repository when `--repo` is omitted and
 supports up to 20 explicitly named GitHub.com repositories.
 
@@ -53,7 +59,7 @@ defaults to **48 hours**, which remains its maximum per invocation. The command
 stays in the foreground, selects an available loopback port, prints the access
 URL, and collects in background passes separated by five minutes.
 The server starts without waiting for artifact downloads. Startup displays a clearly
-labelled browser URL, repository scope, SQLite cache path, refresh interval, and
+labelled browser URL, repository scope, canonical cache path, refresh interval, and
 session lifetime. The ready message also reminds you that Ctrl-C stops the
 server without deleting the cache. If repository access fails, check
 `gh auth status --hostname github.com` in the same terminal that runs the command.
@@ -65,7 +71,7 @@ One repository is processed per pass in round-robin order. Fixed date intervals
 and saved page checkpoints let later passes reach older history rather than
 repeatedly sampling only the newest runs. Dense intervals are split before
 reaching GitHub's 1000-result filtered-search ceiling. Earlier pages remain in
-SQLite until they age out of the selected window; restarting reuses the saved
+PostgreSQL until they age out of the selected window; restarting reuses the saved
 checkpoint. Discovery completion is not a guarantee of complete artifacts or
 upstream coverage.
 
@@ -82,16 +88,16 @@ instead of spending the reserve; later passes recheck quota and resume.
 GitHub clients using the same credentials share this quota, so concurrent
 external traffic can reduce the available headroom. Unknown quota fails closed.
 
-The CLI binds its ingestion pipeline to the explicit
-`cao-dashboard serve --sqlite-ingestion --sqlite PATH` server mode. It uses the
-standard built-in dashboard, server HTTP/query API, and SQLite backend, without
+The CLI binds verified canonical JSONL to the ordinary
+`cao-dashboard serve --source DIRECTORY` mode. It uses the
+standard built-in dashboard, server HTTP/query API, and PostgreSQL backend, without
 a separate local presentation model, query aliases, or `local-preview` routing.
 It does not discover or load legacy campaign dashboard bundles. Acquisition
-and atomic canonical publication stay in the CLI ingestion process; the HTTP
-server reads consistent SQLite transactions and observes committed revisions.
+and canonical publication use the production Go ingestion boundary; the HTTP
+server reads consistent PostgreSQL transactions and observes committed revisions.
 The landing page remains the standard **Overview**, with the existing factory
 header, factory stations, normal navigation and drill-downs. The shared Runs page presents recent
-executions and daily observations through canonical SQLite and revision subscriptions,
+executions and daily observations through canonical PostgreSQL and revision subscriptions,
 not browser IndexedDB. Its local daily projection reconciles observed logical
 Runs by UTC execution-start day in the same atomic publication transaction.
 Replays and reruns do not double count, and compact receipts retain observations
@@ -112,8 +118,8 @@ Value are not inferred from run success. **Coverage is partial:** uncollected
 evidence must never appear as healthy zeros.
 Successful executions are not verified outcomes.
 
-The snapshot and per-repository caches are retained in the user's cache directory,
-keyed by exact repository scope. `--cache-dir PATH` selects another private
+Canonical artifacts and per-repository caches are retained under the ignored
+`.github/cao/dashboard/` directory, keyed by exact repository scope. `--cache-dir PATH` selects another private
 directory; do not point it at an existing Activity database. For one repository,
 an existing `.github/aw/logs` artifact cache is reused automatically, or select
 it with `--logs-dir PATH`. Existing gh-aw artifacts and matching cached JSONL
@@ -513,14 +519,14 @@ to invoke it as `gh cao`.
 | Cloud deployment | `deploy azure` | Native Go; shared TOSCA dependency resolution with an embedded Azure template, read-only preflight and planning, or explicit application of a reviewed development deployment plan. |
 | Deployment bundles | `deploy init`, `deploy generate`, `deploy check` | Native Go; offline resolution of generated TOSCA 1.3 requirement graphs, embedded review-only Bicep bundles, Mermaid manifests and dependency/drift checking. No deployment or App changes. See [bundle generation](deployment-topology.md). |
 | Lifecycle | `repos add OWNER/REPO`, `update`, `upgrade-gh-aw` | Native Go; gh-aw still owns workflow generation and campaign installation records. |
-| Read-only analysis | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `api-cost`, `mcp` | Native Go with pure-Go SQLite access, hosted server queries where declared, and declarative Dashboard Language evaluation. |
+| Read-only analysis | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `api-cost`, `mcp` | Native Go using PostgreSQL canonical read sessions, hosted queries where declared, and declarative Dashboard Language evaluation. |
 | Workflow value | `value publish`, `value enable`, `value disable` | Publish prepared evidence to a hosted dashboard, or edit reviewed local policy for recurring collection of one workflow. |
 | Operator evidence | `evidence release` | Native Go; bounded read-only GitHub references, optional provenance verification and development Azure receipt summaries. No Node runtime or checkout required. |
-| On-demand dashboard | `dashboard` | Native Go; serve the existing local dashboard with automatic bounded recent collection and a private canonical SQLite cache. No subcommands, remote mutations, policy, Actions, or runtime installation. |
+| On-demand dashboard | `dashboard` | Native Go; bounded collection with automatically managed local Docker/Podman PostgreSQL unless a connection is specified. No remote mutations, policy, Actions, or runtime installation. |
 | Installation diagnostics | `doctor`, `version` | Native Go. `doctor` checks GitHub CLI, gh-aw, authentication, and basic local policy structure and compiler pin. |
 | Workflow-agent evidence APIs | `download`, `pages`, `queries`, `query-info`, `prompt`, `query`, `gh runs\|issues\|prs`, `computation intelligence\|runtime-health`, `mcp` | Supported `gh cao COMMAND` APIs inside agentic workflows, including their installed runtime dependencies; intentional overlap with operator reads, not deprecated duplicates. |
-| Active ingestion and packaging | `ingest-jsonl`, `compact-jsonl`, `hash-payloads` | Node Actions pipeline: import raw or normalized JSONL into SQLite, compact raw shards per repository, and generate normalized run/record shards plus payload checksums. |
-| Actions pipeline and maintainer tools | `discover-workflows`, `audit-jsonl`, `recycle-cache`, `issue-status`, `operational-value`, `cluster-problems`, `dashboard-complexity`, `prune-dashboard` | Invoke with `gh cao COMMAND`; not migrated to the extension. |
+| Canonical artifact import | `cao-dashboard ingest --source DIRECTORY` | Explicit verified canonical JSONL ingestion into provisioned PostgreSQL; no raw-log database conversion. |
+| Dashboard maintenance | `scripts/dashboard-query-complexity.mjs`, `scripts/prune-dashboard.mjs` | Repository-local analysis of authored Dashboard Language documents, not a second database backend. |
 
 This table groups commands by responsibility, not by interchangeable executables.
 Inspect the executable trees with `gh cao --help`,
@@ -535,7 +541,7 @@ the operator and Node runtimes.
 `audit`, `doctor`, `app-key-check`, `compile-queries`, `benchmark-queries`,
 `otel-smoke`, `simulate-api`, and `simulate-webhooks`. Its read-only `doctor`
 checks server state, data, queries, and collection; it is distinct from the
-operator installation `doctor` and the mutating Node `repair-database`.
+operator installation `doctor`. File-database repair commands are removed.
 See the [server reference](https://github.com/githubnext/gh-cao/blob/main/server/README.md)
 for deployment and administration contracts.
 
@@ -554,11 +560,12 @@ the dashboard. `pages`, `queries`, `query-info`, and definition-only `prompt`
 work outside an installed control repository. Use `--dashboard FILE` to read
 an explicit dashboard document and its directory-confined fragments.
 
-Evidence queries read the canonical `__idb_records` projection through a
-read-only SQLite connection; they do not run migrations or repair the snapshot.
-Download evidence first with an explicit operational manifest URL via
-`gh cao download --url URL`, acquire an Activity artifact, or pass `--database FILE` for
-an explicitly prepared projection. Policy mutations still operate on the current
+Evidence queries use a consistent PostgreSQL read session through the bundled
+Go server. They do not bootstrap schemas, migrate storage or repair files.
+Acquire verified canonical JSONL with `gh cao download --url URL` or an
+authenticated Actions artifact, then ingest into the selected PostgreSQL
+namespace. `gh cao dashboard` manages its own local database by default.
+Policy mutations still operate on the current
 control checkout; the executable does not grant rollout authority.
 
 ```bash
@@ -725,7 +732,7 @@ the exact current control repository. Campaign installation never commits, pushe
 or dispatches work. Prepare the root runtime with `gh cao setup`, not `gh cao add`;
 review and commit generated workflows and policy together.
 
-the existing mutating SQLite snapshot repair/retention operation. Neither Activity nor
+an unsupported file-database repair operation. Neither Activity nor
 Dashboard Actions is switched to the Go executable.
 
 ### Publish and refresh workflow value
@@ -766,7 +773,7 @@ the revision unchanged. Stale captures, changed frozen contracts and rewritten
 immutable measurements fail rather than replace accepted evidence.
 Evidence timestamps use UTC and at most microsecond precision; finer nonzero
 fractions are rejected rather than silently rounded.
-Activity replacement retains directly published evidence. Local SQLite and
+Activity replacement retains directly published evidence. The synthetic Pages demo and
 the synthetic Pages demo have no direct-publication endpoint. Pages contains
 only generated sample evidence, not Activity's operational transport.
 
@@ -1037,7 +1044,7 @@ and records the supplied operator login as a self-reported identity, not proof
 of the caller's identity. Restrict database and executor environment access
 accordingly. See
 [Hosted CLI actions](../server/README.md#hosted-cli-actions) for the operator
-workflow and SQLite debugging limitation.
+workflow and local development limitation.
 
 For a single-worker development loop without a dispatcher, use
 [Local Worker Debugging](local-debugging.md). Its request-only `debug` mode
@@ -1055,12 +1062,11 @@ authenticated Actions read access:
 gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
 ```
 
-This supplies SQLite and normalized shards for local read-only analysis.
-Production dashboards use same-origin Go/PostgreSQL; local development uses the
-same Go server over this real SQLite snapshot:
+This supplies normalized canonical JSONL for explicit PostgreSQL ingestion.
+Production and local dashboards share the Go/PostgreSQL query boundary:
 
 ```bash
-npm run dashboard:local -- --sqlite ../.cao/gh-aw-logs.sqlite
+npm run dashboard:local -- --source ../.cao --postgres-url "$CAO_POSTGRES_URL"
 ```
 
 The npm command runs from a catalog checkout; relative Go paths resolve from
@@ -1078,7 +1084,7 @@ JavaScript download commands require `--url` or `DASHBOARD_DATA_URL` ending
 in `/payload-hashes.json`. There is no implicit Pages source or site-directory
 discovery. Local Go serving likewise needs an explicit operational source when
 its cache is absent or refresh is requested. Synthetic manifests and manifests
-without a SQLite checksum are rejected.
+without canonical shard and inventory checksums are rejected.
 
 Pages is only a generated synthetic enterprise demo. It exports neither SQLite
 nor an operational agent summary and must not be used for operational analysis.
@@ -1153,26 +1159,17 @@ Render a named dashboard query as an editable agent prompt with the same templat
 
 ```bash
 gh cao prompt cost-by-campaign
-gh cao prompt campaign-runs --param campaign=dependabot --database .cao/gh-aw-logs.sqlite
+gh cao prompt campaign-runs --param campaign=dependabot --postgres-url "$CAO_POSTGRES_URL"
 ```
 
-Without `--database`, the command needs no downloaded snapshot and includes no evidence rows. With `--database FILE`, it executes the named query against that existing snapshot and includes a bounded preview; this does not grant rollout authority. Use `--dashboard FILE` to experiment with a different dashboard definition.
+Without an explicit PostgreSQL connection, definition-only prompts need no database and include no evidence rows. With `--postgres-url`, the command can include a bounded preview from that provisioned namespace; this does not grant rollout authority. Use `--dashboard FILE` to experiment with a different dashboard definition.
 
-`cao repair-database` bin) to repair a SQLite snapshot and apply retention. This
-is **not a read-only check**: it creates a backup before repair and may prune
-expired or orphaned records even when SQLite integrity is healthy. Existing
-backup filenames retain the `.doctor-backup-` prefix. The default database is
-`.cao/gh-aw-logs.sqlite`; `--ttl-days` defaults to 7 and `--run-ttl-days` defaults
-to 30 when `--ttl-days` is omitted, otherwise it follows that explicit TTL.
-Use `--ttl-days all --run-ttl-days all` to retain historical records without
-age-based pruning; structural repairs still apply.
-
-The JSON report identifies `command: "repair-database"` and retains the health,
-before/after diagnostics, repair actions, errors, and backup path. Exit status
-is 0 when healthy, 2 when the report remains unhealthy, and 1 for command errors.
-The old Node `doctor` command is rejected, not aliased. This is different from
-`gh aw doctor`, which validates the workflow installation and repository setup;
-native `gh cao doctor` and `cao-dashboard doctor` are unchanged.
+There is no file-database repair, backup conversion or compatibility command.
+PostgreSQL retention and partition maintenance remain explicit schema-owner
+operations through `cao-dashboard database maintain --store canonical --namespace NAME`.
+Native `gh cao doctor` and `cao-dashboard doctor` remain read-only diagnostics.
+They are different from `gh aw doctor`, which validates workflow installation
+and repository setup.
 
 ## Evaluate and Evolve
 
@@ -1190,7 +1187,7 @@ Without `--database`, `dashboard-complexity` normalizes every canonical database
 core, Search, and GraphQL demand; the modeled and full-grant-guaranteed fleet
 limits; and serialized runner capacity. The built-in Daily File Diet retained
 scenario queries the canonical `operational-value-evidence` source from the
-local SQLite snapshot, or from hosted PostgreSQL through `--server URL`. It has
+local PostgreSQL namespace, or from hosted PostgreSQL through `--server URL`. It has
 no checked-in evidence-file or hard-coded population fallback; missing database
 evidence is unavailable. Use `CAO_SERVER_TOKEN` for a loopback server, or the
 same `CAO_SERVER_SESSION` and `CAO_SERVER_CSRF` administrator session values as
@@ -1206,7 +1203,7 @@ Use `--collection-window-hours` to compare one synchronized hourly batch with a
 webhook- or queue-spread collection window. See the [GitHub API Capacity
 Specification](../specs/github-api-capacity.md).
 
-Data-pipeline and dashboard-maintainer commands are listed by `gh cao --help`. For the full data workflow, see [Dashboard data ingestion](dashboard-data-ingestion.md#use-local-sqlite).
+Data-pipeline and dashboard-maintainer commands are listed by `gh cao --help`. For the full data workflow, see [Dashboard data ingestion](dashboard-data-ingestion.md#use-local-postgresql).
 
 ## Review What Each Command Changed
 

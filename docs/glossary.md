@@ -60,7 +60,7 @@ The consistent entities, identities, and relationships produced by applying the 
 
 ## Canonical read contract
 
-The implementation-neutral `dashboardstore` interface (`Store` and transaction-scoped `Reader`) through which the dashboard server reads state, query results, and diagnostics in one bounded, cancellation-aware transaction. PostgreSQL and SQLite each implement it, and storage errors propagate instead of becoming successful empty data. It adds no backend fallback or shared write API, and revisions keep their backend-specific identities.
+The implementation-neutral `dashboardstore` interface (`Store` and transaction-scoped `Reader`) through which the dashboard server reads state, query results, and diagnostics in one bounded, cancellation-aware transaction. PostgreSQL implements it, and storage errors propagate instead of becoming successful empty data. It adds no backend fallback or shared write API, and revisions keep their backend-specific identities.
 
 ## CAO Framework Health
 
@@ -76,7 +76,7 @@ The Actions-only `cao-validate.yml` workflow, implemented in the shipped JavaScr
 
 ## CLI command queue
 
-A durable first-in-first-out queue of declared `cao` actions, separate from the collection task queue. Local admin and trusted canvas sessions share one queue per checkout in `.cao/cli-actions.sqlite`, and the PostgreSQL operational store can provide a deployment-scoped queue. Queued commands survive restart, interrupted executions are recorded as failed and never retried automatically, and the online dashboard and read-only previews do not initialize it. See the [dashboard README](https://github.com/githubnext/gh-cao/blob/main/dashboard/README.md#cli-command-queue) and the [operational storage specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
+A durable first-in-first-out queue of declared `cao` actions, separate from the collection task queue. Local admin and trusted canvas sessions share one queue per checkout in the selected PostgreSQL operational namespace. Queued commands survive restart, interrupted executions are recorded as failed and never retried automatically, and the online dashboard and read-only previews do not initialize it. See the [dashboard README](https://github.com/githubnext/gh-cao/blob/main/dashboard/README.md#cli-command-queue) and the [operational storage specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
 
 ## Cold-start seed
 
@@ -136,7 +136,7 @@ The explicit `generic` HTTP target with `listener: external` that lets a separat
 
 ## gh cao
 
-The operator-facing `gh cao` extension, installed with `gh extension install githubnext/gh-cao`. The curl installer is a fallback for SAML-token installation failures. It is built from the independent Go module under `cmd/gh-cao/` and `internal/cli/` and published as versioned `gh-cao-OS-ARCH` binaries with SHA-256 checksums. All extension commands, including policy initialization and modes, workflow enablement, campaign installation, onboarding and authentication, lifecycle, read-only analysis, and diagnostics, run natively in Go without Node.js, npm, or the installed CAO runtime. Actions pipeline commands and SQLite snapshot `repair-database` invoke `gh cao COMMAND` explicitly; onboarding and lifecycle commands, including hosted-executor App setup, are not available in Node. No shell launcher is installed. See [GitHub CLI extension](cao-cli.md#github-cli-extension).
+The operator-facing `gh cao` extension, installed with `gh extension install githubnext/gh-cao`. The curl installer is a fallback for SAML-token installation failures. It is built from the independent Go module under `cmd/gh-cao/` and `internal/cli/` and published as versioned `gh-cao-OS-ARCH` binaries with SHA-256 checksums. All extension commands, including policy initialization and modes, workflow enablement, campaign installation, onboarding and authentication, lifecycle, read-only analysis, and diagnostics, run natively in Go without Node.js, npm, or the installed CAO runtime. Repository-local maintenance tools use their declared entry points; onboarding and lifecycle commands, including hosted-executor App setup, are not available in Node. No shell launcher is installed. See [GitHub CLI extension](cao-cli.md#github-cli-extension).
 
 ## GitHub quota service
 
@@ -158,9 +158,13 @@ A bounded page of a declarative query output, selected by an ordered stable key 
 
 The control repository's exclusive right to admit a `live` worker for a campaign and target, decided solely from `.github/workflows/cao.json` at the exact workflow SHA. A target repository's files cannot widen, narrow, or veto this decision.
 
-## Local SQLite snapshot
+## Local PostgreSQL namespace
 
-The verified canonical SQLite file that `dashboard:local` serves through Go. The server opens it read-only: it creates no writable delta, backfills no evidence, and acquires no GitHub credentials. Creation, normalization, and maintenance stay in the JavaScript `cao-activity` pipeline. The former `--sqlite-overlay`, `--backfill`, and `--backfill-interval` options are rejected.
+The canonical and operational PostgreSQL storage used by local Go serving.
+`gh cao dashboard` manages a Docker or Podman container and ignored private cache
+unless a connection is supplied. Its separate provisioning process owns DDL;
+the query server uses non-owner runtime credentials. Verified canonical JSONL
+is ingested explicitly, and there is no database-file conversion or fallback.
 
 ## Maintenance Governance
 
@@ -208,7 +212,7 @@ A setup profile for a public control repository that monitors currently public r
 
 ## Repair database
 
-The Node-only `node activity/cao.mjs repair-database` command, also available as the `cao repair-database` bin, that repairs a SQLite snapshot and applies retention. It is not a read-only check: it creates a backup first and may prune expired or orphaned records, and it is distinct from `gh cao doctor`. See the [CLI reference](cao-cli.md).
+File-database repair and conversion commands are removed. PostgreSQL partition and retention maintenance are explicit schema-owner operations; read-only diagnostics never acquire that authority. See the [CLI reference](cao-cli.md).
 
 ## Repo memory
 
@@ -220,7 +224,7 @@ One execution of a coordinator, worker, or standalone workflow. A coordinator ru
 
 ## Run-linked detail
 
-The Domain, Tool, Skill, Friction, Audit, Issue, experiment assignment, grader observation, and eval observation records attached to a Run. Browser IndexedDB and the Activity SQLite projection expire run-linked detail after a bounded 7-day window by default while retaining Run summaries for 30 days and compact Operational Value records for at least 365 days; the Go server's canonical Postgres schema expires the same run-linked tables independently from run retention on its own configurable window. Rich current Value evidence and collection health remain independent of Run-detail expiry. Expiring run-linked detail MUST NOT remove its retained Run or the Run's structural parents. See `specs/dashboard-data.md`, `specs/value.md`, and [Activity](activity.md).
+The Domain, Tool, Skill, Friction, Audit, Issue, experiment assignment, grader observation, and eval observation records attached to a Run. Browser IndexedDB and PostgreSQL expire run-linked detail after a bounded 7-day window by default while retaining Run summaries for 30 days and compact Operational Value records for at least 365 days; the Go server's canonical Postgres schema expires the same run-linked tables independently from run retention on its own configurable window. Rich current Value evidence and collection health remain independent of Run-detail expiry. Expiring run-linked detail MUST NOT remove its retained Run or the Run's structural parents. See `specs/dashboard-data.md`, `specs/value.md`, and [Activity](activity.md).
 
 ## Rollout mode
 

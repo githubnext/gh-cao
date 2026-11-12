@@ -131,7 +131,7 @@ func newPagesHandler(directory, basePath string) (*os.Root, *pagesHandler, error
 	if err != nil || len(marker) > 4096 || json.Unmarshal(marker, &demo) != nil ||
 		demo.Tool != "cao-pages-demo" || !demo.Synthetic {
 		_ = root.Close()
-		return nil, nil, errors.New("pages accepts only the synthetic demo; run npm run dashboard:pages:build, or use serve --sqlite for operational data")
+		return nil, nil, errors.New("pages accepts only the synthetic demo; run npm run dashboard:pages:build, or use serve with PostgreSQL for operational data")
 	}
 	for _, name := range []string{"gh-aw-logs.sqlite", "agent-summary.json", "payload-hashes.json"} {
 		if _, err := root.Stat(name); !errors.Is(err, os.ErrNotExist) {

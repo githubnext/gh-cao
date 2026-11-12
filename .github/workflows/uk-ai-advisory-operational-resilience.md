@@ -185,6 +185,39 @@ steps:
           }
         }
 
+        async function cursorRequest(route, parameters, maxPages) {
+          const items = [];
+          const cursors = new Set();
+          let after;
+          try {
+            for (let page = 1; page <= maxPages; page += 1) {
+              const response = await github.request(route, {
+                owner,
+                repo,
+                ...parameters,
+                per_page: 100,
+                ...(after ? { after } : {}),
+              });
+              items.push(...(Array.isArray(response.data) ? response.data : []));
+              const next = /<([^>]+)>;\s*rel="next"/.exec(response.headers?.link || '')?.[1];
+              if (!next || page === maxPages) break;
+              try {
+                after = new URL(next).searchParams.get('after');
+              } catch {
+                after = null;
+              }
+              if (!after || cursors.has(after)) {
+                throw new Error('invalid pagination cursor');
+              }
+              cursors.add(after);
+            }
+            return { accessible: true, status: 200, items };
+          } catch (error) {
+            core.warning(`${route} could not be read (status ${error.status || 'unknown'}).`);
+            return { accessible: false, status: error.status || null, items: [] };
+          }
+        }
+
         const repository = await request('GET /repos/{owner}/{repo}');
         const commits = await boundedRequest('GET /repos/{owner}/{repo}/commits', { since }, 3);
         const securityIssues = await boundedRequest(
@@ -202,7 +235,7 @@ steps:
           { state: 'open' },
           2,
         );
-        const dependabotAlerts = await boundedRequest(
+        const dependabotAlerts = await cursorRequest(
           'GET /repos/{owner}/{repo}/dependabot/alerts',
           { state: 'open' },
           2,

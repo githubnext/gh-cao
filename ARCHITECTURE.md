@@ -179,7 +179,6 @@ flowchart LR
     Shards["Bounded JSONL shards"]
     Runs["Compact run-information shards"]
     Records["Detailed domain, tool, audit, and issue shards"]
-    SQLite["SQLite projection"]
     Publisher["Read-only operational artifacts"]
     Sample["Synthetic enterprise raw samples"]
     Normalize["Production normalization and demo build"]
@@ -197,7 +196,6 @@ flowchart LR
     CLI["cao CLI and agents"]
 
     Logs --> Shards
-    Shards --> SQLite
     Shards --> Runs
     Shards --> Records
     Runs --> Publisher
@@ -206,12 +204,10 @@ flowchart LR
     Worker --> IndexedDB
     IndexedDB --> Query
     Publisher --> GoServer --> Postgres
-    SQLite --> Local["Same Go handler<br/>local read-only queries"] --> Query
     GitHub -->|"webhooks + rebuild input"| GoServer
     GoServer --> Redis
     Postgres --> GoServer --> Query
     IndexedDB --> Compute --> Results --> Query
-    SQLite --> Compute
     Postgres -->|"bounded repository-scoped<br/>Dashboard Language queries"| HostedValue
     HostedValue -->|"revision-checked canonical publication"| Postgres
     Query --> UI
@@ -221,12 +217,12 @@ flowchart LR
 The legacy Actions Activity publisher, dashboard artifact builder, local Value
 workflow, component manifests, and shared cache are removed. Hosted collection
 uses the authenticated Go server. Local analysis accepts explicitly prepared,
-checksum-verified operational SQLite and normalized JSONL snapshots; it never
+checksum-verified normalized JSONL artifacts for PostgreSQL ingestion; it never
 discovers a legacy dashboard bundle or bootstraps empty operational evidence.
 
 Production uses the same-origin Go/PostgreSQL host. Local development uses the
-same Go handler and declarative views over a real, read-only operational SQLite
-snapshot. Pages is only a synthetic enterprise demo: generated raw samples pass
+same Go handler, PostgreSQL adapters and declarative views. Pages is only a
+synthetic enterprise demo: generated raw samples pass
 through production normalization, canonical ingestion, worker queries, and the
 same views. It has no real-data input option, SQLite download, agent summary, or
 live services. Its declarative **Synthetic enterprise demo** callout identifies
@@ -236,16 +232,16 @@ root `payload-hashes.json`; browser storage keys carry `synthetic-demo` and
 service-worker caches use `demo`. Changing data URLs as well as storage keys
 prevents old same-origin service-worker responses from supplying real evidence.
 
-SQLite and IndexedDB remain independently rebuildable projections, not sources
+PostgreSQL and IndexedDB remain independently rebuildable projections, not sources
 for one another. Compacted run-information shards load before detailed records;
 browser ingestion fails closed rather than falling back to raw Activity JSONL.
 Actions and explicitly
 selected static Operational Value
-reconstruction use the rebuildable SQLite projection. A collector-enabled
+reconstruction use the rebuildable PostgreSQL projection. A collector-enabled
 hosted server instead runs the same reviewed JavaScript metric definitions
 against one repeatable-read, exact-enrollment PostgreSQL revision through the
 production Dashboard Language SQL boundary. It does not create, copy, open, or
-ingest an intermediate SQLite database. Completed observations replace the
+ingest an intermediate PostgreSQL database. Completed observations replace the
 canonical `operationalValues` collection under the namespace writer lock with
 an expected-revision check; the accepted JSONL is mirrored only for cold-start
 lake recovery and is never the hosted computation input. The hosted Go server
@@ -274,7 +270,7 @@ publication; statistical dependencies read those private, non-partitioned copies
 without changing exact dependencies. Incremental revisions mark the frozen source
 stale, never mutate sampled evidence or weights; only a complete publication
 rebuilds the seven-day frame. Admission limits reject an entire statistical
-snapshot rather than truncate bundles. SQLite and browser sampling remain query
+snapshot rather than truncate bundles. IndexedDB browser sampling remain query
 projections. Hot eviction and daily aggregates from the three-tier proposal remain
 separate work; persistence cannot recover evidence missing at admission or reduce
 canonical storage/downloads.
@@ -287,7 +283,7 @@ iteration, without fallback to embedded assets on disk errors. Both resource
 modes use the same authenticated handler and server-side query bootstrap.
 Data snapshots, policy, credentials, and hosted storage remain external inputs.
 `npm run dev` and `npm run dashboard:local` build the site and invoke `serve`
-against a verified cached SQLite snapshot; `serve-hosted` retains the reviewed
+against explicitly configured PostgreSQL storage; `serve-hosted` retains the reviewed
 PostgreSQL/OAuth host. Explicit `serve-pages` serves a prepared synthetic Pages
 artifact unchanged, including repository base paths, so the browser exercises
 IndexedDB rather than the hosted HTTP backend. The local Pages preparation
@@ -312,27 +308,29 @@ namespace; operators can explicitly clear the affected site's legacy storage.
 There is no standalone Node dashboard CLI, admin server or process replacement.
 The Copilot canvas also uses Go `serve`: `dashboard/canvas-go-host.mjs` launches
 the bundled server module or an explicitly selected compatible executable.
-Go owns the capability-protected browser origin, assets, verified canonical
-SQLite queries, diagnostics, read-only repository memory and revision events.
+Go owns the capability-protected browser origin, assets, canonical PostgreSQL
+queries, diagnostics, read-only repository memory and revision events.
 Canvas startup reads the workspace's prepared `.cao/` snapshot, or its explicitly
-selected `snapshotDirectory`, and requires checksum-verified SQLite. It performs
+selected `snapshotDirectory`, and ingests its checksum-verified canonical JSONL
+shards into PostgreSQL. It performs
 no Actions artifact or legacy dashboard-bundle discovery.
-Synthetic manifests and manifests without SQLite checksums are rejected.
+Synthetic manifests and manifests without canonical shard checksums are rejected.
 Dashboard backlinks require explicit `caoUrl` or `CAO_DASHBOARD_URL`, never a
 GitHub Pages API lookup. There is
 no Node query backend, logical-source HTTP transport or browser ingestion
 fallback. Published inventory quality may accompany the snapshot as metadata
 only; missing quality remains unknown, never inferred complete from row counts.
 `dashboard/canvas-server.mjs` is a private loopback-only integration adapter
-for JSON composition/live reload, authoring callbacks, bounded local-user
-GitHub reads and trusted command callbacks. Go proxies only those integration
+for JSON composition/live reload, authoring and trusted command callbacks.
+Bounded local-user GitHub reads and their cache remain in Go/PostgreSQL.
+Go proxies only those integration
 routes on the same public origin. Installed plugins carry the server sources
 and native query module; they never build or import executable workspace code.
 The adapter owns the Go child's stdin lifetime, stops it before removing staged
 assets, and cleans up failed startup. Canvas command execution requires paired
 trusted execution and approval callbacks; read-only authoring starts no command queue.
 Trusted canvas CLI actions use a separate, single-owner
-operational SQLite queue in `.cao/cli-actions.sqlite`, never browser IndexedDB
+operational PostgreSQL queue namespace, never browser IndexedDB
 or the disposable dashboard projection. Capability-protected local endpoints
 admit only declared, validated actions with the existing trusted approval
 boundary. One existing CLI executor runs approved FIFO work independently of
@@ -352,7 +350,7 @@ no queue, perform no queue requests and gain no execution authority.
 The focused `CLICommandQueues` / `CLICommandQueue` operational service contracts
 also provide PostgreSQL-backed command storage through `OperationalServices.CLICommands`.
 This is separate from the collection task queue and does not enable hosted
-command execution or replace the local SQLite executor. PostgreSQL stores
+command execution or replace the local PostgreSQL executor. PostgreSQL stores
 queue policy, command history and ordered output in namespace-isolated
 `cao_operational_cli_*` tables under protected-state budgets. Database-time leases
 and monotonic ownership fences reject stale writers; lease loss retains
@@ -412,7 +410,7 @@ queries; importing evidence grants no target authority and navigation never
 acquires evidence.
 Separate `workflowValueCollections` records retain reviewed registrations and
 bounded collection decisions through the same producer, normalization and
-browser/SQLite/PostgreSQL paths. Decisions do not advance actual-attempt,
+browser/PostgreSQL paths. Decisions do not advance actual-attempt,
 accepted-capture or evidence-cutoff clocks. Declarative Value queries expose
 enabled, disabled and unconfigured health before a first report; stale/conflicting
 decisions and regressed attempt history fail closed.
@@ -478,7 +476,7 @@ field/type compatibility. No new PostgreSQL schema or HTTP operation is added.
 Enablement requires exact repository scope and destination/data suitability
 approval. Independent bounded retries, capacity checks, gaps and degraded status
 never make dashboard/collection readiness depend on ADX. Static Pages, local
-SQLite, volatile state and per-request workers do not export; v1 does not
+Local bearer profiles, volatile state and per-request workers do not export; v1 does not
 propagate deletion/withdrawal or promise physical purge or full-session coverage.
 ADX is derived analytics, never enrollment, rollout, billing or query authority.
 The local HTTP simulator validates delivery, not Kusto execution or real free
@@ -536,7 +534,7 @@ The independently default-off Parquet session archive
 approved analytics without changing canonical PostgreSQL schemas, queries, ingestion,
 retention, or operational state. It reuses the existing approved `adxtrace`
 projection and the authorized pre-normalization acquisition visit. Local
-SQLite archive access is limited to snapshot-declared repositories and does not
+PostgreSQL history namespace access is limited to snapshot-declared repositories and does not
 start collection; co-resident hosted workers supply only enrolled authorized
 repositories. Archive scope
 further narrows those visits. Multiple enabled destinations intersect admitted
@@ -809,17 +807,10 @@ External revocation before local receipt persistence remains an explicit
 uncertainty window, resolved by a later repeat revoke or expiry observation,
 not an exactly-once claim. Complete forwarding consumes committed audit rows,
 including storage-owned events absent from the inline mirror.
-For local debugging only, `--hosted-cli-sqlite` and `execute-cli --sqlite`
-share a loopback-only SQLite file (`server/internal/operational/sqlite`) that
-provides the same queue and audit table without PostgreSQL.
-Local `database bootstrap --store operational --sqlite PATH` provisions that
-file explicitly; runtime opens only existing state, and audit retention runs
-only through the explicit `database retain-audit` command. `audit deliver`
-uses a read-only SQLite connection and deferred verification transaction, while
-`audit verify` retains append authority to record its result. SQLite does not
-replace the canonical dashboard backend or reproduce PostgreSQL role isolation.
-That SQLite development profile may explicitly select an alternative
-`ContainerLifecycle` adapter without changing admission or token authority.
+Local debugging uses the same PostgreSQL operational queue, audit table,
+namespace isolation and role separation as production. Explicit
+--local-development permits development-only container providers on loopback;
+it never selects another storage backend or grants bootstrap authority.
 Docker remains the production default and keeps its local-default-context
 restriction. Production workloads use `--network none`; a private read-only
 Unix socket and SHA-256-verified, architecture-matched relay built from reviewed
@@ -827,13 +818,13 @@ server source carry HTTPS CONNECT to an executor-owned exact-host proxy.
 Every DNS address is validated before numeric dialing, private GHES needs
 exact host/IP approval, and metadata/loopback/link-local reach stays denied.
 Policy and verified relay bytes are immutable for the executor lifetime.
-Missing production egress configuration fails startup; only SQLite Docker
+Missing production egress configuration fails startup; only explicit local Docker
 development with no egress settings retains the previous bridge mode.
 The proxy is bounded and canceled with its command; losing egress never proves
 workload termination or releases retained claims. No shared host-network
 configuration changes or new production runtime providers are introduced.
 Linux development may explicitly select local rootless Podman with
-`CAO_HOSTED_CLI_CONTAINER_RUNTIME=podman` and `execute-cli --sqlite`.
+`CAO_HOSTED_CLI_CONTAINER_RUNTIME=podman` and `execute-cli --local-development`.
 Every Podman invocation forces `--remote=false`; an owned private engine state
 directory establishes the `cao-hosted-cli` execution namespace (SQLite Podman
 does not support `--namespace`). Remote environment and explicit engine/storage
@@ -914,82 +905,68 @@ server logs, query and ingestion spans, and Postgres child spans. An
 observability backend is diagnostic infrastructure only: it cannot become
 dashboard data authority, policy, or rollout authority.
 
-#### Local canonical snapshot serving
+#### Local PostgreSQL serving
 
-The local Go `serve` command defaults to a cached canonical SQLite projection
-through the ordinary HTTP query, canonical API, diagnostics, revision
-subscriptions, and optional read-only MCP boundary.
-It reuses `.cao/gh-aw-logs.sqlite` in the checkout without another download.
-A missing cache requires an explicitly selected operational snapshot source;
-there is no default Pages download. `--sqlite PATH`
-selects another cache with the same behavior. An explicit `--postgres-url`,
-`--source`, or `--redis-url` selects the PostgreSQL profile; database service
-environment variables alone do not override the SQLite default.
-`server/internal/sqlitex/` implements the existing canonical storage reader
-contract behind `server/internal/dashboardstore/`; PostgreSQL's SQL executor,
-ingestion, and hosted defaults remain unchanged.
+The local Go `serve` command requires PostgreSQL, selected by `--postgres-url`
+or `CAO_POSTGRES_URL`. Local and hosted servers use the same canonical schema,
+bounded SQL planner, repeatable-read transactions, HTTP query API, diagnostics,
+revision subscriptions, and optional MCP boundary. There is no file-database
+backend, automatic conversion, compatibility adapter, or fallback.
+Owner-run database bootstrap provisions canonical and operational namespaces;
+runtime credentials open existing state without DDL. An explicit `--source`
+ingests verified canonical JSONL artifacts before serving. Acquisition remains
+an explicit operator action, never a Pages download or inferred hosted export.
 
 The implementation-neutral `dashboardstore` package owns the `Store` and
 transaction-scoped `Reader` interfaces together with `State`, `Page`,
 `ResourceLimits`, and `ExecutionOptions`. It depends only on the shared model
-and query vocabulary, never on a storage adapter or driver. PostgreSQL and
-SQLite implement that contract; legacy PostgreSQL type names are reverse
+and query vocabulary, never on a storage adapter or driver. PostgreSQL
+implements that contract; legacy PostgreSQL type names are reverse
 aliases for source compatibility, not the contract's owner. HTTP queries and
 the canonical API consume the neutral reader. State, query results, and
 diagnostics share one bounded, cancellation-aware read transaction; callback
 and storage errors propagate rather than turning unavailable storage into
 successful empty data. Revisions retain their backend-specific identities.
-The historical `ExecuteSQLPlan` method names do not promise a common execution
-engine: PostgreSQL compiles SQL, while SQLite uses its bounded Go evaluator
-and explicitly rejects resource-limit overrides. This boundary does not add
-backend fallback, a hosted SQLite profile, or shared write/ingestion APIs.
-Shared conformance tests exercise both real adapters, including concurrent
+PostgreSQL compiles declarative plans to bounded SQL. This boundary does not add
+backend fallback or shared write/ingestion APIs.
+Conformance tests exercise the real adapter, including concurrent
 publication and next-read revision visibility; dependency tests keep contract
 ownership and production dependencies independent of the implementations.
 
 Acquisition requires `DASHBOARD_DATA_URL` or an explicit URL naming an operational
 `payload-hashes.json` directly. Site-root and `cao/` discovery are not supported;
 the synthetic Pages site is not an operational snapshot source.
-`serve --download-sqlite[=URL]` explicitly refreshes even an existing cache before
-opening it. Alternatively, an authorized operator downloads the Activity artifact
+An authorized operator downloads the Activity artifact
 with `gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao`
-and selects its cached database with `--sqlite PATH`. This requires Actions read
-access and introduces no hosted snapshot-export API. Bounded streaming,
-manifest SHA-256 verification, and canonical-version validation precede atomic
-replacement; failed acquisition preserves the old file and fails startup.
-This acquisition path does not ingest shards or relax read-only snapshot access.
-Invalid or unreadable existing caches and dangling symlinks fail closed rather
-than triggering automatic repair downloads.
-
-This profile is loopback-only and bearer-authenticated, with no PostgreSQL or
-Redis service requirement. It opens the existing versioned snapshot read-only,
-never bootstraps, migrates, repairs or ingests it, and uses one consistent read
-transaction per request. The bounded native Go evaluator and canonical SQLite
-reader live in the small independent `internal/dashboardquery/` module shared
-by the root extension and server; neither module acquires the other's dependency
-graph. Request services use bounded volatile memory without OAuth, collection,
-webhook, or hosted execution capabilities. Query result caching is disabled;
-in-place commits change the revision and notify active subscriptions. Snapshot
-quality remains unknown without stronger evidence. This default local mode
-does not introduce a hosted SQLite backend or a fallback from PostgreSQL.
-Explicit SQLite creation, normalization, backfill, and maintenance belong to the
-JavaScript `cao` evidence tools, not the read-only Go serving profile. Local serving does not
-look up GitHub credentials, launch acquisition or ingestion tools, create a
-writable delta, or attach previous `.local.sqlite` overlays. Existing overlay
-files are left unchanged. Ordinary and internal canvas serving both read only
-the selected canonical snapshot; externally committed changes are observed
-through the same native query and revision-subscription boundaries.
-This does not change the separate hosted PostgreSQL collector or its runtimes.
+and ingests its canonical shards into the selected PostgreSQL namespace. This
+requires Actions read access and introduces no hosted snapshot-export API.
+Manifest SHA-256 verification and canonical-version validation precede atomic
+publication; failed ingestion preserves the prior committed state.
+The profile is loopback-only and bearer-authenticated. Database credentials
+stay in the server process, never in the browser or canvas adapter. Externally
+committed revisions notify active subscriptions through the ordinary query
+boundary. Local storage does not grant hosted collection or execution authority.
 
 `gh cao dashboard` is a separately selected native operator acquisition profile
+that also owns local PostgreSQL setup unless a connection is supplied. It
+tries Docker then Podman unless `--container-engine` or `CAO_CONTAINER_ENGINE`
+selects one engine exclusively, verifies an
+owned loopback-only container, and bind-mounts its persistent data beneath the
+ignored `.github/cao/dashboard/<scope>/postgres/` cache. The operator invokes
+separate provisioning with owner credentials, then passes only a non-owner
+runtime login to ingestion and the query server. An explicit connection bypasses
+both container management and provisioning. Image layers remain engine-owned;
+the container and cache persist across dashboard sessions.
+
+The acquisition profile runs
 for investigations lasting at most 48 hours per invocation, retaining up to seven
 days of evidence. It resolves the current repository
 or up to 20 exact `--repo` selections, calls the embedded pinned gh-aw log collector
 with all available artifact sets, audit evidence and its normal artifact/JSONL
 cache semantics, and combines that evidence with fresh
-bounded GitHub workflow/run reads. It owns a separate private canonical SQLite
-projection in the user's scope-keyed cache, not an Activity database, browser
-database, hosted store, or writable server overlay. Its trusted generated
+bounded GitHub workflow/run reads. It publishes verified canonical JSONL in the
+scope-keyed `.github/cao/dashboard/` cache and ingests it into PostgreSQL,
+never a browser database or writable server overlay. Its trusted generated
 ingestion bundle reuses `gh-aw-logs.js` and the canonical normalizer in a bounded
 pure-Go JavaScript runtime. No filesystem, process or network APIs are exposed
 to that runtime; it normalizes supplied evidence, never executes dashboard
@@ -1018,9 +995,9 @@ same transaction, independently of the rolling detail window. Replay, attempt
 corrections and UTC-week retention follow the shared daily contract. Counts
 describe partial admitted observations, not complete upstream history.
 It never fabricates campaign policy, queue backlog, accepted outcomes, or
-uncollected event evidence. The CLI binds ingestion to `serve --sqlite-ingestion --sqlite PATH`, which uses
+uncollected event evidence. The CLI binds ingestion to `serve --source DIRECTORY`, which uses
 the standard server dashboard document, canonical queries, HTTP API and revision
-subscriptions with a SQLite backend. There is no separate immediate/local
+subscriptions with a PostgreSQL backend. There is no separate immediate/local
 presentation model, query-source aliasing, or `local-preview` route. The standard
 Overview, navigation, templates, controls and drill-downs render through the same
 server pipeline; ordinary declarative capability requirements gate unavailable
@@ -1050,7 +1027,7 @@ public subcommands or remote run mutations and grants no rollout authority or
 hosted CLI execution. A private native adapter enables only declared
 repository maintenance commands in the selected exact scope, with mandatory
 pull-request publication and trusted terminal approval for every execution.
-The existing operational SQLite command queue owns IDs, idempotency, output,
+The existing operational PostgreSQL command queue owns IDs, idempotency, output,
 cancel/retry and fail-closed recovery, separately from canonical evidence.
 The ordinary bearer-authenticated server owns that queue, requires same-origin
 mutation requests, and proxies validated execution plans to
@@ -1059,19 +1036,10 @@ maintenance commands. Subprocess completion must be confirmed before settlement.
 Unix terminal approval is cancellation-scoped; unsupported platforms and missing
 terminals fail closed. Ordinary local serving and hosted administration are unchanged.
 
-Its fixed local evaluator profile admits 500,000 input/intermediate rows and
-50 million operations with 1 GiB working-source and 2 GiB / 2 million live
-retained-row budgets; final-consumer release discards completed DAG inputs.
-Backward field liveness narrows row-local projections and removes unused pure
-computations. SQLite executes root field selection natively while retaining full
-stored-record byte checks, JSON types, missing-value semantics and IndexedDB
-UTF-16 key ordering; unknown shapes and requested raw sources remain complete.
-Read-only memory mapping is capped at 1 GiB. Remaining local operators execute
-in the shared Go evaluator, not a claimed SQLite SQL-plan compiler.
-Wire output remains bounded to 100,000 rows. The shared engine's default CLI
-limits and hosted PostgreSQL limits remain unchanged. This local-only profile
-defaults to a 300-unit/minute weighted query-admission bucket while preserving
-explicit embedding overrides and all other request policies.
+Local requests use the production PostgreSQL SQL planner and resource limits.
+The local profile retains a 300-unit/minute weighted admission bucket while
+preserving explicit overrides and other request policies. Revision subscriptions
+observe external PostgreSQL publications without a stale local result cache.
 
 #### Hosted storage boundary
 
@@ -1177,7 +1145,7 @@ Native `gh cao api-cost` executes the deterministic planning model in
 collector grants and serialized runner time separate, supports declarative
 custom acquisition scenarios, and ships a Daily File Diet profile. The retained
 profile reads only canonical Value evidence through one Dashboard Language
-query against local SQLite or the Go server's PostgreSQL query boundary; it has
+query against local PostgreSQL or the Go server's PostgreSQL query boundary; it has
 no Activity-workspace, checked-in evidence-file or population-default fallback.
 It predicts capacity only; runtime admission and per-request accounting remain
 authoritative. With `--server URL --calibrate`, the retained profile reads
@@ -1240,11 +1208,11 @@ and the starting generation, manifest, policy and retained-result identities;
 changed inputs defer publication rather than overwrite concurrent evidence.
 Normalized timestamped records then rebuild
 the canonical Operational Value collection in every storage profile.
-Package-level `problem-clustering.mjs` programs read a private Activity SQLite
+Package-level `problem-clustering.mjs` programs read a private Activity canonical evidence
 snapshot and emit bounded problem records with actionable fix prompts through
 `cao cluster-problems`.
 Activity validates their output and atomically replaces only the contributing
-package's rows in the disposable `cao_problems` SQLite projection; a failed
+package's rows in the disposable `cao_problems` PostgreSQL projection; a failed
 package computation retains its prior rows and cannot mutate canonical evidence,
 while removing a package removes its rows on the next clustering run. Package
 computations run as bounded, timed, cancelable subprocesses so one worker fault
@@ -1280,8 +1248,8 @@ dashboard target is unchanged. Production startup requires an explicit role and 
 Receive permits plaintext only on numeric loopback; non-loopback listeners
 require both TLS certificate and key.
 
-The explicit `local` role uses a private, dedicated SQLite queue adapter under
-`server/internal/operational/sqlite/` and a read-only repository Events API
+The explicit `local` role uses a private, dedicated PostgreSQL queue adapter under
+`server/internal/operational/postgres/` and a read-only repository Events API
 polling adapter under `server/internal/webhookgatewaylocal/`. It passes signed
 in-process HTTP requests through the real ingress and runs the real fenced
 worker; only authorization evidence and dispatch acceptance are synthetic.
@@ -1530,8 +1498,9 @@ and removal remain authenticated and never hydrate notification payloads.
 | `<operation>/aw.yml` | Campaign boundary and installation manifest for an operation. User-facing operations include `cao-evolution/`, `dependabot/`, `eu-cra-compliance/`, `optimization/`, `repo-assist/`, `self-care/`, `software-development-practices/`, and `uk-ai-advisory/`. |
 | `<operation>/operational-value.mjs` | Optional deterministic repository-scoped operational-value computation installed with its package. |
 | `<operation>/problem-clustering.mjs` | Optional bounded problem computation installed with its package. |
-| `cmd/gh-cao/`, `internal/cli/`, `internal/ghcli/`, `dashboard/catalog.go` | Independent, entirely Go operator-facing `gh cao` executable, including onboarding, campaign and policy management, SQLite queries, computations and MCP; embeds the dashboard's authoritative JSON contracts. Actions pipeline commands remain Node-owned. |
-| `internal/dashboardquery/` | Small independent Go module sharing the bounded local Dashboard Language evaluator and read-only canonical SQLite reader between the extension and explicit local server profile; never a hosted PostgreSQL fallback. |
+| `activity/` | Deterministic Activity collection, JSONL ingestion, PostgreSQL projection, and the `cao` CLI. |
+| `cmd/gh-cao/`, `internal/cli/`, `internal/ghcli/`, `dashboard/catalog.go` | Entirely Go operator-facing `gh cao` executable, including onboarding, policy management, PostgreSQL-backed queries, computations and MCP; embeds the authoritative JSON contracts and uses the bundled server's canonical read boundary. Actions packaging remains Node-owned. |
+| `internal/dashboardquery/` | Independent Go module owning bounded native Dashboard Language evaluation and the canonical read-session contract; PostgreSQL reads stay behind the server-owned adapter. |
 | `dashboard/` | Dashboard campaign, report/source adapters, canvas-only authoring bridge, and shared browser UI served operationally by Go or as a synthetic-only Pages demo. |
 | `server/` | Optional host-neutral Go HTTP(S) service, deployed-artifact ingester, authenticated canonical API, webhook/rebuild control, Postgres entity storage and default operational state, explicit Redis or single-process memory alternatives, server-side Dashboard Language query engine, externally hosted handler facade, container image, and Azure Functions deployment profile. |
 | `server/cmd/cao-webhook-gateway/`, `server/internal/webhookgateway/`, `server/internal/webhookgatewayhost/` | Optional isolated gateway entry point, consumer contracts and pure decisions, and host adapters; durable state extends the existing PostgreSQL operational adapter. |
@@ -1595,10 +1564,11 @@ modules; `CAO_RUNTIME_ROOT` is no longer an extension input. The default reviewe
 catalog, fragments, canonical source projections, and MCP contract are embedded
 directly from the dashboard's JSON documents, not duplicated as a second catalog.
 An explicit `--dashboard` reads a JSON document with directory-confined fragments.
-The Go Dashboard Language evaluator resolves those declarations against canonical
-SQLite records; the SQLite connection is read-only and performs no migration or
-snapshot repair. JavaScript parity oracles are test-only. Empty-PATH standalone
-binary tests enforce independence from the installed runtime.
+The Go Dashboard Language evaluator resolves those declarations through the
+bundled server's transaction-scoped PostgreSQL canonical reader. It performs
+no schema migration or file import. JavaScript parity oracles are test-only.
+Catalog-only standalone tests enforce independence from Node and services;
+data-backed analysis explicitly requires PostgreSQL.
 Execution never changes the working directory or grants policy authority.
 Help, version, and catalog discovery work without Node or GitHub access. Native Go
 `doctor` performs bounded read-only GitHub CLI, gh-aw version, authentication,
@@ -1606,8 +1576,8 @@ and basic local policy structure/compiler-pin checks, with text or JSON results
 and nonzero status for failed or skipped checks. Authentication may contact
 GitHub; raw authentication output and subprocess errors are never reported.
 Doctor does not replace production policy/workflow validation, grant authority,
-or invoke the Node snapshot-repair command. Actions and Node-only tools invoke
-`gh cao COMMAND` explicitly, including SQLite snapshot `repair-database`.
+or bootstrap database storage. Actions and Node-only tools invoke
+`node activity/cao.mjs <command>` explicitly for canonical JSONL preparation.
 There is no shell launcher.
 `gh cao deploy` owns both offline bundle generation (`init`, `generate`, `check`)
 and guarded Azure development deployment (`azure`). `internal/topology/` owns
@@ -2179,9 +2149,8 @@ not authorize cross-repository evidence access.
   compiler, agent harness, authentication, and safe-output processing.
 - **Node.js 24 and ECMAScript modules** implement dependency-light control,
   collection, data, and local tooling.
-- **JSONL** is the bounded evidence interchange; **SQLite** supports local tools
-  and agents; **IndexedDB** supports the synthetic Pages demo; **Postgres**
-  stores and queries current hosted dashboard sources through the canonical
+- **JSONL** is the bounded evidence interchange; **IndexedDB** supports the
+  synthetic Pages demo; **Postgres** stores and queries local and hosted data through the canonical
   adapter and implements default durable operational services; **Redis** is
   an explicit alternative operational adapter for caches, queues, coordination, rate limits,
   and sessions, with bounded volatile memory available only for an explicitly

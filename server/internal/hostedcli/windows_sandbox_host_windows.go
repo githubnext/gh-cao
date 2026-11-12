@@ -40,7 +40,7 @@ func newWindowsSandboxHost(binary string) (windowsSandboxHost, error) {
 	if err != nil {
 		return windowsSandboxHost{}, errors.New("hosted CLI Windows Sandbox machine-wide state location is unavailable")
 	}
-	// One machine-wide directory, NOT one per project, SQLite DB, executable,
+	// One machine-wide directory, NOT one per project, database, executable,
 	// session, or user. The first configured account owns this local profile.
 	// Another account cannot take it over: an ACL mismatch fails closed.
 	root := filepath.Join(programData, "CAO.WindowsSandboxExecutor.v1")

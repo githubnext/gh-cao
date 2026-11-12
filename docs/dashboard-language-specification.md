@@ -76,7 +76,7 @@ dashboards neither enable this transport nor request queue data.
 
 The `storage-info` element also declares `data.sources: []`. It presents deployment
 configuration rather than activity evidence: browser-local IndexedDB, local-server
-SQLite, or server PostgreSQL. Unknown server configuration remains unknown; this
+or server PostgreSQL. Unknown server configuration remains unknown; this
 element does not query, derive, or infer a storage engine from retained rows.
 
 The interaction-only `prompt-wizard` declares `data.sources: []` and
@@ -764,11 +764,11 @@ A grouped temporal series may declare `trend.direction` as the name of a carried
 The transform preserves source-row order and measure declaration or map-property order. It emits no more than 64 mapped metrics per input observation and no more than 100000 rows. It executes in the data Web Worker through the same serializable tidy pipeline as filtering, aggregation, and prediction.
 
 Execution is backend-specific without changing the declaration: browser
-IndexedDB queries use the data worker, local SQLite queries use the shared Go
+IndexedDB queries use the data worker, local PostgreSQL queries use the shared Go
 evaluator, and hosted PostgreSQL queries compile to SQL. The worker and Go
 evaluator group points during expansion instead of retaining a second tidy
 table, parse each observation's timestamp once, and stably order cached numeric
-timestamps. Trend summaries reuse that ordering. SQLite projects the complete
+timestamps. Trend summaries reuse that ordering. PostgreSQL projects the complete
 declared temporal inputs, including metric definitions and point metadata,
 rather than unrelated source fields; explicitly requested raw sources remain
 complete. PostgreSQL expands scalar measures with a lateral `VALUES` relation

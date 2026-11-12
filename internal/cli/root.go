@@ -33,7 +33,7 @@ func newCommand(version string, ghVersion func(context.Context) (string, error),
 		Long: `Configure and operate Central Agentic Ops from a control repository.
 
 All operator commands run natively in Go; Node.js is not required.
-The binary embeds the reviewed dashboard catalog and reads canonical SQLite snapshots.
+The binary embeds the reviewed dashboard catalog and queries canonical PostgreSQL.
 Activity and Dashboard Actions invoke node activity/cao.mjs directly.
 Help, version, and catalog discovery work offline.`,
 		Version:       version,

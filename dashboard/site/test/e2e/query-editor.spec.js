@@ -6,8 +6,6 @@ import previewDocument from '../fixtures/query-editor.json' with { type: 'json' 
 import sources from '../fixtures/query-editor-sources.json' with { type: 'json' };
 import { normalizedRunShard } from './normalized-shard.js';
 import { writeCanvasArtifact } from './canvas-fixture.js';
-import { createSqliteIndexedDB } from '../../src/data/storage/sqlite-indexeddb.js';
-import { ingestDashboardSources } from '../../src/data/ingest/coordinator.js';
 
 test.describe('Go canvas query editor', () => {
 /** @type {{ url: string, close: () => Promise<void> }} */
@@ -305,7 +303,7 @@ test('preview subscriptions refresh from Go canonical revisions and query output
   await page.getByRole('textbox', { name: 'Acceptance criteria', exact: true }).fill('Show native conclusion counts');
   await page.getByRole('button', { name: 'Generate query and view', exact: true }).click();
   await expect(page.locator('.query-editor > [role=status]')).toContainText('Preview updated');
-  await ingestDashboardSources(createSqliteIndexedDB(join(artifactDirectory, 'gh-aw-logs.sqlite')), {
+  await writeCanvasArtifact(artifactDirectory, { sources: {
       ...sources,
       runs: {
         metadata: { 'as-of': '2026-10-10T11:00:00Z', 'artifact-generation': 'query-editor-refresh' },
@@ -315,7 +313,7 @@ test('preview subscriptions refresh from Go canonical revisions and query output
           'started-at': '2026-10-10T10:00:00Z'
         }))
       }
-  });
+  } });
   const outputCounts = await page.evaluate(async () => {
     const { loadCanonicalDashboardPage, validateQueryEditorDocument } =
       await import(new URL('./src/data-processor.js', location.href).href);

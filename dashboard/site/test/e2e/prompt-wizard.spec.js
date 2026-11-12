@@ -128,7 +128,6 @@ test.describe('populated dashboard wizard', () => {
         workingDirectory: fileURLToPath(new URL('../../../../', import.meta.url)),
         repository: 'acme/control', port: 0,
         approveCliAction: async () => true,
-        cliQueuePath: testInfo.outputPath('.cao', 'cli-actions.sqlite'),
         cliQueueAdmission: async () => ({ concurrency: 1 }),
         output: () => {}, requestOutput: () => {}, traceOutput: () => {},
         startSession: app ? async (/** @type {string} */ prompt) => { sessions.push(prompt); } : undefined,

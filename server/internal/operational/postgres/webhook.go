@@ -25,6 +25,38 @@ type webhookQueue struct {
 
 var _ wg.Queue = (*webhookQueue)(nil)
 
+// HasDelivery reads durable polling progress without changing admission state.
+func (q *webhookQueue) HasDelivery(ctx context.Context, deliveryID string) (bool, error) {
+	if ctx == nil || names(deliveryID) != nil {
+		return false, wg.ErrInvalid
+	}
+	var exists bool
+	err := q.store.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM cao_operational_webhook_deliveries WHERE namespace=$1 AND queue=$2 AND delivery_id=$3 AND retain_until>clock_timestamp())`, q.store.namespace, q.name, deliveryID).Scan(&exists)
+	return exists, err
+}
+
+// Counts reports retained states without exposing job documents or identities.
+func (q *webhookQueue) Counts(ctx context.Context) (map[wg.JobState]int64, error) {
+	if ctx == nil {
+		return nil, wg.ErrInvalid
+	}
+	rows, err := q.store.db.QueryContext(ctx, `SELECT state,count(*) FROM cao_operational_webhook_jobs WHERE namespace=$1 AND queue=$2 GROUP BY state`, q.store.namespace, q.name)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	counts := make(map[wg.JobState]int64)
+	for rows.Next() {
+		var state wg.JobState
+		var count int64
+		if err := rows.Scan(&state, &count); err != nil {
+			return nil, err
+		}
+		counts[state] = count
+	}
+	return counts, rows.Err()
+}
+
 func (q *webhookQueue) QueueDepth(ctx context.Context) (int64, error) {
 	if ctx == nil {
 		return 0, wg.ErrInvalid

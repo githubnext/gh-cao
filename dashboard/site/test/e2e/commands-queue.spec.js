@@ -70,7 +70,6 @@ for (const width of [1440, 390]) {
       workingDirectory: fileURLToPath(new URL('../../../../', import.meta.url)),
       repository: 'acme/control', port: 0,
       approveCliAction: async () => true,
-      cliQueuePath: testInfo.outputPath('.cao', 'cli-actions.sqlite'),
       cliQueueAdmission: async () => ({ concurrency: 1 }),
       output: () => {}, requestOutput: () => {}, traceOutput: () => {},
       lookupSelector: async () => [{ value: 'octo/example', label: 'octo/example' }],

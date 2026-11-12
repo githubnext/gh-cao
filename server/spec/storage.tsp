@@ -808,6 +808,15 @@ namespace Inputs {
       duplicateRawRunObservations?: int64;
       duplicateAgenticRunObservations?: int64;
       unenrichedRuns?: int64;
+      ingestionStatus?: string;
+      ingestionMessage?: string;
+      ingestionRepository?: string;
+      scannedHours?: decimal;
+      targetHours?: decimal;
+      apiRemaining?: int64;
+      apiReserve?: int64;
+      apiResetAt?: utcDateTime;
+      nextAttemptAt?: utcDateTime;
       error?: string;
     }
 

@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 	wg "github.com/githubnext/gh-cao/server/internal/webhookgateway"
 )
 
@@ -26,11 +25,18 @@ func localEnvironment(t *testing.T) {
 	}
 }
 
+func localPostgres(t *testing.T) (string, string) {
+	t.Helper()
+	_, dsn, namespace := testutil.OperationalPostgres(t)
+	t.Setenv("CAO_POSTGRES_URL", dsn)
+	return dsn, namespace
+}
+
 func TestSpecLocalHost(t *testing.T) {
 	localEnvironment(t)
 	t.Run("LG-H01", func(t *testing.T) {
 		for _, args := range [][]string{
-			{"--role=receive", "--sqlite=/tmp/forbidden.sqlite"},
+			{"--role=receive", "--namespace=forbidden"},
 			{"--role=dispatch", "--once=false"},
 			{"--role=receive", "--events=issues,issue_comment,pull_request"},
 			{"--role=local", "--policy=/etc/cao/cao.json"},
@@ -40,9 +46,9 @@ func TestSpecLocalHost(t *testing.T) {
 				t.Fatal("production/local options were combined", err)
 			}
 		}
-		err := runLocal(t.Context(), localOptions{path: "relative.sqlite", interval: time.Minute}, &bytes.Buffer{})
-		if err == nil || !strings.Contains(err.Error(), "absolute") {
-			t.Fatal("relative SQLite path accepted", err)
+		err := runLocal(t.Context(), localOptions{interval: time.Minute}, &bytes.Buffer{})
+		if err == nil || !strings.Contains(err.Error(), "namespace") {
+			t.Fatal("missing PostgreSQL namespace accepted", err)
 		}
 	})
 	t.Run("LG-H02", func(t *testing.T) {
@@ -56,9 +62,10 @@ func TestSpecLocalHost(t *testing.T) {
 		}
 	})
 	t.Run("LG-H03", func(t *testing.T) {
+		_, namespace := localPostgres(t)
 		server := localFixtureServer(t, nil, nil)
 		options := localOptions{apiURL: server.URL, repository: "octo/repo", events: []string{"issues"},
-			path: filepath.Join(t.TempDir(), "gateway.sqlite"), interval: time.Minute, once: true}
+			namespace: namespace, interval: time.Minute, once: true}
 		var output bytes.Buffer
 		for range 2 {
 			if err := runLocal(t.Context(), options, &output); err != nil {
@@ -71,10 +78,11 @@ func TestSpecLocalHost(t *testing.T) {
 		}
 	})
 	t.Run("LG-H04", func(t *testing.T) {
+		_, namespace := localPostgres(t)
 		observed := make(chan struct{}, 1)
 		server := localFixtureServer(t, observed, nil)
 		options := localOptions{apiURL: server.URL, repository: "octo/repo", events: []string{"issues"},
-			path: filepath.Join(t.TempDir(), "gateway.sqlite"), interval: time.Minute}
+			namespace: namespace, interval: time.Minute}
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		finished := make(chan error, 1)
@@ -149,23 +157,24 @@ func TestLocalRateBudgetBackpressure(t *testing.T) {
 	localEnvironment(t)
 	for _, once := range []bool{true, false} {
 		t.Run(fmt.Sprintf("once=%t", once), func(t *testing.T) {
+			dsn, namespace := localPostgres(t)
 			var eventID atomic.Int32
 			eventID.Store(1)
 			server := localFixtureServer(t, nil, &eventID)
 			options := localOptions{apiURL: server.URL, repository: "octo/repo", events: []string{"issues"},
-				path: filepath.Join(t.TempDir(), "gateway.sqlite"), interval: time.Minute, once: true}
+				namespace: namespace, interval: time.Minute, once: true}
 			if err := runLocal(t.Context(), options, &bytes.Buffer{}); err != nil {
 				t.Fatal(err)
 			}
-			db, err := sql.Open("sqlite", "file:"+options.path+"?_pragma=busy_timeout(5000)")
+			db, err := sql.Open("pgx", dsn)
 			if err != nil {
 				t.Fatal(err)
 			}
 			defer func() { _ = db.Close() }()
 			// Freeze exhausted budgets until the test explicitly refills them.
-			if _, err := db.ExecContext(t.Context(), `UPDATE rates SET tokens=0,
-			 updated_at=CAST(unixepoch('subsec')*1000 AS INTEGER)+3600000,
-			 expires_at=CAST(unixepoch('subsec')*1000 AS INTEGER)+7200000`); err != nil {
+			if _, err := db.ExecContext(t.Context(), `UPDATE cao_operational_records
+			 SET value=convert_to(json_build_object('Tokens',0,'At',clock_timestamp()+interval '1 hour')::text,'UTF8'),
+			 expires_at=clock_timestamp()+interval '2 hours' WHERE namespace=$1 AND kind='webhook-rate'`, namespace); err != nil {
 				t.Fatal(err)
 			}
 			eventID.Store(2)
@@ -196,7 +205,7 @@ func TestLocalRateBudgetBackpressure(t *testing.T) {
 			deadline := time.Now().Add(5 * time.Second)
 			for {
 				var claimed int
-				if err := db.QueryRowContext(t.Context(), `SELECT count(*) FROM jobs WHERE state='claimed'`).Scan(&claimed); err != nil {
+				if err := db.QueryRowContext(t.Context(), `SELECT count(*) FROM cao_operational_webhook_jobs WHERE namespace=$1 AND state='claimed'`, namespace).Scan(&claimed); err != nil {
 					t.Fatal(err)
 				}
 				if claimed == 1 {
@@ -213,19 +222,20 @@ func TestLocalRateBudgetBackpressure(t *testing.T) {
 				t.Fatal("normal budget exhaustion stopped the continuous host", err)
 			case <-time.After(100 * time.Millisecond):
 			}
-			if _, err := db.ExecContext(t.Context(), `UPDATE rates SET tokens=300,
-			 updated_at=CAST(unixepoch('subsec')*1000 AS INTEGER)`); err != nil {
+			if _, err := db.ExecContext(t.Context(), `UPDATE cao_operational_records
+			 SET value=convert_to(json_build_object('Tokens',300,'At',clock_timestamp())::text,'UTF8')
+			 WHERE namespace=$1 AND kind='webhook-rate'`, namespace); err != nil {
 				t.Fatal(err)
 			}
 			// Make the safely deferred claim recoverable without a minute-long sleep.
-			if _, err := db.ExecContext(t.Context(), `UPDATE jobs SET lease_until=0,
-			 document=json_set(document,'$.leaseUntil','1970-01-01T00:00:00Z') WHERE state='claimed'`); err != nil {
+			if _, err := db.ExecContext(t.Context(), `UPDATE cao_operational_webhook_jobs
+			 SET lease_until=clock_timestamp()-interval '1 second' WHERE namespace=$1 AND state='claimed'`, namespace); err != nil {
 				t.Fatal(err)
 			}
 			deadline = time.Now().Add(5 * time.Second)
 			for {
 				var succeeded int
-				if err := db.QueryRowContext(t.Context(), `SELECT count(*) FROM jobs WHERE state='succeeded'`).Scan(&succeeded); err != nil {
+				if err := db.QueryRowContext(t.Context(), `SELECT count(*) FROM cao_operational_webhook_jobs WHERE namespace=$1 AND state='succeeded'`, namespace).Scan(&succeeded); err != nil {
 					t.Fatal(err)
 				}
 				if succeeded == 2 {
@@ -242,6 +252,7 @@ func TestLocalRateBudgetBackpressure(t *testing.T) {
 
 func TestLocalPollingFailureIsNotCancellation(t *testing.T) {
 	localEnvironment(t)
+	_, namespace := localPostgres(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/repos/octo/repo" {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -255,21 +266,18 @@ func TestLocalPollingFailureIsNotCancellation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	err := runLocal(ctx, localOptions{apiURL: server.URL, repository: "octo/repo", events: []string{"issues"},
-		path: filepath.Join(t.TempDir(), "gateway.sqlite"), interval: time.Minute}, &bytes.Buffer{})
+		namespace: namespace, interval: time.Minute}, &bytes.Buffer{})
 	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		t.Fatal("internal shutdown concealed the polling failure", err)
 	}
 }
 
-func TestLocalStartupDoesNotCreateRelativeDatabase(t *testing.T) {
+func TestLocalStartupRejectsInvalidPollingBeforeStorage(t *testing.T) {
 	localEnvironment(t)
-	path := filepath.Join(t.TempDir(), "unused.sqlite")
-	err := run(t.Context(), []string{"--role=local", "--sqlite=" + path, "--repository=octo/repo", "--poll-interval=0s"})
-	if err == nil {
+	t.Setenv("CAO_POSTGRES_URL", "must-not-connect")
+	err := run(t.Context(), []string{"--role=local", "--namespace=not-provisioned", "--repository=octo/repo", "--poll-interval=0s"})
+	if err == nil || !strings.Contains(err.Error(), "polling interval") {
 		t.Fatal("unbounded polling interval accepted")
-	}
-	if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
-		t.Fatal("invalid configuration created a database", err)
 	}
 }
 

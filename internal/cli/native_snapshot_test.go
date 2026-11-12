@@ -2,134 +2,127 @@ package cli
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
+	"crypto/rand"
+	"fmt"
+	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
-	"reflect"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/githubnext/gh-cao/internal/dashboardquery"
 )
 
 func nativeTestSnapshot(t *testing.T, collections map[string][]map[string]any) string {
 	t.Helper()
-	file := filepath.Join(t.TempDir(), "snapshot.sqlite")
-	db, err := sql.Open("sqlite", file)
+	endpoint := os.Getenv("POSTGRES_URL")
+	if endpoint == "" {
+		t.Skip("POSTGRES_URL is required for native PostgreSQL query tests")
+	}
+	executable := os.Getenv("CAO_DASHBOARD_EXECUTABLE")
+	if executable == "" {
+		executable, _ = filepath.Abs("../../.tmp/cao-dashboard")
+		if _, err := os.Stat(executable); err != nil {
+			t.Skip("build .tmp/cao-dashboard to run native PostgreSQL query tests")
+		}
+		t.Setenv("CAO_DASHBOARD_EXECUTABLE", executable)
+	}
+	schema := "native_" + strings.ToLower(rand.Text())
+	command := exec.CommandContext(t.Context(), "psql", "-X", "--dbname", endpoint, "-v", "ON_ERROR_STOP=1",
+		"-c", "CREATE SCHEMA "+schema)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("create isolated PostgreSQL schema: %v\n%s", err, output)
+	}
+	t.Cleanup(func() {
+		command := exec.CommandContext(context.WithoutCancel(t.Context()), "psql", "-X", "--dbname", endpoint,
+			"-v", "ON_ERROR_STOP=1", "-c", "DROP SCHEMA "+schema+" CASCADE")
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Errorf("remove isolated PostgreSQL schema: %v\n%s", err, output)
+		}
+	})
+	connection, err := url.Parse(endpoint)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		if err := db.Close(); err != nil {
-			t.Error(err)
-		}
-	})
-	if _, err := db.Exec(`CREATE TABLE __idb_records (database_name TEXT NOT NULL, store_name TEXT NOT NULL, record_key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(database_name,store_name,record_key))`); err != nil {
+	parameters := connection.Query()
+	parameters.Set("search_path", schema)
+	connection.RawQuery = parameters.Encode()
+	dsn := connection.String()
+	namespace := "native-test"
+	t.Setenv("CAO_DATABASE_NAMESPACE", namespace)
+	command = exec.CommandContext(t.Context(), executable, "database", "bootstrap", "--store", "canonical", "--namespace", namespace)
+	command.Env = append(os.Environ(), "CAO_DATABASE_ADMIN_URL="+dsn, "OTEL_SDK_DISABLED=true")
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("bootstrap canonical PostgreSQL: %v\n%s", err, output)
+	}
+	directory := t.TempDir()
+	if err := publishDashboardSnapshot(t.Context(), directory, collections); err != nil {
 		t.Fatal(err)
 	}
-	for collection, records := range collections {
-		for _, record := range records {
-			content, err := json.Marshal(record)
-			if err != nil {
-				t.Fatal(err)
-			}
-			key, err := json.Marshal(record["id"])
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := db.Exec(`INSERT INTO __idb_records VALUES (?,?,?,?)`, nativeDatabaseName, collection, string(key), string(content)); err != nil {
-				t.Fatal(err)
-			}
-		}
+	command = exec.CommandContext(t.Context(), executable, "ingest", "--source", directory, "--postgres-url", dsn,
+		"--redis-namespace", namespace, "--database-queries", "../../dashboard/site/src/data/queries/database.json")
+	command.Env = append(os.Environ(), "OTEL_SDK_DISABLED=true")
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("ingest canonical PostgreSQL: %v\n%s", err, output)
 	}
-	return file
+	return dsn
 }
 
-func TestNativeSnapshotIsReadOnly(t *testing.T) {
-	file := nativeTestSnapshot(t, map[string][]map[string]any{"runs": {
-		{"id": "b", "status": "completed", "_queryKeys": map[string]any{"private": "key"}, "_storage": "private"},
-		{"id": "a", "conclusion": "failure"},
-	}})
-	before, err := os.ReadFile(file)
+func TestNativePostgresCanonicalRead(t *testing.T) {
+	dsn := nativeTestSnapshot(t, map[string][]map[string]any{
+		"repositories": {{"id": "octo/one", "owner": "octo", "name": "one"}},
+	})
+	db, err := openNativeSnapshot(dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, err := openNativeSnapshot(file)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
+	defer func() {
 		if err := db.Close(); err != nil {
 			t.Error(err)
 		}
-	})
-	rows, err := readNativeCollection(context.Background(), db, "runs")
-	if err != nil {
-		t.Fatal(err)
+	}()
+	rows, err := readNativeCollection(t.Context(), db, "repositories")
+	if err != nil || len(rows) != 1 || rows[0]["name"] != "one" {
+		t.Fatalf("canonical PostgreSQL read: %v %v", rows, err)
 	}
-	want := []map[string]any{{"id": "a", "conclusion": "failure"}, {"id": "b", "status": "completed"}}
-	if !reflect.DeepEqual(rows, want) {
-		t.Fatalf("rows=%v, want %v", rows, want)
-	}
-	if _, err := db.Exec(`DELETE FROM __idb_records`); err == nil {
-		t.Fatal("snapshot was opened writable")
-	}
-	after, err := os.ReadFile(file)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(before) != string(after) {
-		t.Fatal("query changed the snapshot bytes")
-	}
-}
-
-func TestNativeExplicitMissingSnapshotDoesNotWrite(t *testing.T) {
-	file := filepath.Join(t.TempDir(), "missing.sqlite")
-	db, err := openNativeSnapshot(file)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := db.Close(); err != nil {
-			t.Error(err)
-		}
-	})
-	rows, err := readNativeCollection(context.Background(), db, "runs")
-	if err != nil || len(rows) != 0 {
-		t.Fatalf("empty explicit snapshot=%v, %v", rows, err)
-	}
-	if _, err := os.Stat(file); !os.IsNotExist(err) {
-		t.Fatalf("read-only query created a snapshot: %v", err)
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if _, err := readNativeCollection(ctx, db, "repositories"); err == nil {
+		t.Fatal("canceled PostgreSQL read succeeded")
 	}
 }
 
-func TestNativeSnapshotPreservesIndexedDBKeyOrder(t *testing.T) {
-	file := nativeTestSnapshot(t, map[string][]map[string]any{
-		"transactions": {{"id": 10}, {"id": 2}, {"id": 1}},
-		"runs":         {{"id": "\ue000"}, {"id": "\U00010000"}, {"id": "a"}},
+func TestNativePostgresRequired(t *testing.T) {
+	if _, err := openNativeSnapshot(""); err == nil || !strings.Contains(fmt.Sprint(err), "PostgreSQL is required") {
+		t.Fatalf("missing PostgreSQL configuration: %v", err)
+	}
+}
+
+func TestNativePostgresDailyCounts(t *testing.T) {
+	now := time.Now().UTC().Add(-time.Hour)
+	dsn := nativeTestSnapshot(t, map[string][]map[string]any{
+		"repositories": {{"id": "repo:one", "owner": "octo", "name": "one"}},
+		"workflows":    {{"id": "workflow:one", "repositoryId": "repo:one", "path": ".github/workflows/test.md"}},
+		"runs": {{"id": "run:one", "repositoryId": "repo:one", "workflowId": "workflow:one",
+			"owner": "octo", "repository": "one", "githubRunId": "1", "attempt": 1,
+			"workflowPath": ".github/workflows/test.md",
+			"startedAt":    now.Format(time.RFC3339), "status": "completed", "conclusion": "success"}},
 	})
-	db, err := openNativeSnapshot(file)
+	db, err := openNativeSnapshot(dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		if err := db.Close(); err != nil {
-			t.Error(err)
-		}
-	})
-	for collection, expected := range map[string][]any{
-		"transactions": {float64(1), float64(2), float64(10)},
-		"runs":         {"a", "\U00010000", "\ue000"},
-	} {
-		rows, err := readNativeCollection(context.Background(), db, collection)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(rows) != len(expected) {
-			t.Fatalf("%s returned %d records, want %d", collection, len(rows), len(expected))
-		}
-		for index, row := range rows {
-			if row["id"] != expected[index] {
-				t.Fatalf("%s key %d=%v, want %v", collection, index, row["id"], expected[index])
-			}
-		}
+	defer func() { _ = db.Close() }()
+	rows, available, undated, err := dashboardquery.ReadDailyRunCounts(t.Context(), db, 100, 1<<20)
+	if err != nil || !available || undated != 0 || len(rows) != 1 ||
+		rows[0]["total"] != float64(1) || rows[0]["successful"] != float64(1) {
+		t.Fatalf("native PostgreSQL daily counts: %+v available=%t undated=%d error=%v", rows, available, undated, err)
+	}
+	metadata, err := nativeDailyCountMetadata(t.Context(), db, undated)
+	if err != nil || metadata["aggregate-coverage"] != "available-evidence-only" ||
+		metadata["aggregate-time-grain"] != "utc-run-start-day" {
+		t.Fatalf("native PostgreSQL aggregate provenance: %+v %v", metadata, err)
 	}
 }

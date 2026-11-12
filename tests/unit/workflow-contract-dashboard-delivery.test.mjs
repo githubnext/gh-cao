@@ -122,8 +122,8 @@ test("dashboard CI runs the campaign quality gates", () => {
   assert.deepEqual(queryComplexity.needs, []);
   assert.match(queryComplexity.block, /if: github\.event_name != 'pull_request'/);
   assert.match(queryComplexity.block, /node scripts\/dashboard-query-complexity\.mjs/);
-  assert.match(queryComplexity.block, /go run \.\/cmd\/gh-cao download/);
-  assert.match(queryComplexity.block, /dashboard\/site\/dashboard\.json \.cao\/gh-aw-logs\.sqlite/);
+  assert.doesNotMatch(queryComplexity.block, /gh-cao download|\.sqlite/);
+  assert.match(queryComplexity.block, /dashboard\/site\/dashboard\.json > query-complexity\.md/);
   assert.match(queryComplexity.block, /> query-complexity\.md/);
   assert.match(queryComplexity.block, /cat query-complexity\.md >> "\$GITHUB_STEP_SUMMARY"/);
   assert.match(queryComplexity.block, /uses: actions\/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a/);

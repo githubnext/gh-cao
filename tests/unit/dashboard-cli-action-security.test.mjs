@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
-import { startCanvasServer } from "../helpers/canvas-snapshot.mjs";
+import test, { after, before, describe } from "node:test";
+import { prepareCanvasPostgres, startCanvasServer } from "../helpers/canvas-snapshot.mjs";
 import { writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
 import { maximumCliActionInputCharacters, maximumCliActionRequestBytes } from "../../dashboard/cli-action-contract.mjs";
 import { executeDashboardCommand } from "../../dashboard/cli-actions.mjs";
@@ -68,7 +68,7 @@ test("canvas-reviewed actions execute through command validation without host el
   const executions = [];
   const testCase = await fixture({
     approveCliAction: approveDashboardCommand,
-    executeCliAction: async ({ command }) => { executions.push(command); return { ok: true }; },
+    executeCliAction: async ({ command }) => { executions.push(command); return { ok: true, exitCode: 0 }; },
   });
   try {
     const response = await testCase.post({ id: "compile" });
@@ -153,7 +153,7 @@ test("selected repository is bound to fresh trusted approval before cao add runs
   const executions = [];
   const testCase = await fixture({
     approveCliAction: async (request) => { approvals.push(request); return true; },
-    executeCliAction: async (request) => { executions.push(request.command); return { ok: true }; },
+    executeCliAction: async (request) => { executions.push(request.command); return { ok: true, exitCode: 0 }; },
   });
   try {
     const response = await testCase.post({ id: "add-repository", values: { repository: "octo/repo" } });
@@ -196,7 +196,9 @@ test("unavailable approval is explicit and does not execute commands", async () 
   } finally { await testCase.close(); }
 });
 
-test("every command has a fresh bound approval and concurrent requests are rejected", { timeout: 10_000 }, async () => {
+describe("approval deadlines with a running PostgreSQL-backed preview", () => {
+  let postgres;
+  let testCase;
   let approve;
   let entered;
   const waiting = new Promise((resolve) => { entered = resolve; });
@@ -204,45 +206,59 @@ test("every command has a fresh bound approval and concurrent requests are rejec
   const secondWaiting = new Promise((resolve) => { secondEntered = resolve; });
   const approvals = [];
   const executions = [];
-  const testCase = await fixture({
-    approveCliAction: async (request) => {
-      approvals.push(request);
-      assert.ok(Object.isFrozen(request));
-      entered();
-      if (approvals.length === 2) secondEntered();
-      return new Promise((resolve) => { approve = resolve; });
-    },
-    executeCliAction: async ({ onOutput, signal, ...request }) => {
-      assert.ok(signal instanceof AbortSignal);
-      assert.equal(signal.aborted, false);
-      executions.push(request);
-      return { ok: true };
-    },
+
+  before(async () => {
+    postgres = await prepareCanvasPostgres();
+    testCase = await fixture({
+      postgresURL: postgres.postgresURL,
+      namespace: postgres.namespace,
+      approveCliAction: async (request) => {
+        approvals.push(request);
+        assert.ok(Object.isFrozen(request));
+        entered();
+        if (approvals.length === 2) secondEntered();
+        return new Promise((resolve) => { approve = resolve; });
+      },
+      executeCliAction: async ({ onOutput, signal, ...request }) => {
+        assert.ok(signal instanceof AbortSignal);
+        assert.equal(signal.aborted, false);
+        executions.push(request);
+        return { ok: true, exitCode: 0 };
+      },
+    });
   });
-  try {
-    const first = testCase.post({ id: "create-task", input: "exact approved input" });
-    await waiting;
-    const concurrent = await testCase.post({ id: "compile" });
-    assert.equal(concurrent.status, 409);
-    assert.equal(executions.length, 0);
-    approve(true);
-    const response = await first;
-    assert.equal(response.status, 200);
-    await response.text();
-    assert.deepEqual(executions[0], approvals[0]);
-    const second = testCase.post({ id: "compile" });
-    await secondWaiting;
-    approve(false);
-    assert.equal((await second).status, 403);
-    assert.equal(executions.length, 1);
-  } finally { approve?.(false); await testCase.close(); }
+  after(async () => {
+    approve?.(false);
+    try { await testCase?.close(); }
+    finally { await postgres?.close(); }
+  });
+
+  test("every command has a fresh bound approval and concurrent requests are rejected", { timeout: 10_000 }, async () => {
+    try {
+      const first = testCase.post({ id: "create-task", input: "exact approved input" });
+      await waiting;
+      const concurrent = await testCase.post({ id: "compile" });
+      assert.equal(concurrent.status, 409);
+      assert.equal(executions.length, 0);
+      approve(true);
+      const response = await first;
+      assert.equal(response.status, 200);
+      await response.text();
+      assert.deepEqual(executions[0], approvals[0]);
+      const second = testCase.post({ id: "compile" });
+      await secondWaiting;
+      approve(false);
+      assert.equal((await second).status, 403);
+      assert.equal(executions.length, 1);
+    } finally { approve?.(false); await testCase.close(); }
+  });
 });
 
 test("large valid prompts, including worst-case JSON escaping, reach approval intact", async () => {
   const received = [];
   const testCase = await fixture({
     approveCliAction: async () => true,
-    executeCliAction: async ({ input }) => { received.push(input); return { ok: true }; },
+    executeCliAction: async ({ input }) => { received.push(input); return { ok: true, exitCode: 0 }; },
   });
   try {
     for (const prompt of ["x".repeat(23_898), "\u0001".repeat(maximumCliActionInputCharacters)]) {
@@ -257,26 +273,36 @@ test("large valid prompts, including worst-case JSON escaping, reach approval in
   } finally { await testCase.close(); }
 });
 
-test("closing a preview cancels the execution authority of pending approval", { timeout: 10_000 }, async () => {
-  let approve;
-  let entered;
-  const waiting = new Promise((resolve) => { entered = resolve; });
-  let executions = 0;
-  const testCase = await fixture({
-    approveCliAction: async () => {
-      entered();
-      return new Promise((resolve) => { approve = resolve; });
-    },
-    executeCliAction: async () => { executions += 1; },
+describe("cancellation deadlines with provisioned PostgreSQL", () => {
+  let postgres;
+  before(async () => { postgres = await prepareCanvasPostgres(); });
+  after(async () => { await postgres?.close(); });
+
+  test("closing a preview cancels the execution authority of pending approval", { timeout: 30_000 }, async () => {
+    let approve;
+    let entered;
+    const waiting = new Promise((resolve) => { entered = resolve; });
+    let executions = 0;
+    const testCase = await fixture({
+      postgresURL: postgres.postgresURL,
+      namespace: postgres.namespace,
+      approveCliAction: async () => {
+        entered();
+        return new Promise((resolve) => { approve = resolve; });
+      },
+      executeCliAction: async () => { executions += 1; },
+    });
+    try {
+      const request = testCase.post({ id: "compile" }).catch((error) => error);
+      await waiting;
+      const closing = performance.now();
+      await testCase.preview.close();
+      assert.ok(performance.now() - closing < 10_000, "preview shutdown exceeded its cancellation deadline");
+      approve(true);
+      const response = await request;
+      assert.ok(response instanceof Error);
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.equal(executions, 0);
+    } finally { approve?.(false); await testCase.close(); }
   });
-  try {
-    const request = testCase.post({ id: "compile" }).catch((error) => error);
-    await waiting;
-    await testCase.preview.close();
-    approve(true);
-    const response = await request;
-    assert.ok(response instanceof Error);
-    await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(executions, 0);
-  } finally { approve?.(false); await testCase.close(); }
 });

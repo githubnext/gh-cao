@@ -1,4 +1,4 @@
-# RFC-034: Local webhook gateway simulation and SQLite conformance
+# RFC-034: Local webhook gateway simulation and PostgreSQL conformance
 
 **Status:** implementation specification; bounded formal model and executable
 conformance vectors accompany this document. This is not a claim of production
@@ -17,7 +17,7 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**,
 
 This specification uses the W3C-style distinction between normative requirements,
 conformance classes, and non-normative examples. A conforming **local host**,
-**polling adapter**, and **SQLite queue** MUST satisfy their applicable numbered
+**polling adapter**, and **PostgreSQL queue** MUST satisfy their applicable numbered
 requirements. An implementation MAY combine those classes in one process.
 
 A *simulation* is a local, signed HTTP request evaluated by the real gateway
@@ -29,7 +29,7 @@ never a remote workflow run or operational outcome.
 ## 2. Local host profile
 
 **LG-H01** The operator MUST select `--role=local`, an explicit `OWNER/REPO`,
-and an absolute SQLite file path. Receive/dispatch roles MUST NOT accept local
+and an explicit PostgreSQL connection and namespace. Receive/dispatch roles MUST NOT accept local
 storage/polling options. No role has a permissive default.
 
 **LG-H02** The local host MUST reject production App key-file and webhook-secret
@@ -46,7 +46,7 @@ ingress's reserved provenance into durable dispatch JSON.
 
 **LG-H04** All work MUST be cancellation-scoped. Polling failures MUST stop
 visibly without skipping failed admissions. The host MUST join the polling
-worker before closing SQLite. One-shot mode MUST report retained deferred work
+worker before closing PostgreSQL. One-shot mode MUST report retained deferred work
 as incomplete, not successful completion.
 Rate-budget exhaustion MUST retain deferred work without stopping the continuous
 host; it MUST wait before retrying. One-shot exhaustion MUST still emit the
@@ -111,14 +111,14 @@ The initial allowlist is `issues`, `issue_comment`, `pull_request`,
 `release`, `fork`, and `watch`. These names are adapter mappings, not production
 gateway routing or authorization special cases.
 
-## 4. Durable SQLite queue
+## 4. Durable PostgreSQL queue
 
 The queue MUST implement the consumer-owned RFC-033 `Queue` interface. It MUST
-use SQLite transactions for every mutation, database time for lease/retention
-decisions, private regular database files, WAL, foreign-key integrity, and
-cross-connection write serialization. The namespace and queue configuration
-MUST NOT be silently rebound on reopening an existing file. SQLite here is not
-the hosted `operational.Store`, dashboard storage, or an authorization service.
+use PostgreSQL transactions for every mutation, database time for lease/retention
+decisions, role-separated storage, relational integrity, and cross-connection
+serialization. The namespace and queue configuration MUST NOT be silently
+rebound on reopening. It uses the existing operational PostgreSQL adapter,
+not a second backend or an authorization service.
 
 **LG-Q01** Admission receipts and job state MUST survive close/reopen. A replay
 with the same delivery ID and body digest MUST return the existing atomic batch,
@@ -219,7 +219,7 @@ normative conformance inputs. `TestSpecQueueTraces` generates Go subtests from
 each requirement ID and ordered action/expected-result trace; unknown operations,
 unknown error expectations, missing requirements, and undocumented IDs fail.
 The [polling vectors](fixtures/local-gateway-polling.json) similarly generate
-`TestSpecPolling` subtests against HTTP fixtures, real signed ingress, the SQLite
+`TestSpecPolling` subtests against HTTP fixtures, real signed ingress, the PostgreSQL
 adapter, and the production `Worker.RunOnce` path.
 
 | Requirements | Model actions | Executable evidence |
@@ -244,7 +244,7 @@ TLC 1.7.4 completed both supplied configurations with no reported violations:
 atomic fanout. These counts describe only these finite bounds and model version.
 
 ```sh
-go -C server test -race ./internal/operational/sqlite \
+POSTGRES_URL=... go -C server test -race ./internal/operational/postgres \
   ./internal/webhookgatewaylocal ./cmd/cao-webhook-gateway
 ```
 

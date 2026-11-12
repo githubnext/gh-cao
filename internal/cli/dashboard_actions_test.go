@@ -59,7 +59,7 @@ func TestDashboardActionOutputRedactsSplitCredentials(t *testing.T) {
 func TestDashboardActionAdapterRequiresApprovalAndPrivateCapability(t *testing.T) {
 	approvals := 0
 	filename, cleanup, err := startDashboardActionAdapterWithApproval(t.Context(), []string{"github/gh-aw"}, t.TempDir(),
-		func(context.Context, []string) (bool, error) { approvals++; return false, nil })
+		func(context.Context, []string) (bool, error) { approvals++; return false, nil }, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,5 +102,51 @@ func TestDashboardActionAdapterRequiresApprovalAndPrivateCapability(t *testing.T
 	}
 	if approvals != 1 {
 		t.Fatalf("out-of-scope command reached terminal approval: %d", approvals)
+	}
+	response, err := http.Post(config.AdapterURL+"/ingest", "application/json", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("ingestion trigger without a serve loop must be unavailable: %d", response.StatusCode)
+	}
+}
+
+func TestDashboardActionAdapterCoalescesIngestionRequests(t *testing.T) {
+	trigger := make(chan struct{}, 1)
+	filename, cleanup, err := startDashboardActionAdapterWithApproval(t.Context(), []string{"github/gh-aw"}, t.TempDir(),
+		func(context.Context, []string) (bool, error) { return false, nil }, trigger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config struct {
+		AdapterURL string `json:"adapterUrl"`
+	}
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatal(err)
+	}
+	base := config.AdapterURL[:strings.LastIndex(config.AdapterURL, "/")]
+	for _, target := range []string{config.AdapterURL + "/ingest", config.AdapterURL + "/ingest", base + "/ingest"} {
+		response, err := http.Post(target, "application/json", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = response.Body.Close()
+		want := http.StatusAccepted
+		if target == base+"/ingest" {
+			want = http.StatusNotFound
+		}
+		if response.StatusCode != want {
+			t.Fatalf("%s: status %d, want %d", target, response.StatusCode, want)
+		}
+	}
+	if len(trigger) != 1 {
+		t.Fatalf("ingestion requests must coalesce into one pending pass: %d", len(trigger))
 	}
 }

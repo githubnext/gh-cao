@@ -26,13 +26,18 @@ gh extension install githubnext/gh-cao
 gh cao dashboard --repo OWNER/REPOSITORY
 ```
 
-No CAO cloud deployment, Azure setup, hosted dashboard, PostgreSQL, Redis,
-containers, or separate Node.js or gh-aw installation is required. From an
+No CAO cloud deployment, Azure setup, hosted dashboard, Redis, or separate
+Node.js or gh-aw installation is required. A running Docker or Podman engine
+provides PostgreSQL automatically unless a connection is specified. From an
 existing repository checkout, use `gh cao dashboard` without `--repo`.
 No `gh cao setup` or control-repository configuration is needed.
 
 Open the **Dashboard:** URL printed in the terminal. The bundled Go server
-serves on loopback and queries canonical SQLite cached on your machine.
+serves on loopback and queries local PostgreSQL. Managed data is bind-mounted
+under the ignored `.github/cao/dashboard/<scope>/postgres/` cache.
+Docker is tried first, then Podman. Pass `--container-engine docker|podman` (or set
+`CAO_CONTAINER_ENGINE`) to use only that engine. `--postgres-url` or
+`CAO_POSTGRES_URL` bypasses container management and uses provisioned storage.
 Collection uses your GitHub CLI identity to read GitHub evidence and refreshes
 automatically every five minutes: **no cloud deployment does not mean offline**.
 The recent evidence window and session lifetime default to, and cannot exceed,
@@ -61,7 +66,7 @@ Workflow evidence exists.
 
 Use a private control repository for non-public evidence. Production dashboards
 use same-origin Go/PostgreSQL hosting; local development uses the same Go server
-over a real SQLite snapshot. GitHub Pages hosts only the **Synthetic enterprise
+over a verified canonical JSONL artifact ingested into PostgreSQL. GitHub Pages hosts only the **Synthetic enterprise
 demo**, with the same canonical pipeline, queries, and views but no live services.
 Setup does not configure Pages.
 

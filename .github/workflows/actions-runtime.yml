@@ -45,6 +45,19 @@ jobs:
     name: Docker AWI, CAO Activity, and webhook gateway integration
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+        env:
+          POSTGRES_DB: cao_actions_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cao_actions_test"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 30
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -64,6 +77,8 @@ jobs:
       - name: Pull minimal runner image
         run: docker pull node:24-bookworm
       - name: Run credential-free samples and gateway integration
+        env:
+          POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_actions_test?sslmode=disable
         run: npm run test:integration:actions-runtime
       - name: Retain failed simulator diagnostics
         if: failure()

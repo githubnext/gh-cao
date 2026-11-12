@@ -29,7 +29,7 @@ gh cao dashboard --repo OWNER/REPOSITORY
 
 Or run `gh cao dashboard` in an existing repository checkout. Open the full
 **Dashboard:** URL printed in the terminal. The bundled Go server serves on
-loopback and queries a private canonical SQLite cache on your machine.
+loopback and queries a private PostgreSQL namespace on your machine.
 No CAO cloud deployment, Azure setup, hosted dashboard, PostgreSQL, Redis,
 containers, or separate Node.js or gh-aw installation is needed.
 
@@ -52,7 +52,7 @@ Every view follows the same data flow:
 	publishes bounded operational snapshots for shared monitoring.
 2. **The selected backend prepares and queries the data.** Production Go
 	serving uses PostgreSQL; local development uses the same Go server over a real
-	SQLite snapshot. Each evaluates Dashboard Language.
+	PostgreSQL namespace. Each evaluates Dashboard Language.
 3. **The active view presents the result.** When the underlying data changes, the
 	query runs again and the view updates.
 

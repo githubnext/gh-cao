@@ -51,7 +51,7 @@ keep statistical queries independent of mutable canonical detail. Snapshot
 publication replaces these tables atomically under the namespace writer lock,
 with whole-bundle admission limits. Incremental writes only make the publication
 stale; a complete snapshot rebuilds its seven-day frame. Exact retention, browser
-and SQLite sampling, hot-tier eviction, and daily contributions are unchanged.
+sampling, hot-tier eviction, and daily contributions are unchanged.
 
 `operationalValueEvidence.facts` is an entity-owned typed array. The emitter
 generates its private relational child table and native scalar bindings.
@@ -78,7 +78,7 @@ Use a fresh database when changing its physical layout.
 fields in typed columns, with ETags and validation timestamps, outside canonical
 evidence. It is namespace- and credential-partitioned, bounded to 256 rows per
 namespace, and expires after 24 hours plus five minutes. The local preview keeps
-its bounded resource cache in the same SQLite database as its dashboard data;
+its bounded resource cache in PostgreSQL alongside its dashboard data;
 the browser worker keeps normalized receipts in the existing IndexedDB
 transaction store. Process memory holds active subscriptions and in-flight
 coordination only, not a separate resource cache. GitHub credentials stay on the
@@ -96,10 +96,6 @@ resources (plus the hosted rate-limit probe). Callers cannot supply an upstream
 method, request body, or arbitrary API path. Cache writes affect only the local
 data stores, never GitHub repositories.
 
-The local SQLite evidence mirrors likewise retain typed query columns and
-observation metadata, but no `record_json` copy. The complete document lives
-once in `__idb_records.value`. Outdated mirrors are rebuilt transactionally
-from those canonical records, never from a second stored representation.
 Canonical normalization and writes also prune unused raw Run payload copies,
 Workflow declaration copies, Issue lifecycle aliases, and the unused
 `isSkill` flag. The explicit exclusions live in
@@ -114,8 +110,7 @@ computed from installed/current versions. Grader/eval source IDs are joined
 from definitions independently of their names, result timestamps are projected from one stored
 timestamp, and Audit target coordinates are concatenated from their components.
 Browser-only repository coordinate strings and Eval answer/model copies are
-also pruned; SQLite mirrors do not retain derived assignment/result observation
-ranges. Source copies may supply missing underlying facts during ingestion,
+also pruned. Source copies may supply missing underlying facts during ingestion,
 but conflicting copies fail rather than silently overwrite them.
 Physical identity/integrity keys and independent historical observations are
 not display projections and remain stored. Retained row counts are calculated

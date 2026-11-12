@@ -139,14 +139,9 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 	if metadata["completeness"] != "partial" {
 		t.Fatal("bounded evidence must remain partial")
 	}
-	db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = db.Close() }()
-	runs, err := readNativeCollection(t.Context(), db, "runs")
-	if err != nil || len(runs) != 2 {
-		t.Fatalf("repository-scoped IDs collided or ordinary Actions were counted: %v %v", runs, err)
+	runs := readDashboardPublishedCollection(t, cache, "runs")
+	if len(runs) != 2 {
+		t.Fatalf("repository-scoped IDs collided or ordinary Actions were counted: %v", runs)
 	}
 	for _, run := range runs {
 		if run["status"] != "in_progress" || run["aicTotal"] != 2.5 || run["resolvedModel"] != "observed" {
@@ -156,28 +151,20 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 			t.Fatal("missing usage was fabricated")
 		}
 	}
-	catalog, err := loadNativeCatalog("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	result, err := catalog.runQuery(t.Context(), db, "runs-table", nil, 100)
-	if err != nil || len(result["rows"].([]map[string]any)) != 2 || nativeObject(result["metadata"])["availability"] == "unavailable" {
-		t.Fatalf("production canonical Dashboard Language query cannot serve local runs: %v %v", result, err)
-	}
-	if quality := nativeObject(result["metadata"]); quality["completeness"] != "partial" || quality["as-of"] != metadata["windowEnd"] {
-		t.Fatalf("local acquisition coverage/clock was lost in the query boundary: %v", quality)
-	}
 	if _, err := readDashboardStatus(t.Context(), cache, []string{"octo/api"}); err == nil {
 		t.Fatal("shared cache scope widened or narrowed without rejection")
 	}
-	before := runs
+	before, err := os.ReadFile(filepath.Join(cache, "gh-aw-logs-runs", "local.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	fail := func(context.Context, dashboardLogRequest) error { return errors.New("unavailable") }
 	if _, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), fail); err == nil {
 		t.Fatal("failed collection did not propagate")
 	}
-	after, err := readNativeCollection(t.Context(), db, "runs")
-	if err != nil || !reflect.DeepEqual(before, after) {
-		t.Fatal("failed collection modified the previous evidence")
+	after, _ := os.ReadFile(filepath.Join(cache, "gh-aw-logs-runs", "local.jsonl"))
+	if !bytes.Equal(before, after) {
+		t.Fatal("failed collection modified the previous snapshot")
 	}
 	updated, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), dashboardTestLogs(t))
 	if err != nil || updated["createdAt"] == metadata["createdAt"] {
@@ -219,7 +206,7 @@ func TestDashboardCacheFailsClosed(t *testing.T) {
 				t.Fatal(err)
 			}
 			if name == "foreign database" {
-				writeTestFile(t, filepath.Join(directory, "gh-aw-logs.sqlite"), "operator data")
+				writeTestFile(t, filepath.Join(directory, "inventory-sources.json"), "operator data")
 			} else {
 				if err := os.Mkdir(filepath.Join(directory, "collection.lock"), 0o700); err != nil {
 					t.Fatal(err)
@@ -450,14 +437,9 @@ func TestDashboardRetainsCachedEvidenceWithoutObservedAgenticRuns(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
-			db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer func() { _ = db.Close() }()
-			runs, err := readNativeCollection(t.Context(), db, "runs")
-			if err != nil || len(runs) != 1 || nativeScalar(runs[0]["githubRunId"]) != "123" || runs[0]["aicTotal"] != 2.5 {
-				t.Fatalf("valid cached run and enrichment were discarded: %v %v", runs, err)
+			runs := readDashboardPublishedCollection(t, cache, "runs")
+			if len(runs) != 1 || nativeScalar(runs[0]["githubRunId"]) != "123" || runs[0]["aicTotal"] != 2.5 {
+				t.Fatalf("valid cached run and enrichment were discarded: %v", runs)
 			}
 		})
 	}
@@ -492,12 +474,8 @@ func TestDashboardRejectsInvalidExistingCacheWithoutObservedRuns(t *testing.T) {
 			if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, base, dashboardTestLogs(t)); err != nil {
 				t.Fatal(err)
 			}
-			db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer func() { _ = db.Close() }()
-			before, err := readNativeCollection(t.Context(), db, "runs")
+			filename := filepath.Join(cache, "gh-aw-logs-runs", "local.jsonl")
+			before, err := os.ReadFile(filename)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -517,8 +495,8 @@ func TestDashboardRejectsInvalidExistingCacheWithoutObservedRuns(t *testing.T) {
 			if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, gh, logs); err == nil {
 				t.Fatal("invalid cached evidence was silently discarded")
 			}
-			after, err := readNativeCollection(t.Context(), db, "runs")
-			if err != nil || !reflect.DeepEqual(before, after) {
+			after, err := os.ReadFile(filename)
+			if err != nil || !bytes.Equal(before, after) {
 				t.Fatalf("invalid cached evidence changed the previous snapshot: %v", err)
 			}
 		})
@@ -592,5 +570,29 @@ func TestDashboardOptionalLocalArtifactCache(t *testing.T) {
 				t.Fatalf("dashboard must not require or create local CAO policy: %v", err)
 			}
 		})
+	}
+}
+
+func TestDashboardRefreshIntervalIsAggressiveWhileEmpty(t *testing.T) {
+	cache := t.TempDir()
+	if got := dashboardRefreshInterval(cache, 5*time.Minute); got != dashboardEmptyRefresh {
+		t.Fatalf("missing snapshot interval = %s", got)
+	}
+	directory := filepath.Join(cache, "gh-aw-logs-runs")
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	write := func(content string) {
+		if err := os.WriteFile(filepath.Join(directory, "local.jsonl"), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(`{"kind":"record","collection":"repositories","record":{}}` + "\n")
+	if got := dashboardRefreshInterval(cache, 5*time.Minute); got != dashboardEmptyRefresh {
+		t.Fatalf("snapshot without runs interval = %s", got)
+	}
+	write(`{"kind":"record","collection":"repositories","record":{}}` + "\n" + `{"kind":"record","collection":"runs","record":{}}` + "\n")
+	if got := dashboardRefreshInterval(cache, 5*time.Minute); got != 5*time.Minute {
+		t.Fatalf("populated snapshot interval = %s", got)
 	}
 }

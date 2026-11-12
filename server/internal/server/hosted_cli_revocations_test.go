@@ -2,10 +2,7 @@ package server
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -14,7 +11,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/hostedcli"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 type revocationTestStore interface {
@@ -41,34 +38,12 @@ func (m *rejectedTokenMinter) RevokeToken(context.Context, githubapp.ScopedToken
 }
 
 func TestHostedCLIRevocationsSurviveRestartAndKeyRotation(t *testing.T) {
-	for _, backend := range []string{"sqlite", "postgres"} {
+	for _, backend := range []string{"postgres"} {
 		t.Run(backend, func(t *testing.T) {
 			var open func() (revocationTestStore, error)
-			if backend == "sqlite" {
-				path := filepath.Join(t.TempDir(), "cli.sqlite")
-				open = func() (revocationTestStore, error) { return sqlite.Open(t.Context(), path) }
-			} else {
-				dsn := os.Getenv("POSTGRES_URL")
-				if dsn == "" {
-					t.Skip("POSTGRES_URL is required for PostgreSQL recovery")
-				}
-				namespace := "cli-revocations-" + strings.ToLower(rand.Text())
-				open = func() (revocationTestStore, error) {
-					return postgres.New(t.Context(), dsn, namespace, postgres.Config{})
-				}
-				t.Cleanup(func() {
-					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-					defer cancel()
-					store, err := postgres.Open(ctx, dsn, namespace, postgres.Config{})
-					if err != nil {
-						t.Error("open cleanup namespace failed")
-						return
-					}
-					if err := store.DeleteNamespace(ctx); err != nil {
-						t.Error("delete cleanup namespace failed")
-					}
-					_ = store.Close()
-				})
+			_, dsn, namespace := testutil.OperationalPostgres(t)
+			open = func() (revocationTestStore, error) {
+				return postgres.Open(t.Context(), dsn, namespace, postgres.Config{})
 			}
 			t.Setenv("CAO_SESSION_SECRET", strings.Repeat("a", 32))
 			t.Setenv("CAO_SESSION_SECRET_PREVIOUS", "")

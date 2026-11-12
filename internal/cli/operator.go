@@ -21,7 +21,7 @@ func boolFlag(name, description string) operatorFlag {
 }
 
 var (
-	databaseFlag  = textFlag("database", "Existing SQLite snapshot (default .cao/gh-aw-logs.sqlite)")
+	databaseFlag  = textFlag("postgres-url", "PostgreSQL connection URL (or CAO_POSTGRES_URL)")
 	dashboardFlag = textFlag("dashboard", "Dashboard Language document")
 	jsonFlag      = boolFlag("json", "Write machine-readable JSON")
 	paramFlag     = operatorFlag{name: "param", description: "Query parameter NAME=VALUE (repeatable)", repeat: true}
@@ -39,7 +39,8 @@ Pass --url or set DASHBOARD_DATA_URL to an explicit payload-hashes.json URL.
 Public Pages demos are synthetic-only and cannot supply operational evidence.
 Alternatively, import the cao-activity-index artifact from a selected CAO Activity run:
   gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao
-Then query the local cache, or select another snapshot with --database FILE.`
+Ingest the verified artifacts with cao-dashboard ingest --source .cao, then
+query PostgreSQL with --postgres-url or CAO_POSTGRES_URL.`
 	pages := operatorCommand("pages [PAGE_ID]", "List or describe agent-facing dashboard pages", cobra.MaximumNArgs(1), []operatorFlag{dashboardFlag, jsonFlag}, execute)
 	queries := operatorCommand("queries", "List reviewed dashboard queries", cobra.NoArgs, []operatorFlag{dashboardFlag, jsonFlag}, execute)
 	info := operatorCommand("query-info QUERY_ID", "Describe one reviewed dashboard query", cobra.ExactArgs(1), []operatorFlag{dashboardFlag, jsonFlag}, execute)
@@ -130,7 +131,7 @@ Then query the local cache, or select another snapshot with --database FILE.`
 		textFlag("snapshot-reads", "Snapshot cutoff reads per cadence"),
 		textFlag("graphql-points-per-request", "Modeled GraphQL point cost per request"),
 	}, execute)
-	apiCost.MarkFlagsMutuallyExclusive("database", "server")
+	apiCost.MarkFlagsMutuallyExclusive("postgres-url", "server")
 	value := &cobra.Command{
 		Use: "value", Short: "Publish evidence or manage reviewed recurring Value collection", Args: cobra.NoArgs,
 		RunE: func(*cobra.Command, []string) error {

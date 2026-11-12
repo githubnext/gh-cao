@@ -188,3 +188,38 @@ java -Xmx512m -cp "$TLA2TOOLS_JAR" tlc2.TLC -workers 1 \
   -metadir test-results/tla/hosted-cli-execution \
   -config specs/tla/HostedCLIExecution.cfg specs/tla/HostedCLIExecution.tla
 ```
+
+## OAuth account selection
+
+[`OAuthAccountSelection.tla`](OAuthAccountSelection.tla) models hosted
+dashboard sign-in when one browser holds several GitHub identities (for
+example a personal github.com account and an Enterprise Managed User).
+GitHub chooses the callback identity nondeterministically: the forced
+`prompt=select_account` and the optional `login` hint are advisory. The
+configuration uses three accounts, one allowed, and a two-entry hint bound
+(the implementation keeps five) so eviction is exercised.
+
+| Property | Implementation boundary |
+| --- | --- |
+| `SessionAuthorized`; `HintsNeverGrantAuthority` | `authorizedAccount` gates `setSessionCookies` in `callback`; denied credentials are revoked by the deferred cleanup, and the `cao_accounts` cookie is never read for authorization |
+| `HintsUnique`; `HintsFromCallbacks`; `AuthorizedHintsAccurate` | `rememberAccount` records only callback-resolved identities, newest first, deduplicated by account ID and bounded by `maxAccountHints` |
+| `SelectionOnlyAfterOrdinaryDenial`; `SelectionNeedsAlternatives` | `callback` redirects to `/auth/select-account` only for non-consent `errAccountNotAuthorized` with another known ID; `selectAccount` redirects to login with fewer than two hints |
+| `ConsentFailureUnchanged` | Administrator-consent callbacks keep the failure page and do not record hints |
+| `LogoutForgetsIdentities` | `loggedOut` clears session, state, and `cao_accounts` cookies |
+
+The model abstracts cookie encryption and tampering (AES-GCM sealing rejects
+forged hints), login syntax validation, cookie and session expiry, membership
+changes after a hint is recorded, telemetry, rate limiting, and HTTP
+rendering. Those are covered by `server/internal/server/oauth_test.go`.
+Replacing the consent guard or the hint deduplication with an unconditional
+path violates `SelectionOnlyAfterOrdinaryDenial` or `HintsUnique`
+respectively. No liveness is claimed: GitHub may keep returning a denied
+identity.
+
+```bash
+java -Xmx512m -cp "$TLA2TOOLS_JAR" tlc2.TLC -workers 1 \
+  -metadir test-results/tla/oauth-account-selection \
+  -config specs/tla/OAuthAccountSelection.cfg specs/tla/OAuthAccountSelection.tla
+```
+
+The configuration explores 313 distinct states.

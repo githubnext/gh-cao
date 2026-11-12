@@ -53,7 +53,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
   const files = readdirSync(unitDirectory).filter((file) => file.endsWith(".test.mjs")).sort();
   const selected = partitionUnitTests(files)[area].map((file) => join(unitDirectory, file));
-  const result = spawnSync(process.execPath, ["--test", ...selected], { stdio: "inherit" });
+  const result = spawnSync(process.execPath, ["--test",
+    ...(process.env.POSTGRES_URL ? ["--test-concurrency=4"] : []), ...selected], { stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.signal) process.kill(process.pid, result.signal);
   process.exitCode = result.status ?? 1;

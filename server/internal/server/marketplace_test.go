@@ -225,7 +225,7 @@ func TestLocalSQLiteMarketplaceResolvesRegistryWithoutSnapshotPackages(t *testin
 		t.Fatal(err)
 	}
 	t.Setenv(marketplacePolicyPathEnv, policyPath)
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	request := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "http://localhost/api/v1/query",
 		strings.NewReader(`{"sourceNames":["marketplace-directory"],"pagination":{"marketplace-directory":{"limit":25}}}`))
 	request.Header.Set("Content-Type", "application/json")

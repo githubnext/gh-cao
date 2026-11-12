@@ -537,7 +537,7 @@ func ComputeHostedSnapshot(
 			Repository string `json:"repository"`
 			Kind       string `json:"kind"`
 			Ref        string `json:"ref"`
-		}{{selected.repository, "cao-canonical-query-sqlite-sha256",
+		}{{selected.repository, "cao-canonical-query-postgres-revision-sha256",
 			valuePolicyDigest([]byte(fmt.Sprint(revision)))}}
 		eligibleWorkflows := []string{}
 		var successes, failures, cancelled, concluded int
@@ -760,7 +760,7 @@ func verifyHostedLocalAdapters(root string, disabled []string) error {
 		if wrapperErr != nil {
 			return wrapperErr
 		}
-		if fmt.Sprintf("%x", sha256.Sum256(wrapperBytes)) != "6018038cff7e92c82718964cfa1693d0e095fa56c2fca0cd4aefc7762e830d8f" {
+		if fmt.Sprintf("%x", sha256.Sum256(wrapperBytes)) != "2e36ac12a5b7b4ba3998891ab90ce60f2da4ac99892d2c7bd38f62daf23bd7ab" {
 			return errors.New("hosted local Value wrapper differs from its reviewed Go implementation")
 		}
 		if directory.Name() != "optimization" && directory.Name() != "dependabot" {
@@ -775,7 +775,7 @@ func verifyHostedLocalAdapters(root string, disabled []string) error {
 			if !strings.HasSuffix(module.Name(), ".mjs") {
 				continue
 			}
-			expected := "1fbfca97aa4ca56a49255f2117091beb6c474ca441221486328ad23b33087f2b"
+			expected := "8eb940ec7b2b6dbc97cdad5cdb3f953056aec778700cb09f2c72ed8e14251549"
 			name := "optimization-token-optimizer.mjs"
 			if directory.Name() == "dependabot" {
 				expected, name = "bb95c37d4e5a7204f5587f1b7732603f88da9fdf7e50933492bc6af90c97d0b9",

@@ -1,24 +1,25 @@
 import { expect, test } from "@playwright/test";
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
-import { DATABASE_VERSION } from "../../dashboard/site/src/data/storage/indexeddb.js";
+import { promisify } from "node:util";
+import { prepareCanvasPostgres, writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
 
-const databaseName = "gh-aw-cao-dashboard-data";
+const execute = promisify(execFile);
 const accessToken = "0123456789abcdef0123456789abcdef";
 const site = resolve("dashboard/site/dist");
-let directory, database, child, url;
+let directory, postgres, child, url;
+const records = {};
 
 function put(store, row) {
-  database.prepare(`INSERT INTO __idb_records VALUES(?,?,?,?)
-    ON CONFLICT(database_name,store_name,record_key) DO UPDATE SET value=excluded.value`)
-    .run(databaseName, store, JSON.stringify(row.id), JSON.stringify(row));
+  records[store] ??= [];
+  records[store] = records[store].filter((previous) => previous.id !== row.id);
+  records[store].push(row);
 }
 
-function status(ingestionStatus = "paused", scannedHours = 48) {
+async function status(ingestionStatus = "paused", scannedHours = 48) {
   put("transactions", {
     id: "local-dashboard-ingestion", kind: "local-dashboard-ingestion",
     createdAt: new Date().toISOString(), ingestionStatus, scannedHours, targetHours: 168,
@@ -27,23 +28,16 @@ function status(ingestionStatus = "paused", scannedHours = 48) {
     nextAttemptAt: new Date(Date.now() + 3_600_000).toISOString(),
     ingestionMessage: "Synthetic local ingestion fixture. History and artifact coverage remain partial.",
   });
+  await writeCanvasSnapshot(directory, records);
+  await execute(resolve(".tmp/cao-dashboard"), [
+    "ingest", "--source", directory, "--postgres-url", postgres.postgresURL,
+    "--redis-namespace", postgres.namespace, "--database-queries", join(site, "src/data/queries/database.json"),
+  ], { env: { ...process.env, OTEL_SDK_DISABLED: "true" }, timeout: 60_000 });
 }
 
 test.beforeAll(async () => {
   directory = await mkdtemp(join(tmpdir(), "cao-local-ingestion-"));
-  const path = join(directory, "gh-aw-logs.sqlite");
-  database = new DatabaseSync(path);
-  database.exec(`
-    PRAGMA busy_timeout=5000;
-    CREATE TABLE __idb_databases(name TEXT PRIMARY KEY, version INTEGER NOT NULL);
-    CREATE TABLE __idb_stores(database_name TEXT,name TEXT,key_path TEXT,PRIMARY KEY(database_name,name));
-    CREATE TABLE __idb_indexes(database_name TEXT,store_name TEXT,name TEXT,key_path TEXT,PRIMARY KEY(database_name,store_name,name));
-    CREATE TABLE __idb_records(database_name TEXT,store_name TEXT,record_key TEXT,value TEXT,PRIMARY KEY(database_name,store_name,record_key));
-  `);
-  database.prepare("INSERT INTO __idb_databases VALUES(?,?)").run(databaseName, DATABASE_VERSION);
-  for (const store of ["repositories", "workflows", "runs", "transactions"]) {
-    database.prepare("INSERT INTO __idb_stores VALUES(?,?,'\"id\"')").run(databaseName, store);
-  }
+  postgres = await prepareCanvasPostgres();
   const now = new Date().toISOString();
   put("repositories", { id: "repository:octo%2Fapi", owner: "octo", name: "api", observedAt: now });
   put("workflows", {
@@ -57,16 +51,11 @@ test.beforeAll(async () => {
     workflowPath: ".github/workflows/agent.md", status: "completed", conclusion: "success",
     createdAt: now, startedAt: now, updatedAt: now, observedAt: now,
   });
-  put("transactions", {
-    id: "local-dashboard", kind: "local-dashboard", createdAt: now, windowEnd: now,
-    windowStart: new Date(Date.now() - 7 * 86_400_000).toISOString(),
-    repositories: ["octo/api"], completeness: "partial", coverage: "Explicit synthetic local-server test fixture.",
-  });
-  status();
+  await status();
   const environment = Object.fromEntries(Object.entries(process.env)
     .filter(([name]) => !/^(?:CAO_|DASHBOARD_|GH_|GITHUB_|OTEL_)/.test(name)));
   child = spawn(resolve(".tmp/cao-dashboard"), [
-    "serve", "--sqlite-ingestion", "--sqlite", path, "--site", site,
+    "serve", "--postgres-url", postgres.postgresURL, "--redis-namespace", postgres.namespace, "--site", site,
     "--listen", "127.0.0.1:0", "--access-token", accessToken, "--exit-on-stdin-close",
     "--database-queries", join(site, "src/data/queries/database.json"),
     "--dashboard-queries", join(site, "src/agent/queries.generated.json"),
@@ -92,19 +81,25 @@ test.afterAll(async () => {
     child.stdin.end();
     await exited;
   }
-  database?.close();
+  await postgres?.close();
   if (directory) await rm(directory, { recursive: true, force: true });
 });
 
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
   test(`local ingestion status refreshes without navigation at ${viewport.width}px`, async ({ page }, testInfo) => {
-    status();
+    await status();
     await page.setViewportSize(viewport);
     await page.goto(`${url}/?access_token=${accessToken}#page-overview`);
     await expect(page.locator('meta[name="dashboard-data-backend"]')).toHaveAttribute("content", "server-http");
-    await expect(page.locator('meta[name="dashboard-storage-backend"]')).toHaveAttribute("content", "sqlite");
+    await expect(page.locator('meta[name="dashboard-storage-backend"]')).toHaveAttribute("content", "postgres");
     await expect(page.locator('[data-view-id="local-ingestion-progress"]')).toHaveCount(0);
-    if (viewport.width < 700) await page.getByRole("button", { name: "Select view", exact: true }).click();
+    const chromeIndicator = page.locator(".mobile-ingestion-indicator");
+    if (viewport.width < 700) {
+      await expect(chromeIndicator).toBeVisible();
+      await expect(chromeIndicator).toHaveAccessibleName("Data ingestion: Paused (idle)");
+      await expect(chromeIndicator).toHaveAttribute("data-state", "idle");
+      await page.getByRole("button", { name: "Select view", exact: true }).click();
+    } else await expect(chromeIndicator).toBeHidden();
     const indicator = page.locator(".dashboard-current-status > button");
     await expect(indicator).toHaveAccessibleName("Data ingestion: Paused");
     const tooltip = page.locator("#dashboard-current-status-tooltip");
@@ -122,14 +117,18 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(progress).toHaveJSProperty("value", 48);
     await expect(progress).toHaveJSProperty("max", 168);
     await expect(tooltip.locator(".ingestion-status-budget")).toContainText("999");
+    await expect(tooltip.locator(".ingestion-status-state")).toHaveText("Idle");
+    await expect(tooltip.getByRole("button", { name: "Start ingestion now" })).toBeEnabled();
     await expect(tooltip.getByText("Synthetic local ingestion fixture.", { exact: false })).not.toBeVisible();
     expect((await tooltip.boundingBox())?.height).toBeLessThan(360);
     const initialUrl = page.url();
-    status("collecting", 72);
+    await status("collecting", 72);
     await expect(indicator).toHaveAccessibleName("Data ingestion: Collecting", { timeout: 45_000 });
     await expect(indicator).toBeFocused();
     await expect(progress).toHaveJSProperty("value", 72);
     expect(page.url()).toBe(initialUrl);
+    await expect(tooltip.locator(".ingestion-status-state")).toHaveText("Running");
+    await expect(tooltip.getByRole("button", { name: "Ingestion running" })).toBeDisabled();
     if (viewport.width < 700) {
       await page.keyboard.press("Escape");
       await expect(tooltip).toBeHidden();
@@ -142,11 +141,22 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       await page.getByRole("button", { name: "Select view", exact: true }).click();
       await indicator.click();
       await expect(tooltip).toBeVisible();
+      const box = await tooltip.boundingBox();
+      expect(box?.x).toBeGreaterThanOrEqual(12);
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(viewport.width - 12);
+      expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
+      await page.keyboard.press("Escape");
+      await expect(tooltip).toBeHidden();
+      await page.locator(".mobile-nav-menu").evaluate((menu) => { menu.open = false; });
+      await expect(chromeIndicator).toBeVisible();
+      await expect(chromeIndicator).toHaveAttribute("data-state", "running");
+      await chromeIndicator.click();
+      await expect(tooltip).toBeVisible();
     }
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const screenshot = testInfo.outputPath(`local-ingestion-${viewport.width}.png`);
     await page.screenshot({ path: screenshot, fullPage: true });
-    await testInfo.attach("Populated local SQLite dashboard (synthetic fixture)", {
+    await testInfo.attach("Populated local PostgreSQL dashboard (canonical fixture)", {
       body: await readFile(screenshot), contentType: "image/png",
     });
     if (viewport.width < 700) {
@@ -159,7 +169,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
 }
 
 test("the mobile ingestion menu button opens and dismisses its popup by touch", async ({ browser }) => {
-  status();
+  await status();
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
   });

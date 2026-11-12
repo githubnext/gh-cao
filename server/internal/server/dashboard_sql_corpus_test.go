@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
@@ -104,6 +105,7 @@ func TestWorkflowListContractUsesPostgres(t *testing.T) {
 		"$runs":         {Rows: []model.Row{}},
 	}
 	repositories := map[string]bool{}
+	base := time.Now().UTC().Add(-24 * time.Hour).Truncate(time.Hour)
 	for index, testcase := range contract.Cases {
 		owner, repository, valid := strings.Cut(testcase.Repository, "/")
 		if !valid || owner == "" || repository == "" {
@@ -125,7 +127,7 @@ func TestWorkflowListContractUsesPostgres(t *testing.T) {
 		if testcase.Run == "" {
 			continue
 		}
-		at := fmt.Sprintf("2026-10-07T%02d:00:00Z", 12-index)
+		at := base.Add(-time.Duration(index) * time.Hour).Format(time.RFC3339)
 		run := model.Row{
 			"id": workflowID + ":latest", "repositoryId": testcase.Repository, "workflowId": workflowID,
 			"owner": owner, "repository": repository, "githubRunId": testcase.Run,
@@ -141,11 +143,11 @@ func TestWorkflowListContractUsesPostgres(t *testing.T) {
 		runs.Rows = append(runs.Rows, run, model.Row{
 			"id": workflowID + ":earlier-attempt", "repositoryId": testcase.Repository, "workflowId": workflowID,
 			"owner": owner, "repository": repository, "githubRunId": testcase.Run,
-			"attempt": 1, "startedAt": "2026-10-06T12:00:00Z", "status": "completed", "conclusion": "failure",
+			"attempt": 1, "startedAt": base.Add(-24 * time.Hour).Format(time.RFC3339), "status": "completed", "conclusion": "failure",
 		}, model.Row{
 			"id": workflowID + ":older-run", "repositoryId": testcase.Repository, "workflowId": workflowID,
 			"owner": owner, "repository": repository, "githubRunId": "1000",
-			"attempt": 1, "startedAt": "2026-10-05T12:00:00Z", "status": "completed", "conclusion": "success",
+			"attempt": 1, "startedAt": base.Add(-48 * time.Hour).Format(time.RFC3339), "status": "completed", "conclusion": "success",
 		})
 		inputs["$runs"] = runs
 	}

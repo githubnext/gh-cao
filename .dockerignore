@@ -1,4 +1,10 @@
 .git
+.cao*
+.env
+.env.*
+_activity
+**/*.sqlite
+**/*.sqlite-*
 .github/aw
 .cao-dashboard-traces
 .tmp

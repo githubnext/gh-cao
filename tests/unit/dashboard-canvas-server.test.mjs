@@ -5,7 +5,7 @@ import { request } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { startCanvasServer } from "../helpers/canvas-snapshot.mjs";
+import { prepareCanvasPostgres, startCanvasServer } from "../helpers/canvas-snapshot.mjs";
 import { writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
 import { refreshDashboardCompilerRelease } from "../../dashboard/local-release-metadata.mjs";
 
@@ -109,12 +109,12 @@ test("local GitHub routes enforce read-only same-origin access and advertise the
       for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]) {
         const rejected = await fetch(endpoint, { method });
         assert.equal(rejected.status, 405, `${method} ${endpoint}`);
-        assert.equal(rejected.headers.get("Allow"), "GET");
+        assert.match(rejected.headers.get("Allow"), /(?:^|, )GET(?:,|$)/);
       }
     }
     assert.equal((await fetch(resource, { headers: { Origin: "https://untrusted.example" } })).status, 403);
     assert.equal((await fetch(resource, { headers: { "Sec-Fetch-Site": "cross-site" } })).status, 403);
-    assert.equal((await fetch(`${resource}/issues`)).status, 400);
+    assert.equal((await fetch(`${resource}/issues`)).status, 404);
   } finally {
     await preview.close();
     await rm(root, { recursive: true, force: true });
@@ -325,13 +325,16 @@ test("canvas actions stream incrementally, reject untrusted requests, and surviv
   }
 });
 
-test("queued commands retain IDs across server restart and replay output by cursor", { timeout: 15_000 }, async () => {
+test("queued commands retain IDs across server restart and replay output by cursor", { timeout: 60_000 }, async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "dashboard-durable-cli-"));
   await writeFile(path.join(root, "index.html"), "<!doctype html><head></head><body>preview</body>");
   await writeFile(path.join(root, "dashboard.json"), dashboard("built-in", [
     { id: "compile", label: "Compile", icon: "play", command: "gh aw compile" },
   ]));
+  const postgres = await prepareCanvasPostgres();
+  t.after(() => postgres.close());
   const options = {
+    postgresURL: postgres.postgresURL, namespace: postgres.namespace,
     approveCliAction: async () => true, siteRoot: root, catalogRoot: null, workingDirectory: root, port: 0, output: () => {}, traceOutput: () => {}, requestOutput: () => {},
     prepareSnapshot: async (destination) => {
       await writeCanvasSnapshot(destination);
@@ -376,7 +379,7 @@ test("queued commands retain IDs across server restart and replay output by curs
   }
 });
 
-test("canvas queue refuses a persistence directory symlink outside the workspace", async () => {
+test("canvas refuses removed file-queue configuration before creating storage", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "dashboard-queue-path-"));
   const outside = await mkdtemp(path.join(tmpdir(), "dashboard-queue-outside-"));
   try {
@@ -385,13 +388,13 @@ test("canvas queue refuses a persistence directory symlink outside the workspace
     await symlink(outside, path.join(root, ".queue"), "dir");
     await assert.rejects(startCanvasServer({
       approveCliAction: async () => true, executeCliAction: async () => {}, siteRoot: root, catalogRoot: null, workingDirectory: root, port: 0,
-      cliQueuePath: path.join(root, ".queue", "cli-actions.sqlite"), output: () => {}, traceOutput: () => {}, requestOutput: () => {},
+      cliQueuePath: path.join(root, ".queue", "commands"), output: () => {}, traceOutput: () => {}, requestOutput: () => {},
       prepareSnapshot: async (destination) => {
         await writeCanvasSnapshot(destination);
       },
       cliQueueAdmission: async () => ({ concurrency: 1 }),
-    }), /queue database must remain within the workspace/);
-    await assert.rejects(stat(path.join(outside, "cli-actions.sqlite")), { code: "ENOENT" });
+    }), /File-based queue configuration has been removed/);
+    await assert.rejects(stat(path.join(outside, "commands")), { code: "ENOENT" });
   } finally {
     await rm(root, { recursive: true, force: true });
     await rm(outside, { recursive: true, force: true });
@@ -429,7 +432,7 @@ test("canvas does not discover operational data inside a Pages artifact", async 
     await assert.rejects(startCanvasServer({
       siteRoot: root, catalogRoot: null, workingDirectory: root,
       prepareSnapshot: (destination) => writeCanvasSnapshot(path.join(destination, "cao")),
-    }), /Prepare a checksum-verified operational snapshot/);
+    }), /Prepare a checksum-verified canonical JSONL artifact/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -814,7 +817,7 @@ exit 3
       executeCliAction: async () => ({ ok: true, exitCode: 0 }),
     };
     const missing = await startCanvasServer({
-      ...executionOptions, cliQueuePath: path.join(root, ".cao", "missing.sqlite"),
+      ...executionOptions,
     });
     try {
       const missingHtml = await (await fetch(`${missing.url}/`)).text();
@@ -828,7 +831,6 @@ exit 3
     } finally { await missing.close(); }
     const hosted = await startCanvasServer({
       ...executionOptions, caoUrl: "https://custom.example.com/ops",
-      cliQueuePath: path.join(root, ".cao", "override.sqlite"),
     });
     try {
       const hostedHtml = await (await fetch(`${hosted.url}/`)).text();
@@ -836,7 +838,7 @@ exit 3
     } finally { await hosted.close(); }
     await assert.rejects(readFile(path.join(root, "unexpected-discovery")), { code: "ENOENT" });
     await rm(path.join(artifact, "payload-hashes.json"));
-    await assert.rejects(startCanvasServer(executionOptions), /Prepare a checksum-verified operational snapshot/);
+    await assert.rejects(startCanvasServer(executionOptions), /Prepare a checksum-verified canonical JSONL artifact/);
   } finally {
     await preview.close();
     await rm(root, { recursive: true, force: true });

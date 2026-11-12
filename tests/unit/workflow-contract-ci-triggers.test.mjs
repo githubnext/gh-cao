@@ -205,7 +205,7 @@ test("Go extension quality checks cover root-module sources and lint configurati
       "dashboard/catalog.go",
       "dashboard/site/src/data/queries/database.json",
       "dashboard/site/src/data/queries/declarative.js",
-      "dashboard/site/src/data/storage/sqlite-indexeddb.js",
+      "server/cmd/cao-dashboard/read.go",
       "dashboard/site/src/semantic-view-prompt.js",
       "go.mod",
       "go.sum",
@@ -257,7 +257,7 @@ test("Go extension quality checks cover root-module sources and lint configurati
   assert.equal(lint.run, "golangci-lint run ./cmd/... ./internal/... ./dashboard");
   const standalone = steps.find((step) => step.name === "Check standalone execution without Node.js");
   assert.match(standalone.run, /PATH="" "\$binary" pages --json/);
-  assert.match(standalone.run, /PATH="" "\$binary" query --database explicit.sqlite --collection runs/);
+  assert.match(standalone.run, /CAO_POSTGRES_URL="" PATH="" "\$binary" query --collection runs/);
   const parity = steps.find((step) => step.name === "Install JavaScript parity-oracle dependencies");
   const check = steps.find((step) => step.run === "make check");
   assert.equal(parity.run, "npm ci --ignore-scripts --no-audit --no-fund");
@@ -492,7 +492,7 @@ test("operational ingestion fails closed without an explicit real snapshot", () 
   for (const [source, manifest, expected] of [
     [undefined, {}, /Select exactly one operational source/],
     ["https://snapshot.example/payload-hashes.json", { synthetic: true }, /Synthetic demo data is not operational evidence/],
-    ["https://snapshot.example/payload-hashes.json", {}, /Operational evidence must include a checksum/],
+    ["https://snapshot.example/payload-hashes.json", {}, /contains no compacted run-information shards/],
   ]) {
     const result = spawnSync(process.execPath, ["--input-type=module", "-e", `
       globalThis.fetch = async () => Response.json(${JSON.stringify(manifest)});

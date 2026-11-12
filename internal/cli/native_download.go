@@ -54,7 +54,7 @@ func nativeDownload(cmd *cobra.Command, _ ghExecutor) error {
 
 func nativeDownloadURL(raw string) (*url.URL, error) {
 	if strings.TrimSpace(raw) == "" {
-		return nil, nativeErrorf("An explicit Activity snapshot manifest URL is required: pass --url or set DASHBOARD_DATA_URL to a payload-hashes.json URL. Alternatively, download the cao-activity-index artifact from a selected CAO Activity run with gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao, then query the local cache with --database FILE.")
+		return nil, nativeErrorf("An explicit Activity snapshot manifest URL is required: pass --url or set DASHBOARD_DATA_URL to a payload-hashes.json URL. Alternatively, download the cao-activity-index artifact with gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao, then ingest it with cao-dashboard ingest --source .cao.")
 	}
 	value, err := url.Parse(raw)
 	if err != nil || value.Host == "" || (value.Scheme != "https" && value.Scheme != "http") {
@@ -200,7 +200,7 @@ func nativeDownloadAttempt(ctx context.Context, manifestURL *url.URL, directory,
 		return nil, err
 	}
 	defer func() { err = errors.Join(err, os.RemoveAll(staging)) }()
-	baseNames := []string{"payload-hashes.json", "gh-aw-logs.sqlite", "inventory-sources.json"}
+	baseNames := []string{"payload-hashes.json", "inventory-sources.json"}
 	manifestPath := filepath.Join(staging, baseNames[0])
 	if err := nativeFetchFile(ctx, client, manifestURL, manifestPath, false); err != nil {
 		return nil, err
@@ -227,9 +227,9 @@ func nativeDownloadAttempt(ctx context.Context, manifestURL *url.URL, directory,
 	if hashes["synthetic"] == true {
 		return nil, nativeErrorf("Synthetic Pages demo data cannot be used as an operational Activity snapshot.")
 	}
-	expected, _ := hashes["gh-aw-logs.sqlite"].(string)
-	if !nativeDigestPattern.MatchString(expected) {
-		return nil, nativeErrorf("Activity snapshot manifest contains no valid SQLite checksum.")
+	inventoryDigest, _ := hashes["inventory-sources.json"].(string)
+	if !nativeDigestPattern.MatchString(inventoryDigest) {
+		return nil, nativeErrorf("Operational manifest must declare the inventory-sources.json checksum.")
 	}
 	for _, name := range baseNames[1:] {
 		source := manifestURL.ResolveReference(&url.URL{Path: name})
@@ -241,19 +241,19 @@ func nativeDownloadAttempt(ctx context.Context, manifestURL *url.URL, directory,
 	if err != nil {
 		return nil, err
 	}
+	inventoryHash, err := nativeHashFile(filepath.Join(staging, "inventory-sources.json"))
+	if err != nil {
+		return nil, err
+	}
+	if inventoryHash != strings.ToLower(inventoryDigest) {
+		return nil, &nativeDownloadFailure{"Activity shard checksum mismatch: inventory-sources.json", true}
+	}
 	value, err = nativeDecodeJSON(inventory)
 	if err != nil {
 		return nil, err
 	}
 	if _, ok := value.(map[string]any); !ok {
 		return nil, nativeErrorf("Deployed inventory sources must contain a JSON object.")
-	}
-	actual, err := nativeHashFile(filepath.Join(staging, "gh-aw-logs.sqlite"))
-	if err != nil {
-		return nil, err
-	}
-	if actual != strings.ToLower(expected) {
-		return nil, &nativeDownloadFailure{"Activity SQLite checksum mismatch: gh-aw-logs.sqlite", true}
 	}
 	groups := map[string][]string{}
 	for name, value := range hashes {
@@ -269,12 +269,9 @@ func nativeDownloadAttempt(ctx context.Context, manifestURL *url.URL, directory,
 	for _, names := range groups {
 		sort.Strings(names)
 	}
-	payloads := append([]string{}, groups["gh-aw-logs-shards"]...)
-	if len(groups["gh-aw-logs-runs"]) > 0 {
-		payloads = append(append([]string{}, groups["gh-aw-logs-runs"]...), groups["gh-aw-logs-records"]...)
-	}
-	if len(payloads) == 0 {
-		return nil, nativeErrorf("Activity shard manifest contains no valid JSONL shards.")
+	payloads := append(append([]string{}, groups["gh-aw-logs-runs"]...), groups["gh-aw-logs-records"]...)
+	if len(groups["gh-aw-logs-runs"]) == 0 {
+		return nil, nativeErrorf("Activity shard manifest contains no valid compacted run-information JSONL shards.")
 	}
 	directories := []string{}
 	seen := map[string]bool{}
@@ -324,10 +321,10 @@ func nativeDownloadAttempt(ctx context.Context, manifestURL *url.URL, directory,
 		paths = append(paths, filepath.Join(directory, name))
 	}
 	return map[string]any{
-		"manifestUrl": manifestURL.String(), "databaseUrl": manifestURL.ResolveReference(&url.URL{Path: "gh-aw-logs.sqlite"}).String(),
+		"manifestUrl":  manifestURL.String(),
 		"inventoryUrl": manifestURL.ResolveReference(&url.URL{Path: "inventory-sources.json"}).String(),
-		"manifest":     filepath.Join(directory, "payload-hashes.json"), "database": filepath.Join(directory, "gh-aw-logs.sqlite"),
-		"inventory": filepath.Join(directory, "inventory-sources.json"), "payloadDirectories": paths,
+		"manifest":     filepath.Join(directory, "payload-hashes.json"),
+		"inventory":    filepath.Join(directory, "inventory-sources.json"), "payloadDirectories": paths,
 	}, nil
 }
 
@@ -361,7 +358,7 @@ func nativePublishDownload(staging, destination string, names []string) (err err
 	}
 	for _, name := range names {
 		switch name {
-		case "payload-hashes.json", "gh-aw-logs.sqlite", "inventory-sources.json", "gh-aw-logs-runs", "gh-aw-logs-records", "gh-aw-logs-shards":
+		case "payload-hashes.json", "inventory-sources.json", "gh-aw-logs-runs", "gh-aw-logs-records":
 		default:
 			return rollback(nativeErrorf("Activity snapshot contains an unsafe publication path: %s", name))
 		}

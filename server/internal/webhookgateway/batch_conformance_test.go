@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -12,15 +11,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 	wg "github.com/githubnext/gh-cao/server/internal/webhookgateway"
 	"github.com/githubnext/gh-cao/server/internal/webhookgatewaylocal"
 )
@@ -88,32 +85,12 @@ func newBatchRig(t *testing.T, backend string, configure func(*wg.PolicySnapshot
 	}
 	rig := &batchRig{policy: boundaryPolicy{snapshot}, simulation: simulation, auth: &batchAuthority{snapshot: snapshot}}
 	options := snapshot.Policy.Queue
-	if backend == "sqlite" {
-		queue, err := sqlite.OpenWebhookQueue(t.Context(), filepath.Join(t.TempDir(), "batches.sqlite"), "batch-conformance", options)
-		if err != nil {
-			t.Fatal(err)
-		}
-		rig.queue = queue
-		t.Cleanup(func() { _ = queue.Close() })
-	} else {
-		store, err := postgres.New(t.Context(), os.Getenv("POSTGRES_URL"), "batch-"+rand.Text(), postgres.Config{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() {
-			ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), 5*time.Second)
-			defer cancel()
-			if err := store.DeleteNamespace(ctx); err != nil {
-				t.Error(err)
-			}
-			_ = store.Close()
-		})
-		queue, err := store.OpenWebhookQueue(t.Context(), "batches", options)
-		if err != nil {
-			t.Fatal(err)
-		}
-		rig.queue = queue.(wg.BatchQueue)
+	store, _, _ := testutil.OperationalPostgres(t)
+	queue, err := store.OpenWebhookQueue(t.Context(), "batches", options)
+	if err != nil {
+		t.Fatal(err)
 	}
+	rig.queue = queue.(wg.BatchQueue)
 	if err := rig.queue.ApplyRevision(t.Context(), snapshot.Revision); err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +166,7 @@ func TestSpecBatchVectors(t *testing.T) {
 	if err := decoder.Decode(&vectors); err != nil || vectors.Version != 1 || len(vectors.Cases) != 3 {
 		t.Fatal("invalid batch conformance vectors", err)
 	}
-	for _, backend := range []string{"sqlite", "postgres"} {
+	for _, backend := range []string{"postgres"} {
 		for _, vector := range vectors.Cases {
 			t.Run(backend+"/"+vector.ID, func(t *testing.T) {
 				rig := newBatchRig(t, backend, nil)

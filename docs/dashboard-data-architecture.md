@@ -53,7 +53,7 @@ flowchart TB
 | --- | --- | --- |
 | System of record | GitHub, gh-aw evidence, and reviewed policy remain external authorities. | Clearing a dashboard projection cannot revoke policy or erase GitHub history. |
 | Anti-corruption layer | Source adapters translate provider-specific formats into canonical observations. | Neither SQL tables nor log schemas become the UI's domain model. |
-| Read-side portability | IndexedDB, local SQLite, and hosted PostgreSQL expose canonical query contracts. | Shared semantics do not imply identical durability, capacity, or query support. |
+| Read-side portability | IndexedDB and local/hosted PostgreSQL expose canonical query contracts. | Shared semantics do not imply identical durability, capacity, or query support. |
 | Private session lake | Approved unified-session events live in immutable Parquet, locally or in private Azure Blob Storage. | DuckDB or generation-bound ADX queries use separate content grants; no automatic dashboard join or fallback. |
 | Control-plane isolation | Dashboard facts and computation results grant no execution authority. | Enrollment, dispatch, and mutation require their separate policy and authorization paths. |
 
@@ -68,12 +68,12 @@ switch the client to a different data plane.
 ```mermaid
 flowchart TB
   accTitle: Three explicitly selected serving topologies
-  accDescr: The synthetic Pages demo queries isolated browser IndexedDB through a worker. Real local snapshots use SQLite through Go. Production serving queries PostgreSQL through the same-origin Go handler.
+  accDescr: The synthetic Pages demo queries isolated browser IndexedDB through a worker. Real local data uses PostgreSQL through Go. Production serving queries PostgreSQL through the same-origin Go handler.
   Browser["Dashboard client"] --> Selection{"Configured deployment"}
   Selection -->|Synthetic demo only| Worker["Browser data Web Worker"]
   Worker --> IDB[("Disposable IndexedDB")]
   Selection -->|Local loopback| Local["Go query handler"]
-  Local --> SQLite[("Read-only canonical SQLite")]
+  Local --> LocalPostgres[("Canonical PostgreSQL")]
   Selection -->|Hosted server-http| Hosted["Go handler: UI, OAuth, queries, revisions"]
   Hosted --> PG[("Canonical PostgreSQL")]
   Hosted --> Ops["Separate operational services"]
@@ -82,7 +82,7 @@ flowchart TB
 | Topology | Query execution | Persistence and ownership | Appropriate use |
 | --- | --- | --- | --- |
 | Synthetic Pages demo | Data Web Worker over IndexedDB | Generated samples, production canonical ingestion; isolated disposable browser state | Enterprise sample exploration, never operational evidence distribution |
-| Local/headless | Go over a selected read-only canonical SQLite snapshot | The Activity pipeline owns ordinary snapshot creation, retention, and repair | Operator analysis, CLI consumption, and local development |
+| Local/headless | Go over a selected canonical PostgreSQL namespace | The Activity pipeline owns ordinary snapshot creation, retention, and repair | Operator analysis, CLI consumption, and local development |
 | Production hosted | Go over PostgreSQL using bounded, parameterized SQL | Server-side canonical namespace plus separately owned operational state | Authenticated shared dashboards and optionally native acquisition |
 
 Containers, Azure Functions, and external-listener hosts use the **complete
@@ -91,7 +91,7 @@ events. The server injects `server-http`; clients never receive database
 credentials. Hosted startup rejects missing dashboard assets, and hosted
 service failures do not fall back to Pages, shard ingestion, or IndexedDB.
 
-Ordinary local SQLite serving is query-only: the Go server does not collect
+Ordinary local PostgreSQL serving is query-only: the Go server does not collect
 GitHub evidence, start an ingestion runtime, or create a writable overlay.
 The separately selected immediate operator CLI can acquire a private bounded
 projection outside that server; it is not a hosted failover mechanism.
@@ -141,10 +141,10 @@ flowchart LR
 ```
 
 The default **Actions profile** publishes inventory, hashes, compact normalized
-run-information JSONL, run-record JSONL, and a SQLite projection for headless
+run-information JSONL, run-record JSONL for PostgreSQL ingestion and headless
 consumers. Raw Activity JSONL remains in the Activity cache, not the deployed
 browser payload. Browser ingestion reads JSONL and inventory; it does not
-import the SQLite database into IndexedDB.
+import a database file into IndexedDB.
 
 The optional **native collector profile** requires explicit native selection,
 canonical PostgreSQL, and durable PostgreSQL operational ownership. GitHub
@@ -204,7 +204,7 @@ flowchart LR
 ```
 
 The static SQL export is a **versioned interchange contract**, not the local
-SQLite schema and not a browser database connection. An upstream owner exports
+physical storage schema and not a browser database connection. An upstream owner exports
 SQL tables or views to JSON before adaptation.
 
 ```mermaid
@@ -278,7 +278,7 @@ flowchart TB
 
 Hosted PostgreSQL stores query-required native columns, presence information,
 and relational child values, not duplicated JSON/JSONB canonical documents.
-Ordinary local SQLite uses the canonical storage abstraction and transactional
+Ordinary local PostgreSQL uses the canonical storage abstraction and transactional
 relational mirrors; it is not a copy of the hosted physical schema.
 
 **Source:** dashboard-data Abstract and §5.2;
@@ -419,7 +419,7 @@ sequenceDiagram
   B->>D: Execute within backend query contract
   D-->>B: Evidence plus source quality
   B-->>V: Bounded payload, revision, evaluation metadata
-  D-->>B: Committed data change or external SQLite refresh
+  D-->>B: Committed data change or external PostgreSQL publication
   B-->>V: Re-evaluated payload or explicitly aged cache result
   V->>B: Abort on navigation or replacement
   B->>B: Cancel old subscription and requests
@@ -507,10 +507,10 @@ back to detail. Missing readiness is unavailable, not an empty population.
 Undated executions cannot be assigned to ingestion day.
 
 The statistical layer selects before consumer filtering, with independent
-capacities: PostgreSQL 64,000, SQLite 8,000, IndexedDB 16,000 selected Runs.
+capacities: PostgreSQL 64,000, IndexedDB 16,000 selected Runs.
 Only PostgreSQL persists frozen evidence bundles and parent closure;
 incremental revisions mark them stale, and complete snapshot publication
-rebuilds them. Browser and SQLite sampling cannot restore expired detail.
+rebuilds them. Browser and PostgreSQL sampling cannot restore expired detail.
 Sampling does not reduce canonical storage or download volume.
 
 **Retention qualification:** the draft contains conflicting summary-retention
@@ -613,7 +613,7 @@ Before approving a deployment or boundary change, establish:
 | Review question | Required evidence |
 | --- | --- |
 | Which acquisition profile owns writes? | Explicit profile selection, enrollment, credential and fencing configuration |
-| Which serving/query backend is selected? | Synthetic-only Pages, real local SQLite, or production hosted `server-http`; no automatic fallback |
+| Which serving/query backend is selected? | Synthetic-only Pages, real local PostgreSQL, or production hosted `server-http`; no automatic fallback |
 | Where are atomicity and durability promised? | Browser phase/receipt semantics versus PostgreSQL publication and protected-state contracts |
 | What population does each metric describe? | Exact retained evidence, daily observations, or a labelled statistical frame |
 | Is private full-session evidence separately approved? | Archive content/read grants, exact scope, fenced Parquet membership, independent retention and real destination acceptance |

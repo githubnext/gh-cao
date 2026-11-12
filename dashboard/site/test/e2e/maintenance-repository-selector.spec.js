@@ -21,7 +21,6 @@ for (const { width, height = 900, empty = false, crowded = false } of [
     const preview = await startCanvasServer({
       workingDirectory: fileURLToPath(new URL('../../../../', import.meta.url)),
       repository: 'acme/control', port: 0,
-      cliQueuePath: testInfo.outputPath('.cao', 'cli-actions.sqlite'),
       cliQueueAdmission: async () => ({ concurrency: 1 }),
       output: () => {}, requestOutput: () => {}, traceOutput: () => {},
       lookupSelector: async (/** @type {{ id: string, selector: { query: { limit: number } } }} */ action, /** @type {string} */ text) => {

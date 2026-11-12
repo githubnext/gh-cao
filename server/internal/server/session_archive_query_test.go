@@ -14,7 +14,7 @@ const analyticalArchiveRequest = `{"kind":"session-query","repository":"octo/one
 "aggregate":{"by":["Type"],"values":[{"field":"Sequence","as":"events","reducer":"count"}]}}}`
 
 func TestSessionArchiveAnalyticalHTTPValidation(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	probe := &sessionArchiveProbe{}
 	app.sessionArchive = &sessionArchiveService{
 		backend: probe, repositories: []string{"octo/one"}, read: SessionArchiveReadAccess{},
@@ -75,7 +75,7 @@ func TestSessionArchiveAnalyticalHTTPValidation(t *testing.T) {
 }
 
 func TestSessionArchiveAnalyticalHTTPResponseBudgets(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	probe := &sessionArchiveProbe{}
 	app.sessionArchive = &sessionArchiveService{
 		backend: probe, repositories: []string{"octo/one"}, read: SessionArchiveReadAccess{Approved: true},

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Choose a GitHub account · CAO</title>
+<style>
+:root {
+  color-scheme: light;
+  --canvas: #f6f8fa;
+  --surface: #ffffff;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --border: #d1d9e0;
+  --accent: #0969da;
+  --accent-hover: #0550ae;
+  --danger: #cf222e;
+  --danger-muted: #ffebe9;
+  --focus: #0969da;
+  --shadow: 0 8px 24px #1f23280a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --canvas: #0d1117;
+    --surface: #151b23;
+    --fg: #f0f6fc;
+    --muted: #9198a1;
+    --border: #3d444d;
+    --accent: #58a6ff;
+    --accent-hover: #79c0ff;
+    --danger: #f85149;
+    --danger-muted: #2d1418;
+    --focus: #58a6ff;
+    --shadow: 0 8px 24px #01040966;
+  }
+}
+* { box-sizing: border-box; }
+body { min-width: 320px; min-height: 100vh; margin: 0; background: var(--canvas); color: var(--fg); font-size: 14px; line-height: 1.5; }
+.page { min-height: 100vh; display: grid; align-content: center; justify-items: center; gap: 24px; padding: 40px 20px; }
+.brand { width: min(100%, 560px); display: flex; align-items: center; gap: 10px; color: var(--fg); font-size: 16px; font-weight: 600; letter-spacing: -.02em; text-decoration: none; }
+.brand-mark { width: 28px; height: 28px; color: var(--accent); }
+.error-card { width: min(100%, 560px); padding: 28px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
+.error-heading { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+.error-icon { width: 32px; height: 32px; display: grid; flex: 0 0 32px; place-items: center; border-radius: 50%; background: var(--danger-muted); color: var(--danger); font-size: 18px; font-weight: 700; }
+.eyebrow { margin: 0 0 2px; color: var(--muted); font-size: 12px; font-weight: 600; }
+h1 { margin: 0; font-size: clamp(20px, 4vw, 24px); font-weight: 600; line-height: 1.25; letter-spacing: -.025em; }
+.message { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 24px; }
+button { min-height: 36px; padding: 7px 14px; border: 1px solid #1f883d; border-radius: 6px; background: #1f883d; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+button:hover:not(:disabled) { border-color: #1a7f37; background: #1a7f37; }
+button:disabled { cursor: wait; opacity: .65; }
+a { color: var(--accent); font-weight: 500; text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.request-id { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+code { overflow-wrap: anywhere; color: var(--fg); font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+.recovery-error { margin: 16px 0 0; padding: 10px 12px; border: 1px solid var(--danger); border-radius: 6px; color: var(--danger); }
+.recovery-error[hidden] { display: none; }
+.noscript { margin: 16px 0 0; color: var(--muted); font-size: 12px; }
+@media (max-width: 480px) {
+  .page { align-content: start; gap: 20px; padding: 28px 16px; }
+  .error-card { padding: 22px 18px; }
+  .actions { align-items: flex-start; flex-direction: column; gap: 14px; }
+}
+.accounts { display: grid; gap: 8px; margin: 20px 0 0; padding: 0; list-style: none; }
+.account { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; }
+.account-name { display: grid; gap: 2px; }
+.account-login { color: var(--fg); font-weight: 600; overflow-wrap: anywhere; }
+.account-status { color: var(--muted); font-size: 12px; }
+.account-status.denied { color: var(--danger); }
+.continue { display: inline-block; min-height: 32px; padding: 5px 12px; border: 1px solid #1f883d; border-radius: 6px; background: #1f883d; color: #fff; font-weight: 600; }
+.continue:hover { border-color: #1a7f37; background: #1a7f37; color: #fff; text-decoration: none; }
+.continue.secondary { border-color: var(--border); background: transparent; color: var(--fg); }
+.continue.secondary:hover { background: var(--canvas); color: var(--fg); }
+</style>
+</head>
+<body><main class="page">
+<div class="brand">
+<svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M1 3a2 2 0 0 1 2-2h6.5a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2H7v4.063C7 16.355 7.644 17 8.438 17H12.5v-2.5a2 2 0 0 1 2-2H21a2 2 0 0 1 2 2V21a2 2 0 0 1-2 2h-6.5a2 2 0 0 1-2-2v-2.5H8.437A2.939 2.939 0 0 1 5.5 15.562V11.5H3a2 2 0 0 1-2-2Zm2-.5a.5.5 0 0 0-.5.5v6.5a.5.5 0 0 0 .5.5h6.5a.5.5 0 0 0 .5-.5V3a.5.5 0 0 0-.5-.5Zm11.5 11.5a.5.5 0 0 0-.5.5V21a.5.5 0 0 0 .5.5H21a.5.5 0 0 0 .5-.5v-6.5a.5.5 0 0 0-.5-.5Z" fill="currentColor"/><path d="m17.143 3.15c.083-.222.406-.222.49 0l.58 1.545c.18.48.565.855 1.049 1.023l1.584.566c.228.081.228.396 0 .477l-1.584.566a1.763 1.719 0 0 0-1.05 1.023l-.58 1.545c-.083.223-.406.223-.489 0l-.58-1.545a1.763 1.719 0 0 0-1.049-1.023l-1.584-.566c-.228-.081-.228-.396 0-.477l1.584-.566a1.763 1.719 0 0 0 1.05-1.023Z" fill="#8250df" stroke="#8250df" stroke-width=".717"/></svg>
+<span>Central Agentic Ops</span>
+</div>
+<section class="error-card" aria-labelledby="select-title">
+<div class="error-heading"><span class="error-icon" aria-hidden="true">?</span><div><p class="eyebrow">Multiple GitHub accounts</p><h1 id="select-title">Choose the GitHub account for this dashboard</h1></div></div>
+{{if .Denied}}<p class="message">GitHub signed you in as <strong>@{{.Denied}}</strong>, which doesn’t have access to this dashboard. This browser has used more than one GitHub account here, so GitHub may have picked the wrong one.</p>
+{{else}}<p class="message">This browser has used more than one GitHub account with this dashboard. Choose the account to sign in with.</p>{{end}}
+<p class="message">This dashboard signs in with accounts on <strong>{{.Host}}</strong>. Accounts on a different GitHub host, such as a GitHub Enterprise Server instance or another GHE.com subdomain, can’t sign in here.</p>
+<ul class="accounts" aria-label="GitHub accounts used in this browser">
+{{range .Accounts}}<li class="account"><span class="account-name"><span class="account-login">@{{.Login}}</span>{{if .Authorized}}<span class="account-status">Signed in to this dashboard before</span>{{else}}<span class="account-status denied">Doesn’t have access to this dashboard</span>{{end}}</span><a class="continue{{if not .Authorized}} secondary{{end}}" href="{{.LoginURL}}">Continue as @{{.Login}}</a></li>
+{{end}}</ul>
+<p class="message">If GitHub keeps choosing the same account, switch accounts with GitHub’s profile menu, then continue.</p>
+<div class="actions"><a href="/auth/login?select_account=1">Use another account <span aria-hidden="true">→</span></a><a href="{{.ProviderHome}}" target="_blank" rel="noreferrer noopener">Switch account on {{.Host}} <span aria-hidden="true">→</span></a><a href="https://github.com/githubnext/gh-cao/blob/main/server/README.md#oauth-sign-in-troubleshooting" rel="noreferrer noopener">Sign-in troubleshooting <span aria-hidden="true">→</span></a></div>
+</section>
+</main></body>
+</html>

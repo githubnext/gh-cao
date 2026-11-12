@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title description" data-visual-kind="diagram" data-visual-id="dashboard-data-flow">
   <title id="title">One canonical pipeline, distinct data profiles</title>
-  <desc id="description">Real Activity artifacts feed local Go and SQLite. Operational artifacts or an authorized collector feed same-origin hosted Go and PostgreSQL. Separately generated synthetic enterprise samples use production normalization and canonical ingestion for the Pages Web Worker and isolated IndexedDB. All profiles use the same declarative queries and views, without fallback.</desc>
+  <desc id="description">Real Activity artifacts feed local Go and Postgres. Operational artifacts or an authorized collector feed same-origin hosted Go and PostgreSQL. Separately generated synthetic enterprise samples use production normalization and canonical ingestion for the Pages Web Worker and isolated IndexedDB. All profiles use the same declarative queries and views, without fallback.</desc>
   <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8b949e"/></marker></defs>
   <rect width="1200" height="650" fill="#0d1117"/>
   <g font-family="Mona Sans, system-ui, sans-serif" text-anchor="middle">
@@ -28,7 +28,7 @@
     <path d="M980 275v63" stroke="#8b949e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
     <g data-node="sqlite">
       <rect x="60" y="350" width="320" height="180" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="2"/>
-      <text x="220" y="397" fill="#79c0ff" font-size="28" font-weight="700">SQLite</text>
+      <text x="220" y="397" fill="#79c0ff" font-size="28" font-weight="700">Postgres</text>
       <text x="220" y="442" fill="#f0f6fc" font-size="22">Local Go, CLI and agents</text>
       <text x="220" y="482" fill="#c9d1d9" font-size="20">Real read-only snapshot</text>
     </g>

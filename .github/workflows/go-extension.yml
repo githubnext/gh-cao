@@ -135,7 +135,10 @@ jobs:
           PATH="" "$binary" pages --json > /dev/null
           PATH="" "$binary" queries --json > /dev/null
           PATH="" "$binary" query-info campaign-runs --json > /dev/null
-          PATH="" "$binary" query --database explicit.sqlite --collection runs
+          if CAO_POSTGRES_URL="" PATH="" "$binary" query --collection runs; then
+            echo "Database-backed queries must require PostgreSQL" >&2
+            exit 1
+          fi
       - name: Smoke test extension
         run: |
           ./gh-cao --help

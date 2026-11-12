@@ -3,7 +3,7 @@
 The [archive specification](../specs/session-archive.md) defines an additional,
 default-off analytics service. Local servers use private Parquet plus DuckDB;
 persistent hosted servers can use private Blob Parquet plus generation-bound
-ADX queries. Existing dashboard SQLite/PostgreSQL and native ADX profiles are
+ADX queries. Existing dashboard PostgreSQL and native ADX profiles are
 not replaced. The [ADR](../adr/parquet-unified-session-storage.md) remains proposed
 until its deployment acceptance gates have evidence.
 
@@ -38,7 +38,7 @@ accepted. SQL comes only from generated trusted definitions, never request text.
 
 ## Local persistent server
 
-Use `cao-dashboard serve` with the ordinary read-only SQLite snapshot.
+Use `cao-dashboard serve` with the ordinary PostgreSQL namespace.
 `CAO_SESSION_ARCHIVE_ENABLED` is the independent opt-in.
 The `CAO_SESSION_ARCHIVE_*` configuration owns a separate private archive
 directory, namespace, exact repository allowlist, durable-storage approval,
@@ -46,9 +46,9 @@ content policy, runtime path, and budgets. Refer to
 `internal/sessionarchive/config.go` for the complete validated configuration.
 No existing ADX export environment variables are required.
 
-Keep every archive repository within the SQLite snapshot's inventory.
+Keep every archive repository within the PostgreSQL namespace's inventory.
 Local serving reads and maintains independently captured archive evidence; it
-does not start GitHub acquisition or SQLite backfill. Approved evidence must be
+does not start GitHub acquisition or implicit backfill. Approved evidence must be
 captured by a separately authorized producer before its collection workspace
 is removed. Hosted co-resident workers retain their independent acquisition
 and pre-normalization capture lifecycle.

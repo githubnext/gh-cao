@@ -130,7 +130,7 @@ GitHub state. Derived intelligence is advisory, not permission to execute.
 | Dashboard deployment | Presentation and query boundary |
 | --- | --- |
 | Synthetic enterprise Pages demo | Generated raw samples pass through production normalization and canonical ingestion; a Web Worker queries isolated IndexedDB using the same Dashboard Language and views. No real operational data or live services. |
-| Local Go server | The same Go handler and views query a real operational SQLite snapshot read-only. Acquisition requires an authorized Activity artifact or an explicit direct manifest URL. |
+| Local Go server | The same Go handler and views query a canonical PostgreSQL namespace read-only. Acquisition requires an authorized Activity artifact or an explicit direct manifest URL. |
 | Production hosted Go server | The same-origin Go handler serves the UI, assets, sign-in, query API, and revision events; dashboard queries run server-side over PostgreSQL. |
 
 Hosted mode is not a Pages frontend with a separate API. It does not fall back

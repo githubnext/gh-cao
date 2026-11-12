@@ -247,7 +247,8 @@ Use `/add-operational-value OWNER/REPO` to list repository workflows or `/add-op
   `gh cao value publish OWNER/REPO WORKFLOW --server URL --input REPORT-evidence.jsonl`
   with the original generated envelope and the administrator's private session
   credentials. It publishes existing evidence; it does not acquire facts or
-  register executable code. Local SQLite and static Pages have no such endpoint.
+  register executable code. Static Pages has no such endpoint; local analysis
+  uses explicitly configured PostgreSQL.
   Ongoing collection uses the reviewed local
   collector exporting the same frozen `definition` and
   `collectValueEvidence({repository, workflow, observedAt, database, previous, workspace})`,
@@ -394,7 +395,8 @@ discovery completeness or causal impact from tracking and structural facts.
 For native dashboard integration rather than standalone HTML, use
 `examples/native-file-diet.mjs --proof PROOF_DIRECTORY --output .tmp/file-diet-native`.
 It recomputes retained inventory measurements, writes original facts through
-normal SQLite ingestion and executes the shipped Value query. It does not
+normal PostgreSQL ingestion and executes the shipped Value query. Set
+`CAO_POSTGRES_URL` to an explicitly selected local database. It does not
 remeasure Git blobs, collect GitHub data or enable a campaign. Its manifest
 separates source/capture identity from processing costs. An optional already
 approved `--archive-server ORIGIN` uses `scripts/session-archive.mjs` to bind

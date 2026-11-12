@@ -136,6 +136,13 @@ namespace Operations {
   @route("/api/admin/rebuild/status")
   @get op rebuildStatus(): RebuildStatus | Unauthorized | Unavailable;
 
+  /** Local `gh cao dashboard` only: asks the owning CLI process to start a bounded collection pass now. Requires the local bearer capability; not registered for hosted OAuth deployments. Requests coalesce into at most one pending pass and never widen repository scope, rollout mode or the GitHub API quota reserve. Acceptance does not mean collection has finished; progress is reported through the local ingestion status. Returns 404 when no native ingestion adapter is attached and 502 when the owning process is unavailable or rejects the request. */
+  @useAuth(BearerAuth)
+  @route("/api/v1/ingestion/start")
+  @post op startIngestion():
+    { @statusCode code: 202; @body body: { requested: true } } |
+    Unauthorized | NotFound | Failure<502>;
+
   /** Administrator-only; returns not-configured when no collector is active. */
   @useAuth(DashboardAuth)
   @route("/api/admin/collection/status")

@@ -2376,6 +2376,101 @@
         ]
       }
     },
+    "/api/v1/ingestion/start": {
+      "post": {
+        "operationId": "Operations_startIngestion",
+        "description": "Local `gh cao dashboard` only: asks the owning CLI process to start a bounded collection pass now. Requires the local bearer capability; not registered for hosted OAuth deployments. Requests coalesce into at most one pending pass and never widen repository scope, rollout mode or the GitHub API quota reserve. Acceptance does not mean collection has finished; progress is reported through the local ingestion status. Returns 404 when no native ingestion adapter is attached and 502 when the owning process is unavailable or rejects the request.",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "The request has been accepted for processing, but processing has not yet completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requested": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "requested"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ingestion and administration"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/ingestion/webhook/status": {
       "get": {
         "operationId": "Operations_webhookStatus",
@@ -3021,7 +3116,7 @@
     "/api/v1/session-archive/query": {
       "post": {
         "operationId": "SessionArchive_query",
-        "description": "Execute timeline, summary, or the local-only session-query Dashboard Language profile for one exact authorized repository, with an additional full-trace-read grant and (hosted) CSRF token. Maximum request 4096 bytes, result 8 MiB/10000 rows, and execution 30 seconds; backend budgets may be tighter. Hosted session-query requests fail explicitly with 422, never fall back. Authorization is rechecked inside withdrawal-aware result delivery through the final response write. Corrections use active projection membership before any analytical operation; withdrawal overrides historical/pinned readers. A budget failure is an error, not a complete-looking truncated trace. An explicit query.limit is intentional selection, reported separately from evidence coverage. Existing SQLite/PostgreSQL dashboard queries remain on their existing backends. Hosted Blob/ADX query activation additionally requires generation-bound live Azure conformance; upload success or a local simulator does not establish that evidence.",
+        "description": "Execute timeline, summary, or the local-only session-query Dashboard Language profile for one exact authorized repository, with an additional full-trace-read grant and (hosted) CSRF token. Maximum request 4096 bytes, result 8 MiB/10000 rows, and execution 30 seconds; backend budgets may be tighter. Hosted session-query requests fail explicitly with 422, never fall back. Authorization is rechecked inside withdrawal-aware result delivery through the final response write. Corrections use active projection membership before any analytical operation; withdrawal overrides historical/pinned readers. A budget failure is an error, not a complete-looking truncated trace. An explicit query.limit is intentional selection, reported separately from evidence coverage. Ordinary dashboard queries remain on PostgreSQL. Hosted Blob/ADX query activation additionally requires generation-bound live Azure conformance; upload success or a local simulator does not establish that evidence.",
         "parameters": [
           {
             "name": "X-CSRF-Token",
@@ -3309,7 +3404,7 @@
     "/api/v1/value": {
       "post": {
         "operationId": "Value_publish",
-        "description": "Explicitly publish one skill-generated evidence packet (maximum 8 MiB) to\nPostgreSQL. No workflow discovery, acquisition, evaluator execution or\nscheduled evaluation is performed. Requires a hosted administrator OAuth\nsession with current step-up assurance and CSRF, or a local bearer\ncapability backed by PostgreSQL; local SQLite is read-only.\n\nRepository and workflow must already be observed. Publication is atomic,\nnamespace-scoped and survives Activity snapshot replacement. Exact retries\ndo not advance the revision. Older/conflicting captures, changed frozen\ncontracts and rewritten immutable history are rejected. A new publication\nadvances the query revision and notifies active dashboard subscriptions.\nEvidence capture/cutoff timestamps are retained, never replaced with upload\ntime. All evidence timestamps must be representable at PostgreSQL\nmicrosecond precision; finer nonzero fractions are rejected, not rounded.\nThe body is the original single schema-v2 JSONL transport envelope.",
+        "description": "Explicitly publish one skill-generated evidence packet (maximum 8 MiB) to\nPostgreSQL. No workflow discovery, acquisition, evaluator execution or\nscheduled evaluation is performed. Requires a hosted administrator OAuth\nsession with current step-up assurance and CSRF, or a local bearer\ncapability backed by PostgreSQL.\n\nRepository and workflow must already be observed. Publication is atomic,\nnamespace-scoped and survives Activity snapshot replacement. Exact retries\ndo not advance the revision. Older/conflicting captures, changed frozen\ncontracts and rewritten immutable history are rejected. A new publication\nadvances the query revision and notifies active dashboard subscriptions.\nEvidence capture/cutoff timestamps are retained, never replaced with upload\ntime. All evidence timestamps must be representable at PostgreSQL\nmicrosecond precision; finer nonzero fractions are rejected, not rounded.\nThe body is the original single schema-v2 JSONL transport envelope.",
         "parameters": [
           {
             "name": "X-CSRF-Token",
@@ -3614,7 +3709,7 @@
     "/auth/callback": {
       "get": {
         "operationId": "Auth_callback",
-        "description": "OAuth profiles only. Exchange the GitHub OAuth code and signed state; sets the HttpOnly session and CSRF cookies, then redirects home. Local development authenticates only the exact configured developer login without membership reads; its sessions cannot be reused in ordinary hosted mode or for a different configured developer. An administrator-consent callback requires its original active session, matching GitHub account ID and login, current administrator allowlisting, and verified factor evidence. Mismatched or unauthorized callbacks are rejected and issued credentials are revoked or queued for revocation. Failure pages are HTML.",
+        "description": "OAuth profiles only. Exchange the GitHub OAuth code and signed state; sets the HttpOnly session and CSRF cookies, then redirects home. Local development authenticates only the exact configured developer login without membership reads; its sessions cannot be reused in ordinary hosted mode or for a different configured developer. An administrator-consent callback requires its original active session, matching GitHub account ID and login, current administrator allowlisting, and verified factor evidence. Mismatched or unauthorized callbacks are rejected and issued credentials are revoked or queued for revocation. Failure pages are HTML. Every callback that resolves a GitHub identity records its account ID, login and access outcome in the encrypted, HttpOnly cao_accounts cookie scoped to /auth/ (at most five entries; it grants no authority). An ordinary sign-in denied for one account when this browser has used another redirects to /auth/select-account instead of the failure page.",
         "parameters": [
           {
             "name": "code",
@@ -3735,7 +3830,7 @@
     "/auth/login": {
       "get": {
         "operationId": "Auth_login",
-        "description": "OAuth profiles only. Ordinary hosted login requests read:org read:user for classic OAuth Apps, or offline_access for GitHub Apps. The explicitly configured CAO_GITHUB_LOCAL_USER single-user development mode requires direct loopback HTTPS, requests read:user without read:org, and replaces organization/team authorization with an exact configured GitHub login. It cannot be selected by a request parameter or used by remote/external/platform hosting. hosted_cli=1 explicitly starts repository consent only when hosted CLI is enabled and the existing server-side session belongs to a configured administrator with a known GitHub account ID. Classic OAuth adds repo only for that flow. Its signed state binds the initiating session, account ID, login and ten-minute expiry; the callback must retain that subject and current administrator authorization. The query parameter alone grants no authority.",
+        "description": "OAuth profiles only. Ordinary hosted login requests read:org read:user for classic OAuth Apps, or offline_access for GitHub Apps. The explicitly configured CAO_GITHUB_LOCAL_USER single-user development mode requires direct loopback HTTPS, requests read:user without read:org, and replaces organization/team authorization with an exact configured GitHub login. It cannot be selected by a request parameter or used by remote/external/platform hosting. hosted_cli=1 explicitly starts repository consent only when hosted CLI is enabled and the existing server-side session belongs to a configured administrator with a known GitHub account ID. Classic OAuth adds repo only for that flow. Its signed state binds the initiating session, account ID, login and ten-minute expiry; the callback must retain that subject and current administrator authorization. The query parameter alone grants no authority. login is an optional GitHub login hint forwarded to GitHub's account chooser alongside the always-forced prompt=select_account; a repeated or syntactically invalid hint returns 400. GitHub may still return a different identity, so the hint grants no authority. Bounded model: specs/tla/OAuthAccountSelection.tla.",
         "parameters": [
           {
             "name": "select_account",
@@ -3755,6 +3850,15 @@
               "enum": [
                 "1"
               ]
+            },
+            "explode": false
+          },
+          {
+            "name": "login",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             },
             "explode": false
           }
@@ -3936,6 +4040,39 @@
           {
             "ApiKeyAuth": []
           }
+        ]
+      }
+    },
+    "/auth/select-account": {
+      "get": {
+        "operationId": "Auth_selectAccount",
+        "description": "OAuth profiles only. A public HTML dialog listing GitHub accounts recorded in the cao_accounts cookie, each linking to /auth/login with a login hint, and naming the configured GitHub host. Redirects to an account-selection login when fewer than two accounts are recorded. The logged-out page clears the cookie.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "text/html; charset=utf-8": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirection",
+            "headers": {
+              "location": {
+                "required": true,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Hosted authentication"
         ]
       }
     },

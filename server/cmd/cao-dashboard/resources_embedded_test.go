@@ -13,6 +13,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/githubnext/gh-cao/server/internal/model"
+	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 func TestEmbeddedDashboardExecutable(t *testing.T) {
@@ -27,8 +31,22 @@ func TestEmbeddedDashboardExecutable(t *testing.T) {
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build standalone executable: %v\n%s", err, output)
 	}
-	snapshot := filepath.Join(directory, "snapshot.sqlite")
-	if err := os.WriteFile(snapshot, sqliteDownloadFixture(t), 0o600); err != nil {
+	database, connection := testutil.PostgresWithConfig(t, t.Context(), "POSTGRES_URL")
+	endpoint := testutil.ConnectionString(t, connection)
+	services, err := postgres.New(t.Context(), endpoint, "embedded-test", postgres.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = services.Close() })
+	writer, err := database.BeginIngestion(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Abort(t.Context())
+	if err := writer.Append(t.Context(), "$repositories", model.Row{"id": "octo/one", "owner": "octo", "name": "one"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writer.Publish(t.Context(), "embedded-test"); err != nil {
 		t.Fatal(err)
 	}
 	listener := newTestListener(t)
@@ -38,8 +56,10 @@ func TestEmbeddedDashboardExecutable(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
-	command := exec.CommandContext(ctx, binary, "serve", "--sqlite="+snapshot, "--listen="+address, // #nosec G204 -- Execute only the binary built above with test-owned configuration.
-		"--access-token="+localSQLiteTestToken, "--mcp-enabled", "--exit-on-stdin-close")
+	const token = "0123456789abcdef0123456789abcdef"
+	command := exec.CommandContext(ctx, binary, "serve", "--listen="+address, // #nosec G204 -- Execute only the binary built above with test-owned configuration.
+		"--access-token="+token, "--mcp-enabled", "--exit-on-stdin-close", "--redis-namespace=default")
+	command.Env = append(os.Environ(), "CAO_POSTGRES_URL="+endpoint, "CAO_OPERATIONAL_NAMESPACE=embedded-test")
 	command.Dir = directory
 	input, err := command.StdinPipe()
 	if err != nil {
@@ -72,7 +92,7 @@ func TestEmbeddedDashboardExecutable(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		request.Header.Set("Authorization", "Bearer "+localSQLiteTestToken)
+		request.Header.Set("Authorization", "Bearer "+token)
 		response, err := client.Do(request)
 		if err == nil {
 			_ = response.Body.Close()
@@ -94,7 +114,7 @@ func TestEmbeddedDashboardExecutable(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		request.Header.Set("Authorization", "Bearer "+localSQLiteTestToken)
+		request.Header.Set("Authorization", "Bearer "+token)
 		response, err := client.Do(request)
 		if err != nil {
 			t.Fatal(err)

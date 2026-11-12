@@ -2,7 +2,6 @@ package server
 
 import (
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -24,7 +23,7 @@ func TestHostedCLIContainerRuntimeSelection(t *testing.T) {
 				t.Fatal("production accepted missing egress configuration or a native runtime")
 			}
 			if provider == "" || provider == "docker" {
-				runner, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{SQLitePath: "debug.sqlite"})
+				runner, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -32,7 +31,7 @@ func TestHostedCLIContainerRuntimeSelection(t *testing.T) {
 					t.Fatal("Docker must remain the default without automatic native fallback")
 				}
 				t.Setenv("CAO_HOSTED_CLI_EGRESS_POLICY_FILE", "unavailable.json")
-				if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{SQLitePath: "debug.sqlite"}); err == nil {
+				if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true}); err == nil {
 					t.Fatal("partial egress configuration fell back to unrestricted development")
 				}
 			}
@@ -43,7 +42,7 @@ func TestHostedCLIContainerRuntimeSelection(t *testing.T) {
 func TestHostedCLINativeRuntimesRequireMatchingPlatform(t *testing.T) {
 	t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", "")
 	t.Setenv("CAO_HOSTED_CLI_CONTAINER_RUNTIME", "apple")
-	runner, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{SQLitePath: "debug.sqlite"})
+	runner, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true})
 	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" && os.Getuid() != 0 {
 		if err != nil {
 			t.Fatal(err)
@@ -56,13 +55,13 @@ func TestHostedCLINativeRuntimesRequireMatchingPlatform(t *testing.T) {
 	}
 	t.Setenv("CAO_HOSTED_CLI_CONTAINER_RUNTIME", "windows-sandbox")
 	t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", hostedcli.DefaultContainerImage)
-	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{SQLitePath: "debug.sqlite"}); err == nil || !strings.Contains(err.Error(), "Windows tools bundle") {
+	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true}); err == nil || !strings.Contains(err.Error(), "Windows tools bundle") {
 		t.Fatalf("OCI image silently replaced by Windows tools: %v", err)
 	}
 	t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", "")
 	t.Setenv("CAO_HOSTED_CLI_WINDOWS_BUNDLE", "")
 	t.Setenv("CAO_HOSTED_CLI_WINDOWS_BUNDLE_SHA256", "")
-	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{SQLitePath: "debug.sqlite"}); err == nil {
+	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true}); err == nil {
 		t.Fatal("Windows Sandbox accepted without its pinned tools")
 	}
 }
@@ -80,16 +79,14 @@ func TestHostedCLINativeQueueConfigurationMatchesAdmission(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			store, err := newHostedCLISQLiteTestStore(t, filepath.Join(t.TempDir(), "queue.sqlite"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer func() { _ = store.Close() }()
+			store := hostedCLIPostgresTestStore(t)
 			github := fakeGitHub(t, fakeGitHubOptions{membershipState: "active", accessExpiresIn: 3600})
 			app := memoryOAuthApp(t, github.URL)
 			app.config.Listen = "127.0.0.1:8443"
+			app.services.CLICommands = store
+			app.config.Audit = app.config.Audit.WithStore(store)
 			if err := app.EnableHostedCLIActions(t.Context(), HostedCLIConfig{
-				Catalog: catalog, ControlRepository: "octo/cao", DebugStore: store,
+				Catalog: catalog, ControlRepository: "octo/cao", LocalDevelopment: true,
 			}); err != nil {
 				t.Fatal(err)
 			}
@@ -130,7 +127,7 @@ func TestHostedCLIPodmanSelection(t *testing.T) {
 	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{}); err == nil {
 		t.Fatal("production accepted Podman")
 	}
-	runner, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{SQLitePath: "debug.sqlite"})
+	runner, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true})
 	if runtime.GOOS != "linux" {
 		if err == nil {
 			t.Fatal("Podman accepted on unsupported platform")
@@ -144,12 +141,12 @@ func TestHostedCLIPodmanSelection(t *testing.T) {
 		t.Fatal("explicit selection did not choose Podman")
 	}
 	t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", "ghcr.io/github/gh-aw:latest")
-	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{SQLitePath: "debug.sqlite"}); err == nil {
+	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true}); err == nil {
 		t.Fatal("Podman accepted an unpinned image")
 	}
 	t.Setenv("CAO_HOSTED_CLI_CONTAINER_IMAGE", "")
 	t.Setenv("CAO_HOSTED_CLI_EGRESS_POLICY_FILE", "egress.json")
-	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{SQLitePath: "debug.sqlite"}); err == nil {
+	if _, err := newHostedCLIRunnerFromEnv(HostedCLIExecutorOptions{LocalDevelopment: true}); err == nil {
 		t.Fatal("Podman silently ignored production egress configuration")
 	}
 }
