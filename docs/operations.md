@@ -138,6 +138,8 @@ CI and Dashboard CI across adjacent complete seven-day windows. Collection is
 bounded to 500 runs per workflow and 200 jobs for each inspected run; truncated
 counts are observations, not totals or success-rate trends. Git measurements
 are bounded to 1,000 first-parent commits per component per window.
+GitHub API evidence requests retry transient server failures up to three times;
+authorization errors still fail rather than producing partial or green evidence.
 The exact assessed revision's CI run/jobs are collected separately without
 contaminating the closed historical windows. Additional supporting observations
 cover installer/deployed canaries, runtime packaging, Activity, Dashboard and

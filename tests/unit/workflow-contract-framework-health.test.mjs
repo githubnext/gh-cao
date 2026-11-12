@@ -587,6 +587,13 @@ test("compiled framework reports remain local read-only observation with only de
     "compiled runs must not be gated by daily AI Credit consumption");
   const compiledScope = compiled.jobs.agent.steps.find(step => step.name === "Fix scope, window and report history");
   assert.equal(compiledScope.with.script, config.steps[0].with.script);
+  for (const name of ["Fix scope, window and report history", "Collect comparable CI evidence",
+    "Collect preview acceptance evidence"]) {
+    const authored = config.steps.find(step => step.name === name);
+    const generated = compiled.jobs.agent.steps.find(step => step.name === name);
+    assert.equal(authored.with.retries, 3, `${name} must retry transient GitHub API failures`);
+    assert.equal(generated.with.retries, authored.with.retries, `${name} must retain retries after compilation`);
+  }
   const artifact = config.steps.find(step => step.name === "Retain deterministic framework evidence");
   assert.equal(artifact.with["retention-days"], 90);
   assert.equal(artifact.with["if-no-files-found"], "error");

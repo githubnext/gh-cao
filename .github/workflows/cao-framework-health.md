@@ -79,6 +79,7 @@ steps:
     uses: actions/github-script@v9
     with:
       github-token: ${{ github.token }}
+      retries: 3
       script: |
         const fs = require('node:fs');
         const repository = `${context.repo.owner}/${context.repo.repo}`;
@@ -166,6 +167,7 @@ steps:
     uses: actions/github-script@v9
     with:
       github-token: ${{ github.token }}
+      retries: 3
       script: |
         const fs = require('node:fs');
         const directory = '/tmp/gh-aw/agent/framework-health';
@@ -421,6 +423,7 @@ steps:
     uses: actions/github-script@v9
     with:
       github-token: ${{ github.token }}
+      retries: 3
       script: |
         const fs = require('node:fs');
         const { createHash } = require('node:crypto');
