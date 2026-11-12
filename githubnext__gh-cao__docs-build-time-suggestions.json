@@ -1,35 +1,7 @@
 {
   "source_sha": "15db22444d5fed8cc7182fce1fa83f870cf5787f",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T06:26:08Z",
-      "worker_run_id": "43167557630",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886
-      ],
-      "outcome": "complete, not actionable: window 2026-11-11T18:31:43Z to 2026-11-12T06:21:27Z = latest 20 completed docs.yml runs (all within 14 days; 0 cancelled in window). Composition: 12 successful full build+deploy publications (11 push, 1 schedule), 6 failed schedule runs (failed at 'Mount latest CAO Dashboard artifact': 93614994e x4, 770e465dd x2; excluded), 2 freshness-only schedule successes (excluded). Category Astro documentation generation: 'Build documentation' step (npm run docs:build = astro build + validate-agent-docs + node --test) median 14.0 s, p90 15.0, range 10-15. Build job median 72.5 s (p90 93); build start to deploy end median 86.5 s (p90 109). 15% of that is about 13 s and the 60 s bar is far above the step, and validation cannot be removed, so no Astro-only change qualifies. Limits: job logs returned HTTP 403, so step-internal Astro timing and cache hit/miss were not log-verified; cache metadata (last_accessed_at aligned with Set up Node.js window on 43167568535) is indicative only. Leads for dependency category: Checkout fetch-depth 0 median 24 s (p90 40), largest step; need for full history unverified. Existing open issues by this worker: #20380, #20131; no duplicate created. No suggestion. next_category advanced."
-    },
     {
       "evaluated_at": "2026-11-12T06:43:56Z",
       "worker_run_id": "43169583719",
@@ -779,6 +751,34 @@
         43124416558
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T23:39:34Z to 2026-11-12T15:38:01Z; 0 in progress; 1 cancelled excluded: 43206161686 (no jobs); 0 failed). Comparable n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; identical job/step shape; source 15db224 = HEAD; docs.yml last changed 063cbe9, path filter only). Medians (p90): execution build start to deploy end 85 s (123 s); build job 68 s (104 s); build-created to deploy-end 88 s (126 s); build queue 3 s (4 s); Checkout 24 s (47 s); Set up Node.js 3 s (8 s); Install dependencies 17 s (25 s); Build documentation 14 s (15 s); demo 4 s; Upload 2 s; deploy job 11 s (18 s). 15% gate = 12.75 s. Cache: 'Post Set up Node.js' 0 s in 17 of 19 runs and 1 s in 2 (a miss would save a 279-318 MB archive) = consistent with exact-key restore hits; inferred from step timing (job logs HTTP 403; cache list shows node-cache-Linux-x64-npm entries accessed by these runs; repo cache total 11.66 GB vs 10 GB cap, node entries accessed recently). Lead, not suggestion: Checkout fetch-depth 0 fetches all 1,256 branches, 63 tags, 3,731 main commits (repo size 1.45 GB, HEAD tree 3,365 files / 52 MB). Calibration: shallow checkout in same repo (csh.yml ShellCheck, n=6 jobs, same runner label) median 3 s, so ~21 s excess (~25% of median execution). Not actionable: fetch-depth 1 breaks resource.ts per-file git-log sourceCommittedAt (agent-docs-discovery test asserts finite); a main-line blobless history fetch would keep it but residual cost is unmeasured, so expected saving (24 - 3 - residual) cannot be shown >= 12.75 s. Open #20380 is a different topic (retired input path); no duplicate. next_category advanced to Astro documentation generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T16:25:00Z",
+      "worker_run_id": "43256789896",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; all within 14 days; none in progress). Excluded: 1 cancelled run 43206161686 (no jobs created). Sample n=19 successful (18 push, 1 schedule 43161224542); 0 failures in window. Category Astro documentation generation, step Build documentation (npm run docs:build): median 14 s, p90 15 s (nearest-rank), range 8-15 s. Wall created-to-deploy median 88 s (p90 157 s, driven by checkout outliers); build-start-to-deploy-end median 85 s. Gate: 15% of median wall = 13.2 s (60 s out of reach). The step is about 16% of median execution, so only full removal meets the gate; validation and generated docs are required for publication, so no Astro-only workflow change qualifies. Cache: build-job logs return HTTP 403 difc_forbidden (re-verified); indirect evidence only: Post Set up Node.js 0-1 s in 19/19 runs (no archive upload), and node-cache-Linux-x64-npm entries on main with recent last_accessed_at. Source: HEAD 926141f is +1 commit vs 15db224 with no docs-triggering paths (compare API). Unmeasured lead from prior evaluations (per-resource git log in Astro build), out of this worker's docs.yml-only scope; not actionable without timing evidence. Stale queued workflow_run docs.yml 37642403569 (created 2026-10-07) is outside window. Open issue #20380 is about dashboard input caching, not this category. No suggestion; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ]
