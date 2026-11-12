@@ -1,36 +1,7 @@
 {
  "source_sha": "926141fc7e06d046045347e86beb9b216eb806cd",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T07:53:11Z",
-   "worker_run_id": "43178012924",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761,
-    43129836945,
-    43124416558,
-    43121504364,
-    43104481579,
-    43103737760,
-    43101943628,
-    43099316175,
-    43094878868,
-    43092616318,
-    43090243002,
-    43087935698,
-    43085628886
-   ],
-   "outcome": "complete, not actionable: window created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z = latest 20 completed docs.yml runs (none in progress, 0 cancelled, all within 14 days; unchanged since the 07:36Z evaluation). Composition: 12 successful current-shape full publications (11 push d57c4c82..d4bf131, 1 schedule 9537899; n=12 meets the 5-run minimum), 6 failed retired-Mount schedules (excluded), 2 freshness-only schedules (excluded). Trusted job and step metadata only (logs HTTP 403 difc_forbidden). Build documentation step (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery node test): median 14.0 s, p90 15 s (nearest-rank), range 10-15 s; wall (created to deploy complete) median 89.5 s, p90 112 s; build job median 72.5 s, p90 93 s. Gate: 15% of median wall = 13.4 s (60 s is out of reach). The step is 15.6% of wall, so only removing it entirely reaches the gate, and generated docs plus validation are required for publication. Lead, unverified, not a suggestion: resolveBuildProvenance (docs/plugins/starlight-agent/agent-resource.json.ts -> resource.ts) runs one git log -1 per docs entry (about 61) with a commit-date lookup; its share of the step is unmeasured (logs 403, local checkout shallow), and batching it could save only part of the step. No suggestion; no issue created. next_category advanced to reusable dashboard generation. Dashboard job remains absent; dashboard steps run inside build.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T08:22:27Z",
    "worker_run_id": "43181865707",
@@ -780,6 +751,35 @@
     43124416558
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; 0 failed, 0 in progress; cancelled 43206161686 excluded, no jobs). Comparable n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; identical job and step shape; 5-run minimum met). source_sha 926141fc unchanged from prior evaluation; docs.yml last changed 063cbe9. Medians (p90), job and step metadata only: execution build start to deploy end 85 s (123 s); wall build created to deploy complete 88 s (126 s); build job 68 s (104 s); deploy job 11 s (18 s); 15 percent gate = 12.75 s. Install dependencies 17 s (25 s; range 11-25 s) = 20 percent of execution; Set up Node.js (npm cache restore) 3 s (8 s); Post Set up Node.js 0 s median, 0-1 s in 19/19 runs, consistent with exact-key restore hits but not log-verified (job logs HTTP 403 difc_forbidden re-verified). Cache key node-cache-Linux-x64-npm-e62f6006 equals sha256(sha256(root package-lock.json)) and is listed on main (278.9 MB); dashboard/site lock is not in the key (unchanged). Repo cache listing totals 10.69 GB vs 10 GB cap. Per earlier evaluations, root-lock-change runs installed in 21-22 s; the miss penalty is about 4 s, not re-verified this run. Ceiling: install removal (17 s) clears the gate only if a node_modules restore costs under about 4.3 s; the npm archive restore alone is 3 s median for 280-320 MB, and node_modules has far more files, so a node_modules cache is not expected to clear 12.75 s without measurement; adds 300-400 MB cache pressure. Other candidates (no-audit/no-fund, root --omit=dev, --ignore-scripts, merging the two installs) are unmeasured and estimated at a few seconds each. Carry-forward lead outside category, not evaluated: Checkout fetch-depth 0 median 24 s (p90 47 s), largest build step; partial-clone saving unmeasured. No open issue for this campaign; 20380 now CLOSED. No suggestion; no issue created; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-12T17:54:11Z",
+   "worker_run_id": "43273381481",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43249903823,
+    43242792853,
+    43236057780,
+    43228124764,
+    43228046118,
+    43225202834,
+    43206235849,
+    43206161686,
+    43206080696,
+    43194788185,
+    43167568535,
+    43167070179,
+    43165397534,
+    43161224542,
+    43145803206,
+    43141528595,
+    43139972486,
+    43138878761,
+    43129836945,
+    43124416558
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; 0 in progress; 1 cancelled excluded: 43206161686, no jobs). Comparable n=19 successful publications (18 push, 1 schedule 43161224542; 5-run minimum met; no pre-design failures in window). Metadata only: job logs HTTP 403 difc_forbidden (one bounded attempt); cache hits inferred, not log-verified (Post Set up Node.js 0-1 s in 19/19). Build documentation (npm run docs:build) median 14 s, p90 15 s, range 8-15 s = 15.9% of median created-to-deploy wall 88 s; 15% gate = 13.2 s; 60 s unreachable. Only complete removal reaches the gate, and the step produces the published docs root, so no suggestion. No open issue for this worker. Carried to the next scheduling cycle, not evaluated here: run-created to build-created gaps of 43 s (43228124764 behind 43228046118) and 27 s (43206235849 behind 43206080696), plus cancelled pending run 43206161686 before any job started; closed issue 20131 cited a 49 s burst, so re-check it. next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
   }
  ]
