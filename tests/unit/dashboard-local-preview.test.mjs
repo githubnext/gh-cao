@@ -5,7 +5,7 @@ import { chmod, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } fro
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
-import { test } from "node:test";
+import { after, before, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { startLocalDashboardPreview } from "../../com.github.copilot/extensions/cao-dashboard/local-preview.mjs";
 import { prepareCanvasPostgres, writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
@@ -14,8 +14,8 @@ import { queryDashboardSourceObservations } from "../../dashboard/site/src/data/
 
 const extensionUrl = new URL("../../com.github.copilot/extensions/cao-dashboard/extension.mjs", import.meta.url);
 
-async function fixture(t) {
-  const postgres = await prepareCanvasPostgres();
+async function fixture(t, postgres) {
+  postgres ??= await prepareCanvasPostgres();
   const previousURL = process.env.CAO_POSTGRES_URL;
   const previousNamespace = process.env.CAO_DATABASE_NAMESPACE;
   process.env.CAO_POSTGRES_URL = postgres.postgresURL;
@@ -205,13 +205,18 @@ test("failed plugin canvas startup removes staged assets", {
   }
 });
 
-test("extension SIGTERM closes live previews before exiting", {
-  skip: process.platform === "win32",
-  timeout: 30_000,
-}, async (t) => {
-  const { workspace } = await fixture(t);
-  const sdkUrl = import.meta.resolve("@github/copilot-sdk/extension");
-  const shim = `export { CanvasError, createCanvas } from ${JSON.stringify(sdkUrl)};
+describe("extension lifecycle with provisioned PostgreSQL", { skip: process.platform === "win32" }, () => {
+  let postgres;
+  before(async () => { postgres = await prepareCanvasPostgres(); });
+  after(async () => { await postgres?.close(); });
+
+  test("extension SIGTERM closes live previews before exiting", {
+    skip: process.platform === "win32",
+    timeout: 30_000,
+  }, async (t) => {
+    const { workspace } = await fixture(t, postgres);
+    const sdkUrl = import.meta.resolve("@github/copilot-sdk/extension");
+    const shim = `export { CanvasError, createCanvas } from ${JSON.stringify(sdkUrl)};
 export async function joinSession(config) {
   const preview = await config.canvases[0].open({
     sessionId: "test", extensionId: "test:cao", canvasId: "cao-dashboard",
@@ -219,45 +224,46 @@ export async function joinSession(config) {
   });
   setImmediate(() => process.stdout.write(JSON.stringify(preview) + "\\n"));
 }`;
-  const shimUrl = `data:text/javascript,${encodeURIComponent(shim)}`;
-  const preload = `import { registerHooks } from "node:module";
+    const shimUrl = `data:text/javascript,${encodeURIComponent(shim)}`;
+    const preload = `import { registerHooks } from "node:module";
 registerHooks({ resolve(specifier, context, next) {
   return specifier === "@github/copilot-sdk/extension"
     ? { url: ${JSON.stringify(shimUrl)}, shortCircuit: true }
     : next(specifier, context);
 } });`;
-  const child = spawn(process.execPath, [
-    "--import", `data:text/javascript,${encodeURIComponent(preload)}`,
-    fileURLToPath(extensionUrl),
-  ], {
-    cwd: workspace,
-    env: { ...process.env, PATH: `${workspace}:${process.env.PATH}` },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let stderr = "";
-  child.stderr.setEncoding("utf8").on("data", (chunk) => { stderr += chunk; });
-  const lines = createInterface({ input: child.stdout });
-  let exited = false;
-  const exit = once(child, "exit").then((result) => { exited = true; return result; });
-  try {
-    const line = await Promise.race([
-      once(lines, "line").then(([line]) => line),
-      exit.then(() => { throw new Error(`Extension exited before opening: ${stderr}`); }),
-    ]);
-    const { url } = JSON.parse(line);
-    assert.equal((await fetch(url)).status, 200);
-    assert.equal((await previewDirectories(workspace)).length, 2);
-    child.kill("SIGTERM");
-    const [code, signal] = await exit;
-    assert.equal(code, 0, stderr);
-    assert.equal(signal, null);
-    assert.deepEqual(await previewDirectories(workspace), []);
-  } finally {
-    lines.close();
-    if (!exited) {
+    const child = spawn(process.execPath, [
+      "--import", `data:text/javascript,${encodeURIComponent(preload)}`,
+      fileURLToPath(extensionUrl),
+    ], {
+      cwd: workspace,
+      env: { ...process.env, PATH: `${workspace}:${process.env.PATH}` },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stderr = "";
+    child.stderr.setEncoding("utf8").on("data", (chunk) => { stderr += chunk; });
+    const lines = createInterface({ input: child.stdout });
+    let exited = false;
+    const exit = once(child, "exit").then((result) => { exited = true; return result; });
+    try {
+      const line = await Promise.race([
+        once(lines, "line").then(([line]) => line),
+        exit.then(() => { throw new Error(`Extension exited before opening: ${stderr}`); }),
+      ]);
+      const { url } = JSON.parse(line);
+      assert.equal((await fetch(url)).status, 200);
+      assert.equal((await previewDirectories(workspace)).length, 2);
       child.kill("SIGTERM");
-      await exit;
+      const [code, signal] = await exit;
+      assert.equal(code, 0, stderr);
+      assert.equal(signal, null);
+      assert.deepEqual(await previewDirectories(workspace), []);
+    } finally {
+      lines.close();
+      if (!exited) {
+        child.kill("SIGTERM");
+        await exit;
+      }
+      await rm(workspace, { recursive: true, force: true });
     }
-    await rm(workspace, { recursive: true, force: true });
-  }
+  });
 });
