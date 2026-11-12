@@ -5,7 +5,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
-import { resetRecycleProjection } from '../../activity/recycle-snapshot.mjs';
 import { CANONICAL_SCHEMA_VERSION } from '../../dashboard/site/src/data/model/schema.js';
 import { DAILY_RUN_COUNT_STORES, dailyRunCountCutoff } from '../../dashboard/site/src/data/model/daily-run-counts.js';
 import { DATABASE_NAME, DATABASE_VERSION } from '../../dashboard/site/src/data/storage/indexeddb.js';
@@ -229,22 +228,3 @@ for (const { age, ttl, retained } of [
     assert.deepEqual(values(repair.repairs.backup, 'dailyRunCountState'), []);
   });
 }
-
-test('recycle-only reconstruction regenerates daily counts from retained raw evidence and publishes them', async (t) => {
-  const fixture_ = await fixture(t);
-  const { directory, database, shards, phases } = fixture_;
-  await writeFile(path.join(shards, 'run.jsonl'), `${JSON.stringify(runEnvelope(7))}\n`);
-  runCao(['ingest-jsonl', '--database', database, '--input-dir', shards]);
-  const before = values(database, 'dailyRunCounts');
-  await resetRecycleProjection(directory, { repository: 'octo/demo' });
-  runCao(['hash-payloads', '--shard-dir', shards, ...phases]);
-  runCao(['ingest-jsonl', '--database', database, ...phases,
-    '--retention-days', '7', '--run-retention-days', '30']);
-  const repair = runCao(['repair-database', '--database', database,
-    '--ttl-days', '7', '--run-ttl-days', '30']);
-  assert.equal(repair.healthy, true);
-  assert.deepEqual(values(database, 'dailyRunCounts'), before);
-  assert.equal(values(database, 'dailyRunCountState')[0].status, 'ready');
-  await publish(fixture_);
-  assert.equal(JSON.parse(await readFile(path.join(directory, 'memory/manifest.json'), 'utf8')).version, 1);
-});

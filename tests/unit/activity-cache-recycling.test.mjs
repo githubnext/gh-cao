@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import test from 'node:test';
-import { mergeActivityFragments, pruneNormalizationCaches, recycleActivityCache } from '../../activity/cli/cache.mjs';
+import { pruneNormalizationCaches, recycleActivityCache } from '../../activity/cli/cache.mjs';
 import { jsonlLines, totalFileBytes } from '../../activity/cli/files.mjs';
 import { hashActivityPayloads } from '../../activity/cli/payloads.mjs';
 
@@ -232,118 +232,4 @@ test('obsolete caches are removed before replacement normalization, even when a 
   await assert.rejects(hashActivityPayloads({ shardDirectory: shards, recordsDirectory }), /JSON|Unexpected/);
   assert.deepEqual(await readdir(cache), []);
   assert.equal(await readFile(published, 'utf8'), 'previous published evidence\n');
-});
-
-async function fragment(root, name, shardName, records) {
-  const directory = path.join(root, name);
-  await mkdir(path.join(directory, 'gh-aw-logs-shards'), { recursive: true });
-  const inventory = { repositories: { rows: [{ organization: name, repository: 'api' }] }, workflows: { rows: [] } };
-  await writeFile(path.join(directory, 'inventory-sources.json'), JSON.stringify(inventory));
-  const file = path.join(directory, 'gh-aw-logs-shards', shardName);
-  await writeFile(file, jsonl(records));
-  return file;
-}
-
-test('fragment merging moves authoritative shards and removes superseded restored seeds', async (t) => {
-  const { root, shards } = await fixture(t);
-  const fragments = path.join(root, 'fragments');
-  const first = await fragment(fragments, 'octo', 'one.jsonl', [run(1)]);
-  const second = await fragment(fragments, 'other', 'two.jsonl', [run(2)]);
-  const proof = path.join(fragments, 'octo', 'workflow-value-workspaces', 'octo', 'identity');
-  await mkdir(proof, { recursive: true });
-  await writeFile(path.join(proof, 'proof.json'), '{"original":true}\n');
-  const inodes = [(await stat(first)).ino, (await stat(second)).ino];
-  await writeFile(path.join(shards, 'superseded.jsonl'), jsonl([run(3)]));
-  const result = await mergeActivityFragments(fragments, root);
-  assert.equal(result.fragments, 2);
-  assert.equal(result.shards, 2);
-  assert.deepEqual(await readdir(shards), ['one.jsonl', 'two.jsonl']);
-  assert.equal((await stat(path.join(shards, 'one.jsonl'))).ino, inodes[0]);
-  assert.equal((await stat(path.join(shards, 'two.jsonl'))).ino, inodes[1]);
-  assert.deepEqual(await readdir(path.dirname(first)), []);
-  assert.deepEqual(await readdir(path.dirname(second)), []);
-  const inventory = JSON.parse(await readFile(path.join(root, 'inventory-sources.json'), 'utf8'));
-  assert.equal(inventory.repositories.rows.length, 2);
-  assert.equal(await readFile(path.join(root, 'workflow-value-workspaces', 'octo', 'identity', 'proof.json'), 'utf8'), '{"original":true}\n');
-});
-
-test('optional local request corruption does not block fragments or discard accepted local evidence', async (t) => {
-  const { root, shards } = await fixture(t);
-  const fragments = path.join(root, 'fragments');
-  const first = await fragment(fragments, 'octo', 'one.jsonl', [run(1)]);
-  const second = await fragment(fragments, 'other', 'two.jsonl', [run(2)]);
-  const request = { schemaVersion: 1, snapshot: '1-1', eligible: false, repositories: ['octo/api'] };
-  await writeFile(path.join(path.dirname(first), 'workflow-value-local.json'), JSON.stringify([request]));
-  await writeFile(path.join(path.dirname(second), 'workflow-value-local.json'), '{interrupted');
-  const retained = jsonl([{ kind: 'operational_value', operational_value: {
-    campaign: 'example', repository: 'octo/api', value_id: 'worker.count', value: 0,
-    timestamp: '2026-10-20T12:00:00Z',
-  } }]);
-  await writeFile(path.join(shards, 'operational-values-local.jsonl'), retained);
-  assert.deepEqual(await mergeActivityFragments(fragments, root), { fragments: 2, shards: 2 });
-  assert.deepEqual(JSON.parse(await readFile(path.join(shards, 'workflow-value-local.json'), 'utf8')), [request]);
-  assert.equal(await readFile(path.join(shards, 'operational-values-local.jsonl'), 'utf8'), retained);
-  assert.ok((await readdir(shards)).includes('two.jsonl'));
-});
-
-test('fragment merging accepts a direct single-owner layout and an explicitly empty snapshot', async (t) => {
-  const { root, shards } = await fixture(t);
-  const first = await fragment(root, 'direct', 'one.jsonl', [run(1)]);
-  const direct = path.dirname(path.dirname(first));
-  await rm(first);
-  await writeFile(path.join(shards, 'old.jsonl'), jsonl([run(9)]));
-  const result = await mergeActivityFragments(direct, root);
-  assert.equal(result.fragments, 1);
-  assert.equal(result.shards, 0);
-  assert.deepEqual(await readdir(shards), []);
-});
-
-test('fragment merging accepts archived empty owners alongside populated owners', async (t) => {
-  const { root, shards } = await fixture(t);
-  const fragments = path.join(root, 'fragments');
-  const empty = await fragment(fragments, 'empty', 'empty.jsonl', []);
-  await rm(path.dirname(empty), { recursive: true });
-  await fragment(fragments, 'populated', 'runs.jsonl', [run(1)]);
-  await writeFile(path.join(shards, 'old.jsonl'), jsonl([run(9)]));
-  assert.deepEqual(await mergeActivityFragments(fragments, root), { fragments: 2, shards: 1 });
-  assert.deepEqual(await readdir(shards), ['runs.jsonl']);
-  const inventory = JSON.parse(await readFile(path.join(root, 'inventory-sources.json'), 'utf8'));
-  assert.equal(inventory.repositories.rows.length, 2);
-});
-
-test('fragment merging accepts a direct archived empty owner and removes stale seeds', async (t) => {
-  const { root, shards } = await fixture(t);
-  const empty = await fragment(root, 'direct', 'empty.jsonl', []);
-  await rm(path.dirname(empty), { recursive: true });
-  await writeFile(path.join(shards, 'old.jsonl'), jsonl([run(9)]));
-  assert.deepEqual(await mergeActivityFragments(path.dirname(path.dirname(empty)), root),
-    { fragments: 1, shards: 0 });
-  assert.deepEqual(await readdir(shards), []);
-});
-
-test('fragment merging still rejects missing inventory and symlink shard directories', async (t) => {
-  const { root, shards } = await fixture(t);
-  const fragments = path.join(root, 'fragments');
-  const empty = await fragment(fragments, 'empty', 'empty.jsonl', []);
-  await rm(path.dirname(empty), { recursive: true });
-  const inventory = path.join(fragments, 'empty', 'inventory-sources.json');
-  const content = await readFile(inventory, 'utf8');
-  await rm(inventory);
-  await assert.rejects(mergeActivityFragments(fragments, root), { code: 'ENOENT' });
-  await writeFile(inventory, content);
-  await symlink(shards, path.dirname(empty));
-  await assert.rejects(mergeActivityFragments(fragments, root), /non-symlink directory/);
-});
-
-test('missing fragments and filename collisions fail before deleting or moving shards', async (t) => {
-  const { root, shards } = await fixture(t);
-  const fragments = path.join(root, 'fragments');
-  await mkdir(fragments);
-  const restored = path.join(shards, 'old.jsonl');
-  await writeFile(restored, jsonl([run(9)]));
-  await assert.rejects(mergeActivityFragments(fragments, root), /No owner-scoped activity fragments/);
-  const first = await fragment(fragments, 'octo', 'same.jsonl', [run(1)]);
-  const second = await fragment(fragments, 'other', 'same.jsonl', [run(2)]);
-  await assert.rejects(mergeActivityFragments(fragments, root), /Duplicate owner-scoped shard/);
-  assert.equal(await totalFileBytes([restored, first, second]) > 0, true);
 });

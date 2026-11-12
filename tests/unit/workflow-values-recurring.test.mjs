@@ -5,10 +5,8 @@ import { tmpdir } from 'node:os';
 import test from 'node:test';
 import { assertValueHistory, confinedCollector, runWorkflowValues, workflowValueRegistrations } from '../../activity/workflow-values.mjs';
 import { controlSettings, parsePolicy } from '../../.github/workflows/shared/policy.mjs';
-import { activityCollectionPlan } from '../../activity/authentication.mjs';
 import { adaptCachedGhAwJsonl } from '../../dashboard/site/src/data/adapters/gh-aw-logs.js';
 import { normalize } from '../../dashboard/site/src/data/normalize/index.js';
-import { localValuePlan, retainLocalValues } from '../../activity/local-values.mjs';
 import { workflowValueApiHeadroom } from '../../activity/workflow-value-status.mjs';
 import {
   compileValueAcquisitionPlan, normalizeValueAcquisition, valueAcquisitionDigest,
@@ -190,13 +188,6 @@ test('dogfood File Diet registration pins existing effective Activity scope with
   const document = parsePolicy(await readFile(new URL('../../.github/workflows/cao.json', import.meta.url), 'utf8'));
   const control = document['control-plane'];
   assert.deepEqual(control.activity.repositories, control.scope['allowed-repositories']);
-  const before = structuredClone(document);
-  delete before['control-plane'].activity;
-  const auth = { authMode: 'pat', controlRepository: 'githubnext/gh-cao',
-    patRepositoryMap: JSON.stringify(Object.fromEntries(control.activity.repositories.map(repository =>
-      [repository, `GH_AW_GITHUB_READ_PAT_${repository.split('/')[0].toUpperCase()}`]))) };
-  assert.deepEqual(activityCollectionPlan(controlSettings(document, auth.controlRepository), auth),
-    activityCollectionPlan(controlSettings(before, auth.controlRepository), auth));
   const registrations = workflowValueRegistrations(document, ['github/gh-aw'])
     .filter(registration => registration.workflow === 'daily-file-diet');
   assert.equal(registrations.length, 1);
@@ -536,21 +527,16 @@ test('a newer failure, deferral, disable and removal retain capture, proof and t
   assert.equal(await readFile(proofPath, 'utf8'), originalProof);
 });
 
-test('missing inventory availability does not hide a reviewed registration and local eligibility respects every existing gate', async (t) => {
+test('missing inventory availability does not hide a reviewed registration', async (t) => {
   const options = await fixture(t);
-  const snapshot = path.join(options.root, 'snapshot');
   const inventory = path.join(options.root, 'inventory.json');
   await writeFile(inventory, JSON.stringify({
     repositories: { rows: [], metadata: { availability: 'unavailable' } },
     workflows: { rows: [], metadata: { availability: 'unavailable' } },
   }));
   for (const reason of ['shared-budget-unavailable', 'api-budget', 'fast-mode', 'public-only']) {
-    const localRequest = path.join(snapshot, 'gh-aw-logs-shards', 'workflow-value-local.json');
-    await runWorkflowValues({ ...options, inventory, defer: reason, localRequest, snapshot: '1-1' });
+    await runWorkflowValues({ ...options, inventory, defer: reason });
     assert.equal((await collection(options)).state, 'deferred');
-    const plan = await localValuePlan({ policy: options.policy, snapshot, snapshotKey: '1-1' });
-    assert.deepEqual(plan.repositories, reason === 'shared-budget-unavailable' ? ['org/repo'] : []);
-    assert.deepEqual((await localValuePlan({ policy: options.policy, snapshot, snapshotKey: '1-2' })).repositories, []);
   }
 });
 
@@ -565,21 +551,6 @@ test('a bounded batch defers without an invocation and withdrawn scope is not re
   assert.equal(await readFile(options.output.replace(/\.jsonl$/, '-collections.jsonl'), 'utf8'), '');
 });
 
-test('local scope keeps the explicit allowed-repository fallback without widening rich collector opt-in', async (t) => {
-  const options = await fixture(t);
-  const document = policy();
-  delete document['control-plane'].activity;
-  document['control-plane'].scope = { 'allowed-repositories': ['org/repo'] };
-  await writeFile(options.policy, JSON.stringify(document));
-  const snapshot = path.join(options.root, 'snapshot');
-  await runWorkflowValues({
-    ...options, defer: 'shared-budget-unavailable',
-    localRequest: path.join(snapshot, 'gh-aw-logs-shards', 'workflow-value-local.json'), snapshot: '1-1',
-  });
-  assert.deepEqual((await localValuePlan({ policy: options.policy, snapshot, snapshotKey: '1-1' })).repositories, ['org/repo']);
-  assert.equal(await readFile(options.output.replace(/\.jsonl$/, '-collections.jsonl'), 'utf8'), '');
-  await assert.rejects(readdir(options.workspace), { code: 'ENOENT' });
-});
 
 test('an explicit disable without a collector remains disabled rather than unconfigured', async (t) => {
   const options = await fixture(t);
@@ -593,33 +564,4 @@ test('an explicit disable without a collector remains disabled rather than uncon
   assert.equal(fact.state, 'disabled');
   assert.equal(fact.registration, 'disabled');
   assert.equal(fact.collector, undefined);
-});
-
-test('completed local imports validate the canonical envelope, retain known zero and reject invalid optional replacements', async (t) => {
-  const options = await fixture(t);
-  const input = path.join(options.root, 'incoming.jsonl');
-  const output = path.join(options.root, 'local.jsonl');
-  const original = { schema_version: 2, kind: 'operational_value', operational_value: {
-    repository: 'org/repo', campaign: 'example', value_id: 'daily-review.count', value: 0,
-    timestamp: '2026-10-20T12:00:00.000Z',
-  } };
-  await writeFile(output, JSON.stringify(original) + '\n');
-  await writeFile(input, JSON.stringify({ ...original, operational_value: { ...original.operational_value, value: null } }));
-  await retainLocalValues({ policy: options.policy, input, output });
-  assert.deepEqual(JSON.parse(await readFile(output, 'utf8')), original);
-  const withdrawn = structuredClone(original);
-  withdrawn.operational_value.repository = 'outside/scope';
-  await writeFile(input, JSON.stringify(withdrawn));
-  await retainLocalValues({ policy: options.policy, input, output });
-  assert.deepEqual(JSON.parse(await readFile(output, 'utf8')), original);
-  const conflicting = structuredClone(original);
-  conflicting.operational_value.value = 7;
-  const later = structuredClone(original);
-  later.operational_value.timestamp = '2026-10-21T12:00:00.000Z';
-  await writeFile(input, [later, conflicting].map(record => JSON.stringify(record)).join('\n'));
-  await retainLocalValues({ policy: options.policy, input, output });
-  assert.deepEqual(JSON.parse(await readFile(output, 'utf8')), original);
-  await writeFile(input, [original, later, original].map(record => JSON.stringify(record)).join('\n'));
-  await retainLocalValues({ policy: options.policy, input, output });
-  assert.deepEqual((await readFile(output, 'utf8')).trim().split('\n').map(line => JSON.parse(line)), [original, later]);
 });

@@ -24,10 +24,6 @@ export function publishFile(target, prepare) {
   } finally { rmSync(temporary, { force: true }); }
 }
 
-export function copyRuntimeTool(source, target) {
-  publishFile(target, temporary => cpSync(source, temporary));
-}
-
 // Download only the immutable setup revision declared by this compiled workflow.
 export function prepareActions(workspace, workflow, cache) {
   const compiled = parse(readFileSync(join(workspace, workflow), "utf8"));
@@ -61,48 +57,6 @@ export function prepareTools(cache) {
       chmodSync(temporary, 0o755);
     });
   }
-  return destination;
-}
-
-export function prepareActivityTools(cache) {
-  const shared = prepareTools(cache);
-  const arch = run("docker", ["image", "inspect", image, "--format", "{{.Architecture}}"]).trim();
-  const version = JSON.parse(readFileSync(join(root, ".github/workflows/cao.json"), "utf8"))["gh-aw-version"];
-  const destination = join(shared, `activity-${version}`);
-  mkdirSync(destination, { recursive: true });
-  // Only this directory is mounted into Docker; links to its parent cannot resolve.
-  copyRuntimeTool(join(shared, "jq"), join(destination, "jq"));
-  const download = (url, asset, target, executable = false) => {
-    if (existsSync(target)) return;
-    const sums = run("curl", ["-fsSL", "--proto", "=https", `${url}/${asset.sums}`]);
-    const checksum = sums.split("\n").find(line => line.trim().endsWith(` ${asset.name}`))?.trim().split(/\s+/)[0];
-    if (!/^[a-f0-9]{64}$/.test(checksum)) throw new Error(`Checksum missing for ${asset.name}`);
-    publishFile(target, temporary => {
-      run("curl", ["-fsSL", "--proto", "=https", "-o", temporary, `${url}/${asset.name}`]);
-      if (createHash("sha256").update(readFileSync(temporary)).digest("hex") !== checksum) throw new Error("Tool checksum mismatch");
-      if (executable) chmodSync(temporary, 0o755);
-    });
-  };
-  const ghVersion = "2.83.1";
-  const archive = join(destination, `gh-${ghVersion}.tar.gz`);
-  download(`https://github.com/cli/cli/releases/download/v${ghVersion}`,
-    { name: `gh_${ghVersion}_linux_${arch}.tar.gz`, sums: `gh_${ghVersion}_checksums.txt` }, archive);
-  if (!existsSync(join(destination, "gh"))) {
-    const extracted = mkdtempSync(join(destination, "extract-"));
-    try {
-      run("tar", ["-xzf", archive, "-C", extracted, "--strip-components=2", `gh_${ghVersion}_linux_${arch}/bin/gh`]);
-      renameSync(join(extracted, "gh"), join(destination, "gh"));
-    } finally { rmSync(extracted, { recursive: true, force: true }); }
-  }
-  const extension = join(destination, "share/gh/extensions/gh-aw");
-  mkdirSync(extension, { recursive: true });
-  const binary = join(extension, "gh-aw");
-  download(`https://github.com/github/gh-aw/releases/download/${version}`,
-    { name: `linux-${arch}`, sums: "checksums.txt" }, binary, true);
-  publishFile(join(destination, "activity-github"), temporary => run("go", ["-C", "server", "build", "-o", temporary,
-    "./internal/simulator/testdata/activity-runtime"], {
-    cwd: root, env: { ...process.env, GOOS: "linux", GOARCH: arch, CGO_ENABLED: "0" },
-  }));
   return destination;
 }
 
@@ -141,11 +95,10 @@ export function compile(workspace, workflows) {
   return result;
 }
 
-export function simulate({ workspace, workflow, event, eventName = "repository_dispatch", output, upstream, tools, vars = {},
-  activity = null, cacheSeed = null }) {
+export function simulate({ workspace, workflow, event, eventName = "repository_dispatch", output, upstream, tools, vars = {} }) {
   mkdirSync(output, { recursive: true });
   const sha = run("git", ["rev-parse", "HEAD"], { cwd: workspace }).trim();
-  writeFileSync(join(workspace, "simulator.json"), JSON.stringify({ workflow, event, eventName, sha, vars, activity }));
+  writeFileSync(join(workspace, "simulator.json"), JSON.stringify({ workflow, event, eventName, sha, vars }));
   const name = `cao-actions-test-${randomUUID()}`;
   const result = spawnSync("docker", [
     "run", "--name", name, "--rm", "--pull=never", "--network=none", "--read-only", "--cap-drop=ALL",
@@ -157,7 +110,6 @@ export function simulate({ workspace, workflow, event, eventName = "repository_d
     "--mount", `type=bind,src=${join(root, "node_modules")},dst=/node_modules,readonly`,
     ...(upstream ? ["--mount", `type=bind,src=${upstream},dst=/upstream,readonly`] : []),
     ...(tools ? ["--mount", `type=bind,src=${tools},dst=/tools,readonly`] : []),
-    ...(cacheSeed ? ["--mount", `type=bind,src=${cacheSeed},dst=/cache-seed,readonly`] : []),
     "--mount", `type=bind,src=${output},dst=/output`,
     image, "node", "/simulator/runner.mjs",
   ], { encoding: "utf8", timeout: 240_000, maxBuffer: 8 << 20 });

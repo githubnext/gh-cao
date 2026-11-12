@@ -27,7 +27,7 @@ below; do not build or install the extension when the runtime or cache is absent
    - control-plane setup, standalone workflow installation, repository enrollment, or campaign lifecycle: use the compiled `gh cao` extension;
    - activity analysis with shell access: use `gh cao`;
    - activity analysis without shell access: use `cao_catalog`, then `cao_query`;
-   - an agentic workflow with the Activity cache: follow
+   - a workflow with a prepared operational snapshot: follow
      [workflow runtime](references/workflow-runtime.md);
    - dashboard query cost or reuse: follow
      [dashboard query maintenance](references/dashboard-query-maintenance.md);

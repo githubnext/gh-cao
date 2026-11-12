@@ -30,9 +30,6 @@ export const QUERY_COLLECTIONS = [...ENTITY_COLLECTIONS, 'transactions'];
 export const DEFAULT_OUTPUT_DIRECTORY = '.cao';
 export const DEFAULT_SHARDS_PATH = `${DEFAULT_OUTPUT_DIRECTORY}/gh-aw-logs-shards`;
 export const DEFAULT_DATABASE_PATH = `${DEFAULT_OUTPUT_DIRECTORY}/gh-aw-logs.sqlite`;
-export const DEFAULT_ACTIVITY_STATS_WORKFLOW = 'cao-activity.yml';
-export const DEFAULT_ACTIVITY_STATS_ARTIFACT = 'cao-activity-index';
-export const DEFAULT_ACTIVITY_STATS_LIMIT = 5;
 export const DEFAULT_GH_LIMIT = 30;
 
 export const USAGE = `Usage:
@@ -60,8 +57,6 @@ export const USAGE = `Usage:
   cao validate [--json] [--strict-warnings]
   cao download [--url URL] [--output DIRECTORY] [--manifest-sha256 DIGEST]
   cao hash-payloads [--database FILE] [--shard-dir SHARD_DIRECTORY] [--normalized-dir DIRECTORY] [--runs-dir DIRECTORY] [--records-dir DIRECTORY] [--inventory FILE] [--output FILE] [--max-bytes BYTES] [--max-cache-bytes BYTES]
-  cao activity-stats [--repo OWNER/REPO] [--workflow FILE] [--artifact NAME] [--limit COUNT] [--keep] [--output FILE]
-  cao validate-activity-data --database FILE --shard-dir DIRECTORY --payload-hashes FILE --control-settings FILE --inventory FILE --memory-manifest FILE
   cao gh runs [--database FILE] [--repo OWNER/REPO] [--workflow NAME|FILE] [--status STATUS] [--since TIME] [--until TIME] [--limit COUNT]
   cao gh issues [--database FILE] [--repo OWNER/REPO] [--workflow NAME|FILE] [--since TIME] [--until TIME] [--limit COUNT]
   cao gh prs [--database FILE] [--repo OWNER/REPO] [--workflow NAME|FILE] [--since TIME] [--until TIME] [--limit COUNT]
@@ -157,12 +152,6 @@ Download defaults:
   DIRECTORY  ${DEFAULT_OUTPUT_DIRECTORY}
   SHARDS     ${DEFAULT_SHARDS_PATH}
   DATABASE   ${DEFAULT_DATABASE_PATH}
-
-Activity stats defaults (uses the "gh" CLI and requires GH_TOKEN):
-  REPO      GITHUB_REPOSITORY
-  WORKFLOW  ${DEFAULT_ACTIVITY_STATS_WORKFLOW}
-  ARTIFACT  ${DEFAULT_ACTIVITY_STATS_ARTIFACT}
-  LIMIT     ${DEFAULT_ACTIVITY_STATS_LIMIT}
 
 Operational value scripts:
   cao operational-value discovers <package>/operational-value.mjs below --root.

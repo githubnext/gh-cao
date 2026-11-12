@@ -69,8 +69,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     }
   } else if (process.argv[2] === "smoke") {
     for (const [workflow, requiredJobs] of [
-      ["cao-activity.yml", [/^collect \(/, /^index$/]],
-      ["cao-dashboard.yml", [/^build$/]],
       ["dashboard-deployed-integration.yml", [/^Test deployed dashboard$/]],
     ]) {
       const runs = api(`repos/githubnext/gh-cao/actions/workflows/${workflow}/runs?branch=main&per_page=100`,

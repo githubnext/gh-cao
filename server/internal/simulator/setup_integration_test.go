@@ -116,7 +116,7 @@ func TestCAOSetupIntegration(t *testing.T) {
 			f.policy["version"] = 2
 		}, failure: "must declare version 1"},
 		{name: "runtime directory conflict", change: func(t *testing.T, f *setupFixture) {
-			name := filepath.Join(f.checkout, ".github/workflows/cao-activity.yml")
+			name := filepath.Join(f.checkout, ".github/workflows/cao-validate.yml")
 			if err := os.Remove(name); err != nil {
 				t.Fatal(err)
 			}
