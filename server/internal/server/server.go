@@ -70,6 +70,7 @@ type Config struct {
 	KeyFile                string
 	AccessToken            string
 	Canvas                 *LocalCanvasConfig
+	OperatorActions        *LocalOperatorConfig
 	OnListen               func(string) error
 	HostProfile            HostProfile
 	SingleReplicaConfirmed bool
@@ -2119,6 +2120,9 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 		storageBackend = "sqlite"
 	}
 	injections := `<meta name="dashboard-data-backend" content="server-http"><meta name="dashboard-storage-backend" content="` + storageBackend + `">`
+	if a.config.OperatorActions != nil && a.config.OperatorActions.OperatorActions != nil {
+		injections += `<script>globalThis.__CLI_QUEUE__ = true; globalThis.__LOCAL_CLI_QUEUE__ = true;</script>`
+	}
 	if a.config.Canvas != nil {
 		injections += `<meta name="dashboard-api-base" content="` + a.config.Canvas.Prefix + `/">`
 		if a.config.Canvas.OperatorActions != nil {

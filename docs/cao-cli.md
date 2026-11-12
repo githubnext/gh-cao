@@ -76,8 +76,13 @@ the session. The count caps each repository's recent-run lookup and usage sample
 separately (maximum 1000 each); their deduplicated union contains at most twice
 that count. It is not a guarantee of complete history.
 
-The local operator profile uses the built-in dashboard and does not discover or
-load legacy campaign dashboard bundles.
+The CLI binds its ingestion pipeline to the explicit
+`cao-dashboard serve --sqlite-ingestion --sqlite PATH` server mode. It uses the
+standard built-in dashboard, server HTTP/query API, and SQLite backend, without
+a separate local presentation model, query aliases, or `local-preview` routing.
+It does not discover or load legacy campaign dashboard bundles. Acquisition
+and atomic canonical publication stay in the CLI ingestion process; the HTTP
+server reads consistent SQLite transactions and observes committed revisions.
 The landing page remains the standard **Overview**, with the existing factory
 header, factory stations, normal navigation and drill-downs. The shared Runs page presents recent
 executions and daily observations through canonical SQLite and revision subscriptions,
@@ -93,10 +98,9 @@ gh-aw adapter and canonical normalizer hydrate jobs, sessions, tool calls,
 firewall domains, skills, friction, safe outputs, experiments, evals and graders
 when their evidence is available. Only agentic `.lock.yml` workflows are included.
 The normal operational dashboard remains available, including repository, workflow
-and run drill-downs. The immediate profile audits every page, view and query against
-its acquisition capabilities and removes unsupported views and their unused queries.
-Settings, Ingestion and control-plane-only views are excluded. Rich artifact views
-remain available, with explicit partial or unavailable evidence when artifacts are
+and run drill-downs. Ordinary server capability checks govern administration and
+maintenance; no local-specific pages or query substitutions are installed.
+Rich artifact views remain available, with explicit partial or unavailable evidence when artifacts are
 missing. Campaign policy, fleet queue backlog, accepted outcomes and Operational
 Value are not inferred from run success. **Coverage is partial:** uncollected
 evidence must never appear as healthy zeros.
@@ -142,6 +146,9 @@ is currently supported on Unix; Windows cannot execute these actions.
 No maintenance command runs merely because the dashboard starts, and this mode
 does not mutate remote runs, dispatch workflows, change rollout policy or enable
 hosted execution.
+The native adapter is independent of canvas integration. Its normal server
+endpoints require bearer authentication and same-origin mutation requests in
+addition to fresh terminal approval.
 
 For source development, build the server and site and pass both
 `--server-executable PATH` and `--site PATH`. Release builds package these assets

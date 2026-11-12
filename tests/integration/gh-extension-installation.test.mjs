@@ -66,6 +66,10 @@ async function standaloneDashboard(t, directory, env, requests) {
   assert.ok(output.includes(`SQLite cache: ${join(cache, "gh-aw-logs.sqlite")}`));
   assert.equal((output.match(/Dashboard: http:\/\//g) ?? []).length, 1);
   const url = new URL(match[1]);
+  const accessToken = url.searchParams.get("access_token");
+  assert.ok(accessToken, "the SQLite ingestion server must use ordinary bearer bootstrap");
+  assert.equal(url.searchParams.has("local-preview"), false);
+  assert.equal(url.pathname, "/");
   url.search = "";
   url.hash = "";
   for (const path of ["", "dashboard.json", "src/agent/catalog.generated.json",
@@ -77,15 +81,23 @@ async function standaloneDashboard(t, directory, env, requests) {
     assert.ok(content.length > 0, path);
     if (path === "") {
       assert.match(content, /content="server-http"/);
+      assert.match(content, /name="dashboard-storage-backend" content="sqlite"/);
+      assert.doesNotMatch(content, /name="dashboard-api-base"/);
       for (const asset of [...content.matchAll(/(?:src|href)="([^"]+\.(?:js|css)(?:\?[^"]*)?)"/g)]) {
         const resource = await fetch(new URL(asset[1], url), { signal: AbortSignal.timeout(5_000) });
         assert.equal(resource.status, 200, asset[1]);
         assert.ok((await resource.text()).length > 0, asset[1]);
       }
     }
+    if (path === "dashboard.json") {
+      const standard = JSON.parse(content);
+      const overview = standard.dashboard.pages.find((page) => page.id === "overview");
+      const chunk = await (await fetch(new URL(overview.chunk, url))).json();
+      assert.deepEqual(chunk.page.views.map((view) => view.id), ["overview-header", "overview-floor"]);
+    }
   }
   const response = await fetch(new URL("api/v1/query", url), {
-    method: "POST", headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify({ sourceNames: ["repositories", "runs"] }), signal: AbortSignal.timeout(5_000),
   });
   assert.equal(response.status, 200, await response.clone().text());

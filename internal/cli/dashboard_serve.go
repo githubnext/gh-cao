@@ -125,9 +125,9 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		return err
 	}
 	defer stopActions()
-	child := exec.CommandContext(ctx, server, "serve", "--sqlite", filepath.Join(cache, "gh-aw-logs.sqlite"),
+	child := exec.CommandContext(ctx, server, "serve", "--sqlite-ingestion", "--sqlite", filepath.Join(cache, "gh-aw-logs.sqlite"),
 		"--site", site, "--listen", options.listen, "--exit-on-stdin-close",
-		"--canvas-config", actionsConfig,
+		"--operator-config", actionsConfig,
 		"--database-queries", filepath.Join(site, "src/data/queries/database.json"),
 		"--dashboard-queries", filepath.Join(site, "src/agent/queries.generated.json"),
 		"--agent-catalog", filepath.Join(site, "src/agent/catalog.generated.json"),
@@ -150,7 +150,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 				URL string `json:"url"`
 			}
 			if json.Unmarshal(scanner.Bytes(), &ready) == nil && ready.URL != "" {
-				printDashboardReady(cmd.ErrOrStderr(), ready.URL+"/?local-preview=operator#page-overview", repositories, cache, options)
+				printDashboardReady(cmd.ErrOrStderr(), ready.URL+"#page-overview", repositories, cache, options)
 			} else {
 				_, _ = fmt.Fprintln(cmd.OutOrStdout(), scanner.Text())
 			}
