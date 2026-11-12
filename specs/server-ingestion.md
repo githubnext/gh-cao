@@ -607,6 +607,11 @@ ownership contract.
 - Native publication MUST process bounded pending batches under its exact
   digest and epoch fences. Snapshot replacement and native publication MUST
   NOT be interleaved as compatibility paths.
+- The snapshot Projector MUST only replay already-compacted, manifest-validated
+  evidence through snapshot ingestion. It MUST NOT launch Node.js, discover
+  inventory, or regenerate Activity payloads. An invalidated or uncompacted
+  snapshot MUST fail closed until its producer repairs it; configuring the
+  separately selected native Value catalog MUST NOT enable legacy collection.
 - A replacement MUST commit all current sources, source documents, diagnostics,
   revision state, and evaluation time in one PostgreSQL transaction. A failed
   projection MUST leave the previously committed dataset serving.

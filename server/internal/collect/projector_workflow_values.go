@@ -23,23 +23,6 @@ const localValueAttemptKey = "collect:value-local-attempt"
 
 var ErrLocalValueBusy = errors.New("a local Value computation is already running")
 
-func (p Projector) refreshWorkflowValueHealth(ctx context.Context) error {
-	if p.CatalogRoot == "" || p.PolicyPath == "" || p.Enrollment.Metadata == nil {
-		return nil
-	}
-	repositories, err := p.enrolledRepositories(ctx)
-	if err != nil {
-		return err
-	}
-	if len(repositories) == 0 {
-		return nil
-	}
-	return operationalvalue.WriteCollectionHealth(ctx, operationalvalue.Config{
-		Root: p.CatalogRoot, NodeBinary: p.node(), Repositories: repositories,
-		Environment: collectionEnvironment(p.GitHubAPIURL), WorkerTimeout: 30 * time.Second,
-	}, p.PolicyPath, p.Lake.Directory)
-}
-
 // CollectLocalValues never acquires a target credential. It evaluates reviewed
 // adapters against one repeatable-read canonical PostgreSQL revision, then
 // publishes only if the projection, policy, request, enrollment, and database
@@ -104,7 +87,7 @@ func (p Projector) CollectLocalValues(ctx context.Context) error {
 		return err
 	}
 	plan, err := operationalvalue.ReadLocalValuePlan(ctx, operationalvalue.Config{
-		Root: p.CatalogRoot, NodeBinary: p.node(),
+		Root:        p.CatalogRoot,
 		Environment: collectionEnvironment(p.GitHubAPIURL), WorkerTimeout: 30 * time.Second,
 	}, policyPath, p.Lake.Directory)
 	if err != nil {
@@ -124,7 +107,7 @@ func (p Projector) CollectLocalValues(ctx context.Context) error {
 	}
 	output := filepath.Join(workspace, "operational-values.jsonl")
 	config := operationalvalue.Config{
-		Root: p.CatalogRoot, NodeBinary: p.node(), Output: output,
+		Root: p.CatalogRoot, Output: output,
 		Environment: collectionEnvironment(p.GitHubAPIURL), WorkerTimeout: 2 * time.Minute,
 	}
 	var databaseRevision int64

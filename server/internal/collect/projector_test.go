@@ -2,12 +2,14 @@ package collect
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/githubnext/gh-cao/server/internal/ingest"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 // pagedScanner returns a scanRepositoriesPage that serves pages from a fixed
@@ -126,121 +128,92 @@ func TestCollectEnrolledRepositoriesHandlesNoRepositories(t *testing.T) {
 	}
 }
 
-func TestOverlayInventoryRepositoriesRequiresResolvedPolicy(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "control-settings.json")
-	content := `{
-			"allowed_repositories": ["wrong/repository"],
-			"campaigns": {"maintenance": {}},
-			"policy_resolution": {"status": "available", "reason": ""}
-		}`
-	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+func TestProjectorReplayDoesNotRequireActivityRuntime(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	for _, catalog := range []string{"", t.TempDir()} {
+		t.Run("catalog="+catalog, func(t *testing.T) {
+			lake := Lake{Directory: t.TempDir()}
+			snapshot, _ := testutil.RecentSnapshot(t, publishedSnapshot)
+			copyTree(t, snapshot, lake.Directory)
+			p := Projector{Lake: lake, CatalogRoot: catalog}
+			if err := p.prepareReplay(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			if _, _, _, err := ingest.ValidateManifest(lake.Directory); err != nil {
+				t.Fatalf("snapshot is not replayable: %v", err)
+			}
+		})
+	}
+}
+
+func TestProjectorReplayRejectsUncompactedLakeWithoutFallback(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	lake := Lake{Directory: t.TempDir()}
+	if err := lake.Prepare(); err != nil {
 		t.Fatal(err)
 	}
-	result, err := overlayInventoryRepositories(path, []string{"octo/api", "octo/web"})
+
+	if err := os.WriteFile(filepath.Join(lake.ShardDirectory(), "raw.jsonl"), []byte("{}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	p := Projector{Lake: lake, CatalogRoot: t.TempDir()}
+	if err := p.prepareReplay(t.Context()); err == nil || !strings.Contains(err.Error(), "already-compacted") {
+		t.Fatalf("expected uncompacted lake rejection, got %v", err)
+	}
+	if _, err := os.Stat(lake.ManifestPath()); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("replay created a manifest: %v", err)
+	}
+}
+
+func TestProjectorReplayAndRebuildPreserveRecoveryWithoutActivityRuntime(t *testing.T) {
+	w := refreshWorker(t)
+	p := w.Projector
+	p.Data = integrationPostgres(t, t.Context())
+	p.DatabaseQueriesPath = databaseQueries
+	p.CatalogRoot = t.TempDir()
+	tokens := &unavailableValueTokens{}
+	p.Tokens = tokens
+	snapshot, _ := testutil.RecentSnapshot(t, publishedSnapshot)
+	copyTree(t, snapshot, p.Lake.Directory)
+	t.Setenv("PATH", t.TempDir())
+
+	initial, err := p.Project(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
-	var settings struct {
-		AllowedRepositories []string `json:"allowed_repositories"`
-		Campaigns           map[string]any
+	rebuilt, err := p.Rebuild(t.Context())
+	if err != nil || rebuilt.Revision <= initial.Revision {
+		t.Fatalf("rebuild did not replace unchanged input: %+v, %v", rebuilt, err)
 	}
-	if err := json.Unmarshal(result, &settings); err != nil {
+	if pending, err := p.PendingProjection(t.Context()); err != nil || pending {
+		t.Fatalf("successful replay left work pending: %t, %v", pending, err)
+	}
+	manifest, err := os.ReadFile(p.Lake.ManifestPath())
+	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Join(settings.AllowedRepositories, ",") != "octo/api,octo/web" {
-		t.Fatalf("allowed repositories = %v", settings.AllowedRepositories)
-	}
-	if _, ok := settings.Campaigns["maintenance"]; !ok {
-		t.Fatal("policy campaigns were not preserved")
-	}
-
-	if err := os.WriteFile(path, []byte(`{
-			"policy_resolution": {"status": "unavailable", "reason": "profile missing"}
-		}`), 0o600); err != nil {
+	if err := os.WriteFile(p.Lake.ManifestPath(), []byte("{}"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := overlayInventoryRepositories(path, nil); err == nil ||
-		!strings.Contains(err.Error(), "profile missing") {
-		t.Fatalf("expected unavailable policy error, got %v", err)
-	}
-}
-
-func TestValidateInventorySourcesRequiresCampaignEvidence(t *testing.T) {
-	valid := []byte(`{
-			"campaigns": {"rows": [{"campaign": "maintenance"}]},
-			"repositories": {"rows": []},
-			"workflows": {"rows": []},
-			"configuration-policy": {"rows": []}
-		}`)
-	if err := validateInventorySources(valid); err != nil {
-		t.Fatalf("valid inventory was rejected: %v", err)
-	}
-	for name, content := range map[string][]byte{
-		"empty document": []byte(`{}`),
-		"empty campaigns": []byte(`{
-				"campaigns": {"rows": []},
-				"repositories": {"rows": []},
-				"workflows": {"rows": []},
-				"configuration-policy": {"rows": []}
-			}`),
-	} {
-		t.Run(name, func(t *testing.T) {
-			if err := validateInventorySources(content); err == nil {
-				t.Fatal("expected invalid inventory to fail")
-			}
-		})
-	}
-}
-
-func TestValidateRetainedInventoryEvidence(t *testing.T) {
-	if err := validateControlSettings([]byte(`{
-		"campaigns": {"maintenance": {}},
-		"policy_resolution": {"status": "available"}
-	}`)); err != nil {
-		t.Fatalf("valid control settings were rejected: %v", err)
-	}
-	if err := validateControlPlaneInventory([]byte(`{
-		"campaigns": [{"id": "maintenance"}],
-		"workflows": [{"id": "maintenance"}]
-	}`)); err != nil {
-		t.Fatalf("valid control-plane inventory was rejected: %v", err)
-	}
-	for name, test := range map[string]func([]byte) error{
-		"control settings":  validateControlSettings,
-		"control inventory": validateControlPlaneInventory,
-	} {
-		t.Run(name, func(t *testing.T) {
-			if err := test([]byte(`{}`)); err == nil {
-				t.Fatal("expected empty retained evidence to fail")
-			}
-		})
-	}
-}
-
-func TestRetainedInventoryFallbackKeepsRefreshPending(t *testing.T) {
-	w := refreshWorker(t)
-	p := w.Projector
-	p.CatalogRoot = t.TempDir()
-	p.NodeBinary = filepath.Join(t.TempDir(), "node")
-	// #nosec G306 -- this test-owned subprocess shim must be executable.
-	if err := os.WriteFile(p.NodeBinary, []byte("#!/bin/sh\nexit 0\n"), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	for path, content := range map[string]string{
-		p.Lake.ControlSettingsPath():       `{"campaigns":{"maintenance":{}},"policy_resolution":{"status":"available"}}`,
-		p.Lake.ControlPlaneInventoryPath(): `{"campaigns":[{"id":"maintenance"}],"workflows":[{"id":"maintenance"}]}`,
-		p.Lake.InventoryPath():             `{"campaigns":{"rows":[{"campaign":"maintenance"}]},"repositories":{"rows":[]},"workflows":{"rows":[]},"configuration-policy":{"rows":[]}}`,
-	} {
-		if err := WriteFileAtomic(path, []byte(content)); err != nil {
-			t.Fatal(err)
-		}
-	}
-	// Missing control-repository configuration makes live discovery fail.
-	// Retained inventory still allows compaction, but must not consume refresh.
-	if err := p.refreshCompaction(t.Context()); err != nil {
-		t.Fatal(err)
+	if _, err := p.Project(t.Context()); err == nil {
+		t.Fatal("invalid snapshot activated a replacement")
 	}
 	if pending, err := p.PendingProjection(t.Context()); err != nil || !pending {
-		t.Fatalf("retained inventory fallback lost refresh work: %t, %v", pending, err)
+		t.Fatalf("failed replay lost retry intent: %t, %v", pending, err)
+	}
+	if state, err := p.Data.State(t.Context()); err != nil || state.Revision != rebuilt.Revision {
+		t.Fatalf("failed replay replaced committed data: %+v, %v", state, err)
+	}
+	if err := WriteFileAtomic(p.Lake.ManifestPath(), manifest); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.Project(t.Context()); err != nil {
+		t.Fatalf("repaired snapshot could not recover: %v", err)
+	}
+	if pending, err := p.PendingProjection(t.Context()); err != nil || pending {
+		t.Fatalf("recovery left work pending: %t, %v", pending, err)
+	}
+	if tokens.calls != 0 {
+		t.Fatalf("snapshot replay acquired credentials: %d calls", tokens.calls)
 	}
 }

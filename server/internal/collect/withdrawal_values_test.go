@@ -226,6 +226,7 @@ func TestWithdrawalSharedValuesEndToEnd(t *testing.T) {
 	if err := w.Enrollment.AddRepositories(ctx, 7, []string{"octo/api", "octo/other"}); err != nil {
 		t.Fatal(err)
 	}
+	compactActivitySnapshot(t, lake)
 	initial, err := w.Projector.Project(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -276,15 +277,14 @@ func TestWithdrawalSharedValuesEndToEnd(t *testing.T) {
 	if _, _, _, err := ingest.ValidateManifest(lake.Directory); err == nil {
 		t.Fatal("invalidated shared payload remained replayable")
 	}
-	w.Projector.NodeBinary = writeFakeBinary(t, t.TempDir(), "node", "exit 1")
 	if _, err := w.Projector.Project(ctx); err == nil {
-		t.Fatal("failed compaction reported successful replacement")
+		t.Fatal("invalidated snapshot reported successful replacement")
 	}
 	if pending, err := w.Projector.PendingProjection(ctx); err != nil || !pending {
 		t.Fatalf("projection retry was lost: %t, %v", pending, err)
 	}
 	assertValues(2) // The previous committed snapshot serves until successful retry.
-	w.Projector.NodeBinary = ""
+	compactActivitySnapshot(t, lake)
 	tokens := &unavailableValueTokens{}
 	w.Projector.Tokens = tokens
 	next, err := w.Projector.Project(ctx)
@@ -296,6 +296,7 @@ func TestWithdrawalSharedValuesEndToEnd(t *testing.T) {
 		t.Fatalf("core publication must not mint Value acquisition credentials: calls=%d", tokens.calls)
 	}
 	withdraw("octo/other")
+	compactActivitySnapshot(t, lake)
 	if _, err := w.Projector.Project(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -334,14 +335,16 @@ func TestProjectionPrunesSharedValuesWithZeroEnrollmentWithoutAcquisition(t *tes
 	if err := os.WriteFile(p.Lake.operationalValuesPath(), []byte(retainedValueLine("octo/withdrawn", "worker.withdrawn")), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.refreshManifest(t.Context()); err != nil {
+	compactActivitySnapshot(t, p.Lake)
+	if err := p.prepareReplay(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.refreshCompaction(t.Context()); err != nil {
-		t.Fatal(err)
+	if _, _, _, err := ingest.ValidateManifest(p.Lake.Directory); err == nil {
+		t.Fatal("erasure must invalidate the snapshot until the producer recompacts it")
 	}
+	compactActivitySnapshot(t, p.Lake)
 	if _, _, _, err := ingest.ValidateManifest(p.Lake.Directory); err != nil {
-		t.Fatalf("empty enrollment did not publish a valid empty snapshot: %v", err)
+		t.Fatalf("producer did not repair the erased snapshot: %v", err)
 	}
 	if content, err := os.ReadFile(p.Lake.operationalValuesPath()); !errors.Is(err, os.ErrNotExist) && (err != nil || len(content) > 0) {
 		t.Fatalf("zero-enrollment refresh retained withdrawn bytes: %q, %v", content, err)

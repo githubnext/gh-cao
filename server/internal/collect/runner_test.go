@@ -50,25 +50,46 @@ func TestRunnerCompactionAndReplayKeepCollidingRepositoriesIsolated(t *testing.T
 			t.Fatalf("repository compaction: %v, %v", paths, err)
 		}
 	}
-	projector := Projector{Lake: lake, CatalogRoot: catalog, NodeBinary: node}
-	if err := projector.refreshManifest(t.Context()); err != nil {
-		t.Fatal(err)
-	}
+	compactActivitySnapshot(t, lake)
 	if _, _, _, err := ingest.ValidateManifest(lake.Directory); err != nil {
 		t.Fatalf("compacted lake is not replayable: %v", err)
 	}
 	if err := lake.ForgetContext(t.Context(), repositories[0]); err != nil {
 		t.Fatal(err)
 	}
-	if err := projector.refreshManifest(t.Context()); err != nil {
-		t.Fatal(err)
-	}
+	compactActivitySnapshot(t, lake)
 	retained, err := lake.RetainedRepositories(t.Context(), 10)
 	if err != nil || len(retained) != 1 || retained[0] != repositories[1] {
 		t.Fatalf("withdrawal affected colliding repository: %v, %v", retained, err)
 	}
 	if _, _, _, err := ingest.ValidateManifest(lake.Directory); err != nil {
 		t.Fatalf("post-withdrawal lake is not replayable: %v", err)
+	}
+}
+
+// compactActivitySnapshot uses the independent Actions producer as a test
+// oracle. Projector only replays its output; it cannot regenerate it.
+func compactActivitySnapshot(t *testing.T, lake Lake) {
+	t.Helper()
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is required for the independent Activity snapshot oracle")
+	}
+	catalog, err := filepath.Abs("../../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// #nosec G204 -- independent checked-in oracle with test-owned snapshot paths.
+	command := exec.CommandContext(t.Context(), node,
+		filepath.Join(catalog, "activity", "cao.mjs"), "hash-payloads",
+		"--shard-dir", lake.ShardDirectory(),
+		"--runs-dir", lake.RunsDirectory(),
+		"--records-dir", lake.RecordsDirectory(),
+		"--inventory", lake.InventoryPath(),
+		"--output", lake.ManifestPath())
+	command.Dir = catalog
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("Activity snapshot oracle failed: %v: %s", err, output)
 	}
 }
 

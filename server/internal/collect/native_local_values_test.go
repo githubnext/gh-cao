@@ -180,7 +180,7 @@ func TestNativeLocalValuesProductionCanonicalQueriesHealthAndReviewedImports(t *
 
 func TestNativeLocalValuesFailureDoesNotConsumeInputs(t *testing.T) {
 	p, root := nativeLocalValueFixture(t)
-	p.NodeBinary = "/nonexistent-node"
+	t.Setenv("PATH", t.TempDir())
 	unsupported := filepath.Join(root, "optimization", "operational-value", "unreviewed.mjs")
 	if err := os.WriteFile(unsupported, []byte(`export const localCollection = true`), 0o600); err != nil {
 		t.Fatal(err)
@@ -201,7 +201,7 @@ func TestNativeLocalValuesFailureDoesNotConsumeInputs(t *testing.T) {
 }
 
 func TestNativeLocalValuesUnselectedAndMisconfigured(t *testing.T) {
-	if err := (Projector{NodeBinary: "/nonexistent-node"}).CollectNativeLocalValues(t.Context()); err != nil {
+	if err := (Projector{}).CollectNativeLocalValues(t.Context()); err != nil {
 		t.Fatal("unselected Value must need no runtime", err)
 	}
 	if err := (Projector{CatalogRoot: "selected", PolicyPath: "selected"}).CollectNativeLocalValues(t.Context()); !errors.Is(err, collectnative.ErrUnsupported) {
