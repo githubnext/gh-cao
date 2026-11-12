@@ -306,6 +306,14 @@ Replace `ISSUE_NUMBER` with the review issue number and `OWNER/REVIEW_REPO` with
 
 This path supports issue outputs only. It does not transfer issues, publish pull requests or comments, or apply artifact-backed review bundles. GitHub issue transfer is not used because it is limited to repositories under one owner and cannot transfer a private issue to a public repository. See the [Ops Publish add-on guide](https://github.com/githubnext/gh-cao/blob/main/ops-publish/README.md) for installation, credentials, and failure behavior.
 
+### CAO-only issue handoff
+
+The source-managed [`cao-issue-handoff`](https://github.com/githubnext/gh-cao/blob/main/.github/workflows/cao-issue-handoff.md) standalone workflow runs every six hours against **`githubnext/gh-cao` only**. It does not install in targets, dispatch workers, or enable Repo Assist. Its own `.github/workflows/cao.json` entry grants live mode only to this repository; a manual `review` run never assigns Copilot. It reads current campaign issues, not dashboard data or a new queue.
+
+To approve one bot-authored, evidence-backed campaign issue for implementation, create the `cao-agent-ready` label in this repository if needed, review the issue's scope and acceptance checks, and apply the label. This label is the handoff gate, not a declaration that the finding is correct. The workflow rechecks current evidence and competing work, then requests at most **one** `assign-to-agent` safe output per run. It skips uncertain, security-sensitive, duplicate, already-owned, or capacity-blocked work. If assignment succeeds, Copilot can propose a pull request; a maintainer still reviews and merges it. An issue without the label is never eligible for assignment, and absence of `GH_AW_AGENT_TOKEN` or Copilot availability blocks assignment rather than falling back to another write mechanism.
+
+To pause handoff, set `control-plane.workflows.cao-issue-handoff.enabled` to `false` in reviewed policy and cancel active runs. Removing `cao-agent-ready` from an issue revokes its eligibility for future runs. Existing Copilot assignments and pull requests need separate review or cancellation.
+
 <span id="publishing-pages-reports"></span>
 
 ## Operational artifacts and the Pages demo

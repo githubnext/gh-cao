@@ -495,6 +495,7 @@ test("comment-producing safe outputs expose one formatting contract", () => {
     ["cao-evolution-efficiency.md", ["add-comment"]],
     ["cao-evolution-integrity.md", ["add-comment"]],
     ["cao-evolution-reliability.md", ["add-comment"]],
+    ["cao-issue-handoff.md", ["add-comment"]],
     ["dependabot-update-planner.md", ["add-comment"]],
     ["design-decision-gate.md", ["add-comment"]],
     ["mattpocock-skills-reviewer.md", [

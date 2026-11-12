@@ -67,6 +67,15 @@
       ]
     },
     "workflows": {
+      "cao-issue-handoff": {
+        "mode": "review",
+        "max-repositories": 1,
+        "targets": {
+          "githubnext/gh-cao": {
+            "mode": "live"
+          }
+        }
+      },
       "daily-repo-status": {
         "enabled": false,
         "mode": "review",
