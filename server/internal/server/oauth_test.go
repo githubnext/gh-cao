@@ -203,8 +203,13 @@ func TestAzureOAuthRejectsInvalidStateAndDeniedMembership(t *testing.T) {
 	if response.Code != http.StatusForbidden {
 		t.Fatalf("denied membership returned %d: %s", response.Code, response.Body.String())
 	}
-	if len(response.Result().Cookies()) != 1 {
-		t.Fatalf("denied callback should only clear state cookie, got %#v", response.Result().Cookies())
+	for _, cookie := range response.Result().Cookies() {
+		if cookie.Name != "cao_oauth_state" && cookie.Name != accountHintsCookieName {
+			t.Fatalf("denied callback set unexpected cookie: %#v", cookie)
+		}
+	}
+	if !strings.Contains(response.Body.String(), `href="`+deniedGitHub.URL+`/"`) {
+		t.Fatal("failure page does not link to the configured GitHub host")
 	}
 	if !deniedGitHub.sawRevocation("access-old") || !deniedGitHub.sawRevocation("refresh-old") {
 		t.Fatal("denied callback left issued credentials active")
@@ -214,6 +219,87 @@ func TestAzureOAuthRejectsInvalidStateAndDeniedMembership(t *testing.T) {
 	location, err := url.Parse(retry.Header().Get("Location"))
 	if retry.Code != http.StatusFound || err != nil || location.Query().Get("prompt") != "select_account" {
 		t.Fatalf("retry after denied membership did not request account selection: %s (%v)", retry.Header().Get("Location"), err)
+	}
+}
+
+func TestOAuthDeniedSignInWithAnotherKnownIdentityOffersAccountSelection(t *testing.T) {
+	github := fakeGitHub(t, fakeGitHubOptions{membershipState: "active", accessExpiresIn: 3600})
+	app := newAzureTestApp(t, github.URL)
+	stateCookie, state := loginState(t, app)
+	allowed := oauthCallbackResponse(t, app, stateCookie, state)
+	if allowed.Code != http.StatusFound || allowed.Header().Get("Location") != "/" {
+		t.Fatalf("authorized callback returned %d: %s", allowed.Code, allowed.Header().Get("Location"))
+	}
+	hints := firstCookie(t, allowed.Result(), accountHintsCookieName)
+	if !hints.HttpOnly || !hints.Secure || hints.Path != "/auth/" || strings.Contains(hints.Value, "octocat") {
+		t.Fatalf("account hints cookie is not protected: %#v", hints)
+	}
+
+	// The same browser now completes GitHub consent with a different account
+	// (for example an Enterprise Managed User) that has no dashboard access.
+	github.login, github.accountID, github.membershipState = "octocat_ghe", 2, "inactive"
+	stateCookie, state = loginState(t, app)
+	denied := oauthCallbackResponse(t, app, stateCookie, state, hints)
+	if denied.Code != http.StatusFound || denied.Header().Get("Location") != "/auth/select-account" {
+		t.Fatalf("denied callback with another identity returned %d: %s", denied.Code, denied.Header().Get("Location"))
+	}
+	if !github.sawRevocation("access-old") {
+		t.Fatal("denied callback left issued credentials active")
+	}
+	for _, cookie := range denied.Result().Cookies() {
+		if cookie.Name == sessionCookieName && cookie.MaxAge > 0 {
+			t.Fatal("denied callback created a session")
+		}
+	}
+	hints = firstCookie(t, denied.Result(), accountHintsCookieName)
+
+	page := httptest.NewRecorder()
+	request := azureRequest(t, http.MethodGet, "/auth/select-account")
+	request.AddCookie(hints)
+	app.Handler().ServeHTTP(page, request)
+	body := page.Body.String()
+	if page.Code != http.StatusOK || page.Header().Get("Cache-Control") != "no-store" ||
+		!strings.Contains(page.Header().Get("Content-Security-Policy"), "default-src 'none'") {
+		t.Fatalf("select-account page returned %d with headers %v", page.Code, page.Header())
+	}
+	for _, want := range []string{
+		"signed you in as <strong>@octocat_ghe</strong>",
+		`href="/auth/login?login=octocat"`,
+		`href="/auth/login?login=octocat_ghe"`,
+		`href="` + github.URL + `/"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("select-account page missing %q", want)
+		}
+	}
+	if strings.Index(body, "login=octocat\"") > strings.Index(body, "login=octocat_ghe") {
+		t.Error("previously authorized account must be offered first")
+	}
+
+	login := httptest.NewRecorder()
+	app.Handler().ServeHTTP(login, azureRequest(t, http.MethodGet, "/auth/login?login=octocat"))
+	location, err := url.Parse(login.Header().Get("Location"))
+	if err != nil || login.Code != http.StatusFound || location.Query().Get("login") != "octocat" ||
+		location.Query().Get("prompt") != "select_account" {
+		t.Fatalf("login hint was not forwarded to GitHub: %s (%v)", login.Header().Get("Location"), err)
+	}
+	invalid := httptest.NewRecorder()
+	app.Handler().ServeHTTP(invalid, azureRequest(t, http.MethodGet, "/auth/login?login=bad%20login"))
+	if invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid login hint returned %d", invalid.Code)
+	}
+
+	single := httptest.NewRecorder()
+	app.Handler().ServeHTTP(single, azureRequest(t, http.MethodGet, "/auth/select-account"))
+	if single.Code != http.StatusFound || single.Header().Get("Location") != "/auth/login?select_account=1" {
+		t.Fatalf("select-account without hints returned %d: %s", single.Code, single.Header().Get("Location"))
+	}
+	forged := httptest.NewRecorder()
+	request = azureRequest(t, http.MethodGet, "/auth/select-account")
+	request.AddCookie(&http.Cookie{Name: accountHintsCookieName, Value: "W3siaWQiOjEsImxvZ2luIjoiYSJ9LHsiaWQiOjIsImxvZ2luIjoiYiJ9XQ", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	app.Handler().ServeHTTP(forged, request)
+	if forged.Code != http.StatusFound {
+		t.Fatalf("unsealed account hints were accepted: %d", forged.Code)
 	}
 }
 
@@ -703,7 +789,7 @@ func TestHostedOAuthLoggedOutPageRequiresExplicitLogin(t *testing.T) {
 		t.Fatal("logged-out page may be cached")
 	}
 	for name, path := range map[string]string{
-		sessionCookieName: "/", csrfCookieName: "/", "cao_oauth_state": "/auth/",
+		sessionCookieName: "/", csrfCookieName: "/", "cao_oauth_state": "/auth/", accountHintsCookieName: "/auth/",
 	} {
 		cookie := firstCookie(t, response.Result(), name)
 		if cookie.Value != "" || cookie.MaxAge >= 0 || cookie.Path != path || !cookie.Secure {
