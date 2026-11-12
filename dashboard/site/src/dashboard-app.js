@@ -315,7 +315,8 @@
             failed: state === "stale" || Boolean(retryRefresh && state === "loading"),
             configuration: dashboardDocument.dashboard["data-status"],
             sources,
-            loadPageSources
+            loadPageSources,
+            mobileHeader: dashboard
           }));
         }
         if (retryRefresh && (state === "stale" || (state === "loading" && !snapshot))) {

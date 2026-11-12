@@ -3,11 +3,11 @@ import { octicon } from '../octicons.js';
 import { formatMediumUtcDateTime, formatUtcDateTime, renderActionLabel, renderTooltip } from './ui-primitives.js';
 import { publishNotification } from '../notification-service.js';
 import { createDebug } from '../debug.js';
-import { derived, effect, render, state } from '../reactive.js';
+import { derived, effect, render, state, untracked } from '../reactive.js';
 import { dashboardDataStatus } from '../dashboard-data-status.js';
 import { isDashboardRateLimited } from '../rate-limit-notification.js';
 import { createFactoryScope } from './factory-elements.js';
-import { usesRemoteDataBackend } from '../remote-data-backend.js';
+import { requestLocalIngestion, usesRemoteDataBackend } from '../remote-data-backend.js';
 import { timestampMilliseconds } from '../data/model/schema.js';
 import { formatCompactNumber, formatHumanFriendlyTimestamp, formatNumber, stringOrFallback } from '../view-formatters.js';
 
@@ -36,9 +36,9 @@ export function notifyRefreshError(retry, { snapshot = null } = {}) {
 
 /**
  * @param {{ createdAt: string } | null} snapshot
- * @param {{ refreshing?: boolean, failed?: boolean, configuration?: import('../dashboard-data-status.js').DashboardStatusConfiguration, sources?: Record<string, import('../presenter.js').LogicalSourceInput>, loadPageSources?: import('../presenter.js').PageSourceLoader }} [options]
+ * @param {{ refreshing?: boolean, failed?: boolean, configuration?: import('../dashboard-data-status.js').DashboardStatusConfiguration, sources?: Record<string, import('../presenter.js').LogicalSourceInput>, loadPageSources?: import('../presenter.js').PageSourceLoader, mobileHeader?: ParentNode }} [options]
  */
-export function renderDashboardCurrentStatus(snapshot, { refreshing = false, failed = false, configuration, sources = {}, loadPageSources } = {}) {
+export function renderDashboardCurrentStatus(snapshot, { refreshing = false, failed = false, configuration, sources = {}, loadPageSources, mobileHeader } = {}) {
   const scope = createFactoryScope();
   const phase = failed ? 'stale' : refreshing ? 'cached' : snapshot ? 'ready' : 'loading';
   const freshness = state(/** @type {import('../presenter.js').LogicalSourceInput | undefined} */ (sources[configuration?.['freshness-source'] ?? '']));
@@ -46,6 +46,7 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
   const ingestion = state(/** @type {import('../presenter.js').LogicalSourceInput | undefined} */ (sources[configuration?.['ingestion-source'] ?? '']));
   const clock = state(Date.now());
   const detailsExpanded = state(false);
+  const startRequest = state(/** @type {'none' | 'requesting' | 'requested'} */ ('none'));
   const remote = usesRemoteDataBackend(document);
   const ingestionRow = derived(() => {
     const source = ingestion.get();
@@ -130,6 +131,26 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
       detail: `Workflow evidence is current as of ${formatMediumUtcDateTime(timestamp)}.${remote ? ' Collection reports healthy ingestion.' : ' Upstream collection health is not available in this static dashboard.'}`
     };
   }, { signal: scope.signal });
+  const running = derived(() => {
+    const progress = ingestionRow.get();
+    return progress?.activity === 'Running' || progress?.status === 'collecting';
+  }, { signal: scope.signal });
+  const startIngestion = () => {
+    if (startRequest.get() === 'requesting' || running.get()) return;
+    startRequest.set('requesting');
+    debugRefreshError({ event: 'ingestion-start-requested' });
+    requestLocalIngestion(scope.signal).then(() => {
+      if (!scope.signal.aborted) startRequest.set('requested');
+    }, (error) => {
+      if (scope.signal.aborted) return;
+      startRequest.set('none');
+      debugRefreshError({ event: 'ingestion-start-failed', errorName: error instanceof Error ? error.name : 'unknown' });
+      publishNotification({ id: 'dashboard:ingestion-start', tone: 'error', message: 'Ingestion could not be started.' });
+    });
+  };
+  effect(() => {
+    if (running.get() && untracked(() => startRequest.get()) === 'requested') startRequest.set('none');
+  }, { signal: scope.signal });
   render(trigger, () => [octicon(presentation.get().icon), renderActionLabel('Data ingestion')], { signal: scope.signal });
   render(description, () => {
     const current = presentation.get();
@@ -140,9 +161,15 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
     const determinate = typeof scanned === 'number' && Number.isFinite(scanned) && scanned >= 0
       && typeof target === 'number' && Number.isFinite(target) && target > 0;
     const next = formatHumanFriendlyTimestamp(progress['next-attempt-at'], clock.get());
+    const active = running.get();
+    const request = startRequest.get();
     return h('span', { className: 'ingestion-status-card' },
       h('span', { className: 'ingestion-status-heading' }, octicon(current.icon),
-        h('strong', null, 'value' in current ? current.value : current.label)),
+        h('strong', null, 'value' in current ? current.value : current.label),
+        h('span', {
+          className: 'ingestion-status-state',
+          'data-state': active ? 'running' : 'idle'
+        }, octicon(active ? 'sync' : 'dot-fill'), active ? 'Running' : 'Idle')),
       h('span', { className: 'ingestion-status-repository' }, stringOrFallback(progress.repository, 'Unknown repository')),
       h('span', { className: 'ingestion-status-history' },
         h('span', null, 'History'),
@@ -157,6 +184,13 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
       h('span', { className: 'ingestion-status-footer' },
         next ? h('span', { title: formatUtcDateTime(progress['next-attempt-at']), 'aria-label': `Next attempt ${next}` }, octicon('clock'), next) : null,
         h('small', { title: 'History discovery and artifacts remain partial.' }, 'Partial')),
+      h('button', {
+        type: 'button',
+        className: 'btn ingestion-status-start',
+        disabled: active || request === 'requesting',
+        onClick: startIngestion
+      }, octicon(active ? 'sync' : 'play'),
+      active ? 'Ingestion running' : request === 'requesting' ? 'Starting…' : request === 'requested' ? 'Ingestion requested' : 'Start ingestion now'),
       h('details', {
         open: detailsExpanded.get(),
         onToggle: (/** @type {Event} */ event) => {
@@ -176,6 +210,37 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
     status.classList.toggle('dashboard-current-status-refreshing', icon === 'sync');
     status.hidden = !configuration && !snapshot && !isDashboardRateLimited() && !failed;
   }, { signal: scope.signal });
+  const menu = mobileHeader?.querySelector('.mobile-nav-menu');
+  if (menu) {
+    const indicator = h('button', {
+      type: 'button',
+      className: 'mobile-ingestion-indicator',
+      onClick: (/** @type {Event} */ event) => {
+        // The menu's outside-click dismissal would otherwise close the menu that hosts the popup.
+        event.stopPropagation();
+        if (menu instanceof HTMLDetailsElement && !menu.open) {
+          menu.open = true;
+          // The popover target lives inside the menu, so it can only open once the menu has rendered.
+          requestAnimationFrame(() => {
+            if (!scope.signal.aborted) trigger.click();
+          });
+        } else trigger.click();
+      }
+    });
+    render(indicator, () => octicon(presentation.get().icon), { signal: scope.signal });
+    effect(() => {
+      const { tone, label, icon } = presentation.get();
+      const active = running.get();
+      indicator.dataset.tone = tone;
+      indicator.dataset.state = active ? 'running' : 'idle';
+      indicator.classList.toggle('mobile-ingestion-indicator-refreshing', icon === 'sync' || active);
+      indicator.setAttribute('aria-label', ingestionRow.get() ? `${label} (${active ? 'running' : 'idle'})` : label);
+      indicator.title = indicator.getAttribute('aria-label') ?? label;
+      indicator.hidden = status.hidden;
+    }, { signal: scope.signal });
+    menu.before(indicator);
+    scope.signal.addEventListener('abort', () => indicator.remove(), { once: true });
+  }
   scope.bind(status);
   return status;
 }

@@ -15,8 +15,11 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/model"
 )
+
+var evidenceLog = logger.New("cao:adxtrace")
 
 func digest(content []byte) string {
 	sum := sha256.Sum256(content)
@@ -76,6 +79,37 @@ func approvedValue(value any, patterns []*regexp.Regexp, changed *bool) any {
 	return value
 }
 
+// tracePartBytes bounds one stored content part.
+const tracePartBytes = 48 << 10
+
+// redactionPatterns appends the policy's patterns to the built-in secret set.
+func redactionPatterns(policy []string) ([]*regexp.Regexp, error) {
+	patterns := slices.Clone(builtInSecrets)
+	for _, pattern := range policy {
+		compiled, err := regexp.Compile(pattern)
+		if err != nil {
+			return nil, errors.New("invalid trace redaction policy")
+		}
+		patterns = append(patterns, compiled)
+	}
+	return patterns, nil
+}
+
+// splitContent cuts content into parts of at most limit bytes, moving each cut
+// back to a UTF-8 rune boundary.
+func splitContent(content []byte, limit int) [][]byte {
+	var parts [][]byte
+	for offset := 0; offset < len(content); {
+		end := min(len(content), offset+limit)
+		for end < len(content) && !utf8.RuneStart(content[end]) {
+			end--
+		}
+		parts = append(parts, content[offset:end])
+		offset = end
+	}
+	return parts
+}
+
 func scalar(value any) string {
 	switch v := value.(type) {
 	case string:
@@ -98,13 +132,9 @@ func Project(c Config, repository, runID, day string, attempt int64, artifact []
 	e := Evidence{Repository: repository, RunID: runID, Attempt: attempt, Day: day, CapturedAt: now.UTC(),
 		ArtifactDigest: digest(artifact), PolicyDigest: policyDigest(c.Policy), Tables: map[string][]model.Row{}, Gaps: []string{}}
 	e.ID = digest([]byte(repository + "\x00" + runID + fmt.Sprintf("\x00%d", attempt)))
-	patterns := slices.Clone(builtInSecrets)
-	for _, pattern := range c.Policy.RedactPatterns {
-		compiled, err := regexp.Compile(pattern)
-		if err != nil {
-			return Evidence{}, errors.New("invalid trace redaction policy")
-		}
-		patterns = append(patterns, compiled)
+	patterns, err := redactionPatterns(c.Policy.RedactPatterns)
+	if err != nil {
+		return Evidence{}, err
 	}
 	scanner := bufio.NewScanner(bytes.NewReader(artifact))
 	scanner.Buffer(make([]byte, 4096), int(c.MaxTraceBytes)+1)
@@ -202,17 +232,12 @@ func Project(c Config, repository, runID, day string, attempt int64, artifact []
 		if int64(approvedBytes) > c.MaxTraceBytes {
 			return Evidence{}, errors.New("approved trace exceeds eligibility budget")
 		}
-		partCount := 0
-		for offset := 0; offset < len(content); {
-			end := min(len(content), offset+(48<<10))
-			for end < len(content) && !utf8.RuneStart(content[end]) {
-				end--
-			}
+		chunks := splitContent(content, tracePartBytes)
+		partCount := len(chunks)
+		for i, chunk := range chunks {
 			e.Tables["TraceContentParts"] = append(e.Tables["TraceContentParts"], model.Row{
-				"Sequence": sequence, "Part": partCount, "Content": string(content[offset:end]),
+				"Sequence": sequence, "Part": i, "Content": string(chunk),
 			})
-			partCount++
-			offset = end
 		}
 		e.Tables["TraceEvents"] = append(e.Tables["TraceEvents"], model.Row{
 			"Sequence": sequence, "Type": kind, "EventId": indexed(approved["id"]), "ParentId": indexed(approved["parentId"]),
@@ -241,6 +266,7 @@ func Project(c Config, repository, runID, day string, attempt int64, artifact []
 		return Evidence{}, err
 	}
 	e.Version = digest([]byte(e.ArtifactDigest + e.PolicyDigest + digest(content)))
+	evidenceLog.Printf("projected trace evidence: events=%d parts=%d gaps=%d", sequence, parts, len(e.Gaps))
 	e.Tables["TraceManifest"] = []model.Row{{
 		"Repository": repository, "ArtifactDigest": e.ArtifactDigest, "PolicyDigest": e.PolicyDigest,
 		"EventCount": sequence, "PartCount": parts, "ContentDigest": digest(content), "State": "ready",

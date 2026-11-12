@@ -51,13 +51,13 @@ describe('Local ingestion progress contract', () => {
     expect(result.metadata.availability).toBe('available');
     expect(result.rows).toEqual([{
       'status-name': 'Paused', 'status-label': 'Data ingestion: Paused', 'status-icon': 'clock', 'status-tone': 'attention',
-      status: 'paused', message: contract.local.transaction.ingestionMessage, repository: 'octo/api',
+      status: 'paused', activity: 'Idle', message: contract.local.transaction.ingestionMessage, repository: 'octo/api',
       'scanned-hours': 48, 'target-hours': 168, 'api-remaining': 999, 'api-reserve': 1000,
       'api-reset-at': '2026-11-11T13:00:00Z', 'next-attempt-at': '2026-11-11T13:00:00Z',
       'observed-at': '2026-11-11T12:00:00Z'
     }]);
     await recordTransaction(indexedDB, { ...contract.local.transaction, ingestionStatus: 'collecting', scannedHours: 72 });
-    expect((await query()).rows[0]).toMatchObject({ status: 'collecting', 'scanned-hours': 72 });
+    expect((await query()).rows[0]).toMatchObject({ status: 'collecting', activity: 'Running', 'scanned-hours': 72 });
   });
 
   it.each([

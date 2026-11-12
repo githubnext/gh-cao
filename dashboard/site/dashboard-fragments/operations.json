@@ -19,7 +19,8 @@
         { "as": "status-tone", "function": "if", "args": [{ "field": "_failed" }, { "value": "danger" }, { "field": "_pause-tone" }] },
         { "as": "_status", "function": "coalesce", "args": [{ "field": "ingestionStatus" }, { "value": "unknown" }] },
         { "as": "_status-title", "function": "title-case", "args": [{ "field": "_status" }] },
-        { "as": "status-label", "function": "concat", "args": [{ "value": "Data ingestion: " }, { "field": "_status-title" }] }
+        { "as": "status-label", "function": "concat", "args": [{ "value": "Data ingestion: " }, { "field": "_status-title" }] },
+        { "as": "activity", "function": "if", "args": [{ "field": "_collecting" }, { "value": "Running" }, { "value": "Idle" }] }
       ],
       "select": [
         { "field": "_status-title", "as": "status-name" },
@@ -27,6 +28,7 @@
         { "field": "status-icon" },
         { "field": "status-tone" },
         { "field": "ingestionStatus", "as": "status" },
+        { "field": "activity" },
         { "field": "ingestionMessage", "as": "message" },
         { "field": "ingestionRepository", "as": "repository" },
         { "field": "scannedHours", "as": "scanned-hours" },

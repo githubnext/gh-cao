@@ -251,7 +251,7 @@ func ratePolicy(request *http.Request, limits RateLimitConfig) (requestRatePolic
 	switch {
 	case publicServiceEndpoint(request.URL.Path), request.URL.Path == "/api/github/webhook":
 		return requestRatePolicy{}, false
-	case request.URL.Path == "/auth/login", request.URL.Path == "/auth/callback":
+	case request.URL.Path == "/auth/login", request.URL.Path == "/auth/callback", request.URL.Path == "/auth/select-account":
 		return limits.policy("auth"), true
 	case request.URL.Path == "/api/v1/query", request.URL.Path == "/api/v1/session-archive/query", request.URL.Path == "/mcp":
 		return limits.policy("query"), true

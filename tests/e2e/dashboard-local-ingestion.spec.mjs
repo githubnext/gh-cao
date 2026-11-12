@@ -93,7 +93,13 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(page.locator('meta[name="dashboard-data-backend"]')).toHaveAttribute("content", "server-http");
     await expect(page.locator('meta[name="dashboard-storage-backend"]')).toHaveAttribute("content", "postgres");
     await expect(page.locator('[data-view-id="local-ingestion-progress"]')).toHaveCount(0);
-    if (viewport.width < 700) await page.getByRole("button", { name: "Select view", exact: true }).click();
+    const chromeIndicator = page.locator(".mobile-ingestion-indicator");
+    if (viewport.width < 700) {
+      await expect(chromeIndicator).toBeVisible();
+      await expect(chromeIndicator).toHaveAccessibleName("Data ingestion: Paused (idle)");
+      await expect(chromeIndicator).toHaveAttribute("data-state", "idle");
+      await page.getByRole("button", { name: "Select view", exact: true }).click();
+    } else await expect(chromeIndicator).toBeHidden();
     const indicator = page.locator(".dashboard-current-status > button");
     await expect(indicator).toHaveAccessibleName("Data ingestion: Paused");
     const tooltip = page.locator("#dashboard-current-status-tooltip");
@@ -111,6 +117,8 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(progress).toHaveJSProperty("value", 48);
     await expect(progress).toHaveJSProperty("max", 168);
     await expect(tooltip.locator(".ingestion-status-budget")).toContainText("999");
+    await expect(tooltip.locator(".ingestion-status-state")).toHaveText("Idle");
+    await expect(tooltip.getByRole("button", { name: "Start ingestion now" })).toBeEnabled();
     await expect(tooltip.getByText("Synthetic local ingestion fixture.", { exact: false })).not.toBeVisible();
     expect((await tooltip.boundingBox())?.height).toBeLessThan(360);
     const initialUrl = page.url();
@@ -119,6 +127,8 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(indicator).toBeFocused();
     await expect(progress).toHaveJSProperty("value", 72);
     expect(page.url()).toBe(initialUrl);
+    await expect(tooltip.locator(".ingestion-status-state")).toHaveText("Running");
+    await expect(tooltip.getByRole("button", { name: "Ingestion running" })).toBeDisabled();
     if (viewport.width < 700) {
       await page.keyboard.press("Escape");
       await expect(tooltip).toBeHidden();
@@ -130,6 +140,17 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       await expect(tooltip).toBeHidden();
       await page.getByRole("button", { name: "Select view", exact: true }).click();
       await indicator.click();
+      await expect(tooltip).toBeVisible();
+      const box = await tooltip.boundingBox();
+      expect(box?.x).toBeGreaterThanOrEqual(12);
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(viewport.width - 12);
+      expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
+      await page.keyboard.press("Escape");
+      await expect(tooltip).toBeHidden();
+      await page.locator(".mobile-nav-menu").evaluate((menu) => { menu.open = false; });
+      await expect(chromeIndicator).toBeVisible();
+      await expect(chromeIndicator).toHaveAttribute("data-state", "running");
+      await chromeIndicator.click();
       await expect(tooltip).toBeVisible();
     }
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

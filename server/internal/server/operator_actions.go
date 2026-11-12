@@ -6,9 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
-	"net/url"
 	"slices"
 	"strings"
 	"time"
@@ -48,10 +46,7 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 	if connection == nil || connection.OperatorActions == nil {
 		return errors.New("operator actions require an explicit native adapter")
 	}
-	adapter, err := url.Parse(connection.AdapterURL)
-	if err != nil || adapter.Scheme != "http" || adapter.User != nil || adapter.RawQuery != "" ||
-		adapter.Fragment != "" || !canvasPrefix.MatchString(adapter.Path) ||
-		net.ParseIP(adapter.Hostname()) == nil || !net.ParseIP(adapter.Hostname()).IsLoopback() || adapter.Port() == "" {
+	if !validOperatorAdapterURL(connection.AdapterURL) {
 		return errors.New("operator adapter requires a private numeric loopback HTTP address")
 	}
 	config := connection.OperatorActions
