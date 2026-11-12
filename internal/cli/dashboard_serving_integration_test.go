@@ -92,11 +92,23 @@ func TestDashboardServingIntegration(t *testing.T) {
 	if admin != "" {
 		t.Run("explicit", func(t *testing.T) {
 			runtimeURL := provisionDashboardServingPostgres(t, ctx, binary, admin)
-			runDashboardServingIntegration(t, ctx, binary, builtSite, filepath.Join(directory, "explicit backend"), runtimeURL, nil)
+			t.Run("synthetic-collection", func(t *testing.T) {
+				runDashboardServingIntegration(t, ctx, binary, builtSite, filepath.Join(directory, "explicit backend"), runtimeURL, nil)
+			})
+			if cli := os.Getenv("CAO_DASHBOARD_TEST_CLI"); cli != "" {
+				t.Run("cli-process", func(t *testing.T) {
+					runDashboardServingCLIProcess(t, ctx, cli, binary, builtSite, filepath.Join(directory, "native CLI process"), runtimeURL)
+				})
+			} else {
+				t.Log("CAO_DASHBOARD_TEST_CLI not supplied: native gh-cao process smoke unavailable; synthetic collection uses dashboardCommand")
+			}
 		})
 	}
 	if managed {
 		t.Run("managed", func(t *testing.T) {
+			if runtime.GOOS == "windows" {
+				t.Fatal("managed Windows PostgreSQL is unsupported: production private-file checks require a Windows ACL implementation and Docker Desktop bind-mount identity is not normalized; use an explicitly provisioned disposable PostgreSQL URL instead")
+			}
 			engine, err := selectDashboardEngine(ctx, "docker")
 			if err != nil {
 				t.Fatalf("selected managed integration requires local Docker with Linux containers: %v", err)
@@ -106,12 +118,103 @@ func TestDashboardServingIntegration(t *testing.T) {
 	}
 }
 
+func runDashboardServingCLIProcess(t *testing.T, parent context.Context, cli, binary, builtSite, directory, postgresURL string) {
+	t.Helper()
+	if !filepath.IsAbs(cli) {
+		t.Fatal("CAO_DASHBOARD_TEST_CLI must name an absolute native gh-cao executable")
+	}
+	if err := os.Mkdir(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(parent, 45*time.Second)
+	defer cancel()
+	output := &dashboardServingOutput{ready: make(chan string, 1)}
+	command := exec.CommandContext(ctx, cli, "dashboard", "--repo", "octo/api",
+		"--cache-dir", filepath.Join(directory, "offline canonical cache"),
+		"--server-executable", binary, "--site", builtSite,
+		"--listen", "127.0.0.1:0", "--duration", "10s", "--count", "2")
+	command.Dir = directory
+	// No gh executable, inherited credentials, or operator configuration: this
+	// checks offline process serving, not successful GitHub acquisition.
+	command.Env = append(dashboardServerEnvironment(), "PATH="+directory, "HOME="+directory,
+		"USERPROFILE="+directory, "CAO_POSTGRES_URL="+postgresURL)
+	command.Stdout, command.Stderr = output, output
+	command.WaitDelay = 10 * time.Second
+	if err := command.Start(); err != nil {
+		t.Fatalf("start explicitly selected native gh-cao: %v", err)
+	}
+	done := make(chan error, 1)
+	exited := make(chan struct{})
+	go func() {
+		done <- command.Wait()
+		close(exited)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		select {
+		case <-exited:
+		case <-time.After(15 * time.Second):
+			t.Error("native gh-cao process did not exit")
+		}
+	})
+	var address string
+	select {
+	case address = <-output.ready:
+	case err := <-done:
+		t.Fatalf("native gh-cao exited before serving: %v\n%s", err, output.diagnostics())
+	case <-ctx.Done():
+		t.Fatalf("native gh-cao never announced readiness: %v\n%s", ctx.Err(), output.diagnostics())
+	}
+	capability, err := url.Parse(address)
+	if err != nil || capability.Scheme != "http" || capability.User != nil ||
+		net.ParseIP(capability.Hostname()) == nil || !net.ParseIP(capability.Hostname()).IsLoopback() ||
+		capability.Query().Get("access_token") == "" {
+		t.Fatal("native gh-cao did not announce a numeric-loopback dashboard capability")
+	}
+	origin := capability.Scheme + "://" + capability.Host
+	transport := &http.Transport{Proxy: nil}
+	defer transport.CloseIdleConnections()
+	client := &http.Client{Transport: transport, Timeout: 3 * time.Second}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, origin+"/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Authorization", "Bearer "+capability.Query().Get("access_token"))
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatalf("native gh-cao child did not serve its real dashboard: %v", err)
+	}
+	shell, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
+	_ = response.Body.Close()
+	if err != nil || response.StatusCode != http.StatusOK ||
+		!bytes.Contains(shell, []byte(`<meta name="dashboard-data-backend" content="server-http">`)) {
+		t.Fatalf("native gh-cao shell bootstrap failed: status=%d error=%v", response.StatusCode, err)
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("native gh-cao did not exit cleanly at its bounded duration: %v\n%s", err, output.diagnostics())
+		}
+	case <-ctx.Done():
+		t.Fatalf("native gh-cao exceeded its bounded duration: %v\n%s", ctx.Err(), output.diagnostics())
+	}
+	client.CloseIdleConnections()
+	if response, err := client.Get(origin + "/api/readiness"); err == nil {
+		_ = response.Body.Close()
+		t.Fatal("native gh-cao left its dashboard child listening after exit")
+	}
+	t.Log("native gh-cao served real server-http assets and reaped its child; GitHub collection deliberately unavailable")
+}
+
 func provisionDashboardServingPostgres(t *testing.T, ctx context.Context, binary, admin string) string {
 	t.Helper()
 	address, err := url.Parse(admin)
-	if err != nil || (address.Scheme != "postgres" && address.Scheme != "postgresql") ||
+	if err != nil || (address.Scheme != "postgres" && address.Scheme != "postgresql") || address.User == nil ||
 		net.ParseIP(address.Hostname()) == nil || !net.ParseIP(address.Hostname()).IsLoopback() {
-		t.Fatal("CAO_DASHBOARD_TEST_POSTGRES_URL must explicitly select disposable numeric-loopback PostgreSQL")
+		t.Fatal("CAO_DASHBOARD_TEST_POSTGRES_URL must select an administrator of a disposable numeric-loopback PostgreSQL cluster")
+	}
+	if address.User.Username() != "cao_bootstrap" || address.Path != "/cao_dashboard" {
+		t.Fatal("selected disposable PostgreSQL requires administrator cao_bootstrap and database cao_dashboard")
 	}
 	password, err := dashboardPostgresSecret()
 	if err != nil {
@@ -305,31 +408,63 @@ func runDashboardServingIntegration(t *testing.T, ctx context.Context, binary, b
 }
 
 type dashboardServingOutput struct {
-	mutex sync.Mutex
-	bytes.Buffer
-	ready chan string
+	mutex  sync.Mutex
+	buffer bytes.Buffer
+	ready  chan string
 }
 
 func (output *dashboardServingOutput) Write(value []byte) (int, error) {
 	output.mutex.Lock()
 	defer output.mutex.Unlock()
-	n, err := output.Buffer.Write(value)
-	if _, rest, found := strings.Cut(output.Buffer.String(), "Dashboard: "); found {
-		if fields := strings.Fields(rest); len(fields) > 0 {
-			select {
-			case output.ready <- fields[0]:
-			default:
+	n, err := output.buffer.Write(value)
+	if _, rest, found := strings.Cut(output.buffer.String(), "Dashboard: "); found {
+		if line, _, complete := strings.Cut(rest, "\n"); complete {
+			if fields := strings.Fields(line); len(fields) > 0 {
+				select {
+				case output.ready <- fields[0]:
+				default:
+				}
 			}
 		}
 	}
 	return n, err
 }
 
+func TestDashboardServingOutputCapturesProcessReadiness(t *testing.T) {
+	output := &dashboardServingOutput{ready: make(chan string, 1)}
+	address := "http://127.0.0.1:12345/?access_token=synthetic-test-capability#page-overview"
+	// os/exec copies pipe output with io.Copy; do not promote Buffer.ReadFrom,
+	// which would bypass Write's readiness notification and synchronization.
+	reader := io.LimitReader(strings.NewReader("Dashboard: "+address), 1024)
+	if _, err := io.Copy(output, reader); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-output.ready:
+		t.Fatal("incomplete pipe line announced a truncated dashboard URL")
+	default:
+	}
+	if _, err := io.Copy(output, io.LimitReader(strings.NewReader("\n"), 1)); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case actual := <-output.ready:
+		if actual != address {
+			t.Fatal("pipe copy announced the wrong dashboard URL")
+		}
+	default:
+		t.Fatal("pipe copy bypassed dashboard readiness notification")
+	}
+	if strings.Contains(output.diagnostics(), "synthetic-test-capability") {
+		t.Fatal("diagnostics exposed a dashboard access capability")
+	}
+}
+
 func (output *dashboardServingOutput) diagnostics() string {
 	output.mutex.Lock()
 	defer output.mutex.Unlock()
 	var redacted []string
-	for _, line := range strings.Split(output.Buffer.String(), "\n") {
+	for _, line := range strings.Split(output.buffer.String(), "\n") {
 		if strings.Contains(line, "access_token=") {
 			line = "[local dashboard capability URL redacted]"
 		}

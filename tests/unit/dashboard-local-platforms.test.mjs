@@ -22,6 +22,8 @@ test("local serving runs on native Linux, macOS, and Windows with real PostgreSQ
   const postgres = job.steps.find((step) => step.name === "Start native PostgreSQL");
   assert.equal(postgres.if, "matrix.backend == 'postgres'");
   assert.equal(postgres.id, "postgres");
+  assert.equal(postgres.with.username, "cao_bootstrap");
+  assert.equal(postgres.with.database, "cao_dashboard");
   assert.match(postgres.uses, /^ikalnytskyi\/action-setup-postgres@[a-f0-9]{40}$/);
   const build = job.steps.find((step) => step.name === "Build dashboard and native commands");
   assert.match(build.run, /generate-dashboard-ingest\.mjs --check/);
@@ -74,7 +76,7 @@ test("Docker Desktop coverage is explicit and cannot execute untrusted PRs on se
     assert.ok(entry.runner.includes("self-hosted"));
     assert.ok(entry.runner.includes(entry.os));
     assert.ok(entry.runner.includes("cao-dashboard-docker-ephemeral"));
-    assert.equal(entry.backend, "docker");
+    assert.equal(entry.backend, "docker-explicit");
   }
   assert.deepEqual(job.steps, workflow.jobs.serving.steps, "run exactly the same serving test");
 });

@@ -72,10 +72,11 @@ jobs:
         uses: ikalnytskyi/action-setup-postgres@c4dda34aae1c821e3a771b68b73b13af3198a7ee # v8
         with:
           postgres-version: "16"
-          database: cao_dashboard_test
+          username: cao_bootstrap
+          database: cao_dashboard
           port: 55432
       - name: Verify Linux Docker engine
-        if: matrix.backend == 'docker'
+        if: matrix.backend != 'postgres'
         shell: bash
         run: |
           set -euo pipefail
@@ -107,6 +108,7 @@ jobs:
           CAO_DASHBOARD_TEST_SITE: ${{ github.workspace }}/dashboard/site/dist
           CAO_DASHBOARD_TEST_POSTGRES_URL: ${{ steps.postgres.outputs.connection-uri }}
           CAO_DASHBOARD_TEST_DOCKER: ${{ matrix.backend == 'docker' && '1' || '' }}
+          CAO_DASHBOARD_TEST_DOCKER_EXPLICIT: ${{ matrix.backend == 'docker-explicit' && '1' || '' }}
           GH_TOKEN: ""
           GITHUB_TOKEN: ""
           GH_ENTERPRISE_TOKEN: ""
@@ -130,10 +132,10 @@ jobs:
         include:
           - os: Windows
             runner: [self-hosted, Windows, X64, cao-dashboard-docker-ephemeral]
-            backend: docker
+            backend: docker-explicit
             suffix: ".exe"
           - os: macOS
             runner: [self-hosted, macOS, ARM64, cao-dashboard-docker-ephemeral]
-            backend: docker
+            backend: docker-explicit
             suffix: ""
     steps: *serving-steps

@@ -155,6 +155,14 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	child.Stdout = serverOutputWriter
 	defer func() { _ = serverOutput.Close(); _ = serverOutputWriter.Close() }()
 	addressDone := make(chan error, 1)
+	serverReady := make(chan struct{}, 1)
+	announceReady := func(address string) {
+		printDashboardReady(cmd.ErrOrStderr(), address+"#page-overview", repositories, cache, options)
+		select {
+		case serverReady <- struct{}{}:
+		default:
+		}
+	}
 	readAddress := func() {
 		scanner := bufio.NewScanner(serverOutput)
 		for scanner.Scan() {
@@ -162,7 +170,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 				URL string `json:"url"`
 			}
 			if json.Unmarshal(scanner.Bytes(), &ready) == nil && ready.URL != "" {
-				printDashboardReady(cmd.ErrOrStderr(), ready.URL+"#page-overview", repositories, cache, options)
+				announceReady(ready.URL)
 			} else {
 				_, _ = fmt.Fprintln(cmd.OutOrStdout(), scanner.Text())
 			}
@@ -191,7 +199,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 			line := scanner.Text()
 			const marker = "serving local dashboard at "
 			if _, address, found := strings.Cut(line, marker); found {
-				printDashboardReady(cmd.ErrOrStderr(), address+"#page-overview", repositories, cache, options)
+				announceReady(address)
 			} else {
 				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), line)
 			}
@@ -233,10 +241,12 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	// Publish the "collecting" status before the pass ends so the dashboard
 	// shows ingestion as running while GitHub evidence is acquired.
 	options.onCollecting = ingest
-	// PostgreSQL and the initial snapshot are ready before the server starts,
-	// so the first pass begins immediately instead of waiting for the URL.
-	ticker := time.NewTimer(0)
+	// Initial ingestion must finish before collection can replace snapshot files.
+	// The server announces its listener only after ingesting the initial source.
+	ticker := time.NewTimer(options.refresh)
+	ticker.Stop()
 	defer ticker.Stop()
+	var waitingForServer <-chan struct{} = serverReady
 	pass := func() {
 		if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil && ctx.Err() == nil {
 			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard refresh failed; previous snapshot retained: %v\n", err)
@@ -253,6 +263,9 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	}
 	for {
 		select {
+		case <-waitingForServer:
+			waitingForServer = nil
+			ticker.Reset(0)
 		case result := <-serverDone:
 			return finish(result)
 		case <-ctx.Done():

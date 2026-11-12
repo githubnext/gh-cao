@@ -33,8 +33,9 @@ loopback and queries a private PostgreSQL namespace on your machine.
 No CAO cloud deployment, Azure setup, hosted dashboard, Redis, or separate
 Node.js or gh-aw installation is needed. PostgreSQL is required: the command
 manages a local Docker or Podman Linux container unless you supply
-`--postgres-url` (or `CAO_POSTGRES_URL`). On Windows and macOS, Docker Desktop
-must be running in Linux-container mode for the managed Docker path.
+`--postgres-url` (or `CAO_POSTGRES_URL`). On Windows, use an explicitly
+provisioned PostgreSQL connection. Docker-backed connections on Windows and
+macOS require Docker Desktop running its Linux engine.
 
 GitHub is still the authenticated upstream evidence source; collection needs
 network access and your repository permissions. The command collects bounded
@@ -64,14 +65,21 @@ Configure environment approval before enabling these runners. Each must have
 Bash, Git, and a running local Docker Desktop Linux engine with host-directory
 sharing enabled. Never assign this label to a persistent or credential-bearing
 machine; these jobs do not run pull-request code.
+The Desktop lane supplies an explicit connection to disposable Docker
+PostgreSQL; it does not certify automatic container/cache management on those
+platforms. In particular, Windows managed-cache privacy and Docker bind-mount
+path handling need separate platform validation.
 
 For a source checkout, build the server-profile site and both native commands,
 then select `TestDashboardServingIntegration` in the CLI Go tests with
 `CAO_DASHBOARD_SERVING_INTEGRATION=1`. Set absolute paths in
 `CAO_DASHBOARD_TEST_SITE`, `CAO_DASHBOARD_TEST_SERVER`, and
 `CAO_DASHBOARD_TEST_CLI`. Select a disposable numeric-loopback administrator
-connection with `CAO_DASHBOARD_TEST_POSTGRES_URL`, or set
+connection with `CAO_DASHBOARD_TEST_POSTGRES_URL` (administrator
+`cao_bootstrap`, database `cao_dashboard`), or set
 `CAO_DASHBOARD_TEST_DOCKER=1` for automatic local Docker provisioning.
+Use `CAO_DASHBOARD_TEST_DOCKER_EXPLICIT=1` for Docker PostgreSQL with an
+explicit connection, as in the Desktop lane.
 Selected backends fail rather than skip when prerequisites are unavailable.
 Synthetic GitHub evidence is test-only; the serving and query pipeline uses
 the production Go server and PostgreSQL.
