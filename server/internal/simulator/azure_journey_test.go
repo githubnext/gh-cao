@@ -48,12 +48,12 @@ func setupAzurePrivateFarm(t *testing.T, ctx context.Context, f *setupFixture, c
 	}
 	installerEnv := setupAzureEnvironment(f.env, map[string]string{"PATH": os.Getenv("PATH")})
 	bootstrapRun(t, ctx, f.checkout, installerEnv, "bash", filepath.Join(catalog, "install-gh-cao.sh"), catalog)
-	for _, name := range []string{"activity/cao.mjs", ".github/workflows/cao-activity.yml", ".github/workflows/cao-validate.yml"} {
+	for _, name := range []string{"dashboard/report/configure-site.mjs", ".github/workflows/cao-validate.yml"} {
 		if len(setupRead(t, filepath.Join(f.checkout, name))) == 0 {
 			t.Fatalf("installer omitted %s", name)
 		}
 	}
-	// Hosted setup is reviewed policy, not the public Pages setup shortcut.
+	// Hosted setup uses reviewed policy, not the public monitoring shortcut.
 	f.control()["scope"] = map[string]any{"allowed-owners": []string{"platform"},
 		"allowed-repositories": []string{"platform/control", "platform/alpha", "platform/zeta"}}
 	f.control()["activity"] = map[string]any{"repositories": []string{"platform/control", "platform/alpha", "platform/zeta"},
@@ -94,9 +94,6 @@ func setupAzurePrivateFarm(t *testing.T, ctx context.Context, f *setupFixture, c
 	}
 	f.api.mu.Lock()
 	defer f.api.mu.Unlock()
-	if f.api.Repositories["platform/control"].Pages != nil {
-		t.Fatal("private Azure installation enabled Pages")
-	}
 	if len(f.api.Unhandled) != 0 {
 		t.Fatalf("installer used unsupported GitHub routes: %v", f.api.Unhandled)
 	}

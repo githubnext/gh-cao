@@ -74,7 +74,7 @@ The integration suite creates disposable consumer repositories under the system 
 | --- | --- | --- |
 | 🟢 Pass | `gh aw add` | Installs the core orchestrators and workers, shared imports, and campaign manifest without retaining CAO plugin skills; focused UK AI Advisory and EU CRA campaigns are validated separately. |
 | 🟢 Pass | `gh aw update --force` | Replaces a locally modified campaign workflow and restores deleted workflow dependencies for a branch-tracked campaign. |
-| 🟢 Pass | Dashboard `gh aw add` and `gh aw add --force` | Installs and restores the reusable builder, manual standalone publisher, and all deterministic report modules. |
+| 🟢 Pass | Dashboard `gh aw add` and `gh aw add --force` | Installs and restores the reusable operational artifact builder and deterministic report modules without a Pages publisher. |
 
 ## Enterprise Integration and Load
 
@@ -202,9 +202,9 @@ Compilation checks prove the source policy reaches the generated GitHub Actions 
 | 🟢 Pass | AI Credit Optimizer | Standard dispatch envelope and safe output settings compile. |
 | 🟢 Pass | All worker workflow safe outputs | Review/live routing vocabulary checked. |
 | 🟢 Pass | All generated campaign workflows | Emitted activation gates, transitive job dependencies, review isolation, live authority, output binding, and removed-mode settings checked in a clean-room compile. |
-| 🟢 Pass | Core catalog campaign | Installs the complete dashboard campaign while keeping its standalone Pages publisher manual-only. |
+| 🟢 Pass | Core catalog campaign | Installs the complete operational dashboard artifact pipeline without a Pages publisher. |
 | 🟢 Pass | Operational value | Schema-v4 evaluators are registered by workers and the dashboard consumes actual `grader_results.json` observations. |
-| 🟢 Pass | Dashboard campaign | Root and focused installations include the same dashboard destinations; reusable builds mount under a relative path and standalone deployment remains manual and access-controlled. |
+| 🟢 Pass | Dashboard campaign | Root and focused manifests declare the same dashboard destinations; reusable operational artifacts remain separate from synthetic-only Pages publication. |
 | 🟢 Pass | Grader campaign transport | gh-aw installs and restores referenced `.github/workflows/graders/*.sh` files in clean campaign consumers. |
 
 Exhaustive coverage: 24 scheduled plus 96 manual cases, for 120 unique policy configurations and 22 user-facing scenarios. The custom review-bundle job retains gh-aw's internal `GH_AW_SAFE_OUTPUTS_STAGED` dry-run signal; it is compiler plumbing, not a public campaign mode.

@@ -32,7 +32,7 @@ Sections 2 through 11 are normative. The key words "MUST", "MUST NOT",
 This specification owns the integration invariants between the detailed
 contracts below:
 
-- [`activity.md`](activity.md) owns the ordinary Activity snapshot boundary.
+- [`activity.md`](server-ingestion.md) owns the ordinary Activity snapshot boundary.
 - [`operational-value-history.md`](operational-value-history.md) owns compact
   observation reconstruction, cadence compaction, and publication.
 - [`dashboard-data.md`](dashboard-data.md) owns canonical entities, logical
@@ -277,6 +277,14 @@ Node program. Git subprocesses MAY be used only for reviewed Git transport
 requirements. An unselected Value execution lane MUST NOT inspect its catalog
 or policy assets.
 
+The Go operational-value package does not launch campaign
+`operational-value.mjs` programs or reconstruct history by replaying them.
+Node.js is not a runtime requirement of native hosted Value evaluation.
+Independent JavaScript equivalence tests and Node-based build tooling still
+require Node.js, as does the separate Activity CLI campaign-adapter path.
+Retained observations and accepted-evidence publication keep their existing
+contracts; removing adapter execution does not discard that history.
+
 The Go hosted local evaluator supports the reviewed Optimization canonical-query
 measurement and consumes Dependabot lifecycle evidence only after the separately
 registered, quota-admitted Go remote collector publishes three complete
@@ -497,6 +505,6 @@ Implementations MUST retain automated coverage for:
 
 - [Operational-Value History Reconstruction Specification](operational-value-history.md)
 - [Dashboard Data Architecture Specification](dashboard-data.md)
-- [CAO Activity Specification](activity.md)
+- [CAO Activity Specification](server-ingestion.md)
 - [Private Unified-Session Archive](session-archive.md)
 - [Dashboard Product Specification](dashboard.md)

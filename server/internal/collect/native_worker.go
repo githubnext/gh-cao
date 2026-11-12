@@ -76,7 +76,7 @@ func (w NativeWorker) Run(ctx context.Context) error {
 		return err
 	}
 	if w.Consumer == "" {
-		w.Consumer = (Worker{}).consumer()
+		w.Consumer = consumerName("")
 	}
 	w.Runs.Queue, w.Runs.Scopes = w.Queue, w.Enrollment.Authority
 	w.Runs.Consumer = w.Consumer + "-runs"

@@ -30,7 +30,7 @@ type nativeLocalValueProgress struct {
 // CollectNativeLocalValues is the Go-native hosted Value preparation lane.
 // PostgreSQL owns input, accepted evidence and publication. Scratch contains
 // only bounded per-invocation transport files and is never a recovery source.
-func (p Projector) CollectNativeLocalValues(ctx context.Context) error {
+func (p NativeValueService) CollectNativeLocalValues(ctx context.Context) error {
 	if p.CatalogRoot == "" && p.PolicyPath == "" {
 		return nil
 	}
@@ -112,7 +112,7 @@ func (p Projector) CollectNativeLocalValues(ctx context.Context) error {
 	if err := writeNativeValueInputs(workspace, inputs); err != nil {
 		return err
 	}
-	config := operationalvalue.Config{Root: root, Repositories: repositories, WorkerTimeout: 30 * time.Second}
+	config := operationalvalue.Config{Root: root, Repositories: repositories}
 	if err := operationalvalue.WriteCollectionHealth(ctx, config, policyPath, workspace); err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (p Projector) CollectNativeLocalValues(ctx context.Context) error {
 	return p.State.SetOperationalState(ctx, nativeLocalValueCompletedKey, content)
 }
 
-func (p Projector) nativeLocalPolicyCurrent(ctx context.Context, expected []byte) error {
+func (p NativeValueService) nativeLocalPolicyCurrent(ctx context.Context, expected []byte) error {
 	current, err := p.resolvedNativeValuePolicy(ctx)
 	if err != nil {
 		return err
@@ -170,7 +170,7 @@ func (p Projector) nativeLocalPolicyCurrent(ctx context.Context, expected []byte
 	return nil
 }
 
-func (p Projector) nativeLocalValueScopes(ctx context.Context) ([]collectnative.EnrollmentScope, error) {
+func (p NativeValueService) nativeLocalValueScopes(ctx context.Context) ([]collectnative.EnrollmentScope, error) {
 	installations, err := p.Enrollment.Authority.Installations(ctx)
 	if err != nil {
 		return nil, err
@@ -220,12 +220,11 @@ func (p Projector) nativeLocalValueScopes(ctx context.Context) ([]collectnative.
 	return scopes, nil
 }
 
-func (p Projector) computeNativeLocalValues(
+func (p NativeValueService) computeNativeLocalValues(
 	ctx context.Context, config operationalvalue.Config, policyPath, workspace string, policy []byte,
 	enrolled, selected []string, expectedRevision int64,
 ) (int64, error) {
 	output := filepath.Join(workspace, "operational-values.jsonl")
-	config.WorkerTimeout = 2 * time.Minute
 	var retained []model.Row
 	err := p.Data.WithReadTransaction(ctx, func(readCtx context.Context, reader postgresx.NativeReader) error {
 		state, err := reader.State(readCtx)

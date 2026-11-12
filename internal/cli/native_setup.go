@@ -172,46 +172,6 @@ func nativeSetupInspect(cmd *cobra.Command, gh ghExecutor, repo string) (nativeS
 	return result, nil
 }
 
-type nativeSetupPages struct {
-	Created bool
-	Public  bool
-	URL     string
-}
-
-func nativeSetupConfigurePages(cmd *cobra.Command, gh ghExecutor, repo string) (nativeSetupPages, error) {
-	result := nativeSetupPages{}
-	endpoint := "repos/" + repo + "/pages"
-	out, stderr, readErr := gh(cmd.Context(), "api", endpoint)
-	var site map[string]any
-	if readErr == nil {
-		if json.Unmarshal([]byte(out), &site) != nil {
-			return result, errors.New("unable to inspect dashboard Pages site: GitHub returned invalid JSON")
-		}
-	}
-	if site == nil {
-		if readErr == nil || !regexp.MustCompile(`\bHTTP 404\b`).MatchString(stderr) {
-			return result, commandError("unable to inspect dashboard Pages site", stderr, readErr)
-		}
-		result.Created = true
-		if _, err := nativeSetupGH(cmd, gh, "api", "-X", "POST", "-f", "build_type=workflow", endpoint); err != nil {
-			return result, err
-		}
-	} else if site["build_type"] != "workflow" {
-		if _, err := nativeSetupGH(cmd, gh, "api", "-X", "PUT", "-f", "build_type=workflow", endpoint); err != nil {
-			return result, err
-		}
-	}
-	if err := nativeSetupJSON(cmd, gh, &site, "api", endpoint); err != nil {
-		return result, err
-	}
-	if site["build_type"] != "workflow" {
-		return result, errors.New("dashboard Pages configuration could not be verified; do not deploy the dashboard")
-	}
-	result.Public = site["public"] != false
-	result.URL, _ = site["html_url"].(string)
-	return result, nil
-}
-
 var errNativeSetupCancelled = errors.New("setup cancelled")
 
 type nativeSetupStageError struct {
@@ -224,7 +184,7 @@ func (e *nativeSetupStageError) Error() string {
 	if e.policySaved {
 		return fmt.Sprintf("%s\nConfiguration was saved; run gh cao doctor and review the installed files.", e.cause)
 	}
-	return fmt.Sprintf("%s\nSetup stopped during %s; the local policy was not changed. Runtime files may have been prepared, and Pages settings or credentials may already have changed; inspect them before retrying.", e.cause, e.stage)
+	return fmt.Sprintf("%s\nSetup stopped during %s; the local policy was not changed. Runtime files may have been prepared, and credentials may already have changed; inspect them before retrying.", e.cause, e.stage)
 }
 
 func (e *nativeSetupStageError) Unwrap() error { return e.cause }
@@ -332,7 +292,7 @@ func nativeSetup(cmd *cobra.Command, gh ghExecutor) error {
 		_, err = io.WriteString(cmd.OutOrStdout(), setupPublishOutput(publication, nativeSetupColorEnabled(cmd.OutOrStdout())))
 		return err
 	}
-	_, err = fmt.Fprint(cmd.OutOrStdout(), "Monitoring configured locally. No commit or push was performed.\nNext: gh cao doctor, then review, commit and push the installed files.\nOptional automation: https://githubnext.github.io/gh-cao/operation-patterns/\n")
+	_, err = fmt.Fprint(cmd.OutOrStdout(), "Monitoring configured locally. No commit or push was performed.\nNext: gh cao doctor, then review, commit and push the installed files.\nActions produces operational artifacts for the local or cloud dashboard.\nOptional automation: https://githubnext.github.io/gh-cao/operation-patterns/\n")
 	return err
 }
 
@@ -462,7 +422,7 @@ func nativeSetupControl(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupPro
 			}
 			owners = nativeSetupUnique(owners, true)
 			profile = "public-only"
-			if err := nativeSetupNote(cmd, "Public-only monitoring scope: %s\nPublic Pages publication accepted by the public monitoring quickstart. No App/PAT or agent execution.\n", strings.Join(repositories, ", ")); err != nil {
+			if err := nativeSetupNote(cmd, "Public-only monitoring scope: %s\nNo App/PAT or agent execution.\n", strings.Join(repositories, ", ")); err != nil {
 				return nil, err
 			}
 		}
@@ -527,7 +487,7 @@ func nativeSetupControl(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupPro
 		if profile == "public-only" {
 			writeScope = "none (monitoring only)"
 		}
-		if err := nativeSetupNote(cmd, "Read: %s\nWrite: %s\nAuth: %s\nSetting up CAO runtime and policy, Pages, and credentials if needed.\n", strings.Join(repositories, ", "), writeScope, profile); err != nil {
+		if err := nativeSetupNote(cmd, "Read: %s\nWrite: %s\nAuth: %s\nSetting up CAO runtime and policy, and credentials if needed.\n", strings.Join(repositories, ", "), writeScope, profile); err != nil {
 			return nil, err
 		}
 		apply, e := prompt.Confirm("Apply this setup?", false)
@@ -553,40 +513,6 @@ func nativeSetupControl(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupPro
 		policy["gh-aw-version"], err = nativeVersion(cmd.Context(), gh)
 		if err != nil {
 			return nil, err
-		}
-	}
-	stage = "dashboard Pages"
-	if err := nativeSetupNote(cmd, "Configuring GitHub Pages...\n"); err != nil {
-		return nil, err
-	}
-	pages, err := nativeSetupConfigurePages(cmd, gh, repo)
-	if err != nil {
-		return nil, err
-	}
-	if prompt == nil && !pages.Public {
-		return nil, errors.New("non-interactive setup requires public GitHub Pages for the public control repository")
-	}
-	if prompt != nil && pages.Public {
-		if err := nativeSetupNote(cmd, "Warning: Pages is public. Anyone can read published data from %s and selected repositories.\nRestrict access in Settings > Pages for private evidence.\n", repo); err != nil {
-			return nil, err
-		}
-		consent, e := prompt.Confirm("Is a public dashboard OK?", false)
-		if e != nil && !errors.Is(e, errNativeSetupCancelled) {
-			return nil, e
-		}
-		if !consent || e != nil {
-			if pages.Created {
-				if _, removeErr := nativeSetupGH(cmd, gh, "api", "-X", "DELETE", "repos/"+repo+"/pages"); removeErr != nil {
-					if err := nativeSetupNote(cmd, "Could not remove the new Pages site; unpublish it in Settings > Pages.\n"); err != nil {
-						return nil, err
-					}
-				}
-			} else {
-				if err := nativeSetupNote(cmd, "Existing Pages site left in place; restrict or unpublish it before running the dashboard workflow.\n"); err != nil {
-					return nil, err
-				}
-			}
-			return map[string]any{"command": "setup", "cancelled": true, "reason": "public-pages-declined"}, nil
 		}
 	}
 	stage = "credentials"
@@ -636,28 +562,19 @@ func nativeSetupControl(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupPro
 		return nil, err
 	}
 	policySaved = true
-	visibility := "private"
-	if pages.Public {
-		visibility = "public"
-	}
 	result = map[string]any{
 		"command": "setup", "controlRepository": repo, "visibility": controlRepo.Visibility,
 		"repositories": repositories, "profile": profile, "authentication": authentication,
-		"dashboardPages": visibility, "campaigns": []string{},
+		"campaigns": []string{},
 	}
 	stage = "optional publication"
-	result["publication"], err = setupPublish(cmd, gh, prompt, repo, pages.URL, append(files, policyPath))
+	result["publication"], err = setupPublish(cmd, gh, prompt, repo, append(files, policyPath))
 	if err != nil {
 		return result, err
 	}
 	if prompt == nil {
 		result["nonInteractive"] = true
-		if err := nativeSetupNote(cmd, "Non-interactive setup applied to %s.\nRead and Activity scope: %s\nAuthentication: repository GITHUB_TOKEN (workflow-token)\nDashboard Pages: public%s\nCampaigns: none\n", repo, strings.Join(repositories, ", "), func() string {
-			if pages.URL == "" {
-				return ""
-			}
-			return " (" + pages.URL + ")"
-		}()); err != nil {
+		if err := nativeSetupNote(cmd, "Non-interactive setup applied to %s.\nRead and Activity scope: %s\nAuthentication: repository GITHUB_TOKEN (workflow-token)\nEvidence: Actions operational artifacts for the local or cloud dashboard\nCampaigns: none\n", repo, strings.Join(repositories, ", ")); err != nil {
 			// The policy has been saved at this point; do not imply rollback.
 			return result, nativeErrorf("Configuration was saved, but completion could not be displayed; run gh cao doctor and review the installed files")
 		}

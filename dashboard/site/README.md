@@ -27,13 +27,25 @@ The built-in dashboard keeps its shared query foundations and its controls, repo
 
 ## Data pipeline
 
-1. The activity action collects bounded raw inventory and run evidence. The collectors under `dashboard/report/` retain evidence acquisition and normalization, not dashboard query projections.
-2. Activity publication writes `inventory-sources.json`, normalized run and record JSONL shards, and their `payload-hashes.json` manifest.
-3. The data Web Worker incrementally ingests those inputs into the canonical database. IndexedDB is disposable browser state, not operational authority.
+1. The activity action collects bounded raw inventory and run evidence for operational artifacts. The collectors under `dashboard/report/` retain evidence acquisition and normalization, not dashboard query projections.
+2. Activity artifacts contain `inventory-sources.json`, normalized run and record JSONL shards, SQLite, and their `payload-hashes.json` manifest. Production uses same-origin Go/PostgreSQL; local development uses the same Go server with a real operational SQLite snapshot.
+3. Pages instead generates synthetic enterprise raw samples through production normalization, then the data Web Worker incrementally ingests them into canonical IndexedDB. It has no operational input, SQLite download, agent summary, or live services.
 4. Dashboard Language queries in `src/data/queries/database.json` and the composed dashboard document perform selection, joins, aggregation, and projection at the production data-layer boundary. Supplied report rows cannot override canonical producers; undeclared sources are unavailable.
 5. The renderer loads the active page declaration and subscribes to its query payload with an abort-scoped lifetime. Database updates refresh the active view; only requested sources cross the worker boundary.
 
-`payload-hashes.json` is the deployed activity input. Local SQLite and hosted PostgreSQL backends execute the same declarative definitions. Add `?fixtures` locally to use the illustrative fixture data.
+All profiles execute the same canonical Dashboard Language definitions and
+shared views. The Pages demo is not presenter fixtures: its declarative
+**Synthetic enterprise demo** callout accompanies a full canonical pipeline.
+Demo data files live under `demo-data/`, not root `payload-hashes.json`;
+browser storage keys use `synthetic-demo` and service-worker caches use
+`demo`. The changed URLs prevent old same-origin cached real data from being
+selected. Operational downloaders require an explicit direct manifest URL or
+authenticated Activity artifact acquisition; Pages is not their default.
+
+The browser caching and ingestion behavior below applies to the synthetic
+demo, not hosted PostgreSQL or local Go/SQLite. Removing real-data Pages
+publication does not eliminate IndexedDB, Web Worker, service-worker caching,
+or cross-adapter conformance obligations.
 
 The Ingestion page identifies browser-local IndexedDB, local-server SQLite, or server PostgreSQL storage from deployment configuration, not activity evidence. Server deployments declare `dashboard-storage-backend` metadata (`sqlite` or `postgres`); undeclared server storage is shown as unknown. Table counts use canonical table/object-store names.
 
@@ -43,7 +55,17 @@ Add `?online=1` to the dashboard URL to require fresh network responses for the 
 
 The service worker caches dashboard JavaScript only while the dashboard is open as a pinned/installed app (standalone or minimal-ui display mode, including iOS Home Screen apps). Regular browser tabs fetch JavaScript from the network and never fall back to the app's cached scripts, even when an installed app is open alongside them. App-mode detection runs inline before the dashboard module loads so offline startup also works after the worker restarts; this browser lifecycle behavior is outside Dashboard Language.
 
-Once the installed app has cached its assets successfully, the static dashboard shell, JavaScript, and page chunks are available without a network connection. Existing dashboard data remains available from local storage in both app mode and regular tabs; data that has never been downloaded cannot be viewed offline. On data-saving or slow connections, eligible cached files are preferred and automatic background downloads are deferred. Use `?clear-app=1` to remove the cached website, cached data, indexed dashboard data, and browser settings before reopening the app (a network connection is required afterward). The same action is available as **Clear app** in Settings.
+Once the installed app has cached its assets successfully, the synthetic demo
+shell, JavaScript, and page chunks are available offline. Previously downloaded
+demo data remains in local storage; data never downloaded is unavailable offline.
+On data-saving or slow connections, eligible cached files are preferred and
+automatic downloads are deferred. `?clear-app=1` or **Clear app** in Settings
+clears the app's scoped storage before reopening (network access is then required).
+
+Redeploying the demo replaces current Pages artifacts, not historical
+deployments or browser copies. Former real-data databases are unused disposable
+state. The demo does not automatically delete databases or caches outside its
+namespace; explicitly clear affected legacy site data when required.
 
 If a service worker update breaks the app, open the dashboard URL with `?force-update=1` while connected. This recovery runs in the cached HTML before the dashboard JavaScript, checks that the worker script is reachable, unregisters the dashboard's worker, and removes cached app files without deleting IndexedDB or downloaded data. It then navigates to a fresh `?online=1` page. If even the cached page cannot load or run scripts, clear this site's service workers and cached files in the browser's site-data settings, then revisit the dashboard.
 
@@ -72,7 +94,7 @@ WebMCP is progressive enhancement. The runtime feature-detects `document.modelCo
 WebMCP is experimental and only reachable from a secure context (`https:` or `localhost`).
 
 1. Use Chromium 146 or newer and enable `chrome://flags/#enable-webmcp-testing` (`edge://flags/#enable-webmcp-testing` on Edge), then restart the browser.
-2. From the repository root, run `npm run dashboard:local` to build and serve through Go/SQLite. To exercise Pages and browser IndexedDB, prepare a deployment with `npm run dashboard:pages:build -- --fixture` (or `--activity-dir PATH`) and serve it with `npm run dashboard:pages -- --base-path /gh-cao/`. The Node canvas authoring bridge is internal to the Copilot extension, not a standalone server.
+2. From the repository root, acquire a real operational snapshot and run `npm run dashboard:local -- --sqlite PATH` to build and serve through Go/SQLite (relative Go paths resolve from `server/`). To exercise the synthetic Pages demo and browser IndexedDB, run `npm run dashboard:pages:build` and then `npm run dashboard:pages -- --base-path /gh-cao/`. There is no real-data demo input option. The Node canvas authoring bridge is internal to the Copilot extension, not a standalone server.
 3. Open the dashboard and confirm the API is present in DevTools:
 
    ```js

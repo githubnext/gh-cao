@@ -1,0 +1,58 @@
+{
+  "runtime-health:5c13c9c914d7aefac8f612b0d47aa20881dbe6625f5b954c096ff22bccc43aad": {
+    "campaignResults": [
+      {
+        "answer": "unknown",
+        "attentionPartitionCount": 1,
+        "campaignId": "campaign:unobserved",
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "orchestratorCount": 1,
+        "partitionRunCount": 0,
+        "recordsVisited": 0,
+        "skippedWorkerPartitionCount": 0,
+        "skippedWorkerRunCount": 0,
+        "workerEvaluationState": "indeterminate-orchestrator",
+        "workerPartitionCount": 0
+      }
+    ],
+    "diagnostics": {
+      "failures": [],
+      "groupLimit": 5,
+      "omittedGroupCount": 0
+    },
+    "errorGroups": [],
+    "measureId": "runtime-health",
+    "measureVersion": "1.0.0",
+    "partitionResults": [
+      {
+        "activeRunsSinceSuccess": 0,
+        "answer": "not-observed",
+        "campaignId": "campaign:unobserved",
+        "errorGroupCount": 0,
+        "errorGroupLimit": 20,
+        "errorGroups": [],
+        "evidenceQuality": null,
+        "latestRun": null,
+        "latestSuccess": null,
+        "measureId": "runtime-health",
+        "measureVersion": "1.0.0",
+        "needsAttention": true,
+        "omittedErrorGroupCount": 0,
+        "omittedUnknownDateRunReferenceCount": 0,
+        "partitionKind": "orchestrator",
+        "partitionRunCount": 0,
+        "recordsVisited": 0,
+        "recoveryMayBeInProgress": false,
+        "runsSinceSuccess": 0,
+        "successBoundary": "not-observed",
+        "terminalNonSuccessesSinceSuccess": 0,
+        "unknownDateRunCount": 0,
+        "unknownDateRunReferences": [],
+        "workflowId": "workflow:unobserved",
+        "workflowRole": "orchestrator",
+        "workflowState": "unknown"
+      }
+    ]
+  }
+}

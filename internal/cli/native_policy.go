@@ -247,10 +247,10 @@ func nativeValidatePolicy(document map[string]any) error {
 	}, "workflow")
 	campaign := map[string]nativePolicyRule{
 		"workflow-values": nativeWorkflowValuesRule,
-		"enabled":         nativePolicyBool, "deploy": nativePolicyBool,
-		"icon":    nativeEnum("mark-github", "code", "repo", "server", "issue", "pull-request", "play", "eye", "shield", "meter", "graph", "codescan", "dependabot", "key", "beaker", "rocket", "workflow", "gear", "check-circle", "campaign", "external-link"),
-		"targets": nativeMapping(repositoryPattern, nativePolicyObject(map[string]nativePolicyRule{"mode": mode}, "mode")),
-		"workers": nativeMapping(slugPattern, worker),
+		"enabled":         nativePolicyBool,
+		"icon":            nativeEnum("mark-github", "code", "repo", "server", "issue", "pull-request", "play", "eye", "shield", "meter", "graph", "codescan", "dependabot", "key", "beaker", "rocket", "workflow", "gear", "check-circle", "campaign", "external-link"),
+		"targets":         nativeMapping(repositoryPattern, nativePolicyObject(map[string]nativePolicyRule{"mode": mode}, "mode")),
+		"workers":         nativeMapping(slugPattern, worker),
 	}
 	for key, rule := range defaults {
 		campaign[key] = rule

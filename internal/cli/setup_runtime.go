@@ -18,8 +18,6 @@ import (
 )
 
 var setupRuntimeFiles = []string{
-	".github/workflows/cao-activity.yml",
-	".github/workflows/cao-dashboard.yml",
 	".github/workflows/cao-validate.yml",
 	".github/workflows/shared/control.mjs",
 	".github/workflows/shared/inventory-credentials.mjs",

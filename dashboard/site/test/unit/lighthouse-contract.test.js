@@ -18,11 +18,14 @@ it('fails on budget breaches rather than lowering thresholds or substituting zer
 });
 
 it('requires empty entities or populated evidence with every shard committed', () => {
+  const expected = { runs: 1, repositories: 1 };
   expect(() => assertCanonicalCounts('empty', { runs: 0, audits: 0, transactions: 2 }, 2)).not.toThrow();
   expect(() => assertCanonicalCounts('empty', { runs: 1, transactions: 2 }, 2)).toThrow(/contains/);
-  expect(() => assertCanonicalCounts('full', { runs: 1, repositories: 1, audits: 1, transactions: 500 }, 500)).not.toThrow();
-  expect(() => assertCanonicalCounts('full', { runs: 1, repositories: 1, audits: 1, transactions: 499 }, 500)).toThrow(/completely/);
-  expect(() => assertCanonicalCounts('full', { runs: 1, repositories: 1, audits: 1 }, 500)).toThrow(/incomplete/);
+  expect(() => assertCanonicalCounts('full', { runs: 1, repositories: 1, tools: 1, transactions: 500 }, 500, expected)).not.toThrow();
+  expect(() => assertCanonicalCounts('full', { runs: 1, repositories: 1, tools: 1, transactions: 499 }, 500, expected)).toThrow(/completely/);
+  expect(() => assertCanonicalCounts('full', { runs: 1, repositories: 1, tools: 1 }, 500, expected)).toThrow(/incomplete/);
+  expect(() => assertCanonicalCounts('full', { runs: 1, repositories: 1, tools: 1, transactions: 500 }, 500, { ...expected, runs: 2 })).toThrow(/completely/);
+  expect(() => assertCanonicalCounts('full', { runs: 1, repositories: 1, tools: 1, transactions: 500 }, 500)).toThrow(/completely/);
 });
 
 it('allows only singleton projection state in an otherwise empty database', () => {

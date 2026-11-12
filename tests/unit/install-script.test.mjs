@@ -74,7 +74,7 @@ const addedFiles = [
     source: ".github/workflows/aw.json",
     destination: ".github/workflows/aw.json",
   },
-  ...[".github/workflows/cao-activity.yml", ".github/workflows/cao-dashboard.yml", ".github/workflows/cao-validate.yml"]
+  ...[".github/workflows/cao-validate.yml"]
     .map((file) => ({ source: file, destination: file })),
 ];
 
@@ -86,7 +86,6 @@ const archiveName = path.basename(archive);
 const runtimeArchive = buildCaoRuntime(catalog, fixtureRoot, revision).archive;
 const mockFetch = path.join(fixtureRoot, "mock-fetch.mjs");
 const archiveResources = [
-  "activity",
   "dashboard",
   "runtime/package.json",
   "skills",
@@ -100,7 +99,6 @@ const archiveResources = [
   ".github/actions/setup-cao-runtime",
   ".github/actions/setup-gh-aw",
   ".github/cao/instructions.md",
-  ".github/workflows/shared/activity-cache.md",
   ".github/workflows/shared/control.md",
   ".github/workflows/shared/operation.md",
   ".github/workflows/shared/review-bundle.md",
@@ -184,10 +182,6 @@ if [[ "\${1:-} \${2:-}" == "api graphql" ]]; then
   [[ -z "\${FAKE_OWNER_DISCOVERY_FAILURE:-}" ]] || { echo "owner lookup failed" >&2; exit 1; }
   echo "owners-query" >> "$FAKE_COMMAND_LOG"
   printf '%b\\n' "\${FAKE_REPOSITORY_OWNERS:-alpha-user\\\\nalpha-org}"
-  exit 0
-fi
-if [[ "\${1:-}" == api && "\${2:-}" == repos/*/pages ]]; then
-  printf '{"build_type":"workflow","public":true,"html_url":"https://example.invalid/cao/"}\\n'
   exit 0
 fi
 if [[ "\${1:-}" == api && "\${2:-}" == repos/* && "$#" -eq 2 ]]; then
@@ -528,8 +522,9 @@ async function assertCompleteInstall(consumer, env, ghAwVersion, repository, { a
     campaigns: {},
   });
   assert.equal(await exists(path.join(consumer, "cao.sh")), false);
-  await executeFile(process.execPath, ["activity/cao.mjs", "--help"], { cwd: consumer, env, timeout });
-  for (const bundle of ["activity", "dashboard"]) {
+  await executeFile("gh", ["cao", "--help"], { cwd: consumer, env, timeout });
+  assert.equal(await exists(path.join(consumer, "activity")), false);
+  for (const bundle of ["dashboard"]) {
     await executeFile(process.execPath, [materializer, "verify", bundle], { cwd: consumer, env, timeout });
   }
   for (const file of [
@@ -550,7 +545,7 @@ async function assertNothingInstalled(consumer) {
 }
 
 const githubApi = "https://api.example.invalid";
-const deterministicWorkflows = [".github/workflows/cao-activity.yml", ".github/workflows/cao-dashboard.yml"];
+const deterministicWorkflows = [".github/workflows/cao-validate.yml"];
 
 function githubFixture(repository) {
   const [owner, name] = repository.split("/");
@@ -609,54 +604,6 @@ async function resolveActivitySettings(consumer, activityEnv) {
     activityEnv.REPORT_CONTROL_SETTINGS,
   ], { cwd: consumer, env: activityEnv, timeout });
   return JSON.parse(await readFile(activityEnv.REPORT_CONTROL_SETTINGS, "utf8"));
-}
-
-// Executes the installed workflow's complete inventory script as github-script
-// would, with exec.getExecOutput spawning the installed CLI in the consumer.
-async function runInventoryStep(consumer, activityEnv, spawned = []) {
-  const workflow = parse(await readFile(path.join(consumer, ".github", "workflows", "cao-activity.yml"), "utf8"));
-  const step = Object.values(workflow.jobs)
-    .flatMap((job) => job.steps ?? [])
-    .find(({ name }) => name === "Collect dashboard inventory");
-  assert.ok(step?.with?.script, "installed Activity workflow collects dashboard inventory");
-  const logs = [];
-  const context = {
-    require(specifier) {
-      const modules = { fs, path };
-      if (!Object.hasOwn(modules, specifier)) throw new Error(`unexpected require: ${specifier}`);
-      return modules[specifier];
-    },
-    process: { env: activityEnv, execPath: process.execPath },
-    core: { info: (message) => { logs.push(message); } },
-    exec: {
-      getExecOutput(command, args, { ignoreReturnCode = false } = {}) {
-        spawned.push(args);
-        return new Promise((resolve, reject) => {
-          const child = spawn(command, args, { cwd: consumer, env: activityEnv, timeout, stdio: ["ignore", "pipe", "pipe"] });
-          let stdout = "";
-          let stderr = "";
-          child.stdout.setEncoding("utf8").on("data", (chunk) => { stdout += chunk; });
-          child.stderr.setEncoding("utf8").on("data", (chunk) => { stderr += chunk; });
-          child.on("error", reject);
-          child.on("close", (exitCode) => {
-            if (exitCode !== 0 && !ignoreReturnCode) reject(new Error(`${command} exited with ${exitCode}: ${stderr}`));
-            else resolve({ exitCode, stdout, stderr });
-          });
-        });
-      },
-    },
-  };
-  try {
-    await vm.runInNewContext(`(async () => {\n${step.with.script}\n})()`, context);
-  } catch (error) {
-    throw new Error(`${error.message}\n${logs.join("\n")}`, { cause: error });
-  }
-  return { spawned, logs };
-}
-
-async function githubRequests(activityEnv) {
-  if (!await exists(activityEnv.FAKE_GITHUB_REQUESTS)) return [];
-  return (await readFile(activityEnv.FAKE_GITHUB_REQUESTS, "utf8")).trim().split("\n").filter(Boolean);
 }
 
 for (const [state, initialVersion, expectedVersion, expectedLog] of [
@@ -738,7 +685,7 @@ test("documented staging preserves the complete curated runtime in a fresh check
   const { root, consumer, repository, env } = await createConsumer(t, supportedGhAw);
   await streamInstaller(consumer, env);
   await executeFile("git", ["init", "--quiet"], { cwd: consumer });
-  await executeFile("git", ["add", ".github", "activity", "dashboard"], { cwd: consumer });
+  await executeFile("git", ["add", ".github", "dashboard"], { cwd: consumer });
   const { stdout: untracked } = await executeFile("git", ["ls-files", "--others", "--exclude-standard"], { cwd: consumer });
   assert.equal(untracked, "", "the documented commit must include every installed resource");
   await executeFile("git", [
@@ -1288,7 +1235,7 @@ test("streamed new-repository installation enters bundled setup without consumin
   assert.equal(result.code, 0, result.stdout + result.stderr);
   assert.equal(step, 2);
   assert.match(result.stdout, /Apply this setup\? \(y\/n\) \[n\]/);
-  assert.doesNotMatch(result.stdout, /Monitoring configured locally|Deployment pending/);
+  assert.doesNotMatch(result.stdout, /Monitoring configured locally|Actions pending/);
   assert.match(result.stdout, /Open the new checkout: cd control/);
   assert.doesNotMatch(result.stdout, /"command": "setup"/);
   assert.equal(await log(), "create-private\nadd\n");
@@ -1345,6 +1292,8 @@ for (const [name, environment, arguments_] of [
     if (setup) {
       assert.match(result.stderr, /Non-interactive setup applied/);
       assert.match(result.stderr, /repository GITHUB_TOKEN \(workflow-token\)/);
+      assert.match(result.stdout + result.stderr, /Actions operational artifacts for the local or cloud dashboard/);
+      assert.doesNotMatch(result.stdout + result.stderr, /Pages|public dashboard|dashboardPages|pagesSettingsURL|dashboardURL/);
       assert.doesNotMatch(result.stdout + result.stderr, /Repositories CAO should read|Apply this setup\?/);
     }
     await assertCompleteInstall(
@@ -1763,71 +1712,3 @@ for (const arguments_ of [
     await assertNothingInstalled(consumer);
   });
 }
-
-test("streamed install-gh-cao.sh defaults Activity authentication to the control repository workflow token", async (t) => {
-  const { root, consumer, repository, env, log } = await createConsumer(t, supportedGhAw);
-  await streamInstaller(consumer, env);
-  assert.equal(await log(), "add\n");
-
-  const activityEnv = activityEnvironment(root, consumer, env, repository);
-  const settings = await resolveActivitySettings(consumer, activityEnv);
-  assert.equal(settings.policy_resolution.status, "available", settings.policy_resolution.reason);
-  assert.deepEqual(settings.allowed_owners, [repository.split("/")[0]]);
-  assert.deepEqual(settings.allowed_repositories, [repository]);
-  assert.deepEqual(settings.campaigns, {});
-  const authentication = await import(pathToFileURL(path.join(consumer, "activity", "authentication.mjs")).href);
-  assert.deepEqual(
-    authentication.activityCollectionPlan(settings, { controlRepository: repository }),
-    [{
-      owner: repository.split("/")[0],
-      repositories: [repository],
-      credentialRepository: repository,
-      artifact: repository.split("/")[0].toLowerCase(),
-    }],
-  );
-  for (const broaderScope of [
-    { ...settings, allowed_repositories: [repository, "alpha-org/service"] },
-    { ...settings, allowed_repositories: [] },
-  ]) {
-    assert.throws(
-      () => authentication.activityCollectionPlan(broaderScope, { controlRepository: repository }),
-      /GITHUB_TOKEN can collect CAO Activity only for the control repository/,
-    );
-  }
-});
-
-test("installed Activity reserves owner-wide discovery for App mode", async (t) => {
-  const { root, consumer, repository, env } = await createConsumer(t, supportedGhAw);
-  materializeCaoFromSource("root", catalog, consumer);
-  for (const { source, destination } of addedFiles) {
-    const target = path.join(consumer, destination);
-    await mkdir(path.dirname(target), { recursive: true });
-    fs.cpSync(path.join(catalog, source), target, { recursive: true });
-  }
-  await writeFile(path.join(consumer, policyPath), `${JSON.stringify({
-    version: 1,
-    "gh-aw-version": supportedGhAw,
-    "control-plane": { scope: { "allowed-owners": [repository.split("/")[0]] }, campaigns: {} },
-  })}\n`);
-
-  const activityEnv = activityEnvironment(root, consumer, env, repository);
-  const settings = await resolveActivitySettings(consumer, activityEnv);
-  assert.equal(settings.policy_resolution.status, "available", settings.policy_resolution.reason);
-  assert.deepEqual(settings.allowed_repositories, []);
-  const authentication = await import(pathToFileURL(path.join(consumer, "activity", "authentication.mjs")).href);
-  assert.throws(
-    () => authentication.activityCollectionPlan(settings, {
-      authMode: "pat",
-      controlRepository: repository,
-      patRepositoryMap: "{}",
-    }),
-    /PAT-mode CAO Activity requires an exact allowed-repositories scope/,
-  );
-  assert.deepEqual(
-    authentication.activityCollectionPlan(settings, {
-      authMode: "app",
-      controlRepository: repository,
-    }).map(({ owner, repositories }) => ({ owner, repositories })),
-    [{ owner: repository.split("/")[0], repositories: [] }],
-  );
-});

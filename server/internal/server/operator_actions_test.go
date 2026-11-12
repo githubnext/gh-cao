@@ -112,7 +112,7 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 	if err != nil || commands.Total != 1 {
 		t.Fatalf("idempotent admission duplicated maintenance: %+v %v", commands, err)
 	}
-	index := request(http.MethodGet, prefix+"/?local-preview=operator", "", "")
+	index := request(http.MethodGet, prefix+"/?local-preview=canvas", "", "")
 	if !strings.Contains(index.Body.String(), "__CLI_QUEUE__ = true") || !strings.Contains(index.Body.String(), "__LOCAL_CLI_QUEUE__ = true") {
 		t.Fatal("native dashboard did not activate local maintenance controls")
 	}

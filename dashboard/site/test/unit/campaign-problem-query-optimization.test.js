@@ -402,7 +402,7 @@ describe('campaign problem query optimization', () => {
     /** @param {unknown[]} definitions */
     const estimates = (definitions) => JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', `
       import { readFileSync } from 'node:fs';
-      import { analyzeDashboardComplexity } from '../../activity/dashboard-complexity.mjs';
+      import { analyzeDashboardComplexity } from '../../dashboard/report/query-complexity.mjs';
       console.log(JSON.stringify(analyzeDashboardComplexity(JSON.parse(readFileSync(0, 'utf8'))).inventory));
     `], {
       input: JSON.stringify({ ...authoritativeDashboard, dashboard: { ...dashboard, queries: definitions } }),

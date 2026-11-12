@@ -60,16 +60,6 @@ jobs:
   azure:
     needs: revision
     uses: ./.github/workflows/azure-local-integration.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
-  query-parity:
-    needs: revision
-    uses: ./.github/workflows/dashboard-query-parity.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
-    permissions:
-      contents: read
-      actions: read
-      pull-requests: write
-  mcp-parity:
-    needs: revision
-    uses: ./.github/workflows/mcp-parity.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
   mobile:
     needs: revision
     uses: ./.github/workflows/actions.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
@@ -160,8 +150,6 @@ jobs:
       - bootstrap
       - actions-runtime
       - azure
-      - query-parity
-      - mcp-parity
       - mobile
       - views
       - deployed

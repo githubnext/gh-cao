@@ -84,9 +84,11 @@ func dashboardServerAssets(options dashboardOptions) (server, site string, clean
 		}
 		site = filepath.Join(directory, "site")
 	}
-	for _, filename := range []string{server, filepath.Join(site, "index.html"),
+	for _, filename := range []string{server, filepath.Join(site, "index.html"), filepath.Join(site, "dashboard.json"),
 		filepath.Join(site, "src/agent/queries.generated.json"),
-		filepath.Join(site, "src/data/queries/database.json")} {
+		filepath.Join(site, "src/data/queries/database.json"),
+		filepath.Join(site, "src/agent/catalog.generated.json"),
+		filepath.Join(site, "src/agent/mcp-contract.json")} {
 		if filename == "" {
 			cleanup()
 			return "", "", nil, errors.New("local server bundle contains no executable")
@@ -108,7 +110,12 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	defer cleanup()
 	ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil {
+	_, _ = fmt.Fprintf(cmd.ErrOrStderr(),
+		"Starting local CAO dashboard for %s...\n"+
+			"Collecting up to %s of recent activity; cached artifacts are reused.\n"+
+			"History fills in bounded background passes. The dashboard shows progress and quota pauses.\n",
+		strings.Join(repositories, ", "), options.window)
+	if err := initializeDashboardSnapshot(ctx, cache, repositories, options); err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(ctx, options.duration)
@@ -118,9 +125,9 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		return err
 	}
 	defer stopActions()
-	child := exec.CommandContext(ctx, server, "serve", "--sqlite", filepath.Join(cache, "gh-aw-logs.sqlite"),
+	child := exec.CommandContext(ctx, server, "serve", "--sqlite-ingestion", "--sqlite", filepath.Join(cache, "gh-aw-logs.sqlite"),
 		"--site", site, "--listen", options.listen, "--exit-on-stdin-close",
-		"--canvas-config", actionsConfig,
+		"--operator-config", actionsConfig,
 		"--database-queries", filepath.Join(site, "src/data/queries/database.json"),
 		"--dashboard-queries", filepath.Join(site, "src/agent/queries.generated.json"),
 		"--agent-catalog", filepath.Join(site, "src/agent/catalog.generated.json"),
@@ -137,17 +144,13 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	defer func() { _ = serverOutput.Close(); _ = serverOutputWriter.Close() }()
 	addressDone := make(chan error, 1)
 	readAddress := func() {
-		maintenance := "enabled; every command requires approval in the terminal."
-		if runtime.GOOS == "windows" {
-			maintenance = "copy-only; trusted native terminal approval is unavailable on Windows."
-		}
 		scanner := bufio.NewScanner(serverOutput)
 		for scanner.Scan() {
 			var ready struct {
 				URL string `json:"url"`
 			}
 			if json.Unmarshal(scanner.Bytes(), &ready) == nil && ready.URL != "" {
-				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard: %s/?local-preview=operator#page-overview\nSnapshot: %s\nMaintenance: %s\nCoverage: bounded recent activity; uncollected evidence is unavailable.\n", ready.URL, filepath.Join(cache, "gh-aw-logs.sqlite"), maintenance)
+				printDashboardReady(cmd.ErrOrStderr(), ready.URL+"#page-overview", repositories, cache, options)
 			} else {
 				_, _ = fmt.Fprintln(cmd.OutOrStdout(), scanner.Text())
 			}
@@ -176,7 +179,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 			line := scanner.Text()
 			const marker = "serving local dashboard at "
 			if _, address, found := strings.Cut(line, marker); found {
-				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard: %s#page-overview\nSnapshot: %s\nCoverage: bounded recent activity; uncollected evidence is unavailable.\n", address, filepath.Join(cache, "gh-aw-logs.sqlite"))
+				printDashboardReady(cmd.ErrOrStderr(), address+"#page-overview", repositories, cache, options)
 			} else {
 				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), line)
 			}
@@ -206,7 +209,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		}
 		return nil
 	}
-	ticker := time.NewTicker(options.refresh)
+	ticker := time.NewTimer(0)
 	defer ticker.Stop()
 	for {
 		select {
@@ -219,8 +222,28 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 			if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil && ctx.Err() == nil {
 				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard refresh failed; previous snapshot retained: %v\n", err)
 			}
+			ticker.Reset(options.refresh)
 		}
 	}
+}
+
+func printDashboardReady(output io.Writer, address string, repositories []string, cache string, options dashboardOptions) {
+	maintenance := "every command requires approval in this terminal."
+	if runtime.GOOS == "windows" {
+		maintenance = "copy-only; trusted native terminal approval is unavailable on Windows."
+	}
+	_, _ = fmt.Fprintf(output,
+		"\nCAO dashboard is ready. Open this URL in your browser:\n\n"+
+			"  Dashboard: %s\n\n"+
+			"  Repositories: %s\n"+
+			"  SQLite cache: %s\n"+
+			"  Refresh: every %s\n"+
+			"  Session: %s; press Ctrl+C to stop. Cached data is kept.\n"+
+			"  Maintenance: %s\n"+
+			"  Ingestion: resumable history discovery; status and quota are shown in the data tooltip.\n"+
+			"  Coverage: partial recent activity; uncollected evidence is unavailable.\n\n",
+		address, strings.Join(repositories, ", "), filepath.Join(cache, "gh-aw-logs.sqlite"),
+		options.refresh, options.duration, maintenance)
 }
 
 func dashboardServerEnvironment() []string {

@@ -21,8 +21,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const nativeDefaultDataURL = "https://githubnext.github.io/gh-cao/cao/payload-hashes.json"
-
 var nativeDigestPattern = regexp.MustCompile(`^[a-fA-F0-9]{64}$`)
 
 var errNativeDownloadDowngrade = errors.New("dashboard download redirect must not downgrade HTTPS")
@@ -38,9 +36,6 @@ func nativeDownload(cmd *cobra.Command, _ ghExecutor) error {
 	manifestURL := nativeString(cmd, "url")
 	if manifestURL == "" {
 		manifestURL = os.Getenv("DASHBOARD_DATA_URL")
-	}
-	if manifestURL == "" {
-		manifestURL = nativeDefaultDataURL
 	}
 	output := nativeString(cmd, "output")
 	if output == "" {
@@ -58,6 +53,9 @@ func nativeDownload(cmd *cobra.Command, _ ghExecutor) error {
 }
 
 func nativeDownloadURL(raw string) (*url.URL, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, nativeErrorf("An explicit Activity snapshot manifest URL is required: pass --url or set DASHBOARD_DATA_URL to a payload-hashes.json URL. Alternatively, download the cao-activity-index artifact from a selected CAO Activity run with gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao, then query the local cache with --database FILE.")
+	}
 	value, err := url.Parse(raw)
 	if err != nil || value.Host == "" || (value.Scheme != "https" && value.Scheme != "http") {
 		return nil, nativeErrorf("Dashboard data URL must use HTTP or HTTPS.")
@@ -203,16 +201,10 @@ func nativeDownloadAttempt(ctx context.Context, manifestURL *url.URL, directory,
 	}
 	defer func() { err = errors.Join(err, os.RemoveAll(staging)) }()
 	baseNames := []string{"payload-hashes.json", "gh-aw-logs.sqlite", "inventory-sources.json"}
-	for _, name := range baseNames {
-		source := manifestURL
-		if name != "payload-hashes.json" {
-			source = manifestURL.ResolveReference(&url.URL{Path: name})
-		}
-		if err := nativeFetchFile(ctx, client, source, filepath.Join(staging, name), false); err != nil {
-			return nil, err
-		}
-	}
 	manifestPath := filepath.Join(staging, baseNames[0])
+	if err := nativeFetchFile(ctx, client, manifestURL, manifestPath, false); err != nil {
+		return nil, err
+	}
 	manifestHash, err := nativeHashFile(manifestPath)
 	if err != nil {
 		return nil, err
@@ -220,22 +212,11 @@ func nativeDownloadAttempt(ctx context.Context, manifestURL *url.URL, directory,
 	if digest != "" && manifestHash != digest {
 		return nil, nativeErrorf("Activity snapshot manifest checksum mismatch: payload-hashes.json")
 	}
-	inventory, err := os.ReadFile(filepath.Join(staging, "inventory-sources.json"))
-	if err != nil {
-		return nil, err
-	}
-	value, err := nativeDecodeJSON(inventory)
-	if err != nil {
-		return nil, err
-	}
-	if _, ok := value.(map[string]any); !ok {
-		return nil, nativeErrorf("Deployed inventory sources must contain a JSON object.")
-	}
 	content, err := os.ReadFile(manifestPath)
 	if err != nil {
 		return nil, err
 	}
-	value, err = nativeDecodeJSON(content)
+	value, err := nativeDecodeJSON(content)
 	if err != nil {
 		return nil, err
 	}
@@ -243,9 +224,29 @@ func nativeDownloadAttempt(ctx context.Context, manifestURL *url.URL, directory,
 	if !ok {
 		return nil, nativeErrorf("Activity snapshot manifest must contain a JSON object.")
 	}
+	if hashes["synthetic"] == true {
+		return nil, nativeErrorf("Synthetic Pages demo data cannot be used as an operational Activity snapshot.")
+	}
 	expected, _ := hashes["gh-aw-logs.sqlite"].(string)
 	if !nativeDigestPattern.MatchString(expected) {
 		return nil, nativeErrorf("Activity snapshot manifest contains no valid SQLite checksum.")
+	}
+	for _, name := range baseNames[1:] {
+		source := manifestURL.ResolveReference(&url.URL{Path: name})
+		if err := nativeFetchFile(ctx, client, source, filepath.Join(staging, name), false); err != nil {
+			return nil, err
+		}
+	}
+	inventory, err := os.ReadFile(filepath.Join(staging, "inventory-sources.json"))
+	if err != nil {
+		return nil, err
+	}
+	value, err = nativeDecodeJSON(inventory)
+	if err != nil {
+		return nil, err
+	}
+	if _, ok := value.(map[string]any); !ok {
+		return nil, nativeErrorf("Deployed inventory sources must contain a JSON object.")
 	}
 	actual, err := nativeHashFile(filepath.Join(staging, "gh-aw-logs.sqlite"))
 	if err != nil {

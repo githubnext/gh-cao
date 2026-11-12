@@ -21,6 +21,22 @@ const collection = (health = 'healthy', configured = true) => ({
   source: configuration['health-source'], rows: [{ health, configured }], metadata
 });
 
+/** @param {Record<string, unknown>} [fields] */
+const ingestion = (fields = {}) => ({
+  source: configuration['ingestion-source'],
+  rows: [{
+    'status-name': 'Paused', 'status-label': 'Data ingestion: Paused', 'status-icon': 'clock', 'status-tone': 'attention',
+    repository: 'octo/api', 'scanned-hours': 48, 'target-hours': 168,
+    'api-remaining': 999, 'api-reserve': 1000,
+    'next-attempt-at': contract.local.transaction.nextAttemptAt,
+    'api-reset-at': contract.local.transaction.apiResetAt,
+    'observed-at': contract.local.transaction.createdAt,
+    message: contract.local.transaction.ingestionMessage,
+    ...fields
+  }],
+  metadata
+});
+
 /** @param {{ timestamp?: unknown, health?: string, configured?: boolean } & NonNullable<Parameters<typeof renderDashboardCurrentStatus>[1]>} [options] */
 function renderStatus({ timestamp = now, health = 'healthy', configured = true, ...options } = {}) {
   const status = renderDashboardCurrentStatus({ createdAt: new Date(now).toISOString() }, {
@@ -56,15 +72,18 @@ function hosted() {
 }
 
 describe('global upstream ingestion indicator', () => {
-  it('keeps both declared queries in the shell and validates their output fields', () => {
+  it('keeps declared status queries in the shell and validates their output fields', () => {
     expect(authoritativeDashboard.dashboard['data-status']).toEqual(configuration);
     const { core } = splitDashboardDocument(authoritativeDashboard);
     expect(core.dashboard.queries?.map((query) => query.name)).toEqual(expect.arrayContaining([
-      configuration['freshness-source'], configuration['health-source']
+      configuration['freshness-source'], configuration['health-source'], configuration['ingestion-source']
     ]));
     const document = structuredClone(authoritativeDashboard);
     document.dashboard['data-status']['freshness-source'] = configuration['health-source'];
     expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
+    const invalidIngestion = structuredClone(authoritativeDashboard);
+    invalidIngestion.dashboard['data-status']['ingestion-source'] = configuration['health-source'];
+    expect(validateDashboardDocument(JSON.stringify(invalidIngestion)).ok).toBe(false);
     for (const threshold of [0, -1, '24']) {
       const invalid = structuredClone(authoritativeDashboard);
       invalid.dashboard['data-status']['stale-after-hours'] = threshold;
@@ -173,5 +192,83 @@ describe('global upstream ingestion indicator', () => {
     renderStatus({ loadPageSources: loader });
     expect(loader.subscribeBackgroundSources.mock.calls).toHaveLength(1);
     expect(loader.subscribeBackgroundSources.mock.calls[0][0]).toEqual([configuration['freshness-source']]);
+  });
+
+  it('updates local ingestion in the tooltip while refreshing and stops on removal', async () => {
+    hosted();
+    const updates = new Map();
+    /** @type {AbortSignal[]} */
+    const signals = [];
+    const initial = {
+      [configuration['freshness-source']]: evidence(),
+      [configuration['health-source']]: collection('healthy', false),
+      [configuration['ingestion-source']]: ingestion()
+    };
+    const loader = Object.assign(vi.fn(), {
+      subscribeBackgroundSources: vi.fn(async ([name], { signal, onUpdate }) => {
+        updates.set(name, onUpdate);
+        signals.push(signal);
+        return { [name]: initial[name] };
+      })
+    });
+    const status = renderStatus({ refreshing: true, sources: initial, loadPageSources: loader });
+    await Promise.resolve();
+    const button = status.querySelector('button');
+    expect(button?.getAttribute('aria-label')).toBe('Data ingestion: Paused');
+    expect(status.dataset.tone).toBe('attention');
+    expect(status.querySelector('progress')?.getAttribute('value')).toBe('48');
+    expect(status.querySelector('progress')?.getAttribute('max')).toBe('168');
+    expect(status.querySelector('.ingestion-status-history')?.textContent).toContain('48 / 168 h');
+    expect(status.querySelector('.ingestion-status-budget')?.getAttribute('aria-label')).toBe('API points remaining: 999');
+    expect(status.querySelector('details')?.open).toBe(false);
+    const details = status.querySelector('details');
+    if (!details) throw new Error('Missing ingestion diagnostics disclosure');
+    details.open = true;
+    details.dispatchEvent(new Event('toggle'));
+    const collecting = ingestion({
+      'status-name': 'Collecting', 'status-label': 'Data ingestion: Collecting', 'status-icon': 'sync', 'status-tone': 'muted',
+      'scanned-hours': 72, 'api-remaining': undefined
+    });
+    updates.get(configuration['ingestion-source'])({ [configuration['ingestion-source']]: collecting });
+    expect(status.querySelector('button')).toBe(button);
+    expect(button?.getAttribute('aria-label')).toBe('Data ingestion: Collecting');
+    expect(status.querySelector('progress')?.getAttribute('value')).toBe('72');
+    expect(status.querySelector('.ingestion-status-budget')?.getAttribute('aria-label')).toBe('API points remaining: Unknown');
+    expect(status.querySelector('details')?.open).toBe(true);
+    status.remove();
+    await Promise.resolve();
+    expect(signals.every((signal) => signal.aborted)).toBe(true);
+    updates.get(configuration['ingestion-source'])({ [configuration['ingestion-source']]: ingestion() });
+    expect(button?.getAttribute('aria-label')).toBe('Data ingestion: Collecting');
+  });
+
+  it('does not present unavailable ingestion as observed progress', () => {
+    hosted();
+    const status = renderStatus({
+      configured: false,
+      sources: {
+        [configuration['freshness-source']]: evidence(),
+        [configuration['health-source']]: collection('healthy', false),
+        [configuration['ingestion-source']]: {
+          ...ingestion(), metadata: { ...metadata, availability: 'unavailable' }
+        }
+      }
+    });
+    expect(status.querySelector('progress')).toBeNull();
+    expect(status.querySelector('button')?.getAttribute('aria-label')).toBe('Data ingestion status is unknown');
+  });
+
+  it('keeps missing progress and quota unknown instead of drawing a zero-value bar', () => {
+    hosted();
+    const status = renderStatus({
+      sources: {
+        [configuration['ingestion-source']]: ingestion({
+          'scanned-hours': undefined, 'target-hours': undefined, 'api-remaining': undefined
+        })
+      }
+    });
+    expect(status.querySelector('progress')).toBeNull();
+    expect(status.textContent).toContain('History unavailable');
+    expect(status.querySelector('.ingestion-status-budget')?.getAttribute('aria-label')).toBe('API points remaining: Unknown');
   });
 });

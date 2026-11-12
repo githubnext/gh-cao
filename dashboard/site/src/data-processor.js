@@ -18,6 +18,7 @@ import { githubResourcePath } from './data/github-service.js';
 import { isGitHubQuerySource } from './data/github-query-sources.js';
 import { invalidateGitHubResourceAuthentication } from './auth.js';
 import { cliQueueAvailable } from './backend-mode.js';
+import { DEMO_MODE } from './deployment-profile.js';
 
 export { cliQueueAvailable } from './backend-mode.js';
 
@@ -437,7 +438,7 @@ export function listRepositoryMemory(campaign, signal) {
       operation: 'query-repository-memory',
       action: 'list',
       campaign,
-      memoryRoot: new URL('./memory/', document.baseURI).href,
+      memoryRoot: new URL(DEMO_MODE ? './demo-data/memory/' : './memory/', document.baseURI).href,
     },
     () => Promise.reject(new Error('Repository memory requires a data worker.')),
     false,
@@ -461,7 +462,7 @@ export function listRepositoryMemoryCampaigns(campaigns, signal) {
       operation: 'query-repository-memory',
       action: 'list-campaigns',
       campaigns,
-      memoryRoot: new URL('./memory/', document.baseURI).href,
+      memoryRoot: new URL(DEMO_MODE ? './demo-data/memory/' : './memory/', document.baseURI).href,
     },
     () => Promise.reject(new Error('Repository memory requires a data worker.')),
     false,
@@ -483,7 +484,7 @@ export function readRepositoryMemoryFile(campaign, path, signal) {
       action: 'content',
       campaign,
       path,
-      memoryRoot: new URL('./memory/', document.baseURI).href,
+      memoryRoot: new URL(DEMO_MODE ? './demo-data/memory/' : './memory/', document.baseURI).href,
     },
     () => Promise.reject(new Error('Repository memory requires a data worker.')),
     false,

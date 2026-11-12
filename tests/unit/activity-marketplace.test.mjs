@@ -3,7 +3,7 @@ import { generateKeyPairSync } from "node:crypto";
 import test from "node:test";
 
 import { parsePolicy } from "../../.github/workflows/shared/policy.mjs";
-import { parsePackageManifest, resolveMarketplace } from "../../activity/marketplace.mjs";
+import { parsePackageManifest } from "../../dashboard/report/package-manifest.mjs";
 
 const SHA = "a".repeat(40);
 
@@ -147,219 +147,17 @@ test("workflow metadata stays within frontmatter and normalizes individual add c
   }
 });
 
-test("marketplace mixes campaign packages with flat workflow collections and optional documentation", async () => {
-  const campaign = registryFetch();
-  const blobs = {
-    doctor: "---\ndescription: Diagnose CI\non: push\n---\n# CI Doctor\n\nInvestigate failures.",
-    fallback: "---\nname: Repo Assist\non: issues\n---\n# Repo Assist\n\nHelp maintainers.",
-    shared: "---\ntools:\n  bash: true\n---\n# Shared fragment",
-    private: "---\nprivate: true\non: push\n---\n# Private",
-    documentation: "# CI Doctor\n\nPublished documentation.",
-  };
-  for (const documentationUnavailable of [false, true]) {
-    const result = await resolveMarketplace({ registries: [
-      registry("official"),
-      registry("agentics", { repository: "githubnext/agentics", path: "workflows", format: "workflows" }),
-    ] }, {
-      fetchImpl: async (url, init) => {
-        if (url.includes("/repos/example/packages")) return campaign.fetchImpl(url, init);
-        if (url.includes("/commits/")) return response({ sha: SHA });
-        if (url.endsWith("/repos/githubnext/agentics")) return response({ private: false, visibility: "public", stargazers_count: 20, forks_count: 5 });
-        if (url.includes("/git/trees/")) return response({ tree: [
-          { type: "blob", path: "workflows/ci-doctor.md", sha: "doctor" },
-          { type: "blob", path: "workflows/repo-assist.md", sha: "fallback" },
-          { type: "blob", path: "workflows/fragment.md", sha: "shared" },
-          { type: "blob", path: "workflows/private.md", sha: "private" },
-          { type: "blob", path: "workflows/shared/tools.md", sha: "never-fetch" },
-          { type: "blob", path: "workflows/README.md", sha: "never-fetch" },
-          { type: "blob", path: "workflows/unsafe;command.md", sha: "never-fetch" },
-          { type: "blob", path: "docs/ci-doctor.md", sha: "documentation" },
-          { type: "blob", path: "docs/other.md", sha: "never-fetch" },
-        ] });
-        const sha = url.split("/").at(-1);
-        assert.ok(Object.hasOwn(blobs, sha), `unexpected blob: ${sha}`);
-        if (sha === "documentation" && documentationUnavailable) return response({}, 404);
-        return response({ encoding: "base64", content: Buffer.from(blobs[sha]).toString("base64") });
-      },
-    });
-    assert.equal(result.packages.length, 3);
-    assert.deepEqual(result.diagnostics.map(({ status }) => status), ["available", "available"]);
-    assert.equal(result.packages[0]["registry-id"], "official");
-    const doctor = result.packages.find(({ path }) => path === "workflows/ci-doctor.md");
-    assert.equal(doctor.readme, documentationUnavailable ? "# CI Doctor\n\nInvestigate failures." : blobs.documentation);
-    assert.equal(doctor["readme-path"], documentationUnavailable ? "workflows/ci-doctor.md" : "docs/ci-doctor.md");
-    assert.equal(doctor.stars, 20);
-    assert.equal(doctor.forks, 5);
-    assert.equal(doctor["add-command"], `gh aw add githubnext/agentics/workflows/ci-doctor.md@${SHA}`);
-  }
-});
 
-test("unknown registry formats fail closed in policy validation and resolution", async () => {
-  const registries = [registry("unknown", { format: "arbitrary" })];
-  assert.throws(() => parsePolicy(JSON.stringify({
-    version: 1, "gh-aw-version": "v1.0.0", "control-plane": { marketplace: { registries } },
-  })), /format must be packages or workflows/);
-  const result = await resolveMarketplace({ registries }, {
-    fetchImpl: () => assert.fail("invalid registries must not contact GitHub"),
-  });
-  assert.equal(result.packages.length, 0);
-  assert.equal(result.diagnostics[0].status, "unavailable");
-});
 
-test("packages carry the README preview published beside their manifest", async () => {
-  const fake = registryFetch();
-  const result = await resolveMarketplace({ registries: [registry("official")] }, { fetchImpl: fake.fetchImpl });
-  assert.equal(result.packages[0].readme, "# Demo\n\nExample package readme.\n");
-  assert.equal(result.packages[0]["readme-path"], "demo/README.md");
-});
 
-test("marketplace records include public GitHub repository counts but no inferred signals", async () => {
-  const fake = registryFetch();
-  const result = await resolveMarketplace({
-    registries: [registry("approved")],
-  }, { fetchImpl: fake.fetchImpl });
-  const pkg = result.packages[0];
-  assert.equal(pkg.stars, 12);
-  assert.equal(pkg.forks, 3);
-  for (const field of ["verification-status", "verification-source", "maintenance-status",
-    "maintenance-source", "last-maintained-at", "popularity-source", "signals-observed-at",
-    "installation-status", "adoption-count", "adoption-source"]) {
-    assert.equal(Object.hasOwn(pkg, field), false, field);
-  }
-});
 
-test("private, inaccessible or incomplete repositories never leak counts", async () => {
-  for (const repository of [
-    { private: true, stargazers_count: 500, forks_count: 50 },
-    { private: false, visibility: "public", stargazers_count: 12 },
-    null,
-  ]) {
-    const fake = registryFetch({ repository });
-    const fetchImpl = async (url, init) => url.endsWith("/repos/example/packages") && repository === null
-      ? response({}, 403)
-      : fake.fetchImpl(url, init);
-    const { packages } = await resolveMarketplace({ registries: [registry("private")] }, { fetchImpl });
 
-    assert.equal(packages.length, 1);
-    assert.equal(packages[0].stars, null);
-    assert.equal(packages[0].forks, null);
-  }
-});
 
-test("installed records never contribute marketplace package fields", async () => {
-  const fake = registryFetch();
-  const result = await resolveMarketplace({ registries: [registry("official")] }, {
-    fetchImpl: fake.fetchImpl,
-    controlRepository: "example/control",
-    installedRecords: [
-      { source: "example/packages/demo@main", resolvedCommit: SHA },
-      { source: "example/packages/demo@main", resolvedCommit: SHA },
-      { source: "example/packages/other@main", resolvedCommit: "invalid" },
-    ],
-  });
-  const missing = await resolveMarketplace({ registries: [registry("official")] }, {
-    fetchImpl: fake.fetchImpl, controlRepository: "example/control", installedRecords: [],
-  });
-  assert.deepEqual(result.packages, missing.packages);
-});
 
-test("an unreadable README leaves the package resolvable", async () => {
-  const fake = registryFetch({ readmeUnavailable: true });
-  const result = await resolveMarketplace({ registries: [registry("official")] }, { fetchImpl: fake.fetchImpl });
-  assert.equal(result.diagnostics[0].status, "available");
-  assert.equal(result.packages[0].readme, "");
-  assert.equal(result.packages[0]["readme-path"], "");
-});
 
-test("marketplace resolves multiple registries in order and isolates failures", async () => {
-  const healthy = registryFetch();
-  const unavailable = registryFetch({ fail: true });
-  const result = await resolveMarketplace({
-    registries: [
-      registry("unavailable", { "api-url": "https://unavailable.invalid/api/v3" }),
-      registry("third-party"),
-    ],
-  }, {
-    fetchImpl: async (url, init) => (
-      url.includes("unavailable.invalid")
-        ? unavailable.fetchImpl(url, init)
-        : healthy.fetchImpl(url, init)
-    ),
-  });
-  assert.equal(result.packages.length, 1);
-  assert.equal(result.packages[0]["registry-id"], "third-party");
-  assert.deepEqual(result.diagnostics.map(({ status }) => status), ["unavailable", "available"]);
-});
 
-test("registry precedence keeps the earliest duplicate package", async () => {
-  const fake = registryFetch();
-  const result = await resolveMarketplace({
-    registries: [registry("first"), registry("second")],
-  }, { fetchImpl: fake.fetchImpl });
-  assert.equal(result.packages.length, 1);
-  assert.equal(result.packages[0]["registry-id"], "first");
-});
 
-test("PAT and Enterprise configuration remain resolver-only", async () => {
-  const fake = registryFetch();
-  const result = await resolveMarketplace({
-    registries: [registry("private", {
-      "api-url": "https://github.example/api/v3",
-      auth: { type: "pat", secret: "PRIVATE_REGISTRY_TOKEN" },
-    })],
-  }, {
-    fetchImpl: fake.fetchImpl,
-    environment: { PRIVATE_REGISTRY_TOKEN: "not-client-data" },
-  });
-  assert.match(fake.calls[0].url, /^https:\/\/github\.example\/api\/v3\//);
-  assert.equal(fake.calls[0].init.headers.Authorization, ["Bearer", "not-client-data"].join(" "));
-  assert.doesNotMatch(JSON.stringify(result), /not-client-data|PRIVATE_REGISTRY_TOKEN|Authorization/);
-});
 
-test("registry diagnostics redact referenced secret values", async () => {
-  const result = await resolveMarketplace({
-    registries: [registry("private", {
-      auth: { type: "pat", secret: "PRIVATE_REGISTRY_TOKEN" },
-    })],
-  }, {
-    fetchImpl: async () => {
-      throw new Error("request rejected for not-client-data");
-    },
-    environment: { PRIVATE_REGISTRY_TOKEN: "not-client-data" },
-  });
-  assert.equal(result.diagnostics[0].status, "unavailable");
-  assert.doesNotMatch(JSON.stringify(result), /not-client-data|PRIVATE_REGISTRY_TOKEN/);
-});
-
-test("GitHub App authentication exchanges registry-scoped secret references", async () => {
-  const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
-  const pem = privateKey.export({ type: "pkcs8", format: "pem" });
-  const fake = registryFetch();
-  const fetchImpl = async (url, init) => {
-    if (url.endsWith("/app/installations/123/access_tokens")) {
-      assert.equal(init.headers.Authorization?.split(" ")[1]?.split(".").length, 3);
-      return response({ token: "installation-token" });
-    }
-    const answer = await fake.fetchImpl(url, init);
-    assert.equal(init.headers.Authorization, ["Bearer", "installation-token"].join(" "));
-    return answer;
-  };
-  const result = await resolveMarketplace({
-    registries: [registry("app", {
-      auth: {
-        type: "github-app",
-        "app-id-secret": "APP_ID",
-        "private-key-secret": "APP_KEY",
-        "installation-id-secret": "INSTALLATION_ID",
-      },
-    })],
-  }, {
-    fetchImpl,
-    environment: { APP_ID: "42", APP_KEY: pem, INSTALLATION_ID: "123" },
-  });
-  assert.equal(result.packages.length, 1);
-  assert.doesNotMatch(JSON.stringify(result), /installation-token|BEGIN PRIVATE KEY/);
-});
 
 test("policy permits removing the official registry and validates registry auth", () => {
   const policy = parsePolicy(JSON.stringify({

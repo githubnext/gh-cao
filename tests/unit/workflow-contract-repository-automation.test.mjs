@@ -73,12 +73,9 @@ test("comment-writing workflow actions are explicitly inventoried", () => {
     "action-lint.yml",
     "actions.yml",
     "backfill-stress.yml",
-    "cao-activity.yml",
-    "cao-dashboard.yml",
     "cgo.yml",
     "cid.yml",
     "dashboard-deployed-integration.yml",
-    "dashboard-query-parity.yml",
     "dashboard-views.yml",
     "svg-contrast-check.yml",
   ]);
@@ -152,10 +149,16 @@ test("workflow contracts isolate authenticated campaign lifecycle checks", () =>
   assert.doesNotMatch(contracts, /GH_TOKEN|CENTRAL_AGENTIC_OPS_CAMPAIGN_SOURCE|test:campaign-lifecycle/);
   assert.match(operationalValue, /name: Dependabot operational value integration/);
   assert.match(operationalValue, /permissions:\n\s+contents: read\n\s+issues: read/);
-  assert.match(operationalValue, /GH_TOKEN: \$\{\{ github\.token \}\}/);
-  assert.match(operationalValue, /--repository "\$GITHUB_REPOSITORY"/);
-  assert.match(operationalValue, /--max-github-api-rate-limit -100/);
-  assert.match(operationalValue, /startswith\("dependabot-update-planner\."\)/);
+  assert.match(operationalValue, /uses: actions\/setup-go@[a-f0-9]{40}/);
+  assert.match(operationalValue, /go -C server test -race \.\/internal\/collect \.\/internal\/operationalvalue/);
+  assert.match(operationalValue, /TestDependabot\|TestHostedDependabot\|TestNativeLocalValueNumericDependabot/);
+  assert.match(operationalValue, /-count=1 -timeout=3m -v/);
+  assert.doesNotMatch(operationalValue, /activity\/cao\.mjs|GH_TOKEN|continue-on-error/);
+  const nativeValueJob = parse(source).jobs["dependabot-operational-value"];
+  assert.equal(nativeValueJob.services.postgres.env.POSTGRES_DB, "cao_value_test");
+  assert.equal(nativeValueJob.steps.find((step) => step.name === "Verify native Dependabot operational value")
+    .env.CAO_TEST_POSTGRES_URL,
+  "postgres://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_value_test?sslmode=disable");
   assert.match(campaignLifecycle, /gh api rate_limit --jq '\.resources\.core\.remaining'/);
   assert.match(campaignLifecycle, /remaining < 500/);
   assert.match(campaignLifecycle, /max-parallel: 1/);

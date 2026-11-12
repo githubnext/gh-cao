@@ -7,7 +7,7 @@ import test from 'node:test';
 import {
   DEFAULT_NORMALIZED_JSONL_SHARD_BYTES,
   writeNormalizedShardBucket
-} from '../../activity/normalized-shards.mjs';
+} from '../../dashboard/report/normalized-shards.mjs';
 
 async function directory(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'activity-normalized-shards-'));

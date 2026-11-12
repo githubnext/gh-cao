@@ -9,8 +9,9 @@ agent:
     id: overview
 ---
 
-The dashboard is the operational view of your Central Agentic Ops control
-plane. It turns retained activity evidence into focused views, each designed to
+The dashboard is the operational view of GitHub Agentic Workflow evidence,
+whether collected locally or by a Central Agentic Ops control plane.
+It turns retained activity evidence into focused views, each designed to
 answer a specific question:
 
 - What work is moving now?
@@ -18,25 +19,57 @@ answer a specific question:
 - What needs attention or a closer look?
 - Is the evidence complete and current enough to act on?
 
+## Open it locally without a cloud deployment
+
+With an installed release and locally authenticated GitHub CLI, run:
+
+```bash
+gh cao dashboard --repo OWNER/REPOSITORY
+```
+
+Or run `gh cao dashboard` in an existing repository checkout. Open the full
+**Dashboard:** URL printed in the terminal. The bundled Go server serves on
+loopback and queries a private canonical SQLite cache on your machine.
+No CAO cloud deployment, Azure setup, hosted dashboard, PostgreSQL, Redis,
+containers, or separate Node.js or gh-aw installation is needed.
+
+GitHub is still the authenticated upstream evidence source; collection needs
+network access and your repository permissions. The command collects bounded
+recent evidence automatically and refreshes every five minutes. Its evidence
+window defaults to seven days, with resumable historical discovery; the server
+lifetime remains capped at 48 hours per invocation. The data-status tooltip shows ingestion
+progress and quota pauses. Acquisition preserves API headroom and does not
+promise complete upstream or artifact coverage. Press **Ctrl-C** to stop while retaining
+the cache. See the [local quickstart](setup-quickstarts.md#open-a-local-dashboard-no-deployment)
+for installation, optional cache reuse, and evidence limits.
+
 ## How it works
 
 Every view follows the same data flow:
 
-1. **Activity collects evidence.** The Activity workflow publishes a bounded
-	snapshot of workflow activity.
-2. **The selected backend prepares and queries the data.** Static Pages uses a
-	browser Web Worker and IndexedDB; local Go serving uses SQLite; hosted Go
-	serving uses PostgreSQL. Each evaluates Dashboard Language.
+1. **A collector acquires evidence.** `gh cao dashboard` reads bounded recent
+	evidence using local GitHub CLI authentication; the separate Activity workflow
+	publishes bounded operational snapshots for shared monitoring.
+2. **The selected backend prepares and queries the data.** Production Go
+	serving uses PostgreSQL; local development uses the same Go server over a real
+	SQLite snapshot. Each evaluates Dashboard Language.
 3. **The active view presents the result.** When the underlying data changes, the
 	query runs again and the view updates.
 
-The dashboard is not a live feed. It reads the latest snapshot collected by the
-Activity workflow. [Data ingestion](dashboard-data-ingestion.md) follows that
+The dashboard is not a live feed. It reads the latest successfully collected
+evidence from the selected local or shared collection path.
+[Data ingestion](dashboard-data-ingestion.md) follows that
 evidence into each query backend, while the
 [Data model](dashboard-data-model.md) explains the records and relationships
 available to every view.
 
-On the first visit to a static dashboard, a dismissible import screen explains
+The public Pages site is instead a **Synthetic enterprise demo** with no live
+services. Generated raw samples pass through production normalization, canonical
+ingestion, worker queries, and these same views. It publishes no operational
+SQLite snapshot or agent summary. Its daily rebuild is independent of real
+collection freshness.
+
+On the first visit to the synthetic demo, a dismissible import screen explains
 how the browser downloads and caches its first snapshot. Dismissing it keeps
 the import running; Overview continues to show preparation progress rather
 than calling campaigns idle. The import screen is automatically removed when a
@@ -68,7 +101,7 @@ rollout mode, safe output, outcome, and operational value.
 Reading dashboard evidence does not start work, approve an output, grant
 workflow authority, change rollout policy, or write to a repository. Make those
 decisions through the control repository and its reviewed workflows and policy.
-Static Pages is read-only; optional canvas commands and
+The synthetic Pages demo is read-only; optional canvas commands and
 [hosted CLI actions](https://github.com/githubnext/gh-cao/blob/main/server/README.md#hosted-cli-actions)
 have separate authorization and approval requirements.
 
@@ -108,7 +141,7 @@ perform these operations, so editing remains disabled for hosted administrators.
 	operational view.
 - Choose where to host the dashboard in [Deployment options](deployment.md).
 - Read [Data ingestion](dashboard-data-ingestion.md) to follow evidence from
-	GitHub Actions into the browser.
+	GitHub Actions into operational backends, separately from demo ingestion.
 - Use the [Data model](dashboard-data-model.md) to understand entities,
 	relationships, identities, and retention.
 - Build views with the [Dashboard Language guide](dashboard-language.md), then

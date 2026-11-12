@@ -35,7 +35,6 @@ type BootstrapRepository struct {
 	Internal              bool
 	ServerURL             string
 	Secrets               []string
-	Pages                 map[string]any
 	Variables             map[string]string
 	OrganizationVariables map[string]string
 }
@@ -157,45 +156,6 @@ func (a *BootstrapAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			repo.Private = *input.Private
 			write(http.StatusOK, repo.rest())
 			return
-		}
-		if len(parts) == 4 && parts[3] == "pages" {
-			switch r.Method {
-			case http.MethodGet:
-				if repo.Pages == nil {
-					writeNotFound(w)
-				} else {
-					write(http.StatusOK, repo.Pages)
-				}
-				return
-			case http.MethodPost, http.MethodPut:
-				var input map[string]any
-				if json.NewDecoder(r.Body).Decode(&input) != nil || input["build_type"] != "workflow" {
-					write(http.StatusUnprocessableEntity, map[string]string{"message": "Expected workflow Pages source"})
-					return
-				}
-				if r.Method == http.MethodPost && repo.Pages != nil {
-					write(http.StatusConflict, map[string]string{"message": "Pages already exists"})
-					return
-				}
-				if r.Method == http.MethodPut && repo.Pages == nil {
-					writeNotFound(w)
-					return
-				}
-				repo.Pages = map[string]any{
-					"build_type": "workflow", "public": !repo.Private,
-					"html_url": "https://" + repo.Owner + ".github.io/" + repo.Name + "/",
-				}
-				status := http.StatusOK
-				if r.Method == http.MethodPost {
-					status = http.StatusCreated
-				}
-				write(status, repo.Pages)
-				return
-			case http.MethodDelete:
-				repo.Pages = nil
-				w.WriteHeader(http.StatusNoContent)
-				return
-			}
 		}
 		if len(parts) == 5 && parts[3] == "actions" && parts[4] == "secrets" && r.Method == http.MethodGet {
 			secrets := make([]map[string]string, 0, len(repo.Secrets))

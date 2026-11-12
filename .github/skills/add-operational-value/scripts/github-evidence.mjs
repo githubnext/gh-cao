@@ -4,8 +4,8 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
-import { githubApiBudgetConsumerFromEnvironment } from "../../../../activity/github-api-budget.mjs";
-import { valueAcquisitionRequirementId } from "../../../../activity/value-acquisition.mjs";
+import { githubApiBudgetConsumerFromEnvironment } from "./github-api-budget.mjs";
+import { valueAcquisitionRequirementId } from "../../../workflows/shared/value-acquisition.mjs";
 import { readJsonArchive } from "./json-archive.mjs";
 
 export const digest = value => createHash("sha256").update(JSON.stringify(value)).digest("hex");

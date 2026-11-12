@@ -1,9 +1,12 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import 'fake-indexeddb/auto';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import contract from '../fixtures/overview-ingestion-status-contract.json' with { type: 'json' };
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
 import { dashboardDataStatus } from '../../src/dashboard-data-status.js';
 import { renderDashboardCurrentStatus, renderDashboardIngestionStatus } from '../../src/components/refresh-error.js';
 import { updateRateLimitNotification } from '../../src/rate-limit-notification.js';
+import { DATABASE_NAME, recordTransaction } from '../../src/data/storage/indexeddb.js';
+import { processDataRequest } from '../../src/data-worker.js';
 
 const snapshot = { createdAt: '2026-09-28T12:00:00.000Z' };
 let controller = new AbortController();
@@ -14,6 +17,67 @@ afterEach(() => {
   dashboardDataStatus.set({ phase: 'unknown', snapshot: null });
   updateRateLimitNotification('/api/v1/query', 200);
   document.body.replaceChildren();
+});
+
+describe('Local ingestion progress contract', () => {
+  const dashboard = authoritativeDashboard.dashboard;
+  const page = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'overview');
+  const queryContext = {
+    filters: { repository: ['unrelated'] },
+    timeWindow: { start: '2099-01-01T00:00:00Z', end: '2099-01-02T00:00:00Z' }
+  };
+
+  beforeEach(async () => {
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(DATABASE_NAME);
+      request.onsuccess = () => resolve(undefined);
+      request.onerror = () => reject(request.error);
+    });
+  });
+
+  async function query() {
+    const results = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (await processDataRequest({
+      operation: 'query-canonical-dashboard', sourceNames: [contract.local.source],
+      context: dashboard, queryContext
+    }));
+    return results[contract.local.source];
+  }
+
+  it('projects persisted progress through the canonical worker independently of page filters', async () => {
+    expect(dashboard['data-status']['ingestion-source']).toBe(contract.local.source);
+    expect(page.views.every((/** @type {{mark?:string}} */ view) => view.mark === 'element')).toBe(true);
+    await recordTransaction(indexedDB, contract.local.transaction);
+    const result = await query();
+    expect(result.metadata.availability).toBe('available');
+    expect(result.rows).toEqual([{
+      'status-name': 'Paused', 'status-label': 'Data ingestion: Paused', 'status-icon': 'clock', 'status-tone': 'attention',
+      status: 'paused', message: contract.local.transaction.ingestionMessage, repository: 'octo/api',
+      'scanned-hours': 48, 'target-hours': 168, 'api-remaining': 999, 'api-reserve': 1000,
+      'api-reset-at': '2026-11-11T13:00:00Z', 'next-attempt-at': '2026-11-11T13:00:00Z',
+      'observed-at': '2026-11-11T12:00:00Z'
+    }]);
+    await recordTransaction(indexedDB, { ...contract.local.transaction, ingestionStatus: 'collecting', scannedHours: 72 });
+    expect((await query()).rows[0]).toMatchObject({ status: 'collecting', 'scanned-hours': 72 });
+  });
+
+  it.each([
+    ['collecting', 'sync', 'muted'],
+    ['waiting', 'clock', 'muted'],
+    ['watching', 'clock', 'muted'],
+    ['failed', 'stop', 'danger'],
+    [undefined, 'question', 'muted']
+  ])('classifies %s tooltip presentation in the canonical query', async (ingestionStatus, icon, tone) => {
+    await recordTransaction(indexedDB, { ...contract.local.transaction, ingestionStatus });
+    expect((await query()).rows[0]).toMatchObject({ 'status-icon': icon, 'status-tone': tone });
+  });
+
+  it('does not fabricate status from unrelated or missing ingestion receipts', async () => {
+    expect((await query()).rows).toEqual([]);
+    await recordTransaction(indexedDB, {
+      id: 'other', kind: 'ingest-jsonl', createdAt: contract.local.transaction.createdAt
+    });
+    expect((await query()).rows).toEqual([]);
+  });
 });
 
 describe('Overview ingestion status', () => {
