@@ -20,7 +20,6 @@ const campaignUpdateSource = "https://github.com/githubnext/gh-cao";
 // differ from the catalog because gh aw refuses to add workflows into their
 // own source repository; the consumer is never pushed.
 const consumerRepository = "octocat/Hello-World";
-const materializerScript = resolve(".github/workflows/shared/materialize-cao.mjs");
 const installerSource = readFileSync(resolve("install-gh-cao.sh"), "utf8");
 const controlRuntimeFiles = [
   ".github/workflows/shared/control.mjs",
@@ -53,39 +52,13 @@ const optimizationCampaignSource = focusedCampaignSource("optimization");
 const repoStatusWorkflowSource = `https://github.com/${campaignSource.slice(0, campaignSource.lastIndexOf("@"))}/blob/${campaignSource.slice(campaignSource.lastIndexOf("@") + 1)}/.github/workflows/daily-repo-status.md`;
 const selfCareCampaignSource = focusedCampaignSource("self-care");
 const softwareDevelopmentPracticesCampaignSource = focusedCampaignSource("software-development-practices");
-const activityExpectedFiles = [
-  "activity/actions-context.mjs",
+const runtimeExpectedFiles = [
   ".github/workflows/shared/actions-log.mjs",
-  "activity/campaign-intelligence.mjs",
-  "activity/cao.mjs",
   "dashboard/report/collections.mjs",
-  "activity/commands/audit-jsonl.mjs",
-  "activity/commands/cluster-problems.mjs",
-  "activity/commands/compact-jsonl.mjs",
-  "activity/commands/dashboard-complexity.mjs",
-  "activity/commands/discover-workflows.mjs",
-  "activity/commands/repair-database.mjs",
-  "activity/commands/download.mjs",
-  "activity/commands/hash-payloads.mjs",
-  "activity/commands/index.mjs",
-  "activity/commands/ingest-jsonl.mjs",
-  "activity/commands/ingest.mjs",
-  "activity/commands/operational-value.mjs",
-  "activity/commands/prune-dashboard.mjs",
-  "activity/collect-workflow-logs.mjs",
-  "activity/computations/intelligence-contracts.mjs",
-  "activity/computations/intelligence.mjs",
-  "activity/computations/index.mjs",
-  "activity/computations/runtime-health.mjs",
-  "activity/control-settings.mjs",
   "dashboard/report/debug.mjs",
-  "activity/gh-aw-logs.mjs",
-  "activity/inventory.mjs",
   "dashboard/report/inventory-sources.mjs",
   "dashboard/report/package-manifest.mjs",
   "dashboard/report/normalized-phase.mjs",
-  "activity/repository-visibility.mjs",
-  "activity/token-intervention-lifecycle.mjs",
   "dashboard/lib/version.mjs",
 ];
 const caoEvolutionExpectedFiles = [
@@ -208,6 +181,7 @@ async function installCampaign(source) {
       if (campaign === "root") {
         run("git", ["remote", "add", "origin", `https://github.com/${consumerRepository}.git`], consumer);
         run("bash", ["-s", "--", source], consumer, installerSource);
+        materializeRuntime("root", consumer);
         return consumer;
       }
       run("gh", [
@@ -218,7 +192,7 @@ async function installCampaign(source) {
         "--no-security-scanner",
       ], consumer);
       if (campaign !== "activity" && campaign !== "dashboard") {
-        run(process.execPath, [materializerScript, "materialize", campaign], consumer);
+        materializeRuntime(campaign, consumer);
       }
       return consumer;
     } catch (error) {
@@ -228,12 +202,15 @@ async function installCampaign(source) {
   });
 }
 
+function materializeRuntime(campaign, cwd) {
+  run("gh", ["cao", "update", "--campaign", campaign, "--no-security-scanner"], cwd);
+}
+
 function assertInstalledBootstrap(repository, ghAwVersion, controlRepository) {
   const policy = ".github/workflows/cao.json";
   const control = ".github/workflows/shared/control.mjs";
-  run(process.execPath, ["activity/cao.mjs", "--help"], repository);
-  for (const bundle of ["activity", "dashboard"]) {
-    run(process.execPath, [".github/workflows/shared/materialize-cao.mjs", "verify", bundle], repository);
+  for (const file of ["dashboard/site/package.json", "dashboard/report/configure-site.mjs"]) {
+    assert.ok(existsSync(join(repository, file)), `CAO runtime omitted ${file}`);
   }
   run(process.execPath, [control, "validate-policy", policy], repository);
   assert.equal(run(process.execPath, [control, "compiler-version", policy], repository).trim(), ghAwVersion);
@@ -344,8 +321,8 @@ test("root campaign bootstraps an empty CAO and preserves resources during workf
       readdirSync(join(consumer, ".github", "workflows")).filter((name) => name.endsWith(".lock.yml")),
       [],
     );
-    for (const relativePath of activityExpectedFiles) {
-      assert.ok(existsSync(join(consumer, relativePath)), `root campaign omitted activity file ${relativePath}`);
+    for (const relativePath of runtimeExpectedFiles) {
+      assert.ok(existsSync(join(consumer, relativePath)), `root campaign omitted runtime file ${relativePath}`);
     }
     for (const relativePath of dashboardExpectedFiles) {
       assert.ok(existsSync(join(consumer, relativePath)), `root campaign omitted dashboard file ${relativePath}`);
@@ -623,7 +600,7 @@ test("root CAO rematerialization restores dashboard workflows, producers, and re
       "--force",
       "--no-security-scanner",
     ], consumer);
-    run(process.execPath, [materializerScript, "materialize", "root"], consumer);
+    materializeRuntime("root", consumer);
 
     assert.ok(
       !readFileSync(deployPath, "utf8").includes("# local integration-test change"),
@@ -677,7 +654,7 @@ test("gh aw update replaces workflows and restores campaign-owned assets after c
       "--cool-down",
       "0",
     ], consumer);
-    run(process.execPath, [materializerScript, "materialize", "dependabot"], consumer);
+    materializeRuntime("dependabot", consumer);
 
     const updatedOrchestrator = readFileSync(orchestratorPath, "utf8");
     assert.ok(

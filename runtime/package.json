@@ -42,7 +42,6 @@
     "dashboard/site/scripts/prepare-terminal.mjs",
     "dashboard/site/scripts/llms.mjs",
     "dashboard/site/service-worker.js",
-    ".github/actions/setup-cao-runtime",
     ".github/actions/setup-gh-aw",
     ".github/cao/instructions.md",
     ".github/workflows/shared/control.md",

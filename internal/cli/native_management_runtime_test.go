@@ -95,7 +95,7 @@ func nativeRuntimeArchiveFixture(t *testing.T, revision string, corrupt bool) st
 		if name == "activity" || name == "dashboard" {
 			continue
 		}
-		if name == ".github/actions/setup-cao-runtime" || name == ".github/actions/setup-gh-aw" {
+		if name == ".github/actions/setup-gh-aw" {
 			name += "/action.yml"
 		}
 		files[name] = "resource: " + name

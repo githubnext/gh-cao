@@ -6,8 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
 import { parse } from "yaml";
-import { extractCaoArchive, planCaoMaterialization, validateCaoRuntimeArtifact } from "../../.github/workflows/shared/materialize-cao.mjs";
-import { buildCaoRuntime } from "../../scripts/build-cao-runtime.mjs";
+import { buildCaoRuntime, runtimeResources, validateCaoRuntimeArtifact } from "../../scripts/build-cao-runtime.mjs";
 
 const catalog = path.resolve(import.meta.dirname, "../..");
 
@@ -39,7 +38,7 @@ test("a producer archive runs and builds the dashboard from a fresh documented i
     const artifact = buildCaoRuntime(catalog, path.join(temporary, "artifacts"), revision);
     const unpacked = path.join(temporary, "unpacked");
     mkdirSync(unpacked);
-    extractCaoArchive(artifact.archive, unpacked, true);
+    run("tar", ["-xzf", artifact.archive, "-C", unpacked], temporary);
     const packedRoot = path.join(unpacked, "package");
     validateCaoRuntimeArtifact(packedRoot, revision);
     const manifest = parse(readFileSync(path.join(catalog, "aw.yml"), "utf8"));
@@ -52,10 +51,7 @@ test("a producer archive runs and builds the dashboard from a fresh documented i
       path.join(catalog, ".github/workflows/aw.json"),
       path.join(installed, ".github/workflows/aw.json"),
     );
-    const [{ resources }] = planCaoMaterialization([{
-      name: "githubnext/gh-cao", record: { resolvedCommit: revision },
-    }], "root");
-    for (const resource of resources) {
+    for (const resource of runtimeResources) {
       const target = path.join(installed, resource);
       mkdirSync(path.dirname(target), { recursive: true });
       cpSync(path.join(packedRoot, resource), target, { recursive: true });
@@ -74,8 +70,8 @@ test("a producer archive runs and builds the dashboard from a fresh documented i
       "commit", "--quiet", "-m", "Install CAO runtime",
     ], installed);
     run("git", ["clone", "--quiet", "--no-local", installed, checkout], temporary);
-    for (const bundle of ["dashboard"]) {
-      run(process.execPath, [".github/workflows/shared/materialize-cao.mjs", "verify", bundle], checkout);
+    for (const file of ["dashboard/site/package.json", "dashboard/report/configure-site.mjs"]) {
+      assert.ok(existsSync(path.join(checkout, file)), `missing runtime file: ${file}`);
     }
     assert.equal(existsSync(path.join(checkout, "activity")), false);
     assert.equal(existsSync(path.join(checkout, "dashboard/site/src/data/storage/sqlite-indexeddb.js")), false);

@@ -1576,9 +1576,7 @@ and basic local policy structure/compiler-pin checks, with text or JSON results
 and nonzero status for failed or skipped checks. Authentication may contact
 GitHub; raw authentication output and subprocess errors are never reported.
 Doctor does not replace production policy/workflow validation, grant authority,
-or bootstrap database storage. Actions and Node-only tools invoke
-`node activity/cao.mjs <command>` explicitly for canonical JSONL preparation.
-There is no shell launcher.
+or bootstrap database storage. There is no Node.js CLI or shell launcher.
 `gh cao deploy` owns both offline bundle generation (`init`, `generate`, `check`)
 and guarded Azure development deployment (`azure`). `internal/topology/` owns
 the embedded Puccini TOSCA dependency engine and provider parameter contract,

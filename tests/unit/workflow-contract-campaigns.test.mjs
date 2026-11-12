@@ -185,8 +185,8 @@ test("operational packages own their workflows without reinstalling the control 
   assert.match(control, /path: \$\{\{ runner\.temp \}\}\/cao\/admission\.json/);
   assert.ok(existsSync(join(root, ".github", "workflows", "shared", "actions-log.mjs")));
   assert.match(
-    readFileSync(join(root, ".github", "workflows", "shared", "materialize-cao.mjs"), "utf8"),
-    /rootResources = \[[\s\S]*?'dashboard'/,
+    readFileSync(join(root, "scripts", "build-cao-runtime.mjs"), "utf8"),
+    /runtimeResources = \[[\s\S]*?"dashboard"/,
   );
 });
 
@@ -296,7 +296,7 @@ test("root campaign provides default control-repository agent context", () => {
   const debugSkill = readFileSync(join(root, "skills", "debug-cao", "SKILL.md"), "utf8");
 
   assert.doesNotMatch(rootManifestSource, /source: AGENTS\.md|default-AGENTS\.md/);
-  assert.equal(rootManifest.resources.length, 9);
+  assert.equal(rootManifest.resources.length, 8);
   assert.equal(rootManifest.resources.some(({ destination }) => destination.startsWith(".github/skills/")), false);
   assert.deepEqual(rootManifest.skills, [
     "skills/agentic-workflows",
@@ -491,10 +491,6 @@ test("root campaign composes its operational campaigns through manifests", () =>
     {
       source: ".github/workflows/shared/github-apps.mjs",
       destination: ".github/workflows/shared/github-apps.mjs",
-    },
-    {
-      source: ".github/workflows/shared/materialize-cao.mjs",
-      destination: ".github/workflows/shared/materialize-cao.mjs",
     },
     {
       source: ".github/aw/instructions.md",

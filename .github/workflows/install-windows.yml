@@ -4,14 +4,12 @@ on:
   pull_request:
     paths:
       - .github/workflows/install-windows.yml
-      - .github/workflows/shared/materialize-cao.mjs
       - install-gh-cao.sh
       - tests/unit/install-script.test.mjs
   push:
     branches: [main]
     paths:
       - .github/workflows/install-windows.yml
-      - .github/workflows/shared/materialize-cao.mjs
       - install-gh-cao.sh
       - tests/unit/install-script.test.mjs
   workflow_dispatch:

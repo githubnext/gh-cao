@@ -24,7 +24,6 @@ var setupRuntimeFiles = []string{
 	".github/workflows/shared/policy.mjs",
 	".github/workflows/shared/authority.mjs",
 	".github/workflows/shared/operations.mjs",
-	".github/actions/setup-cao-runtime/action.yml",
 	".github/actions/setup-gh-aw/action.yml",
 }
 
