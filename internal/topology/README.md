@@ -33,8 +33,12 @@ them before any separately approved deployment.
 Generation requires Microsoft's standalone `bicep` executable on `PATH`.
 `BicepCLI` compiles every emitted Bicep template with
 `bicep build --no-restore --stdout`, surfacing compiler and linter diagnostics.
-There is no automatic tool download or module restore. Initialization and
-offline bundle checking do not require Bicep, Node.js or Azure access.
+The compact (`single-vm`, `minimal-azure`) and `azure-container-apps` ARM
+parameter contracts are not checked in; `compileContract` builds them on demand
+from the embedded Bicep sources and memoizes the result per process, so solving,
+generating or checking those profiles also requires Bicep. There is no automatic
+tool download or module restore. Initialization and `azure-functions` bundle
+checking do not require Bicep, Node.js or Azure access.
 
 ## Supported profiles
 
@@ -59,7 +63,8 @@ combinations fail rather than silently adding services or changing profiles.
 2. **Validate the provider contract** (`solve.go`, `compact.go`,
    `container_apps.go`, `azure.go`): `Solve` checks feature compatibility,
    parameters, OAuth allowlists, explicit retention and Key Vault references
-   against the selected embedded ARM parameter definitions.
+   against the selected ARM parameter definitions (embedded for Functions,
+   compiled on demand for compact and Container Apps).
 3. **Resolve dependencies** (`tosca.go`, `graph.go`): generate typed nodes and
    `DependsOn` requirements, validate/compile/resolve/coerce them through
    Puccini, project the resolved relationships into `Topology`, then order
@@ -113,10 +118,10 @@ go test ./internal/topology
 ```
 
 Regenerate assets after changing the authoritative Azure baseline under
-`server/azure/` or the compact/Container Apps template contracts. The generator
-copies the baseline into `assets/azure-baseline.generated/` and compiles the
-compact and Container Apps ARM parameter contracts. Do not hand-edit these
-generated snapshots; regeneration requires the official Bicep CLI on `PATH`.
+`server/azure/`. The generator copies the baseline into
+`assets/azure-baseline.generated/`; do not hand-edit this snapshot. Compact and
+Container Apps template changes need no regeneration because their contracts
+are compiled on demand.
 
 Tests cover engine constraints, dependency contracts, fail-closed requirements,
 architecture rules, deterministic bundles, drift/symlink rejection, embedded

@@ -18,7 +18,7 @@ func solveContainerApps(ctx context.Context, input Requirements) (Solution, erro
 	if input.Azure.Hosts != nil {
 		return result, fmt.Errorf("azure.hosts is only supported by the azure-functions deployment")
 	}
-	definitions, parameters, defaults, err := deploymentParameters(input, "assets/container-apps/main.generated.json", containerAppsSecretNames)
+	definitions, parameters, defaults, err := deploymentParameters(ctx, input, containerAppsSecretNames)
 	if err != nil {
 		return result, err
 	}

@@ -23,7 +23,10 @@ are surfaced; compiler errors or a missing tool fail generation without
 publishing the output folder. Validation uses a private temporary directory,
 disables automatic module restore and makes no Azure calls. It does not prove
 subscription permissions, regional availability or live deployment acceptance.
-`init` and offline dependency/drift `check` do not require the Bicep CLI.
+The `single-vm`, `minimal-azure` and `azure-container-apps` ARM parameter
+contracts are compiled on demand from their embedded Bicep sources, so
+generating or checking those profiles also requires the CLI. `init` and
+`azure-functions` dependency/drift `check` do not require it.
 The standalone `bicep` executable must be on `PATH`; installing only the
 `az bicep` wrapper is not sufficient. No compiler is downloaded automatically.
 
@@ -207,7 +210,7 @@ features:
 ```
 
 The example supplies the required Azure section. Every non-secret parameter in
-the embedded compiled Azure contract is available under `azure.parameters`.
+the compiled Azure contract is available under `azure.parameters`.
 Types, ranges and allowed values are checked. Bicep owns omitted defaults,
 including ARM expressions. Resource names, image tag, OAuth client ID and
 explicit retention are required. The callback host and an empty organization
@@ -269,8 +272,10 @@ compliance or authorization.
 
 Keep the generating CLI release when checking older bundles. The CLI embeds
 deterministic, reviewable snapshots of every bundled template, example,
-script and runbook, including the canonical Bicep sources and ARM parameter
-contract. It never needs a source checkout or downloads resources at runtime.
+script and runbook, including the canonical Bicep sources and the compiled
+Functions ARM template. Other profiles' ARM parameter contracts are compiled
+from those embedded Bicep sources on demand. It never needs a source checkout
+or downloads resources at runtime.
 `deploy azure` uses the same embedded ARM template and TOSCA dependency engine
 for its guarded JSON-config preflight, plan and development apply path.
 The YAML bundles are review-only outputs, not apply plan files; their optional
@@ -279,8 +284,8 @@ has been removed; use `deploy init`, `deploy generate` and `deploy check`.
 After changing `server/azure/`, run
 `go generate ./internal/topology`. A parity test rejects stale embedded sources;
 the generator never maintains a second baseline resource implementation.
-Asset regeneration also compiles the compact and Container Apps ARM parameter contracts,
-so it requires the official Bicep CLI on `PATH`. `TestDeploymentSamples` compiles
+Asset regeneration only copies the baseline and does not require Bicep; no
+compiled compact or Container Apps contract is checked in. `TestDeploymentSamples` compiles
 all five shipped samples with the actual compiler and checks VM/database/Functions/
 Container Apps resource definitions (including activation-gated definitions).
 Missing Bicep fails those tests; CI installs a checksum-pinned

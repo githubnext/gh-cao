@@ -22,7 +22,7 @@ func solveCompact(ctx context.Context, input Requirements) (Solution, error) {
 	if input.Azure.Hosts != nil {
 		return result, fmt.Errorf("azure.hosts is only supported by the azure-functions deployment")
 	}
-	definitions, parameters, defaults, err := deploymentParameters(input, "assets/compact/main.generated.json", compactSecretNames)
+	definitions, parameters, defaults, err := deploymentParameters(ctx, input, compactSecretNames)
 	if err != nil {
 		return result, err
 	}
@@ -95,8 +95,8 @@ func solveCompact(ctx context.Context, input Requirements) (Solution, error) {
 	return result, err
 }
 
-func deploymentParameters(input Requirements, source string, secretNames []string) (map[string]ParameterDefinition, map[string]Parameter, map[string]any, error) {
-	content, err := assets.ReadFile(source)
+func deploymentParameters(ctx context.Context, input Requirements, secretNames []string) (map[string]ParameterDefinition, map[string]Parameter, map[string]any, error) {
+	content, err := compileContract(ctx, input.Features)
 	if err != nil {
 		return nil, nil, nil, err
 	}

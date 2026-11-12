@@ -173,3 +173,29 @@ func TestGeneratedValidationScriptFailsOnCompilerError(t *testing.T) {
 		t.Fatalf("validation script hid compiler failure: %s: %v", output, err)
 	}
 }
+
+func TestContractCompilationFailsClosedAndMemoizesSuccess(t *testing.T) {
+	features := Features{Deployment: "single-vm"}
+	compiledContracts.Delete(features.Deployment)
+	t.Cleanup(func() { compiledContracts.Delete(features.Deployment) })
+	t.Setenv("PATH", t.TempDir())
+	if _, err := compileContract(context.Background(), features); err == nil || !strings.Contains(err.Error(), "official Bicep CLI on PATH") {
+		t.Fatalf("expected missing compiler failure, got %v", err)
+	}
+	installCompilerFixture(t, `echo 'BCP000: rejected' >&2; exit 1`)
+	if _, err := compileContract(context.Background(), features); err == nil || !strings.Contains(err.Error(), "BCP000: rejected") {
+		t.Fatalf("expected compiler diagnostics, got %v", err)
+	}
+	installCompilerFixture(t, `printf 'not json'`)
+	if _, err := compileContract(context.Background(), features); err == nil || !strings.Contains(err.Error(), "invalid ARM JSON") {
+		t.Fatalf("expected invalid output failure, got %v", err)
+	}
+	installCompilerFixture(t, `test -f "${2%/*}/vm-host.bicep"; printf '{"parameters":{}}'`)
+	if _, err := compileContract(context.Background(), features); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", t.TempDir())
+	if template, err := compileContract(context.Background(), features); err != nil || string(template) != `{"parameters":{}}` {
+		t.Fatalf("successful compilation was not memoized: %s, %v", template, err)
+	}
+}

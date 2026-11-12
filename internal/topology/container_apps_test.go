@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"os"
-	"path/filepath"
-	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -132,17 +129,10 @@ func TestContainerAppsBundleAndActivation(t *testing.T) {
 }
 
 func TestContainerAppsCompiledContract(t *testing.T) {
-	files, err := deploymentFiles(Features{Deployment: "azure-container-apps"})
+	compiledJSON, err := compileContract(context.Background(), Features{Deployment: "azure-container-apps"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	directory := t.TempDir()
-	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(directory, name), content, 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	compiledJSON := compileSampleJSON(t, filepath.Join(directory, "main.bicep"))
 	var compiled sampleARM
 	if err := json.Unmarshal(compiledJSON, &compiled); err != nil {
 		t.Fatal(err)
@@ -200,22 +190,7 @@ func TestContainerAppsCompiledContract(t *testing.T) {
 			t.Fatalf("web received bootstrap credentials: %s", forbidden)
 		}
 	}
-	// Compare the entire compiled contract, not just its parameter names.
-	embedded, err := assets.ReadFile("assets/container-apps/main.generated.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var actual, expected any
-	if err := json.Unmarshal(compiledJSON, &actual); err != nil {
-		t.Fatal(err)
-	}
-	if err := json.Unmarshal(embedded, &expected); err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatal("stale Container Apps contract; run go generate ./internal/topology")
-	}
-	if bytes.Contains(embedded, []byte("Microsoft.Web/")) || bytes.Contains(embedded, []byte("Microsoft.Storage/")) {
+	if bytes.Contains(compiledJSON, []byte("Microsoft.Web/")) || bytes.Contains(compiledJSON, []byte("Microsoft.Storage/")) {
 		t.Fatal("Functions/Premium/Storage resources leaked into Container Apps")
 	}
 }
