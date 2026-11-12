@@ -178,7 +178,7 @@ steps:
         const directory = '/tmp/gh-aw/agent/framework-health';
         fs.mkdirSync(directory, { recursive: true });
         fs.writeFileSync(`${directory}/context.json`, JSON.stringify({
-          report_version: 3, rubric_version: 2, repository, branch: repo.default_branch, source_sha: context.sha,
+          report_version: 4, rubric_version: 2, repository, branch: repo.default_branch, source_sha: context.sha,
           window_anchor: run.created_at, observed_at: new Date().toISOString(),
           run_url: run.html_url, run_id: context.runId, run_attempt: run.run_attempt,
           date, title, marker, duplicate,
@@ -303,23 +303,32 @@ steps:
           workflows: results,
         }));
         const labels = { 'workflow-contracts.yml': 'Contracts', 'cgo.yml': 'Go server', 'cid.yml': 'Dashboard' };
-        const chart = ['Successful / completed default-branch push runs (0-100%)'];
-        for (const result of results) {
-          for (const [period, label] of [['previous', 'P7'], ['current', 'C7']]) {
-            const row = result[period];
-            const name = `${labels[result.workflow]} ${label}`.padEnd(14);
-            if (row.success_fraction === null) {
-              chart.push(`${name} N/A (${row.completed} observed completed; ${result.coverage})`);
-            } else {
-              const cells = Math.round(row.success_fraction * 20);
-              const bar = (row.success_fraction > 0 && cells === 0 ? '.' : '#'.repeat(cells)).padEnd(20);
-              chart.push(`${name} |${bar}| ${row.conclusions.success || 0}/${row.completed} (${(row.success_fraction * 100).toFixed(1)}%)`);
-            }
+        const cell = (row, coverage) => {
+          const count = `${row.conclusions.success || 0}/${row.completed}`;
+          if (row.success_fraction === null) {
+            const reason = coverage === 'partial' ? 'partial history'
+              : row.completed === 0 ? 'no completed runs' : 'unknown conclusions';
+            return `N/A (${count} observed; ${reason})`;
           }
-        }
-        chart.push('P7 = previous 7 UTC days; C7 = current 7 UTC days.');
-        chart.push('. = non-zero below half a bar; exact fractions shown.');
-        fs.writeFileSync(`${directory}/ci-chart.txt`, chart.join('\n'));
+          const fraction = row.success_fraction;
+          const intensity = fraction === 0 ? '·' : fraction < 0.25 ? '▁'
+            : fraction < 0.5 ? '▂' : fraction < 0.75 ? '▄'
+              : fraction < 1 ? '▆' : '█';
+          return `${intensity} ${count} (${(fraction * 100).toFixed(1)}%)`;
+        };
+        const heatmap = [
+          '**Default-branch push CI success (successful / completed runs)**',
+          '',
+          `Previous: ${evidence.ci_windows.previous.start.slice(0, 10)} to ${evidence.ci_windows.previous.end.slice(0, 10)} UTC; current: ${evidence.ci_windows.current.start.slice(0, 10)} to ${evidence.ci_windows.current.end.slice(0, 10)} UTC (end exclusive).`,
+          '',
+          '| Workflow | Previous 7 days | Current 7 days |',
+          '| --- | --- | --- |',
+          ...results.map(result => `| ${labels[result.workflow]} | ${cell(result.previous, result.coverage)} | ${cell(result.current, result.coverage)} |`),
+          '',
+          'Scale: · 0%; ▁ >0–<25%; ▂ 25–<50%; ▄ 50–<75%; ▆ 75–<100%; █ 100%. N/A is unmeasured, not 0%.',
+          'Adjacent complete 7-day UTC windows. Fractions exclude pending runs; see outcomes and coverage below.',
+        ];
+        fs.writeFileSync(`${directory}/ci-heatmap.md`, heatmap.join('\n'));
   - name: Measure core component fluctuation
     if: ${{ steps.framework_health.outputs.duplicate != 'true' }}
     uses: actions/github-script@v9
@@ -389,7 +398,7 @@ steps:
             commits: 0, files_changed: 0, source_added: 0, source_deleted: 0,
             test_added: 0, test_deleted: 0, generated_files_changed: 0, binary_files_changed: 0,
           };
-          const files = new Set(), generated = new Set(), binaries = new Set();
+          const files = new Set(), generated = new Set(), binaries = new Set(), sourceDays = new Set();
           for (const record of records.slice(0, 1000)) {
             const [header, ...lines] = record.trim().split('\n');
             const [sha, time] = header.split('\t');
@@ -409,8 +418,12 @@ steps:
               } else {
                 if (!/^\d+$/.test(added) || !/^\d+$/.test(deleted)) throw new Error('Invalid numstat counts');
                 const kind = /(^|\/)tests?\/|_test\.go$|\.(test|spec)\.[cm]?[jt]sx?$/.test(path) ? 'test' : 'source';
-                result[`${kind}_added`] += Number(added);
-                result[`${kind}_deleted`] += Number(deleted);
+                const additions = Number(added), deletions = Number(deleted);
+                result[`${kind}_added`] += additions;
+                result[`${kind}_deleted`] += deletions;
+                if (kind === 'source' && additions + deletions > 0) {
+                  sourceDays.add(new Date(time).toISOString().slice(0, 10));
+                }
               }
             }
           }
@@ -418,6 +431,7 @@ steps:
           result.generated_files_changed = generated.size;
           result.binary_files_changed = binaries.size;
           result.source_net = result.source_added - result.source_deleted;
+          result.source_days_changed = sourceDays.size;
           return result;
         };
         const measurements = components.map(component => ({
@@ -429,27 +443,31 @@ steps:
           limit: '1000 first-parent commits per component per window',
           components: measurements,
         }));
-        const complete = measurements.filter(row =>
-          row.current.coverage === 'complete' && row.previous.coverage === 'complete');
         const churn = row => row.source_added + row.source_deleted;
-        const maximum = Math.max(1, ...complete.flatMap(row => [churn(row.previous), churn(row.current)]));
-        const bar = value => {
-          const cells = Math.round(value / maximum * 10);
-          return (value > 0 && cells === 0 ? '.' : '#'.repeat(cells)).padEnd(10);
-        };
-        const chart = ['Source churn: additions + deletions (not quality or readiness)'];
-        for (const row of measurements) {
-          const label = row.id.padEnd(12);
-          if (!complete.includes(row)) {
-            chart.push(`${label} N/A (partial history)`);
-          } else {
-            const previous = churn(row.previous), current = churn(row.current);
-            chart.push(`${label} P7 |${bar(previous)}| ${previous}  C7 |${bar(current)}| ${current}`);
+        const cell = row => {
+          const value = churn(row);
+          const days = row.source_days_changed;
+          const lines = `${value} ${value === 1 ? 'line' : 'lines'}`;
+          if (row.coverage !== 'complete') {
+            return `N/A (${days}/7 observed days; ${lines}; partial history)`;
           }
-        }
-        chart.push(`Shared linear scale: 10 bars = ${maximum} source lines; no clipping.`);
-        chart.push('. = non-zero below half a bar; generated/test lines excluded.');
-        fs.writeFileSync(`${directory}/component-chart.txt`, chart.join('\n'));
+          const intensity = days === 0 ? '·' : days === 1 ? '▁'
+            : days <= 3 ? '▂' : days <= 5 ? '▄' : '█';
+          return `${intensity} ${days}/7 days; ${lines}`;
+        };
+        const heatmap = [
+          '**Core component change frequency (UTC days with source edits; activity, not stability)**',
+          '',
+          `Previous: ${evidence.ci_windows.previous.start.slice(0, 10)} to ${evidence.ci_windows.previous.end.slice(0, 10)} UTC; current: ${evidence.ci_windows.current.start.slice(0, 10)} to ${evidence.ci_windows.current.end.slice(0, 10)} UTC (end exclusive).`,
+          '',
+          '| Component | Previous 7 days | Current 7 days |',
+          '| --- | --- | --- |',
+          ...measurements.map(row => `| ${row.id} | ${cell(row.previous)} | ${cell(row.current)} |`),
+          '',
+          'Fixed scale: · 0 days; ▁ 1; ▂ 2–3; ▄ 4–5; █ 6–7. N/A is incomplete, not zero.',
+          'Lines are source additions + deletions. Adjacent complete 7-day UTC windows; first-parent committer-time, not merge time. Test/generated changes excluded; overlapping components must not be summed.',
+        ];
+        fs.writeFileSync(`${directory}/component-heatmap.md`, heatmap.join('\n'));
   - name: Collect preview acceptance evidence
     if: ${{ steps.framework_health.outputs.duplicate != 'true' }}
     uses: actions/github-script@v9
@@ -599,7 +617,7 @@ steps:
           if (!row.owner) blockers.push(`owner-missing:${row.id}`);
         }
         fs.writeFileSync(`${directory}/evidence.json`, JSON.stringify({
-          schema_version: 1, report_version: 3, rubric_version: 2,
+          schema_version: 1, report_version: 4, rubric_version: 2,
           repository: evidence.repository, source_sha: evidence.source_sha,
           observed_at: evidence.observed_at, run_url: evidence.run_url,
           date: evidence.date, report_window: evidence.report_window, ci_windows: evidence.ci_windows,
@@ -617,8 +635,8 @@ steps:
       name: framework-health-evidence-${{ github.run_id }}-${{ github.run_attempt }}
       path: |
         /tmp/gh-aw/agent/framework-health/evidence.json
-        /tmp/gh-aw/agent/framework-health/ci-chart.txt
-        /tmp/gh-aw/agent/framework-health/component-chart.txt
+        /tmp/gh-aw/agent/framework-health/ci-heatmap.md
+        /tmp/gh-aw/agent/framework-health/component-heatmap.md
       if-no-files-found: error
       retention-days: 90
 ---
@@ -820,7 +838,8 @@ checks instead. Code size, TODO counts, PR volume and issue closure are not qual
 ## Fluctuation, stability and convergence
 
 For each component use deterministic `components.json` measurements for both
-seven-day windows: changed files/commits, source additions/deletions/net change,
+seven-day windows: distinct UTC days with source edits, changed files/commits,
+source additions/deletions/net change,
 test additions/deletions, and generated/binary files separated from source.
 These are first-parent committer-time observations, not authoritative merge
 times. Path groups may overlap; never sum them into a framework total. If either
@@ -915,7 +934,7 @@ if no component received substantive specification/source/test review, call
 `report_incomplete` and do not call `create_issue`. Do not publish another
 evidence-only report that merely acknowledges skipping that work.
 
-## Standard executive report contract, version 3
+## Standard executive report contract, version 4
 
 Every report must use the following opening and six sections in exactly this
 order, including sections whose evidence is unavailable. Do not improvise
@@ -932,7 +951,7 @@ evidence, what is missing and who acts next without opening a disclosure.
 **Reporting day:** {date}, UTC | **Assessed revision:** {immutable SHA link}
 **Profile:** {ID; proposed/approved scope}
 **Scope:** githubnext/gh-cao; 8 operator journeys; 8 components / 16 supporting claims
-**Evidence collected:** {observed_at} | **Report / rubric version:** 3 / 2
+**Evidence collected:** {observed_at} | **Report / rubric version:** 4 / 2
 **Purpose:** Can an invited operator safely install, use, operate and leave this bounded CAO candidate?
 
 Core claims reviewed: {reviewed count}/16
@@ -944,6 +963,7 @@ Core claims reviewed: {reviewed count}/16
 | Preview evidence | **{not demonstrated, blocked, or evidence complete—human decision pending}** |
 | Candidate | {tag and exact SHA link, or **Not selected**} |
 | Change | {↑ Improving, ↓ Regressing, → Unchanged, or ? Insufficient comparable evidence} |
+| Core evidence | {E} evidenced · {R} at risk · {U} unknown / 16 claims; supporting evidence, not preview readiness |
 | Confidence | **{high, medium or low}** — {principal evidence limitation} |
 
 > [!NOTE]
@@ -979,8 +999,21 @@ Core claims reviewed: {reviewed count}/16
 ### Core health and stability
 <details><summary>Supporting component scorecard, charts and measurements</summary>
 
-{Eight component rows: applicability, claims E/R/U (sum to two), behavioral test evidence and direction/gap.}
-{CI comparison chart and component-churn chart, with windows, units, denominators and explanatory captions.}
+**Core claim evidence (agent-assessed; not inferred from churn or CI colors):**
+🟢 Evidenced · 🔴 At risk · ⚪ Unknown. Each cell represents one claim, not a component readiness score.
+
+| Component | Claim 1 | Claim 2 | Applicability / behavioral coverage / change since comparable baseline |
+| --- | --- | --- | --- |
+| Control and execution | `control.authority`: {status} | `control.routing`: {status} | {scope; coverage; direction and proof or unknown} |
+| Acquisition and Activity | `acquisition.bounded`: {status} | `acquisition.provenance`: {status} | {scope; coverage; direction and proof or unknown} |
+| Canonical data and storage | `canonical.atomicity`: {status} | `canonical.retention`: {status} | {scope; coverage; direction and proof or unknown} |
+| Queries and presentation | `queries.declarative`: {status} | `queries.parity`: {status} | {scope; coverage; direction and proof or unknown} |
+| Operational state | `operational.durability`: {status} | `operational.isolation`: {status} | {scope; coverage; direction and proof or unknown} |
+| Hosting and access | `hosting.origin-auth`: {status} | `hosting.recovery`: {status} | {scope; coverage; direction and proof or unknown} |
+| Distribution and lifecycle | `distribution.provenance`: {status} | `distribution.compatibility`: {status} | {scope; coverage; direction and proof or unknown} |
+| Outcomes and evidence | `outcomes.acceptance`: {status} | `outcomes.quality`: {status} | {scope; coverage; direction and proof or unknown} |
+
+{Copy the CI-success and component-change-frequency heatmaps here verbatim from the deterministic Markdown files; do not generate or recolor cells.}
 {Per-workflow outcomes/pending/coverage; per-component source/test additions/deletions and generated/binary changes.}
 {What supports or contradicts a lean, stable core; distinguish supporting health from preview acceptance.}
 
@@ -1028,19 +1061,31 @@ confidence without them. Detailed tables and secondary metrics stay collapsed.
 The template and collector tests do not validate model-written conclusions.
 Require human confirmation of evidence, applicability and closure before action.
 
-For charts, copy `ci-chart.txt` and `component-chart.txt` verbatim into separate
-fenced `text` blocks in the first disclosure, with concise captions explaining
-the question each chart answers. These deterministic mobile-friendly bar charts
-use a common linear scale and exact counts, not a model-drawn impression.
-If every row of a chart is unavailable, retain its place with **Unavailable**
-and the reason instead of drawing an empty chart. Preserve N/A rows when some
-data is available; never plot unknowns as zero. Include the exact values in the
-supporting table. Two aggregate windows are a comparison, not a daily time
-series; do not interpolate, smooth, extrapolate, invent a sparkline or imply a
-trend beyond the available evidence. Do not add chart packages, image uploads,
-external chart services, asset branches or new network/tool grants.
+For the core claim matrix, replace each `{status}` with exactly **🟢 Evidenced**,
+**🔴 At risk** or **⚪ Unknown**, based on that claim's reviewed behavior and
+execution evidence. Unknown is not at risk, and churn does not determine status.
+Describe direction only when comparable claims, boundaries and behavioral
+evidence justify it; otherwise say **? Unverified**. Keep the 16 fixed claim IDs
+in the eight fixed rows; the detailed claim evidence belongs in the next disclosure.
+
+The visible core evidence counts must equal the 16 statuses in the claim matrix;
+do not infer them from CI success or activity, and never turn the counts into a
+readiness score. Copy `ci-heatmap.md` and `component-heatmap.md` verbatim as
+rendered Markdown tables (not fenced code) in the first disclosure. These heatmaps
+use fixed, separately labelled scales and exact counts so adjacent reports are
+comparable. The CI scale describes completed-run success, not test coverage;
+the component scale describes days with source changes, with added + deleted
+lines as context, not health or readiness. If every cell is N/A, retain the table
+and explicitly state **Unavailable** and why.
+Preserve N/A cells when some data is available; never plot unknowns as zero.
+Include the detailed values and coverage in supporting tables. Two aggregate
+windows are a comparison, not a daily time series; do not interpolate, smooth,
+extrapolate, invent a sparkline or imply a trend beyond the available evidence.
+Do not add chart packages, image uploads, external chart services, asset branches
+or new network/tool grants.
 
 Use only `###` report headings, GitHub warning/note alerts for decisions and
-critical limits, and only the labelled status icons defined above. Retain gh-aw's
+critical limits, and only the labelled journey/claim status icons defined above.
+Heatmap glyphs are intensity keys, never unlabelled status icons. Retain gh-aw's
 automatically appended ownership marker. Never invent citations, test outcomes
 or operational value, and do not add mentions or a custom attribution footer.
