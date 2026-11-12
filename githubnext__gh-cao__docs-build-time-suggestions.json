@@ -1,35 +1,7 @@
 {
   "source_sha": "9537899c8a84550688bd1f4135a33a42a43b9839",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-10T22:19:01Z",
-      "worker_run_id": "42912723804",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42912938024,
-        42912416453,
-        42910650809,
-        42908132923,
-        42905767635,
-        42905068616,
-        42903346355,
-        42902695947,
-        42898468486,
-        42896004811,
-        42893528446,
-        42893241575,
-        42891091809,
-        42888486035,
-        42886082405,
-        42883487961,
-        42882863950,
-        42881074442,
-        42880898081,
-        42880862291
-      ],
-      "outcome": "incomplete: latest-20 completed docs.yml window (2026-11-10T19:00:17Z to 2026-11-10T22:15:59Z) contained 14 successful runs (12 freshness-only schedules and 2 full publications), 4 skipped workflow_run callbacks, 2 cancelled runs excluded (42880898081 workflow_run, 42880862291 push) and 0 failed runs. Only two comparable successful publications were available, below the required five: push 42905068616 at c6fd809e (174s created-to-completion; build 136s with checkout 55s, npm ci 25s, docs build 13s, dashboard cache restore 4s, Pages artifact upload 23s; deploy 29s) and schedule 42881074442 at 2fbe39c5 (415s created-to-completion including a 201s queue before the first job was created; freshness 9s; build 168s with checkout 65s, npm ci 51s, docs build 15s, cache restore 4s, Pages upload 19s; deploy 27s). Both dashboard cache restores were verified hits because the fallback lookup and artifact steps were skipped. The mission's 'dashboard' job does not exist in docs.yml; dashboard steps run inside build. Structural caveat: the */15 schedule yields mostly freshness-only runs, so a 20-run window rarely holds five publications. No median/p90 distributions or suggestion could be established; next_category unchanged."
-    },
     {
       "evaluated_at": "2026-11-10T22:33:55Z",
       "worker_run_id": "42914979216",
@@ -806,6 +778,34 @@
         43080844329
       ],
       "outcome": "complete, not actionable: window created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z (latest 20 completed docs.yml runs; 0 cancelled, none in progress; unchanged since the 03:36Z evaluation, no new docs.yml runs). Sample n=8 current build+deploy push publications (sources d57c4c82 to 62f179a2; docs.yml last changed in d57c4c82 per commits API; source delta 62f179a2..9537899 touches only server/ and specs/, outside docs trigger paths). Medians (p90): Upload Pages artifact 2.5 s (3 s); deploy-job handoff queue 5 s (6 s); Deploy Pages step 7 s (8 s); deploy job 10 s (11 s); build job 72.5 s (93 s); wall created-to-updated 90.5 s (114 s). Artifact github-pages 8.28 MB (7.71-8.31 MB), down from 111.87 MB with 15-20 s upload on pre-design publications 43081415171 and 43083249533. Upload+handoff+deploy step chain median 14 s (13-16 s; about 15.5% of median wall, but Deploy Pages itself is required). Only upload plus handoff plus deploy-job setup (about 8 s, about 9%) is removable, and only by merging deploy into build, which removes github-pages environment and id-token isolation and still misses the 60 s / 15% (13.6 s) gate. Pages demo packaging step median 3 s. Excluded and disclosed: 6 failed schedules 43090243002 to 43103737760 (build failed at retired Mount latest CAO Dashboard artifact step), 3 freshness-only schedules, 1 skipped workflow_run callback. Job logs returned 403 difc_forbidden; artifact composition is verified by size only. Jobs endpoint returned no ETag header, so no conditional requests. Carry-forward lead, not evaluated here: checkout fetch-depth 0 (median 24 s, p90 40 s) is the largest build-job step. No suggestion; next_category advanced to scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-11-12T05:35:37Z",
+      "worker_run_id": "43161737477",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175,
+        43094878868,
+        43092616318,
+        43090243002,
+        43087935698,
+        43085628886,
+        43085139761,
+        43083249533,
+        43081415171
+      ],
+      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:49:35Z to 2026-11-12T05:24:50Z; within 14 days; 0 cancelled; none in progress) = 9 successful current-design full publications (push d57c4c821, 3707d467, f1cdd833, ad8a18d8, f0777fe2, 874fa758, 3bd066dd, 62f179a2; schedule 9537899; docs.yml unchanged since d57c4c821 per commit history; n=9 meets the minimum), 2 pre-design full publications (43083249533, 43081415171; excluded), 2 pre-design freshness-only schedules, 6 failed pre-design schedules (retired Mount latest CAO Dashboard step; excluded and disclosed), 1 skipped workflow_run. Current-design medians (p90), n=9: run created to build start 4 s (4 s); build job 72 s (93 s); build-end to deploy-start 5 s (6 s); deploy job 10 s (11 s); created to deploy-complete 88 s (113 s). Build steps: checkout 24 s (40 s), npm ci 19 s (25 s), docs build 15 s (15 s), demo 3 s (4 s), Pages upload 2 s (3 s). Concurrency: zero queueing; no two runs in the documentation-pages group overlapped (smallest inter-run gap about 9 min against runs of at most 113 s). Avoidable rebuilds: every push publication matched a docs-consumed trigger path (docs/**, dashboard/site/src, package.json, activity/empirical-behavior.mjs); no test-only or non-consumed trigger commit in window (path matcher uses GitHub glob semantics). The daily 05:23 UTC schedule refreshes synthetic dates from Date.now() in scripts/simulate-dashboard-pages.mjs, so removing it would weaken freshness. Open issue 20131 (superseded-build coalescing, 49 s concurrency-delay premise) not reproduced in this window, so no duplicate issue. No suggestion; next_category advanced to dependency installation and caching. Logs not read (job and step metadata plus commit file lists only)."
     }
   ]
 }
