@@ -34,7 +34,6 @@ func newCommand(version string, ghVersion func(context.Context) (string, error),
 
 All operator commands run natively in Go; Node.js is not required.
 The binary embeds the reviewed dashboard catalog and queries canonical PostgreSQL.
-Activity and Dashboard Actions invoke node activity/cao.mjs directly.
 Help, version, and catalog discovery work offline.`,
 		Version:       version,
 		Args:          cobra.NoArgs,
