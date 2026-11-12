@@ -21,7 +21,7 @@ PostgreSQL as a physical archive catalog, content staging service, Blob delivery
 receipt store, or source of full traces. The native source-enrollment privacy
 ledger and withdrawal outbox below contain only enrollment/destination metadata,
 never archive contents, manifests, objects, events or run-attempt receipts.
-Dashboard SQLite, IndexedDB, JSONL publication, and ordinary
+Dashboard PostgreSQL, IndexedDB, JSONL publication, and ordinary
 dashboard query behavior MUST remain unchanged. There is no frontend or
 automatic cross-store join.
 
@@ -35,8 +35,9 @@ establishes outcome acceptance, canonical Value freshness, or Git evidence.
 Archive enablement MUST NOT grant acquisition authority. Capture receives the
 existing authorized visit to `usage/aw_session.jsonl`, before session evidence
 normalization, compaction, or temporary-workspace cleanup. Local archive access is
-bounded by the SQLite snapshot's exact repository scope; the local Go server
-MUST NOT start SQLite evidence collection or backfill. Co-resident
+bounded by the exact repository scope of the local canonical PostgreSQL
+inventory; the local Go server MUST NOT start GitHub evidence collection or
+implicit backfill. Co-resident
 hosted acquisition is bounded by existing collection enrollment and policy.
 Archive configuration further narrows that scope to exact repositories.
 
@@ -328,7 +329,7 @@ omissions reported independently of selection. Local status advertises
 or execute it.
 
 Archive queries MUST NOT route through, replace, or fall back to ordinary
-SQLite/PostgreSQL dashboard queries. Query failures return explicit unavailable
+PostgreSQL dashboard queries. Query failures return explicit unavailable
 or budget errors. Metadata summaries count retained approved event rows at their
 declared grain, not tool invocations, token totals, accepted value, or population
 estimates.
