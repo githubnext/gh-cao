@@ -1011,13 +1011,14 @@ same transaction, independently of the rolling detail window. Replay, attempt
 corrections and UTC-week retention follow the shared daily contract. Counts
 describe partial admitted observations, not complete upstream history.
 It never fabricates campaign policy, queue backlog, accepted outcomes, or
-uncollected event evidence. The packaged local dashboard preserves normal
-operational pages, navigation, templates, controls and drill-downs, with the
-standard Overview landing page. Its declarative immediate profile exhaustively
-classifies every page, view and query against the evidence the operator collects;
-unsupported views and unreachable queries are omitted. Settings, Ingestion and
-control-plane-only surfaces are excluded. Intrinsic workflow/run sources avoid requiring
-uncollected campaign enrichment. Valid missing canonical sources in an explicit
+uncollected event evidence. The CLI binds ingestion to `serve --sqlite-ingestion --sqlite PATH`, which uses
+the standard server dashboard document, canonical queries, HTTP API and revision
+subscriptions with a SQLite backend. There is no separate immediate/local
+presentation model, query-source aliasing, or `local-preview` route. The standard
+Overview, navigation, templates, controls and drill-downs render through the same
+server pipeline; ordinary declarative capability requirements gate unavailable
+administration and actions. Legacy campaign dashboard bundles are not discovered.
+Valid missing canonical sources in an explicit
 local snapshot produce typed unavailable results; unknown sources, corrupt
 evidence and execution errors still fail. Available cached jobs, sessions,
 tools, domains, skills, friction, safe outputs, experiments, evals and graders
@@ -1032,12 +1033,13 @@ is private and temporary, with no install-time Node, Go, service, or container.
 Source builds select existing server/site paths explicitly. The command only
 serves the dashboard, with automatic collection and refresh; it has no
 public subcommands or remote run mutations and grants no rollout authority or
-hosted CLI execution. A private capability-path integration enables only declared
+hosted CLI execution. A private native adapter enables only declared
 repository maintenance commands in the selected exact scope, with mandatory
 pull-request publication and trusted terminal approval for every execution.
 The existing operational SQLite command queue owns IDs, idempotency, output,
 cancel/retry and fail-closed recovery, separately from canonical evidence.
-The read-only server owns that queue and proxies validated execution plans to
+The ordinary bearer-authenticated server owns that queue, requires same-origin
+mutation requests, and proxies validated execution plans to
 the native CLI; only the CLI holds credentials and invokes the embedded gh-aw
 maintenance commands. Subprocess completion must be confirmed before settlement.
 Unix terminal approval is cancellation-scoped; unsupported platforms and missing

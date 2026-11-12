@@ -12,6 +12,7 @@ test("ordinary dashboard development uses Go, not the canvas server", async () =
     'CAO_MARKETPLACE_POLICY_PATH="${CAO_MARKETPLACE_POLICY_PATH:-$PWD/.github/workflows/cao.json}" go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist');
   assert.equal(root.scripts.dev, "npm run dashboard:local --");
   assert.equal(site.scripts.dev, "npm --prefix ../.. run dev --");
+  assert.match(root.scripts["predashboard:local"], /^CAO_DASHBOARD_PROFILE=server /);
   assert.equal(root.scripts["dashboard:server:serve"], root.scripts["dashboard:local"]);
   for (const command of Object.values(root.scripts)) {
     assert.doesNotMatch(command, /node dashboard\/(?:local|canvas)-server\.mjs/);

@@ -10,10 +10,25 @@ const walkthrough = readFileSync("docs/repo-assist-quickstart.md", "utf8");
 const installation = "gh extension install githubnext/gh-cao";
 const fallback = "curl -fsSL https://raw.githubusercontent.com/githubnext/gh-cao/main/install-gh-cao.sh | bash";
 
-test("getting started reaches monitoring before optional campaign execution", () => {
+test("getting started opens a local dashboard before optional shared monitoring", () => {
+  const localStart = gettingStarted.indexOf("## Open a local dashboard (no deployment)");
+  const sharedStart = gettingStarted.indexOf("## Set up shared monitoring (optional)");
+  assert.ok(localStart > 0 && sharedStart > localStart);
+  const local = gettingStarted.slice(localStart, sharedStart);
+  assert.match(local, /gh auth status[\s\S]*gh auth login[\s\S]*gh extension install githubnext\/gh-cao[\s\S]*gh cao dashboard --repo OWNER\/REPOSITORY/);
+  assert.match(local, /No `gh cao setup`, policy file, repository enrollment, campaign, or CAO Actions\s+installation is required/);
+  assert.match(local, /Go server binds to loopback/);
+  assert.match(local, /normal dashboard queries against\s+canonical SQLite/);
+  assert.match(local, /requires network access and\s+repository permissions/);
+  assert.match(local, /Starting the\s+dashboard does not change policy, workflows, or remote repository state/);
+  assert.doesNotMatch(local, /```bash\n(?:gh cao setup|git push|gh workflow run)/);
+});
+
+test("shared monitoring reaches a dashboard before optional campaign execution", () => {
+  const sharedStart = gettingStarted.indexOf("## Set up shared monitoring (optional)");
   const optional = gettingStarted.indexOf("## Optional: add automation later");
-  assert.ok(optional > 0);
-  const monitoring = gettingStarted.slice(0, optional);
+  assert.ok(sharedStart > 0 && optional > sharedStart);
+  const monitoring = gettingStarted.slice(sharedStart, optional);
   const commands = [
     installation,
     "gh cao --version",
@@ -68,7 +83,10 @@ test("getting started reaches monitoring before optional campaign execution", ()
   ]) {
     assert.ok(gettingStarted.includes(`<span id="${anchor}"></span>`), anchor);
   }
-  assert.ok(gettingStarted.trim().split(/\s+/).length < 1000, "first-run guide should stay concise");
+  const sharedEnd = gettingStarted.indexOf("\n</details>", optional);
+  assert.ok(sharedEnd > optional);
+  assert.ok(gettingStarted.slice(sharedStart, sharedEnd).trim().split(/\s+/).length < 1000,
+    "shared-monitoring first-run guide should stay concise");
   assert.doesNotMatch(monitoring, /--quickstart|gh aw run|cao\.sh (?:add|enable|quickstart)|AI credits/);
   assert.match(monitoring, /No campaigns or agentic work are installed/);
   assert.match(monitoring, /Commit and push these CAO monitoring changes\? \[y\/N\]/);

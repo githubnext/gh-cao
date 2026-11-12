@@ -49,18 +49,40 @@ gh cao dashboard --repo octo/api --repo octo/web
 Release binaries embed the pinned gh-aw log collector, the existing Go server,
 and the built dashboard. Only an authenticated GitHub CLI is required at runtime;
 there is no separate gh-aw, Node.js, npm, PostgreSQL, Redis, or container setup.
+By default, all dashboard code, static assets, query contracts, and the canonical
+artifact normalizer come from the installed extension binary, not a CAO checkout
+or separately installed runtime files. Existing GitHub CLI configuration and
+authentication are honored, as are optional local gh-aw artifact caches and
+explicit source-development overrides described below; none requires installing
+separate CAO runtime files. The command extracts its bundled resources
+to a private temporary directory and removes them on shutdown; only the local
+evidence cache is retained. Release installation checks start the dashboard from
+an empty directory with only `gh` on `PATH` and exercise its embedded collector,
+HTTP assets, and SQLite queries.
 The command resolves the current repository when `--repo` is omitted and
 supports up to 20 explicitly named GitHub.com repositories.
 
 Both the recent evidence window and server lifetime default to **48 hours** and
 cannot exceed that bound. The command stays in the foreground, selects an
 available loopback port, prints the access URL, and refreshes every five minutes.
+Startup reports that collection is in progress before displaying a clearly
+labelled browser URL, repository scope, SQLite cache path, refresh interval, and
+session lifetime. The ready message also reminds you that Ctrl-C stops the
+server without deleting the cache. If repository access fails, check
+`gh auth status --hostname github.com` in the same terminal that runs the command.
 Ctrl-C closes its server and stops collection. `--listen 127.0.0.1:8443`,
 `--window 12h`, `--duration 2h`, `--refresh 2m`, and `--count 100` narrow or adjust
 the session. The count caps each repository's recent-run lookup and usage sample
 separately (maximum 1000 each); their deduplicated union contains at most twice
 that count. It is not a guarantee of complete history.
 
+The CLI binds its ingestion pipeline to the explicit
+`cao-dashboard serve --sqlite-ingestion --sqlite PATH` server mode. It uses the
+standard built-in dashboard, server HTTP/query API, and SQLite backend, without
+a separate local presentation model, query aliases, or `local-preview` routing.
+It does not discover or load legacy campaign dashboard bundles. Acquisition
+and atomic canonical publication stay in the CLI ingestion process; the HTTP
+server reads consistent SQLite transactions and observes committed revisions.
 The landing page remains the standard **Overview**, with the existing factory
 header, factory stations, normal navigation and drill-downs. The shared Runs page presents recent
 executions and daily observations through canonical SQLite and revision subscriptions,
@@ -76,10 +98,9 @@ gh-aw adapter and canonical normalizer hydrate jobs, sessions, tool calls,
 firewall domains, skills, friction, safe outputs, experiments, evals and graders
 when their evidence is available. Only agentic `.lock.yml` workflows are included.
 The normal operational dashboard remains available, including repository, workflow
-and run drill-downs. The immediate profile audits every page, view and query against
-its acquisition capabilities and removes unsupported views and their unused queries.
-Settings, Ingestion and control-plane-only views are excluded. Rich artifact views
-remain available, with explicit partial or unavailable evidence when artifacts are
+and run drill-downs. Ordinary server capability checks govern administration and
+maintenance; no local-specific pages or query substitutions are installed.
+Rich artifact views remain available, with explicit partial or unavailable evidence when artifacts are
 missing. Campaign policy, fleet queue backlog, accepted outcomes and Operational
 Value are not inferred from run success. **Coverage is partial:** uncollected
 evidence must never appear as healthy zeros.
@@ -125,6 +146,9 @@ is currently supported on Unix; Windows cannot execute these actions.
 No maintenance command runs merely because the dashboard starts, and this mode
 does not mutate remote runs, dispatch workflows, change rollout policy or enable
 hosted execution.
+The native adapter is independent of canvas integration. Its normal server
+endpoints require bearer authentication and same-origin mutation requests in
+addition to fresh terminal approval.
 
 For source development, build the server and site and pass both
 `--server-executable PATH` and `--site PATH`. Release builds package these assets

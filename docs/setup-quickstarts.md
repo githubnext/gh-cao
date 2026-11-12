@@ -1,9 +1,78 @@
 ---
 title: Set Up CAO
-description: Set up CAO, monitor one repository, and explore your dashboard before adding automation.
+description: Open a local dashboard with authenticated GitHub CLI and no cloud deployment, or set up shared monitoring.
 ---
 
-Monitor existing GitHub Agentic Workflow evidence in one repository.
+Start with existing GitHub Agentic Workflow evidence on your own machine.
+Shared monitoring and automation are separate, optional steps.
+
+## Open a local dashboard (no deployment)
+
+An installed CAO release and your **locally authenticated GitHub CLI** are
+sufficient. You do not need a CAO cloud deployment, Azure setup, a hosted
+dashboard, PostgreSQL, Redis, containers, or a separate Node.js, npm, or gh-aw
+installation. The release includes the Go server, built dashboard, and pinned
+gh-aw log collector.
+
+Verify GitHub CLI authentication, install the extension, and select the
+GitHub.com repository you can read:
+
+```bash
+gh auth status
+# If needed:
+gh auth login
+gh extension install githubnext/gh-cao
+gh cao dashboard --repo OWNER/REPOSITORY
+```
+
+In an existing repository checkout, `gh cao dashboard` resolves the current
+repository instead. Repeat `--repo OWNER/REPOSITORY` to select up to **20 exact
+GitHub.com repositories**. A checkout is unnecessary when `--repo` is explicit.
+No `gh cao setup`, policy file, repository enrollment, campaign, or CAO Actions
+installation is required.
+
+**Open and stop:** Keep the command running in the terminal. After initial
+collection, open the full **Dashboard:** URL it prints in your browser; the
+command also prints the **SQLite cache:** path. The Go server binds to loopback
+on an available local port and evaluates the normal dashboard queries against
+canonical SQLite on your machine, not a hosted service or browser IndexedDB.
+Press **Ctrl-C** in that terminal to stop the server and collection. The cache
+remains for later sessions with the same repository scope.
+
+**Online evidence, local serving:** GitHub remains the authenticated upstream
+source for repository, workflow, run, and available artifact evidence.
+Collection uses your local `gh` identity and requires network access and
+repository permissions. No cloud deployment does **not** mean offline
+acquisition or bypassing GitHub access controls.
+
+**Automatic, bounded refresh:** Collection runs at startup and every **five
+minutes** while the command runs. The recent evidence window and server
+lifetime each default to **48 hours**, with 48 hours also their maximum.
+For example, `gh cao dashboard --repo OWNER/REPOSITORY --window 12h --duration 2h`
+narrows both. The default count is **200** per repository for each of the
+recent-run lookup and cached usage sample, not a promise of complete history.
+Only agentic `.lock.yml` workflows are included. Acquisition budgets, API
+access, and artifact availability can leave evidence partial or unavailable;
+ordinary Actions jobs and missing evidence must not look like healthy zeros.
+A failed refresh reports the error and retains the previous SQLite snapshot.
+
+**Optional reuse:** Existing local setup can stay in place, but the command
+does not require or adopt its CAO policy as collection scope; use the current
+repository or explicit `--repo` selections. For a single repository, an existing
+`.github/aw/logs` artifact cache is reused automatically, or select one with
+`--logs-dir PATH`. Otherwise caches live in your user cache directory, keyed by
+repository scope. `--cache-dir PATH` selects a separate private dashboard cache;
+do not point it at an existing Activity database. Cache files can contain
+private evidence: protect their permissions and do not publish them.
+
+See the [command reference](cao-cli.md#on-demand-local-dashboard) for all flags,
+acquisition limits, and separately approved maintenance actions. Starting the
+dashboard does not change policy, workflows, or remote repository state.
+
+## Set up shared monitoring (optional)
+
+The remaining walkthrough prepares a control repository for monitoring in
+GitHub Actions. It is **not a prerequisite** for `gh cao dashboard`.
 
 **Estimated time: 15 minutes**; approval and deployment vary.
 
@@ -11,6 +80,9 @@ Monitor existing GitHub Agentic Workflow evidence in one repository.
 
 This is one monitoring path. For private targets, PATs, enterprise hosts, and
 other topologies, see [setup combinations](setup-compatibility.md).
+
+<details>
+<summary>Prepare a control repository for shared monitoring.</summary>
 
 ## Prerequisites
 
@@ -202,6 +274,8 @@ None is enrolled, enabled or run by setup. Installation is not execution:
 review and commit workflows and policy together before enabling them. Start in
 **review** mode with **one repository**; model access and AI credits are separate
 prerequisites. See [Roll out a campaign](rollout-and-routing.md).
+
+</details>
 
 The [Repo Assist walkthrough](repo-assist-quickstart.md) demonstrates a review-only campaign.
 
