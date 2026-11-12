@@ -1,35 +1,7 @@
 {
   "source_sha": "62f179a2a9b359fc88aee92cefa9a0f54a1422eb",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-10T20:33:44Z",
-      "worker_run_id": "42895868045",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42896004811,
-        42893528446,
-        42893241575,
-        42891091809,
-        42888486035,
-        42886082405,
-        42883487961,
-        42882863950,
-        42881074442,
-        42880898081,
-        42880862291,
-        42878502714,
-        42876007544,
-        42875512132,
-        42873697320,
-        42870930998,
-        42868247499,
-        42865784030,
-        42864725603,
-        42863193567
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T17:16:12Z to 2026-11-10T20:31:01Z) was within 14 days and contained 12 successful runs, three failed runs, two cancelled runs, and three skipped workflow_run callbacks. Trusted Actions job and step metadata verified only one successful full build-and-deploy publication: schedule run 42881074442 at source 2fbe39c5cfd0cf1af046a5e3e21ff67f327f20ac. It waited 203 seconds before the freshness job started, then completed a 168-second build and 27-second deploy; dependency installation took 51 seconds, Astro generation 15 seconds, dashboard cache restore 4 seconds, Pages artifact upload 19 seconds, and Pages deployment 23 seconds. The dashboard cache was a verified hit because the fallback lookup and artifact download steps were skipped. The other 11 successful runs were freshness-only schedules; the three failed runs, two cancelled runs, and three skipped callbacks were disclosed and excluded from successful publication distributions. One comparable successful publication is below the required five, so full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer/Pages-packaging analysis across a sufficient sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
     {
       "evaluated_at": "2026-11-10T20:52:23Z",
       "worker_run_id": "42898958972",
@@ -818,6 +790,34 @@
         43081415171
       ],
       "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z; within 14 days; 0 cancelled) = 13 successes: 8 push publications on the current build-only structure (source d57c4c82..62f179a2; n=8, meets the 5-run minimum), 1 older-structure push (494560796e) and 1 older-structure schedule (49456079) full publications, and 3 freshness-only schedules; 1 workflow_run callback skipped; 6 failed schedule runs (93614994/770e465d) excluded because their build failed at the retired Mount latest CAO Dashboard artifact step. Trusted job and step metadata only; no log reads. Current publications: build median 72.5s (p90 93s), deploy job median 10s (p90 11s), build-start-to-deploy-complete median 86.5s (p90 109s). Artifact chain (Upload 2.5s + handoff 5s + deploy-job setup 2s + Deploy Pages 7s) median 16s, p90 18s. Only the handoff and setup (about 7s) are theoretically removable, and only by merging build and deploy, which weakens the environment and id-token separation. Pages artifact is 7.7-8.3 MB, down from about 112 MB and a 15-20s upload on the older structure, so the main transfer reduction has already landed. No change is expected to save 60s or 15 percent safely. Not evaluated here: Checkout (fetch-depth 0; median 24s, p90 40s) is the largest build-job step. Next category: scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-11-12T03:54:30Z",
+      "worker_run_id": "43150696264",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175,
+        43094878868,
+        43092616318,
+        43090243002,
+        43087935698,
+        43085628886,
+        43085139761,
+        43083249533,
+        43081415171,
+        43080844329
+      ],
+      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z; 14-day window; 0 cancelled, none in progress) = 8 current-design push publications (d57c4c821..62f179a2; docs.yml unchanged since d57c4c821, which removed the */15 freshness job and workflow_run trigger), 4 successful pre-design full publications (3 schedule, 1 push), 6 failed pre-design schedules (retired Mount latest CAO Dashboard artifact step; excluded), 1 skipped workflow_run callback. Current-design medians (p90), n=8: run created to build start 3.5 s (4 s); build end to deploy start 5 s (6 s); build 72.5 s (90.9 s); deploy 10 s (11 s); wall 90.0 s (111.6 s). Concurrency: 0 of 8 runs overlapped, so no group waits. Path audit: each publication changed at least one Pages-build input (dashboard/site, docs, activity, scripts, or .github/workflows/shared/policy.mjs, imported by dashboard/site/scripts/build.mjs); no trigger-only churn. Daily cron 23 5 * * * is intentional synthetic-date refresh; no current-design schedule run exists yet. No queue, concurrency, or trigger change lowers median execution time, so the 60 s / 15% gate is not met. No suggestion; next_category advanced to dependency installation and caching."
     }
   ]
 }
