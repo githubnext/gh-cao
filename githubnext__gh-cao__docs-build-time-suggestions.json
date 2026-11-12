@@ -1,35 +1,7 @@
 {
   "source_sha": "3bd066dd1f825f6178c002e23615a02c429316e8",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-10T19:32:05.332486Z",
-      "worker_run_id": "42885638794",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        42886082405,
-        42883487961,
-        42882863950,
-        42881074442,
-        42880898081,
-        42880862291,
-        42878502714,
-        42876007544,
-        42875512132,
-        42873697320,
-        42870930998,
-        42868247499,
-        42865784030,
-        42864725603,
-        42863193567,
-        42862394688,
-        42860599143,
-        42860280975,
-        42857825785,
-        42855326967
-      ],
-      "outcome": "incomplete: the latest-20 completed docs.yml window (2026-11-10T16:31:28Z to 2026-11-10T19:31:25Z) was within 14 days and contained 12 successful runs, three failed runs, two cancelled runs, and three skipped workflow_run callbacks. Trusted Actions job and step metadata verified only two successful full build-and-deploy publications: schedule run 42881074442 and push run 42860280975. The other ten successful runs were freshness-only schedules with build and deploy skipped. Run 42881074442 spent about 203 seconds waiting before its first job started, then completed a 168-second build and 27-second deploy; run 42860280975 had about 3 seconds of initial queue time, an 81-second build, and a 51-second deploy. Both had verified dashboard cache hits because fallback dashboard lookup and artifact download steps were skipped. The three failed runs completed their build jobs but failed during unusually long Pages deployments, and the two cancelled runs produced no completed job sample. Two comparable successful publications are below the required five, so full-workflow and dashboard/build/deploy median and p90 distributions and repeated artifact-transfer/Pages-packaging analysis across a sufficient successful sample could not be established. No suggestion was made; artifact transfer and Pages packaging remains the next category."
-    },
     {
       "evaluated_at": "2026-11-10T19:52:29Z",
       "worker_run_id": "42889050171",
@@ -828,6 +800,34 @@
         43104481579
       ],
       "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:31:43Z to 2026-11-12T02:27:22Z, all within 14 days; no cancelled runs). docs.yml unchanged since d57c4c82 (2026-11-11T21:35:58Z), so the 7 successful push publications from d57c4c82 onward form the like-for-like sample (n=7). Excluded and disclosed: 2 successful publications on the superseded file (push 43081415171, schedule 43083249533), 6 failed superseded schedule runs (Mount latest CAO Dashboard artifact failed, 19:46-21:31Z), freshness-only schedules, and 2 workflow_run skips. Like-for-like medians: full workflow created-to-updated 92 s (p90 114 s); build queue 3 s; build job 73 s (p90 93 s); deploy job 10 s; install deps (two npm ci) 22 s (p90 25 s, range 13-25); setup-node npm cache restore 6 s (1-8 s); checkout fetch-depth 0 24 s (p90 40 s); astro docs build 12 s; synthetic demo 3 s; Pages upload 2 s; deploy step 7 s. Job logs return 403 difc_forbidden, so per-run cache hit/miss is unverified; main-scope node-cache entries appeared only at lockfile-hash changes (2026-11-11T21:38-21:40, 2026-11-12T02:28). Best-case node_modules caching saves at most install minus unmeasured restore cost (est. net 5-12 s), below 15% of the 92 s median workflow (13.8 s). fetch-depth 0 is required: resolveBuildProvenance runs git log per source file for sourceCommittedAt, so shallow checkout would change provenance; not proposed. docs.yml has no dashboard or freshness job; dashboard generation is the Build synthetic enterprise demo step. No suggestion made. Carry-forward for Astro category: resolveBuildProvenance per-page git log calls inside the docs build. next_category advanced."
+    },
+    {
+      "evaluated_at": "2026-11-12T02:53:07Z",
+      "worker_run_id": "43143838546",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175,
+        43094878868,
+        43092616318,
+        43090243002,
+        43087935698,
+        43085628886,
+        43085139761,
+        43083249533,
+        43081415171,
+        43080844329,
+        43078618882
+      ],
+      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:31:43Z to 2026-11-12T02:27:22Z; within 14 days; 0 cancelled; none in progress) = 12 successful, 6 failed pre-design schedules (Mount latest CAO Dashboard artifact; excluded), 2 skipped workflow_run callbacks. Comparable sample n=7: current-design push publications 43104481579, 43121504364, 43124416558, 43129836945, 43138878761, 43139972486, 43141528595; commits API shows docs.yml last changed in d57c4c821, so HEAD 3bd066dd1 shares it. Excluded: 2 pre-design full publications (43083249533, 43081415171) and 3 freshness-only schedules. 'Build documentation' step (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test) median 12 s (p90 15 s, range 10-15), 13% of median wall 92 s and 16% of median build job 73 s. Full removal (12 s) is below the 15%-of-wall gate (13.8 s), so no Astro-internal change can meet the threshold. Per-page resolveBuildProvenance git log: at most 61 docs source files; per-call cost unmeasured because job log reads return 403 difc_forbidden (re-verified). Cache hit/miss per run unverified; Actions cache list shows node-cache keyed by lockfile hash. No suggestion; next_category advanced to reusable dashboard generation. Carry-forward lead, not a suggestion: fetch-depth 0 checkout (median 24 s, 26% of wall) stays coupled to per-file sourceCommittedAt; any shallow or partial alternative must preserve provenance semantics."
     }
   ]
 }
