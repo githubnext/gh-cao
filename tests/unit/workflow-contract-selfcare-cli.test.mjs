@@ -61,7 +61,7 @@ test("CLI consistency inherits fail-closed admission and compiled safe-output li
     assert.equal(step.if, "${{ inputs.target_repo == 'githubnext/gh-cao' && (inputs.safe_output_mode || 'review') == 'live' }}");
     assert.doesNotMatch(step.run ?? "", /\bgh\s+cao\b|\bgo\s+run\b/);
   }
-  assert.match(source, /Use `node activity\/cao\.mjs` for workflow runtime operations/);
+  assert.match(source, /Use `gh cao` for workflow runtime operations/);
   assert.match(source, /execute it only for isolated, offline validation/);
   const compiled = workflow(`${id}.lock.yml`);
   const jobs = generatedJobs(compiled);
@@ -74,7 +74,7 @@ test("CLI consistency inherits fail-closed admission and compiled safe-output li
 
 test("CLI consistency inventories every surface and enforces the four ownership boundaries", () => {
   for (const required of [
-    "node activity/cao.mjs", "activity/commands/", "cmd/gh-cao/", "internal/cli/",
+    "the native command registry", "cmd/gh-cao/", "internal/cli/",
     "server/cmd/cao-dashboard/", "Single-purpose microservices",
     "Recursively enumerate Cobra subcommands", "including hidden commands and aliases",
     "package `bin` declarations", "container entry points", "workflow invocations",

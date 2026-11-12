@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { commandHandlers } from "../../activity/commands/index.mjs";
 
 const docs = readFileSync("docs/cao-cli.md", "utf8");
-const help = `${readFileSync("activity/cao.mjs", "utf8")}\n${readFileSync("activity/cli-usage.mjs", "utf8")}`;
+const help = readFileSync("internal/cli/root.go", "utf8");
 const gettingStarted = readFileSync("docs/setup-quickstarts.md", "utf8");
 const walkthrough = readFileSync("docs/repo-assist-quickstart.md", "utf8");
 const installation = "gh extension install githubnext/gh-cao";
@@ -203,58 +202,8 @@ test("CAO command guide covers the operator-facing command surface", () => {
   }
 });
 
-test("Node-only command documentation uses explicit runtime entry points without a shell launcher", () => {
-  for (const command of [
-    "repair-database", "operational-value", "cluster-problems",
-    "dashboard-complexity", "prune-dashboard", "validate --json",
-  ]) {
-    assert.ok(docs.includes(`node activity/cao.mjs ${command}`), command);
-  }
-  assert.doesNotMatch(docs, /(?<![\w-])cao\.sh/);
-  assert.match(docs, /gh cao setup --help/);
-  const demo = readFileSync("docs/components/TerminalDemo.astro", "utf8");
-  assert.match(demo, /gh cao<\/span> setup/);
-  assert.match(demo, /data-terminal-output="setup">Monitoring configured locally\. No commit or push was performed\.[\s\S]*Next: gh cao doctor/);
-  assert.doesNotMatch(demo, /(?<![\w-])cao\.sh|<\/span> validate/);
-});
 
-test("command inventory covers registered Node APIs and process boundaries", () => {
-  const inventory = docs.slice(docs.indexOf("| Surface | Commands | Execution |"), docs.indexOf("The extension is **entirely Go**"));
-  for (const command of commandHandlers.keys()) {
-    assert.ok(inventory.includes(`\`${command}`) || inventory.includes(`\`node activity/cao.mjs ${command}`), command);
-  }
-  assert.match(inventory, /Actions-only JavaScript runtime/);
-  assert.match(inventory, /Workflow-agent evidence APIs[\s\S]*not deprecated duplicates/);
-  assert.match(inventory, /configure admission with `setup admission`/);
-  assert.doesNotMatch(inventory, /`admission setup`/);
-  assert.match(inventory, /`init` is optional local policy-only/);
-  for (const binary of ["cao-dashboard", "cao-webhook-gateway", "cao-cli-quota", "cao-cli-relay"]) {
-    assert.ok(inventory.includes(`\`${binary}\``), binary);
-  }
-  assert.match(inventory, /internal stdin\/stdout scheduling protocol/);
-  assert.match(inventory, /npm `cao` bin[\s\S]*same\s+Node entry point/);
-});
 
-test("ingestion documentation separates active packaging from supported manual artifact import", () => {
-  const rows = docs.split("\n").filter((line) => line.startsWith("|"));
-  const pipeline = rows.find((line) => line.startsWith("| Active ingestion and packaging |"));
-  assert.ok(pipeline);
-  for (const command of ["ingest-jsonl", "compact-jsonl", "hash-payloads"]) {
-    assert.ok(pipeline.includes(`\`${command}\``), command);
-  }
-  assert.ok(!pipeline.includes("`ingest`"));
-  const manual = rows.find((line) => line.startsWith("| Manual artifact import |"));
-  assert.ok(manual);
-  assert.match(manual, /`ingest`/);
-  assert.match(manual, /not used by the Activity or Dashboard pipelines and not deprecated/);
-  const ingestion = readFileSync("docs/dashboard-data-ingestion.md", "utf8").replace(/\s+/g, " ");
-  assert.match(ingestion, /### Manual artifact import .*`node activity\/cao\.mjs ingest` is a supported manual importer/);
-  assert.match(ingestion, /### Active JSONL pipeline .*`compact-jsonl`, `hash-payloads`, and `ingest-jsonl`/);
-  assert.match(ingestion, /not just a checksum utility/);
-  assert.match(ingestion, /gh cao download/);
-  assert.match(ingestion, /gh cao query/);
-  assert.match(ingestion, /node activity\/cao\.mjs repair-database/);
-});
 
 test("hosted-executor App setup belongs only to the native operator CLI", () => {
   assert.match(docs, /gh cao setup auth hosted-cli --repo OWNER\/CONTROL/);
@@ -288,7 +237,7 @@ test("CAO command guide explains the workflow execution boundary", () => {
   assert.match(docs, /`gh cao campaigns mode preview` writes `mode: review`/);
   assert.match(docs, /different from\s+`gh aw doctor`/);
   assert.match(docs, /Control-plane validation is Actions-only/);
-  assert.match(docs, /node activity\/cao\.mjs validate --json/);
+  assert.match(docs, /no shell launcher or compatibility\s+entry point/);
   assert.doesNotMatch(docs, /gh cao validate/);
 });
 

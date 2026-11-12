@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildInventoryDashboardSources } from "../../activity/inventory-sources.mjs";
+import { buildInventoryDashboardSources } from "../../dashboard/report/inventory-sources.mjs";
 
 const input = {
   repository: "githubnext/control",

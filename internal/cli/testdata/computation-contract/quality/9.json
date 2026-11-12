@@ -1,0 +1,31 @@
+{
+  "quality:9d309723410ba0d2ecbc22e6e8cff733efc9beb8e27a5d0c9fcdc799652867af": {
+    "attributionCoverage": {
+      "denominator": null,
+      "numerator": null,
+      "state": "unknown"
+    },
+    "availability": "unknown",
+    "completeness": "unknown",
+    "contractId": "evidence-quality",
+    "contractVersion": "1.0.0",
+    "contradictionState": "unknown",
+    "coverage": {
+      "denominator": 0,
+      "numerator": 0,
+      "state": "zero"
+    },
+    "freshness": {
+      "observedAt": "2026-10-01T09:00:00.000Z",
+      "state": "stale"
+    },
+    "maturity": "unknown",
+    "provenance": {
+      "sources": [
+        "one",
+        "two"
+      ],
+      "state": "partial"
+    }
+  }
+}

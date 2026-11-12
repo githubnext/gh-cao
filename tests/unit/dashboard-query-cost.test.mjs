@@ -74,7 +74,7 @@ test("operational artifacts feed SQL benchmarks separately from synthetic UI che
   assert.doesNotMatch(JSON.stringify(jobs.integration),
     /test:performance:dashboard-quer|dashboard:data:download|cao-activity-index|DASHBOARD_DATA_URL/);
   const benchmarkCommands = jobs["query-cost"].steps.map((step) => step.run ?? "").join("\n");
-  assert.match(benchmarkCommands, /npm run dashboard:data:download/);
+  assert.match(benchmarkCommands, /go run \.\/cmd\/gh-cao download/);
   assert.doesNotMatch(benchmarkCommands, /gh run download|github\.io/);
   assert.match(benchmarkCommands, /npm run test:performance:dashboard-query-cost\n/);
   assert.match(benchmarkCommands, /npm run test:performance:dashboard-query-cost-postgres\n/);

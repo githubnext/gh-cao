@@ -18,7 +18,7 @@ func TestPeriodAssessmentDomains(t *testing.T) {
 		"measurementKind": "interval", "coverageStatus": "missing", "missingReason": "source-inaccessible",
 	}
 	raw, _ := json.Marshal(base)
-	parsed, err := parseOutput(raw, "adapter", []string{"octo/api"})
+	parsed, err := parseOutput(raw, []string{"octo/api"})
 	if err != nil || len(parsed.values) != 1 || testEnvelopes(parsed.values)[0].OperationalValue.Value != nil {
 		t.Fatalf("unavailable assessment not preserved: %+v, %v", parsed, err)
 	}
@@ -35,7 +35,7 @@ func TestPeriodAssessmentDomains(t *testing.T) {
 			}
 			record[field] = invalid
 			raw, _ := json.Marshal(record)
-			if _, err := parseOutput(raw, "adapter", []string{"octo/api"}); err == nil {
+			if _, err := parseOutput(raw, []string{"octo/api"}); err == nil {
 				t.Fatalf("accepted invalid period metadata: %s", raw)
 			}
 		})
@@ -51,7 +51,7 @@ func TestParseOutputRejectsExplicitNullOptionalFields(t *testing.T) {
 				`{"timestamp":"2026-09-24T10:00:00Z","repository":"octo/api","valueId":"example.value","value":1,%q:null}`,
 				field,
 			)
-			if _, err := parseOutput([]byte(record+"\n"), "adapter", []string{"octo/api"}); err == nil {
+			if _, err := parseOutput([]byte(record+"\n"), []string{"octo/api"}); err == nil {
 				t.Fatalf("expected explicit null %s to be rejected", field)
 			}
 		})
@@ -60,7 +60,7 @@ func TestParseOutputRejectsExplicitNullOptionalFields(t *testing.T) {
 		`{"timestamp":"2026-09-24T10:00:00Z","repository":"octo/api","valueId":"example.value","value":1,"rollupNumerator":null,"rollupDenominator":null}`,
 		`{"timestamp":"2026-09-24T10:00:00Z","repository":"octo/api","valueId":"example.value","value":1,"rollupNumerator":1}`,
 	} {
-		if _, err := parseOutput([]byte(record+"\n"), "adapter", []string{"octo/api"}); err == nil {
+		if _, err := parseOutput([]byte(record+"\n"), []string{"octo/api"}); err == nil {
 			t.Fatal("expected malformed rollup fields to be rejected")
 		}
 	}
@@ -72,7 +72,7 @@ func TestCadenceValidationAndPublication(t *testing.T) {
 			`{"timestamp":"2026-10-14T00:00:00Z","repository":"octo/api","valueId":"example.value","value":4,"cadenceDays":%s}`,
 			cadence,
 		)
-		parsed, err := parseOutput([]byte(record+"\n"), "adapter", []string{"octo/api"})
+		parsed, err := parseOutput([]byte(record+"\n"), []string{"octo/api"})
 		if cadence != "2.5" {
 			if err == nil {
 				t.Fatalf("accepted invalid cadence %s", cadence)
@@ -95,7 +95,7 @@ func TestEvaluatorDigestValidationAndPublication(t *testing.T) {
 			`{"timestamp":"2026-09-24T10:00:00Z","repository":"octo/api","valueId":"example.value","value":0,"evaluatorDigest":%s}`,
 			digest,
 		)
-		if _, err := parseOutput([]byte(record+"\n"), "adapter", []string{"octo/api"}); err == nil {
+		if _, err := parseOutput([]byte(record+"\n"), []string{"octo/api"}); err == nil {
 			t.Fatalf("accepted non-string evaluator fingerprint %s", digest)
 		}
 	}
@@ -104,7 +104,7 @@ func TestEvaluatorDigestValidationAndPublication(t *testing.T) {
 			`{"timestamp":"2026-09-24T10:00:00Z","repository":"octo/api","valueId":"example.value","value":0,"evaluatorDigest":%q}`,
 			digest,
 		)
-		parsed, err := parseOutput([]byte(record+"\n"), "adapter", []string{"octo/api"})
+		parsed, err := parseOutput([]byte(record+"\n"), []string{"octo/api"})
 		if digest != strings.Repeat("a", 64) {
 			if err == nil {
 				t.Fatal("expected malformed evaluator fingerprint to be rejected")

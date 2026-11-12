@@ -283,7 +283,7 @@ Guided onboarding runs as `gh cao setup`; independent authentication profiles
 are grouped under `gh cao setup auth github-app|enterprise-app|hosted-cli|token`, not a
 root-level `setup-auth` command. These native commands preserve the setup and
 setup-auth JSON result contracts and secure credential prompts.
-Actions and Node-only tools invoke `node activity/cao.mjs <command>` directly,
+Actions and Node-only tools invoke `gh cao COMMAND` directly,
 including SQLite `repair-database`. Hosted-executor App creation belongs to native
 `gh cao setup auth hosted-cli`; its retired Node profile fails before side effects.
 There is no shell launcher;

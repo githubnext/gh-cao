@@ -1,7 +1,7 @@
 {
   "version": 1,
   "specification": "specs/dashboard-data.md#722-additive-daily-run-counts",
-  "scope": "Implemented additive daily run counts only; not the proposed three-tier architecture.",
+  "scope": "Implemented additive daily run counts in native SQLite publication, IndexedDB and PostgreSQL only; not the proposed three-tier architecture. The Activity JavaScript SQLite writer is retired.",
   "deferred": [
     "sampling",
     "hot-tier limits",
@@ -30,14 +30,20 @@
       "coverage": {}
     },
     {
-      "id": "activity-sqlite",
-      "runner": "node",
+      "id": "native-sqlite-publication",
+      "runner": "go",
+      "directory": ".",
+      "packages": [
+        "./internal/cli"
+      ],
+      "pattern": "^TestDashboardDailyCounts(GoldenCases|RetentionAndAtomicPublication|CanonicalQueries|ReplayGuardsAndCorruption|CachedStartPreservesAttemptScope)$",
       "files": [
-        "tests/unit/activity-daily-run-counts.test.mjs"
+        "internal/cli/dashboard_daily_test.go"
       ],
       "coverage": {
-        "retention": "Activity doctor publishes UTC rollover eviction independently of detail TTL and fences changed-shard replay",
-        "backfill": "Activity SQLite v44 upgrade backfills multiple cursor pages without rewriting retained detail"
+        "classification": "TestDashboardDailyCountsGoldenCases",
+        "reconciliation": "TestDashboardDailyCountsReplayGuardsAndCorruption",
+        "retention": "TestDashboardDailyCountsRetentionAndAtomicPublication"
       }
     },
     {
@@ -78,18 +84,14 @@
       "packages": [
         "./internal/cli"
       ],
-      "pattern": "^Test(Native(DailyCountsSource|RepositoryRunInventoryDailyAvailability)|DashboardDailyCounts(GoldenCases|RetentionAndAtomicPublication|CanonicalQueries|ReplayGuardsAndCorruption|CachedStartPreservesAttemptScope))$",
+      "pattern": "^TestNative(DailyCountsSource|RepositoryRunInventoryDailyAvailability)$",
       "files": [
         "internal/cli/native_daily_counts_test.go",
-        "internal/cli/native_daily_inventory_test.go",
-        "internal/cli/dashboard_daily_test.go"
+        "internal/cli/native_daily_inventory_test.go"
       ],
       "coverage": {
         "availability": "TestNativeDailyCountsSource",
-        "repository-chart": "TestNativeRepositoryRunInventoryDailyAvailability",
-        "classification": "TestDashboardDailyCountsGoldenCases",
-        "reconciliation": "TestDashboardDailyCountsReplayGuardsAndCorruption",
-        "retention": "TestDashboardDailyCountsRetentionAndAtomicPublication"
+        "repository-chart": "TestNativeRepositoryRunInventoryDailyAvailability"
       }
     },
     {

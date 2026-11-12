@@ -125,7 +125,7 @@ Before analysis, consult the current gh-aw [Agentic Workflow Token Optimizer](ht
 
 ## Candidate evidence
 
-Use the last 7 full days ending at workflow start in UTC. Use bounded read-only GitHub or `agentic-workflows` calls for `TARGET_REPO`. Explicitly prepared operational snapshots may be queried with `activity/cao.mjs` (`gh runs` and `query --collection runs|audits`); validate schema, scope, freshness, window, and completeness first. Use bounded read-only fallback calls only for missing `TARGET_REPO` evidence. Never mutate the supplied snapshot.
+Use the last 7 full days ending at workflow start in UTC. Use bounded read-only GitHub or `agentic-workflows` calls for `TARGET_REPO`. Explicitly prepared operational snapshots may be queried with `gh cao` (`gh runs` and `query --collection runs|audits`); validate schema, scope, freshness, window, and completeness first. Use bounded read-only fallback calls only for missing `TARGET_REPO` evidence. Never mutate the supplied snapshot.
 
 The `agentic-workflows` `logs` and `audit` tools enforce the dispatching actor's repository role and return `permission denied: insufficient role` when this worker is dispatched by a GitHub App. Treat that denial as an unavailable fallback, not a missing tool: do not call `report_missing_tool` for it, do not retry it, and rely on the Activity database. When neither source provides complete evidence, report the gap with `report_missing_data` and then `noop`.
 

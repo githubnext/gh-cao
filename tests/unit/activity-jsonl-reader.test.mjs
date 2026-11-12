@@ -5,8 +5,8 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { jsonlLines } from '../../activity/cli/files.mjs';
-import { jsonlRecords, parseJsonlRecords, readJsonlRecords } from '../../activity/jsonl.mjs';
+import { jsonlLines } from '../../dashboard/report/evidence-files.mjs';
+import { jsonlRecords, parseJsonlRecords, readJsonlRecords } from '../../dashboard/report/jsonl.mjs';
 
 async function fixture(t, content) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'cao-jsonl-reader-'));
@@ -17,7 +17,7 @@ async function fixture(t, content) {
 }
 
 test('vendored JSONL reader and dependencies match the pinned upstream manifest', async () => {
-  const directory = new URL('../../activity/vendor/gh-aw/', import.meta.url);
+  const directory = new URL('../../dashboard/report/vendor/gh-aw/', import.meta.url);
   const source = JSON.parse(await readFile(new URL('source.json', directory), 'utf8'));
   assert.equal(source.repository, 'github/gh-aw');
   assert.match(source.revision, /^[0-9a-f]{40}$/);

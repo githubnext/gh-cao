@@ -35,25 +35,25 @@ test("Copilot setup uses Node 24", () => {
   assert.match(source, /actions\/setup-node@[0-9a-f]{40}[\s\S]*?node-version: 24[\s\S]*?cache: npm[\s\S]*?run: npm ci/);
 });
 
-test("Copilot setup stages evidence with the JavaScript runtime, not the operator extension", () => {
+test("Copilot setup stages explicitly configured evidence with the native downloader", () => {
   const setup = parse(workflow("copilot-setup-steps.yml"));
   const steps = setup.jobs["copilot-setup-steps"].steps;
   const stage = steps.find((step) => step.name === "Stage CAO dashboard evidence");
-  assert.equal(stage.run, "node activity/cao.mjs download");
+  assert.equal(stage.run, "go run ./cmd/gh-cao download");
+  assert.ok(steps.find((step) => step.uses?.startsWith("actions/setup-go@")));
   assert.equal(stage.env.DASHBOARD_DATA_URL, "${{ vars.CAO_DASHBOARD_DATA_URL }}");
   assert.equal(stage.if, "vars.CAO_DASHBOARD_DATA_URL != ''");
   const unavailable = steps.find((step) => step.name === "Report unconfigured operational evidence");
   assert.equal(unavailable.if, "vars.CAO_DASHBOARD_DATA_URL == ''");
-  assert.match(unavailable.run, /cao-activity-index/);
+  assert.match(unavailable.run, /explicitly acquired verified snapshot in \.cao/);
+  assert.match(unavailable.run, /Pages is synthetic demo data, not a fallback/);
   assert.doesNotMatch(stage.run, /github\.io|--fixture/);
   assert.doesNotMatch(steps.map((step) => step.run ?? "").join("\n"),
-    /\bgh[ \t]+cao\b|(?:^|[ \t/])gh-cao(?:\.exe)?[ \t]|\bmake[ \t]+build\b|\bgo[ \t]+build\b/);
+    /\bgh[ \t]+extension[ \t]+(?:install|upgrade)|\bmake[ \t]+build\b|\bgo[ \t]+build\b|activity\/cao\.mjs/);
 });
 
-test("agentic and deterministic CAO workflows do not invoke the native operator extension", () => {
-  // Packaging and CLI maintenance validate the native product, not the agent runtime.
-  const productValidation = new Set(["release.md", "self-care-cli-consistency.md"]);
-  const sources = readdirSync(workflowsDirectory).filter((name) => name.endsWith(".md") && !productValidation.has(name));
+test("agentic and deterministic CAO workflows never invoke the retired JavaScript CLI", () => {
+  const sources = readdirSync(workflowsDirectory).filter((name) => name.endsWith(".md"));
   const names = [
     ...sources,
     ...sources.map((name) => name.replace(/\.md$/, ".lock.yml")),
@@ -62,12 +62,12 @@ test("agentic and deterministic CAO workflows do not invoke the native operator 
   ];
   for (const name of names) {
     assert.doesNotMatch(workflow(name),
-      /\bgh[ \t]+cao\b|(?:^|[ \t/])gh-cao(?:\.exe)?[ \t]|\bgo[ \t]+(?:build|run)[^\n]*\.\/cmd\/gh-cao|\bgh[ \t]+extension[ \t]+(?:install|upgrade)[^\n]*gh-cao/m,
-      `${name} must use the installed JavaScript agent runtime`);
+      /\bnode[ \t]+(?:[^\s]*\/)?activity\/|activity\/commands\//m,
+      `${name} must not invoke the retired JavaScript agent runtime`);
   }
 });
 
-test("agent guidance documents the JavaScript-only workflow runtime", () => {
+test("agent guidance documents prepared native queries without runtime installation fallbacks", () => {
   for (const file of [
     ".github/cao/instructions.md",
     "skills/cao-cli/SKILL.md",
@@ -75,9 +75,9 @@ test("agent guidance documents the JavaScript-only workflow runtime", () => {
     "skills/cao-cli/references/workflow-runtime.md",
   ]) {
     const source = readFileSync(join(root, file), "utf8");
-    assert.match(source, /activity\/`\s+and\s+`dashboard\/`/);
-    assert.match(source, /node activity\/cao\.mjs/);
-    assert.match(source, /(?:[Nn]ever|not|Do not)[\s\S]*?(?:build|install|invoke)[\s\S]*?(?:gh cao|extension)/);
+    assert.match(source, /gh cao/);
+    assert.match(source, /(?:[Nn]ever|not|Do not)[\s\S]*?(?:build|install)[\s\S]*?(?:gh cao|extension)/);
+    assert.doesNotMatch(source, /activity\/cao\.mjs|activity\/commands\/|under `activity\/`/);
   }
 });
 

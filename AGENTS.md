@@ -162,7 +162,7 @@ After UI changes, when Playwright loads the full website, capture and include de
 - Editing dashboard ingestion, canonical storage, or the query engine → also run `npm run test:memory:dashboard-overview` from the repository root
 - Editing the daily run-count projection, reconciliation, retention, source, or migrated consumers → also run `POSTGRES_URL=... npm run test:conformance:daily-run-counts` from the repository root against an isolated PostgreSQL database whose test role can create schemas, with native Chromium installed. The gate requires passing evidence for every declared backend/test; skipped backends, browser emulation alone, and `npm run check` do not substitute for it.
 - Debugging operational SQLite data → `gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao`, then `npm run dashboard:local -- --sqlite ../.cao/gh-aw-logs.sqlite`. Alternatively set `DASHBOARD_DATA_URL` to a trusted direct operational `payload-hashes.json` before `npm run dashboard:local -- --download-sqlite`; there is no default Pages source.
-- Editing the Activity workflow or JSONL parser under `activity/` → run the focused activity tests and `npm run compile`
+- Editing shared snapshot normalization under `dashboard/report/` -> run the focused normalization tests and `npm run compile`.
 - Editing workflow `.md` files → `npm run compile` (add `compile:locks` if lock files should update)
 - Editing the local Azure harness or Azure hosting/service boundaries → run the focused Azure tests above and `npm run test:integration:azure-services`; run the setup/install journey suites when deployment behavior changes
 - Editing SVGs → `npm run check:svg`

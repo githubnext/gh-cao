@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/ingest"
 	"github.com/githubnext/gh-cao/server/internal/query"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
 )
@@ -20,7 +21,7 @@ func TestPostgresBackfillLargeQueriesRetainFreshRunsWithinResourceGuards(t *test
 		History: &simulator.History{Days: 14, RunsPerDay: 1, AsOf: time.Now().Add(-time.Minute).UTC().Format(time.RFC3339)},
 	}
 	h := newSyntheticBackfill(t, ctx, scenario)
-	if result, err := h.backfill.Replay(ctx); err != nil || result.Counts["$runs"] != query.MaxInputRows {
+	if result, err := ingest.Run(ctx, h.data, h.backfill.Lake.Directory, ingest.Options{DatabaseQueriesPath: backfillDatabaseQueries}); err != nil || result.Counts["$runs"] != query.MaxInputRows {
 		t.Fatalf("large synthetic replay = %+v, %v", result, err)
 	}
 	app, err := New(ctx, h.ops, Config{

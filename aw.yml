@@ -32,3 +32,5 @@ resources:
     destination: .github/workflows/shared/materialize-cao.mjs
   - source: .github/aw/instructions.md
     destination: .github/aw/instructions.md
+  - source: .github/workflows/shared/value-acquisition.mjs
+    destination: .github/workflows/shared/value-acquisition.mjs

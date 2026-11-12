@@ -242,14 +242,14 @@ with the installed catalog's canonical schema URI. It MUST reject unknown
 mismatches and MUST NOT rewrite an existing policy or any authority fields.
 The installer MUST invoke `gh cao init` and `gh cao setup`.
 No shell launcher is installed. Actions and Node-only
-tools MUST invoke `node activity/cao.mjs <command>` or another explicit Node
+tools MUST invoke `gh cao COMMAND` or another explicit Node
 entry point directly, including SQLite `repair-database`.
 User-facing commands MUST live in the Go extension except the Node-only
 administration tools above. Actions execution
 support MUST live in the JavaScript runtime under `activity/` and `dashboard/`.
 Agentic workflow execution and agent evidence preparation MUST NOT build,
 install, or invoke the native extension as a runtime dependency. Copilot setup
-MUST stage dashboard evidence with `node activity/cao.mjs download`. Dedicated
+MUST stage dashboard evidence with `gh cao download`. Dedicated
 extension build, release, and operator-installer compatibility tests are separate
 from this runtime boundary.
 Control-plane validation MUST have

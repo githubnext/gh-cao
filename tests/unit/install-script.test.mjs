@@ -86,7 +86,6 @@ const archiveName = path.basename(archive);
 const runtimeArchive = buildCaoRuntime(catalog, fixtureRoot, revision).archive;
 const mockFetch = path.join(fixtureRoot, "mock-fetch.mjs");
 const archiveResources = [
-  "activity",
   "dashboard",
   "runtime/package.json",
   "skills",
@@ -523,8 +522,9 @@ async function assertCompleteInstall(consumer, env, ghAwVersion, repository, { a
     campaigns: {},
   });
   assert.equal(await exists(path.join(consumer, "cao.sh")), false);
-  await executeFile(process.execPath, ["activity/cao.mjs", "--help"], { cwd: consumer, env, timeout });
-  for (const bundle of ["activity", "dashboard"]) {
+  await executeFile("gh", ["cao", "--help"], { cwd: consumer, env, timeout });
+  assert.equal(await exists(path.join(consumer, "activity")), false);
+  for (const bundle of ["dashboard"]) {
     await executeFile(process.execPath, [materializer, "verify", bundle], { cwd: consumer, env, timeout });
   }
   for (const file of [
@@ -685,7 +685,7 @@ test("documented staging preserves the complete curated runtime in a fresh check
   const { root, consumer, repository, env } = await createConsumer(t, supportedGhAw);
   await streamInstaller(consumer, env);
   await executeFile("git", ["init", "--quiet"], { cwd: consumer });
-  await executeFile("git", ["add", ".github", "activity", "dashboard"], { cwd: consumer });
+  await executeFile("git", ["add", ".github", "dashboard"], { cwd: consumer });
   const { stdout: untracked } = await executeFile("git", ["ls-files", "--others", "--exclude-standard"], { cwd: consumer });
   assert.equal(untracked, "", "the documented commit must include every installed resource");
   await executeFile("git", [

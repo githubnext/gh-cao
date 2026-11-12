@@ -10,7 +10,6 @@ const suites = [
     manifest: "aw.yml",
     testPattern: "root campaign",
     prefixes: [
-      "activity/",
       "dashboard/",
       "install-gh-cao.sh",
       ".github/actions/setup-cao-runtime/",
