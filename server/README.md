@@ -3405,6 +3405,8 @@ deployment-scoped operational store. The old filesystem collector is retired;
 an App identifier without native selection fails at startup. Unsupported
 audit/intelligence requests reject rather than fall back to Activity. Optional
 Value dependencies are validated only when selected.
+Retired filesystem Runner calls reject before credentials or evidence changes;
+no Activity subprocess fallback exists.
 
 Native run acquisition, projection, approved trace destinations and optional
 `NativeValues` use Go and shared PostgreSQL fences, without Node, Activity

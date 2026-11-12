@@ -1,19 +1,21 @@
 package collect
 
 import (
-	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
 )
 
-func TestRunnerCompactionAndReplayKeepCollidingRepositoriesIsolated(t *testing.T) {
+func TestActivityCompactionAndReplayKeepCollidingRepositoriesIsolated(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
 		t.Skip("node is required for the production Activity compactor")
@@ -40,10 +42,15 @@ func TestRunnerCompactionAndReplayKeepCollidingRepositoriesIsolated(t *testing.T
 			t.Fatal(err)
 		}
 	}
-	runner := Runner{Lake: lake, CatalogRoot: catalog, NodeBinary: node}
 	for _, repository := range repositories {
-		if err := runner.compact(t.Context(), repository); err != nil {
-			t.Fatal(err)
+		// #nosec G204 -- invokes the checked-in Activity CLI with test-owned paths.
+		command := exec.CommandContext(t.Context(), node, filepath.Join(catalog, "activity", "cao.mjs"),
+			"compact-jsonl", "--input-dir", lake.ShardDirectory(),
+			"--group", repository+"="+lake.ShardPrefix(repository))
+		command.Dir = catalog
+		command.Env = collectionEnvironment("")
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("Activity compaction: %v: %s", err, output)
 		}
 		paths, err := lake.repositoryShards(t.Context(), lake.ShardDirectory(), repository)
 		if err != nil || len(paths) != 1 {
@@ -72,92 +79,36 @@ func TestRunnerCompactionAndReplayKeepCollidingRepositoriesIsolated(t *testing.T
 	}
 }
 
-func TestValidateActivityCatalogRequiresANonBlankRoot(t *testing.T) {
-	err := validateActivityCatalog("  ", os.Stat)
-	if err == nil {
-		t.Fatal("expected an error for a blank catalog root")
-	}
-	if !strings.Contains(err.Error(), "catalog root") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestValidateActivityCatalogRequiresTheCompactorScript(t *testing.T) {
-	directory := t.TempDir()
-	if err := validateActivityCatalog(directory, os.Stat); err == nil {
-		t.Fatal("expected an error when activity/cao.mjs is missing")
-	}
-	if err := os.MkdirAll(filepath.Join(directory, "activity"), 0o750); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(directory, "activity", "cao.mjs"), []byte("//"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := validateActivityCatalog(directory, os.Stat); err != nil {
-		t.Fatalf("expected a populated catalog root to validate, got: %v", err)
-	}
-}
-
-func TestValidateWorkflowCatalogRequiresACompiledWorkflow(t *testing.T) {
-	directory := t.TempDir()
-	if err := validateWorkflowCatalog(directory); err == nil {
-		t.Fatal("expected an error when .github/workflows is missing")
-	}
-	workflows := filepath.Join(directory, ".github", "workflows")
-	if err := os.MkdirAll(workflows, 0o750); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(workflows, "example.md"), []byte("# Example\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := validateWorkflowCatalog(directory); err == nil {
-		t.Fatal("expected an error when no compiled workflow is present")
-	}
-	if err := os.WriteFile(filepath.Join(workflows, "example.lock.yml"), []byte("name: Example\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := validateWorkflowCatalog(directory); err != nil {
-		t.Fatalf("expected a compiled workflow to validate, got: %v", err)
-	}
-}
-
-func writeValidCollectionCatalog(t *testing.T, directory string) {
-	t.Helper()
-	for path, content := range map[string]string{
-		filepath.Join("activity", "cao.mjs"):                      "//",
-		filepath.Join(".github", "workflows", "example.lock.yml"): "name: Example\n",
+func TestRunnerRejectsRetiredCollectionWithoutSideEffects(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	for _, task := range []Task{
+		{Repository: "octo/api", InstallationID: 7},
+		{Repository: "../invalid"},
 	} {
-		target := filepath.Join(directory, path)
-		if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
-			t.Fatal(err)
+		lake := Lake{Directory: filepath.Join(t.TempDir(), "must-not-create")}
+		runner := Runner{Lake: lake}
+		if err := runner.Validate(); !errors.Is(err, collectnative.ErrUnsupported) {
+			t.Fatalf("retired validation did not fail closed: %v", err)
 		}
-		if err := os.WriteFile(target, []byte(content), 0o600); err != nil {
-			t.Fatal(err)
+		if err := runner.Collect(t.Context(), task); !errors.Is(err, collectnative.ErrUnsupported) {
+			t.Fatalf("retired collection did not fail closed: %v", err)
+		}
+		if _, err := os.Stat(lake.Directory); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("retired collection touched the lake: %v", err)
 		}
 	}
 }
 
-func TestRunnerValidateFailsOnAMissingTokenProvider(t *testing.T) {
-	directory := t.TempDir()
-	writeValidCollectionCatalog(t, directory)
-	runner := Runner{
-		Lake:        Lake{Directory: filepath.Join(directory, "lake")},
-		CatalogRoot: directory,
+func TestRunnerRecoveryTimeout(t *testing.T) {
+	for _, timeout := range []time.Duration{0, -time.Second, time.Minute} {
+		want := timeout
+		if want <= 0 {
+			want = 20 * time.Minute
+		}
+		if got := (Runner{Timeout: timeout}).timeout(); got != want {
+			t.Fatalf("recovery timeout = %v, want %v", got, want)
+		}
 	}
-	err := runner.Validate()
-	if err == nil {
-		t.Fatal("expected an error when no token provider is configured")
-	}
-	if !strings.Contains(err.Error(), "installation token provider") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-// fakeTokens satisfies TokenProvider without contacting GitHub.
-type fakeTokens struct{ token string }
-
-func (f fakeTokens) InstallationToken(context.Context, int64) (string, error) {
-	return f.token, nil
 }
 
 // writeFakeBinary installs an executable that records its arguments and
@@ -174,71 +125,7 @@ func writeFakeBinary(t *testing.T, directory, name, body string) string {
 	return path
 }
 
-func TestRunnerReproducesTheActionsCollectionCommand(t *testing.T) {
-	workspace := t.TempDir()
-	nodeRecordPath := filepath.Join(workspace, "node-args")
-	catalogRoot := filepath.Join(workspace, "catalog")
-	writeValidCollectionCatalog(t, catalogRoot)
-	gh := writeFakeBinary(t, workspace, "gh", `exit 99`)
-	node := writeFakeBinary(t, workspace, "node",
-		`printf '%s\n' "$@" >> `+nodeRecordPath+`; printf 'token=%s\n' "$GH_TOKEN" >> `+nodeRecordPath)
-	lake := Lake{Directory: filepath.Join(workspace, "lake")}
-	runner := Runner{
-		Lake: lake, CatalogRoot: catalogRoot,
-		GitHubBinary: gh, NodeBinary: node,
-		Tokens: fakeTokens{token: "installation-token"},
-	}
-	if err := runner.Validate(); err != nil {
-		t.Fatal(err)
-	}
-	if err := lake.Prepare(); err != nil {
-		t.Fatal(err)
-	}
-	legacy := filepath.Join(lake.ShardDirectory(), legacyShardPrefix("octo/api")+"1.jsonl")
-	writeIdentityShard(t, legacy, "octo/api")
-	if err := runner.Collect(context.Background(), Task{
-		Repository: "Octo/API", InstallationID: 5,
-	}); err != nil {
-		t.Fatal(err)
-	}
-	recorded, err := os.ReadFile(nodeRecordPath) // #nosec G304 -- the path is built from the test's own temporary directory.
-	if err != nil {
-		t.Fatal(err)
-	}
-	arguments := string(recorded)
-	for _, expected := range []string{
-		"activity/collect-workflow-logs.mjs\n" + gh + "\n--audit", "--repo\nocto/api", "--artifacts\nusage,experiment\n",
-		"--start-date\n-30d", "--cache-before\n-30d", "--count\n10000",
-		"--max-storage\n1200", "--prune-older-runs", "token=installation-token",
-	} {
-		if !strings.Contains(arguments, expected) {
-			t.Fatalf("collection command is missing %q:\n%s", expected, arguments)
-		}
-	}
-	if !strings.Contains(arguments, "--max-github-api-rate-limit\n-2000") {
-		t.Fatalf("expected a negative reserve to be passed:\n%s", arguments)
-	}
-	if !strings.Contains(arguments, filepath.Join(lake.ShardDirectory(), lake.ShardPrefix("octo/api"))+"*") {
-		t.Fatalf("expected a repository-scoped shard prefix:\n%s", arguments)
-	}
-	if _, err := os.Stat(filepath.Join(lake.ShardDirectory(), lake.ShardPrefix("octo/api")+"legacy-1.jsonl")); err != nil {
-		t.Fatalf("legacy evidence was not migrated for cache reuse: %v", err)
-	}
-	if strings.Contains(arguments, legacyShardPrefix("octo/api")+"*") {
-		t.Fatal("acquisition still uses a lossy legacy cache selector")
-	}
-	if !strings.Contains(arguments, "--group\nocto/api="+lake.ShardPrefix("octo/api")) {
-		t.Fatal("compaction does not use acquisition's versioned identity")
-	}
-	collection := strings.Index(arguments, "activity/collect-workflow-logs.mjs")
-	evidence := strings.Index(arguments, "activity/session-evidence.mjs")
-	compaction := strings.Index(arguments, "compact-jsonl")
-	if collection < 0 || evidence <= collection || compaction <= evidence {
-		t.Fatal("expected explicit workflow collection, then session evidence, then compaction")
-	}
-}
-
-func TestRunnerDoesNotLeakAmbientCredentials(t *testing.T) {
+func TestCollectionEnvironmentDoesNotLeakAmbientCredentials(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "ambient-secret")
 	t.Setenv("AZURE_CLIENT_SECRET", "ambient-secret")
 	environment := collectionEnvironment("")

@@ -2,7 +2,6 @@ package operationalvalue
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -54,85 +53,7 @@ console.log(JSON.stringify({
 }));
 `
 
-func TestBatchedHistoryMatchesActivityCollector(t *testing.T) {
-	root := repositoryRoot(t)
-	temporary := t.TempDir()
-	campaign := filepath.Join(temporary, "example")
-	if err := os.MkdirAll(campaign, 0o750); err != nil {
-		t.Fatal(err)
-	}
-	batchAdapter := strings.Replace(adapter,
-		`kind: "operational_value_definition",`,
-		`kind: "operational_value_definition", historyBatch: true,`, 1)
-	batchAdapter = strings.Replace(batchAdapter,
-		`timestamp: request.timestamp,`,
-		`timestamp,`, 1)
-	batchAdapter = strings.Replace(batchAdapter, "Date.parse(request.timestamp)", "Date.parse(timestamp)", 1)
-	batchAdapter = strings.Replace(batchAdapter, "windowEnd: request.timestamp,", "windowEnd: timestamp,", 1)
-	batchAdapter = strings.Replace(batchAdapter,
-		`console.log(JSON.stringify({
-  timestamp,`,
-		`for (const timestamp of (request.historyTimestamps ?? [request.timestamp])) console.log(JSON.stringify({
-  timestamp,`, 1)
-	batchAdapter += `
-import { appendFileSync } from "node:fs";
-appendFileSync(new URL("./calls.jsonl", import.meta.url), JSON.stringify(request) + "\n");
-`
-	if err := os.WriteFile(filepath.Join(campaign, "operational-value.mjs"), []byte(batchAdapter), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	now, _ := time.Parse(time.RFC3339, "2026-09-24T10:00:00Z")
-	goOutput := filepath.Join(temporary, "go.jsonl")
-	nodeOutput := filepath.Join(temporary, "node.jsonl")
-	for _, output := range []string{goOutput, nodeOutput} {
-		retained := testEnvelope("example-worker.current", 99)
-		retained.OperationalValue.Repository = "githubnext/gh-cao"
-		retained.OperationalValue.Timestamp = "2026-09-12T10:00:00.000Z"
-		if err := writeEnvelopes(output, []envelope{retained}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	config := Config{
-		Root: temporary, Database: filepath.Join(temporary, "archive.sqlite"),
-		Output: goOutput, ObservedAt: now,
-		Repositories: []string{"githubnext/gh-cao"}, HistoryCampaign: "example",
-		Retention: 30 * day, Environment: testEnvironment(),
-	}
-	result, err := Collect(t.Context(), config)
-	if err != nil || len(result.Warnings) != 0 || result.HistoryValues != 11 {
-		t.Fatalf("batch failed: %+v, %v", result, err)
-	}
-	node := exec.CommandContext(t.Context(), "node", filepath.Join(root, "activity", "cao.mjs"), // #nosec G204 -- fixed Node binary and test-owned temporary paths.
-		"operational-value", "--root", temporary, "--database", config.Database,
-		"--output", nodeOutput, "--timestamp", now.Format(time.RFC3339),
-		"--repository", config.Repositories[0], "--history-campaign", "example",
-		"--retention-days", "30")
-	node.Env = testEnvironment()
-	if output, err := node.CombinedOutput(); err != nil {
-		t.Fatalf("Activity collector failed: %v\n%s", err, output)
-	}
-	if !reflect.DeepEqual(readJSONL(t, goOutput), readJSONL(t, nodeOutput)) {
-		t.Fatal("Go and Node batch publication differ")
-	}
-	calls := readJSONL(t, filepath.Join(campaign, "calls.jsonl"))
-	if len(calls) != 4 {
-		t.Fatalf("got %d calls, want current + batch for each collector", len(calls))
-	}
-	for _, index := range []int{1, 3} {
-		if len(calls[index]["historyTimestamps"].([]any)) != 11 {
-			t.Fatal("expected all missing instants in one batch")
-		}
-	}
-	repeated, err := Collect(t.Context(), config)
-	if err != nil || len(repeated.Warnings) != 0 || repeated.HistoryValues != 0 {
-		t.Fatalf("batch not idempotent: %+v, %v", repeated, err)
-	}
-	if len(readJSONL(t, filepath.Join(campaign, "calls.jsonl"))) != 5 {
-		t.Fatal("complete history should only run the current adapter")
-	}
-}
-
-func TestGoCollectorMatchesActivityCollector(t *testing.T) {
+func TestPublicationMatchesActivityCollector(t *testing.T) {
 	compareActivityCollector(t, adapter)
 }
 
@@ -175,7 +96,6 @@ func compareActivityCollector(t *testing.T, script string) {
 		"--timestamp", observedAt.Format(time.RFC3339),
 		"--repository", "githubnext/gh-cao",
 		"--retention-days", "30",
-		"--history-campaign", "example",
 	)
 	node.Dir = root
 	node.Env = testEnvironment()
@@ -183,121 +103,53 @@ func compareActivityCollector(t *testing.T, script string) {
 		t.Fatalf("Activity collector failed: %v\n%s", err, output)
 	}
 
-	result, err := Collect(context.Background(), Config{
-		Root: packages, Database: filepath.Join(temporary, "activity.sqlite"),
-		Output: goOutput, ObservedAt: observedAt,
-		Repositories:    []string{"githubnext/gh-cao"},
-		HistoryCampaign: "example", Retention: 30 * day,
-		NodeBinary: "node", Environment: testEnvironment(),
+	// Execute the fixture only in this test. Production Go retains the
+	// publication contract, not the Activity adapter execution lifecycle.
+	fixture := exec.CommandContext(t.Context(), "node", filepath.Join(campaign, "operational-value.mjs")) // #nosec G204 -- fixed Node binary and test-owned fixture.
+	fixture.Env = testEnvironment()
+	request, err := json.Marshal(map[string]any{
+		"timestamp": formatTimestamp(observedAt), "repositories": []string{"githubnext/gh-cao"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Warnings) != 0 {
-		t.Fatalf("Go collector warnings: %v", result.Warnings)
+	fixture.Stdin = bytes.NewReader(request)
+	content, err := fixture.Output()
+	if err != nil {
+		t.Fatal(err)
 	}
-	if result.HistoryValues != 12 {
-		t.Fatalf("history values = %d, want 12", result.HistoryValues)
+	parsed, err := parseOutput(content, "fixture", []string{"githubnext/gh-cao"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	retained, err := readRetained(goOutput, observedAt.Add(-30*day))
+	if err != nil {
+		t.Fatal(err)
+	}
+	active := map[string]map[string]struct{}{"example": {}}
+	definitions := map[string]definition{}
+	for _, item := range parsed.definitions {
+		for _, id := range item.ValueIDs {
+			active["example"][id] = struct{}{}
+			definitions[definitionKey("example", id)] = item
+		}
+	}
+	fresh := testEnvelopes(parsed.values)
+	merged := persistValues(retained, fresh, active, definitions)
+	if err := writeEnvelopes(goOutput, merged); err != nil {
+		t.Fatal(err)
 	}
 	nodeRecords := readJSONL(t, nodeOutput)
 	goRecords := readJSONL(t, goOutput)
+	if len(goRecords) != 3 {
+		t.Fatalf("got %d records, want current, retained history, and unrelated evidence", len(goRecords))
+	}
 	if !reflect.DeepEqual(goRecords, nodeRecords) {
-		t.Fatalf("Go and Activity collectors differ:\nGo:   %#v\nNode: %#v", goRecords, nodeRecords)
+		t.Fatalf("Go and Activity publication differ:\nGo:   %#v\nNode: %#v", goRecords, nodeRecords)
 	}
 
-	repeated, err := Collect(context.Background(), Config{
-		Root: packages, Database: filepath.Join(temporary, "activity.sqlite"),
-		Output: goOutput, ObservedAt: observedAt,
-		Repositories:    []string{"githubnext/gh-cao"},
-		HistoryCampaign: "example", Retention: 30 * day,
-		NodeBinary: "node", Environment: testEnvironment(),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if repeated.HistoryValues != 0 {
-		t.Fatalf("repeat history values = %d, want 0", repeated.HistoryValues)
-	}
-}
-
-func TestGoCollectorMatchesActivityHistoryFailure(t *testing.T) {
-	root := repositoryRoot(t)
-	temporary := t.TempDir()
-	packages := filepath.Join(temporary, "packages")
-	campaign := filepath.Join(packages, "example")
-	if err := os.MkdirAll(campaign, 0o750); err != nil {
-		t.Fatal(err)
-	}
-	script := `
-const chunks = [];
-for await (const chunk of process.stdin) chunks.push(chunk);
-const request = JSON.parse(Buffer.concat(chunks).toString());
-if (process.env.CAO_OPERATIONAL_VALUE_MODULE === "first-worker") {
-  console.error("injected history failure");
-  process.exit(1);
-}
-for (const slug of ["first-worker", "second-worker"]) {
-  console.log(JSON.stringify({
-    kind: "operational_value_definition",
-    workflowSlug: slug,
-    adoptedAt: "2026-09-15T23:30:36Z",
-    evaluationMode: "baseline-comparable",
-    cadenceDays: 1,
-    repositories: ["githubnext/gh-cao"],
-    valueIds: [slug + ".current"]
-  }));
-  console.log(JSON.stringify({
-    timestamp: request.timestamp,
-    repository: request.repositories[0],
-    valueId: slug + ".current",
-    value: 3
-  }));
-}
-`
-	if err := os.WriteFile(filepath.Join(campaign, "operational-value.mjs"), []byte(script), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	nodeOutput := filepath.Join(temporary, "node-failure.jsonl")
-	goOutput := filepath.Join(temporary, "go-failure.jsonl")
-	observedAt, err := time.Parse(time.RFC3339, "2026-09-24T10:00:00Z")
-	if err != nil {
-		t.Fatal(err)
-	}
-	node := exec.CommandContext( // #nosec G204 -- fixed Node binary and test-owned temporary paths.
-		t.Context(),
-		"node", filepath.Join(root, "activity", "cao.mjs"),
-		"operational-value",
-		"--database", filepath.Join(temporary, "activity.sqlite"),
-		"--root", packages,
-		"--output", nodeOutput,
-		"--timestamp", observedAt.Format(time.RFC3339),
-		"--repository", "githubnext/gh-cao",
-		"--retention-days", "30",
-		"--history-campaign", "example",
-	)
-	node.Dir = root
-	node.Env = testEnvironment()
-	if output, err := node.CombinedOutput(); err != nil {
-		t.Fatalf("Activity collector failed: %v\n%s", err, output)
-	}
-	result, err := Collect(context.Background(), Config{
-		Root: packages, Database: filepath.Join(temporary, "activity.sqlite"),
-		Output: goOutput, ObservedAt: observedAt,
-		Repositories:    []string{"githubnext/gh-cao"},
-		HistoryCampaign: "example", Retention: 30 * day,
-		NodeBinary: "node", Environment: testEnvironment(),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(result.Warnings) != 1 {
-		t.Fatalf("Go collector warnings = %v, want one history failure", result.Warnings)
-	}
-	if result.HistoryValues != 0 {
-		t.Fatalf("history values = %d, want 0", result.HistoryValues)
-	}
-	if !reflect.DeepEqual(readJSONL(t, goOutput), readJSONL(t, nodeOutput)) {
-		t.Fatal("Go and Activity collectors differ after a history adapter failure")
+	if repeated := persistValues(merged, fresh, active, definitions); !reflect.DeepEqual(repeated, merged) {
+		t.Fatal("repeated publication changed retained history")
 	}
 }
 
@@ -305,6 +157,8 @@ func writeRetainedFixture(t *testing.T, path string) {
 	t.Helper()
 	content := `{"schema_version":2,"kind":"operational_value","operational_value":{"timestamp":"2026-09-21T10:00:00.000Z","repository":"githubnext/gh-cao","campaign":"example","campaign_id":"campaign:example","value_id":"example-worker.retired","value":1,"metric_role":"primary","metric_name":"retired","metric_direction":"increase","maturity_status":"matured"}}
 {"schema_version":2,"kind":"operational_value","operational_value":{"timestamp":"2026-09-21T10:00:00.000Z","repository":"githubnext/gh-cao","campaign":"unrelated","campaign_id":"campaign:unrelated","value_id":"preserved","value":4,"metric_role":"primary","metric_name":"preserved","metric_direction":"increase","maturity_status":"matured"}}
+{"schema_version":2,"kind":"operational_value","operational_value":{"timestamp":"2026-09-20T10:00:00.000Z","repository":"githubnext/gh-cao","campaign":"example","campaign_id":"campaign:example","value_id":"example-worker.current","value":2,"metric_role":"primary","metric_name":"Current value","metric_direction":"decrease","maturity_status":"matured"}}
+{"schema_version":2,"kind":"operational_value","operational_value":{"timestamp":"2026-08-20T10:00:00.000Z","repository":"githubnext/gh-cao","campaign":"unrelated","campaign_id":"campaign:unrelated","value_id":"expired","value":1,"metric_role":"primary","metric_name":"expired","metric_direction":"increase","maturity_status":"matured"}}
 `
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
