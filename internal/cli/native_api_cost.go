@@ -3,7 +3,6 @@ package cli
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -50,8 +49,8 @@ func nativeAPICost(cmd *cobra.Command) error {
 	var scenario apicost.Scenario
 	var err error
 	if input != "" {
-		if nativeString(cmd, "server") != "" || cmd.Flags().Changed("database") {
-			return errors.New("--input cannot be combined with --server or --database")
+		if nativeString(cmd, "server") != "" || cmd.Flags().Changed("postgres-url") {
+			return errors.New("--input cannot be combined with --server or --postgres-url")
 		}
 		scenario, err = nativeAPICostReadScenario(input)
 		if err == nil {
@@ -90,8 +89,8 @@ func nativeAPICost(cmd *cobra.Command) error {
 				}
 				options.Calibration = &calibration
 			}
-		} else if nativeString(cmd, "server") != "" || cmd.Flags().Changed("database") || cmd.Flags().Changed("repository") {
-			return errors.New("--server, --database, and --repository apply only to the retained scenario")
+		} else if nativeString(cmd, "server") != "" || cmd.Flags().Changed("postgres-url") || cmd.Flags().Changed("repository") {
+			return errors.New("--server, --postgres-url, and --repository apply only to the retained scenario")
 		} else if nativeBool(cmd, "calibrate") {
 			return errors.New("--calibrate applies only to the retained scenario")
 		}
@@ -313,7 +312,7 @@ func nativeDailyFileDietPopulation(cmd *cobra.Command, repository string) (apico
 	return nativeDailyFileDietLocalPopulation(cmd.Context(), db, repository, nativeSnapshotPath(cmd))
 }
 
-func nativeDailyFileDietLocalPopulation(ctx context.Context, db *sql.DB, repository, source string) (apicost.Population, error) {
+func nativeDailyFileDietLocalPopulation(ctx context.Context, db dashboardquery.CanonicalReader, repository, source string) (apicost.Population, error) {
 	catalog, err := loadNativeCatalog("")
 	if err != nil {
 		return apicost.Population{}, err
@@ -327,7 +326,7 @@ func nativeDailyFileDietLocalPopulation(ctx context.Context, db *sql.DB, reposit
 		return apicost.Population{}, err
 	}
 	return nativeAPICostPopulation(nativeAPICostRows(result["rows"]), nativeObject(result["metadata"]),
-		"canonical SQLite database "+source)
+		"canonical PostgreSQL")
 }
 
 func nativeDailyFileDietServerPopulation(

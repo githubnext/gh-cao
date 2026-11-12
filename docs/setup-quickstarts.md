@@ -8,11 +8,14 @@ Shared monitoring and automation are separate, optional steps.
 
 ## Open a local dashboard (no deployment)
 
-An installed CAO release and your **locally authenticated GitHub CLI** are
-sufficient. You do not need a CAO cloud deployment, Azure setup, a hosted
-dashboard, PostgreSQL, Redis, containers, or a separate Node.js, npm, or gh-aw
-installation. The release includes the Go server, built dashboard, and pinned
-gh-aw log collector.
+Use an installed CAO release, your **locally authenticated GitHub CLI**, and
+an explicitly provisioned local PostgreSQL connection. Set `CAO_POSTGRES_URL`;
+the exact repository-scoped namespace printed by the command must already be
+provisioned for canonical and operational storage. See the
+[PostgreSQL setup contract](https://github.com/githubnext/gh-cao/blob/main/server/POSTGRES.md).
+Runtime does not create schemas or convert database files. No cloud deployment,
+Azure setup, Redis, or separate Node.js, npm or gh-aw installation is required.
+The release includes the Go server, built dashboard and pinned gh-aw log collector.
 
 Verify GitHub CLI authentication, install the extension, and select the
 GitHub.com repository you can read:
@@ -33,10 +36,10 @@ installation is required.
 
 **Open and stop:** Keep the command running in the terminal. After initial
 collection, open the full **Dashboard:** URL it prints in your browser; the
-command also prints the **SQLite cache:** path. The Go server binds to loopback
+command also prints the **PostgreSQL namespace**. The Go server binds to loopback
 on an available local port and evaluates the normal dashboard queries against
-canonical SQLite on your machine, not a hosted service or browser IndexedDB.
-Press **Ctrl-C** in that terminal to stop the server and collection. The cache
+canonical PostgreSQL on your machine, not a hosted service or browser IndexedDB.
+Press **Ctrl-C** in that terminal to stop the server and collection. The namespace
 remains for later sessions with the same repository scope.
 
 **Online evidence, local serving:** GitHub remains the authenticated upstream
@@ -59,7 +62,7 @@ recent-run lookup and cached usage sample, not a promise of complete history.
 Only agentic `.lock.yml` workflows are included. Acquisition budgets, API
 access, and artifact availability can leave evidence partial or unavailable;
 ordinary Actions jobs and missing evidence must not look like healthy zeros.
-A failed refresh reports the error and retains the previous SQLite snapshot.
+A failed refresh reports the error and retains the last accepted PostgreSQL revision.
 
 **Optional reuse:** Existing local setup can stay in place, but the command
 does not require or adopt its CAO policy as collection scope; use the current

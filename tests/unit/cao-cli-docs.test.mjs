@@ -17,7 +17,7 @@ test("getting started opens a local dashboard before optional shared monitoring"
   assert.match(local, /gh auth status[\s\S]*gh auth login[\s\S]*gh extension install githubnext\/gh-cao[\s\S]*gh cao dashboard --repo OWNER\/REPOSITORY/);
   assert.match(local, /No `gh cao setup`, policy file, repository enrollment, campaign, or CAO Actions\s+installation is required/);
   assert.match(local, /Go server binds to loopback/);
-  assert.match(local, /normal dashboard queries against\s+canonical SQLite/);
+  assert.match(local, /normal dashboard queries against\s+canonical PostgreSQL/);
   assert.match(local, /requires network access and\s+repository permissions/);
   assert.match(local, /Starting the\s+dashboard does not change policy, workflows, or remote repository state/);
   assert.doesNotMatch(local, /```bash\n(?:gh cao setup|git push|gh workflow run)/);

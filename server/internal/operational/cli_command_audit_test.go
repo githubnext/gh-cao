@@ -60,7 +60,7 @@ func failedAuditCommand(t *testing.T, f *auditFixture, lease operational.CLIComm
 }
 
 func TestAuditedRetryRecordsNewRequesterWithoutChangingAction(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		t.Run(dialect, func(t *testing.T) {
 			f := newAuditFixture(t, dialect)
 			original := failedAuditCommand(t, f, acquireAuditLease(t, f))
@@ -114,7 +114,7 @@ func TestAuditedRetryRecordsNewRequesterWithoutChangingAction(t *testing.T) {
 }
 
 func TestAuditedAdmissionCannotBeClaimedBeforeAuditCommit(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		for _, retry := range []bool{false, true} {
 			for _, fail := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/retry=%t/fail=%t", dialect, retry, fail), func(t *testing.T) {
@@ -185,7 +185,7 @@ func TestAuditedAdmissionCannotBeClaimedBeforeAuditCommit(t *testing.T) {
 }
 
 func TestAuditedAdmissionConcurrentIdempotency(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		t.Run(dialect, func(t *testing.T) {
 			f := newAuditFixture(t, dialect)
 			var wg sync.WaitGroup
@@ -228,7 +228,7 @@ func TestAuditedAdmissionConcurrentIdempotency(t *testing.T) {
 }
 
 func TestAuditedCancelRollsBackAndRetainsExecutionClaim(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		t.Run(dialect, func(t *testing.T) {
 			f := newAuditFixture(t, dialect)
 			lease := acquireAuditLease(t, f)
@@ -273,7 +273,7 @@ func TestAuditedCancelRollsBackAndRetainsExecutionClaim(t *testing.T) {
 }
 
 func TestAuditedReplayFailureDoesNotCancelCommittedAdmission(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		t.Run(dialect, func(t *testing.T) {
 			f := newAuditFixture(t, dialect)
 			lease := acquireAuditLease(t, f)

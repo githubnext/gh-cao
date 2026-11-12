@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
@@ -302,7 +301,7 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 		}
 		if runtime.GOOS != "windows" {
 			settings["operatorActions"] = map[string]any{
-				"queuePath": filepath.Join(cache, "commands.sqlite"), "repositories": repositories,
+				"repositories": repositories,
 			}
 		}
 		err = json.NewEncoder(config).Encode(settings)

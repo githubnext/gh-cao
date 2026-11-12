@@ -13,50 +13,38 @@ For where the dashboard is served, see [Deployment options](deployment.md).
 
 Agentic workflows produce Actions logs. The Activity workflow collects a bounded
 snapshot into read-only operational artifacts. Consumers apply the shared model rules to build
-separate projections: SQLite supports local Go serving, agents, and command-line
-tools; production hosted Go deployments ingest into PostgreSQL. Pages uses only
+separate projections: local and hosted Go deployments ingest into PostgreSQL;
+native command-line tools use its canonical read boundary. Pages uses only
 generated synthetic enterprise samples, passed through the same normalization,
 canonical ingestion, queries, and views with browser IndexedDB. These are
 independent profiles, not a fallback chain.
 
 <div class="docs-theme-diagram">
-  <img class="docs-theme-diagram-light" alt="Real Activity artifacts feed local Go and SQLite or hosted Go and PostgreSQL. Separately generated synthetic samples use the same canonical pipeline and views through Pages and IndexedDB." src="/gh-cao/assets/dashboard-data-flow-light.svg">
-  <img class="docs-theme-diagram-dark" alt="Real Activity artifacts feed local Go and SQLite or hosted Go and PostgreSQL. Separately generated synthetic samples use the same canonical pipeline and views through Pages and IndexedDB." src="/gh-cao/assets/dashboard-data-flow-dark.svg">
+  <img class="docs-theme-diagram-light" alt="Real Activity artifacts feed local and hosted Go/PostgreSQL. Separately generated synthetic samples use the same canonical pipeline and views through Pages and IndexedDB." src="/gh-cao/assets/dashboard-data-flow-light.svg">
+  <img class="docs-theme-diagram-dark" alt="Real Activity artifacts feed local and hosted Go/PostgreSQL. Separately generated synthetic samples use the same canonical pipeline and views through Pages and IndexedDB." src="/gh-cao/assets/dashboard-data-flow-dark.svg">
 </div>
 
-SQLite and IndexedDB are rebuildable projections. Neither is the source for the
-other. The local SQLite adapter implements the same logical object stores,
-indexes, records, conversion rules, and queries as browser IndexedDB. It is not
-a separate relational canonical schema. Both keep all run summaries available
-in the published JSONL. SQLite keeps Run and Operational Value records for
-30 days by default and expires run-linked detail after seven days unless a
-separate full-detail SQLite archive is requested.
+PostgreSQL and IndexedDB are independently rebuildable projections, not sources
+for one another. PostgreSQL uses the production typed relational schema; it does
+not emulate IndexedDB stores or retain duplicate serialized row mirrors. Default
+canonical retention keeps Runs for 30 days, linked detail for seven days and
+Operational Value for at least 365 days. Historical analysis requires a separately
+configured PostgreSQL namespace and preserved authoritative evidence.
 
 See [Data model](/gh-cao/dashboard-data-model/) for the canonical entities, identities, and relationships produced by ingestion.
 
 ## Before the first Activity snapshot
 
-The CAO Dashboard workflow restores the Activity cache or downloads the snapshot
-from the latest successful CAO Activity collection run on the default branch,
-ignoring runs that skipped snapshot indexing. On a new
-deployment, neither may exist yet. In that case, the workflow builds and publishes
-the dashboard using installed campaigns, workflows, and configuration from its
-trusted checkout, together with an empty activity set. The result remains an
-operational artifact; no operational evidence is deployed to Pages.
+Provisioning creates database structure, not operational evidence. Runtime opens
+existing PostgreSQL storage without DDL, automatic file conversion or synthetic
+bootstrap data. Readiness remains incomplete until an explicitly verified artifact
+or authorized collector publishes canonical evidence.
 
-This bootstrap does not discover remote repositories, collect logs, or run
-activity computations. It marks inventory coverage as partial, leaves live
-workflow state unknown, and omits uncollected marketplace sources rather than
-inventing evidence. The normal pipeline creates valid empty activity shards and
-a SQLite projection; it does not publish the bootstrap as an Activity cache.
-
-Configure [Activity authentication](activity.md), then run **CAO Activity**
-manually to collect the first snapshot, or wait for its scheduled run.
-A successful default-branch Activity run automatically triggers
-the dashboard build with collected evidence. API errors, invalid policy,
-missing artifacts from an existing successful
-run, and invalid restored snapshots still fail rather than being treated as
-normal startup.
+Use a selected authenticated Actions artifact, a trusted direct manifest URL, or
+the explicitly scoped native collection profile. Structural-only observations may
+be available while Run and artifact coverage remain unknown or partial; absence
+must not become healthy zero activity. The synthetic Pages demo is never an
+operational source, repair path or hosted fallback.
 
 <span id="canvas-administrative-actions"></span>
 
@@ -97,40 +85,20 @@ The scheduled Activity workflow is a rolling operational snapshot, not a full hi
 
 Cached JSONL can repeat the same run in later snapshots. These are repeated observations, not duplicate database records. Raw runs are deduplicated by GitHub run ID and attempt. Enriched runs are deduplicated by run ID and attempt, with the newest observation winning.
 
-Audit a JSONL source without changing a database:
-
-```bash
-node activity/cao.mjs audit-jsonl
-```
-
-The report separates raw observations, unique raw runs, enriched observations, unique enriched runs, repeated observations, unenriched runs, and the canonical record counts that ingestion will produce.
-
 ### Collection and ingestion validation
 
 The retired Activity Actions job graph and its simulator fixture are removed.
 `npm run test:integration:actions-runtime` validates the remaining staged workflow
 samples. Canonical ingestion and daily-count behavior retain their independent
-SQLite, worker, browser, and PostgreSQL conformance suites.
+worker, native browser, native CLI and PostgreSQL conformance suites.
 
 ## Create a historical archive
 
-For a full-detail local archive, collect into `_activity/gh-aw-history.jsonl`, then audit and ingest it with unbounded retention:
-
-```bash
-node activity/cao.mjs audit-jsonl \
-  --input _activity/gh-aw-history.jsonl
-
-node activity/cao.mjs ingest-jsonl \
-  --database _activity/gh-aw-history.sqlite \
-  --input _activity/gh-aw-history.jsonl \
-  --retention-days all
-
-node activity/cao.mjs repair-database \
-  --database _activity/gh-aw-history.sqlite \
-  --ttl-days all --run-ttl-days all
-```
-
-"Full" means all run summaries discoverable in the selected range plus every artifact still available from GitHub. Expired artifacts remain visible as unenriched runs rather than being silently counted as complete.
+Preserve authoritative JSONL evidence separately from disposable dashboard state.
+For historical local analysis, provision a dedicated PostgreSQL namespace with
+explicit retention and ingest verified canonical artifacts into that namespace.
+A rolling refresh must not silently overwrite another namespace or shorten its
+history. Browser IndexedDB remains a bounded demo projection, not an archive.
 
 ## Estimate empirical workflow behavior
 
@@ -170,7 +138,7 @@ rates or causal effects. No workflow policy or synthetic generator is changed.
 
 This is the synthetic Pages demo and adapter-conformance path, not operational
 hosting. It uses the same canonical normalization and query contracts as local
-SQLite and hosted PostgreSQL, with no live services or operational-data input.
+and hosted PostgreSQL, with no live services or operational-data input.
 
 The unified-session adapter retains only metadata needed for model-routing
 analytics: safe identifiers, explicit classifier labels, request ownership,
@@ -264,7 +232,7 @@ structural parents. The effective retention horizon is the later of the browser
 clock and the newest incoming observation, so a slow clock cannot prune
 current producer data.
 
-Browser IndexedDB and Node.js SQLite ingestion also discard a failed Run's raw
+Browser IndexedDB and PostgreSQL ingestion also discard a failed Run's raw
 `failureLog` excerpt once a later completed success is known in the same
 repository/workflow, target, event, branch, and rollout mode. Cancellation and
 incomplete outcomes do not prove recovery. Only the excerpt is removed: Run
@@ -370,188 +338,39 @@ canonical ingestion, not real-data Pages publication. All profiles use the
 same contract, validator, adapter, and canonical queries; the demo never opens
 a database connection.
 
-## Use local SQLite
+## Use local PostgreSQL
 
-Use the native `gh cao` extension for operator queries and the Node.js 24
-Actions runtime for ingestion and repair. Run the `node activity/cao.mjs`
-examples from a checkout containing the installed runtime. The local adapter
-stores IndexedDB metadata and JSON records in
-`__idb_databases`, `__idb_stores`, `__idb_indexes`, and `__idb_records`; those
-tables are an emulation detail, not canonical entity tables. The browser
-uses native IndexedDB only in the synthetic Pages profile.
+Local development uses the same Go server, canonical PostgreSQL schema, SQL query
+planner and revision subscriptions as hosted deployments. There is no file-database
+backend, import conversion, writable overlay, or browser fallback.
 
-### Manual artifact import
+1. Start an explicitly selected local PostgreSQL instance and configure CAO_POSTGRES_URL.
+2. Provision canonical and operational storage separately with schema-owner credentials.
+3. Acquire an operational cao-activity-index Actions artifact or a trusted direct
+   payload-hashes.json manifest. Acquisition does not select a public Pages source.
+4. Ingest its verified normalized JSONL with cao-dashboard ingest --source DIRECTORY.
+5. Run npm run dashboard:local against that namespace. Set --redis-namespace to the
+   exact provisioned namespace when using a non-default dataset.
 
-`node activity/cao.mjs ingest` is a supported manual importer for an extracted gh-aw artifact
-directory and its run context. It is not used by the Activity or Dashboard
-pipelines and is not deprecated:
+See [PostgreSQL provisioning](../server/POSTGRES.md#local-postgresql-development).
+Runtime credentials never bootstrap or repair storage. An explicit --source may
+publish verified evidence before serving; failures preserve the previous revision.
+External publications refresh active views without a stale local result cache.
+Native gh cao query, computation and mcp commands use PostgreSQL through the bundled
+server reader. Node cao retains artifact preparation and catalog discovery, not a
+second local database backend. Removed ingestion and repair commands have no
+compatibility path.
 
-```bash
-node activity/cao.mjs ingest \
-  --database /tmp/cao-dashboard.sqlite \
-  --context dashboard/site/test/fixtures/gh-aw-logs/context.json \
-  --logs dashboard/site/test/fixtures/gh-aw-logs/run-303
-```
-
-The positional form `node activity/cao.mjs CONTEXT_JSON LOG_DIRECTORY` is no
-longer supported. Unknown commands, including two-argument calls, fail with a
-usage error before reading inputs, creating temporary files, or opening SQLite.
-Use `node activity/cao.mjs ingest --context FILE --logs DIRECTORY` instead.
-
-Explicit `ingest` persists its SQLite projection at `--database FILE`, defaulting
-to `.cao/gh-aw-logs.sqlite`, and emits `{result, counts}` as JSON. It does not
-emit the retired `{result, runs, records}` envelope or delete the database after
-returning. Query the prepared database separately for canonical records.
-
-By default, explicit ingestion retains runs for 30 days and run-linked detail
-for seven days. The retired positional form kept all runs and seven-day detail
-in a disposable database. To retain that history policy with explicit ingestion,
-pass `--retention-days 7 --run-retention-days all`; database lifecycle remains
-the caller's responsibility. Use `--retention-days all --run-retention-days all`
-when historical detail must also be retained.
-
-### Active JSONL pipeline
-
-The Activity and Dashboard pipelines use `compact-jsonl`, `hash-payloads`,
-and `ingest-jsonl`. Collection compacts raw cached shards per repository with
-`compact-jsonl` and imports them into collection-scoped SQLite with `ingest-jsonl`.
-Indexing uses `hash-payloads` to normalize and consolidate raw evidence into
-run/record shards, `ingest-jsonl` to build the published SQLite projection,
-and `hash-payloads` again to produce the final payload checksum manifest.
-`hash-payloads` is therefore a normalization and packaging command, not just
-a checksum utility.
-
-To import schema-v2 JSONL produced by `gh aw logs` manually:
-
-```bash
-node activity/cao.mjs ingest-jsonl \
-  --database /tmp/cao-dashboard.sqlite \
-  --input-dir .cao/gh-aw-logs-shards
-```
-
-Pass `--context CONTEXT_JSON` when JSONL `github_api_rate_limit` records should become canonical Audits. Without an owning collection Repository, Workflow, and Run, those records remain unmapped.
-
-### Download and query a snapshot
-
-Select a successful Activity run and download its bounded operational artifact:
-
-```bash
-gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
-```
-
-Actions read access is required. The artifact supplies `payload-hashes.json`,
-compacted `gh-aw-logs-runs/` and `gh-aw-logs-records/` shards, and
-`gh-aw-logs.sqlite`. It remains operational evidence, not public demo content.
-
-If you already have an operator-provided trusted HTTPS payload location, select
-its manifest explicitly instead:
-
-```bash
-gh cao download --url https://evidence.example/operational/payload-hashes.json
-```
-
-The URL is illustrative, not a hosted CAO export endpoint. Native and JavaScript
-downloaders have no default Pages source. `DASHBOARD_DATA_URL` or `--url` must
-name `payload-hashes.json` directly; site-root and `cao/` directory discovery
-are not supported. `--output DIRECTORY` changes the default `.cao/` destination.
-Downloads verify the files without running ingestion locally. Pages exports
-neither an operational SQLite snapshot nor an agent summary.
-
-Query a canonical collection:
-
-```bash
-gh cao query \
-  --collection runs \
-  --where conclusion=failure \
-  --limit 20
-```
-
-Use the gh-like query surface for familiar GitHub CLI-shaped commands:
-
-```bash
-gh cao gh runs --repo OWNER/REPOSITORY --workflow WORKFLOW --status failure --since 2026-09-01 --until 2026-09-15
-gh cao gh issues --repo OWNER/REPOSITORY --workflow WORKFLOW --since 2026-09-01 --until 2026-09-15
-gh cao gh prs --repo OWNER/REPOSITORY --workflow WORKFLOW --since 2026-09-01 --until 2026-09-15
-```
-
-`-R`, `-w`, `-s`, and `-L` alias `--repo`, `--workflow`, `--status`, and `--limit`. The default limit is 30. Date-only `--until` values include the entire date. Issue and pull request results come from canonical Issue records created by `safe_output.result` observations.
-
-Repair the local database and apply retention (not a read-only check):
-
-```bash
-node activity/cao.mjs repair-database \
-  --database /tmp/cao-dashboard.sqlite
-```
-
-The repair report includes SQLite integrity, foreign-key and schema health, table and transaction counts, malformed records, and relationship errors. The command applies the default seven-day run-linked detail and 30-day Run windows (or explicit `--ttl-days` and `--run-ttl-days` overrides), keeps at least a year of Operational Values, removes malformed and orphaned derived records, repairs metadata, and runs SQLite maintenance. Retention may prune records even without corruption. Before changing data, it creates a timestamped `.doctor-backup-*.sqlite` backup next to the database. Use `--ttl-days all --run-ttl-days all` to disable age-based pruning. The retired Node `doctor` command is rejected; native Go doctor commands are unchanged.
-
-To let an agent read the same snapshot through dashboard pages and named
-queries, instead of through collections, see
-[Agent analysis](agent-analysis.md).
-
-Run `gh cao --help` for operator commands or `gh cao --help`
-for the Actions runtime. See [CAO Commands](cao-cli.md#command-reference) for
-their intentional read-only overlap. SQLite remains local derived state and
-does not make the Pages demo an operational data source.
-
-### Choose a local serving mode
-
-The Go server owns ordinary local, hosted, and static serving. Select the mode
-explicitly rather than switching a Node preview's data backend:
-
-| Mode | Behavior |
-|---------|----------|
-| `npm run dashboard:local` | Builds the site and invokes Go `serve` over a real operational SQLite snapshot. It reuses a verified cache; downloading requires an explicit operational manifest. The browser uses the HTTP query backend. |
-| `npm run dashboard:pages` | Invokes Go `serve-pages` against the synthetic enterprise demo, with browser IndexedDB and no live services, hosted bootstrap, or query APIs. |
-| Go `serve-hosted` | Uses PostgreSQL and requires reviewed host policy, OAuth authorization and HTTPS/proxy configuration. It never falls back to browser storage. |
-
-```bash
-gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
-npm run dashboard:local -- --sqlite ../.cao/gh-aw-logs.sqlite
-
-npm run dashboard:pages:build
-npm run dashboard:pages -- --base-path /REPOSITORY/
-```
-
-Pages preparation has no real-data input option. It generates synthetic
-enterprise raw samples through Activity normalization and the production
-Dashboard build, then uses canonical worker ingestion, queries, and views.
-The declarative **Synthetic enterprise demo** callout identifies the result.
-It does not simulate GitHub collection, Actions permissions, or Pages
-infrastructure. Relative Go server paths resolve from `server/`.
-
-This removes live-data Pages publication and implicit acquisition paths, while
-retaining IndexedDB, Web Worker, service-worker caching, and multi-adapter
-conformance work. Demo-only does not mean a separate simplified query engine.
-
-### Read-only local SQLite serving
-
-Local `dashboard:local` serving opens the selected canonical snapshot read-only.
-SQLite creation, normalization, backfill, and maintenance remain in the
-JavaScript `cao-activity` pipeline. The Go server does not collect GitHub evidence,
-look up acquisition credentials, launch ingestion tools, or create a writable
-delta. Serving a cached snapshot needs neither GitHub access nor Node.js, npm,
-`gh`, or Activity runtime assets.
-
-The former `--sqlite-overlay`, `--backfill`, and `--backfill-interval` options
-are no longer supported. Existing `.local.sqlite` files remain untouched but
-are not automatically attached. Refresh the published snapshot through Activity,
-then download the new Actions artifact or use `--download-sqlite` with an
-explicit direct operational manifest URL. External canonical database commits
-invalidate stale query state and notify active revision subscribers. The
-Copilot canvas uses the same read-only serving boundary.
-
-SQLite initialization failures stop startup rather than falling back to IndexedDB.
-The [Copilot canvas](agent-plugin.md#open-a-copilot-canvas) also uses Go/SQLite;
-it has no `dataBackend` selector. Choose the separate synthetic Pages demo when
-you need to exercise browser IndexedDB.
+The Copilot canvas uses the same Go/PostgreSQL host, with private loopback authoring
+callbacks. Neither local storage nor canvas configuration grants collection,
+rollout, credential or hosted execution authority.
 
 ### Query the private session archive
 
 > [!WARNING]
 > **Experimental:** The session archive is a proposed, default-off analytics store. Passing its interface does not mean either deployment scenario has met its acceptance gates.
 
-The Go server can optionally archive unified agent sessions as private, immutable Parquet evidence. It is separate from the dashboard SQLite/PostgreSQL data, has no frontend, and never joins automatically with dashboard queries. Archive enablement does not change canonical ingestion, dashboard queries, or IndexedDB behavior.
+The Go server can optionally archive unified agent sessions as private, immutable Parquet evidence. It is separate from canonical PostgreSQL data, has no frontend, and never joins automatically with dashboard queries. Archive enablement does not change canonical ingestion, dashboard queries, or IndexedDB behavior.
 
 | Scenario | Storage | Query engine |
 | --- | --- | --- |

@@ -1,6 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { rmSync } from 'node:fs';
 import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { processDataRequest } from '../../src/data-worker.js';
@@ -9,7 +7,6 @@ import { normalize } from '../../src/data/normalize/index.js';
 import { queryDatabaseSources } from '../../src/data/queries/database.js';
 import definitions from '../../src/data/queries/database.json' with { type: 'json' };
 import { readCollection, replaceCanonicalBatch, upsertCanonicalBatch } from '../../src/data/storage/indexeddb.js';
-import { createSqliteIndexedDB } from '../../src/data/storage/sqlite-indexeddb.js';
 
 const directories = /** @type {string[]} */ ([]);
 const observedAt = '2026-10-02T00:00:00.000Z';
@@ -132,11 +129,9 @@ describe('canonical field pruning', () => {
   });
 });
 
-describe.each(['IndexedDB', 'SQLite'])('pruning at the %s storage boundary', (backend) => {
+describe('pruning at the IndexedDB storage boundary', () => {
   it('reconstructs removed fields through the production worker query boundary', async () => {
-    const directory = backend === 'SQLite' ? mkdtempSync(join(tmpdir(), 'cao-query-projections-')) : null;
-    if (directory) directories.push(directory);
-    const indexedDB = directory ? createSqliteIndexedDB(join(directory, 'dashboard.sqlite')) : new IDBFactory();
+    const indexedDB = new IDBFactory();
     vi.stubGlobal('indexedDB', indexedDB);
     const input = batch();
     const provenance = { source: 'test', sourceId: 'projection', observedAt };
@@ -204,12 +199,7 @@ describe.each(['IndexedDB', 'SQLite'])('pruning at the %s storage boundary', (ba
   });
 
   it('prunes published records on upsert and replacement while preserving query payloads', async () => {
-    let indexedDB = new IDBFactory();
-    if (backend === 'SQLite') {
-      const directory = mkdtempSync(join(tmpdir(), 'cao-schema-pruning-'));
-      directories.push(directory);
-      indexedDB = createSqliteIndexedDB(join(directory, 'dashboard.sqlite'));
-    }
+    const indexedDB = new IDBFactory();
     const input = batch();
     await upsertCanonicalBatch(indexedDB, input);
     const before = await queryDatabaseSources(indexedDB, {}, ['runs', 'tools', 'issues']);

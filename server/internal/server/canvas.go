@@ -11,12 +11,13 @@ import (
 	"strings"
 )
 
-// LocalCanvasConfig connects the local SQLite host to its owning Copilot
+// LocalCanvasConfig connects the local PostgreSQL host to its owning Copilot
 // process. The adapter only owns integration callbacks, never data or assets.
 type LocalCanvasConfig struct {
 	Prefix          string                      `json:"prefix"`
 	AdapterURL      string                      `json:"adapterUrl"`
 	MemoryDirectory string                      `json:"memoryDirectory,omitempty"`
+	GitHubCLI       string                      `json:"githubCli,omitempty"`
 	OperatorActions *LocalOperatorActionsConfig `json:"operatorActions,omitempty"`
 }
 
@@ -24,12 +25,12 @@ type localCanvasContextKey struct{}
 
 var canvasPrefix = regexp.MustCompile(`^/[a-f0-9]{48}$`)
 
-func validateLocalCanvas(config Config, localSQLite bool) error {
+func validateLocalCanvas(config Config, local bool) error {
 	if config.Canvas == nil {
 		return nil
 	}
-	if !localSQLite || config.GitHubOAuth != nil || config.CertFile != "" || config.KeyFile != "" {
-		return errors.New("canvas integration requires local SQLite loopback HTTP serving")
+	if !local || config.GitHubOAuth != nil || config.CertFile != "" || config.KeyFile != "" {
+		return errors.New("canvas integration requires local loopback HTTP serving")
 	}
 	host, _, err := net.SplitHostPort(config.Listen)
 	if err != nil || net.ParseIP(host) == nil || !net.ParseIP(host).IsLoopback() {
@@ -54,7 +55,7 @@ func canvasAdapterPath(path string) bool {
 		"/__custom_views", "/__dialog_selector", "/__copilot_session":
 		return true
 	}
-	return strings.HasPrefix(path, "/__cli_") || strings.HasPrefix(path, "/api/v1/github/")
+	return strings.HasPrefix(path, "/__cli_")
 }
 
 func canvasDataAPI(path string) bool {
@@ -62,7 +63,7 @@ func canvasDataAPI(path string) bool {
 	case "/api/v1/query", "/api/v1/refresh", "/api/v1/diagnostics", "/api/v1/events":
 		return true
 	}
-	return strings.HasPrefix(path, "/api/v1/memory/")
+	return strings.HasPrefix(path, "/api/v1/memory/") || strings.HasPrefix(path, "/api/v1/github/")
 }
 
 func (a *App) canvasHandler(next http.Handler) http.Handler {
@@ -94,6 +95,11 @@ func (a *App) canvasHandler(next http.Handler) http.Handler {
 		if origin := request.Header.Get("Origin"); origin != "" && origin != "http://"+request.Host ||
 			request.Header.Get("Sec-Fetch-Site") == "cross-site" {
 			http.Error(response, "forbidden", http.StatusForbidden)
+			return
+		}
+		if strings.HasPrefix(strings.TrimPrefix(request.URL.Path, config.Prefix), "/api/v1/github/") && request.Method != http.MethodGet {
+			response.Header().Set("Allow", http.MethodGet)
+			writeError(request.Context(), response, http.StatusMethodNotAllowed, "GitHub resources are read-only")
 			return
 		}
 		request = request.Clone(context.WithValue(request.Context(), localCanvasContextKey{}, true))

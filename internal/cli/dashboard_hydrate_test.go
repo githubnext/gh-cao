@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/githubnext/gh-cao/internal/dashboardquery"
 )
 
 func TestDashboardHydratesRichCachedAndUnifiedEvidence(t *testing.T) {
@@ -48,15 +46,10 @@ func TestDashboardHydratesRichCachedAndUnifiedEvidence(t *testing.T) {
 		dashboardOptions{window: dashboardMaximumDuration, count: 2}, dashboardTestGH(t, now), logs); err != nil {
 		t.Fatal(err)
 	}
-	db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = db.Close() }()
 	for _, store := range []string{"runs", "tools", "domains", "audits"} {
-		rows, err := readNativeCollection(t.Context(), db, store)
-		if err != nil || len(rows) == 0 {
-			t.Fatalf("rich %s evidence was discarded: rows=%d err=%v", store, len(rows), err)
+		rows := readDashboardPublishedCollection(t, cache, store)
+		if len(rows) == 0 {
+			t.Fatalf("rich %s evidence was discarded", store)
 		}
 		content, err := json.Marshal(rows)
 		if err != nil {
@@ -113,14 +106,31 @@ func TestDashboardSnapshotDoesNotRetainFalseEmptySources(t *testing.T) {
 	if err := publishDashboardSnapshot(t.Context(), cache, batch); err != nil {
 		t.Fatal(err)
 	}
-	db, err := openNativeSnapshot(filepath.Join(cache, "gh-aw-logs.sqlite"))
-	if err != nil {
-		t.Fatal(err)
+	if rows := readDashboardPublishedCollection(t, cache, "tools"); len(rows) != 0 {
+		t.Fatal("uncollected tools survived canonical artifact replacement")
 	}
-	defer func() { _ = db.Close() }()
-	var count int
-	if err := db.QueryRow(`SELECT count(*) FROM __idb_stores WHERE database_name=? AND name='tools'`,
-		dashboardquery.DatabaseName).Scan(&count); err != nil || count != 0 {
-		t.Fatalf("uncollected tools became a false empty observation: count=%d err=%v", count, err)
+}
+
+func readDashboardPublishedCollection(t *testing.T, directory, collection string) []map[string]any {
+	t.Helper()
+	rows := []map[string]any{}
+	for _, phase := range []string{"runs", "records"} {
+		content, err := os.ReadFile(filepath.Join(directory, "gh-aw-logs-"+phase, "local.jsonl"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, line := range strings.Split(strings.TrimSpace(string(content)), "\n") {
+			var envelope struct {
+				Collection string         `json:"collection"`
+				Record     map[string]any `json:"record"`
+			}
+			if err := json.Unmarshal([]byte(line), &envelope); err != nil {
+				t.Fatal(err)
+			}
+			if envelope.Collection == collection {
+				rows = append(rows, envelope.Record)
+			}
+		}
 	}
+	return rows
 }

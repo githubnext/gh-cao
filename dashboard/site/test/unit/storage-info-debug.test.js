@@ -31,17 +31,17 @@ afterEach(() => {
 
 describe('storage-info debug logging', () => {
   it('is silent by default', async () => {
-    declare('sqlite');
+    declare('postgres');
     const { renderStorageInfo, output } = await load('');
     renderStorageInfo(context);
     expect(output.debug).not.toHaveBeenCalled();
   });
 
   it('logs the resolved backend under the storage-info category', async () => {
-    declare('sqlite');
+    declare('postgres');
     const { renderStorageInfo, output } = await load('?debug=storage-info');
     renderStorageInfo(context);
-    expect(output.debug).toHaveBeenCalledWith('[cao:storage-info]', { event: 'backend-resolved', declared: true, backend: 'sqlite' });
+    expect(output.debug).toHaveBeenCalledWith('[cao:storage-info]', { event: 'backend-resolved', declared: true, backend: 'postgres' });
   });
 
   it('never logs an arbitrary declared value', async () => {

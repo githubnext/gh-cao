@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -40,9 +39,8 @@ func TestSessionArchiveLocalCaptureIntegration(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Fatal("approved private archive requires a POSIX host")
 	}
-	original, snapshot := newSQLiteTestApp(t, false)
+	original, snapshot := newLocalPostgresTestApp(t, false)
 	config := original.config
-	config.Database = nil
 	var err error
 	config.DatabaseQueriesPath, err = filepath.Abs(config.DatabaseQueriesPath)
 	if err != nil {
@@ -85,8 +83,7 @@ func TestSessionArchiveLocalCaptureIntegration(t *testing.T) {
 	if err := os.WriteFile(fixture, append(record, '\n'), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	// #nosec G304 -- this immutable snapshot is created in the test's private directory.
-	before, err := os.ReadFile(snapshot)
+	before, err := snapshot.database.State(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,10 +99,7 @@ func TestSessionArchiveLocalCaptureIntegration(t *testing.T) {
 		[]byte(`{"repository":"octo/one","run_id":124,"run_attempt":1}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	app, err := NewLocalSQLiteApp(t.Context(), snapshot, config)
-	if err != nil {
-		t.Fatal(err)
-	}
+	app := snapshot.app(t, config)
 	t.Cleanup(func() { _ = app.Stop(context.WithoutCancel(t.Context())) })
 	if app.Collector() != nil || app.adx != nil || app.adxTraces != nil {
 		t.Fatal("local archive serving enabled remote acquisition")
@@ -157,18 +151,14 @@ func TestSessionArchiveLocalCaptureIntegration(t *testing.T) {
 	if operational.Code != 200 || strings.Contains(operational.Body.String(), "full approved acquired message") {
 		t.Fatalf("archive changed ordinary dashboard query behavior: %d", operational.Code)
 	}
-	// #nosec G304 -- compare the same test-owned snapshot to detect accidental mutation.
-	after, err := os.ReadFile(snapshot)
-	if err != nil || !bytes.Equal(before, after) {
-		t.Fatal("archive acquisition modified the immutable deployed snapshot")
+	after, err := snapshot.database.State(t.Context())
+	if err != nil || before.Revision != after.Revision {
+		t.Fatal("archive acquisition modified the canonical database")
 	}
 	if err := app.Stop(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	restarted, err := NewLocalSQLiteApp(t.Context(), snapshot, config)
-	if err != nil {
-		t.Fatal(err)
-	}
+	restarted := snapshot.app(t, config)
 	t.Cleanup(func() { _ = restarted.Stop(context.WithoutCancel(t.Context())) })
 	response = archiveRequest(t, restarted, body, true)
 	var recovered sessionArchiveResult
@@ -197,7 +187,7 @@ func TestSessionArchiveLocalCaptureIntegration(t *testing.T) {
 }
 
 func TestSessionArchiveQueryExamplesIntegration(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	config := sessionarchive.Config{
 		Enabled: true, DurableStorage: true, Directory: t.TempDir(), Namespace: "query-examples",
 		Repositories: []string{"octo/one", "octo/other"}, DuckDBPath: archiveRuntime(t),
@@ -345,18 +335,18 @@ func TestSessionArchiveQueryExamplesIntegration(t *testing.T) {
 }
 
 func TestSessionArchiveScopeRejectsBeforeRuntimeOrAcquisition(t *testing.T) {
-	original, snapshot := newSQLiteTestApp(t, false)
+	original, snapshot := newLocalPostgresTestApp(t, false)
 	config := original.config
-	config.Database = nil
 	config.SessionArchive = &sessionarchive.Config{
 		Enabled: true, DurableStorage: true, Directory: t.TempDir(), Namespace: "integration",
 		Repositories: []string{"octo/not-enrolled"}, DuckDBPath: "/must-not-be-executed",
 		Policy: adxtrace.Policy{Version: "test-approved", ContentApproved: true, RightsApproved: true,
 			Events: map[string][]string{"user.message": {"content"}}},
 	}
-	if _, err := NewLocalSQLiteApp(t.Context(), snapshot, config); err == nil ||
-		!strings.Contains(err.Error(), "contained in the local snapshot inventory") {
-		t.Fatalf("archive scope bypassed local snapshot inventory: %v", err)
+	config.Database = snapshot.database
+	if _, err := New(t.Context(), snapshot.services, config); err == nil ||
+		!strings.Contains(err.Error(), "contained in the local canonical inventory") {
+		t.Fatalf("archive scope bypassed local canonical inventory: %v", err)
 	}
 	files, err := os.ReadDir(config.SessionArchive.Directory)
 	if err != nil || len(files) != 0 {
@@ -382,7 +372,7 @@ func TestSessionArchiveWithdrawalBeforeResponseIntegration(t *testing.T) {
 	for _, kind := range []string{"timeline", "summary"} {
 		for _, withdrawal := range []string{"trace", "repository"} {
 			t.Run(kind+"/"+withdrawal, func(t *testing.T) {
-				app, _ := newSQLiteTestApp(t, false)
+				app, _ := newLocalPostgresTestApp(t, false)
 				config := sessionarchive.Config{
 					Enabled: true, DurableStorage: true, Directory: t.TempDir(), Namespace: "response",
 					Repositories: []string{"octo/one"}, DuckDBPath: duckdb,

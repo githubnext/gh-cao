@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/logger"
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
+	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	wg "github.com/githubnext/gh-cao/server/internal/webhookgateway"
 	"github.com/githubnext/gh-cao/server/internal/webhookgatewaylocal"
 )
@@ -19,22 +19,27 @@ import (
 var localLog = logger.New("cao:webhook-gateway:local")
 
 type localOptions struct {
-	repository, path, apiURL string
-	events                   []string
-	interval                 time.Duration
-	once                     bool
+	repository, namespace, apiURL string
+	events                        []string
+	interval                      time.Duration
+	once                          bool
 }
 
 func runLocal(ctx context.Context, options localOptions, output io.Writer) (err error) {
-	// SQLite can surface a driver interruption instead of the cancellation.
+	// Preserve caller cancellation even when the database reports a driver error.
 	defer func(parent context.Context) {
 		if err != nil && parent.Err() != nil {
 			err = parent.Err()
 		}
 	}(ctx)
-	if !filepath.IsAbs(options.path) || options.interval < time.Second {
-		return errors.New("local simulation requires an absolute SQLite path and a polling interval of at least one second")
+	if strings.TrimSpace(options.namespace) == "" || options.interval < time.Second {
+		return errors.New("local simulation requires an explicit PostgreSQL namespace and a polling interval of at least one second")
 	}
+	store, err := postgres.Open(ctx, os.Getenv("CAO_POSTGRES_URL"), options.namespace, postgres.Config{})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = store.Close() }()
 	client, err := webhookgatewaylocal.NewClient(options.apiURL, options.repository, os.Getenv("GH_TOKEN"))
 	if err != nil {
 		return err
@@ -45,30 +50,29 @@ func runLocal(ctx context.Context, options localOptions, output io.Writer) (err 
 	}
 	simulation, err := webhookgatewaylocal.NewSimulation(repository, options.events)
 	if err != nil {
-		return err
+		return fmt.Errorf("create local webhook simulation: %w", err)
 	}
 	policy, err := simulation.Load(ctx)
 	if err != nil {
 		return err
 	}
 	namespace := policy.Policy.Namespace + "-" + wg.MetadataDigest([]byte(options.apiURL))[:16]
-	queue, err := sqlite.OpenWebhookQueue(ctx, options.path, namespace, policy.Policy.Queue)
+	queue, err := store.OpenWebhookQueue(ctx, namespace, policy.Policy.Queue)
 	if err != nil {
-		return err
+		return fmt.Errorf("open local webhook queue: %w", err)
 	}
-	defer func() { _ = queue.Close() }()
 	if err := queue.ApplyRevision(ctx, policy.Revision); err != nil {
-		return err
+		return fmt.Errorf("apply local webhook revision: %w", err)
 	}
-	if _, err := queue.Maintain(ctx, 10000); err != nil {
-		return err
+	if _, err := queue.Maintain(ctx, 512); err != nil {
+		return fmt.Errorf("maintain local webhook queue: %w", err)
 	}
 	if _, err := fmt.Fprintln(output, "LOCAL SIMULATION: GitHub reads only; signed in-process ingress; dispatch acceptance is simulated, not remote workflow execution."); err != nil {
 		return err
 	}
 	poller := &webhookgatewaylocal.Poller{
 		Client: client, Repository: repository, Simulation: simulation, Interval: options.interval,
-		Receipts: queue,
+		Receipts: queue.(webhookgatewaylocal.ReceiptReader),
 		Handler:  &wg.Ingress{SourceID: "local", Secrets: simulation, Policies: simulation, Queue: queue, Authorizer: simulation},
 	}
 	worker := &wg.Worker{Policies: simulation, Queue: queue, Authorizer: simulation, Dispatcher: simulation,
@@ -78,7 +82,7 @@ func runLocal(ctx context.Context, options localOptions, output io.Writer) (err 
 	}
 	if options.once {
 		if _, err := poller.Poll(ctx); err != nil {
-			return err
+			return fmt.Errorf("poll local webhook events: %w", err)
 		}
 		for range policy.Policy.Queue.MaxRows {
 			worked, err := worker.RunOnce(ctx)
@@ -131,8 +135,14 @@ func runLocal(ctx context.Context, options localOptions, output io.Writer) (err 
 	}
 }
 
-func reportLocal(ctx context.Context, queue *sqlite.Queue, output io.Writer) error {
-	counts, err := queue.Counts(ctx)
+func reportLocal(ctx context.Context, queue wg.Queue, output io.Writer) error {
+	counter, ok := queue.(interface {
+		Counts(context.Context) (map[wg.JobState]int64, error)
+	})
+	if !ok {
+		return errors.New("local simulation requires durable queue counts")
+	}
+	counts, err := counter.Counts(ctx)
 	if err != nil {
 		return err
 	}

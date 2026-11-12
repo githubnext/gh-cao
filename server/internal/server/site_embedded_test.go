@@ -13,21 +13,15 @@ import (
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
-	"github.com/githubnext/gh-cao/server/internal/model"
-	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 func TestEmbeddedDashboardResources(t *testing.T) {
 	t.Chdir(t.TempDir())
-	snapshot := testutil.SQLiteSnapshot(t, map[string][]model.Row{
-		"repositories": {{"id": "owner/repo", "fullName": "owner/repo"}},
-	})
-	app, err := NewLocalSQLiteApp(t.Context(), snapshot, Config{
+	original, fixture := newLocalPostgresTestApp(t, false)
+	_ = original
+	app := fixture.app(t, Config{
 		Listen: "127.0.0.1:8080", AccessToken: testAccessToken, MCPEnabled: true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 	if err := app.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +51,7 @@ func TestEmbeddedDashboardResources(t *testing.T) {
 		}
 		if path.Base(name) == "index.html" {
 			if !strings.Contains(response.Body.String(), `content="server-http"`) ||
-				!strings.Contains(response.Body.String(), `content="sqlite"`) ||
+				!strings.Contains(response.Body.String(), `content="postgres"`) ||
 				response.Header().Get("Cache-Control") != "no-store" {
 				t.Fatalf("entry %s lost the server bootstrap", name)
 			}

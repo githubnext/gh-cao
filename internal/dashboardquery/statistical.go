@@ -20,7 +20,6 @@ const StatisticalVersion = "canonical-snapshot-bottom-k-v1"
 const StatisticalFrameVersion = "canonical-snapshot-frame-v2"
 const StatisticalSeed = "cao-statistical-v1"
 const StatisticalPostgresCapacity = 64000
-const StatisticalSQLiteCapacity = 8000
 const StatisticalIndexedDBCapacity = 16000
 const StatisticalMaxInputRows = 200000
 const StatisticalMaxInputBytes = 256 << 20

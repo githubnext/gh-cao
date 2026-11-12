@@ -35,7 +35,7 @@ func newHostedCLIRunnerFromEnv(options HostedCLIExecutorOptions) (*hostedcli.Con
 		policy := strings.TrimSpace(os.Getenv("CAO_HOSTED_CLI_EGRESS_POLICY_FILE"))
 		relay := strings.TrimSpace(os.Getenv("CAO_HOSTED_CLI_EGRESS_RELAY"))
 		digest := strings.TrimSpace(os.Getenv("CAO_HOSTED_CLI_EGRESS_RELAY_SHA256"))
-		if options.SQLitePath == "" || policy != "" || relay != "" || digest != "" {
+		if !options.LocalDevelopment || policy != "" || relay != "" || digest != "" {
 			var err error
 			lifecycle.Egress, err = hostedcli.LoadDockerEgress(policy, relay, digest)
 			if err != nil {
@@ -44,8 +44,8 @@ func newHostedCLIRunnerFromEnv(options HostedCLIExecutorOptions) (*hostedcli.Con
 		}
 		return hostedcli.NewContainerRunner(image, lifecycle)
 	case "podman", "apple", "windows-sandbox":
-		if options.SQLitePath == "" {
-			return nil, errors.New("native hosted CLI runtimes are for local development only and require execute-cli --sqlite")
+		if !options.LocalDevelopment {
+			return nil, errors.New("native hosted CLI runtimes are for local development only and require execute-cli --local-development")
 		}
 	default:
 		return nil, errors.New("CAO_HOSTED_CLI_CONTAINER_RUNTIME must be docker, podman, apple, or windows-sandbox")

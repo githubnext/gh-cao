@@ -57,7 +57,6 @@ func newHostedCLIQueueListCommand() *cobra.Command {
 		Short: "list hosted CLI queue summaries",
 		Args:  cobra.NoArgs,
 	}
-	sqlitePath := cmd.Flags().String("sqlite", "", "local debugging only: SQLite file used by --hosted-cli-sqlite")
 	statuses := cmd.Flags().StringArray("status", nil, "filter by command status; repeatable")
 	limit := cmd.Flags().Int("limit", 20, "maximum commands to return (1-100)")
 	continuationToken := cmd.Flags().String("continuation-token", "", "opaque token returned by the previous page")
@@ -66,7 +65,7 @@ func newHostedCLIQueueListCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		return runHostedCLIQueueCommand(*sqlitePath, func(ctx context.Context, session hostedCLIQueueSession) error {
+		return runHostedCLIQueueCommand(func(ctx context.Context, session hostedCLIQueueSession) error {
 			page, err := session.queue.ListBefore(ctx, filter)
 			if err != nil {
 				return err
@@ -117,13 +116,12 @@ func newHostedCLIQueueShowCommand() *cobra.Command {
 		Short: "show a hosted CLI command summary",
 		Args:  cobra.ExactArgs(1),
 	}
-	sqlitePath := cmd.Flags().String("sqlite", "", "local debugging only: SQLite file used by --hosted-cli-sqlite")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		id, err := parseHostedCLICommandID(args[0])
 		if err != nil {
 			return err
 		}
-		return runHostedCLIQueueCommand(*sqlitePath, func(ctx context.Context, session hostedCLIQueueSession) error {
+		return runHostedCLIQueueCommand(func(ctx context.Context, session hostedCLIQueueSession) error {
 			command, err := session.queue.Detail(ctx, id)
 			if err != nil {
 				return err
@@ -140,7 +138,6 @@ func newHostedCLIQueueCancelCommand() *cobra.Command {
 		Short: "cancel a queued or running hosted CLI action",
 		Args:  cobra.ExactArgs(1),
 	}
-	sqlitePath := cmd.Flags().String("sqlite", "", "local debugging only: SQLite file used by --hosted-cli-sqlite")
 	operator := cmd.Flags().String("actor", "", "self-reported operator login recorded in the durable audit trail")
 	_ = cmd.MarkFlagRequired("actor")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -152,7 +149,7 @@ func newHostedCLIQueueCancelCommand() *cobra.Command {
 		if !hostedCLOperatorLogin.MatchString(login) {
 			return errors.New("--actor must be a valid GitHub login")
 		}
-		return runHostedCLIQueueCommand(*sqlitePath, func(ctx context.Context, session hostedCLIQueueSession) error {
+		return runHostedCLIQueueCommand(func(ctx context.Context, session hostedCLIQueueSession) error {
 			if err := session.audit.Record(ctx, "cli_command.operator_cancel_requested", audit.Success,
 				slog.String("actor", login), slog.String("actor_source", "self_reported_cli"),
 				slog.Int64("command_id", id)); err != nil {
@@ -178,7 +175,7 @@ func newHostedCLIQueueCancelCommand() *cobra.Command {
 	return cmd
 }
 
-func runHostedCLIQueueCommand(sqlitePath string, run func(context.Context, hostedCLIQueueSession) error) error {
+func runHostedCLIQueueCommand(run func(context.Context, hostedCLIQueueSession) error) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	closeTelemetry, err := setupTelemetry(ctx, version, telemetry.Setup)
@@ -187,24 +184,13 @@ func runHostedCLIQueueCommand(sqlitePath string, run func(context.Context, hoste
 	}
 	defer closeTelemetry()
 
-	var queues operational.CLICommandQueues
-	var auditStore operational.AuditLog
-	var closeStore func() error
-	if sqlitePath != "" {
-		store, err := server.OpenHostedCLISQLite(ctx, sqlitePath)
-		if err != nil {
-			return err
-		}
-		queues, auditStore, closeStore = store, store, store.Close
-	} else {
-		store, err := server.StoreFromEnv(ctx)
-		if err != nil {
-			return err
-		}
-		services := store.OperationalServices()
-		queues, auditStore, closeStore = services.CLICommands, services.Audit, store.Close
+	store, err := server.StoreFromEnv(ctx)
+	if err != nil {
+		return err
 	}
-	defer func() { _ = closeStore() }()
+	defer func() { _ = store.Close() }()
+	services := store.OperationalServices()
+	queues, auditStore := services.CLICommands, services.Audit
 	if queues == nil || auditStore == nil {
 		return errors.New("hosted CLI queue operations require the operational CLI queue and audit store")
 	}

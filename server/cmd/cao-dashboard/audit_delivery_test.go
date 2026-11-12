@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -39,21 +38,17 @@ func TestAuditDeliverReportsConfigurationFailure(t *testing.T) {
 	}
 }
 
-func TestAuditDeliverSQLiteDoesNotBootstrap(t *testing.T) {
+func TestAuditDeliverDoesNotBootstrap(t *testing.T) {
 	t.Setenv("CAO_AUDIT_DELIVERY_URL", "https://127.0.0.1:1")
 	t.Setenv("CAO_AUDIT_DELIVERY_TOKEN", "local-test-token")
-	path := filepath.Join(t.TempDir(), "missing.sqlite")
-	for _, emptyFile := range []bool{false, true} {
-		if emptyFile {
-			if err := os.WriteFile(path, nil, 0o600); err != nil {
-				t.Fatal(err)
-			}
-		}
+	_, dsn, _ := operationalCommandFixture(t)
+	t.Setenv("CAO_OPERATIONAL_NAMESPACE", "not-provisioned")
+	for range 2 {
 		cmd := newRootCommand()
 		var stdout, stderr bytes.Buffer
 		cmd.SetOut(&stdout)
 		cmd.SetErr(&stderr)
-		cmd.SetArgs([]string{"audit", "deliver", "--stream", "local", "--sqlite", path})
+		cmd.SetArgs([]string{"audit", "deliver", "--stream", "local"})
 		err := cmd.Execute()
 		var result auditdelivery.Result
 		if err == nil || stdout.Len() != 0 {
@@ -62,18 +57,24 @@ func TestAuditDeliverSQLiteDoesNotBootstrap(t *testing.T) {
 		if err := json.NewDecoder(&stderr).Decode(&result); err != nil || result.Stage != "source_open" || result.Status != "failure" {
 			t.Fatalf("missing source failure result: %+v, %v", result, err)
 		}
-		info, err := os.Stat(path)
-		if (!emptyFile && !errors.Is(err, os.ErrNotExist)) || (emptyFile && (err != nil || info.Size() != 0)) {
-			t.Fatalf("delivery created or initialized its source: %v", err)
+		db, err := sql.Open("pgx", dsn)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var count int
+		err = db.QueryRowContext(t.Context(), `SELECT count(*) FROM cao_operational_namespaces WHERE namespace='not-provisioned'`).Scan(&count)
+		_ = db.Close()
+		if err != nil || count != 0 {
+			t.Fatalf("delivery initialized its source: count=%d err=%v", count, err)
 		}
 	}
 }
 
-func TestAuditDeliverSQLiteReadOnlyEndToEnd(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "source.sqlite")
-	bootstrapSQLite(t, path)
-	seedSQLiteAuditHistory(t, path, time.Now().Add(-2*operational.AuditRetention), 3)
-	reader, closeReader, err := server.OpenAuditReader(t.Context(), path)
+func TestAuditDeliverPostgresReadOnlyEndToEnd(t *testing.T) {
+	_, dsn, namespace := operationalCommandFixture(t)
+	seedPostgresAuditHistory(t, dsn, namespace, time.Now().Add(-2*operational.AuditRetention), 3)
+	t.Setenv("CAO_POSTGRES_URL", dsn+"&default_transaction_read_only=on")
+	reader, closeReader, err := server.OpenAuditReader(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +105,7 @@ func TestAuditDeliverSQLiteReadOnlyEndToEnd(t *testing.T) {
 	http.DefaultTransport = destination.Client().Transport
 	t.Cleanup(func() { http.DefaultTransport = transport })
 
-	db, err := sql.Open("sqlite", path+"?_txlock=immediate")
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,6 +115,9 @@ func TestAuditDeliverSQLiteReadOnlyEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(t.Context(), `SELECT namespace FROM cao_operational_namespaces WHERE namespace=$1 FOR UPDATE`, namespace); err != nil {
+		t.Fatal(err)
+	}
 	// The complete command must succeed while another process could be
 	// writing. An accidental read-write verifier would require this lock.
 	for index, want := range []int64{2, 3, 3} {
@@ -121,7 +125,7 @@ func TestAuditDeliverSQLiteReadOnlyEndToEnd(t *testing.T) {
 		var stdout, stderr bytes.Buffer
 		cmd.SetOut(&stdout)
 		cmd.SetErr(&stderr)
-		args := []string{"--stream", "local", "--sqlite", path, "--max-events", "2", "--timeout", "5s"}
+		args := []string{"--stream", "local", "--max-events", "2", "--timeout", "5s"}
 		if index == 0 {
 			args = append(args, "--bootstrap-anchor", anchorPath)
 		}

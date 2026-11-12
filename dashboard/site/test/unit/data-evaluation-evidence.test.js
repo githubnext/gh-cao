@@ -1,8 +1,7 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
-import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseUnifiedSessionDocument } from '../../src/data/adapters/unified-session.js';
 import { parseExperimentAssignments, experimentAssignmentArtifact } from '../../src/data/adapters/experiment-evidence.js';
 import { adaptCachedGhAwJsonl, adaptGhAwLogs } from '../../src/data/adapters/gh-aw-logs.js';
@@ -10,7 +9,6 @@ import { normalize } from '../../src/data/normalize/index.js';
 import { relationshipErrors } from '../../src/data/model/schema.js';
 import { ingestCachedGhAwJsonl, ingestGhAwLogs } from '../../src/data/ingest/coordinator.js';
 import { readCollections, readCanonicalBatch } from '../../src/data/storage/indexeddb.js';
-import { createSqliteIndexedDB, SqliteIDBKeyRange } from '../../src/data/storage/sqlite-indexeddb.js';
 import { renderDashboard, disposeDashboard } from '../../src/presenter.js';
 import { resetSourceStore } from '../../src/source-store.js';
 import { DataRequestWorker } from '../data-request-worker.js';
@@ -118,13 +116,10 @@ describe('unified evaluation evidence', () => {
     expect(relationshipErrors(batch)).toEqual([]);
   });
 
-  it.each(['browser', 'sqlite'])('retains split graders idempotently through the %s worker query boundary', async (backend) => {
-    const directory = backend === 'sqlite' ? mkdtempSync(join(tmpdir(), 'cao-graders-')) : null;
-    if (directory) onTestFinished(() => rmSync(directory, { recursive: true, force: true }));
-    const filename = directory ? join(directory, 'graders.sqlite') : null;
-    const indexedDB = filename ? createSqliteIndexedDB(filename) : new IDBFactory();
+  it('retains split graders idempotently through the worker query boundary', async () => {
+    const indexedDB = new IDBFactory();
     vi.stubGlobal('indexedDB', indexedDB);
-    vi.stubGlobal('IDBKeyRange', filename ? SqliteIDBKeyRange : IDBKeyRange);
+    vi.stubGlobal('IDBKeyRange', IDBKeyRange);
     const input = artifactInput([{
       path: 'usage/aw_session.jsonl', content: [
         { type: 'session.format', data: { version: 1 } },
@@ -143,7 +138,6 @@ describe('unified evaluation evidence', () => {
     for (let repeat = 0; repeat < 2; repeat++) {
       await ingestGhAwLogs(indexedDB, input, { now: Date.parse('2026-10-16T00:00:00Z') });
     }
-    if (filename) vi.stubGlobal('indexedDB', createSqliteIndexedDB(filename));
     const dashboard = authoritativeDashboard.dashboard;
     const sources = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (
       await processDataRequest({
@@ -248,19 +242,16 @@ describe('unified evaluation evidence', () => {
     }]))).toThrow('Multiple eval artifacts');
   });
 
-  it.each(['browser', 'sqlite'])('persists artifact evals idempotently and renders its worker payload: %s', async (backend) => {
-    const directory = backend === 'sqlite' ? mkdtempSync(join(tmpdir(), 'cao-evals-')) : null;
-    if (directory) onTestFinished(() => rmSync(directory, { recursive: true, force: true }));
-    const filename = directory ? join(directory, 'evals.sqlite') : null;
-    const indexedDB = filename ? createSqliteIndexedDB(filename) : new IDBFactory();
+  it('persists artifact evals idempotently and renders its worker payload', async () => {
+    const indexedDB = new IDBFactory();
     vi.stubGlobal('indexedDB', indexedDB);
-    vi.stubGlobal('IDBKeyRange', filename ? SqliteIDBKeyRange : IDBKeyRange);
+    vi.stubGlobal('IDBKeyRange', IDBKeyRange);
     vi.stubGlobal('Worker', DataRequestWorker);
     const input = artifactInput([evalArtifact]);
     const options = { now: Date.parse('2026-10-16T00:00:00Z') };
     await ingestGhAwLogs(indexedDB, input, options);
     await ingestGhAwLogs(indexedDB, input, options);
-    const persisted = filename ? createSqliteIndexedDB(filename) : indexedDB;
+    const persisted = indexedDB;
     vi.stubGlobal('indexedDB', persisted);
     const batch = await readCanonicalBatch(persisted);
     expect(batch.evals).toHaveLength(3);
@@ -422,15 +413,12 @@ describe('unified evaluation evidence', () => {
     expect(relationshipErrors(batch)).toEqual([]);
   });
 
-  it.each(['browser', 'sqlite'].flatMap((backend) =>
+  it.each(['browser'].flatMap((backend) =>
     ['experiment.assignment', 'experiment.state', 'artifact'].map((source) => ({ backend, source }))
-  ))('persists $source experiments and resolves every Experiments view source through the $backend worker', async ({ backend, source }) => {
-    const directory = backend === 'sqlite' ? mkdtempSync(join(tmpdir(), 'cao-experiments-')) : null;
-    if (directory) onTestFinished(() => rmSync(directory, { recursive: true, force: true }));
-    const filename = directory ? join(directory, 'experiments.sqlite') : null;
-    const indexedDB = filename ? createSqliteIndexedDB(filename) : new IDBFactory();
+  ))('persists $source experiments and resolves every Experiments view source through the $backend worker', async ({ source }) => {
+    const indexedDB = new IDBFactory();
     vi.stubGlobal('indexedDB', indexedDB);
-    vi.stubGlobal('IDBKeyRange', filename ? SqliteIDBKeyRange : IDBKeyRange);
+    vi.stubGlobal('IDBKeyRange', IDBKeyRange);
     const input = {
       observedAt: '2026-10-15T10:01:00Z',
       repository: { githubId: 1, owner: 'octo', name: 'api' },
@@ -450,7 +438,6 @@ describe('unified evaluation evidence', () => {
       ]
     };
     await ingestGhAwLogs(indexedDB, input, { now: Date.parse('2026-10-16T00:00:00Z') });
-    if (filename) vi.stubGlobal('indexedDB', createSqliteIndexedDB(filename));
     const stored = await readCollections(indexedDB, ['experiments', 'experimentAssignments']);
     expect(stored.experiments).toHaveLength(2);
     expect(stored.experimentAssignments).toHaveLength(2);

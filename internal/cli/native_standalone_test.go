@@ -32,12 +32,6 @@ func TestNativeStandaloneBinary(t *testing.T) {
 	for _, args := range [][]string{
 		{"version"}, {"pages", "--json"}, {"queries", "--json"}, {"query-info", "campaign-runs", "--json"},
 		{"prompt", "campaign-runs", "--param", "campaign=dependabot"},
-		{"query", "--database", "explicit.sqlite", "--collection", "runs"},
-		{"query", "--database", "explicit.sqlite", "--stdin"},
-		{"query", "--database", "explicit.sqlite", "campaign-inventory"},
-		{"gh", "runs", "--database", "explicit.sqlite"},
-		{"computation", "runtime-health", "--database", "explicit.sqlite", "--inventory", inventory},
-		{"computation", "intelligence", "--database", "explicit.sqlite", "--inventory", inventory},
 		{"setup", "auth", "hosted-cli", "--repo", "acme/control", "--target-repository", "acme/target", "--dry-run"},
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {

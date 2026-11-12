@@ -2,21 +2,22 @@ package webhookgatewaylocal
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
+	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 	wg "github.com/githubnext/gh-cao/server/internal/webhookgateway"
 )
 
@@ -30,10 +31,11 @@ type readRecord struct {
 }
 
 type pollRig struct {
-	queue           *sqlite.Queue
+	queue           pollingQueue
+	store           *postgres.Store
 	poller          *Poller
 	policy          wg.PolicySnapshot
-	path            string
+	dsn, namespace  string
 	records         chan readRecord
 	badIdentity     atomic.Bool
 	rejectAdmission atomic.Bool
@@ -42,9 +44,17 @@ type pollRig struct {
 	nullFeed        atomic.Bool
 }
 
+type pollingQueue interface {
+	wg.Queue
+	wg.QueueDepthProvider
+	ReceiptReader
+	Counts(context.Context) (map[wg.JobState]int64, error)
+}
+
 func newPollRig(t *testing.T, total int) *pollRig {
 	t.Helper()
-	rig := &pollRig{path: filepath.Join(t.TempDir(), "local.sqlite"), records: make(chan readRecord, 100)}
+	rig := &pollRig{records: make(chan readRecord, 100)}
+	rig.store, rig.dsn, rig.namespace = testutil.OperationalPostgres(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rig.records <- readRecord{r.Method, r.URL.RequestURI(), r.Header.Get("If-None-Match")}
 		if r.Method != http.MethodGet {
@@ -114,15 +124,12 @@ func newPollRig(t *testing.T, total int) *pollRig {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rig.queue, err = sqlite.OpenWebhookQueue(t.Context(), rig.path, rig.policy.Policy.Namespace, rig.policy.Policy.Queue)
+	queue, err := rig.store.OpenWebhookQueue(t.Context(), rig.policy.Policy.Namespace, rig.policy.Policy.Queue)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		if err := rig.queue.Close(); err != nil {
-			t.Error(err)
-		}
-	})
+	rig.queue = queue.(pollingQueue)
+	t.Cleanup(func() { _ = rig.store.Close() })
 	rig.poller = &Poller{Client: client, Repository: repository, Simulation: simulation, Interval: time.Minute}
 	rig.wire()
 	return rig
@@ -188,13 +195,18 @@ func TestSpecPolling(t *testing.T) {
 				if _, err := rig.poller.Poll(t.Context()); err != nil || rig.poller.etag != `"feed"` {
 					t.Fatal("failed delivery was skipped", err)
 				}
-				if err := rig.queue.Close(); err != nil {
+				if err := rig.store.Close(); err != nil {
 					t.Fatal(err)
 				}
-				rig.queue, err = sqlite.OpenWebhookQueue(t.Context(), rig.path, rig.policy.Policy.Namespace, rig.policy.Policy.Queue)
+				rig.store, err = postgres.Open(t.Context(), rig.dsn, rig.namespace, postgres.Config{})
 				if err != nil {
 					t.Fatal(err)
 				}
+				queue, err := rig.store.OpenWebhookQueue(t.Context(), rig.policy.Policy.Namespace, rig.policy.Policy.Queue)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rig.queue = queue.(pollingQueue)
 				rig.poller.Simulation, err = NewSimulation(rig.poller.Repository, []string{"issues"})
 				if err != nil {
 					t.Fatal(err)
@@ -274,7 +286,7 @@ func TestPollingFailsClosedWithoutReadableReceipts(t *testing.T) {
 			rig := newPollRig(t, 1)
 			if unavailable == "missing" {
 				rig.poller.Receipts = nil
-			} else if err := rig.queue.Close(); err != nil {
+			} else if err := rig.store.Close(); err != nil {
 				t.Fatal(err)
 			}
 			rig.poller.Handler = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
@@ -323,14 +335,16 @@ func TestLocalIngressStillVerifiesSignaturesAndDropsRawData(t *testing.T) {
 	if _, err := rig.poller.Poll(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	for _, suffix := range []string{"", "-wal"} {
-		data, err := os.ReadFile(rig.path + suffix) // #nosec G304 -- test-owned temporary SQLite database and its WAL only.
-		if errors.Is(err, os.ErrNotExist) && suffix != "" {
-			continue
-		}
-		if err != nil || strings.Contains(string(data), "never-persist-feed") || strings.Contains(string(data), "test-only-token") {
-			t.Fatal("raw feed or credential persisted", err)
-		}
+	db, err := sql.Open("pgx", rig.dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+	var leaked bool
+	if err := db.QueryRowContext(t.Context(), `SELECT EXISTS(SELECT 1 FROM cao_operational_webhook_jobs
+		WHERE namespace=$1 AND (position('never-persist-feed' in convert_from(document,'UTF8'))>0
+		OR position('test-only-token' in convert_from(document,'UTF8'))>0))`, rig.namespace).Scan(&leaked); err != nil || leaked {
+		t.Fatal("raw feed or credential persisted", err)
 	}
 }
 

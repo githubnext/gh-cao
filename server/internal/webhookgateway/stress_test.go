@@ -4,11 +4,13 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"database/sql"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -16,8 +18,9 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
-	"github.com/githubnext/gh-cao/server/internal/operational/sqlite"
+	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 	wg "github.com/githubnext/gh-cao/server/internal/webhookgateway"
 	"github.com/githubnext/gh-cao/server/internal/webhookgatewayhost"
 )
@@ -69,7 +72,6 @@ func newStressDriver(t *testing.T, repositories, developers, days int) *stressDr
 		active += created - retired
 	}
 	shards := 1
-	dir := t.TempDir()
 	for index := range shards {
 		base := stressBasePolicy(planned, index, shards)
 		if err := wg.ValidateDiscoveryPolicy(base.Policy); err != nil {
@@ -80,16 +82,48 @@ func newStressDriver(t *testing.T, repositories, developers, days int) *stressDr
 			t.Fatal(err)
 		}
 		policy := &stressPolicy{base: base, registry: registry, clock: c}
-		queue, err := sqlite.OpenWebhookQueueWithClock(t.Context(), filepath.Join(dir, fmt.Sprintf("queue-%d.sqlite", index)),
-			base.Policy.Namespace, base.Policy.Queue, c)
+		initial, dsn, namespace := testutil.OperationalPostgres(t)
+		if err := initial.Close(); err != nil {
+			t.Fatal(err)
+		}
+		db, err := sql.Open("pgx", dsn)
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Cleanup(func() {
-			if err := queue.Close(); err != nil {
-				t.Error(err)
+		t.Cleanup(func() { _ = db.Close() })
+		// Only this private fixture schema overrides database time, preserving
+		// real PostgreSQL transactions during multi-day simulation.
+		var schema string
+		if err := db.QueryRowContext(t.Context(), `SELECT current_schema()`).Scan(&schema); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.ExecContext(t.Context(), `CREATE TABLE simulated_clock (at timestamptz NOT NULL);
+			INSERT INTO simulated_clock VALUES ('2026-01-01T00:00:00Z');
+			CREATE FUNCTION clock_timestamp() RETURNS timestamptz LANGUAGE sql VOLATILE AS
+			'SELECT at FROM simulated_clock'`); err != nil {
+			t.Fatal(err)
+		}
+		d.clockUpdates = append(d.clockUpdates, func() {
+			if _, err := db.ExecContext(t.Context(), `UPDATE simulated_clock SET at=$1`, c.Now()); err != nil {
+				t.Fatal(err)
 			}
 		})
+		parsed, err := url.Parse(dsn)
+		if err != nil {
+			t.Fatal(err)
+		}
+		params := parsed.Query()
+		params.Set("search_path", schema+",pg_catalog")
+		parsed.RawQuery = params.Encode()
+		store, err := postgres.Open(t.Context(), parsed.String(), namespace, postgres.Config{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = store.Close() })
+		queue, err := store.OpenWebhookQueue(t.Context(), base.Policy.Namespace, base.Policy.Queue)
+		if err != nil {
+			t.Fatal(err)
+		}
 		shard := &stressShard{policy: policy, queue: queue,
 			discovery: &webhookgatewayhost.DiscoveryWorker{
 				Policies: stressBase{base}, Registry: registry, GitHub: discoveryClient, Clock: c,

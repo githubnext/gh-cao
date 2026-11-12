@@ -1,5 +1,4 @@
 import { createServer } from "node:http";
-import { execFile } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import {
   appendFile,
@@ -16,7 +15,6 @@ import {
 import { createReadStream, watch } from "node:fs";
 import { isIP } from "node:net";
 import { createRequire } from "node:module";
-import { promisify } from "node:util";
 import {
   basename,
   dirname,
@@ -34,8 +32,7 @@ import { assertQueryEditorAuthoring, assertQueryEditorEnhancement, assertQueryEd
 import queryEditorDocument from "./site/canvas-query-editor.json" with { type: "json" };
 import { InvalidCustomViewDocumentError, loadLocalCustomViews, materializeLocalCustomView, saveLocalCustomView } from "./local-custom-views.mjs";
 import { composeDashboardDocuments } from "./report/compose-dashboard-documents.mjs";
-import { startCanvasGoHost } from "./canvas-go-host.mjs";
-import { createLocalGitHubService } from "./local-github-service.mjs";
+import { prepareCanvasGoExecutable, startCanvasGoHost } from "./canvas-go-host.mjs";
 import { lookupDialogOptions } from "./dialog-selector.mjs";
 import { createCliActionQueue } from "./cli-action-queue.mjs";
 import { createCliActionApi } from "./cli-action-api.mjs";
@@ -43,7 +40,6 @@ import { cliActionTemplateContext, cliActionTemplateFields, validateCliActionUrl
 import { createCliActionAdmission } from "./cli-action-quota.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
-const executeFile = promisify(execFile);
 const defaultCatalogRoot = resolve(scriptDirectory, "..");
 const socketEndpoint = "/__dashboard_socket";
 const contentTypes = new Map([
@@ -128,22 +124,21 @@ async function campaignDashboardPaths(catalogRoot) {
 async function validateCanonicalActivityData(root) {
   const entries = await readdir(root, { withFileTypes: true });
   const names = new Set(entries.filter((entry) => entry.isFile()).map((entry) => entry.name));
-  if (!names.has("gh-aw-logs.sqlite") || !names.has("payload-hashes.json")) {
-    throw new Error("Prepare a checksum-verified operational snapshot with gh-aw-logs.sqlite and payload-hashes.json at its root.");
-  }
-  const snapshot = join(root, "gh-aw-logs.sqlite");
-  if (!isWithin(await realpath(root), await realpath(snapshot))) {
-    throw new Error("The canonical dashboard snapshot must remain inside the downloaded artifact.");
-  }
+  if (!names.has("payload-hashes.json")) throw new Error("Prepare a checksum-verified canonical JSONL artifact with payload-hashes.json.");
   const hashes = JSON.parse(await readFile(join(root, "payload-hashes.json"), "utf8"));
   if (hashes.synthetic === true) {
     throw new Error("Synthetic Pages demo data cannot be used as an operational Activity snapshot.");
   }
-  const expected = hashes["gh-aw-logs.sqlite"];
-  const hash = createHash("sha256");
-  for await (const chunk of createReadStream(snapshot)) hash.update(chunk);
-  if (!/^[a-f0-9]{64}$/.test(expected ?? "") || hash.digest("hex") !== expected) {
-    throw new Error("The canonical dashboard SQLite snapshot checksum does not match its manifest.");
+  const shards = Object.entries(hashes).filter(([name]) => /^gh-aw-logs-(runs|records)\/[^/]+\.jsonl$/.test(name));
+  if (!shards.some(([name]) => name.startsWith("gh-aw-logs-runs/"))) throw new Error("Canonical run-information shards are required.");
+  for (const [name, expected] of shards) {
+    const source = await realpath(join(root, name));
+    if (!isWithin(await realpath(root), source)) throw new Error("Canonical shards must remain inside the artifact.");
+    const hash = createHash("sha256");
+    for await (const chunk of createReadStream(source)) hash.update(chunk);
+    if (!/^[a-f0-9]{64}$/.test(expected ?? "") || hash.digest("hex") !== expected) {
+      throw new Error("A canonical shard checksum does not match its manifest.");
+    }
   }
   return root;
 }
@@ -338,8 +333,9 @@ function readWebsocketFrames(buffer) {
  *   enhanceQueryIntent?: (request: import('./query-editor-contract.mjs').QueryEditorEnhancement, options: { signal: AbortSignal }) => Promise<import('./query-editor-contract.mjs').QueryEditorAuthoring>,
  *   startSession?: (prompt: string) => Promise<void>,
  *   executeCliAction?: (action: { id: string, command: string, input?: string, signal?: AbortSignal, onOutput: (event: { stream: 'stdout'|'stderr', data: string }) => void }) => Promise<unknown>,
+ *   postgresURL?: string,
+ *   namespace?: string,
  *   approveCliAction?: (action: { id: string, command: string, input?: string }) => Promise<boolean>,
- *   cliQueuePath?: string,
  *   cliQueueConcurrency?: number,
  *   cliQueueTimeoutMs?: number,
  *   cliQueueAcknowledgeRecovery?: boolean,
@@ -362,8 +358,9 @@ export async function startCanvasServer({
   ghExecutable = "gh",
   snapshotDirectory = ".cao",
   executeCliAction,
+  postgresURL = process.env.CAO_POSTGRES_URL,
+  namespace,
   approveCliAction,
-  cliQueuePath,
   cliQueueConcurrency = 4,
   cliQueueTimeoutMs = 15 * 60 * 1000,
   cliQueueAcknowledgeRecovery = false,
@@ -380,7 +377,11 @@ export async function startCanvasServer({
   workingDirectory = process.cwd(),
   host = "127.0.0.1",
   port = 0,
+  ...unsupportedOptions
 } = {}) {
+  if (Object.hasOwn(unsupportedOptions, "cliQueuePath")) {
+    throw new Error("File-based queue configuration has been removed; configure PostgreSQL.");
+  }
   if (!isLoopbackHost(host)) {
     throw new Error("Canvas development requires a loopback host. Use the Go server for dashboard serving.");
   }
@@ -437,12 +438,7 @@ export async function startCanvasServer({
   const servedSite = join(temporaryDirectory, "site");
   let canonicalDataDirectory;
   let goHost;
-  const githubService = createLocalGitHubService({
-    databasePath: join(temporaryDirectory, "github-resources.sqlite"),
-    token: async () => (await executeFile(ghExecutable, ["auth", "token", "--hostname", "github.com"], {
-      cwd: resolvedWorkingDirectory, timeout: 10_000, maxBuffer: 16 * 1024, windowsHide: true,
-    })).stdout.trim(),
-  });
+  let executable;
   try {
     const source = await canonicalPath(resolve(resolvedWorkingDirectory, snapshotDirectory));
     if (!isWithin(resolvedWorkingDirectory, source)) {
@@ -455,10 +451,10 @@ export async function startCanvasServer({
       throw new Error("Prepare a checksum-verified operational snapshot in .cao or pass snapshotDirectory.", { cause: error });
     }
     await stageCanvasAssets(resolvedSiteRoot, servedSite);
+    executable = await prepareCanvasGoExecutable(temporaryDirectory);
     if (terminalBundle) await writeCanvasAsset(servedSite, "src/components/cli-terminal-runtime.js", terminalBundle);
     if (queryEditorValidationBundle) await writeCanvasAsset(servedSite, "src/data/query-editor.js", queryEditorValidationBundle);
   } catch (error) {
-    await githubService.close();
     await rm(temporaryDirectory, { recursive: true, force: true });
     throw error;
   }
@@ -620,7 +616,6 @@ export async function startCanvasServer({
   } catch (error) {
     for (const watcher of watchers.values()) watcher.close();
     await goHost?.close();
-    await githubService.close();
     await rm(temporaryDirectory, { recursive: true, force: true });
     throw error;
   }
@@ -641,15 +636,13 @@ export async function startCanvasServer({
   };
   try {
     if (executeCliAction) {
-      const queuePath = await canonicalPath(cliQueuePath ?? join(resolvedWorkingDirectory, ".cao", "cli-actions.sqlite"));
-      if (!isWithin(resolvedWorkingDirectory, queuePath)) {
-        throw new Error("CLI queue database must remain within the workspace.");
-      }
       cliAdmission = cliQueueAdmission ? null : createCliActionAdmission({
         workingDirectory: resolvedWorkingDirectory, ghExecutable, maxConcurrency: cliQueueConcurrency,
       });
       cliQueue = await createCliActionQueue({
-        filename: queuePath,
+        executable,
+        postgresURL,
+        namespace,
         maxConcurrency: cliQueueConcurrency,
         timeoutMs: cliQueueTimeoutMs,
         acknowledgeRecovery: cliQueueAcknowledgeRecovery,
@@ -663,7 +656,6 @@ export async function startCanvasServer({
     await cliAdmission?.close();
     for (const watcher of watchers.values()) watcher.close();
     await goHost?.close();
-    await githubService.close();
     await rm(temporaryDirectory, { recursive: true, force: true });
     throw error;
   }
@@ -847,25 +839,6 @@ export async function startCanvasServer({
         }
         return;
       }
-      if (pathname.startsWith("/api/v1/github/")) {
-        if (request.method !== "GET") {
-          response.writeHead(405, { Allow: "GET" }).end();
-          return;
-        }
-        if ((request.headers.origin && !isAllowedOrigin(request.headers.origin))
-            || request.headers["sec-fetch-site"] === "cross-site") {
-          sendJson(response, 403, { error: "Forbidden." });
-          return;
-        }
-        const result = await githubService.request(pathname, request.headers["if-none-match"]);
-        for (const [name, value] of Object.entries(result.headers)) response.setHeader(name, value);
-        if (result.status === 304) response.writeHead(304).end();
-        else {
-          response.writeHead(result.status, { "Content-Type": "application/json; charset=utf-8" });
-          response.end(JSON.stringify(result.body));
-        }
-        return;
-      }
       if (pathname === "/__dialog_selector") {
         if (request.method !== "POST") { response.writeHead(405, { Allow: "POST" }).end(); return; }
         if (!isAllowedOrigin(request.headers.origin)
@@ -992,7 +965,6 @@ export async function startCanvasServer({
     await cliQueue?.close();
     await cliAdmission?.close();
     await goHost?.close();
-    await githubService.close();
     await rm(temporaryDirectory, { recursive: true, force: true });
     throw error;
   }
@@ -1010,10 +982,11 @@ export async function startCanvasServer({
     await writeFile(config, JSON.stringify({
       prefix: routePrefix, adapterUrl: `http://${expectedAuthority}${routePrefix}`,
       memoryDirectory: canonicalDataDirectory,
+      githubCli: ghExecutable,
     }), { mode: 0o600 });
     goHost = await startCanvasGoHost({
       directory: temporaryDirectory, site: servedSite,
-      sqlite: join(canonicalDataDirectory, "gh-aw-logs.sqlite"), config, host: boundHost, port,
+      source: canonicalDataDirectory, config, host: boundHost, port, executable, postgresURL, namespace,
     });
     publicAuthority = new URL(goHost.url).host;
   } catch (error) {
@@ -1022,7 +995,6 @@ export async function startCanvasServer({
     for (const watcher of watchers.values()) watcher.close();
     await cliQueue?.close();
     await cliAdmission?.close();
-    await githubService.close();
     await rm(temporaryDirectory, { recursive: true, force: true });
     throw error;
   }
@@ -1046,7 +1018,6 @@ export async function startCanvasServer({
       if (queryGenerationPending) await Promise.allSettled([queryGenerationPending]);
       if (customViewSavePending) await Promise.allSettled([customViewSavePending]);
       await refreshPromise;
-      await githubService.close();
       await rm(temporaryDirectory, { recursive: true, force: true });
       trace.record("server", "server.stopped");
       await trace.flush();

@@ -2,9 +2,7 @@ package dashboardquery
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"net/url"
 	"regexp"
 	"strings"
 )
@@ -27,30 +25,16 @@ func MeasurementRows(rows []map[string]any) {
 // Scope by canonical record keys before decoding observation bodies. Workflow
 // key scans remain bounded by the enclosing read transaction's cancellation.
 func ReadMeasurements(ctx context.Context, db SnapshotReader, selections []EvidenceSelection) ([]map[string]any, error) {
-	var clauses []string
-	var args []any
 	for _, selection := range selections {
 		switch selection.Field {
-		case "id":
-			key, _ := json.Marshal(selection.Value)
-			clauses = append(clauses, "record_key=?")
-			args = append(args, string(key))
-		case "workflow-route":
-			parts := evidenceWorkflowRoute.FindStringSubmatch(selection.Value)
-			if parts == nil {
-				clauses = append(clauses, "0")
-				continue
-			}
-			marker := strings.ReplaceAll(url.QueryEscape(":"+strings.ToLower(parts[1])+":"+parts[2]+"."), "+", "%20")
-			clauses = append(clauses, "record_key GLOB ?")
-			args = append(args, `"operational-value:*`+marker+`*`)
+		case "id", "workflow-route":
 		default:
 			return nil, errors.New("unsupported native measurement selection")
 		}
 	}
-	where := ""
-	if len(clauses) > 0 {
-		where = " AND (" + strings.Join(clauses, " OR ") + ")"
-	}
-	return readCollectionFields(ctx, db, "operationalValues", nil, 20000, MaxEvidenceBytes, where, args)
+	result, err := db.ReadCanonical(ctx, CanonicalReadRequest{
+		Kind: "measurements", Collection: "operationalValues", Selections: selections,
+		MaxRows: 20000, MaxBytes: MaxEvidenceBytes,
+	})
+	return result.Rows, err
 }

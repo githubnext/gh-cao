@@ -149,13 +149,11 @@ jobs:
             internal/dashboardquery/go.sum
       - name: Build native Windows development server
         run: go -C server build ./cmd/cao-dashboard
-      - name: Run local SQLite server and query its HTTP API
+      - name: Verify local PostgreSQL configuration requirements
         run: >-
           go -C server test ./cmd/cao-dashboard
-          -run '^(TestServeSQLite.*|TestServePostgresRequiresExplicitSelection|TestDownloadSQLite.*)$'
+          -run '^TestServeRequiresPostgresConfiguration$'
           -count=1 -timeout=3m -v
-      - name: Verify local snapshot paths and read-only queries
-        run: go -C server test ./internal/sqlitex -count=1 -timeout=3m -v
       - name: Verify evidence locking and cancellation
         run: >-
           go -C server test ./internal/collect
@@ -165,6 +163,19 @@ jobs:
     name: Go format, lint, and tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: cao_server_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cao_server_test"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -186,13 +197,17 @@ jobs:
       - name: Unit tests
         env:
           GO_TEST_MODE: ${{ github.event_name == 'pull_request' && '-short' || '-count=1' }}
-        run: go -C server test "$GO_TEST_MODE" ./...
+          POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_server_test?sslmode=disable
+          CAO_TEST_POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_server_test?sslmode=disable
+        run: go -C server test -p 1 "$GO_TEST_MODE" ./...
       - name: Local Actions, OIDC, admission, and webhook gateway integration
         if: github.event_name != 'pull_request'
+        env:
+          POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_server_test?sslmode=disable
         run: >-
           go -C server test -race ./internal/simulator ./internal/admission
           ./internal/webhookgateway ./cmd/cao-webhook-gateway
-          -run '^(TestLocalActions|TestSpecLocalHost|TestGatewayAPI|TestIssueServiceSimulator($|HTTP|GatewaySQLite)|TestGitHubSimulator(Gateway|Discovery)SQLite)' -count=1 -timeout=2m -v
+          -run '^(TestLocalActions|TestSpecLocalHost|TestGatewayAPI|TestIssueServiceSimulator($|HTTP|GatewayPostgres)|TestGitHubSimulator(Gateway|Discovery)Postgres)' -count=1 -timeout=2m -v
       - name: Check shared local query engine
         working-directory: internal/dashboardquery
         run: |

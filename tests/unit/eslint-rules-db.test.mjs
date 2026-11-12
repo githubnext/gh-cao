@@ -6,8 +6,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { collectTransactions, rebuildDatabase, RulesDatabaseError } from "../../eslint-rules/rules-db.mjs";
-import { DatabaseSync } from "node:sqlite";
+import { collectTransactions, summarizeMemory, RulesDatabaseError } from "../../eslint-rules/rules-db.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const scriptSource = path.join(repositoryRoot, "eslint-rules/rules-db.mjs");
@@ -89,53 +88,18 @@ test("rules database orders transactions deterministically across logs", () => {
   }
 });
 
-test("rules database rebuild is byte-identical for identical logs", () => {
+test("campaign summaries are deterministic and preserve evidence counts", () => {
   const memory = memoryFixture(sampleLogs);
-  const first = path.join(memory, "first.sqlite");
-  const second = path.join(memory, "second.sqlite");
   try {
-    const summary = rebuildDatabase({ memoryDirectory: memory, databasePath: first });
-    rebuildDatabase({ memoryDirectory: memory, databasePath: second });
-    assert.deepEqual(summary, { transactions: 5, rules: 1, inventory: 1, priorities: 1 });
-    assert.deepEqual(readFileSync(first), readFileSync(second));
-  } finally {
-    rmSync(memory, { recursive: true, force: true });
-  }
-});
-
-test("rules database exposes validated schema, rules, and inventory", () => {
-  const memory = memoryFixture(sampleLogs);
-  const databasePath = path.join(memory, "rules.sqlite");
-  try {
-    rebuildDatabase({ memoryDirectory: memory, databasePath });
-    const database = new DatabaseSync(databasePath);
-    try {
-      const meta = Object.fromEntries(
-        database.prepare("SELECT key, value FROM meta ORDER BY key").all().map((row) => [row.key, row.value]),
-      );
-      assert.equal(meta.database_schema_version, "1");
-      assert.equal(meta.transaction_schema, "cao.eslint-rules.transaction");
-      assert.equal(meta.transaction_count, "5");
-      assert.equal(meta.repository_priority_count, "1");
-      const rule = database.prepare("SELECT * FROM rules").get();
-      assert.equal(rule.rule_key, "ts-no-floating-promise-in-handler");
-      assert.equal(rule.candidate_count, 2);
-      assert.equal(rule.outcome_count, 1);
-      assert.equal(rule.target_count, 1);
-      const inventory = database.prepare("SELECT * FROM lint_inventory").get();
-      assert.equal(inventory.target_repo, "octo/app");
-      assert.equal(inventory.payload, '{"eslint":"flat","package_manager":"npm"}');
-      const priority = database.prepare("SELECT * FROM repository_priority").get();
-      assert.equal(priority.target_repo, "octo/app");
-      assert.equal(priority.payload, '{"decision":"selected","rank":1}');
-      const sequence = database.prepare("SELECT seq, txn_id FROM transactions ORDER BY seq").all();
-      assert.deepEqual(
-        sequence.map((row) => row.seq),
-        [1, 2, 3, 4, 5],
-      );
-    } finally {
-      database.close();
-    }
+    const summary = summarizeMemory(memory);
+    assert.deepEqual(summary, summarizeMemory(memory));
+    assert.equal(summary.transactions, 5);
+    assert.equal(summary.rules.length, 1);
+    assert.equal(summary.rules[0].candidates, 2);
+    assert.equal(summary.rules[0].outcomes, 1);
+    assert.deepEqual(summary.rules[0].targets, ["octo/app"]);
+    assert.equal(summary.inventory[0].payload, '{"eslint":"flat","package_manager":"npm"}');
+    assert.equal(summary.priorities[0].payload, '{"decision":"selected","rank":1}');
   } finally {
     rmSync(memory, { recursive: true, force: true });
   }
@@ -156,11 +120,8 @@ const malformedCases = [
 for (const [label, line] of malformedCases) {
   test(`rules database fails closed on ${label}`, () => {
     const memory = memoryFixture({ "miner__octo__app__2025-01-02.jsonl": [line] });
-    const databasePath = path.join(memory, "rules.sqlite");
     try {
-      assert.throws(() => rebuildDatabase({ memoryDirectory: memory, databasePath }), RulesDatabaseError);
-      assert.throws(() => readFileSync(databasePath), /ENOENT/);
-      assert.throws(() => readFileSync(`${databasePath}.rebuild.tmp`), /ENOENT/);
+      assert.throws(() => summarizeMemory(memory), RulesDatabaseError);
     } finally {
       rmSync(memory, { recursive: true, force: true });
     }
@@ -204,32 +165,28 @@ test("rules database accepts long valid log names and normalizes repository iden
   }
 });
 
-test("rules database keeps the previous database when logs become malformed", () => {
+test("campaign summaries reject later malformed observations without changing source logs", () => {
   const memory = memoryFixture(sampleLogs);
-  const databasePath = path.join(memory, "rules.sqlite");
   try {
-    rebuildDatabase({ memoryDirectory: memory, databasePath });
-    const healthy = readFileSync(databasePath);
-    writeFileSync(path.join(memory, "transactions", "miner__octo__app__2025-01-04.jsonl"), "{broken\n");
-    assert.throws(() => rebuildDatabase({ memoryDirectory: memory, databasePath }), RulesDatabaseError);
-    assert.deepEqual(readFileSync(databasePath), healthy);
+    const input = path.join(memory, "transactions", "miner__octo__app__2025-01-04.jsonl");
+    writeFileSync(input, "{broken\n");
+    assert.throws(() => summarizeMemory(memory), RulesDatabaseError);
+    assert.equal(readFileSync(input, "utf8"), "{broken\n");
   } finally {
     rmSync(memory, { recursive: true, force: true });
   }
 });
 
-test("rules database command line builds and verifies without dependencies", () => {
+test("campaign command line verifies and summarizes without a database", () => {
   const memory = memoryFixture(sampleLogs);
-  const databasePath = path.join(memory, "cli.sqlite");
   try {
     const verified = JSON.parse(execFileSync("node", [scriptSource, "verify", "--memory", memory], { encoding: "utf8" }));
     assert.deepEqual(verified, { command: "verify", transactions: 5 });
     const built = JSON.parse(
-      execFileSync("node", [scriptSource, "build", "--memory", memory, "--database", databasePath], { encoding: "utf8" }),
+      execFileSync("node", [scriptSource, "summary", "--memory", memory], { encoding: "utf8" }),
     );
-    assert.equal(built.command, "build");
+    assert.equal(built.command, "summary");
     assert.equal(built.transactions, 5);
-    assert.match(readFileSync(scriptSource, "utf8"), /^import \{ DatabaseSync \} from "node:sqlite";$/m);
     assert.equal(/from "(?!node:)/.test(readFileSync(scriptSource, "utf8")), false);
   } finally {
     rmSync(memory, { recursive: true, force: true });

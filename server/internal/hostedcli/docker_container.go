@@ -78,7 +78,7 @@ func (r *DockerContainerLifecycle) Create(ctx context.Context, execution operati
 		return err
 	}
 	defer func() { _ = os.Remove(environmentFile) }()
-	network := "bridge" // SQLite-only development compatibility, selected by the server.
+	network := "bridge" // Explicit local development, selected by the server.
 	var egressDirectory string
 	if r.Egress != nil {
 		network = "none"

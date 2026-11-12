@@ -36,13 +36,10 @@ func nativeComputation(cmd *cobra.Command) (resultErr error) {
 	if diagnose && name != "runtime-health" {
 		return fmt.Errorf("--diagnose is supported only for the runtime-health computation")
 	}
-	database := flag("database")
-	if database == "" {
-		database = ".cao/gh-aw-logs.sqlite"
-	}
+	database := nativeSnapshotPath(cmd)
 	inventory := flag("inventory")
 	if inventory == "" {
-		inventory = filepath.Join(filepath.Dir(database), "inventory-sources.json")
+		inventory = filepath.Join(".cao", "inventory-sources.json")
 	}
 	inventory, err := filepath.Abs(inventory)
 	if err != nil {

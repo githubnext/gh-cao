@@ -1,5 +1,5 @@
-import { spawnSync } from 'node:child_process';
 import { createConnection } from 'node:net';
+
 const MAX_QUERY_BYTES = 1 << 20;
 const MAX_RESPONSE_BYTES = 16 << 20;
 const QUERY_TIMEOUT_MS = 30_000;
@@ -74,51 +74,14 @@ function queryThroughSocket(socket, query, signal) {
   });
 }
 
-function querySQLite(database, query) {
-  if (typeof database !== 'string' || !database.trim()) {
-    fail('Canonical SQLite query requires a database path');
-  }
-  const result = spawnSync('gh', [
-    'cao',
-    'query',
-    '--database',
-    database,
-    '--stdin',
-  ], {
-    input: `${JSON.stringify(query)}\n`,
-    encoding: 'utf8',
-    maxBuffer: MAX_RESPONSE_BYTES,
-  });
-  if (result.error || result.status !== 0) {
-    fail(String(result.stderr || result.error?.message || 'Canonical SQLite query failed').trim());
-  }
-  let rows;
-  try {
-    rows = JSON.parse(result.stdout);
-  } catch {
-    fail('Canonical SQLite query returned invalid JSON');
-  }
-  if (!Array.isArray(rows)) fail('Canonical SQLite query returned invalid rows');
-  return {
-    source: query.name,
-    rows,
-    metadata: {
-      availability: rows.length === 0 ? 'empty' : 'available',
-      completeness: 'unknown',
-      freshness: 'unknown',
-    },
-  };
-}
-
-export async function executeCanonicalQuery(query, { database, signal } = {}) {
+export async function executeCanonicalQuery(query, { signal } = {}) {
   if (!query || typeof query.name !== 'string' || !query.name.trim()) {
     fail('Canonical query requires a named Dashboard Language definition');
   }
   signal?.throwIfAborted();
   const socket = process.env.CAO_DASHBOARD_QUERY_SOCKET;
-  const source = socket
-    ? await queryThroughSocket(socket, query, signal)
-    : querySQLite(database, query);
+  if (!socket) fail('Canonical queries require the PostgreSQL query service: CAO_DASHBOARD_QUERY_SOCKET is not configured');
+  const source = await queryThroughSocket(socket, query, signal);
   signal?.throwIfAborted();
   return source;
 }

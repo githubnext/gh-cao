@@ -1355,11 +1355,20 @@ CREATE TABLE IF NOT EXISTS transactions (
   duplicate_raw_run_observations BIGINT,
   duplicate_agentic_run_observations BIGINT,
   unenriched_runs BIGINT,
+  ingestion_status TEXT,
+  ingestion_message TEXT,
+  ingestion_repository TEXT,
+  scanned_hours NUMERIC,
+  target_hours NUMERIC,
+  api_remaining BIGINT,
+  api_reserve BIGINT,
+  api_reset_at TIMESTAMPTZ,
+  next_attempt_at TIMESTAMPTZ,
   error TEXT,
 
   PRIMARY KEY (namespace, id),
   UNIQUE (namespace, ordinal),
-  CHECK (bit_length(present_fields) = 16),
+  CHECK (bit_length(present_fields) = 25),
   FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE
 );
 

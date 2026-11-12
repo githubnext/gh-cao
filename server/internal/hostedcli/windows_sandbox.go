@@ -17,7 +17,7 @@ import (
 // WindowsSandboxOptions selects an installed wsb.exe and a locally supplied,
 // SHA256-pinned portable native-tools ZIP. See validateWindowsSandboxArchive
 // for its layout. This is an explicit native-payload exception, not an OCI
-// image runtime. The caller must restrict it to local SQLite development.
+// image runtime. The caller must restrict it to explicit local development.
 type WindowsSandboxOptions struct {
 	Binary       string
 	ToolsArchive string

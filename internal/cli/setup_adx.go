@@ -47,7 +47,7 @@ before deploying these settings. This command does not contact Azure/GitHub,
 provision resources, apply schema, verify access, deploy/restart the server,
 change rollout/collection policy, or enable trace capture, mining or training.
 The prepared snapshot-only profile explicitly disables traces and mining.
-Local SQLite, Pages, volatile state and per-request workers are unsupported.
+Pages, volatile state and per-request workers are unsupported.
 Use an existing single-replica hosted PostgreSQL deployment with durable
 operational coordination/state; normal hosted authorization still applies.`
 	cmd.Flags().Duration("interval", 30*time.Second, "Retry/poll interval (1s to 1h)")

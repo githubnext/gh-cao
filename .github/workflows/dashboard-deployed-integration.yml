@@ -36,7 +36,6 @@ on:
       - tests/helpers/dashboard-query-cost.mjs
       - tests/helpers/dashboard-query-cost-report.mjs
       - tests/performance/dashboard-query-cost-postgres.test.mjs
-      - tests/performance/dashboard-query-cost.test.mjs
       - tests/playwright/configs/dashboard-deployed.config.mjs
       - "!server/**/*.md"
   workflow_dispatch:
@@ -102,7 +101,7 @@ jobs:
         run: exit 1
 
   query-cost:
-    name: Measure operational SQLite and Postgres query cost
+    name: Measure operational Postgres query cost
     if: inputs.full == true || (github.event_name != 'schedule' && vars.CAO_DASHBOARD_DATA_URL != '')
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -155,10 +154,6 @@ jobs:
         env:
           DASHBOARD_DATA_DIR: .cao
         run: node --test tests/integration/dashboard-deployed-data.test.mjs
-      - name: Measure SQLite query cost
-        id: sqlite
-        continue-on-error: true
-        run: npm run test:performance:dashboard-query-cost
       - name: Measure Postgres query cost
         id: postgres
         continue-on-error: true
@@ -166,11 +161,10 @@ jobs:
       - name: Record benchmark outcomes
         if: always()
         env:
-          SQLITE_OUTCOME: ${{ steps.sqlite.outcome }}
           POSTGRES_OUTCOME: ${{ steps.postgres.outcome }}
         run: |
           mkdir -p test-results/dashboard-query-cost
-          printf 'sqlite=%s\npostgres=%s\n' "$SQLITE_OUTCOME" "$POSTGRES_OUTCOME" \
+          printf 'postgres=%s\n' "$POSTGRES_OUTCOME" \
             > test-results/dashboard-query-cost/status.txt
       - name: Upload query cost report
         if: always()
@@ -181,7 +175,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
       - name: Fail when query analysis fails
-        if: steps.sqlite.outcome != 'success' || steps.postgres.outcome != 'success'
+        if: steps.postgres.outcome != 'success'
         run: exit 1
 
   query-cost-comment:
@@ -212,15 +206,8 @@ jobs:
           script: |
             const fs = require('fs')
             const marker = '<!-- dashboard-query-cost-results -->'
-            const summaryPath = 'query-cost-results/summary.md'
             const postgresPath = 'query-cost-results/postgres/summary.md'
             const maxSummaryLength = 30000
-            let summary = fs.existsSync(summaryPath)
-              ? fs.readFileSync(summaryPath, 'utf8').trim()
-              : 'No SQLite query cost summary was produced.'
-            if (summary.length > maxSummaryLength) {
-              summary = `${summary.slice(0, maxSummaryLength)}\n\n_Report truncated; see the uploaded artifact for the full report._`
-            }
             let postgres = fs.existsSync(postgresPath)
               ? fs.readFileSync(postgresPath, 'utf8').trim()
               : 'No Postgres query cost summary was produced.'
@@ -233,17 +220,10 @@ jobs:
               ? fs.readFileSync('query-cost-results/status.txt', 'utf8')
               : ''
             const outcome = [
-              status.includes('sqlite=success') ? 'SQLite benchmark passed.' : 'SQLite benchmark failed or did not complete.',
               status.includes('postgres=success') ? 'Postgres/Go benchmark passed.' : 'Postgres/Go benchmark failed or did not complete.',
             ].join(' ')
             const body = [
               marker,
-              '<details><summary><b>SQLite query cost report</b></summary>',
-              '',
-              summary,
-              '',
-              '</details>',
-              '',
               '<details><summary><b>Postgres query cost report</b></summary>',
               '',
               postgres,

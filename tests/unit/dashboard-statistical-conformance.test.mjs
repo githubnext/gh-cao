@@ -9,7 +9,7 @@ import {
 test('statistical conformance binds every backend to executable requirements', () => {
   const suites = validateContract(statisticalContract);
   assert.deepEqual(suites.map((suite) => suite.id), statisticalContract.requiredSuites);
-  for (const id of ['sqlite', 'postgresql', 'indexeddb-worker']) {
+  for (const id of ['postgresql', 'indexeddb-worker']) {
     const suite = suites.find((suite) => suite.id === id);
     for (const requirement of ['clock-validity', 'input-budgets', 'candidate-range-pushdown']) {
       assert.ok(suite.coverage[requirement], `${id} must exercise ${requirement}`);
@@ -38,7 +38,7 @@ test('statistical conformance rejects missing backends and mismatched executable
   excluded.suites.find((suite) => suite.id === 'postgresql').pattern = '^TestNothing$';
   assert.throws(() => validateContract(excluded), /Test selector excludes/);
   const invented = structuredClone(statisticalContract);
-  invented.suites.find((suite) => suite.id === 'sqlite').coverage['frame-binding'] = 'TestNotImplemented';
+  invented.suites.find((suite) => suite.id === 'postgresql').coverage['frame-binding'] = 'TestNotImplemented';
   assert.throws(() => validateContract(invented), /Missing coverage evidence/);
 });
 

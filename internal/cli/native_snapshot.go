@@ -2,24 +2,21 @@ package cli
 
 import (
 	"context"
-	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
+	"io"
 	"os"
-	"path/filepath"
+	"os/exec"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/spf13/cobra"
-	_ "modernc.org/sqlite"
 
 	"github.com/githubnext/gh-cao/internal/dashboardquery"
 )
-
-const nativeDatabasePath = ".cao/gh-aw-logs.sqlite"
-const nativeDatabaseName = dashboardquery.DatabaseName
 
 var nativeCollections = []string{
 	"repositories", "workflows", "runs", "domains", "tools", "skills", "friction", "audits", "issues",
@@ -43,56 +40,97 @@ func nativeStrings(cmd *cobra.Command, name string) []string {
 }
 
 func nativeSnapshotPath(cmd *cobra.Command) string {
-	if value := nativeString(cmd, "database"); value != "" {
+	if value := nativeString(cmd, "postgres-url"); value != "" {
 		return value
 	}
-	return nativeDatabasePath
+	return os.Getenv("CAO_POSTGRES_URL")
 }
 
-func openNativeSnapshot(path string) (*sql.DB, error) {
-	absolute, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-	info, err := os.Stat(absolute)
-	if errors.Is(err, os.ErrNotExist) {
-		db, err := sql.Open("sqlite", ":memory:")
-		if err != nil {
-			return nil, err
-		}
-		db.SetMaxOpenConns(1)
-		if _, err := db.Exec(`CREATE TABLE __idb_records (database_name TEXT, store_name TEXT, record_key TEXT, value TEXT)`); err != nil {
-			return nil, errors.Join(err, db.Close())
-		}
-		return db, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	if !info.Mode().IsRegular() {
-		return nil, nativeErrorf("CAO snapshot is not a regular file: %s", path)
-	}
-	location := &url.URL{Scheme: "file", Path: filepath.ToSlash(absolute)}
-	query := location.Query()
-	query.Set("mode", "ro")
-	query.Set("_pragma", "busy_timeout(5000)")
-	location.RawQuery = query.Encode()
-	db, err := sql.Open("sqlite", location.String())
-	if err != nil {
-		return nil, err
-	}
-	db.SetMaxOpenConns(1)
-	var count int
-	if err := db.QueryRow(`SELECT count(*) FROM sqlite_schema WHERE type='table' AND name='__idb_records'`).Scan(&count); err != nil {
-		return nil, errors.Join(fmt.Errorf("read CAO snapshot: %w", err), db.Close())
-	}
-	if count != 1 {
-		return nil, errors.Join(nativeErrorf("CAO snapshot has no canonical records table: %s", path), db.Close())
-	}
-	return db, nil
+type nativeCanonicalSession struct {
+	mu      sync.Mutex
+	child   *exec.Cmd
+	input   io.WriteCloser
+	output  io.ReadCloser
+	encoder *json.Encoder
+	decoder *json.Decoder
+	cleanup func()
 }
 
-func readNativeCollection(ctx context.Context, db *sql.DB, collection string) (result []map[string]any, err error) {
+func openNativeSnapshot(dsn string) (*nativeCanonicalSession, error) {
+	if strings.TrimSpace(dsn) == "" {
+		return nil, nativeErrorf("PostgreSQL is required; pass --postgres-url or set CAO_POSTGRES_URL")
+	}
+	server, cleanup, err := nativeDashboardExecutable()
+	if err != nil {
+		return nil, err
+	}
+	child := exec.Command(server, "read")
+	child.Env = append(dashboardServerEnvironment(), "CAO_POSTGRES_URL="+dsn)
+	if namespace := os.Getenv("CAO_DATABASE_NAMESPACE"); namespace != "" {
+		child.Args = append(child.Args, "--redis-namespace", namespace)
+	}
+	input, err := child.StdinPipe()
+	if err != nil {
+		cleanup()
+		return nil, err
+	}
+	output, err := child.StdoutPipe()
+	if err != nil {
+		_ = input.Close()
+		cleanup()
+		return nil, err
+	}
+	if err := child.Start(); err != nil {
+		_ = input.Close()
+		_ = output.Close()
+		cleanup()
+		return nil, fmt.Errorf("start canonical PostgreSQL reader: %w", err)
+	}
+	return &nativeCanonicalSession{child: child, input: input, output: output,
+		encoder: json.NewEncoder(input), decoder: json.NewDecoder(output), cleanup: cleanup}, nil
+}
+
+func (db *nativeCanonicalSession) ReadCanonical(ctx context.Context, request dashboardquery.CanonicalReadRequest) (dashboardquery.CanonicalReadResult, error) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return dashboardquery.CanonicalReadResult{}, err
+	}
+	if err := db.encoder.Encode(request); err != nil {
+		return dashboardquery.CanonicalReadResult{}, fmt.Errorf("write canonical read request: %w", err)
+	}
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = db.child.Process.Kill()
+		case <-done:
+		}
+	}()
+	defer close(done)
+	var result dashboardquery.CanonicalReadResult
+	if err := db.decoder.Decode(&result); err != nil {
+		if ctx.Err() != nil {
+			return result, ctx.Err()
+		}
+		return result, fmt.Errorf("read canonical PostgreSQL response: %w", err)
+	}
+	if result.Error != "" {
+		return result, errors.New(result.Error)
+	}
+	return result, nil
+}
+
+func (db *nativeCanonicalSession) Close() error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	defer db.cleanup()
+	inputErr := db.input.Close()
+	waitErr := db.child.Wait()
+	return errors.Join(inputErr, waitErr)
+}
+
+func readNativeCollection(ctx context.Context, db dashboardquery.CanonicalReader, collection string) (result []map[string]any, err error) {
 	if !slices.Contains(nativeCollections, collection) && collection != "campaigns" && collection != "marketplacePackages" {
 		return nil, nativeErrorf("Unknown collection: %s", collection)
 	}
@@ -100,18 +138,10 @@ func readNativeCollection(ctx context.Context, db *sql.DB, collection string) (r
 }
 
 func requireNativeSnapshot(cmd *cobra.Command, named bool) error {
-	if cmd.Flags().Changed("database") {
-		return nil
+	if strings.TrimSpace(nativeSnapshotPath(cmd)) == "" {
+		return nativeErrorf("PostgreSQL is required; ingest canonical artifacts with cao-dashboard ingest, then pass --postgres-url or set CAO_POSTGRES_URL")
 	}
-	path := nativeSnapshotPath(cmd)
-	_, err := os.Stat(path)
-	if err == nil && named {
-		_, err = os.Stat(filepath.Join(filepath.Dir(path), "payload-hashes.json"))
-	}
-	if errors.Is(err, os.ErrNotExist) {
-		return nativeErrorf("No downloaded CAO snapshot at %s; run cao download before querying, or pass --database FILE for an explicitly prepared database", path)
-	}
-	return err
+	return nil
 }
 
 func nativeLimit(cmd *cobra.Command, fallback int) (int, error) {

@@ -326,14 +326,10 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - name: Download deployed snapshot
-        env:
-          DASHBOARD_DATA_URL: ${{ vars.CAO_DASHBOARD_DATA_URL }}
-        run: go run ./cmd/gh-cao download
       - name: Analyze dashboard query complexity
         run: |
           node scripts/dashboard-query-complexity.mjs \
-            dashboard/site/dashboard.json .cao/gh-aw-logs.sqlite > query-complexity.md
+            dashboard/site/dashboard.json > query-complexity.md
           cat query-complexity.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload query complexity report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -455,9 +455,9 @@ func (c *nativeCatalog) execution(id string) map[string]any {
 	sort.Strings(missing)
 	execution := map[string]any{"local": len(missing) == 0, "requirements": requirements}
 	if len(missing) == 0 {
-		execution["backend"] = "sqlite"
+		execution["backend"] = "postgres"
 	} else {
-		execution["reason"] = "Requires " + strings.Join(missing, ", ") + ", which the local SQLite projection does not provide."
+		execution["reason"] = "Requires " + strings.Join(missing, ", ") + ", which the local PostgreSQL projection does not provide."
 	}
 	return execution
 }
@@ -623,7 +623,7 @@ func nativeFormatQuery(cmd *cobra.Command, query map[string]any) error {
 		lines = append(lines, "    pages: "+strings.Join(pages, ", "))
 	}
 	if execution["local"] == true {
-		lines = append(lines, "    sqlite collections: "+strings.Join(execution["requirements"].([]string), ", "))
+		lines = append(lines, "    postgres collections: "+strings.Join(execution["requirements"].([]string), ", "))
 	} else {
 		lines = append(lines, "    "+nativeText(execution["reason"]))
 	}

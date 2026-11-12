@@ -22,7 +22,7 @@ func TestStatisticalMaximumCandidateFrame(t *testing.T) {
 			"status": "completed", "conclusion": "success", "startedAt": "2026-10-22T00:00:00Z",
 		}
 	}
-	for _, capacity := range []int{StatisticalSQLiteCapacity, StatisticalIndexedDBCapacity, StatisticalPostgresCapacity} {
+	for _, capacity := range []int{StatisticalIndexedDBCapacity, StatisticalPostgresCapacity} {
 		t.Run(strconv.Itoa(capacity), func(t *testing.T) {
 			selected, frame, err := SampleStatisticalRuns(rows, StatisticalOptions{
 				Context: t.Context(), Watermark: "2026-10-23T00:00:00Z", Capacity: capacity, Complete: true,

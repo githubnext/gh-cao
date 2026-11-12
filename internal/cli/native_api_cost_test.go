@@ -20,29 +20,49 @@ func nativeAPICostEvidence(outputs, implementations int) map[string]any {
 	facts := []any{map[string]any{
 		"fact-kind": "contract", "fact-id": "contract", "metric-id": "oversized-files-reduced",
 		"metric-version": "observed-800-line-net-reductions-v1",
+		"goal":           "Reduce oversized files", "acceptance": "Accepted reductions",
+		"workflow-name": "Daily File Diet", "metric-name": "Reduced files",
+		"metric-unit": "files", "metric-direction": "increase",
+		"metric-formula": "Accepted file reductions", "measurement-basis": "workflow-contribution",
+		"cadence-days": 1, "outputs-available": true,
+		"repository-state-available": false, "checks-available": false,
+	}, map[string]any{
+		"fact-kind": "coverage", "fact-id": "window", "coverage-status": "partial",
+		"at": "2025-01-01T00:00:00Z", "end-at": "2026-10-18T11:54:09Z",
 	}}
 	for index := range outputs {
 		facts = append(facts, map[string]any{
 			"fact-kind": "output", "fact-id": fmt.Sprintf("output-%d", index),
+			"at": "2026-10-18T11:00:00Z", "origin": "corroborated", "state": "open",
+			"label": "Issue", "title": "Reduce oversized file",
+			"url": fmt.Sprintf("https://github.com/github/gh-aw/issues/%d", index+1),
 		})
 	}
 	for index := range implementations {
 		facts = append(facts, map[string]any{
 			"fact-kind": "implementation", "fact-id": fmt.Sprintf("implementation-%d", index),
+			"at": "2026-10-18T11:00:00Z", "accepted-at": "2026-10-18T11:00:00Z",
+			"origin": "receipt-verified", "ref": strings.Repeat("a", 40), "value": 1,
 		})
 	}
 	return map[string]any{
-		"id":         "operational-value-evidence:github%2Fgh-aw%3Adaily-file-diet%3Aoversized-files-reduced%3Aobserved-800-line-net-reductions-v1",
-		"repository": "github/gh-aw", "workflow": "daily-file-diet",
-		"sourcePath": ".github/workflows/daily-file-diet.md",
-		"observedAt": "2026-10-18T12:05:52.580Z", "windowStart": "2025-01-01T00:00:00Z",
+		"schemaVersion": 1,
+		"id":            "operational-value-evidence:github%2Fgh-aw%3Adaily-file-diet%3Aoversized-files-reduced%3Aobserved-800-line-net-reductions-v1",
+		"repository":    "github/gh-aw", "workflow": "daily-file-diet",
+		"repositoryId": "repository:github%2Fgh-aw",
+		"workflowId":   "workflow:github%2Fgh-aw%3A.github%2Fworkflows%2Fdaily-file-diet.md",
+		"sourcePath":   ".github/workflows/daily-file-diet.md",
+		"observedAt":   "2026-10-18T12:05:52.580Z", "windowStart": "2025-01-01T00:00:00Z",
 		"windowEnd": "2026-10-18T11:54:09Z", "contractDigest": strings.Repeat("a", 64),
 		"facts": facts,
 	}
 }
 
-func TestNativeAPICostReadsCanonicalSQLiteEvidence(t *testing.T) {
+func TestNativeAPICostReadsCanonicalPostgresEvidence(t *testing.T) {
 	file := nativeTestSnapshot(t, map[string][]map[string]any{
+		"repositories": {{"id": "repository:github%2Fgh-aw", "owner": "github", "name": "gh-aw"}},
+		"workflows": {{"id": "workflow:github%2Fgh-aw%3A.github%2Fworkflows%2Fdaily-file-diet.md",
+			"repositoryId": "repository:github%2Fgh-aw", "path": ".github/workflows/daily-file-diet.md"}},
 		"operationalValueEvidence": {nativeAPICostEvidence(95, 51)},
 	})
 	root := NewRootCommand("test")
@@ -50,7 +70,7 @@ func TestNativeAPICostReadsCanonicalSQLiteEvidence(t *testing.T) {
 	root.SetOut(&output)
 	root.SetErr(&output)
 	root.SetArgs([]string{
-		"api-cost", "--database", file, "--profile", "daily-file-diet",
+		"api-cost", "--postgres-url", file, "--profile", "daily-file-diet",
 		"--repositories", "100",
 	})
 	if err := root.Execute(); err != nil {
@@ -63,32 +83,43 @@ func TestNativeAPICostReadsCanonicalSQLiteEvidence(t *testing.T) {
 	if report.Detail["trackedIssues"] != float64(95) ||
 		report.Detail["retainedImplementations"] != float64(51) ||
 		report.Capacity.ModeledMaximumRepositories != 6 ||
-		!strings.Contains(strings.Join(report.Assumptions, "\n"), "canonical SQLite database") {
+		!strings.Contains(strings.Join(report.Assumptions, "\n"), "canonical PostgreSQL") {
 		t.Fatalf("report=%+v", report)
 	}
 }
 
 func TestNativeAPICostSelectsLatestCanonicalEvidence(t *testing.T) {
 	unrelated := nativeAPICostEvidence(1, 0)
-	unrelated["id"] = "operational-value-evidence:octo%2Fother%3Adaily-file-diet%3Aunrelated"
+	unrelated["id"] = "operational-value-evidence:octo%2Fother%3Adaily-file-diet%3Aoversized-files-reduced%3Aobserved-800-line-net-reductions-v1"
 	unrelated["repository"] = "octo/other"
-	unrelated["facts"] = []any{}
+	unrelated["repositoryId"] = "repository:octo%2Fother"
+	unrelated["workflowId"] = "workflow:octo%2Fother%3A.github%2Fworkflows%2Fdaily-file-diet.md"
 	older := nativeAPICostEvidence(95, 51)
-	older["id"] = "operational-value-evidence:github%2Fgh-aw%3Adaily-file-diet%3Aolder"
+	older["id"] = "operational-value-evidence:github%2Fgh-aw%3Adaily-file-diet%3Aoversized-files-reduced%3Aobserved-800-line-net-reductions-v0"
+	older["facts"].([]any)[0].(map[string]any)["metric-version"] = "observed-800-line-net-reductions-v0"
 	older["observedAt"] = "2026-10-18T12:05:52.580Z"
 	older["windowEnd"] = "2026-10-18T11:54:09Z"
 	newer := nativeAPICostEvidence(7, 3)
-	newer["id"] = "operational-value-evidence:github%2Fgh-aw%3Adaily-file-diet%3Anewer"
 	newer["observedAt"] = "2026-11-03T12:05:52.580Z"
 	newer["windowEnd"] = "2026-11-03T11:54:09Z"
 	file := nativeTestSnapshot(t, map[string][]map[string]any{
+		"repositories": {
+			{"id": "repository:github%2Fgh-aw", "owner": "github", "name": "gh-aw"},
+			{"id": "repository:octo%2Fother", "owner": "octo", "name": "other"},
+		},
+		"workflows": {
+			{"id": "workflow:github%2Fgh-aw%3A.github%2Fworkflows%2Fdaily-file-diet.md",
+				"repositoryId": "repository:github%2Fgh-aw", "path": ".github/workflows/daily-file-diet.md"},
+			{"id": "workflow:octo%2Fother%3A.github%2Fworkflows%2Fdaily-file-diet.md",
+				"repositoryId": "repository:octo%2Fother", "path": ".github/workflows/daily-file-diet.md"},
+		},
 		"operationalValueEvidence": {unrelated, older, newer},
 	})
 	root := NewRootCommand("test")
 	var output bytes.Buffer
 	root.SetOut(&output)
 	root.SetErr(&output)
-	root.SetArgs([]string{"api-cost", "--database", file})
+	root.SetArgs([]string{"api-cost", "--postgres-url", file})
 	if err := root.Execute(); err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +136,7 @@ func TestNativeAPICostSelectsLatestCanonicalEvidence(t *testing.T) {
 func TestNativeAPICostRetainedFailsWithoutDatabaseEvidence(t *testing.T) {
 	file := nativeTestSnapshot(t, nil)
 	root := NewRootCommand("test")
-	root.SetArgs([]string{"api-cost", "--database", file})
+	root.SetArgs([]string{"api-cost", "--postgres-url", file})
 	if err := root.Execute(); err == nil || !strings.Contains(err.Error(), "no retained Daily File Diet evidence") {
 		t.Fatalf("error=%v", err)
 	}

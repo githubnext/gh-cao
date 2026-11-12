@@ -5,12 +5,11 @@ import { expect, test } from "@playwright/test";
 const { startCanvasServer } = await import(new URL("../../../../tests/helpers/canvas-snapshot.mjs", import.meta.url).href);
 
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
-  test(`canvas queries SQLite without opening browser IndexedDB at ${viewport.width}px`, async ({ page }, testInfo) => {
+  test(`canvas queries PostgreSQL without opening browser IndexedDB at ${viewport.width}px`, async ({ page }, testInfo) => {
     const preview = await startCanvasServer({
       workingDirectory: fileURLToPath(new URL("../../../../", import.meta.url)),
       repository: "acme/control",
       port: 0,
-      cliQueuePath: testInfo.outputPath(".cao", "cli-actions.sqlite"),
       approveCliAction: async () => false,
       executeCliAction: async () => { throw new Error("CLI actions are not expected."); },
       output: () => {},
@@ -66,9 +65,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       });
       expect(repositories.sources.repositories.rows).toHaveLength(1);
       expect(repositories.sources.repositories.rows[0].repository).toBe("control");
-      await page.screenshot({ path: testInfo.outputPath(`canvas-sqlite-${viewport.width}.png`), fullPage: true });
-      await testInfo.attach(`canvas-sqlite-${viewport.width}`, {
-        path: testInfo.outputPath(`canvas-sqlite-${viewport.width}.png`), contentType: "image/png",
+      await page.screenshot({ path: testInfo.outputPath(`canvas-postgres-${viewport.width}.png`), fullPage: true });
+      await testInfo.attach(`canvas-postgres-${viewport.width}`, {
+        path: testInfo.outputPath(`canvas-postgres-${viewport.width}.png`), contentType: "image/png",
       });
     } finally {
       await page.goto("about:blank");

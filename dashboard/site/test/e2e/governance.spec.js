@@ -5,11 +5,10 @@ import { expect, test } from '@playwright/test';
 const { startCanvasServer } = await import(new URL('../../../../tests/helpers/canvas-snapshot.mjs', import.meta.url).href);
 
 for (const width of [1440, 390]) {
-  test(`Governance is hidden in canvas development at ${width}px`, async ({ page }, testInfo) => {
+  test(`Governance is hidden in canvas development at ${width}px`, async ({ page }) => {
     const preview = await startCanvasServer({
       workingDirectory: fileURLToPath(new URL('../../../../', import.meta.url)),
       repository: 'acme/control', port: 0,
-      cliQueuePath: testInfo.outputPath('.cao', 'cli-actions.sqlite'),
       cliQueueAdmission: async () => ({ concurrency: 1 }),
       output: () => {}, requestOutput: () => {}, traceOutput: () => {},
       approveCliAction: async () => false,

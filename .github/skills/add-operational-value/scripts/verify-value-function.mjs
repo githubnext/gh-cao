@@ -153,12 +153,10 @@ if (runCollector) {
 if (caoAdapter) {
   if (!existsSync(caoAdapter)) fail(`CAO adapter not found: ${caoAdapter}`);
   const timestamp = shiftDays(adoption.adoptedAt, definition.evidence.window.cadenceDays);
-  const database = `${process.cwd()}/.cao/dashboard.sqlite`;
   const request = {
     schemaVersion: 1,
     timestamp,
     repositories: definition.evidence.repositories,
-    ...(existsSync(database) ? { database } : {}),
   };
   let records;
   try {

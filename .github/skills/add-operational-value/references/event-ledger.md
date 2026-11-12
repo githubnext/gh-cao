@@ -214,9 +214,7 @@ original ledger, not the computed pulse model, and makes no remote requests:
 ```bash
 node .github/skills/add-operational-value/scripts/export-evidence.mjs \
   ledger.json .cao/gh-aw-logs-shards/workflow-value-evidence.jsonl
-node activity/cao.mjs ingest-jsonl --database .cao/gh-aw-logs.sqlite \
-  --input-dir .cao/gh-aw-logs-shards --retention-days all
-node activity/cao.mjs hash-payloads --database .cao/gh-aw-logs.sqlite \
+node activity/cao.mjs hash-payloads \
   --shard-dir .cao/gh-aw-logs-shards --normalized-dir .cao/gh-aw-logs-normalized \
   --runs-dir .cao/gh-aw-logs-runs --records-dir .cao/gh-aw-logs-records \
   --output .cao/payload-hashes.json
@@ -224,7 +222,8 @@ node activity/cao.mjs hash-payloads --database .cao/gh-aw-logs.sqlite \
 
 Use an existing, appropriately scoped publication directory. Import is not
 enrollment or permission to collect from another target. Publish the generated
-normalized shards and SQLite through the normal Activity publication; do not
+normalized shards through the normal Activity publication and ingest them into
+explicitly configured PostgreSQL with `cao-dashboard ingest --source .cao`; do not
 make browsers fetch the report file. No new workflow dispatch is required.
 
 For a hosted PostgreSQL dashboard, explicitly publish the original adjacent

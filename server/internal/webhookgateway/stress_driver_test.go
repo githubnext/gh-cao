@@ -56,21 +56,22 @@ type stressReport struct {
 }
 
 type stressDriver struct {
-	t         *testing.T
-	clock     *simulator.ManualClock
-	api       *simulator.FleetAPI
-	quota     *simulator.QuotaAPI
-	url       string
-	client    *http.Client
-	shards    []*stressShard
-	prs       map[string]*stressPR
-	pending   []*stressPR
-	latencies []float64
-	report    stressReport
-	limited   bool
-	tick      int
-	waiting   []*stressPR
-	broker    *stressBroker
+	t            *testing.T
+	clock        *simulator.ManualClock
+	api          *simulator.FleetAPI
+	quota        *simulator.QuotaAPI
+	url          string
+	client       *http.Client
+	shards       []*stressShard
+	prs          map[string]*stressPR
+	pending      []*stressPR
+	latencies    []float64
+	report       stressReport
+	limited      bool
+	tick         int
+	waiting      []*stressPR
+	broker       *stressBroker
+	clockUpdates []func()
 }
 
 func (*stressDriver) WebhookSecrets(context.Context, string) ([]byte, []byte, error) {
@@ -196,6 +197,9 @@ func (d *stressDriver) repositoryWebhook(repo simulator.FleetRepository, action 
 
 func (d *stressDriver) deliver(body []byte, repository int64, id, event string) int {
 	d.t.Helper()
+	for _, update := range d.clockUpdates {
+		update()
+	}
 	request := httptest.NewRequestWithContext(d.t.Context(), http.MethodPost, "/webhooks/compiler", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-GitHub-Event", event)
@@ -289,6 +293,9 @@ func (d *stressDriver) completeReviews() {
 }
 
 func (d *stressDriver) drain() {
+	for _, update := range d.clockUpdates {
+		update()
+	}
 	for offset := range len(d.shards) {
 		shard := d.shards[(d.tick+offset)%len(d.shards)]
 		if depth, err := shard.queue.(wg.QueueDepthProvider).QueueDepth(d.t.Context()); err != nil {

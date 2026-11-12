@@ -12,7 +12,6 @@ export function renderStorageInfo(context) {
   const backend = configured ?? (usesRemoteDataBackend() ? 'unknown' : 'indexeddb');
   const descriptions = new Map([
     ['indexeddb', ['Browser-local storage (IndexedDB)', 'Dashboard data is stored in this browser, not in localStorage. Clearing site data removes this disposable copy; source activity is unchanged.']],
-    ['sqlite', ['Local server storage (SQLite)', 'Dashboard data is stored in a SQLite database on the local preview server, not in this browser.']],
     ['postgres', ['Server storage (PostgreSQL)', 'Dashboard data is stored in PostgreSQL on the server, not in this browser.']]
   ]);
   debugStorageInfo({

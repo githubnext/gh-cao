@@ -27,6 +27,7 @@ type dashboardOptions struct {
 	listen       string
 	server       string
 	site         string
+	postgresURL  string
 	window       time.Duration
 	duration     time.Duration
 	refresh      time.Duration
@@ -41,7 +42,8 @@ func dashboardCommand(version string, gh ghExecutor, logs dashboardLogsCollector
 		Long: `Mine recent gh-aw activity and serve the existing Go dashboard on loopback.
 
 No CAO configuration, repository enrollment, Actions installation, Node.js,
-database service, or source checkout is required by release binaries.
+or source checkout is required by release binaries. PostgreSQL is required:
+pass --postgres-url or set CAO_POSTGRES_URL.
 GitHub CLI authentication is required for collection. The pinned gh-aw log
 collector is embedded; no separate gh-aw installation is needed. Existing
 gh-aw artifact caches are reused. The evidence window defaults to seven days;
@@ -60,6 +62,7 @@ Collection never changes policy, workflows, or remote repository state.`,
 	cmd.Flags().DurationVar(&options.refresh, "refresh", 5*time.Minute, "Refresh interval (at least 1m)")
 	cmd.Flags().StringVar(&options.server, "server-executable", "", "Explicit existing cao-dashboard binary for source development")
 	cmd.Flags().StringVar(&options.site, "site", "", "Explicit built dashboard site for source development")
+	cmd.Flags().StringVar(&options.postgresURL, "postgres-url", "", "PostgreSQL connection URL (or CAO_POSTGRES_URL)")
 	cmd.MarkFlagsRequiredTogether("server-executable", "site")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		if options.duration <= 0 || options.duration > dashboardMaximumDuration {
@@ -70,6 +73,12 @@ Collection never changes policy, workflows, or remote repository state.`,
 		}
 		if err := validateDashboardListen(options.listen); err != nil {
 			return err
+		}
+		if options.postgresURL == "" {
+			options.postgresURL = os.Getenv("CAO_POSTGRES_URL")
+		}
+		if strings.TrimSpace(options.postgresURL) == "" {
+			return errors.New("PostgreSQL is required; pass --postgres-url or set CAO_POSTGRES_URL")
 		}
 		repositories, cache, err := resolveDashboardOptions(cmd, options, gh)
 		if err != nil {

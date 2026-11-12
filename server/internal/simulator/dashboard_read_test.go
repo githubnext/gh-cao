@@ -16,9 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/githubnext/gh-cao/internal/dashboardquery"
-
 	"github.com/githubnext/gh-cao/server/internal/model"
+	"github.com/githubnext/gh-cao/server/internal/operational"
+	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
+	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/server"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
@@ -26,29 +27,58 @@ import (
 const dashboardScenarioToken = "synthetic-dashboard-contract-token-only"
 
 type dashboardReadFixture struct {
-	snapshot string
+	database *postgresx.Store
+	writer   *sql.DB
+	endpoint string
+	services operational.Store
 	config   server.Config
 }
 
 func newDashboardReadFixture(t *testing.T) dashboardReadFixture {
 	t.Helper()
 	t.Log("SYNTHETIC canonical read scenario: no production credentials or remote durability evidence")
-	snapshot := testutil.SQLiteSnapshot(t, map[string][]model.Row{
-		"repositories": {
+	database, connection := testutil.PostgresWithConfig(t, t.Context(), "POSTGRES_URL")
+	endpoint := testutil.ConnectionString(t, connection)
+	services, err := postgres.New(t.Context(), endpoint, "synthetic-contract", postgres.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = services.Close() })
+	writer, err := sql.Open("pgx", endpoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = writer.Close() })
+	ingestion, err := database.BeginIngestion(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ingestion.Abort(t.Context())
+	for source, rows := range map[string][]model.Row{
+		"$repositories": {
 			{"id": "repository:synthetic/alpha", "owner": "synthetic", "name": "alpha"},
 			{"id": "repository:synthetic/beta", "owner": "synthetic", "name": "beta"},
 		},
-		"workflows": {{
+		"$workflows": {{
 			"id": "workflow:synthetic/pilot", "repositoryId": "repository:synthetic/alpha",
 			"path": ".github/workflows/pilot.md", "name": "Synthetic contract pilot",
 		}},
-		"runs": {{
+		"$runs": {{
 			"id": "run:synthetic/sparse", "repositoryId": "repository:synthetic/alpha",
 			"workflowId": "workflow:synthetic/pilot", "owner": "synthetic", "repository": "alpha",
 			"githubRunId": "1", "attempt": 1, "status": "admitted", "admissionStatus": "admitted",
 			"observedAt": "2026-10-01T12:00:00Z",
 		}},
-	})
+	} {
+		for _, row := range rows {
+			if err := ingestion.Append(t.Context(), source, row); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if _, err := ingestion.Publish(t.Context(), "synthetic"); err != nil {
+		t.Fatal(err)
+	}
 	site := t.TempDir()
 	if err := os.WriteFile(filepath.Join(site, "index.html"),
 		[]byte("<html><head></head><body>SYNTHETIC canonical contract scenario (not the dashboard UI)</body></html>"), 0o600); err != nil {
@@ -63,9 +93,10 @@ func newDashboardReadFixture(t *testing.T) dashboardReadFixture {
 		t.Fatal(err)
 	}
 	return dashboardReadFixture{
-		snapshot: snapshot,
+		database: database, writer: writer, endpoint: endpoint, services: services,
 		config: server.Config{
-			Listen: "127.0.0.1:0", SiteDirectory: site, AccessToken: dashboardScenarioToken,
+			Database: database,
+			Listen:   "127.0.0.1:0", SiteDirectory: site, AccessToken: dashboardScenarioToken,
 			DatabaseQueriesPath:  filepath.Join(source, "data/queries/database.json"),
 			DashboardQueries:     definitions,
 			DashboardQueriesPath: filepath.Join(source, "agent/queries.generated.json"),
@@ -78,7 +109,7 @@ func newDashboardReadFixture(t *testing.T) dashboardReadFixture {
 
 func TestDashboardReadSyntheticScenario(t *testing.T) {
 	fixture := newDashboardReadFixture(t)
-	app, err := server.NewLocalSQLiteApp(t.Context(), fixture.snapshot, fixture.config)
+	app, err := server.New(t.Context(), fixture.services, fixture.config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +187,7 @@ func runDashboardReadScenario(t *testing.T, fixture dashboardReadFixture, endpoi
 		source := result.Sources["pilot"]
 		if len(source.Rows) != 1 || source.Rows[0]["status"] != "admitted" ||
 			source.Rows[0]["conclusion"] != nil || source.Rows[0]["cost"] != nil ||
-			source.Metadata["completeness"] != "unknown" || source.Metadata["freshness"] != "unknown" {
+			source.Metadata["completeness"] != "partial" {
 			t.Fatalf("partial evidence became a known outcome, zero cost or complete source: %+v", source)
 		}
 		repositories := client.request(t, http.MethodGet, "/api/repositories", "", http.StatusOK)
@@ -164,13 +195,8 @@ func runDashboardReadScenario(t *testing.T, fixture dashboardReadFixture, endpoi
 			t.Fatalf("canonical API omitted the synthetic fixture: %s", repositories)
 		}
 	})
-	t.Run("synthetic unavailable source is not empty success", func(t *testing.T) {
-		result := client.query(t, `{"sourceNames":["daily-run-counts"]}`)
-		source, ok := result.Sources["daily-run-counts"]
-		if !ok || source.Metadata["availability"] != "unavailable" ||
-			source.Metadata["completeness"] != "unknown" || len(source.Rows) != 0 {
-			t.Fatalf("missing projection was fabricated: %+v", source)
-		}
+	t.Run("synthetic unknown source fails closed", func(t *testing.T) {
+		client.request(t, http.MethodPost, "/api/v1/query", `{"sourceNames":["$unknown"]}`, http.StatusBadRequest)
 	})
 	t.Run("synthetic stale revision is rejected", func(t *testing.T) {
 		first := client.query(t, `{"sourceNames":["repositories"],"pagination":{"repositories":{"limit":1}}}`)
@@ -186,11 +212,8 @@ func runDashboardReadScenario(t *testing.T, fixture dashboardReadFixture, endpoi
 			t.Fatal(err)
 		}
 		client.query(t, string(next))
-		dashboardScenarioWrite(t, fixture.snapshot, `UPDATE __idb_records SET value=?
-			WHERE database_name=? AND store_name=? AND record_key=?`,
-			`{"id":"repository:synthetic/alpha","owner":"synthetic","name":"updated"}`,
-			dashboardquery.DatabaseName, "repositories", `"repository:synthetic/alpha"`,
-		)
+		dashboardScenarioWrite(t, fixture, `UPDATE repositories SET name='updated' WHERE id='repository:synthetic/alpha';
+			UPDATE cao_state SET revision=revision+1`)
 		updated := client.query(t, `{"sourceNames":["repositories"]}`)
 		if updated.Revision == first.Revision || len(updated.Sources["repositories"].Rows) != 2 {
 			t.Fatalf("external commit did not produce fresh canonical state: %+v", updated)
@@ -207,10 +230,10 @@ func runDashboardReadScenario(t *testing.T, fixture dashboardReadFixture, endpoi
 		}
 	})
 	t.Run("synthetic dependency failure stays unavailable", func(t *testing.T) {
-		dashboardScenarioWrite(t, fixture.snapshot, `UPDATE __idb_databases SET version=0`)
+		dashboardScenarioWrite(t, fixture, `ALTER TABLE repositories RENAME TO unavailable_repositories`)
 		client.request(t, http.MethodPost, "/api/v1/query", `{"sourceNames":["repositories"]}`, http.StatusServiceUnavailable)
 		client.request(t, http.MethodGet, "/api/repositories", "", http.StatusServiceUnavailable)
-		dashboardScenarioWrite(t, fixture.snapshot, `UPDATE __idb_databases SET version=?`, dashboardquery.DatabaseVersion)
+		dashboardScenarioWrite(t, fixture, `ALTER TABLE unavailable_repositories RENAME TO repositories`)
 		client.query(t, `{"sourceNames":["repositories"]}`)
 	})
 	t.Run("synthetic active transport cancellation", func(t *testing.T) {
@@ -245,14 +268,9 @@ func runDashboardReadScenario(t *testing.T, fixture dashboardReadFixture, endpoi
 	})
 }
 
-func dashboardScenarioWrite(t *testing.T, path, statement string, arguments ...any) {
+func dashboardScenarioWrite(t *testing.T, fixture dashboardReadFixture, statement string) {
 	t.Helper()
-	writer, err := sql.Open("sqlite", path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = writer.Close() }()
-	if _, err := writer.ExecContext(t.Context(), statement, arguments...); err != nil {
+	if _, err := fixture.writer.ExecContext(t.Context(), statement); err != nil {
 		t.Fatal(err)
 	}
 }

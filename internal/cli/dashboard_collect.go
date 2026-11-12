@@ -60,7 +60,7 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 		return nil, errors.New("dashboard collection is already locked; if its owner crashed, remove the empty collection.lock directory before retrying")
 	}
 	defer func() { _ = os.Remove(lock) }()
-	if _, err := os.Stat(filepath.Join(cache, "gh-aw-logs.sqlite")); err == nil {
+	if _, err := os.Stat(filepath.Join(cache, "inventory-sources.json")); err == nil {
 		if _, err := readDashboardStatus(ctx, cache, repositories); err != nil {
 			return nil, err
 		}
@@ -81,7 +81,7 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 	state.Status, state.Message = "collecting", "Discovering retained history and collecting available artifacts; coverage remains partial."
 	state.NextAt = ""
 	state.summarize(repositories, now.Add(-options.window), now, options.window)
-	if _, statErr := os.Stat(filepath.Join(cache, "gh-aw-logs.sqlite")); errors.Is(statErr, os.ErrNotExist) {
+	if _, statErr := os.Stat(filepath.Join(cache, "inventory-sources.json")); errors.Is(statErr, os.ErrNotExist) {
 		metadata = dashboardObservationMetadata(repositories, options, now, nil)
 		metadata["coverage"] = "Initial collection pending; upstream evidence is not yet available."
 		if err := publishDashboardSnapshot(ctx, cache, map[string][]map[string]any{"transactions": {metadata}}); err != nil {

@@ -1,7 +1,5 @@
 import 'fake-indexeddb/auto';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { rmSync } from 'node:fs';
 import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { normalize } from '../../src/data/normalize/index.js';
@@ -12,7 +10,6 @@ import {
   maintainCanonicalDatabase, openCanonicalDatabase, prepareCanonicalRecord,
   readCanonicalBatch, readCollection, upsertCanonicalBatch
 } from '../../src/data/storage/indexeddb.js';
-import { createSqliteIndexedDB, SqliteIDBKeyRange } from '../../src/data/storage/sqlite-indexeddb.js';
 import { processDataRequest } from '../../src/data-worker.js';
 import sharedEvents from '../../dashboard-fragments/shared-events.json' with { type: 'json' };
 
@@ -80,13 +77,9 @@ async function importRuns(indexedDB, runs, identity) {
   return finalizeNormalizedJsonlIngestion(indexedDB, options);
 }
 
-describe.each(['IndexedDB', 'SQLite'])('resolved failure logs in %s', (backend) => {
+describe('resolved failure logs in IndexedDB', () => {
   function database() {
-    if (backend === 'IndexedDB') return new IDBFactory();
-    const directory = mkdtempSync(join(tmpdir(), 'cao-failure-retention-'));
-    directories.push(directory);
-    vi.stubGlobal('IDBKeyRange', SqliteIDBKeyRange);
-    return createSqliteIndexedDB(join(directory, 'dashboard.sqlite'));
+    return new IDBFactory();
   }
 
   it('reclaims persisted log bytes without changing statistical or comparison evidence', async () => {

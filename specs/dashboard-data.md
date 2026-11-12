@@ -201,8 +201,8 @@ view-payload compiler and retain an abort-scoped subscription. Canonical databas
 changes SHALL refresh their payloads; replacing the document or leaving the page
 SHALL cancel old subscriptions and requests. No main-thread query fallback or
 test-only logical-source synthesis is permitted.
-Local canvas queries SHALL execute through the Go server over the verified
-canonical SQLite snapshot without opening browser IndexedDB. The canvas SHALL
+Local canvas queries SHALL execute through the Go server over the canonical
+PostgreSQL namespace without opening browser IndexedDB. The canvas SHALL
 NOT offer a query-backend selector or a browser fallback. Document validation
 SHALL remain in the browser data worker.
 
@@ -256,8 +256,8 @@ Repository
 ```
 
 The dashboard data and query implementations are IndexedDB for the synthetic
-enterprise Pages demo, SQLite for real local/headless snapshots, and Postgres
-for production hosted serving. Local and hosted serving SHALL use the same Go
+enterprise Pages demo and PostgreSQL for local, headless and hosted serving.
+Local and hosted serving SHALL use the same Go
 handler and declarative views. Pages SHALL NOT publish real operational data.
 The demo SHALL maintain the canonical model in IndexedDB. The Go server
 profile SHALL transactionally replace current dashboard sources in Postgres
@@ -466,8 +466,8 @@ Those components SHALL initially be treated as data producers.
 
 Production SHALL serve HTML, assets, OAuth, query APIs, and revision events
 through one Go/PostgreSQL origin. Local development SHALL use the same Go
-serving/query boundary with an explicitly acquired real operational SQLite
-snapshot. Neither profile SHALL fall back to Pages or browser ingestion.
+serving/query boundary and PostgreSQL storage, ingesting explicitly acquired
+operational artifacts. Neither profile SHALL fall back to Pages or browser ingestion.
 
 Pages SHALL contain only a synthetic enterprise sample. Its build SHALL
 generate raw sample evidence and pass it through the production normalization,
@@ -486,11 +486,11 @@ explicitly selected, access-controlled input, never a Pages transport.
 Native and JavaScript snapshot acquisition SHALL have no default Pages source.
 An explicit `DASHBOARD_DATA_URL` or URL argument SHALL name an operational
 `payload-hashes.json` directly, not a site root or directory-discovery endpoint.
-Authenticated Actions artifact acquisition followed by cached `--sqlite`
-serving remains supported. This contract does not introduce a hosted export API.
+Authenticated Actions artifact acquisition followed by PostgreSQL ingestion
+remains supported. This contract does not introduce a hosted export API.
 Operational downloaders and canvas acquisition SHALL reject synthetic manifests
-and manifests without a SQLite checksum. The canvas SHALL read a prepared workspace snapshot with a verified SQLite
-checksum; it SHALL NOT discover Actions artifacts, legacy dashboard bundles,
+and manifests without canonical shard checksums. The canvas SHALL read a prepared
+PostgreSQL namespace populated from verified canonical shards; it SHALL NOT discover Actions artifacts, legacy dashboard bundles,
 Pages data, or a dashboard backlink from Pages settings.
 
 The demo SHALL put data files under `demo-data/`, not root
@@ -546,7 +546,7 @@ Views MUST NOT parse:
 
 IndexedDB MUST be disposable and reconstructable.
 
-The local SQLite projection MUST also be reconstructable from the deployed
+The local PostgreSQL projection MUST also be reconstructable from the deployed
 dashboard artifact.
 
 ## INV-005 — Authoritative inputs remain external
@@ -597,24 +597,22 @@ renderer data path.
 ```mermaid
 flowchart LR
   logs["gh aw logs"] --> source["JSONL<br/>authoritative input"]
-  source --> sqlite["SQLite"]
-  sqlite --> agents["Agents"]
-  sqlite --> cli["CLI"]
   samples["Synthetic enterprise raw samples"] --> normalize["Production normalization"]
   normalize --> indexeddb["IndexedDB<br/>isolated demo namespace"]
   indexeddb --> worker["Data Web Worker queries"] --> views["Shared dashboard views"]
-  source --> postgres["Postgres<br/>hosted dashboard sources"]
+  source --> postgres["Postgres<br/>local and hosted dashboard sources"]
+  postgres --> agents["Agents"]
+  postgres --> cli["CLI"]
   postgres --> go["Go HTTP(S) query server"]
   redis["Redis<br/>operational state"] --> go
   go --> views
-  sqlite --> local["Same Go handler<br/>local read-only queries"] --> views
 ```
 
-The SQLite and IndexedDB projections SHALL be independently reconstructable
-from their selected inputs: real operational snapshots for local SQLite and
+The PostgreSQL and IndexedDB projections SHALL be independently reconstructable
+from their selected inputs: real operational artifacts for local PostgreSQL and
 generated synthetic evidence for Pages. Neither projection SHALL become the
-source for the other. Operational artifacts MAY include SQLite for authorized
-headless consumers; Pages SHALL NOT include SQLite. Demo browser ingestion
+source for the other. Operational artifacts SHALL contain canonical JSONL shards,
+not database files. Demo browser ingestion
 SHALL use only synthetic normalized JSONL and inventory inputs.
 
 The deployed dashboard payload SHALL publish only compacted normalized
@@ -659,27 +657,23 @@ published partition's bytes. Published normalized shards SHOULD be bounded to
 the budget by itself MUST remain intact in a dedicated shard; publishers MUST
 NOT truncate or split canonical records to satisfy the byte budget.
 
-The local SQLite projection and browser IndexedDB projection SHALL use the same
-adapters, identities, normalization, object-store definitions, and relationship
-validation. The local SQLite file implements the IndexedDB subset used by the
-canonical storage API. It additionally mirrors Campaign and the six experiment-evidence
-stores into queryable relational tables within the same write transaction;
-these mirrors are derived from canonical records, not an independent ingestion
-or acquisition path. It MAY use a different retention window when explicitly
-created as a historical archive.
+The local PostgreSQL projection and browser IndexedDB projection SHALL use the
+same identities, normalization, canonical fields, and relationship validation.
+Local PostgreSQL SHALL use the production typed relational schema and SQL query
+planner, not an emulation of IndexedDB or a serialized canonical-row mirror.
 
 The `gh-aw-cao.dashboard-sql-export` contract is a separate, static source
 interchange. Its producer-owned relational tables or views SHALL be serialized
 to JSON and adapted before canonical normalization. The SQL export contract
-MUST NOT be confused with the local SQLite projection.
+MUST NOT be confused with the local PostgreSQL storage contract.
 
-IndexedDB and the Activity SQLite database SHALL retain all available canonical
+IndexedDB and the local PostgreSQL database SHALL retain all available canonical
 Repository, Workflow, and Run summaries. IndexedDB SHALL retain detailed
 run-linked records for seven days and Operational Value records for 365 days;
-the Activity SQLite database SHALL retain run-linked detail for seven days by
+the local PostgreSQL database SHALL retain run-linked detail for seven days by
 default, while retaining Run records for 30 days and Operational Value records
 for at least 365 days by default. Shortening run or detail retention MUST NOT
-shorten this compact observation history. Explicitly longer historical SQLite
+shorten this compact observation history. Explicitly longer historical PostgreSQL
 run windows SHALL also preserve the corresponding longer outcome history.
 Explicit per-store historical retention windows MAY override these defaults.
 Expiring run-owned records MUST NOT remove their retained Run or the Run's
@@ -693,7 +687,6 @@ The implementation profile defined by this specification is:
 | --- | ---: | --- |
 | Canonical model | 36 | Campaign, Repository, Workflow, Run, Domain, Tool, Skill, Friction, Audit, Issue, Operational Value, Operational Value Evidence, Workflow Value Collection, Marketplace Package, Experiment, Experiment Assignment, Grader, Grader Observation, Eval, and Eval Observation records |
 | Browser IndexedDB | 49 | Twenty canonical entity stores, `transactions`, disposable `storageShards` accounting, and three separate daily run-count projection stores |
-| Local SQLite projection | IndexedDB 49 | `__idb_databases`, `__idb_stores`, `__idb_indexes`, and `__idb_records` for the same logical stores, plus a `campaigns` table and six transactional relational evidence mirrors without duplicate record documents |
 | Go server Postgres sources | Canonical model 19 | Fresh TypeSpec-defined entity and input tables with query-required native columns, compact presence bits, entity-owned relational child values, and transactional diagnostics/revision state; no stored JSON documents or duplicate scalar row formats |
 | Static SQL export | 3 | Versioned JSON interchange produced from upstream SQL tables or views |
 
@@ -726,7 +719,7 @@ Canonical Run identities, not attempts or mutable metrics, determine seeded,
 versioned SHA-256 priorities. Strata are execution UTC date and outcome.
 Selection SHALL use deterministic proportional largest-remainder allocation,
 with a bounded ten-percent failure reserve and stable identity tie-breaking.
-Statistical capacities are independent: PostgreSQL 64,000; SQLite 8,000;
+Statistical capacities are independent: PostgreSQL 64,000;
 IndexedDB 16,000. Explicit hot-identity exclusions MAY narrow the frame; this
 increment leaves the exact layer unchanged and does not infer a hot census.
 
@@ -753,7 +746,7 @@ Sampling diagnostics SHALL be disabled by default and contain only fixed event
 labels, stages, counts, timings, and validity indicators, never identities,
 payloads, seeds, or arbitrary error text. Enable browser summaries with
 `?debug=data:sampling` (source-loading diagnostics use `?debug=database`).
-Go backends use `DEBUG=cao:postgresx:sampling` or `DEBUG=cao:sqlitex:sampling`;
+Go backends use `DEBUG=cao:postgresx:sampling`;
 native CLI summaries use `DEBUG=cao:cli` and remain off JSON stdout.
 
 The source SHALL retain ordinary Run fields and expose its sampling frame,
@@ -821,7 +814,7 @@ Conformance for this increment is declared in
 [`tests/contracts/statistical-sampling.json`](../tests/contracts/statistical-sampling.json).
 `npm run test:conformance:statistical-sampling` SHALL execute all declared suites:
 Activity publication, IndexedDB worker and native Chromium, shared Go sampler
-and CLI, SQLite query and external-refresh HTTP boundaries, real PostgreSQL bundle
+and CLI, PostgreSQL query and external-refresh HTTP boundaries, real PostgreSQL bundle
 lifecycle, and the bounded TLA+ model
 [`StatisticalSampling.tla`](tla/StatisticalSampling.tla). It requires an isolated
 `POSTGRES_URL` with schema-creation permission and `TLA2TOOLS_JAR`; missing tools,
@@ -829,14 +822,14 @@ skipped backends, omitted coverage tests, and incomplete model checks do not
 constitute conformance. The model checks abstract single-stratum publication
 safety, not the statistical quality of the SHA256 or allocation implementation.
 
-Only the PostgreSQL profile persists independent bundles; browser and SQLite
-projections cannot preserve detail already removed by canonical retention.
+Only the PostgreSQL profile persists independent bundles; browser projections
+cannot preserve detail already removed by canonical retention.
 Persistence cannot recover detail missing at admission. No profile reduces
 underlying canonical storage or shard download volume in this increment.
 
 ## 5.2 Go server profile
 
-Go SHALL be the serving runtime for local SQLite, hosted PostgreSQL, and explicit
+Go SHALL be the serving runtime for local and hosted PostgreSQL, and explicit
 synthetic-only Pages previews. The Node.js authoring bridge SHALL remain internal to
 Copilot canvas development rather than provide a standalone serving mode. The
 Go server data profile SHALL:
@@ -878,24 +871,18 @@ The default local profile is loopback-only. The separate hosted profile requires
 GitHub OAuth and explicit organization/team authorization; neither profile
 grants database access to clients.
 
-Local SQLite serving SHALL open only the selected canonical database read-only.
-Ordinary Activity creation, normalization, backfill, retention, and repair SHALL
-remain owned by the `cao-activity` JavaScript pipeline, outside the Go server lifecycle.
-The server MUST NOT acquire GitHub evidence, resolve acquisition credentials,
-launch ingestion runtimes, create a writable overlay, or mutate canonical
-records or bookkeeping for local SQLite serving. Previously created overlay
-files SHALL remain untouched and MUST NOT be automatically attached.
-Requests MUST use consistent query-only transactions through the existing
-native canonical query boundary. External canonical commits SHALL invalidate
-stale query state and notify revision subscribers. Startup MAY download and
-verify an explicitly selected operational SQLite snapshot through a direct
-manifest URL; it SHALL NOT discover or default to a Pages source. That is artifact acquisition, not
-evidence collection or local backfill. These boundaries apply equally to
-ordinary local and internal canvas serving and MUST NOT change hosted
-PostgreSQL, OAuth, webhook, or collection-authority contracts.
+Local serving SHALL require an explicitly configured PostgreSQL connection and
+pre-provisioned canonical and operational namespaces. Local and hosted reads
+SHALL share the production SQL planner and repeatable-read transaction boundary.
+Explicit `--source` ingestion SHALL verify canonical shard manifests before
+atomic publication. External canonical commits SHALL invalidate stale query
+state and notify revision subscribers. There SHALL be no file database,
+automatic data conversion, compatibility adapter, or fallback backend.
+Acquisition and database bootstrap remain explicit operator actions, not
+implicit query-server authority.
 
 The explicitly selected `gh cao dashboard` operator profile MAY create and
-refresh a separate private canonical SQLite projection through its native
+refresh a separate private PostgreSQL namespace through its native
 acquisition adapter, outside the Go server. It MUST select the current verified
 GitHub.com repository or an explicit bounded list of exact repositories, retain
 at most a seven-day recent window, and serve for at most 48 hours per invocation.
@@ -953,9 +940,9 @@ have no exposed filesystem, process or network authority. Raw artifact reads
 SHALL be confined to selected matching-attempt run directories and SHALL reject
 symlinks, nonregular files and oversized input.
 The CLI SHALL bind its ingestion pipeline to the explicit
-`serve --sqlite-ingestion --sqlite PATH` server mode. This mode SHALL serve the
+`serve --postgres-url URL --source DIRECTORY` server mode. This mode SHALL serve the
 same built-in dashboard document, page composition, canonical queries, HTTP API
-and revision subscriptions as other servers, with `server-http` and SQLite
+and revision subscriptions as other servers, with `server-http` and PostgreSQL
 backend configuration. It MUST NOT select an immediate/local presentation model,
 rewrite query sources, discover legacy campaign dashboard bundles, or require
 `local-preview` routing. Ordinary declarative capability requirements SHALL
@@ -1138,42 +1125,12 @@ coverage. It SHALL NOT rewrite canonical detail or recover already-evicted
 history. New databases SHALL initialize daily state as `ready` with `admitted`
 coverage. Other older databases SHALL rebuild every store from authoritative
 inputs because their browser state is disposable.
-The SQLite-backed implementation SHALL preserve exactly the same
-logical database version, store names, key paths, indexes, and record values.
-The metadata tables are an emulation detail and MUST NOT be presented as
-canonical domain tables.
-
 Every canonical storage implementation MUST persist Campaign as a first-class
 entity, including campaigns with no Workflows or Runs. IndexedDB SHALL use the
-`campaigns` object store; SQLite and Postgres SHALL expose a physical `campaigns`
-table. The key SHALL be `id` in IndexedDB, `(database_name, id)` in SQLite, and
+`campaigns` object store; Postgres SHALL expose a physical `campaigns`
+table. The key SHALL be `id` in IndexedDB and
 `(namespace, id)` in Postgres. Campaign data MUST NOT be reconstructed from
 Workflow classifications or stored only as incidental Workflow fields.
-
-The local SQLite `campaigns` table SHALL mirror the canonical object store
-transactionally. It SHALL expose `slug`, `name`, `description`, `icon`, `mode`,
-`enabled`, `experimental`, `version`, `current_version`, `min_version`,
-`update_state`, `readme_path`, `readme`, `worker_count`, `inventory_warnings`,
-`max_repositories`, `rollout_percent`, `ai_credit_allowance`,
-`monthly_ai_credit_budget`, `campaign_link`, and `intelligence_declaration`.
-Boolean columns SHALL use SQLite integers; numeric columns SHALL use INTEGER
-or REAL as appropriate. Structured links and declarations SHALL use JSON TEXT.
-`observed_at` and JSON TEXT `provenance` SHALL preserve observation metadata.
-The complete canonical observation SHALL be stored only in `__idb_records.value`;
-relational mirrors MUST NOT duplicate it in `record_json`. Partial records MAY
-omit observation metadata; the
-mirror MUST NOT fabricate it. A `(database_name, slug)` index SHALL support
-the same campaign lookup as IndexedDB's `bySlug` index.
-
-Creating or rebuilding a SQLite mirror for an existing logical database SHALL
-populate it from that database's canonical Campaign records without changing their IDs,
-values, or logical schema version. Inserts, updates, replacement, deletion,
-and rollback SHALL keep the mirror consistent with the object store. Store or
-database deletion SHALL remove only the corresponding database's mirror rows.
-Campaigns SHALL remain exempt from run-detail retention.
-The SQLite `repair-database` command SHALL diagnose a missing Campaign table or required column
-and restore the table from retained canonical records inside its backed-up
-repair transaction.
 
 The Postgres table SHALL use the query-required native fields declared in
 `server/spec/storage.tsp`, with presence bits preserving missing versus null
@@ -1181,31 +1138,6 @@ values and the existing fresh-schema contract. Its generated DDL and Go
 bindings MUST include `campaigns` and `$campaigns`, respectively. Storage
 conformance tests MUST verify Campaign persistence, stable identity on refresh,
 and deletion in each implementation.
-
-The local SQLite evidence mirrors are `experiments`,
-`experiment_assignments`, `graders`, `grader_observations`, `evals`, and
-`eval_observations`, each keyed by `(database_name, id)`. Definitions expose
-`workflow_id`, `name`, and `first_observed_at`/`last_observed_at`; assignments
-expose `run_id`, `experiment_id`, and `variant`; grader observations expose
-`run_id`, `grader_id`, `value`, `status`, and optional `experiment_id`/`variant`,
-`audit_id`, and `evaluator_digest`; eval observations expose `run_id`,
-`eval_id`, `eval_result`, `status`, and optional `experiment_id`/`variant`,
-`audit_id`, and `timestamp`. Requested and resolved models SHALL be obtained from
-the owning Run in query projections, not copied into Eval observations.
-Optional inclusion and exclusion fields,
-`observed_at` and `provenance` preserve observation metadata without requiring
-queries to parse Audit JSON. The full record is available by joining
-`__idb_records` on `database_name`, the canonical `store_name`, and
-`record_key = json_quote(id)`; mirrors MUST NOT store another complete JSON copy.
-Relationship-key indexes follow
-the corresponding IndexedDB indexes. Store deletion and retention SHALL remove
-mirror rows in the same SQLite transaction.
-Outdated mirror layouts SHALL be rebuilt transactionally from
-`__idb_records`, preserving every logical database's scope, rather than
-converting or trusting the obsolete mirror's stored document. Failed rebuilds
-MUST roll back both DDL and data changes. The SQLite `repair-database` command SHALL diagnose
-missing or unexpected columns in all seven mirrors and use its backed-up
-repair transaction to restore the current layout.
 
 ## 5.2 Completeness and archives
 
@@ -1222,7 +1154,7 @@ Ingestion SHALL report repeated raw and enriched observations, deduplicate them
 by the canonical identities defined in this specification, and MUST NOT create
 duplicate canonical records.
 
-A full-detail local archive SHALL use a separate SQLite file with a retention
+A full-detail local archive SHALL use a separate PostgreSQL namespace with a retention
 window that covers the requested history. A later rolling Activity refresh MUST
 NOT silently shorten that archive to the dashboard's default detail window.
 
@@ -1272,7 +1204,7 @@ MUST NOT be assigned synthetic Campaign membership, and MUST NOT expose an
 executable update action. Missing or incomparable source evidence MUST remain
 `unknown`.
 
-The SQLite Campaign projection, hosted PostgreSQL tables, and IndexedDB
+The PostgreSQL tables and IndexedDB
 `campaigns` and `workflows` object stores MUST preserve these maintenance fields
 with identical missing-data semantics. All projections remain disposable and
 reconstructable from inventory inputs. Incompatible canonical schema migrations
@@ -1291,7 +1223,7 @@ cao.json repository scope
   -> one gh aw logs --repo call per resolved repository
   -> repository-specific --cached-jsonl wildcard shards
   -> canonical JSONL ingestion
-  -> operational SQLite / hosted PostgreSQL projections
+  -> local / hosted PostgreSQL projections
   -> Dashboard Language queries
 ```
 
@@ -1340,7 +1272,7 @@ Repositories reached through campaign-classified Workflows. Missing campaign
 relationships MUST produce an honest empty or unavailable result and MUST NOT
 fall back to unscoped records.
 
-The local SQLite projection and browser IndexedDB projection SHALL expose
+The local PostgreSQL projection and browser IndexedDB projection SHALL expose
 equivalent Campaign-to-Workflow, Workflow-to-Run, and Workflow-to-Repository
 relationships to these queries. Campaign resource navigation is presentation
 configuration, not canonical operational evidence, and MUST NOT be persisted as
@@ -1678,13 +1610,13 @@ Browser IndexedDB remains disposable. Migration of any identity, enum, or
 measure semantics in this section SHALL increment the canonical schema and
 rebuild token-optimization projections from authoritative inputs. A failed
 rebuild MUST NOT create a successful ingestion receipt or publish a compatible
-derived projection. A historical SQLite archive MAY use longer retention but
+derived projection. A historical PostgreSQL history namespace MAY use longer retention but
 MUST apply the same adapter and normalization rules.
 
 Browser IndexedDB retains run-linked intervention evidence, including active
 interventions and compact comparisons, only within its seven-day detail window.
 Longer-lived intervention tracking and historical backfills belong in a separate
-SQLite archive, not browser IndexedDB.
+PostgreSQL history namespace, not browser IndexedDB.
 
 Dashboard Language SHALL expose `token-efficiency-opportunities`,
 `token-efficiency-interventions`, and `token-efficiency-comparisons`. All
@@ -2047,7 +1979,7 @@ default to the execution Repository. Orchestrator Runs MUST leave
 
 Jobs and agent interaction contexts MAY remain upstream observations or
 published logical sources, but they are not canonical entities and MUST NOT be
-persisted in canonical SQLite or IndexedDB tables. Job-shaped performance data
+persisted in canonical PostgreSQL or IndexedDB tables. Job-shaped performance data
 MAY be projected directly from authoritative inputs. Run detail MUST be projected from Run and its Domain, Tool, Skill, Friction,
 Audit, and Issue records.
 
@@ -2087,7 +2019,7 @@ are independently observed facts and MAY differ from those IDs. Each result SHAL
 The redundant observation-level `sourceGraderId`, `sourceEvalId`, and
 `resultTimestamp` fields MUST NOT be stored. Eval `answer` duplicates `evalResult`; requested and
 resolved models belong to the Run and SHALL be joined at query time.
-SQLite mirrors MUST NOT materialize assignment/result first/last observation
+PostgreSQL tables MUST NOT materialize assignment/result first/last observation
 ranges from `observed_at`; range facts belong to definitions only.
 
 Repository `fullName`, Run `repositoryFullName`, and Audit `targetRepo`
@@ -2124,7 +2056,7 @@ Audit — lifecycle, agent, policy, grader, and other audit observations
 Issue — issue and pull-request safe outputs
 ```
 
-The canonical browser database and the SQLite-backed IndexedDB interchange
+The canonical browser database and PostgreSQL
 also retain six separate experiment-evidence collections: `experiments`,
 `experimentAssignments`, `graders`, `graderObservations`, `evals`, and
 `evalObservations`. Definitions reference a Workflow; observations and
@@ -2132,8 +2064,8 @@ assignments reference both a definition and the producing Run. Every row has
 a stable ID and original source provenance. These collections are published
 through run-information (experiment definitions and assignments) and record
 (grader and eval definitions and observations) shards and
-resolved directly by Dashboard Language queries. The SQLite adapter mirrors
-them into six transactional relational tables with the corresponding
+resolved directly by Dashboard Language queries. PostgreSQL stores
+them in six transactional relational tables with the corresponding
 snake-case names, without requiring another API. These tables expose typed
 relationship keys and observed values (variant, grader value/status, eval
 result, requested/resolved model, first/last observation times, and optional
@@ -2159,7 +2091,7 @@ whose `workflowId` equals the `workflowId` of the Run named by the record's
 `runId`; a record whose definition belongs to a different Workflow is not a
 valid evidence relationship and MUST be excluded from every ingestion path,
 including Activity's pre-publication consolidation, before the canonical
-browser database, SQLite mirror, or Postgres store accepts it.
+browser database or PostgreSQL store accepts it.
 Repeated definitions keep the earliest and latest observed timestamps across
 runs and normalized shards; later collection of an older run cannot erase the
 latest definition. Browser shard ingestion writes bounded batches before its
@@ -2193,7 +2125,7 @@ GitHub acquisition path. Invalid eval
 candidates remain run-linked Audit observations without an inferred answer
 or score; valid entries also produce a run-linked Audit observation and their
 canonical Eval observation references that Audit's stable identity.
-Eval audit identities MUST survive browser, SQLite and hosted PostgreSQL
+Eval audit identities MUST survive browser and PostgreSQL
 projection and be exposed as `audit-id` by the eval-observations query.
 Grader values and units MUST remain distinct from YES/NO eval answers in
 dashboard views; a grader score or pass/fail status does not create an Eval.
@@ -2256,7 +2188,7 @@ Issue table; pull requests set `isPullRequest=true`.
 
 Audit is an evidence table, not a second Run summary table. JavaScript canonical
 ingestion, normalized Activity publication, and Go/Postgres ingestion SHALL apply
-the same versioned, fail-closed curation rules. Existing IndexedDB, SQLite, and
+the same versioned, fail-closed curation rules. Existing IndexedDB and
 Postgres databases SHALL apply those rules during maintenance, including when
 the input payload hashes have not changed. Cleanup MUST precede size-based Run
 eviction, use bounded dirty-shard indexed reads or namespace-scoped SQL, and publish any
@@ -2361,7 +2293,7 @@ Records MAY retain common source evidence such as `sequence`, `timestamp`,
 `source`, `type`, `status`, `correlationId`, and `payloadRef`.
 
 Issue records SHALL preserve the safe-output action and canonical GitHub entity
-type. The SQLite interchange SHALL expose these values as nullable
+type. PostgreSQL SHALL expose these values as nullable
 `safe_output_type` and `github_entity_type` columns. Missing entity-type
 evidence MUST remain absent rather than be inferred as a generic issue.
 
@@ -3325,7 +3257,7 @@ clocks. This does not permit stale explicit replacements or conflicting seeds.
 
 The skill's validated event ledger SHALL export a schema-v2
 `operational_value_evidence` JSONL envelope. Normal Activity ingestion,
-normalization, phase publication and browser/SQLite/PostgreSQL storage SHALL
+normalization, phase publication and browser/PostgreSQL storage SHALL
 retain it without a Run parent. Packets SHALL survive Run-detail expiry and
 retain their repository and observed workflow parents; each identity holds only its current bounded
 packet. Limits are 20,000 facts and 8 MiB per packet. Typed facts SHALL be stored
@@ -3344,7 +3276,7 @@ It SHALL require PostgreSQL and already observed repository/workflow parents;
 it SHALL NOT enroll targets, execute uploaded code or register a collector.
 Hosted mutations SHALL require current administrator OAuth assurance and CSRF;
 local PostgreSQL SHALL retain its existing loopback bearer boundary.
-SQLite and static Pages SHALL NOT silently substitute for this write endpoint.
+Static Pages SHALL NOT silently substitute for this write endpoint.
 Publication and snapshot replacement SHALL share the namespace writer lock.
 Typed ownership metadata SHALL preserve directly published packets, their
 fact children and required structural parents across snapshot replacement,
@@ -3440,8 +3372,8 @@ re-executed within the active abort-scoped worker subscription. No navigation
 handler SHALL fetch saved reports or acquire missing evidence.
 
 Exact workflow/report predicates SHALL reach the packet read before fact
-expansion. SQLite SHALL use the existing record-key primary index (exact packet
-or workflow identity prefix); browser storage SHALL use the primary key or
+expansion. PostgreSQL SHALL constrain the namespace and packet/workflow identity
+before fact expansion; browser storage SHALL use the primary key or
 `byWorkflow` index. Shared-source selection SHALL union every reachable
 consumer's necessary equality, and SHALL NOT narrow an unscoped consumer.
 The authored query still evaluates the complete predicate afterward. Version
@@ -3471,7 +3403,7 @@ Canonical schema 36 SHALL retain `workflowValueCollections`, independently of
 `operationalValueEvidence`: one current bounded record per exact repository and
 workflow filename stem. A schema-v2 `workflow_value_collection` JSONL envelope
 SHALL carry the record through the ordinary Activity adapter, normalized
-publication, browser IndexedDB, local SQLite and hosted PostgreSQL paths.
+publication, browser IndexedDB, local and hosted PostgreSQL paths.
 Registration and health are collection facts, not outcome measurements or
 authorization to execute a target workflow.
 
@@ -3510,7 +3442,7 @@ An absent attempt is unknown, not proof that collection never ran. Merging a
 newer decision after cache loss SHALL retain an already known actual attempt;
 it MUST NOT synthesize one from the new decision time.
 For nonconflicting evidence, replay, permutation and regrouping SHALL produce
-the same decision and attempt facts in browser, SQLite and hosted storage.
+the same decision and attempt facts in browser and PostgreSQL storage.
 This bounded current-fact contract does not introduce a complete event ledger,
 historical conflict quarantine, or the proposed three-tier storage policy.
 
@@ -3956,7 +3888,7 @@ remains bounded.
 
 ## 41.1 Resolved failure log excerpts
 
-Canonical IndexedDB and its Node.js SQLite adapter SHALL reclaim the optional
+Canonical IndexedDB SHALL reclaim the optional
 Run `failureLog` excerpt after a later completed native success in the same
 execution Repository, Workflow, campaign/role, target, event, branch and rollout
 mode. Ordering SHALL use the first valid `startedAt`, `createdAt`, or `updatedAt`,
@@ -4027,7 +3959,7 @@ sources SHALL each be an explicit Dashboard Language query over its own
 canonical table, with declared joins for run context. Backends MUST NOT
 synthesize these queries from a shared event projection or implicitly union
 event families. Cross-family views MUST declare their unions in their queries.
-This contract applies equally to browser IndexedDB, local SQLite, and hosted
+This contract applies equally to browser IndexedDB, local and hosted
 PostgreSQL execution.
 
 Firewall observations SHALL select firewall request events directly from the
@@ -5108,7 +5040,7 @@ without reading any derived aggregate store.
 
 The `daily-run-counts` source is a separate, versioned projection of observed
 logical Runs, keyed by namespace, UTC execution-start date, Repository ID, and
-Workflow ID. Namespace is implicit in a scoped browser or SQLite database and
+Workflow ID. Namespace is implicit in a scoped browser or PostgreSQL database and
 explicit in hosted storage. It SHALL NOT change canonical Run fields, existing
 detail storage, or detail-retention policy.
 
@@ -5177,8 +5109,8 @@ Daily counts and their compact receipts SHALL retain the current UTC
 Monday-start week and its two preceding weeks. Maintenance SHALL atomically
 remove expired buckets and receipts and persist a monotonic retention watermark;
 a clock regression SHALL NOT reopen an expired week. Browser IndexedDB and
-Activity SQLite SHALL perform bounded logical cleanup independently of detail
-retention, including the SQLite doctor publication path. Hosted PostgreSQL SHALL
+Activity canonical evidence SHALL perform bounded logical cleanup independently of detail
+retention. PostgreSQL SHALL
 apply the same logical retention within its namespace transaction. Future days
 outside the current week SHALL NOT create retained buckets.
 
@@ -5202,8 +5134,8 @@ Run `POSTGRES_URL=... npm run test:conformance:daily-run-counts` from the
 repository root against an isolated PostgreSQL database whose test role can
 create schemas. The suite requires real PostgreSQL and rejects skipped or
 unexecuted Go tests; an unset connection is a failure, not a passing backend.
-Native Go tests exercise the supported SQLite publisher. The obsolete Activity
-JavaScript SQLite writer, doctor and legacy upgrade runner are retired, so the
+Native Go tests exercise PostgreSQL ingestion and canonical reads. The obsolete Activity
+JavaScript writer, doctor and legacy upgrade runner are retired, so the
 gate does not bootstrap their container runtime. Bounded legacy backfill remains
 required for the supported IndexedDB and PostgreSQL writers.
 Chromium must be installed for the native-browser test; Node's IndexedDB
@@ -5223,11 +5155,9 @@ evidence. The command runs these existing production-boundary suites:
 
 | Suite | Implemented contract exercised |
 | --- | --- |
-| Native SQLite publication | Exclusive UTC counters, canonical queries, atomic corrections, detail-independent retention, rollover and replay fences |
 | IndexedDB and worker | Shared reconciliation cases, exclusive UTC counters, atomic corrections, logical retention, resumed backfill, unavailable state, and all three migrated query consumers |
 | Native Chromium worker | Real IndexedDB and a module Web Worker preserve all three migrated consumers through corrections, detail expiry, aggregate rollover, and unavailable state |
-| Native CLI | Canonical SQLite daily source and unavailable legacy snapshots |
-| Hosted Go SQLite | Read-only aggregate source, retained provenance, unavailable snapshots, and repository inventory joins |
+| Native CLI | Canonical PostgreSQL daily source and explicit unavailable evidence |
 | Hosted PostgreSQL | Native transactional reconciliation, explicit nulls, bounded backfill, namespace isolation, retention rollback/replay fences, and aggregate join provenance |
 
 The worker suites ingest canonical Runs and resolve shipped queries through the
@@ -5302,7 +5232,7 @@ set or enumerate unrelated worker partitions.
   `evalObservations` record to reference a definition whose `workflowId`
   matches the owning Run's `workflowId`, and required every ingestion path,
   including Activity's pre-publication consolidation, to exclude a mismatched
-  record before the canonical browser database, SQLite mirror, or Postgres
+  record before the canonical browser database or PostgreSQL
   store accepts it.
 
 ## Version 1.8.0 — Indexed run aggregate pushdown and worker heap budgets
@@ -5323,7 +5253,7 @@ set or enumerate unrelated worker partitions.
 * Defined the canonical model, IndexedDB, SQLite-backed IndexedDB, and SQL
   interchange as four separately versioned contracts.
 * Recorded the exact IndexedDB version 20 stores, key paths, and indexes.
-* Clarified that local SQLite mirrors IndexedDB logical stores through metadata
+* Clarified that local PostgreSQL mirrors IndexedDB logical stores through metadata
   and JSON record tables rather than defining a separate relational domain
   schema.
 * Updated SQL export references to version 3.

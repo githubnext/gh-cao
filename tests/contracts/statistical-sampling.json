@@ -10,8 +10,7 @@
     "native-browser",
     "shared-sampler",
     "native-cli",
-    "sqlite",
-    "sqlite-external-refresh",
+    "postgres-external-refresh",
     "postgresql"
   ],
   "requirements": {
@@ -24,9 +23,9 @@
     "owned-evidence": "Owned observations inherit selected Run membership and frame bindings",
     "sample-composition": "Shipped query remains unweighted sample composition, not exact or population totals",
     "native-browser": "Native IndexedDB and a real data worker execute statistical queries, not synthesized source rows",
-    "sqlite-external-refresh": "The read-only local HTTP app observes externally committed canonical rows and statistical frames without acquiring or writing evidence",
     "persisted-bundles": "PostgreSQL preserves complete frozen bundles across restart, exact retention and incremental revisions",
-    "publication-rollback": "Invalid or cancelled PostgreSQL publication preserves the committed frame"
+    "publication-rollback": "Invalid or cancelled PostgreSQL publication preserves the committed frame",
+    "external-refresh": "The local PostgreSQL HTTP app observes external canonical publications, rejects stale continuation tokens, and updates revision subscriptions"
   },
   "suites": [
     {
@@ -109,37 +108,18 @@
       }
     },
     {
-      "id": "sqlite",
-      "runner": "go",
-      "directory": "server",
-      "packages": [
-        "./internal/sqlitex"
-      ],
-      "files": [
-        "server/internal/sqlitex/statistical_test.go",
-        "server/internal/sqlitex/statistical_clock_test.go"
-      ],
-      "pattern": "^Test(Statistical|MissingStatistical|OversizedStatistical)",
-      "coverage": {
-        "frame-binding": "TestStatisticalSnapshotProductionBoundary",
-        "clock-validity": "TestMissingStatisticalClockPreservesExactQueries",
-        "input-budgets": "TestOversizedStatisticalFramePreservesExactQueries",
-        "candidate-range-pushdown": "TestStatisticalCandidateRangeExcludesHistoricalBudget"
-      }
-    },
-    {
-      "id": "sqlite-external-refresh",
+      "id": "postgres-external-refresh",
       "runner": "go",
       "directory": "server",
       "packages": [
         "./internal/server"
       ],
       "files": [
-        "server/internal/server/local_sqlite_test.go"
+        "server/internal/server/local_postgres_test.go"
       ],
-      "pattern": "^TestLocalSQLiteExternalRefresh",
+      "pattern": "^TestLocalPostgresExternalPublication$",
       "coverage": {
-        "sqlite-external-refresh": "TestLocalSQLiteExternalRefresh"
+        "external-refresh": "TestLocalPostgresExternalPublication"
       }
     },
     {

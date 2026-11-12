@@ -27,7 +27,7 @@ When a diagnostic page has one essential summary table and several supporting ta
 
 Before implementing a data-backed feature or modifying a database, write or update the normative requirements for both the SQL layer and the IndexedDB layer in [`specs/dashboard-data.md`](../../../specs/dashboard-data.md). Define the source contract, canonical mapping, identities and relationships, migration behavior, retention, failure handling, and SQL/IndexedDB parity before changing implementation code.
 
-Follow the data-injection boundary documented in [`docs/dashboard-data-model.md`](../../../docs/dashboard-data-model.md): authoritative inputs pass through source adapters, canonical normalization, canonical storage, and the query layer before reaching a view. Views must not parse upstream logs or query storage directly. Treat browser IndexedDB and the local SQLite projection as disposable, reconstructable derived state.
+Follow the data-injection boundary documented in [`docs/dashboard-data-model.md`](../../../docs/dashboard-data-model.md): authoritative inputs pass through source adapters, canonical normalization, canonical storage, and the query layer before reaching a view. Views must not parse upstream logs or query storage directly. Treat browser IndexedDB and the local PostgreSQL projection as disposable, reconstructable derived state.
 
 Read the checked-out data specification at the revision being authored, not only
 main's online copy. Its §72.2 `daily-run-counts` source is the only persisted
@@ -44,7 +44,7 @@ Use [`gh aw logs`](https://github.com/github/gh-aw/blob/main/docs/src/content/do
 
 Operational-grader design and result semantics belong to gh-aw's `operational-value` protocol. Dashboard work may consume the canonical grader result, but must not redefine, normalize, clamp, replay, mature, reconstruct its metrics, or confuse it with package-defined repository operational value.
 
-For real feature-development evidence, download a selected `cao-activity-index` Actions artifact into `.cao/`, or run `cao download --url URL` with an explicit operational `payload-hashes.json` endpoint. There is no default remote source; Pages contains synthetic demo data only. Query the operational SQLite snapshot with `cao query`. Real data is development evidence, not schema authority; follow the specifications and JSONL schema.
+For real feature-development evidence, download a selected `cao-activity-index` Actions artifact into `.cao/`, or run `cao download --url URL` with an explicit operational `payload-hashes.json` endpoint. There is no default remote source; Pages contains synthetic demo data only. Query the canonical PostgreSQL data with `cao query`. Real data is development evidence, not schema authority; follow the specifications and JSONL schema.
 
 Before treating a source as complete, run `cao audit-jsonl --input FILE`. Distinguish repeated source observations from duplicate canonical records, and distinguish run-summary coverage from enriched artifact coverage. Use a separate SQLite database plus `--retention-days all` and `repair-database --ttl-days all --run-ttl-days all` for historical backfills; repair mutates the database and otherwise applies retention even without corruption. Do not turn browser IndexedDB into an archive.
 

@@ -11,7 +11,7 @@ import (
 )
 
 func TestBatchAtomicReservationAndSingleRateCharge(t *testing.T) {
-	for _, backend := range []string{"sqlite", "postgres"} {
+	for _, backend := range []string{"postgres"} {
 		t.Run(backend+"/BG-04", func(t *testing.T) {
 			rig := newBatchRig(t, backend, func(p *wg.PolicySnapshot) {
 				rate := wg.RateBudget{Capacity: 1, Period: time.Hour}
@@ -71,7 +71,7 @@ func TestBatchAtomicReservationAndSingleRateCharge(t *testing.T) {
 }
 
 func TestBatchFreshEvidenceAndPolicyInvalidationFenceEveryMember(t *testing.T) {
-	for _, backend := range []string{"sqlite", "postgres"} {
+	for _, backend := range []string{"postgres"} {
 		t.Run(backend+"/BG-04-revocation", func(t *testing.T) {
 			rig := newBatchRig(t, backend, nil)
 			rig.admit(t, "issues", 1)
@@ -101,7 +101,7 @@ func TestBatchFreshEvidenceAndPolicyInvalidationFenceEveryMember(t *testing.T) {
 }
 
 func TestBatchRecoveryNeverReplaysUncertainAcceptance(t *testing.T) {
-	for _, backend := range []string{"sqlite", "postgres"} {
+	for _, backend := range []string{"postgres"} {
 		for _, expire := range []bool{false, true} {
 			t.Run(backend+"/BG-05/"+map[bool]string{false: "unknown", true: "lost-completion"}[expire], func(t *testing.T) {
 				rig := newBatchRig(t, backend, func(p *wg.PolicySnapshot) { p.Policy.Queue.LeaseDuration = time.Second })
@@ -137,7 +137,7 @@ func TestBatchRecoveryNeverReplaysUncertainAcceptance(t *testing.T) {
 }
 
 func TestBatchTenantPrefixCannotStarveAnotherRoute(t *testing.T) {
-	for _, backend := range []string{"sqlite", "postgres"} {
+	for _, backend := range []string{"postgres"} {
 		t.Run(backend+"/BG-06-tenant-prefix", func(t *testing.T) {
 			rig := newBatchRig(t, backend, func(p *wg.PolicySnapshot) {
 				p.Policy.Queue.MaxConcurrency = 2
@@ -164,7 +164,7 @@ func TestBatchTenantPrefixCannotStarveAnotherRoute(t *testing.T) {
 }
 
 func TestBatchSchedulingBoundsAndReplicaExclusion(t *testing.T) {
-	for _, backend := range []string{"sqlite", "postgres"} {
+	for _, backend := range []string{"postgres"} {
 		t.Run(backend+"/BG-06", func(t *testing.T) {
 			rig := newBatchRig(t, backend, func(p *wg.PolicySnapshot) { p.Policy.Queue.MaxConcurrency = 2 })
 			rig.admit(t, "issues", 1)
@@ -222,7 +222,7 @@ func TestBatchSchedulingBoundsAndReplicaExclusion(t *testing.T) {
 }
 
 func TestBatchPackingRetainsEveryOverflowMember(t *testing.T) {
-	for _, backend := range []string{"sqlite", "postgres"} {
+	for _, backend := range []string{"postgres"} {
 		for _, large := range []bool{false, true} {
 			t.Run(backend+"/BG-08/"+map[bool]string{false: "items", true: "bytes"}[large], func(t *testing.T) {
 				rig := newBatchRig(t, backend, func(p *wg.PolicySnapshot) {

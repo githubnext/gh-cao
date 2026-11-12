@@ -1,7 +1,7 @@
 ---
 name: "SelfCare / Agent Discoverability"
-description: Audits canonical CAO skill entry points and verifies artifact, MCP, and SQLite routing
-intent: Keep operational CAO evidence discoverable to agents through safe, efficient skill, artifact, MCP, and SQLite routes without UI scraping or synthetic demo evidence.
+description: Audits canonical CAO skill entry points and verifies artifact, MCP, and PostgreSQL routing
+intent: Keep operational CAO evidence discoverable to agents through safe, efficient skill, artifact, MCP, and PostgreSQL routes without UI scraping or synthetic demo evidence.
 on:
   bots: ["github-actions[bot]", "cao-githubnext-gh-aw-cao-write[bot]"]
   workflow_dispatch:
@@ -138,25 +138,25 @@ Attempt these tasks in order with at most 25 total HTTP fetches, 8 MCP calls, an
 2. Determine operational snapshot freshness and distinguish unavailable, partial, stale, and empty evidence. Expected route: operational snapshot metadata, not Pages.
 3. Find the procedure for diagnosing a named campaign failure. Expected route: the raw `debug-cao` skill.
 4. Inspect recent failures for one workflow named by the available catalog. Expected route: `cao_catalog`, then one bounded `cao_query` only when an authenticated service is already configured; otherwise report unavailable evidence without launching a local collector.
-5. Explain how to perform a large historical analysis. Expected route: the raw `cao-cli` or `analyze-cao` skill and the downloaded SQLite workflow.
-6. Locate the authoritative SQLite/canonical schema documentation. Expected route: canonical skill references and `specs/dashboard-data.md`.
+5. Explain how to perform a large historical analysis. Expected route: the raw `cao-cli` or `analyze-cao` skill and PostgreSQL ingestion of explicitly acquired operational JSONL evidence.
+6. Locate the authoritative PostgreSQL/canonical schema documentation. Expected route: canonical skill references and `specs/dashboard-data.md`.
 7. Explain how to download the Activity database and identify its default local path. Expected route: the raw CLI skill.
 
-Do not scrape rendered dashboard text, inspect DOM produced by JavaScript, download the SQLite file from Pages, or fan out across JSONL shards. An explicitly prepared operational database may be used only for one bounded CLI verification after the canonical guide has routed the task there. Check scope, collection window, freshness, and completeness first; unavailable evidence stays unavailable, with no synthetic fallback. Do not use repository search unless a canonical link is missing or broken; record that fallback as a defect.
+Do not scrape rendered dashboard text, inspect DOM produced by JavaScript, download operational evidence from Pages, or fan out across JSONL shards. An explicitly prepared PostgreSQL database may be used only for one bounded CLI verification after the canonical guide has routed the task there. Check scope, collection window, freshness, and completeness first; unavailable evidence stays unavailable, with no synthetic fallback. Do not use repository search unless a canonical link is missing or broken; record that fallback as a defect.
 
 ## Evaluation
 
 For every task, record:
 
-| Task | Success | Entry point discovered | Skill used | Precomputed artifact used | MCP used | SQLite used | UI scraping attempted | Repository search required | Navigation hops | Evidence |
+| Task | Success | Entry point discovered | Skill used | Precomputed artifact used | MCP used | PostgreSQL used | UI scraping attempted | Repository search required | Navigation hops | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- |
 
 Flag:
 
 - UI scraping;
 - an undiscoverable or broken skill;
-- repeated MCP calls where SQLite is cheaper;
-- SQLite download for a simple metric;
+- repeated MCP calls where a bounded PostgreSQL CLI query is cheaper;
+- bulk evidence acquisition for a simple metric;
 - a stale, broken, unsafe, or base-path-invalid link;
 - missing schema or freshness semantics;
 - an artifact whose documented schema, size, public status, source/query, or useful questions are absent;

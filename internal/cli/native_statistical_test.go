@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestNativeStatisticalNamedQuery(t *testing.T) {
@@ -11,11 +12,32 @@ func TestNativeStatisticalNamedQuery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var fixture struct{ Rows []map[string]any }
+	var fixture struct {
+		Watermark string
+		Rows      []map[string]any
+	}
 	if err := json.Unmarshal(content, &fixture); err != nil {
 		t.Fatal(err)
 	}
-	file := nativeTestSnapshot(t, map[string][]map[string]any{"runs": fixture.Rows})
+	watermark, err := time.Parse(time.RFC3339Nano, fixture.Watermark)
+	if err != nil {
+		t.Fatal(err)
+	}
+	offset := time.Now().UTC().Truncate(24 * time.Hour).Sub(watermark)
+	for _, row := range fixture.Rows {
+		started, err := time.Parse(time.RFC3339Nano, row["startedAt"].(string))
+		if err != nil {
+			t.Fatal(err)
+		}
+		row["startedAt"] = started.Add(offset).Format(time.RFC3339Nano)
+		row["repositoryId"] = "repository:o/r"
+		row["workflowId"] = "workflow:o/r:test"
+	}
+	file := nativeTestSnapshot(t, map[string][]map[string]any{
+		"repositories": {{"id": "repository:o/r", "owner": "o", "name": "r"}},
+		"workflows":    {{"id": "workflow:o/r:test", "repositoryId": "repository:o/r", "path": ".github/workflows/test.md"}},
+		"runs":         fixture.Rows,
+	})
 	db, err := openNativeSnapshot(file)
 	if err != nil {
 		t.Fatal(err)
@@ -32,7 +54,7 @@ func TestNativeStatisticalNamedQuery(t *testing.T) {
 	}
 	metadata := nativeObject(result["metadata"])
 	frame := nativeObject(metadata["statistical-frame"])
-	if metadata["availability"] != "available" || frame["population-count"] != 6 || frame["capacity"] != 8000 ||
+	if metadata["availability"] != "available" || frame["population-count"] != 6 || frame["capacity"] != 64000 ||
 		frame["watermark-policy"] != "canonical-run-max" || frame["weight-valid"] != false {
 		t.Fatalf("native named query lost statistical semantics: %+v", result)
 	}

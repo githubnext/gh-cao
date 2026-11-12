@@ -110,7 +110,7 @@ func TestSessionArchiveDefaultsOffWithoutTouchingConfiguration(t *testing.T) {
 	t.Setenv("CAO_SESSION_ARCHIVE_DIRECTORY", "/must-not-be-created")
 	t.Setenv("CAO_SESSION_ARCHIVE_POLICY", "/must-not-be-read")
 	t.Setenv("CAO_SESSION_ARCHIVE_READ_APPROVED", "invalid-disabled-setting")
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	if app.sessionArchive != nil {
 		t.Fatal("disabled archive constructed a service")
 	}
@@ -129,7 +129,7 @@ func TestSessionArchiveDefaultsOffWithoutTouchingConfiguration(t *testing.T) {
 }
 
 func TestSessionArchiveReadGrantAndTrustedScope(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	probe := &sessionArchiveProbe{}
 	app.sessionArchive = &sessionArchiveService{
 		backend: probe, repositories: []string{"octo/one"}, read: SessionArchiveReadAccess{},
@@ -177,7 +177,7 @@ func TestSessionArchiveReadGrantAndTrustedScope(t *testing.T) {
 }
 
 func TestSessionArchiveResultBudgetsErrorsAndRevocation(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	probe := &sessionArchiveProbe{}
 	app.sessionArchive = &sessionArchiveService{
 		backend: probe, repositories: []string{"octo/one"}, read: SessionArchiveReadAccess{Approved: true},
@@ -225,7 +225,7 @@ func TestSessionArchiveResultBudgetsErrorsAndRevocation(t *testing.T) {
 func TestSessionArchiveResponseClosesReader(t *testing.T) {
 	for _, outcome := range []string{"success", "withdrawn", "oversize", "authorization-revoked", "authorization-revoked-at-delivery", "query-error"} {
 		t.Run(outcome, func(t *testing.T) {
-			app, _ := newSQLiteTestApp(t, false)
+			app, _ := newLocalPostgresTestApp(t, false)
 			reader := &sessionArchiveReadProbe{}
 			delivered := false
 			reader.deliver = func(deliver func() error) error {
@@ -310,7 +310,7 @@ func TestSessionArchiveHostedReadIsSeparateFromAdministrator(t *testing.T) {
 }
 
 func TestSessionArchiveStatusWireContract(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	app.sessionArchive = &sessionArchiveService{
 		backend: &sessionArchiveProbe{}, read: SessionArchiveReadAccess{Approved: true}, retrying: true,
 	}
@@ -332,7 +332,7 @@ func TestSessionArchiveStatusWireContract(t *testing.T) {
 }
 
 func TestSessionArchiveShutdownJoinsPublisherBeforeClosing(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	started, finished := make(chan struct{}), make(chan struct{})
 	probe := &sessionArchiveProbe{flush: func(ctx context.Context) error {
 		close(started)

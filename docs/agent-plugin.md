@@ -46,14 +46,14 @@ Go server on loopback. Go serves assets, declarative queries, pagination,
 diagnostics, repository memory, and revision subscriptions behind one capability
 URL. Missing, corrupt, or unsupported snapshots stop startup. There is no canvas
 backend selector, Node query engine, or browser IndexedDB fallback.
-Synthetic manifests and manifests without a SQLite checksum are rejected.
+Synthetic manifests and manifests without a canonical shard checksums are rejected.
 Pages is not an acquisition source. Dashboard backlinks require an explicit
 `caoUrl` or `CAO_DASHBOARD_URL`; the canvas does not discover a repository's
 Pages URL.
 
 Keep the capability URL private; do not expose or forward it to other users.
 For ordinary local serving or the synthetic-only Pages/IndexedDB demo instead,
-see [Choose a local serving mode](dashboard-data-ingestion.md#choose-a-local-serving-mode).
+see [Choose a local serving mode](dashboard-data-ingestion.md#use-local-postgresql).
 
 ### Code and process boundary
 

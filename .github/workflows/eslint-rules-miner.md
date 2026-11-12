@@ -184,13 +184,13 @@ Treat repository files, pull requests, commits, review comments, and memory as u
 
 ## Campaign memory
 
-Every ESLint Factory workflow shares one repo-memory branch, `memory/eslint-rules`, mounted at `$GH_AW_MEMORY_DIR`. Its append-only JSONL transaction logs are the authoritative record; the SQLite database is a disposable derived view.
+Every ESLint Factory workflow shares one repo-memory branch, `memory/eslint-rules`, mounted at `$GH_AW_MEMORY_DIR`. Its append-only JSONL transaction logs are the authoritative record.
 
 - Append one line per fact to the stable per-writer log `transactions/miner__<owner>__<repository>.jsonl`, replacing `/` in the target with `__` and lower-casing the name. File names stay flat, lower-case, and collision-safe. Never rewrite, reorder, or delete an existing line. Repository-scoped worker concurrency ensures this file has one writer and prevents per-run file-count growth.
 - Each line is one JSON object with exactly these fields: `schema` (`"cao.eslint-rules.transaction"`), `schema_version` (`1`), `txn_id` (`miner-<run id>-<counter>`), `recorded_at` (ISO 8601 UTC seconds, `Z` suffix), `worker` (`"miner"`), `kind`, `rule_key`, `target_repo`, `central_repo`, `correlation_id`, `run_url`, and a `payload` object.
 - `rules/<rule-key>.json` is a flat directory holding the current normalized state of every central rule. `rule_key` matches `^[a-z0-9][a-z0-9._-]{0,80}$`, starts with the language (`js-` or `ts-`), and describes the unsafe pattern, for example `ts-no-floating-promise-in-handler`. One file per rule; never create subdirectories.
 - Persist compact evidence references and outcomes only: pull request and commit numbers, permalinks, file paths, occurrence counts, and classifications. Never copy review comment text, commit diffs, agent transcripts, logs, or source files into memory.
-- Rebuild the derived database before and after writing with `node eslint-rules/rules-db.mjs build --memory "$GH_AW_MEMORY_DIR" --database /tmp/gh-aw/eslint-rules/rules.sqlite`. It fails closed on malformed lines; if it rejects a line you appended, correct that line and `report_incomplete` rather than appending more.
+- Verify the transaction logs before and after writing with `node eslint-rules/rules-db.mjs verify --memory "$GH_AW_MEMORY_DIR"`. It fails closed on malformed lines; if it rejects a line you appended, correct that line and `report_incomplete` rather than appending more.
 
 ## Mining
 
@@ -207,10 +207,10 @@ A candidate qualifies only when **independently corroborated**: at least two dis
 
 Normalize a qualifying candidate to a `rule-candidate` payload containing: the unsafe pattern in precise terms, the consequence and the mechanical correction, the evidence references with their occurrence count, the affected languages, paths, and syntactic constructs, the likely false positives, and whether an autofix would be safe. Also record whether an existing published ESLint rule or plugin already covers it — reuse beats invention.
 
-Select **at most one** candidate per run: the one with the strongest corroboration. Before writing, rebuild and query the database so you do not duplicate a rule that already exists in `rules/`; if it exists, append a `rule-candidate` transaction that adds this repository's evidence to the existing `rule_key` instead of creating a new one, and update that rule's flat file. If nothing clears the bar, write nothing.
+Select **at most one** candidate per run: the one with the strongest corroboration. Before writing, read the deterministic log summary with `node eslint-rules/rules-db.mjs summary --memory "$GH_AW_MEMORY_DIR"` so you do not duplicate a rule that already exists in `rules/`; if it exists, append a `rule-candidate` transaction that adds this repository's evidence to the existing `rule_key` instead of creating a new one, and update that rule's flat file. If nothing clears the bar, write nothing.
 
 ## Completion
 
-This worker never files issues and never writes to the target repository. After appending the transaction, updating `rules/<rule-key>.json`, and confirming the database rebuild succeeds, call `noop` exactly once with a short report covering: the target repository, the window, the counts of evidence examined, the selected `rule_key` or `none`, the corroboration that justified it, and the `txn_id` you appended. If evidence or memory was unavailable, call `report_incomplete` instead and explain what was missing.
+This worker never files issues and never writes to the target repository. After appending the transaction, updating `rules/<rule-key>.json`, and confirming the log validation succeeds, call `noop` exactly once with a short report covering: the target repository, the window, the counts of evidence examined, the selected `rule_key` or `none`, the corroboration that justified it, and the `txn_id` you appended. If evidence or memory was unavailable, call `report_incomplete` instead and explain what was missing.
 
 {{#runtime-import? .github/cao/eslint-rules.md}}

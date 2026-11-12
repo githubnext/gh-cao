@@ -1,7 +1,6 @@
-import { DatabaseSync } from 'node:sqlite';
 import databaseQueries from '../site/src/data/queries/database.json' with { type: 'json' };
 import { dashboardQueryOutputFields } from '../site/src/data/queries/declarative.js';
-import { canonicalDatabaseName } from '../site/src/data/storage/indexeddb.js';
+import { executeCanonicalQuery } from '../../.github/skills/add-operational-value/scripts/canonical-query.mjs';
 
 const DATABASE_SOURCE_TABLES = databaseSourceTables(databaseQueries);
 const DATABASE_SOURCE_FIELDS = databaseSourceFields(databaseQueries);
@@ -496,30 +495,19 @@ function normalizedTableWeights(counts) {
   };
 }
 
-/** @param {string} databasePath */
-export function readDashboardTableCounts(databasePath) {
-  const connection = new DatabaseSync(databasePath, { readOnly: true });
-  try {
-    const rows = connection.prepare(`
-      SELECT stores.name, COUNT(records.record_key) AS records
-      FROM __idb_stores AS stores
-      LEFT JOIN __idb_records AS records
-        ON records.database_name = stores.database_name
-       AND records.store_name = stores.name
-      WHERE stores.database_name = ?
-      GROUP BY stores.name
-      ORDER BY stores.name
-    `).all(canonicalDatabaseName());
-    if (rows.length === 0) {
-      throw new Error(`Dashboard database contains no canonical tables: ${databasePath}`);
+export async function readDashboardTableCounts() {
+  const tables = [...new Set([...DATABASE_SOURCE_TABLES.values()].flat())];
+  return Object.fromEntries(await Promise.all(tables.map(async (table) => {
+    const source = await executeCanonicalQuery({
+      name: `table-count:${table}`,
+      from: table,
+      aggregate: { values: [{ field: 'id', as: 'records', reducer: 'count' }] }
+    });
+    if (source.metadata.availability === 'unavailable') {
+      throw new Error(`Canonical table count is unavailable: ${table}`);
     }
-    return Object.fromEntries(rows.map((row) => [
-      String(row.name),
-      Number(row.records)
-    ]));
-  } finally {
-    connection.close();
-  }
+    return [table, Number(source.rows[0]?.records ?? 0)];
+  })));
 }
 
 /** @param {number} value */

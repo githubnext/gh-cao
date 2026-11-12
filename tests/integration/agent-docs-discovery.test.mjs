@@ -153,7 +153,7 @@ test("consolidated guides retain section links and expose their canonical source
     "execution-and-safety": ["standard-control-envelope", "invariants", "failure-posture"],
     "rollout-and-routing": ["promotion-at-a-glance", "live-authority-check"],
     dashboard: ["know-the-boundary", "design-queries-in-a-copilot-canvas"],
-    "dashboard-data-ingestion": ["canvas-administrative-actions", "hosted-server-data-pipeline", "choose-a-local-serving-mode"],
+    "dashboard-data-ingestion": ["canvas-administrative-actions", "hosted-server-data-pipeline", "use-local-postgresql"],
     "agent-plugin": ["install-the-plugin", "open-a-copilot-canvas", "design-queries-in-a-copilot-canvas", "run-approved-commands", "compiler-version-evidence"],
     "cao-cli": ["github-cli-extension", "guided-runtime-preparation", "control-plane-installer"],
   };

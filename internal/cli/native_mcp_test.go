@@ -1,11 +1,13 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/githubnext/gh-cao/internal/dashboardquery"
 )
 
 func TestNativeMCPReadOnlyContract(t *testing.T) {
@@ -13,16 +15,14 @@ func TestNativeMCPReadOnlyContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, err := openNativeSnapshot(filepath.Join(t.TempDir(), "explicit.sqlite"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := db.Close(); err != nil {
-			t.Error(err)
+	dsn := nativeTestSnapshot(t, nil)
+	handler, err := nativeMCPHandler(catalog, func(context.Context) (dashboardquery.CanonicalReader, func() error, error) {
+		db, err := openNativeSnapshot(dsn)
+		if err != nil {
+			return nil, nil, err
 		}
+		return db, db.Close, nil
 	})
-	handler, err := nativeMCPHandler(catalog, db)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -18,14 +18,7 @@ func (f *auditFixture) holdWriter(t *testing.T) *sql.Tx {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var statement string
-	var args []any
-	if f.dialect == "postgres" {
-		statement, args = `SELECT namespace FROM cao_operational_namespaces WHERE namespace=$1 FOR UPDATE`, []any{f.namespace}
-	} else {
-		statement = `UPDATE cao_operational_cli_queues SET revision=revision`
-	}
-	if _, err := tx.ExecContext(t.Context(), statement, args...); err != nil {
+	if _, err := tx.ExecContext(t.Context(), `SELECT namespace FROM cao_operational_namespaces WHERE namespace=$1 FOR UPDATE`, f.namespace); err != nil {
 		_ = tx.Rollback()
 		t.Fatal(err)
 	}
@@ -34,7 +27,7 @@ func (f *auditFixture) holdWriter(t *testing.T) *sql.Tx {
 }
 
 func TestAuditedStoreLockWaitsAreBounded(t *testing.T) {
-	for _, dialect := range []string{"sqlite", "postgres"} {
+	for _, dialect := range []string{"postgres"} {
 		t.Run(dialect, func(t *testing.T) {
 			f := newAuditFixture(t, dialect)
 			lease := acquireAuditLease(t, f)

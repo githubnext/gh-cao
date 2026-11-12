@@ -34,7 +34,7 @@ func copyDeployAzureSnapshot(source, destination string) error {
 			!regexp.MustCompile(`^[0-9a-fA-F]{64}$`).MatchString(expected) {
 			return fmt.Errorf("unsafe snapshot manifest path or digest: %q", name)
 		}
-		if !strings.HasPrefix(name, "gh-aw-logs-runs/") && !strings.HasPrefix(name, "gh-aw-logs-records/") && name != "gh-aw-logs.sqlite" && name != "inventory-sources.json" {
+		if !strings.HasPrefix(name, "gh-aw-logs-runs/") && !strings.HasPrefix(name, "gh-aw-logs-records/") && name != "inventory-sources.json" {
 			return fmt.Errorf("snapshot manifest file is not allowlisted: %q", name)
 		}
 		if strings.HasPrefix(name, "gh-aw-logs-runs/") {

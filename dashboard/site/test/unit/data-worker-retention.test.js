@@ -163,7 +163,6 @@ describe('canonical dashboard worker retention updates', () => {
       records: 0
     })}\n`;
     const payloadHashes = {
-      'gh-aw-logs.sqlite': 'b'.repeat(64),
       [normalizedName]: 'd'.repeat(64)
     };
     globalThis.fetch = /** @type {typeof fetch} */ (async (input, init) => {

@@ -353,7 +353,7 @@ func testAuditReader(t *testing.T, f postgresRoles) {
 	t.Setenv("CAO_POLICY_PATH", policy)
 	t.Setenv("CAO_POSTGRES_URL", f.readerDSN)
 	t.Setenv("CAO_OPERATIONAL_NAMESPACE", f.namespace)
-	reader, closeReader, err := OpenAuditReader(t.Context(), "")
+	reader, closeReader, err := OpenAuditReader(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}

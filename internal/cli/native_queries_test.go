@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -14,15 +13,7 @@ func TestNativeNamedQueriesFailClosed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, err := openNativeSnapshot(filepath.Join(t.TempDir(), "explicit.sqlite"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := db.Close(); err != nil {
-			t.Error(err)
-		}
-	})
+	db := (*nativeCanonicalSession)(nil)
 	for _, tt := range []struct {
 		id         string
 		parameters map[string]any
@@ -65,6 +56,7 @@ func TestNativeNamedQueriesFailClosed(t *testing.T) {
 
 func TestNativeDefaultQueriesRequireDownloadedSnapshot(t *testing.T) {
 	t.Chdir(t.TempDir())
+	t.Setenv("CAO_POSTGRES_URL", "")
 	for _, args := range [][]string{
 		{"query", "--collection", "runs"},
 		{"query", "campaign-runs"},
@@ -75,17 +67,22 @@ func TestNativeDefaultQueriesRequireDownloadedSnapshot(t *testing.T) {
 		root.SetOut(&output)
 		root.SetErr(&output)
 		root.SetArgs(args)
-		if err := root.Execute(); err == nil || !strings.Contains(err.Error(), "No downloaded CAO snapshot") {
+		if err := root.Execute(); err == nil || !strings.Contains(err.Error(), "PostgreSQL is required") {
 			t.Fatalf("command %v error=%v, output=%s", args, err, &output)
 		}
 	}
 }
 
 func TestNativeNamedQueryLimitIsExplicitlyPartial(t *testing.T) {
-	file := nativeTestSnapshot(t, map[string][]map[string]any{"runs": {
-		{"id": "run:a", "githubRunId": 1, "owner": "org", "repository": "repo"},
-		{"id": "run:b", "githubRunId": 2, "owner": "org", "repository": "repo"},
-	}})
+	file := nativeTestSnapshot(t, map[string][]map[string]any{
+		"repositories": {{"id": "repository:org%2Frepo", "owner": "org", "name": "repo"}},
+		"workflows":    {{"id": "workflow:test", "repositoryId": "repository:org%2Frepo", "path": ".github/workflows/test.md"}},
+		"runs": {
+			{"id": "run:a", "githubRunId": "1", "owner": "org", "repository": "repo",
+				"repositoryId": "repository:org%2Frepo", "workflowId": "workflow:test"},
+			{"id": "run:b", "githubRunId": "2", "owner": "org", "repository": "repo",
+				"repositoryId": "repository:org%2Frepo", "workflowId": "workflow:test"},
+		}})
 	db, err := openNativeSnapshot(file)
 	if err != nil {
 		t.Fatal(err)

@@ -5,11 +5,8 @@ import path from 'node:path';
 import test from 'node:test';
 import {
   analyzeDashboardComplexity,
-  formatDashboardComplexityMarkdown,
-  readDashboardTableCounts
+  formatDashboardComplexityMarkdown
 } from '../../dashboard/report/query-complexity.mjs';
-import { DatabaseSync } from 'node:sqlite';
-import { SQLITE_INDEXEDDB_METADATA_SCHEMA } from '../../dashboard/site/src/data/storage/sqlite-indexeddb.js';
 
 function dashboard() {
   return {
@@ -156,28 +153,8 @@ test('warns when a wide raw union materializes more field-units than aggregated 
 });
 
 
-test('weights database tables by normalized deployed row counts', async (t) => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'cao-dashboard-complexity-database-'));
-  const databasePath = path.join(directory, 'dashboard.sqlite');
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const connection = new DatabaseSync(databasePath);
-  connection.exec(SQLITE_INDEXEDDB_METADATA_SCHEMA);
-  connection.prepare('INSERT INTO __idb_databases (name, version) VALUES (?, 1)')
-    .run('gh-aw-cao-dashboard-data');
-  for (const [table, count] of [['repositories', 4], ['runs', 8], ['workflows', 2]]) {
-    connection.prepare('INSERT INTO __idb_stores (database_name, name, key_path) VALUES (?, ?, ?)')
-      .run('gh-aw-cao-dashboard-data', table, '"id"');
-    for (let index = 0; index < count; index += 1) {
-      connection.prepare(`
-        INSERT INTO __idb_records (database_name, store_name, record_key, value)
-        VALUES (?, ?, ?, ?)
-      `).run('gh-aw-cao-dashboard-data', table, String(index), '{}');
-    }
-  }
-  connection.close();
-
-  const tableCounts = readDashboardTableCounts(databasePath);
-  assert.deepEqual(tableCounts, { repositories: 4, runs: 8, workflows: 2 });
+test('weights database tables by normalized deployed row counts', () => {
+  const tableCounts = { repositories: 4, runs: 8, workflows: 2 };
   const analysis = analyzeDashboardComplexity(dashboard(), { tableCounts });
   const byName = Object.fromEntries(analysis.inventory.map((query) => [query.name, query]));
 

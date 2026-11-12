@@ -1,14 +1,11 @@
 // @vitest-environment node
 import 'fake-indexeddb/auto';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, describe, expect, it } from 'vitest';
 import databaseQueries from '../../src/data/queries/database.json' with { type: 'json' };
 import { executeDashboardQueries } from '../../src/data/queries/declarative.js';
 import { loadDatabaseQuerySources, queryDatabaseSources } from '../../src/data/queries/database.js';
 import { DATABASE_NAME, openCanonicalDatabase } from '../../src/data/storage/indexeddb.js';
-import { createSqliteIndexedDB } from '../../src/data/storage/sqlite-indexeddb.js';
 import { compileDashboardViewPayloadQueries } from '../../src/data/queries/view-payload-compiler.js';
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
 
@@ -130,10 +127,8 @@ describe('Firewall query contract', () => {
     }
   });
 
-  it('executes the same explicit queries through SQLite without reading unrelated event families', async () => {
-    const directory = mkdtempSync(join(tmpdir(), 'cao-firewall-'));
-    const factory = createSqliteIndexedDB(join(directory, 'firewall.sqlite'));
-    try {
+  it('executes explicit queries without reading unrelated event families', async () => {
+    const factory = new IDBFactory();
       await seed(factory);
       /** @type {string[]} */
       let stores = [];
@@ -153,8 +148,5 @@ describe('Firewall query contract', () => {
           { domain: 'example.com', run: 2, accepted: 1, blocked: 10 }
         ]);
       }
-    } finally {
-      rmSync(directory, { recursive: true, force: true });
-    }
   });
 });

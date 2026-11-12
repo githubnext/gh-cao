@@ -11,17 +11,15 @@ import (
 // in the caller's snapshot transaction. Ordinary Activity snapshots have no
 // such marker and retain their existing unknown-quality semantics.
 func LocalDashboardMetadata(ctx context.Context, db SnapshotReader) (metadata map[string]any, err error) {
-	rows, err := db.QueryContext(ctx, `SELECT value FROM __idb_records
-		WHERE database_name=? AND store_name='transactions' AND record_key='"local-dashboard"'`, DatabaseName)
+	result, err := db.ReadCanonical(ctx, CanonicalReadRequest{Kind: "local-metadata", MaxRows: 1, MaxBytes: 1 << 20})
 	if err != nil {
 		return nil, err
 	}
-	defer func() { err = errors.Join(err, rows.Close()) }()
-	if !rows.Next() {
-		return nil, rows.Err()
+	if len(result.Rows) == 0 {
+		return nil, nil
 	}
-	var content string
-	if err := rows.Scan(&content); err != nil {
+	content, err := json.Marshal(result.Rows[0])
+	if err != nil {
 		return nil, err
 	}
 	var record struct {
@@ -33,7 +31,7 @@ func LocalDashboardMetadata(ctx context.Context, db SnapshotReader) (metadata ma
 		Coverage     string   `json:"coverage"`
 		Completeness string   `json:"completeness"`
 	}
-	if err := json.Unmarshal([]byte(content), &record); err != nil {
+	if err := json.Unmarshal(content, &record); err != nil {
 		return nil, errors.New("local dashboard observation contract is malformed")
 	}
 	start, startErr := time.Parse(time.RFC3339Nano, record.WindowStart)
@@ -53,5 +51,5 @@ func LocalDashboardMetadata(ctx context.Context, db SnapshotReader) (metadata ma
 		"completeness": "partial", "freshness": freshness,
 		"repository-scope": record.Repositories, "window-start": record.WindowStart,
 		"coverage": record.Coverage,
-	}, rows.Err()
+	}, nil
 }

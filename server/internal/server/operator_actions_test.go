@@ -16,7 +16,7 @@ import (
 )
 
 func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	prefix := "/" + strings.Repeat("a", 48)
 	adapterPrefix := "/" + strings.Repeat("b", 48)
 	calls := make(chan []string, 1)
@@ -35,7 +35,7 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 	defer adapter.Close()
 	app.config.Canvas = &LocalCanvasConfig{
 		Prefix: prefix, AdapterURL: adapter.URL + adapterPrefix,
-		OperatorActions: &LocalOperatorActionsConfig{QueuePath: filepath.Join(t.TempDir(), "commands.sqlite"), Repositories: []string{"github/gh-aw"}},
+		OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"github/gh-aw"}},
 	}
 	document := `{"dashboard":{"cli-actions":[
 		{"id":"upgrade-repository","command":"gh aw upgrade --repo {{repository}}","arguments":[{"id":"create-pull-request","flag":"--create-pull-request","default":true}]},
@@ -119,7 +119,7 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 }
 
 func TestOperatorCancellationWaitsForNativeExitReceipt(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	started, canceled, release := make(chan struct{}), make(chan struct{}), make(chan struct{})
 	adapter := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -185,7 +185,7 @@ func TestOperatorCancellationWaitsForNativeExitReceipt(t *testing.T) {
 }
 
 func TestOperatorDisconnectDoesNotConfirmNativeExit(t *testing.T) {
-	app, _ := newSQLiteTestApp(t, false)
+	app, _ := newLocalPostgresTestApp(t, false)
 	adapter := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("{\"stream\":\"stderr\",\"data\":\"interrupted\\n\"}\n"))
 	}))

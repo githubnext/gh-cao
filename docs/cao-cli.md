@@ -1206,7 +1206,7 @@ Use `--collection-window-hours` to compare one synchronized hourly batch with a
 webhook- or queue-spread collection window. See the [GitHub API Capacity
 Specification](../specs/github-api-capacity.md).
 
-Data-pipeline and dashboard-maintainer commands are listed by `gh cao --help`. For the full data workflow, see [Dashboard data ingestion](dashboard-data-ingestion.md#use-local-sqlite).
+Data-pipeline and dashboard-maintainer commands are listed by `gh cao --help`. For the full data workflow, see [Dashboard data ingestion](dashboard-data-ingestion.md#use-local-postgresql).
 
 ## Review What Each Command Changed
 

@@ -44,8 +44,8 @@ function* normalizedJsonlLines(payload) {
 }
 
 /**
- * Computes SHA-256 checksums for the activity snapshot payloads: the
- * SQLite projection and every retained `--cached-jsonl` wildcard shard file.
+ * Computes SHA-256 checksums for normalized activity evidence and retained
+ * `--cached-jsonl` wildcard shard files.
  * Missing files are tolerated (an
  * absent shard directory yields no shard entries) so this can run
  * immediately after ingestion in the same workflow step.
@@ -183,7 +183,6 @@ async function consolidatePhasePayloads(
 }
 
 export async function normalizeSnapshotPayloads({
-  databasePath,
   shardDirectory,
   normalizedDirectory,
   runsDirectory,
@@ -209,7 +208,6 @@ export async function normalizeSnapshotPayloads({
     return false;
   };
   const hashes = {};
-  if (databasePath) hashes[path.basename(databasePath)] = await hashFile(databasePath);
   if (shardDirectory) {
     let shardNames = [];
     try {

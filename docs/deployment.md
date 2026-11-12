@@ -41,7 +41,7 @@ PostgreSQL also provides separate operational state by default.
 | --- | --- | --- | --- | --- |
 | [Synthetic enterprise demo](deployment-actions.md#building-the-synthetic-pages-demo) | GitHub Pages | Web Worker over isolated browser IndexedDB | No operational sign-in or live services | Documentation/demo workflow only; no operational artifacts |
 | [On-demand local dashboard](setup-quickstarts.md#open-a-local-dashboard-no-deployment) | Bundled loopback Go server | Go over private canonical SQLite cache | Local capability URL; collection uses authenticated `gh` | None; installed release and GitHub CLI |
-| [Local development](dashboard-data-ingestion.md#choose-a-local-serving-mode) | Loopback Go server | Go over read-only operational SQLite | Private local capability URL | Explicitly acquired operational snapshot |
+| [Local development](dashboard-data-ingestion.md#use-local-postgresql) | Loopback Go server | Go over read-only operational SQLite | Private local capability URL | Explicitly acquired operational snapshot |
 | [Azure Functions](deployment-azure.md) | Azure Functions | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Function App, Elastic Premium plan, PostgreSQL, Key Vault, ACR, runtime storage, jobs and monitoring |
 | [Azure Container Apps](deployment-topology.md#azure-container-apps) | Container Apps Consumption, one hosted Go replica | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Container Apps environment, PostgreSQL, Key Vault, ACR, jobs and Log Analytics; no Functions, runtime Storage or Premium plan |
 

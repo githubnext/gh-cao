@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const executeFile = promisify(execFile);
 const catalogRoot = fileURLToPath(new URL("../", import.meta.url));
 
-export async function startCanvasGoHost({ directory, site, sqlite, config, host, port }) {
+export async function prepareCanvasGoExecutable(directory) {
   let executable = process.env.CAO_DASHBOARD_EXECUTABLE;
   if (executable) {
     if (!isAbsolute(executable)) {
@@ -26,12 +26,22 @@ export async function startCanvasGoHost({ directory, site, sqlite, config, host,
       throw new Error("Cannot build the canvas Go host. Install Go for the bundled server module, or set CAO_DASHBOARD_EXECUTABLE to a compatible cao-dashboard binary.");
     }
   }
+  return executable;
+}
+
+export async function startCanvasGoHost({ directory, site, source, config, host, port, executable, postgresURL, namespace }) {
+  executable ??= await prepareCanvasGoExecutable(directory);
+  postgresURL ??= process.env.CAO_POSTGRES_URL;
+  if (!postgresURL) throw new Error("Canvas development requires CAO_POSTGRES_URL.");
   const child = spawn(executable, [
-    "serve", "--site", site, "--sqlite", sqlite, "--listen", `${host.includes(":") ? `[${host}]` : host}:${port}`,
+    "serve", "--site", site, "--source", source, "--listen", `${host.includes(":") ? `[${host}]` : host}:${port}`,
     "--canvas-config", config,
+    ...(namespace ? ["--redis-namespace", namespace] : []),
     "--database-queries", join(catalogRoot, "dashboard/site/src/data/queries/database.json"),
     "--dashboard-queries", join(catalogRoot, "dashboard/site/src/agent/queries.generated.json"),
-  ], { cwd: directory, stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
+  ], { cwd: directory, stdio: ["pipe", "pipe", "pipe"], windowsHide: true,
+    env: { ...process.env, CAO_POSTGRES_URL: postgresURL,
+      ...(namespace ? { CAO_OPERATIONAL_NAMESPACE: namespace } : {}) } });
   // Never forward child output: it may contain local capability URLs.
   child.stderr.resume();
   let failure;

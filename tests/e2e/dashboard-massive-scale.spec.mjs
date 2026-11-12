@@ -1,12 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { once } from "node:events";
-import { DatabaseSync } from "node:sqlite";
 
 const siteRoot = resolve("dashboard/site");
 const repositories = numberSetting("DASHBOARD_STRESS_REPOSITORIES", 10_000);
@@ -18,18 +17,14 @@ const sampleIntervalMs = numberSetting("DASHBOARD_STRESS_SAMPLE_INTERVAL_MS", 25
 const maximumPageHeapMb = numberSetting("DASHBOARD_STRESS_MAX_BROWSER_HEAP_MB", 220);
 const maximumRetainedPageHeapMb = numberSetting("DASHBOARD_STRESS_MAX_RETAINED_HEAP_MB", 128);
 const maximumWorkingSetMb = numberSetting("DASHBOARD_STRESS_MAX_WORKING_SET_MB", 2_304);
-const maximumIngestionRssMb = numberSetting("DASHBOARD_STRESS_MAX_INGESTION_RSS_MB", 2_048);
 const maximumGeneratorRssMb = numberSetting("DASHBOARD_STRESS_MAX_GENERATOR_RSS_MB", 256);
 const megabyte = 1024 * 1024;
 
 let root;
 let rawShardDirectory;
-let databasePath;
 let manifest;
 let payloadHashes;
-let databaseCounts;
 let generationMemory;
-let ingestionMemory;
 let server;
 let origin;
 
@@ -115,26 +110,12 @@ async function runMeasuredCommand(command, args) {
   };
 }
 
-function canonicalCounts(path) {
-  const database = new DatabaseSync(path, { readOnly: true });
-  try {
-    return Object.fromEntries(database.prepare(`
-      SELECT store_name AS name, COUNT(*) AS count
-      FROM __idb_records
-      GROUP BY store_name
-    `).all().map(({ name, count }) => [name, Number(count)]));
-  } finally {
-    database.close();
-  }
-}
-
 test.beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), "cao-dashboard-massive-scale-"));
   rawShardDirectory = join(root, "gh-aw-logs-shards");
   const runsDirectory = join(root, "gh-aw-logs-runs");
   const recordsDirectory = join(root, "gh-aw-logs-records");
   const manifestPath = join(root, "payload-hashes.json");
-  databasePath = join(root, "gh-aw-logs.sqlite");
   generationMemory = await runMeasuredCommand(process.execPath, [
     resolve("tests/helpers/dashboard-stress-data.mjs"),
     "--output", rawShardDirectory,
@@ -154,15 +135,6 @@ test.beforeAll(async () => {
     "--output", manifestPath,
   ]);
   payloadHashes = JSON.parse(await readFile(manifestPath, "utf8"));
-  ingestionMemory = await runMeasuredCommand(process.execPath, [
-    resolve("activity/cao.mjs"),
-    "ingest-jsonl",
-    "--database", databasePath,
-    "--input-dir", rawShardDirectory,
-    "--retention-days", "all",
-    "--run-retention-days", "all",
-  ]);
-  databaseCounts = canonicalCounts(databasePath);
 
   server = createServer(async (request, response) => {
     try {
@@ -222,10 +194,6 @@ test.afterAll(async () => {
 });
 
 test("massive shards populate canonical storage within restricted memory", async ({ page }, testInfo) => {
-  expect(databaseCounts.repositories).toBe(manifest.expected.repositories);
-  expect(databaseCounts.runs).toBe(manifest.expected.runs);
-  expect(databaseCounts.audits).toBe(manifest.expected.audits);
-
   const session = await page.context().newCDPSession(page);
   await session.send("Performance.enable");
   const browserSamples = [];
@@ -252,9 +220,9 @@ test("massive shards populate canonical storage within restricted memory", async
   }, sampleIntervalMs);
   let result;
   try {
-    await page.goto(`${origin}/`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${origin}/?debug-eager-ingest=1`, { waitUntil: "domcontentloaded" });
     result = await page.evaluate(async ({ sourceUrl }) => {
-      const { loadCanonicalDashboardSources } = await import(`${location.origin}/src/data-processor.js`);
+      const { loadCanonicalDashboardSources, queryCanonicalDatabaseDiagnostics } = await import(`${location.origin}/src/data-processor.js`);
       const startedAt = performance.now();
       const sources = await loadCanonicalDashboardSources(
         sourceUrl,
@@ -265,6 +233,7 @@ test("massive shards populate canonical storage within restricted memory", async
       return {
         durationMs: Math.round(performance.now() - startedAt),
         returnedRuns: sources.runs?.rows?.length ?? 0,
+        counts: (await queryCanonicalDatabaseDiagnostics()).counts,
       };
     }, { sourceUrl: `${origin}/payload-hashes.json` });
   } finally {
@@ -283,10 +252,8 @@ test("massive shards populate canonical storage within restricted memory", async
     parameters: { repositories, runs, derivedEvents, shards, workflows },
     manifest,
     database: {
-      bytes: (await stat(databasePath)).size,
-      counts: databaseCounts,
+      counts: result.counts,
       generation: generationMemory,
-      ingestion: ingestionMemory,
     },
     browser: {
       device: "Pixel 7",
@@ -307,8 +274,10 @@ test("massive shards populate canonical storage within restricted memory", async
   });
 
   expect(result.returnedRuns).toBe(Math.min(100, runs));
+  expect(result.counts.repositories).toBe(manifest.expected.repositories);
+  expect(result.counts.runs).toBe(manifest.expected.runs);
+  expect(result.counts.audits).toBe(manifest.expected.audits);
   expect(generationMemory.peakHighWaterBytes).toBeLessThanOrEqual(maximumGeneratorRssMb * megabyte);
-  expect(ingestionMemory.peakHighWaterBytes).toBeLessThanOrEqual(maximumIngestionRssMb * megabyte);
   expect(peakPageHeapBytes).toBeLessThanOrEqual(maximumPageHeapMb * megabyte);
   expect(retainedPageHeapBytes).toBeLessThanOrEqual(maximumRetainedPageHeapMb * megabyte);
   expect(peakWorkingSetBytes).toBeLessThanOrEqual(maximumWorkingSetMb * megabyte);

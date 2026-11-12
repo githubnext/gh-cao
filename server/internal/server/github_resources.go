@@ -226,8 +226,8 @@ func (a *App) githubResourceScope(ctx context.Context, repository string) (int64
 	return installation, nil
 }
 
-func localGitHubResourceToken(ctx context.Context) (string, error) {
-	command := exec.CommandContext(ctx, "gh", "auth", "token", "--hostname", "github.com")
+func localGitHubResourceToken(ctx context.Context, executable string) (string, error) {
+	command := exec.CommandContext(ctx, executable, "auth", "token", "--hostname", "github.com") // #nosec G204 -- The owning local canvas selects its CLI; browser requests cannot set executable paths or arguments.
 	output, err := command.Output()
 	if err != nil || strings.TrimSpace(string(output)) == "" {
 		return "", &githubResourceError{status: http.StatusServiceUnavailable}
@@ -243,7 +243,11 @@ func (a *App) githubResourceCredentials(ctx context.Context, installation int64)
 	if a.config.HostProfile.Name == "local" && a.config.HostProfile.Authentication == HostAuthenticationBearer {
 		resolve := a.githubResources.localToken
 		if resolve == nil {
-			resolve = localGitHubResourceToken
+			executable := "gh"
+			if a.config.Canvas != nil && a.config.Canvas.GitHubCLI != "" {
+				executable = a.config.Canvas.GitHubCLI
+			}
+			resolve = func(ctx context.Context) (string, error) { return localGitHubResourceToken(ctx, executable) }
 		}
 		token, err = resolve(ctx)
 	} else {

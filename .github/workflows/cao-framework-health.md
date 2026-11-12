@@ -349,7 +349,7 @@ steps:
           { id: 'canonical', claims: ['canonical.atomicity', 'canonical.retention'], paths: [
             'dashboard/site/src/data/model', 'dashboard/site/src/data/normalize',
             'dashboard/site/src/data/storage', 'dashboard/site/src/data/adapters',
-            'server/internal/model', 'server/internal/postgresx', 'server/internal/sqlitex',
+            'server/internal/model', 'server/internal/postgresx',
             'dashboard/site/test/unit/data-*.test.js', 'tests/contracts',
           ] },
           { id: 'queries', claims: ['queries.declarative', 'queries.parity'], paths: [

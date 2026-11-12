@@ -48,9 +48,10 @@ async function ingestDeployedShards() {
   };
   const manifest = JSON.parse((await load("payload-hashes.json")).toString("utf8"));
   assert.notEqual(manifest.synthetic, true, "Synthetic demo data is not operational evidence.");
-  assert.match(manifest["gh-aw-logs.sqlite"] ?? "", /^[a-f0-9]{64}$/i,
-    "Operational evidence must include a checksum for the canonical SQLite snapshot.");
-  for (const { name, sourceName, hash } of deployedActivityShardEntries(manifest)) {
+  const entries = deployedActivityShardEntries(manifest);
+  assert.ok(entries.some(({ name }) => name.startsWith("gh-aw-logs-runs/")),
+    "Operational evidence must include checksummed canonical run-information shards.");
+  for (const { name, sourceName, hash } of entries) {
     const content = await load(sourceName);
     assert.equal(createHash("sha256").update(content).digest("hex"), hash.toLowerCase(),
       `operational artifact checksum mismatch for ${sourceName}`);

@@ -82,7 +82,7 @@ If an operator already provides a trusted operational payload location,
 `DASHBOARD_DATA_URL` or `gh cao download --url` must name its
 `payload-hashes.json` directly. There is no default Pages source, directory
 discovery, or implied hosted export endpoint. See
-[Download and query a snapshot](dashboard-data-ingestion.md#download-and-query-a-snapshot).
+[Download and query a snapshot](dashboard-data-ingestion.md#use-local-postgresql).
 
 ## Building the synthetic Pages demo
 

@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { Readable } from 'node:stream';
-import { installSqliteIndexedDB } from '../../src/data/storage/sqlite-indexeddb.js';
-import { ingestDashboardSources, ingestNormalizedJsonl, finalizeNormalizedJsonlIngestion } from '../../src/data/ingest/coordinator.js';
+import { normalize } from '../../src/data/normalize/index.js';
+import { queryDashboardSourceObservations } from '../../src/data/queries/ingestion.js';
+const { writeCanvasSnapshot } = await import(new URL('../../../../tests/helpers/canvas-snapshot.mjs', import.meta.url).href);
 
 /**
  * Prepare canonical evidence offline; the canvas itself never ingests browser sources.
@@ -12,18 +12,18 @@ import { ingestDashboardSources, ingestNormalizedJsonl, finalizeNormalizedJsonlI
  */
 export async function writeCanvasArtifact(destination, { sources = {}, shards = [] } = {}) {
   await mkdir(destination, { recursive: true });
-  const snapshot = join(destination, 'gh-aw-logs.sqlite');
-  const indexedDB = installSqliteIndexedDB(snapshot);
-  await ingestDashboardSources(indexedDB, sources);
+  await writeCanvasSnapshot(destination, normalize(queryDashboardSourceObservations(sources).observations));
+  /** @type {Record<string, string>} */
+  const hashes = {};
   for (const [index, content] of shards.entries()) {
-    await ingestNormalizedJsonl(indexedDB, Readable.from([content]), {
-      payloadIdentity: createHash('sha256').update(content).digest('hex'),
-      payloadScope: `fixture:${index}`, deferMaintenance: true
-    });
+    const name = `fixture-${index}.jsonl`;
+    await writeFile(join(destination, 'gh-aw-logs-shards', name), content);
+    hashes[`gh-aw-logs-shards/${name}`] = createHash('sha256').update(content).digest('hex');
   }
-  if (shards.length) await finalizeNormalizedJsonlIngestion(indexedDB);
-  await writeFile(join(destination, 'payload-hashes.json'), JSON.stringify({
-    'gh-aw-logs.sqlite': createHash('sha256').update(await readFile(snapshot)).digest('hex')
-  }));
-  await writeFile(join(destination, 'inventory-sources.json'), JSON.stringify(sources));
+  const { readFile } = await import('node:fs/promises');
+  const manifest = JSON.parse(await readFile(join(destination, 'payload-hashes.json'), 'utf8'));
+  const inventory = JSON.stringify(sources);
+  await writeFile(join(destination, 'inventory-sources.json'), inventory);
+  hashes['inventory-sources.json'] = createHash('sha256').update(inventory).digest('hex');
+  await writeFile(join(destination, 'payload-hashes.json'), JSON.stringify({ ...manifest, ...hashes }));
 }

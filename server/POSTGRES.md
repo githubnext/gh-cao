@@ -5,67 +5,27 @@ functions/triggers, create namespaces, retain audit history, or maintain
 canonical partitions. This applies to `serve`, `serve-hosted`, external hosts,
 `ingest`, `collect`, `execute-cli`, and production `cao-webhook-gateway` roles.
 Provision before deploying this version.
-There is no automatic privileged fallback. The local SQLite hosted-CLI backend
-can exercise the same explicit bootstrap, runtime, retention, and evidence-reader
-lifecycle below, but is not a production substitute.
+There is no automatic privileged fallback. Local development uses the same
+PostgreSQL bootstrap, runtime, retention and evidence-reader lifecycle.
 
-## Local SQLite testing
+## Local PostgreSQL development
 
-No PostgreSQL server, database roles, or `CAO_DATABASE_ADMIN_URL` are needed for
-the local hosted-CLI queue, token cleanup journal, and audit store:
+Local development uses the production PostgreSQL canonical and operational
+adapters. Start PostgreSQL with the existing server/docker-compose.yml or use
+an explicitly selected local instance. Set CAO_POSTGRES_URL for runtime access
+and CAO_DATABASE_ADMIN_URL only for separately invoked schema-owner bootstrap.
 
-```sh
-mkdir -p .tmp
-cao-dashboard database bootstrap --store operational --sqlite .tmp/hosted-cli.sqlite
-cao-dashboard audit verify --sqlite .tmp/hosted-cli.sqlite
-cao-dashboard audit export --sqlite .tmp/hosted-cli.sqlite
-cao-dashboard database retain-audit --store operational --sqlite .tmp/hosted-cli.sqlite
-```
+Provision both stores with cao-dashboard database bootstrap --store canonical
+--namespace local and the same command with --store operational. Start serve
+with --redis-namespace local and optionally --source DIRECTORY to ingest an
+explicitly acquired, verified canonical JSONL artifact. Set
+CAO_OPERATIONAL_NAMESPACE=local for independent executor and audit processes.
+Native CLI queries use CAO_DATABASE_NAMESPACE=local.
 
-Bootstrap creates a mode-0600 file and provisions its schema transactionally.
-For an existing local debug file, bootstrap is idempotent and preserves all
-audit history. Run it before upgrading/restarting `serve-hosted
---hosted-cli-sqlite PATH` or `execute-cli --sqlite PATH`. Runtime and audit
-commands open existing state only: missing files, incomplete schemas, or
-missing audit guards fail without creating or repairing storage.
-
-`--sqlite` selects the local backend explicitly and ignores PostgreSQL connection
-settings. It supports operational `bootstrap` and `retain-audit` only. Do not
-pass `--namespace`; use one separate file per local deployment. This does **not**
-add a SQLite canonical dashboard/query backend, replace hosted authentication,
-or remove those parts of the full server's normal configuration requirements.
-Canonical `database maintain` and partition/statistics tests still use PostgreSQL.
-
-Audit retention is never implicit during bootstrap, runtime opening, appends,
-verification, or delivery. Invoke `retain-audit` explicitly; like PostgreSQL, it
-removes at most 512 events older than 400 elapsed days, only from the oldest
-contiguous expired prefix, and always preserves the newest event. Its JSON
-result includes `backend: "sqlite"` and `audit_events_removed`.
-
-`audit deliver --sqlite PATH` uses `OpenAuditReader(ctx, sqlitePath)` and a real
-SQLite read-only connection with deferred verification transactions. It can read
-the committed WAL snapshot while runtime holds a write transaction; attempts to
-append, retain, or execute DDL on that connection fail. `audit verify` intentionally
-uses the writable `OpenAuditStore` to append its verification result. Delivery
-still needs the explicitly configured HTTPS destination and independently
-preserved enrollment anchor described in
-[audit-delivery/README.md](audit-delivery/README.md); no destination is enabled
-automatically.
-
-Run local coverage without PostgreSQL, Docker, GitHub credentials, or an external
-delivery service:
-
-```sh
-go -C server test ./internal/operational/sqlite ./internal/server ./cmd/cao-dashboard \
-  -run 'Test(SQLite|LocalAudit|DatabaseSQLite|AuditDeliverSQLite|AuditVerifyAndExportSQLite|HostedCLIQueueOperationsSQLite)' -count=1
-```
-
-The delivery test runs the real command against an in-process TLS object fixture.
-It covers bounded delivery/restart, read-only source access, and preservation of
-expired source history. The fixture is not evidence of independent durable
-storage. SQLite has **no database principal/role isolation**: any file writer
-can bypass triggers, change the schema, or invoke retention. These tests do not
-replace the real PostgreSQL privilege tests below.
+There is no file-database adapter, automatic conversion or fallback. Runtime,
+retention, schema-owner and SELECT-only audit-reader credentials retain their
+separate authorities locally as well as in production. Readiness failures do
+not create empty evidence or bootstrap missing storage.
 
 ## Canonical query resource bounds
 

@@ -94,7 +94,7 @@ func run(ctx context.Context, args []string) error {
 	cert := flags.String("tls-cert", "", "receiving TLS certificate file")
 	key := flags.String("tls-key", "", "receiving TLS private key file")
 	repository := flags.String("repository", "", "local only: exact OWNER/REPO to poll read-only")
-	sqlitePath := flags.String("sqlite", "", "local only: absolute path to a private SQLite database")
+	namespace := flags.String("namespace", "", "local only: exact pre-provisioned PostgreSQL operational namespace")
 	events := flags.String("events", "issues,issue_comment,pull_request", "local only: comma-separated repository Events API event families")
 	interval := flags.Duration("poll-interval", time.Minute, "local only: minimum GitHub polling interval")
 	once := flags.Bool("once", false, "local only: poll once, drain available work, and report simulated outcomes")
@@ -126,7 +126,7 @@ func run(ctx context.Context, args []string) error {
 		return discoverWorkflows(ctx, workflows, os.Stdout)
 	}
 	if *role == "local" {
-		return runLocal(ctx, localOptions{repository: *repository, path: *sqlitePath, events: strings.Split(*events, ","),
+		return runLocal(ctx, localOptions{repository: *repository, namespace: *namespace, events: strings.Split(*events, ","),
 			interval: *interval, once: *once, apiURL: *apiURL}, os.Stdout)
 	}
 	baseLoader := gateway.NewPolicyLoader(*policyPath)
