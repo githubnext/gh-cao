@@ -1,6 +1,6 @@
 import { h } from '../dom.js';
 import { octicon } from '../octicons.js';
-import { formatMediumUtcDateTime, formatUtcDateTime, renderTooltip } from './ui-primitives.js';
+import { formatMediumUtcDateTime, formatUtcDateTime, renderActionLabel, renderTooltip } from './ui-primitives.js';
 import { publishNotification } from '../notification-service.js';
 import { createDebug } from '../debug.js';
 import { derived, effect, render, state } from '../reactive.js';
@@ -9,7 +9,7 @@ import { isDashboardRateLimited } from '../rate-limit-notification.js';
 import { createFactoryScope } from './factory-elements.js';
 import { usesRemoteDataBackend } from '../remote-data-backend.js';
 import { timestampMilliseconds } from '../data/model/schema.js';
-import { formatNumber, stringOrFallback } from '../view-formatters.js';
+import { formatCompactNumber, formatHumanFriendlyTimestamp, formatNumber, stringOrFallback } from '../view-formatters.js';
 
 const debugRefreshError = createDebug('refresh-error');
 
@@ -45,6 +45,7 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
   const health = state(/** @type {import('../presenter.js').LogicalSourceInput | undefined} */ (sources[configuration?.['health-source'] ?? '']));
   const ingestion = state(/** @type {import('../presenter.js').LogicalSourceInput | undefined} */ (sources[configuration?.['ingestion-source'] ?? '']));
   const clock = state(Date.now());
+  const detailsExpanded = state(false);
   const remote = usesRemoteDataBackend(document);
   const ingestionRow = derived(() => {
     const source = ingestion.get();
@@ -82,6 +83,7 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
     content: description,
     className: 'dashboard-current-status',
     viewportAnchored: true,
+    mobilePopup: true,
     signal: scope.signal
   });
   const presentation = derived(() => {
@@ -100,8 +102,10 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
     };
     const progress = ingestionRow.get();
     if (progress && typeof progress['status-label'] === 'string'
+        && typeof progress['status-name'] === 'string'
         && typeof progress['status-icon'] === 'string' && typeof progress['status-tone'] === 'string') return {
       icon: progress['status-icon'], tone: progress['status-tone'], label: progress['status-label'],
+      value: progress['status-name'],
       detail: typeof progress.message === 'string' ? progress.message : 'Ingestion details are unavailable.'
     };
     const value = latest?.metadata?.availability !== 'unavailable' ? latest?.rows?.[0]?.['latest-data-at'] : undefined;
@@ -126,21 +130,44 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
       detail: `Workflow evidence is current as of ${formatMediumUtcDateTime(timestamp)}.${remote ? ' Collection reports healthy ingestion.' : ' Upstream collection health is not available in this static dashboard.'}`
     };
   }, { signal: scope.signal });
-  render(trigger, () => octicon(presentation.get().icon), { signal: scope.signal });
+  render(trigger, () => [octicon(presentation.get().icon), renderActionLabel('Data ingestion')], { signal: scope.signal });
   render(description, () => {
     const current = presentation.get();
     const progress = ingestionRow.get();
     if (!progress) return current.detail;
-    return [
-      h('strong', null, current.label),
-      h('span', null, current.detail),
-      h('span', null, `Repository: ${stringOrFallback(progress.repository, 'Unknown')}`),
-      h('span', null, `History scanned: ${ingestionNumber(progress['scanned-hours'])} / ${ingestionNumber(progress['target-hours'])} repository-hours`),
-      h('span', null, `API points remaining: ${ingestionNumber(progress['api-remaining'])} (reserve ${ingestionNumber(progress['api-reserve'])})`),
-      h('span', null, `Next attempt: ${formatUtcDateTime(progress['next-attempt-at'])}`),
-      h('span', null, `Quota reset: ${formatUtcDateTime(progress['api-reset-at'])}`),
-      h('span', null, `Status observed: ${formatUtcDateTime(progress['observed-at'])}`)
-    ];
+    const scanned = progress['scanned-hours'];
+    const target = progress['target-hours'];
+    const determinate = typeof scanned === 'number' && Number.isFinite(scanned) && scanned >= 0
+      && typeof target === 'number' && Number.isFinite(target) && target > 0;
+    const next = formatHumanFriendlyTimestamp(progress['next-attempt-at'], clock.get());
+    return h('span', { className: 'ingestion-status-card' },
+      h('span', { className: 'ingestion-status-heading' }, octicon(current.icon),
+        h('strong', null, 'value' in current ? current.value : current.label)),
+      h('span', { className: 'ingestion-status-repository' }, stringOrFallback(progress.repository, 'Unknown repository')),
+      h('span', { className: 'ingestion-status-history' },
+        h('span', null, 'History'),
+        h('strong', null, `${ingestionNumber(scanned)} / ${ingestionNumber(target)} h`)),
+      determinate
+        ? h('progress', { max: target, value: scanned, 'aria-label': 'History scanned', 'aria-valuetext': `${ingestionNumber(scanned)} of ${ingestionNumber(target)} repository-hours` })
+        : h('span', { className: 'ingestion-status-unavailable' }, 'History unavailable'),
+      h('span', { className: 'ingestion-status-budget', 'aria-label': `API points remaining: ${ingestionNumber(progress['api-remaining'])}` },
+        octicon('shield'), h('strong', null, ingestionNumber(progress['api-remaining'], true)),
+        h('span', null, 'API left'),
+        h('small', null, `${ingestionNumber(progress['api-reserve'], true)} reserved`)),
+      h('span', { className: 'ingestion-status-footer' },
+        next ? h('span', { title: formatUtcDateTime(progress['next-attempt-at']), 'aria-label': `Next attempt ${next}` }, octicon('clock'), next) : null,
+        h('small', { title: 'History discovery and artifacts remain partial.' }, 'Partial')),
+      h('details', {
+        open: detailsExpanded.get(),
+        onToggle: (/** @type {Event} */ event) => {
+          if (event.currentTarget instanceof HTMLDetailsElement) detailsExpanded.set(event.currentTarget.open);
+        }
+      }, h('summary', null, 'Details'),
+      h('span', { className: 'ingestion-status-diagnostics' },
+        h('span', null, current.detail),
+        h('span', null, `Quota reset: ${formatUtcDateTime(progress['api-reset-at'])}`),
+        h('span', null, `Observed: ${formatUtcDateTime(progress['observed-at'])}`)))
+    );
   }, { signal: scope.signal });
   effect(() => {
     const { tone, label, icon } = presentation.get();
@@ -153,9 +180,11 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
   return status;
 }
 
-/** @param {unknown} value */
-function ingestionNumber(value) {
-  return typeof value === 'number' && Number.isFinite(value) ? formatNumber(value) : 'Unknown';
+/** @param {unknown} value @param {boolean} [compact] */
+function ingestionNumber(value, compact = false) {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? compact ? formatCompactNumber(value) : formatNumber(value)
+    : 'Unknown';
 }
 
 /** @param {AbortSignal} signal */

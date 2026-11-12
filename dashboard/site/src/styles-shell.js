@@ -363,6 +363,31 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .tooltip-description { color: var(--muted); }
 .dashboard-current-status .tooltip-description { display: grid; gap: 6px; overflow-wrap: anywhere; }
 .dashboard-current-status .tooltip-content { max-height: calc(100dvh - 28px); overflow-y: auto; pointer-events: auto; }
+.tooltip-mobile-popup .tooltip-content[popover] { display: none; position: fixed; inset: auto; margin: 0; visibility: hidden; opacity: 0; }
+.tooltip-mobile-popup .tooltip-content[popover]:popover-open { display: grid; visibility: visible; opacity: 1; pointer-events: auto; }
+.ingestion-status-card { min-width: 0; display: grid; gap: 8px; color: var(--fg); }
+.ingestion-status-heading { display: flex; align-items: center; gap: 8px; font-size: .875rem; }
+.ingestion-status-heading .octicon { width: 16px; height: 16px; flex: none; color: var(--muted); }
+.dashboard-current-status[data-tone="attention"] .ingestion-status-heading .octicon { color: var(--attention); }
+.dashboard-current-status[data-tone="danger"] .ingestion-status-heading .octicon { color: var(--danger); }
+.ingestion-status-repository { min-width: 0; overflow: hidden; color: var(--muted); font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
+.ingestion-status-history { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; font-size: .75rem; }
+.ingestion-status-history strong { font-variant-numeric: tabular-nums; }
+.ingestion-status-card progress { width: 100%; height: 8px; appearance: none; border: 0; border-radius: 999px; background: var(--neutral-muted); color: var(--accent); }
+.ingestion-status-card progress::-webkit-progress-bar { border-radius: 999px; background: var(--neutral-muted); }
+.ingestion-status-card progress::-webkit-progress-value { border-radius: 999px; background: var(--accent); }
+.ingestion-status-card progress::-moz-progress-bar { border-radius: 999px; background: var(--accent); }
+.ingestion-status-budget { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: .75rem; }
+.ingestion-status-budget .octicon { width: 16px; height: 16px; color: var(--muted); }
+.ingestion-status-budget strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.ingestion-status-budget small { margin-left: auto; color: var(--muted); font-size: .6875rem; }
+.ingestion-status-footer { min-height: 18px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: .6875rem; }
+.ingestion-status-footer > span { display: inline-flex; align-items: center; gap: 4px; }
+.ingestion-status-footer small { margin-left: auto; padding: 1px 5px; border: 1px solid var(--border-muted); border-radius: 999px; }
+.ingestion-status-card details { color: var(--muted); font-size: .75rem; }
+.ingestion-status-card summary { cursor: pointer; }
+.ingestion-status-diagnostics { display: grid; gap: 6px; margin-top: 8px; overflow-wrap: anywhere; }
+.ingestion-status-unavailable { color: var(--muted); font-size: .75rem; }
 .refresh-button { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--canvas-subtle); color: var(--fg); font: inherit; font-size: .75rem; font-weight: 500; text-decoration: none; cursor: pointer; transition: background-color 120ms ease; }
 .refresh-button:hover { background: var(--neutral-muted); }
 .refresh-button .octicon { width: 14px; height: 14px; }

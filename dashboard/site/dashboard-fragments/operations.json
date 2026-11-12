@@ -22,6 +22,7 @@
         { "as": "status-label", "function": "concat", "args": [{ "value": "Data ingestion: " }, { "field": "_status-title" }] }
       ],
       "select": [
+        { "field": "_status-title", "as": "status-name" },
         { "field": "status-label" },
         { "field": "status-icon" },
         { "field": "status-tone" },

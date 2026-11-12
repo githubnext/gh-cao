@@ -928,12 +928,16 @@ MAY report acquisition failure without modifying evidence or its checkpoint.
 The ordinary declarative shell data-status binding SHALL expose this status in
 the header tooltip, independently of page filters, and refresh through its
 active revision subscription. The Overview hero SHALL NOT require an ingestion table.
-The optional shell `ingestion-source` query SHALL project `status-label`,
+The optional shell `ingestion-source` query SHALL project `status-name`, `status-label`,
 `status-icon`, `status-tone`, `message`, `repository`, `scanned-hours`,
 `target-hours`, `api-remaining`, `api-reserve`, `api-reset-at`, `next-attempt-at`,
 and `observed-at`. Dashboard Language SHALL own status classification. The shared
 tooltip MAY format supplied numbers and timestamps, but MUST NOT derive business
 state or query rows. Unknown quota and progress MUST NOT become zero or healthy.
+The default card SHALL use the reported history bounds for an accessible progress
+bar, compact API headroom, and relative retry time. Verbose diagnostics SHALL be
+collapsed initially. Mobile SHALL expose a labeled tap-to-open popup button with
+expanded state, Escape and outside-tap dismissal; desktop MAY retain a hover tooltip.
 The existing read-only Go query/server and revision-subscription contracts
 SHALL serve this projection unchanged. This exception does not authorize
 server-side acquisition, a hosted fallback, or a browser ingestion path.

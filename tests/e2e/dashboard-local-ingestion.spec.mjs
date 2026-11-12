@@ -107,22 +107,77 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     if (viewport.width < 700) await page.getByRole("button", { name: "Select view", exact: true }).click();
     const indicator = page.locator(".dashboard-current-status > button");
     await expect(indicator).toHaveAccessibleName("Data ingestion: Paused");
-    await indicator.focus();
     const tooltip = page.locator("#dashboard-current-status-tooltip");
+    if (viewport.width < 700) {
+      await expect(indicator).toHaveAttribute("aria-haspopup", "dialog");
+      await expect(indicator).toHaveAttribute("aria-expanded", "false");
+      await indicator.focus();
+      await expect(tooltip).toBeHidden();
+      await indicator.click();
+      await expect(indicator).toHaveAttribute("aria-expanded", "true");
+      await expect(tooltip).toHaveRole("dialog");
+    } else await indicator.focus();
     await expect(tooltip).toBeVisible();
-    await expect(tooltip).toContainText("History scanned: 48 / 168 repository-hours");
-    await expect(tooltip).toContainText("API points remaining: 999");
+    const progress = tooltip.getByRole("progressbar", { name: "History scanned" });
+    await expect(progress).toHaveJSProperty("value", 48);
+    await expect(progress).toHaveJSProperty("max", 168);
+    await expect(tooltip.locator(".ingestion-status-budget")).toContainText("999");
+    await expect(tooltip.getByText("Synthetic local ingestion fixture.", { exact: false })).not.toBeVisible();
+    expect((await tooltip.boundingBox())?.height).toBeLessThan(360);
     const initialUrl = page.url();
     status("collecting", 72);
     await expect(indicator).toHaveAccessibleName("Data ingestion: Collecting", { timeout: 45_000 });
     await expect(indicator).toBeFocused();
-    await expect(tooltip).toContainText("History scanned: 72 / 168 repository-hours");
+    await expect(progress).toHaveJSProperty("value", 72);
     expect(page.url()).toBe(initialUrl);
+    if (viewport.width < 700) {
+      await page.keyboard.press("Escape");
+      await expect(tooltip).toBeHidden();
+      await expect(indicator).toHaveAttribute("aria-expanded", "false");
+      await expect(page.locator(".mobile-nav-menu")).toHaveAttribute("open", "");
+      await indicator.press("Enter");
+      await expect(tooltip).toBeVisible();
+      await page.mouse.click(4, 300);
+      await expect(tooltip).toBeHidden();
+      await page.getByRole("button", { name: "Select view", exact: true }).click();
+      await indicator.click();
+      await expect(tooltip).toBeVisible();
+    }
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const screenshot = testInfo.outputPath(`local-ingestion-${viewport.width}.png`);
     await page.screenshot({ path: screenshot, fullPage: true });
     await testInfo.attach("Populated local SQLite dashboard (synthetic fixture)", {
       body: await readFile(screenshot), contentType: "image/png",
     });
+    if (viewport.width < 700) {
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await expect(indicator).not.toHaveAttribute("aria-haspopup", "dialog");
+      await expect(tooltip).toHaveRole("tooltip");
+      await expect(tooltip).not.toHaveAttribute("popover", "auto");
+    }
   });
 }
+
+test("the mobile ingestion menu button opens and dismisses its popup by touch", async ({ browser }) => {
+  status();
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto(`${url}/?access_token=${accessToken}#page-overview`);
+    await page.getByRole("button", { name: "Select view", exact: true }).tap();
+    const indicator = page.getByRole("button", { name: "Data ingestion: Paused", exact: true });
+    await expect(indicator).toHaveText("Data ingestion");
+    const bounds = await indicator.boundingBox();
+    expect(bounds?.height).toBeGreaterThanOrEqual(44);
+    await indicator.tap();
+    const popup = page.getByRole("dialog", { name: "Dashboard data status", exact: true });
+    await expect(popup).toBeVisible();
+    await expect(indicator).toHaveAttribute("aria-expanded", "true");
+    await page.touchscreen.tap(4, 300);
+    await expect(popup).toBeHidden();
+  } finally {
+    await context.close();
+  }
+});
