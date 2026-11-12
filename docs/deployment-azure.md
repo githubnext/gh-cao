@@ -53,8 +53,8 @@ Blob/ADX resources. These hosts remain staged until reviewed policy,
 credentials and real destination/runtime acceptance gates are satisfied; the
 Functions baseline is unchanged.
 `MANIFEST.md` includes Mermaid diagrams; the deployment template is generated
-as TOSCA Simple Profile 1.3 from CAO's bounded feature-dependency graph. The CLI
-does not parse arbitrary TOSCA documents or cloud archives.
+as TOSCA Simple Profile 1.3, and its requirement assignments define the bounded
+dependency graph. The CLI does not parse arbitrary TOSCA documents or cloud archives.
 
 ### Native fresh-deployment command
 
@@ -73,7 +73,7 @@ work; a subsequent `--plan` against a successfully deployed instance must fail
 closed as an existing instance.
 
 Preflight and planning use the Go-embedded Azure ARM template and the same
-TOSCA dependency engine as offline bundle generation; neither needs a source
+TOSCA requirement-graph resolver as offline bundle generation; neither needs a source
 checkout or Bicep installation. Plans include the resolved topology, and apply
 rejects topology drift before Azure writes. Older plans must be regenerated
 with the current CLI. `--template` remains an explicit compiled ARM override;

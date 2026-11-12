@@ -89,6 +89,6 @@ func solveContainerApps(ctx context.Context, input Requirements) (Solution, erro
 	if err != nil {
 		return result, err
 	}
-	result.Topology, err = resolveTopology(ctx, input.Features)
+	result.Topology, err = resolveTopology(ctx, result.TOSCA, input.Features)
 	return result, err
 }

@@ -52,7 +52,7 @@ func deployCommand(deps deployAzureDeps) *cobra.Command {
 	deploy := &cobra.Command{
 		Use:   "deploy",
 		Short: "Generate, check, plan and apply CAO deployments",
-		Long: `Resolve deployment dependencies from the bounded CAO feature graph.
+		Long: `Resolve deployment dependencies from generated TOSCA requirements.
 
 init, generate and check prepare offline, review-only deployment bundles from
 YAML feature choices and emit a TOSCA 1.3 deployment template. Templates,
@@ -60,7 +60,7 @@ examples and runbooks are embedded in Go;
 generation requires Microsoft's official Bicep CLI on PATH.
 
 azure plans or explicitly applies a fresh development Functions deployment from
-a reviewed JSON config using the same dependency engine and embedded Azure template.
+a reviewed JSON config using the same TOSCA requirement resolver and embedded Azure template.
 Offline generation never deploys resources or changes GitHub Apps.`,
 		Args: cobra.NoArgs,
 		RunE: func(*cobra.Command, []string) error {
@@ -81,7 +81,7 @@ func deployAzureCommand(deps deployAzureDeps) *cobra.Command {
 The config (default ` + defaultDeployAzureConfigPath + `) names the subscription,
 resource group, resources, and access policy. It never contains secret values;
 secure parameters reference environment variables or Key Vault secrets.
-The embedded Azure template and TOSCA dependency engine require no gh-cao
+The embedded Azure template and TOSCA requirement-graph resolver require no gh-cao
 checkout for preflight or planning. --template selects an explicit ARM override.
 
 --plan (default) runs read-only preflight checks and what-if, then writes a

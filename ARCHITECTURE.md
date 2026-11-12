@@ -1611,9 +1611,10 @@ or invoke the Node snapshot-repair command. Actions and Node-only tools invoke
 There is no shell launcher.
 `gh cao deploy` owns both offline bundle generation (`init`, `generate`, `check`)
 and guarded Azure development deployment (`azure`). `internal/topology/` owns
-the CAO feature-dependency graph and provider parameter contract, shared by
+the TOSCA requirement graph and provider parameter contract, shared by
 YAML bundle generation and JSON-config preflight, planning and apply. Bundle
-generation emits TOSCA but does not parse arbitrary TOSCA or cloud archives.
+generation resolves the generated TOSCA profile without a TOSCA-specific Go
+library, and does not parse arbitrary TOSCA or cloud archives.
 All bundle templates, examples, scripts and runbooks are compiled into Go
 resources; Azure planning defaults to the same embedded ARM baseline, with an
 explicit compiled-template override for development. Apply plans bind the

@@ -4,10 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
-	"gonum.org/v1/gonum/graph/topo"
 )
 
 var contracts = map[string][]string{
@@ -145,42 +141,46 @@ func dependencyOrder(nodes []Node) ([]string, error) {
 		byID[node.ID] = node
 	}
 	names := slices.Sorted(maps.Keys(byID))
-	directed := simple.NewDirectedGraph()
-	ids := map[string]int64{}
-	for index, name := range names {
-		id := int64(index)
-		ids[name] = id
-		directed.AddNode(simple.Node(id))
-	}
+	dependencyCounts := make(map[string]int, len(nodes))
+	dependents := make(map[string][]string, len(nodes))
 	for _, node := range nodes {
+		seen := map[string]bool{}
 		for _, dependency := range node.DependsOn {
-			id, exists := ids[dependency]
-			if !exists {
+			if _, exists := byID[dependency]; !exists {
 				return nil, fmt.Errorf("missing dependency: %s", dependency)
 			}
-			if id == ids[node.ID] {
+			if dependency == node.ID {
 				return nil, fmt.Errorf("dependency cycle at %s", node.ID)
 			}
-			directed.SetEdge(directed.NewEdge(simple.Node(id), simple.Node(ids[node.ID])))
+			if seen[dependency] {
+				return nil, fmt.Errorf("duplicate dependency %s for %s", dependency, node.ID)
+			}
+			seen[dependency] = true
+			dependencyCounts[node.ID]++
+			dependents[dependency] = append(dependents[dependency], node.ID)
 		}
 	}
-	ordered, err := topo.SortStabilized(directed, func(nodes []graph.Node) {
-		slices.SortFunc(nodes, func(a, b graph.Node) int {
-			if a.ID() < b.ID() {
-				return -1
-			}
-			if a.ID() > b.ID() {
-				return 1
-			}
-			return 0
-		})
-	})
-	if err != nil {
-		return nil, fmt.Errorf("dependency cycle: %w", err)
+	ready := []string{}
+	for _, name := range names {
+		if dependencyCounts[name] == 0 {
+			ready = append(ready, name)
+		}
 	}
-	order := make([]string, len(ordered))
-	for index, node := range ordered {
-		order[index] = names[node.ID()]
+	order := make([]string, 0, len(nodes))
+	for len(ready) > 0 {
+		name := ready[0]
+		ready = ready[1:]
+		order = append(order, name)
+		for _, dependent := range dependents[name] {
+			dependencyCounts[dependent]--
+			if dependencyCounts[dependent] == 0 {
+				ready = append(ready, dependent)
+				slices.Sort(ready)
+			}
+		}
+	}
+	if len(order) != len(nodes) {
+		return nil, fmt.Errorf("dependency cycle")
 	}
 	return order, nil
 }

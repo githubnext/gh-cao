@@ -53,9 +53,13 @@ func withHosts(t *testing.T) Requirements {
 	return input
 }
 
-func TestTopologyResolvedFromFeatureGraph(t *testing.T) {
+func TestTopologyResolvedFromTOSCARequirements(t *testing.T) {
 	features := exampleRequirements(t).Features
-	topology, err := resolveTopology(context.Background(), features)
+	source, err := serviceTemplate(features)
+	if err != nil {
+		t.Fatal(err)
+	}
+	topology, err := resolveTopology(context.Background(), source, features)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,6 +68,30 @@ func TestTopologyResolvedFromFeatureGraph(t *testing.T) {
 	}
 	if !slices.Equal(topology.Order, []string{"monitoring", "network", "job-environment", "postgres", "registry", "runtime-storage", "sign-in-app", "secrets", "database-provisioning", "dashboard", "snapshot-ingestion"}) {
 		t.Fatalf("unexpected topology order: %v", topology.Order)
+	}
+	var document map[string]any
+	if err := yaml.Unmarshal(source, &document); err != nil {
+		t.Fatal(err)
+	}
+	nodes := document["topology_template"].(map[string]any)["node_templates"].(map[string]any)
+	assignments := nodes["dashboard"].(map[string]any)["requirements"].([]any)
+	changed := false
+	for _, entry := range assignments {
+		assignment := entry.(map[string]any)
+		if requirement, ok := assignment["database_provisioning"]; ok {
+			requirement.(map[string]any)["node"] = "missing-provider"
+			changed = true
+		}
+	}
+	if !changed {
+		t.Fatal("generated TOSCA is missing the database provisioning requirement")
+	}
+	broken, err := yaml.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := resolveTopology(context.Background(), broken, features); err == nil {
+		t.Fatal("accepted an unresolved TOSCA requirement target")
 	}
 }
 
@@ -288,7 +316,7 @@ func TestBundleDeterminismAndSymlinks(t *testing.T) {
 	if err := json.Unmarshal(a, &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Engine != "cao-feature-dependency-graph-v1" {
+	if manifest.Engine != "tosca-simple-yaml-1.3-requirement-graph-v1" {
 		t.Fatalf("unexpected topology engine: %s", manifest.Engine)
 	}
 	if !bytes.Equal(a, b) {
