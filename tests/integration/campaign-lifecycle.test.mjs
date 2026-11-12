@@ -53,39 +53,13 @@ const optimizationCampaignSource = focusedCampaignSource("optimization");
 const repoStatusWorkflowSource = `https://github.com/${campaignSource.slice(0, campaignSource.lastIndexOf("@"))}/blob/${campaignSource.slice(campaignSource.lastIndexOf("@") + 1)}/.github/workflows/daily-repo-status.md`;
 const selfCareCampaignSource = focusedCampaignSource("self-care");
 const softwareDevelopmentPracticesCampaignSource = focusedCampaignSource("software-development-practices");
-const activityExpectedFiles = [
-  "activity/actions-context.mjs",
+const runtimeExpectedFiles = [
   ".github/workflows/shared/actions-log.mjs",
-  "activity/campaign-intelligence.mjs",
-  "activity/cao.mjs",
   "dashboard/report/collections.mjs",
-  "activity/commands/audit-jsonl.mjs",
-  "activity/commands/cluster-problems.mjs",
-  "activity/commands/compact-jsonl.mjs",
-  "activity/commands/dashboard-complexity.mjs",
-  "activity/commands/discover-workflows.mjs",
-  "activity/commands/repair-database.mjs",
-  "activity/commands/download.mjs",
-  "activity/commands/hash-payloads.mjs",
-  "activity/commands/index.mjs",
-  "activity/commands/ingest-jsonl.mjs",
-  "activity/commands/ingest.mjs",
-  "activity/commands/operational-value.mjs",
-  "activity/commands/prune-dashboard.mjs",
-  "activity/collect-workflow-logs.mjs",
-  "activity/computations/intelligence-contracts.mjs",
-  "activity/computations/intelligence.mjs",
-  "activity/computations/index.mjs",
-  "activity/computations/runtime-health.mjs",
-  "activity/control-settings.mjs",
   "dashboard/report/debug.mjs",
-  "activity/gh-aw-logs.mjs",
-  "activity/inventory.mjs",
   "dashboard/report/inventory-sources.mjs",
   "dashboard/report/package-manifest.mjs",
   "dashboard/report/normalized-phase.mjs",
-  "activity/repository-visibility.mjs",
-  "activity/token-intervention-lifecycle.mjs",
   "dashboard/lib/version.mjs",
 ];
 const caoEvolutionExpectedFiles = [
@@ -231,28 +205,17 @@ async function installCampaign(source) {
 function assertInstalledBootstrap(repository, ghAwVersion, controlRepository) {
   const policy = ".github/workflows/cao.json";
   const control = ".github/workflows/shared/control.mjs";
-  run(process.execPath, ["activity/cao.mjs", "--help"], repository);
-  for (const bundle of ["dashboard"]) {
-    run(process.execPath, [".github/workflows/shared/materialize-cao.mjs", "verify", bundle], repository);
-  }
+  run(process.execPath, [".github/workflows/shared/materialize-cao.mjs", "verify", "dashboard"], repository);
   run(process.execPath, [control, "validate-policy", policy], repository);
   assert.equal(run(process.execPath, [control, "compiler-version", policy], repository).trim(), ghAwVersion);
 
-  const settingsDirectory = mkdtempSync(join(tmpdir(), "central-agentic-ops-settings-"));
-  try {
-    const settingsPath = join(settingsDirectory, "control-settings.json");
-    execFileSync(process.execPath, ["activity/control-settings.mjs", control, policy, settingsPath], {
-      cwd: repository,
-      encoding: "utf8",
-      env: { ...process.env, GITHUB_REPOSITORY: controlRepository },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const settings = JSON.parse(readFileSync(settingsPath, "utf8"));
-    assert.equal(settings.policy_resolution.status, "available", settings.policy_resolution.reason);
-    assert.deepEqual(settings.allowed_repositories, [controlRepository]);
-  } finally {
-    rmSync(settingsDirectory, { recursive: true, force: true });
-  }
+  const settings = JSON.parse(execFileSync(process.execPath, [control, "control-settings", policy], {
+    cwd: repository,
+    encoding: "utf8",
+    env: { ...process.env, GITHUB_REPOSITORY: controlRepository },
+    stdio: ["ignore", "pipe", "pipe"],
+  }));
+  assert.deepEqual(settings.allowed_repositories, [controlRepository]);
 }
 
 test("root campaign bootstraps an empty CAO and preserves resources during workflow update", { timeout: 240_000 }, async () => {
@@ -307,7 +270,7 @@ test("root campaign bootstraps an empty CAO and preserves resources during workf
     });
     assertInstalledBootstrap(consumer, ghAwVersion, controlRepository);
 
-    run("git", ["add", ".github", "activity", "dashboard"], consumer);
+    run("git", ["add", ".github", "dashboard"], consumer);
     run("git", [
       "-c", "user.name=CAO installer test",
       "-c", "user.email=cao-installer-test@example.invalid",
@@ -344,8 +307,8 @@ test("root campaign bootstraps an empty CAO and preserves resources during workf
       readdirSync(join(consumer, ".github", "workflows")).filter((name) => name.endsWith(".lock.yml")),
       [],
     );
-    for (const relativePath of activityExpectedFiles) {
-      assert.ok(existsSync(join(consumer, relativePath)), `root campaign omitted activity file ${relativePath}`);
+    for (const relativePath of runtimeExpectedFiles) {
+      assert.ok(existsSync(join(consumer, relativePath)), `root campaign omitted runtime file ${relativePath}`);
     }
     for (const relativePath of dashboardExpectedFiles) {
       assert.ok(existsSync(join(consumer, relativePath)), `root campaign omitted dashboard file ${relativePath}`);
