@@ -176,13 +176,9 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: 1.27.3
-          cache: false
-      - name: Cache Go modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-server-${{ runner.os }}-${{ hashFiles('server/go.sum', 'internal/dashboardquery/go.sum') }}
-          restore-keys: go-mod-server-${{ runner.os }}-
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
       - name: Download Go modules
         run: go -C server mod download
       - name: Build native Windows development server
@@ -210,13 +206,9 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: 1.27.3
-          cache: false
-      - name: Cache Go modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-server-${{ runner.os }}-${{ hashFiles('server/go.sum', 'internal/dashboardquery/go.sum') }}
-          restore-keys: go-mod-server-${{ runner.os }}-
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
       - name: Download Go modules
         run: go -C server mod download
       - name: Install golangci-lint
@@ -257,13 +249,9 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: 1.27.3
-          cache: false
-      - name: Cache Go modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-server-${{ runner.os }}-${{ hashFiles('server/go.sum', 'internal/dashboardquery/go.sum') }}
-          restore-keys: go-mod-server-${{ runner.os }}-
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
       - name: Download Go modules
         run: go -C server mod download
       - name: Unit tests
@@ -329,13 +317,9 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: 1.27.3
-          cache: false
-      - name: Cache Go modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-server-${{ runner.os }}-${{ hashFiles('server/go.sum', 'internal/dashboardquery/go.sum') }}
-          restore-keys: go-mod-server-${{ runner.os }}-
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
       - name: Download Go modules
         run: go -C server mod download
       - name: Local Actions, OIDC, admission, and webhook gateway integration
@@ -359,13 +343,7 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: 1.27.3
-          cache: false
-      - name: Cache Go modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-dashboardquery-${{ runner.os }}-${{ hashFiles('internal/dashboardquery/go.sum') }}
-          restore-keys: go-mod-dashboardquery-${{ runner.os }}-
+          cache-dependency-path: internal/dashboardquery/go.sum
       - name: Download Go modules
         run: go -C internal/dashboardquery mod download
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -420,13 +398,9 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: 1.27.3
-          cache: false
-      - name: Cache Go modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-server-${{ runner.os }}-${{ hashFiles('server/go.sum', 'internal/dashboardquery/go.sum') }}
-          restore-keys: go-mod-server-${{ runner.os }}-
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
       - name: Download Go modules
         run: go -C server mod download
       - name: Exercise local Actions and gateway with durable PostgreSQL state
@@ -448,13 +422,9 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: 1.27.3
-          cache: false
-      - name: Cache Go modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-server-${{ runner.os }}-${{ hashFiles('server/go.sum', 'internal/dashboardquery/go.sum') }}
-          restore-keys: go-mod-server-${{ runner.os }}-
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
       - name: Download Go modules
         run: go -C server mod download
       - name: Run isolated backfill services and integration tests
@@ -528,13 +498,9 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: 1.27.3
-          cache: false
-      - name: Cache Go modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-server-${{ runner.os }}-${{ hashFiles('server/go.sum', 'internal/dashboardquery/go.sum') }}
-          restore-keys: go-mod-server-${{ runner.os }}-
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
       - name: Download Go modules
         run: go -C server mod download
       - name: Run rate-limit stress harness with profiling
@@ -639,13 +605,9 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: 1.27.3
-          cache: false
-      - name: Cache Go modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-server-${{ runner.os }}-${{ hashFiles('server/go.sum', 'internal/dashboardquery/go.sum') }}
-          restore-keys: go-mod-server-${{ runner.os }}-
+          cache-dependency-path: |
+            server/go.sum
+            internal/dashboardquery/go.sum
       - name: Download Go modules
         run: go -C server mod download
       - name: Install dependencies

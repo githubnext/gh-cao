@@ -113,15 +113,11 @@ test("Copilot setup installs the Go lint tooling used by server CI", () => {
   assert.ok(lint);
   assert.equal(go.uses, ciGo.uses);
   assert.equal(go.with["go-version"], ciGo.with["go-version"]);
-  const ciModuleCache = ciSteps.find((step) => step.name === "Cache Go modules");
   const ciModuleDownload = ciSteps.find((step) => step.name === "Download Go modules");
-  assert.equal(ciGo.with.cache, false, "actions/cache owns the Go module cache");
-  assert.match(ciModuleCache?.uses ?? "", /^actions\/cache@[0-9a-f]{40}$/);
-  assert.equal(ciModuleCache.with.path, "~/go/pkg/mod");
-  assert.match(ciModuleCache.with.key, /hashFiles\('server\/go\.sum'/);
+  assert.notEqual(ciGo.with.cache, false, "CI reuses the server compiler and module cache");
+  assert.match(ciGo.with["cache-dependency-path"], /server\/go\.sum/);
   assert.equal(ciModuleDownload?.run, "go -C server mod download");
-  assert.ok(ciSteps.indexOf(ciGo) < ciSteps.indexOf(ciModuleCache));
-  assert.ok(ciSteps.indexOf(ciModuleCache) < ciSteps.indexOf(ciModuleDownload));
+  assert.ok(ciSteps.indexOf(ciGo) < ciSteps.indexOf(ciModuleDownload));
   assert.equal(lint.run, ciSteps.find((step) => step.name === "Install golangci-lint").run);
   assert.ok(steps.indexOf(go) < steps.indexOf(lint));
 });
