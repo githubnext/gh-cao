@@ -123,7 +123,7 @@ jobs:
         run: |
           docker exec "$POSTGRES_CONTAINER" psql -U postgres -d cao_contracts -c 'ALTER SYSTEM SET max_locks_per_transaction=512'
           docker restart "$POSTGRES_CONTAINER"
-          for attempt in $(seq 1 30); do
+          for ((attempt = 1; attempt <= 30; attempt++)); do
             if docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres -d cao_contracts; then break; fi
             sleep 1
           done
