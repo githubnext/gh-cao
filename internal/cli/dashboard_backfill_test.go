@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/url"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -293,4 +294,39 @@ func TestDashboardHistoryPersistsAcrossPassesAndFailures(t *testing.T) {
 func readDashboardCachedCollection(ctx context.Context, cache, collection string) ([]map[string]any, error) {
 	batch, err := readDashboardArtifactBatch(ctx, cache)
 	return batch[collection], err
+}
+
+func TestDashboardSeedPassPublishesRecentRunsWithoutAdvancingHistory(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Second).Add(-time.Second)
+	cache := t.TempDir()
+	base := dashboardTestGH(t, now)
+	listed := ""
+	gh := func(ctx context.Context, args ...string) (string, string, error) {
+		if args[0] == "api" && strings.Contains(args[len(args)-1], "/actions/runs?") {
+			t.Fatalf("seed pass advanced history discovery: %v", args)
+		}
+		if args[0] == "run" {
+			listed = args[slices.Index(args, "--limit")+1]
+		}
+		return base(ctx, args...)
+	}
+	logs := func(context.Context, dashboardLogRequest) error {
+		t.Fatal("seed pass downloaded artifacts")
+		return nil
+	}
+	options := dashboardSeedOptions(dashboardOptions{window: dashboardMaximumWindow, count: 200, refresh: time.Minute})
+	if _, err := collectDashboard(t.Context(), []string{"octo/api", "octo/web"}, cache, options, gh, logs); err != nil {
+		t.Fatal(err)
+	}
+	if listed != strconv.Itoa(dashboardSeedRunCount) {
+		t.Fatalf("seed run listing limit = %q", listed)
+	}
+	runs, err := readDashboardCachedCollection(t.Context(), cache, "runs")
+	if err != nil || len(runs) == 0 {
+		t.Fatalf("seed pass published no runs: %v %v", runs, err)
+	}
+	state, err := readDashboardIngestion(t.Context(), cache)
+	if err != nil || len(state.Cursors) != 0 || state.NextRepo != 0 {
+		t.Fatalf("seed pass advanced durable discovery state: %+v %v", state, err)
+	}
 }

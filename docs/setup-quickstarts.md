@@ -60,8 +60,11 @@ Collection uses your local `gh` identity and requires network access and
 repository permissions. No cloud deployment does **not** mean offline
 acquisition or bypassing GitHub access controls.
 
-**Automatic, bounded refresh:** The server starts immediately; collection runs
-in background passes separated by **five minutes** while the command runs.
+**Automatic, bounded refresh:** The server starts immediately. Its first pass
+ingests up to 50 recent runs from the run listing and cached artifacts, without
+artifact downloads or history advancement, so the dashboard shows runs within
+seconds. A full collection pass follows at once; later passes are separated by
+**five minutes** while the command runs.
 The recent evidence window defaults to **seven days** (maximum `168h`), while
 server lifetime defaults to, and cannot exceed, **48 hours** per invocation.
 History checkpoints survive restarts, and admitted pages remain in PostgreSQL

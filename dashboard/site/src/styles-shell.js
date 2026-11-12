@@ -362,7 +362,7 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .tooltip-content.tooltip-content-viewport { position: fixed; }
 .tooltip-description { color: var(--muted); }
 .dashboard-current-status .tooltip-description { display: grid; gap: 6px; overflow-wrap: anywhere; }
-.dashboard-current-status .tooltip-content { max-height: calc(100dvh - 28px); overflow-y: auto; pointer-events: auto; }
+.dashboard-current-status .tooltip-content { max-height: calc(100dvh - 28px); overflow-y: auto; align-content: start; pointer-events: auto; }
 .tooltip-mobile-popup .tooltip-content[popover] { display: none; position: fixed; inset: auto; margin: 0; visibility: hidden; opacity: 0; }
 .tooltip-mobile-popup .tooltip-content[popover]:popover-open { display: grid; visibility: visible; opacity: 1; pointer-events: auto; }
 .ingestion-status-card { min-width: 0; display: grid; gap: 8px; color: var(--fg); }

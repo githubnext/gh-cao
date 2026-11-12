@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -60,8 +62,32 @@ func TestDashboardEngineUsesOnlyPodman(t *testing.T) {
 	}
 	t.Setenv("PATH", directory)
 	t.Setenv("CAO_CONTAINER_ENGINE", "docker")
-	if _, err := selectDashboardEngine(t.Context()); err == nil || !strings.Contains(err.Error(), "podman is not installed") {
-		t.Fatalf("missing Podman did not fail closed: %v", err)
+	_, err := selectDashboardEngine(t.Context())
+	if err == nil || !strings.Contains(err.Error(), "podman was not found on PATH") ||
+		!strings.Contains(err.Error(), dashboardPodmanInstallSteps(runtime.GOOS)) ||
+		!strings.Contains(err.Error(), dashboardPodmanInstallGuide) || !strings.Contains(err.Error(), "--postgres-url") {
+		t.Fatalf("missing Podman did not fail closed with install guidance: %v", err)
+	}
+}
+
+func TestDashboardPodmanGuidanceNamesPlatformSteps(t *testing.T) {
+	for goos, want := range map[string]string{"darwin": "brew install podman && podman machine init && podman machine start",
+		"windows": "winget install RedHat.Podman", "linux": "sudo apt-get install podman"} {
+		if err := dashboardPodmanMissing(goos); !strings.Contains(err.Error(), want) {
+			t.Errorf("%s install guidance lacks %q: %v", goos, want, err)
+		}
+	}
+	stopped := &dashboardEngineError{err: errors.New("podman system failed: exit status 125"),
+		diagnostic: dashboardEngineDiagnostic([]byte("Error: unable to connect to Podman socket\nCannot connect to Podman. Is the machine running?\n"))}
+	err := dashboardPodmanUnavailable("darwin", fmt.Errorf("wrapped: %w", stopped))
+	for _, want := range []string{"not responding", "Is the machine running?", "podman machine start", "--postgres-url"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("stopped Podman guidance lacks %q: %v", want, err)
+		}
+	}
+	err = dashboardPodmanUnavailable("darwin", errors.New("managed PostgreSQL cannot use a remote Podman connection"))
+	if !strings.Contains(err.Error(), "remote Podman connection") || strings.Contains(err.Error(), "podman machine start") {
+		t.Errorf("policy rejection was presented as a stopped engine: %v", err)
 	}
 }
 

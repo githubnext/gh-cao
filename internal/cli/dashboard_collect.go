@@ -172,10 +172,14 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		if err := json.Unmarshal([]byte(raw), &runs); err != nil || runs == nil {
 			return nil, errors.New("GitHub runs response is not a valid run list")
 		}
-		cursor := dashboardHistoryRange(state.Cursors[repository], cutoff, now)
-		history, nextCursor, err := collectDashboardHistory(ctx, repository, cursor, options.count, gh)
-		if err != nil {
-			return nil, err
+		var history []map[string]any
+		nextCursor := state.Cursors[repository]
+		if !options.seed {
+			cursor := dashboardHistoryRange(state.Cursors[repository], cutoff, now)
+			history, nextCursor, err = collectDashboardHistory(ctx, repository, cursor, options.count, gh)
+			if err != nil {
+				return nil, err
+			}
 		}
 		seen := map[string]bool{}
 		for _, run := range runs {
@@ -236,7 +240,7 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
-		if len(workflowIDs) > 0 {
+		if len(workflowIDs) > 0 && !options.seed {
 			limited := false
 			start, end := now, cutoff
 			before, after := int64(0), int64(1<<63-1)
@@ -281,8 +285,10 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 			Directory: directory, SafeOutputs: cached.SafeOutputs,
 			GithubID: resolved.ID,
 		})
-		state.Cursors[repository] = nextCursor
-		state.NextRepo = (repositoryIndex + 1) % len(repositories)
+		if !options.seed {
+			state.Cursors[repository] = nextCursor
+			state.NextRepo = (repositoryIndex + 1) % len(repositories)
+		}
 	}
 	batch, err := projectDashboardEvidence(evidence, cutoff, now)
 	if err != nil {

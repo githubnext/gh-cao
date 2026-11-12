@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -63,17 +64,76 @@ func (output *dashboardEngineOutput) Write(value []byte) (int, error) {
 // dashboardEngineName is the only container engine that manages local PostgreSQL.
 const dashboardEngineName = "podman"
 
+const dashboardPodmanInstallGuide = "https://podman.io/docs/installation"
+
+const dashboardPostgresAlternative = "  Or pass --postgres-url (or set CAO_POSTGRES_URL) to use an existing PostgreSQL server."
+
+// dashboardEngineError keeps the engine's diagnostic separate so only the
+// availability probe surfaces it to the user.
+type dashboardEngineError struct {
+	err        error
+	diagnostic string
+}
+
+func (failure *dashboardEngineError) Error() string { return failure.err.Error() }
+
+func (failure *dashboardEngineError) Unwrap() error { return failure.err }
+
+func dashboardEngineDiagnostic(output []byte) string {
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	line := strings.TrimSpace(lines[len(lines)-1])
+	if len(line) > 300 {
+		line = line[:300] + "..."
+	}
+	return line
+}
+
+func dashboardPodmanInstallSteps(goos string) string {
+	switch goos {
+	case "darwin":
+		return "brew install podman && podman machine init && podman machine start"
+	case "windows":
+		return "winget install RedHat.Podman, then podman machine init and podman machine start"
+	default:
+		return "install your distribution's podman package (for example, sudo apt-get install podman or sudo dnf install podman)"
+	}
+}
+
+func dashboardPodmanMissing(goos string) error {
+	return fmt.Errorf("podman was not found on PATH; gh cao dashboard uses Podman to run its local PostgreSQL.\n"+
+		"  Install Podman: %s\n  Installation guide: %s\n%s",
+		dashboardPodmanInstallSteps(goos), dashboardPodmanInstallGuide, dashboardPostgresAlternative)
+}
+
+func dashboardPodmanUnavailable(goos string, err error) error {
+	var failure *dashboardEngineError
+	if !errors.As(err, &failure) {
+		return fmt.Errorf("podman cannot run the local dashboard PostgreSQL: %w\n%s", err, dashboardPostgresAlternative)
+	}
+	message := failure.Error()
+	if failure.diagnostic != "" {
+		message += ": " + failure.diagnostic
+	}
+	start := "check that podman info succeeds for your user"
+	if goos == "darwin" || goos == "windows" {
+		start = "podman machine start (run podman machine init first if podman machine list shows no machine)"
+	}
+	return fmt.Errorf("podman is installed but not responding (%s).\n  Start Podman: %s\n  Troubleshooting: %s\n%s",
+		message, start, dashboardPodmanInstallGuide, dashboardPostgresAlternative)
+}
+
 func newDashboardEngine() (dashboardEngine, error) {
 	binary, err := exec.LookPath(dashboardEngineName)
 	if err != nil {
-		return dashboardEngine{}, errors.New("podman is not installed; install Podman or supply --postgres-url")
+		return dashboardEngine{}, dashboardPodmanMissing(runtime.GOOS)
 	}
 	return dashboardEngine{name: dashboardEngineName, run: func(ctx context.Context, args ...string) ([]byte, error) {
 		var output, diagnostic dashboardEngineOutput
 		command := exec.CommandContext(ctx, binary, args...)
 		command.Stdout, command.Stderr = &output, &diagnostic
 		if err := command.Run(); err != nil {
-			return nil, fmt.Errorf("%s %s failed: %w", dashboardEngineName, args[0], err)
+			return nil, &dashboardEngineError{err: fmt.Errorf("%s %s failed: %w", dashboardEngineName, args[0], err),
+				diagnostic: dashboardEngineDiagnostic(diagnostic.Bytes())}
 		}
 		return output.Bytes(), nil
 	}}, nil
@@ -132,13 +192,14 @@ func (engine dashboardEngine) verifyLocal(ctx context.Context) error {
 
 func selectDashboardEngine(ctx context.Context) (dashboardEngine, error) {
 	engine, err := newDashboardEngine()
-	if err == nil {
-		probe, cancel := context.WithTimeout(ctx, 10*time.Second)
-		err = engine.verifyLocal(probe)
-		cancel()
-	}
 	if err != nil {
-		return dashboardEngine{}, fmt.Errorf("no usable local Podman engine; start Podman (on macOS, podman machine start) or supply --postgres-url: %w", err)
+		return dashboardEngine{}, err
+	}
+	probe, cancel := context.WithTimeout(ctx, 10*time.Second)
+	err = engine.verifyLocal(probe)
+	cancel()
+	if err != nil {
+		return dashboardEngine{}, dashboardPodmanUnavailable(runtime.GOOS, err)
 	}
 	return engine, nil
 }

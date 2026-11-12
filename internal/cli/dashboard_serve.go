@@ -231,7 +231,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	}
 	ticker := time.NewTimer(options.duration)
 	defer ticker.Stop()
-	started := false
+	started, seeded := false, false
 	for {
 		select {
 		case result := <-serverDone:
@@ -245,7 +245,12 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 				ticker.Reset(0)
 			}
 		case <-ticker.C:
-			if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil && ctx.Err() == nil {
+			pass := options
+			if !seeded {
+				pass = dashboardSeedOptions(options)
+				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Ingesting recent runs before full artifact collection...")
+			}
+			if _, err := collectDashboard(ctx, repositories, cache, pass, gh, logs); err != nil && ctx.Err() == nil {
 				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard refresh failed; previous snapshot retained: %v\n", err)
 			}
 			if ctx.Err() == nil {
@@ -257,9 +262,24 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Dashboard PostgreSQL ingestion failed; previous canonical revision retained.")
 				}
 			}
-			ticker.Reset(options.refresh)
+			if seeded {
+				ticker.Reset(options.refresh)
+			} else {
+				seeded = true
+				ticker.Reset(0)
+			}
 		}
 	}
+}
+
+// dashboardSeedRunCount bounds the startup pass so the first ingestion
+// publishes recent runs within a few API requests.
+const dashboardSeedRunCount = 50
+
+func dashboardSeedOptions(options dashboardOptions) dashboardOptions {
+	options.seed = true
+	options.count = min(options.count, dashboardSeedRunCount)
+	return options
 }
 
 func dashboardPostgresNamespace(repositories []string) string {

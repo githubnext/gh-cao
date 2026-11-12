@@ -34,8 +34,9 @@ No CAO cloud deployment, Azure setup, hosted dashboard, PostgreSQL, Redis,
 containers, or separate Node.js or gh-aw installation is needed.
 
 GitHub is still the authenticated upstream evidence source; collection needs
-network access and your repository permissions. The command collects bounded
-recent evidence automatically and refreshes every five minutes. Its evidence
+network access and your repository permissions. On startup it immediately
+ingests up to 50 recent runs from the run listing and cached artifacts, then
+collects bounded recent evidence automatically and refreshes every five minutes. Its evidence
 window defaults to seven days, with resumable historical discovery; the server
 lifetime remains capped at 48 hours per invocation. The data-status tooltip shows ingestion
 progress and quota pauses. Acquisition preserves API headroom and does not

@@ -32,6 +32,9 @@ type dashboardOptions struct {
 	duration     time.Duration
 	refresh      time.Duration
 	count        int
+	// seed selects a startup pass that publishes recent run listings and
+	// cached artifacts without downloads or history-cursor advancement.
+	seed bool
 }
 
 func dashboardCommand(version string, gh ghExecutor, logs dashboardLogsCollector) *cobra.Command {
