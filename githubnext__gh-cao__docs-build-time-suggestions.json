@@ -1,30 +1,7 @@
 {
   "source_sha": "cd1e0ba023d17672e8e2a42170a9f57cc709522d",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T11:20:00Z",
-      "worker_run_id": "43207286533",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        43206235849,
-        43206080696,
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T20:16:01Z to 2026-11-12T11:06:25Z; all within 14 days). Excluded and disclosed: 4 failed pre-design schedules (43094878868, 43099316175, 43101943628, 43103737760; failed at Mount latest CAO Dashboard artifact; wall 74-273 s); 1 cancelled push 43206161686 (no jobs started). Comparable sample n=15 successful build+deploy publications (14 push, 1 schedule 43161224542; one step-name shape; 'Build documentation' present in all). Build documentation step (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test): median 14 s, p90 15 s, range 10-15 s; 15.7% of wall median 89 s (p90 124 s) and 19.4% of build-job median 72 s. Gate needs >=13.3 s saved (15% of wall) or 60 s; that would require removing the whole step and its validation, so not met. Outliers disclosed: 43206235849 (wall 157 s) and 43167070179 (wall 124 s), checkout 47-49 s vs median 24 s; excluding them leaves the docs median at 14 s. Astro-internal vs validation/test split unmeasured: job-log reads were denied by policy in earlier evaluations and were not retried. No suggestion; next_category advanced to reusable dashboard generation (open issue #20380 is a candidate to check in that category)."
-    },
     {
       "evaluated_at": "2026-11-12T11:33:31Z",
       "worker_run_id": "43209513017",
@@ -820,6 +797,33 @@
         43138878761
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; all within 14 days; source HEAD cd1e0ba equals source_sha). Excluded and disclosed: 1 cancelled 43206161686 (no jobs); 1 failed push 43297524311 on e465d28 (Build documentation failed after 14 s, deploy skipped, fixed by cd1e0ba; cause unverified, logs 403). Comparable n=18 successes (17 push, 1 schedule 43161224542; 5-run gate met). Medians (p90), job and step metadata only: wall created-to-deploy 88 s (133 s); build-start-to-deploy-end 84.5 s (120 s); build job 67 s (103 s); deploy job 10.5 s (15 s). Install dependencies 16 s (p90 22; range 11-25) = 19% of execution; 15% gate = 12.7 s. Checkout 24 s (p90 46). Set up Node.js 3 s (p90 7); Post Set up Node.js 0-1 s in 18/18, consistent with exact-key hit or quick reserve collision, not log-verified. Cache key CORRECTED: pinned setup-node (820762786) with cache npm and no cache-dependency-path uses only the root package-lock.json (findLockFile); key = node-cache-Linux-x64-npm-sha256(binary per-file sha256 digests); root lock gives e62f60... (278.9 MB, created 06:18Z, refs/heads/main, present). The earlier cfaf24 note (root+dashboard+server locks) is not the docs.yml key and is absent from the cache list. Candidate exact-key node_modules cache (issue 19689, closed NOT_PLANNED by expiry 2026-11-07 under 23 s install and 96 s execution medians) now has best-case ceiling about 13 s (install 16 s minus an assumed ~3 s restore) before unmeasured save and miss overhead; expected net below the 12.7 s gate; not actionable, not repeated. Other levers (npm ci --no-audit/--no-fund, concurrent dashboard-site install, root --omit=dev) are seconds and unverified. No open issue with this worker label. No suggestion; no issue created; next_category advanced to Astro documentation generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T21:34:39Z",
+      "worker_run_id": "43310646702",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "43301807773",
+        "43249903823",
+        "43242792853",
+        "43236057780",
+        "43228124764",
+        "43228046118",
+        "43225202834",
+        "43206235849",
+        "43206080696",
+        "43194788185",
+        "43167568535",
+        "43167070179",
+        "43165397534",
+        "43161224542",
+        "43145803206",
+        "43141528595",
+        "43139972486",
+        "43138878761"
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; within 14 days; source HEAD cd1e0ba equals source_sha). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed after 14 s, deploy skipped, fixed by cd1e0ba; logs 403) and 1 cancelled 43206161686 (no jobs). Comparable n=18 successes (17 push, 1 schedule 43161224542; one identical 11-step build and 3-step deploy shape; 5-run gate met). Medians (p90), job and step metadata: 'Build documentation' step 14 s (p90 15; range 8-15 s) = 16.6% of execution median 84.5 s (p90 120 s) and 21% of build job 67 s. 15% gate = 12.7 s, which needs about 91% of the step removed, so no in-step change qualifies; the 60 s gate is unreachable. validate-agent-docs.mjs and agent-docs-discovery.test.mjs read dist/ and do not rebuild (no duplicate Astro build). Per-file 'git log' provenance in resolveBuildProvenance runs inside that 14 s bound; the astro/validate/test split is not visible (logs 403). No dashboard job exists. Carry-forward lead, not a suggestion: Checkout (fetch-depth 0) median 24 s (p90 46; 28% of execution, largest build step). fetch-depth 1 would change output (verified in resource.ts: git log -1 returns nothing, sourceCommittedAt becomes undefined). 'filter: blob:none' is untested and savings are unmeasured (repo size 1,451,382 KB vs 10.48 MiB HEAD pack); promotion needs a measured A/B in a maintainer branch. No open issue with this worker label; open #20683 is another campaign. next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ]
