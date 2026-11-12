@@ -297,10 +297,10 @@ var ErrAdmitOnly = errors.New(
 	"this process admits deliveries only; run the collect or backfill role")
 
 // Worker builds a standalone collection worker for the collect role.
-func (c *Collector) Worker(consumer string) collect.Worker {
+func (c *Collector) Worker(consumer string) collect.NativeWorker {
 	worker := c.native.worker
 	worker.Consumer = consumer
-	return collect.Worker{Native: &worker}
+	return worker
 }
 
 func (c *Collector) RepositoryDiscovery() collect.RepositoryDiscovery {

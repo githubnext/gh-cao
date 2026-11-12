@@ -155,7 +155,7 @@ func TestSetupBootstrapFailures(t *testing.T) {
 		t.Run(failure, func(t *testing.T) {
 			nativeSetupTestDirectory(t)
 			if failure == "conflict" {
-				writeTestFile(t, "activity/cao.mjs", "consumer original")
+				writeTestFile(t, "dashboard/report/configure-site.mjs", "consumer original")
 			}
 			if failure == "malformed policy" {
 				writeTestFile(t, policyPath, "{invalid")
@@ -179,7 +179,7 @@ func TestSetupBootstrapFailures(t *testing.T) {
 				t.Fatal("failed setup published policy")
 			}
 			if failure == "conflict" {
-				content, _ := os.ReadFile("activity/cao.mjs")
+				content, _ := os.ReadFile("dashboard/report/configure-site.mjs")
 				if string(content) != "consumer original" {
 					t.Fatal("runtime conflict overwritten")
 				}
@@ -362,7 +362,7 @@ func TestSetupMissingRuntimePreservesExistingPolicy(t *testing.T) {
 }
 
 func TestSetupRejectsSymlinkDestinations(t *testing.T) {
-	for _, name := range []string{policyPath, ".github", "activity"} {
+	for _, name := range []string{policyPath, ".github", "dashboard"} {
 		t.Run(name, func(t *testing.T) {
 			nativeSetupTestDirectory(t)
 			if err := os.MkdirAll(filepath.Dir(name), 0o755); err != nil {

@@ -157,7 +157,7 @@ func (l Lake) recordMining(ctx context.Context, repository string, memberships [
 // acquired by the server collector. Episode discovery itself spends no API quota.
 func (l Lake) mineDownloadedInfo(ctx context.Context, repository, directory string) error {
 	if _, err := os.Stat(directory); errors.Is(err, os.ErrNotExist) {
-		runnerLog.Printf("episode membership unavailable: no downloaded compact artifacts")
+		workerLog.Printf("episode membership unavailable: no downloaded compact artifacts")
 		return nil
 	} else if err != nil {
 		return err

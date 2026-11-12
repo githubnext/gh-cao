@@ -119,7 +119,7 @@ Read `/tmp/gh-aw/agent/control-precompute.json` first and verify that `TARGET_RE
 
 Use the last 7 full days ending at workflow start in UTC. Use the preceding 7 full days only as a comparison when both windows have complete evidence.
 
-Use bounded read-only GitHub or `agentic-workflows` calls for `TARGET_REPO`. Explicitly prepared operational snapshots may be queried with `activity/cao.mjs`; Validate schema, repository scope, freshness, window coverage, and completeness before calculating metrics. Fetch only missing evidence and never mutate the supplied snapshot.
+Use bounded read-only GitHub or `agentic-workflows` calls for `TARGET_REPO`. Explicitly prepared operational snapshots may be queried with `gh cao`; Validate schema, repository scope, freshness, window coverage, and completeness before calculating metrics. Fetch only missing evidence and never mutate the supplied snapshot.
 
 ### Collection completeness
 

@@ -1,8 +1,6 @@
 package collect
 
 import (
-	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -98,60 +96,5 @@ func TestEpisodeArtifactsAndCachedBackfillNeedRecordedIdentity(t *testing.T) {
 	}
 	if err := lake.mineDownloadedInfo(t.Context(), "octo/api", logs); err == nil {
 		t.Fatal("conflicting recorded lineage was accepted")
-	}
-}
-
-func TestMiningWebhooksPreserveDistinctObjectsAndDeliveryDedupe(t *testing.T) {
-	w := refreshWorker(t)
-	if err := w.Runner.Lake.Prepare(); err != nil {
-		t.Fatal(err)
-	}
-	if err := w.Enrollment.AddRepositories(t.Context(), 7, []string{"octo/api"}); err != nil {
-		t.Fatal(err)
-	}
-	admitter := Admitter{Enrollment: w.Enrollment, Queue: w.Queue, Mining: true}
-	for n := 1; n <= 2; n++ {
-		payload := []byte(fmt.Sprintf(`{"action":"closed","installation":{"id":7},"repository":{"full_name":"octo/api"},
-			"pull_request":{"number":%d,"html_url":"https://github.com/octo/api/pull/%d",
-			"state":"closed","merged":true,"updated_at":"2026-10-20T00:00:00Z"}}`, n, n))
-		for replay := range 2 {
-			result, err := admitter.AdmitDelivery(t.Context(), "pull_request", payload, fmt.Sprintf("pr-%d", n), time.Hour)
-			if err != nil || result.Enqueued != (replay == 0) || result.Duplicate != (replay == 1) {
-				t.Fatalf("webhook admission = %+v, %v", result, err)
-			}
-		}
-	}
-	for range 2 {
-		if !w.process(t.Context(), refreshLease(t, w.Queue)) {
-			t.Fatal("outcome task did not persist evidence")
-		}
-	}
-	packet, _, err := readMiningPacket(w.Runner.Lake.miningPath("octo/api"))
-	if err != nil || len(packet.Outcomes) != 2 {
-		t.Fatalf("repository debounce lost an object: %+v, %v", packet, err)
-	}
-	if content, err := json.Marshal(packet); err != nil || strings.Contains(string(content), "pull_request") {
-		t.Fatal("raw webhook payload was retained")
-	}
-}
-
-func TestMiningTasksNeverChangeAdmittedInstallation(t *testing.T) {
-	w := refreshWorker(t)
-	if err := w.Enrollment.AddRepositories(t.Context(), 7, []string{"octo/api"}); err != nil {
-		t.Fatal(err)
-	}
-	outcome := miningOutcome(t)
-	if _, err := w.Queue.Enqueue(t.Context(), Task{Repository: "octo/api", InstallationID: 8, Outcome: &outcome}); err != nil {
-		t.Fatal(err)
-	}
-	if w.process(t.Context(), refreshLease(t, w.Queue)) {
-		t.Fatal("stale installation observation changed evidence")
-	}
-	if _, err := os.Stat(w.Runner.Lake.miningPath("octo/api")); !os.IsNotExist(err) {
-		t.Fatalf("stale observation retained evidence: %v", err)
-	}
-	leases, err := w.Queue.Lease(t.Context(), "stale-check", 10, time.Millisecond)
-	if err != nil || len(leases) != 0 {
-		t.Fatalf("stale observation was retried with a replacement installation: %v, %v", leases, err)
 	}
 }

@@ -4,7 +4,7 @@ import "fake-indexeddb/auto";
 import {
   buildInventoryDashboardSources,
   discoverRepositories,
-} from "../../activity/inventory-sources.mjs";
+} from "../../dashboard/report/inventory-sources.mjs";
 import { ingestDashboardSources } from "../../dashboard/site/src/data/ingest/coordinator.js";
 import {
   deleteCanonicalDatabase,

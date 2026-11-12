@@ -64,7 +64,7 @@ func setupPublishFixture(t *testing.T, existing bool) (*cobra.Command, ghExecuto
 	files := []string{policyPath}
 	if existing {
 		nativeSetupTestSave(t, nativeSetupTestPolicy())
-		git("add", ".github", "activity", "dashboard")
+		git("add", ".github", "dashboard")
 		git("commit", "--quiet", "-m", "Existing monitoring")
 		git("push", "--quiet", "--set-upstream", "origin", "main")
 		writeTestFile(t, policyPath, "{\n  \"version\": 1,\n  \"test-change\": true\n}\n")
@@ -150,7 +150,7 @@ func TestSetupPublishesAllPreparedComponentsWithoutUnrelatedFiles(t *testing.T) 
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, name := range []string{"activity/cao.mjs", "dashboard/site/package.json", "cao-validate.yml", policyPath} {
+		for _, name := range []string{"dashboard/report/configure-site.mjs", "dashboard/site/package.json", "cao-validate.yml", policyPath} {
 			if !strings.Contains(string(diff), name) {
 				t.Fatalf("review omitted %s", name)
 			}
@@ -324,7 +324,7 @@ func TestSetupPublicationBlocksUnsafeGitState(t *testing.T) {
 			case "detached":
 				setupPublishTestGit(t, cmd, "switch", "--detach")
 			case "uncommitted runtime":
-				setupPublishTestGit(t, cmd, "rm", "--cached", "--", "activity/cao.mjs")
+				setupPublishTestGit(t, cmd, "rm", "--cached", "--", "dashboard/report/configure-site.mjs")
 				setupPublishTestGit(t, cmd, "commit", "-m", "Remove runtime")
 				setupPublishTestGit(t, cmd, "push", "origin", "main")
 			}

@@ -2,9 +2,6 @@
   "name": "central-agentic-ops",
   "version": "0.0.0",
   "private": true,
-  "bin": {
-    "cao": "activity/cao.mjs"
-  },
   "scripts": {
     "generate:dashboard-ingest": "node scripts/generate-dashboard-ingest.mjs",
     "postinstall": "node dashboard/site/scripts/prepare-terminal.mjs",
@@ -49,8 +46,6 @@
     "dashboard:server:spec": "npm --prefix server/spec run generate",
     "dashboard:server:spec:check": "npm --prefix server/spec run check",
     "dashboard:demo:mobile": "MOBILE_BROWSER=chromium MOBILE_DEVICE='Pixel 7' MOBILE_PROFILE=low-memory MOBILE_MEMORY_MB=256 playwright test --config=tests/playwright/configs/mobile.config.mjs",
-    "dashboard:data": "node activity/cao.mjs",
-    "dashboard:data:download": "npm run dashboard:data -- download",
     "generate:agent-catalog": "node scripts/generate-agent-catalog.mjs",
     "dev": "npm run dashboard:local --",
     "docs:dev": "astro dev",
@@ -66,7 +61,7 @@
     "test:unit:area": "node scripts/run-unit-area.mjs",
     "test:conformance:daily-run-counts": "node scripts/run-daily-run-counts-conformance.mjs",
     "test:conformance:statistical-sampling": "node scripts/run-daily-run-counts-conformance.mjs --statistical",
-    "test:integration": "node --test --test-concurrency=1 tests/integration/activity-discovery-cli.test.mjs tests/integration/cao-configuration-cli.test.mjs tests/integration/cao-issue-status.test.mjs tests/integration/cao-operational-value-local.test.mjs tests/integration/control-admission.test.mjs tests/integration/control-failure.test.mjs tests/integration/control-inventory-credentials.test.mjs tests/integration/control-policy-resolver.test.mjs tests/integration/control-standalone-compilation.test.mjs tests/integration/dashboard-inventory-ingestion.test.mjs tests/integration/dashboard-query-cost.test.mjs",
+    "test:integration": "node --test --test-concurrency=1 tests/integration/cao-configuration-cli.test.mjs tests/integration/control-admission.test.mjs tests/integration/control-failure.test.mjs tests/integration/control-inventory-credentials.test.mjs tests/integration/control-policy-resolver.test.mjs tests/integration/control-standalone-compilation.test.mjs tests/integration/dashboard-inventory-ingestion.test.mjs tests/integration/dashboard-query-cost.test.mjs",
     "test:campaign-lifecycle": "node --test --test-concurrency=1 tests/integration/campaign-lifecycle.test.mjs",
     "test:campaign-root": "node --test --test-concurrency=1 --test-name-pattern=\"^root campaign bootstraps\" tests/integration/campaign-lifecycle.test.mjs",
     "test:runtime-producer": "node scripts/validate-cao-runtime.mjs",
@@ -87,8 +82,6 @@
     "test:e2e:dashboard-views": "playwright test --config=tests/playwright/configs/dashboard-views.config.mjs",
     "test:e2e:dashboard-server": "playwright test --config=tests/playwright/configs/dashboard-server.config.mjs",
     "test:e2e:dashboard-pages": "playwright test --config=tests/playwright/configs/dashboard-pages.config.mjs",
-    "test:e2e:cao-mcp-container": "node tests/e2e/cao-mcp-container.mjs",
-    "test:e2e:dashboard-query-parity": "node tests/e2e/dashboard-query-parity.mjs",
     "test:e2e:dashboard-deployed": "playwright test --config=tests/playwright/configs/dashboard-deployed.config.mjs",
     "test:performance:dashboard-queries": "playwright test --config=tests/playwright/configs/dashboard-query-performance.config.mjs",
     "test:performance:dashboard-query-cost": "node --expose-gc --test tests/performance/dashboard-query-cost.test.mjs",

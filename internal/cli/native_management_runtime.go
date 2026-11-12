@@ -20,27 +20,16 @@ import (
 var regexpStableVersion = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+$`)
 
 var nativeRuntimeResources = []string{
-	"activity", "dashboard", ".github/actions/setup-cao-runtime", ".github/actions/setup-gh-aw",
+	"dashboard", ".github/workflows/shared/value-acquisition.mjs", ".github/workflows/shared/actions-log.mjs", ".github/actions/setup-cao-runtime", ".github/actions/setup-gh-aw",
 	".github/cao/instructions.md",
 	".github/workflows/shared/control.md", ".github/workflows/shared/review-bundle.md",
 	".github/workflows/shared/operation.md",
 }
 
 var nativeRuntimeRequiredFiles = []string{
-	"activity/workflow-values.mjs", "activity/workflow-value-evidence.mjs", "activity/github-api-budget.mjs",
 	"dashboard/site/src/data/model/operational-value-evidence.js",
-	"activity/cao.mjs",
-	"activity/cli/cache.mjs", "activity/cli/dashboard.mjs",
-	"activity/cli/download.mjs", "activity/cli/files.mjs",
-	"activity/cli/ingestion.mjs", "activity/cli/issue-status.mjs", "activity/cli/jsonl.mjs",
-	"activity/cli/options.mjs", "activity/cli/payloads.mjs",
-	"activity/cli/queries.mjs",
-	"activity/cli/run.mjs", "activity/cli-usage.mjs", "activity/normalized-phase.mjs",
-	"activity/commands/index.mjs",
-	"activity/control-settings.mjs", "activity/repository-visibility.mjs",
-	"activity/collect-workflow-logs.mjs", "activity/marketplace.mjs",
-	"activity/problem-clustering.mjs",
 	"dashboard/site/package.json", "dashboard/report/configure-site.mjs",
+	".github/workflows/shared/value-acquisition.mjs",
 }
 
 func nativeMaterializeRuntime(ctx context.Context, gh ghExecutor, campaign string) (err error) {
@@ -71,13 +60,13 @@ func nativeMaterializeRuntime(ctx context.Context, gh ghExecutor, campaign strin
 		}
 		resources := []string{}
 		for _, resource := range nativeRuntimeResources {
-			if (resource == "activity" || resource == "dashboard") && find(catalogRepository+"/"+resource) != nil {
+			if (resource == "dashboard") && find(catalogRepository+"/"+resource) != nil {
 				continue
 			}
 			resources = append(resources, resource)
 		}
 		plans = append(plans, plan{*root, resources})
-		for _, focused := range []string{"activity", "dashboard"} {
+		for _, focused := range []string{"dashboard"} {
 			if record := find(catalogRepository + "/" + focused); record != nil {
 				plans = append(plans, plan{*record, []string{focused}})
 			}

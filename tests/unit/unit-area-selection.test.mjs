@@ -10,14 +10,14 @@ test("every root unit test runs in exactly one topical area", () => {
   const partition = partitionUnitTests(files);
   assert.deepEqual(Object.keys(partition), Object.keys(unitTestAreas));
   assert.deepEqual(Object.values(partition).flat().sort(), files);
-  assert.ok(partition.activity.includes("activity-empirical-behavior.test.mjs"));
+  assert.ok(partition.activity.includes("activity-normalized-shards.test.mjs"));
   assert.ok(partition.documentation.includes("docs-workflow-ecosystem-layout.test.mjs"));
   assert.ok(partition.tooling.includes("azure-local-harness.test.mjs"));
   assert.ok(partition.tooling.includes("backfill-stress-report.test.mjs"));
   assert.ok(partition.tooling.includes("company-stress.test.mjs"));
   assert.ok(partition.tooling.includes("source-map-compat.test.mjs"));
   assert.ok(partition.tooling.includes("installer-canary.test.mjs"));
-  assert.ok(partition.tooling.includes("maintainer-simulation.test.mjs"));
+  assert.ok(partition.tooling.includes("cao-retired-activity.test.mjs"));
   assert.ok(partition.tooling.includes("local-artifacts.test.mjs"));
   assert.ok(partition.workflows.includes("build-release.test.mjs"));
   assert.throws(() => partitionUnitTests([...files, "unclassified.test.mjs"]), /exactly one area/);

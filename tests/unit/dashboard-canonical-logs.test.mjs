@@ -8,46 +8,6 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-test('Node CLI ingests a gh-aw artifact directory through IndexedDB queries', async () => {
-  const fixture = path.resolve('dashboard/site/test/fixtures/gh-aw-logs');
-  const directory = await mkdtemp(path.join(tmpdir(), 'cao-cli-logs-'));
-  const database = path.join(directory, 'logs.sqlite');
-  const cao = path.resolve('activity/cao.mjs');
-  try {
-    const { stdout } = await execFileAsync(process.execPath, [
-      cao, 'ingest', '--database', database,
-      '--context', path.join(fixture, 'context.json'),
-      '--logs', path.join(fixture, 'run-303'),
-      '--retention-days', 'all', '--run-retention-days', 'all',
-    ]);
-    const output = JSON.parse(stdout);
-    assert.deepEqual(Object.keys(output).sort(), ['counts', 'result']);
-    assert.equal(output.result.updated, true);
-    assert.equal(output.counts.runs, 1);
-    assert.equal(output.counts.tools, 3);
-    const query = async (collection) => JSON.parse((await execFileAsync(process.execPath, [
-      cao, 'query', '--database', database, '--collection', collection
-    ])).stdout);
-    const runs = await query('runs');
-    assert.equal(runs[0].id, 'github:run:githubnext/gh-cao:303');
-    const records = (await Promise.all(['domains', 'tools', 'audits'].map(query))).flat();
-    assert.equal(records.every((record) => record.runId === runs[0].id), true);
-    assert.deepEqual(records.map((record) => record.type).sort(), [
-      'firewall.http_access', 'mcp.tool_call', 'tool.execution_start', 'tool.execution_complete',
-      'user.message', 'assistant.message'
-    ].sort());
-    const repeated = JSON.parse((await execFileAsync(process.execPath, [
-      cao, 'ingest', '--database', database,
-      '--context', path.join(fixture, 'context.json'),
-      '--logs', path.join(fixture, 'run-303'),
-      '--retention-days', 'all', '--run-retention-days', 'all',
-    ])).stdout);
-    assert.deepEqual(repeated.counts, output.counts);
-    assert.deepEqual(await query('runs'), runs);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-});
 
 test('explicit raw-log ingestion preserves default and configured retention policies', async (t) => {
   const fixture = path.resolve('dashboard/site/test/fixtures/gh-aw-logs');

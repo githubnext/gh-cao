@@ -39,16 +39,16 @@ operational evidence remains unavailable, with no public-demo fallback:
 
 ```bash
 db=".cao/gh-aw-logs.sqlite"
-node activity/cao.mjs queries --json
-node activity/cao.mjs query-info campaign-runs --json
-node activity/cao.mjs prompt campaign-runs
-node activity/cao.mjs query campaign-runs --database "$db" --param campaign=CAMPAIGN_SLUG --limit 50
-node activity/cao.mjs gh runs --database "$db" --repo OWNER/REPO --limit 20
-node activity/cao.mjs gh issues --database "$db" --repo OWNER/REPO
-node activity/cao.mjs gh prs --database "$db" --repo OWNER/REPO
-node activity/cao.mjs computation runtime-health --database "$db"
-node activity/cao.mjs computation intelligence --database "$db"
-node activity/cao.mjs mcp --database "$db" --host 127.0.0.1 --port 8765
+gh cao queries --json
+gh cao query-info campaign-runs --json
+gh cao prompt campaign-runs
+gh cao query campaign-runs --database "$db" --param campaign=CAMPAIGN_SLUG --limit 50
+gh cao gh runs --database "$db" --repo OWNER/REPO --limit 20
+gh cao gh issues --database "$db" --repo OWNER/REPO
+gh cao gh prs --database "$db" --repo OWNER/REPO
+gh cao computation runtime-health --database "$db"
+gh cao computation intelligence --database "$db"
+gh cao mcp --database "$db" --host 127.0.0.1 --port 8765
 ```
 
 Check the cache exists and is non-empty before invoking a query. A cache miss
@@ -74,7 +74,7 @@ apply. Missing evidence is not a successful empty observation.
 
 ```
 Inside an agentic workflow?
-  YES           -> node activity/cao.mjs (or the prepared job-local MCP endpoint)
+  YES           -> gh cao (or the prepared job-local MCP endpoint)
   NO            -> choose the operator/interactive transport below
 Do you have shell access?
   YES           -> gh cao
@@ -243,66 +243,10 @@ its sources.
 
 ## Run the MCP server
 
-```bash
-gh cao mcp --database .cao/gh-aw-logs.sqlite --host 127.0.0.1 --port 8765
-```
-
-The server implements the stateless MCP revision `2026-07-28`. It stores no
-protocol session state, requires the `MCP-Protocol-Version` and `Mcp-Method`
-headers to agree with the JSON-RPC body, and serves one endpoint, `POST /mcp`,
-plus `GET /healthz` for orchestration.
-
-The endpoint speaks plain HTTP. It carries no TLS material and no self-signed
-certificate: the client and the server share one host or one isolated job-local
-container network, so a private certificate authority would add operational
-cost without adding a trust boundary. Reach the endpoint over loopback or an
-isolated network, and do not publish it to a routable interface.
-
-## Bootstrap in GitHub Actions
-
-Preparation has network access; serving does not need any.
-
-```
-install CAO -> acquire selected Activity artifact -> start CAO MCP container -> start agent
-```
-
-```yaml
-permissions:
-  actions: read
-steps:
-  - name: Verify the preinstalled CAO extension
-    run: gh cao --version
-  - name: Download the selected operational Activity artifact
-    env:
-      GH_TOKEN: ${{ github.token }}
-    run: gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
-  - name: Start CAO MCP
-    run: |
-      docker run --detach \
-        --name cao-mcp \
-        --read-only \
-        --tmpfs /tmp \
-        -v "$PWD/.cao:/data:ro" \
-        -p 127.0.0.1:8765:8765 \
-        ghcr.io/githubnext/gh-cao-mcp:${CAO_VERSION}
-```
-
-Point the workflow's MCP server configuration at `http://127.0.0.1:8765/mcp`.
-Replace `RUN_ID` and `OWNER/CONTROL` with the reviewed successful Activity run
-and control repository. The built-in job token can read artifacts only within
-its authorized repository; cross-repository acquisition requires separately
-scoped Actions read credentials, never a broader implicit fallback.
-Provision `gh cao` on the runner with the [CAO installer](cao-cli.md#github-cli-extension)
-before these steps; the version check does not install it.
-Take the remote-MCP declaration syntax from the gh-aw version the workflow pins
-rather than from a CAO-specific dialect. Publishing the port on `127.0.0.1`
-keeps the endpoint on the runner; an equivalent job-local bridge network shared
-only with the agent runtime also works.
-
-Build the image from `Dockerfile.mcp` in this repository. It runs as a non-root
-user on a read-only filesystem, mounts the snapshot read-only at `/data`, and
-copies the snapshot into container scratch space so the mounted evidence is
-never modified.
+With the native extension installed and an explicitly prepared canonical SQLite
+snapshot, run `gh cao mcp --database .cao/gh-aw-logs.sqlite`.
+The server is read-only and binds to loopback by default. The former Node MCP
+image and Activity runtime are removed.
 
 ## Safety
 

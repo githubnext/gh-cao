@@ -152,30 +152,3 @@ func TestForgetWaitsForSharedWriterThenErasesItsStaleCopy(t *testing.T) {
 		t.Fatalf("concurrent stale writer restored withdrawn values: %q, %v", content, err)
 	}
 }
-
-func TestSharedValueErasureFailureRemainsRetryable(t *testing.T) {
-	w := refreshWorker(t)
-	path := w.Runner.Lake.operationalValuesPath()
-	if err := os.WriteFile(path, []byte("invalid JSON\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := w.Queue.Enqueue(t.Context(), Task{Repository: "octo/api", InstallationID: 7, Erase: true}); err != nil {
-		t.Fatal(err)
-	}
-	if w.process(t.Context(), refreshLease(t, w.Queue)) {
-		t.Fatal("failed shared erasure reported evidence changed")
-	}
-	if depth, err := w.Queue.Depth(t.Context()); err != nil || depth != 1 {
-		t.Fatalf("erasure failure lost retry work: %d, %v", depth, err)
-	}
-	other := retainedValueLine("octo/other", "worker.preserved")
-	if err := os.WriteFile(path, []byte(retainedValueLine("octo/api", "worker.withdrawn")+other), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := w.Runner.Lake.Forget("octo/api"); err != nil {
-		t.Fatal(err)
-	}
-	if content, err := os.ReadFile(path); err != nil || string(content) != other { // #nosec G304 -- test-owned temporary shard.
-		t.Fatalf("repair did not erase only target: %q, %v", content, err)
-	}
-}

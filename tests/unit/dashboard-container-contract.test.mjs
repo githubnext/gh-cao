@@ -18,8 +18,6 @@ test("server and native CLI builds require the CA-compromise-patched Go toolchai
     ".github/workflows/cao-package.yml",
     ".github/workflows/release-promote.yml",
     ".github/workflows/backfill-stress.yml",
-    ".github/workflows/mcp-parity.yml",
-    ".github/workflows/dashboard-query-parity.yml",
     ".github/workflows/azure-local-integration.yml",
     ".github/workflows/copilot-setup-steps.yml",
   ]) {

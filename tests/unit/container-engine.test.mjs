@@ -191,15 +191,6 @@ for (const selection of ["", "auto", "nerdctl"]) {
   });
 }
 
-test("MCP subprocess skips missing Podman without trying installed Docker", async (t) => {
-  const f = await fixture(t, { docker: "exit 1" }, "podman");
-  const result = await execute(process.execPath, [resolve("tests/e2e/cao-mcp-container.mjs")], {
-    env: { ...f.env, TMPDIR: f.directory },
-    timeout: 10_000,
-  });
-  assert.equal(result.stdout, "Skipping CAO MCP container test: podman is unavailable.\n");
-  await assert.rejects(f.commands(), { code: "ENOENT" });
-});
 
 for (const provider of ["podman-compose", "missing-flags", "docker-compose-v2"]) {
   test(`backfill checks Podman provider capabilities before creating resources (${provider})`, async (t) => {

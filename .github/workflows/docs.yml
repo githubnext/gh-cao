@@ -16,7 +16,7 @@ on:
       - docs/**
       - dashboard/site/**
       - dashboard/report/**
-      - activity/**
+
       - scripts/simulate-dashboard-pages.mjs
       - package.json
       - package-lock.json

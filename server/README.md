@@ -3144,7 +3144,7 @@ Collection separates three concerns that fail differently:
 2. **Collection.** Native Go workers acquire exact run attempts through
    installation-scoped GitHub APIs with shared quota, byte, entry, pagination,
    timeout, and enrollment-epoch bounds. They do not execute `gh aw logs` or
-   `activity/cao.mjs`, or write an Activity evidence lake.
+   `gh cao`, or write an Activity evidence lake.
 3. **Canonical publication.** Durable PostgreSQL publications activate under
    digest, enrollment, inventory, and retention fences. First activation requires
    valid reviewed inventory. Native recovery replays bounded retained

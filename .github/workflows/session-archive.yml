@@ -8,7 +8,7 @@ on:
       - server/**
       - "!server/**/*.md"
       - server/SESSION-ARCHIVE.md
-      - activity/**
+
       - dashboard/site/src/data/**
       - internal/dashboardquery/**
       - go.mod

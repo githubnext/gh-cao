@@ -20,13 +20,16 @@ func (e *discoveryInstallations) ListInstallations(context.Context) ([]githubapp
 	return e.items, e.err
 }
 
-func repositoryDiscovery(t *testing.T) (RepositoryDiscovery, Worker, *discoveryInstallations) {
+func repositoryDiscovery(t *testing.T) (RepositoryDiscovery, Backfill, *discoveryInstallations) {
 	t.Helper()
-	w := refreshWorker(t)
+	backfill := volatileBackfill(t)
+	if err := backfill.Queue.Ensure(t.Context()); err != nil {
+		t.Fatal(err)
+	}
 	client := &discoveryInstallations{items: []githubapp.Installation{{ID: 7}}}
-	d := RepositoryDiscovery{Client: client, Enrollment: w.Enrollment, Queue: w.Queue,
-		State: w.Values.State, Leases: w.Enrollment.Leases}
-	return d, w, client
+	discovery := RepositoryDiscovery{Client: client, Enrollment: backfill.Enrollment, Queue: backfill.Queue,
+		State: backfill.StateStore, Leases: backfill.Enrollment.Leases}
+	return discovery, backfill, client
 }
 
 func TestRepositoryListRefreshInterval(t *testing.T) {
@@ -40,37 +43,6 @@ func TestRepositoryListRefreshInterval(t *testing.T) {
 		if got := d.interval(); got != want {
 			t.Fatalf("configured interval %s resolved to %s, want %s", interval, got, want)
 		}
-	}
-}
-
-func TestRepositoryListBackfillRepairsMissingWebhooks(t *testing.T) {
-	d, w, client := repositoryDiscovery(t)
-	ctx := t.Context()
-	if err := w.Enrollment.AddRepositories(ctx, 8, []string{"octo/removed"}); err != nil {
-		t.Fatal(err)
-	}
-	result, err := d.Refresh(ctx)
-	if err != nil || result.Installations != 1 || result.RefreshesQueued != 1 || result.WithdrawalsQueued != 1 {
-		t.Fatalf("repository backfill = %+v, %v", result, err)
-	}
-	if enrolled, _ := w.Enrollment.Enrolled(ctx, "octo/removed"); !enrolled {
-		t.Fatal("repository-list admission removed membership inline")
-	}
-	w.ScopeRefresher = ScopeRefresher{Client: &refreshEnumerator{
-		pages: map[int][]githubapp.Repository{1: {{ID: 42, FullName: "octo/new"}}},
-	}, Quota: &fakeRunQuota{}, QuotaApp: "test"}
-	refresh := refreshLease(t, w.Queue)
-	refresh.Task.NotBefore = time.Time{}
-	w.process(ctx, refresh)
-	withdrawal := refreshLease(t, w.Queue)
-	w.process(ctx, withdrawal)
-	for repo, want := range map[string]bool{"octo/new": true, "octo/removed": false} {
-		if enrolled, err := w.Enrollment.Enrolled(ctx, repo); err != nil || enrolled != want {
-			t.Fatalf("repaired membership %s = %t, %v, want %t", repo, enrolled, err, want)
-		}
-	}
-	if client.calls != 1 {
-		t.Fatalf("unexpected App enumeration count: %d", client.calls)
 	}
 }
 
@@ -166,26 +138,6 @@ func TestRepositoryListRefreshHonorsLeaseAndCancellation(t *testing.T) {
 	case <-done:
 	case <-time.After(time.Second):
 		t.Fatal("repository discovery did not stop with its worker")
-	}
-}
-
-func TestRepositoryListWithdrawalRechecksReinstalledApp(t *testing.T) {
-	d, w, client := repositoryDiscovery(t)
-	ctx := t.Context()
-	if err := w.Enrollment.AddRepositories(ctx, 7, []string{"octo/api"}); err != nil {
-		t.Fatal(err)
-	}
-	client.items = nil
-	if result, err := d.Refresh(ctx); err != nil || result.WithdrawalsQueued != 1 {
-		t.Fatalf("missed installation deletion was not queued: %+v, %v", result, err)
-	}
-	w.ScopeRefresher.Client = &refreshEnumerator{installations: []githubapp.Installation{{ID: 7}}}
-	w.process(ctx, refreshLease(t, w.Queue))
-	if enrolled, err := w.Enrollment.Enrolled(ctx, "octo/api"); err != nil || !enrolled {
-		t.Fatalf("delayed withdrawal removed a current installation: %t, %v", enrolled, err)
-	}
-	if depth, err := w.Queue.Depth(ctx); err != nil || depth != 0 {
-		t.Fatalf("stale withdrawal was not acknowledged: %d, %v", depth, err)
 	}
 }
 

@@ -12,7 +12,7 @@ import {
   acquireFileDietHistory, appliedReceipt, collectReceipts, fileDietAcquisitionRequirement,
   preserveReceipt, refreshFileDiet, verifyPreservedDeliveries,
 } from "../../.github/skills/add-operational-value/examples/acquire-file-diet.mjs";
-import { valueAcquisitionRequirementId } from "../../activity/value-acquisition.mjs";
+import { valueAcquisitionRequirementId } from "../../.github/workflows/shared/value-acquisition.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const repository = "github/gh-aw";

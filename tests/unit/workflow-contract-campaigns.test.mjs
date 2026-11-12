@@ -342,19 +342,6 @@ test("root campaign provides default control-repository agent context", () => {
   assert.match(setupSkill, /Preserve root `AGENTS\.md`/);
 });
 
-test("root campaign exposes the explicit Node runtime without a shell launcher", () => {
-  const rootManifest = parse(readFileSync(join(root, "aw.yml"), "utf8"));
-  const runtimeManifest = JSON.parse(readFileSync(join(root, "runtime", "package.json"), "utf8"));
-
-  assert.equal(existsSync(join(root, "cao.sh")), false);
-  assert.equal(existsSync(join(root, "activity", "pipeline-cli.mjs")), false);
-  assert.equal((rootManifest.resources ?? []).some(({ source }) => source === "cao.sh"), false);
-  assert.equal(runtimeManifest.files.includes("cao.sh"), false);
-  assert.equal(runtimeManifest.files.includes("activity/pipeline-cli.mjs"), false);
-  const help = execFileSync(process.execPath, [join(root, "activity", "cao.mjs"), "--help"], { encoding: "utf8" });
-  assert.match(help, /cao ingest/);
-  assert.match(help, /cao validate/);
-});
 
 test("root campaign resolves the single CAO bootstrap runtime", () => {
   const rootManifest = readFileSync(join(root, "aw.yml"), "utf8");

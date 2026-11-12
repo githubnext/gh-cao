@@ -72,7 +72,7 @@ test("Azure asset bundle contains exactly the allowlisted Docker build inputs", 
   assert.deepEqual(AZURE_ASSET_ALLOWLIST, [
     ".github/workflows/shared/authority.mjs",
     ".github/workflows/shared/policy.mjs",
-    "activity/actions-log.mjs",
+    ".github/workflows/shared/actions-log.mjs",
     "dashboard/report/bundle-dashboards.mjs",
     "dashboard/report/compose-dashboard-documents.mjs",
     "dashboard/report/configure-site.mjs",

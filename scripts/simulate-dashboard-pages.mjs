@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { copyFile, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { hashActivityPayloads } from "../activity/cli/payloads.mjs";
+import { normalizeSnapshotPayloads } from "../dashboard/report/normalized-payloads.mjs";
 import { buildDashboardSite } from "../dashboard/site/scripts/build.mjs";
 import { enterpriseSample } from "./dashboard-demo-data.mjs";
 
@@ -87,7 +87,7 @@ export async function prepareDashboardPages({
   try {
     const sample = await writeEnterpriseSample(activity, now);
     const { generatedAt } = sample;
-    const hashes = await hashActivityPayloads({
+    const hashes = await normalizeSnapshotPayloads({
       shardDirectory: path.join(activity, "gh-aw-logs-shards"),
       runsDirectory: path.join(activity, "gh-aw-logs-runs"),
       recordsDirectory: path.join(activity, "gh-aw-logs-records"),

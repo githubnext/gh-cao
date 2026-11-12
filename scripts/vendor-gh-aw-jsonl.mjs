@@ -12,7 +12,7 @@ const files = [
   'mcp_scripts_validation.cjs',
   'memory_schema_contract.cjs',
 ];
-const destination = path.resolve(import.meta.dirname, '../activity/vendor/gh-aw');
+const destination = path.resolve(import.meta.dirname, '../dashboard/report/vendor/gh-aw');
 const sources = [...files.map((name) => `${sourceDirectory}/${name}`), 'LICENSE'];
 const downloaded = sources.map((source) => {
   const response = JSON.parse(execFileSync('gh', [

@@ -1128,7 +1128,7 @@ exclusive ingestion profiles. By default the server ingests an explicitly
 acquired, verified operational snapshot; the legacy Activity publisher is retired.
 As an alternative, the server itself collects evidence from GitHub App
 installations through bounded native Go acquisition and epoch-fenced PostgreSQL
-publication. It does not execute `activity/cao.mjs`, stage an Activity lake,
+publication. It does not execute `gh cao`, stage an Activity lake,
 or schedule snapshot replacement. Native recovery replays durable PostgreSQL
 publications; the default Actions profile independently ingests verified
 published snapshots. The separately selected `NativeValueService` owns reviewed
@@ -1156,11 +1156,7 @@ they preserve source quality and provenance and grant no operational authority.
 The `cao computation runtime-health` command executes the first production
 measure through declarative canonical queries. Future CLI measures extend the
 same `computation` namespace.
-`activity/cao.mjs` is the executable entry point and preserves the public CLI
-exports. `activity/cli/` owns argument parsing, dispatch, policy and campaign
-configuration, authentication, evidence ingestion and publication, downloads,
-and local queries in focused modules. `activity/commands/` owns one handler per
-command; implementation modules depend on shared helpers, not the entry point.
+The native Go extension is the only CLI entry point. Dashboard build normalization lives under `dashboard/report/`; reviewed policy and Value acquisition contracts live under their domain owners. No Activity CLI or compatibility runtime is packaged.
 Native `gh cao api-cost` executes the deterministic planning model in
 `internal/apicost`. It keeps sustained quota, synchronized burst, reviewed
 collector grants and serialized runner time separate, supports declarative
@@ -1519,7 +1515,6 @@ and removal remain authenticated and never hydrate notification payloads.
 | `<operation>/aw.yml` | Campaign boundary and installation manifest for an operation. User-facing operations include `cao-evolution/`, `dependabot/`, `eu-cra-compliance/`, `optimization/`, `repo-assist/`, `self-care/`, `software-development-practices/`, and `uk-ai-advisory/`. |
 | `<operation>/operational-value.mjs` | Optional deterministic repository-scoped operational-value computation installed with its package. |
 | `<operation>/problem-clustering.mjs` | Optional bounded problem computation installed with its package. |
-| `activity/` | Deterministic Activity collection, JSONL ingestion, SQLite projection, and the `cao` CLI. |
 | `cmd/gh-cao/`, `internal/cli/`, `internal/ghcli/`, `dashboard/catalog.go` | Independent, entirely Go operator-facing `gh cao` executable, including onboarding, campaign and policy management, SQLite queries, computations and MCP; embeds the dashboard's authoritative JSON contracts. Actions pipeline commands remain Node-owned. |
 | `internal/dashboardquery/` | Small independent Go module sharing the bounded local Dashboard Language evaluator and read-only canonical SQLite reader between the extension and explicit local server profile; never a hosted PostgreSQL fallback. |
 | `dashboard/` | Dashboard campaign, report/source adapters, canvas-only authoring bridge, and shared browser UI served operationally by Go or as a synthetic-only Pages demo. |
@@ -1597,7 +1592,7 @@ and nonzero status for failed or skipped checks. Authentication may contact
 GitHub; raw authentication output and subprocess errors are never reported.
 Doctor does not replace production policy/workflow validation, grant authority,
 or invoke the Node snapshot-repair command. Actions and Node-only tools invoke
-`node activity/cao.mjs <command>` explicitly, including SQLite snapshot `repair-database`.
+`gh cao COMMAND` explicitly, including SQLite snapshot `repair-database`.
 There is no shell launcher.
 `gh cao deploy` owns both offline bundle generation (`init`, `generate`, `check`)
 and guarded Azure development deployment (`azure`). `internal/topology/` owns
@@ -1631,14 +1626,13 @@ never install it.
 Human/operator commands belong in the Go extension; server hosting and
 administration belong to `cao-dashboard`. Actions execution support, including
 workflow-agent evidence APIs, belongs in the shipped JavaScript runtime under
-`activity/` and `dashboard/`.
+`dashboard/` and the shared control resources.
 Agentic workflow execution and agent evidence preparation must not build,
 install, or invoke the native extension. Copilot setup stages dashboard evidence
-with `node activity/cao.mjs download`. Dedicated extension build, release, and
+with `gh cao download`. Dedicated extension build, release, and
 operator-installer compatibility tests remain separate from agent runtime.
 Control-plane validation is
 Actions-only, with one implementation invoked directly as
-`node activity/cao.mjs validate --json`, using the installed runtime revision
 and production policy resolver. The extension exposes no `validate` command.
 Native policy parsing still guards operator construction
 and mutation; it is not a second control-plane validator. The workflow does not
@@ -2189,7 +2183,7 @@ not authorize cross-repository evidence access.
 
 - `specs/control-architecture.md` defines authority, admission, and execution
   invariants.
-- `specs/activity.md` defines evidence collection and snapshot semantics.
+- `specs/server-ingestion.md` defines evidence collection and snapshot semantics.
 - `specs/github-api-capacity.md` defines deterministic GitHub acquisition-cost
   and fleet-capacity modeling.
 - `specs/value.md` defines the cross-subsystem Value contract, including

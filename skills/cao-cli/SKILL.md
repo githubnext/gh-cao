@@ -33,7 +33,7 @@ below; do not build or install the extension when the runtime or cache is absent
      [dashboard query maintenance](references/dashboard-query-maintenance.md);
    - CLI implementation work: read [CAO Commands](https://github.com/githubnext/gh-cao/blob/main/docs/cao-cli.md) and the
      matching Go command under `internal/cli/` or pipeline module under `activity/commands/`.
-2. Run `gh cao --help` for operator commands or `node activity/cao.mjs --help` for pipeline tools from
+2. Run `gh cao --help` for operator commands or `gh cao --help` for pipeline tools from
    the repository root. Do not guess command syntax.
 3. Use the narrowest command that answers the task. Prefer reviewed named
    queries, then canonical collection queries, then raw Dashboard Language.

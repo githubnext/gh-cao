@@ -15,7 +15,7 @@ on:
       - .github/workflows/target-read-access-probe.yml
       - .github/workflows/shared/control.md
       - .github/workflows/shared/github-apps.mjs
-      - activity/value-acquisition.mjs
+      - .github/workflows/shared/value-acquisition.mjs
       - scripts/probe-target-read-access.mjs
   schedule:
     - cron: "41 6 * * 1"
@@ -41,7 +41,7 @@ jobs:
           sparse-checkout: |
             .github/workflows/
             scripts/
-            /activity/value-acquisition.mjs
+            /.github/workflows/shared/value-acquisition.mjs
           sparse-checkout-cone-mode: false
           persist-credentials: false
 

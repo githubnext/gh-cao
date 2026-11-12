@@ -31,9 +31,9 @@ dashboard request abuse protection is defined separately by
 It does not define dashboard presentation, workflow rollout policy, or durable
 operational outcomes. It does not define the canonical data model, the shard
 format, or the `gh aw` audit mapping: those remain owned by
-`specs/activity.md` and `specs/dashboard-gh-aw-jsonl-mapping.md`.
+`specs/server-ingestion.md` and `specs/dashboard-gh-aw-jsonl-mapping.md`.
 
-This specification **conforms to** `specs/activity.md`. It supersedes nothing.
+This specification **conforms to** `specs/server-ingestion.md`. It supersedes nothing.
 Nothing in this document changes the obligations of the Actions profile.
 
 ## 1. Status and conformance
@@ -58,7 +58,7 @@ CAO defines two acquisition profiles.
 
 - The **Actions profile** is the default. Activity publishes an immutable
   snapshot directory, and the server ingests it. It is specified by
-  `specs/activity.md` and is unaffected by this document.
+  `specs/server-ingestion.md` and is unaffected by this document.
 - The **collector profile** is defined here. The server acquires evidence
   directly from a GitHub App.
 
@@ -592,7 +592,7 @@ not in an Activity directory, local overlay, or approved-content trace store.
 Native activation MUST enforce cold start, retention and scope erasure through
 that shared durable representation, and reject backends unable to satisfy
 those contracts. The Actions snapshot layout remains specified separately in
-`specs/activity.md`; it is not an App-backed collector fallback.
+`specs/server-ingestion.md`; it is not an App-backed collector fallback.
 
 ## 7. Projection
 

@@ -10,13 +10,13 @@ run the operator's `install-gh-cao.sh` inside a workflow as a runtime dependency
 1. Check `.cao/gh-aw-logs.sqlite`. A missing or empty file
    means operational evidence is unavailable. Use only separately authorized,
    bounded read-only evidence tools; do not infer a snapshot or discover artifacts.
-2. Resolve `activity/cao.mjs` from the installed campaign source. If it is
+2. Resolve `gh cao` from the installed campaign source. If it is
    absent, skip every CAO command; never invoke `node` with an empty script path.
 3. Pass the snapshot database explicitly:
 
    ```bash
    db=".cao/gh-aw-logs.sqlite"
-   node activity/cao.mjs gh runs \
+   gh cao gh runs \
      --database "$db" \
      --repo OWNER/REPOSITORY \
      --workflow WORKFLOW \

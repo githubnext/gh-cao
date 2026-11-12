@@ -10,8 +10,9 @@ const repository = 'githubnext/gh-cao';
 const rootPackageNames = [`${repository}/control-plane`, repository];
 const runtimeWaitArray = new Int32Array(new SharedArrayBuffer(4));
 const rootResources = [
-  'activity',
   'dashboard',
+  '.github/workflows/shared/value-acquisition.mjs',
+  '.github/workflows/shared/actions-log.mjs',
   '.github/actions/setup-cao-runtime',
   '.github/actions/setup-gh-aw',
   '.github/cao/instructions.md',
@@ -33,7 +34,7 @@ function removeRetiredLauncher(repositoryRoot) {
 }
 
 function validateCampaign(campaign) {
-  if (!/^(?:root|activity|dashboard|[a-z0-9-]+)$/.test(campaign)) {
+  if (campaign === 'activity' || !/^[a-z0-9-]+$/.test(campaign)) {
     throw new Error(`Invalid CAO campaign name: ${campaign}`);
   }
 }
@@ -87,7 +88,7 @@ function recordFor(records, campaign) {
   const name = campaign === 'root' ? repository : `${repository}/${campaign}`;
   const exact = exactRecordFor(records, campaign);
   if (exact) return exact;
-  if (campaign === 'activity' || campaign === 'dashboard') {
+  if (campaign === 'dashboard') {
     const root = exactRecordFor(records, 'root');
     if (root) return root;
   }
@@ -352,7 +353,7 @@ export function validateCaoRuntimeArtifact(sourceRoot, revision) {
     const digest = createHash('sha256').update(readFileSync(path.join(sourceRoot, file))).digest('hex');
     if (metadata.files[file] !== digest) throw new Error(`CAO runtime artifact checksum mismatch: ${file}`);
   }
-  for (const bundle of ['activity', 'dashboard']) verifyCaoRuntime(bundle, sourceRoot);
+  verifyCaoRuntime('dashboard', sourceRoot);
 }
 
 function gh(arguments_) {
@@ -428,7 +429,7 @@ export function materializeCaoFromSource(campaign, sourceRoot, repositoryRoot) {
   validateCampaign(campaign);
   const resources = campaign === 'root' ? rootResources : [campaign];
   validateResources(sourceRoot, resources);
-  if (campaign === 'root' || campaign === 'activity' || campaign === 'dashboard') {
+  if (campaign === 'root' || campaign === 'dashboard') {
     const temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'cao-pack-'));
     try {
       const packed = packCaoRuntime(sourceRoot, temporaryDirectory, { tracked: true });
@@ -456,7 +457,7 @@ export function planCaoMaterialization(records, campaign) {
     }];
   }
 
-  const focused = ['activity', 'dashboard']
+  const focused = ['dashboard']
     .map((focusedCampaign) => ({
       campaign: focusedCampaign,
       record: exactRecordFor(records, focusedCampaign),
@@ -481,7 +482,7 @@ export async function materializeCao(campaign = 'root', repositoryRoot = process
       if (!sourceRoot) {
         const extractionDirectory = path.join(temporaryDirectory, String(index));
         mkdirSync(extractionDirectory);
-        const runtime = ['root', 'activity', 'dashboard'].includes(plan.campaign);
+        const runtime = ['root', 'dashboard'].includes(plan.campaign);
         const archive = runtime
           ? downloadCaoRuntimeArtifact(plan.record, path.join(temporaryDirectory, `download-${index}`))
           : path.join(temporaryDirectory, `${index}.tar.gz`);
@@ -516,39 +517,6 @@ export async function materializeCao(campaign = 'root', repositoryRoot = process
 
 export function verifyCaoRuntime(bundle, repositoryRoot = process.cwd()) {
   const required = {
-    activity: [
-      'activity/cao.mjs',
-      'activity/github-api-budget.mjs',
-      'activity/workflow-values.mjs',
-      'activity/value-acquisition.mjs',
-      'activity/workflow-value-evidence.mjs',
-      'activity/workflow-value-history.mjs',
-      'activity/workflow-value-status.mjs',
-      'activity/canonical-query.mjs',
-      'dashboard/site/src/data/model/operational-value-evidence.js',
-      'dashboard/site/src/data/model/workflow-value-collection.js',
-      'activity/cli/cache.mjs',
-      'activity/cli/dashboard.mjs',
-      'activity/cli/download.mjs',
-      'activity/cli/files.mjs',
-      'activity/cli/ingestion.mjs',
-      'activity/cli/issue-status.mjs',
-      'activity/cli/jsonl-identity.mjs',
-      'activity/cli/jsonl.mjs',
-      'activity/cli/options.mjs',
-      'activity/cli/payloads.mjs',
-      'activity/cli/queries.mjs',
-      'activity/cli/run.mjs',
-      'activity/cli-usage.mjs',
-      'activity/normalized-phase.mjs',
-      'activity/commands/index.mjs',
-      'activity/control-settings.mjs',
-      'activity/repository-visibility.mjs',
-      'activity/collect-workflow-logs.mjs',
-      'activity/session-evidence.mjs',
-      'activity/marketplace.mjs',
-      'activity/problem-clustering.mjs',
-    ],
     dashboard: ['dashboard/site/package.json', 'dashboard/report/configure-site.mjs'],
   }[bundle];
   if (!required) throw new Error(`Unknown CAO runtime bundle: ${bundle}`);

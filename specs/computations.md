@@ -1615,7 +1615,7 @@ referenced failures. The action retains links to all three upstream results.
 
 ## 13. Normative references
 
-- [CAO Activity Specification](activity.md)
+- [CAO Activity Specification](server-ingestion.md)
 - [CAO Dashboard Data Architecture Specification](dashboard-data.md)
 - [CAO Dashboard Specification](dashboard.md)
 - [Cached gh-aw JSONL Mapping](dashboard-gh-aw-jsonl-mapping.md)
