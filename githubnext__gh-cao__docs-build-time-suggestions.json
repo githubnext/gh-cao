@@ -1,28 +1,7 @@
 {
   "source_sha": "433d9292506695ce6cecaed56525f0c059b8817a",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T09:35:25Z",
-      "worker_run_id": "43192140494",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z; within 14 days; 0 cancelled; none in progress; unchanged since the 07:53Z evaluation). Comparable sample n=12 current-shape publications (11 push d57c4c82..d4bf131, 1 schedule 43161224542; 5-run minimum met). Excluded: 6 failed retired-Mount schedules, 2 freshness-only schedules. Job and step metadata re-fetched this run. Build documentation step (npm run docs:build) median 14 s, p90 15 s, range 10-15 s = 15.6% of median created-to-deploy wall 89.5 s (p90 112 s); 15% gate = 13.4 s, 60 s out of reach. Only complete removal reaches the gate, and this step produces the Pages site root (dist) that is published. docs.yml passes PUBLIC_PAGES_BUILD_COMMIT=github.sha into this step, so its output is commit-specific; cross-push output caching is not shown to be safe. Job log read returned HTTP 403 difc_forbidden (single attempt, not retried), so the Astro-internal split and cache hit/miss remain unverified. Scope: docs.yml and Actions run metadata only; no repository source read. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-12T09:53:03Z",
       "worker_run_id": "43194721852",
@@ -795,6 +774,34 @@
         43124416558
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T23:39:34Z to 2026-11-12T15:38:00Z; all within 14 days; no run after 15:38Z; 1 cancelled excluded: 43206161686 (no jobs); 0 failed). Comparable n=19 successful (18 push, 1 schedule 43161224542; 5-run gate met). Source HEAD 433d929 (same as prior source_sha); docs.yml last changed 063cbe9 (path filters only). Job/step metadata only; job log read HTTP 403 (single re-probe, not retried). Wall created-to-deploy median 88 s (p90 126); build-start-to-deploy-end median 85 s (p90 123); 15% gate 12.75 s; 60 s unreachable. Queue: build 3 s, deploy 5 s, handoff 0 s (medians). Install dependencies median 17 s (p90 25) = 20% of median; Set up Node.js (cache restore) median 3 s (p90 8); Post Set up Node.js 0-1 s in 19/19 (consistent with exact-key hits; not log-verified). Cache key reproduces as SHA-256 over per-file digests of the three committed lockfiles (current key node-cache-...cfaf24...); root-only key e62f... and root+dashboard key 43bd... also exist from other workflows. Lockfile commits: root only (02:27, 06:17 063cbe9, 16:13 on 11-11); server/spec and dashboard lockfiles unchanged since before 11-10. No cold-install outlier in window (install max 25 s). Levers: root npm ci --omit=dev would skip 107 of 765 entries (static bound under 5 s; build use unverified); --no-audit/--no-fund unmeasured; node_modules caching unmeasured and adds staleness risk; none reaches 12.75 s. Carry-forward outside this cycle, not a suggestion: Checkout fetch-depth 0 median 24 s (p90 47) is load-bearing: docs/plugins/starlight-agent/resource.ts runs git log -1 -- path for sourceCommittedAt, so depth-1 would change provenance; any reduction must keep history (e.g., partial clone) and is unmeasured. Brief's dashboard job does not exist; dashboard generation is build step 'Build synthetic enterprise demo' (median 4 s). No suggestion; no issue created; no open issue with this worker label. next_category advanced to Astro documentation generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T19:36:19Z",
+      "worker_run_id": "43290658107",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; within 14 days; no docs.yml run since 15:38Z; workflow shape unchanged). Excluded: 1 cancelled superseded pending run 43206161686 (no jobs). Comparable n=19 successes (18 push + 1 schedule 43161224542; identical 11-step build and 3-step deploy shapes; 5-run minimum met). Medians (p90), metadata only: execution build-start-to-deploy-end 85 s (120 s); created-to-deploy wall 88 s (123 s); build job 68 s (103 s); deploy job 11 s (14 s); build queue 3 s; deploy queue 5 s; handoff 0 s (1 s). Astro step 'Build documentation' (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test): median 14 s, p90 15 s, range 8-15 s = 16.5% of median execution; 15% gate = 12.75 s needs about 91% of the step removed, which would drop the published docs build and validation. PUBLIC_PAGES_BUILD_COMMIT=github.sha keeps output commit-specific; output caching unmeasured and not shown safe. Build job log read returned HTTP 403 difc_forbidden (one attempt this run, not retried): Astro-internal split and cache hit/miss unverified from logs. Cache metadata: active node-cache key e62f... (278.9 MB, created 06:18Z, main); Post Set up Node.js 0-1 s in 19/19, consistent with restore hits. Carry-forward lead, not evaluated under this docs.yml-only scope: Checkout fetch-depth 0 median 24 s, p90 45 s, largest build step; a shallow or partial alternative needs history-correctness evidence first. Prior issues 20380 (closed 16:26Z) and 20131 (closed 13:13Z) not repeated. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ]
