@@ -1,31 +1,7 @@
 {
   "source_sha": "cd1e0ba023d17672e8e2a42170a9f57cc709522d",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T12:41:27Z",
-      "worker_run_id": "43219289794",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        43206235849,
-        43206080696,
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T20:16:01Z to 2026-11-12T11:06:25Z; within 14 days). Excluded: 1 cancelled (43206161686) and 4 failed retired-Mount-step schedules (43094878868, 43099316175, 43101943628, 43103737760). Sample = 15 current build+deploy successes: 14 push (n=14, meets minimum) + 1 schedule (43161224542). Push medians (p90): wall queued-to-deploy 89.5 s (122 s); build start-to-deploy 86.5 s (119 s); build job 72.5 s (103 s); deploy job 10.5 s (18 s). Dependency step: Install dependencies median 18.5 s (p90 23 s, range 11-25 s); Set up Node.js (npm cache restore) median 3 s (p90 8 s). Cache key = sha256(sha256(package-lock.json)) (verified against cache API): current root lock entry e62f6006 exists on main (278.9 MB, created 06:18:07 by lock-change run 43167070179). Root lock changed on main at 3bd066dd (02:27Z) and 063cbe911 (06:17Z); those two miss runs installed in 22 s and 21 s vs 17.5 s median for the other 12 push runs, so the miss penalty is about 4 s and occurs only on root-lock changes. dashboard/site/package-lock.json unchanged since 2026-10-22, so its absence from the cache key has no observed cost. Job logs return 403 DIFC (re-verified), so per-run hit/miss is inferred from cache metadata and step timings. Best case node_modules caching removes at most the 17.5-18.5 s install minus unmeasured restore cost (estimated net 5-12 s), below the about 13 s gate (15% of 86.5-89.5 s). No suggestion; open issues 20380 and 20131 were not repeated. Carry-forward for Astro category (not a suggestion): Checkout fetch-depth 0 median 24 s (p90 47 s), the largest build-job step, coupled to per-file git log -1 in docs/plugins/starlight-agent/resource.ts; any partial-history alternative must preserve sourceCommittedAt. next_category advanced to Astro documentation generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-12T12:55:32Z",
       "worker_run_id": "43221392403",
@@ -829,6 +805,33 @@
         43138878761
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04Z to 2026-11-12T20:35Z; within 14 days; source cd1e0ba0 = local HEAD = source_sha; no new completed runs since the 22:18Z evaluation; docs.yml last changed 063cbe91 at 06:17Z). Excluded and disclosed: 1 cancelled superseded pending run 43206161686 (no jobs; replaced by 43206235849); 1 failed push run 43297524311 (e465d28c; Build documentation failed at 14 s, correctness fault fixed by cd1e0ba0 about 25 min later, not a scheduling cost). Comparable n=18 successes (17 push, 1 schedule 43161224542). Medians (p90) from job and step metadata: run-created to build-start 4 s (12.5 s); build job 67 s (103 s); build-end to deploy-created handoff 0 s (1 s); deploy queue 5 s (6 s); deploy job 10.5 s (14.5 s); build-start to deploy-end 84.5 s (120 s); wall 88 s (133 s). 15% of median execution = 12.7 s. Concurrency: 2 of 18 waited behind an in-progress publication (43228124764 43 s, behind 43228046118; 43206235849 27 s, behind 43206080696); no other waits over 5 s; the 60 s/15% gate is not met because the median wait is 0 s. Avoidable rebuilds: compare API on all 20 pairs (two 500s retried successfully); 0 of 17 push runs changed only files outside build inputs; trigger-only dashboard/site/test/** files always rode with consumed src/docs/report changes; docs/lib/catalog.ts is consumed by docs/pages/catalog. Schedule 05:23 UTC daily is the one required synthetic-date refresh; removing it weakens freshness. Maintainer note, not a time saving: docs:build and the Pages builder read files outside the docs.yml paths filter (scripts/dashboard-demo-data.mjs, scripts/validate-agent-docs.mjs, tests/integration/agent-docs-discovery.test.mjs, .github/workflows/cao.json gh-aw-version read in dashboard/site/scripts/build.mjs); a change to these alone would not rebuild Pages until the next daily run; none occurred alone in this window. Carry-forward lead, unchanged and unmeasured: Checkout fetch-depth 0 median 24 s (p90 46 s), the largest build step, partial-clone (filter: blob:none) savings unmeasured; Install dependencies median 16 s (p90 22 s) in this window. No suggestion; next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T22:56:00Z",
+      "worker_run_id": "43323137179",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        43301807773,
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04Z to 2026-11-12T20:35Z; within 14 days; source cd1e0ba = HEAD = source_sha). Excluded: 1 failed 43297524311 (e465d28, fixed by cd1e0ba) and 1 cancelled 43206161686 (no jobs). n=18 successes (17 push, 1 schedule 43161224542). Medians (p90), job and step metadata: Install dependencies 16 s (23 s; range 11-25 s) = 19% of build-start-to-deploy-end 84.5 s (p90 123 s); Set up Node.js restore 3 s (8 s); Post Set up Node.js 0 s (1 s); build job 67 s (104 s); deploy job 10.5 s (18 s); 15% gate = 12.7 s. Cache verification from metadata: root package-lock git blob identical on every run commit from 063cbe9 through cd1e0ba; key sha256(raw sha256 of package-lock.json) = e62f6006, which exists (created 06:18:07Z, last accessed 22:43Z). setup-node cache-save.ts skips save on exact-key hit; post-save 1 s only on the first run per lock change (43138878761, 43141528595). Hits n=15: install median 15 s (p90 19); misses n=3 (lock changes): 21-23 s, penalty about 7 s on 3 of 18 runs, zero effect on the median. Resolves the prior unresolved 91e8e843 note (earlier hash method was wrong). Candidates, none meeting 12.7 s: node_modules caching (net est. 5-12 s, restore cost unmeasured); --no-audit/--no-fund (network audit/fund step only, unmeasured); pruning root devDependencies (unverified); root --ignore-scripts (node-pty native build declared needed by .github/workflows/workflow-contracts.yml:137 and dashboard/cli-terminal-process.mjs; cost unmeasured; upstream microsoft/node-pty unreadable, 403). Logs 403 DIFC (re-verified). No open issue with this worker label. No suggestion; next_category advanced to Astro documentation generation. Carry-forward, unmeasured: Checkout fetch-depth 0 median 24 s (p90 47), largest build step; partial-clone idea needs a maintainer-run A/B.",
       "suggestion_fingerprint": null
     }
   ]
