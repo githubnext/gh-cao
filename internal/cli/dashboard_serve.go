@@ -124,7 +124,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	if err := initializeDashboardSnapshot(ctx, cache, repositories, options); err != nil {
 		return err
 	}
-	options.postgresURL, err = configureDashboardPostgres(ctx, server, cache, namespace, options.postgresURL)
+	options.postgresURL, err = configureDashboardPostgres(ctx, server, cache, namespace, options.postgresURL, options.containerEngine)
 	if err != nil {
 		return err
 	}

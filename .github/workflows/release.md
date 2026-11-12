@@ -6,6 +6,7 @@ description: Prepare a version-tagged draft with verified runtime assets and ver
 intent: Help maintainers publish trustworthy releases whose descriptions clearly explain user-facing changes.
 
 on:
+  schedule: daily
   workflow_dispatch:
     inputs:
       bump:
@@ -53,7 +54,9 @@ jobs:
     needs: activation
     runs-on: ubuntu-latest
     permissions:
+      checks: read
       contents: read
+      statuses: read
     outputs:
       release_tag: ${{ steps.version.outputs.release_tag }}
     steps:
@@ -66,7 +69,8 @@ jobs:
         with:
           github-token: ${{ github.token }}
           script: |
-            const requestedBump = process.env.RELEASE_BUMP;
+            const scheduled = context.eventName === 'schedule';
+            const requestedBump = scheduled ? 'patch' : process.env.RELEASE_BUMP;
             const triggeringActor = process.env.TRIGGERING_ACTOR;
             const bump = ['patch', 'minor', 'major'].includes(requestedBump) ? requestedBump : 'patch';
             if (bump !== requestedBump) {
@@ -77,16 +81,18 @@ jobs:
               throw new Error('Releases cannot run from forks');
             }
 
-            const { data: access } = await github.rest.repos.getCollaboratorPermissionLevel({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              username: triggeringActor,
-            });
-            const role = access.role_name || access.permission;
-            if (!['maintain', 'admin'].includes(role)) {
-              throw new Error(`Releases require maintain or admin access; ${triggeringActor} has the ${role} role`);
+            if (!scheduled) {
+              const { data: access } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: triggeringActor,
+              });
+              const role = access.role_name || access.permission;
+              if (!['maintain', 'admin'].includes(role)) {
+                throw new Error(`Releases require maintain or admin access; ${triggeringActor} has the ${role} role`);
+              }
+              core.info(`Authorized ${triggeringActor} with the ${role} role.`);
             }
-            core.info(`Authorized ${triggeringActor} with the ${role} role.`);
 
             const defaultRef = `refs/heads/${context.payload.repository.default_branch}`;
             if (context.ref !== defaultRef) {
@@ -115,6 +121,69 @@ jobs:
                 per_page: 100,
               }),
             ]);
+            if (scheduled) {
+              const skip = (reason) => core.info(`Skipping scheduled release: ${reason}`);
+              const scope = { owner: context.repo.owner, repo: context.repo.repo };
+              const { data: main } = await github.rest.repos.getBranch({ ...scope, branch: 'main' });
+              if (context.ref !== 'refs/heads/main' || !/^[0-9a-f]{40}$/.test(context.sha) ||
+                  main.commit?.sha !== context.sha) {
+                skip('the scheduled revision is not the current main SHA');
+                return;
+              }
+              const published = releases.filter((release) => release.draft === false);
+              if (!published.length || published.some((release) =>
+                  !release.tag_name || !Number.isFinite(Date.parse(release.published_at)))) {
+                skip('no complete published-release baseline');
+                return;
+              }
+              published.sort((left, right) =>
+                Date.parse(right.published_at) - Date.parse(left.published_at) || right.id - left.id);
+              const latestPublished = published[0];
+              const { data: baseline } = await github.rest.repos.getCommit({
+                ...scope, ref: latestPublished.tag_name,
+              });
+              if (!/^[0-9a-f]{40}$/.test(baseline.sha)) {
+                throw new Error('Published release tag has no verified commit SHA');
+              }
+              const { data: comparison } = await github.rest.repos.compareCommitsWithBasehead({
+                ...scope, basehead: `${baseline.sha}...${context.sha}`,
+              });
+              if (comparison.status !== 'ahead' || !Number.isSafeInteger(comparison.ahead_by) ||
+                  comparison.ahead_by <= 0) {
+                skip(`main has no verified new commits since ${latestPublished.tag_name}`);
+                return;
+              }
+              const [checks, statuses] = await Promise.all([
+                github.paginate(github.rest.checks.listForRef, {
+                  ...scope, ref: context.sha, filter: 'latest', per_page: 100,
+                }),
+                github.paginate(github.rest.repos.listCommitStatusesForRef, {
+                  ...scope, ref: context.sha, per_page: 100,
+                }),
+              ]);
+              // Only this run is excluded: its in-progress jobs would otherwise deadlock the gate.
+              const currentRun = `${context.serverUrl}/${scope.owner}/${scope.repo}/actions/runs/${context.runId}`;
+              const otherChecks = checks.filter((check) =>
+                check.app?.slug !== 'github-actions' ||
+                (check.details_url !== currentRun && !check.details_url?.startsWith(`${currentRun}/`)));
+              const latestStatuses = new Map();
+              for (const status of statuses) {
+                if (!status.context || !Number.isSafeInteger(status.id)) {
+                  throw new Error('Incomplete commit-status evidence');
+                }
+                if (!latestStatuses.has(status.context) || status.id > latestStatuses.get(status.context).id) {
+                  latestStatuses.set(status.context, status);
+                }
+              }
+              if (otherChecks.length + latestStatuses.size === 0 ||
+                  otherChecks.some((check) => check.head_sha !== context.sha ||
+                    check.status !== 'completed' || check.conclusion !== 'success') ||
+                  [...latestStatuses.values()].some((status) => status.state !== 'success')) {
+                skip('main checks or commit statuses are missing, pending, or not all successful');
+                return;
+              }
+              core.info(`All observed checks are green for ${context.sha}; new commits since ${latestPublished.tag_name}.`);
+            }
             const toVersion = (name) => {
               const match = versionPattern.exec(name);
               return match ? [[Number(match[1]), Number(match[2]), Number(match[3])]] : [];
@@ -150,6 +219,7 @@ jobs:
   prepare-release:
     name: Prepare draft release
     needs: resolve-version
+    if: needs.resolve-version.outputs.release_tag != ''
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -220,6 +290,7 @@ jobs:
   build-extension:
     name: Build versioned extension binaries
     needs: resolve-version
+    if: needs.resolve-version.outputs.release_tag != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -720,6 +791,16 @@ steps:
 ---
 
 # Release Highlights
+
+Daily runs consider only the exact current `main` SHA and use a patch bump. They
+require new commits after the newest release by publication time (including
+prereleases, excluding drafts), and successful latest check runs and commit
+statuses across every API page. Neutral, skipped, pending, failed, or absent
+evidence does not qualify. Only checks belonging to this release run are excluded
+to avoid waiting on its own unfinished jobs; other release runs are not exempt.
+Missing baselines and unchanged, behind, or diverged history produce no release;
+API errors fail closed. Maintainer/admin manual dispatch retains its existing
+default-branch authorization and explicit version-bump behavior.
 
 Update the newly published immutable prerelease identified by `current_release.json` with a concise, human-friendly summary.
 

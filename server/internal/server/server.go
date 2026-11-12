@@ -794,6 +794,7 @@ func (a *App) Handler() http.Handler {
 	if a.oauth != nil {
 		register("GET /auth/login", a.oauth.login)
 		register("GET /auth/logged-out", a.oauth.loggedOut)
+		register("GET /auth/select-account", a.oauth.selectAccount)
 		register("GET /auth/callback", a.oauth.callback)
 		register("POST /auth/logout", a.oauth.logout)
 		register("POST /auth/switch-account", a.oauth.switchAccount)
@@ -1101,6 +1102,7 @@ func (a *App) requireGitHubAccess(next http.Handler) http.Handler {
 			request.URL.Path == "/api/github/webhook" ||
 			strings.HasPrefix(request.URL.Path, "/auth/login") ||
 			strings.HasPrefix(request.URL.Path, "/auth/logged-out") ||
+			request.URL.Path == "/auth/select-account" ||
 			strings.HasPrefix(request.URL.Path, "/auth/callback") {
 			a.logAuthBranch(request.Context(), "access.public_allowed")
 			next.ServeHTTP(response, request)

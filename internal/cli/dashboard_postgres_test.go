@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -14,9 +15,8 @@ import (
 )
 
 func TestDashboardPostgresExplicitConnectionDoesNotManageContainers(t *testing.T) {
-	t.Setenv("CAO_CONTAINER_ENGINE", "must-not-run")
 	connection := "postgres://explicit.example/database"
-	got, err := configureDashboardPostgres(t.Context(), "must-not-run", t.TempDir(), "scope", connection)
+	got, err := configureDashboardPostgres(t.Context(), "must-not-run", t.TempDir(), "scope", connection, "must-not-run")
 	if err != nil || got != connection {
 		t.Fatalf("explicit connection was not preserved: %q %v", got, err)
 	}
@@ -56,12 +56,113 @@ func TestDashboardEngineRejectsRemoteConnectionsBeforeWork(t *testing.T) {
 	}
 }
 
-func TestDashboardEngineRejectsInvalidExplicitSelection(t *testing.T) {
-	for _, selection := range []string{"", "auto", "unsupported"} {
-		t.Run(selection, func(t *testing.T) {
-			t.Setenv("CAO_CONTAINER_ENGINE", selection)
-			if _, err := selectDashboardEngine(t.Context()); err == nil || !strings.Contains(err.Error(), "must be docker or podman") {
-				t.Fatalf("invalid explicit engine was accepted: %v", err)
+func TestDashboardEngineSelection(t *testing.T) {
+	for _, test := range []struct {
+		flag    string
+		changed bool
+		env     *string
+		want    string
+		err     string
+	}{
+		{want: ""},
+		{env: ptr("docker"), want: "docker"},
+		{env: ptr("podman"), want: "podman"},
+		{flag: "podman", changed: true, env: ptr("docker"), want: "podman"},
+		{flag: "docker", changed: true, env: ptr("unsupported"), want: "docker"},
+		{flag: "auto", changed: true, err: "--container-engine must be docker or podman"},
+		{flag: "", changed: true, err: "--container-engine must be docker or podman"},
+		{env: ptr(""), err: "CAO_CONTAINER_ENGINE must be docker or podman"},
+		{env: ptr("unsupported"), err: "CAO_CONTAINER_ENGINE must be docker or podman"},
+	} {
+		t.Setenv("CAO_CONTAINER_ENGINE", "")
+		if test.env == nil {
+			_ = os.Unsetenv("CAO_CONTAINER_ENGINE")
+		} else {
+			t.Setenv("CAO_CONTAINER_ENGINE", *test.env)
+		}
+		got, err := resolveDashboardContainerEngine(test.flag, test.changed)
+		if test.err != "" {
+			if err == nil || !strings.Contains(err.Error(), test.err) {
+				t.Fatalf("%+v: invalid engine was accepted: %q %v", test, got, err)
+			}
+		} else if err != nil || got != test.want {
+			t.Fatalf("%+v: got %q %v, want %q", test, got, err, test.want)
+		}
+	}
+}
+
+func TestDashboardRejectsInvalidContainerEngineBeforeCollection(t *testing.T) {
+	command := dashboardCommand("test", func(context.Context, ...string) (string, string, error) {
+		t.Fatal("invalid container engine reached GitHub acquisition")
+		return "", "", nil
+	}, nil)
+	command.SetArgs([]string{"--container-engine", "auto"})
+	if err := command.ExecuteContext(t.Context()); err == nil || !strings.Contains(err.Error(), "--container-engine must be docker or podman") {
+		t.Fatalf("invalid container engine was accepted: %v", err)
+	}
+}
+
+func ptr(value string) *string { return &value }
+
+func TestDashboardEngineAutomaticSelection(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("container engine fixtures require a POSIX shell")
+	}
+	for _, test := range []struct {
+		name      string
+		selected  string
+		docker    string
+		podman    bool
+		want      string
+		wantError string
+	}{
+		{name: "prefers docker", docker: "usable", podman: true, want: "docker"},
+		{name: "docker missing", podman: true, want: "podman"},
+		{name: "docker unusable", docker: "unusable", podman: true, want: "podman"},
+		{name: "neither installed", wantError: "no usable local container engine"},
+		{name: "explicit docker missing", selected: "docker", podman: true, wantError: "docker is not usable"},
+		{name: "explicit docker unusable", selected: "docker", docker: "unusable", podman: true, wantError: "docker is not usable"},
+		{name: "explicit podman", selected: "podman", docker: "usable", podman: true, want: "podman"},
+		{name: "explicit podman missing", selected: "podman", docker: "usable", wantError: "podman is not usable"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			directory := t.TempDir()
+			t.Setenv("PATH", directory)
+			for _, name := range []string{"DOCKER_HOST", "DOCKER_CONTEXT", "CONTAINER_HOST", "CONTAINER_CONNECTION"} {
+				t.Setenv(name, "")
+			}
+			calls := filepath.Join(directory, "calls")
+			t.Setenv("CAO_TEST_ENGINE_CALLS", calls)
+			for _, name := range []string{"docker", "podman"} {
+				if (name == "docker" && test.docker == "") || (name == "podman" && !test.podman) {
+					continue
+				}
+				script := "#!/bin/sh\nprintf '%s\\n' \"" + name + "\" >> \"$CAO_TEST_ENGINE_CALLS\"\n"
+				if name == "docker" && test.docker == "unusable" {
+					script += "exit 1\n"
+				} else {
+					script += "case \"$1\" in\ncontext) printf '\"unix:///var/run/docker.sock\"';;\nsystem) printf '[]';;\ninfo) printf 'linux';;\n*) exit 1;;\nesac\n"
+				}
+				if err := os.WriteFile(filepath.Join(directory, name), []byte(script), 0o700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			engine, err := selectDashboardEngine(t.Context(), test.selected)
+			if test.wantError != "" {
+				if err == nil || !strings.Contains(err.Error(), test.wantError) {
+					t.Fatalf("got %v, want %q", err, test.wantError)
+				}
+			} else if err != nil || engine.name != test.want {
+				t.Fatalf("got %q %v, want %q", engine.name, err, test.want)
+			}
+			content, err := os.ReadFile(calls)
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				t.Fatal(err)
+			}
+			for _, called := range strings.Fields(string(content)) {
+				if (test.selected != "" && called != test.selected) || (test.want == "docker" && called != "docker") {
+					t.Fatalf("unexpected engine %q was probed", called)
+				}
 			}
 		})
 	}
@@ -186,7 +287,11 @@ func TestDashboardManagedPostgresContainer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	engine, err := selectDashboardEngine(t.Context())
+	engineName, err := resolveDashboardContainerEngine("", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine, err := selectDashboardEngine(t.Context(), engineName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,11 +314,11 @@ func TestDashboardManagedPostgresContainer(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	connection, err := configureDashboardPostgres(t.Context(), server, cache, "managed-test", "")
+	connection, err := configureDashboardPostgres(t.Context(), server, cache, "managed-test", "", engineName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	reused, err := configureDashboardPostgres(t.Context(), server, cache, "managed-test", "")
+	reused, err := configureDashboardPostgres(t.Context(), server, cache, "managed-test", "", engineName)
 	if err != nil || reused != connection {
 		t.Fatalf("real managed PostgreSQL did not reuse its runtime connection: %v", err)
 	}

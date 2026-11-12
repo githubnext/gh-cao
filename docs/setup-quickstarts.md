@@ -12,8 +12,8 @@ Use an installed CAO release, your **locally authenticated GitHub CLI**, and a
 running Docker or Podman engine. The command automatically pulls PostgreSQL,
 starts or reuses its owned loopback-only container, provisions canonical and
 operational storage, and configures a separate non-owner runtime login.
-Set `CAO_CONTAINER_ENGINE=docker` or `podman` to select the engine explicitly.
-Otherwise the command detects an available local engine.
+Docker is tried first, then Podman. Pass `--container-engine docker|podman` (or set
+`CAO_CONTAINER_ENGINE`) to use only that engine.
 
 Persistent data and private local credentials live under
 `.github/cao/dashboard/<repository-scope>/postgres/`; the PostgreSQL data directory
