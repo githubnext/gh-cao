@@ -666,7 +666,6 @@ Open an issue with proposed fixes for human review.`}
         );
       content: "";
       pointer-events: none;
-      animation: section-glow-drift 10s ease-in-out infinite alternate;
     }
 
     :global(:root[data-theme="dark"]) .product-story {
@@ -678,17 +677,6 @@ Open an issue with proposed fixes for human review.`}
 
     :global(:root[data-theme="dark"]) .product-story::before {
       display: none;
-    }
-
-    @keyframes section-glow-drift {
-      from {
-        opacity: 0.7;
-        transform: translate3d(0, 0, 0) scale(0.96);
-      }
-      to {
-        opacity: 1;
-        transform: translate3d(-1rem, 1rem, 0) scale(1.04);
-      }
     }
 
     .product-shot {
