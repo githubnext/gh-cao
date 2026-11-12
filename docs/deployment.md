@@ -14,6 +14,21 @@ compares where to serve the dashboard and run its queries.
 
 Choosing a deployment option never changes campaign policy, rollout mode, credentials, or target authority. Those settings stay in the reviewed `.github/workflows/cao.json` file in your control repository. For more information, see [Control policy](configuration.md#control-policy) and [Roll out a campaign](rollout-and-routing.md).
 
+## No deployment needed for a local dashboard
+
+For your own investigation, install the release extension and run
+`gh cao dashboard --repo OWNER/REPOSITORY` with your locally authenticated
+GitHub CLI. It bundles the server, dashboard, and collector, serves on loopback,
+and automatically refreshes a private canonical SQLite cache on your machine.
+No CAO cloud deployment, Azure setup, hosted dashboard, PostgreSQL, Redis,
+containers, separate Node.js or gh-aw installation, or control-repository setup
+is required. GitHub remains the online, authenticated evidence source.
+
+Open the printed **Dashboard:** URL and stop with **Ctrl-C**; the cache remains.
+Collection is bounded, not a complete historical backfill. Start with the
+[local quickstart](setup-quickstarts.md#open-a-local-dashboard-no-deployment);
+the hosted choices below are optional, not prerequisites.
+
 ## Comparing the options
 
 Dashboard hosting and collection credentials are separate choices. Production
@@ -25,11 +40,14 @@ PostgreSQL also provides separate operational state by default.
 | Option | Dashboard host | Where queries run | Who can sign in | Infrastructure you operate |
 | --- | --- | --- | --- | --- |
 | [Synthetic enterprise demo](deployment-actions.md#building-the-synthetic-pages-demo) | GitHub Pages | Web Worker over isolated browser IndexedDB | No operational sign-in or live services | Documentation/demo workflow only; no operational artifacts |
+| [On-demand local dashboard](setup-quickstarts.md#open-a-local-dashboard-no-deployment) | Bundled loopback Go server | Go over private canonical SQLite cache | Local capability URL; collection uses authenticated `gh` | None; installed release and GitHub CLI |
 | [Local development](dashboard-data-ingestion.md#choose-a-local-serving-mode) | Loopback Go server | Go over read-only operational SQLite | Private local capability URL | Explicitly acquired operational snapshot |
 | [Azure Functions](deployment-azure.md) | Azure Functions | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Function App, Elastic Premium plan, PostgreSQL, Key Vault, ACR, runtime storage, jobs and monitoring |
 | [Azure Container Apps](deployment-topology.md#azure-container-apps) | Container Apps Consumption, one hosted Go replica | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Container Apps environment, PostgreSQL, Key Vault, ACR, jobs and Log Analytics; no Functions, runtime Storage or Premium plan |
 
 ## Choosing an option
+
+For shared operational hosting, rather than the on-demand local command:
 
 1. **Prepare the control plane and evidence.** Follow
    [Set Up CAO](setup-quickstarts.md), then collect a bounded Activity snapshot.

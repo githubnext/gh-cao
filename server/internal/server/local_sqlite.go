@@ -12,6 +12,16 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/sqlitex"
 )
 
+// NewSQLiteIngestionApp serves an externally ingested canonical database through
+// the standard server contract without a separate presentation or query model.
+func NewSQLiteIngestionApp(ctx context.Context, path string, config Config) (*App, error) {
+	if config.Canvas != nil || config.HostProfile != (HostProfile{}) && config.HostProfile != sqliteIngestionHostProfile() {
+		return nil, errors.New("SQLite ingestion uses ordinary server rendering, not canvas integration")
+	}
+	config.HostProfile = sqliteIngestionHostProfile()
+	return NewLocalSQLiteApp(ctx, path, config)
+}
+
 // NewLocalSQLiteApp owns a read-only snapshot and bounded process-local request
 // services, without local refresh or hosted collection.
 func NewLocalSQLiteApp(ctx context.Context, path string, config Config) (*App, error) {
@@ -54,7 +64,8 @@ func NewLocalSQLiteApp(ctx context.Context, path string, config Config) (*App, e
 	}
 	app.ownedOperational = store
 	app.ownedDatabase = database
-	if config.Canvas != nil && config.Canvas.OperatorActions != nil {
+	if config.Canvas != nil && config.Canvas.OperatorActions != nil ||
+		config.OperatorActions != nil && config.OperatorActions.OperatorActions != nil {
 		if err := app.enableOperatorActions(ctx); err != nil {
 			_ = store.Close()
 			_ = database.Close()
@@ -65,10 +76,13 @@ func NewLocalSQLiteApp(ctx context.Context, path string, config Config) (*App, e
 }
 
 func validateLocalSQLiteConfig(config Config) error {
-	if config.HostProfile != (HostProfile{}) && config.HostProfile != localHostProfile() ||
+	if config.HostProfile != (HostProfile{}) && config.HostProfile != localHostProfile() && config.HostProfile != sqliteIngestionHostProfile() ||
 		config.GitHubOAuth != nil || config.Collector != nil || config.Reconciler != nil ||
 		config.SourceDirectory != "" || config.WebhookSecret != "" {
 		return errors.New("SQLite snapshots support only local bearer serving without ingestion, collection or webhooks")
+	}
+	if config.OperatorActions != nil && (config.HostProfile != sqliteIngestionHostProfile() || config.Canvas != nil) {
+		return errors.New("native operator configuration requires the SQLite ingestion server mode")
 	}
 	return ValidateListen(config.Listen, config.CertFile, config.KeyFile)
 }
