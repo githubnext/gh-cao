@@ -460,3 +460,12 @@ test('selected JSON Schemas and nullable responses are emitted', () => {
     assert.ok(openapi.paths[path].get.responses['429'].content['application/json'], path)
   }
 })
+
+test('local ingestion start is a bearer-only coalesced request', () => {
+  const operation = openapi.paths['/api/v1/ingestion/start'].post
+  assert.deepEqual(operation.security, [{ BearerAuth: [] }])
+  assert.ok(operation.responses['202'])
+  assert.ok(operation.responses['404'])
+  assert.ok(operation.responses['502'])
+  assert.match(operation.description, /never widen repository scope/)
+})

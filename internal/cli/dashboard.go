@@ -32,6 +32,9 @@ type dashboardOptions struct {
 	duration     time.Duration
 	refresh      time.Duration
 	count        int
+	// onCollecting, when set, runs synchronously once a pass has published its
+	// "collecting" status so the serving process can show it before the pass ends.
+	onCollecting func()
 }
 
 func dashboardCommand(version string, gh ghExecutor, logs dashboardLogsCollector) *cobra.Command {
