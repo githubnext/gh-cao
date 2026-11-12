@@ -49,6 +49,16 @@ gh cao dashboard --repo octo/api --repo octo/web
 Release binaries embed the pinned gh-aw log collector, the existing Go server,
 and the built dashboard. Only an authenticated GitHub CLI is required at runtime;
 there is no separate gh-aw, Node.js, npm, PostgreSQL, Redis, or container setup.
+By default, all dashboard code, static assets, query contracts, and the canonical
+artifact normalizer come from the installed extension binary, not a CAO checkout
+or separately installed runtime files. Existing GitHub CLI configuration and
+authentication are honored, as are optional local gh-aw artifact caches and
+explicit source-development overrides described below; none requires installing
+separate CAO runtime files. The command extracts its bundled resources
+to a private temporary directory and removes them on shutdown; only the local
+evidence cache is retained. Release installation checks start the dashboard from
+an empty directory with only `gh` on `PATH` and exercise its embedded collector,
+HTTP assets, and SQLite queries.
 The command resolves the current repository when `--repo` is omitted and
 supports up to 20 explicitly named GitHub.com repositories.
 

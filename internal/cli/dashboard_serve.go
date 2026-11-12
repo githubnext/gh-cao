@@ -84,9 +84,11 @@ func dashboardServerAssets(options dashboardOptions) (server, site string, clean
 		}
 		site = filepath.Join(directory, "site")
 	}
-	for _, filename := range []string{server, filepath.Join(site, "index.html"),
+	for _, filename := range []string{server, filepath.Join(site, "index.html"), filepath.Join(site, "dashboard.json"),
 		filepath.Join(site, "src/agent/queries.generated.json"),
-		filepath.Join(site, "src/data/queries/database.json")} {
+		filepath.Join(site, "src/data/queries/database.json"),
+		filepath.Join(site, "src/agent/catalog.generated.json"),
+		filepath.Join(site, "src/agent/mcp-contract.json")} {
 		if filename == "" {
 			cleanup()
 			return "", "", nil, errors.New("local server bundle contains no executable")

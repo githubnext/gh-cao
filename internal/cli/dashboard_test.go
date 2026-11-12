@@ -259,6 +259,35 @@ func TestDashboardHelpIsServeOnly(t *testing.T) {
 	}
 }
 
+func TestDashboardServerAssetsRequireCompleteBundle(t *testing.T) {
+	files := []string{"cao-dashboard", "site/index.html", "site/dashboard.json",
+		"site/src/agent/queries.generated.json", "site/src/data/queries/database.json",
+		"site/src/agent/catalog.generated.json", "site/src/agent/mcp-contract.json"}
+	for _, missing := range append([]string{""}, files...) {
+		t.Run(missing, func(t *testing.T) {
+			directory := t.TempDir()
+			for _, name := range files {
+				if name != missing {
+					writeTestFile(t, filepath.Join(directory, filepath.FromSlash(name)), "{}")
+				}
+			}
+			_, _, cleanup, err := dashboardServerAssets(dashboardOptions{
+				server: filepath.Join(directory, "cao-dashboard"), site: filepath.Join(directory, "site"),
+			})
+			if cleanup != nil {
+				defer cleanup()
+			}
+			if missing == "" {
+				if err != nil {
+					t.Fatal(err)
+				}
+			} else if err == nil || !strings.Contains(err.Error(), filepath.Base(missing)) {
+				t.Fatalf("missing bundled resource %s was not rejected: %v", missing, err)
+			}
+		})
+	}
+}
+
 func TestDashboardLogCacheRejectsCrossScopeAndUnknownVersions(t *testing.T) {
 	for _, content := range []string{
 		`{"schema_version":5,"kind":"run","run":{"repository":"other/api","run_id":123}}`,
@@ -490,5 +519,41 @@ func TestDashboardArtifactCachesKeepExactScopeAndOwnership(t *testing.T) {
 		if !external && (requests[0].Directory == requests[1].Directory || requests[0].Cache == requests[1].Cache) {
 			t.Fatal("distinct repositories shared an artifact cache")
 		}
+	}
+}
+
+func TestDashboardOptionalLocalArtifactCache(t *testing.T) {
+	for _, present := range []bool{false, true} {
+		t.Run(map[bool]string{false: "without local files", true: "with local cache"}[present], func(t *testing.T) {
+			t.Chdir(t.TempDir())
+			local := filepath.Join(".github", "aw", "logs")
+			if present {
+				if err := os.MkdirAll(local, 0o700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			cache := t.TempDir()
+			writeLogs := dashboardTestLogs(t)
+			logs := func(ctx context.Context, request dashboardLogRequest) error {
+				if request.ManagedCache == present {
+					t.Fatalf("local artifact cache selection changed: %+v", request)
+				}
+				if present {
+					expected, err := filepath.Abs(local)
+					if err != nil || request.Directory != expected {
+						t.Fatalf("existing local cache was not reused: %+v, %v", request, err)
+					}
+				}
+				return writeLogs(ctx, request)
+			}
+			if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache,
+				dashboardOptions{window: dashboardMaximumDuration, count: 2},
+				dashboardTestGH(t, time.Now().UTC().Add(-time.Second)), logs); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := os.Stat(policyPath); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("dashboard must not require or create local CAO policy: %v", err)
+			}
+		})
 	}
 }
