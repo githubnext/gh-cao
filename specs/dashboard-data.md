@@ -898,7 +898,7 @@ The explicitly selected `gh cao dashboard` operator profile MAY create and
 refresh a separate private canonical SQLite projection through its native
 acquisition adapter, outside the Go server. It MUST select the current verified
 GitHub.com repository or an explicit bounded list of exact repositories, retain
-at most a 48-hour recent window, and serve for at most 48 hours per invocation.
+at most a seven-day recent window, and serve for at most 48 hours per invocation.
 The adapter MUST use the pinned gh-aw collector and canonical repository,
 workflow, and repository-scoped Run identities; fresh Actions observations MUST
 take precedence over cached status and mismatched-attempt enrichment MUST NOT
@@ -908,7 +908,25 @@ MUST reconcile the canonical daily projection in the same publication transactio
 using the receipts, classification and retention contract in §72.2, MUST NOT
 infer complete upstream history or campaign/rollout authority,
 and MUST NOT modify or migrate an ordinary Activity snapshot. Publication MUST
-be atomic and failed collection MUST preserve the previous projection.
+be atomic and failed collection MUST preserve previously published evidence and
+its discovery checkpoint. Acquisition SHALL resume fixed-interval pagination
+across passes and restarts, split intervals exceeding the provider's filtered
+search ceiling, retain earlier admitted pages inside the requested detail
+window, and preserve same-second run boundaries. It SHALL bound each pass to
+100 core API points shared across selected repositories and embedded collectors,
+reserve at least 1000 points or 20% of the reported core quota, and fail closed
+when quota cannot be observed. Quota exhaustion SHALL pause rather than consume
+the reserve. Concurrent unrelated clients share the provider quota.
+The `transactions` store MAY contain one `local-dashboard-ingestion` receipt,
+with `ingestionStatus`, `ingestionMessage`, `ingestionRepository`, `scannedHours`,
+`targetHours`, observed `apiRemaining`, `apiReserve`, `apiResetAt`, and
+`nextAttemptAt`, plus private resumable cursors. Unknown quota MUST remain absent.
+`createdAt` on this receipt is the status observation clock, not upstream
+freshness. Discovery hours SHALL describe scanned repository-time intervals,
+never a run-count denominator or complete artifact coverage. Status-only writes
+MAY report acquisition failure without modifying evidence or its checkpoint.
+The ordinary declarative Overview query/view SHALL expose this status
+independently of page filters and refresh through its active revision subscription.
 The existing read-only Go query/server and revision-subscription contracts
 SHALL serve this projection unchanged. This exception does not authorize
 server-side acquisition, a hosted fallback, or a browser ingestion path.

@@ -113,9 +113,9 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	_, _ = fmt.Fprintf(cmd.ErrOrStderr(),
 		"Starting local CAO dashboard for %s...\n"+
 			"Collecting up to %s of recent activity; cached artifacts are reused.\n"+
-			"Artifact downloads have a 2-minute budget per repository. The browser URL will appear when ready.\n",
+			"History fills in bounded background passes. The dashboard shows progress and quota pauses.\n",
 		strings.Join(repositories, ", "), options.window)
-	if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil {
+	if err := initializeDashboardSnapshot(ctx, cache, repositories, options); err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(ctx, options.duration)
@@ -209,7 +209,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		}
 		return nil
 	}
-	ticker := time.NewTicker(options.refresh)
+	ticker := time.NewTimer(0)
 	defer ticker.Stop()
 	for {
 		select {
@@ -222,6 +222,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 			if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil && ctx.Err() == nil {
 				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard refresh failed; previous snapshot retained: %v\n", err)
 			}
+			ticker.Reset(options.refresh)
 		}
 	}
 }
@@ -239,6 +240,7 @@ func printDashboardReady(output io.Writer, address string, repositories []string
 			"  Refresh: every %s\n"+
 			"  Session: %s; press Ctrl+C to stop. Cached data is kept.\n"+
 			"  Maintenance: %s\n"+
+			"  Ingestion: resumable history discovery; status and quota are shown on Overview.\n"+
 			"  Coverage: partial recent activity; uncollected evidence is unavailable.\n\n",
 		address, strings.Join(repositories, ", "), filepath.Join(cache, "gh-aw-logs.sqlite"),
 		options.refresh, options.duration, maintenance)

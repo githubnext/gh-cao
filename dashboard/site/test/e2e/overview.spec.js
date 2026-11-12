@@ -155,7 +155,8 @@ test.beforeEach(async ({ page, context }) => {
 });
 
 test('declarative Overview views preserve desktop and mobile behavior', async ({ page }) => {
-  expect(overviewPage.views.every((/** @type {{ 'show-title'?: boolean, prompt?: string }} */ view) =>
+  expect(overviewPage.views.filter((/** @type {unknown} */ view) => typeof view !== 'string')
+    .every((/** @type {{ 'show-title'?: boolean, prompt?: string }} */ view) =>
     view['show-title'] === false && view.prompt === 'none')).toBe(true);
   /** @param {Record<string, unknown>} pageDefinition */
   const render = async (pageDefinition) => {
@@ -173,6 +174,7 @@ test('declarative Overview views preserve desktop and mobile behavior', async ({
           id: 'overview-parity',
           title: 'Overview parity',
           'card-templates': dashboardDocument.dashboard['card-templates'],
+          views: dashboardDocument.dashboard.views,
           pages: [pageDefinition, { id: 'other', kind: 'custom', title: 'Other', views: [] }]
         }
       },

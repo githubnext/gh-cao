@@ -1636,7 +1636,8 @@
             ]
           },
           "layout": "full"
-        }
+        },
+        "local-ingestion-progress"
       ],
       "pull-refresh": true
     },

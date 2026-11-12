@@ -983,7 +983,8 @@ through the same native query and revision-subscription boundaries.
 This does not change the separate hosted PostgreSQL collector or its runtimes.
 
 `gh cao dashboard` is a separately selected native operator acquisition profile
-for investigations lasting at most 48 hours. It resolves the current repository
+for investigations lasting at most 48 hours per invocation, retaining up to seven
+days of evidence. It resolves the current repository
 or up to 20 exact `--repo` selections, calls the embedded pinned gh-aw log collector
 with all available artifact sets, audit evidence and its normal artifact/JSONL
 cache semantics, and combines that evidence with fresh
@@ -1000,9 +1001,16 @@ execution have explicit 128 MiB / 64 MiB and 30-second bounds.
 `npm run generate:dashboard-ingest` regenerates the compressed embedded bundle;
 release checks reject stale artifacts.
 Acquisition names exact remote workflow IDs from the observed Actions inventory,
-not local lock files. Its shared count and two-minute limits produce explicitly
-reported partial coverage. Analyses and artifacts are reusable, but discovery
-lists are refreshed. Optional Node-based Markdown report parsing is disabled;
+not local lock files. Background passes rotate through the selected repositories,
+persist fixed-interval page checkpoints, and split intervals exceeding GitHub's
+1000-result search ceiling. Incremental publication retains earlier pages inside
+the evidence window and commits the discovery checkpoint with the evidence.
+All discovery and embedded collectors share a 100-point core API pass ceiling,
+corrected from observed quota, and reserve at least 1000 points or 20% of the
+core limit. Quota is required; exhausted headroom pauses acquisition.
+Its shared count and two-minute limits produce explicitly reported partial
+artifact coverage. Analyses and artifacts are reusable, but discovery lists are
+refreshed. Optional Node-based Markdown report parsing is disabled;
 canonical parsing uses the embedded runtime above.
 The ordinary declarative database
 queries, Go evaluator, HTTP handler, and revision subscriptions serve them.
@@ -1024,9 +1032,15 @@ evidence and execution errors still fail. Available cached jobs, sessions,
 tools, domains, skills, friction, safe outputs, experiments, evals and graders
 hydrate their ordinary canonical stores instead of a separate UI projection.
 
-One local collection lock serializes refreshes. A successful transaction replaces
-only that profile's projection and observation metadata; failed acquisition
-preserves the previous database. The CLI refreshes outside the server lifecycle
+One local collection lock serializes refreshes. A successful transaction upserts
+only that profile's observations and checkpoint, removes expired detail and
+stale prior-attempt children, and preserves earlier history pages. Failed
+acquisition preserves evidence and its checkpoint while publishing a separate
+failure status. Acquisition progress, scanned repository-hours and observed
+quota are exposed through a bounded `transactions` receipt and a declarative
+Overview view, with ordinary abort-scoped query/revision subscriptions. Discovery
+completion never implies complete artifact or upstream coverage.
+The server starts before acquisition. The CLI refreshes outside the server lifecycle
 and closes its owned server on interruption or expiry. Release binaries embed
 their platform's existing `cao-dashboard` executable and built site; extraction
 is private and temporary, with no install-time Node, Go, service, or container.

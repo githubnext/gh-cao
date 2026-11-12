@@ -45,9 +45,14 @@ Collection uses your local `gh` identity and requires network access and
 repository permissions. No cloud deployment does **not** mean offline
 acquisition or bypassing GitHub access controls.
 
-**Automatic, bounded refresh:** Collection runs at startup and every **five
-minutes** while the command runs. The recent evidence window and server
-lifetime each default to **48 hours**, with 48 hours also their maximum.
+**Automatic, bounded refresh:** The server starts immediately; collection runs
+in background passes separated by **five minutes** while the command runs.
+The recent evidence window defaults to **seven days** (maximum `168h`), while
+server lifetime defaults to, and cannot exceed, **48 hours** per invocation.
+History checkpoints survive restarts, and admitted pages remain in SQLite
+inside the selected window. Overview shows ingestion progress, quota headroom,
+pauses and errors. A shared 100-point core API pass ceiling reserves at least
+1000 points or 20% of core quota for other work.
 For example, `gh cao dashboard --repo OWNER/REPOSITORY --window 12h --duration 2h`
 narrows both. The default count is **200** per repository for each of the
 recent-run lookup and cached usage sample, not a promise of complete history.

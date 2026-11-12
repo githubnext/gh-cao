@@ -2627,6 +2627,15 @@
       { "field": "duplicateRawRunObservations" },
       { "field": "duplicateAgenticRunObservations" },
       { "field": "unenrichedRuns" },
+      { "field": "ingestionStatus" },
+      { "field": "ingestionMessage" },
+      { "field": "ingestionRepository" },
+      { "field": "scannedHours" },
+      { "field": "targetHours" },
+      { "field": "apiRemaining" },
+      { "field": "apiReserve" },
+      { "field": "apiResetAt" },
+      { "field": "nextAttemptAt" },
       { "field": "error" }
     ]
   }

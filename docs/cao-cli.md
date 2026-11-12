@@ -62,19 +62,38 @@ HTTP assets, and SQLite queries.
 The command resolves the current repository when `--repo` is omitted and
 supports up to 20 explicitly named GitHub.com repositories.
 
-Both the recent evidence window and server lifetime default to **48 hours** and
-cannot exceed that bound. The command stays in the foreground, selects an
-available loopback port, prints the access URL, and refreshes every five minutes.
-Startup reports that collection is in progress before displaying a clearly
+The evidence window defaults to **seven days** (maximum `168h`); server lifetime
+defaults to **48 hours**, which remains its maximum per invocation. The command
+stays in the foreground, selects an available loopback port, prints the access
+URL, and collects in background passes separated by five minutes.
+The server starts without waiting for artifact downloads. Startup displays a clearly
 labelled browser URL, repository scope, SQLite cache path, refresh interval, and
 session lifetime. The ready message also reminds you that Ctrl-C stops the
 server without deleting the cache. If repository access fails, check
 `gh auth status --hostname github.com` in the same terminal that runs the command.
 Ctrl-C closes its server and stops collection. `--listen 127.0.0.1:8443`,
 `--window 12h`, `--duration 2h`, `--refresh 2m`, and `--count 100` narrow or adjust
-the session. The count caps each repository's recent-run lookup and usage sample
-separately (maximum 1000 each); their deduplicated union contains at most twice
-that count. It is not a guarantee of complete history.
+the session. The count caps each repository's recent-run lookup and cached usage
+sample separately (maximum 1000 each); historical pages contain at most 100 runs.
+One repository is processed per pass in round-robin order. Fixed date intervals
+and saved page checkpoints let later passes reach older history rather than
+repeatedly sampling only the newest runs. Dense intervals are split before
+reaching GitHub's 1000-result filtered-search ceiling. Earlier pages remain in
+SQLite until they age out of the selected window; restarting reuses the saved
+checkpoint. Discovery completion is not a guarantee of complete artifacts or
+upstream coverage.
+
+**Local data ingestion** on Overview shows collection status, the current
+repository, scanned versus target repository-hours, last observed API points
+remaining, reserved quota, reset time, and the next attempt. This status updates
+through the ordinary server revision subscription without navigation, and
+ignores page filters. Scanned hours measure completed history-discovery intervals,
+not the percentage of runs or artifacts acquired. Acquisition shares a ceiling
+of 100 core API points per pass and reserves at least 1000 points or 20% of the
+reported core limit, whichever is greater. Exhausted headroom pauses acquisition
+instead of spending the reserve; later passes recheck quota and resume.
+GitHub clients using the same credentials share this quota, so concurrent
+external traffic can reduce the available headroom. Unknown quota fails closed.
 
 The CLI binds its ingestion pipeline to the explicit
 `cao-dashboard serve --sqlite-ingestion --sqlite PATH` server mode. It uses the
@@ -89,7 +108,7 @@ executions and daily observations through canonical SQLite and revision subscrip
 not browser IndexedDB. Its local daily projection reconciles observed logical
 Runs by UTC execution-start day in the same atomic publication transaction.
 Replays and reruns do not double count, and compact receipts retain observations
-independently of the 48-hour detail window under the canonical three-week
+independently of the seven-day detail window under the canonical three-week
 retention policy. Undated evidence is excluded and reported as incomplete;
 whole-day counts are partial observations, not exhaustive or exact sub-day totals.
 It combines fresh Actions status with cached gh-aw evidence and requests all
@@ -114,9 +133,10 @@ it with `--logs-dir PATH`. Existing gh-aw artifacts and matching cached JSONL
 records are reused by the same gh-aw collector. Only profile-owned artifact
 caches receive the 256 MiB storage budget; existing external gh-aw caches are
 not pruned by this command.
-Collection selects exact remote workflow IDs from the recent Actions inventory,
+Collection selects exact remote workflow IDs from the Actions inventory and observed runs,
 so it does not depend on workflow files in the current folder. Its rich-run
-budget is shared across those observed workflows under one two-minute deadline;
+budget is shared across those observed workflows under one two-minute deadline
+and the pass's API ceiling;
 reaching this acquisition limit is reported and publishes partial collected evidence.
 Refresh reuses analyses and artifacts, but fetches fresh run-discovery lists
 rather than replaying a stale open-ended cached listing. Older profile-owned
@@ -129,8 +149,9 @@ and each repository's artifact input to 32 MiB. Oversized or malformed evidence
 fails the refresh rather than publishing a truncated success. Cache files can
 contain private repository evidence; protect directory ACLs on Windows, where
 POSIX mode bits are not sufficient.
-A failed refresh preserves the previous database and is
-reported rather than replacing it with empty data.
+A failed refresh preserves previously published evidence and its history
+checkpoint; a separate status update reports the failure rather than replacing
+evidence with empty data.
 
 `gh cao dashboard` only serves the dashboard; it has no subcommands.
 Collection and refresh happen automatically while it is running. Maintenance

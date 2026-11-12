@@ -1441,7 +1441,8 @@ describe('dashboard document validation', () => {
         element: 'factory-floor',
         config: expect.objectContaining({ animate: 'number' }),
         layout: 'full'
-      })
+      }),
+      'local-ingestion-progress'
     ]);
     expect(page.views.find((/** @type {{ id: string }} */ view) => view.id === 'overview-campaigns'))
       .toBeUndefined();

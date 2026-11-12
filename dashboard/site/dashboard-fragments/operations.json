@@ -1,6 +1,27 @@
 {
   "queries": [
     {
+      "name": "local-ingestion-progress",
+      "subject": "Show local CLI history discovery, collection status and observed GitHub API headroom.",
+      "objective": "Distinguish ongoing seven-day backfill, quota pauses and failures from complete upstream or artifact coverage.",
+      "acceptance": "Use the persisted acquisition checkpoint independently of page filters. Scanned repository-hours describe completed discovery intervals, not a percentage of upstream runs or artifacts. Missing status remains unavailable; all coverage remains partial.",
+      "from": "transactions",
+      "filter": { "predicates": [{ "field": "kind", "equals": "local-dashboard-ingestion" }] },
+      "select": [
+        { "field": "ingestionStatus", "as": "status" },
+        { "field": "ingestionMessage", "as": "message" },
+        { "field": "ingestionRepository", "as": "repository" },
+        { "field": "scannedHours", "as": "scanned-hours" },
+        { "field": "targetHours", "as": "target-hours" },
+        { "field": "apiRemaining", "as": "api-remaining" },
+        { "field": "apiReserve", "as": "api-reserve" },
+        { "field": "apiResetAt", "as": "api-reset-at" },
+        { "field": "nextAttemptAt", "as": "next-attempt-at" },
+        { "field": "createdAt", "as": "observed-at" }
+      ],
+      "limit": 1
+    },
+    {
       "name": "dashboard-ingestion-health",
       "subject": "Expose the current collection state for the global ingestion indicator.",
       "objective": "Distinguish reported ingestion failure or recovery from the age of retained workflow evidence.",
@@ -1587,6 +1608,33 @@
           ]
         }
       ]
+    }
+  ],
+  "views": [
+    {
+      "id": "local-ingestion-progress",
+      "title": "Local data ingestion",
+      "description": "Resumable history discovery across the selected repositories. Scanned repository-hours are not complete run or artifact coverage. API quota is shared with other GitHub clients.",
+      "requires": { "backend": "hosted", "on-unavailable": "hide" },
+      "data": { "source": "local-ingestion-progress", "query-context": false },
+      "mark": "table",
+      "layout": "full",
+      "prompt": "none",
+      "empty-message": "No local CLI ingestion status is available for this server.",
+      "encoding": {
+        "columns": [
+          { "field": "status", "type": "nominal", "title": "Status", "display": "status" },
+          { "field": "repository", "type": "nominal", "title": "Collecting repository" },
+          { "field": "scanned-hours", "type": "quantitative", "title": "Scanned repository-hours" },
+          { "field": "target-hours", "type": "quantitative", "title": "Target repository-hours" },
+          { "field": "api-remaining", "type": "quantitative", "title": "Last observed API points remaining" },
+          { "field": "api-reserve", "type": "quantitative", "title": "API reserve" },
+          { "field": "api-reset-at", "type": "temporal", "title": "Quota reset", "format": "human-friendly-timestamp" },
+          { "field": "next-attempt-at", "type": "temporal", "title": "Next attempt", "format": "human-friendly-timestamp" },
+          { "field": "observed-at", "type": "temporal", "title": "Status observed", "format": "human-friendly-timestamp" },
+          { "field": "message", "type": "nominal", "title": "Coverage / status detail" }
+        ]
+      }
     }
   ],
   "pages": [
