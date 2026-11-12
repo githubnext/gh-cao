@@ -129,8 +129,9 @@ The visible opening declares `Core claims reviewed: N/16`; a pre-publication ste
 rejects missing, duplicate, zero or out-of-range declarations before creating an
 issue or closing an older report. This validates the declaration, not the model's
 citations or conclusions, which still require human review.
-Per-component first-parent Git churn compares source and test additions/deletions
-across the same windows, separating generated artifacts. Commit-time churn is
+Per-component first-parent Git history compares distinct UTC days with source
+edits and source/test additions/deletions across the same windows, separating
+generated artifacts. Commit-time changes are
 not merge-time acceptance, and overlapping path groups must not be summed.
 Low churn or fewer lines alone do not prove a stable or cleaner core.
 It compares default-branch push runs of Workflow contracts, Go Dashboard Server
@@ -162,24 +163,33 @@ Every issue uses the same executive report contract: a purpose/period/revision
 header, **Executive assessment**, **Preview journey scorecard**, **Blockers and
 next increments**, **Core health and stability**, **Acceptance evidence and
 participant outcomes**, and
-**Method and provenance**. Report format 3 keeps acceptance rubric 2 unchanged.
+**Method and provenance**. Report format 4 keeps acceptance rubric 2 unchanged.
 The first three sections are concise and visible: a two-column at-a-glance
 summary, one next-decision callout, all eight operator steps with plain-language
 labels and stable journey IDs, and a ranked next-action table. Journey evidence
 uses **✅ Passed**, **❌ Failed** or **❔ Unknown**, always with text labels rather
 than color alone. Unknown means evidence is missing or insufficient, not a
 demonstrated product failure; CI success alone never makes a journey passed.
-Owners and short next checks remain visible. Full acceptance checks,
-configuration gaps and failure analysis stay in the acceptance disclosure;
-component health/charts, detailed acceptance/claim evidence, and methodology use named
-progressive-disclosure blocks. Deterministic text bar charts compare CI success
-fractions and component source churn, with exact counts and common linear scales.
-Unknowns remain N/A, not zero; no chart invents a time series or readiness score.
+Core claim counts remain visible but are not a readiness score. Owners and short
+next checks remain visible. Full acceptance checks, configuration gaps and
+failure analysis stay in the acceptance disclosure; component health/heatmaps,
+detailed acceptance/claim evidence, and methodology use named
+progressive-disclosure blocks. A fixed eight-row matrix shows all 16 core claim
+assessments separately from deterministic, fixed-scale Markdown heatmaps for CI
+success fractions and component change frequency. Each component cell shows
+distinct days with source edits and exact source lines changed; frequent edits
+measure activity, not stability. Unknowns remain N/A, not zero; neither heatmap
+invents a time series or readiness score.
+Both use exact UTC window dates, fixed intensity keys and accessible numeric
+cells rather than images or color-only cues. This follows the
+[W3C guidance on complex charts](https://www.w3.org/WAI/tutorials/images/complex/)
+and [using color](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color);
+GitHub [renders Markdown tables in issues](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-tables).
 Required journey unknowns cannot be averaged away. Out-of-profile features are
 not automatic blockers. Participant outcomes remain unavailable until independent
 task evidence exists; no user counts, time savings or successful adoption are inferred.
 
-Trusted steps retain `evidence.json` and the charts as
+Trusted steps retain `evidence.json` and both Markdown heatmaps as
 `framework-health-evidence-RUN-ATTEMPT` for 90 days. The JSON contains the frozen
 contract and SHA-256 digest, candidate release metadata and supporting CI/job/churn
 observations, not model verdicts, acceptance approvals or customer evidence.
