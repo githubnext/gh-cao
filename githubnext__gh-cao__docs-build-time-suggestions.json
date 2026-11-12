@@ -1,35 +1,7 @@
 {
-  "source_sha": "9e373f748f8bdc30b2a3d1fff4e7c272ea918cfb",
-  "next_category": "reusable dashboard generation",
+  "source_sha": "313a3853580ceffa735f9de11ebbc341264a63dd",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T03:22:02Z",
-      "worker_run_id": "43147145386",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886,
-        43085139761,
-        43083249533,
-        43081415171,
-        43080844329
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T18:45:54Z to 2026-11-12T03:05:21Z, within 14 days; no cancelled runs) contained 8 comparable successful push publications on the current build-plus-deploy shape (sources 3707d467 to 62f179a2; identical job and step names; historical docs.yml not retrieved because the checkout is shallow and the contents API returned no file for an earlier ref, so shape equivalence is inferred from step metadata). Full-run median 90.5 s (p90 114 s, n=8); build median 72.5 s; deploy median 10 s. The 'Build synthetic enterprise demo' step (npm run dashboard:pages:build plus cp into dist/cao) median 3 s, p90 4 s, 3.3% of full-run median and 4.1% of build median. Eliminating or reusing it saves at most about 4 s, below the 60 s and 15% (13.6 s) thresholds. The older cached-dashboard path (Restore cached CAO Dashboard about 3 s; Find and Mount steps) appeared in 2 successful older-shape publications with 15-20 s uploads versus 2-3 s now, confounded by the d57c4c82 separation of operational dashboards, and its Mount step failed in 6 scheduled runs (43090243002 to 43103737760). Excluded and disclosed: 6 failed scheduled older-shape runs, 1 workflow_run skip, 1 freshness-only schedule. The mission's 'dashboard' job does not exist; dashboard steps run inside build. No suggestion; next_category advanced to artifact transfer and Pages packaging."
-    },
     {
       "evaluated_at": "2026-11-12T03:36:45Z",
       "worker_run_id": "43148811326",
@@ -749,6 +721,34 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T20:16:01Z to 2026-11-12T11:06:25Z; 14-day window; no new docs.yml runs since the 12:41Z evaluation; source HEAD 9e373f74 equals source_sha). Excluded and disclosed: 1 cancelled superseded run 43206161686; 4 failed retired-Mount schedules 43094878868, 43099316175, 43101943628, 43103737760. Comparable n=15 successful build+deploy runs (14 push, 1 schedule 43161224542). Medians (p90) from job and step metadata: 'Build documentation' 14 s (p90 15 s; range 10-15 s) = 16% of median wall 88 s (p90 122 s) and 19% of build job 72 s (p90 103 s). Only removing the whole step reaches the 15% gate, and generated docs are required for publication, so no Astro-internal change qualifies. Split of astro build vs validate-agent-docs vs agent-docs-discovery test is not visible: job logs return 403 DIFC. Per-file 'git log -1' in resolveBuildProvenance (docs/plugins/starlight-agent/resource.ts) sits inside that 14 s bound. Lead, not a suggestion: Checkout fetch-depth 0 is the largest build-job step (median 24 s, p90 47 s, 27% of median wall) and is required only by per-file sourceCommittedAt. Partial-history candidate: add 'filter: blob:none' to docs.yml checkout while keeping fetch-depth 0; the input exists on actions/checkout main and tag v7.0.1 maps to the pinned SHA; git rev-parse, show -s and ls-files need no blobs, and log -1 -- path should need only commits and trees (unverified). Savings unmeasured: repo size_kb 1449851 vs 10.67 MiB depth-1 pack hints at history-heavy bytes, but fork count 5 and size composition are unverified. Promotion needs a measured checkout comparison (at least 5 runs each) in a maintainer-run branch. No open issue covers fetch-depth or partial clone (open 20131 and 20380 are other categories, not repeated). next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T13:19:47Z",
+      "worker_run_id": "43225574255",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558,
+        43121504364,
+        43104481579,
+        43103737760,
+        43101943628,
+        43099316175
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:00:12Z to 2026-11-12T13:13:14Z; within 14 days). Excluded and disclosed: 1 cancelled superseded run 43206161686; 3 failed pre-design schedules 43099316175, 43101943628, 43103737760 (headSha 93614994, failed at retired Mount latest CAO Dashboard step). Comparable n=16 successes on the build+deploy shape (15 push incl. new 43225202834 at 313a3853, 1 schedule 43161224542). Dashboard step 'Build synthetic enterprise demo' (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs calling buildDashboardSite, then cp to dist/cao): median 3 s, p90 4 s, range 2-4 s = 3.4% of median wall 88 s (p90 122 s) and 4.2% of build median 71 s; full elimination saves at most about 3 s, far below the 60 s / 15% (about 13 s) gate. No dashboard job exists; dashboard generation runs inside build. Install dependencies median 17.5 s (p90 23 s) includes dashboard-site npm ci but is not split; job logs re-verified 403 difc_forbidden. The dashboard step uses no cache. Open issue 20380 targets a retired operational-snapshot input path and is not supported by this window; issue 20131 is now CLOSED (previously recorded open). Carry-forward lead, unchanged: Checkout fetch-depth 0 median 24 s (p90 47 s, n=16), largest build-job step; partial-clone alternative unmeasured. No suggestion; next_category advanced to artifact transfer and Pages packaging."
     }
   ]
 }
