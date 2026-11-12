@@ -93,6 +93,7 @@ func TestDatabasePostgresLifecycle(t *testing.T) {
 
 func seedPostgresAuditHistory(t *testing.T, dsn, namespace string, at time.Time, count int) {
 	t.Helper()
+	at = at.UTC().Truncate(time.Microsecond)
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		t.Fatal(err)
@@ -100,7 +101,7 @@ func seedPostgresAuditHistory(t *testing.T, dsn, namespace string, at time.Time,
 	defer func() { _ = db.Close() }()
 	prev := operational.AuditGenesis()
 	for sequence := 1; sequence <= count; sequence++ {
-		event := operational.AuditEvent{Sequence: int64(sequence), OccurredAt: at.UTC(), Event: "test.accepted", Outcome: "success"}
+		event := operational.AuditEvent{Sequence: int64(sequence), OccurredAt: at, Event: "test.accepted", Outcome: "success"}
 		record, err := operational.CanonicalAuditRecord(event)
 		if err != nil {
 			t.Fatal(err)
@@ -108,7 +109,7 @@ func seedPostgresAuditHistory(t *testing.T, dsn, namespace string, at time.Time,
 		hash := operational.AuditChainHash(prev, record)
 		if _, err := db.ExecContext(t.Context(), `INSERT INTO cao_operational_audit_events
 			(namespace,sequence,occurred_at,event,outcome,actor,record,prev_hash,hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-			namespace, event.Sequence, at.UTC(), event.Event, event.Outcome, event.Actor, string(record), prev, hash); err != nil {
+			namespace, event.Sequence, at, event.Event, event.Outcome, event.Actor, string(record), prev, hash); err != nil {
 			t.Fatal(err)
 		}
 		prev = hash
