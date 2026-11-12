@@ -14,9 +14,8 @@ import (
 )
 
 func TestDashboardPostgresExplicitConnectionDoesNotManageContainers(t *testing.T) {
-	t.Setenv("CAO_CONTAINER_ENGINE", "must-not-run")
 	connection := "postgres://explicit.example/database"
-	got, err := configureDashboardPostgres(t.Context(), "must-not-run", t.TempDir(), "scope", connection)
+	got, err := configureDashboardPostgres(t.Context(), "must-not-run", t.TempDir(), "scope", connection, "must-not-run")
 	if err != nil || got != connection {
 		t.Fatalf("explicit connection was not preserved: %q %v", got, err)
 	}
@@ -56,16 +55,51 @@ func TestDashboardEngineRejectsRemoteConnectionsBeforeWork(t *testing.T) {
 	}
 }
 
-func TestDashboardEngineRejectsInvalidExplicitSelection(t *testing.T) {
-	for _, selection := range []string{"", "auto", "unsupported"} {
-		t.Run(selection, func(t *testing.T) {
-			t.Setenv("CAO_CONTAINER_ENGINE", selection)
-			if _, err := selectDashboardEngine(t.Context()); err == nil || !strings.Contains(err.Error(), "must be docker or podman") {
-				t.Fatalf("invalid explicit engine was accepted: %v", err)
+func TestDashboardEngineSelection(t *testing.T) {
+	for _, test := range []struct {
+		flag    string
+		changed bool
+		env     *string
+		want    string
+		err     string
+	}{
+		{want: "docker"},
+		{env: ptr("podman"), want: "podman"},
+		{flag: "podman", changed: true, env: ptr("docker"), want: "podman"},
+		{flag: "auto", changed: true, err: "--container-engine must be docker or podman"},
+		{flag: "", changed: true, err: "--container-engine must be docker or podman"},
+		{env: ptr(""), err: "CAO_CONTAINER_ENGINE must be docker or podman"},
+		{env: ptr("unsupported"), err: "CAO_CONTAINER_ENGINE must be docker or podman"},
+	} {
+		t.Setenv("CAO_CONTAINER_ENGINE", "")
+		if test.env == nil {
+			_ = os.Unsetenv("CAO_CONTAINER_ENGINE")
+		} else {
+			t.Setenv("CAO_CONTAINER_ENGINE", *test.env)
+		}
+		got, err := resolveDashboardContainerEngine(test.flag, test.changed)
+		if test.err != "" {
+			if err == nil || !strings.Contains(err.Error(), test.err) {
+				t.Fatalf("%+v: invalid engine was accepted: %q %v", test, got, err)
 			}
-		})
+		} else if err != nil || got != test.want {
+			t.Fatalf("%+v: got %q %v, want %q", test, got, err, test.want)
+		}
 	}
 }
+
+func TestDashboardRejectsInvalidContainerEngineBeforeCollection(t *testing.T) {
+	command := dashboardCommand("test", func(context.Context, ...string) (string, string, error) {
+		t.Fatal("invalid container engine reached GitHub acquisition")
+		return "", "", nil
+	}, nil)
+	command.SetArgs([]string{"--container-engine", "auto"})
+	if err := command.ExecuteContext(t.Context()); err == nil || !strings.Contains(err.Error(), "--container-engine must be docker or podman") {
+		t.Fatalf("invalid container engine was accepted: %v", err)
+	}
+}
+
+func ptr(value string) *string { return &value }
 
 func TestDashboardPostgresOwnedContainerLifecycle(t *testing.T) {
 	for _, provider := range []string{"docker", "podman"} {
@@ -186,7 +220,11 @@ func TestDashboardManagedPostgresContainer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	engine, err := selectDashboardEngine(t.Context())
+	engineName, err := resolveDashboardContainerEngine("", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine, err := selectDashboardEngine(t.Context(), engineName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,11 +247,11 @@ func TestDashboardManagedPostgresContainer(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	connection, err := configureDashboardPostgres(t.Context(), server, cache, "managed-test", "")
+	connection, err := configureDashboardPostgres(t.Context(), server, cache, "managed-test", "", engineName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	reused, err := configureDashboardPostgres(t.Context(), server, cache, "managed-test", "")
+	reused, err := configureDashboardPostgres(t.Context(), server, cache, "managed-test", "", engineName)
 	if err != nil || reused != connection {
 		t.Fatalf("real managed PostgreSQL did not reuse its runtime connection: %v", err)
 	}

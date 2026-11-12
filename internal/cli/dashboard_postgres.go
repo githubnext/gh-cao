@@ -63,7 +63,7 @@ func (output *dashboardEngineOutput) Write(value []byte) (int, error) {
 func newDashboardEngine(name string) (dashboardEngine, error) {
 	binary, err := exec.LookPath(name)
 	if err != nil {
-		return dashboardEngine{}, fmt.Errorf("%s is not installed; install Docker/Podman or supply --postgres-url", name)
+		return dashboardEngine{}, fmt.Errorf("%s is not installed", name)
 	}
 	return dashboardEngine{name: name, run: func(ctx context.Context, args ...string) ([]byte, error) {
 		var output, diagnostic dashboardEngineOutput
@@ -147,28 +147,47 @@ func (engine dashboardEngine) verifyLocal(ctx context.Context) error {
 	return nil
 }
 
-func selectDashboardEngine(ctx context.Context) (dashboardEngine, error) {
-	names := []string{"docker", "podman"}
+const dashboardDefaultContainerEngine = "docker"
+
+func validDashboardContainerEngine(name string) bool {
+	return name == "docker" || name == "podman"
+}
+
+// resolveDashboardContainerEngine applies flag > CAO_CONTAINER_ENGINE > docker.
+func resolveDashboardContainerEngine(flag string, changed bool) (string, error) {
+	if changed {
+		if !validDashboardContainerEngine(flag) {
+			return "", errors.New("--container-engine must be docker or podman")
+		}
+		return flag, nil
+	}
 	if selected, present := os.LookupEnv("CAO_CONTAINER_ENGINE"); present {
-		if selected != "docker" && selected != "podman" {
-			return dashboardEngine{}, errors.New("CAO_CONTAINER_ENGINE must be docker or podman")
+		if !validDashboardContainerEngine(selected) {
+			return "", errors.New("CAO_CONTAINER_ENGINE must be docker or podman")
 		}
-		names = []string{selected}
+		return selected, nil
 	}
-	var failures []error
-	for _, name := range names {
-		engine, err := newDashboardEngine(name)
-		if err == nil {
-			probe, cancel := context.WithTimeout(ctx, 10*time.Second)
-			err = engine.verifyLocal(probe)
-			cancel()
-		}
-		if err == nil {
-			return engine, nil
-		}
-		failures = append(failures, err)
+	return dashboardDefaultContainerEngine, nil
+}
+
+func selectDashboardEngine(ctx context.Context, name string) (dashboardEngine, error) {
+	if !validDashboardContainerEngine(name) {
+		return dashboardEngine{}, errors.New("container engine must be docker or podman")
 	}
-	return dashboardEngine{}, fmt.Errorf("no usable local container engine; start Docker/Podman or supply --postgres-url: %w", errors.Join(failures...))
+	engine, err := newDashboardEngine(name)
+	if err == nil {
+		probe, cancel := context.WithTimeout(ctx, 10*time.Second)
+		err = engine.verifyLocal(probe)
+		cancel()
+	}
+	if err != nil {
+		alternative := "podman"
+		if name == "podman" {
+			alternative = "docker"
+		}
+		return dashboardEngine{}, fmt.Errorf("%s is not usable for managed PostgreSQL; start it, pass --container-engine %s, or supply --postgres-url: %w", name, alternative, err)
+	}
+	return engine, nil
 }
 
 func dashboardPostgresSecret() (string, error) {
@@ -391,13 +410,13 @@ func startDashboardPostgres(ctx context.Context, engine dashboardEngine, directo
 	return address.String(), state.RuntimePassword, nil
 }
 
-func configureDashboardPostgres(ctx context.Context, server, cache, namespace, supplied string) (string, error) {
+func configureDashboardPostgres(ctx context.Context, server, cache, namespace, supplied, engineName string) (string, error) {
 	if strings.TrimSpace(supplied) != "" {
 		return supplied, nil
 	}
 	setup, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	engine, err := selectDashboardEngine(setup)
+	engine, err := selectDashboardEngine(setup, engineName)
 	if err != nil {
 		return "", err
 	}

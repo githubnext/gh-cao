@@ -35,7 +35,8 @@ No `gh cao setup` or control-repository configuration is needed.
 Open the **Dashboard:** URL printed in the terminal. The bundled Go server
 serves on loopback and queries local PostgreSQL. Managed data is bind-mounted
 under the ignored `.github/cao/dashboard/<scope>/postgres/` cache.
-`CAO_CONTAINER_ENGINE` selects Docker or Podman; `--postgres-url` or
+Docker is the default; pass `--container-engine podman` (or set
+`CAO_CONTAINER_ENGINE=podman`) to use Podman. `--postgres-url` or
 `CAO_POSTGRES_URL` bypasses container management and uses provisioned storage.
 Collection uses your GitHub CLI identity to read GitHub evidence and refreshes
 automatically every five minutes: **no cloud deployment does not mean offline**.
