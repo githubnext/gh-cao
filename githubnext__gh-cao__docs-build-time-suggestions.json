@@ -1,35 +1,7 @@
 {
-  "source_sha": "15db22444d5fed8cc7182fce1fa83f870cf5787f",
-  "next_category": "artifact transfer and Pages packaging",
+  "source_sha": "926141fc7e06d046045347e86beb9b216eb806cd",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T06:55:10Z",
-      "worker_run_id": "43171016733",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760,
-        43101943628,
-        43099316175,
-        43094878868,
-        43092616318,
-        43090243002,
-        43087935698,
-        43085628886
-      ],
-      "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-11T19:16:19Z to 2026-11-12T06:21:27Z; within 14 days; 0 cancelled) = 12 successful current-shape full publications (11 push, 1 schedule; sources d57c4c82..d4bf131; n=12 meets the 5-run minimum), 6 failed schedules at the retired Mount latest CAO Dashboard artifact step (excluded), 2 freshness-only schedules (excluded). Category artifact transfer and Pages packaging, median (p90): Upload Pages artifact 2 s (3); Configure Pages 1 s (1); build-end to deploy-start handoff 5 s (6); deploy job queue 5 s (6); Deploy Pages step 7 s (7); deploy job 10 s (11). github-pages artifact 8.3 MB (7.7-8.3 MB). Build start to deploy end median 86.5 s (p90 109); 15 percent gate = 13.0 s. Merging build and deploy would remove at most about 11 s of handoff, queue and setup overhead and would weaken the separate github-pages environment and id-token permission boundary; halving the artifact would save about 1 s. No suggestion. Job logs re-verified HTTP 403 difc_forbidden, so cache hit/miss unverified. Open issues #20380 and #20131 checked; no duplicate. next_category advanced to scheduling, concurrency, and avoidable rebuilds."
-    },
     {
       "evaluated_at": "2026-11-12T07:22:13.978Z",
       "worker_run_id": "43174065246",
@@ -779,6 +751,34 @@
         43124416558
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; no new docs.yml run since the 15:55Z evaluation; HEAD 926141f, docs.yml last changed 063cbe9). Excluded: 1 cancelled 43206161686 (no jobs). Comparable n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; 5-run minimum met). Category step 'Build synthetic enterprise demo' (npm run dashboard:pages:build + cp to dist/cao; no dashboard job, runs inside build): median 4 s, p90 4 s, range 2-5 s = 4.7% of median build-start-to-deploy-end 85 s (p90 123 s). 15% gate = 12.75 s; full removal saves at most 4 s, and 60 s is out of reach. Reuse or caching would weaken synthetic-date freshness and saves at most 4 s; a parallel demo job would need its own checkout and install plus an artifact handoff, so net saving is at most 4 s before overhead. Cache: step has no cache; setup-node npm cache hit/miss unverified (build-job log read HTTP 403 difc_forbidden, re-verified). Unmeasured lead, not a suggestion: dashboard-site npm ci is inside the combined 'Install dependencies' step (median 17 s); metadata cannot split it. No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-12T16:54:13Z",
+      "worker_run_id": "43262704623",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761,
+        43129836945,
+        43124416558
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; 0 in progress; 1 cancelled excluded: 43206161686 (no jobs); no new run since the 16:35Z evaluation through 16:52Z). Sample n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; 5-run minimum met). HEAD 926141f; docs.yml last changed 063cbe9. Medians (p90, nearest-rank): Upload Pages artifact 2 s (3); Configure Pages 1 s (1); build-completed to deploy-created handoff 0 s (1); deploy queue 5 s (6); Deploy Pages 7 s (14); deploy job 11 s (18); build-start to deploy-end 85 s (123). github-pages artifact 8.3 MB (8.27-8.34 MB, stable). 15 percent gate = 12.75 s. Removable without weakening deployment safety: upload plus configure about 3 s; artifact size reduction at most about 1 s. Merging build and deploy saves at most about 6 s (handoff, deploy queue, setup) and moves the github-pages environment and id-token write boundary, so rejected. Open issues: #20380 and #20131 are closed; no open docs-build-time-investigator issue, no duplicate. Scope: docs.yml, Actions job, step and artifact metadata only; no source read; build logs not read. No suggestion; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
       "suggestion_fingerprint": null
     }
   ]
