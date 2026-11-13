@@ -1,7 +1,7 @@
 ---
 title: Central Agentic Ops Dashboard Data Architecture Specification
 description: Canonical data model, ingestion, IndexedDB persistence, consistency, recovery, and scale requirements for the gh-cao dashboard.
-version: 1.8.3
+version: 1.8.4
 status: Working Draft
 editors:
   - GitHub Next
@@ -9,7 +9,7 @@ editors:
 
 # Central Agentic Ops Dashboard Data Architecture Specification
 
-**Version:** 1.8.3
+**Version:** 1.8.4
 **Status:** Working Draft
 **Repository:** `githubnext/gh-cao`
 **Target implementation:** Dashboard data subsystem
@@ -40,11 +40,11 @@ Audit retains typed routing identifiers,
 classifier labels, request identities, sub-agent ownership, token classes,
 per-response AIC and collection receipts. It MUST NOT retain prompts, bodies,
 free-form errors/reasons, raw tool payloads or content-derived hashes.
-The canonical model is version 36. IndexedDB version 49 SHALL rebuild older
-browser projections so every retained Run receives the disposable statistical
-range keys and indexes defined in §5.1 and every retained Workflow receives the
-disposable subject key used for cursor paging. The Campaign and Workflow
-source-maintenance fields remain optional enrichment.
+The canonical model is version 36. IndexedDB version 49 SHALL rebuild
+incompatible older browser projections so every retained Run receives the
+disposable statistical range keys and indexes defined in §5.1 and every retained
+Workflow receives the disposable subject key used for cursor paging. The Campaign
+and Workflow source-maintenance fields remain optional enrichment.
 Hosted PostgreSQL deployments require a fresh schema with the generated Audit
 and Run aggregate columns. Inventory (`model.inventory`) and generic proxy
 (`firewall.event`) rows SHALL NOT be retained, including replayed cached
@@ -1217,11 +1217,11 @@ use `id: "daily-run-counts"` for readiness, coverage, backfill checkpoint,
 excluded/conflicted counts, byte accounting, and monotonic retention state.
 All three stores use `id` keys without secondary indexes.
 
-Physical upgrades from version 44 or 45 with an existing `runs` store SHALL
+Physical upgrades from versions 44, 45, and 46 with an existing `runs` store SHALL
 create only missing stores and preserve existing records and projection state.
 A newly created daily state SHALL start `backfilling` with coverage
-`retained-v44` or `retained-v45`. Backfill SHALL process at most 250 retained
-Runs per transaction, atomically checkpointing contributions and progress;
+`retained-v44`, `retained-v45`, or `retained-v46`. Backfill SHALL process at most
+250 retained Runs per transaction, atomically checkpointing contributions and progress;
 completion SHALL set status `ready` without claiming complete historical
 coverage. It SHALL NOT rewrite canonical detail or recover already-evicted
 history. New databases SHALL initialize daily state as `ready` with `admitted`
@@ -3751,6 +3751,15 @@ overall wait. A missing, unsupported, or stalled size probe MUST NOT block the
 shard download or completion of the import; byte and time estimates may remain
 unknown while file and stage progress remains determinate.
 
+The worker MUST fetch the published payload manifest and every shard it
+ingests through a bounded retry with exponential backoff, so a transient
+failure, including a non-success response or a manifest reported as missing,
+does not fail the import on its first attempt. Retries MUST stop when the
+ingestion request is aborted. Shard downloads MUST bypass the HTTP cache. A
+failure that persists after the final attempt MUST fail the import without
+treating the manifest as absent, without accepting the missing shard, and
+without replacing the previously committed dashboard snapshot.
+
 Once import work has completed, the browser SHOULD estimate remaining time from
 elapsed time and worker-owned weighted file and stage progress even when shard
 byte sizes are unavailable. Cached shards SHALL be excluded from measured
@@ -4678,8 +4687,8 @@ Because IndexedDB is not authoritative:
 
 > Rebuildability is more important than preserving stale derived rows.
 
-Physical schema upgrades SHALL follow §5.1: upgrades from version 44 or 45 with
-a `runs` store SHALL preserve existing stores and create only missing stores;
+Physical schema upgrades SHALL follow §5.1: upgrades from versions 44, 45, and 46
+with a `runs` store SHALL preserve existing stores and create only missing stores;
 incompatible older projections SHALL be rebuilt. Derived projections that
 use generations SHOULD keep the published generation available until compatible
 replacement metadata is committed.
@@ -5328,6 +5337,13 @@ set or enumerate unrelated worker partitions.
 ---
 
 # 74. Change Log
+
+## Version 1.8.4 — Bounded browser ingestion fetch retry
+
+* Added a §35 requirement that the data worker retry manifest and shard
+  fetches with bounded exponential backoff, stop retrying on abort, bypass the
+  HTTP cache for shard downloads, and preserve the prior committed snapshot
+  when a failure persists.
 
 ## Version 1.8.3 — Removed Go row evaluator fallback
 

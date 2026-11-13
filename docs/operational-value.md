@@ -269,6 +269,16 @@ deployed together. Its reviewed `api-requests: 700` ceiling allows Activity to
 refresh it automatically only when that full grant fits above ordinary
 collection's protected reserve.
 
+Collected packets remain in bounded operational artifacts and canonical
+operational stores. Verify the packet in the successful Activity snapshot or
+authorized hosted query result; acquisition or merge alone does not prove
+canonical publication. Download the selected Activity run's `cao-activity-index`
+artifact as described in [Agent analysis](agent-analysis.md).
+Documentation Pages independently builds a synthetic enterprise demo, not a
+view of this repository's measurements. It consumes no operational artifact,
+and the former `campaigns.dashboard.deploy` setting is removed. Direct hosted
+publication requires its actual server URL and administrator OAuth session.
+
 ### Dependabot lifecycle collector
 
 The separately reviewed `dependabot-update-planner` registration covers only
@@ -289,16 +299,6 @@ alert, critical/high-alert, and Dependabot PR counts when all three are
 complete, including genuine zeroes; otherwise it emits missing measurements
 and preserves earlier accepted captures. This registration does not change
 the Dependabot campaign's rollout mode or grant another repository access.
-
-Collected packets remain in bounded operational artifacts and canonical
-operational stores. Verify the packet in the successful Activity snapshot or
-authorized hosted query result; acquisition or merge alone does not prove
-canonical publication. Download the selected Activity run's `cao-activity-index`
-artifact as described in [Agent analysis](agent-analysis.md).
-Documentation Pages independently builds a synthetic enterprise demo, not a
-view of this repository's measurements. It consumes no operational artifact,
-and the former `campaigns.dashboard.deploy` setting is removed. Direct hosted
-publication requires its actual server URL and administrator OAuth session.
 
 ## Existing compact repository measurements
 

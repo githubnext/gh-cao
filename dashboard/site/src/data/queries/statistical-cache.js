@@ -1,4 +1,7 @@
+import { createDebug, diagnosticErrorName } from '../../debug.js';
 import { resolveDashboardQuerySources } from './declarative.js';
+
+const debugStatisticalCache = createDebug('statistical-cache');
 
 export const DEFAULT_STATISTICAL_REFRESH_INTERVAL_MS = 300_000;
 const MAX_TIMEOUT_MS = 2_147_483_647;
@@ -56,6 +59,7 @@ export function createStatisticalCache(clock = {}) {
   const slots = new Map();
   return {
     invalidate() {
+      debugStatisticalCache({ operation: 'invalidate', status: 'dropped', slotCount: slots.size });
       for (const slot of slots.values()) {
         delete slot.value;
         delete slot.revision;
@@ -74,7 +78,10 @@ export function createStatisticalCache(clock = {}) {
       let slot = slots.get(key);
       if (!slot) {
         // Scope/capacity comes from owned configuration, not consumer filters.
-        if (slots.size >= 8) throw new Error('Statistical cache scope capacity exceeded');
+        if (slots.size >= 8) {
+          debugStatisticalCache({ operation: 'slot', status: 'capacity-exceeded', slotCount: slots.size });
+          throw new Error('Statistical cache scope capacity exceeded');
+        }
         slot = { attemptedAt: -Infinity, generation: 0 };
         slots.set(key, slot);
       }
@@ -82,14 +89,30 @@ export function createStatisticalCache(clock = {}) {
         slot.attemptedAt = now();
         const generation = slot.generation;
         const target = slot;
+        const startedAt = target.attemptedAt;
+        let outcome = 'superseded';
+        /** @type {string | undefined} */
+        let errorName;
         target.flight = Promise.resolve().then(build).then((value) => {
           if (target.generation !== generation) return;
           target.value = value;
           target.revision = revision;
           delete target.error;
+          outcome = 'built';
         }, (error) => {
-          if (target.generation === generation) target.error = error;
-        }).finally(() => { delete target.flight; });
+          if (target.generation !== generation) return;
+          target.error = error;
+          outcome = 'failed';
+          errorName = diagnosticErrorName(error);
+        }).finally(() => {
+          delete target.flight;
+          debugStatisticalCache({
+            operation: 'refresh',
+            status: outcome,
+            durationMs: Math.round(now() - startedAt),
+            ...(errorName ? { errorName } : {})
+          });
+        });
       }
       await slot.flight;
       checkpoint?.();

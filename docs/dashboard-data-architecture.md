@@ -445,6 +445,7 @@ flowchart TB
   Request["Query request"] --> Auth["Current authentication and authorization"]
   Auth --> Key["ETag: contract, parameters, paging, schema, authorization class"]
   Key --> Hit{"Eligible cache entry?"}
+  Key -.->|"Value-reading queries add the committed revision"| Hit
   Hit -->|Yes| Old["Return original revision and evaluation time"]
   Hit -->|No| Execute["Execute bounded query"]
   Execute --> Admit["Optional capacity-bounded cache admission"]
@@ -453,9 +454,20 @@ flowchart TB
 
 The Go query cache is optional cache-aside storage for expensive queries with
 compact outputs. Entries expire **five minutes after admission**, without
-sliding renewal. Their key excludes ingestion revision, and ingestion or data
-egress does not invalidate them. Hits therefore retain the original evidence
-revision and evaluation time; they are not newly evaluated evidence.
+sliding renewal. The specification says these keys MUST NOT include ingestion
+revision and that ingestion or data egress does not invalidate them. Hits
+therefore retain the original evidence revision and evaluation time; they are
+not newly evaluated evidence.
+
+**Implementation qualification:** `queryResultCacheIdentity` in
+`server/internal/server/query_cache.go` (lines 101-138) appends the committed
+store revision to the key when a query reads operational Value sources
+(`$operationalValueEvidence` or `$operationalValues`, directly, through a union,
+or through a join). Those entries therefore change with each revision, so
+Value publication and collector withdrawal are visible without waiting for the
+five-minute lifetime. This conflicts with the normative revision-free key and
+is not reconciled here: treat the revision-keyed behavior as the implementation
+and the specification as the open conflict until the owners resolve it.
 Canonical entity APIs and readiness probes do not use this result cache.
 
 Capacity guards bound output bytes, entries, and adapter-specific accounting.
