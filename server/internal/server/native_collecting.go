@@ -133,7 +133,7 @@ func newNativeCollector(ctx context.Context, services operational.OperationalSer
 	collector.backfill.NativeInventory = inventory
 	collector.backfill.NativePublications = strict
 	collector.reporter.Backfill = collector.backfill
-	collector.replayer = collect.DeliveryReplayer{State: services.State, Metadata: services.Collection,
+	collector.replayer = collect.DeliveryReplayer{State: services.State,
 		Client: client, Enabled: config.RecoverDeliveries}
 	return collector, nil
 }
