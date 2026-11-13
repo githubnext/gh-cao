@@ -1,36 +1,7 @@
 {
  "source_sha": "d0b4a18292a24f97502b1860cf3d79367faae583",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T17:54:11Z",
-   "worker_run_id": "43273381481",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206161686,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761,
-    43129836945,
-    43124416558
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; 0 in progress; 1 cancelled excluded: 43206161686, no jobs). Comparable n=19 successful publications (18 push, 1 schedule 43161224542; 5-run minimum met; no pre-design failures in window). Metadata only: job logs HTTP 403 difc_forbidden (one bounded attempt); cache hits inferred, not log-verified (Post Set up Node.js 0-1 s in 19/19). Build documentation (npm run docs:build) median 14 s, p90 15 s, range 8-15 s = 15.9% of median created-to-deploy wall 88 s; 15% gate = 13.2 s; 60 s unreachable. Only complete removal reaches the gate, and the step produces the published docs root, so no suggestion. No open issue for this worker. Carried to the next scheduling cycle, not evaluated here: run-created to build-created gaps of 43 s (43228124764 behind 43228046118) and 27 s (43206235849 behind 43206080696), plus cancelled pending run 43206161686 before any job started; closed issue 20131 cited a 49 s burst, so re-check it. next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T18:21:52Z",
    "worker_run_id": "43278180143",
@@ -840,6 +811,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:21:27Z to 2026-11-13T03:56:23Z; all within 14 days; none in progress; source HEAD d0b4a18; newest push 43362224525 on fa659ce). Excluded and disclosed: 1 cancelled superseded pending run 43206161686 (no jobs) and 1 failed push 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). Comparable n=18 successful push runs (5-run minimum met; no schedule run in window). Job and step metadata only; job logs not read (HTTP 403 difc_forbidden last seen 03:40Z, not re-probed). Medians (p90): build job exec 67.5 s (94.6); build start to deploy end 84.5 s (111.1); run created to deploy end 88 s (160.6, tail from queue gaps); Install dependencies 15.5 s (19.0; range 12-25) = 18.3 percent of median execution; Set up Node.js 3 s (7.3); Post Set up Node.js 0 s in 18/18. Cache: hash rule verified this run (sha256 of the raw digest of root package-lock.json = e62f6006, matching the docs key); the only root-lock commit since 05:00Z is 063cbe9 (06:17Z), so all 18 runs share key node-cache-Linux-x64-npm-e62f6006 created 06:18Z; post-step 0 s means no save, so exact-key hits are inferred, not log-verified. Gate 12.75 s (15 percent of 84.5 s). Candidates: root npm ci --omit=dev skips 107 dev-only packages of 765 (estimate a few seconds; docs:build imports unverified); root --ignore-scripts (4 install-script packages incl. esbuild, node-pty; a few seconds, correctness risk); merging the two installs (a few seconds); node_modules cache replacing install and npm cache restore (needs restore <= about 6 s to clear gate; no in-repo or measured timing; cache listing 58 entries, 10.6 GB above the 10 GB cap, so adds pressure). None clears the gate with repeated evidence. No open issue; no suggestion; next_category advanced to Astro documentation generation. Carry-forward outside rotation, not evaluated: Checkout fetch-depth 0 median 24.5 s (p90 42), largest non-build step; partial clone unmeasured.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T04:35:37Z",
+   "worker_run_id": "43366024546",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311,
+    43249903823,
+    43242792853,
+    43236057780,
+    43228124764,
+    43228046118,
+    43225202834,
+    43206235849,
+    43206161686,
+    43206080696,
+    43194788185,
+    43167568535
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:21:27Z to 2026-11-13T03:56:23Z; unchanged since the 04:23Z evaluation; none in progress; source HEAD d0b4a18 changes no docs.yml trigger path vs fa659ce per compare API). Excluded and disclosed: 1 cancelled 43206161686 (no jobs) and 1 failed 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). Comparable n=18 successful push runs (5-run minimum met; no schedule run in window). Job and step metadata only; build-log read HTTP 403 difc_forbidden (one attempt, not retried), so the Astro split (astro build vs validate-agent-docs vs discovery test) and cache state are unverified. Build documentation (npm run docs:build): median 14 s, p90 15 s, range 8-15 s = 16.6% of median build-start-to-deploy-end 84.5 s (p90 111.1 s); 15% gate = 12.67 s, so only near-total removal qualifies. Removing the step would drop the published docs build; validation and discovery test are correctness gates with unmeasured share; any cache restore adds its own time. Build job median 67.5 s (p90 94.6), deploy job 10.5 s (14.5), build-to-deploy handoff 5.5 s (6.3). No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -856,7 +856,7 @@
  },
  "run_samples": {
   "window_created": "2026-11-12T06:21:27Z..2026-11-13T03:56:23Z",
-  "evaluated_at": "2026-11-13T04:23:20Z",
+  "evaluated_at": "2026-11-13T04:35:37Z",
   "note": "compact per-run seconds for the latest 20 completed docs.yml runs; cancelled 43206161686 and failed 43297524311 disclosed; queue_s=build job created to started; exec_s=build start to deploy end; wall_s=run created to deploy end; post_node=Post Set up Node.js (0 in all successes)",
   "rows": [
    {
