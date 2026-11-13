@@ -1,36 +1,7 @@
 {
  "source_sha": "7cb5134de200cd5d27125613422c3ecc7abdf846",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T11:54:00Z",
-   "worker_run_id": "43420098629",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; none queued or in progress; source HEAD f0c3fc4 unchanged from prior evaluations). Excluded and disclosed: failed 43297524311 (Build documentation failed; deploy skipped). n=19 successful build+deploy publications (18 push, 1 schedule 43371878284); 5-run minimum met; no cancelled runs in window. Packaging medians (p90): Configure Pages 0 s (1 s); Upload Pages artifact 2 s (3 s); build-end to deploy-start handoff 5 s (6 s); deploy job Set up 1 s (1 s); Deploy Pages 7 s (8 s, max 8 s); build tail after upload 2 s (3 s). Removable transfer overhead (Configure+Upload+handoff+deploy setup) median 9 s (p90 10 s, max 10 s) = 10.6 percent of median execution 85 s (p90 106 s); 15 percent gate 12.75 s and 60 s gate both unmet even at per-run max (11.8 percent). github-pages artifact 8.26 to 8.38 MB (median 8.30 MB); upload about 0.24 s per MB, so shrinking it saves about 1 to 2 s. Merging deploy into build (about 6 s) remains rejected for id-token and environment isolation. Prior Deploy Pages 14 to 15 s outliers did not recur in this window (max 8 s). Job logs HTTP 403 difc_forbidden (re-probed 11:52Z); timings from trusted job and step metadata; artifact size from Actions artifacts API. No open worker issue (search 11:53Z; open 20440 and 20719 are workflow-failure reports). No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T12:24:02Z",
    "worker_run_id": "43424183439",
@@ -868,6 +839,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; none queued or in progress; no cancelled runs; source 7cb5134 = HEAD = source_sha; docs.yml last changed 063cbe9 (2026-11-12T06:17:07Z) per commits API, before every window run; window identical to the 21:34Z window). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; build Install dependencies failed at 17 s; check-run annotation 'Process completed with exit code 152'; Build documentation and deploy skipped; log HTTP 403, cause unverified; Pages still serves 43505502149). n=19 successful push runs; 5-run gate met. Category: the only dashboard step is Build synthetic enterprise demo (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs): median 3 s, p90 4 s, range 3-5 s = 3.6 percent of median exec 84 s (p90 93 s). 15 percent gate 12.6 s; full removal saves at most 5 s (6.0 percent), so both gates are unreachable. Caching or reusing demo output is stale-unsafe: prepareDashboardPages defaults now = Date.now() into generatedAt; the 05:23Z cron refreshes synthetic dates. Separate dashboard job rejected (checkout median 25 s plus handoff). No suggestion; no issue (open 20815 is the checkout category). next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T22:19:02Z",
+   "worker_run_id": "43517625242",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43378369544 to 43506161539; created 2026-11-13T06:23:31Z to 20:56:37Z; none queued or in progress; source 7cb5134; 7c8faf4 to 7cb5134 compare shows only cao-evolution-integrity.md and its test, so no docs-path commit followed the failed run). Excluded and disclosed: failed 43506161539 (Install dependencies, Pages not updated by 7c8faf4; log HTTP 403, cause unverified). n=19 push successes (5-run minimum met); 0 cancelled. Job and step metadata from the Actions jobs API; logs not read. Medians (p90): exec 84 s (93); build job 69 (79); deploy job 9 (12); Upload Pages artifact 2 (3); Configure Pages 0 (1); build-end to deploy-start handoff 5 (6); deploy Set up job 1 (1); Deploy Pages 7 (8, required). Removable transfer (configure+upload+handoff+deploy setup) median 9 s (p90 10, max 10) = 10.7 percent of median exec; 15 percent gate 12.6 s and 60 s gate unmet even at max. Merging deploy into build saves about 6 s and stays rejected (id-token write and environment gate). github-pages artifact 8.37 MB (run 43505502149); upload about 2 s, so a size cut saves under 1 s. Open issue 20815 (blobless checkout) unchanged and not repeated. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -892,324 +892,358 @@
   "note": "window = latest 20 completed docs.yml runs (43378369544..43506161539); 19 successful push runs (n=19), 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs HTTP 403 DIFC.",
   "median_p90_s": {
    "Checkout": [
-    25.0,
-    31.0
+    25,
+    31
    ],
    "Set up Node.js": [
-    4.0,
-    7.0
+    4,
+    7
    ],
    "Install dependencies": [
-    16.0,
-    24.0
+    16,
+    24
    ],
    "Build documentation": [
-    12.0,
-    15.0
+    12,
+    15
    ],
    "Build synthetic enterprise demo": [
-    3.0,
-    4.0
+    3,
+    4
    ],
    "Upload Pages artifact": [
-    2.0,
-    3.0
+    2,
+    3
    ],
    "exec": [
-    84.0,
-    93.0
+    84,
+    93
    ],
    "queue_wait": [
-    1.0,
-    51.0
+    1,
+    51
    ],
    "deploy_job": [
-    9.0,
-    12.0
+    9,
+    12
    ]
   },
   "rows": [
    {
     "run": 43506161539,
     "c": "fail",
-    "exec": 46.0,
-    "wait": 1.0,
-    "co": 24.0,
-    "node": 1.0,
-    "post_node": 0.0,
-    "inst": 17.0,
-    "docs": 0.0,
-    "demo": 0.0,
-    "up": 0.0,
-    "deploy": 0.0
+    "exec": 46,
+    "wait": 1,
+    "co": 24,
+    "node": 1,
+    "post_node": 0,
+    "inst": 17,
+    "docs": 0,
+    "demo": 0,
+    "up": 0,
+    "deploy": 0
    },
    {
     "run": 43505502149,
     "c": "succ",
-    "exec": 81.0,
-    "wait": 1.0,
-    "co": 24.0,
-    "node": 2.0,
-    "post_node": 1.0,
-    "inst": 16.0,
-    "docs": 11.0,
-    "demo": 3.0,
-    "up": 1.0,
-    "deploy": 13.0
+    "exec": 81,
+    "wait": 1,
+    "co": 24,
+    "node": 2,
+    "post_node": 1,
+    "inst": 16,
+    "docs": 11,
+    "demo": 3,
+    "up": 1,
+    "deploy": 13
    },
    {
     "run": 43504143936,
     "c": "succ",
-    "exec": 90.0,
-    "wait": 68.0,
-    "co": 24.0,
-    "node": 4.0,
-    "post_node": 0.0,
-    "inst": 24.0,
-    "docs": 14.0,
-    "demo": 4.0,
-    "up": 2.0,
-    "deploy": 7.0
+    "exec": 90,
+    "wait": 68,
+    "co": 24,
+    "node": 4,
+    "post_node": 0,
+    "inst": 24,
+    "docs": 14,
+    "demo": 4,
+    "up": 2,
+    "deploy": 7
    },
    {
     "run": 43504093917,
     "c": "succ",
-    "exec": 84.0,
-    "wait": 1.0,
-    "co": 26.0,
-    "node": 7.0,
-    "post_node": 0.0,
-    "inst": 15.0,
-    "docs": 12.0,
-    "demo": 3.0,
-    "up": 3.0,
-    "deploy": 9.0
+    "exec": 84,
+    "wait": 1,
+    "co": 26,
+    "node": 7,
+    "post_node": 0,
+    "inst": 15,
+    "docs": 12,
+    "demo": 3,
+    "up": 3,
+    "deploy": 9
    },
    {
     "run": 43503897533,
     "c": "succ",
-    "exec": 68.0,
-    "wait": 1.0,
-    "co": 20.0,
-    "node": 3.0,
-    "post_node": 0.0,
-    "inst": 11.0,
-    "docs": 9.0,
-    "demo": 4.0,
-    "up": 3.0,
-    "deploy": 9.0
+    "exec": 68,
+    "wait": 1,
+    "co": 20,
+    "node": 3,
+    "post_node": 0,
+    "inst": 11,
+    "docs": 9,
+    "demo": 4,
+    "up": 3,
+    "deploy": 9
    },
    {
     "run": 43503506778,
     "c": "succ",
-    "exec": 78.0,
-    "wait": 0.0,
-    "co": 23.0,
-    "node": 2.0,
-    "post_node": 0.0,
-    "inst": 14.0,
-    "docs": 11.0,
-    "demo": 4.0,
-    "up": 2.0,
-    "deploy": 12.0
+    "exec": 78,
+    "wait": 0,
+    "co": 23,
+    "node": 2,
+    "post_node": 0,
+    "inst": 14,
+    "docs": 11,
+    "demo": 4,
+    "up": 2,
+    "deploy": 12
    },
    {
     "run": 43502660435,
     "c": "succ",
-    "exec": 83.0,
-    "wait": 42.0,
-    "co": 25.0,
-    "node": 3.0,
-    "post_node": 0.0,
-    "inst": 15.0,
-    "docs": 14.0,
-    "demo": 4.0,
-    "up": 3.0,
-    "deploy": 11.0
+    "exec": 83,
+    "wait": 42,
+    "co": 25,
+    "node": 3,
+    "post_node": 0,
+    "inst": 15,
+    "docs": 14,
+    "demo": 4,
+    "up": 3,
+    "deploy": 11
    },
    {
     "run": 43502562196,
     "c": "succ",
-    "exec": 77.0,
-    "wait": 1.0,
-    "co": 21.0,
-    "node": 5.0,
-    "post_node": 1.0,
-    "inst": 20.0,
-    "docs": 10.0,
-    "demo": 3.0,
-    "up": 1.0,
-    "deploy": 8.0
+    "exec": 77,
+    "wait": 1,
+    "co": 21,
+    "node": 5,
+    "post_node": 1,
+    "inst": 20,
+    "docs": 10,
+    "demo": 3,
+    "up": 1,
+    "deploy": 8
    },
    {
     "run": 43494667529,
     "c": "succ",
-    "exec": 93.0,
-    "wait": 1.0,
-    "co": 31.0,
-    "node": 4.0,
-    "post_node": 0.0,
-    "inst": 17.0,
-    "docs": 15.0,
-    "demo": 4.0,
-    "up": 3.0,
-    "deploy": 9.0
+    "exec": 93,
+    "wait": 1,
+    "co": 31,
+    "node": 4,
+    "post_node": 0,
+    "inst": 17,
+    "docs": 15,
+    "demo": 4,
+    "up": 3,
+    "deploy": 9
    },
    {
     "run": 43484369040,
     "c": "succ",
-    "exec": 80.0,
-    "wait": 1.0,
-    "co": 26.0,
-    "node": 4.0,
-    "post_node": 0.0,
-    "inst": 15.0,
-    "docs": 9.0,
-    "demo": 3.0,
-    "up": 3.0,
-    "deploy": 9.0
+    "exec": 80,
+    "wait": 1,
+    "co": 26,
+    "node": 4,
+    "post_node": 0,
+    "inst": 15,
+    "docs": 9,
+    "demo": 3,
+    "up": 3,
+    "deploy": 9
    },
    {
     "run": 43465706802,
     "c": "succ",
-    "exec": 89.0,
-    "wait": 1.0,
-    "co": 25.0,
-    "node": 4.0,
-    "post_node": 0.0,
-    "inst": 20.0,
-    "docs": 15.0,
-    "demo": 4.0,
-    "up": 2.0,
-    "deploy": 10.0
+    "exec": 89,
+    "wait": 1,
+    "co": 25,
+    "node": 4,
+    "post_node": 0,
+    "inst": 20,
+    "docs": 15,
+    "demo": 4,
+    "up": 2,
+    "deploy": 10
    },
    {
     "run": 43447728981,
     "c": "succ",
-    "exec": 92.0,
-    "wait": 1.0,
-    "co": 23.0,
-    "node": 8.0,
-    "post_node": 0.0,
-    "inst": 25.0,
-    "docs": 12.0,
-    "demo": 3.0,
-    "up": 2.0,
-    "deploy": 9.0
+    "exec": 92,
+    "wait": 1,
+    "co": 23,
+    "node": 8,
+    "post_node": 0,
+    "inst": 25,
+    "docs": 12,
+    "demo": 3,
+    "up": 2,
+    "deploy": 9
    },
    {
     "run": 43447111490,
     "c": "succ",
-    "exec": 73.0,
-    "wait": 1.0,
-    "co": 23.0,
-    "node": 3.0,
-    "post_node": 1.0,
-    "inst": 13.0,
-    "docs": 11.0,
-    "demo": 3.0,
-    "up": 1.0,
-    "deploy": 9.0
+    "exec": 73,
+    "wait": 1,
+    "co": 23,
+    "node": 3,
+    "post_node": 1,
+    "inst": 13,
+    "docs": 11,
+    "demo": 3,
+    "up": 1,
+    "deploy": 9
    },
    {
     "run": 43440055797,
     "c": "succ",
-    "exec": 90.0,
-    "wait": 0.0,
-    "co": 24.0,
-    "node": 3.0,
-    "post_node": 0.0,
-    "inst": 23.0,
-    "docs": 14.0,
-    "demo": 5.0,
-    "up": 2.0,
-    "deploy": 10.0
+    "exec": 90,
+    "wait": 0,
+    "co": 24,
+    "node": 3,
+    "post_node": 0,
+    "inst": 23,
+    "docs": 14,
+    "demo": 5,
+    "up": 2,
+    "deploy": 10
    },
    {
     "run": 43430232636,
     "c": "succ",
-    "exec": 91.0,
-    "wait": 51.0,
-    "co": 25.0,
-    "node": 5.0,
-    "post_node": 0.0,
-    "inst": 18.0,
-    "docs": 15.0,
-    "demo": 3.0,
-    "up": 3.0,
-    "deploy": 10.0
+    "exec": 91,
+    "wait": 51,
+    "co": 25,
+    "node": 5,
+    "post_node": 0,
+    "inst": 18,
+    "docs": 15,
+    "demo": 3,
+    "up": 3,
+    "deploy": 10
    },
    {
     "run": 43430166810,
     "c": "succ",
-    "exec": 77.0,
-    "wait": 1.0,
-    "co": 25.0,
-    "node": 3.0,
-    "post_node": 0.0,
-    "inst": 14.0,
-    "docs": 11.0,
-    "demo": 3.0,
-    "up": 2.0,
-    "deploy": 8.0
+    "exec": 77,
+    "wait": 1,
+    "co": 25,
+    "node": 3,
+    "post_node": 0,
+    "inst": 14,
+    "docs": 11,
+    "demo": 3,
+    "up": 2,
+    "deploy": 8
    },
    {
     "run": 43388781287,
     "c": "succ",
-    "exec": 85.0,
-    "wait": 0.0,
-    "co": 28.0,
-    "node": 3.0,
-    "post_node": 0.0,
-    "inst": 17.0,
-    "docs": 14.0,
-    "demo": 4.0,
-    "up": 2.0,
-    "deploy": 9.0
+    "exec": 85,
+    "wait": 0,
+    "co": 28,
+    "node": 3,
+    "post_node": 0,
+    "inst": 17,
+    "docs": 14,
+    "demo": 4,
+    "up": 2,
+    "deploy": 9
    },
    {
     "run": 43380585034,
     "c": "succ",
-    "exec": 114.0,
-    "wait": 0.0,
-    "co": 56.0,
-    "node": 3.0,
-    "post_node": 0.0,
-    "inst": 16.0,
-    "docs": 15.0,
-    "demo": 4.0,
-    "up": 3.0,
-    "deploy": 8.0
+    "exec": 114,
+    "wait": 0,
+    "co": 56,
+    "node": 3,
+    "post_node": 0,
+    "inst": 16,
+    "docs": 15,
+    "demo": 4,
+    "up": 3,
+    "deploy": 8
    },
    {
     "run": 43378597209,
     "c": "succ",
-    "exec": 91.0,
-    "wait": 1.0,
-    "co": 27.0,
-    "node": 7.0,
-    "post_node": 0.0,
-    "inst": 16.0,
-    "docs": 12.0,
-    "demo": 3.0,
-    "up": 4.0,
-    "deploy": 11.0
+    "exec": 91,
+    "wait": 1,
+    "co": 27,
+    "node": 7,
+    "post_node": 0,
+    "inst": 16,
+    "docs": 12,
+    "demo": 3,
+    "up": 4,
+    "deploy": 11
    },
    {
     "run": 43378369544,
     "c": "succ",
-    "exec": 75.0,
-    "wait": 1.0,
-    "co": 20.0,
-    "node": 5.0,
-    "post_node": 0.0,
-    "inst": 15.0,
-    "docs": 9.0,
-    "demo": 3.0,
-    "up": 2.0,
-    "deploy": 12.0
+    "exec": 75,
+    "wait": 1,
+    "co": 20,
+    "node": 5,
+    "post_node": 0,
+    "inst": 15,
+    "docs": 9,
+    "demo": 3,
+    "up": 2,
+    "deploy": 12
    }
-  ]
+  ],
+  "packaging": {
+   "evaluated_at": "2026-11-13T22:19:02Z",
+   "window": "43378369544..43506161539",
+   "push_successes": 19,
+   "Configure Pages": [
+    0,
+    1
+   ],
+   "Upload Pages artifact": [
+    2,
+    3
+   ],
+   "handoff_build_end_to_deploy_start": [
+    5,
+    6
+   ],
+   "deploy_setup": [
+    1,
+    1
+   ],
+   "Deploy Pages": [
+    7,
+    8
+   ],
+   "removable_transfer": [
+    9,
+    10
+   ],
+   "exec": [
+    84,
+    93
+   ],
+   "removable_pct_of_median_exec": 10.7
+  }
  },
  "observations_pending": [
   {
@@ -1233,11 +1267,6 @@
    "note": "Queued docs.yml run 37642403569 (created 2026-10-07T15:12:12Z, event workflow_run, headSha 6206962) is still queued and was excluded from samples; completed-run timings are unaffected. Re-evaluate only if it blocks a current push run in the documentation-pages concurrency group."
   },
   {
-   "observed_at": "2026-11-13T20:35:11Z",
-   "source": "docs.yml artifact transfer and Pages packaging (worker 43502124062)",
-   "note": "Controllable transfer overhead median 8 s (p90 10) = 9.0% of median exec 89 s; below the 13.35 s gate even at full removal. Deploy-into-build merge (about 6 s) rejected for least privilege. Re-evaluate only if the deploy job is removed by a maintainer design change or transfer overhead median reaches 13 s."
-  },
-  {
    "observed_at": "2026-11-13T20:54:30Z",
    "source": "docs.yml scheduling, concurrency, avoidable rebuilds (worker 43505085302)",
    "note": "Window 43373049149..43504143936 (20 push success): run-to-build wait median 1 s, p90 42 s, max 68 s in 3 of 20 (queue only; exec median 84.5 s). Six newest pushes each changed docs-trigger paths (compare API), so 0 avoidable; no test-only publication. Re-evaluate only if a same-SHA scheduled duplicate repeats, a maintainer approves a superseded-pending or group-ordering change, or a test-only push publication appears."
@@ -1256,6 +1285,11 @@
    "observed_at": "2026-11-13T21:53:17Z",
    "source": "docs.yml FAILURE 43506161539 annotation check (worker 43513988133)",
    "note": "Build check-run annotations: failure 'Process completed with exit code 152'; notice 'ubuntu-latest will migrate to Ubuntu 26 beginning October 19, 2026' also appears on successful run 43505502149, so the notice is not the failure cause. Cause still unverified (log HTTP 403). Maintainer should read the install log of 43506161539 and confirm a green docs.yml run on main."
+  },
+  {
+   "observed_at": "2026-11-13T22:19:02Z",
+   "source": "docs.yml artifact transfer and Pages packaging (worker 43517625242)",
+   "note": "Removable transfer median 9 s (p90 10) = 10.7% of median exec 84 s; gate 12.6 s unreachable (max 10 s). Re-evaluate only if Deploy Pages median reaches 13 s, removable transfer median reaches 13 s, or a maintainer removes the deploy job."
   }
  ],
  "checkout_probe": {
