@@ -144,10 +144,19 @@ test("probabilistic outcomes preserve timestamps, output eligibility and delayed
 test("rebuilding the enterprise sample does not duplicate daily Value observations", async () => {
   const indexedDB = new IDBFactory();
   const now = Date.parse("2040-06-15T12:00:00.000Z");
+  let identities;
   for (const clock of [now, now + 60_000]) {
     const sample = enterpriseSample(clock);
-    await ingestCachedGhAwJsonl(indexedDB, sample.records.map(record => JSON.stringify(record)).join("\n"), { now: clock });
-    assert.equal((await readCollection(indexedDB, "operationalValues")).length, 672);
+    // The full run/detail corpus is covered by the canonical round-trip test below.
+    const records = sample.records.filter(record =>
+      ["operational_value", "operational_value_evidence", "workflow_value_collection"].includes(record.kind));
+    const result = await ingestCachedGhAwJsonl(indexedDB, records.map(record => JSON.stringify(record)).join("\n"), { now: clock });
+    assert.equal(result.updated, true, "rebuild must ingest changed evidence, not skip a cached payload");
+    const values = await readCollection(indexedDB, "operationalValues");
+    assert.equal(values.length, 672);
+    const current = values.map(value => value.id).sort();
+    if (identities) assert.deepEqual(current, identities);
+    identities = current;
   }
 });
 

@@ -114,6 +114,14 @@ complete root validation locally:
 npm run check
 ```
 
+For the root dashboard contracts, build `.tmp/cao-dashboard` with
+`go -C server build -o ../.tmp/cao-dashboard ./cmd/cao-dashboard`, then run
+`POSTGRES_URL=... npm run test:unit:area -- dashboard` against an explicitly
+disposable numeric-loopback PostgreSQL instance. The role must be able to create
+databases. The runner provisions canonical and operational stores once through
+the production bootstrap, clones a private database for each canvas fixture,
+and removes the template when the test runner finishes.
+
 Workflow source changes must pass `npm run compile`. Run
 `npm run compile:locks` only when generated lock files should be updated.
 
