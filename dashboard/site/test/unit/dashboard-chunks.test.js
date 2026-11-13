@@ -193,6 +193,12 @@ describe('dashboardPageIsLoaded', () => {
 });
 
 describe('splitDashboardDocument / resolveDashboardDocument round-trip', () => {
+  it('supports a dashboard without optional pages', () => {
+    const { core, pageChunks } = splitDashboardDocument({ languageVersion: '0.1.0', dashboard: {} });
+    expect(core.dashboard.pages).toEqual([]);
+    expect(pageChunks.size).toBe(0);
+  });
+
   it('produces a core document without inline views/definitions or top-level queries', () => {
     const { core, pageChunks } = splitDashboardDocument(sampleDocument());
     expect(core.dashboard.queries?.map((query) => query.name)).toEqual(['callout-source']);

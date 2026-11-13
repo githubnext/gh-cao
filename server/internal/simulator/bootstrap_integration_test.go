@@ -116,6 +116,16 @@ func TestCAOBootstrapIntegration(t *testing.T) {
 		t.Fatalf("failed private setup changed policy: %v", err)
 	}
 	bootstrapAssertRepository(t, api, true)
+	// Attested runtime acquisition has separate native CLI coverage. Setup here
+	// uses checkout-owned runtime fixtures, not a simulated provenance bypass.
+	for _, name := range setupRuntimeFixtureFiles(t, catalog) {
+		destination := filepath.Join(consumer, name)
+		if _, err := os.Stat(destination); os.IsNotExist(err) {
+			setupWrite(t, destination, setupRead(t, filepath.Join(catalog, name)))
+		} else if err != nil {
+			t.Fatal(err)
+		}
+	}
 	// Explicitly select the documented public-monitoring profile on fixture
 	// data only, then exercise the installer's --setup path and idempotency.
 	bootstrapRun(t, ctx, consumer, environment, "gh", "api", "-X", "PATCH", "repos/platform/control", "-F", "private=false")

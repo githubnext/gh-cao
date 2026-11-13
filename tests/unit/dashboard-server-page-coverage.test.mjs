@@ -35,6 +35,7 @@ test("ordinary and parameterized pages remain covered regardless of their names 
     { id: "commands" },
     { id: "command", route: { "hash-query-parameter": "command" } },
     { id: "workflow", route: { "availability-view": "workflow-details" } },
+    { id: "campaigns", requires: { source: "campaign-inventory" } },
   ]) {
     assert.equal(serverDashboardPageExclusionReason(page), undefined);
   }
@@ -51,7 +52,7 @@ test("server coverage excludes Governance only while it declares the admin capab
 });
 
 test("new or malformed capability requirements fail closed instead of silently skipping coverage", () => {
-  for (const requires of [null, {}, [], "cli-queue", { capability: "future-feature" }]) {
+  for (const requires of [null, {}, [], "cli-queue", { source: "" }, { capability: "future-feature", source: "campaigns" }]) {
     assert.throws(
       () => serverDashboardPageExclusionReason({ id: "future-page", requires }),
       /Unknown server dashboard page requirement: future-page/,

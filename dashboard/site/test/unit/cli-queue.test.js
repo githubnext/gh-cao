@@ -214,13 +214,14 @@ describe('worker command queue', () => {
       { type: 'output', sequence: 1, stream: 'stdout', data: 'old' },
       { type: 'output', sequence: 2, stream: 'stderr', data: 'new\n' },
       { type: 'output', sequence: 2, stream: 'stderr', data: 'duplicate' },
+      { type: 'status', command: { id: 'durable-1', status: 'running' } },
       completion
     ];
     const fetch = vi.fn().mockResolvedValue(new Response(events.map((event) => JSON.stringify(event)).join('\n')));
     vi.stubGlobal('fetch', fetch);
     const notify = vi.fn();
     expect(await cliQueueOperation({ action: 'attach', commandId: 'durable-1', after: 1 }, undefined, notify)).toEqual(completion);
-    expect(notify).toHaveBeenCalledExactlyOnceWith(events[1]);
+    expect(notify.mock.calls.map(([event]) => event)).toEqual([events[1], events[3]]);
     expect(String(fetch.mock.calls[0][0])).toContain('/durable-1/output?after=1');
     expect(fetch.mock.calls[0][1].method).toBeUndefined();
   });

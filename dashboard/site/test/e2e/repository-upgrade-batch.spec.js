@@ -89,6 +89,7 @@ for (const width of [1440, 390]) {
             }
           ] },
           repositories: { metadata, rows: [
+            { organization: 'acme', repository: 'control' },
             { organization: 'octo', repository: 'outdated' },
             { organization: 'octo', repository: 'current' },
             { organization: 'octo', repository: 'unknown' }

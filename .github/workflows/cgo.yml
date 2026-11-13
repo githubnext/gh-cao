@@ -269,10 +269,12 @@ jobs:
             core)
               all_packages="$(go -C server list ./...)"
               packages=()
-              while IFS= read -r package; do packages+=("$package"); done < <(printf '%s\n' "$all_packages" |
+              while IFS= read -r package; do
+                packages+=("$package")
+              done < <(printf '%s\n' "$all_packages" |
                 grep -vE '/internal/(server|hostedcli|postgresx)$' |
                 LC_ALL=C sort |
-                awk -v shard="$TEST_SHARD" -v count="$TEST_SHARD_COUNT" 'NR % count == shard')
+                awk -v shard="$TEST_SHARD" -v count="$TEST_SHARD_COUNT" '(NR - 1) % count == shard')
               ;;
             *) echo "Unknown Go test area: $GO_TEST_AREA" >&2; exit 1 ;;
           esac

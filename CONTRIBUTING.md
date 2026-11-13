@@ -142,8 +142,11 @@ changes omit root integration/load/API checks. Unknown paths or an unavailable
 comparison base widen selection. Fast contract checks run concurrently with units;
 the existing `test` aggregate check requires both to succeed.
 
-Go core packages run in four disjoint shards; storage retains its four
-test-name shards. PRs and main pushes use `-short`, including the service-backed
+Go core tests partition the sorted package list across four jobs, each with its
+own PostgreSQL service. Each job compiles and runs only its assigned packages,
+serially (`-p 1`) to stay within PostgreSQL's lock budget. Storage tests retain
+four test-name shards within their single package.
+PRs and main pushes use `-short`, including the service-backed
 dashboard Go suite. The 16 core tests measured at 10 seconds or more in the
 investigated CI run (cross-module CLI build, fleet simulation, PostgreSQL
 ingestion/publication, read conformance, and query benchmarks) skip in short

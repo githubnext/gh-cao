@@ -195,7 +195,7 @@ test.beforeAll(async () => {
   preview = await startDashboardPagesPreview();
   const dataDirectory = join(preview.site, "demo-data");
   const manifest = JSON.parse(await readFile(join(dataDirectory, "payload-hashes.json"), "utf8"));
-  const shards = deployedActivityShardEntries(manifest, mobileDebugShardLimit());
+  const shards = deployedActivityShardEntries(manifest).slice(0, mobileDebugShardLimit());
   expectedActivityShardPaths = shards.map(({ name }) => `/${name}`);
   const sizes = await Promise.all(shards.map(async ({ name }) => (await stat(join(dataDirectory, name))).size));
   const activityBytes = sizes.reduce((total, size) => total + size, 0);

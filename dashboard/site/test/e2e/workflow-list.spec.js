@@ -5,7 +5,9 @@ registerSmokeRoutes();
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
   test(`workflow list shows latest status and opens its dedicated page at ${viewport.width}px`, async ({ page, context }) => {
     await page.setViewportSize(viewport);
-    const metadata = { 'as-of': '2026-10-07T13:00:00Z', 'retrieved-at': '2026-10-07T13:00:00Z' };
+    const now = Date.now();
+    const at = (/** @type {number} */ hoursAgo) => new Date(now - hoursAgo * 3_600_000).toISOString();
+    const metadata = { 'as-of': at(0), 'retrieved-at': at(0) };
     const sources = {
       repositories: { metadata, rows: [{ organization: 'org', repository: 'control' }] },
       workflows: {
@@ -19,9 +21,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       runs: {
         metadata,
         rows: [
-          { workflow: '.github/workflows/worker.md', run: '100', 'started-at': '2026-10-06T12:00:00Z', 'run-conclusion': 'success' },
-          { workflow: '.github/workflows/worker.md', run: '101', 'started-at': '2026-10-07T11:00:00Z', 'run-conclusion': 'failure' },
-          { workflow: '.github/workflows/recent.md', run: '200', 'started-at': '2026-10-07T12:00:00Z', 'run-conclusion': 'success' }
+          { workflow: '.github/workflows/worker.md', run: '100', 'started-at': at(25), 'run-conclusion': 'success' },
+          { workflow: '.github/workflows/worker.md', run: '101', 'started-at': at(2), 'run-conclusion': 'failure' },
+          { workflow: '.github/workflows/recent.md', run: '200', 'started-at': at(1), 'run-conclusion': 'success' }
         ].map((row) => ({ organization: 'org', repository: 'control', 'run-attempt': 1, 'run-status': 'completed', ...row }))
       }
     };

@@ -143,15 +143,22 @@ test("core and storage select four shards while other areas retain a single job"
   assert.ok(jobs["server-tests"].services.postgres);
 });
 
-test("core package shards are deterministic, avoid test-name discovery, and preserve test modes", () => {
+test("core shards partition packages without compiling or listing other shards' tests", () => {
   const step = jobs["server-tests"].steps.find((step) => step.name === "Unit tests");
-  const packages = Array.from({ length: 11 }, (_, i) => `example/internal/package${i}`);
+  const prefix = "github.com/githubnext/gh-cao/server/";
+  const packages = [
+    "cmd/cao-dashboard", "internal/collect", "internal/ingest", "internal/query",
+    "internal/operational/postgres", "internal/future-package", "internal/server/child",
+    "internal/simulator", "internal/webhookgateway",
+  ].map((name) => prefix + name);
+  const excluded = ["internal/server", "internal/hostedcli", "internal/postgresx"]
+    .map((name) => prefix + name);
   const mock = `
     go() {
       if [[ "$3" == "list" ]]; then printf '%s\\n' "$MOCK_PACKAGES";
       else
         [[ "$*" != *" -list "* ]] || return 42
-        [[ "$6" == "$GO_TEST_MODE" ]] || return 43
+        [[ "$*" == *" -p 1 $GO_TEST_MODE -v "* ]] || return 43
         shift 7
         printf '%s\\n' "$@"
       fi
@@ -159,30 +166,43 @@ test("core package shards are deterministic, avoid test-name discovery, and pres
   `;
   for (const mode of ["-short", "-count=1"]) {
     const covered = [];
-    for (const { shard, shards } of goTestPlan(["server/internal/query/query_test.go"]).matrix.include) {
+    for (const { shard, shards } of goTestPlan(["server/internal/ingest/ingest_test.go"]).matrix.include) {
       const env = {
         ...process.env, GO_TEST_AREA: "core", GO_TEST_MODE: mode,
         TEST_SHARD: String(shard), TEST_SHARD_COUNT: String(shards),
-        MOCK_PACKAGES: packages.join("\n"),
+        MOCK_PACKAGES: [...packages, ...excluded].toReversed().join("\n"),
       };
       const result = spawnSync("bash", ["-c", `${mock}\n${step.run}`], { encoding: "utf8", env });
       assert.equal(result.status, 0, result.stderr);
       const selected = result.stdout.trim().split("\n");
-      assert.ok(selected.length >= 2 && selected.length <= 3);
+      assert.deepEqual(selected, [...packages].sort().filter((_, index) => index % shards === shard));
       covered.push(...selected);
       const reordered = spawnSync("bash", ["-c", `${mock}\n${step.run}`], {
-        encoding: "utf8", env: { ...env, MOCK_PACKAGES: packages.toReversed().join("\n") },
+        encoding: "utf8", env: { ...env, MOCK_PACKAGES: [...packages, ...excluded].join("\n") },
       });
       assert.equal(reordered.status, 0, reordered.stderr);
       assert.equal(reordered.stdout, result.stdout);
     }
-    assert.deepEqual(covered.sort(), packages.sort());
+    assert.deepEqual(covered.sort(), [...packages].sort());
   }
-  const empty = spawnSync("bash", ["-c", `go() { echo example/internal/server; }\n${step.run}`], {
-    encoding: "utf8",
-    env: { ...process.env, GO_TEST_AREA: "core", GO_TEST_MODE: "-short", TEST_SHARD: "3", TEST_SHARD_COUNT: "4" },
-  });
-  assert.notEqual(empty.status, 0);
+});
+
+test("core shards fail closed on package-list errors, empty selections, and test failures", () => {
+  const step = jobs["server-tests"].steps.find((step) => step.name === "Unit tests");
+  for (const [mock, expected] of [
+    ["go() { return 23; }", 23],
+    ["go() { echo github.com/githubnext/gh-cao/server/internal/server; }", 1],
+    ['go() { if [[ "$3" == "list" ]]; then echo example/core; else return 24; fi; }', 24],
+  ]) {
+    const result = spawnSync("bash", ["-c", `${mock}\n${step.run}`], {
+      encoding: "utf8",
+      env: {
+        ...process.env, GO_TEST_AREA: "core", GO_TEST_MODE: "-short",
+        TEST_SHARD: "0", TEST_SHARD_COUNT: "4",
+      },
+    });
+    assert.equal(result.status, expected, result.stderr);
+  }
 });
 
 test("storage shards execute every discovered test exactly once with existing test modes", () => {
