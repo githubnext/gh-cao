@@ -24,7 +24,7 @@ import { createPromptCliActionControl, renderDeclaredCliAction, renderRowCliActi
 import { createPromptSessionControl } from './prompt-session.js';
 import { effect, onCleanup, state } from '../reactive.js';
 import { createFactoryScope } from './factory-elements.js';
-import { createDebug } from '../debug.js';
+import { createDebug, diagnosticErrorName } from '../debug.js';
 import { assertActionLevel, normalizeAction, actionPresentation, constrainPrompt } from '../action-model.js';
 import { chartFacet, facetPresentationEncoding, MAX_CHART_FACETS } from '../chart-facet.js';
 import { formatString as formatFacetValue } from '../view-formatters.js';
@@ -42,6 +42,7 @@ const RUN_LINK_FIELD = 'run-link';
 const MAX_INCREMENTAL_SWIMLANE_RENDERS = 10;
 const REPOSITORY_LINK_DISPLAY = 'repository-link';
 const WORKFLOW_LINK_DISPLAY = 'workflow-link';
+const debugDataView = createDebug('data-view');
 const debugChart = createDebug('render:chart');
 const debugContinuation = createDebug('data:continuation');
 const GITHUB_ENTITY_DISPLAY_FIELDS = {
@@ -1144,7 +1145,8 @@ function renderMobileTableCardList(context, columns, rows, renderValue, rowLimit
       token = renderedCount < rowLimit ? nextToken : '';
       const hidden = renderedCount >= availableRows.length && !token;
       loadState.set({ phase: hidden ? 'complete' : 'idle', hidden });
-    } catch {
+    } catch (error) {
+      debugDataView({ event: 'card-load-more', status: 'failed', errorName: diagnosticErrorName(error), renderedCount });
       loadState.set({ phase: 'error', hidden: false });
       list.addEventListener('scroll', () => void loadMore(), { once: true });
     }
@@ -1532,8 +1534,9 @@ function renderChartView(context, facetPanel = false) {
       if (clusteringScope.signal.aborted) return;
       clusteredPoints = clustered;
       clusteringState.set('ready');
-    }).catch(() => {
+    }).catch((error) => {
       if (clusteringScope.signal.aborted) return;
+      debugDataView({ event: 'scatter-clustering', status: 'failed', errorName: diagnosticErrorName(error), pointCount: points.length });
       clusteringState.set('failed');
     });
     const clusteringEffect = effect(() => {
@@ -1663,6 +1666,7 @@ function renderChartView(context, facetPanel = false) {
           }
         } catch (error) {
           if (!active) return;
+          debugDataView({ event: 'swimlane-continuation', status: 'failed', errorName: diagnosticErrorName(error), loadedRows: current.rows.length });
           const message = errorMessage(error);
           console.error(`Unable to load additional swimlane runs: ${message}`);
           continuationState.set({ ...current, token: undefined, error: message });
