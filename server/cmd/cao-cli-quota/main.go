@@ -187,13 +187,12 @@ func (b *bridge) handle(ctx context.Context, req request) decision {
 	if req.Operation != "admit" {
 		return result
 	}
-	held, err := b.reserveAll(ctx, current.identity, resources, cost, floor)
+	id, err := b.hold(ctx, current.identity, resources, cost, floor)
 	if err != nil {
 		return b.unknown(req.ID)
 	}
-	result.ReservationID = held[0].ID
-	b.reservations[result.ReservationID] = &reservation{buckets: held}
-	quotaLog.Printf("admitted reservation: buckets=%d active=%d capacity=%d", len(held), active, result.Capacity)
+	result.ReservationID = id
+	quotaLog.Printf("admitted reservation: buckets=%d active=%d capacity=%d", len(b.reservations[id].buckets), active, result.Capacity)
 	return result
 }
 
@@ -305,6 +304,18 @@ func (b *bridge) activeCount() int {
 	return active
 }
 
+// hold reserves every resource and records the reservation under the ID of its
+// first bucket. On failure nothing is recorded and no bucket stays reserved.
+func (b *bridge) hold(ctx context.Context, identity string, resources []string, cost, floor int) (string, error) {
+	held, err := b.reserveAll(ctx, identity, resources, cost, floor)
+	if err != nil {
+		return "", err
+	}
+	id := held[0].ID
+	b.reservations[id] = &reservation{buckets: held}
+	return id, nil
+}
+
 // reserveAll reserves every resource or none: a failure releases the buckets
 // already reserved.
 func (b *bridge) reserveAll(ctx context.Context, identity string, resources []string, cost, floor int) ([]githubquota.Reservation, error) {
@@ -314,6 +325,7 @@ func (b *bridge) reserveAll(ctx context.Context, identity string, resources []st
 			EstimatedCost: cost, MinimumRemain: floor, TTL: 20 * time.Minute,
 		})
 		if err != nil {
+			quotaLog.Printf("reservation rolled back: reserved=%d resources=%d", len(held), len(resources))
 			for _, previous := range held {
 				_ = b.service.Release(ctx, previous)
 			}
