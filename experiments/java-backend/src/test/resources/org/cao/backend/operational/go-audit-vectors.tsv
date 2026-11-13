@@ -1,0 +1,4 @@
+1	{"sequence":1,"occurred_at":"2026-10-02T14:25:38.12Z","event":"admin.rebuild.admitted","outcome":"success","actor":"octocat","attributes":{"a":"b","rebuild_id":"r-1"}}	765041db75983e9fea5a4ad161a0c1fbf9e3774b1e31f22fd7a4aa7a78d84bee
+2	{"sequence":2,"occurred_at":"2026-10-02T14:25:39Z","event":"token.revoked","outcome":"denied"}	5f10e566c98352d5e29628724a1349d139789e51ed6ff5b10d6783abd1363435
+3	{"sequence":3,"occurred_at":"2026-10-02T14:25:39.12Z","event":"x\u003cy\u003e\u0026z","outcome":"failure","actor":"ünï\u2028\u2029","attributes":{"k\"q":"line\nfeed\ttab\\ \b\f\r \u0001  é 😀"}}	d6db9c67a8b16b34ffcea339fc230e7abe5a7a83db5cdbec626540efa5e9c107
+4	{"sequence":4,"occurred_at":"2026-10-02T14:25:40.12Z","event":"e","outcome":"success","attributes":{"Z":"c","a":"d","～":"b","😀":"a"}}	7e909e299b2fd9f92e77e8b94ba54530293ab74fb3b76fd7fceed01f1f481267
