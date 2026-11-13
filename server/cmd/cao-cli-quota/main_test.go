@@ -656,3 +656,79 @@ func TestServeContinuesAfterMalformedLine(t *testing.T) {
 		t.Fatalf("second: %s, %v", lines[1], err)
 	}
 }
+
+func TestHeadroomFoldsResourceBucketsIntoAdmissionRoom(t *testing.T) {
+	b, current := testBridge(t, 5000)
+	ctx := context.Background()
+	if _, err := b.refresh(ctx, []string{"core", "graphql"}); err != nil {
+		t.Fatal(err)
+	}
+	room := b.headroom(ctx, current.identity, []string{"core", "graphql"}, 4, 50, 100)
+	if room.status != githubquota.StatusAvailable || room.available != 4 {
+		t.Fatalf("plentiful quota should be capped by concurrency: %+v", room)
+	}
+	if want := b.now().Add(time.Hour); !room.resetAt.Equal(want) {
+		t.Fatalf("resetAt = %v, want %v", room.resetAt, want)
+	}
+
+	scarce := current.observations["graphql"]
+	scarce.Remaining = 260
+	current.observations["graphql"] = scarce
+	if _, err := b.refresh(ctx, []string{"core", "graphql"}); err != nil {
+		t.Fatal(err)
+	}
+	if room = b.headroom(ctx, current.identity, []string{"core", "graphql"}, 4, 50, 100); room.available != 3 {
+		t.Fatalf("scarcest bucket should bound room: %+v", room)
+	}
+	if room = b.headroom(ctx, current.identity, []string{"core"}, 4, 50, 100); room.available != 4 {
+		t.Fatalf("unrequested resource must not bound room: %+v", room)
+	}
+}
+
+func TestHeadroomClampsBelowFloorToZero(t *testing.T) {
+	b, current := testBridge(t, 40)
+	ctx := context.Background()
+	if _, err := b.refresh(ctx, []string{"core"}); err != nil {
+		t.Fatal(err)
+	}
+	room := b.headroom(ctx, current.identity, []string{"core"}, 4, 50, 100)
+	if room.status != githubquota.StatusAvailable || room.available != 0 {
+		t.Fatalf("quota below the floor should leave no room: %+v", room)
+	}
+}
+
+func TestHeadroomReportsParkedAndUnknownBuckets(t *testing.T) {
+	b, current := testBridge(t, 5000)
+	ctx := context.Background()
+	unobserved := b.headroom(ctx, current.identity, []string{"core"}, 4, 50, 100)
+	if unobserved.status != githubquota.StatusUnknown {
+		t.Fatalf("unobserved bucket should be unknown: %+v", unobserved)
+	}
+	if _, err := b.refresh(ctx, []string{"core", "graphql"}); err != nil {
+		t.Fatal(err)
+	}
+	until := b.now().Add(5 * time.Minute)
+	if err := b.service.Park(ctx, bucket(current.identity, "graphql"), until, githubquota.ParkReasonSecondaryRateLimit); err != nil {
+		t.Fatal(err)
+	}
+	parked := b.headroom(ctx, current.identity, []string{"core", "graphql"}, 4, 50, 100)
+	if parked.status != githubquota.StatusParked || !parked.parkedUntil.Equal(until) {
+		t.Fatalf("parked bucket should report resume time: %+v", parked)
+	}
+}
+
+func TestHandleReportsParkedBucketWithResumeTime(t *testing.T) {
+	b, current := testBridge(t, 5000)
+	ctx := context.Background()
+	if _, err := b.refresh(ctx, []string{"core", "graphql"}); err != nil {
+		t.Fatal(err)
+	}
+	until := b.now().Add(10 * time.Minute)
+	if err := b.service.Park(ctx, bucket(current.identity, "core"), until, githubquota.ParkReasonSecondaryRateLimit); err != nil {
+		t.Fatal(err)
+	}
+	got := b.handle(ctx, request{ID: 9, Operation: "status", Resources: []string{"core"}})
+	if got.ID != 9 || got.Reason != "parked" || got.RetryAt != until.Format(time.RFC3339) || got.ReservationID != "" {
+		t.Fatalf("parked bucket decision = %+v", got)
+	}
+}

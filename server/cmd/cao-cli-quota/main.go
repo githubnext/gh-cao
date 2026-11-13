@@ -156,19 +156,15 @@ func (b *bridge) handle(ctx context.Context, req request) decision {
 	}
 	concurrency, cost, floor := req.limits()
 	active := b.activeCount()
-	available := concurrency
-	var retry time.Time
-	for _, resource := range resources {
-		state, stateErr := b.service.State(ctx, bucket(current.identity, resource))
-		if stateErr != nil || state.Status == githubquota.StatusUnknown {
-			return b.unknown(req.ID)
-		}
-		if state.Status == githubquota.StatusParked {
-			return decision{ID: req.ID, Reason: "parked", RetryAt: state.ParkedUntil.UTC().Format(time.RFC3339)}
-		}
-		available = min(available, max(0, (state.Available-floor)/cost))
-		retry = maxTime(retry, state.ResetAt)
+	room := b.headroom(ctx, current.identity, resources, concurrency, cost, floor)
+	switch room.status {
+	case githubquota.StatusUnknown:
+		return b.unknown(req.ID)
+	case githubquota.StatusParked:
+		return decision{ID: req.ID, Reason: "parked", RetryAt: room.parkedUntil.UTC().Format(time.RFC3339)}
+	case githubquota.StatusAvailable, githubquota.StatusExhausted:
 	}
+	available, retry := room.available, room.resetAt
 	capacity, reason := admissionOutcome(req.Operation, concurrency, active, req.Running, available)
 	switch reason {
 	case "exhausted":
@@ -188,6 +184,38 @@ func (b *bridge) handle(ctx context.Context, req request) decision {
 	b.reservations[result.ReservationID] = &reservation{buckets: held}
 	quotaLog.Printf("admitted reservation: buckets=%d active=%d capacity=%d", len(held), active, result.Capacity)
 	return result
+}
+
+// quotaRoom is the quota-limited admission room across a set of resources.
+// status is StatusUnknown or StatusParked when any bucket stops admission and
+// StatusAvailable otherwise; available may still be zero when exhausted.
+type quotaRoom struct {
+	status      githubquota.Status
+	available   int
+	resetAt     time.Time
+	parkedUntil time.Time
+}
+
+// headroom folds the state of every resource bucket into the number of
+// additional commands the quota can admit, capped at concurrency. An
+// unreadable or unknown bucket pauses admission, and a parked bucket reports
+// its resume time.
+func (b *bridge) headroom(ctx context.Context, identity string, resources []string, concurrency, cost, floor int) quotaRoom {
+	room := quotaRoom{status: githubquota.StatusAvailable, available: concurrency}
+	for _, resource := range resources {
+		state, err := b.service.State(ctx, bucket(identity, resource))
+		if err != nil || state.Status == githubquota.StatusUnknown {
+			quotaLog.Printf("quota headroom paused: status=%s resources=%d", githubquota.StatusUnknown, len(resources))
+			return quotaRoom{status: githubquota.StatusUnknown}
+		}
+		if state.Status == githubquota.StatusParked {
+			quotaLog.Printf("quota headroom paused: status=%s resources=%d", githubquota.StatusParked, len(resources))
+			return quotaRoom{status: githubquota.StatusParked, parkedUntil: state.ParkedUntil}
+		}
+		room.available = min(room.available, max(0, (state.Available-floor)/cost))
+		room.resetAt = maxTime(room.resetAt, state.ResetAt)
+	}
+	return room
 }
 
 // admissionOutcome classifies an admission attempt from the quota-limited
