@@ -14,8 +14,11 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/spf13/cobra"
 
+	debuglogger "github.com/githubnext/gh-cao/server/internal/logger"
 	grants "github.com/githubnext/gh-cao/server/postgres"
 )
+
+var localDatabaseLog = debuglogger.New("cao:dashboard:local-database")
 
 var localDatabasePassword = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
@@ -33,13 +36,9 @@ func newLocalDatabaseCommand() *cobra.Command {
 }
 
 func provisionLocalDatabase(ctx context.Context, endpoint, password, namespace string) error {
-	address, err := url.Parse(endpoint)
-	if err != nil || address == nil || address.User == nil ||
-		address.User.Username() != "cao_bootstrap" || address.Path != "/cao_dashboard" ||
-		net.ParseIP(address.Hostname()) == nil || !net.ParseIP(address.Hostname()).IsLoopback() ||
-		address.Scheme != "postgres" || !localDatabasePassword.MatchString(password) ||
-		strings.TrimSpace(namespace) == "" {
-		return errors.New("managed PostgreSQL provisioning requires its local administrator, database, password and namespace")
+	address, err := parseLocalProvisionTarget(endpoint, password, namespace)
+	if err != nil {
+		return err
 	}
 	db, err := sql.Open("pgx", endpoint)
 	if err != nil {
@@ -85,12 +84,9 @@ $credential$`); err != nil {
 	if err := passwordTx.Commit(); err != nil {
 		return errors.New("cannot configure the managed PostgreSQL runtime credential")
 	}
-	parameters := address.Query()
-	parameters.Set("role", "cao_owner")
-	parameters.Set("search_path", "cao")
-	address.RawQuery = parameters.Encode()
+	ownerEndpoint := localOwnerEndpoint(address)
 	for _, store := range []string{"canonical", "operational"} {
-		if _, err := runDatabaseAction(ctx, address.String(), store, namespace, "bootstrap"); err != nil {
+		if _, err := runDatabaseAction(ctx, ownerEndpoint, store, namespace, "bootstrap"); err != nil {
 			var databaseError *pgconn.PgError
 			if errors.As(err, &databaseError) {
 				return fmt.Errorf("cannot bootstrap managed PostgreSQL %s storage: %s (%s)", store, databaseError.Message, databaseError.Code)
@@ -98,7 +94,7 @@ $credential$`); err != nil {
 			return errors.New("cannot bootstrap managed PostgreSQL " + store + " storage")
 		}
 	}
-	owner, err := sql.Open("pgx", address.String())
+	owner, err := sql.Open("pgx", ownerEndpoint)
 	if err != nil {
 		return errors.New("cannot open the managed PostgreSQL schema owner")
 	}
@@ -110,5 +106,41 @@ $credential$`); err != nil {
 			return errors.New("cannot apply managed PostgreSQL runtime privilege contracts")
 		}
 	}
+	localDatabaseLog.Printf("local provisioning completed: stores=2 grant_contracts=2")
 	return nil
+}
+
+// parseLocalProvisionTarget accepts only the managed loopback administrator
+// endpoint, a generated runtime password and a non-blank namespace.
+func parseLocalProvisionTarget(endpoint, password, namespace string) (*url.URL, error) {
+	address, err := url.Parse(endpoint)
+	reason := ""
+	switch {
+	case err != nil || address == nil:
+		reason = "invalid_endpoint"
+	case address.Scheme != "postgres" || address.User == nil || address.User.Username() != "cao_bootstrap" || address.Path != "/cao_dashboard":
+		reason = "unexpected_endpoint_identity"
+	case net.ParseIP(address.Hostname()) == nil || !net.ParseIP(address.Hostname()).IsLoopback():
+		reason = "non_loopback_host"
+	case !localDatabasePassword.MatchString(password):
+		reason = "invalid_runtime_password"
+	case strings.TrimSpace(namespace) == "":
+		reason = "blank_namespace"
+	}
+	if reason != "" {
+		localDatabaseLog.Printf("local provisioning rejected: reason=%s", reason)
+		return nil, errors.New("managed PostgreSQL provisioning requires its local administrator, database, password and namespace")
+	}
+	return address, nil
+}
+
+// localOwnerEndpoint returns the administrator endpoint scoped to the schema
+// owner role and the cao schema; it overrides any role or search_path already set.
+func localOwnerEndpoint(address *url.URL) string {
+	owner := *address
+	parameters := owner.Query()
+	parameters.Set("role", "cao_owner")
+	parameters.Set("search_path", "cao")
+	owner.RawQuery = parameters.Encode()
+	return owner.String()
 }
