@@ -206,5 +206,4 @@ exec "$CAO_INSTALLER_GH" "$@"
   assert.equal(await readFile(path.join(home, ".curlrc"), "utf8"), curlrc);
   assert.match(await readFile(log, "utf8"), /auth status\n[\s\S]*repo view --json nameWithOwner/);
   assert.deepEqual((await readFile(metadataLog, "utf8")).trim().split("\n"), Object.keys(responses));
-  await run(process.execPath, [".github/workflows/shared/materialize-cao.mjs", "verify", "dashboard"], { cwd: consumer, env });
 });

@@ -33,13 +33,14 @@ func TestExecutorKeepsUnconfirmedContainerClaimAcrossRestart(t *testing.T) {
 			defer func() { _ = store.Close() }()
 			options := operational.CLICommandQueueOptions{MaxConcurrency: 1}
 			if scenario == "timeout" {
-				options.Timeout = 20 * time.Millisecond
+				// Allow database/container setup before timing out the running workload.
+				options.Timeout = time.Second
 			}
 			queue, err := store.OpenCLICommandQueue(ctx, QueueName, options)
 			if err != nil {
 				t.Fatal(err)
 			}
-			lease, err := queue.Acquire(ctx, "first-executor", 200*time.Millisecond)
+			lease, err := queue.Acquire(ctx, "first-executor", time.Minute)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -142,6 +143,11 @@ func TestExecutorKeepsUnconfirmedContainerClaimAcrossRestart(t *testing.T) {
 			}
 			if err := queue.Release(ctx, lease); !errors.Is(err, operational.ErrConflict) {
 				t.Fatalf("unsettled lease released: %v", err)
+			}
+			// Expire only after asserting capacity under a valid executor lease.
+			lease, err = queue.Renew(ctx, lease, time.Millisecond)
+			if err != nil {
+				t.Fatal(err)
 			}
 			if err := store.Close(); err != nil {
 				t.Fatal(err)

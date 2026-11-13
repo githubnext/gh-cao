@@ -31,8 +31,8 @@ type dashboardIngestion struct {
 	TargetHours  float64                           `json:"targetHours"`
 	Remaining    *int                              `json:"apiRemaining,omitempty"`
 	Reserve      int                               `json:"apiReserve,omitempty"`
-	ResetAt      string                            `json:"apiResetAt"`
-	NextAt       string                            `json:"nextAttemptAt"`
+	ResetAt      string                            `json:"apiResetAt,omitempty"`
+	NextAt       string                            `json:"nextAttemptAt,omitempty"`
 	NextRepo     int                               `json:"nextRepository"`
 	Cursors      map[string]dashboardHistoryCursor `json:"cursors"`
 }

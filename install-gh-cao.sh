@@ -585,10 +585,7 @@ upgrade_gh_aw() {
 # Bash (curl | bash), child processes must not consume the unread script lines.
 main() {
   local policy_path=".github/workflows/cao.json"
-  local dashboard_runtime="dashboard/report/configure-site.mjs"
   local control_runtime=".github/workflows/shared/control.mjs"
-  local materializer=".github/workflows/shared/materialize-cao.mjs"
-  local runtime_action=".github/actions/setup-cao-runtime/action.yml"
   local required_gh="v2.68.0"
   local required_gh_aw="v1.2.2"
   local catalog_source="githubnext/gh-cao"
@@ -789,7 +786,7 @@ main() {
 
   # gh-aw's markdown scanner rejects the GitHub App manifest page embedded in
   # .github/workflows/shared/github-apps.mjs, so catalog installs skip it.
-  if [[ ! -f "$dashboard_runtime" || ! -f "$control_runtime" || ! -f "$materializer" || ! -f "$runtime_action" ]]; then
+  if [[ ! -f "$control_runtime" ]]; then
     note "Installs 3 workflows, 5 shared control plane resources, and project settings."
     if ! run_quiet_command \
       "Installing control plane components..." \
@@ -809,24 +806,6 @@ main() {
     fi
   else
     note "CAO control plane components are already installed."
-  fi
-  if [[ -d "$catalog_source" ]]; then
-    if ! run_quiet_command \
-      "Materializing CAO runtime..." \
-      "CAO runtime materialized and verified." \
-      node "$materializer" materialize-source root "$catalog_source"; then
-      [[ -z "$quiet_command_output" ]] || printf '%s\n' "$quiet_command_output" >&2
-      return 1
-    fi
-  else
-    note "A newly published catalog revision may wait for its exact verified runtime build."
-    if ! run_quiet_command \
-      "Verifying exact CAO runtime..." \
-      "CAO runtime materialized and verified." \
-      node "$materializer" materialize root; then
-      [[ -z "$quiet_command_output" ]] || printf '%s\n' "$quiet_command_output" >&2
-      return 1
-    fi
   fi
 
   if [[ ! -f "$policy_path" ]]; then

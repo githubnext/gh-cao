@@ -42,11 +42,10 @@ CAO still needs these properties:
 CAO uses the catalog source layout as its only executable runtime layout.
 
 gh-aw installs workflow sources and a bounded trusted bootstrap under supported
-destinations. The bootstrap includes
-`.github/workflows/shared/materialize-cao.mjs`. Official CAO installation and
-update entry points invoke that materializer after gh-aw resolves the package:
+destinations. The native `gh cao` extension materializes the runtime after
+gh-aw resolves the package:
 
-- the root installer materializes the root runtime on every invocation;
+- `gh cao setup` stages the root runtime when the local runtime is incomplete;
 - `cao add` materializes the selected campaign before reading its declaration;
   and
 - `cao update` materializes each updated package before merging declarations.
@@ -56,8 +55,7 @@ repository and a full 40-character `resolvedCommit`, downloads that immutable
 archive, and copies a bounded resource set to identical repository-relative
 paths. Tag-only and legacy records fail closed rather than resolving mutable
 provenance at installation time. Root materialization owns `activity/`,
-`dashboard/`, the local runtime verification and gh-aw setup
-actions, and `.github/cao/instructions.md`. If exact focused Activity or Dashboard package
+`dashboard/`, the local gh-aw setup action, and `.github/cao/instructions.md`. If exact focused Activity or Dashboard package
 records coexist with the root record, their revisions retain ownership of
 their respective directories and are preflighted before any destination is
 replaced. Operational campaign materialization owns the complete top-level
@@ -65,10 +63,8 @@ replaced. Operational campaign materialization owns the complete top-level
 a new revision cannot leave deleted runtime files behind.
 
 Activity and Dashboard workflows check out the control repository at
-`github.workflow_sha`. They invoke the repository-local
-`.github/actions/setup-cao-runtime` action, which verifies the required
-canonical runtime files and fails before execution when the installation is
-incomplete. Workflows do not fetch another CAO checkout or probe alternate
+`github.workflow_sha` and fail before execution when the required canonical
+runtime files are incomplete. Workflows do not fetch another CAO checkout or probe alternate
 runtime paths.
 
 `.github/aw/` is reserved for gh-aw instruction overlays, package records,
@@ -149,7 +145,7 @@ repository revision.
 
 The decision is enforced by:
 
-- installed-layout simulation in `tests/unit/cao-materialize.test.mjs`;
+- runtime artifact tests in `tests/unit/cao-runtime-artifact.test.mjs`;
 - Activity and Dashboard workflow contract tests;
 - campaign, CLI, installer, dashboard build, and local-server tests;
 - searches that reject CAO runtime paths under `.github/aw/`; and

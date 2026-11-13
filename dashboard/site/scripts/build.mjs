@@ -222,6 +222,20 @@ async function findCampaignDashboards(repositoryPath, controlSettings) {
   return campaignDashboards;
 }
 
+export function collectStaticModules(outputs, outputPath, modules = new Set()) {
+  outputPath = outputPath.replaceAll("\\", "/");
+  if (modules.has(outputPath)) return modules;
+  const output = outputs[outputPath];
+  if (!output) throw new Error(`Dashboard startup dependency is missing: ${outputPath}`);
+  modules.add(outputPath);
+  for (const dependency of output.imports) {
+    if (dependency.kind === "import-statement" && !dependency.external) {
+      collectStaticModules(outputs, dependency.path, modules);
+    }
+  }
+  return modules;
+}
+
 async function bundleSiteJavascript(destinationPath) {
   const bundlePath = join(destinationPath, ".bundle");
   try {
@@ -289,21 +303,11 @@ async function bundleSiteJavascript(destinationPath) {
     const startupOutput = Object.entries(result.metafile.outputs)
       .find(([, output]) => output.entryPoint === "src/dashboard-app.js")?.[0];
     if (!startupOutput) throw new Error("Dashboard application startup chunk is missing.");
-    const collectStaticModules = (outputPath, modules = new Set()) => {
-      if (modules.has(outputPath)) return modules;
-      const output = result.metafile.outputs[outputPath];
-      if (!output) throw new Error(`Dashboard startup dependency is missing: ${outputPath}`);
-      modules.add(outputPath);
-      for (const dependency of output.imports) {
-        if (dependency.kind === "import-statement" && !dependency.external) collectStaticModules(dependency.path, modules);
-      }
-      return modules;
-    };
-    const startupModules = collectStaticModules(startupOutput);
+    const startupModules = collectStaticModules(result.metafile.outputs, startupOutput);
     const mainOutput = Object.entries(result.metafile.outputs)
       .find(([, output]) => output.entryPoint === "src/main.js")?.[0];
     if (!mainOutput) throw new Error("Dashboard main entry point is missing.");
-    const mainModules = collectStaticModules(mainOutput);
+    const mainModules = collectStaticModules(result.metafile.outputs, mainOutput);
     const coreModules = [...startupModules].filter((path) => !mainModules.has(path));
     const corePaths = new Set(coreModules.map((path) => resolve(destinationPath, path)));
     const coalescedPath = join(destinationPath, ".coalesced");

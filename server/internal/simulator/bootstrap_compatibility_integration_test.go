@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,7 +15,7 @@ import (
 
 // The upstream installer and version-only extension are inert fixtures. The
 // streamed CAO installer, gh extension discovery, native CAO binary, checksum
-// verification and source materializer still execute as real subprocesses.
+// verification still execute as real subprocesses.
 const bootstrapAWInstaller = `#!/usr/bin/env bash
 set -euo pipefail
 [[ -z "${GH_TOKEN:-}${GITHUB_TOKEN:-}${GH_ENTERPRISE_TOKEN:-}${GITHUB_ENTERPRISE_TOKEN:-}${INPUT_VERSION:-}" ]] || exit 65
@@ -58,25 +57,6 @@ func testBootstrapInstallerCompatibility(t *testing.T, ctx context.Context, cata
 			t.Error(err)
 		}
 	}()
-	// This fixture was installed from local source, not an attested Actions
-	// artifact. Keep materialization on that same production source path;
-	// artifact retrieval/provenance is a separate runtime-installation suite.
-	materializer := filepath.Join(consumer, ".github/workflows/shared/materialize-cao.mjs")
-	materializerBefore := setupRead(t, materializer)
-	defer setupWrite(t, materializer, materializerBefore)
-	module := (&url.URL{Scheme: "file", Path: filepath.ToSlash(filepath.Join(catalog, ".github/workflows/shared/materialize-cao.mjs"))}).String()
-	moduleJSON, err := json.Marshal(module)
-	if err != nil {
-		t.Fatal(err)
-	}
-	catalogJSON, err := json.Marshal(catalog)
-	if err != nil {
-		t.Fatal(err)
-	}
-	setupWrite(t, materializer, fmt.Appendf(nil, `import { materializeCaoFromSource } from %s;
-if (process.argv.slice(2).join(" ") !== "materialize root") throw new Error("unexpected materialization request");
-materializeCaoFromSource("root", %s, process.cwd());
-`, moduleJSON, catalogJSON))
 	policy := setupRead(t, filepath.Join(consumer, ".github/workflows/cao.json"))
 	tree := setupCheckoutState(t, consumer)
 	index := bootstrapRun(t, ctx, consumer, environment, "git", "ls-files", "--stage")
