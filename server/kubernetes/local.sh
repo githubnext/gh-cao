@@ -8,8 +8,31 @@ policy=${CAO_LOCAL_POLICY:-$assets/policy.json}
 state="$root/.tmp/cao-kubernetes-local"
 db_host=cao-postgres.cao-local-system.svc.cluster.local
 
-k() { kubectl --context docker-desktop "$@"; }
 fail() { printf '%s\n' "$*" >&2; exit 1; }
+
+# Optional standalone kind cluster, for example from server/kubernetes/aspire.
+kind_cluster=${CAO_LOCAL_KIND_CLUSTER:-}
+if test -n "$kind_cluster"; then
+  [[ "$kind_cluster" =~ ^[a-z0-9]([-a-z0-9]{0,30}[a-z0-9])?$ ]] || fail "Invalid CAO_LOCAL_KIND_CLUSTER name."
+  kube_context="kind-$kind_cluster"
+  kind_node="$kind_cluster-control-plane"
+else
+  kube_context=docker-desktop
+  kind_node=desktop-control-plane
+fi
+kind_provider="kind://docker/${kind_cluster:-desktop}/$kind_node"
+
+k() { kubectl --context "$kube_context" "$@"; }
+
+# Images must be built in the same Docker daemon that runs the kind node.
+check_docker() {
+  if test -n "$kind_cluster"; then
+    test "$(docker container inspect "$kind_node" --format '{{index .Config.Labels "io.x-k8s.kind.cluster"}}' 2>/dev/null)" = "$kind_cluster" ||
+      fail "Docker does not run kind node $kind_node; select the Docker context that hosts it."
+  else
+    test "$(docker context show)" = desktop-linux || fail "Select Docker context desktop-linux before $1."
+  fi
+}
 
 check_namespaces() {
   local name identity
@@ -79,7 +102,8 @@ prepare() {
   admin=$(openssl rand -hex 32)
   owner=$(openssl rand -hex 32)
   runtime=$(openssl rand -hex 32)
-  openssl req -x509 -newkey rsa:3072 -nodes -days 30 \
+  MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/CN=" \
+    openssl req -x509 -newkey rsa:3072 -nodes -days 30 \
     -subj /CN=CAO-local-development-CA \
     -addext basicConstraints=critical,CA:TRUE \
     -keyout "$state/ca.key" -out "$state/ca.crt" 2>"$state/openssl.log"
@@ -101,7 +125,8 @@ prepare() {
 
 certificate() {
   local name=$1 dns=$2
-  openssl req -new -newkey rsa:3072 -nodes -subj "/CN=$dns" \
+  MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/CN=" \
+    openssl req -new -newkey rsa:3072 -nodes -subj "/CN=$dns" \
     -keyout "$state/$name.key" -out "$state/$name.csr" 2>>"$state/openssl.log"
   printf 'subjectAltName=DNS:%s\nextendedKeyUsage=serverAuth\nbasicConstraints=critical,CA:FALSE\n' \
     "$dns" > "$state/$name.ext"
@@ -111,7 +136,11 @@ certificate() {
 }
 
 build() {
-  test "$(docker context show)" = desktop-linux || fail "Select Docker context desktop-linux before building."
+  local go_proxy=${CAO_LOCAL_GO_PROXY:-}
+  case "$go_proxy" in
+    *"@"*|*"?"*|*"#"*) fail "CAO_LOCAL_GO_PROXY must not contain credentials or query parameters." ;;
+  esac
+  check_docker building
   test -s "$state/ca.crt" || fail "Run prepare first."
   mkdir -p "$state/build-policy"
   cp "$policy" "$state/build-policy/cao.json"
@@ -123,6 +152,7 @@ build() {
     if test "$target" = kubernetes-db-maintenance; then image=cao-db-maintenance; fi
     docker build --target "$target" \
       --build-arg CAO_NPM_REGISTRY=https://packagefeedproxy.microsoft.io/npm/ \
+      --build-arg "GOPROXY=$go_proxy" \
       --build-arg "REVISION=$(git -C "$root" rev-parse HEAD)" \
       --label "io.github.cao.policy-sha256=$digest" \
       --build-context "cao-policy=$state/build-policy" \
@@ -140,11 +170,11 @@ build() {
 
 load() {
   read_images
-  test "$(docker context show)" = desktop-linux || fail "Select Docker context desktop-linux before loading."
-  test "$(k get node desktop-control-plane -o jsonpath='{.spec.providerID}')" = \
-    kind://docker/desktop/desktop-control-plane || fail "Expected the Docker Desktop kind node."
+  check_docker loading
+  test "$(k get node "$kind_node" -o jsonpath='{.spec.providerID}')" = "$kind_provider" ||
+    fail "Expected the kind node $kind_node."
   docker image save "$runtime_image" "$maintenance_image" |
-    docker exec -i desktop-control-plane ctr --namespace k8s.io images import -
+    docker exec -i "$kind_node" ctr --namespace k8s.io images import -
 }
 
 shared_config() {
@@ -303,6 +333,6 @@ case "${1:-}" in
   serve) serve "${2:-}" ;;
   native) native "${2:-}" "${3:-}" "${4:-}" ;;
   ingest) ingest "${2:-}" ;;
-  forward) exec kubectl --context docker-desktop -n cao-local port-forward --address 127.0.0.1 service/cao-web 8443:8443 ;;
+  forward) exec kubectl --context "$kube_context" -n cao-local port-forward --address 127.0.0.1 service/cao-web 8443:8443 ;;
   *) fail "Usage: bash server/kubernetes/local.sh {prepare|build|load|database|serve OAUTH_ENV|native INVENTORY_JSON COLLECTOR_ENV APP_KEY|ingest ARTIFACT_DIRECTORY|forward}" ;;
 esac
