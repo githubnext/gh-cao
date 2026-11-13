@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
+	"github.com/githubnext/gh-cao/server/internal/operational"
+	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
@@ -34,8 +36,14 @@ func (c *recoveryStateClient) Do(_ context.Context, command ...string) (any, err
 		c.values[command[1]] = command[2]
 		return "OK", nil
 	case "DEL":
-		delete(c.values, command[1])
-		return int64(1), nil
+		var removed int64
+		for _, key := range command[1:] {
+			if _, ok := c.values[key]; ok {
+				delete(c.values, key)
+				removed++
+			}
+		}
+		return removed, nil
 	default:
 		return nil, errors.New("unsupported recovery test command")
 	}
@@ -168,7 +176,7 @@ func TestDeliveryRecoveryResumesPaginationBeforeAdvancingCursor(t *testing.T) {
 			{ID: 1, GUID: "guid-1", StatusCode: 500},
 		}},
 	}}
-	replayer := DeliveryReplayer{State: store, Metadata: store, Client: client, Enabled: true, Limit: 2}
+	replayer := DeliveryReplayer{State: store, Client: client, Enabled: true, Limit: 2}
 
 	first, err := replayer.Recover(t.Context())
 	if err != nil {
@@ -226,7 +234,7 @@ func TestDeliveryRecoveryDoesNotAdvanceAfterRedeliveryFailure(t *testing.T) {
 		}},
 		failID: 2,
 	}
-	replayer := DeliveryReplayer{State: store, Metadata: store, Client: client, Enabled: true}
+	replayer := DeliveryReplayer{State: store, Client: client, Enabled: true}
 	if _, err := replayer.Recover(t.Context()); err == nil {
 		t.Fatal("expected redelivery failure")
 	}
@@ -288,5 +296,73 @@ func TestParseHealthTimeRejectsMissingAndInvalidValues(t *testing.T) {
 	}
 	if _, ok := parseHealthTime(time.Now().Format(time.RFC822)); ok {
 		t.Fatal("non-RFC3339 timestamp was accepted")
+	}
+}
+
+// TestDeliveryRecoveryClearsProgressOnEveryAdapter proves that completing a
+// recovery pass removes the saved pagination progress through the logical
+// operational contract, so a later pass starts from the advanced cursor.
+func TestDeliveryRecoveryClearsProgressOnEveryAdapter(t *testing.T) {
+	adapters := map[string]func(*testing.T) operational.OperationalServices{
+		"memory": func(t *testing.T) operational.OperationalServices {
+			store, err := memory.New(memory.Config{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = store.Close() })
+			return store.OperationalServices()
+		},
+		"postgres": func(t *testing.T) operational.OperationalServices {
+			services, _ := durableErasureServices(t, "postgres")
+			return services
+		},
+		"redis": func(t *testing.T) operational.OperationalServices {
+			services, _ := durableErasureServices(t, "redis")
+			return services
+		},
+	}
+	for name, open := range adapters {
+		t.Run(name, func(t *testing.T) {
+			services := open(t)
+			ctx := t.Context()
+			if err := services.State.SetOperationalState(ctx, deliveryCursorKey, []byte("guid-1")); err != nil {
+				t.Fatal(err)
+			}
+			client := &recoveryDeliveryClient{pages: map[string]recoveryDeliveryPage{
+				"": {
+					deliveries: []githubapp.Delivery{{ID: 3, GUID: "guid-3", StatusCode: 500}},
+					next:       "page-2",
+				},
+				"page-2": {deliveries: []githubapp.Delivery{{ID: 1, GUID: "guid-1", StatusCode: 500}}},
+			}}
+			replayer := DeliveryReplayer{State: services.State, Client: client, Enabled: true, Limit: 1}
+			for pass := 1; pass <= 2; pass++ {
+				if _, err := replayer.Recover(ctx); err != nil {
+					t.Fatalf("pass %d: %v", pass, err)
+				}
+			}
+			progress, err := services.State.OperationalState(ctx, deliveryProgressKey)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(progress) != 0 {
+				t.Fatalf("recovery progress was not cleared: %s", progress)
+			}
+			cursor, err := services.State.OperationalState(ctx, deliveryCursorKey)
+			if err != nil || string(cursor) != "guid-3" {
+				t.Fatalf("delivery cursor = %q, %v; want guid-3", cursor, err)
+			}
+			client.pages[""] = recoveryDeliveryPage{deliveries: []githubapp.Delivery{
+				{ID: 4, GUID: "guid-4", StatusCode: 500}, {ID: 3, GUID: "guid-3", StatusCode: 500},
+			}}
+			client.cursors = nil
+			result, err := replayer.Recover(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(client.cursors, []string{""}) || result.Redelivered != 1 {
+				t.Fatalf("next pass requested cursors %v with %d redeliveries; want a fresh pass from the first page", client.cursors, result.Redelivered)
+			}
+		})
 	}
 }

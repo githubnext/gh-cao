@@ -25,10 +25,9 @@ const deliveryProgressKey = "collect:delivery-progress"
 // This recovers missing activity events without polling every repository's
 // runs. Periodic repository-list reconciliation independently repairs scope.
 type DeliveryReplayer struct {
-	State    operational.StateStore
-	Metadata operational.CollectionMetadata
-	Client   DeliveryClient
-	Enabled  bool
+	State   operational.StateStore
+	Client  DeliveryClient
+	Enabled bool
 	// Limit bounds how many deliveries one recovery pass inspects.
 	Limit int
 }
@@ -145,7 +144,9 @@ func (r DeliveryReplayer) Recover(ctx context.Context) (ReplayResult, error) {
 			return result, err
 		}
 	}
-	if err := r.Metadata.Clear(ctx, "state:"+deliveryProgressKey); err != nil {
+	// StateStore has no delete; an empty value is the portable "no progress"
+	// encoding and is ignored on load.
+	if err := r.State.SetOperationalState(ctx, deliveryProgressKey, nil); err != nil {
 		return result, err
 	}
 	recoveryLog.Printf("delivery recovery inspected=%d redelivered=%d", result.Inspected, result.Redelivered)
