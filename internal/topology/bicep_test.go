@@ -110,11 +110,11 @@ func TestBicepCLIValidationContract(t *testing.T) {
 	directory := t.TempDir()
 	log := filepath.Join(directory, "arguments")
 	t.Setenv("BICEP_TEST_ARGUMENTS", log)
-	installCompilerFixture(t, `printf '%s\n' "$@" >> "$BICEP_TEST_ARGUMENTS"
+	bin := installCompilerFixture(t, `printf '%s\n' "$@" >> "$BICEP_TEST_ARGUMENTS"
 printf 'ARM output must not leak\n'
 printf 'review this linter warning\n' >&2`)
 	var diagnostics bytes.Buffer
-	if err := (BicepCLI{Diagnostics: &diagnostics}).Validate(context.Background(), directory, []string{"main.bicep", "optional/host.bicep"}); err != nil {
+	if err := (BicepCLI{Diagnostics: &diagnostics, Executable: filepath.Join(bin, "bicep")}).Validate(context.Background(), directory, []string{"main.bicep", "optional/host.bicep"}); err != nil {
 		t.Fatal(err)
 	}
 	arguments, err := os.ReadFile(log)
@@ -133,14 +133,21 @@ printf 'review this linter warning\n' >&2`)
 func TestBicepCLIRejectsMissingCompilerErrorsAndCancellation(t *testing.T) {
 	t.Run("missing", func(t *testing.T) {
 		t.Setenv("PATH", t.TempDir())
-		err := (BicepCLI{}).Validate(context.Background(), t.TempDir(), []string{"main.bicep"})
-		if err == nil || !strings.Contains(err.Error(), "official Bicep CLI on PATH") {
-			t.Fatalf("missing compiler was not actionable: %v", err)
+		compiler := BicepCLI{Executable: filepath.Join(t.TempDir(), "missing-bicep")}
+		err := compiler.Validate(context.Background(), t.TempDir(), []string{"main.bicep"})
+		if !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("explicit missing compiler did not fail: %v", err)
+		}
+	})
+	t.Run("relative-path", func(t *testing.T) {
+		err := (BicepCLI{Executable: "bicep"}).Validate(context.Background(), t.TempDir(), []string{"main.bicep"})
+		if err == nil || !strings.Contains(err.Error(), "must be absolute") {
+			t.Fatalf("compiler unexpectedly used PATH: %v", err)
 		}
 	})
 	t.Run("compiler-error", func(t *testing.T) {
-		installCompilerFixture(t, "printf 'BCP036: incompatible property type\\n' >&2\nexit 1")
-		err := (BicepCLI{}).Validate(context.Background(), t.TempDir(), []string{"optional/lake.bicep"})
+		bin := installCompilerFixture(t, "printf 'BCP036: incompatible property type\\n' >&2\nexit 1")
+		err := (BicepCLI{Executable: filepath.Join(bin, "bicep")}).Validate(context.Background(), t.TempDir(), []string{"optional/lake.bicep"})
 		if err == nil || !strings.Contains(err.Error(), "BCP036") || !strings.Contains(err.Error(), "optional/lake.bicep") {
 			t.Fatalf("lost compiler diagnostics: %v", err)
 		}
@@ -176,44 +183,50 @@ func TestGeneratedValidationScriptFailsOnCompilerError(t *testing.T) {
 
 func TestContractCompilationFailsClosedAndMemoizesSuccess(t *testing.T) {
 	features := Features{Deployment: "single-vm"}
-	compiledContracts.Delete(features.Deployment)
-	t.Cleanup(func() { compiledContracts.Delete(features.Deployment) })
+	compiler := BicepCLI{Executable: filepath.Join(t.TempDir(), "missing-bicep")}
+	t.Cleanup(func() { compiledContracts.Delete(bicepContractKey{features.Deployment, compiler.Executable}) })
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := compileContract(ctx, features); !errors.Is(err, context.Canceled) {
+	if _, err := compiler.contract(ctx, features); !errors.Is(err, context.Canceled) {
 		t.Fatalf("lost cancellation before compilation: %v", err)
 	}
 	t.Setenv("PATH", t.TempDir())
-	if _, err := compileContract(context.Background(), features); err == nil || !strings.Contains(err.Error(), "official Bicep CLI on PATH") {
+	if _, err := compiler.contract(context.Background(), features); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("expected missing compiler failure, got %v", err)
 	}
-	installCompilerFixture(t, `echo 'BCP000: rejected' >&2; exit 1`)
-	if _, err := compileContract(context.Background(), features); err == nil || !strings.Contains(err.Error(), "BCP000: rejected") {
+	bin := installCompilerFixture(t, `echo 'BCP000: rejected' >&2; exit 1`)
+	compiler.Executable = filepath.Join(bin, "bicep")
+	if _, err := compiler.contract(context.Background(), features); err == nil || !strings.Contains(err.Error(), "BCP000: rejected") {
 		t.Fatalf("expected compiler diagnostics, got %v", err)
 	}
-	installCompilerFixture(t, `printf 'not json'`)
-	if _, err := compileContract(context.Background(), features); err == nil || !strings.Contains(err.Error(), "invalid ARM JSON") {
+	bin = installCompilerFixture(t, `printf 'not json'`)
+	compiler.Executable = filepath.Join(bin, "bicep")
+	if _, err := compiler.contract(context.Background(), features); err == nil || !strings.Contains(err.Error(), "invalid ARM JSON") {
 		t.Fatalf("expected invalid output failure, got %v", err)
 	}
-	installCompilerFixture(t, `test -f "${2%/*}/vm-host.bicep"; printf '{"parameters":{}}'`)
-	if _, err := compileContract(context.Background(), features); err != nil {
+	bin = installCompilerFixture(t, `test -f "${2%/*}/vm-host.bicep"; printf '{"parameters":{}}'`)
+	compiler.Executable = filepath.Join(bin, "bicep")
+	if _, err := compiler.contract(context.Background(), features); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(compiler.Executable); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", t.TempDir())
-	if template, err := compileContract(context.Background(), features); err != nil || string(template) != `{"parameters":{}}` {
+	if template, err := compiler.contract(context.Background(), features); err != nil || string(template) != `{"parameters":{}}` {
 		t.Fatalf("successful compilation was not memoized: %s, %v", template, err)
 	}
-	if _, err := compileContract(ctx, features); !errors.Is(err, context.Canceled) {
+	if _, err := compiler.contract(ctx, features); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cached contract ignored cancellation: %v", err)
 	}
 }
 
 func TestContractCompilationReportsWarnings(t *testing.T) {
 	features := Features{Deployment: "single-vm"}
-	compiledContracts.Delete(features.Deployment)
-	t.Cleanup(func() { compiledContracts.Delete(features.Deployment) })
-	installCompilerFixture(t, `printf '{"parameters":{}}'
+	bin := installCompilerFixture(t, `printf '{"parameters":{}}'
 printf 'review this linter warning\n' >&2`)
+	compiler := BicepCLI{Executable: filepath.Join(bin, "bicep")}
+	t.Cleanup(func() { compiledContracts.Delete(bicepContractKey{features.Deployment, compiler.Executable}) })
 	filename := filepath.Join(t.TempDir(), "diagnostics")
 	output, err := os.Create(filename)
 	if err != nil {
@@ -227,7 +240,7 @@ printf 'review this linter warning\n' >&2`)
 			t.Error(err)
 		}
 	})
-	if _, err := compileContract(context.Background(), features); err != nil {
+	if _, err := compiler.contract(context.Background(), features); err != nil {
 		t.Fatal(err)
 	}
 	diagnostics, err := os.ReadFile(filename)

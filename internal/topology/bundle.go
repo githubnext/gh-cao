@@ -112,15 +112,12 @@ func filesFor(ctx context.Context, content []byte) (map[string][]byte, Topology,
 		if err != nil {
 			return nil, Topology{}, err
 		}
-		entries, err := assets.ReadDir("assets/azure")
+		optional, err := optionalFiles()
 		if err != nil {
 			return nil, Topology{}, err
 		}
-		for _, entry := range entries {
-			files["optional/"+entry.Name()], err = assets.ReadFile("assets/azure/" + entry.Name())
-			if err != nil {
-				return nil, Topology{}, err
-			}
+		for name, content := range optional {
+			files["optional/"+name] = content
 		}
 		files["scripts/what-if-optional.sh"] = []byte(whatIfScript("optional/hosts.bicep", "optional/parameters.json"))
 		files[".gitignore"] = append(files[".gitignore"], []byte("optional/hosts.json\n")...)

@@ -12,8 +12,11 @@ import (
 )
 
 // These are the same inputs shipped by `deploy init --deployment`.
-// Missing Bicep is a failure, not skipped validation.
+// Compiler acquisition or validation failures fail rather than skip these tests.
 func TestDeploymentSamples(t *testing.T) {
+	// Reconstruct every profile without a checkout or pre-existing Bicep files.
+	t.Chdir(t.TempDir())
+	t.Setenv("PATH", t.TempDir())
 	for _, sample := range []struct {
 		name                                     string
 		vms, databases, functions, containerApps int
@@ -118,7 +121,11 @@ func compileSample(t *testing.T, filename string) sampleARM {
 
 func compileSampleJSON(t *testing.T, filename string) []byte {
 	t.Helper()
-	command := exec.Command("bicep", "build", filename, "--no-restore", "--stdout")
+	compiler, err := managedBicepCompiler(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command(compiler, "build", filename, "--no-restore", "--stdout")
 	var diagnostics bytes.Buffer
 	command.Stderr = &diagnostics
 	output, err := command.Output()

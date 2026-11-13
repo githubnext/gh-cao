@@ -1584,10 +1584,16 @@ and guarded Azure development deployment (`azure`). `internal/topology/` owns
 the embedded Puccini TOSCA dependency engine and provider parameter contract,
 shared by YAML bundle generation and JSON-config preflight, planning and apply.
 All bundle templates, examples, scripts and runbooks are compiled into Go
-resources; Azure planning defaults to the same embedded ARM baseline, with an
+resources. Bicep files are reconstructed on demand from Go templates, not read
+from `.bicep` assets or a source checkout. The Functions templates are generated
+from the canonical `server/azure/` sources; other topology templates are owned
+directly in Go. Azure planning defaults to the same embedded ARM baseline, with an
 explicit compiled-template override for development. Apply plans bind the
 resolved topology and reject drift before Azure writes. Bundle generation
-still requires the official Bicep compiler and grants no deployment authority;
+uses a checksum-pinned official Bicep compiler acquired into a private user
+cache and invoked by absolute path, without discovering tools on `PATH`.
+Cold-cache acquisition requires HTTPS access to official release assets;
+verified cached tools work offline. Bundle generation grants no deployment authority;
 optional bundle profiles do not widen native apply support or its existing
 development-only, fresh-instance, secret-reference and evidence gates.
 Node `cao` owns the Actions runtime, `gh cao` owns the operator interface, and

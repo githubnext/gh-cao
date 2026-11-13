@@ -259,7 +259,7 @@ func TestTOSCABaseline(t *testing.T) {
 	}
 }
 
-func TestEmbeddedAzureParity(t *testing.T) {
+func TestReconstructedAzureParity(t *testing.T) {
 	files, err := baselineFiles()
 	if err != nil {
 		t.Fatal(err)
@@ -270,7 +270,7 @@ func TestEmbeddedAzureParity(t *testing.T) {
 	}
 	names = append(names, "../../server/azure/main.json")
 	if len(files) != len(names) {
-		t.Fatal("embedded Azure file set drift; run go generate ./internal/topology")
+		t.Fatal("reconstructed Azure file set drift; run go generate ./internal/topology")
 	}
 	for _, name := range names {
 		canonical, err := os.ReadFile(name)
@@ -278,7 +278,7 @@ func TestEmbeddedAzureParity(t *testing.T) {
 			t.Fatal(err)
 		}
 		if string(canonical) != string(files[filepath.Base(name)]) {
-			t.Fatalf("embedded Azure source drift: %s; run go generate ./internal/topology", name)
+			t.Fatalf("reconstructed Azure source drift: %s; run go generate ./internal/topology", name)
 		}
 	}
 }

@@ -18,14 +18,24 @@ import (
 
 var compiledContracts sync.Map
 
-// compileContract compiles a profile's embedded Bicep sources to ARM JSON with
+type bicepContractKey struct {
+	deployment string
+	executable string
+}
+
+// compileContract reconstructs a profile's Bicep sources from Go and compiles ARM JSON with
 // the official Bicep CLI. Results are memoized per profile because the inputs
-// are embedded and immutable for the process lifetime.
+// are immutable for the process lifetime.
 func compileContract(ctx context.Context, features Features) (template []byte, err error) {
+	return (BicepCLI{}).contract(ctx, features)
+}
+
+func (b BicepCLI) contract(ctx context.Context, features Features) (template []byte, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if cached, exists := compiledContracts.Load(features.Deployment); exists {
+	key := bicepContractKey{features.Deployment, b.Executable}
+	if cached, exists := compiledContracts.Load(key); exists {
 		return cached.([]byte), nil
 	}
 	files, err := deploymentFiles(features)
@@ -42,26 +52,14 @@ func compileContract(ctx context.Context, features Features) (template []byte, e
 			return nil, err
 		}
 	}
-	compiler, err := exec.LookPath("bicep")
+	template, err = b.compile(ctx, stage, "main.bicep")
 	if err != nil {
-		return nil, fmt.Errorf("compiling the %s Azure parameter contract requires Microsoft's official Bicep CLI on PATH: %w; install it from https://learn.microsoft.com/azure/azure-resource-manager/bicep/install", features.Deployment, err)
-	}
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
-	var diagnostics bytes.Buffer
-	command := exec.CommandContext(ctx, compiler, "build", filepath.Join(stage, "main.bicep"), "--no-restore", "--stdout")
-	command.Stderr = &diagnostics
-	template, err = command.Output()
-	if err != nil {
-		return nil, fmt.Errorf("compile %s Azure parameter contract: %w\n%s", features.Deployment, errors.Join(err, ctx.Err()), strings.TrimSpace(diagnostics.String()))
+		return nil, fmt.Errorf("compile %s Azure parameter contract: %w", features.Deployment, err)
 	}
 	if !json.Valid(template) {
 		return nil, fmt.Errorf("bicep compiler returned invalid ARM JSON for %s", features.Deployment)
 	}
-	if _, err := diagnostics.WriteTo(os.Stderr); err != nil {
-		return nil, fmt.Errorf("write Bicep diagnostics: %w", err)
-	}
-	compiledContracts.Store(features.Deployment, template)
+	compiledContracts.Store(key, template)
 	return template, nil
 }
 
@@ -73,6 +71,46 @@ type BicepValidator interface {
 // BicepCLI uses Microsoft's standalone compiler, including its type checker and linter.
 type BicepCLI struct {
 	Diagnostics io.Writer
+	// Executable optionally selects an explicit absolute compiler path.
+	// By default the checksum-pinned compiler is acquired into a private cache.
+	Executable string
+}
+
+func (b BicepCLI) executable(ctx context.Context) (string, error) {
+	if b.Executable != "" {
+		if !filepath.IsAbs(b.Executable) {
+			return "", fmt.Errorf("Bicep compiler path must be absolute")
+		}
+		return b.Executable, nil
+	}
+	return managedBicepCompiler(ctx)
+}
+
+func (b BicepCLI) compile(ctx context.Context, directory, name string) ([]byte, error) {
+	if !fs.ValidPath(name) || !strings.HasSuffix(name, ".bicep") {
+		return nil, fmt.Errorf("invalid Bicep template path: %s", name)
+	}
+	compiler, err := b.executable(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	var diagnostics bytes.Buffer
+	command := exec.CommandContext(ctx, compiler, "build", filepath.Join(directory, filepath.FromSlash(name)), "--no-restore", "--stdout")
+	command.Stderr = &diagnostics
+	output, err := command.Output()
+	if err != nil {
+		return nil, fmt.Errorf("bicep validation failed for %s: %w\n%s", name, errors.Join(err, ctx.Err()), strings.TrimSpace(diagnostics.String()))
+	}
+	writer := b.Diagnostics
+	if writer == nil {
+		writer = os.Stderr
+	}
+	if _, err := diagnostics.WriteTo(writer); err != nil {
+		return nil, fmt.Errorf("write Bicep diagnostics: %w", err)
+	}
+	return output, nil
 }
 
 func (b BicepCLI) Validate(ctx context.Context, directory string, templates []string) error {
@@ -82,29 +120,16 @@ func (b BicepCLI) Validate(ctx context.Context, directory string, templates []st
 	if len(templates) == 0 {
 		return fmt.Errorf("bicep validation requires at least one template")
 	}
-	compiler, err := exec.LookPath("bicep")
+	compiler, err := b.executable(ctx)
 	if err != nil {
-		return fmt.Errorf("bicep validation requires Microsoft's official Bicep CLI on PATH: %w; install it from https://learn.microsoft.com/azure/azure-resource-manager/bicep/install", err)
+		return err
 	}
+	b.Executable = compiler
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	output := b.Diagnostics
-	if output == nil {
-		output = os.Stderr
-	}
 	for _, name := range templates {
-		if !fs.ValidPath(name) || !strings.HasSuffix(name, ".bicep") {
-			return fmt.Errorf("invalid Bicep template path: %s", name)
-		}
-		var diagnostics bytes.Buffer
-		command := exec.CommandContext(ctx, compiler, "build", filepath.Join(directory, filepath.FromSlash(name)), "--no-restore", "--stdout")
-		command.Stdout = io.Discard
-		command.Stderr = &diagnostics
-		if err := command.Run(); err != nil {
-			return fmt.Errorf("bicep validation failed for %s: %w\n%s", name, errors.Join(err, ctx.Err()), strings.TrimSpace(diagnostics.String()))
-		}
-		if _, err := diagnostics.WriteTo(output); err != nil {
-			return fmt.Errorf("write Bicep diagnostics: %w", err)
+		if _, err := b.compile(ctx, directory, name); err != nil {
+			return err
 		}
 	}
 	return nil

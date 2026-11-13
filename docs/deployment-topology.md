@@ -10,25 +10,35 @@ compiles and resolves the generated **TOSCA Simple Profile 1.3** service templat
 typed nodes, capabilities, requirement occurrences, constraints and standard
 `tosca.relationships.DependsOn` relationships. Gonum orders the resolved directed
 graph and rejects cycles. There is no proprietary deployment-topology language,
-handwritten graph solver, Node.js runtime, cloud call or automatic deployment.
+handwritten graph solver, Node.js runtime, Azure API call or automatic deployment.
 This is deliberately a **bounded CAO-specific profile**, not full TOSCA support
 or a general-purpose orchestrator. Only generated typed nodes, capabilities,
 requirements, DependsOn relationships and basic property constraints are used.
 
-Generation requires [Microsoft's official Bicep CLI](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install)
-on `PATH`. Every emitted `.bicep` file is compiled with
+Generation uses a privately cached, checksum-pinned copy of
+[Microsoft's official Bicep CLI](https://learn.microsoft.com/azure/azure-resource-manager/bicep/bicep-cli)
+without looking on `PATH`. Every emitted `.bicep` file is compiled with
 [`bicep build --no-restore --stdout`](https://learn.microsoft.com/azure/azure-resource-manager/bicep/bicep-cli#build),
 using the established compiler, type checker and built-in linter. Diagnostics
-are surfaced; compiler errors or a missing tool fail generation without
+are surfaced; compiler acquisition or validation failures stop generation without
 publishing the output folder. Validation uses a private temporary directory,
 disables automatic module restore and makes no Azure calls. It does not prove
 subscription permissions, regional availability or live deployment acceptance.
 The `single-vm`, `minimal-azure` and `azure-container-apps` ARM parameter
-contracts are compiled on demand from their embedded Bicep sources, so
-generating or checking those profiles also requires the CLI. `init` and
-`azure-functions` dependency/drift `check` do not require it.
-The standalone `bicep` executable must be on `PATH`; installing only the
-`az bicep` wrapper is not sufficient. No compiler is downloaded automatically.
+contracts are compiled on demand from Bicep reconstructed from Go templates, so
+generating or checking those profiles also uses the managed compiler. `init` and
+`azure-functions` dependency/drift `check` do not acquire it.
+On first use, the CLI downloads Bicep 0.49.2 for macOS, Linux or Windows
+(x64 or arm64) from the official GitHub release. The private cache is
+`<user-cache>/gh-cao/tools/bicep/0.49.2/`, where `<user-cache>` is the OS user
+cache directory. Downloads must match pinned sizes and SHA-256 checksums before
+atomic publication; cached binaries are verified before use. Corrupted cache
+entries and symlinks are rejected rather than executed.
+Cold-cache acquisition requires HTTPS access to the release assets; subsequent
+use works offline. No preinstalled Bicep, Azure CLI or Node.js is required.
+The CLI reconstructs every `.bicep` file, including optional modules, from Go
+code in private staging or the generated bundle. No source checkout,
+pre-existing Bicep files or embedded `.bicep` assets are needed.
 
 ```sh
 gh cao deploy init --out /private/operator/requirements.yaml
@@ -272,10 +282,12 @@ compliance or authorization.
 
 Keep the generating CLI release when checking older bundles. The CLI embeds
 deterministic, reviewable snapshots of every bundled template, example,
-script and runbook, including the canonical Bicep sources and the compiled
-Functions ARM template. Other profiles' ARM parameter contracts are compiled
-from those embedded Bicep sources on demand. It never needs a source checkout
-or downloads resources at runtime.
+script and runbook, including the compiled Functions ARM template. Bicep
+templates are reconstructed from Go code, with the Functions modules generated
+from the canonical Azure sources. Other profiles' ARM parameter contracts are
+compiled from the reconstructed Bicep on demand. Templates never require a
+source checkout or runtime resource downloads; only a cold compiler cache
+requires the pinned tool download described above.
 `deploy azure` uses the same embedded ARM template and TOSCA dependency engine
 for its guarded JSON-config preflight, plan and development apply path.
 The YAML bundles are review-only outputs, not apply plan files; their optional
@@ -284,9 +296,12 @@ has been removed; use `deploy init`, `deploy generate` and `deploy check`.
 After changing `server/azure/`, run
 `go generate ./internal/topology`. A parity test rejects stale embedded sources;
 the generator never maintains a second baseline resource implementation.
-Asset regeneration only copies the baseline and does not require Bicep; no
-compiled compact or Container Apps contract is checked in. `TestDeploymentSamples` compiles
+Asset regeneration converts the canonical Bicep into Go source and copies the
+Functions ARM baseline without requiring Bicep. Compact, Container Apps and
+optional-host templates are maintained directly in Go; no compiled compact or
+Container Apps contract is checked in. `TestDeploymentSamples` reconstructs and compiles
 all five shipped samples with the actual compiler and checks VM/database/Functions/
 Container Apps resource definitions (including activation-gated definitions).
-Missing Bicep fails those tests; CI installs a checksum-pinned
-official compiler. Static rule and bad-configuration regressions run separately.
+It runs from an empty working directory without source templates and with an
+empty `PATH`, using the managed compiler. Compiler acquisition and validation
+failures fail the tests. Static rule and bad-configuration regressions run separately.

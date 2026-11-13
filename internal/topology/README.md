@@ -30,15 +30,25 @@ refuse to overwrite existing destinations. Generated files are owner-only.
 Samples contain synthetic identities and documentation-only networks; replace
 them before any separately approved deployment.
 
-Generation requires Microsoft's standalone `bicep` executable on `PATH`.
-`BicepCLI` compiles every emitted Bicep template with
-`bicep build --no-restore --stdout`, surfacing compiler and linter diagnostics.
+Generation acquires Microsoft's checksum-pinned Bicep 0.49.2 compiler into
+`<user-cache>/gh-cao/tools/bicep/0.49.2/` and invokes its absolute path.
+Nothing is discovered on `PATH`. The official compiler builds every emitted
+template with `build --no-restore --stdout`, surfacing compiler and linter diagnostics.
 The compact (`single-vm`, `minimal-azure`) and `azure-container-apps` ARM
-parameter contracts are not checked in; `compileContract` builds them on demand
-from the embedded Bicep sources and memoizes the result per process, so solving,
-generating or checking those profiles also requires Bicep. There is no automatic
-tool download or module restore. Initialization and `azure-functions` bundle
-checking do not require Bicep, Node.js or Azure access.
+parameter contracts are not checked in; `compileContract` reconstructs their
+Bicep files from Go templates in private staging, compiles them on demand and
+memoizes the result per process. Solving, generating or checking those profiles
+also uses the managed compiler. Cold-cache acquisition needs HTTPS access to
+the official GitHub release assets; a verified cached compiler works offline.
+Downloads are size-bounded, SHA-256-verified and atomically published as private
+executables. Cached binaries are verified before use; corrupted files and
+symlinks fail closed. There is no automatic module restore. Initialization and
+`azure-functions` bundle checking do not acquire a compiler or need network access.
+
+All Bicep files, including optional modules, are reconstructed from Go code.
+No `.bicep` assets, source checkout or pre-existing template files are required
+by the built CLI. No preinstalled Bicep, Azure CLI or Node.js runtime is needed
+for these commands; reconstructing a template does not replace compiler validation.
 
 ## Supported profiles
 
@@ -72,8 +82,9 @@ combinations fail rather than silently adding services or changing profiles.
 4. **Review declared architecture** (`rules.go`): `ReviewRules` produces strict
    errors and advisory warnings. Bundle generation rejects strict errors;
    findings describe declared configuration, not observed readiness.
-5. **Build and check the bundle** (`bundle.go`, `bicep.go`, `diagrams.go`):
-   render embedded templates and runbooks, validate Bicep in a private staging
+5. **Build and check the bundle** (`bundle.go`, `bicep.go`, `bicep_install.go`,
+   `bicep_templates.go`, `bicep_baseline.generated.go`, `diagrams.go`):
+   reconstruct Bicep from Go, render embedded runbooks, validate in a private staging
    directory, bind outputs with SHA-256 hashes, and check the resulting bundle.
 
 The main package entry points are:
@@ -118,13 +129,15 @@ go test ./internal/topology
 ```
 
 Regenerate assets after changing the authoritative Azure baseline under
-`server/azure/`. The generator copies the baseline into
-`assets/azure-baseline.generated/`; do not hand-edit this snapshot. Compact and
-Container Apps template changes need no regeneration because their contracts
-are compiled on demand.
+`server/azure/`. The generator converts those canonical Bicep sources into
+`bicep_baseline.generated.go` and copies the compiled Functions ARM baseline into
+`assets/azure-baseline.generated/main.json`; do not hand-edit these snapshots.
+Compact, Container Apps and optional-host templates are authored directly in
+`bicep_templates.go` and need no regeneration.
 
 Tests cover engine constraints, dependency contracts, fail-closed requirements,
 architecture rules, deterministic bundles, drift/symlink rejection, embedded
-baseline parity and compiler behavior. `TestDeploymentSamples` compiles all five
-shipped samples with the actual Bicep compiler; missing Bicep is a failure, not
-passing evidence.
+baseline parity and compiler behavior. `TestDeploymentSamples` starts in an empty
+working directory and reconstructs and compiles all five shipped samples with
+the actual managed Bicep compiler with an empty `PATH`. Acquisition and
+compilation failures fail these tests rather than skip them.

@@ -4,28 +4,15 @@ import (
 	"bytes"
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 )
 
-func TestDeployBundleCommandsOffline(t *testing.T) {
+func TestDeployBundleCommandsWithoutPATH(t *testing.T) {
 	directory := t.TempDir()
 	t.Chdir(directory)
-	bin := filepath.Join(directory, "bin")
-	if err := os.Mkdir(bin, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	// Profile contracts are compiled on demand, so forward to the official compiler.
-	compiler, err := exec.LookPath("bicep")
-	if err != nil {
-		t.Fatalf("deploy bundle commands require Microsoft's official Bicep CLI on PATH: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(bin, "bicep"), []byte("#!/bin/sh\nexec '"+compiler+"' \"$@\"\n"), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("PATH", bin)
+	t.Setenv("PATH", t.TempDir())
 	config, output := filepath.Join(directory, "requirements.yaml"), filepath.Join(directory, "bundle")
 	run := func(args ...string) (string, error) {
 		t.Helper()

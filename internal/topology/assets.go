@@ -17,22 +17,12 @@ func AzureTemplate() ([]byte, error) {
 }
 
 func baselineFiles() (map[string][]byte, error) {
-	const directory = "assets/azure-baseline.generated"
-	entries, err := assets.ReadDir(directory)
+	files := baselineBicepFiles()
+	content, err := AzureTemplate()
 	if err != nil {
 		return nil, err
 	}
-	files := map[string][]byte{}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			return nil, fmt.Errorf("unexpected directory in generated Azure baseline: %s", entry.Name())
-		}
-		content, err := assets.ReadFile(directory + "/" + entry.Name())
-		if err != nil {
-			return nil, err
-		}
-		files[entry.Name()] = content
-	}
+	files["main.json"] = content
 	return files, nil
 }
 
@@ -53,43 +43,42 @@ func ExampleFor(deployment string) ([]byte, error) {
 
 func deploymentFiles(features Features) (map[string][]byte, error) {
 	if features.Deployment == "azure-container-apps" {
-		files := map[string][]byte{}
-		for name, source := range map[string]string{
-			"main.bicep":         "assets/container-apps/main.bicep",
-			"postgres.bicep":     "assets/compact/postgres.bicep",
-			"provisioning.bicep": "assets/azure-baseline.generated/provisioning.bicep",
-			"ingestion.bicep":    "assets/azure-baseline.generated/ingestion.bicep",
-			"worker-roles.bicep": "assets/azure-baseline.generated/worker-roles.bicep",
-		} {
-			content, err := assets.ReadFile(source)
-			if err != nil {
-				return nil, err
-			}
-			files[name] = content
-		}
-		return files, nil
+		return map[string][]byte{
+			"main.bicep":         []byte(containerAppsMainBicep),
+			"postgres.bicep":     []byte(compactPostgresBicep),
+			"provisioning.bicep": []byte(azureProvisioningBicep),
+			"ingestion.bicep":    []byte(azureIngestionBicep),
+			"worker-roles.bicep": []byte(azureWorkerRolesBicep),
+		}, nil
 	}
 	if features.Deployment == "azure-functions" {
-		baseline, err := baselineFiles()
-		if err != nil {
-			return nil, err
-		}
-		delete(baseline, "main.json")
-		return baseline, nil
+		return baselineBicepFiles(), nil
 	}
-	files := map[string][]byte{}
-	for name, source := range map[string]string{
-		"main.bicep":              "assets/compact/main.bicep",
-		"postgres.bicep":          "assets/compact/postgres.bicep",
-		"vm-host.bicep":           "assets/azure/host.bicep",
-		"host-init.yaml":          "assets/azure/host-init.yaml",
-		"host-init-postgres.yaml": "assets/azure/host-init-postgres.yaml",
-	} {
-		content, err := assets.ReadFile(source)
+	files := map[string][]byte{
+		"main.bicep":     []byte(compactMainBicep),
+		"postgres.bicep": []byte(compactPostgresBicep),
+		"vm-host.bicep":  []byte(optionalHostBicep),
+	}
+	return files, addHostInitFiles(files)
+}
+
+func optionalFiles() (map[string][]byte, error) {
+	files := map[string][]byte{
+		"host.bicep":    []byte(optionalHostBicep),
+		"hosts.bicep":   []byte(optionalHostsBicep),
+		"lake.bicep":    []byte(optionalLakeBicep),
+		"network.bicep": []byte(optionalNetworkBicep),
+	}
+	return files, addHostInitFiles(files)
+}
+
+func addHostInitFiles(files map[string][]byte) error {
+	for _, name := range []string{"host-init.yaml", "host-init-postgres.yaml"} {
+		content, err := assets.ReadFile("assets/azure/" + name)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		files[name] = content
 	}
-	return files, nil
+	return nil
 }
