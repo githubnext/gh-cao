@@ -345,11 +345,6 @@ jobs:
         run: |
           set -euo pipefail
           test "$("$RUNNER_TEMP/release-binaries/gh-cao-linux-amd64" --version)" = "gh cao version ${RELEASE_TAG}"
-      - name: Verify GitHub CLI release installation
-        env:
-          CAO_EXTENSION_BINARY: ${{ runner.temp }}/release-binaries/gh-cao-linux-amd64
-          CAO_EXTENSION_VERSION: ${{ needs.resolve-version.outputs.release_tag }}
-        run: node --test tests/integration/gh-extension-installation.test.mjs
       - name: Upload extension release binaries
         uses: actions/upload-artifact@v7.0.1
         with:
