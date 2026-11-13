@@ -1,36 +1,7 @@
 {
  "source_sha": "7cb5134de200cd5d27125613422c3ecc7abdf846",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T12:39:57Z",
-   "worker_run_id": "43426225031",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none queued or in progress; source f0c3fc4 = HEAD = source_sha; identical to the 12:24Z window). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed; deploy skipped). Comparable n=18 push successes; schedule 43371878284 kept out of push statistics (exec 86 s). Job and step metadata (logs still HTTP 403 DIFC this run): median exec 85 s, p90 106 s; Install dependencies median 17 s, p90 22 s (range 12-23 s) = 20% of median exec; Set up Node.js median 4 s, p90 7 s; Post Set up Node.js 0 s in 18/18. 15% gate = 12.75 s, so setup plus install (median 22 s) must fall to 9.25 s or less; a node_modules cache must restore both installs inside that budget, which is unmeasured. Caches listing 10.74 GB across 84 entries against a 10 GB cap (LRU pressure). Cache key verified locally: sha256 of the raw digest of package-lock.json = e62f6006..., matching node-cache-Linux-x64-npm-e62f... (278 MB, created 2026-11-12T06:18:07Z, accessed this run); commits API shows package-lock last changed 063cbe9 at 06:17:07Z, before every window run. No candidate clears the gate; no suggestion; no issue; next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T12:53:43Z",
    "worker_run_id": "43428346207",
@@ -637,7 +608,8 @@
     43368845651,
     43362224525
    ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43362224525 created 2026-11-13T03:56:24Z to 43494667529 created 19:42:09Z; all within 14 days; none cancelled, failed or in progress; 19 push + 1 schedule 43371878284; 5-run gate met). Source changed: workspace HEAD c6939dd9 is 31 files past 01e2e1cd (ahead 2), none of them docs.yml (last changed 063cbe9, before the window); changed files under dashboard/site and dashboard/report match docs.yml triggers but are not inputs to docs:build (no dashboard reference in docs/ or astro.config.mjs, as earlier verified). Category step Build documentation (npm run docs:build): median 14 s, p90 15 s, range 9-15 s, identical push-only and all-20 = 15.7% of median exec 89 s (p90 98; push p90 106). 15% gate = 13.35 s requires at least 95% of the step removed, which equals removing the docs build that deploy needs; 60 s gate unreachable. Astro-internal split unmeasured (build-job log HTTP 403 DIFC, probed once this run). Carry-forward, not evaluated as Astro: Checkout median 25 s (p90 31; push p90 41) remains the largest step, covered by open issue 20815 (blobless checkout, unlanded). No suggestion; no issue created (open issues with worker label: 20815 only). next_category advanced to reusable dashboard generation."
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43362224525 created 2026-11-13T03:56:24Z to 43494667529 created 19:42:09Z; all within 14 days; none cancelled, failed or in progress; 19 push + 1 schedule 43371878284; 5-run gate met). Source changed: workspace HEAD c6939dd9 is 31 files past 01e2e1cd (ahead 2), none of them docs.yml (last changed 063cbe9, before the window); changed files under dashboard/site and dashboard/report match docs.yml triggers but are not inputs to docs:build (no dashboard reference in docs/ or astro.config.mjs, as earlier verified). Category step Build documentation (npm run docs:build): median 14 s, p90 15 s, range 9-15 s, identical push-only and all-20 = 15.7% of median exec 89 s (p90 98; push p90 106). 15% gate = 13.35 s requires at least 95% of the step removed, which equals removing the docs build that deploy needs; 60 s gate unreachable. Astro-internal split unmeasured (build-job log HTTP 403 DIFC, probed once this run). Carry-forward, not evaluated as Astro: Checkout median 25 s (p90 31; push p90 41) remains the largest step, covered by open issue 20815 (blobless checkout, unlanded). No suggestion; no issue created (open issues with worker label: 20815 only). next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   },
   {
    "evaluated_at": "2026-11-13T20:20:28Z",
@@ -665,7 +637,8 @@
     43368845651,
     43362224525
    ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43362224525 created 2026-11-13T03:56:23Z to 43494667529 created 19:42:08Z; 20/20 success, 19 push + 1 schedule 43371878284; 0 failed, 0 cancelled, none in progress; no newer docs.yml run since 19:42Z). source c6939dd9 = HEAD = source_sha, unchanged. Excluded: none (failed 43297524311 outside window). 5-run gate met. Stored step timings recomputed (exec median 89 s p90 98; push-only exec median 89 s p90 106) and jobs API re-read for 43494667529 (checkout 31, install 17, docs 15, demo 4 = stored row). Category step Build synthetic enterprise demo (npm run dashboard:pages:build + cp to dist/cao, inside build job): median 4 s, p90 5 s, range 3-5 s = 4.5% of median exec 89 s; push-only demo median 4 s p90 5 s. 15% gate 13.35 s and 60 s gate unreachable; full removal saves at most 4 s. No separate dashboard job. docs:build (astro build + validate-agent-docs + agent-docs-discovery test) has no dashboard build; validate-agent-docs only loads a catalog document from dashboard/report/agent-catalog.mjs inside the 14 s Build documentation step (share unmeasured, job logs HTTP 403), so reaching the gate would require removing about 95% of that step. Re-evaluate only if demo median reaches about 12 s or a dashboard build is added to the docs path."
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43362224525 created 2026-11-13T03:56:23Z to 43494667529 created 19:42:08Z; 20/20 success, 19 push + 1 schedule 43371878284; 0 failed, 0 cancelled, none in progress; no newer docs.yml run since 19:42Z). source c6939dd9 = HEAD = source_sha, unchanged. Excluded: none (failed 43297524311 outside window). 5-run gate met. Stored step timings recomputed (exec median 89 s p90 98; push-only exec median 89 s p90 106) and jobs API re-read for 43494667529 (checkout 31, install 17, docs 15, demo 4 = stored row). Category step Build synthetic enterprise demo (npm run dashboard:pages:build + cp to dist/cao, inside build job): median 4 s, p90 5 s, range 3-5 s = 4.5% of median exec 89 s; push-only demo median 4 s p90 5 s. 15% gate 13.35 s and 60 s gate unreachable; full removal saves at most 4 s. No separate dashboard job. docs:build (astro build + validate-agent-docs + agent-docs-discovery test) has no dashboard build; validate-agent-docs only loads a catalog document from dashboard/report/agent-catalog.mjs inside the 14 s Build documentation step (share unmeasured, job logs HTTP 403), so reaching the gate would require removing about 95% of that step. Re-evaluate only if demo median reaches about 12 s or a dashboard build is added to the docs path.",
+   "suggestion_fingerprint": null
   },
   {
    "evaluated_at": "2026-11-13T20:35:11Z",
@@ -868,6 +841,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; no docs.yml run queued or in progress except stale 37642403569; source 7cb5134 = HEAD = source_sha; window identical to the 22:19Z evaluation, re-listed and job metadata re-read this run). Excluded and disclosed: 1 failed 43506161539 (push 7c8faf4; Install dependencies failed at 17 s; Build and deploy skipped; Pages still reflects f695ad3 deployed by 43505502149 at 20:53:41Z; job log HTTP 403 DIFC, cause unverified). n=19 successful push runs; no schedule or cancelled run in window; 5-run gate met. Exec (build start to deploy end) median 84 s, p90 93 s. Build job queue median 3 s; deploy queue median 5 s. Run-to-build wait behind concurrency group documentation-pages (cancel-in-progress false): median 1 s, p90 51 s, max 68 s; 3 of 19 waited 42, 51 and 68 s, each ending exactly when the predecessor run completed (queue, not execution). Median saving from any scheduling change 0 s; 15 percent gate 12.6 s and 60 s gate unmet. Avoidable rebuilds: 0 of 19 push runs; every push compare range (21 compares) contained at least one output-affecting trigger path (docs/**, dashboard/site/**, package files, docs.yml, or shared/actions-log consumed by configure-site). No same-SHA scheduled duplicate in window. Rejected as before: cancel-in-progress true (could cut an in-flight Pages deploy), deploy-only or split build concurrency (out-of-order publish), dropping the cron (synthetic-date freshness). No suggestion; no issue created; open issue 20815 (blobless checkout) unchanged and not repeated. next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T22:55:05Z",
+   "worker_run_id": "43522372012",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; none queued or in progress except stale 37642403569; no docs.yml run since 20:56:37Z; source 7cb5134 = main HEAD = source_sha; window identical to the 22:31Z window). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies failed at 17 s on cache miss for key 7808ecf8; Build and deploy skipped; Pages still reflects f695ad3 from 43505502149 at 20:53:41Z; job log HTTP 403 DIFC re-probed 22:52Z, cause unverified). n=19 push successes; 0 cancelled; 0 schedule in window; 5-run gate met. Jobs API only (logs unreadable). Medians (p90): build start to deploy end exec 84 (93) s; run create to update 88 (146) s incl. concurrency wait median 1 s, p90 51 s; Set up Node.js 4 (7); Install dependencies 16 (24) = 19 percent of median exec; setup plus install median 20 s; Post Set up Node.js 0-1 s in 19/19 (exact-key hits). 15 percent gate 12.6 s; 60 s unreachable. Candidates, none evidenced at gate: node_modules cache (saves at most about 16 s minus restore; restore unmeasured; clears gate only if restore is about 3.5 s or less); root --ignore-scripts (correctness risk; few seconds); dashboard lock outside key (zero current cost, latent). Cache: key 7808ecf8 (263 MB, refs/heads/main) created 20:57:12Z during the failed job (likely its post-step save, unverified) and last accessed 22:43:46Z by a workflow other than docs.yml; key e62f6006 last accessed 20:56:23Z. Open issue 20815 (blobless checkout) unchanged and not repeated. No suggestion; no issue; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -884,12 +886,13 @@
   "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API.",
   "note_2026_11_13_1728Z": "head key node-cache-Linux-x64-npm-e62f6006... last_accessed 2026-11-13T17:28:44Z (caches API); unchanged created 2026-11-12T06:18:07Z",
   "note_2026_11_13_1935Z": "head key node-cache-Linux-x64-npm-e62f6006 created 2026-11-12T06:18:07Z, last_accessed 2026-11-13T19:28:45Z (caches API); root package-lock.json recomputes to e62f6006 (unchanged). dashboard/site/package-lock.json recomputes to 9328fd17, a separate main-branch key created 2026-11-13T04:01:40Z that docs.yml does not use (docs.yml key covers the root lock only).",
-  "note_2026_11_13_2135Z": "Head root lock hash 7808ecf8 recomputed (sha256 of sha256 digest of package-lock.json). Caches API: node-cache-Linux-x64-npm-7808ecf8 exists for refs/pull/20818/merge (created 2026-11-13T20:02:28Z) and refs/heads/main (created 20:57:12Z, after failed run 43506161539). Post Set up Node.js 0-1 s in 19/19 successful runs (exact-key hits). Failure cause not verifiable (job log HTTP 403); cache existence alone does not prove the next run restores it."
+  "note_2026_11_13_2135Z": "Head root lock hash 7808ecf8 recomputed (sha256 of sha256 digest of package-lock.json). Caches API: node-cache-Linux-x64-npm-7808ecf8 exists for refs/pull/20818/merge (created 2026-11-13T20:02:28Z) and refs/heads/main (created 20:57:12Z, after failed run 43506161539). Post Set up Node.js 0-1 s in 19/19 successful runs (exact-key hits). Failure cause not verifiable (job log HTTP 403); cache existence alone does not prove the next run restores it.",
+  "note_2026_11_13_2252Z": "key 7808ecf8 (263 MB, main) created 20:57:12Z during failed 43506161539 (likely post-step save, unverified), last accessed 22:43:46Z by a non-docs workflow; e62f6006 (279 MB) last accessed 20:56:23Z; a partial npm cache saved by a failed job would be restored by the next docs run; cache entries are content-addressed so partial content should cause retries, not corruption (unverified)."
  },
  "run_samples": {
   "window_created": "2026-11-13T06:23:31Z..2026-11-13T20:56:37Z",
-  "evaluated_at": "2026-11-13T22:31:00Z",
-  "note": "window = latest 20 completed docs.yml runs (43378369544..43506161539); 19 successful push runs (n=19), 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs HTTP 403 DIFC.",
+  "evaluated_at": "2026-11-13T22:55:05Z",
+  "note": "window = latest 20 completed docs.yml runs (43378369544..43506161539); 19 successful push runs (n=19), 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs HTTP 403 DIFC.; re-verified at 2026-11-13T22:55:05Z (same window, same medians)",
   "median_p90_s": {
    "Checkout": [
     25,
@@ -1252,16 +1255,6 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-13T14:54:30Z",
-   "source": "docs.yml reusable dashboard generation (worker 43446486267)",
-   "note": "Build synthetic enterprise demo median 4 s (p90 5 s) is the only dashboard generation cost; no duplicate build in docs:build. Re-evaluate only if the demo step grows beyond about 12 s median or a dashboard build is added to the Astro docs path."
-  },
-  {
-   "observed_at": "2026-11-13T17:38:10Z",
-   "source": "docs.yml checkout (worker 43473225781) CORRECTION",
-   "note": "Pinned actions/checkout v7.0.1 (3d3c42e5) exposes filter (action.yml line 60). Earlier note claiming no filter input was wrong. Shallow checkout remains unsafe (git log per file would give HEAD date). filter blob:none keeps commits and trees, so provenance is unchanged. Suggestion issued: fingerprint docs-checkout-blobless-history-v1."
-  },
-  {
    "observed_at": "2026-11-13T19:35:43Z",
    "source": "docs.yml dependency category (worker 43492778609)",
    "note": "No completed run after 18:37:04Z; root lock key e62f6006 and install median 17 s (p90 23) unchanged. Latent risk, zero current cost: the docs.yml cache key covers only the root lock. A change to dashboard/site/package-lock.json would leave docs.yml restoring a cache without the new dashboard packages, and the cache is only saved on miss, so those packages would re-download every run until the root lock changes (dashboard lock unchanged since 2026-10-22). Re-evaluate on a dashboard lock change or when node_modules caching is measured on a maintainer branch (restore must be 4 s or less)."
@@ -1305,6 +1298,11 @@
    "observed_at": "2026-11-13T22:31:00Z",
    "source": "docs.yml FAILURE 43506161539 still unverified (worker 43519522791)",
    "note": "No docs.yml run after 20:56:37Z. Main content since 7c8faf4 is not published; the next docs-path push or 05:23Z schedule reruns the install. Job log still HTTP 403 DIFC. Maintainer should read the install log of 43506161539 and confirm a green docs.yml run on main."
+  },
+  {
+   "observed_at": "2026-11-13T22:55:05Z",
+   "source": "docs.yml dependency category (worker 43522372012)",
+   "note": "Failure 43506161539 still unverified: no docs.yml run since 20:56:37Z; Pages stale at f695ad3 since 20:53:41Z. Maintainer with Actions log access should read the install step of 43506161539, or re-run docs.yml on main, and confirm a green run. Re-evaluate timing only after a green run; a restored key 7808ecf8 would show as Post Set up Node.js 0-1 s."
   }
  ],
  "checkout_probe": {
