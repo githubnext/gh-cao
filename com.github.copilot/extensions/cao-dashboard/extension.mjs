@@ -1,11 +1,7 @@
 import { joinSession } from "@github/copilot-sdk/extension";
 import { createDashboardExtension } from "./dashboard-extension.mjs";
-import { approveDashboardCommand } from "./approval.mjs";
 
-const { config, closePreviews } = createDashboardExtension({
-  approveCommand: approveDashboardCommand,
-  executeSessionTool: (request) => session.rpc.tools.execute(request),
-});
+const { config, closePreviews } = createDashboardExtension();
 
 let shuttingDown = false;
 const shutdown = () => {
@@ -22,4 +18,4 @@ const shutdown = () => {
 process.once("SIGTERM", shutdown);
 process.once("SIGINT", shutdown);
 
-const session = await joinSession(config);
+await joinSession(config);

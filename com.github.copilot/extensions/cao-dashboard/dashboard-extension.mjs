@@ -9,26 +9,17 @@ import {
   executeDashboardQueryRequest,
   readDashboardDataSpecification,
 } from "./dashboard-agent-tools.mjs";
-import { executeDashboardCommand } from "./cli-actions.mjs";
-import { approveDashboardCommand } from "./approval.mjs";
 import { startLocalDashboardPreview } from "./local-preview.mjs";
-import { enhanceQueryEditorIntent, generateDashboardQuery } from "./query-designer.mjs";
 
 /**
  * @param {{
  *   workingDirectory?: string,
  *   startPreview?: typeof startLocalDashboardPreview,
- *   executeCommand?: typeof executeDashboardCommand,
- *   approveCommand?: (request: import("./approval.mjs").DashboardCommandApproval) => Promise<boolean>,
- *   executeSessionTool?: (request: { name: string, arguments: { kickoff: { prompt: string } } }) => Promise<unknown>,
  * }} [options]
  */
 export function createDashboardExtension({
   workingDirectory = process.cwd(),
   startPreview = startLocalDashboardPreview,
-  executeCommand = executeDashboardCommand,
-  approveCommand = approveDashboardCommand,
-  executeSessionTool,
 } = {}) {
   /** @type {Map<string, ReturnType<typeof startLocalDashboardPreview>>} */
   const previews = new Map();
@@ -168,7 +159,7 @@ export function createDashboardExtension({
         id: "cao-dashboard",
         displayName: "Central Agentic Ops",
         description:
-          "Open a local Central Agentic Ops dashboard preview for the current or a specified repository.",
+          "Open the local gh cao dashboard for the current or a specified repository.",
         inputSchema: {
           type: "object",
           properties: {
@@ -198,45 +189,13 @@ export function createDashboardExtension({
                 workingDirectory: previewWorkingDirectory,
                 repository: input && typeof input === "object" && !Array.isArray(input)
                   && typeof input.repository === "string" ? input.repository : undefined,
-                generateQuery: generateDashboardQuery,
-                enhanceQueryIntent: enhanceQueryEditorIntent,
-                startSession: executeSessionTool ? async (prompt) => {
-                  if (stopping) throw new Error("The CAO dashboard extension is shutting down.");
-                  const result = await executeSessionTool({
-                    name: "create_session", arguments: { kickoff: { prompt } },
-                  });
-                  if (typeof result !== "string"
-                      && (!result || typeof result !== "object" || !("resultType" in result)
-                        || result.resultType !== "success")) {
-                    throw new Error("Copilot could not start the session. Check the app session for details.");
-                  }
-                } : undefined,
-                approveCliAction: async ({ command, input: commandInput }) => {
-                  if (stopping) throw new Error("The CAO dashboard extension is shutting down.");
-                  const approved = await approveCommand(Object.freeze({
-                    command,
-                    input: commandInput,
-                    workingDirectory: previewWorkingDirectory,
-                  }));
-                  if (stopping) throw new Error("The CAO dashboard extension is shutting down.");
-                  return approved === true;
-                },
-                executeCliAction: ({ command, input: commandInput, onOutput, signal }) =>
-                  executeCommand({
-                    command,
-                    input: commandInput,
-                    workingDirectory: previewWorkingDirectory,
-                    githubToken: process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN,
-                    onOutput,
-                    signal,
-                  }),
               });
               previews.set(context.instanceId, pending);
             }
             const preview = await pending;
             return {
               title: "Central Agentic Ops",
-              status: "Local preview",
+              status: "gh cao dashboard",
               url: preview.url,
             };
           } catch (error) {
