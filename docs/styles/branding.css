@@ -314,6 +314,12 @@ button[data-open-modal]:focus-visible {
     font-size: 0.875rem;
   }
 
+  /* Wrap rather than ellipsize the product name when the header is crowded (for example
+     320-340 CSS px on the landing page), so the visible title keeps all of its text (WCAG 1.4.10). */
+  .site-title span {
+    white-space: normal;
+  }
+
   :root:not([data-has-sidebar]) .right-group {
     display: flex;
   }
