@@ -1,36 +1,7 @@
 {
  "source_sha": "75c762eaf69db919b1906dc0e562e93e018dea73",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T07:21:50Z",
-   "worker_run_id": "43384568246",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311,
-    43249903823
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43380585034 back to 43249903823; created 2026-11-12T15:38Z to 2026-11-13T06:42Z; all within 14 days; none queued, in progress or waiting; source e71feab = HEAD = source_sha; window identical to the 06:55Z evaluation, verified against a fresh run list). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed after 14 s, deploy skipped, fixed by cd1e0ba). Comparable n=19 successes (18 push, 1 schedule 43371878284). Per-run timings reused from stored samples of this same window (not re-fetched). Concurrency (run created to build job created): median 1 s, p90 34 s, max 81 s; 3 of 19 at or above 10 s (43341730805 81 s behind 43341713733; 43371269326 44 s behind 43371217266; 43368963164 32 s). Queue-only; not execution. Exec median 85 s, p90 about 100 s. 15% gate = 12.75 s; 60 s unreachable. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy); build out of group or deploy-only group (out-of-order publication could regress Pages); skipping the 05:23 schedule when a same-SHA same-day push succeeded (saves one 86 s run once, zero median effect, about 4 min generatedAt freshness trade, needs actions:read beyond contents:read). Avoidable rebuilds: newest 5 push heads (e71feab, b999dc4, 94c68e8, f0bb5f4, f82ecc5) each touch output-relevant dashboard/site/src or docs/ files; path tightening not supported. Stale run 37642403569 (event workflow_run, queued since 2026-10-07T15:12Z, head 6206962, outside window) is not observed to block the documentation-pages group; housekeeping for a maintainer, not a build-time saving. Open issues with label self-care:docs-build-time-investigator: none. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T07:36:00Z",
    "worker_run_id": "43386101433",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all within 14 days; newest run head 75c762e = checkout HEAD = new source_sha). Excluded: none (20/20 success; failed 43297524311 and cancelled 43206161686 are outside the window). Comparable n=19 push successes; schedule 43371878284 kept out of push statistics (exec 86 s). 5-run gate met. Artifact chain medians (p90, nearest-rank) from jobs API: Upload Pages artifact 2 s (3); build end to deploy created 0 s (1); deploy queue 5 s (5); deploy job setup 1 s (1); Deploy Pages 7 s (8); chain 15 s (p90 16) = 16.9% of median exec 89 s (p90 106). Controllable part (upload + handoff + deploy setup) median 3 s (p90 4). The 15% gate (13.35 s) is unreachable even if all of it were removed. Merging build and deploy saves about 6 s and grants id-token: write to the build job; rejected again. github-pages artifact 8.26-8.38 MB decimal, stable; size lever at most 1-2 s. Deploy Pages is GitHub-managed. Logs not read; timings from jobs API only. Open issues with label self-care:docs-build-time-investigator: none. No suggestion; no issue created. Checkout carry-forward closed: fetch-depth 0 is required because resolveBuildProvenance (docs/plugins/starlight-agent/resource.ts:249) runs git log -1 -- <file>; a depth-1 clone returned the HEAD commit time (16:44Z) for astro.config.mjs, whose true last change is 2026-11-12T13:13Z (commits API). next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T17:20:18Z",
+   "worker_run_id": 43470744333,
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all 20 success, 19 push + 1 schedule 43371878284; none queued or in progress; 0 failed, 0 cancelled; source 75c762e = HEAD = source_sha; window identical to the 16:55Z evaluation, jobs re-fetched this run). Concurrency: run creation to build start median 3 s; 3 runs waited directly behind a predecessor deploy (43368963164 34 s behind 43368845651; 43371269326 46 s behind 43371217266; 43430232636 54 s behind 43430166810), each build starting about 3 s after predecessor deploy end; sum 191 s over 20 runs. Queueing is pre-build, so it moves end-to-end latency only; execution (build start to deploy end) median 87.5 s (p90 98), 15% gate 13.1 s unreachable by scheduling. Rejected for safety, unchanged: cancel-in-progress true (cuts in-flight Pages publication); deploy-only or build-out-of-group concurrency (out-of-order publication). Avoidable rebuilds: commits API, 19 push heads; 0 of 19 touched only test or non-build paths (test files always co-changed with a src, docs, aw.yml, public or shared/policy.mjs input; dashboard/site/scripts/build.mjs imports .github/workflows/shared/policy.mjs), so path tightening would save 0 in this window. Schedule 43371878284 (cron 05:23) repeated SHA 5943848 about 5 min after push 43371269326: designed daily synthetic-date refresh, once per day, zero median effect. No suggestion; no issue created; no open issues with worker label. Carry-forward for dependency category: fetch-depth 0 is REQUIRED for published freshness.sourceCommittedAt (docs/plugins/starlight-agent/resource.ts resolveBuildProvenance runs git log -1 per source file; a shallow checkout would silently drop that field), so the shallow idea is rejected; only a blob-filtered partial clone remains, unmeasured (actions/checkout has no filter input). next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1235,19 +1235,9 @@
    "note": "Window 43345305064..43447728981: wait median 1 s, p90 32 s, max 51 s (queue only); 0 of 19 push publications avoidable by path; schedule duplicate 43371878284 single occurrence (86 s). Re-evaluate only if same-SHA scheduled duplicates repeat or a maintainer approves a freshness gate for the schedule."
   },
   {
-   "observed_at": "2026-11-13T15:55:03Z",
-   "source": "docs.yml Checkout step (out-of-rotation carry-forward)",
-   "note": "Checkout fetch-depth 0 median 24.5 s (p90 32), the largest controllable build step (28 percent of median exec). Docs-path git calls: validate-agent-docs git ls-files -z and git rev-parse HEAD; agent-docs-discovery rev-parse HEAD fallback only when PUBLIC_PAGES_BUILD_COMMIT is unset (it is set in docs.yml). No history-dependent call found in build.mjs, simulate-dashboard-pages.mjs or astro.config.mjs. Candidate saving roughly 15-19 s if fetch-depth 1, unmeasured. Not in the five-category rotation; evaluate explicitly next cycle if maintainers accept source acquisition in scope."
-  },
-  {
-   "observed_at": "2026-11-13T16:23:20Z",
-   "source": "docs.yml Astro category sandbox limits (worker 43461190855)",
-   "note": "Local npm ci fails with DEPTH_ZERO_SELF_SIGNED_CERT on the package feed; do not bypass TLS. Astro-vs-validation split stays unmeasured without maintainer-branch step timing or readable logs. Checkout carry-forward: docs/plugins/starlight-agent/resource.ts runs git log -1 per resource (sourceCommittedAt), so fetch-depth 1 changes output; a partial-clone variant needs a maintainer decision and a branch measurement."
-  },
-  {
-   "observed_at": "2026-11-13T16:55:48Z",
-   "source": "docs.yml checkout fetch-depth 0 (carry-forward closed)",
-   "note": "Checkout median 24 s (p90 41), largest controllable step (about 27% of exec). fetch-depth 0 is required: resolveBuildProvenance (docs/plugins/starlight-agent/resource.ts:249) runs git log -1 -- <file> per agent resource. A depth-1 clone returned the HEAD commit time for astro.config.mjs (true last change 2026-11-12T13:13Z), so a shallow checkout would mis-stamp provenance. Re-evaluate only if provenance is redesigned (for example, precomputed per-file commit dates)."
+   "observed_at": "2026-11-13T17:20:18Z",
+   "source": "docs.yml actions/checkout fetch-depth 0 (Checkout median 24.5 s, p90 29 over window 75c762e)",
+   "note": "Shallow checkout is NOT a safe saving: resource.ts resolveBuildProvenance derives freshness.sourceCommittedAt from git log -1 per source file; a depth-1 clone would drop it from published agent JSON. Only a blob-filtered partial clone (git fetch --filter=blob:none, actions/checkout has no filter input) remains; unmeasured. Evaluate under dependency installation and caching."
   }
  ]
 }
