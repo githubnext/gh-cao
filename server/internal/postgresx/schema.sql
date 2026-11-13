@@ -45,7 +45,58 @@ CREATE TABLE IF NOT EXISTS cao_state (
   data_revision TEXT NOT NULL,
   evaluated_at TIMESTAMPTZ NOT NULL,
   schema_version BIGINT NOT NULL,
+  capacity_revision BIGINT,
+  bundle_epoch TIMESTAMPTZ,
   PRIMARY KEY (namespace)
+);
+
+CREATE TABLE IF NOT EXISTS cao_ingestion_accounting (
+  namespace TEXT NOT NULL,
+  collection TEXT NOT NULL,
+  revision BIGINT NOT NULL,
+  records BIGINT NOT NULL,
+  next_ordinal BIGINT NOT NULL,
+  evidence_at TIMESTAMPTZ,
+  PRIMARY KEY (namespace, collection),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (collection IN ('$repositories','$campaigns','$workflows','$runs','$audits','$domains','$evals','$experiments','$evalObservations','$experimentAssignments','$friction','$graders','$graderObservations','$issues','$operationalValueEvidence','$operationalValues','$outcomes','$security-findings','$skills','$tools','$transactions','$workflowValueCollections','work-items')),
+  CHECK (revision >= 0 AND records >= 0 AND next_ordinal >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS cao_run_accounting (
+  namespace TEXT NOT NULL,
+  run_id TEXT NOT NULL,
+  collection TEXT NOT NULL,
+  run_at TIMESTAMPTZ NOT NULL,
+  attempt BIGINT,
+  records BIGINT NOT NULL,
+  bytes BIGINT NOT NULL,
+  next_ordinal BIGINT NOT NULL,
+  evidence_at TIMESTAMPTZ,
+  PRIMARY KEY (namespace, collection, run_id),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (collection IN ('$runs','$audits','$domains','$evalObservations','$experimentAssignments','$friction','$graderObservations','$issues','$skills','$tools')),
+  CHECK (run_id <> '' AND isfinite(run_at)),
+  CHECK (records >= 0 AND bytes >= 0 AND next_ordinal >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS cao_run_accounting_run ON cao_run_accounting(namespace, run_id, run_at);
+
+CREATE INDEX IF NOT EXISTS cao_run_accounting_clock ON cao_run_accounting(namespace, collection, evidence_at DESC NULLS LAST);
+
+CREATE TABLE IF NOT EXISTS cao_bundle_versions (
+  namespace TEXT NOT NULL,
+  collection TEXT NOT NULL,
+  id TEXT NOT NULL,
+  attempt BIGINT,
+  observed_at TIMESTAMPTZ NOT NULL,
+  digest TEXT NOT NULL,
+  PRIMARY KEY (namespace, collection, id),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (collection IN ('$runs','$campaigns','$repositories','$workflows','$experiments','$graders','$evals')),
+  CHECK (id <> '' AND isfinite(observed_at)),
+  CHECK ((collection='$runs' AND attempt IS NOT NULL AND attempt > 0) OR (collection<>'$runs' AND attempt IS NULL)),
+  CHECK (digest ~ '^[a-f0-9]{64}$')
 );
 
 CREATE TABLE IF NOT EXISTS cao_acquisition_scopes (

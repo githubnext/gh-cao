@@ -14,11 +14,17 @@ import (
 type ingestStreamResponse struct {
 	Type   string         `json:"type"`
 	Result *ingest.Result `json:"result,omitempty"`
+	Modes  []string       `json:"modes,omitempty"`
 }
 
-func runIngestStream(ctx context.Context, input io.Reader, output io.Writer, run func(context.Context) (ingest.Result, error)) error {
+type ingestStreamRequest struct {
+	Type string `json:"type"`
+	Mode string `json:"mode,omitempty"`
+}
+
+func runIngestStream(ctx context.Context, input io.Reader, output io.Writer, run func(context.Context, ingestStreamRequest) (ingest.Result, error)) error {
 	encoder := json.NewEncoder(output)
-	if err := encoder.Encode(ingestStreamResponse{Type: "ready"}); err != nil {
+	if err := encoder.Encode(ingestStreamResponse{Type: "ready", Modes: []string{"snapshot", "run-bundles"}}); err != nil {
 		return err
 	}
 	scanner := bufio.NewScanner(input)
@@ -27,18 +33,17 @@ func runIngestStream(ctx context.Context, input io.Reader, output io.Writer, run
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		var request struct {
-			Type string `json:"type"`
-		}
+		var request ingestStreamRequest
 		decoder := json.NewDecoder(bytes.NewReader(scanner.Bytes()))
 		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&request); err != nil || request.Type != "ingest" {
+		if err := decoder.Decode(&request); err != nil || request.Type != "ingest" ||
+			request.Mode != "" && request.Mode != "snapshot" && request.Mode != "run-bundles" {
 			return errors.New("invalid ingestion stream request")
 		}
 		if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
 			return errors.New("ingestion stream requires one request per line")
 		}
-		result, err := run(ctx)
+		result, err := run(ctx, request)
 		response := ingestStreamResponse{Type: "error"}
 		if err == nil {
 			response = ingestStreamResponse{Type: "complete", Result: &result}

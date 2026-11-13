@@ -65,6 +65,7 @@ work. This measures wall time, not CPU time or exhaustive upstream coverage.`,
 		}
 		defer func() { _ = ingestor.Close() }()
 		setup := time.Since(start)
+		options.onRunBundles = ingestor.IngestRunBundles
 		report, collectErr := benchmarkDashboardCollection(ctx, repositories, cache, *options, gh, logs, ingestor.Ingest)
 		collectErr = errors.Join(collectErr, ingestor.Close())
 		if collectErr != nil {
@@ -95,6 +96,15 @@ func benchmarkDashboardCollection(ctx context.Context, repositories []string, ca
 	}
 	options.onCollecting = func() { ingestionErr = errors.Join(ingestionErr, publish()) }
 	options.onPublished = publish
+	if runBundles := options.onRunBundles; runBundles != nil {
+		options.onRunBundles = func() error {
+			start := time.Now()
+			err := runBundles()
+			timings.record("postgres", start)
+			timings.ingestions++
+			return err
+		}
+	}
 	timedGH := func(ctx context.Context, args ...string) (string, string, error) {
 		start := time.Now()
 		output, diagnostics, err := gh(ctx, args...)

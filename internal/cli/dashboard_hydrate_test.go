@@ -2,6 +2,8 @@ package cli
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,6 +13,74 @@ import (
 	"testing"
 	"time"
 )
+
+func TestDashboardStreamEmitsExplicitVerifiedRunBundles(t *testing.T) {
+	cache := t.TempDir()
+	now := time.Now().UTC().Add(-time.Second)
+	deltas, snapshots := 0, 0
+	options := dashboardOptions{window: dashboardMaximumDuration, count: 2,
+		onRunBundles: func() error {
+			deltas++
+			content, err := os.ReadFile(filepath.Join(cache, "run-bundles.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			manifestContent, err := os.ReadFile(filepath.Join(cache, "payload-hashes.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var manifest map[string]string
+			if err := json.Unmarshal(manifestContent, &manifest); err != nil {
+				t.Fatal(err)
+			}
+			hash := sha256.Sum256(content)
+			if manifest["run-bundles.json"] != hex.EncodeToString(hash[:]) {
+				t.Fatal("streamed bundle is not bound to the published manifest")
+			}
+			var publication struct {
+				Version int `json:"version"`
+				Runs    []struct {
+					Run         map[string]any `json:"run"`
+					Collections map[string]struct {
+						Coverage string `json:"coverage"`
+					} `json:"collections"`
+				} `json:"runs"`
+			}
+			if err := json.Unmarshal(content, &publication); err != nil || publication.Version != 1 ||
+				len(publication.Runs) != 1 || publication.Runs[0].Run["attempt"] != float64(1) {
+				t.Fatalf("unexpected normalized bundle: %+v %v", publication, err)
+			}
+			for _, collection := range publication.Runs[0].Collections {
+				if collection.Coverage != "partial" {
+					t.Fatal("streamed artifact claimed complete removal authority")
+				}
+			}
+			return nil
+		},
+		onPublished: func() error { snapshots++; return nil },
+	}
+	logs := func(ctx context.Context, request dashboardLogRequest) error {
+		return request.OnRuns(ctx, []map[string]any{{
+			"run_id": 123, "run_attempt": "1", "repository": "octo/api",
+			"workflow_path":       ".github/workflows/agent.lock.yml",
+			"token_usage_summary": map[string]any{"total_aic": 2},
+		}})
+	}
+	if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, dashboardTestGH(t, now), logs); err != nil || deltas != 1 || snapshots != 0 {
+		t.Fatalf("streaming did not separate deltas from final reconciliation: deltas=%d snapshots=%d err=%v", deltas, snapshots, err)
+	}
+	manifestContent, err := os.ReadFile(filepath.Join(cache, "payload-hashes.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest map[string]string
+	if err := json.Unmarshal(manifestContent, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := manifest["run-bundles.json"]; exists {
+		t.Fatal("final snapshot advertised a stale streamed bundle")
+	}
+}
 
 func TestDashboardStreamPublishesAndReconcilesWhileCollecting(t *testing.T) {
 	for _, fail := range []bool{false, true} {

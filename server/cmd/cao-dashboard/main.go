@@ -841,13 +841,16 @@ func newIngestCommand() *cobra.Command {
 			return err
 		}
 		defer func() { _ = database.Close() }()
-		run := func(ctx context.Context) (ingest.Result, error) {
+		run := func(ctx context.Context, request ingestStreamRequest) (ingest.Result, error) {
+			if request.Mode == "run-bundles" {
+				return ingest.RunBundles(ctx, database, resolvedSource, ingest.Options{DatabaseQueriesPath: *databaseQueries})
+			}
 			return ingest.Run(ctx, database, resolvedSource, ingest.Options{DatabaseQueriesPath: *databaseQueries})
 		}
 		if *stream {
 			return runIngestStream(ctx, cmd.InOrStdin(), cmd.OutOrStdout(), run)
 		}
-		result, err := run(ctx)
+		result, err := run(ctx, ingestStreamRequest{Type: "ingest", Mode: "snapshot"})
 		if err != nil {
 			return err
 		}

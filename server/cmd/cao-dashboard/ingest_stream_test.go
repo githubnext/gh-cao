@@ -15,7 +15,7 @@ func TestIngestStreamReusesRunnerAndReportsFailedPublications(t *testing.T) {
 	var output bytes.Buffer
 	calls := 0
 	err := runIngestStream(t.Context(), strings.NewReader(strings.Repeat("{\"type\":\"ingest\"}\n", 3)), &output,
-		func(context.Context) (ingest.Result, error) {
+		func(context.Context, ingestStreamRequest) (ingest.Result, error) {
 			calls++
 			if calls == 2 {
 				return ingest.Result{}, errors.New("private database diagnostics")
@@ -40,11 +40,12 @@ func TestIngestStreamReusesRunnerAndReportsFailedPublications(t *testing.T) {
 func TestIngestStreamRejectsRequestsThatChangeItsScope(t *testing.T) {
 	for _, input := range []string{
 		`{"type":"ingest","source":"/other"}`, `{"type":"rebuild"}`, `{"type":"ingest"} {}`,
+		`{"type":"ingest","mode":"automatic"}`, `{"type":"ingest","mode":"run-bundles","namespace":"other"}`,
 	} {
 		t.Run(input, func(t *testing.T) {
 			var output bytes.Buffer
 			err := runIngestStream(t.Context(), strings.NewReader(input+"\n"), &output,
-				func(context.Context) (ingest.Result, error) {
+				func(context.Context, ingestStreamRequest) (ingest.Result, error) {
 					t.Fatal("invalid request reached the canonical writer")
 					return ingest.Result{}, nil
 				})
@@ -52,5 +53,19 @@ func TestIngestStreamRejectsRequestsThatChangeItsScope(t *testing.T) {
 				t.Fatal("invalid ingestion request was accepted")
 			}
 		})
+	}
+}
+
+func TestIngestStreamExplicitlyRoutesRunBundles(t *testing.T) {
+	var output bytes.Buffer
+	var modes []string
+	err := runIngestStream(t.Context(), strings.NewReader(
+		"{\"type\":\"ingest\",\"mode\":\"run-bundles\"}\n{\"type\":\"ingest\",\"mode\":\"snapshot\"}\n"), &output,
+		func(_ context.Context, request ingestStreamRequest) (ingest.Result, error) {
+			modes = append(modes, request.Mode)
+			return ingest.Result{Revision: 1}, nil
+		})
+	if err != nil || strings.Join(modes, ",") != "run-bundles,snapshot" {
+		t.Fatalf("explicit ingestion mode was not honored: %v %v", modes, err)
 	}
 }

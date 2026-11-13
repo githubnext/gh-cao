@@ -40,6 +40,21 @@ func publishDashboardEvidence(ctx context.Context, repositories []string, cache 
 		return err
 	}
 	batch["transactions"] = []map[string]any{dashboardObservationMetadata(repositories, options, now, counts), checkpoint}
+	if options.onRunBundles != nil {
+		bundles, err := dashboardRunBundles(batch, time.Now())
+		if err != nil {
+			return err
+		}
+		start := time.Now()
+		if err := writeDashboardSnapshotWithBundles(ctx, cache, batch, true, bundles); err != nil {
+			return err
+		}
+		options.timings.record("snapshot", start)
+		if options.timings != nil {
+			options.timings.publications++
+		}
+		return options.onRunBundles()
+	}
 	if err := options.publishSnapshot(ctx, cache, batch); err != nil {
 		return err
 	}
