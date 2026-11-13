@@ -62,7 +62,7 @@ func nativeTestSnapshot(t *testing.T, collections map[string][]map[string]any) s
 		t.Fatal(err)
 	}
 	command = exec.CommandContext(t.Context(), executable, "ingest", "--source", directory, "--postgres-url", dsn,
-		"--redis-namespace", namespace, "--database-queries", "../../dashboard/site/src/data/queries/database.json")
+		"--namespace", namespace, "--database-queries", "../../dashboard/site/src/data/queries/database.json")
 	command.Env = append(os.Environ(), "OTEL_SDK_DISABLED=true")
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("ingest canonical PostgreSQL: %v\n%s", err, output)

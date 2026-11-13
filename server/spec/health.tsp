@@ -9,7 +9,6 @@ model DataState {
   /** Authoritative source time of the active canonical dataset, when available. */
   evaluatedAt?: utcDateTime;
 }
-model RedisState { connected: boolean; }
 model OperationalCapability {
   scope: "unsupported" | "process" | "deployment";
   persistence: "volatile" | "restart";
@@ -32,7 +31,20 @@ model OperationalState {
 }
 @example(#{
   status: "healthy",
-  redis: #{connected: true},
+  operational: #{
+    connected: true,
+    recoveryReady: true,
+    capabilities: #{
+      cache: #{scope: "deployment", persistence: "restart"},
+      requestLimits: #{scope: "deployment", persistence: "restart"},
+      sessions: #{scope: "deployment", persistence: "restart"},
+      revocations: #{scope: "deployment", persistence: "restart"},
+      githubQuota: #{scope: "deployment", persistence: "restart"},
+      collection: #{scope: "deployment", persistence: "restart"},
+      coordination: #{scope: "deployment", persistence: "restart"},
+      diagnostics: #{scope: "deployment", persistence: "restart"}
+    }
+  },
   data: #{
     available: true,
     rebuildRequired: false,
@@ -41,9 +53,7 @@ model OperationalState {
 })
 model HealthResponse {
   status: "healthy" | "unhealthy";
-  /** Deprecated compatibility alias for the selected operational dependency, not a claim that Redis is installed. */
-  redis: RedisState;
-  operational?: OperationalState;
+  operational: OperationalState;
   data: DataState;
   /** Details are present only for an authorized caller. */
   revision?: int64;
@@ -53,8 +63,7 @@ model HealthResponse {
 }
 model ReadinessResponse {
   ready: boolean;
-  redis: RedisState;
-  operational?: OperationalState;
+  operational: OperationalState;
   data: DataState;
 }
 model UnhealthyHealth {

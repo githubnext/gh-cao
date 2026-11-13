@@ -148,7 +148,7 @@ var collectionBaseEnvironment = [
     value: '/app/.github/workflows/cao.azure.json'
   }
   {
-    name: 'REDIS_NAMESPACE'
+    name: 'CAO_DATABASE_NAMESPACE'
     value: 'azure-dashboard'
   }
   {

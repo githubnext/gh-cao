@@ -129,7 +129,7 @@ func TestHostPolicyReadsCORSFromCaoJSON(t *testing.T) {
 			"web": {
 				"host": {
 					"target": {"module": "container", "name": "render"},
-					"redis": {"module": "render", "tls": {"mode": "required"}},
+					"operational-store": {"backend": "redis", "redis": {"module": "render", "tls": {"mode": "required"}}},
 					"cors": {
 						"allowed-origins": ["https://Tools.Example.com"],
 						"max-age": 120

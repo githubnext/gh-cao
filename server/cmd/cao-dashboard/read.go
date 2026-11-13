@@ -22,7 +22,7 @@ func newReadCommand() *cobra.Command {
 		Short: "read canonical PostgreSQL records for the native CLI",
 	}
 	endpoint := cmd.Flags().String("postgres-url", "", "PostgreSQL connection; defaults to CAO_POSTGRES_URL")
-	namespace, namespaceErr := registerRedisNamespaceFlag(cmd, "canonical dataset namespace")
+	namespace, namespaceErr := registerNamespaceFlag(cmd, "canonical dataset namespace")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		if namespaceErr != nil {
 			return namespaceErr

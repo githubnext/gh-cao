@@ -36,7 +36,7 @@ export async function startCanvasGoHost({ directory, site, source, config, host,
   const child = spawn(executable, [
     "serve", "--site", site, "--source", source, "--listen", `${host.includes(":") ? `[${host}]` : host}:${port}`,
     "--canvas-config", config,
-    ...(namespace ? ["--redis-namespace", namespace] : []),
+    ...(namespace ? ["--namespace", namespace] : []),
     "--database-queries", join(catalogRoot, "dashboard/site/src/data/queries/database.json"),
     "--dashboard-queries", join(catalogRoot, "dashboard/site/src/agent/queries.generated.json"),
   ], { cwd: directory, stdio: ["pipe", "pipe", "pipe"], windowsHide: true,

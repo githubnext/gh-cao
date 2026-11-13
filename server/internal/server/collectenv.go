@@ -250,7 +250,7 @@ func NewCollectorFromEnv(ctx context.Context, databaseQueriesPath string) (*Coll
 	if err != nil {
 		return nil, err
 	}
-	databaseNamespace := strings.TrimSpace(host.RedisNamespace)
+	databaseNamespace := strings.TrimSpace(host.DatabaseNamespace)
 	if databaseNamespace == "" {
 		databaseNamespace = "hosted-dashboard"
 	}

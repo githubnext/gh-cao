@@ -355,7 +355,7 @@ backend, import conversion, writable overlay, or browser fallback.
 3. Acquire an operational cao-activity-index Actions artifact or a trusted direct
    payload-hashes.json manifest. Acquisition does not select a public Pages source.
 4. Ingest its verified normalized JSONL with cao-dashboard ingest --source DIRECTORY.
-5. Run npm run dashboard:local against that namespace. Set --redis-namespace to the
+5. Run npm run dashboard:local against that namespace. Set --namespace to the
    exact provisioned namespace when using a non-default dataset.
 
 See [PostgreSQL provisioning](../server/POSTGRES.md#local-postgresql-development).

@@ -43,7 +43,7 @@ func TestDashboardReadSyntheticProcessScenario(t *testing.T) {
 	// If another process wins the bind race, readiness/exit checks fail explicitly.
 	// #nosec G204 -- execute only the binary just built above with test-owned local fixture paths.
 	command := exec.CommandContext(ctx, binary, "serve",
-		"--listen="+address, "--postgres-url="+fixture.endpoint, "--redis-namespace=default", "--site="+fixture.config.SiteDirectory,
+		"--listen="+address, "--postgres-url="+fixture.endpoint, "--namespace=default", "--site="+fixture.config.SiteDirectory,
 		"--access-token="+dashboardScenarioToken,
 		"--database-queries="+fixture.config.DatabaseQueriesPath,
 		"--dashboard-queries="+fixture.config.DashboardQueriesPath,

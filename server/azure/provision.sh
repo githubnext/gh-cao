@@ -56,7 +56,7 @@ export PGOPTIONS='-c role=cao_owner -c search_path=cao'
 # Both libpq and pgx use PG* defaults; this URL contains no credentials.
 export CAO_DATABASE_ADMIN_URL='postgresql://'
 unset CAO_POSTGRES_OWNER_PASSWORD CAO_POSTGRES_RUNTIME_PASSWORD
-/app/cao-dashboard database bootstrap --store canonical --namespace "${REDIS_NAMESPACE:-azure-dashboard}"
+/app/cao-dashboard database bootstrap --store canonical --namespace "${CAO_DATABASE_NAMESPACE:-azure-dashboard}"
 /app/cao-dashboard database bootstrap --store operational --namespace "${CAO_OPERATIONAL_NAMESPACE:-azure-dashboard-operational}"
 psql -X -q -v ON_ERROR_STOP=1 -v schema=cao -v runtime=cao_runtime \
   -v retention=cao_retention -v reader=cao_evidence -f /app/postgres/operational-grants.sql

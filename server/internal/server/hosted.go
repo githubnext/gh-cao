@@ -131,7 +131,7 @@ func newHostedAppWithPolicy(
 	if postgresURL == "" {
 		return nil, errors.New("CAO_POSTGRES_URL is required")
 	}
-	databaseNamespace := strings.TrimSpace(host.RedisNamespace)
+	databaseNamespace := strings.TrimSpace(host.DatabaseNamespace)
 	if databaseNamespace == "" {
 		databaseNamespace = "hosted-dashboard"
 	}

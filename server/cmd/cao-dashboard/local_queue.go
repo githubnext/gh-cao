@@ -36,7 +36,7 @@ type localQueueRequest struct {
 func newLocalQueueCommand() *cobra.Command {
 	cmd := &cobra.Command{Use: "local-queue", Hidden: true, Args: cobra.NoArgs,
 		Short: "own a local PostgreSQL command queue for the canvas adapter"}
-	namespace, namespaceErr := registerRedisNamespaceFlag(cmd, "operational namespace")
+	namespace, namespaceErr := registerNamespaceFlag(cmd, "operational namespace")
 	queueName := cmd.Flags().String("queue", "canvas-actions", "command queue name")
 	concurrency := cmd.Flags().Int("concurrency", 4, "maximum active commands")
 	timeout := cmd.Flags().Duration("timeout", 15*time.Minute, "command deadline")

@@ -357,7 +357,7 @@ GitHub App authority. Missing evidence remains partial or unavailable.
 ## Single-process memory operational storage
 
 PostgreSQL remains the hosted operational-storage default. To select memory in
-reviewed `control-plane.web.host` configuration, replace legacy `host.redis` with:
+reviewed `control-plane.web.host` configuration, use:
 
 ```json
 {
@@ -393,8 +393,9 @@ collection profile with `CAO_COLLECT_APP_ID` and its existing App/evidence
 configuration, and set `CAO_COLLECT_WORKERS` to a positive count. Do not use
 `CAO_COLLECT_ADMIT_ONLY`, separate `collect`/`backfill` roles, an externally or
 platform-owned listener, or multiple replicas. PostgreSQL is still required for
-canonical dashboard data. Memory does not need `CAO_REDIS_URL`. Do not specify
-both legacy `host.redis` and `host.operational-store`.
+canonical dashboard data. Memory does not need Redis credentials.
+The former `host.redis` selector is rejected; all hosted backends use
+`host.operational-store`.
 
 All operational state is lost on restart, including sessions, pending login,
 revocation retries, limits, enrollment, delivery markers, unfinished accepted
@@ -416,12 +417,14 @@ positive and internally consistent. Defaults are 32 MiB/1,024 cache entries,
 128 MiB/200,000 protected entries, 32 MiB/10,000 queued tasks, and 10,000 limiter
 subjects. These are accounting budgets, not RSS. Cache eviction never evicts
 protected work or active limiter buckets. `CAO_OPERATIONAL_NAMESPACE` names
-operational diagnostics independently of the existing `REDIS_NAMESPACE`
+operational diagnostics independently of the `CAO_DATABASE_NAMESPACE`
 PostgreSQL identity.
 
-Public health/readiness includes `operational.capabilities` and
-`operational.recoveryReady`; legacy `redis.connected` is a deprecated alias for
-the selected operational dependency. A standalone `doctor` cannot inspect a
+Public health/readiness includes `operational.connected`,
+`operational.capabilities` and `operational.recoveryReady`; there is no
+`redis.connected` compatibility alias. Server log snapshots likewise use
+`operational` for safe counters, including when Redis is selected.
+A standalone `doctor` cannot inspect a
 different process's live memory state and reports that limitation rather than
 constructing an empty store. See the [normative operational contract](../specs/server-operational-storage.md).
 
@@ -435,8 +438,8 @@ owner credentials in runtime processes. Local hosted-CLI debugging uses
 the same explicit PostgreSQL bootstrap and retention commands; see that
 guide for the local PostgreSQL test command and its explicit provisioning requirements.
 
-PostgreSQL is the default when a reviewed host has no backend selector or legacy
-`redis` configuration. No Redis connection or
+PostgreSQL is the default when a reviewed host has no backend selector.
+No Redis connection or
 volatile-memory acknowledgement is required:
 
 ```json
@@ -456,11 +459,11 @@ in server-side secrets, not policy. Verified TLS (`sslmode=verify-full`) is requ
 for non-loopback TCP connections, including every configured fallback. Encryption
 without certificate and hostname verification (`require` or `verify-ca`) is rejected.
 Use `sslrootcert` for a private CA rather than disabling verification. The canonical namespace
-remains the existing `REDIS_NAMESPACE`; changing the operational namespace
+uses `CAO_DATABASE_NAMESPACE`; changing the operational namespace
 does not move canonical data. The explicit PostgreSQL profile of local bearer
 `serve` also defaults to PostgreSQL operational storage; supplying `--redis-url`
 opts in to Redis instead. Plain `serve` uses PostgreSQL with durable
-request services and requires neither database service. Hosted
+request services and requires no Redis service. Hosted
 `serve-hosted`, external/platform hosts, collection roles, and `doctor` resolve
 the reviewed policy; the presence of a Redis credential never overrides it.
 
@@ -500,6 +503,31 @@ Run `POSTGRES_URL=... go -C server test -race ./internal/operational/...` agains
 a disposable local PostgreSQL database for shared adapter conformance and
 cross-connection durability, isolation, cancellation, and capacity checks.
 Tests create random namespaces and remove their operational state afterward.
+
+## Updating former Redis configuration
+
+Redis remains supported through `operational-store.backend: "redis"`, with
+provider settings under `operational-store.redis`. Move a former `host.redis`
+object there and move its `namespace-env` to `operational-store.namespace-env`.
+Use `CAO_DATABASE_NAMESPACE` for the canonical dataset and
+`CAO_OPERATIONAL_NAMESPACE` for operational state, retaining their previous
+values. Copy the former canonical namespace value exactly, including when a
+custom Redis `namespace-env` supplied it. Hosted mode defaults the canonical
+namespace to `hosted-dashboard` and the operational namespace to the canonical
+namespace when no operational override is set.
+These changes do not migrate or delete existing data or Redis keys.
+
+Local `serve`, `ingest`, `read`, `local-queue`, and `doctor` use `--namespace`
+instead of `--redis-namespace`. `CAO_DATABASE_NAMESPACE` supplies the default
+before the checkout-derived namespace. The old flag, `REDIS_NAMESPACE`, and
+`CAO_REDIS_NAMESPACE` are rejected. `ingest --redis-url` is also rejected because
+ingestion uses PostgreSQL; `serve --redis-url` and `doctor --redis-url` still
+explicitly select the Redis adapter. A policy-backed `doctor` uses the reviewed
+namespace rather than accepting a `--namespace` override.
+
+HTTP contract version 3 removes `redis` from health/readiness responses and
+renames the log snapshot's `redis` field to `operational`. Consumers must use
+the provider-neutral fields; no aliases are emitted.
 
 ## Webhook gateway operations
 
@@ -2387,7 +2415,8 @@ one connection, never recycles that connection, disables transparent retries,
 and permanently fails closed after transport loss. A process restart is required
 to recover.
 
-Every start derives a random internal namespace from `REDIS_NAMESPACE`.
+Every start derives a random internal namespace from the selected operational
+namespace (`CAO_OPERATIONAL_NAMESPACE`, defaulting to `CAO_DATABASE_NAMESPACE`).
 This prevents state written through an earlier TCP session from reappearing
 after restart, and deliberately invalidates existing OAuth sessions. Superseded
 namespaces remain disposable data and consume capacity until an operator removes
@@ -2532,7 +2561,7 @@ not `0.0.0.0/0` or an entire RFC1918 range.
 
 Use `rediss://` whenever the Redis provider offers TLS. A
 deployment-managed Redis service may use plaintext only on the private service
-network when `control-plane.web.host.redis.allow-private-plaintext` is `true`
+network when `control-plane.web.host.operational-store.redis.allow-private-plaintext` is `true`
 and the endpoint uses a private service hostname or IP. This policy does not
 relax the requirement for verified TLS on remote Redis connections.
 
@@ -2995,7 +3024,7 @@ person and an agent:
 go -C server run ./cmd/cao-dashboard doctor \
   --redis-url "$CAO_REDIS_URL" \
   --postgres-url "$CAO_POSTGRES_URL" \
-  --redis-namespace production-dashboard
+  --namespace production-dashboard
 ```
 
 The standard check-up covers:
@@ -3019,7 +3048,7 @@ approaching the 200,000-row fail-closed limit. This can read every stored entity
 go -C server run ./cmd/cao-dashboard doctor \
   --redis-url "$CAO_REDIS_URL" \
   --postgres-url "$CAO_POSTGRES_URL" \
-  --redis-namespace production-dashboard \
+  --namespace production-dashboard \
   --deep
 ```
 
@@ -3955,14 +3984,14 @@ These process-local diagnostics are not canonical dashboard data, so the
 settings viewer reads the protected runtime endpoint rather than a Dashboard
 Language data query.
 
-Use `--redis-url` and optional `--redis-namespace` only on the server command
+Use `--redis-url` and optional `--namespace` only on the server command
 line. The same namespace must be supplied to `ingest` and `serve` when
 overriding the checkout-derived default:
 
 ```bash
 go -C server run ./cmd/cao-dashboard serve \
   --redis-url redis://127.0.0.1:6379/0 \
-  --redis-namespace local-dashboard
+  --namespace local-dashboard
 ```
 
 Use verified TLS for non-local Redis:
@@ -3970,7 +3999,7 @@ Use verified TLS for non-local Redis:
 ```bash
 go -C server run ./cmd/cao-dashboard serve \
   --redis-url rediss://redis.example.com:6379/0 \
-  --redis-namespace production-dashboard
+  --namespace production-dashboard
 ```
 
 Verify the local endpoint:
