@@ -1,36 +1,7 @@
 {
  "source_sha": "c6939dd9c51dc4d6d48bd84d621b71a1be73ee05",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T09:52:43Z",
-   "worker_run_id": "43404417470",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; none queued or in progress; source f0c3fc4 = HEAD = source_sha; window identical to the 09:35Z evaluation, latest run 43388781287 re-verified via runs list and jobs API). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). n=19 successes (18 push, 1 schedule 43371878284); 5-run gate met. Category step 'Build synthetic enterprise demo' (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs, then cp to dist/cao; no separate dashboard job): median 4 s, p90 5 s, range 3-5 s = 4.7% of median execution 85 s (p90 106 s). 15% gate 12.75 s and 60 s gate unmet even at full removal (max saving 4 s). No cache step; caching would conflict with freshness because the generator defaults now to Date.now() (scripts/simulate-dashboard-pages.mjs line 78). No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T10:19:37Z",
    "worker_run_id": "43407720678",
@@ -870,6 +841,34 @@
     43362224525
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43362224525 created 2026-11-13T03:56:24Z to 43494667529 created 19:42:09Z; all within 14 days; none cancelled, failed or in progress; 19 push + 1 schedule 43371878284; 5-run gate met). Source changed: workspace HEAD c6939dd9 is 31 files past 01e2e1cd (ahead 2), none of them docs.yml (last changed 063cbe9, before the window); changed files under dashboard/site and dashboard/report match docs.yml triggers but are not inputs to docs:build (no dashboard reference in docs/ or astro.config.mjs, as earlier verified). Category step Build documentation (npm run docs:build): median 14 s, p90 15 s, range 9-15 s, identical push-only and all-20 = 15.7% of median exec 89 s (p90 98; push p90 106). 15% gate = 13.35 s requires at least 95% of the step removed, which equals removing the docs build that deploy needs; 60 s gate unreachable. Astro-internal split unmeasured (build-job log HTTP 403 DIFC, probed once this run). Carry-forward, not evaluated as Astro: Checkout median 25 s (p90 31; push p90 41) remains the largest step, covered by open issue 20815 (blobless checkout, unlanded). No suggestion; no issue created (open issues with worker label: 20815 only). next_category advanced to reusable dashboard generation."
+  },
+  {
+   "evaluated_at": "2026-11-13T20:20:28Z",
+   "worker_run_id": "43499956488",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43362224525 created 2026-11-13T03:56:23Z to 43494667529 created 19:42:08Z; 20/20 success, 19 push + 1 schedule 43371878284; 0 failed, 0 cancelled, none in progress; no newer docs.yml run since 19:42Z). source c6939dd9 = HEAD = source_sha, unchanged. Excluded: none (failed 43297524311 outside window). 5-run gate met. Stored step timings recomputed (exec median 89 s p90 98; push-only exec median 89 s p90 106) and jobs API re-read for 43494667529 (checkout 31, install 17, docs 15, demo 4 = stored row). Category step Build synthetic enterprise demo (npm run dashboard:pages:build + cp to dist/cao, inside build job): median 4 s, p90 5 s, range 3-5 s = 4.5% of median exec 89 s; push-only demo median 4 s p90 5 s. 15% gate 13.35 s and 60 s gate unreachable; full removal saves at most 4 s. No separate dashboard job. docs:build (astro build + validate-agent-docs + agent-docs-discovery test) has no dashboard build; validate-agent-docs only loads a catalog document from dashboard/report/agent-catalog.mjs inside the 14 s Build documentation step (share unmeasured, job logs HTTP 403), so reaching the gate would require removing about 95% of that step. Re-evaluate only if demo median reaches about 12 s or a dashboard build is added to the docs path."
   }
  ],
  "docs_cache_model": {
