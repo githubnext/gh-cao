@@ -1,35 +1,7 @@
 {
- "source_sha": "75c762eaf69db919b1906dc0e562e93e018dea73",
- "next_category": "reusable dashboard generation",
+ "source_sha": "ac905474c686c25e0a1cd6ccdb59ae062fdbe992",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T08:22:43Z",
-   "worker_run_id": 43392156001,
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; source f0c3fc4 = HEAD = new source_sha, one commit ahead of e71feab touching dashboard/site/src/dashboard-definition.js and its unit test; newest run comparable (exec 85 s). Excluded and disclosed: failed push 43297524311 (e465d28, Build documentation failed, later steps skipped). No cancelled runs. There is no separate dashboard job in docs.yml (jobs: build, deploy); dashboard generation is the 'Build synthetic enterprise demo' step (dashboard:pages:build = scripts/simulate-dashboard-pages.mjs) inside build: median 4 s, p90 5 s, max 5 s over 19 successes. That is the upper bound on any reuse saving; the 60 s / 15% gate (about 12.75 s of 85 s median exec) cannot be met. Reuse across runs would be stale: demo output embeds now (generatedAt, enterpriseSample(now)). Moving it to a parallel job would add checkout (median 24 s) plus install (median 17 s), exceeding the 4 s saved. Next category advanced to artifact transfer and Pages packaging."
-  },
   {
    "evaluated_at": "2026-11-13T08:36:49Z",
    "worker_run_id": "43393959257",
@@ -869,6 +841,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all within 14 days; 20/20 success, 19 push + 1 schedule 43371878284; 0 cancelled, failed or in progress; newest run head 75c762e = source_sha; workspace HEAD ac90547 has no docs.yml run and docs.yml still has fetch-depth 0 without filter, so issue 20815 is unlanded). Category Astro documentation generation = step 'Build documentation' (npm run docs:build). Median 14 s (p90 15; range 9-15) = 16.0% of exec median 87.5 s (p90 98); push-only n=19: step median 14 s, exec median 89 s = 15.7%. 15% gate 13.1 s needs about 94% of the step removed; 60 s gate unreachable. Step cannot be removed because deploy needs its output. Job logs still 403 difc_forbidden (re-probed 2026-11-13T18:22Z), so astro vs validation split is not visible. Moving validation to another job adds checkout plus install (median 42 s), so it cannot save time. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T18:35:29Z",
+   "worker_run_id": "43483364918",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all within 14 days, so the 20-run cap binds; 20/20 success, 19 push + 1 schedule 43371878284; none queued or in progress; no docs.yml run since 16:44Z; no failed or cancelled run in window). source: workspace HEAD ac905474 = source_sha; compare 75c762e...ac905474 is 1 commit touching only server/cmd/cao-cli-quota (no docs trigger path). Evidence: Actions jobs and steps API re-fetched for all 20 runs; docs job logs not read (403 difc_forbidden not re-probed). Category step Build synthetic enterprise demo (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs: production normalization plus buildDashboardSite, then cp to dist/cao): median 4 s, p90 5 s, range 3-5 s = 4.6 percent of median build-start-to-deploy-end 87.5 s (p90 98); push-only n=19 median 4 s, 4.5 percent of push median 89 s. 15 percent gate 13.1 s unreachable; full removal saves at most 4 s; 60 s gate unreachable. No separate dashboard job (jobs: build, deploy); docs:build (astro build, validate-agent-docs, agent-docs-discovery test) does not reference buildDashboardSite, so no duplicate build. Cross-run reuse stale-unsafe: scripts/dashboard-demo-data.mjs embeds generatedAt and observed_at. Separate job rejected (checkout median 24.5 s plus install). Open issue 20815 (fingerprint docs-checkout-blobless-history-v1, blobless checkout, expected about 19.5 s) remains open and unlanded; not re-proposed. No suggestion; no issue created. next_category advanced to artifact transfer and Pages packaging. Carry-forward: Checkout fetch-depth 0 median 24.5 s (p90 29; push p90 41) remains the largest step; covered by 20815.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -887,7 +888,7 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T01:45:42Z..2026-11-13T16:44:14Z",
-  "evaluated_at": "2026-11-13T18:22:33Z",
+  "evaluated_at": "2026-11-13T18:35:29Z",
   "note": "per-run seconds, latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success). exec_s=build job start to deploy end; build_s=build job; queue_s=build created to start; handoff_s=build end to deploy created; deploy_s=deploy job; checkout_s, install_s, docs_s=build-job steps. Jobs API timings, logs not read.",
   "step_stats_median_p90_s": {
    "Checkout": [
@@ -933,7 +934,8 @@
     "deploy_s": 10.0,
     "checkout_s": 25.0,
     "install_s": 20.0,
-    "docs_s": 15.0
+    "docs_s": 15.0,
+    "demo_s": 4.0
    },
    {
     "run": 43447728981,
@@ -944,7 +946,8 @@
     "deploy_s": 9.0,
     "checkout_s": 23.0,
     "install_s": 25.0,
-    "docs_s": 12.0
+    "docs_s": 12.0,
+    "demo_s": 3.0
    },
    {
     "run": 43447111490,
@@ -955,7 +958,8 @@
     "deploy_s": 9.0,
     "checkout_s": 23.0,
     "install_s": 13.0,
-    "docs_s": 11.0
+    "docs_s": 11.0,
+    "demo_s": 3.0
    },
    {
     "run": 43440055797,
@@ -966,7 +970,8 @@
     "deploy_s": 10.0,
     "checkout_s": 24.0,
     "install_s": 23.0,
-    "docs_s": 14.0
+    "docs_s": 14.0,
+    "demo_s": 5.0
    },
    {
     "run": 43430232636,
@@ -977,7 +982,8 @@
     "deploy_s": 10.0,
     "checkout_s": 25.0,
     "install_s": 18.0,
-    "docs_s": 15.0
+    "docs_s": 15.0,
+    "demo_s": 3.0
    },
    {
     "run": 43430166810,
@@ -988,7 +994,8 @@
     "deploy_s": 8.0,
     "checkout_s": 25.0,
     "install_s": 14.0,
-    "docs_s": 11.0
+    "docs_s": 11.0,
+    "demo_s": 3.0
    },
    {
     "run": 43388781287,
@@ -999,7 +1006,8 @@
     "deploy_s": 9.0,
     "checkout_s": 28.0,
     "install_s": 17.0,
-    "docs_s": 14.0
+    "docs_s": 14.0,
+    "demo_s": 4.0
    },
    {
     "run": 43380585034,
@@ -1010,7 +1018,8 @@
     "deploy_s": 8.0,
     "checkout_s": 56.0,
     "install_s": 16.0,
-    "docs_s": 15.0
+    "docs_s": 15.0,
+    "demo_s": 4.0
    },
    {
     "run": 43378597209,
@@ -1021,7 +1030,8 @@
     "deploy_s": 11.0,
     "checkout_s": 27.0,
     "install_s": 16.0,
-    "docs_s": 12.0
+    "docs_s": 12.0,
+    "demo_s": 3.0
    },
    {
     "run": 43378369544,
@@ -1032,7 +1042,8 @@
     "deploy_s": 12.0,
     "checkout_s": 20.0,
     "install_s": 15.0,
-    "docs_s": 9.0
+    "docs_s": 9.0,
+    "demo_s": 3.0
    },
    {
     "run": 43374719202,
@@ -1043,7 +1054,8 @@
     "deploy_s": 9.0,
     "checkout_s": 24.0,
     "install_s": 17.0,
-    "docs_s": 14.0
+    "docs_s": 14.0,
+    "demo_s": 4.0
    },
    {
     "run": 43373049149,
@@ -1054,7 +1066,8 @@
     "deploy_s": 11.0,
     "checkout_s": 24.0,
     "install_s": 21.0,
-    "docs_s": 15.0
+    "docs_s": 15.0,
+    "demo_s": 4.0
    },
    {
     "run": 43371878284,
@@ -1065,7 +1078,8 @@
     "deploy_s": 11.0,
     "checkout_s": 29.0,
     "install_s": 14.0,
-    "docs_s": 14.0
+    "docs_s": 14.0,
+    "demo_s": 3.0
    },
    {
     "run": 43371269326,
@@ -1076,7 +1090,8 @@
     "deploy_s": 11.0,
     "checkout_s": 23.0,
     "install_s": 22.0,
-    "docs_s": 14.0
+    "docs_s": 14.0,
+    "demo_s": 4.0
    },
    {
     "run": 43371217266,
@@ -1087,7 +1102,8 @@
     "deploy_s": 8.0,
     "checkout_s": 21.0,
     "install_s": 12.0,
-    "docs_s": 10.0
+    "docs_s": 10.0,
+    "demo_s": 3.0
    },
    {
     "run": 43368963164,
@@ -1098,7 +1114,8 @@
     "deploy_s": 10.0,
     "checkout_s": 24.0,
     "install_s": 20.0,
-    "docs_s": 14.0
+    "docs_s": 14.0,
+    "demo_s": 4.0
    },
    {
     "run": 43368845651,
@@ -1109,7 +1126,8 @@
     "deploy_s": 11.0,
     "checkout_s": 26.0,
     "install_s": 23.0,
-    "docs_s": 14.0
+    "docs_s": 14.0,
+    "demo_s": 5.0
    },
    {
     "run": 43362224525,
@@ -1120,7 +1138,8 @@
     "deploy_s": 10.0,
     "checkout_s": 41.0,
     "install_s": 18.0,
-    "docs_s": 14.0
+    "docs_s": 14.0,
+    "demo_s": 5.0
    },
    {
     "run": 43360893141,
@@ -1131,7 +1150,8 @@
     "deploy_s": 10.0,
     "checkout_s": 25.0,
     "install_s": 14.0,
-    "docs_s": 11.0
+    "docs_s": 11.0,
+    "demo_s": 4.0
    },
    {
     "run": 43347280419,
@@ -1142,7 +1162,8 @@
     "deploy_s": 9.0,
     "checkout_s": 24.0,
     "install_s": 18.0,
-    "docs_s": 12.0
+    "docs_s": 12.0,
+    "demo_s": 3.0
    }
   ]
  },
