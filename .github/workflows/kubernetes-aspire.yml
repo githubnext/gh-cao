@@ -41,7 +41,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5 # v5.0.0
+      - uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d # v5.0.0
         with:
           dotnet-version: 10.0.x
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
