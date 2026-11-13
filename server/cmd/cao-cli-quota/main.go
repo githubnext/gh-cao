@@ -269,19 +269,29 @@ func (b *bridge) refresh(ctx context.Context, resources []string) (snapshot, err
 	if err != nil {
 		return snapshot{}, err
 	}
-	for _, resource := range resources {
-		observation, ok := current.observations[resource]
-		if !ok || observation.ResetAt.Before(b.now()) || observation.Limit <= 0 {
-			return snapshot{}, errors.New("GitHub quota observation is unusable")
-		}
-		if err := b.service.Observe(ctx, bucket(current.identity, resource), observation); err != nil {
-			return snapshot{}, err
-		}
+	if err := b.observeSnapshot(ctx, current, resources); err != nil {
+		quotaLog.Printf("quota refresh stopped: phase=observe resources=%d", len(resources))
+		return snapshot{}, err
 	}
 	if err := b.reconcile(ctx, current); err != nil {
 		return snapshot{}, err
 	}
 	return current, nil
+}
+
+// observeSnapshot applies required observations in order. A later failure
+// leaves earlier observations recorded, but refresh must not reconcile yet.
+func (b *bridge) observeSnapshot(ctx context.Context, current snapshot, resources []string) error {
+	for _, resource := range resources {
+		observation, ok := current.observations[resource]
+		if !ok || observation.ResetAt.Before(b.now()) || observation.Limit <= 0 {
+			return errors.New("GitHub quota observation is unusable")
+		}
+		if err := b.service.Observe(ctx, bucket(current.identity, resource), observation); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // activeCount returns the number of reservations whose command has not finished.
