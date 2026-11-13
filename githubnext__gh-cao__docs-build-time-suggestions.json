@@ -1,36 +1,7 @@
 {
  "source_sha": "f369d46150784b371a40c8dfc9bd5a208ebb75a3",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T05:34:12Z",
-   "worker_run_id": "43372213373",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T13:13:15Z to 2026-11-13T05:24:59Z; all within 14 days; 0 in progress; source HEAD 5943848 = new source_sha). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed at 14 s; deploy skipped; fixed by cd1e0ba; job logs not read, HTTP 403). Comparable n=19 successes (18 push, 1 schedule 43371878284). Execution build-start-to-deploy-end median 85 s (p90 106 s); 15% gate 12.75 s; 60 s unreachable. Concurrency: run-created to build-created median 1 s (p90 44 s, max 81 s); 4 of 19 waited 32-81 s behind the immediately preceding in-progress publication (queue only, execution unaffected). cancel-in-progress rejected (could cancel an in-flight Pages deploy; saves queue time only). Avoidable push rebuilds: 0 of 18 pushes lacked an output-relevant head-commit path (head commit only; multi-commit pushes not expanded). Schedule 43371878284 republished 5943848, already published by push 43371269326 about 4 min earlier on the same UTC date. Not skipped: scripts/dashboard-demo-data.mjs enterpriseSample(now) and docs/plugins/starlight-agent generatedAt embed run time at millisecond resolution, so a same-day skip would leave intra-day as-of data stale until the next push or cron; the cron is also the only publication path for non-trigger heads (9537899 on 11-12, no docs run). Skip-if-same-SHA-today saves about 4 s per run averaged over the window and rests on one duplicate, so repeated evidence is absent. No suggestion; no issue created. next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T05:54:45Z",
    "worker_run_id": "43374448298",
@@ -866,6 +837,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43447728981 back to 43345305064; created 2026-11-13T01:29:30Z to 2026-11-13T14:57:34Z; all within 14 days; none queued or in progress; checkout HEAD f369d46 = new source_sha). All 20 succeeded: 19 push plus 1 schedule (43371878284); no cancelled runs; failed 43297524311 is older than the window. Comparable n=20 (5-run gate met). Job and step metadata only (job logs HTTP 403 difc_forbidden re-probed on build job 131763446973). Medians (p90) for the category: Upload Pages artifact 2 s (3); Configure Pages 0 s (1); build-end to deploy-created handoff 0 s (1); deploy queue 5 s (5); deploy job setup 1 s (1); Deploy Pages 7 s (8, GitHub-managed). Controllable transfer overhead excluding Deploy Pages: median 8.5 s (p90 10) = 9.7 percent of median exec 87.5 s (p90 98); 15 percent gate 13.12 s; eliminating all of it stays below the gate. Merging deploy into build saves about 6 s (queue plus setup) but would give id-token: write to the job running npm ci and Astro, rejected on least privilege and still below the gate. github-pages artifact 8.26-8.38 MB (20/20 matched via artifacts API, median 8.30 MB); halving the upload saves about 1 s. Outlier 43380585034 (exec 114 s) retained as a normal sample. Carry-forward outside rotation: Checkout fetch-depth 0 median 24.5 s (p90 31; 28 percent of exec), largest step, not evaluated here. No suggestion; no issue created; no open issue with label self-care:docs-build-time-investigator. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T15:35:15Z",
+   "worker_run_id": "43453133420",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43447728981 back to 43345305064; created 2026-11-13T01:29:30Z to 14:57:34Z; all 20 success, none cancelled or failed; the only queued docs.yml run 37642403569 (2026-10-07) is outside the window; none in progress; source f369d46 = HEAD = source_sha; docs.yml last changed 063cbe9, before the window). Same window as the 15:20Z evaluation; comparable n=19 push plus schedule 43371878284. Concurrency (documentation-pages, cancel-in-progress false): run-created to build-created wait median 1 s, p90 32 s, max 51 s; 3 of 20 waited 32-51 s behind an in-progress publication (43430232636 51 s, 43371269326 44 s, 43368963164 32 s). Queue only; build exec median 72 s, build-start to deploy-end median 87.5 s (p90 98). Median saving 0 s; 15 percent gate 13.1 s and 60 s gate unmet. Avoidable rebuilds: 0 of 19 push publications; compare API over each consecutive pair (including deb5da8 to 6b37c52 for the oldest run) shows every push includes at least one build-input file (docs/, dashboard/site/src, aw.yml, shared policy), none touched only test paths. Same-SHA schedule duplicate 43371878284 after push 43371269326 (5943848, 5 min apart): one occurrence in the window, about 86 s, not repeated (schedule 43161224542 on 11-12 had no same-SHA push); skipping it needs a new freshness gate and a permissions widening. Rejected again: cancel-in-progress true (could cancel an in-flight Pages deploy; saves queue time only); deploy-only or split groups (out-of-order publication risk); dropping the schedule (synthetic-date freshness). No open issue with label self-care:docs-build-time-investigator. No suggestion; no issue created; next_category advanced to dependency installation and caching. Carry-forward outside rotation: Checkout fetch-depth 0 median 25 s (p90 31) remains the largest step, not evaluated here.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -883,7 +883,7 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T01:29:30Z..2026-11-13T14:57:34Z",
-  "evaluated_at": "2026-11-13T15:20:28Z",
+  "evaluated_at": "2026-11-13T15:35:15Z",
   "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size_mb from the artifacts API (name=github-pages). Jobs API timings (logs 403 DIFC). Measured by worker 43450723904.",
   "step_stats_median_p90_s": {
    "Set up job": [
@@ -1156,7 +1156,29 @@
     "dash_s": 4,
     "pages_size_mb": 8.31
    }
-  ]
+  ],
+  "wait_to_build_s_by_run": {
+   "43447728981": 1,
+   "43447111490": 1,
+   "43440055797": 0,
+   "43430232636": 51,
+   "43430166810": 1,
+   "43388781287": 0,
+   "43380585034": 0,
+   "43378597209": 1,
+   "43378369544": 1,
+   "43374719202": 1,
+   "43373049149": 0,
+   "43371878284": 1,
+   "43371269326": 44,
+   "43371217266": 1,
+   "43368963164": 32,
+   "43368845651": 0,
+   "43362224525": 1,
+   "43360893141": 1,
+   "43347280419": 1,
+   "43345305064": 1
+  }
  },
  "observations_pending": [
   {
@@ -1208,6 +1230,11 @@
    "observed_at": "2026-11-13T15:20:28Z",
    "source": "docs.yml scheduling category (carry-forward for next category)",
    "note": "Concurrency waits 3-4 of 20 at 32-81 s before build creation (queue only). Re-evaluate only with a same-SHA duplicate that repeats or a maintainer decision on group ordering."
+  },
+  {
+   "observed_at": "2026-11-13T15:35:15Z",
+   "source": "docs.yml concurrency and avoidable rebuilds (worker 43453133420)",
+   "note": "Window 43345305064..43447728981: wait median 1 s, p90 32 s, max 51 s (queue only); 0 of 19 push publications avoidable by path; schedule duplicate 43371878284 single occurrence (86 s). Re-evaluate only if same-SHA scheduled duplicates repeat or a maintainer approves a freshness gate for the schedule."
   }
  ]
 }
