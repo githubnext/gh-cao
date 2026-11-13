@@ -1,36 +1,7 @@
 {
  "source_sha": "7cb5134de200cd5d27125613422c3ecc7abdf846",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T12:24:02Z",
-   "worker_run_id": "43424183439",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none in progress; 1 stale queued workflow_run 37642403569 from 2026-10-07 is outside the window and remains housekeeping; HEAD f0c3fc4 = source_sha; docs.yml last changed 063cbe9 (2026-11-12T06:17Z), before the window, so the trigger/job definition is constant across it). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed; fixed by cd1e0ba). n=19 successes (18 push, 1 schedule 43371878284); 5-run gate met. Run list and HEAD re-verified this run; per-run timings reused from run_samples (completed runs are immutable). Concurrency (documentation-pages, cancel-in-progress false): 3 of 19 waited 32-81 s before build-job creation (43341730805 81 s, 43371269326 44 s, 43368963164 32 s); median run-to-build wait 1 s. Waits add wall time only: exec median 85 s, p90 106 s; median saving 0 s; 15% gate 12.75 s and 60 s gate unmet. Avoidable rebuilds: 0 of 18 push publications (trigger-only classification from the 08:53Z evaluation over the same immutable ranges). Same-SHA schedule duplicate 43371878284 after push 43371269326 (5943848): still one occurrence, not repeated. Rejected as before: cancel-in-progress true (could cut an in-flight Pages deploy), deploy-only or split build concurrency (out-of-order publication risk), dropping the schedule (synthetic-date freshness). No suggestion; no issue created; no open worker issue. next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T12:39:57Z",
    "worker_run_id": "43426225031",
@@ -868,6 +839,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43378369544 to 43506161539; created 2026-11-13T06:23:31Z to 20:56:37Z; none queued or in progress; source 7cb5134; 7c8faf4 to 7cb5134 compare shows only cao-evolution-integrity.md and its test, so no docs-path commit followed the failed run). Excluded and disclosed: failed 43506161539 (Install dependencies, Pages not updated by 7c8faf4; log HTTP 403, cause unverified). n=19 push successes (5-run minimum met); 0 cancelled. Job and step metadata from the Actions jobs API; logs not read. Medians (p90): exec 84 s (93); build job 69 (79); deploy job 9 (12); Upload Pages artifact 2 (3); Configure Pages 0 (1); build-end to deploy-start handoff 5 (6); deploy Set up job 1 (1); Deploy Pages 7 (8, required). Removable transfer (configure+upload+handoff+deploy setup) median 9 s (p90 10, max 10) = 10.7 percent of median exec; 15 percent gate 12.6 s and 60 s gate unmet even at max. Merging deploy into build saves about 6 s and stays rejected (id-token write and environment gate). github-pages artifact 8.37 MB (run 43505502149); upload about 2 s, so a size cut saves under 1 s. Open issue 20815 (blobless checkout) unchanged and not repeated. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T22:31:00Z",
+   "worker_run_id": "43519522791",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; no docs.yml run queued or in progress except stale 37642403569; source 7cb5134 = HEAD = source_sha; window identical to the 22:19Z evaluation, re-listed and job metadata re-read this run). Excluded and disclosed: 1 failed 43506161539 (push 7c8faf4; Install dependencies failed at 17 s; Build and deploy skipped; Pages still reflects f695ad3 deployed by 43505502149 at 20:53:41Z; job log HTTP 403 DIFC, cause unverified). n=19 successful push runs; no schedule or cancelled run in window; 5-run gate met. Exec (build start to deploy end) median 84 s, p90 93 s. Build job queue median 3 s; deploy queue median 5 s. Run-to-build wait behind concurrency group documentation-pages (cancel-in-progress false): median 1 s, p90 51 s, max 68 s; 3 of 19 waited 42, 51 and 68 s, each ending exactly when the predecessor run completed (queue, not execution). Median saving from any scheduling change 0 s; 15 percent gate 12.6 s and 60 s gate unmet. Avoidable rebuilds: 0 of 19 push runs; every push compare range (21 compares) contained at least one output-affecting trigger path (docs/**, dashboard/site/**, package files, docs.yml, or shared/actions-log consumed by configure-site). No same-SHA scheduled duplicate in window. Rejected as before: cancel-in-progress true (could cut an in-flight Pages deploy), deploy-only or split build concurrency (out-of-order publish), dropping the cron (synthetic-date freshness). No suggestion; no issue created; open issue 20815 (blobless checkout) unchanged and not repeated. next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -888,7 +888,7 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T06:23:31Z..2026-11-13T20:56:37Z",
-  "evaluated_at": "2026-11-13T21:53:17Z",
+  "evaluated_at": "2026-11-13T22:31:00Z",
   "note": "window = latest 20 completed docs.yml runs (43378369544..43506161539); 19 successful push runs (n=19), 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs HTTP 403 DIFC.",
   "median_p90_s": {
    "Checkout": [
@@ -1243,7 +1243,12 @@
     93
    ],
    "removable_pct_of_median_exec": 10.7
-  }
+  },
+  "run_to_build_wait_s_over_50": [
+   68,
+   51,
+   42
+  ]
  },
  "observations_pending": [
   {
@@ -1290,6 +1295,16 @@
    "observed_at": "2026-11-13T22:19:02Z",
    "source": "docs.yml artifact transfer and Pages packaging (worker 43517625242)",
    "note": "Removable transfer median 9 s (p90 10) = 10.7% of median exec 84 s; gate 12.6 s unreachable (max 10 s). Re-evaluate only if Deploy Pages median reaches 13 s, removable transfer median reaches 13 s, or a maintainer removes the deploy job."
+  },
+  {
+   "observed_at": "2026-11-13T22:31:00Z",
+   "source": "docs.yml scheduling (worker 43519522791)",
+   "note": "Run-to-build waits behind documentation-pages group (3 of 19 push runs, 42-68 s) equal predecessor remaining time; not execution. Re-evaluate only if a same-SHA scheduled duplicate repeats, a maintainer approves a superseded-pending or group-ordering change, or a test-only push publication appears."
+  },
+  {
+   "observed_at": "2026-11-13T22:31:00Z",
+   "source": "docs.yml FAILURE 43506161539 still unverified (worker 43519522791)",
+   "note": "No docs.yml run after 20:56:37Z. Main content since 7c8faf4 is not published; the next docs-path push or 05:23Z schedule reruns the install. Job log still HTTP 403 DIFC. Maintainer should read the install log of 43506161539 and confirm a green docs.yml run on main."
   }
  ],
  "checkout_probe": {
