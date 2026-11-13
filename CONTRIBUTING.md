@@ -307,14 +307,12 @@ the built binary with an empty `PATH` outside the checkout to enforce this bound
 Campaign installation through `add` and package updates through `update` pass
 evolving gh-aw options unchanged. Standalone workflow installation retains its
 bounded `--force` and `--engine` options.
-Activity/Dashboard pipeline commands are deliberately not registered in Go;
-their Actions, Node command modules and runtime ownership remain unchanged.
+Retired Activity/Dashboard pipeline commands are deliberately not registered in Go.
 CI invokes the shipped JavaScript validator directly with
-`node activity/cao.mjs validate --json`; it does not build or download the Go
+`node .github/workflows/shared/control.mjs validate-policy`; it does not build or download the Go
 extension or require consumer npm metadata. User-facing commands belong in
 `gh cao`; Actions execution support belongs in JavaScript. Control-plane
 validation has one JavaScript implementation and no Go or shell-wrapper command.
-Preserve its report and exit-code contracts in `tests/unit/cao-validation.test.mjs`.
 Retain native policy guards used by operator construction and mutation.
 The CI JSON artifact stays outside the
 checkout in `RUNNER_TEMP`.

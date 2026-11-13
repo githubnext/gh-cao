@@ -24,7 +24,6 @@ const checks = [
     command: process.execPath,
     arguments: [
       "--test",
-      "tests/unit/cao-materialize.test.mjs",
       "tests/unit/cao-runtime-artifact.test.mjs",
     ],
   },
@@ -34,7 +33,7 @@ const checks = [
     arguments: [
       "--test",
       "--test-name-pattern",
-      "^(installer fixture archive contains every tracked runtime source and no generated files|streamed install\\.sh with .* materializes the runtime and initializes policy)$",
+      "^(installer fixture archive contains every tracked runtime source and no generated files|streamed install-gh-cao\\.sh with .* installs the control plane and initializes policy)$",
       "tests/unit/install-script.test.mjs",
     ],
   },

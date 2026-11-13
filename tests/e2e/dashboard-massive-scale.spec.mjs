@@ -6,6 +6,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { once } from "node:events";
+import { pathToFileURL } from "node:url";
 
 const siteRoot = resolve("dashboard/site");
 const repositories = numberSetting("DASHBOARD_STRESS_REPOSITORIES", 10_000);
@@ -127,12 +128,18 @@ test.beforeAll(async () => {
   ]);
   manifest = JSON.parse(generationMemory.stdout);
   await runMeasuredCommand(process.execPath, [
-    resolve("activity/cao.mjs"),
-    "hash-payloads",
-    "--shard-dir", rawShardDirectory,
-    "--runs-dir", runsDirectory,
-    "--records-dir", recordsDirectory,
-    "--output", manifestPath,
+    "--input-type=module",
+    "--eval",
+    `import { writeFile } from "node:fs/promises";
+const { normalizeSnapshotPayloads } = await import(process.argv[1]);
+const [shardDirectory, runsDirectory, recordsDirectory, output] = process.argv.slice(2);
+const hashes = await normalizeSnapshotPayloads({ shardDirectory, runsDirectory, recordsDirectory });
+await writeFile(output, JSON.stringify(hashes, null, 2) + "\\n");`,
+    pathToFileURL(resolve("dashboard/report/normalized-payloads.mjs")).href,
+    rawShardDirectory,
+    runsDirectory,
+    recordsDirectory,
+    manifestPath,
   ]);
   payloadHashes = JSON.parse(await readFile(manifestPath, "utf8"));
 

@@ -27,7 +27,6 @@ on:
       - tests/unit/dashboard-daily-run-counts-conformance.test.mjs
       - tests/integration/activity-actions-runtime.test.mjs
       - tests/helpers/actions-runtime/**
-      - .github/actions/setup-cao-runtime/**
       - server/**
       - tests/fixtures/company-stress/**
       - scripts/company-stress.mjs
@@ -64,7 +63,6 @@ on:
       - tests/unit/dashboard-daily-run-counts-conformance.test.mjs
       - tests/integration/activity-actions-runtime.test.mjs
       - tests/helpers/actions-runtime/**
-      - .github/actions/setup-cao-runtime/**
       - tests/e2e/dashboard-server.spec.mjs
       - tests/playwright/configs/dashboard-server.config.mjs
       - "!dashboard/site/**/*.md"

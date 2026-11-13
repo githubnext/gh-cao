@@ -8,7 +8,6 @@ on:
     paths:
       - .github/workflows/cao-bootstrap.yml
       - .github/workflows/shared/**
-      - .github/actions/setup-cao-runtime/**
       - aw.yml
 
       - install-gh-cao.sh

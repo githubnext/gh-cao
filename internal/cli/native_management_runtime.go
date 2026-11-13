@@ -20,7 +20,7 @@ import (
 var regexpStableVersion = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+$`)
 
 var nativeRuntimeResources = []string{
-	"dashboard", ".github/workflows/shared/value-acquisition.mjs", ".github/workflows/shared/actions-log.mjs", ".github/actions/setup-cao-runtime", ".github/actions/setup-gh-aw",
+	"dashboard", ".github/workflows/shared/value-acquisition.mjs", ".github/workflows/shared/actions-log.mjs", ".github/actions/setup-gh-aw",
 	".github/cao/instructions.md",
 	".github/workflows/shared/control.md", ".github/workflows/shared/review-bundle.md",
 	".github/workflows/shared/operation.md",
