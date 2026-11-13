@@ -1,36 +1,7 @@
 {
  "source_sha": "e71feab47cfa2954c794cc5739333a8c31153a7f",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T20:55:33Z",
-   "worker_run_id": "43304199631",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43301807773,
-    43297524311,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206161686,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; within 14 days; source HEAD cd1e0ba). Excluded: 1 cancelled superseded pending run 43206161686 (no jobs); 1 failed push 43297524311 on e465d28 (Build documentation failed after 14 s; deploy skipped; Pages kept prior deploy until fix cd1e0ba succeeded about 25 min later; cause per fix title, logs HTTP 403 not read). Comparable n=18 successes (17 push, 1 schedule 43161224542; 5-run gate met). Medians (p90), job/step metadata: run-to-build-start 1 s; build queue 3 s (4); build-end to deploy-start 0 s (1); deploy queue 5 s (6); non-execution overhead 9 s (p90 36, concurrency tail) = 10% of median wall 88 s; execution build-start-to-deploy-end 84.5 s (123); build job 67 s (104); deploy job 10.5 s (18). Concurrency: 2 of 18 waited behind the immediately preceding in-progress publication (43228124764 43 s behind 43228046118; 43206235849 27 s behind 43206080696); queue-only, median wait 0. Avoidable rebuilds: 0 of 17 pushes lacked an output-relevant head-commit file; 0 control-plane-only (head commit only; multi-commit pushes not expanded). Schedule 43161224542 is the intended daily freshness refresh. Gate 15% of 84.5 s = 12.7 s; 60 s unreachable; removing all overhead still misses. Rejected: cancel-in-progress (could cancel an in-flight Pages deploy; saves only tail waits), build/deploy merge (about 5 s; drops github-pages environment and id-token separation), schedule removal (freshness), path tightening (0 avoidable). No suggestion; no issue created; no open issues for this worker (closed 20131 coalescing and 19765 path-exclusion not repeated). next_category advanced to dependency installation and caching. Carry-forward (not evaluated here): Checkout fetch-depth 0 median 24 s, largest build step.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T21:22:24Z",
    "worker_run_id": "43308272678",
@@ -845,6 +816,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43380585034 back to 43249903823; created 2026-11-12T15:38:00Z to 2026-11-13T06:42:40Z; all within 14 days; source e71feab = HEAD = new source_sha). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed at 14 s, deploy skipped; cause not read, job logs 403). Outside window: non-completed record 37642403569 (queued since 2026-10-07; not a sample). Comparable n=19 successes (18 push, 1 schedule 43371878284; 5-run gate met). Medians (p90) from job and step metadata: Upload Pages artifact 2 s (3); build-end to deploy-created handoff 0 s (1); deploy queue 5 s (5); deploy job setup 1 s (1); Deploy Pages step 7 s (8; GitHub-managed polling); artifact chain 15 s (16) = 17.6% of median build-start-to-deploy-end 85 s (p90 98). Controllable transfer overhead excluding Deploy Pages: 8 s (p90 9) = 9.4% of median; even eliminating all of it stays below the 12.75 s gate. Merging deploy into build saves about 6 s (queue plus setup) and would expose id-token: write (deploy job only) to the job running npm ci and Astro builds; rejected. github-pages artifact 8.26-8.38 MB, stable; upload-size lever at most about 1-2 s. Open issues: none with this worker label (label search empty); 20440, 20719, 20720 are gh-aw failure reports, not evaluated here. No suggestion; no issue created. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T07:21:50Z",
+   "worker_run_id": "43384568246",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311,
+    43249903823
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43380585034 back to 43249903823; created 2026-11-12T15:38Z to 2026-11-13T06:42Z; all within 14 days; none queued, in progress or waiting; source e71feab = HEAD = source_sha; window identical to the 06:55Z evaluation, verified against a fresh run list). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed after 14 s, deploy skipped, fixed by cd1e0ba). Comparable n=19 successes (18 push, 1 schedule 43371878284). Per-run timings reused from stored samples of this same window (not re-fetched). Concurrency (run created to build job created): median 1 s, p90 34 s, max 81 s; 3 of 19 at or above 10 s (43341730805 81 s behind 43341713733; 43371269326 44 s behind 43371217266; 43368963164 32 s). Queue-only; not execution. Exec median 85 s, p90 about 100 s. 15% gate = 12.75 s; 60 s unreachable. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy); build out of group or deploy-only group (out-of-order publication could regress Pages); skipping the 05:23 schedule when a same-SHA same-day push succeeded (saves one 86 s run once, zero median effect, about 4 min generatedAt freshness trade, needs actions:read beyond contents:read). Avoidable rebuilds: newest 5 push heads (e71feab, b999dc4, 94c68e8, f0bb5f4, f82ecc5) each touch output-relevant dashboard/site/src or docs/ files; path tightening not supported. Stale run 37642403569 (event workflow_run, queued since 2026-10-07T15:12Z, head 6206962, outside window) is not observed to block the documentation-pages group; housekeeping for a maintainer, not a build-time saving. Open issues with label self-care:docs-build-time-investigator: none. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1385,7 +1385,7 @@
   {
    "observed_at": "2026-11-13T06:55:00Z",
    "source": "docs.yml non-completed run record",
-   "note": "Run 37642403569 (event workflow_run, queued since 2026-10-07) is outside the 14-day window and not a docs.yml build sample. Scheduling category should check whether it affects the documentation-pages concurrency group."
+   "note": "Run 37642403569 (event workflow_run, queued since 2026-10-07T15:12Z, head 6206962) is outside the 14-day window and not a docs.yml build sample. Checked 2026-11-13: it does not appear to block the documentation-pages group (19 later runs had concurrency waits median 1 s, not behind it). Housekeeping for a maintainer; no build-time saving."
   }
  ]
 }
