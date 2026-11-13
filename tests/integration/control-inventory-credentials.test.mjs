@@ -569,6 +569,31 @@ test("inventory facade cannot use control, unenrolled, or write endpoints", asyn
   }
 });
 
+test("repository evidence credentials add only explicitly requested read permissions", async () => {
+  const permissions = { actions: "read", contents: "read", issues: "read", pull_requests: "read", checks: "read", statuses: "read" };
+  const api = await inventoryApi({ policy: policy(), readPermissions: permissions });
+  const options = {
+    repositories: ["acme/private-a"], controlRepository: "acme/control", getOctokit: api.getOctokit,
+    core: { setSecret() {} },
+    env: {
+      CAO_AUTH_MODE: "app", CAO_CONTROL_READ_TOKEN: "control-token",
+      CAO_READ_APP_ID: "read-app", CAO_READ_APP_PRIVATE_KEY: api.privatePem,
+    },
+  };
+  try {
+    await withInventoryCredentials({ ...options, readPermissions: ["issues", "pull_requests", "checks", "statuses"] }, async ({ inventory }) => {
+      await assert.rejects(inventory.request("POST /repos/acme/private-a/issues"), /outside its exact admitted/);
+    });
+    assert.deepEqual(api.minted[0].permissions, permissions);
+    assert.deepEqual(api.revoked, ["inventory-1"]);
+    await assert.rejects(withInventoryCredentials({ ...options, readPermissions: ["administration"] }, async () => {}),
+      /Unsupported repository evidence/);
+    assert.equal(api.minted.length, 1);
+  } finally {
+    await api.close();
+  }
+});
+
 test("credential verification is opt-in and cannot reach the validation issue reporter", () => {
   const workflow = parse(readFileSync(join(root, ".github/workflows/cao-validate.yml"), "utf8"));
   assert.equal(workflow.on.workflow_dispatch.inputs["verify-credentials"].default, false);

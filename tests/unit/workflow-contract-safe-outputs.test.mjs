@@ -200,15 +200,17 @@ test("workflow issue outputs are bounded, deduplicated, and centrally quiet on n
     const safeOutputs = config["safe-outputs"] ?? {};
     const issue = safeOutputs["create-issue"];
     if (issue) {
-      if (name === "dependabot-update-planner.md") {
-        assert.equal(issue.expires, undefined, `${name} keeps its parent durable across refreshes`);
-        assert.equal(issue["deduplicate-by-title"], true, `${name} deduplicates stable parent and child titles`);
+      if (["dependabot-update-planner.md", "modernization-task.md"].includes(name)) {
+        assert.equal(issue.expires, undefined, `${name} keeps its task records durable across dependency waits`);
+        assert.equal(issue["deduplicate-by-title"], true, `${name} deduplicates durable task records`);
       } else {
         assert.equal(issue["deduplicate-by-title"], true, name);
       }
       if (name === "dependabot-update-planner.md") {
         assert.equal(issue["close-older-issues"], undefined, `${name} preserves its durable parent`);
         assert.equal(issue["require-temporary-id"], true, `${name} links same-run children to a new parent`);
+      } else if (name === "modernization-task.md") {
+        assert.equal(issue["close-older-issues"], undefined, `${name} preserves dependency task evidence`);
       } else {
         assert.match(String(issue.expires), /^[1-9][0-9]*d$/, name);
       }

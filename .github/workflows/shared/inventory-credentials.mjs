@@ -196,7 +196,15 @@ export async function withInventoryCredentials({
   getOctokit,
   core,
   env = process.env,
+  readPermissions = [],
 }, operation) {
+  const permissions = { ...READ_PERMISSIONS };
+  for (const permission of readPermissions) {
+    if (!["issues", "pull_requests", "checks", "statuses"].includes(permission)) {
+      throw new InventoryError("credential-scope-rejected", "Unsupported repository evidence read permission.");
+    }
+    permissions[permission] = "read";
+  }
   const profile = readProfile(env);
   const clients = new Map();
   const minted = [];
@@ -230,7 +238,7 @@ export async function withInventoryCredentials({
           const response = await app.request("POST /app/installations/{installation_id}/access_tokens", {
             installation_id: installation.data.id,
             repositories: batch.map(repository => repository.split("/")[1]),
-            permissions: READ_PERMISSIONS,
+            permissions,
           });
           const client = octokit(response.data?.token);
           minted.push(client);

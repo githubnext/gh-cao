@@ -1,0 +1,730 @@
+{
+  "schema_version": 1,
+  "repository": "octodemo/modernization-squad",
+  "commit": "d63d93f7f6059848a4965b2656a7c7f35aa10f10",
+  "source_url": "https://github.com/octodemo/modernization-squad/tree/d63d93f7f6059848a4965b2656a7c7f35aa10f10",
+  "retrieval": "gh api pinned git tree/tarball for team assets and pinned contents API for required framework references/skills",
+  "license": null,
+  "permission": {
+    "basis": "explicit-user-permission",
+    "note": "User explicitly permitted copying/adapting the pinned source despite no detected license. No upstream license is asserted."
+  },
+  "team": {
+    "specialists": 85,
+    "support": 4,
+    "coordinator": "native Squad 2.0.0-preview.4, explicitly adapted for CAO native gh-aw local state"
+  },
+  "adaptations": [
+    "Preserved all actual expert capability detail and 89 casting identities.",
+    "Adapted the actual native Squad 2.0.0-preview.4 coordinator for Copilot --agent squad --disable-builtin-mcps with plain local state; preserved name/front matter/version/both original canaries, real specialist delegation, accountable ownership and strict reviewer lockout.",
+    "Kept four casting files byte-for-byte unchanged; identity assignment history is required by the registry pair.",
+    "Replaced active guidance-only boundaries with explicit CAO one-target admission, dependency gates, independent review and validation.",
+    "Removed Azure-only destination mandate; destination is the explicitly reviewed engagement requirement.",
+    "Project-owned mission/governance/routing disable automatic monitoring, publication, dispatch and merge; declared CAO safe outputs only.",
+    "Replaced source project advisory/skill/tooling links with local lifecycle/contracts.",
+    "Adapted Ralph and support policies to bounded on-demand work without weakening evidence or independent review.",
+    "Retained 84 upstream specialist routes and enabled the registered execution-orchestrator as the 85th dependency-gated one-target route.",
+    "Bundled seven required pinned framework references and three pinned satellite skills. Relocated skills from .squad/templates/skills to .squad/skills; upstream_path records their source locations.",
+    "Adapted spawn/completion/model-selection references, response-mode/source-of-truth/reviewer skills, Scribe, Rai and Fact Checker persistence to native host delegation and explicitly admitted serialized local files; no CLI, SDK resolver or state MCP is required.",
+    "Removed stale zero-member generated bootstrap, external state/inheritance, init/upgrade/casting, worktree automation, automatic issue/PRD/follow-up and publication/dispatch/merge branches from the actual active coordinator.",
+    "Local state does not claim atomic CAS/exclusive-create, transactions or distributed locks. Unexpected writers/uncertain writes stop persistence; source inbox entries remain intact. Optional unpermitted persistence is explicitly not persisted; required evidence still gates completion."
+  ],
+  "excluded": [
+    "engagements and trials",
+    "agent histories",
+    "customer evidence",
+    "learned memories and identity wisdom",
+    "source decisions and audit trails",
+    "machine-specific configs",
+    "MCP launch wrappers/configuration",
+    "editor settings",
+    "automatic workflows",
+    "unrelated runtime templates and skills"
+  ],
+  "runtime_prerequisites": [
+    "Native Copilot gh-aw host with --agent squad --disable-builtin-mcps and actual native specialist delegation plus admitted local file/command tools.",
+    "The complete committed team/coordinator/reference/skill bundle materialized together; read bundled skills as files, with no external skill registry requirement.",
+    "Explicit native-gh-aw/local config and serialized writers for any explicitly admitted shared local-state paths; no Squad CLI, SDK or state MCP bridge.",
+    "Actual CAO workflow admission, tool restrictions, dependency checks and safe outputs outside this asset-only bundle."
+  ],
+  "limitations": [
+    "Static asset/provenance/reference validation only; no real gh-aw run or end-to-end execution verified.",
+    "Explicit native coordinator derivative, not byte-identical upstream or a claim of full framework compatibility; unsupported automatic modes are removed.",
+    "Local files offer no atomic CAS/exclusive-create, distributed locks or transactional multi-file guarantee and are not durable across Actions jobs absent declared artifact/safe-output retention.",
+    "External state backends, team-root redirection, upstream inheritance, dynamic casting and automatic monitoring/publication/dispatch/merge are unsupported and fail closed.",
+    "Host must supply real qualified specialist delegation and independent assurance; unavailable required capabilities block affected work, with no mock runner or coordinator impersonation.",
+    "Project constraints are instructions, not a sandbox; real tool restrictions, admission, evidence retention and safe-output enforcement belong to CAO/gh-aw."
+  ],
+  "imported_files": [
+    {
+      "path": ".github/agents/squad.agent.md",
+      "upstream_sha256": "52a7f9d54379493606443cd29edabf16702fd080a1cb06a486d5b88b3e9d395a",
+      "imported_sha256": "0c3c0ffee1daa99e7b2f0a9b9b56ce29330f4ccbf77c96fb3af5b979ce1697b6",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/accessibility-ux/charter.md",
+      "upstream_sha256": "88c0745e9a65be528c2fa3f0e621cae66751bfb164cd0f5633e8a2c5bbf62e8e",
+      "imported_sha256": "8101c802d67e5b55020aab9fb90337d5ae845e2afdef329fb430b8b10643bcb6",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/assessor/charter.md",
+      "upstream_sha256": "90e3cdb2b2ebd37cd02dd3d312b2e913c018113c804a1ca9102cde2a13231a6f",
+      "imported_sha256": "7111eec5481e6eb159d5290aaf52e35a965aef6dc6c67fe11ae4978aa328d0c9",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/azure-platform/charter.md",
+      "upstream_sha256": "6739015d50374f1bdb0f04012b1318f312d166f51a56fd3e6d51749e0485815c",
+      "imported_sha256": "cedce324aa33b429ca9fde74d3e6686e6623ef61602395818acb3f0dd61a4516",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/classifier/charter.md",
+      "upstream_sha256": "0715e2e85d5c713a1f9fb4f1e02a3af7d26bb60b16bc8e08e15d89b4521fbe4f",
+      "imported_sha256": "4715e2ed39a50a479bb58a94d58ceb614e0d5a99dd90b4d09cb8628ef9ac30fa",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/data-transition/charter.md",
+      "upstream_sha256": "011a4e2cb1f9b21a16537040167697d9f2e7d7918bb24ac249b0b92dc91b4f3b",
+      "imported_sha256": "1a6e294974467206a5108ad4aa71f9c43cc5f69058bd556bfb5e7630037fcd52",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-cassandra/charter.md",
+      "upstream_sha256": "04b49266d95e87b914496e4f15c5e31e71af77880f98407339cfd6fa4da730bd",
+      "imported_sha256": "fed0a5deef7e52c4d633c6f6fbe919c00a66d8fe32c0fc1d5a5c3ac3fd63c25f",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-cosmosdb/charter.md",
+      "upstream_sha256": "af3c38016a49e9074eef69dcf0738c936e4ac813407552b4c04ee7d101accc5e",
+      "imported_sha256": "5f40bdc00a832e7a5e5ceb6c6a5cc414765c4d826277b1da17988ca54e99fe77",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-couchbase/charter.md",
+      "upstream_sha256": "2d9baa9e3e51a0a2eac10e287839d14c87330081a3b97b7597d261a5b14bbcac",
+      "imported_sha256": "fb28565c160c546e713f946e5d474be0a6b5e80653cf8dc722f5795d540718ec",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-db2/charter.md",
+      "upstream_sha256": "bf779e2df200e41cc79e000c601f02e9b0dd89c191ba39b3e50aa4615dd02f8b",
+      "imported_sha256": "c163dcae88d759ac1f38924b1157de53bf8edadc1d3e25f312a60f669e64b842",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-dynamodb/charter.md",
+      "upstream_sha256": "f75b7e965c82545f5d282c1234912cca600076235d71179dc3dea45343cd8643",
+      "imported_sha256": "2b57e3152314c666ef610f7495e85a06f445e0e0102e97352857ba9c29378ff7",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-mongodb/charter.md",
+      "upstream_sha256": "cbdd5222ad56b3129450c1a71b2a4cfcac14d405720b2ce3a7d095dc34bd306a",
+      "imported_sha256": "e22b043a8ea9556eb4e3d6e66b30205738b78bda5e511b01e9e3d35595e36f4a",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-mysql/charter.md",
+      "upstream_sha256": "8d7aa642a3f35edec67e628ebbac8508b16c0859bd1c02d20fa73d777560a89c",
+      "imported_sha256": "f90f6af275070ea2141d63a2a47864223b1098439179ba372648bbf81ce0abd7",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-oracle/charter.md",
+      "upstream_sha256": "d9b553f20552af6feec57e1796891cfba87f1174d2510a9b2b110ed09cd47d4e",
+      "imported_sha256": "0522dddda8fe3ebf1ffb1a3e865096fa23e776c460a0b465f77d13b19d58b82d",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-postgresql/charter.md",
+      "upstream_sha256": "c34ed3db0d216020992e87d967a39b514ae238a8873772ccfc221bffe5cc1e4e",
+      "imported_sha256": "a5b6e62816ef078646853f3a72e4537605c44804ecef8ba4c5f65d8090229b60",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-redis/charter.md",
+      "upstream_sha256": "88d1268a3e5c4da06d3bb2aa7aad2fb4f6c1214516d827c20e579bd40dad40cd",
+      "imported_sha256": "9cbdbb218456f94739054a92934afd39d7ccff027c01c633970225a4b5799fdb",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-sqlserver/charter.md",
+      "upstream_sha256": "607a70deb4d01ca3d3037c45aea67593493ea25278fdc82eaa2f01b7f1ad95c3",
+      "imported_sha256": "e647724e50c7f0e9fb5ccb3cda4a5db2e908f21c1d9e5d9f24614c4c49185055",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/db-sybase/charter.md",
+      "upstream_sha256": "3ef80e285fc8dc22f1dfa5bc1bd4e28c88976d1d6840fd07b438dcd8a55a97cc",
+      "imported_sha256": "1ca1a29750c45f11082b6ec9a83d16fddf064507572aaa68e2eb4c104aa982b6",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/documentation/charter.md",
+      "upstream_sha256": "93455b635016576d5002dfaaa42d63907d49df628460c94a9af9cd27b275874d",
+      "imported_sha256": "d702342720009652e21605038f55f07854f0d154d728deaf813113002fe2d2a6",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/execution-orchestrator/charter.md",
+      "upstream_sha256": "231d4183fba63dcb1e1a4c90d675e1cedc292ea0074789077130da893de6e841",
+      "imported_sha256": "c0c72cc6e4433fbc7eba132d04dd7b1a90f6a548c34b45203b02f5871d194793",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-angular/charter.md",
+      "upstream_sha256": "47b446cde44426a5f2e4e015ac13eefc9b61a00d08f973932f3204d512878bfd",
+      "imported_sha256": "c6bb540988faa560a4f3a28a3101db1819e0721b7f3c9269e99ea8f8a3c0835e",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-asmx/charter.md",
+      "upstream_sha256": "ae23e7061b1168e5bfb673eeab5b0b7fa05bbb7aee0874e296e1097491901534",
+      "imported_sha256": "bc06e86587c488fdde419bd5f6261374a6b6054b167fe47002d445988023581c",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-aspire/charter.md",
+      "upstream_sha256": "0aeef08c7c00362fd3ee56019c40c42a6812dc8e65cca950e96bb38b5cc08353",
+      "imported_sha256": "79c1f61b2e7da15863d586b99315059c5e5b6181c758d7f16f2d0afec6786c84",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-aspnet-core-api/charter.md",
+      "upstream_sha256": "71c6d9ff32be83702a6fe5f37222470f0978cdb5a03e0973efa391e725b66798",
+      "imported_sha256": "2b57ef097467b8e80155b358f1b97f2d328eb36df2691a3318b3c28052303136",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-aspnet-mvc/charter.md",
+      "upstream_sha256": "41f3228926798bf9ba4627bf75f85fa38c28380870d3efa47ccb4e771adec3aa",
+      "imported_sha256": "9c6d1ab7c83502a35bdafdc11db5da92dce1dee01ffbf3e37873233163b0291d",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-astro/charter.md",
+      "upstream_sha256": "be9464b1c9c61087b2adb0df746c8a24fee4edf1770f3b03c297b15c1c5e06eb",
+      "imported_sha256": "3e747f723b3186426187e412b74bde9fcd2b4f3ab629414550160045f6179a9d",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-auth-identity/charter.md",
+      "upstream_sha256": "dd1db92090379698d48fb57c4ecb25991f7a535f7fe43f1589a930a76be84103",
+      "imported_sha256": "ca6d591b13f5b2901ae588995964242b5ac849e7a5664598c8106a33ce1c3e2b",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-blazor/charter.md",
+      "upstream_sha256": "e1d7d3879dc9bdb5e5c926b9a4e6ac3931e8cd53a55485acc7381f5e7cd72315",
+      "imported_sha256": "e89ccfeb8e90a6360524fa6e1741b60b684e744ca9b5de6e9e527b3f476a8486",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-bun/charter.md",
+      "upstream_sha256": "38963565f46152f0b84efbd2e1f13807fe6559d8a02ee6c7ee40a6e4a8114741",
+      "imported_sha256": "df2b87a85ba799e29e8f5e1149cc73616d0745c4fdd6bb9d80f2258e957ee785",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-cache/charter.md",
+      "upstream_sha256": "ff44355ffec7035f4c3c37cfa1a1bfccd26701ba0bad9101a8b54d7b1259d8e4",
+      "imported_sha256": "9783923b0a16575db68f41362df3bf0c212f1ceacadada538793d3b9371445a1",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-cicd/charter.md",
+      "upstream_sha256": "aeee522e0446f46022754186c9b74e1347e332a493512650a7e9da39204187f8",
+      "imported_sha256": "13b5e12cf04239cc8b68e54c57eec5e644170bca7319015c7e79676c91223e03",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-classic-asp/charter.md",
+      "upstream_sha256": "d44011d6b288fd632a9ed10ab2398f86e0f8c06d39d52d1b1fbbe69c9b4ed1f5",
+      "imported_sha256": "6a17a9bc0eb294f5c1834d366f2502681fbf5ec4f63b93d2d1131bb1dde9e1af",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-cobol/charter.md",
+      "upstream_sha256": "c903a5c6f50e6b3648d77f727f0a34a6446af8d94db148455bd6419c537f8a27",
+      "imported_sha256": "6bbfbbfdfc505c9854d91ccb22ef7c80427b17cce71244f8a41fe411bc441239",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-com-interop/charter.md",
+      "upstream_sha256": "e029dd7205718573fe9696d50879931cbd7608ea8d43c9247600bd505286e5d7",
+      "imported_sha256": "7a7aabe126df9e0cb2491ad04d4d0429cf0dd479376d39ca24aefd525debb660",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-config-dotnet/charter.md",
+      "upstream_sha256": "0e43fabd2c63920bb0f658d427a0fbb9ce19954e3db81cf5a98f71544b5ad042",
+      "imported_sha256": "9df15fed04d3b6ea68d7661cd967a0aa9c0a7b2feb341e124c809c04d148194b",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-config-java/charter.md",
+      "upstream_sha256": "6561c120f0f9a69fe2367c6f43b6ecf0c9b71724311fd23176a15a6e7aca9120",
+      "imported_sha256": "ceaaba1fa56f3dbbdd79ddbfbe73b82bde8d7b6cbb541b4310612df7f2458b0e",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-dapr/charter.md",
+      "upstream_sha256": "34ce5b232b189d5104c2b11cc6d12d45e58c01696a06834342a5a12c443f44a7",
+      "imported_sha256": "daabec529e572130fb5386f22bd62796dcd6b5bb5c31b02a7429a381fb00e751",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-di-dotnet/charter.md",
+      "upstream_sha256": "92000c4ebc28758d576cbf17d5e8bf7afaaaf34f8e31b52b9e911d19df61abbb",
+      "imported_sha256": "da49092ccb9d5f765166d08a32d22a345b86c600ef995c693cdf6993945e753b",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-di-java/charter.md",
+      "upstream_sha256": "df4d42f570b4eb92ca4e2e2a5048f820fc0818260141ba4d63b2b822f2e6be90",
+      "imported_sha256": "b61286e0c0d7ffcea5003c6426a4fb8af18571804d319724915bce9e59b1ec90",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-dotnet-builds/charter.md",
+      "upstream_sha256": "4234db33d0588bfaf6d1d5c1b75b18752d37232dd7901513a44e1bb5bf8fc8b2",
+      "imported_sha256": "7d8090b8d0faa2db8881d36a9ed2ab631e6ba0ca22d6c0e7e62cd349157e1a4e",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-email/charter.md",
+      "upstream_sha256": "edf29cf0855aa434e6b9905336fa2a139c4c5ca1398408a123177b74172a3044",
+      "imported_sha256": "7ee67980620323bfcee5d7fca679fe2f576cf14af698594abee924ceed82a0a5",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-flutter/charter.md",
+      "upstream_sha256": "71a57a09b7270004cbdcfb76446a6d47ffcce3ac961779d0fdb5172f4d315443",
+      "imported_sha256": "6223a481f95644a1206b5aab7301bb38942231750f58ab1500209b8a8c69e3ce",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-frontend-legacy/charter.md",
+      "upstream_sha256": "8b06713264ef13e41aad3d0ae57b3c779a72c11da047a3c755c19be0698a43b3",
+      "imported_sha256": "60ff7aae9ebb2c5742ed512771df74868a6b5119205dfa320faee26855e9a383",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-go/charter.md",
+      "upstream_sha256": "f1065931f849cf8203be2095923304bbe1f27c9e62f2324b421d36f4a0c6889d",
+      "imported_sha256": "fb734dda3a1a90d163753b5414e0cf2f1fc7b828646f8213fcbe106f19ace625",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-hosting/charter.md",
+      "upstream_sha256": "3f69ce613b2e11f5eba29439dec616f1ca7c2d954791abce04a635556c70571f",
+      "imported_sha256": "20936d4e2e0f4cf021ebb0ee1812d6725a1e597666c0604082a8a493e911d799",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-jsf/charter.md",
+      "upstream_sha256": "a4a62a4081ddac43d575b721ac3eee331f130115e8ba0d767145c6389109e438",
+      "imported_sha256": "3cfb5605578619fc3912c69f72dc851e5a395765cf93bcb4bf88f4a26273951b",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-jsp-servlet/charter.md",
+      "upstream_sha256": "fd8c9b8dd1511caa8c202c32de2987168c86cb3e09d80c83a8a533a67dfa430b",
+      "imported_sha256": "f6992e205961cae0e4367b9bd23d7051b8377e905e51076ff7ed3a42b4f2b591",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-jvm-builds/charter.md",
+      "upstream_sha256": "14719330a856eefadc242086e9ae4ad132890719d32fcc47f019772df9bcc70e",
+      "imported_sha256": "794df0c803d1eeebfe9916017102e6467dbed14ad116402ab158cdb6ffc19ba2",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-logging-dotnet/charter.md",
+      "upstream_sha256": "49f261521de61d120903f1be62cee9589cac6bb7f836a187ec113c9ffa9fee2e",
+      "imported_sha256": "91ecc281835ad54fdacd0f24bb7077e416e248451e9708bbd1fb2d2351093d5e",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-logging-java/charter.md",
+      "upstream_sha256": "15ab8dff9d1624ad5c121552c55dd8f8d35db668a216dddea0b2494609db22cf",
+      "imported_sha256": "ffb1f9c6ab664c761b6ffbe64ac1280b080a7b7cdcc6b32784d1c963a70b4c97",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-messaging/charter.md",
+      "upstream_sha256": "b7447cafe721b2ffb53e094642750bb2179bb616fbece8ff4120b5843d0dac4d",
+      "imported_sha256": "111708ed092c346773dfad5a187a66875977285b23211649fd05557d2c14fdb7",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-nodejs-typescript/charter.md",
+      "upstream_sha256": "3272c6b63da2f38ed4acba31b12a427278031498d403ea9f2369e2b943790fef",
+      "imported_sha256": "0106dc7c92ad2a95f89b4fe36af9ba7699b89635b9506e36173acdc28f118836",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-orm-dotnet/charter.md",
+      "upstream_sha256": "6f2b035e0f2aa6831649370ea9074dcf4ea51e01443484488b842d59b308fe4b",
+      "imported_sha256": "53914edbd05d1f32670970ba071e1a4af6727beaddf4c74643622348fb7df1a8",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-orm-java/charter.md",
+      "upstream_sha256": "7a642ce404ccda432c0b2f84453041aefea0710be5f1e23e45f5159dd9a09331",
+      "imported_sha256": "47470ef5c60b25b77b93b1c95fab09a14273a66d413cb56167f305473f2c8234",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-platform-dotnet/charter.md",
+      "upstream_sha256": "07660825e825211bb50f828da22f075ba745d26f58bf2f2a33ca75df0c47574d",
+      "imported_sha256": "e430e0c9d3d10d676323dcfe42bc5167f57a6304ed21cc1b84c4f4987061e729",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-platform-java/charter.md",
+      "upstream_sha256": "4d8eb6d4824debd22c11d68284f51fc1dd2cba48b103379818bc37e43698947d",
+      "imported_sha256": "1138f7a76258142e424863fed8a7559e0f8d3dc88f6a2c7431403cc4de488383",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-python/charter.md",
+      "upstream_sha256": "05c1d2375ca7e60ba378a29d9a5260238f92c3ef2ec34848f52f489d659f742b",
+      "imported_sha256": "06490d1c87baf1ae7f9fef233169e9ab4c76e839aa77cda4c3de7fe9053bc675",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-react-native/charter.md",
+      "upstream_sha256": "fc0a854813c9a3f5976773b11f27e85214ebf9b8136c21a987bba44078f5c982",
+      "imported_sha256": "7d3c22de57fc4165164cd62104808dd7de8be90d30e67b3ffc01efca51e2f50c",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-react/charter.md",
+      "upstream_sha256": "85b1b35caca9d04e252b0cbbba65f245cdcded2f110dd9a89b93cdf07d5b43a8",
+      "imported_sha256": "76f8f0167185440c03f8f784a56b3901278e249a330959592867c00c9592f9aa",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-realtime/charter.md",
+      "upstream_sha256": "74c8debdc99a8bc09025d43cbf7d99e88c732ede1664b2105a8226aa4176d526",
+      "imported_sha256": "46eedc740874e31249d39c293b44b1f86695cd3889c1c0e25e6492aeb652a6e4",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-remoting/charter.md",
+      "upstream_sha256": "c8254d962174f3c1fd7b5fb9e356e2748aa0e0ced105245e29ff82f47d1cd7f9",
+      "imported_sha256": "fc4288c2d2daf8d909b1ec7fb853e5aca10e3a23e96693c21553bb3bf621a257",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-reporting/charter.md",
+      "upstream_sha256": "41fd19a2e7a02540fc89f7fe8c4d3e59ded95cb5998740f27979a0ee4e9e529e",
+      "imported_sha256": "1a112ba788b3325dc6162b43790fb3de3dd0a9b8cefa5636408259b931d765cb",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-rust/charter.md",
+      "upstream_sha256": "b37699f6ef9aa546b253908ed22e236e3721d7198f8dee8662faf7a6f54566b8",
+      "imported_sha256": "9255b0878e521f0a13997d69eef05569590ef6cdd30d388aae5350cacc29f96c",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-scheduling/charter.md",
+      "upstream_sha256": "8ac02ad59f680fac8860930594c3b749d3f99ad1c5a63207c50a4f9237d1b6d9",
+      "imported_sha256": "fef2ba6a217455369f84371f1bf84ccbc710224a4f137f14403a2ec477a9ca3a",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-search/charter.md",
+      "upstream_sha256": "870b14e0f41c48fc58326d8e9884ec75ee8078a3b3b55462e4cd4f53411ca12f",
+      "imported_sha256": "a7fae30fec975d07e8a4096200b7416ce85aca6b0b6b7725da9ca023b267e56b",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-secrets/charter.md",
+      "upstream_sha256": "dd6660e54fb8858e0429b93187bb892ff761803d149d11bd3e4b41fd4309b11a",
+      "imported_sha256": "e0fabb31235df2c297aa304489cabf0e6a2740b87e6ef52b518e4b412649b0db",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-security-java/charter.md",
+      "upstream_sha256": "1d0a9f24b8e8781d61fb439c611400edb515a487d6db6205964db4bf60d41bb4",
+      "imported_sha256": "c0efc56a32306a1985ab21264288084b972616084690521c95ab0c7d11ac06ee",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-serialization-dotnet/charter.md",
+      "upstream_sha256": "371db755ab8e77c744dc1f5791b0be7253c5eb6cd8e51e03f26201d082891f07",
+      "imported_sha256": "e65e05675a7d96e8a18ac377a6174cd5e28e66aae45c94418a99ff60b4ca4259",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-serverless/charter.md",
+      "upstream_sha256": "1e3da66cec1b39e729c9a899b27dc8c73cb141361401b4c193bfc39792d7dcfb",
+      "imported_sha256": "584dfaf71f2ac19574075b9b68a1611292b4b72a14844adaaf811e500fdf020e",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-silverlight/charter.md",
+      "upstream_sha256": "a7e39ca66547c04371392058933e16261e8ed75125e963d7e580da155943e7e7",
+      "imported_sha256": "42b4ede84fb92cb9e34e301e6f342782b70c8f8b833e33c92fa45fda65577c8d",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-storage/charter.md",
+      "upstream_sha256": "454519a5b08caa8735b1343a49c05e86e61ce543ea9090527a58d4c78f056284",
+      "imported_sha256": "7fde3225fd17f315345a3fa831d8dcd4537f04a0044f634cbc1e1f424ee4e6f9",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-struts/charter.md",
+      "upstream_sha256": "20f0183544d32567b67246c852c6a30b1e2cb14d9ed9db76301ef157f3702dd1",
+      "imported_sha256": "174f8fb6eae1b6ed2ea5699a269776bc14fd918590326a4f3c87ffd8a8c83d4f",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-svelte/charter.md",
+      "upstream_sha256": "6ff07dce2e3b5c39c686c868685a559ec15182905f5777b9dc532cef546e2b71",
+      "imported_sha256": "06f93afe3c47eb89f4a8894b16dbd3456d1494e604ff3bdc9187991f382e862a",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-testing-dotnet/charter.md",
+      "upstream_sha256": "b0e2f20c50485afc0b68b4b828d51b7386dfecd04c8caa805797eef1d30cf4bb",
+      "imported_sha256": "9bdbcc189723dbaa41397a04d9c5fb37da05817de7905c57b06899d0965533f8",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-testing-java/charter.md",
+      "upstream_sha256": "87b4218b79bacdec7c0465a3511af0ab7cbafa47048ffc52943c9506871124f6",
+      "imported_sha256": "173894bb89c2fb8e6980fea4acd270c491a94dd01364f9e98c995a551c5ce768",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-vue/charter.md",
+      "upstream_sha256": "df007483d202a8d5ca9e6894f224eace85a9ef1bff259495390d7362ec255ca4",
+      "imported_sha256": "76987c73a407f8d66634c23eb33941670d4b4458d45a31ef300a87b53fb7c075",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-wcf/charter.md",
+      "upstream_sha256": "5c56b2529a8be2f9425f2d68a98256bbfaeba81cf6665ae9d916e89b3dbe00df",
+      "imported_sha256": "8ff18e46a1d2f2ae9743d34467c17feaa23d81ecf7691807c22cb91b4e84b542",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-webforms/charter.md",
+      "upstream_sha256": "c933a2396364113e63d154b09a6e01587ab019ac8b44fff29b4088947a067b52",
+      "imported_sha256": "3ac90ddfbcb7cb31b9691ca81ce20d49166c6136490e9f9eb24702f6e4ac9883",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-winforms/charter.md",
+      "upstream_sha256": "cc9d428866601dbc523729c64d2badd3317f632e6646c5b8e3408171566567fa",
+      "imported_sha256": "d598744ad123c9ba16fade8b070f6d5c6b9b763d5bbb6d77eeb15992c77977e2",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/expert-wpf/charter.md",
+      "upstream_sha256": "1b1d0682b342e269691510215b4980eb2b1ed1fadba1c230ee487296c90b07f1",
+      "imported_sha256": "539a716530817b24d876cebec07a0a8bf6ffa91b7bbaa10205b51b219399ebaf",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/fact-checker/charter.md",
+      "upstream_sha256": "66c38688ea60bb4808d4ae66eda3cbda5e54fb1e351d1be87985751e1fe849fa",
+      "imported_sha256": "98f4a295469a8a470f843cb764ee6cbd4ec3e86001a1e12e660c0c042d78656d",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/planner/charter.md",
+      "upstream_sha256": "3ebae051317da7ecb7dfbb86978a0001687813333564f6c4ee0b84d95aec8b2b",
+      "imported_sha256": "b621a7ea9eba3736de022804bf1502a3aaea69912970fd2ef17f9004b26c9994",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/product-analyst/charter.md",
+      "upstream_sha256": "4928e8a847cf8f1b7d5411aa9baa2835879e760be7c0f39e89d0ceaa4f3be715",
+      "imported_sha256": "9ebfd4c685a7c17919d943cbf8646d86784889373e50e5c7cd39b5bdf249684e",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/rai/charter.md",
+      "upstream_sha256": "6d40c73cb6e797955358e29a804c18733991fa95fc0b8301cf0cdf80f3f19f58",
+      "imported_sha256": "906fb44364266749c17ac3d93ddfbf97e4ff03bfd8184dc11fd39e4fdf6e3bb9",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/ralph/charter.md",
+      "upstream_sha256": "1937fc197f6a261b75a256dca1da4eec7e4602f8de3cab7e3b06f1e782caa1f0",
+      "imported_sha256": "bf1acd8b501b7070f40a9a9cd983b93c0f0de7f64ce41975a6f201194f3b47e7",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/reliability/charter.md",
+      "upstream_sha256": "6247e6b6a125b33e92fc03a263d3d9c02d8c02b7f5ebdebe9a43f862eb228518",
+      "imported_sha256": "2dce605246587058a96b2a0ab17e92eb680bf0129193d93603122bece94462dd",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/reviewer/charter.md",
+      "upstream_sha256": "da7e164cbe2766a60556cc0c0dbf3fa1503a87cc9309ce2755a6445f7fea3c4e",
+      "imported_sha256": "0004bd85e600a89656af090733821a63382077ce85d8da0ac28a1f3c1c261fa8",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/scribe/charter.md",
+      "upstream_sha256": "01ab375efa4d03b48ddfc51b43374b24646b521c24ac1b881113789f89926044",
+      "imported_sha256": "20983c72eabce518d3681856a41fc2a8ac38ef6f8ebce9ba1cab937354b51c5b",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/security-privacy/charter.md",
+      "upstream_sha256": "b6b43696c8d4a2ec7e5165605f028596bf4d0fceae1e1d74fb7f7140fac19782",
+      "imported_sha256": "a55f7afc1281c3b724251173b8e46dd1b95730f1077064db57472eeaa218755d",
+      "adapted": true
+    },
+    {
+      "path": ".squad/agents/validator/charter.md",
+      "upstream_sha256": "86a88102557124cb89ffd9d50ec9897deff8009b5dc1a69695cc182b42a0b147",
+      "imported_sha256": "26d2a6273bf19722ef4d9cacaf505a2f8a55a47427fe7e203af09ae82dc8f026",
+      "adapted": true
+    },
+    {
+      "path": ".squad/casting/history.json",
+      "upstream_sha256": "7bdf23f3575709b7fadad74917e86acfa2cecd7ca296f08e8cf38c5f5c01f8a6",
+      "imported_sha256": "7bdf23f3575709b7fadad74917e86acfa2cecd7ca296f08e8cf38c5f5c01f8a6",
+      "adapted": false
+    },
+    {
+      "path": ".squad/casting/policy.json",
+      "upstream_sha256": "60daff31fc25e2ce9ea8f4f5ebc2c1d47d0868f158c8b7e123801526f60f026d",
+      "imported_sha256": "60daff31fc25e2ce9ea8f4f5ebc2c1d47d0868f158c8b7e123801526f60f026d",
+      "adapted": false
+    },
+    {
+      "path": ".squad/casting/registry-history.commit.json",
+      "upstream_sha256": "822e8afeec71250fde51937b77bde5ede84937339aa10b21d6b94f81e11be8a2",
+      "imported_sha256": "822e8afeec71250fde51937b77bde5ede84937339aa10b21d6b94f81e11be8a2",
+      "adapted": false
+    },
+    {
+      "path": ".squad/casting/registry.json",
+      "upstream_sha256": "8104762d99aaa0ee71d31cfb855203eff8bf4ac63e996b556c6af46170f8f37e",
+      "imported_sha256": "8104762d99aaa0ee71d31cfb855203eff8bf4ac63e996b556c6af46170f8f37e",
+      "adapted": false
+    },
+    {
+      "path": ".squad/config.json",
+      "upstream_sha256": "53d0bd0d7dcc4f7d177829026f9f473fd8a5b5cd328c483a883de9a70ba33f1f",
+      "imported_sha256": "a44df26276d8d089b6f93e4e6f515540e84cbfe9a355c1a8ff8f0fb4f3bc051a",
+      "adapted": true
+    },
+    {
+      "path": ".squad/contracts.md",
+      "upstream_sha256": "13b1a025f5d3eb261804b33568a08878596320fc51a6875320da6d8aa01f5a8e",
+      "imported_sha256": "d216f207f79337c98b7eae9bc0000cf38327f358f687f81b7b7bda8701adf697",
+      "adapted": true
+    },
+    {
+      "path": ".squad/fact-checker/policy.md",
+      "upstream_sha256": "0b21179ba792e2100386b566fa1f8d175a8fdcc15fd984e1ca1ac2e7f4b9e25a",
+      "imported_sha256": "38cc3f3d6016c0850c49dffc7599fe6b8b57aaae5e4e94f879642fda9c2a4dee",
+      "adapted": true
+    },
+    {
+      "path": ".squad/rai/policy.md",
+      "upstream_sha256": "a0445da8461dc0ac7fa220eab59e4334ea4091f1c08ef75d0df0f5b5d5a7475a",
+      "imported_sha256": "e3919432e58ea78769dd3ed3010b39efbd82c59f61286e9b7c98869f416afb07",
+      "adapted": true
+    },
+    {
+      "path": ".squad/routing.md",
+      "upstream_sha256": "7bedd87069b9bee9a7d95c31f755c3365c1438c99ddd30526ff55cefa65257b6",
+      "imported_sha256": "137f2d4b91de5b1693a873b29c1e2853ab0300ce0f004828d2ec080668e6d827",
+      "adapted": true
+    },
+    {
+      "path": ".squad/skills/coordinator-response-mode/SKILL.md",
+      "upstream_path": ".squad/templates/skills/coordinator-response-mode/SKILL.md",
+      "upstream_sha256": "0be5f6ac5e3ad7c8b818770a72fa8bf3693196c23c9bba1ae7675caabd73e8c1",
+      "imported_sha256": "f876f1a708cb5edae7913b1123cb3b211a549c2d32ad4492e66d2a01da1de36b",
+      "adapted": true
+    },
+    {
+      "path": ".squad/skills/coordinator-source-of-truth/SKILL.md",
+      "upstream_path": ".squad/templates/skills/coordinator-source-of-truth/SKILL.md",
+      "upstream_sha256": "d541d499104627392f45319bfdd85d8d77693d4e7c1bed0b616e985bd33fd0b9",
+      "imported_sha256": "ab1fb468e0204d6f69439964e649de8d11cf0c8131264d091dfcdee468353d6f",
+      "adapted": true
+    },
+    {
+      "path": ".squad/skills/reviewer-protocol/SKILL.md",
+      "upstream_path": ".squad/templates/skills/reviewer-protocol/SKILL.md",
+      "upstream_sha256": "c262486a165fc9f5749c4ab96042dc6e549b43ad8a2d40a5b2ba05a79b4ea8fc",
+      "imported_sha256": "2a077408f00ef0245b5205916dfdfe60fcfa9a528cd68e1e25e9ed0e002715fc",
+      "adapted": true
+    },
+    {
+      "path": ".squad/team.md",
+      "upstream_sha256": "87593b4aeb9abce9d453b71298cec9b6ffec13cca2a95be28748430a642b1022",
+      "imported_sha256": "1c077c5bb2bddcf3e1e8928e2a9af0a3b1a8eead13d6f2abe56a52a7554f0fa8",
+      "adapted": true
+    },
+    {
+      "path": ".squad/templates/after-agent-reference.md",
+      "upstream_path": ".squad/templates/after-agent-reference.md",
+      "upstream_sha256": "8aab616b5d425a2b1b63073cdbda8befb2a1081f31dbbbf1a3c6a8c80999248f",
+      "imported_sha256": "7d44d5fc4b62f0dcd413f8847c10f91c8f8d405fe8245932e287f3f5880ea19b",
+      "adapted": true
+    },
+    {
+      "path": ".squad/templates/constraint-tracking.md",
+      "upstream_path": ".squad/templates/constraint-tracking.md",
+      "upstream_sha256": "d26163fe27aab54a07be96c8251c2db5c94c87abc7dd2b31ac5040874dee9c34",
+      "imported_sha256": "d26163fe27aab54a07be96c8251c2db5c94c87abc7dd2b31ac5040874dee9c34",
+      "adapted": false
+    },
+    {
+      "path": ".squad/templates/model-selection-reference.md",
+      "upstream_path": ".squad/templates/model-selection-reference.md",
+      "upstream_sha256": "2c99d808a20567ffb1d84443c7c1471d1f36b61f99d66394c24a711659e9737f",
+      "imported_sha256": "e219179485db34e76285a216df7320377b48247156b1c89bf5a03a823c799d3f",
+      "adapted": true
+    },
+    {
+      "path": ".squad/templates/multi-agent-format.md",
+      "upstream_path": ".squad/templates/multi-agent-format.md",
+      "upstream_sha256": "85d990655f0e2a5dcb31009b376727a34383391b7a5c27adf6a5c0f803b46fec",
+      "imported_sha256": "85d990655f0e2a5dcb31009b376727a34383391b7a5c27adf6a5c0f803b46fec",
+      "adapted": false
+    },
+    {
+      "path": ".squad/templates/raw-agent-output.md",
+      "upstream_path": ".squad/templates/raw-agent-output.md",
+      "upstream_sha256": "ca6ef91d71f99bb990d41dd6c294b6c525ced2e9f1fda3cc88fac46b8c2149b5",
+      "imported_sha256": "ca6ef91d71f99bb990d41dd6c294b6c525ced2e9f1fda3cc88fac46b8c2149b5",
+      "adapted": false
+    },
+    {
+      "path": ".squad/templates/run-output.md",
+      "upstream_path": ".squad/templates/run-output.md",
+      "upstream_sha256": "cd69fff8b5c712e6cddd327fc81cfd778e67246b1a5f6925af20c342ef0f4577",
+      "imported_sha256": "cd69fff8b5c712e6cddd327fc81cfd778e67246b1a5f6925af20c342ef0f4577",
+      "adapted": false
+    },
+    {
+      "path": ".squad/templates/spawn-reference.md",
+      "upstream_path": ".squad/templates/spawn-reference.md",
+      "upstream_sha256": "295b73fedcf2ec196d885f44799ca20d6c3ee400195c459c395c93da16c6928d",
+      "imported_sha256": "7c5baabc0e7ab70b18eaf14172a8f1f3170a78ad469e61320edac188a59245c7",
+      "adapted": true
+    }
+  ]
+}
