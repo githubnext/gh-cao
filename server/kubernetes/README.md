@@ -65,10 +65,14 @@ From the repository root:
 aspire start --apphost server/kubernetes/aspire/apphost.cs
 ```
 
-Watch the `prepare`, `build` and `database` resources finish in the Aspire
-dashboard. For the remaining steps, point your kubeconfig at the cluster and
-tell the script to use it. The export changes your current context; set
-`KUBECONFIG` to a separate file first if you want to keep it unchanged.
+Watch `prepare` (on the first run), `build` and `database` in the Aspire
+dashboard. In the `database` logs, look for
+`CAO database provisioning and explicit grants complete` and a successful
+`cao-canonical-maintenance` update. A finished resource can also have failed.
+
+For the remaining steps, point your kubeconfig at the cluster and tell the
+script to use it. The export changes your current context; set `KUBECONFIG`
+to a separate file first if you want to keep it unchanged.
 
 ```sh
 kind export kubeconfig --name cao-local
