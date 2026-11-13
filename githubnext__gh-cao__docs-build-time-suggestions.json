@@ -1,36 +1,7 @@
 {
  "source_sha": "7cb5134de200cd5d27125613422c3ecc7abdf846",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T13:34:24Z",
-   "worker_run_id": "43434087979",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43430232636 back to 43339642321; created 2026-11-13T00:45:49Z to 2026-11-13T13:02:36Z; all 20 success; none queued or in progress; no failed or cancelled run in window; failed 43297524311 left the window). Comparable n=19 push successes; schedule 43371878284 kept out of push statistics. Source HEAD b82f8c9 = source_sha; docs.yml last changed 063cbe9, before every window run. Evidence: Actions jobs, steps and artifacts API metadata; job logs not read. Push medians (p90): Upload Pages artifact 2 s (3); Configure Pages 0 s (1); packaging sum 3 s (4); handoff build end to deploy job start 5 s (6; gap 0 plus deploy queue 5); Deploy Pages 7 s (8), required. github-pages artifact 8.26 to 8.38 MB, median 8.30 MB, now verified from the artifacts API; a size cut saves under 1 s. Best-case removal of packaging plus handoff = 8 s median (9.4 percent of median build start to deploy end 85 s; 15 percent gate 12.75 s; 60 s unreachable). Merging deploy into build saves about 6 s and stays rejected (id-token write and environment gate would move to the job running npm ci and the Astro build). Cache: head key node-cache-Linux-x64-npm-e62f6006... (278.9 MB, created 2026-11-12T06:18:07Z, last accessed 13:28:58Z) equals the sha256-of-raw-digest of root package-lock.json; every window run is after its creation. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T13:54:58Z",
    "worker_run_id": "43436914213",
@@ -870,6 +841,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; within 14 days; none queued or in progress; source 7cb5134 = HEAD = source_sha; same window as the 21:53Z and 23:18Z evaluations, jobs API re-fetched for all 20 runs). Excluded and disclosed: 43506161539 failed in Install dependencies at 17 s (Build and Deploy not run; cause unverified, job log HTTP 403); no cancelled runs; no schedule run in window. Comparable n=19 push successes; 5-run gate met. Medians (p90, jobs API): build start to deploy end 84 s (92.2); build job 69 s (77.4); deploy 9 s (12); category step Build synthetic enterprise demo 3 s (4) = 3.6 percent of median 84 s. 15 percent gate 12.6 s; full removal saves at most 3 s, so the gate is unreachable. Reuse is stale-unsafe: scripts/dashboard-demo-data.mjs enterpriseSample(now) embeds generatedAt, observed_at and day-bucketed timestamps, and the daily 05:23Z cron refreshes them. A separate dashboard job adds checkout (median 25 s) plus handoff (5 s), net negative. No duplicate dashboard build in the docs chain: astro build does not call buildDashboardSite; scripts/validate-agent-docs.mjs imports dashboard/report/agent-catalog.mjs and dashboard agent/webmcp contract modules inside the 12 s Build documentation step; that split is unmeasured (logs 403) and the whole step is below the gate. Open issue 20815 (blobless checkout, OPEN, unchanged) not repeated. Carry-forward: Pages has not been updated since 20:53Z because failed run 43506161539 did not deploy; maintainer should read its install log or confirm a green docs.yml run on main. No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T23:52:41Z",
+   "worker_run_id": "43529776475",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; source 7cb5134 = HEAD = source_sha; window identical to the 22:19Z to 23:34Z evaluations; no docs.yml run since 20:56:37Z). Excluded and disclosed: 43506161539 failed (Install dependencies at 17 s; Build, Pages and deploy skipped; job log HTTP 403, not re-probed). n=19 push successes; 5-run gate met. Jobs API re-fetched for all 20 runs. Medians (p90, nearest rank): exec 84 (93) s; Configure Pages 0 (1); Upload Pages artifact 2 (3); build-end to deploy-start handoff 5 (6); deploy Set up job 1 (2); Deploy Pages 7 (8, GitHub-managed). Removable transfer (configure+upload+handoff+deploy setup) median 9 s, p90 11, max 11 = 10.7 percent of exec median; 15 percent gate 12.6 s and 60 s gate unreachable even at max. Merging deploy into build saves about 6 s and stays rejected (id-token and environment gate). Artifact about 8.3 MB; shrinking saves about 1 s. Carry-forward, not evaluated here: checkout median 25 s covered by open issue 20815 (OPEN, unchanged, not re-filed). Ops note: Pages stale since the 20:53:41Z deploy of 43505502149; cache key 7808ecf8 (HEAD root lock, recomputed) exists on main since 20:57:12Z (creator unverified); local grep finds 163 root and 6 dashboard lock entries on pkgs.visualstudio.com feed hosts (cache-miss fetch risk, unverified). No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1255,16 +1255,6 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-13T19:35:43Z",
-   "source": "docs.yml dependency category (worker 43492778609)",
-   "note": "No completed run after 18:37:04Z; root lock key e62f6006 and install median 17 s (p90 23) unchanged. Latent risk, zero current cost: the docs.yml cache key covers only the root lock. A change to dashboard/site/package-lock.json would leave docs.yml restoring a cache without the new dashboard packages, and the cache is only saved on miss, so those packages would re-download every run until the root lock changes (dashboard lock unchanged since 2026-10-22). Re-evaluate on a dashboard lock change or when node_modules caching is measured on a maintainer branch (restore must be 4 s or less)."
-  },
-  {
-   "observed_at": "2026-11-13T19:35:43Z",
-   "source": "docs.yml scheduling (worker 43492778609)",
-   "note": "Queued docs.yml run 37642403569 (created 2026-10-07T15:12:12Z, event workflow_run, headSha 6206962) is still queued and was excluded from samples; completed-run timings are unaffected. Re-evaluate only if it blocks a current push run in the documentation-pages concurrency group."
-  },
-  {
    "observed_at": "2026-11-13T20:54:30Z",
    "source": "docs.yml scheduling, concurrency, avoidable rebuilds (worker 43505085302)",
    "note": "Window 43373049149..43504143936 (20 push success): run-to-build wait median 1 s, p90 42 s, max 68 s in 3 of 20 (queue only; exec median 84.5 s). Six newest pushes each changed docs-trigger paths (compare API), so 0 avoidable; no test-only publication. Re-evaluate only if a same-SHA scheduled duplicate repeats, a maintainer approves a superseded-pending or group-ordering change, or a test-only push publication appears."
@@ -1303,6 +1293,11 @@
    "observed_at": "2026-11-13T22:55:05Z",
    "source": "docs.yml dependency category (worker 43522372012)",
    "note": "Failure 43506161539 still unverified: no docs.yml run since 20:56:37Z; Pages stale at f695ad3 since 20:53:41Z. Maintainer with Actions log access should read the install step of 43506161539, or re-run docs.yml on main, and confirm a green run. Re-evaluate timing only after a green run; a restored key 7808ecf8 would show as Post Set up Node.js 0-1 s."
+  },
+  {
+   "observed_at": "2026-11-13T23:52:41Z",
+   "source": "docs.yml artifact transfer (worker 43529776475)",
+   "note": "No docs.yml run after 20:56:37Z; failed 43506161539 still unexplained (log 403). Cache key 7808ecf8 for HEAD root lock exists on main, so a maintainer rerun should restore it; no timing change proposed. Maintainer should read the install step of 43506161539 or rerun docs.yml on main and confirm a green run that updates Pages."
   }
  ],
  "checkout_probe": {
