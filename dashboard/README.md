@@ -232,6 +232,10 @@ Go GitHub quota service through a local helper, refreshing quota with the same
 GitHub CLI authentication context as execution. Missing quota evidence pauses
 starts instead of bypassing protection. Running commands are not terminated
 merely because quota falls. A source checkout can run the helper with Go.
+The helper uses `go-gh` for direct `user` and `rate_limit` REST requests and
+credential resolution, not `gh api` subprocesses. Environment and configured
+tokens are resolved in-process; system-keyring lookup may use `gh auth token`
+through the selected CLI executable.
 Installed runtimes require a prebuilt `cao-cli-quota` on `PATH` or selected by
 `CAO_CLI_QUOTA_EXECUTABLE`; without it GitHub-dependent work remains paused.
 

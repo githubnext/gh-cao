@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -239,56 +240,66 @@ func TestRefreshOnEveryStartAndResetRecovery(t *testing.T) {
 }
 
 func TestGhSnapshotUsesActualUserHostAndBothMeters(t *testing.T) {
-	run := func(_ context.Context, name string, args ...string) ([]byte, error) {
-		if name != "test-gh" || strings.Join(args[:3], " ") != "api --hostname example.test" {
-			t.Fatalf("wrong credential context: %s %v", name, args)
+	quotaTestEnvironment(t)
+	transport := quotaTestTransport(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Host != "example.test" || r.Header.Get("Authorization") != "token quota-test-token" {
+			t.Error("wrong credential context")
 		}
-		if args[3] == "user" {
-			return []byte("123\n"), nil
+		switch r.URL.Path {
+		case "/api/v3/user":
+			_, _ = w.Write([]byte(`{"id":123}`))
+		case "/api/v3/rate_limit":
+			_, _ = w.Write([]byte(`{"resources":{"core":{"limit":5000,"remaining":4900,"reset":1792070000},"graphql":{"limit":5000,"remaining":4800,"reset":1792070000}}}`))
+		default:
+			t.Errorf("unexpected API path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
 		}
-		return []byte(`{"resources":{"core":{"limit":5000,"remaining":4900,"reset":1792070000},"graphql":{"limit":5000,"remaining":4800,"reset":1792070000}}}`), nil
-	}
-	first, err := ghSnapshot(context.Background(), run, "test-gh", "example.test")
+	})
+	first, err := ghSnapshot(t.Context(), "example.test", transport)
 	if err != nil || len(first.observations) != 2 || !strings.HasPrefix(first.identity, "gh-") {
 		t.Fatalf("snapshot: %+v, %v", first, err)
 	}
-	second, err := ghSnapshot(context.Background(), run, "test-gh", "example.test")
+	second, err := ghSnapshot(t.Context(), "example.test", transport)
 	if err != nil || first.identity != second.identity || strings.Contains(first.identity, "123") {
 		t.Fatalf("identity is unstable or exposes user: %s %s", first.identity, second.identity)
 	}
 }
 
 func TestGhSnapshotRejectsMissingAndInvalidMeters(t *testing.T) {
+	quotaTestEnvironment(t)
 	for _, data := range []string{
 		`{}`,
 		`{"resources":{"core":{"limit":5000,"remaining":10,"reset":1}}}`,
 		`{"resources":{"core":{"limit":5000,"remaining":10,"reset":1},"graphql":{"limit":5000,"reset":1}}}`,
 		`{"resources":{"core":{"limit":5000,"remaining":10,"reset":1},"graphql":{"limit":0,"remaining":0,"reset":1}}}`,
 	} {
-		run := func(_ context.Context, _ string, args ...string) ([]byte, error) {
-			if args[3] == "user" {
-				return []byte("123"), nil
+		transport := quotaTestTransport(t, func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/user" {
+				_, _ = w.Write([]byte(`{"id":123}`))
+			} else {
+				_, _ = w.Write([]byte(data))
 			}
-			return []byte(data), nil
-		}
-		if _, err := ghSnapshot(context.Background(), run, "gh", "github.com"); err == nil {
+		})
+		if _, err := ghSnapshot(t.Context(), "github.com", transport); err == nil {
 			t.Fatalf("accepted incomplete quota: %s", data)
 		}
 	}
 }
 
 func TestGhSnapshotOnlyValidatesRequiredResources(t *testing.T) {
-	run := func(_ context.Context, _ string, args ...string) ([]byte, error) {
-		if args[3] == "user" {
-			return []byte("123"), nil
+	quotaTestEnvironment(t)
+	transport := quotaTestTransport(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/user" {
+			_, _ = w.Write([]byte(`{"id":123}`))
+		} else {
+			_, _ = w.Write([]byte(`{"resources":{"core":{"limit":5000,"remaining":4900,"reset":1792070000}}}`))
 		}
-		return []byte(`{"resources":{"core":{"limit":5000,"remaining":4900,"reset":1792070000}}}`), nil
-	}
-	current, err := ghSnapshot(context.Background(), run, "gh", "github.com", "core")
+	})
+	current, err := ghSnapshot(t.Context(), "github.com", transport, "core")
 	if err != nil || len(current.observations) != 1 {
 		t.Fatalf("core-only snapshot required unrelated resource: %+v, %v", current, err)
 	}
-	if _, err := ghSnapshot(context.Background(), run, "gh", "github.com"); err == nil {
+	if _, err := ghSnapshot(t.Context(), "github.com", transport); err == nil {
 		t.Fatal("default mixed snapshot accepted missing GraphQL")
 	}
 }

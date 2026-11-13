@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -363,8 +362,6 @@ func maxTime(a, b time.Time) time.Time {
 	return b
 }
 
-type commandRunner func(context.Context, string, ...string) ([]byte, error)
-
 func requiredResources(resources []string) ([]string, error) {
 	if len(resources) == 0 {
 		return []string{"core", "graphql"}, nil
@@ -379,7 +376,7 @@ func requiredResources(resources []string) ([]string, error) {
 	return resources, nil
 }
 
-// parseUserID decodes the `gh api user --jq .id` output into a positive
+// parseUserID decodes the GitHub user response's id field into a positive
 // numeric credential identity.
 func parseUserID(output []byte) (int64, error) {
 	var userID int64
@@ -390,28 +387,8 @@ func parseUserID(output []byte) (int64, error) {
 	return userID, nil
 }
 
-func ghSnapshot(ctx context.Context, run commandRunner, executable, host string, required ...string) (snapshot, error) {
-	resources, err := requiredResources(required)
-	if err != nil {
-		return snapshot{}, err
-	}
-	user, err := run(ctx, executable, "api", "--hostname", host, "user", "--jq", ".id")
-	if err != nil {
-		return snapshot{}, errors.New("GitHub credential identity is unavailable")
-	}
-	userID, err := parseUserID(user)
-	if err != nil {
-		return snapshot{}, err
-	}
-	data, err := run(ctx, executable, "api", "--hostname", host, "rate_limit")
-	if err != nil {
-		return snapshot{}, errors.New("GitHub quota observation is unavailable")
-	}
-	return snapshotFromRateLimit(host, userID, data, resources)
-}
-
 // snapshotFromRateLimit derives the credential identity and validates every
-// required meter in a `gh api rate_limit` payload.
+// required meter in a GitHub rate_limit response.
 func snapshotFromRateLimit(host string, userID int64, data []byte, resources []string) (snapshot, error) {
 	var payload struct {
 		Resources map[string]meter `json:"resources"`
@@ -461,6 +438,11 @@ func (b *bridge) handleLine(line []byte) decision {
 }
 
 func run() error {
+	if directory := os.Getenv("CAO_CLI_QUOTA_WORKING_DIRECTORY"); directory != "" {
+		if err := os.Chdir(directory); err != nil {
+			return errors.New("GitHub quota working directory is unavailable")
+		}
+	}
 	store, err := memory.New(memory.Config{})
 	if err != nil {
 		return err
@@ -474,18 +456,8 @@ func run() error {
 	if host == "" {
 		host = "github.com"
 	}
-	executable := os.Getenv("CAO_CLI_QUOTA_GH_EXECUTABLE")
-	if executable == "" {
-		executable = "gh"
-	}
-	execute := func(ctx context.Context, name string, args ...string) ([]byte, error) {
-		// Output and errors are deliberately never forwarded to logs or JSONL.
-		cmd := exec.CommandContext(ctx, name, args...) //nolint:gosec // Executable is local operator configuration; arguments are fixed API reads.
-		cmd.Dir = os.Getenv("CAO_CLI_QUOTA_WORKING_DIRECTORY")
-		return cmd.Output()
-	}
 	b := newBridge(service, func(ctx context.Context, resources []string) (snapshot, error) {
-		return ghSnapshot(ctx, execute, executable, host, resources...)
+		return ghSnapshot(ctx, host, nil, resources...)
 	})
 	return serve(os.Stdin, os.Stdout, b)
 }

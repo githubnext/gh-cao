@@ -127,7 +127,7 @@ export function createCliActionAdmission(options = {}) {
       cwd: workingDirectory,
       env: {
         ...env,
-        CAO_CLI_QUOTA_GH_EXECUTABLE: ghExecutable,
+        GH_PATH: ghExecutable,
         CAO_CLI_QUOTA_WORKING_DIRECTORY: workingDirectory,
       },
       stdio: ["pipe", "pipe", "ignore"],

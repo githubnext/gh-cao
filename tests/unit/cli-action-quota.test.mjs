@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
@@ -152,7 +152,7 @@ test("helper inherits gh environment and requested working directory", async (t)
     process.stdin.once("data", data => {
       const request = JSON.parse(data);
       const valid = process.env.GH_HOST === "example.test"
-        && process.env.CAO_CLI_QUOTA_GH_EXECUTABLE === "custom-gh"
+        && process.env.GH_PATH === "custom-gh"
         && process.env.CAO_CLI_QUOTA_WORKING_DIRECTORY === process.cwd();
       console.log(JSON.stringify({id:request.id,capacity: valid ? 2 : 0,reason:valid ? "available" : "unknown"}));
     });
@@ -241,57 +241,33 @@ test("only exact workflow dispatch commands can narrow required quota resources"
   }
 });
 
-test("default Go bridge observes inherited gh context and reconciles real snapshots", async (t) => {
+test("default Go bridge delegates only credential lookup to the selected gh executable", async (t) => {
   const directory = await mkdtemp(join(process.cwd(), ".cao-cli-quota-test-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const executable = join(directory, "gh-fixture");
-  const remainingPath = join(directory, "remaining.json");
-  await writeFile(remainingPath, "5000");
+  const callsPath = join(directory, "calls.json");
+  await writeFile(join(directory, "hosts.yml"), "");
   await writeFile(executable, `#!${process.execPath}
     const fs = require("node:fs");
     const args = process.argv.slice(2);
     if (process.cwd() !== ${JSON.stringify(directory)}
       || process.env.GH_HOST !== "quota.example.test"
-      || args[0] !== "api" || args[1] !== "--hostname"
-      || args[2] !== "quota.example.test") process.exit(1);
-    if (args[3] === "user") console.log("987654");
-    else if (args[3] === "rate_limit") {
-      const remaining = JSON.parse(fs.readFileSync(${JSON.stringify(remainingPath)}, "utf8"));
-      const meter = resource => ({
-        limit:5000,
-        remaining: typeof remaining === "number" ? remaining : remaining[resource],
-        reset: ${Math.floor(Date.now() / 1000) + 3600}
-      });
-      console.log(JSON.stringify({resources:{core:meter("core"), graphql:meter("graphql")}}));
-    } else process.exit(1);
+      || process.env.GH_CONFIG_DIR !== ${JSON.stringify(directory)}) process.exit(1);
+    fs.writeFileSync(${JSON.stringify(callsPath)}, JSON.stringify(args));
+    process.exit(1);
   `, { mode: 0o700 });
   const admission = createCliActionAdmission({
     workingDirectory: directory,
     ghExecutable: executable,
-    env: { ...process.env, GH_HOST: "quota.example.test" },
+    env: {
+      ...process.env, GH_HOST: "quota.example.test", GH_CONFIG_DIR: directory,
+      GH_TOKEN: "", GITHUB_TOKEN: "", GH_ENTERPRISE_TOKEN: "", GITHUB_ENTERPRISE_TOKEN: "",
+    },
   });
   t.after(() => admission.close());
-  const first = await admission.admit();
-  assert.equal(first.capacity, 4);
-  assert.ok(first.reservationId);
-  await writeFile(remainingPath, "175");
-  const completed = await admission.complete(first.reservationId);
-  assert.equal(completed.capacity, 1);
-  const second = await admission.admit();
-  assert.ok(second.reservationId);
-  assert.equal(second.capacity, 1);
-  const exhausted = await admission.admit();
-  assert.equal(exhausted.capacity, 0);
-  assert.equal(exhausted.reason, "exhausted");
-  await admission.release(second.reservationId);
-  await writeFile(remainingPath, JSON.stringify({ core: 175, graphql: 0 }));
-  assert.equal((await admission.admit({ command: "gh aw update" })).capacity, 0);
-  const dispatch = await admission.admit({ command: "gh workflow run activity" });
-  assert.equal(dispatch.capacity, 1);
-  assert.ok(dispatch.reservationId);
-  await admission.complete(dispatch.reservationId);
-  await writeFile(remainingPath, JSON.stringify({ core: 0, graphql: 0 }));
-  const blockedDispatch = await admission.admit({ command: "gh workflow run activity" });
-  assert.equal(blockedDispatch.capacity, 0);
-  assert.equal(blockedDispatch.reason, "exhausted");
+  const decision = await admission.admit();
+  assert.equal(decision.capacity, 0);
+  assert.equal(decision.reason, "unknown");
+  assert.deepEqual(JSON.parse(await readFile(callsPath, "utf8")),
+    ["auth", "token", "--secure-storage", "--hostname", "quota.example.test"]);
 });
