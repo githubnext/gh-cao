@@ -1,36 +1,7 @@
 {
  "source_sha": "0206402a798c97c4af4b42dc566830c978186412",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T15:36:05Z",
-   "worker_run_id": "43248582279",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206161686,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761,
-    43129836945,
-    43124416558,
-    43121504364
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T23:39:34Z to 2026-11-12T14:58:38Z; all within 14 days; 0 in progress or queued in window; 0 failed). Excluded: 1 cancelled 43206161686 (no jobs; cancelled as pending run after 43206235849 was queued). n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; source 11644f96, the head of the latest publication; docs.yml unchanged since 063cbe9). Concurrency (run created to build job created): median 1 s, p90 27 s, max 43 s; only 43228124764 (43 s, behind in-progress 43228046118) and 43206235849 (27 s, behind in-progress 43206080696) waited. Created-to-build-start median 4 s (p90 30 s, max 46 s). Execution (build start to deploy end) median 85 s (p90 123 s); 15 percent gate = 12.75 s; wall created-to-deploy-complete median 90 s (p90 157 s). Avoidable rebuilds: commit file lists (commits API, 18 push heads) show every push matched at least one build-consumed trigger path; no push touched only test or non-consumed trigger paths, so narrowing triggers would avoid 0 of 18 runs. Rejected: cancel-in-progress true (would cancel in-progress Pages deploys; affects only the 2 queue waits); moving builds out of the group (risk of stale out-of-order deploys; saves only queue waits); removing the 05:23 UTC schedule (required synthetic-date freshness). Queued pending runs are already coalesced by GitHub concurrency. Job logs HTTP 403 DIFC re-verified; cache hit/miss unverified. Cache listing (metadata): 71 entries totalling 10.65 GB, above the 10 GB repository cap; carry-forward to dependency category. Open issue 20380 (other category, retired input path) not revived; no duplicate. No suggestion; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T15:55:04Z",
    "worker_run_id": "43251635548",
@@ -840,6 +811,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:02:55Z to 2026-11-13T01:45:42Z; all within 14 days; none in progress; checkout HEAD 0206402). Excluded and disclosed: 1 cancelled 43206161686 (no jobs) and 1 failed 43297524311 (Build documentation failed; no deploy or artifact). Comparable n=18 successful push publications (no schedule run in window; 5-run gate met). Category medians (p90), n=18: Configure Pages 1 s (1 s); Upload Pages artifact 2 s (3 s); build-end to deploy-start handoff 5.5 s (6.3 s), of which deploy queue 5 s (6 s); deploy job Set up 1 s (1 s); Deploy Pages 7 s (11.2 s, max 15 s; required, not removable); demo packaging step 4 s (4 s, max 5 s). Per-run removable transfer overhead (Configure + Upload + handoff + deploy Set up) = median 9 s (p90 10.3 s, max 12 s) = 10.7% of median execution 84.5 s; 15% gate 12.7 s and 60 s gate both unmet, even at the per-run max. github-pages artifact 8.29 to 8.36 MB in all 18 (8.3 MB), so shrinking it saves about 1 to 2 s. Merging deploy into build would remove about 6.5 s median and would weaken github-pages environment and id-token:write isolation: rejected. Deploy Pages 14 to 15 s outliers (43206235849, 43206080696) remain unexplained by metadata and are Pages-service latency, not workflow-controllable. Job logs not re-read this run. Open issues: none for this worker (20380 closed). No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T02:23:10Z",
+   "worker_run_id": "43351090918",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311,
+    43249903823,
+    43242792853,
+    43236057780,
+    43228124764,
+    43228046118,
+    43225202834,
+    43206235849,
+    43206161686,
+    43206080696,
+    43194788185,
+    43167568535,
+    43167070179,
+    43165397534
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:02:55Z to 2026-11-13T01:45:42Z; 0 in progress or queued; HEAD 0206402; docs.yml last changed 063cbe9). Excluded and disclosed: 1 cancelled 43206161686 (superseded pending run, no jobs) and 1 failed 43297524311 (Build documentation failed, deploy skipped, fixed by cd1e0ba). n=18 successful push publications; no schedule run in window; 5-run gate met. Concurrency (documentation-pages, cancel-in-progress false): run-created to build-created median 1 s, p90 43 s, max 81 s; 3 of 18 waited behind an in-progress publication (43341730805 81 s, 43228124764 43 s, 43206235849 27 s). Pending coalescing already active (43206161686 superseded by 43206235849). Execution build start to deploy end median 84.5 s (p90 123 s); wall median 88 s (p90 169 s); 15% gate 12.7 s and 60 s gate unmet. Waits move wall p90 only; median saving 0 s. Avoidable rebuilds: compare API over all 20 consecutive head ranges (chain from schedule head 9537899): every range has at least one non-test docs.yml trigger path, so 0 of 18 runs avoidable; narrowing filters saves 0. Schedule 05:23 UTC rebuild required for synthetic-date freshness. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy); deploy-only or split build concurrency (parallel builds risk out-of-order Pages deploys; saves only p90 queue); build-deploy merge (about 6 s, weakens environment and id-token isolation). Carry-forward, not re-measured this run: Checkout median 24 s (fetch-depth 0). Lookups: 20 job-list and 20 compare calls; run samples now cached in run_samples. No suggestion; no issue created; no open worker issue. next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -850,5 +850,189 @@
   "restore": "exact key only (no restore-keys)",
   "head_root_lock_key_suffix": "e62f60064d02",
   "logs": "HTTP 403 difc_forbidden re-verified 2026-11-13T01:32Z; hit/miss inferred only (cache list metadata consistent with exact-key restore hits)"
+ },
+ "run_samples": {
+  "window_created": "2026-11-12T06:02:55Z..2026-11-13T01:45:42Z",
+  "evaluated_at": "2026-11-13T02:23:10Z",
+  "rows": [
+   {
+    "run": 43165397534,
+    "head": "912a57a",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 67,
+    "wall_s": 71
+   },
+   {
+    "run": 43167070179,
+    "head": "063cbe9",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 119,
+    "wall_s": 123
+   },
+   {
+    "run": 43167568535,
+    "head": "d4bf131",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 90,
+    "wall_s": 93
+   },
+   {
+    "run": 43194788185,
+    "head": "40b8a11",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 0,
+    "exec_s": 78,
+    "wall_s": 81
+   },
+   {
+    "run": 43206080696,
+    "head": "26bd463",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 84,
+    "wall_s": 87
+   },
+   {
+    "run": 43206161686,
+    "head": "5b51c35",
+    "event": "push",
+    "conc": "canc"
+   },
+   {
+    "run": 43206235849,
+    "head": "203826e",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 27,
+    "exec_s": 127,
+    "wall_s": 157
+   },
+   {
+    "run": 43225202834,
+    "head": "313a385",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 79,
+    "wall_s": 83
+   },
+   {
+    "run": 43228046118,
+    "head": "6ed8658",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 68,
+    "wall_s": 71
+   },
+   {
+    "run": 43228124764,
+    "head": "3eed0d6",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 43,
+    "exec_s": 123,
+    "wall_s": 169
+   },
+   {
+    "run": 43236057780,
+    "head": "a5dfc36",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 87,
+    "wall_s": 90
+   },
+   {
+    "run": 43242792853,
+    "head": "11644f9",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 85,
+    "wall_s": 90
+   },
+   {
+    "run": 43249903823,
+    "head": "15db224",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 83,
+    "wall_s": 87
+   },
+   {
+    "run": 43297524311,
+    "head": "e465d28",
+    "event": "push",
+    "conc": "fail",
+    "queue_s": 1,
+    "exec_s": 62,
+    "wall_s": 65
+   },
+   {
+    "run": 43301807773,
+    "head": "cd1e0ba",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 82,
+    "wall_s": 85
+   },
+   {
+    "run": 43339642321,
+    "head": "deb5da8",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 0,
+    "exec_s": 85,
+    "wall_s": 88
+   },
+   {
+    "run": 43341713733,
+    "head": "c1fa69c",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 83,
+    "wall_s": 88
+   },
+   {
+    "run": 43341730805,
+    "head": "cf80d5c",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 81,
+    "exec_s": 92,
+    "wall_s": 175
+   },
+   {
+    "run": 43345305064,
+    "head": "6b37c52",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 97,
+    "wall_s": 101
+   },
+   {
+    "run": 43347280419,
+    "head": "ba15d39",
+    "event": "push",
+    "conc": "succ",
+    "queue_s": 1,
+    "exec_s": 82,
+    "wall_s": 86
+   }
+  ],
+  "note": "completed immutable runs; reuse for overlapping windows to skip job-list calls; queue_s=run created to build created, exec_s=build start to deploy end, wall_s=run created to deploy end"
  }
 }
