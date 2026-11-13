@@ -273,6 +273,9 @@ func (a Acquisition) inventoryReady(ctx context.Context, tx *sql.Tx, scope colle
 	if err := decodeJSON(evidence.SourceSnapshot, &source); err != nil {
 		return err
 	}
+	if len(source.Sources["campaigns"].Rows) == 0 {
+		return nil
+	}
 	declaredCampaigns := map[string]bool{}
 	for _, row := range source.Sources["campaigns"].Rows {
 		slug, _ := row["campaign"].(string)
@@ -330,6 +333,17 @@ func (a Acquisition) requireInventoryReady(ctx context.Context, tx *sql.Tx, scop
 		return errors.New("native inventory retained evidence is invalid")
 	}
 	var exists bool
+	if len(evidence.Sources["campaigns"].Rows) == 0 {
+		if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM repositories
+			WHERE namespace=$1 AND lower(owner || '/' || name)=$2)`,
+			a.store.namespace, scope.Repository).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return errors.New("native inventory canonical repository is missing")
+		}
+		return nil
+	}
 	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM campaigns WHERE namespace=$1)`,
 		a.store.namespace).Scan(&exists); err != nil {
 		return err

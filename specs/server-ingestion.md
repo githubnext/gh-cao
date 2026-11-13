@@ -220,7 +220,23 @@ for workers, the exact reviewed inventory digest already provisioned through
 immutable reviewed bytes directly. Replacing the shared configuration MUST use
 the explicit expected-digest CAS; replicas MUST NOT choose a newer configuration
 implicitly. Native activation MUST NOT require an Activity directory, Node or a
-local inventory file. Optional Go Value execution is separately
+local inventory file. Operators MAY initially provision immutable reviewed bytes
+with `cao-dashboard provision-inventory --source FILE --sha256 DIGEST --namespace NAMESPACE`.
+The command MUST validate the bounded document and exact digest before opening
+existing PostgreSQL storage, use runtime authority only, and fail on a conflicting
+configuration rather than replacing it.
+
+An explicitly bare monitoring policy MAY have empty campaigns and no declared
+workflows or operations. Its source inventory MUST declare empty campaigns and
+workflows, retain matching original policy bytes and parsed document, and carry
+successful policy-resolution diagnostics. Such inventory does not require a
+fictional control campaign. Readiness still requires current enrollment epochs,
+the exact provisioned source digest, published control-repository evidence and
+the owning canonical repository. Registry-discovered workflows remain observations,
+not campaign membership or execution authority. Campaign-bearing inventories
+retain their source-bound control-campaign readiness requirements.
+
+Optional Go Value execution is separately
 selected and retains its explicit reviewed catalog and policy dependencies. Native
 selection MUST reject unsupported legacy limits and malformed settings rather
 than silently ignore them or fall back to the retired filesystem producer.

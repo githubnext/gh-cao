@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cao-canonical-maintenance
+  namespace: cao-local-system
+spec:
+  schedule: "0 2 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            fsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: maintenance
+              image: cao-db-maintenance:local
+              imagePullPolicy: Never
+              command: [/app/cao-dashboard]
+              args: [database, maintain, --store, canonical, --namespace, local-kubernetes]
+              envFrom:
+                - configMapRef:
+                    name: cao-database
+                - secretRef:
+                    name: cao-owner
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: [ALL]
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: "1"
+                  memory: 512Mi
+              volumeMounts:
+                - name: ca
+                  mountPath: /ca
+                  readOnly: true
+          volumes:
+            - name: ca
+              configMap:
+                name: cao-postgres-ca

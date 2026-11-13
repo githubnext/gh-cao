@@ -64,6 +64,15 @@ test("collector image contains the Go worker, reviewed policy and Git without a 
   assert.doesNotMatch(collector, /\bnode\b|github-cli|gh-aw|\/app\/evidence|VOLUME|HEALTHCHECK|\/app\/site/);
 });
 
+test("local Kubernetes builds opt into the npm feed without changing CI defaults", async () => {
+  const dockerfile = await text("server/Dockerfile");
+  assert.match(dockerfile, /^ARG CAO_NPM_REGISTRY$/m);
+  assert.match(dockerfile, /npm config set registry "\$\{CAO_NPM_REGISTRY\}"/);
+  assert.match(dockerfile, /test "\$\(npm config get registry\)" = "\$\{CAO_NPM_REGISTRY\}"/);
+  assert.match(dockerfile, /FROM dashboard-runtime AS kubernetes-runtime\nHEALTHCHECK NONE/);
+  assert.match(dockerfile, /FROM azure-db-provision AS kubernetes-db-maintenance/);
+});
+
 test("Hosted CLI relay exports a separate source-bound static artifact", async () => {
   const dockerfile = await text("server/Dockerfile");
   const build = dockerfile.split("FROM server-build AS hosted-cli-relay-build\n")[1]

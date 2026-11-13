@@ -340,6 +340,7 @@ func newRootCommand() *cobra.Command {
 		newServePagesCommand(),
 		newServeHostedCommand(),
 		newIngestCommand(),
+		newProvisionInventoryCommand(),
 		newReadCommand(),
 		newLocalQueueCommand(),
 		newCollectCommand(),

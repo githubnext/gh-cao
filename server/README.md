@@ -209,6 +209,9 @@ See [setup combinations and live gaps](../docs/setup-compatibility.md).
 
 ## Azure hosting validation
 
+For an actual, non-HA local Kubernetes evaluation with TLS PostgreSQL, separate
+owner Jobs and native GitHub OAuth, see [local Docker Desktop Kubernetes](kubernetes/README.md).
+
 Azure uses the existing hosted Go server on Container Apps. Generate and check
 an offline review bundle with `gh cao deploy init --deployment
 azure-container-apps`, `deploy generate` and `deploy check`; operators execute

@@ -181,6 +181,79 @@ func TestNativeInventoryPostgresReplicaFencesAndReadiness(t *testing.T) {
 	}
 }
 
+func TestNativeInventoryBareMonitoringRequiresPublishedControlAndRepository(t *testing.T) {
+	store, _ := nativeTestStore(t)
+	a := store.Acquisition()
+	snapshot, evidence := nativeInventoryFixture(t, "Security")
+	evidence.Sources["campaigns"] = model.Source{Source: "campaigns", Rows: []model.Row{}}
+	evidence.Sources["workflows"] = model.Source{Source: "workflows", Rows: []model.Row{}}
+	rawPolicy := `{"version":1,"control-plane":{"campaigns":{}}}`
+	var policy map[string]any
+	if err := json.Unmarshal([]byte(rawPolicy), &policy); err != nil {
+		t.Fatal(err)
+	}
+	row := evidence.Sources["configuration-policy"].Rows[0]
+	row["raw"], row["document"] = rawPolicy, policy
+	var document map[string]any
+	if err := json.Unmarshal(evidence.SourceSnapshot, &document); err != nil {
+		t.Fatal(err)
+	}
+	document["sources"] = evidence.Sources
+	raw, err := json.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(raw)
+	snapshot, err = collectnative.NewInventorySnapshot(raw, hex.EncodeToString(sum[:]), snapshot.Provenance)
+	if err != nil {
+		t.Fatal(err)
+	}
+	evidence.SourceSnapshot, evidence.Digest = raw, snapshot.Digest
+	if err := a.PinInventoryConfiguration(t.Context(), snapshot); err != nil {
+		t.Fatal(err)
+	}
+	for _, repository := range []string{"octo/api", "octo/target"} {
+		if err := a.SetEnrollment(t.Context(), repository, 7); err != nil {
+			t.Fatal(err)
+		}
+	}
+	control, err := a.CurrentScope(t.Context(), "octo/api")
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, err := a.CurrentScope(t.Context(), "octo/target")
+	if err != nil {
+		t.Fatal(err)
+	}
+	publish := func(scope collectnative.EnrollmentScope) {
+		t.Helper()
+		evidence.Scope = scope
+		owner, name, _ := strings.Cut(scope.Repository, "/")
+		evidence.Sources["repositories"] = model.Source{Source: "repositories", Rows: []model.Row{{"organization": owner, "repository": name}}}
+		claim, err := a.BeginInventoryRefresh(t.Context(), scope, snapshot.Digest)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.PublishInventory(t.Context(), claim, evidence); err != nil {
+			t.Fatal(err)
+		}
+	}
+	publish(target)
+	if err := a.EnsureInventoryReady(t.Context(), target, snapshot.Digest); err == nil {
+		t.Fatal("target became ready without control inventory")
+	}
+	publish(control)
+	if err := a.EnsureInventoryReady(t.Context(), target, snapshot.Digest); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.ExecContext(t.Context(), `DELETE FROM repositories WHERE namespace=$1 AND name='target'`, store.namespace); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.EnsureInventoryReady(t.Context(), target, snapshot.Digest); err == nil {
+		t.Fatal("missing canonical repository passed readiness")
+	}
+}
+
 func TestNativeInventoryPreservesExistingCanonicalParentIDs(t *testing.T) {
 	store, _ := nativeTestStore(t)
 	nativeSeed(t.Context(), t, store, nil)

@@ -15,12 +15,17 @@ SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 ARG REVISION
 ARG VERSION=dev
 ARG CAO_PROFILE=cao.json
+ARG CAO_NPM_REGISTRY
 ENV CAO_VERSION=${VERSION}
 WORKDIR /workspace
 COPY dashboard/site/package.json dashboard/site/package-lock.json ./dashboard/site/
 RUN sed -i \
       's#https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/#https://registry.npmjs.org/#' \
       dashboard/site/package-lock.json \
+    && if [ -n "${CAO_NPM_REGISTRY}" ]; then \
+      npm config set registry "${CAO_NPM_REGISTRY}" \
+        && test "$(npm config get registry)" = "${CAO_NPM_REGISTRY}"; \
+    fi \
     && npm --prefix dashboard/site ci --omit=dev --ignore-scripts
 COPY . .
 COPY --from=cao-policy / .github/workflows/
@@ -97,6 +102,9 @@ CMD ["serve-hosted", "--listen", "0.0.0.0:8080"]
 
 FROM dashboard-runtime AS azure-container-apps-runtime
 
+FROM dashboard-runtime AS kubernetes-runtime
+HEALTHCHECK NONE
+
 FROM dashboard-runtime AS azure-ingest-runtime
 
 COPY --from=cao-ingest-source --chown=cao:cao / /data/
@@ -120,6 +128,8 @@ COPY server/azure/provision.sh server/azure/provision.sql /app/azure/
 WORKDIR /app
 USER 65532:65532
 ENTRYPOINT ["/bin/sh", "/app/azure/provision.sh"]
+
+FROM azure-db-provision AS kubernetes-db-maintenance
 
 FROM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8 AS collector-runtime
 

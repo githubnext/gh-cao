@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: cao-inventory-
+  namespace: cao-local
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 180
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: provision
+          image: cao-dashboard:local
+          imagePullPolicy: Never
+          command: [/bin/sh, -ec]
+          args:
+            - >-
+              exec /app/cao-dashboard provision-inventory
+              --source /inventory/inventory.json
+              --sha256 "$CAO_COLLECT_NATIVE_INVENTORY_DIGEST"
+              --namespace "$REDIS_NAMESPACE"
+          envFrom:
+            - configMapRef:
+                name: cao-database
+            - configMapRef:
+                name: cao-native
+            - secretRef:
+                name: cao-runtime
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: ca
+              mountPath: /ca
+              readOnly: true
+            - name: inventory
+              mountPath: /inventory
+              readOnly: true
+      volumes:
+        - name: ca
+          configMap:
+            name: cao-postgres-ca
+        - name: inventory
+          configMap:
+            name: cao-native-inventory
