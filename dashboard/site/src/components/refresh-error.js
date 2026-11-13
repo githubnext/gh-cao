@@ -52,6 +52,10 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
     const source = ingestion.get();
     return remote && source?.metadata.availability !== 'unavailable' ? source?.rows[0] : undefined;
   }, { signal: scope.signal });
+  const ingestedRuns = derived(() => {
+    const source = freshness.get();
+    return source?.metadata?.availability !== 'unavailable' ? source?.rows?.[0]?.['ingested-runs'] : undefined;
+  }, { signal: scope.signal });
   if (configuration) {
     const timer = setInterval(() => clock.set(Date.now()), 60_000);
     scope.signal.addEventListener('abort', () => clearInterval(timer), { once: true });
@@ -177,6 +181,9 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
       determinate
         ? h('progress', { max: target, value: scanned, 'aria-label': 'History scanned', 'aria-valuetext': `${ingestionNumber(scanned)} of ${ingestionNumber(target)} repository-hours` })
         : h('span', { className: 'ingestion-status-unavailable' }, 'History unavailable'),
+      h('span', { className: 'ingestion-status-runs' },
+        h('span', null, 'Runs ingested'),
+        h('strong', null, ingestionNumber(ingestedRuns.get()))),
       h('span', { className: 'ingestion-status-budget', 'aria-label': `API points remaining: ${ingestionNumber(progress['api-remaining'])}` },
         octicon('shield'), h('strong', null, ingestionNumber(progress['api-remaining'], true)),
         h('span', null, 'API left'),
@@ -212,19 +219,50 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
   }, { signal: scope.signal });
   const menu = mobileHeader?.querySelector('.mobile-nav-menu');
   if (menu) {
+    const popup = /** @type {HTMLElement} */ (status.querySelector('.tooltip-content'));
+    /** @type {{ parent: Node, next: Node | null } | null} */
+    let home = null;
+    let popupOpen = false;
+    const restore = () => {
+      if (!home) return;
+      const { parent, next } = home;
+      home = null;
+      status.classList.remove('dashboard-current-status-detached');
+      parent.insertBefore(status, next && next.parentNode === parent ? next : null);
+    };
+    // A popover cannot render inside the closed menu, so the dialog opens from a host beside the indicator instead.
+    const openDetached = () => {
+      if (!status.classList.contains('tooltip-mobile-popup') || popupOpen) return;
+      if (!home && status.parentNode) home = { parent: status.parentNode, next: status.nextSibling };
+      status.classList.add('dashboard-current-status-detached');
+      indicator.before(status);
+      if (menu instanceof HTMLDetailsElement) menu.open = false;
+      popup.showPopover();
+    };
+    popup.addEventListener('toggle', (event) => {
+      popupOpen = 'newState' in event && event.newState === 'open';
+      if (!popupOpen) restore();
+    }, { signal: scope.signal });
+    trigger.addEventListener('click', (event) => {
+      if (!status.classList.contains('tooltip-mobile-popup') || !menu.contains(status)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      openDetached();
+    }, { signal: scope.signal });
+    // Light dismiss closes the dialog on press, so a press that started open must not reopen it on click.
+    let dismissedByPress = false;
     const indicator = h('button', {
       type: 'button',
       className: 'mobile-ingestion-indicator',
+      onPointerdown: () => {
+        dismissedByPress = popupOpen;
+      },
       onClick: (/** @type {Event} */ event) => {
-        // The menu's outside-click dismissal would otherwise close the menu that hosts the popup.
+        // The menu's outside-click dismissal would otherwise react to the indicator.
         event.stopPropagation();
-        if (menu instanceof HTMLDetailsElement && !menu.open) {
-          menu.open = true;
-          // The popover target lives inside the menu, so it can only open once the menu has rendered.
-          requestAnimationFrame(() => {
-            if (!scope.signal.aborted) trigger.click();
-          });
-        } else trigger.click();
+        if (dismissedByPress) dismissedByPress = false;
+        else if (popupOpen) popup.hidePopover();
+        else openDetached();
       }
     });
     render(indicator, () => octicon(presentation.get().icon), { signal: scope.signal });

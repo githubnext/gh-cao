@@ -294,10 +294,55 @@ describe('global upstream ingestion indicator', () => {
     expect(indicator.getAttribute('aria-label')).toBe('Data ingestion: Paused (running)');
     expect(indicator.classList.contains('mobile-ingestion-indicator-refreshing')).toBe(true);
     indicator.click();
-    expect(menu.open).toBe(true);
+    expect(menu.open).toBe(false);
     status.remove();
     await Promise.resolve();
     expect(header.querySelector('.mobile-ingestion-indicator')).toBeNull();
+  });
+
+  it('opens only the ingestion dialog from the mobile indicator', async () => {
+    hosted();
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+    const toggle = (/** @type {HTMLElement} */ element, /** @type {string} */ newState) => {
+      element.dispatchEvent(Object.assign(new Event('toggle'), { newState }));
+    };
+    const show = vi.fn(/** @this {HTMLElement} */ function () { toggle(this, 'open'); });
+    const hide = vi.fn(/** @this {HTMLElement} */ function () { toggle(this, 'closed'); });
+    Object.assign(HTMLElement.prototype, { showPopover: show, hidePopover: hide });
+    const header = document.createElement('div');
+    const menu = document.createElement('details');
+    menu.className = 'mobile-nav-menu';
+    const actions = document.createElement('div');
+    menu.append(actions);
+    header.append(menu);
+    document.body.append(header);
+    const status = renderStatus({
+      mobileHeader: header,
+      sources: {
+        [configuration['freshness-source']]: { ...evidence(), rows: [{ 'latest-data-at': now, 'ingested-runs': 1234 }] },
+        [configuration['ingestion-source']]: ingestion()
+      }
+    });
+    actions.append(status);
+    expect(status.querySelector('.ingestion-status-runs')?.textContent).toBe('Runs ingested1234');
+    const indicator = /** @type {HTMLButtonElement} */ (header.querySelector('.mobile-ingestion-indicator'));
+    indicator.click();
+    expect(show).toHaveBeenCalledTimes(1);
+    expect(menu.open).toBe(false);
+    expect(status.parentNode).toBe(header);
+    expect(status.classList.contains('dashboard-current-status-detached')).toBe(true);
+    indicator.click();
+    expect(hide).toHaveBeenCalledTimes(1);
+    expect(status.parentNode).toBe(actions);
+    menu.open = true;
+    /** @type {HTMLButtonElement} */ (status.querySelector('.tooltip-trigger')).click();
+    expect(show).toHaveBeenCalledTimes(2);
+    expect(menu.open).toBe(false);
+    expect(status.parentNode).toBe(header);
+    delete (/** @type {any} */ (HTMLElement.prototype)).showPopover;
+    delete (/** @type {any} */ (HTMLElement.prototype)).hidePopover;
+    vi.unstubAllGlobals();
+    status.remove();
   });
 
   it('does not present unavailable ingestion as observed progress', () => {

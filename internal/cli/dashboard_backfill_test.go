@@ -12,6 +12,19 @@ import (
 	"time"
 )
 
+func TestDashboardIngestionRecordOmitsUnknownTimestamps(t *testing.T) {
+	// The server rejects empty strings as invalid canonical timestamps.
+	record, err := dashboardIngestionRecord(dashboardIngestion{ID: "local-dashboard-ingestion", Status: "collecting"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{"apiResetAt", "nextAttemptAt"} {
+		if value, present := record[field]; present {
+			t.Fatalf("%s = %#v, want absent", field, value)
+		}
+	}
+}
+
 func TestDashboardSevenDayWindow(t *testing.T) {
 	cmd := dashboardCommand("test", nil, nil)
 	window, err := cmd.Flags().GetDuration("window")

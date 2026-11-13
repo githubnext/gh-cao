@@ -371,8 +371,8 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .dashboard-current-status[data-tone="attention"] .ingestion-status-heading .octicon { color: var(--attention); }
 .dashboard-current-status[data-tone="danger"] .ingestion-status-heading .octicon { color: var(--danger); }
 .ingestion-status-repository { min-width: 0; overflow: hidden; color: var(--muted); font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
-.ingestion-status-history { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; font-size: .75rem; }
-.ingestion-status-history strong { font-variant-numeric: tabular-nums; }
+.ingestion-status-history, .ingestion-status-runs { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; font-size: .75rem; }
+.ingestion-status-history strong, .ingestion-status-runs strong { font-variant-numeric: tabular-nums; }
 .ingestion-status-card progress { width: 100%; height: 8px; appearance: none; border: 0; border-radius: 999px; background: var(--neutral-muted); color: var(--accent); }
 .ingestion-status-card progress::-webkit-progress-bar { border-radius: 999px; background: var(--neutral-muted); }
 .ingestion-status-card progress::-webkit-progress-value { border-radius: 999px; background: var(--accent); }
