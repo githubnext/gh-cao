@@ -20,8 +20,8 @@ func repositoryCommands(gh ghExecutor) *cobra.Command {
 	}
 	repos.AddCommand(&cobra.Command{
 		Use:   "add OWNER/REPO",
-		Short: "Enroll one exact repository",
-		Long:  "Enroll one exact repository in review mode without widening existing campaign authority.",
+		Short: "Enroll repositories by exact name or wildcard",
+		Long:  "Enroll one repository or current accessible wildcard matches in review mode. Quote patterns such as 'owner/service-*'. Wildcards resolve to exact names (at most 100); future matches are not enrolled. Review and commit policy before activation.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return nativeRepositoryAdd(cmd, args[0], gh)

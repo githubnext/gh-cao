@@ -7,6 +7,16 @@ import {
 } from '../../src/cli-action-template.js';
 
 describe('CLI action command templates', () => {
+  it('quotes wildcard enrollment patterns without widening exact repository tokens', () => {
+    expect(renderCliActionCommand('gh cao repos add {{repository-pattern}}', { 'repository-pattern': 'octo/service-*' }))
+      .toBe("gh cao repos add 'octo/service-*'");
+    expect(renderCliActionCommand('gh cao repos add {{repository-pattern}}', { 'repository-pattern': 'octo/repo' }))
+      .toBe('gh cao repos add octo/repo');
+    expect(() => renderCliActionCommand('gh aw update --repo {{repository}}', { repository: 'octo/*' })).toThrow();
+    for (const value of ['-owner/*', 'owner/*;echo', "owner/'*", 'owner/*\n', 'owner/* --flag', 'owner/$(id)']) {
+      expect(() => renderCliActionCommand('gh cao repos add {{repository-pattern}}', { 'repository-pattern': value })).toThrow();
+    }
+  });
   it('separates host-owned identity from row fields and preserves deployment paths', () => {
     const command = "gh aw upgrade --repo {{repository}} --pr-message 'Requested by {{cao-repository}} ({{cao-repository-url}}). See {{cao-url}}#page-maintenance.'";
     const context = cliActionTemplateContext({

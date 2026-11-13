@@ -1608,6 +1608,11 @@ A list may declare `list.actions`, a non-empty sequence of unique view-placed
 CLI action IDs, alongside its existing `list.action`. Actions render in declared
 order beside the list heading, including when the list has no rows.
 
+Data marks (`table`, `chart`, and `list`) may also declare view-level
+`actions`, a non-empty sequence of unique view-placed CLI action IDs. These
+controls remain available for empty evidence and use the same execution gating
+and explicit approval as list actions; they do not consume or derive source rows.
+
 A list shows its declared description inline in the header. Presenters do not
 repeat that same explanation in a separate heading tooltip.
 View descriptions do not automatically create help icon buttons. Section
@@ -1615,10 +1620,18 @@ descriptions remain available as accessible descriptions; explicitly declared
 tooltips retain their configured controls.
 
 A view-placed `operate` CLI action may declare a reusable `selector` dialog
-configuration: `label`, optional `placeholder`, `debounce-ms` (100–2000),
+configuration: `label`, optional `placeholder` and `allow-patterns`, `debounce-ms` (100–2000),
 `query: { command: "gh search repos", fields: [...], limit: 1–50 }`, and
 `mapping: { value, label, description?, target }`. Mapping fields must be selected
 by the query; `target` must name one command template token. For example:
+
+With `allow-patterns: true`, `mapping.target` must be `repository-pattern`.
+The selector additionally offers a typed exact name or `owner/repository` pattern
+containing `*` for explicit selection, without issuing a search for that pattern.
+Command rendering quotes wildcard values as one literal argument. Ordinary
+`repository` tokens remain exact-only. Enrollment resolves current accessible
+matches to exact policy entries, rejects incomplete discovery or more than 100
+matches, and does not enroll future matches or grant credential access.
 
 ```json
 {
