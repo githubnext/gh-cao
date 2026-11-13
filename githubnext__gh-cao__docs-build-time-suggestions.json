@@ -1,36 +1,7 @@
 {
  "source_sha": "c6939dd9c51dc4d6d48bd84d621b71a1be73ee05",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T10:19:37Z",
-   "worker_run_id": "43407720678",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; none queued or in progress; source f0c3fc4 = HEAD = source_sha; docs.yml last changed 063cbe9 per commits API, so window runs share one workflow definition). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed at 14 s; no deploy or artifact; fixed by cd1e0ba). n=19 successes (18 push, 1 schedule 43371878284); 5-run gate met. Medians (p90), n=19: Configure Pages 0 s (1 s); Upload Pages artifact 2 s (3 s); build-end to deploy-start handoff 5 s (5.2 s); deploy Set up job 1 s (1 s); Deploy Pages 7 s (8 s; max 8 s, no 14-15 s outliers this window); demo packaging step 4 s (4.2 s). Removable transfer per run (Configure + Upload + handoff + deploy Set up) median 9 s (p90 9.2 s, max 10 s) = 10.6% of median execution 85 s (p90 99.6 s); 15% gate 12.75 s and 60 s gate unmet even at per-run max. github-pages artifact 8.26 to 8.38 MB (median 8.30 MB); shrinking saves about 1 s. Merging deploy into build saves about 6 s and would move id-token: write and the github-pages environment into the job running npm ci and the Astro build: rejected. Demo cp into dist/cao is sub-second inside the 4 s demo step: nothing material. Job logs not read this run (HTTP 403 difc_forbidden in prior runs); timings from jobs API. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T10:32:31Z",
    "worker_run_id": "43409305789",
@@ -869,6 +840,35 @@
     43362224525
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43362224525 created 2026-11-13T03:56:23Z to 43494667529 created 19:42:08Z; 20/20 success, 19 push + 1 schedule 43371878284; 0 failed, 0 cancelled, none in progress; no newer docs.yml run since 19:42Z). source c6939dd9 = HEAD = source_sha, unchanged. Excluded: none (failed 43297524311 outside window). 5-run gate met. Stored step timings recomputed (exec median 89 s p90 98; push-only exec median 89 s p90 106) and jobs API re-read for 43494667529 (checkout 31, install 17, docs 15, demo 4 = stored row). Category step Build synthetic enterprise demo (npm run dashboard:pages:build + cp to dist/cao, inside build job): median 4 s, p90 5 s, range 3-5 s = 4.5% of median exec 89 s; push-only demo median 4 s p90 5 s. 15% gate 13.35 s and 60 s gate unreachable; full removal saves at most 4 s. No separate dashboard job. docs:build (astro build + validate-agent-docs + agent-docs-discovery test) has no dashboard build; validate-agent-docs only loads a catalog document from dashboard/report/agent-catalog.mjs inside the 14 s Build documentation step (share unmeasured, job logs HTTP 403), so reaching the gate would require removing about 95% of that step. Re-evaluate only if demo median reaches about 12 s or a dashboard build is added to the docs path."
+  },
+  {
+   "evaluated_at": "2026-11-13T20:35:11Z",
+   "worker_run_id": "43502124062",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43362224525 created 2026-11-13T03:56:23Z to 43494667529 created 19:42:08Z; 20/20 success, 19 push + 1 schedule 43371878284; 0 failed, 0 cancelled; in-progress 43502562196 (79129a5, started 20:32Z) excluded; source c6939dd9 = HEAD = source_sha, unchanged). Jobs API re-read for all 20 runs; job logs still HTTP 403 difc_forbidden (re-probed this run). Category steps (median, p90): Configure Pages 0 s (1); Upload Pages artifact 2 s (3); build-end to deploy-start handoff 5 s (6); deploy Set up job 1 s (1); Deploy Pages 7 s (8, GitHub-managed). Controllable transfer overhead per run (configure+upload+handoff+deploy setup) median 8 s (p90 10, max 10) = 9.0% of median exec 89 s (p90 98); 15% gate 13.35 s and 60 s gate unmet even with full removal. github-pages artifact 8.26 to 8.38 MB (median 8.30 MB, n=20); shrinking saves about 1-2 s. Merging deploy into build saves about 6 s and would move id-token and environment into the build job: rejected (least privilege). Open checkout suggestion is issue 20815 (docs-checkout-blobless-history-v1, OPEN, created 2026-11-13T17:41Z): not re-filed. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1177,7 +1177,34 @@
     "demo_s": 5.0,
     "node_setup_s": 5.0
    }
-  ]
+  ],
+  "transfer_stats_20_runs": {
+   "measured_at": "2026-11-13T20:35:11Z",
+   "configure_pages_s": [
+    0,
+    1
+   ],
+   "upload_pages_artifact_s": [
+    2,
+    3
+   ],
+   "handoff_s": [
+    5,
+    6
+   ],
+   "deploy_setup_s": [
+    1,
+    1
+   ],
+   "deploy_pages_s": [
+    7,
+    8
+   ],
+   "controllable_overhead_median_s": 8,
+   "controllable_overhead_p90_s": 10,
+   "exec_median_s": 89,
+   "exec_p90_s": 98
+  }
  },
  "observations_pending": [
   {
@@ -1192,11 +1219,6 @@
   },
   {
    "observed_at": "2026-11-13T15:20:28Z",
-   "source": "docs.yml artifact transfer and Pages packaging (category 4, worker 43450723904)",
-   "note": "Controllable transfer overhead (Configure Pages, Upload Pages artifact, handoff, deploy queue, deploy setup) median 8.5 s (p90 10), below the 13.12 s gate even if removed entirely; Deploy Pages 7 s is GitHub-managed. Re-evaluate only if controllable overhead median reaches the gate or a maintainer removes the separate deploy job."
-  },
-  {
-   "observed_at": "2026-11-13T15:20:28Z",
    "source": "docs.yml scheduling category (carry-forward for next category)",
    "note": "Concurrency waits 3-4 of 20 at 32-81 s before build creation (queue only). Re-evaluate only with a same-SHA duplicate that repeats or a maintainer decision on group ordering."
   },
@@ -1204,11 +1226,6 @@
    "observed_at": "2026-11-13T17:38:10Z",
    "source": "docs.yml checkout (worker 43473225781) CORRECTION",
    "note": "Pinned actions/checkout v7.0.1 (3d3c42e5) exposes filter (action.yml line 60). Earlier note claiming no filter input was wrong. Shallow checkout remains unsafe (git log per file would give HEAD date). filter blob:none keeps commits and trees, so provenance is unchanged. Suggestion issued: fingerprint docs-checkout-blobless-history-v1."
-  },
-  {
-   "observed_at": "2026-11-13T18:53:04Z",
-   "source": "docs.yml artifact transfer and Pages packaging (worker 43486180054)",
-   "note": "Controllable transfer overhead median 8 s (p90 10) = 9.1% of median exec 87.5 s; below the 13.1 s gate even at full removal. Deploy-into-build merge saves about 6 s and is rejected (least privilege). Re-evaluate only if the deploy job is removed by a maintainer design change or transfer overhead median reaches 13 s."
   },
   {
    "observed_at": "2026-11-13T19:20:26Z",
@@ -1229,6 +1246,11 @@
    "observed_at": "2026-11-13T19:53:52Z",
    "source": "docs.yml Astro documentation generation (worker 43495727601)",
    "note": "Window 43362224525..43494667529 (20 success, 19 push + schedule). Build documentation median 14 s (p90 15, range 9-15) = 15.7% of median exec 89 s; 15% gate 13.35 s needs at least 95% of the step removed, which is the docs build itself (deploy requires its output). Astro-internal split unmeasured: build-job log read 403 DIFC (re-probed 19:5xZ). Re-evaluate only if the Build documentation median reaches 20 s or more, or a maintainer-branch run with readable logs shows one Astro sub-step at 13.35 s or more."
+  },
+  {
+   "observed_at": "2026-11-13T20:35:11Z",
+   "source": "docs.yml artifact transfer and Pages packaging (worker 43502124062)",
+   "note": "Controllable transfer overhead median 8 s (p90 10) = 9.0% of median exec 89 s; below the 13.35 s gate even at full removal. Deploy-into-build merge (about 6 s) rejected for least privilege. Re-evaluate only if the deploy job is removed by a maintainer design change or transfer overhead median reaches 13 s."
   }
  ],
  "checkout_probe": {
@@ -1252,6 +1274,12 @@
    "tags": 67,
    "default_branch_commits": 3775,
    "api_size_kb": 1453275
+  },
+  "open_issue": {
+   "number": 20815,
+   "state": "OPEN",
+   "fingerprint": "docs-checkout-blobless-history-v1",
+   "checked_at": "2026-11-13T20:35:11Z"
   }
  }
 }
