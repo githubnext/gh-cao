@@ -55,16 +55,20 @@
     },
     {
       "name": "dashboard-data-freshness",
-      "subject": "Find the newest workflow activity timestamp in retained canonical data.",
-      "objective": "Warn globally when the ingested workflow evidence has not advanced for 24 hours.",
-      "acceptance": "Use upstream updated-at, falling back to created-at, never browser import or refresh time. Missing or invalid timestamps remain unknown; inactivity alone does not prove an ingestion failure.",
+      "subject": "Find the newest workflow activity timestamp and count retained run attempts in canonical data.",
+      "objective": "Warn globally when the ingested workflow evidence has not advanced for 24 hours and show how many run attempts have been ingested.",
+      "acceptance": "Use upstream updated-at, falling back to created-at, never browser import or refresh time. Missing or invalid timestamps remain unknown; inactivity alone does not prove an ingestion failure. Ingested runs count distinct retained run attempts, not upstream totals.",
       "from": "runs",
       "compute": [
         { "as": "data-at", "function": "coalesce", "args": [{ "field": "updated-at" }, { "field": "created-at" }] },
-        { "as": "data-at-ms", "function": "timestamp", "args": [{ "field": "data-at" }] }
+        { "as": "data-at-ms", "function": "timestamp", "args": [{ "field": "data-at" }] },
+        { "as": "run-attempt-identity", "function": "concat", "args": [{ "field": "run" }, { "value": ":" }, { "field": "run-attempt" }] }
       ],
       "aggregate": {
-        "values": [{ "field": "data-at-ms", "as": "latest-data-at", "reducer": "max" }]
+        "values": [
+          { "field": "data-at-ms", "as": "latest-data-at", "reducer": "max" },
+          { "field": "run-attempt-identity", "as": "ingested-runs", "reducer": "distinct-count" }
+        ]
       }
     },
     {

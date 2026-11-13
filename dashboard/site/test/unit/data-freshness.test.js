@@ -118,7 +118,7 @@ describe('declarative data freshness', () => {
     await ingest(timestamp);
     const result = await query();
     expect(result[contract.source].metadata.availability).not.toBe('unavailable');
-    expect(result[contract.source].rows).toEqual([{ [contract.field]: Date.parse(timestamp) }]);
+    expect(result[contract.source].rows).toEqual([{ [contract.field]: Date.parse(timestamp), 'ingested-runs': 1 }]);
     expect(calloutVisibility(result)).toBe('visible');
     expect(result[contract.shardSource].rows[0]).toMatchObject({
       shard: 'gh-aw-logs-runs/example.jsonl', status: 'success',
