@@ -222,12 +222,9 @@ import SlideshowSnippet from "./SlideshowSnippet.astro";
     box-shadow: var(--sl-shadow-lg);
     color: var(--sl-color-text);
     font-size: 0.8125rem;
-    opacity: 0.12;
-    transition: opacity 200ms ease;
+    /* Keep controls and hint fully opaque at rest. An idle fade made the buttons and hint
+       too faint to identify (WCAG 1.4.11, 1.4.3) for pointer and touch users. */
   }
-  .slideshow-controls:hover,
-  .slideshow-controls:has(:focus-visible),
-  .slideshow-controls:has([aria-expanded="true"]) { opacity: 1; }
   .slideshow-hint { color: var(--sl-color-gray-2); }
   .slideshow-controls :global(button) {
     display: inline-flex;
@@ -254,7 +251,6 @@ import SlideshowSnippet from "./SlideshowSnippet.astro";
     font-variant-numeric: tabular-nums;
   }
   @media (max-width: 70rem) { .slideshow-hint { display: none; } }
-  @media (prefers-reduced-motion: reduce) { .slideshow-controls { transition: none; } }
   @media print { #landing-slideshow { display: none; } }
 </style>
 
