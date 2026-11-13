@@ -537,6 +537,7 @@ test("comment-producing safe outputs expose one formatting contract", () => {
     ]],
     ["pr-sous-chef.md", ["add-comment"]],
     ["repo-assist-issue-triage.md", ["add-comment"]],
+    ["test-quality-sentinel.md", ["add-comment", "submit-pull-request-review"]],
   ]);
 });
 
@@ -545,6 +546,7 @@ test("repository PR automation remains bounded and adapted to CAO", () => {
   const sousChef = workflow("pr-sous-chef.md");
   const mattReviewer = workflow("mattpocock-skills-reviewer.md");
   const decisionGate = workflow("design-decision-gate.md");
+  const reviewContext = workflow("shared/pr-review-context.md");
 
   assert.match(finisher, /npm run check/);
   assert.match(finisher, /npm run compile:locks/);
@@ -562,9 +564,9 @@ test("repository PR automation remains bounded and adapted to CAO", () => {
   assert.match(sousChef, /fromJSON\(github\.event\.inputs\.aw_context \|\| '\{\}'\)\.item_number/);
 
   assert.equal([...mattReviewer.matchAll(/mattpocock\/skills\/[\w-]+@[0-9a-f]{40}/g)].length, 5);
-  assert.match(mattReviewer, /emitted < 3000/);
-  assert.doesNotMatch(mattReviewer, /\|\s*head -n 3000/);
-  assert.match(mattReviewer, /fromJSON\(github\.event\.inputs\.aw_context \|\| '\{\}'\)\.item_number/);
+  assert.match(reviewContext, /emitted < 3000/);
+  assert.doesNotMatch(reviewContext, /\|\s*head -n 3000/);
+  assert.match(reviewContext, /fromJSON\(github\.event\.inputs\.aw_context \|\| github\.event\.client_payload\.aw_context \|\| '\{\}'\)\.item_number/);
   assert.match(mattReviewer, /reaction: none/);
   assert.match(mattReviewer, /slash_command:[\s\S]*?\n\s+name: matt\n\s+strategy: centralized/);
   assert.doesNotMatch(mattReviewer, /\n\s+pull_request:/);
