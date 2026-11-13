@@ -842,4 +842,124 @@ describe('campaign repository memory', () => {
     vi.doUnmock('../../src/debug.js');
     vi.resetModules();
   });
+
+  describe('failure diagnostics', () => {
+    const SENSITIVE = 'secret-token-ghp_123 /private/path.md';
+    const campaignContext = () => /** @type {import('../../src/components/ui-elements.js').ElementRenderContext} */ (/** @type {unknown} */ ({
+      pageId: 'memory',
+      title: 'Campaign memory',
+      sourceNames: ['campaign-memory-campaigns'],
+      sources: {
+        'campaign-memory-campaigns': {
+          source: 'campaign-memory-campaigns',
+          rows: [{ campaign: 'ambient-context', 'campaign-name': 'Ambient Context' }],
+          metadata: {
+            'source-id': 'campaign-memory-test',
+            'source-kind': 'fixture',
+            'as-of': '2026-09-26T00:00:00Z',
+            'retrieved-at': '2026-09-26T00:00:00Z',
+            completeness: 'complete',
+            freshness: 'fresh',
+            availability: 'available',
+          },
+        },
+      },
+      contextDetails: [],
+      headingTag: 'h3',
+    }));
+
+    /** @param {string} search */
+    async function loadWithDebug(search) {
+      const output = { debug: vi.fn() };
+      vi.doMock('../../src/debug.js', async () => {
+        const actual = /** @type {typeof import('../../src/debug.js')} */ (
+          await vi.importActual('../../src/debug.js')
+        );
+        return {
+          ...actual,
+          createDebug: (/** @type {string} */ category) => actual.createDebug(category, { search: () => search, output })
+        };
+      });
+      vi.resetModules();
+      return { output, module: await import('../../src/components/campaign-memory.js') };
+    }
+
+    afterEach(() => {
+      vi.doUnmock('../../src/debug.js');
+      vi.resetModules();
+    });
+
+    it('logs a single-campaign manifest failure with only the error name', async () => {
+      const { output, module } = await loadWithDebug('?debug=campaign-memory');
+      memoryApi.list.mockRejectedValue(new TypeError(SENSITIVE));
+
+      const rendered = module.renderCampaignMemory({ campaignId: 'ambient-context', campaignName: 'Ambient Context' });
+      document.body.append(rendered);
+
+      await vi.waitFor(() => expect(output.debug).toHaveBeenCalledWith(
+        '[cao:campaign-memory]',
+        { operation: 'list-manifest', status: 'error', errorName: 'TypeError' }
+      ));
+      expect(JSON.stringify(output.debug.mock.calls)).not.toContain('secret-token');
+    });
+
+    it('logs an all-campaign listing failure with a count and sanitized error name', async () => {
+      const { output, module } = await loadWithDebug('?debug=campaign-memory');
+      const failure = new Error(SENSITIVE);
+      failure.name = 'CustomSecretError';
+      memoryApi.listAll.mockRejectedValue(failure);
+
+      const rendered = module.renderAllCampaignMemory(campaignContext());
+      document.body.append(rendered);
+
+      await vi.waitFor(() => expect(output.debug).toHaveBeenCalledWith(
+        '[cao:campaign-memory]',
+        { operation: 'list-campaigns', status: 'error', campaignCount: 1, errorName: 'UnknownError' }
+      ));
+      expect(JSON.stringify(output.debug.mock.calls)).not.toContain('secret-token');
+      expect(JSON.stringify(output.debug.mock.calls)).not.toContain('CustomSecretError');
+    });
+
+    it('logs an all-campaign file read failure without the path or message', async () => {
+      const { output, module } = await loadWithDebug('?debug=campaign-memory');
+      memoryApi.listAll.mockResolvedValue([{
+        branch: 'memory/ambient-context',
+        commit: 'a'.repeat(40),
+        files: [{ path: 'private/path.md', oid: 'b'.repeat(40), size: 5 }],
+        omitted: {},
+      }]);
+      memoryApi.read.mockRejectedValue(new RangeError(SENSITIVE));
+
+      const rendered = module.renderAllCampaignMemory(campaignContext());
+      document.body.append(rendered);
+      await vi.waitFor(() => expect(rendered.querySelector('.campaign-memory-file')).not.toBeNull());
+      /** @type {HTMLButtonElement} */ (rendered.querySelector('.campaign-memory-file')).click();
+
+      await vi.waitFor(() => expect(output.debug).toHaveBeenCalledWith(
+        '[cao:campaign-memory]',
+        { operation: 'read-file', status: 'error', scope: 'all-campaigns', errorName: 'RangeError' }
+      ));
+      const logged = JSON.stringify(output.debug.mock.calls);
+      expect(logged).not.toContain('secret-token');
+      expect(logged).not.toContain('private/path.md');
+    });
+
+    it('emits nothing for the failures when the category is not selected or is excluded', async () => {
+      for (const search of ['', '?debug=other-category', '?debug=*,-campaign-memory']) {
+        const { output, module } = await loadWithDebug(search);
+        memoryApi.list.mockRejectedValue(new Error(SENSITIVE));
+        memoryApi.listAll.mockRejectedValue(new Error(SENSITIVE));
+
+        const single = module.renderCampaignMemory({ campaignId: 'ambient-context', campaignName: 'Ambient Context' });
+        const all = module.renderAllCampaignMemory(campaignContext());
+        document.body.append(single, all);
+        await vi.waitFor(() => expect(single.textContent).toContain(SENSITIVE));
+        await vi.waitFor(() => expect(all.textContent).toContain(SENSITIVE));
+
+        expect(output.debug.mock.calls.filter(([prefix]) => prefix === '[cao:campaign-memory]')).toEqual([]);
+        single.remove();
+        all.remove();
+      }
+    });
+  });
 });
