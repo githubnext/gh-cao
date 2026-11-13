@@ -1,36 +1,7 @@
 {
  "source_sha": "01e2e1cd96cc35fc78b79689f5653d128d309059",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T08:53:34Z",
-   "worker_run_id": "43396036088",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none in progress; no new completions since the 08:36Z evaluation; source f0c3fc4 = HEAD = source_sha). Excluded and disclosed: 1 failed 43297524311 (e465d28; Build documentation failed at 14 s; fixed by cd1e0ba); 0 cancelled. Comparable n=19 successes (18 push, 1 schedule 43371878284); 5-run gate met. Job and step metadata re-fetched this run for all 20 runs and matched run_samples. Concurrency: 3 of 19 waited more than 5 s, each ending at the predecessor completion: 43341730805 81 s behind 43341713733; 43371269326 44 s behind 43371217266; 43368963164 32 s behind 43368845651. Median wait 1 s, p90 44 s; queue created-to-start median 3 s. Gate unmet: the 60 s / 15% (12.75 s) gate cannot be reached by scheduling, since a wait shortens only if the predecessor publication shortens (median exec 85 s, p90 106 s). Rejected for deployment safety: cancel-in-progress true (cuts in-flight Pages publication); deploy-only concurrency with parallel builds (an older SHA could publish after a newer one). Avoidable rebuilds: compare API on 18 consecutive publication ranges; 0 of 18 push runs changed only trigger-only paths (dashboard/site/test/**, shared/cao.schema.json); each push changed a build input (dashboard/site/src, docs/**, aw.yml, dashboard/site/scripts/build.mjs). Same-SHA duplicate: 1 (schedule 43371878284 republished 5943848 about 5 min after push 43371269326 on the same UTC date); not repeated; a skip needs same-day date-equivalence logic and is unmeasured. Open issues: none with this worker label; 20440 and 20719 are gh-aw failure reports. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T09:23:00Z",
    "worker_run_id": "43400044427",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43484369040 back to 43360893141; created 2026-11-13T03:43:58Z to 18:37:04Z; all within 14 days; none in progress; long-queued 37642403569 (2026-10-07) is outside the window; source = workspace HEAD 01e2e1c, newest docs run head f60a3f2; docs.yml last changed 063cbe9 before the window). Excluded: 0 failed, 0 cancelled. Comparable n=20 successes (19 push, 1 schedule 43371878284); 5-run gate met. Medians (p90): exec 87.5 s (98); build job 72 s (82); deploy job 10 s (10-11). Transfer chain: Configure Pages 0 s (1); Upload Pages artifact 2 s (3); build-end to deploy-created 0 s (1); deploy queue 5 s (5); deploy Set up job 1 s (1); Deploy Pages 7 s (8, GitHub-managed). Controllable overhead (first five) median 8 s, p90 10 s, max 10 s = 9.1% of median exec; 15% gate 13.1 s unmet even at full removal; 60 s unreachable. github-pages artifact median 8.30 MB (8.26-8.38); shrinking saves at most 1-2 s. Merging deploy into build saves about 6 s and moves id-token and pages write into the npm-ci build job: rejected (least privilege). Demo cp into dist/cao is sub-second inside the 4 s demo step. No suggestion; no issue created (open issue 20815 already carries the prior docs-checkout-blobless-history-v1 suggestion and is not repeated). next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T19:20:26Z",
+   "worker_run_id": "43490268561",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43484369040 back to 43360893141; created 2026-11-13T03:43:58Z to 18:37:04Z; identical to the 18:53Z window; 20/20 success = 19 push + 1 schedule 43371878284; 0 cancelled, 0 failed, none in progress; 5-run gate met). Jobs API re-fetched for all 20 runs. Build-job queue median 3 s. Concurrency wait (run created to build created) median 1 s, p90 32 s, max 51 s; waits of 32/44/51 s (43368963164, 43371269326, 43430232636) end at predecessor deploy completion. Waits add wall time only: exec median 87.5 s, p90 98 s; median saving 0-1 s; 15% gate 13.1 s and 60 s unmet. Avoidable rebuilds: 0 of 19 push publications changed only trigger-only paths (compare API for each push; 3 compare 500s retried OK; pre-window base checked for 43360893141); each changed a docs/ or dashboard/site/src build input. Same-SHA duplicate: 1 (schedule 43371878284 republished 5943848 about 5 min after push 43371269326; daily synthetic-date refresh; skip unmeasured). HEAD 01e2e1c touched no docs.yml trigger path. Open issue 20815 (blobless checkout, 17:41Z) already represents the 17:38Z actionable finding: not repeated. Closed NOT_PLANNED 20131, 19765, 18158, 15029, 16054 not repeated; no new evidence. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -889,48 +889,48 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T03:43:58Z..2026-11-13T18:37:04Z",
-  "evaluated_at": "2026-11-13T18:53:04Z",
+  "evaluated_at": "2026-11-13T19:20:26Z",
   "note": "per-run seconds, latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success). exec_s=build job start to deploy end; build_s=build job; queue_s=build created to start; handoff_s=build end to deploy created; deploy_s=deploy job. Jobs API timings; logs not read (403 DIFC).",
   "step_stats_median_p90_s": {
    "Checkout": [
-    25.0,
-    29.0
+    25,
+    29
    ],
    "Install dependencies": [
-    17.0,
-    23.0
+    17,
+    23
    ],
    "Build documentation": [
-    14.0,
-    15.0
+    14,
+    15
    ],
    "Build synthetic enterprise demo": [
-    4.0,
-    5.0
+    4,
+    5
    ],
    "Set up Node.js": [
-    3.0,
-    7.0
+    3,
+    7
    ],
    "Configure Pages": [
-    0.0,
-    1.0
+    0,
+    1
    ],
    "Upload Pages artifact": [
-    2.0,
-    3.0
+    2,
+    3
    ],
    "Deploy Pages": [
-    7.0,
-    8.0
+    7,
+    8
    ],
    "deploy queue": [
-    5.0,
-    5.0
+    5,
+    5
    ],
    "deploy set up job": [
-    1.0,
-    1.0
+    1,
+    1
    ]
   },
   "rows": [
@@ -1198,11 +1198,6 @@
    "note": "Concurrency waits 3-4 of 20 at 32-81 s before build creation (queue only). Re-evaluate only with a same-SHA duplicate that repeats or a maintainer decision on group ordering."
   },
   {
-   "observed_at": "2026-11-13T15:35:15Z",
-   "source": "docs.yml concurrency and avoidable rebuilds (worker 43453133420)",
-   "note": "Window 43345305064..43447728981: wait median 1 s, p90 32 s, max 51 s (queue only); 0 of 19 push publications avoidable by path; schedule duplicate 43371878284 single occurrence (86 s). Re-evaluate only if same-SHA scheduled duplicates repeat or a maintainer approves a freshness gate for the schedule."
-  },
-  {
    "observed_at": "2026-11-13T17:38:10Z",
    "source": "docs.yml checkout (worker 43473225781) CORRECTION",
    "note": "Pinned actions/checkout v7.0.1 (3d3c42e5) exposes filter (action.yml line 60). Earlier note claiming no filter input was wrong. Shallow checkout remains unsafe (git log per file would give HEAD date). filter blob:none keeps commits and trees, so provenance is unchanged. Suggestion issued: fingerprint docs-checkout-blobless-history-v1."
@@ -1211,6 +1206,11 @@
    "observed_at": "2026-11-13T18:53:04Z",
    "source": "docs.yml artifact transfer and Pages packaging (worker 43486180054)",
    "note": "Controllable transfer overhead median 8 s (p90 10) = 9.1% of median exec 87.5 s; below the 13.1 s gate even at full removal. Deploy-into-build merge saves about 6 s and is rejected (least privilege). Re-evaluate only if the deploy job is removed by a maintainer design change or transfer overhead median reaches 13 s."
+  },
+  {
+   "observed_at": "2026-11-13T19:20:26Z",
+   "source": "docs.yml scheduling, concurrency, avoidable rebuilds (worker 43490268561)",
+   "note": "Window 43360893141..43484369040: wait median 1 s, p90 32 s, max 51 s (queue only, ends at predecessor deploy); 0 of 19 push publications avoidable by path; schedule duplicate 43371878284 single occurrence. Re-evaluate only if same-SHA scheduled duplicates repeat, a maintainer approves a freshness gate for the schedule, or group ordering changes."
   }
  ],
  "checkout_probe": {
@@ -1225,7 +1225,7 @@
   "blobless_all_heads_tags_s": {
    "fetch": 1.3,
    "checkout": 2.7,
-   "total": 4.0,
+   "total": 4,
    "size": "93M"
   },
   "provenance_equivalence": "git log -1 --format=%cI <HEAD> -- <path>: 3348/3348 identical full vs blobless; missing-blob count unchanged (no lazy fetch)",
