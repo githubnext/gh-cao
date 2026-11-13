@@ -31,6 +31,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - >-
+              rm -f /tmp/backfill-ready &&
               /app/cao-dashboard backfill --database-queries /app/queries/database.json &&
               touch /tmp/backfill-ready &&
               exec /app/cao-dashboard collect --database-queries /app/queries/database.json

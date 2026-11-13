@@ -21,7 +21,10 @@ scope, using the same path for build, serve and native activation.
 
 Use Docker Desktop's **kind** Kubernetes provisioner with its
 `desktop-control-plane` node, Docker context `desktop-linux`, kubectl, Bash and
-OpenSSL supporting `req -addext`. A default dynamic StorageClass is required.
+OpenSSL supporting `req -addext`, plus Node.js and the root package dependencies
+for operator-side policy verification and manifest rendering. Restore those
+dependencies through the configured Microsoft-approved npm feed. Neither
+application container needs Node.js. A default dynamic StorageClass is required.
 Other provisioners deliberately fail image import instead of silently pulling
 another image. The importer streams only the two built images into this exact
 node's containerd image store; it mounts no host socket or filesystem.
@@ -147,7 +150,24 @@ The local cluster administrator remains trusted: namespace separation and
 disabled ServiceAccount-token mounts are not a complete RBAC/network-security
 installation. No enforced NetworkPolicy or egress-isolation claim is made.
 
-`build` updates local image tags and imports them; restart the web after rebuilding.
+`build` records content-addressed image tags and the exact policy SHA-256 in
+`.tmp/cao-kubernetes-local/images.env`, and imports those images. The tag suffix
+is the local Docker image ID, not a registry manifest digest. Activation checks
+the image identity, policy label and policy bytes; a changed policy requires a
+rebuild. Re-run `serve` after rebuilding, or `native` for a native installation,
+to declaratively roll out the new references. No manual restart is needed for an
+image-reference change.
+
+The YAML files in this directory are **input templates**, not supported direct
+apply inputs. The helper produces complete JSON manifests under
+`.tmp/cao-kubernetes-local/rendered/{snapshot,native}/`, including exact images,
+content-bound policy/configuration references and the selected ingestion mode.
+Review those files, but activate native collection through the helper so its
+preflight and inventory pin cannot be skipped. `serve` preserves the activated
+profile recorded on the web Deployment; merely staging a native ConfigMap never
+selects it. Existing native installations without that profile annotation must
+run `native` once with their original reviewed inputs before using `serve`.
+
 Certificate or Secret updates also require a controlled web restart; TLS files
 are loaded at startup, not automatically reloaded. Development certificates expire
 after 30 days. Port-forward must remain running, binds only to `127.0.0.1`, and
@@ -181,6 +201,9 @@ remote policy revision, validates it with the production CAO policy resolver,
 and prints the inventory SHA-256. It refuses to overwrite a file. The runtime
 does not require Node, GitHub CLI or local source files.
 Create a non-secret env file with exactly these four reviewed settings:
+Use canonical lowercase `owner/repository` for the control repository. Inventory
+generation and App membership verification normalize GitHub's display casing
+without changing the original reviewed policy bytes.
 
 ```text
 CAO_COLLECT_APP_ID=your-real-numeric-app-id
@@ -198,6 +221,15 @@ bash server/kubernetes/local.sh native /private/path/inventory.json \
   /private/path/collector.env /private/path/app.private-key.pem
 ```
 
+Before any activation writes, the helper checks both namespace owners, the
+image/policy binding, reviewed inventory/configuration and the App's complete
+installation membership against the exact repository scope. Verification uses
+short-lived metadata-only tokens and revokes them, including on scope failure;
+the collector itself still inherits the App's granted permissions. Pagination
+follows terminal Link headers, including across empty pages, rather than trusting
+the aggregate repository count. Missing access, extra repositories and token
+cleanup failures block activation.
+
 The provisioning Job validates the digest before database access and pins the
 source through runtime PostgreSQL authority. Repeating the same pin is safe;
 a different existing configuration fails and requires explicit expected-digest
@@ -205,12 +237,19 @@ replacement, not automatic rollover. This helper limits inventory to 900000
 bytes for Kubernetes ConfigMap transport; the native contract's larger bound is
 unchanged.
 
-Only the separate `cao-collector` deployment mounts the App key. It performs a
-real backfill before becoming Ready, then runs the durable native worker. The
-web switches to credential-free native admission, retaining HTTPS, OAuth and
-its original readiness requirements. Snapshot ingestion is blocked while native
-configuration exists; native activation refuses an active helper-created
-snapshot Job. Do not start out-of-band writers concurrently.
+Configuration is staged under content-bound names without overwriting active
+inputs. Only after a successful pin is the separately named App-key Secret
+created and mounted by `cao-collector`. It clears its prior readiness marker on
+every container start and performs a new successful backfill before becoming
+Ready and running the durable worker. The web switches to credential-free native
+admission only after that rollout succeeds, retaining HTTPS, OAuth and its
+original readiness requirements. A failed preflight or pin does not switch the
+active mode, mount the new key or start the collector; staged ConfigMaps/Jobs
+may remain for inspection. Kubernetes multi-resource updates are not an atomic
+transaction: a later rollout failure requires inspecting the retained resources.
+Snapshot ingestion is blocked by an activated native profile or a nonzero
+collector Deployment; native activation refuses an active helper-created snapshot
+Job. Do not start out-of-band writers concurrently.
 This optional path enables neither Value collection, delivery replay nor workflow
 execution. New repository copies have no copied Actions run history: populated
 inventory with no runs is not a successful historical-run acquisition claim.

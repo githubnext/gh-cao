@@ -21,6 +21,7 @@ export const unitTestAreas = {
     /^token-optimization-data-contract\./, /^unit-area-selection\./,
     /^backfill-stress-report\./, /^company-stress\./, /^source-map-compat\./,
     /^maintainer-simulation\./, /^local-artifacts\./,
+    /^kubernetes-local\./,
     /^(?:native-value-import|value-session-archive)\./,
   ],
   documentation: [

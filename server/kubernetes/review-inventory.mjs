@@ -13,6 +13,7 @@ function validateIdentity(repository, revision) {
 
 export function reviewedBareInventory(raw, repository, revision) {
   validateIdentity(repository, revision);
+  repository = repository.toLowerCase();
   const document = parsePolicy(raw);
   const control = document["control-plane"];
   for (const name of ["campaigns", "workflows", "operations"]) {
@@ -50,6 +51,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   ], { encoding: "utf8", maxBuffer: 16 << 20 });
   const content = reviewedBareInventory(raw, repository, revision);
   writeFileSync(output, content, { flag: "wx", mode: 0o600 });
-  console.log(JSON.stringify({ sourceRepository: repository, sourceSHA: revision,
+  console.log(JSON.stringify({ sourceRepository: repository.toLowerCase(), sourceSHA: revision,
     inventoryDigest: createHash("sha256").update(content).digest("hex") }));
 }

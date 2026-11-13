@@ -11,16 +11,65 @@ db_host=cao-postgres.cao-local-system.svc.cluster.local
 k() { kubectl --context docker-desktop "$@"; }
 fail() { printf '%s\n' "$*" >&2; exit 1; }
 
+check_namespaces() {
+  local name identity
+  for name in cao-local-system cao-local; do
+    identity=$(k get namespace "$name" --ignore-not-found \
+      -o 'jsonpath={.metadata.name}{"|"}{.metadata.labels.app\.kubernetes\.io/part-of}')
+    test -z "$identity" || test "$identity" = "$name|cao-local" || fail "Refusing foreign namespace: $name"
+  done
+}
+
 namespace() {
-  local name=$1 owner
-  if k get namespace "$name" >/dev/null 2>&1; then
-    owner=$(k get namespace "$name" -o 'jsonpath={.metadata.labels.app\.kubernetes\.io/part-of}')
-    test "$owner" = cao-local || fail "Refusing foreign namespace: $name"
-  else
-    k create namespace "$name"
-    k label namespace "$name" app.kubernetes.io/part-of=cao-local \
-      pod-security.kubernetes.io/enforce=restricted
+  local name=$1
+  if test -z "$(k get namespace "$name" --ignore-not-found -o name)"; then
+    printf '{"apiVersion":"v1","kind":"Namespace","metadata":{"name":"%s","labels":{"app.kubernetes.io/part-of":"cao-local","pod-security.kubernetes.io/enforce":"restricted"}}}\n' "$name" |
+      k create -f -
   fi
+}
+
+required_files() {
+  local file
+  for file in "$@"; do test -s "$file" || fail "Required input missing: $file"; done
+}
+
+read_images() {
+  node "$assets/deployment.mjs" images "$state/images.env" "$policy"
+  runtime_image=$(awk -F= '$1=="RUNTIME_IMAGE" { print $2 }' "$state/images.env")
+  maintenance_image=$(awk -F= '$1=="MAINTENANCE_IMAGE" { print $2 }' "$state/images.env")
+  policy_digest=$(awk -F= '$1=="POLICY_SHA256" { print $2 }' "$state/images.env")
+  policy_config="cao-policy-${policy_digest:0:24}"
+  local image identity
+  for image in "$runtime_image" "$maintenance_image"; do
+    identity=$(docker image inspect "$image" --format '{{.Id}} {{index .Config.Labels "io.github.cao.policy-sha256"}}')
+    test "$identity" = "sha256:${image##*:sha256-} $policy_digest" || fail "Built image identity or policy label mismatch."
+  done
+}
+
+render() {
+  local name=$1 profile=${2:-snapshot} config=${3:-}
+  mkdir -p "$state/rendered/$profile"
+  node "$assets/deployment.mjs" render "$assets/$name.yaml" "$state/images.env" "$policy" "$profile" "$config" \
+    > "$state/rendered/$profile/$name.json"
+}
+
+active_profile() {
+  local legacy
+  profile=$(k -n cao-local get deployment cao-web --ignore-not-found -o 'jsonpath={.metadata.annotations.cao-local-profile}')
+  native_config=$(k -n cao-local get deployment cao-web --ignore-not-found -o 'jsonpath={.metadata.annotations.cao-local-native-config}')
+  case "$profile" in
+    native)
+      [[ "$native_config" =~ ^cao-native-[a-f0-9]{24}$ ]] || fail "Invalid active native configuration."
+      ;;
+    ""|snapshot)
+      legacy=$(k -n cao-local get deployment cao-web --ignore-not-found \
+        -o 'jsonpath={.spec.template.spec.containers[?(@.name=="web")].env[?(@.name=="CAO_COLLECT_NATIVE")].value}')
+      test "$legacy" != true || fail "Legacy native deployment: re-run native with reviewed inputs before serve."
+      profile=snapshot
+      native_config=
+      ;;
+    *) fail "Unknown active ingestion profile." ;;
+  esac
 }
 
 prepare() {
@@ -67,24 +116,34 @@ build() {
   mkdir -p "$state/build-policy"
   cp "$policy" "$state/build-policy/cao.json"
   cp "$policy" "$state/build-policy/cao.azure.json"
-  local target image
+  local target image identity runtime maintenance digest
+  digest=$(openssl dgst -sha256 "$policy" | awk '{ print $NF }')
   for target in kubernetes-runtime kubernetes-db-maintenance; do
     image=cao-dashboard
     if test "$target" = kubernetes-db-maintenance; then image=cao-db-maintenance; fi
     docker build --target "$target" \
       --build-arg CAO_NPM_REGISTRY=https://packagefeedproxy.microsoft.io/npm/ \
       --build-arg "REVISION=$(git -C "$root" rev-parse HEAD)" \
+      --label "io.github.cao.policy-sha256=$digest" \
       --build-context "cao-policy=$state/build-policy" \
-      -t "$image:local" -f "$root/server/Dockerfile" "$root"
+      -t "$image:build" -f "$root/server/Dockerfile" "$root"
+    identity=$(docker image inspect "$image:build" --format '{{.Id}}')
+    [[ "$identity" =~ ^sha256:[a-f0-9]{64}$ ]] || fail "Invalid built image identity."
+    image="$image:sha256-${identity#sha256:}"
+    docker image tag "$identity" "$image"
+    if test "$target" = kubernetes-runtime; then runtime=$image; else maintenance=$image; fi
   done
+  printf 'RUNTIME_IMAGE=%s\nMAINTENANCE_IMAGE=%s\nPOLICY_SHA256=%s\n' "$runtime" "$maintenance" "$digest" > "$state/images.env.tmp"
+  mv "$state/images.env.tmp" "$state/images.env"
   load
 }
 
 load() {
+  read_images
   test "$(docker context show)" = desktop-linux || fail "Select Docker context desktop-linux before loading."
   test "$(k get node desktop-control-plane -o jsonpath='{.spec.providerID}')" = \
     kind://docker/desktop/desktop-control-plane || fail "Expected the Docker Desktop kind node."
-  docker image save cao-dashboard:local cao-db-maintenance:local |
+  docker image save "$runtime_image" "$maintenance_image" |
     docker exec -i desktop-control-plane ctr --namespace k8s.io images import -
 }
 
@@ -103,7 +162,13 @@ secret() {
 }
 
 database() {
-  test -s "$state/bootstrap.env" || fail "Run prepare first."
+  required_files "$state/bootstrap.env" "$state/database.env" "$state/postgres.env" \
+    "$state/owner.env" "$state/runtime.env" "$state/postgres.crt" "$state/postgres.key" "$state/ca.crt"
+  read_images
+  check_namespaces
+  render postgres
+  render bootstrap
+  render maintenance
   namespace cao-local-system
   namespace cao-local
   shared_config cao-local-system
@@ -115,12 +180,12 @@ database() {
   k -n cao-local-system create secret tls cao-postgres-tls \
     --cert="$state/postgres.crt" --key="$state/postgres.key" \
     --dry-run=client -o yaml | k apply -f -
-  k apply -f "$assets/postgres.yaml"
+  k apply -f "$state/rendered/snapshot/postgres.json"
   k -n cao-local-system rollout status statefulset/cao-postgres --timeout=180s
   local job
-  job=$(k create -f "$assets/bootstrap.yaml" -o name)
+  job=$(k create -f "$state/rendered/snapshot/bootstrap.json" -o name)
   wait_job cao-local-system "$job"
-  k apply -f "$assets/maintenance.yaml"
+  k apply -f "$state/rendered/snapshot/maintenance.json"
 }
 
 wait_job() {
@@ -147,70 +212,82 @@ serve() {
     { if (seen[$1]++) exit 1; count++ }
     END { if (count != 4) exit 1 }
   ' "$oauth" || fail "OAuth file must contain exactly CLIENT_ID, CLIENT_SECRET, ALLOWED_USERS and ADMIN_USERS (CAO_GITHUB_ prefix), with all placeholders replaced."
+  check_namespaces
+  required_files "$state/web-keys.env" "$state/web.crt" "$state/web.key"
+  read_images
+  active_profile
+  if test "$profile" = native; then
+    required_files "$state/active-native.env"
+    test "$(k -n cao-local get deployment cao-web -o 'jsonpath={.spec.template.metadata.annotations.cao-local-policy-sha256}')" = "$policy_digest" ||
+      fail "Native policy changed; re-run native with reviewed inputs before serve."
+    test "$(k -n cao-local get configmap "$native_config" -o 'jsonpath={.data.CAO_COLLECT_NATIVE_INVENTORY_DIGEST}')" = \
+      "$(awk -F= '$1=="CAO_COLLECT_NATIVE_INVENTORY_DIGEST" { print $2 }' "$state/active-native.env")" ||
+      fail "Active native configuration does not match local reviewed state."
+  fi
+  render web "$profile" "$native_config"
   namespace cao-local
   secret cao-local cao-oauth "$oauth"
   secret cao-local cao-web-keys "$state/web-keys.env"
   k -n cao-local create secret tls cao-web-tls --cert="$state/web.crt" --key="$state/web.key" \
     --dry-run=client -o yaml | k apply -f -
-  k -n cao-local create configmap cao-policy --from-file=cao.json="$policy" \
+  k -n cao-local create configmap "$policy_config" --from-file=cao.json="$policy" \
     --dry-run=client -o yaml | k apply -f -
-  k apply -f "$assets/web.yaml"
-  if k -n cao-local get configmap cao-native >/dev/null 2>&1; then
-    native_web
-  fi
+  k apply -f "$state/rendered/$profile/web.json"
   k -n cao-local rollout status deployment/cao-web --timeout=180s
-}
-
-native_web() {
-  k -n cao-local set env deployment/cao-web --from=configmap/cao-native \
-    CAO_COLLECT_NATIVE=true CAO_COLLECT_ADMIT_ONLY=true CAO_EXTERNAL_INGESTION=false
 }
 
 native() {
   local source=${1:?Supply the reviewed inventory file}
   local config=${2:?Supply the non-secret native collector env file}
   local key=${3:?Supply the private GitHub App key file}
-  local digest expected job active
+  local job active config_name
   test -n "${CAO_LOCAL_POLICY:-}" || fail "Native collection requires an explicit reviewed CAO_LOCAL_POLICY, also selected when building."
-  test -f "$source" && test -f "$config" && test -s "$key" || fail "Inventory, collector configuration and App key files are required."
-  test "$(wc -c < "$source")" -le 900000 || fail "Local inventory ConfigMap is limited to 900000 bytes."
-  awk -F= '
-    /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
-    $1 !~ /^CAO_COLLECT_(APP_ID|CONTROL_REPOSITORY|NATIVE_INVENTORY_DIGEST|INVENTORY_LIMIT)$/ || length($0) <= length($1)+1 { exit 1 }
-    { if (seen[$1]++) exit 1; count++ }
-    END { if (count != 4) exit 1 }
-  ' "$config" || fail "Collector configuration requires exactly App ID, control repository, inventory digest and repository limit; no credentials or other features."
-  expected=$(awk -F= '$1=="CAO_COLLECT_NATIVE_INVENTORY_DIGEST" { print $2 }' "$config")
-  digest=$(openssl dgst -sha256 "$source" | awk '{ print $NF }')
-  test "$digest" = "$expected" || fail "Reviewed inventory digest mismatch."
-  namespace cao-local
-  for active in $(k -n cao-local get jobs -l cao-profile=snapshot -o 'jsonpath={.items[*].status.active}'); do
-    test "$active" = 0 || fail "Wait for the active snapshot ingestion Job before selecting native collection."
+  required_files "$source" "$config" "$key"
+  read_images
+  check_namespaces
+  k -n cao-local get deployment cao-web -o name >/dev/null
+  for active in $(k -n cao-local get jobs -l cao-profile=snapshot \
+    -o 'jsonpath={range .items[*]}{.metadata.name}{":"}{.status.conditions[?(@.status=="True")].type}{"\n"}{end}'); do
+    case "$active" in
+      *:Complete|*:Failed) ;;
+      *) fail "Wait for the nonterminal snapshot ingestion Job before selecting native collection." ;;
+    esac
   done
-  k -n cao-local create configmap cao-policy --from-file=cao.json="$policy" \
+  config_name=$(node "$assets/deployment.mjs" verify-native "$source" "$config" "$policy" "$key")
+  render inventory native "$config_name"
+  render collector native "$config_name"
+  render web native "$config_name"
+  namespace cao-local
+  k -n cao-local create configmap "$policy_config" --from-file=cao.json="$policy" \
     --dry-run=client -o yaml | k apply -f -
-  k -n cao-local create configmap cao-native --from-env-file="$config" \
+  k -n cao-local create configmap "$config_name" --from-env-file="$config" \
     --dry-run=client -o yaml | k apply -f -
-  k -n cao-local create configmap cao-native-inventory --from-file=inventory.json="$source" \
+  k -n cao-local create configmap "$config_name-inventory" --from-file=inventory.json="$source" \
     --dry-run=client -o yaml | k apply -f -
-  job=$(k create -f "$assets/inventory.yaml" -o name)
+  job=$(k create -f "$state/rendered/native/inventory.json" -o name)
   wait_job cao-local "$job"
-  k -n cao-local create secret generic cao-collector-key --from-file=private-key.pem="$key" \
+  k -n cao-local create secret generic "$config_name-key" --from-file=private-key.pem="$key" \
     --dry-run=client -o yaml | k apply -f -
-  native_web
-  k apply -f "$assets/collector.yaml"
+  k apply -f "$state/rendered/native/collector.json"
   k -n cao-local rollout status deployment/cao-collector --timeout=300s
+  k apply -f "$state/rendered/native/web.json"
+  cp "$config" "$state/active-native.env"
   k -n cao-local rollout status deployment/cao-web --timeout=180s
 }
 
 ingest() {
-  local source=${1:?Supply the absolute path to a verified operational artifact} job pod
+  local source=${1:?Supply the absolute path to a verified operational artifact} job pod collector_replicas
   test -f "$source/payload-hashes.json" || fail "Explicit operational payload-hashes.json is required."
   test ! -e "$source/.ready" || fail "Source must not contain the upload completion marker."
-  if k -n cao-local get configmap cao-native >/dev/null 2>&1; then
+  read_images
+  check_namespaces
+  active_profile
+  collector_replicas=$(k -n cao-local get deployment cao-collector --ignore-not-found -o 'jsonpath={.spec.replicas}')
+  if test "$profile" = native || { test -n "$collector_replicas" && test "$collector_replicas" != 0; }; then
     fail "Native collection and snapshot ingestion are exclusive; stop and explicitly retire the native profile before ingesting snapshots."
   fi
-  job=$(k create -f "$assets/ingest.yaml" -o name)
+  render ingest
+  job=$(k create -f "$state/rendered/snapshot/ingest.json" -o name)
   k -n cao-local wait --for=condition=Ready pod -l "job-name=${job#job.batch/}" --timeout=180s
   pod=$(k -n cao-local get pods -l "job-name=${job#job.batch/}" -o jsonpath='{.items[0].metadata.name}')
   k -n cao-local cp "$source/." "$pod:/data" -c ingest
