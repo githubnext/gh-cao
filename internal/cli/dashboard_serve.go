@@ -104,14 +104,22 @@ func dashboardServerAssets(options dashboardOptions) (server, site string, clean
 }
 
 func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache string, options dashboardOptions, gh ghExecutor, logs dashboardLogsCollector) error {
+	ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	ctx, stopOwner := context.WithCancel(ctx)
+	defer stopOwner()
+	if options.exitOnStdinClose {
+		go func() {
+			_, _ = io.Copy(io.Discard, cmd.InOrStdin())
+			stopOwner()
+		}()
+	}
 	server, site, cleanup, err := dashboardServerAssets(options)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
 	namespace := dashboardPostgresNamespace(repositories)
-	ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 	_, _ = fmt.Fprintf(cmd.ErrOrStderr(),
 		"Starting local CAO dashboard for %s...\n"+
 			"Collecting up to %s of recent activity; cached artifacts are reused.\n"+
@@ -156,12 +164,21 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	defer func() { _ = serverOutput.Close(); _ = serverOutputWriter.Close() }()
 	addressDone := make(chan error, 1)
 	serverReady := make(chan struct{}, 1)
-	announceReady := func(address string) {
-		printDashboardReady(cmd.ErrOrStderr(), address+"#page-overview", repositories, cache, options)
+	announceReady := func(address string) error {
+		address += "#page-overview"
+		if options.json {
+			if err := json.NewEncoder(cmd.OutOrStdout()).Encode(map[string]string{"url": address}); err != nil {
+				cancel()
+				return fmt.Errorf("write dashboard readiness: %w", err)
+			}
+		} else {
+			printDashboardReady(cmd.ErrOrStderr(), address, repositories, cache, options)
+		}
 		select {
 		case serverReady <- struct{}{}:
 		default:
 		}
+		return nil
 	}
 	readAddress := func() {
 		scanner := bufio.NewScanner(serverOutput)
@@ -170,9 +187,12 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 				URL string `json:"url"`
 			}
 			if json.Unmarshal(scanner.Bytes(), &ready) == nil && ready.URL != "" {
-				announceReady(ready.URL)
+				if err := announceReady(ready.URL); err != nil {
+					addressDone <- err
+					return
+				}
 			} else {
-				_, _ = fmt.Fprintln(cmd.OutOrStdout(), scanner.Text())
+				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), scanner.Text())
 			}
 		}
 		addressDone <- scanner.Err()
@@ -199,7 +219,10 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 			line := scanner.Text()
 			const marker = "serving local dashboard at "
 			if _, address, found := strings.Cut(line, marker); found {
-				announceReady(address)
+				if err := announceReady(address); err != nil {
+					outputDone <- err
+					return
+				}
 			} else {
 				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), line)
 			}

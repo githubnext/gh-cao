@@ -142,15 +142,15 @@ rollout mode, safe output, outcome, and operational value.
 Reading dashboard evidence does not start work, approve an output, grant
 workflow authority, change rollout policy, or write to a repository. Make those
 decisions through the control repository and its reviewed workflows and policy.
-The synthetic Pages demo is read-only; optional canvas commands and
+The synthetic Pages demo is read-only; native canvas/terminal maintenance and
 [hosted CLI actions](https://github.com/githubnext/gh-cao/blob/main/server/README.md#hosted-cli-actions)
 have separate authorization and approval requirements.
 
 <span id="design-queries-in-a-copilot-canvas"></span>
 
-The [canvas Query editor](agent-plugin.md#design-queries-in-a-copilot-canvas)
-supports local AI-assisted authoring and saved views. It is not enabled on the
-static website, hosted server, or ordinary local preview.
+The [Copilot plugin](agent-plugin.md#design-queries-in-a-copilot-canvas)
+provides conversation-based dashboard authoring skills and query tools. Its
+native CLI canvas does not expose the former canvas-only Query editor or saved views.
 
 ### Configure compiler defaults
 
@@ -191,5 +191,5 @@ perform these operations, so editing remains disabled for hosted administrators.
 - Let browser agents read the same pages through [WebMCP](dashboard-webmcp.md),
 	and agents without a browser or shell through
 	[Agent analysis](agent-analysis.md).
-- Use the [Copilot plugin and canvas](agent-plugin.md) for local query authoring
-	and explicitly approved commands.
+- Use the [Copilot plugin and canvas](agent-plugin.md) for local activity evidence
+	and conversation-based query authoring. Maintenance retains trusted terminal approval.

@@ -21,18 +21,20 @@ const dashboardMaximumDuration = 48 * time.Hour
 const dashboardMaximumWindow = 7 * 24 * time.Hour
 
 type dashboardOptions struct {
-	repositories    []string
-	cache           string
-	logs            string
-	listen          string
-	server          string
-	site            string
-	postgresURL     string
-	containerEngine string
-	window          time.Duration
-	duration        time.Duration
-	refresh         time.Duration
-	count           int
+	repositories     []string
+	cache            string
+	logs             string
+	listen           string
+	server           string
+	site             string
+	postgresURL      string
+	containerEngine  string
+	window           time.Duration
+	duration         time.Duration
+	refresh          time.Duration
+	count            int
+	json             bool
+	exitOnStdinClose bool
 	// localRepository is the lowercase github.com repository of the working
 	// checkout, when known; only that target may reuse .github/aw/logs.
 	localRepository string
@@ -74,6 +76,8 @@ Collection never changes policy, workflows, or remote repository state.`,
 	cmd.Flags().StringVar(&options.site, "site", "", "Explicit built dashboard site for source development")
 	cmd.Flags().StringVar(&options.postgresURL, "postgres-url", "", "PostgreSQL connection URL (or CAO_POSTGRES_URL)")
 	cmd.Flags().StringVar(&options.containerEngine, "container-engine", "", "Container engine for managed PostgreSQL: docker or podman (or CAO_CONTAINER_ENGINE; otherwise auto-detect)")
+	cmd.Flags().BoolVar(&options.json, "json", false, "Emit a JSON readiness message on stdout; diagnostics stay on stderr")
+	cmd.Flags().BoolVar(&options.exitOnStdinClose, "exit-on-stdin-close", false, "Stop when the parent closes stdin")
 	_ = cmd.RegisterFlagCompletionFunc("container-engine", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{"docker", "podman"}, cobra.ShellCompDirectiveNoFileComp
 	})

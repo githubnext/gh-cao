@@ -306,26 +306,29 @@ and exposure. Existing browser real-data databases are unused disposable state.
 The demo must not automatically delete databases or caches outside its scoped
 namespace; operators can explicitly clear the affected site's legacy storage.
 There is no standalone Node dashboard CLI, admin server or process replacement.
-The Copilot canvas also uses Go `serve`: `dashboard/canvas-go-host.mjs` launches
-the bundled server module or an explicitly selected compatible executable.
-Go owns the capability-protected browser origin, assets, canonical PostgreSQL
-queries, diagnostics, read-only repository memory and revision events.
-Canvas startup reads the workspace's prepared `.cao/` snapshot, or its explicitly
-selected `snapshotDirectory`, and ingests its checksum-verified canonical JSONL
-shards into PostgreSQL. It performs
-no Actions artifact or legacy dashboard-bundle discovery.
-Synthetic manifests and manifests without canonical shard checksums are rejected.
-Dashboard backlinks require explicit `caoUrl` or `CAO_DASHBOARD_URL`, never a
-GitHub Pages API lookup. There is
-no Node query backend, logical-source HTTP transport or browser ingestion
-fallback. Published inventory quality may accompany the snapshot as metadata
-only; missing quality remains unknown, never inferred complete from row counts.
-`dashboard/canvas-server.mjs` is a private loopback-only integration adapter
+The Copilot canvas launches the installed `gh cao dashboard` command in the
+session's working directory, optionally selecting one explicit repository.
+The native CLI owns bounded acquisition, managed PostgreSQL, cached canonical
+evidence and the capability-protected Go serving origin. It emits machine-readable
+readiness with `--json`, keeps diagnostics on stderr and stops collection and
+its server when `--exit-on-stdin-close` observes the extension's pipe close.
+The extension validates and probes the loopback readiness URL before returning it.
+It never builds or imports executable workspace code, stages a site, or requires
+a prepared `.cao/` snapshot. There is no legacy-host or browser ingestion fallback.
+The canvas retains native maintenance actions and their trusted interactive-terminal
+approval boundary. Missing terminal access fails explicitly rather than approving
+commands from canvas access alone.
+The former canvas-only query editor, custom views and session handoff are not
+part of this native canvas; bundled agent query/specification tools remain.
+
+The separate developer harness `dashboard/canvas-server.mjs` remains a private
+loopback-only integration adapter
 for JSON composition/live reload, authoring and trusted command callbacks.
 Bounded local-user GitHub reads and their cache remain in Go/PostgreSQL.
 Go proxies only those integration
-routes on the same public origin. Installed plugins carry the server sources
-and native query module; they never build or import executable workspace code.
+routes on the same public origin. This harness uses `dashboard/canvas-go-host.mjs`
+and an explicitly prepared checksum-verified canonical snapshot; it is not the
+installed Copilot canvas startup path.
 The adapter owns the Go child's stdin lifetime, stops it before removing staged
 assets, and cleans up failed startup. Canvas command execution requires paired
 trusted execution and approval callbacks; read-only authoring starts no command queue.

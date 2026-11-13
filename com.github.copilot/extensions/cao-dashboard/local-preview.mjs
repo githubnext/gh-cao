@@ -1,98 +1,106 @@
-import { cp, mkdtemp, realpath, rm } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative, sep } from "node:path";
-import { pathToFileURL } from "node:url";
-import { resolveBundledResource } from "./bundled-resources.mjs";
+import { spawn } from "node:child_process";
+import { realpath } from "node:fs/promises";
+import { createInterface } from "node:readline";
 
 /**
  * @param {{
  *   workingDirectory: string,
  *   repository?: string,
  *   ghExecutable?: string,
- *   postgresURL?: string,
- *   namespace?: string,
- *   generateQuery?: typeof import('./query-designer.mjs').generateDashboardQuery,
- *   enhanceQueryIntent?: typeof import('./query-designer.mjs').enhanceQueryEditorIntent,
- *   startSession?: (prompt: string) => Promise<void>,
- *   approveCliAction: (action: { id: string, command: string, input?: string }) => Promise<boolean>,
- *   executeCliAction: (action: {
- *     id: string, command: string, input?: string, signal?: AbortSignal,
- *     onOutput: (event: { stream: "stdout" | "stderr", data: string }) => void,
- *   }) => Promise<unknown>,
+ *   startupTimeout?: number,
  * }} options
  */
 export async function startLocalDashboardPreview({
   workingDirectory,
   repository,
-  executeCliAction,
-  approveCliAction,
   ghExecutable = "gh",
-  postgresURL = process.env.CAO_POSTGRES_URL,
-  namespace = process.env.CAO_DATABASE_NAMESPACE,
-  generateQuery,
-  enhanceQueryIntent,
-  startSession,
+  startupTimeout = 360_000,
 }) {
-  const localServerPath = await resolveBundledResource("canvasServer");
-  const localServer = await import(pathToFileURL(localServerPath).href);
-  if (typeof localServer.startCanvasServer !== "function") {
-    throw new Error(
-      "dashboard/canvas-server.mjs does not export startCanvasServer.",
-    );
-  }
-
   const workspace = await realpath(workingDirectory);
-  const dashboardDirectory = dirname(await realpath(localServerPath));
-  const dashboardRelativePath = relative(workspace, dashboardDirectory);
-  const isWorkspaceDashboard = dashboardRelativePath === ""
-    || (!isAbsolute(dashboardRelativePath)
-      && dashboardRelativePath !== ".."
-      && !dashboardRelativePath.startsWith(`..${sep}`));
-  let stagedDirectory;
-  let siteRoot = await resolveBundledResource("site");
-  try {
-    if (!isWorkspaceDashboard) {
-      stagedDirectory = await mkdtemp(join(workspace, ".cao-dashboard-preview-"));
-      const stagedSite = join(stagedDirectory, "site");
-      const sourceSite = siteRoot;
-      await cp(sourceSite, stagedSite, {
-        recursive: true,
-        filter: (source) => !["node_modules", "dist", "test", "test-results", "scripts", ".tmp"]
-          .includes(relative(sourceSite, source).split(sep)[0]),
-      });
-      siteRoot = stagedSite;
-    }
-    const preview = await localServer.startCanvasServer({
-      workingDirectory: workspace,
-      siteRoot,
-      catalogRoot: isWorkspaceDashboard ? dirname(dashboardDirectory) : workspace,
-      repository,
-      ghExecutable,
-      postgresURL,
-      namespace,
-      generateQuery,
-      enhanceQueryIntent,
-      startSession,
-      executeCliAction,
-      approveCliAction,
-      host: "127.0.0.1",
-      port: 0,
-      output: (...values) => console.error(...values),
-      requestOutput: () => {},
-      traceOutput: () => {},
+  if (repository !== undefined
+      && (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository) || repository.includes(".."))) {
+    throw new Error("The dashboard repository must be an exact OWNER/REPO.");
+  }
+  const child = spawn(ghExecutable, [
+    "cao", "dashboard", "--json", "--exit-on-stdin-close",
+    "--listen", "127.0.0.1:0",
+    ...(repository ? ["--repo", repository] : []),
+  ], { cwd: workspace, stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
+  // Neither diagnostics nor capability URLs belong on the extension's stdio.
+  child.stderr.resume();
+  const lines = createInterface({ input: child.stdout });
+  let failure;
+  let stopped = false;
+  let finished = false;
+  const exited = new Promise((resolve) => {
+    child.once("error", (error) => { failure = error; finished = true; resolve(); });
+    child.once("exit", (code) => {
+      finished = true;
+      failure ??= new Error(`gh cao dashboard exited (${code}). Install or update the gh-cao extension and check gh authentication and Docker/Podman availability.`);
+      resolve();
     });
-    return {
-      url: preview.url,
-      async close() {
-        await preview.close();
-        if (stagedDirectory) {
-          await rm(stagedDirectory, { recursive: true, force: true });
+  });
+  child.stdin.on("error", (error) => {
+    failure = error;
+    child.kill("SIGTERM");
+  });
+  let closing;
+  const close = () => {
+    closing ??= (async () => {
+      stopped = true;
+      child.stdin.end();
+      const terminate = setTimeout(() => {
+        if (!finished) child.kill("SIGTERM");
+      }, 10_000);
+      const kill = setTimeout(() => {
+        if (!finished) child.kill("SIGKILL");
+      }, 20_000);
+      terminate.unref();
+      kill.unref();
+      try { await exited; }
+      finally {
+        clearTimeout(terminate);
+        clearTimeout(kill);
+        lines.close();
+      }
+    })();
+    return closing;
+  };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), startupTimeout);
+  try {
+    const readiness = (async () => {
+      for await (const line of lines) {
+        let ready;
+        try { ready = JSON.parse(line); }
+        catch { throw new Error("gh cao dashboard returned an invalid readiness message."); }
+        const url = new URL(ready.url);
+        if (url.protocol !== "http:" || url.hostname !== "127.0.0.1"
+            || !url.port || url.pathname !== "/" || url.searchParams.size !== 1
+            || !/^[A-Za-z0-9_-]{43}$/.test(url.searchParams.get("access_token") ?? "")
+            || url.hash !== "#page-overview" || url.username || url.password) {
+          throw new Error("gh cao dashboard returned an invalid loopback URL.");
         }
-      },
-    };
+        const response = await fetch(url, { signal: controller.signal, redirect: "error" });
+        await response.body?.cancel();
+        if (!response.ok) throw new Error("The local CAO dashboard failed its readiness check.");
+        return { url: url.href, close };
+      }
+      await exited;
+      throw failure ?? new Error("gh cao dashboard stopped before startup.");
+    })();
+    return await Promise.race([
+      readiness,
+      exited.then(() => { throw failure ?? new Error("gh cao dashboard stopped before startup."); }),
+      new Promise((_, reject) => controller.signal.addEventListener("abort", () => {
+        reject(new Error("Timed out starting gh cao dashboard. Check gh authentication and Docker/Podman availability."));
+      }, { once: true })),
+    ]);
   } catch (error) {
-    if (stagedDirectory) {
-      await rm(stagedDirectory, { recursive: true, force: true });
-    }
+    await close();
     throw error;
+  } finally {
+    clearTimeout(timer);
+    if (stopped) controller.abort();
   }
 }
