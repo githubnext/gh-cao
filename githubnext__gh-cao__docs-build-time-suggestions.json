@@ -1,33 +1,7 @@
 {
  "source_sha": "b82f8c9569f6a7c62594e245d4e38e63f3941cd8",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T03:40:00Z",
-   "worker_run_id": "43359571438",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml push runs (created 2026-11-12T06:02:55Z to 2026-11-13T01:45:42Z; all within 14 days; none in progress; HEAD dfe0416; docs.yml last changed 063cbe9). Excluded and disclosed: failed 43297524311 (Build documentation failed; deploy skipped) and cancelled 43206161686 (no jobs). 18 comparable successes. Packaging-only steps (Upload Pages artifact median 2 s p90 3 s; Configure Pages median 1 s) total median 3 s p90 4 s; build-to-deploy job gap plus deploy-job overhead median 9 s p90 10 s (inherent to the separate environment-gated deploy job; merging would weaken deployment safety); Deploy Pages median 7 s p90 14 s is required. Best safe saving about 3 s (under 15 percent of median wall 84.5 s and far below 60 s). Job logs HTTP 403 DIFC so artifact size and cache state not log-verified; timings from trusted step metadata. Queue outliers 46 s, 30 s, 83 s on 43228124764, 43206235849, 43341730805 are runner scheduling, not packaging. No dashboard job exists; dashboard generation is the Build synthetic enterprise demo step."
-  },
   {
    "evaluated_at": "2026-11-13T03:53:53Z",
    "worker_run_id": "43361368650",
@@ -860,10 +834,39 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43430232636 back to 43339642321; created 2026-11-13T00:45:49Z to 2026-11-13T13:02:36Z; all completed success; none queued or in progress; failed 43297524311 left the window). Comparable n=19 push successes; schedule 43371878284 kept out of push statistics; 5-run minimum met. Source HEAD b82f8c9 is 5 commits ahead of prior source_sha f0c3fc4 (push-path matches prompt-wizard.js and docs/styles/branding.css; docs.yml unchanged). Category step Build synthetic enterprise demo (node scripts/simulate-dashboard-pages.mjs: production normalization plus dashboard build, then cp to dist/cao): median 4 s, p90 5 s, range 3-5 s = 4.7 percent of median build-start-to-deploy-end 85 s (p90 106 s) and 5.6 percent of median build exec 72 s. 15 percent gate 12.75 s; full removal saves at most 4 s, so the gate is unreachable. Caching or reusing demo output is stale-unsafe (demo embeds run time; daily cron refreshes synthetic dates). A separate dashboard job adds checkout (median 25 s) plus handoff, net negative. No duplicate dashboard build: astro build does not build the dashboard; dashboard install uses --ignore-scripts. Job logs not read (403 DIFC on prior probes; not re-probed). No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging. Carry-forward outside the five rotation categories: Checkout fetch-depth 0 median 25 s (p90 41) is the largest step, 29 percent of median build exec; not evaluated.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T13:34:24Z",
+   "worker_run_id": "43434087979",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43430232636 back to 43339642321; created 2026-11-13T00:45:49Z to 2026-11-13T13:02:36Z; all 20 success; none queued or in progress; no failed or cancelled run in window; failed 43297524311 left the window). Comparable n=19 push successes; schedule 43371878284 kept out of push statistics. Source HEAD b82f8c9 = source_sha; docs.yml last changed 063cbe9, before every window run. Evidence: Actions jobs, steps and artifacts API metadata; job logs not read. Push medians (p90): Upload Pages artifact 2 s (3); Configure Pages 0 s (1); packaging sum 3 s (4); handoff build end to deploy job start 5 s (6; gap 0 plus deploy queue 5); Deploy Pages 7 s (8), required. github-pages artifact 8.26 to 8.38 MB, median 8.30 MB, now verified from the artifacts API; a size cut saves under 1 s. Best-case removal of packaging plus handoff = 8 s median (9.4 percent of median build start to deploy end 85 s; 15 percent gate 12.75 s; 60 s unreachable). Merging deploy into build saves about 6 s and stays rejected (id-token write and environment gate would move to the job running npm ci and the Astro build). Cache: head key node-cache-Linux-x64-npm-e62f6006... (278.9 MB, created 2026-11-12T06:18:07Z, last accessed 13:28:58Z) equals the sha256-of-raw-digest of root package-lock.json; every window run is after its creation. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T12:39:57Z",
+  "verified_at": "2026-11-13T13:34:24Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache restore/save; key rule from prior verification)",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hash of root package-lock.json>",
   "hash_rule": "sha256 over the raw digest bytes of each file (sha256(raw digest of HEAD package-lock.json) = e62f6006...)",
@@ -872,13 +875,13 @@
   "lock_history": "root package-lock last changed 063cbe9 (2026-11-12T06:17:07Z) and is unchanged through f0c3fc4; dashboard/site/package-lock.json and docs.yml unchanged since 2026-11-12T20:00Z.",
   "install_shape": "root npm ci: 765 entries, 657 prod-reachable, 4 with install scripts (esbuild, fsevents, koffi, node-pty); dashboard npm --prefix ci --omit=dev --ignore-scripts: 36 of 327 entries prod-only.",
   "logs": "HTTP 403 difc_forbidden re-probed 2026-11-13T09:20Z for job logs; re-probed 2026-11-13T12:53Z on build job 131763446973 (still 403); hits inferred from Post Set up Node.js 0 s plus actions/caches created-at and accessed-at timestamps.",
-  "caches_listing": "2026-11-13T12:36Z: 84 entries totalling 10.74 GB (cap 10 GB); head key node-cache-Linux-x64-npm-e62f... 278 MB last accessed 12:36Z. Job logs HTTP 403 DIFC re-probed in the same run (worker 43426225031).",
+  "caches_listing": "2026-11-13T13:34:24Z: head key node-cache-Linux-x64-npm-e62f6006... 278,939,951 bytes, created 2026-11-12T06:18:07Z, last accessed 13:28:58Z, refs/heads/main; key-prefix listing re-run this cycle (worker 43434087979). Hit evidence remains step timing (Post Set up Node.js 0 s) plus cache timestamps; job logs HTTP 403 DIFC not re-probed this cycle.",
   "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API."
  },
  "run_samples": {
   "window_created": "2026-11-13T00:45:49Z..2026-11-13T13:02:36Z",
-  "evaluated_at": "2026-11-13T13:20:09Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size bytes carried from earlier cycles where known (null = not fetched); from Actions jobs API (logs 403 DIFC).",
+  "evaluated_at": "2026-11-13T13:34:24Z",
+  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size bytes = github-pages artifact size from the Actions artifacts API (trusted metadata, all 20 fetched); from Actions jobs API (logs 403 DIFC).",
   "rows": [
    {
     "run": 43430232636,
@@ -889,7 +892,7 @@
     "handoff_s": 5,
     "deploy_s": 10,
     "dash_s": 3,
-    "pages_size": null
+    "pages_size": 8298169
    },
    {
     "run": 43430166810,
@@ -900,7 +903,7 @@
     "handoff_s": 6,
     "deploy_s": 8,
     "dash_s": 3,
-    "pages_size": null
+    "pages_size": 8302489
    },
    {
     "run": 43388781287,
@@ -1167,6 +1170,11 @@
    "observed_at": "2026-11-13T13:20:13Z",
    "source": "docs.yml Checkout step (outside the five rotation categories)",
    "note": "Checkout uses fetch-depth 0: median 25 s, p90 41 s over 19 push runs, the largest single step (about 29 percent of median build exec). Carried forward for six cycles because the rotation has no category for it. Repo-local git use in the docs path is HEAD-only so far (agent-docs-discovery test runs git rev-parse HEAD; astro.config.mjs has no git calls); the synthetic demo and other steps are unverified. Needs a maintainer rotation decision or a shallow-clone measurement before any suggestion."
+  },
+  {
+   "observed_at": "2026-11-13T13:34:24Z",
+   "source": "docs.yml artifact transfer and Pages packaging (category 4, re-evaluated)",
+   "note": "Trusted artifacts metadata shows the github-pages artifact at 8.26 to 8.38 MB across all 20 window runs (median 8.30 MB). Upload Pages artifact median 2 s (p90 3), so any size reduction saves under 1 s. Build end to deploy job start median 5 s (p90 6); Deploy Pages median 7 s is required. Revisit only if Deploy Pages or upload medians move materially, or if a maintainer design change removes the separate deploy job."
   }
  ]
 }
