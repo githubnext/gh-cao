@@ -1,36 +1,7 @@
 {
  "source_sha": "7cb5134de200cd5d27125613422c3ecc7abdf846",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T11:33:49Z",
-   "worker_run_id": "43417424126",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none queued or in progress; source f0c3fc4 = HEAD = source_sha; identical to the 11:20Z window). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed, deploy skipped; fixed by cd1e0ba). n=19 successful (18 push + 1 schedule 43371878284; 5-run gate met). Category: only dashboard step is Build synthetic enterprise demo (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs, which calls buildDashboardSite and copies .tmp/dashboard-pages to dist/cao); median 4 s, p90 5 s, max 5 s = 4.7% of median exec 85 s (p90 106 s). 15% gate 12.75 s and 60 s gate unmet even with full elimination (max 5.9%). Reuse blocked by freshness: now = Date.now() default embedded in generatedAt markers, manifest and enterprise sample; the 05:23 UTC schedule exists to refresh synthetic dates. Open issues with label self-care:docs-build-time-investigator: none. Next category: artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T11:54:00Z",
    "worker_run_id": "43420098629",
@@ -868,6 +839,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 created 2026-11-13T20:56:37Z back to 43378369544 created 06:23:31Z); none queued or in progress; source 7cb5134 = HEAD = source_sha; window identical to the 21:24Z evaluation. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; build Install dependencies failed at 17 s; Build documentation and deploy skipped; log HTTP 403 DIFC re-probed, cause unverified). n=19 successful push runs; 5-run gate met; 43505502149 timings now readable and included. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 12 s, p90 15, range 9-15 s = 14.3% of median exec 84 s (p90 93). 15% gate 12.6 s: full removal would save at most 12 s and is blocked because deploy consumes its output; 60 s gate unreachable. Validation inside the step is a correctness gate and must stay on the publish path. Astro-internal split unmeasured (logs 403). Cache: Post Set up Node.js 0-1 s in 19/19 successes (exact-key hits). Checkout remains the largest step (median 25 s, 30% of exec); open issue 20815 (docs-checkout-blobless-history-v1, OPEN) covers it and was not re-filed. Critical status: site reflects last successful run 43505502149 (f695ad3); 7c8faf4 docs changes unpublished until a green docs.yml run. No suggestion; no issue; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T21:53:17Z",
+   "worker_run_id": "43513988133",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; none queued or in progress; no cancelled runs; source 7cb5134 = HEAD = source_sha; docs.yml last changed 063cbe9 (2026-11-12T06:17:07Z) per commits API, before every window run; window identical to the 21:34Z window). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; build Install dependencies failed at 17 s; check-run annotation 'Process completed with exit code 152'; Build documentation and deploy skipped; log HTTP 403, cause unverified; Pages still serves 43505502149). n=19 successful push runs; 5-run gate met. Category: the only dashboard step is Build synthetic enterprise demo (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs): median 3 s, p90 4 s, range 3-5 s = 3.6 percent of median exec 84 s (p90 93 s). 15 percent gate 12.6 s; full removal saves at most 5 s (6.0 percent), so both gates are unreachable. Caching or reusing demo output is stale-unsafe: prepareDashboardPages defaults now = Date.now() into generatedAt; the 05:23Z cron refreshes synthetic dates. Separate dashboard job rejected (checkout median 25 s plus handoff). No suggestion; no issue (open 20815 is the checkout category). next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -888,7 +888,7 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T06:23:31Z..2026-11-13T20:56:37Z",
-  "evaluated_at": "2026-11-13T21:34:40Z",
+  "evaluated_at": "2026-11-13T21:53:17Z",
   "note": "window = latest 20 completed docs.yml runs (43378369544..43506161539); 19 successful push runs (n=19), 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs HTTP 403 DIFC.",
   "median_p90_s": {
    "Checkout": [
@@ -1251,6 +1251,11 @@
    "observed_at": "2026-11-13T21:34:40Z",
    "source": "docs.yml Astro documentation generation (worker 43511136391)",
    "note": "Window 43378369544..43506161539 (19 successful push, 1 failed). Build documentation median 12 s (p90 15, range 9-15) = 14.3% of median exec 84 s; full elimination (12 s) stays below the 12.6 s gate and is blocked because deploy consumes the output. Astro-internal split unmeasured (logs 403 DIFC, re-probed). Re-evaluate only if Build documentation median reaches 20 s or more, or readable maintainer-branch logs show one Astro sub-step at 12.6 s or more."
+  },
+  {
+   "observed_at": "2026-11-13T21:53:17Z",
+   "source": "docs.yml FAILURE 43506161539 annotation check (worker 43513988133)",
+   "note": "Build check-run annotations: failure 'Process completed with exit code 152'; notice 'ubuntu-latest will migrate to Ubuntu 26 beginning October 19, 2026' also appears on successful run 43505502149, so the notice is not the failure cause. Cause still unverified (log HTTP 403). Maintainer should read the install log of 43506161539 and confirm a green docs.yml run on main."
   }
  ],
  "checkout_probe": {
