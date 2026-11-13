@@ -1,36 +1,7 @@
 {
  "source_sha": "01e2e1cd96cc35fc78b79689f5653d128d309059",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T09:23:00Z",
-   "worker_run_id": "43400044427",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none queued or in progress; source f0c3fc4 = HEAD = source_sha). Disclosed and excluded from timing: 1 failed 43297524311 (Build documentation failed at 14 s; deploy skipped). Comparable n=19 successes (18 push, 1 schedule 43371878284; 5-run gate met). Medians (p90): exec 85 s (99.6); build job 70 s (85.4); deploy job 10 s (11); checkout 24 s (33); Set up Node.js 3 s (7); Install dependencies 17 s (21.2; range 12-23) = 20% of exec median; 15% gate 12.8 s and 60 s gate both require install to drop to <=4 s or lose >=12.8 s. Cache verified from actions/caches metadata: node-cache-Linux-x64-npm-e62f6006 (exact key, no restore-keys) created 2026-11-12T06:18:07Z, before the window; root package-lock last changed at 063cbe9 (2026-11-12T06:17Z), unchanged through HEAD (path commit listing); dashboard lock and docs.yml unchanged in window; Post Set up Node.js 0 s in 19/19 (no save upload) = exact-key hits in all 19; install variance 12-23 s occurs on warm hits, not misses. Logs 403 DIFC (re-probed 09:20Z). Install shape: root 765 entries, 657 prod-reachable, 4 with install scripts; dashboard 327 entries, 36 prod-only (omit=dev). Candidates rejected, none meeting 12.8 s: node_modules caching (restore must be <=4 s to meet gate; current 279 MB npm cache restores in 3 s median; node_modules restore unmeasured); root --omit=dev (108 of 765 entries dev-only; est <=2.4 s); parallel root and dashboard npm ci (saving bounded by dashboard share, <=8.5 s by construction, dashboard is 36 prod entries); --no-audit/--no-fund (network audit only; est few s, unmeasured); root --ignore-scripts (4 install-script packages; Linux postinstall prepare-terminal.mjs is a darwin-only no-op; cost unmeasured, not a 12.8 s lever). No open worker issue; no suggestion; no issue created. next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T09:35:00Z",
    "worker_run_id": "43401837430",
@@ -871,10 +842,39 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43484369040 back to 43360893141; created 2026-11-13T03:43:58Z to 18:37:04Z; identical to the 18:53Z window; 20/20 success = 19 push + 1 schedule 43371878284; 0 cancelled, 0 failed, none in progress; 5-run gate met). Jobs API re-fetched for all 20 runs. Build-job queue median 3 s. Concurrency wait (run created to build created) median 1 s, p90 32 s, max 51 s; waits of 32/44/51 s (43368963164, 43371269326, 43430232636) end at predecessor deploy completion. Waits add wall time only: exec median 87.5 s, p90 98 s; median saving 0-1 s; 15% gate 13.1 s and 60 s unmet. Avoidable rebuilds: 0 of 19 push publications changed only trigger-only paths (compare API for each push; 3 compare 500s retried OK; pre-window base checked for 43360893141); each changed a docs/ or dashboard/site/src build input. Same-SHA duplicate: 1 (schedule 43371878284 republished 5943848 about 5 min after push 43371269326; daily synthetic-date refresh; skip unmeasured). HEAD 01e2e1c touched no docs.yml trigger path. Open issue 20815 (blobless checkout, 17:41Z) already represents the 17:38Z actionable finding: not repeated. Closed NOT_PLANNED 20131, 19765, 18158, 15029, 16054 not repeated; no new evidence. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T19:35:43Z",
+   "worker_run_id": "43492778609",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43484369040 back to 43360893141; created 2026-11-13T03:43:58Z to 18:37:04Z; 19 push + 1 schedule 43371878284 = 20 success; 0 cancelled or failed; 5-run gate met). Same window as the 19:20Z evaluation; no completed run newer than 18:37:04Z. Excluded from timing: queued stale run 37642403569 (created 2026-10-07, event workflow_run, never completed). Source 01e2e1c = HEAD = source_sha. Spot-check of run 43484369040 jobs API matched stored step timings (install 15 s, checkout 26 s, build docs 9 s, demo 3 s, deploy 9 s). Install dependencies median 17 s (p90 23; range 12-25) = 19.4% of exec median 87.5 s (p90 98); 15% gate 13.13 s requires install of about 4 s or less. Cache: exact key node-cache-Linux-x64-npm-e62f6006 recomputed locally from root package-lock.json (raw-digest sha256), unchanged since creation 2026-11-12T06:18:07Z (279 MB; last accessed 2026-11-13T19:28:45Z); no save step in 19/19 push runs = exact hits. Levers re-checked, none meets the gate: root --omit=dev (dev-only entries est <=2.4 s), --no-audit/--no-fund (few s), parallel dashboard npm ci (<=3 s; 36 prod entries), root --ignore-scripts (esbuild, fsevents, koffi, node-pty scripts; not a 13 s lever). node_modules caching is the only lever that could reach about 13 s; it needs a restore of 4 s or less, and Set up Node.js (includes restore of the 279 MB npm cache) is 3 s median, so it is unmeasured and not evidenced. Open issue 20815 (checkout, 17:41Z) unchanged; no new issue. next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T17:38:10Z",
+  "verified_at": "2026-11-13T19:35:43Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache restore/save; key rule from prior verification)",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hash of root package-lock.json>",
   "hash_rule": "sha256 over the raw digest bytes of each file (sha256(raw digest of HEAD package-lock.json) = e62f6006...)",
@@ -885,11 +885,12 @@
   "logs": "HTTP 403 difc_forbidden on job logs (not re-probed this run); hits inferred from Post Set up Node.js durations plus actions/caches created-at and last-accessed timestamps.",
   "caches_listing": "2026-11-13T15:18Z: 89 entries returned by the caches listing, head key accessed each run; the other node-cache key (43bd5832..., 312 MB) is not produced by the current root lock hash and is not a docs.yml input.",
   "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API.",
-  "note_2026_11_13_1728Z": "head key node-cache-Linux-x64-npm-e62f6006... last_accessed 2026-11-13T17:28:44Z (caches API); unchanged created 2026-11-12T06:18:07Z"
+  "note_2026_11_13_1728Z": "head key node-cache-Linux-x64-npm-e62f6006... last_accessed 2026-11-13T17:28:44Z (caches API); unchanged created 2026-11-12T06:18:07Z",
+  "note_2026_11_13_1935Z": "head key node-cache-Linux-x64-npm-e62f6006 created 2026-11-12T06:18:07Z, last_accessed 2026-11-13T19:28:45Z (caches API); root package-lock.json recomputes to e62f6006 (unchanged). dashboard/site/package-lock.json recomputes to 9328fd17, a separate main-branch key created 2026-11-13T04:01:40Z that docs.yml does not use (docs.yml key covers the root lock only)."
  },
  "run_samples": {
   "window_created": "2026-11-13T03:43:58Z..2026-11-13T18:37:04Z",
-  "evaluated_at": "2026-11-13T19:20:26Z",
+  "evaluated_at": "2026-11-13T19:35:43Z",
   "note": "per-run seconds, latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success). exec_s=build job start to deploy end; build_s=build job; queue_s=build created to start; handoff_s=build end to deploy created; deploy_s=deploy job. Jobs API timings; logs not read (403 DIFC).",
   "step_stats_median_p90_s": {
    "Checkout": [
@@ -1211,6 +1212,16 @@
    "observed_at": "2026-11-13T19:20:26Z",
    "source": "docs.yml scheduling, concurrency, avoidable rebuilds (worker 43490268561)",
    "note": "Window 43360893141..43484369040: wait median 1 s, p90 32 s, max 51 s (queue only, ends at predecessor deploy); 0 of 19 push publications avoidable by path; schedule duplicate 43371878284 single occurrence. Re-evaluate only if same-SHA scheduled duplicates repeat, a maintainer approves a freshness gate for the schedule, or group ordering changes."
+  },
+  {
+   "observed_at": "2026-11-13T19:35:43Z",
+   "source": "docs.yml dependency category (worker 43492778609)",
+   "note": "No completed run after 18:37:04Z; root lock key e62f6006 and install median 17 s (p90 23) unchanged. Latent risk, zero current cost: the docs.yml cache key covers only the root lock. A change to dashboard/site/package-lock.json would leave docs.yml restoring a cache without the new dashboard packages, and the cache is only saved on miss, so those packages would re-download every run until the root lock changes (dashboard lock unchanged since 2026-10-22). Re-evaluate on a dashboard lock change or when node_modules caching is measured on a maintainer branch (restore must be 4 s or less)."
+  },
+  {
+   "observed_at": "2026-11-13T19:35:43Z",
+   "source": "docs.yml scheduling (worker 43492778609)",
+   "note": "Queued docs.yml run 37642403569 (created 2026-10-07T15:12:12Z, event workflow_run, headSha 6206962) is still queued and was excluded from samples; completed-run timings are unaffected. Re-evaluate only if it blocks a current push run in the documentation-pages concurrency group."
   }
  ],
  "checkout_probe": {
