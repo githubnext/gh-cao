@@ -10,9 +10,10 @@ import {
   compareFailureLogBoundaries, failureLogBoundary, hasFailedConclusion, isFailureLogRecovery,
   recordTimestamp, RETENTION_TIMESTAMPS, retentionWindowForStore
 } from './retention.js';
-import { createDebug } from '../../debug.js';
+import { createDebug, diagnosticErrorName } from '../../debug.js';
 
 const debug = createDebug('data:retention');
+const debugShards = createDebug('shards');
 export const STORAGE_SHARD_STORE = 'storageShards';
 const TOTALS_ID = 'totals';
 const BATCH_SIZE = 1000;
@@ -256,6 +257,7 @@ async function write(database, stores, task) {
   } catch (error) {
     try { transaction.abort(); } catch { /* Already aborted or completed. */ }
     await done.catch(() => undefined);
+    debugShards({ event: 'write-aborted', storeCount: stores.length, errorName: diagnosticErrorName(error) });
     throw error;
   }
 }
@@ -549,6 +551,7 @@ export async function maintainStorageShards(database, options) {
  * @param {readonly string[]} entityStores
  */
 export async function rebuildStorageShards(database, entityStores) {
+  const startedAt = performance.now();
   await write(database, [], async (transaction) => { transaction.objectStore(STORAGE_SHARD_STORE).clear(); });
   for (const storeName of entityStores) {
     /** @type {IDBKeyRange | undefined} */
@@ -568,4 +571,5 @@ export async function rebuildStorageShards(database, entityStores) {
       range = IDBKeyRange.lowerBound(records.at(-1)?.id, true);
     }
   }
+  debugShards({ event: 'rebuilt', storeCount: entityStores.length, durationMs: Math.round(performance.now() - startedAt) });
 }
