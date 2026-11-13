@@ -1021,6 +1021,31 @@ The optional shell `ingestion-source` query SHALL project `status-name`, `status
 and `observed-at`. Dashboard Language SHALL own status classification. The shared
 tooltip MAY format supplied numbers and timestamps, but MUST NOT derive business
 state or query rows. Unknown quota and progress MUST NOT become zero or healthy.
+Local acquisition MAY additionally publish a bounded, atomic
+`ingestion-progress.json` telemetry receipt outside the canonical manifest.
+It SHALL identify the collection pass, repository, phase, unique validated
+rich run attempts received in that pass, and pass/update clocks. Receipt counts
+SHALL advance before normalization or PostgreSQL publication, deduplicate summary
+reconciliation and reset for each pass. A bounded publication queue MAY let
+receipt processing continue while an earlier batch commits; cancellation,
+publication failures and incomplete-stream failures MUST remain explicit.
+Received counts MUST NOT be presented as ingested counts, retained totals or
+complete coverage. The shared tooltip MAY present this supplied transport
+telemetry directly: it is an acquisition lifecycle, not a queryable evidence
+source. Retained run counts and all evidence shaping SHALL remain declarative
+queries over canonical data.
+
+The local Go host MAY expose `/api/v1/events/ws` using the existing dashboard
+capability and an exact same-origin WebSocket handshake. Capabilities SHALL
+travel in an offered credential subprotocol, never in the WebSocket URL or
+selected response subprotocol. One shared, abort-scoped browser connection
+SHALL carry revision notifications and lightweight acquisition progress.
+Progress-only messages MUST NOT advance canonical revisions or trigger
+dashboard queries. The host SHALL coalesce intermediate progress, bound writes,
+and close connections on disconnect or shutdown. Unavailable telemetry MUST
+remain unknown, including after a lost connection. Only an explicit local
+server bootstrap marker SHALL select this transport; hosted deployments MUST
+NOT expose or attempt WebSockets and SHALL retain authenticated SSE.
 The default card SHALL use the reported history bounds for an accessible progress
 bar, compact API headroom, and relative retry time. Verbose diagnostics SHALL be
 collapsed initially. Mobile SHALL expose a labeled tap-to-open popup button with

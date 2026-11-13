@@ -455,7 +455,7 @@ test('selected JSON Schemas and nullable responses are emitted', () => {
   }
   assert.deepEqual(
     readdirSync(join(directory, 'generated/schemas')).sort(),
-    ['AdmissionAllowances.json', 'AdmissionRequest.json', 'ConclusionRequest.json', 'QueryDefinition.json', 'QueryRequest.json', 'QueryResponse.json', 'RevisionEvent.json', 'SessionArchiveDefinition.json', 'SessionArchiveQuery.json', 'SessionArchiveResult.json', 'SessionArchiveStatus.json', 'SessionCompaction.json', 'WebhookAcknowledgement.json']
+    ['AdmissionAllowances.json', 'AdmissionRequest.json', 'ConclusionRequest.json', 'LocalIngestionProgressEvent.json', 'QueryDefinition.json', 'QueryRequest.json', 'QueryResponse.json', 'RevisionEvent.json', 'SessionArchiveDefinition.json', 'SessionArchiveQuery.json', 'SessionArchiveResult.json', 'SessionArchiveStatus.json', 'SessionCompaction.json', 'WebhookAcknowledgement.json']
   )
   const campaign = openapi.paths['/api/v1/memory/{campaign}'].get.responses['200'].content['application/json'].schema
   assert.ok(campaign.anyOf.some(branch => branch.type === 'null'))
@@ -469,6 +469,16 @@ test('selected JSON Schemas and nullable responses are emitted', () => {
     assert.ok(schema.anyOf.some(branch => branch.required?.includes('error')), path)
     assert.ok(openapi.paths[path].get.responses['429'].content['application/json'], path)
   }
+})
+
+test('local WebSocket updates are explicitly separate from hosted SSE and canonical revisions', () => {
+  const operation = openapi.paths['/api/v1/events/ws'].get
+  assert.ok(operation.responses['101'])
+  for (const status of ['400', '401', '403', '404', '429', '503']) assert.ok(operation.responses[status])
+  assert.match(operation.description, /Hosted deployments return 404/)
+  assert.match(operation.description, /does not advance the query revision or trigger queries/)
+  const event = JSON.parse(readFileSync(join(directory, 'generated/schemas/LocalIngestionProgressEvent.json'), 'utf8'))
+  assert.ok(event.properties.progress.anyOf.some(branch => branch.type === 'null'))
 })
 
 test('local ingestion start is a bearer-only coalesced request', () => {

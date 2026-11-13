@@ -44,6 +44,7 @@ type dashboardOptions struct {
 	onPublished  func() error
 	onRunBundles func() error
 	timings      *dashboardCollectionTimings
+	progress     *dashboardProgress
 }
 
 func dashboardCommand(version string, gh ghExecutor, logs dashboardLogsCollector) *cobra.Command {
