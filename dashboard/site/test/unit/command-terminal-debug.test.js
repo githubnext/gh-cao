@@ -80,6 +80,40 @@ describe('command-terminal debug logging', () => {
     expect(JSON.stringify(output.debug.mock.calls)).not.toContain('SECRET');
   });
 
+  it('logs retry failures as sanitized error names only', async () => {
+    queue.available.mockReturnValue(true);
+    queue.get.mockResolvedValue({ id: 'secret-command-id', status: 'failed' });
+    queue.attach.mockResolvedValue({ command: { id: 'secret-command-id', status: 'failed' }, result: { ok: false } });
+    queue.retry.mockRejectedValue(new TypeError('SECRET retry message'));
+    const { renderCommandTerminal, output } = await load('?debug=command-terminal');
+    const root = renderCommandTerminal(context);
+    document.body.append(root);
+    const retry = /** @type {HTMLButtonElement} */ (root.querySelector('.command-terminal-retry'));
+    await vi.waitFor(() => expect(retry.hidden).toBe(false));
+    retry.click();
+    await vi.waitFor(() => expect(output.debug).toHaveBeenCalledWith('[cao:command-terminal]',
+      { event: 'retry', outcome: 'error', error: 'TypeError' }));
+    const serialized = JSON.stringify(output.debug.mock.calls);
+    expect(serialized).not.toContain('secret-command-id');
+    expect(serialized).not.toContain('SECRET');
+  });
+
+  it('does not log retry failures by default', async () => {
+    queue.available.mockReturnValue(true);
+    queue.get.mockResolvedValue({ id: 'secret-command-id', status: 'failed' });
+    queue.attach.mockResolvedValue({ command: { id: 'secret-command-id', status: 'failed' }, result: { ok: false } });
+    queue.retry.mockRejectedValue(new Error('Retry not authorized.'));
+    const { renderCommandTerminal, output } = await load('');
+    const root = renderCommandTerminal(context);
+    document.body.append(root);
+    const retry = /** @type {HTMLButtonElement} */ (root.querySelector('.command-terminal-retry'));
+    await vi.waitFor(() => expect(retry.hidden).toBe(false));
+    retry.click();
+    await vi.waitFor(() => expect(queue.retry).toHaveBeenCalled());
+    await vi.waitFor(() => expect(retry.disabled).toBe(false));
+    expect(output.debug).not.toHaveBeenCalled();
+  });
+
   it('stays off for excluded categories', async () => {
     const { output } = await runFailedAttach('?debug=1,-command-terminal');
     expect(output.debug.mock.calls.some(([category]) => category === '[cao:command-terminal]')).toBe(false);
