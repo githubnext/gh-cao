@@ -297,6 +297,38 @@ func TestNativeSnapshotAndNamespaceIsolation(t *testing.T) {
 	}
 }
 
+func TestPublicationQualityBatchFailureIsAtomic(t *testing.T) {
+	store, _ := nativeTestStore(t)
+	nativeSeed(t.Context(), t, store, nil)
+	before, err := store.State(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.ExecContext(t.Context(), `CREATE FUNCTION reject_publication_quality() RETURNS trigger
+		LANGUAGE plpgsql AS $$ BEGIN
+			IF NEW.collection='$tools' THEN RAISE EXCEPTION 'reject publication quality'; END IF;
+			RETURN NEW;
+		END $$;
+		CREATE TRIGGER reject_publication_quality BEFORE INSERT ON cao_quality
+		FOR EACH ROW EXECUTE FUNCTION reject_publication_quality()`); err != nil {
+		t.Fatal(err)
+	}
+	writer, err := store.BeginIngestion(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Abort(t.Context())
+	nativeParents(t.Context(), t, writer)
+	if _, err := writer.Publish(t.Context(), "rejected"); err == nil || !strings.Contains(err.Error(), "reject publication quality") {
+		t.Fatalf("publication hid a batch error: %v", err)
+	}
+	writer.Abort(t.Context())
+	after, err := store.State(t.Context())
+	if err != nil || !reflect.DeepEqual(before, after) {
+		t.Fatalf("failed quality batch changed publication: before=%+v after=%+v err=%v", before, after, err)
+	}
+}
+
 func TestNativeInventoryEnrichment(t *testing.T) {
 	store, _ := nativeTestStore(t)
 	w, err := store.BeginIngestion(t.Context())

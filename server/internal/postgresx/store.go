@@ -282,7 +282,20 @@ func (s *Store) State(ctx context.Context) (state State, err error) {
 	return state, err
 }
 
-func (r *readTransaction) State(ctx context.Context) (State, error) {
+// HasDataRevision checks publication identity without counting canonical rows.
+// Writers must recheck the revision under the namespace writer lock.
+func (s *Store) HasDataRevision(ctx context.Context, dataRevision string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, inputlimits.PostgresReadTransactionTimeout)
+	defer cancel()
+	var current bool
+	if err := s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM cao_state
+		WHERE namespace=$1 AND revision>0 AND data_revision=$2)`, s.namespace, dataRevision).Scan(&current); err != nil {
+		return false, fmt.Errorf("read postgres publication identity: %w", err)
+	}
+	return current, nil
+}
+
+func (r *readTransaction) stateHeader(ctx context.Context) (State, error) {
 	state := State{Counts: map[string]int{}}
 	err := r.tx.QueryRowContext(ctx, `SELECT revision, workflow_subject_revision, workflow_subject_digest,
 		data_revision, evaluated_at FROM cao_state WHERE namespace = $1`,
@@ -294,7 +307,16 @@ func (r *readTransaction) State(ctx context.Context) (State, error) {
 	if err != nil {
 		return State{}, fmt.Errorf("read postgres state: %w", err)
 	}
-	if state.Revision == 0 {
+	state.Ready = state.Revision > 0
+	return state, nil
+}
+
+func (r *readTransaction) State(ctx context.Context) (State, error) {
+	state, err := r.stateHeader(ctx)
+	if err != nil {
+		return State{}, err
+	}
+	if !state.Ready {
 		return state, nil
 	}
 	rows, err := r.tx.QueryContext(ctx, "SELECT collection FROM cao_quality WHERE namespace=$1 ORDER BY collection", r.store.namespace)
@@ -333,7 +355,6 @@ func (r *readTransaction) State(ctx context.Context) (State, error) {
 	if err := rows.Err(); err != nil {
 		return State{}, err
 	}
-	state.Ready = true
 	return state, nil
 }
 

@@ -8,13 +8,87 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	ghaw "github.com/github/gh-aw/pkg/cli"
+	gh "github.com/cli/go-gh/v2"
+
+	"github.com/githubnext/gh-cao/internal/ghcli"
 )
+
+type dashboardLogCommand func(context.Context, []string, io.Writer) error
+
+const dashboardLogsVersion = "v1.2.3"
+
+func ensureDashboardLogs(ctx context.Context, gh ghExecutor) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	supported := func() bool {
+		output, diagnostics, err := gh(ctx, "aw", "logs", "--help")
+		return err == nil && strings.Contains(output+"\n"+diagnostics, "--format jsonl")
+	}
+	if supported() {
+		return nil
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	_, _ = fmt.Fprintf(os.Stderr, "Installing gh-aw %s for streaming dashboard collection...\n", dashboardLogsVersion)
+	_, _, err := gh(ctx, "extension", "install", "github/gh-aw", "--pin", dashboardLogsVersion, "--force")
+	if err != nil {
+		return errors.New("dashboard collection requires gh-aw with JSONL streaming; automatic installation failed; install github/gh-aw " + dashboardLogsVersion + " and retry")
+	}
+	if !supported() {
+		return errors.New("installed gh-aw does not support 'gh aw logs --format jsonl'")
+	}
+	return nil
+}
+
+func executeDashboardLogs(ctx context.Context, args []string, output io.Writer) error {
+	binary, err := gh.Path()
+	if err != nil {
+		return errors.New("dashboard collection requires GitHub CLI and the gh-aw extension")
+	}
+	directory, err := os.MkdirTemp("", "cao-logs-")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(directory) }()
+	child := exec.CommandContext(ctx, binary, args...)
+	child.Dir = directory
+	child.Env = append(os.Environ(), "GH_PROMPT_DISABLED=1", "GH_PAGER=cat")
+	child.Stderr = os.Stderr
+	child.WaitDelay = 5 * time.Second
+	configureDashboardProcess(child)
+	stdout, err := child.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = stdout.Close() }()
+	if err := child.Start(); err != nil {
+		return errors.New("installed gh-aw log command could not start")
+	}
+	// Drain before Wait: database backpressure must not spend WaitDelay after
+	// the collector exits and truncate the remaining JSONL events.
+	_, readErr := io.Copy(output, stdout)
+	if readErr != nil {
+		_ = child.Cancel()
+	}
+	err = child.Wait()
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	if readErr != nil {
+		return errors.New("installed gh-aw JSONL output could not be read completely")
+	}
+	if err != nil {
+		return errors.New("installed gh-aw log command failed; check gh-aw installation, authentication and API quota")
+	}
+	return nil
+}
 
 func dashboardObservedWorkflowIDs(workflows []dashboardWorkflow, runs []map[string]any) []string {
 	agentic := map[string]bool{}
@@ -34,13 +108,33 @@ func dashboardObservedWorkflowIDs(workflows []dashboardWorkflow, runs []map[stri
 	return ids
 }
 
-func embeddedDashboardLogs(ctx context.Context, request dashboardLogRequest) error {
-	return downloadDashboardLogs(ctx, request, ghaw.DownloadWorkflowLogs)
+func installedDashboardLogs(ctx context.Context, request dashboardLogRequest) error {
+	if err := ensureDashboardLogs(ctx, ghcli.Exec); err != nil {
+		return err
+	}
+	return downloadDashboardLogs(ctx, request, executeDashboardLogs)
 }
 
-func downloadDashboardLogs(ctx context.Context, request dashboardLogRequest, download func(context.Context, ghaw.LogsDownloadOptions) error) error {
+func downloadDashboardLogs(ctx context.Context, request dashboardLogRequest, download dashboardLogCommand) error {
 	if len(request.WorkflowIDs) == 0 || len(request.WorkflowIDs) > request.Count {
 		return errors.New("dashboard log collection requires bounded observed remote workflow IDs")
+	}
+	for _, id := range request.WorkflowIDs {
+		path := request.WorkflowPaths[id]
+		if !strings.HasPrefix(path, ".github/workflows/") || !strings.HasSuffix(path, ".lock.yml") || strings.Contains(path, "..") {
+			return errors.New("dashboard log collection requires observed remote agentic workflow paths")
+		}
+	}
+	count := request.Count
+	if request.WorkflowCounts != nil {
+		count = 0
+		for _, id := range request.WorkflowIDs {
+			observed := request.WorkflowCounts[id]
+			if observed < 1 || observed > request.Count-count {
+				return errors.New("dashboard log collection requires a valid shared observed-run budget")
+			}
+			count += observed
+		}
 	}
 	if err := refreshDashboardLogListings(request.Cache); err != nil {
 		return err
@@ -52,56 +146,51 @@ func downloadDashboardLogs(ctx context.Context, request dashboardLogRequest, dow
 	if request.ManagedCache {
 		budget = 256
 	}
-	for index, id := range request.WorkflowIDs {
-		if request.CheckQuota != nil {
-			if err := request.CheckQuota(ctx, 1); err != nil {
-				if !errors.Is(err, errDashboardQuota) {
-					return err
-				}
-				if request.Limited != nil {
-					*request.Limited = true
-				}
-				return nil
+	if request.CheckQuota != nil {
+		if err := request.CheckQuota(ctx, 1); err != nil {
+			if !errors.Is(err, errDashboardQuota) {
+				return err
 			}
-		}
-		count := request.Count / len(request.WorkflowIDs)
-		if index < request.Count%len(request.WorkflowIDs) {
-			count++
-		}
-		if request.WorkflowCounts != nil {
-			count = request.WorkflowCounts[id]
-		}
-		ceiling := request.MaxAPIUsed
-		if ceiling == 0 {
-			ceiling = -1000
-		}
-		// An omitted workflow makes the pinned collector discover local lock files.
-		// Explicit remote IDs work from an empty folder and cannot select a namesake.
-		err := download(ctx, ghaw.LogsDownloadOptions{
-			WorkflowName: id, RepoOverride: "github.com/" + request.Repository, Count: count,
-			StartDate: request.StartDate, EndDate: request.EndDate,
-			BeforeRunID: request.BeforeRunID, AfterRunID: request.AfterRunID,
-			OutputDir: request.Directory, CachedJSONL: request.Cache,
-			TimeoutMinutes: 2, MaxGitHubAPIRateLimit: ceiling, MaxStorageMB: budget, MaxStorageMBSet: true,
-			ArtifactSets: []string{"all"}, Audit: true, SuppressRender: true,
-			PruneOlderRuns: request.ManagedCache,
-		})
-		if ctx.Err() == context.DeadlineExceeded && caller.Err() == nil &&
-			(err == nil || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)) {
-			_, _ = fmt.Fprintln(os.Stderr, "Dashboard collection reached its two-minute budget; available cached evidence will be published with partial coverage.")
 			if request.Limited != nil {
 				*request.Limited = true
 			}
 			return nil
 		}
-		if err != nil {
-			return err
-		}
-		if err := ctx.Err(); err != nil {
-			return err
-		}
 	}
-	return nil
+	ceiling := request.MaxAPIUsed
+	if ceiling == 0 {
+		ceiling = -1000
+	}
+	args := []string{"aw", "logs"}
+	for _, id := range request.WorkflowIDs {
+		args = append(args, request.WorkflowPaths[id])
+	}
+	args = append(args, "--repo", "github.com/"+request.Repository,
+		"--count", strconv.Itoa(count), "--start-date", request.StartDate, "--end-date", request.EndDate,
+		"--before-run-id", strconv.FormatInt(request.BeforeRunID, 10),
+		"--after-run-id", strconv.FormatInt(request.AfterRunID, 10),
+		"--output", request.Directory, "--cached-jsonl", request.Cache,
+		"--timeout", "2", "--max-github-api-rate-limit", strconv.Itoa(ceiling),
+		"--max-storage", strconv.Itoa(budget), "--artifacts", "all", "--audit",
+		"--format", "jsonl", "--verbose")
+	if request.ManagedCache {
+		args = append(args, "--prune-older-runs")
+	}
+	scoped := request
+	scoped.Count = count
+	err := streamDashboardLogs(ctx, scoped, args, download)
+	if ctx.Err() == context.DeadlineExceeded && caller.Err() == nil &&
+		(err == nil || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)) {
+		_, _ = fmt.Fprintln(os.Stderr, "Dashboard collection reached its two-minute budget; available cached evidence will be published with partial coverage.")
+		if request.Limited != nil {
+			*request.Limited = true
+		}
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return ctx.Err()
 }
 
 func refreshDashboardLogListings(filename string) (err error) {

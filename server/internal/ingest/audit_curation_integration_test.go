@@ -2,6 +2,7 @@ package ingest
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -9,14 +10,68 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/githubnext/gh-cao/server/internal/model"
+	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
+
+type ingestionCountTracer struct {
+	mu      sync.Mutex
+	queries map[string]int
+}
+
+func (tracer *ingestionCountTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
+	if strings.HasPrefix(data.SQL, "SELECT count(*) FROM ") {
+		tracer.mu.Lock()
+		tracer.queries[data.SQL]++
+		tracer.mu.Unlock()
+	}
+	return ctx
+}
+
+func (*ingestionCountTracer) TraceQueryEnd(context.Context, *pgx.Conn, pgx.TraceQueryEndData) {}
+
+func TestUnchangedIngestionCountsCollectionsOnce(t *testing.T) {
+	ctx, store, config := ingestTestStoreConfig(t)
+	directory, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
+	options := Options{DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json"}
+	before, err := Run(ctx, store, directory, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tracer := &ingestionCountTracer{queries: map[string]int{}}
+	config = config.Copy()
+	config.Tracer = tracer
+	observed, err := postgresx.NewConfig(ctx, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = observed.Close() }()
+	tracer.mu.Lock()
+	clear(tracer.queries)
+	tracer.mu.Unlock()
+	after, err := Run(ctx, observed, directory, options)
+	if err != nil || !reflect.DeepEqual(before, after) {
+		t.Fatalf("unchanged ingestion altered publication: before=%+v after=%+v err=%v", before, after, err)
+	}
+	tracer.mu.Lock()
+	defer tracer.mu.Unlock()
+	if len(tracer.queries) != len(before.Counts) {
+		t.Fatalf("counted %d collections, want %d", len(tracer.queries), len(before.Counts))
+	}
+	for statement, calls := range tracer.queries {
+		if calls != 1 {
+			t.Errorf("unchanged ingestion counted a collection %d times: %s", calls, statement)
+		}
+	}
+}
 
 func TestUnchangedArtifactRevisionCuratesExistingAudits(t *testing.T) {
 	if testing.Short() {

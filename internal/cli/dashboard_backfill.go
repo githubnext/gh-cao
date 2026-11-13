@@ -57,7 +57,7 @@ func newDashboardAcquisition(ctx context.Context, gh ghExecutor, state *dashboar
 	if err != nil {
 		return nil, err
 	}
-	// All selected repositories and embedded collectors share this pass ceiling.
+	// All selected repositories and log collectors share this pass ceiling.
 	budget.ceiling = min(quota.Limit-state.Reserve, quota.Used+100)
 	budget.reset = quota.Reset
 	if quota.Used >= budget.ceiling {

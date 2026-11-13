@@ -42,11 +42,13 @@ type dashboardLogRequest struct {
 	Count                                   int
 	ManagedCache                            bool
 	WorkflowIDs                             []string
+	WorkflowPaths                           map[string]string
 	WorkflowCounts                          map[string]int
 	BeforeRunID, AfterRunID                 int64
 	MaxAPIUsed                              int
 	CheckQuota                              func(context.Context, int) error
 	Limited                                 *bool
+	OnRuns                                  func(context.Context, []map[string]any) error
 }
 
 type dashboardLogsCollector func(context.Context, dashboardLogRequest) error
@@ -238,11 +240,16 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
+		streamed := map[string]map[string]any{}
 		if len(workflowIDs) > 0 {
 			limited := false
 			start, end := now, cutoff
 			before, after := int64(0), int64(1<<63-1)
 			workflowCounts := map[string]int{}
+			workflowPaths := map[string]string{}
+			for _, workflow := range workflows {
+				workflowPaths[strconv.FormatInt(workflow.ID, 10)] = workflow.Path
+			}
 			for _, run := range richRuns {
 				created, _ := time.Parse(time.RFC3339, nativeText(run["createdAt"]))
 				if created.Before(start) {
@@ -255,19 +262,52 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 				before, after = max(before, id), min(after, id)
 				workflowCounts[nativeScalar(run["workflowDatabaseId"])]++
 			}
+			onRuns := func(streamCtx context.Context, records []map[string]any) error {
+				source := dashboardRepositoryEvidence{
+					Repository: repository, Workflows: workflows, Directory: directory,
+					GithubID: resolved.ID, Enriched: map[string]map[string]any{},
+				}
+				for _, record := range records {
+					id := nativeScalar(record["run_id"])
+					rawIndex := slices.IndexFunc(richRuns, func(raw map[string]any) bool {
+						return nativeScalar(raw["databaseId"]) == id
+					})
+					if !strings.EqualFold(nativeText(record["repository"]), repository) || rawIndex < 0 {
+						return errors.New("gh-aw streamed a run outside the selected observations")
+					}
+					raw := richRuns[rawIndex]
+					workflowIndex := slices.IndexFunc(workflows, func(workflow dashboardWorkflow) bool {
+						return strconv.FormatInt(workflow.ID, 10) == nativeScalar(raw["workflowDatabaseId"])
+					})
+					if workflowIndex < 0 || nativeText(record["workflow_path"]) != workflows[workflowIndex].Path {
+						return errors.New("gh-aw streamed a mismatched workflow identity")
+					}
+					// Fresh Actions attempts remain authoritative, including during reruns.
+					if nativeScalar(record["run_attempt"]) != nativeScalar(raw["attempt"]) {
+						continue
+					}
+					streamed[id], source.Enriched[id] = record, record
+					source.Runs = append(source.Runs, raw)
+				}
+				if len(source.Runs) == 0 {
+					return nil
+				}
+				return publishDashboardEvidence(streamCtx, repositories, cache, options, []dashboardRepositoryEvidence{source}, *state, now)
+			}
 			err = logs(ctx, dashboardLogRequest{
 				Repository: repository, Directory: directory, Cache: shard,
 				StartDate: start.Format(time.RFC3339), EndDate: end.Format(time.RFC3339),
 				Count:        options.count,
 				ManagedCache: managedCache, WorkflowIDs: workflowIDs,
-				WorkflowCounts: workflowCounts, BeforeRunID: before + 1, AfterRunID: max(0, after-1),
+				WorkflowCounts: workflowCounts, WorkflowPaths: workflowPaths, BeforeRunID: before + 1, AfterRunID: max(0, after-1),
 				MaxAPIUsed: budget.ceiling, CheckQuota: budget.check, Limited: &limited,
+				OnRuns: onRuns,
 			})
 			if err != nil {
 				if errors.Is(err, errDashboardQuota) {
 					return nil, err
 				}
-				return nil, fmt.Errorf("gh-aw log collection failed for %s; verify authentication and API quota; previous snapshot preserved", repository)
+				return nil, fmt.Errorf("gh-aw log collection failed for %s; last published evidence and history checkpoint retained: %w", repository, err)
 			}
 			if limited {
 				state.Message = "Artifact acquisition reached its time or quota ceiling; history discovery continues with partial artifact evidence."
@@ -276,6 +316,21 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		cached, err := readDashboardLogCache(shard, repository)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return nil, err
+		}
+		if cached.Enriched == nil {
+			cached.Enriched = map[string]map[string]any{}
+		}
+		for id, record := range streamed {
+			previous := cached.Enriched[id]
+			if nativeScalar(previous["run_attempt"]) != nativeScalar(record["run_attempt"]) {
+				previous = nil
+			}
+			merged := maps.Clone(previous)
+			if merged == nil {
+				merged = map[string]any{}
+			}
+			maps.Copy(merged, record)
+			cached.Enriched[id] = merged
 		}
 		runs = mergeDashboardCachedRuns(runs, workflows, cached, options.count)
 		evidence = append(evidence, dashboardRepositoryEvidence{
@@ -286,11 +341,13 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		state.Cursors[repository] = nextCursor
 		state.NextRepo = (repositoryIndex + 1) % len(repositories)
 	}
+	normalizationStart := time.Now()
 	batch, err := projectDashboardEvidence(evidence, cutoff, now)
 	if err != nil {
 		return nil, err
 	}
 	batch, err = hydrateDashboardEvidence(ctx, evidence, batch, now)
+	options.timings.record("normalization", normalizationStart)
 	if err != nil {
 		return nil, fmt.Errorf("hydrate canonical gh-aw evidence; previous snapshot preserved: %w", err)
 	}
@@ -316,7 +373,7 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		return nil, err
 	}
 	batch["transactions"] = append(batch["transactions"], checkpoint)
-	if err := writeDashboardSnapshot(ctx, cache, batch, true); err != nil {
+	if err := options.publishSnapshot(ctx, cache, batch); err != nil {
 		return nil, err
 	}
 	return metadata, nil

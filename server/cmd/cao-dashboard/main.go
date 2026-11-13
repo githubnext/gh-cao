@@ -817,7 +817,8 @@ func newIngestCommand() *cobra.Command {
 	redisNamespace, namespaceErr := registerRedisNamespaceFlag(cmd, "canonical Postgres dataset namespace (legacy flag name)")
 	source := cmd.Flags().String("source", "", "deployed dashboard directory")
 	databaseQueries := cmd.Flags().String("database-queries", "../dashboard/site/src/data/queries/database.json", "canonical database projection queries")
-	cmd.RunE = func(_ *cobra.Command, _ []string) error {
+	stream := cmd.Flags().Bool("stdin", false, "Accept JSONL ingestion requests on stdin, reusing the database connection pool")
+	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		if namespaceErr != nil {
 			return namespaceErr
 		}
@@ -829,7 +830,7 @@ func newIngestCommand() *cobra.Command {
 			return err
 		}
 		commandLog.Printf("ingest flags parsed")
-		ctx := context.Background()
+		ctx := cmd.Context()
 		closeTelemetry, err := setupTelemetry(ctx, version, telemetry.Setup)
 		if err != nil {
 			return err
@@ -840,11 +841,17 @@ func newIngestCommand() *cobra.Command {
 			return err
 		}
 		defer func() { _ = database.Close() }()
-		result, err := ingest.Run(ctx, database, resolvedSource, ingest.Options{DatabaseQueriesPath: *databaseQueries})
+		run := func(ctx context.Context) (ingest.Result, error) {
+			return ingest.Run(ctx, database, resolvedSource, ingest.Options{DatabaseQueriesPath: *databaseQueries})
+		}
+		if *stream {
+			return runIngestStream(ctx, cmd.InOrStdin(), cmd.OutOrStdout(), run)
+		}
+		result, err := run(ctx)
 		if err != nil {
 			return err
 		}
-		return json.NewEncoder(os.Stdout).Encode(result)
+		return json.NewEncoder(cmd.OutOrStdout()).Encode(result)
 	}
 	return cmd
 }
