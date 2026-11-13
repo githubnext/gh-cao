@@ -171,7 +171,7 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 	if _, err := readDashboardStatus(t.Context(), cache, []string{"octo/api"}); err == nil {
 		t.Fatal("shared cache scope widened or narrowed without rejection")
 	}
-	before, err := os.ReadFile(filepath.Join(cache, "gh-aw-logs-runs", "local.jsonl"))
+	before, err := readDashboardArtifactBatch(t.Context(), cache)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,8 +179,8 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 	if _, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), fail); err == nil {
 		t.Fatal("failed collection did not propagate")
 	}
-	after, _ := os.ReadFile(filepath.Join(cache, "gh-aw-logs-runs", "local.jsonl"))
-	if !bytes.Equal(before, after) {
+	after, err := readDashboardArtifactBatch(t.Context(), cache)
+	if err != nil || !reflect.DeepEqual(before, after) {
 		t.Fatal("failed collection modified the previous snapshot")
 	}
 	updated, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), dashboardTestLogs(t))
@@ -491,8 +491,7 @@ func TestDashboardRejectsInvalidExistingCacheWithoutObservedRuns(t *testing.T) {
 			if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, base, dashboardTestLogs(t)); err != nil {
 				t.Fatal(err)
 			}
-			filename := filepath.Join(cache, "gh-aw-logs-runs", "local.jsonl")
-			before, err := os.ReadFile(filename)
+			before, err := readDashboardArtifactBatch(t.Context(), cache)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -512,8 +511,8 @@ func TestDashboardRejectsInvalidExistingCacheWithoutObservedRuns(t *testing.T) {
 			if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, gh, logs); err == nil {
 				t.Fatal("invalid cached evidence was silently discarded")
 			}
-			after, err := os.ReadFile(filename)
-			if err != nil || !bytes.Equal(before, after) {
+			after, err := readDashboardArtifactBatch(t.Context(), cache)
+			if err != nil || !reflect.DeepEqual(before, after) {
 				t.Fatalf("invalid cached evidence changed the previous snapshot: %v", err)
 			}
 		})

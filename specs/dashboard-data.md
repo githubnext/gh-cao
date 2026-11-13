@@ -970,6 +970,28 @@ receipt matches. The producer SHALL retain its complete
 on-disk recovery snapshot. Initial and final reconciliations SHALL remain explicit
 full snapshots, and final publication SHALL remove the sidecar's manifest entry.
 
+The local recovery producer MAY partition canonical evidence into immutable,
+content-addressed Run groups of at most 16 Runs, with byte-targeted JSONL shards
+and separately retained shared inventory. A manifest-covered private index MAY
+locate Run groups, their earliest detail-retention clocks, and globally
+identified Issue records. Small publications SHALL read and rewrite only
+affected or expiring groups, not reconstruct all retained Run payloads.
+Manifest and index bookkeeping MAY still scale with retained identities; neither
+is a query source. Same-attempt sparse merges, newer-attempt child replacement,
+global Issue identity, and detail retention SHALL match full recovery replay.
+The first publication over a legacy full snapshot MAY perform one verified
+repartitioning pass. This does not change the explicitly selected full-snapshot
+replacement contract or permit inference of delta mode from shard size.
+
+Recovery payloads SHALL be persisted before the acquisition checkpoint advances.
+For incremental local publication, the payload manifest SHALL select the
+committed checkpoint; an interrupted fixed-name inventory or bundle replacement
+SHALL be recoverable from checksum-verified private checkpoint bytes before
+collection resumes. Status-only writes SHALL preserve canonical evidence and
+its shard index. Full reconciliation MAY collect unreferenced immutable
+preparations left by an interrupted publisher; small publications SHALL NOT scan
+the whole payload directory for garbage collection.
+
 Each supplied Run-owned collection SHALL declare `complete`, `partial`, or
 `unavailable` coverage. Complete coverage SHALL replace only that Run's
 source-owned collection; complete-empty SHALL remove it. Omitted, partial, and
