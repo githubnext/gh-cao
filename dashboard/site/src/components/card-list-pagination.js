@@ -5,7 +5,7 @@ import { effect, state } from '../reactive.js';
 import { createFactoryScope } from './factory-elements.js';
 import { observeLoadMoreBoundary } from './ui-primitives.js';
 
-const debug = createDebug('render:card-list');
+const debug = createDebug('card-list-pagination');
 /** @type {WeakMap<HTMLElement, (count: number) => Promise<void>>} */
 const restorers = new WeakMap();
 
@@ -54,8 +54,10 @@ export function enableCardListPagination(section, { rows, renderItems, continuat
     const current = progress.get();
     if (scope.signal.aborted || current.phase === 'loading' || current.phase === 'complete') return;
     progress.set({ ...current, phase: 'loading' });
+    let fetchedPage = false;
     try {
       if (offset >= buffer.length && token && continuation) {
+        fetchedPage = true;
         const next = await continuation.load(token);
         if (scope.signal.aborted) return;
         buffer = next.rows;
@@ -67,6 +69,7 @@ export function enableCardListPagination(section, { rows, renderItems, continuat
       offset += nextRows.length;
       const complete = offset >= buffer.length && !token;
       progress.set({ phase: complete ? 'complete' : 'idle', count: current.count + nextRows.length });
+      debug({ event: 'page-appended', source: fetchedPage ? 'continuation' : 'buffer', appended: nextRows.length, rendered: current.count + nextRows.length, complete });
       if (complete) observer?.disconnect();
     } catch (error) {
       if (scope.signal.aborted) return;
@@ -110,6 +113,7 @@ export function restoreCardListPagination(previous, replacement) {
     if (!viewId || !Number.isSafeInteger(count) || count <= CONTINUATION_PAGE_SIZE) continue;
     const next = candidates.find((candidate) => candidate.getAttribute('data-view-id') === viewId);
     if (next instanceof HTMLElement) {
+      debug({ event: 'restore-requested', restoreCount: count, restorable: restorers.has(next) });
       next.dataset.cardListRestoreCount = String(count);
       void restorers.get(next)?.(count);
     }
