@@ -341,6 +341,67 @@ func TestNativeInventoryRejectsSourceWithoutControlCampaign(t *testing.T) {
 	}
 }
 
+func TestNativeInventoryBareMonitoringUsesRealRegistryWithoutCampaigns(t *testing.T) {
+	document := inventorySnapshotDocument{
+		InventoryProvenance: inventoryTestProvenance(), Version: 1,
+		ControlRepository: "octo/api", PolicyResolution: "available",
+	}
+	if err := decode([]byte(`{
+		"campaigns":{"source":"campaigns","rows":[]},
+		"repositories":{"source":"repositories","rows":[]},
+		"workflows":{"source":"workflows","rows":[]},
+		"configuration-policy":{"source":"configuration-policy","rows":[{
+			"path":".github/workflows/cao.json",
+			"raw":"{\"version\":1,\"control-plane\":{\"campaigns\":{}}}",
+			"document":{"version":1,"control-plane":{"campaigns":{}}},
+			"diagnostics":[{"severity":"valid","title":"Policy is valid"}]
+		}]}
+	}`), &document.Sources); err != nil {
+		t.Fatal(err)
+	}
+	makeSnapshot := func(t *testing.T) InventorySnapshot {
+		t.Helper()
+		raw, err := json.Marshal(document)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sum := sha256.Sum256(raw)
+		snapshot, err := NewInventorySnapshot(raw, hex.EncodeToString(sum[:]), document.InventoryProvenance)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return snapshot
+	}
+	snapshot := makeSnapshot(t)
+	provider, _ := inventoryTestGitHub(t, false)
+	evidence, err := provider.BuildInventory(t.Context(), EnrollmentScope{Repository: "octo/api", InstallationID: 7, Epoch: 1}, snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateInventoryEvidence(evidence); err != nil {
+		t.Fatal(err)
+	}
+	if len(evidence.Sources["campaigns"].Rows) != 0 || len(evidence.Sources["workflows"].Rows) != 2 ||
+		evidence.Sources["workflows"].Rows[0]["workflow-source-kind"] != "registry" {
+		t.Fatal("bare inventory invented campaign or source-workflow evidence")
+	}
+	policy := document.Sources["configuration-policy"].Rows[0]
+	original := policy["document"]
+	for _, field := range []string{"campaigns", "workflows", "operations"} {
+		t.Run("reject-declared-"+field, func(t *testing.T) {
+			policy["document"] = map[string]any{"version": float64(1), "control-plane": map[string]any{field: map[string]any{"declared": map[string]any{}}}}
+			if err := makeSnapshot(t).Validate(); err == nil {
+				t.Fatal("bare inventory concealed declared operations")
+			}
+			policy["document"] = original
+		})
+	}
+	policy["raw"] = `{"version":1,"control-plane":{"campaigns":{},"operations":{"hidden":{}}}}`
+	if err := makeSnapshot(t).Validate(); err == nil {
+		t.Fatal("bare inventory accepted mismatched policy bytes")
+	}
+}
+
 func TestNativeInventoryReturnedEvidenceCannotMutateSnapshot(t *testing.T) {
 	snapshot := inventoryTestSnapshot(t, "available")
 	provider, _ := inventoryTestGitHub(t, false)

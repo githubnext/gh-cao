@@ -5,8 +5,24 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { reviewedBareInventory } from "../../server/kubernetes/review-inventory.mjs";
 
 const script = fileURLToPath(new URL("../../server/kubernetes/local.sh", import.meta.url));
+
+test("bare inventory is source-bound to policy validated by the production resolver", () => {
+  const policy = JSON.parse(readFileSync(new URL("../../server/kubernetes/policy.json", import.meta.url), "utf8"));
+  policy["control-plane"].campaigns = {};
+  const raw = JSON.stringify(policy);
+  const content = reviewedBareInventory(raw, "octo/ops", "a".repeat(40));
+  const inventory = JSON.parse(content);
+  assert.equal(inventory.sourceSHA, "a".repeat(40));
+  assert.equal(inventory.sources["configuration-policy"].rows[0].raw, raw);
+  assert.deepEqual(inventory.sources.campaigns.rows, []);
+  policy["control-plane"].campaigns = { security: {} };
+  assert.throws(() => reviewedBareInventory(JSON.stringify(policy), "octo/ops", "a".repeat(40)));
+  assert.throws(() => reviewedBareInventory(raw, "octo/ops", "main"), /immutable commit/);
+  assert.throws(() => reviewedBareInventory('{"version":1}', "octo/ops", "a".repeat(40)));
+});
 
 function fixture(t) {
   const directory = mkdtempSync(join(tmpdir(), "cao-kubernetes-"));

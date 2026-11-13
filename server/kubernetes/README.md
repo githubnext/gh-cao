@@ -5,7 +5,8 @@ This is an operator-run, **single-node, non-HA local evaluation**, not a new
 Go `serve-hosted` application with native GitHub OAuth, direct HTTPS and one
 PostgreSQL 16 instance holding both canonical and durable operational tables.
 There is no Redis, mock identity, executor, host socket, cloud deployment,
-public tunnel, live collector or automatic workflow dispatch.
+public tunnel or automatic workflow dispatch. An explicitly selected native
+collector is an alternative to snapshot ingestion.
 
 All Kubernetes commands select `--context docker-desktop`. The helper owns only
 `cao-local` (web/ingestion) and `cao-local-system` (database/owner jobs); it refuses
@@ -13,6 +14,8 @@ existing namespaces without its ownership label. Existing roles, policy and
 other local repositories are not deployment inputs. The checked-in `policy.json`
 is the build-time and mounted runtime policy: one container replica, PostgreSQL,
 only `githubnext/gh-cao` evidence and no enabled operations.
+Set `CAO_LOCAL_POLICY` to an explicitly reviewed policy path for another authorized
+scope, using the same path for build, serve and native activation.
 
 ## Prerequisites and preparation
 
@@ -135,7 +138,8 @@ real evidence. Do not weaken the readiness probe to mask this state.
 
 ## Lifecycle and limitations
 
-The web uses external ingestion and never receives a source directory or collector.
+The default web profile uses external ingestion and receives no source directory
+or collector credentials.
 Ingestion, web and maintenance use stable namespaces/capacity inputs. PostgreSQL
 state survives web/database pod replacement while the same PVC exists; deleting
 the PVC, cluster or Docker Desktop data can destroy it. This is not a backup.
@@ -151,3 +155,62 @@ must be restarted after its selected pod is replaced. Public routing and trusted
 public certificates require a separate deployment decision, not a VPN/auth proxy.
 Inspect completed/failed Jobs before removing only those named resources.
 There is deliberately no cluster-reset or automatic destructive cleanup command.
+
+## Optional native inventory collection
+
+When no retained snapshot exists, a separately authorized GitHub App can collect
+real repository/workflow inventory. Native enrollment follows **every repository
+in every installation of that App**; policy scope is not an installation-token
+allowlist. Verify the complete App installation membership before activation.
+The worker inherits the App's granted permissions, even if acquisition only reads.
+Use a dedicated App; do not activate an existing broadly installed App accidentally.
+OAuth login credentials are separate and do not authorize collection.
+
+For bare monitoring, use a real committed Ops policy with explicit empty
+`control-plane.campaigns`, no declared workflows/operations, an exact reviewed
+scope and the container/PostgreSQL host settings above. Publishing that policy
+requires operator authorization; no campaigns, Actions enablement or workflow
+dispatch is necessary. Prepare immutable input from the actual GitHub commit:
+
+```sh
+node server/kubernetes/review-inventory.mjs OWNER/OPS_REPO COMMIT_SHA /private/path/inventory.json
+```
+
+This operator-only Node helper authenticates through `gh`, retrieves the exact
+remote policy revision, validates it with the production CAO policy resolver,
+and prints the inventory SHA-256. It refuses to overwrite a file. The runtime
+does not require Node, GitHub CLI or local source files.
+Create a non-secret env file with exactly these four reviewed settings:
+
+```text
+CAO_COLLECT_APP_ID=your-real-numeric-app-id
+CAO_COLLECT_CONTROL_REPOSITORY=OWNER/OPS_REPO
+CAO_COLLECT_NATIVE_INVENTORY_DIGEST=the-printed-sha256
+CAO_COLLECT_INVENTORY_LIMIT=the-reviewed-total-installed-repository-count
+```
+
+Build with the same reviewed host policy, then select native collection:
+
+```sh
+export CAO_LOCAL_POLICY=/private/checkout/.github/workflows/cao.json
+bash server/kubernetes/local.sh build
+bash server/kubernetes/local.sh native /private/path/inventory.json \
+  /private/path/collector.env /private/path/app.private-key.pem
+```
+
+The provisioning Job validates the digest before database access and pins the
+source through runtime PostgreSQL authority. Repeating the same pin is safe;
+a different existing configuration fails and requires explicit expected-digest
+replacement, not automatic rollover. This helper limits inventory to 900000
+bytes for Kubernetes ConfigMap transport; the native contract's larger bound is
+unchanged.
+
+Only the separate `cao-collector` deployment mounts the App key. It performs a
+real backfill before becoming Ready, then runs the durable native worker. The
+web switches to credential-free native admission, retaining HTTPS, OAuth and
+its original readiness requirements. Snapshot ingestion is blocked while native
+configuration exists; native activation refuses an active helper-created
+snapshot Job. Do not start out-of-band writers concurrently.
+This optional path enables neither Value collection, delivery replay nor workflow
+execution. New repository copies have no copied Actions run history: populated
+inventory with no runs is not a successful historical-run acquisition claim.

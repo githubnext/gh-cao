@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cao-collector
+  namespace: cao-local
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cao-collector
+  template:
+    metadata:
+      labels:
+        app: cao-collector
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: collector
+          image: cao-dashboard:local
+          imagePullPolicy: Never
+          command: [/bin/sh, -ec]
+          args:
+            - >-
+              /app/cao-dashboard backfill --database-queries /app/queries/database.json &&
+              touch /tmp/backfill-ready &&
+              exec /app/cao-dashboard collect --database-queries /app/queries/database.json
+          envFrom:
+            - configMapRef:
+                name: cao-database
+            - configMapRef:
+                name: cao-native
+            - secretRef:
+                name: cao-runtime
+          env:
+            - name: CAO_POLICY_PATH
+              value: /policy/cao.json
+            - name: CAO_COLLECT_NATIVE
+              value: "true"
+            - name: CAO_COLLECT_PRIVATE_KEY_FILE
+              value: /app-key/private-key.pem
+            - name: CAO_COLLECT_WORKERS
+              value: "1"
+          readinessProbe:
+            exec:
+              command: [/bin/sh, -ec, "test -f /tmp/backfill-ready"]
+            periodSeconds: 5
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          volumeMounts:
+            - name: ca
+              mountPath: /ca
+              readOnly: true
+            - name: policy
+              mountPath: /policy
+              readOnly: true
+            - name: app-key
+              mountPath: /app-key
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: ca
+          configMap:
+            name: cao-postgres-ca
+        - name: policy
+          configMap:
+            name: cao-policy
+        - name: app-key
+          secret:
+            secretName: cao-collector-key
+            defaultMode: 0440
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi

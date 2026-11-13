@@ -103,8 +103,8 @@ func NewInventorySnapshot(content []byte, expected string, provenance InventoryP
 			return InventorySnapshot{}, fmt.Errorf("native inventory snapshot is missing %s", name)
 		}
 	}
-	if len(document.Sources["campaigns"].Rows) == 0 || len(document.Sources["configuration-policy"].Rows) != 1 {
-		return InventorySnapshot{}, errors.New("native inventory requires campaigns and reviewed configuration-policy")
+	if len(document.Sources["configuration-policy"].Rows) != 1 {
+		return InventorySnapshot{}, errors.New("native inventory requires reviewed configuration-policy")
 	}
 	for _, row := range document.Sources["campaigns"].Rows {
 		if inventoryText(row, "campaign") == "" {
@@ -155,6 +155,9 @@ func (s InventorySnapshot) Validate() error {
 			return errors.New("native inventory reviewed policy diagnostics are not valid")
 		}
 	}
+	if len(document.Sources["campaigns"].Rows) == 0 {
+		return validateBareInventory(document)
+	}
 	campaigns := map[string]bool{}
 	for _, campaign := range document.Sources["campaigns"].Rows {
 		campaigns[inventoryText(campaign, "campaign")] = true
@@ -168,6 +171,47 @@ func (s InventorySnapshot) Validate() error {
 	}
 	if !hasControlCampaign {
 		return errors.New("native inventory has no source-bound control campaign workflow")
+	}
+	return nil
+}
+
+func validateBareInventory(document inventorySnapshotDocument) error {
+	if len(document.Sources["workflows"].Rows) != 0 {
+		return errors.New("bare native inventory cannot declare source workflows")
+	}
+	policy := document.Sources["configuration-policy"].Rows[0]
+	declared, ok := policy["document"].(map[string]any)
+	if !ok || declared["version"] != json.Number("1") {
+		return errors.New("bare native inventory requires the reviewed version 1 policy")
+	}
+	control, ok := declared["control-plane"].(map[string]any)
+	if !ok {
+		return errors.New("bare native inventory requires explicit control policy")
+	}
+	for _, name := range []string{"campaigns", "workflows", "operations"} {
+		value, exists := control[name]
+		if !exists && name != "campaigns" {
+			continue
+		}
+		entries, ok := value.(map[string]any)
+		if !ok || len(entries) != 0 {
+			return errors.New("bare native inventory requires no declared operations")
+		}
+	}
+	var raw map[string]any
+	if err := decode([]byte(inventoryText(policy, "raw")), &raw); err != nil {
+		return errors.New("bare native inventory requires the original policy bytes")
+	}
+	actual, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
+	expected, err := json.Marshal(declared)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(actual, expected) {
+		return errors.New("bare native inventory policy bytes differ from the reviewed document")
 	}
 	return nil
 }
@@ -265,7 +309,7 @@ func ValidateInventoryEvidence(e InventoryEvidence) error {
 	if count > InventoryMaxRows {
 		return ErrCapacity
 	}
-	if len(e.Sources["campaigns"].Rows) == 0 || len(e.Sources["repositories"].Rows) != 1 ||
+	if len(e.Sources["repositories"].Rows) != 1 ||
 		len(e.Sources["configuration-policy"].Rows) != 1 {
 		return errors.New("native inventory has no valid source-bound parents")
 	}
