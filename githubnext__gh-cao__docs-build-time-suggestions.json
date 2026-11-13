@@ -1,36 +1,7 @@
 {
  "source_sha": "75c762eaf69db919b1906dc0e562e93e018dea73",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T07:36:00Z",
-   "worker_run_id": "43386101433",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311,
-    43249903823
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43380585034 back to 43249903823; created 2026-11-12T15:38Z to 2026-11-13T06:42Z; all within 14 days; source e71feab = HEAD = source_sha; none in progress). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). Comparable n=19 successes (all push). Medians (p90), jobs API: exec 85 s (106); Set up Node.js 5 s (7); Install dependencies 17 s (22; range 12-23) = 20% of exec; 15% gate = 12.75 s; setup+install 22 s (28). Cache verified via actions/caches: node-cache-Linux-x64-npm-e62f6006 (278.9 MB, created 2026-11-12T06:18Z, accessed 07:28Z); Post Set up Node.js 0 s in 19/19 = exact-key hits; root package-lock unchanged since 063cbe9 (commits API). Candidates, none qualifying: node_modules exact-key cache (clears gate only if node setup plus restore is under about 9 s; restore unmeasured; issue 19689 closed NOT_PLANNED); npm ci --no-audit/--no-fund (seconds); root --ignore-scripts (4 prod install scripts incl. node-pty 1.1.0; saving unmeasured and bounded by the install step); dashboard install parallelization (small; 36 prod entries). Job logs re-probed: 403. No open issue with this worker label. No suggestion; no issue created. next_category advanced to Astro documentation generation. Carry-forward outside rotation: Checkout fetch-depth 0 median 24 s (p90 41), 28% of exec; partial-clone idea unmeasured.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T07:53:40Z",
    "worker_run_id": "43388461559",
@@ -869,10 +840,39 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all 20 success, 19 push + 1 schedule 43371878284; none queued or in progress; 0 failed, 0 cancelled; source 75c762e = HEAD = source_sha; window identical to the 16:55Z evaluation, jobs re-fetched this run). Concurrency: run creation to build start median 3 s; 3 runs waited directly behind a predecessor deploy (43368963164 34 s behind 43368845651; 43371269326 46 s behind 43371217266; 43430232636 54 s behind 43430166810), each build starting about 3 s after predecessor deploy end; sum 191 s over 20 runs. Queueing is pre-build, so it moves end-to-end latency only; execution (build start to deploy end) median 87.5 s (p90 98), 15% gate 13.1 s unreachable by scheduling. Rejected for safety, unchanged: cancel-in-progress true (cuts in-flight Pages publication); deploy-only or build-out-of-group concurrency (out-of-order publication). Avoidable rebuilds: commits API, 19 push heads; 0 of 19 touched only test or non-build paths (test files always co-changed with a src, docs, aw.yml, public or shared/policy.mjs input; dashboard/site/scripts/build.mjs imports .github/workflows/shared/policy.mjs), so path tightening would save 0 in this window. Schedule 43371878284 (cron 05:23) repeated SHA 5943848 about 5 min after push 43371269326: designed daily synthetic-date refresh, once per day, zero median effect. No suggestion; no issue created; no open issues with worker label. Carry-forward for dependency category: fetch-depth 0 is REQUIRED for published freshness.sourceCommittedAt (docs/plugins/starlight-agent/resource.ts resolveBuildProvenance runs git log -1 per source file; a shallow checkout would silently drop that field), so the shallow idea is rejected; only a blob-filtered partial clone remains, unmeasured (actions/checkout has no filter input). next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T17:38:10Z",
+   "worker_run_id": "43473225781",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419
+   ],
+   "outcome": "actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; 20/20 success, 19 push + 1 schedule 43371878284; 0 cancelled or failed; source 75c762e = HEAD = source_sha). Medians (p90, jobs API): exec 87.5 s (98); build job 72 (82); queue 3; deploy 10; Checkout 24.5 (29; outliers 56 s in 43380585034 and 41 s in 43362224525, both kept); Install dependencies 17.5 (23) = 20%; Build documentation 14 (15); demo 4 (5). Checkout = 28% of exec. Category routed here by the prior carry-forward. Cause: fetch-depth 0 makes actions/checkout fetch all 1270 branches and 67 tags with blobs (src/ref-helper.ts getRefSpecForAllHistory). Pinned v7.0.1 supports filter (action.yml line 60; fetch path passes --filter, git-source-provider.ts 182-190). Probe (sandbox, public remote, same refspecs): full fetch+checkout 19.4 s (1.5 GB) vs filter blob:none 4.0 s (fetch 1.3, checkout 2.7, 93 MB); HEAD identical. Provenance: git log -1 --format=%cI for all 3348 tracked files identical (0 mismatches, 0 lazy blob fetches). Build path reads no historical blobs (grep docs/, scripts/, dashboard build chain). Expected saving about 19.5 s median (22%; 24.5 s x 4.0/19.4 ratio); conservative 13.5 s (15.4%) if blobless checkout costs 11 s on runners; gate 13.1 s (15% of 87.5). Confidence medium-high (magnitude from sandbox, not runner). Issue created: one-line filter: blob:none addition. node_modules caching not re-proposed (issue 19689 closed NOT_PLANNED 2026-11-07). next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": "docs-checkout-blobless-history-v1"
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T16:55:48Z",
+  "verified_at": "2026-11-13T17:38:10Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache restore/save; key rule from prior verification)",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hash of root package-lock.json>",
   "hash_rule": "sha256 over the raw digest bytes of each file (sha256(raw digest of HEAD package-lock.json) = e62f6006...)",
@@ -882,27 +882,20 @@
   "install_shape": "root npm ci: 765 entries, 657 prod-reachable, 4 with install scripts (esbuild, fsevents, koffi, node-pty); dashboard npm --prefix ci --omit=dev --ignore-scripts: 36 of 327 entries prod-only.",
   "logs": "HTTP 403 difc_forbidden on job logs (not re-probed this run); hits inferred from Post Set up Node.js durations plus actions/caches created-at and last-accessed timestamps.",
   "caches_listing": "2026-11-13T15:18Z: 89 entries returned by the caches listing, head key accessed each run; the other node-cache key (43bd5832..., 312 MB) is not produced by the current root lock hash and is not a docs.yml input.",
-  "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API."
+  "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API.",
+  "note_2026_11_13_1728Z": "head key node-cache-Linux-x64-npm-e62f6006... last_accessed 2026-11-13T17:28:44Z (caches API); unchanged created 2026-11-12T06:18:07Z"
  },
  "run_samples": {
   "window_created": "2026-11-13T01:45:42Z..2026-11-13T16:44:14Z",
-  "evaluated_at": "2026-11-13T16:55:48Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy job created; deploy_s=deploy job exec; dash_s=Build synthetic enterprise demo step; pages_size_mb=github-pages artifact, decimal MB. Jobs API timings (logs not read). Re-measured by worker 43466641593 (jobs API, 20/20 success).",
+  "evaluated_at": "2026-11-13T17:38:10Z",
+  "note": "per-run seconds, latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success). exec_s=build job start to deploy end; build_s=build job; queue_s=build created to start; handoff_s=build end to deploy created; deploy_s=deploy job; checkout_s, install_s, docs_s=build-job steps. Jobs API timings, logs not read.",
   "step_stats_median_p90_s": {
-   "Set up job": [
-    1,
-    2
-   ],
    "Checkout": [
-    24,
-    41
-   ],
-   "Set up Node.js": [
-    3,
-    7
+    24.5,
+    29
    ],
    "Install dependencies": [
-    18,
+    17.5,
     23
    ],
    "Build documentation": [
@@ -913,275 +906,245 @@
     4,
     5
    ],
-   "Configure Pages": [
-    0,
-    1
+   "Set up Node.js": [
+    3,
+    7
    ],
    "Upload Pages artifact": [
     2,
     3
    ],
-   "Post Set up Node.js": [
-    0,
-    0
-   ],
-   "Post Checkout": [
-    0,
-    1
-   ],
-   "Complete job": [
-    0,
-    0
-   ],
    "Deploy Pages": [
     7,
     8
+   ],
+   "Set up job": [
+    1,
+    2
    ]
   },
   "rows": [
    {
     "run": 43465706802,
-    "event": "push",
-    "exec_s": 89,
-    "build_s": 74,
-    "queue_s": 3,
-    "handoff_s": 0,
-    "deploy_s": 10,
-    "dash_s": 4,
-    "pages_size_mb": 8.33
+    "exec_s": 89.0,
+    "build_s": 74.0,
+    "queue_s": 3.0,
+    "handoff_s": 0.0,
+    "deploy_s": 10.0,
+    "checkout_s": 25.0,
+    "install_s": 20.0,
+    "docs_s": 15.0
    },
    {
     "run": 43447728981,
-    "event": "push",
-    "exec_s": 92,
-    "build_s": 77,
-    "queue_s": 2,
-    "handoff_s": 1,
-    "deploy_s": 9,
-    "dash_s": 3,
-    "pages_size_mb": 8.31
+    "exec_s": 92.0,
+    "build_s": 77.0,
+    "queue_s": 2.0,
+    "handoff_s": 1.0,
+    "deploy_s": 9.0,
+    "checkout_s": 23.0,
+    "install_s": 25.0,
+    "docs_s": 12.0
    },
    {
     "run": 43447111490,
-    "event": "push",
-    "exec_s": 73,
-    "build_s": 59,
-    "queue_s": 2,
-    "handoff_s": 0,
-    "deploy_s": 9,
-    "dash_s": 3,
-    "pages_size_mb": 8.31
+    "exec_s": 73.0,
+    "build_s": 59.0,
+    "queue_s": 2.0,
+    "handoff_s": 0.0,
+    "deploy_s": 9.0,
+    "checkout_s": 23.0,
+    "install_s": 13.0,
+    "docs_s": 11.0
    },
    {
     "run": 43440055797,
-    "event": "push",
-    "exec_s": 90,
-    "build_s": 75,
-    "queue_s": 3,
-    "handoff_s": 0,
-    "deploy_s": 10,
-    "dash_s": 5,
-    "pages_size_mb": 8.3
+    "exec_s": 90.0,
+    "build_s": 75.0,
+    "queue_s": 3.0,
+    "handoff_s": 0.0,
+    "deploy_s": 10.0,
+    "checkout_s": 24.0,
+    "install_s": 23.0,
+    "docs_s": 14.0
    },
    {
     "run": 43430232636,
-    "event": "push",
-    "exec_s": 91,
-    "build_s": 76,
-    "queue_s": 3,
-    "handoff_s": 0,
-    "deploy_s": 10,
-    "dash_s": 3,
-    "pages_size_mb": 8.3
+    "exec_s": 91.0,
+    "build_s": 76.0,
+    "queue_s": 3.0,
+    "handoff_s": 0.0,
+    "deploy_s": 10.0,
+    "checkout_s": 25.0,
+    "install_s": 18.0,
+    "docs_s": 15.0
    },
    {
     "run": 43430166810,
-    "event": "push",
-    "exec_s": 77,
-    "build_s": 63,
-    "queue_s": 2,
-    "handoff_s": 1,
-    "deploy_s": 8,
-    "dash_s": 3,
-    "pages_size_mb": 8.3
+    "exec_s": 77.0,
+    "build_s": 63.0,
+    "queue_s": 2.0,
+    "handoff_s": 1.0,
+    "deploy_s": 8.0,
+    "checkout_s": 25.0,
+    "install_s": 14.0,
+    "docs_s": 11.0
    },
    {
     "run": 43388781287,
-    "event": "push",
-    "exec_s": 85,
-    "build_s": 72,
-    "queue_s": 3,
-    "handoff_s": 0,
-    "deploy_s": 9,
-    "dash_s": 4,
-    "pages_size_mb": 8.28
+    "exec_s": 85.0,
+    "build_s": 72.0,
+    "queue_s": 3.0,
+    "handoff_s": 0.0,
+    "deploy_s": 9.0,
+    "checkout_s": 28.0,
+    "install_s": 17.0,
+    "docs_s": 14.0
    },
    {
     "run": 43380585034,
-    "event": "push",
-    "exec_s": 114,
-    "build_s": 101,
-    "queue_s": 3,
-    "handoff_s": 1,
-    "deploy_s": 8,
-    "dash_s": 4,
-    "pages_size_mb": 8.28
+    "exec_s": 114.0,
+    "build_s": 101.0,
+    "queue_s": 3.0,
+    "handoff_s": 1.0,
+    "deploy_s": 8.0,
+    "checkout_s": 56.0,
+    "install_s": 16.0,
+    "docs_s": 15.0
    },
    {
     "run": 43378597209,
-    "event": "push",
-    "exec_s": 91,
-    "build_s": 75,
-    "queue_s": 3,
-    "handoff_s": 0,
-    "deploy_s": 11,
-    "dash_s": 3,
-    "pages_size_mb": 8.28
+    "exec_s": 91.0,
+    "build_s": 75.0,
+    "queue_s": 3.0,
+    "handoff_s": 0.0,
+    "deploy_s": 11.0,
+    "checkout_s": 27.0,
+    "install_s": 16.0,
+    "docs_s": 12.0
    },
    {
     "run": 43378369544,
-    "event": "push",
-    "exec_s": 75,
-    "build_s": 58,
-    "queue_s": 2,
-    "handoff_s": 0,
-    "deploy_s": 12,
-    "dash_s": 3,
-    "pages_size_mb": 8.27
+    "exec_s": 75.0,
+    "build_s": 58.0,
+    "queue_s": 2.0,
+    "handoff_s": 0.0,
+    "deploy_s": 12.0,
+    "checkout_s": 20.0,
+    "install_s": 15.0,
+    "docs_s": 9.0
    },
    {
     "run": 43374719202,
-    "event": "push",
-    "exec_s": 81,
-    "build_s": 67,
-    "queue_s": 2,
-    "handoff_s": 0,
-    "deploy_s": 9,
-    "dash_s": 4,
-    "pages_size_mb": 8.27
+    "exec_s": 81.0,
+    "build_s": 67.0,
+    "queue_s": 2.0,
+    "handoff_s": 0.0,
+    "deploy_s": 9.0,
+    "checkout_s": 24.0,
+    "install_s": 17.0,
+    "docs_s": 14.0
    },
    {
     "run": 43373049149,
-    "event": "push",
-    "exec_s": 95,
-    "build_s": 79,
-    "queue_s": 3,
-    "handoff_s": 0,
-    "deploy_s": 11,
-    "dash_s": 4,
-    "pages_size_mb": 8.26
+    "exec_s": 95.0,
+    "build_s": 79.0,
+    "queue_s": 3.0,
+    "handoff_s": 0.0,
+    "deploy_s": 11.0,
+    "checkout_s": 24.0,
+    "install_s": 21.0,
+    "docs_s": 15.0
    },
    {
     "run": 43371878284,
-    "event": "schedule",
-    "exec_s": 86,
-    "build_s": 70,
-    "queue_s": 2,
-    "handoff_s": 0,
-    "deploy_s": 11,
-    "dash_s": 3,
-    "pages_size_mb": 8.27
+    "exec_s": 86.0,
+    "build_s": 70.0,
+    "queue_s": 2.0,
+    "handoff_s": 0.0,
+    "deploy_s": 11.0,
+    "checkout_s": 29.0,
+    "install_s": 14.0,
+    "docs_s": 14.0
    },
    {
     "run": 43371269326,
-    "event": "push",
-    "exec_s": 89,
-    "build_s": 72,
-    "queue_s": 2,
-    "handoff_s": 1,
-    "deploy_s": 11,
-    "dash_s": 4,
-    "pages_size_mb": 8.27
+    "exec_s": 89.0,
+    "build_s": 72.0,
+    "queue_s": 2.0,
+    "handoff_s": 1.0,
+    "deploy_s": 11.0,
+    "checkout_s": 23.0,
+    "install_s": 22.0,
+    "docs_s": 14.0
    },
    {
     "run": 43371217266,
-    "event": "push",
-    "exec_s": 69,
-    "build_s": 56,
-    "queue_s": 3,
-    "handoff_s": 0,
-    "deploy_s": 8,
-    "dash_s": 3,
-    "pages_size_mb": 8.38
+    "exec_s": 69.0,
+    "build_s": 56.0,
+    "queue_s": 3.0,
+    "handoff_s": 0.0,
+    "deploy_s": 8.0,
+    "checkout_s": 21.0,
+    "install_s": 12.0,
+    "docs_s": 10.0
    },
    {
     "run": 43368963164,
-    "event": "push",
-    "exec_s": 85,
-    "build_s": 70,
-    "queue_s": 2,
-    "handoff_s": 0,
-    "deploy_s": 10,
-    "dash_s": 4,
-    "pages_size_mb": 8.37
+    "exec_s": 85.0,
+    "build_s": 70.0,
+    "queue_s": 2.0,
+    "handoff_s": 0.0,
+    "deploy_s": 10.0,
+    "checkout_s": 24.0,
+    "install_s": 20.0,
+    "docs_s": 14.0
    },
    {
     "run": 43368845651,
-    "event": "push",
-    "exec_s": 98,
-    "build_s": 82,
-    "queue_s": 3,
-    "handoff_s": 0,
-    "deploy_s": 11,
-    "dash_s": 5,
-    "pages_size_mb": 8.37
+    "exec_s": 98.0,
+    "build_s": 82.0,
+    "queue_s": 3.0,
+    "handoff_s": 0.0,
+    "deploy_s": 11.0,
+    "checkout_s": 26.0,
+    "install_s": 23.0,
+    "docs_s": 14.0
    },
    {
     "run": 43362224525,
-    "event": "push",
-    "exec_s": 106,
-    "build_s": 91,
-    "queue_s": 3,
-    "handoff_s": 0,
-    "deploy_s": 10,
-    "dash_s": 5,
-    "pages_size_mb": 8.37
+    "exec_s": 106.0,
+    "build_s": 91.0,
+    "queue_s": 3.0,
+    "handoff_s": 0.0,
+    "deploy_s": 10.0,
+    "checkout_s": 41.0,
+    "install_s": 18.0,
+    "docs_s": 14.0
    },
    {
     "run": 43360893141,
-    "event": "push",
-    "exec_s": 79,
-    "build_s": 64,
-    "queue_s": 3,
-    "handoff_s": 0,
-    "deploy_s": 10,
-    "dash_s": 4,
-    "pages_size_mb": 8.31
+    "exec_s": 79.0,
+    "build_s": 64.0,
+    "queue_s": 3.0,
+    "handoff_s": 0.0,
+    "deploy_s": 10.0,
+    "checkout_s": 25.0,
+    "install_s": 14.0,
+    "docs_s": 11.0
    },
    {
     "run": 43347280419,
-    "event": "push",
-    "exec_s": 82,
-    "build_s": 67,
-    "queue_s": 3,
-    "handoff_s": 1,
-    "deploy_s": 9,
-    "dash_s": 3,
-    "pages_size_mb": 8.31
+    "exec_s": 82.0,
+    "build_s": 67.0,
+    "queue_s": 3.0,
+    "handoff_s": 1.0,
+    "deploy_s": 9.0,
+    "checkout_s": 24.0,
+    "install_s": 18.0,
+    "docs_s": 12.0
    }
-  ],
-  "wait_to_build_s_by_run": {
-   "43465706802": 1,
-   "43447728981": 1,
-   "43447111490": 1,
-   "43440055797": 0,
-   "43430232636": 51,
-   "43430166810": 1,
-   "43388781287": 0,
-   "43380585034": 0,
-   "43378597209": 1,
-   "43378369544": 1,
-   "43374719202": 1,
-   "43373049149": 0,
-   "43371878284": 1,
-   "43371269326": 44,
-   "43371217266": 1,
-   "43368963164": 32,
-   "43368845651": 0,
-   "43362224525": 1,
-   "43360893141": 1,
-   "43347280419": 1
-  }
+  ]
  },
  "observations_pending": [
   {
@@ -1235,9 +1198,32 @@
    "note": "Window 43345305064..43447728981: wait median 1 s, p90 32 s, max 51 s (queue only); 0 of 19 push publications avoidable by path; schedule duplicate 43371878284 single occurrence (86 s). Re-evaluate only if same-SHA scheduled duplicates repeat or a maintainer approves a freshness gate for the schedule."
   },
   {
-   "observed_at": "2026-11-13T17:20:18Z",
-   "source": "docs.yml actions/checkout fetch-depth 0 (Checkout median 24.5 s, p90 29 over window 75c762e)",
-   "note": "Shallow checkout is NOT a safe saving: resource.ts resolveBuildProvenance derives freshness.sourceCommittedAt from git log -1 per source file; a depth-1 clone would drop it from published agent JSON. Only a blob-filtered partial clone (git fetch --filter=blob:none, actions/checkout has no filter input) remains; unmeasured. Evaluate under dependency installation and caching."
+   "observed_at": "2026-11-13T17:38:10Z",
+   "source": "docs.yml checkout (worker 43473225781) CORRECTION",
+   "note": "Pinned actions/checkout v7.0.1 (3d3c42e5) exposes filter (action.yml line 60). Earlier note claiming no filter input was wrong. Shallow checkout remains unsafe (git log per file would give HEAD date). filter blob:none keeps commits and trees, so provenance is unchanged. Suggestion issued: fingerprint docs-checkout-blobless-history-v1."
   }
- ]
+ ],
+ "checkout_probe": {
+  "measured_at": "2026-11-13T17:38:10Z",
+  "method": "sandbox git fetch from public github.com remote, same refspecs as actions/checkout fetch-depth 0; then git checkout -B main",
+  "full_all_heads_tags_s": {
+   "fetch": 19.2,
+   "checkout": 0.2,
+   "total": 19.4,
+   "size": "1.5G"
+  },
+  "blobless_all_heads_tags_s": {
+   "fetch": 1.3,
+   "checkout": 2.7,
+   "total": 4.0,
+   "size": "93M"
+  },
+  "provenance_equivalence": "git log -1 --format=%cI <HEAD> -- <path>: 3348/3348 identical full vs blobless; missing-blob count unchanged (no lazy fetch)",
+  "repo": {
+   "branches": 1270,
+   "tags": 67,
+   "default_branch_commits": 3775,
+   "api_size_kb": 1453275
+  }
+ }
 }
