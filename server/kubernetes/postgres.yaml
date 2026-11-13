@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cao-postgres
+  namespace: cao-local-system
+data:
+  pg_hba.conf: |
+    local all all scram-sha-256
+    hostssl all all 0.0.0.0/0 scram-sha-256
+    hostssl all all ::/0 scram-sha-256
+    hostnossl all all 0.0.0.0/0 reject
+    hostnossl all all ::/0 reject
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cao-postgres
+  namespace: cao-local-system
+spec:
+  selector:
+    app: cao-postgres
+  ports:
+    - name: postgres
+      port: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cao-postgres
+  namespace: cao-local-system
+spec:
+  serviceName: cao-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cao-postgres
+  template:
+    metadata:
+      labels:
+        app: cao-postgres
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+          args:
+            - -c
+            - ssl=on
+            - -c
+            - ssl_cert_file=/tls/tls.crt
+            - -c
+            - ssl_key_file=/tls/tls.key
+            - -c
+            - hba_file=/config/pg_hba.conf
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          envFrom:
+            - secretRef:
+                name: cao-postgres-admin
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
+          ports:
+            - containerPort: 5432
+          readinessProbe:
+            exec:
+              command: [pg_isready, -h, "127.0.0.1", -U, postgres, -d, cao]
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: tls
+              mountPath: /tls
+              readOnly: true
+            - name: config
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: tls
+          secret:
+            secretName: cao-postgres-tls
+            defaultMode: 0440
+        - name: config
+          configMap:
+            name: cao-postgres
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 10Gi

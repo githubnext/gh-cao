@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: cao-ingest-
+  namespace: cao-local
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ingest
+          image: cao-dashboard:local
+          imagePullPolicy: Never
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              until test -f /data/.ready; do sleep 1; done
+              exec /app/cao-dashboard ingest --source /data --database-queries /app/queries/database.json
+          envFrom:
+            - configMapRef:
+                name: cao-database
+            - secretRef:
+                name: cao-runtime
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+              ephemeral-storage: 512Mi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+              ephemeral-storage: 3Gi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: ca
+              mountPath: /ca
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          emptyDir:
+            sizeLimit: 2Gi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi
+        - name: ca
+          configMap:
+            name: cao-postgres-ca

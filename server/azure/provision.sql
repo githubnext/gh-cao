@@ -50,5 +50,5 @@ REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 REVOKE ALL ON SCHEMA cao FROM PUBLIC;
 SELECT format('REVOKE CONNECT, TEMPORARY ON DATABASE %I FROM PUBLIC', current_database()) \gexec
 SELECT format('GRANT CONNECT ON DATABASE %I TO cao_owner, cao_runtime, cao_retention, cao_evidence', current_database()) \gexec
-SELECT format('GRANT TEMPORARY ON DATABASE %I TO cao_runtime', current_database()) \gexec
+SELECT format('GRANT TEMPORARY ON DATABASE %I TO cao_owner, cao_runtime', current_database()) \gexec
 COMMIT;

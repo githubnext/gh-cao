@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "gh-aw-version": "v1.2.3",
+  "control-plane": {
+    "scope": {
+      "allowed-repositories": ["githubnext/gh-cao"]
+    },
+    "activity": {
+      "repositories": ["githubnext/gh-cao"]
+    },
+    "web": {
+      "host": {
+        "target": {
+          "module": "container",
+          "replicas": 1
+        },
+        "operational-store": {
+          "backend": "postgres"
+        }
+      }
+    }
+  }
+}
