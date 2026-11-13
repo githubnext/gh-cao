@@ -1,36 +1,7 @@
 {
- "source_sha": "f369d46150784b371a40c8dfc9bd5a208ebb75a3",
- "next_category": "Astro documentation generation",
+ "source_sha": "4b78c815aada40179d7da86383075bb4504321e4",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T06:26:57Z",
-   "worker_run_id": 43378217584,
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311,
-    43249903823,
-    43242792853,
-    43236057780
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43378369544 back to 43236057780; created 2026-11-12T14:19:54Z to 2026-11-13T06:23:31Z; all within 14 days; checkout HEAD f0bb5f4 = source_sha; newest run 94c68e8 is one docs-input commit ahead, comparable). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed at 14 s, deploy skipped, fixed by cd1e0ba; logs 403). Comparable n=19 successes (18 push, 1 schedule 43371878284; 5-run gate met). Step 'Build documentation' (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test; split not visible, logs 403 difc_forbidden on one probe this run) median 14 s (p90 15; range 9-15) = 16.5% of median exec 85 s (p90 98). 15% gate 12.75 s needs about 91% of the step removed, which would drop the published docs build and validation; 60 s unreachable. Per-file git provenance is not a lever (sandbox micro-bench: 60 git log -1 calls 0.11 s; PUBLIC_PAGES_BUILD_COMMIT set so rev-parse skipped). Medians (p90), metadata only: exec 85 s (98); wall 89 s (135, concurrency tail); build job 68 s (84); deploy job 10 s (13); build queue 3 s; deploy queue 5 s; handoff 0 s (1). Checkout median 24 s (p90 31) carry-forward, not in rotation. No suggestion; no issue created; no open issue with this worker label (open 20440 and 20719 are gh-aw failure reports). next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T06:41:58Z",
    "worker_run_id": 43379955962,
@@ -867,6 +838,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43447728981 back to 43345305064; created 2026-11-13T01:29:30Z to 2026-11-13T14:57:34Z; all 20 success, 19 push + 1 schedule 43371878284; none queued or in progress; no failed or cancelled run in window; source f369d46 = HEAD = source_sha; identical window to the 15:35Z evaluation). Medians (p90), jobs API metadata only: exec build start to deploy end 87.5 s (98.8); build job 72 s (84.7); deploy job 10 s (11); build queue 3 s; deploy queue 5 s. Dependency steps: Set up Node.js 3 s (7.1); Install dependencies 17 s (23); setup plus install 22.5 s (28.1) = 25.7 percent of median exec; 15 percent gate = 13.1 s. Cache: head key node-cache-Linux-x64-npm-e62f6006 (278.9 MB, created 2026-11-12T06:18Z, last accessed 2026-11-13T15:43Z) matches sha256 of root lock; Post Set up Node.js <= 1 s in 20/20 (exact-key hit; save on miss takes seconds). Candidates, none reaching the gate with repeated evidence: node_modules cache for both trees (only lever near 13 s; restore and extract unmeasured; #19689 closed NOT_PLANNED at install 23 s, now 17 s); root npm ci --omit=dev (about 108 devDependency-only entries, bounded 2-3 s); --no-audit/--no-fund (seconds); root --ignore-scripts (few Linux install scripts, bounded and unmeasured, node-pty risk); merging the dashboard install (36 prod entries, structural, small). Out-of-rotation observation, not evaluated here: Checkout fetch-depth 0 median 24.5 s (p90 32), 28 percent of exec; docs-path git calls are only ls-files and rev-parse HEAD, no history-dependent call found; flagged in observations_pending. No suggestion; no issue created; no open issue with this worker label. next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T16:23:20Z",
+   "worker_run_id": "43461190855",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43447728981 back to 43345305064; created 2026-11-13T01:29:30Z to 2026-11-13T14:57:34Z; all within 14 days; all 20 success, 19 push + 1 schedule 43371878284; none queued or in progress; no newer docs.yml run after 14:57Z). Source: workspace HEAD 4b78c81 is 2 commits ahead of f369d46 (docs-run head); compare API shows no docs-trigger path changed, so no rebuild expected. Jobs API re-fetched this run for all 20 runs, matches stored samples. Medians (p90): exec 87.5 s (98); build job 72 s (84); wait to build 3 s; Checkout 24.5 s (31); Install dependencies 17 s (23); Build documentation (npm run docs:build = astro build && validate-agent-docs.mjs && node --test agent-docs-discovery.test.mjs) 14 s (p90 15; range 9-15) = 16% of exec median; 15% gate 13.1 s would need about 94% of the step removed, which drops the docs build and validation; 60 s gate unreachable. Astro-vs-validation split not measurable: logs 403 difc_forbidden (re-probed); local npm ci in sandbox fails on a self-signed TLS chain from the package feed and was not bypassed. Validation and discovery test only read dist/ and run git ls-files and rev-parse HEAD (no duplicate astro build), so moving them to parallel steps saves seconds. No suggestion; no issue created; open issues with this worker label: none. Carry-forward outside rotation: Checkout fetch-depth 0 is the largest controllable step (28% of exec); docs/plugins/starlight-agent/resource.ts runs git log -1 per resource for sourceCommittedAt, so a shallow clone changes output; partial-clone variant unmeasured and needs a maintainer decision. next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -884,8 +884,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T01:29:30Z..2026-11-13T14:57:34Z",
-  "evaluated_at": "2026-11-13T15:55:03Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size_mb from artifacts API. Jobs API timings (logs 403). Re-measured by worker 43456406182.",
+  "evaluated_at": "2026-11-13T16:23:20Z",
+  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size_mb from artifacts API. Jobs API timings (logs 403). Re-measured by worker 43456406182; re-verified by worker 43461190855 (jobs API, 20/20 success, medians unchanged).",
   "step_stats_median_p90_s": {
    "Set up job": [
     1,
@@ -1224,11 +1224,6 @@
   },
   {
    "observed_at": "2026-11-13T15:20:28Z",
-   "source": "docs.yml Checkout step (carry-forward, outside rotation)",
-   "note": "Checkout fetch-depth 0: median 24.5 s, p90 31 s over the 20-run window (28 percent of median exec 87.5 s); largest single step. Shallow clone was rejected earlier for per-resource sourceCommittedAt correctness; a partial-clone variant is unmeasured and needs a maintainer decision or a branch measurement before any suggestion."
-  },
-  {
-   "observed_at": "2026-11-13T15:20:28Z",
    "source": "docs.yml scheduling category (carry-forward for next category)",
    "note": "Concurrency waits 3-4 of 20 at 32-81 s before build creation (queue only). Re-evaluate only with a same-SHA duplicate that repeats or a maintainer decision on group ordering."
   },
@@ -1241,6 +1236,11 @@
    "observed_at": "2026-11-13T15:55:03Z",
    "source": "docs.yml Checkout step (out-of-rotation carry-forward)",
    "note": "Checkout fetch-depth 0 median 24.5 s (p90 32), the largest controllable build step (28 percent of median exec). Docs-path git calls: validate-agent-docs git ls-files -z and git rev-parse HEAD; agent-docs-discovery rev-parse HEAD fallback only when PUBLIC_PAGES_BUILD_COMMIT is unset (it is set in docs.yml). No history-dependent call found in build.mjs, simulate-dashboard-pages.mjs or astro.config.mjs. Candidate saving roughly 15-19 s if fetch-depth 1, unmeasured. Not in the five-category rotation; evaluate explicitly next cycle if maintainers accept source acquisition in scope."
+  },
+  {
+   "observed_at": "2026-11-13T16:23:20Z",
+   "source": "docs.yml Astro category sandbox limits (worker 43461190855)",
+   "note": "Local npm ci fails with DEPTH_ZERO_SELF_SIGNED_CERT on the package feed; do not bypass TLS. Astro-vs-validation split stays unmeasured without maintainer-branch step timing or readable logs. Checkout carry-forward: docs/plugins/starlight-agent/resource.ts runs git log -1 per resource (sourceCommittedAt), so fetch-depth 1 changes output; a partial-clone variant needs a maintainer decision and a branch measurement."
   }
  ]
 }
