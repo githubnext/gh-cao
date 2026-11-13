@@ -57,6 +57,9 @@ func ingestTestStoreConfig(t *testing.T) (context.Context, *postgresx.Store, *pg
 }
 
 func TestFreshNativeIngestionReuseForceAndQueries(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL ingestion integration; covered by daily full validation")
+	}
 	ctx, store := ingestTestStore(t)
 	options := Options{DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json"}
 	directory, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")

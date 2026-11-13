@@ -26,6 +26,9 @@ import (
 )
 
 func TestServeWithExistingPostgresOperationalTables(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL server integration; covered by daily full validation")
+	}
 	endpoint := os.Getenv("POSTGRES_URL")
 	if endpoint == "" {
 		t.Skip("POSTGRES_URL is not set")

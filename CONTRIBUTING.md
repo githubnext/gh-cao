@@ -144,7 +144,7 @@ and authenticated compatibility tests, bootstrap, and service-backed integration
 run after merge rather than on the PR critical path. A green PR is intentionally
 not a claim that every integration or performance scenario passed.
 
-Main pushes select full suites through each workflow's path filters. Root
+Main pushes select suites through each workflow's path filters. Root
 contract areas are further selected by `scripts/ci-test-plan.mjs`; documentation-only
 changes omit root integration/load/API checks. Unknown paths or an unavailable
 comparison base widen selection. Fast contract checks run concurrently with units;
@@ -153,8 +153,12 @@ the existing `test` aggregate check requires both to succeed.
 Go core tests partition the sorted package list across four jobs, each with its
 own PostgreSQL service. Each job compiles and runs only its assigned packages,
 serially (`-p 1`) to stay within PostgreSQL's lock budget. Storage tests retain
-four test-name shards within their single package. Both retain short mode on
-PRs and uncached full execution after merge.
+four test-name shards within their single package.
+PRs and main pushes use `-short`, including the service-backed
+dashboard Go suite. The 16 core tests measured at 10 seconds or more in the
+investigated CI run (cross-module CLI build, fleet simulation, PostgreSQL
+ingestion/publication, read conformance, and query benchmarks) skip in short
+mode. Daily and manual Go runs omit `-short` and retain these scenarios.
 
 `Daily full validation` (`.github/workflows/ci-daily.yml`) runs at 06:37 UTC
 and can be dispatched manually on main. It reuses the complete contract,
@@ -169,7 +173,11 @@ The daily run publishes an Actions summary and a 30-day `ci-daily-report`
 artifact (Markdown and JSON), including every suite's outcome, total completed
 runner-minutes, and the 20 slowest jobs. Per-suite traces, profiles, and detailed
 reports remain attached to the same run. Failed, cancelled, or skipped suites
-make the aggregate report incomplete. Campaign lifecycle API-quota exhaustion
+make the aggregate report incomplete. A failed or incomplete daily run on main
+opens a `Daily full validation failed` issue, or updates the existing open bot
+issue with the latest failing revision, suite outcomes, and job links. Successful
+runs do not open issues or automatically close an investigation.
+Campaign lifecycle API-quota exhaustion
 also fails daily/manual full runs; main pushes retain infrastructure-incomplete
 warnings instead of blocking on shared quota.
 These measurements exclude queue time and billing multipliers. Use them to

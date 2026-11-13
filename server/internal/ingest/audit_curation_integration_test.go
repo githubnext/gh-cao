@@ -19,6 +19,9 @@ import (
 )
 
 func TestUnchangedArtifactRevisionCuratesExistingAudits(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL ingestion integration; covered by daily full validation")
+	}
 	ctx, store, config := ingestTestStoreConfig(t)
 	options := Options{DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json"}
 	directory, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
@@ -47,6 +50,9 @@ func TestUnchangedArtifactRevisionCuratesExistingAudits(t *testing.T) {
 }
 
 func TestAuditCurationValidatesEveryTransportedRecord(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL ingestion integration; covered by daily full validation")
+	}
 	ctx, store := ingestTestStore(t)
 	directory := scratchDirectory(t)
 	recent, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
@@ -111,6 +117,9 @@ func TestAuditCurationValidatesEveryTransportedRecord(t *testing.T) {
 }
 
 func TestUnsupportedAuditEvidencePreservesPublishedIngestion(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL ingestion integration; covered by daily full validation")
+	}
 	ctx, store := ingestTestStore(t)
 	directory, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
 	first, err := Run(ctx, store, directory, Options{DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json"})
@@ -134,6 +143,9 @@ func TestUnsupportedAuditEvidencePreservesPublishedIngestion(t *testing.T) {
 }
 
 func TestAuditCurationDoesNotHideTransportedOrphan(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL ingestion integration; covered by daily full validation")
+	}
 	ctx, store := ingestTestStore(t)
 	options := Options{DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json"}
 	recent, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")

@@ -108,6 +108,9 @@ func newDashboardReadFixture(t *testing.T) dashboardReadFixture {
 }
 
 func TestDashboardReadSyntheticScenario(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL dashboard scenario; covered by daily full validation")
+	}
 	fixture := newDashboardReadFixture(t)
 	app, err := server.New(t.Context(), fixture.services, fixture.config)
 	if err != nil {

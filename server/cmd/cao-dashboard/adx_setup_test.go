@@ -13,6 +13,9 @@ import (
 )
 
 func TestADXSetupSettingsMatchRuntime(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow cross-module CLI build; covered by daily full validation")
+	}
 	// The extension and server are separate modules; exercise the actual CLI
 	// output through the runtime parsers instead of duplicating their contract.
 	binary := filepath.Join(t.TempDir(), "gh-cao")
