@@ -1,35 +1,7 @@
 {
  "source_sha": "f369d46150784b371a40c8dfc9bd5a208ebb75a3",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T05:54:45Z",
-   "worker_run_id": "43374448298",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43228046118 to 43373049149; created 2026-11-12T13:31Z to 2026-11-13T05:35Z; all within 14 days; in-progress 43374719202 excluded; source HEAD f82ecc5). Disclosed: 1 failed push 43297524311 (e465d28, build failed at docs step after 14 s, fixed by cd1e0ba, logs HTTP 403) excluded. Comparable n=19 successes (18 push, 1 schedule 43371878284; 5-run gate met). Medians (p90), job and step metadata: exec 85 s (106); wall 90 s; install 17 s (23) = 20 percent of exec, 15 percent gate 12.75 s; Set up Node.js 3 s (7); Post Set up Node.js 0 s in 19/19 = exact-key hit (setup-node saves only on miss). Cache: active key node-cache-Linux-x64-npm-e62f6006 recomputed from HEAD root lock (match); 278.9 MB; created 06:18Z 11-12, lock unchanged since; last accessed 05:51:48Z. docs.yml last changed 063cbe9 (commits API), so the local f82ecc5 new-file display is a shallow-clone artifact. Install shape: root npm ci 765 entries (108 devDependency-only; astro is a runtime dependency); dashboard --omit=dev 36 of 327 entries, so its share is small. Levers: node_modules cache for both locks best case about 13 s before unmeasured restore, save and miss overhead, plus native-binary staleness risk; same lever as #19689 (closed NOT_PLANNED 2026-11-07 at install 23 s), not repeated since install median fell to 17 s; root --omit=dev skips devDependencies only, bounded under 5 s, unmeasured; --no-audit/--no-fund and dashboard-install parallelism are seconds. None reaches 12.75 s with repeated evidence. Carry-forward outside rotation: Checkout fetch-depth 0 median 24 s (p90 41). No suggestion; no issue created; no open issue with this worker label. next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T06:26:57Z",
    "worker_run_id": 43378217584,
@@ -866,37 +838,66 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43447728981 back to 43345305064; created 2026-11-13T01:29:30Z to 14:57:34Z; all 20 success, none cancelled or failed; the only queued docs.yml run 37642403569 (2026-10-07) is outside the window; none in progress; source f369d46 = HEAD = source_sha; docs.yml last changed 063cbe9, before the window). Same window as the 15:20Z evaluation; comparable n=19 push plus schedule 43371878284. Concurrency (documentation-pages, cancel-in-progress false): run-created to build-created wait median 1 s, p90 32 s, max 51 s; 3 of 20 waited 32-51 s behind an in-progress publication (43430232636 51 s, 43371269326 44 s, 43368963164 32 s). Queue only; build exec median 72 s, build-start to deploy-end median 87.5 s (p90 98). Median saving 0 s; 15 percent gate 13.1 s and 60 s gate unmet. Avoidable rebuilds: 0 of 19 push publications; compare API over each consecutive pair (including deb5da8 to 6b37c52 for the oldest run) shows every push includes at least one build-input file (docs/, dashboard/site/src, aw.yml, shared policy), none touched only test paths. Same-SHA schedule duplicate 43371878284 after push 43371269326 (5943848, 5 min apart): one occurrence in the window, about 86 s, not repeated (schedule 43161224542 on 11-12 had no same-SHA push); skipping it needs a new freshness gate and a permissions widening. Rejected again: cancel-in-progress true (could cancel an in-flight Pages deploy; saves queue time only); deploy-only or split groups (out-of-order publication risk); dropping the schedule (synthetic-date freshness). No open issue with label self-care:docs-build-time-investigator. No suggestion; no issue created; next_category advanced to dependency installation and caching. Carry-forward outside rotation: Checkout fetch-depth 0 median 25 s (p90 31) remains the largest step, not evaluated here.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T15:55:03Z",
+   "worker_run_id": "43456406182",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43447728981 back to 43345305064; created 2026-11-13T01:29:30Z to 2026-11-13T14:57:34Z; all 20 success, 19 push + 1 schedule 43371878284; none queued or in progress; no failed or cancelled run in window; source f369d46 = HEAD = source_sha; identical window to the 15:35Z evaluation). Medians (p90), jobs API metadata only: exec build start to deploy end 87.5 s (98.8); build job 72 s (84.7); deploy job 10 s (11); build queue 3 s; deploy queue 5 s. Dependency steps: Set up Node.js 3 s (7.1); Install dependencies 17 s (23); setup plus install 22.5 s (28.1) = 25.7 percent of median exec; 15 percent gate = 13.1 s. Cache: head key node-cache-Linux-x64-npm-e62f6006 (278.9 MB, created 2026-11-12T06:18Z, last accessed 2026-11-13T15:43Z) matches sha256 of root lock; Post Set up Node.js <= 1 s in 20/20 (exact-key hit; save on miss takes seconds). Candidates, none reaching the gate with repeated evidence: node_modules cache for both trees (only lever near 13 s; restore and extract unmeasured; #19689 closed NOT_PLANNED at install 23 s, now 17 s); root npm ci --omit=dev (about 108 devDependency-only entries, bounded 2-3 s); --no-audit/--no-fund (seconds); root --ignore-scripts (few Linux install scripts, bounded and unmeasured, node-pty risk); merging the dashboard install (36 prod entries, structural, small). Out-of-rotation observation, not evaluated here: Checkout fetch-depth 0 median 24.5 s (p90 32), 28 percent of exec; docs-path git calls are only ls-files and rev-parse HEAD, no history-dependent call found; flagged in observations_pending. No suggestion; no issue created; no open issue with this worker label. next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T15:20:28Z",
+  "verified_at": "2026-11-13T15:55:03Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache restore/save; key rule from prior verification)",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hash of root package-lock.json>",
   "hash_rule": "sha256 over the raw digest bytes of each file (sha256(raw digest of HEAD package-lock.json) = e62f6006...)",
   "restore": "exact key only (no restore-keys)",
-  "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 278,939,951 bytes, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T15:15:20Z, refs/heads/main. Post Set up Node.js 0 s in 20/20 window runs (exact-key hits; setup-node saves only on miss).",
+  "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 278,939,951 bytes, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T15:43:57Z, refs/heads/main. Post Set up Node.js 0 s in 19/20 window runs and 1 s in 43447111490 (exact-key hits; setup-node saves only on miss).",
   "lock_history": "root package-lock last changed 063cbe9 (2026-11-12T06:17:07Z), before every window run; dashboard/site/package-lock.json last changed 3d20dbb (2026-10-22T19:48Z); docs.yml last changed 063cbe9 (before the window).",
   "install_shape": "root npm ci: 765 entries, 657 prod-reachable, 4 with install scripts (esbuild, fsevents, koffi, node-pty); dashboard npm --prefix ci --omit=dev --ignore-scripts: 36 of 327 entries prod-only.",
-  "logs": "HTTP 403 difc_forbidden re-probed 2026-11-13T15:18Z on build job 131763446973 (still 403). Hits inferred from Post Set up Node.js 0 s plus actions/caches created-at and last-accessed timestamps.",
+  "logs": "HTTP 403 difc_forbidden on job logs (not re-probed this run); hits inferred from Post Set up Node.js durations plus actions/caches created-at and last-accessed timestamps.",
   "caches_listing": "2026-11-13T15:18Z: 89 entries returned by the caches listing, head key accessed each run; the other node-cache key (43bd5832..., 312 MB) is not produced by the current root lock hash and is not a docs.yml input.",
   "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API."
  },
  "run_samples": {
   "window_created": "2026-11-13T01:29:30Z..2026-11-13T14:57:34Z",
-  "evaluated_at": "2026-11-13T15:35:15Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size_mb from the artifacts API (name=github-pages). Jobs API timings (logs 403 DIFC). Measured by worker 43450723904.",
+  "evaluated_at": "2026-11-13T15:55:03Z",
+  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size_mb from artifacts API. Jobs API timings (logs 403). Re-measured by worker 43456406182.",
   "step_stats_median_p90_s": {
    "Set up job": [
     1,
     2
    ],
    "Checkout": [
-    25,
-    31
+    24.5,
+    32
    ],
    "Set up Node.js": [
     3,
-    7
+    7.1
    ],
    "Install dependencies": [
     17,
@@ -1235,6 +1236,11 @@
    "observed_at": "2026-11-13T15:35:15Z",
    "source": "docs.yml concurrency and avoidable rebuilds (worker 43453133420)",
    "note": "Window 43345305064..43447728981: wait median 1 s, p90 32 s, max 51 s (queue only); 0 of 19 push publications avoidable by path; schedule duplicate 43371878284 single occurrence (86 s). Re-evaluate only if same-SHA scheduled duplicates repeat or a maintainer approves a freshness gate for the schedule."
+  },
+  {
+   "observed_at": "2026-11-13T15:55:03Z",
+   "source": "docs.yml Checkout step (out-of-rotation carry-forward)",
+   "note": "Checkout fetch-depth 0 median 24.5 s (p90 32), the largest controllable build step (28 percent of median exec). Docs-path git calls: validate-agent-docs git ls-files -z and git rev-parse HEAD; agent-docs-discovery rev-parse HEAD fallback only when PUBLIC_PAGES_BUILD_COMMIT is unset (it is set in docs.yml). No history-dependent call found in build.mjs, simulate-dashboard-pages.mjs or astro.config.mjs. Candidate saving roughly 15-19 s if fetch-depth 1, unmeasured. Not in the five-category rotation; evaluate explicitly next cycle if maintainers accept source acquisition in scope."
   }
  ]
 }
