@@ -3,12 +3,15 @@ package postgresx
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/githubnext/gh-cao/internal/dashboardquery"
 
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/query"
@@ -247,5 +250,63 @@ func TestCancelledStatisticalPublicationRollsBack(t *testing.T) {
 	after := statisticalResults(t, store)
 	if !reflect.DeepEqual(before["statistical-runs"], after["statistical-runs"]) {
 		t.Fatal("cancelled publication changed the committed sample")
+	}
+}
+
+func TestStatisticalBundleAdmissionPrecedesSourceInsertion(t *testing.T) {
+	store, config := nativeTestStore(t)
+	publishStatisticalFixture(t, store, "bundle-admission", "")
+	for _, test := range []struct {
+		name        string
+		admitRuns   bool
+		wantRunRows int
+	}{
+		{name: "reject-first-source"},
+		{name: "reject-next-source-at-cumulative-boundary", admitRuns: true, wantRunRows: 6},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			connection, err := pgx.ConnectConfig(t.Context(), config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = connection.Close(t.Context()) }()
+			tx, err := connection.Begin(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = tx.Rollback(t.Context()) }()
+			// Retain the frozen membership, but clear its evidence in this
+			// transaction so the admission guard is observable before cleanup.
+			for source, table := range statisticalTables {
+				if _, exists := entityTables[source]; !exists {
+					continue
+				}
+				if _, err := tx.Exec(t.Context(), "DELETE FROM "+query.SQLIdentifier(table.name)+" WHERE namespace=$1", store.namespace); err != nil {
+					t.Fatal(err)
+				}
+			}
+			budget := int64(1)
+			if test.admitRuns {
+				if err := tx.QueryRow(t.Context(), "SELECT sum("+entityBytesSQL(entityTables["$runs"])+`)::bigint
+						FROM runs t WHERE t.namespace=$1 AND EXISTS(SELECT 1 FROM cao_sample_statistical_membership m
+							WHERE m.namespace=t.namespace AND m.id=t.id)`, store.namespace).Scan(&budget); err != nil {
+					t.Fatal(err)
+				}
+			}
+			writer := &Writer{store: store, tx: tx}
+			if err := writer.copyStatisticalBundles(t.Context(), budget); !errors.Is(err, dashboardquery.ErrStatisticalBudget) {
+				t.Fatalf("expected bundle budget rejection: %v", err)
+			}
+			for source, want := range map[string]int{"$runs": test.wantRunRows, "$domains": 0} {
+				var rows int
+				if err := tx.QueryRow(t.Context(), "SELECT count(*) FROM "+
+					query.SQLIdentifier(statisticalTables[source].name)+" WHERE namespace=$1", store.namespace).Scan(&rows); err != nil {
+					t.Fatal(err)
+				}
+				if rows != want {
+					t.Fatalf("%s inserted rows before admission: got %d want %d", source, rows, want)
+				}
+			}
+		})
 	}
 }

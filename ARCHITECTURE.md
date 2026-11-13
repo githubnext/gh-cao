@@ -614,6 +614,14 @@ Database telemetry counts individual statements and times each pipelined batch
 as one operation rather than inventing per-statement execution durations.
 Unchanged ingestion checks publication identity without counting sources, then
 curates audits under the namespace writer lock and reads the resulting counts once.
+Invocation preservation stages structural and conclusion dependencies only when
+the locked namespace actually contains retained invocation Runs. Statistical
+bundle publication selects each source into a bounded materialized relation once,
+measures expanded typed bytes there, and inserts only if both source and cumulative
+budgets admit it. Each dependency remains a separate SQL plan; an over-budget
+source is not inserted, and publication clears all bundles before exposing the
+unavailable frame. Neither optimization changes the full-snapshot replacement
+contract or bypasses native integrity checks.
 Canonical snapshot, admission, and conclusion writes enforce the same
 namespace-local Run-subtree capacity boundary: 200,000 rows per Run-owned source
 and 256 MiB of combined logical typed-row bytes. After daily-count reconciliation,

@@ -30,11 +30,11 @@ func (s *Store) capacity() runCapacity {
 	return runCapacity{rows: query.MaxInputRows, bytes: query.MaxWorkingBytes}
 }
 
-func entityBytesSQL(table entityTable, alias string) string {
+func entityBytesSQL(table entityTable) string {
 	parts := make([]string, 1, 1+len(table.columns))
 	parts[0] = strconv.Itoa(64+len(table.columns)) + "::bigint"
 	for _, column := range table.columns {
-		parts = append(parts, "coalesce(octet_length("+alias+"."+query.SQLIdentifier(column.name)+"::text),0)")
+		parts = append(parts, "coalesce(octet_length(t."+query.SQLIdentifier(column.name)+"::text),0)")
 	}
 	return "(" + strings.Join(parts, "+") + ")::bigint"
 }
@@ -91,7 +91,7 @@ func capRunSubtrees(ctx context.Context, namespace string, limits runCapacity, d
 		}
 		count := "n" + strconv.Itoa(index)
 		statement := `INSERT INTO cao_capacity_weights AS w(id,bytes,` + count + `)
-			SELECT ` + identity + `,sum(` + entityBytesSQL(table, "t") + `)::bigint,count(*)
+			SELECT ` + identity + `,sum(` + entityBytesSQL(table) + `)::bigint,count(*)
 			FROM ` + query.SQLIdentifier(table.name) + ` t WHERE t.namespace=$1 GROUP BY ` + identity + `
 			ON CONFLICT(id) DO UPDATE SET bytes=w.bytes+excluded.bytes,` + count + `=excluded.` + count
 		if err := db.exec(ctx, statement, namespace); err != nil {

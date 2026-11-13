@@ -135,7 +135,7 @@ func TestRunCapacityBoundsLogicalBytesAndRollsBackOversize(t *testing.T) {
 	for _, source := range []string{"$runs", "$audits", "$tools", "$domains"} {
 		table := entityTables[source]
 		var size int64
-		if err := store.db.QueryRowContext(t.Context(), "SELECT sum("+entityBytesSQL(table, "t")+
+		if err := store.db.QueryRowContext(t.Context(), "SELECT sum("+entityBytesSQL(table)+
 			") FROM "+table.name+" t WHERE namespace=$1", store.namespace).Scan(&size); err != nil {
 			t.Fatal(err)
 		}

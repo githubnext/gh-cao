@@ -156,6 +156,7 @@ type Writer struct {
 	ingestedAt              time.Time
 	staged                  map[string]bool
 	preserveValues          bool
+	preservedRuns           bool
 }
 
 func (s *Store) BeginIngestion(ctx context.Context) (*Writer, error) {
