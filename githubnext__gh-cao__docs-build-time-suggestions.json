@@ -1,34 +1,7 @@
 {
  "source_sha": "f0c3fc4aff1ab9e7ee0d7020df3c19c545784e26",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T01:33:13Z",
-   "worker_run_id": "43345138166",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T03:05:21Z to 2026-11-13T01:01:49Z; within 14 days; none in progress in window; in-progress 43345305064 on 6b37c52 excluded). Excluded and disclosed: cancelled 43206161686 (no jobs); failed 43297524311 (e465d28, Build documentation failed, deploy skipped). Comparable n=18 successful (17 push, 1 schedule 43161224542; source cf80d5c = HEAD). Medians (p90): execution build start to deploy end 84.5 s (123 s); build 67.5 s (104 s); deploy 11 s (18 s); queue 4 s (46 s; outlier 83 s on 43341730805); wall created-to-deploy-end 88 s (169 s). Category: only dashboard step is Build synthetic enterprise demo (npm run dashboard:pages:build + cp to dist/cao); median 4 s, p90 4 s, max 5 s = 4.7% of median execution. 15% gate = 12.7 s and 60 s are out of reach; full removal saves at most 5 s. No dashboard job exists (build and deploy only). Output embeds Date.now() synthetic dates (scripts/simulate-dashboard-pages.mjs, daily refresh), so caching conflicts with freshness. Astro docs build (astro.config.mjs) does not invoke the dashboard build: no duplicate. Dashboard-site npm ci is inside combined Install dependencies (median 15.5 s), not splittable from metadata; left to dependency category. Cache: Post Set up Node.js 0 s in 18/18 runs; cache list shows node-cache-Linux-x64-npm-e62f60064d02 (278.9 MB) accessed by main at 01:31Z; log read HTTP 403 difc_forbidden re-verified 01:32Z, so hit/miss inferred. Carry-forward lead, not a suggestion: Checkout fetch-depth 0 median 24 s (45-49 s in 3 runs with 103-105 s builds). Next category: artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T01:53:48Z",
    "worker_run_id": "43347677000",
@@ -855,6 +828,35 @@
     43297524311
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; none queued or in progress at 11:18Z; source f0c3fc4 unchanged; identical window to run_samples). Excluded and disclosed: failed 43297524311 (Build documentation failed, deploy skipped). Comparable n=19 successes (18 push, 1 schedule 43371878284); 5-run gate met. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test): median 14 s, p90 15 s, range 9-15 s = 16.5% of median execution 85 s (p90 106 s). 15% gate 12.75 s needs about 91% removal; 60 s unreachable. Astro-internal split not visible (job logs HTTP 403 difc_forbidden; not re-read). Code read (docs/plugins/starlight-agent/resource.ts, scope exception disclosed): resolveBuildProvenance spawns git log -1 per agent resource for sourceCommittedAt; its share of the 14 s is unmeasured and cannot clear the gate alone. Shallow depth-1 checkout would make every resource sourceCommittedAt the HEAD date (correctness loss): rejected. Carry-forward lead, not evaluated as Astro: Checkout median 24 s (p90 41, max 56) = 28% of median execution; partial clone (filter blob:none keeps commits and trees for git log -- path) is plausible but savings unmeasured; needs maintainer-branch timing before any issue. Cache: node-cache-Linux-x64-npm-e62f6006 (278.9 MB) created 2026-11-12T06:18:07Z, last accessed 2026-11-13T11:14:46Z; Post Set up Node.js 0 s in 19/19 (consistent with exact-key hits). Open worker issues: none (label search empty). No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T11:33:49Z",
+   "worker_run_id": "43417424126",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none queued or in progress; source f0c3fc4 = HEAD = source_sha; identical to the 11:20Z window). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed, deploy skipped; fixed by cd1e0ba). n=19 successful (18 push + 1 schedule 43371878284; 5-run gate met). Category: only dashboard step is Build synthetic enterprise demo (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs, which calls buildDashboardSite and copies .tmp/dashboard-pages to dist/cao); median 4 s, p90 5 s, max 5 s = 4.7% of median exec 85 s (p90 106 s). 15% gate 12.75 s and 60 s gate unmet even with full elimination (max 5.9%). Reuse blocked by freshness: now = Date.now() default embedded in generatedAt markers, manifest and enterprise sample; the 05:23 UTC schedule exists to refresh synthetic dates. Open issues with label self-care:docs-build-time-investigator: none. Next category: artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
   }
  ],
