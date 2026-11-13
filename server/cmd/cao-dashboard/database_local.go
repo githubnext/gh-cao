@@ -32,13 +32,51 @@ func newLocalDatabaseCommand() *cobra.Command {
 	return cmd
 }
 
-func provisionLocalDatabase(ctx context.Context, endpoint, password, namespace string) error {
+// localProvisionRejection names why managed provisioning inputs were refused.
+// It carries no input values so it is safe to log.
+type localProvisionRejection string
+
+const (
+	rejectEndpoint  localProvisionRejection = "invalid_endpoint"
+	rejectPassword  localProvisionRejection = "invalid_password"
+	rejectNamespace localProvisionRejection = "missing_namespace"
+)
+
+// parseLocalAdminEndpoint accepts only the loopback cao_bootstrap administrator
+// connection for the cao_dashboard database, a generated runtime password and
+// a non-blank namespace.
+func parseLocalAdminEndpoint(endpoint, password, namespace string) (*url.URL, localProvisionRejection) {
 	address, err := url.Parse(endpoint)
 	if err != nil || address == nil || address.User == nil ||
 		address.User.Username() != "cao_bootstrap" || address.Path != "/cao_dashboard" ||
 		net.ParseIP(address.Hostname()) == nil || !net.ParseIP(address.Hostname()).IsLoopback() ||
-		address.Scheme != "postgres" || !localDatabasePassword.MatchString(password) ||
-		strings.TrimSpace(namespace) == "" {
+		address.Scheme != "postgres" {
+		return nil, rejectEndpoint
+	}
+	if !localDatabasePassword.MatchString(password) {
+		return nil, rejectPassword
+	}
+	if strings.TrimSpace(namespace) == "" {
+		return nil, rejectNamespace
+	}
+	return address, ""
+}
+
+// localOwnerURL returns the administrator connection rewritten to assume the
+// schema owner role with the cao search path, leaving address unchanged.
+func localOwnerURL(address *url.URL) string {
+	owner := *address
+	parameters := owner.Query()
+	parameters.Set("role", "cao_owner")
+	parameters.Set("search_path", "cao")
+	owner.RawQuery = parameters.Encode()
+	return owner.String()
+}
+
+func provisionLocalDatabase(ctx context.Context, endpoint, password, namespace string) error {
+	address, rejection := parseLocalAdminEndpoint(endpoint, password, namespace)
+	if rejection != "" {
+		databaseLog.Printf("managed PostgreSQL provisioning rejected: reason=%s", rejection)
 		return errors.New("managed PostgreSQL provisioning requires its local administrator, database, password and namespace")
 	}
 	db, err := sql.Open("pgx", endpoint)
@@ -85,20 +123,18 @@ $credential$`); err != nil {
 	if err := passwordTx.Commit(); err != nil {
 		return errors.New("cannot configure the managed PostgreSQL runtime credential")
 	}
-	parameters := address.Query()
-	parameters.Set("role", "cao_owner")
-	parameters.Set("search_path", "cao")
-	address.RawQuery = parameters.Encode()
+	ownerURL := localOwnerURL(address)
 	for _, store := range []string{"canonical", "operational"} {
-		if _, err := runDatabaseAction(ctx, address.String(), store, namespace, "bootstrap"); err != nil {
+		if _, err := runDatabaseAction(ctx, ownerURL, store, namespace, "bootstrap"); err != nil {
 			var databaseError *pgconn.PgError
 			if errors.As(err, &databaseError) {
 				return fmt.Errorf("cannot bootstrap managed PostgreSQL %s storage: %s (%s)", store, databaseError.Message, databaseError.Code)
 			}
 			return errors.New("cannot bootstrap managed PostgreSQL " + store + " storage")
 		}
+		databaseLog.Printf("managed PostgreSQL storage bootstrapped: store=%s", store)
 	}
-	owner, err := sql.Open("pgx", address.String())
+	owner, err := sql.Open("pgx", ownerURL)
 	if err != nil {
 		return errors.New("cannot open the managed PostgreSQL schema owner")
 	}
@@ -110,5 +146,6 @@ $credential$`); err != nil {
 			return errors.New("cannot apply managed PostgreSQL runtime privilege contracts")
 		}
 	}
+	databaseLog.Printf("managed PostgreSQL runtime privileges applied")
 	return nil
 }
