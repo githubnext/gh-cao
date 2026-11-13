@@ -5753,9 +5753,9 @@
     },
     {
       "id": "dashboard-data-freshness",
-      "subject": "Find the newest workflow activity timestamp in retained canonical data.",
-      "objective": "Warn globally when the ingested workflow evidence has not advanced for 24 hours.",
-      "acceptance": "Use upstream updated-at, falling back to created-at, never browser import or refresh time. Missing or invalid timestamps remain unknown; inactivity alone does not prove an ingestion failure.",
+      "subject": "Find the newest workflow activity timestamp and count retained run attempts in canonical data.",
+      "objective": "Warn globally when the ingested workflow evidence has not advanced for 24 hours and show how many run attempts have been ingested.",
+      "acceptance": "Use upstream updated-at, falling back to created-at, never browser import or refresh time. Missing or invalid timestamps remain unknown; inactivity alone does not prove an ingestion failure. Ingested runs count distinct retained run attempts, not upstream totals.",
       "description": "",
       "parameters": [],
       "sources": [
