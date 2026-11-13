@@ -150,6 +150,7 @@ export function renderPromptWizard(context) {
       error.set(firstInvalid ? allSteps ? 'Cannot generate prompt.' : 'Cannot continue.' : '');
     });
     if (firstInvalid) {
+      debugWizard({ event: 'validation-failed', step: active.get(), scope: allSteps ? 'all' : 'step' });
       focusInvalidField(firstInvalid);
       return false;
     }
@@ -178,6 +179,7 @@ export function renderPromptWizard(context) {
   }, 'Back'));
   const advance = () => {
     if (scope.signal.aborted || active.get() >= wizard.steps.length - 1 || !validateSteps()) return;
+    debugWizard({ event: 'step-advanced', from: active.get(), to: active.get() + 1, total: wizard.steps.length });
     active.set(active.get() + 1);
     error.set('');
     focusPanel();
