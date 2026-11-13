@@ -264,7 +264,7 @@ test("canvas actions stream incrementally, reject untrusted requests, and surviv
     },
     executeCliAction: async ({ command, onOutput, signal }) => {
       calls.push(command);
-      onOutput({ stream: "stdout", data: "\u001b[32mRunning\u001b[0m\r\n" });
+      await onOutput({ stream: "stdout", data: "\u001b[32mRunning\u001b[0m\r\n" });
       await new Promise((resolve) => {
         finish = resolve;
         signal.addEventListener("abort", () => { cancelled = true; resolve(); }, { once: true });
@@ -290,11 +290,16 @@ test("canvas actions stream incrementally, reject untrusted requests, and surviv
     const lifetime = new AbortController();
     const response = await fetch(url, {
       method: "POST", headers, body: JSON.stringify({ id: "compile-workflows" }),
-      signal: lifetime.signal,
+      signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(10_000)]),
     });
     const reader = response.body.getReader();
-    const first = new TextDecoder().decode((await reader.read()).value);
-    assert.match(first, /Running/);
+    const decoder = new TextDecoder();
+    let output = "";
+    while (!output.includes("Running")) {
+      const { value, done } = await reader.read();
+      assert.equal(done, false, "command output must arrive before execution finishes");
+      output += decoder.decode(value, { stream: true });
+    }
     assert.equal(calls.length, 1);
     const enqueued = await fetch(`${preview.url}/__cli_commands`, {
       method: "POST", headers, body: JSON.stringify({ id: "compile-workflows" }),
