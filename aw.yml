@@ -1,7 +1,7 @@
 name: Central Agentic Ops
 icon: ":workflow:"
 description: Central agentic workflow control plane for reusable campaigns at the organization level
-min-version: v1.2.2
+min-version: v1.2.3
 experimental: true
 includes:
   - .github/workflows/cao-validate.yml
