@@ -87,6 +87,9 @@ func (w *Writer) publishRunBundles(ctx context.Context, input RunBundlePublicati
 	if err := measureRunAccounting(ctx, w.store.namespace, "affected_runs", measured); err != nil {
 		return State{}, err
 	}
+	if err := w.applyBundleAccounting(ctx, changed); err != nil {
+		return State{}, err
+	}
 	if err := w.capRuns(ctx); err != nil {
 		return State{}, err
 	}
@@ -143,37 +146,99 @@ func (w *Writer) publishRunBundles(ctx context.Context, input RunBundlePublicati
 	return state, nil
 }
 
+func (w *Writer) applyBundleAccounting(ctx context.Context, changed map[string]bool) error {
+	rows, err := w.tx.Query(ctx, `SELECT collection,sum(records)::bigint,sum(bytes)::bigint,max(next_ordinal)
+		FROM (
+			SELECT a.collection,a.records,a.bytes,a.next_ordinal FROM affected_runs k
+			CROSS JOIN LATERAL (SELECT collection,records,bytes,next_ordinal FROM cao_run_accounting
+				WHERE namespace=$1 AND run_id=k.id OFFSET 0) a
+			UNION ALL
+			SELECT collection,-records,-bytes,0 FROM previous_bundle_accounting
+		) delta GROUP BY collection`, w.store.namespace)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var source string
+		var records, bytes, next int64
+		if err := rows.Scan(&source, &records, &bytes, &next); err != nil {
+			return err
+		}
+		state := w.accounting[source]
+		if state == nil || !entityTables[source].partitioned {
+			return errors.New("unknown Run-accounting source")
+		}
+		state.records += records
+		state.bytes += bytes
+		state.nextOrdinal = max(state.nextOrdinal, next)
+		if state.records < 0 || state.bytes < 0 {
+			return errors.New("negative Run-accounting totals")
+		}
+		changed[source] = changed[source] || records != 0
+	}
+	return rows.Err()
+}
+
 func (w *Writer) refreshBundleAccounting(ctx context.Context, changed map[string]bool) error {
 	before := map[string]collectionAccounting{}
 	for source, state := range w.accounting {
 		if entityTables[source].partitioned {
 			before[source] = *state
-			state.records, state.evidenceAt = 0, nil
+			if w.capacityRanked {
+				state.records, state.bytes, state.evidenceAt = 0, 0, nil
+			}
 		}
 	}
-	rows, err := w.tx.Query(ctx, `SELECT collection,sum(records)::bigint,max(next_ordinal),max(evidence_at)
-		FROM cao_run_accounting WHERE namespace=$1 GROUP BY collection`, w.store.namespace)
-	if err != nil {
-		return err
-	}
-	for rows.Next() {
-		var source string
-		var count, next int64
-		var clock *time.Time
-		if err := rows.Scan(&source, &count, &next, &clock); err != nil {
-			rows.Close()
+	if w.capacityRanked {
+		rows, err := w.tx.Query(ctx, `SELECT collection,sum(records)::bigint,sum(bytes)::bigint,max(next_ordinal),max(evidence_at)
+			FROM cao_run_accounting WHERE namespace=$1 GROUP BY collection`, w.store.namespace)
+		if err != nil {
 			return err
 		}
-		state := w.accounting[source]
-		if state == nil {
-			rows.Close()
-			return errors.New("unknown Run-accounting source")
+		for rows.Next() {
+			var source string
+			var count, bytes, next int64
+			var clock *time.Time
+			if err := rows.Scan(&source, &count, &bytes, &next, &clock); err != nil {
+				rows.Close()
+				return err
+			}
+			state := w.accounting[source]
+			if state == nil {
+				rows.Close()
+				return errors.New("unknown Run-accounting source")
+			}
+			state.records, state.bytes, state.nextOrdinal, state.evidenceAt = count, bytes, max(next, state.nextOrdinal), clock
 		}
-		state.records, state.nextOrdinal, state.evidenceAt = count, max(next, state.nextOrdinal), clock
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return err
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+	} else {
+		batch := &pgx.Batch{}
+		var sources []string
+		for _, source := range tableNames() {
+			if !entityTables[source].partitioned {
+				continue
+			}
+			sources = append(sources, source)
+			// The receipt clock index finds the next maximum even when a
+			// complete replacement removes the previous maximum.
+			batch.Queue(`SELECT (SELECT evidence_at FROM cao_run_accounting
+				WHERE namespace=$1 AND collection=$2
+				ORDER BY evidence_at DESC NULLS LAST LIMIT 1)`, w.store.namespace, source)
+		}
+		results := w.tx.SendBatch(ctx, batch)
+		for _, source := range sources {
+			if err := results.QueryRow().Scan(&w.accounting[source].evidenceAt); err != nil {
+				_ = results.Close()
+				return err
+			}
+		}
+		if err := results.Close(); err != nil {
+			return err
+		}
 	}
 	for source, previous := range before {
 		current := w.accounting[source]

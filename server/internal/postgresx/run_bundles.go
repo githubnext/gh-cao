@@ -134,6 +134,13 @@ func (s *Store) PublishRunBundles(ctx context.Context, input RunBundlePublicatio
 	if accepted == 0 {
 		return w.unchangedBundleState(ctx)
 	}
+	// Keep receipt reads keyed by accepted Runs even without temporary-table statistics.
+	if _, err := w.tx.Exec(ctx, `CREATE TEMP TABLE previous_bundle_accounting ON COMMIT DROP AS
+		SELECT a.collection,a.records,a.bytes FROM affected_runs k
+		CROSS JOIN LATERAL (SELECT collection,records,bytes FROM cao_run_accounting
+			WHERE namespace=$1 AND run_id=k.id OFFSET 0) a`, w.store.namespace); err != nil {
+		return State{}, err
+	}
 	changed, err := w.applyRunBundleRows(ctx)
 	if err != nil {
 		return State{}, err

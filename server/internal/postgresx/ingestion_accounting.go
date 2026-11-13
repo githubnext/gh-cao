@@ -13,8 +13,8 @@ import (
 )
 
 type collectionAccounting struct {
-	records, nextOrdinal int64
-	evidenceAt           *time.Time
+	records, bytes, nextOrdinal int64
+	evidenceAt                  *time.Time
 }
 
 func newCollectionAccounting() map[string]*collectionAccounting {
@@ -130,7 +130,7 @@ func measureRunAccounting(ctx context.Context, namespace, scope string, db capac
 
 func (w *Writer) saveAccounting(ctx context.Context, revision int64) error {
 	var sources []string
-	var counts, ordinals []int64
+	var counts, sizes, ordinals []int64
 	var clocks []*time.Time
 	for _, source := range tableNames() {
 		state := w.accounting[source]
@@ -139,20 +139,21 @@ func (w *Writer) saveAccounting(ctx context.Context, revision int64) error {
 		}
 		sources = append(sources, source)
 		counts = append(counts, state.records)
+		sizes = append(sizes, state.bytes)
 		ordinals = append(ordinals, state.nextOrdinal)
 		clocks = append(clocks, state.evidenceAt)
 	}
-	_, err := w.tx.Exec(ctx, `INSERT INTO cao_ingestion_accounting(namespace,collection,revision,records,next_ordinal,evidence_at)
-		SELECT $1,s.collection,$2,s.records,s.next_ordinal,s.evidence_at
-		FROM unnest($3::text[],$4::bigint[],$5::bigint[],$6::timestamptz[]) s(collection,records,next_ordinal,evidence_at)
+	_, err := w.tx.Exec(ctx, `INSERT INTO cao_ingestion_accounting(namespace,collection,revision,records,bytes,next_ordinal,evidence_at)
+		SELECT $1,s.collection,$2,s.records,s.bytes,s.next_ordinal,s.evidence_at
+		FROM unnest($3::text[],$4::bigint[],$5::bigint[],$6::timestamptz[],$7::bigint[]) s(collection,records,next_ordinal,evidence_at,bytes)
 		ON CONFLICT(namespace,collection) DO UPDATE SET revision=excluded.revision,records=excluded.records,
-			next_ordinal=excluded.next_ordinal,evidence_at=excluded.evidence_at`,
-		w.store.namespace, revision, sources, counts, ordinals, clocks)
+			bytes=excluded.bytes,next_ordinal=excluded.next_ordinal,evidence_at=excluded.evidence_at`,
+		w.store.namespace, revision, sources, counts, ordinals, clocks, sizes)
 	return err
 }
 
 func (w *Writer) loadAccounting(ctx context.Context) error {
-	rows, err := w.tx.Query(ctx, `SELECT collection,records,next_ordinal,evidence_at FROM cao_ingestion_accounting
+	rows, err := w.tx.Query(ctx, `SELECT collection,records,bytes,next_ordinal,evidence_at FROM cao_ingestion_accounting
 		WHERE namespace=$1 AND revision=$2`, w.store.namespace, w.revision)
 	if err != nil {
 		return err
@@ -161,7 +162,7 @@ func (w *Writer) loadAccounting(ctx context.Context) error {
 	for rows.Next() {
 		var source string
 		value := &collectionAccounting{}
-		if err := rows.Scan(&source, &value.records, &value.nextOrdinal, &value.evidenceAt); err != nil {
+		if err := rows.Scan(&source, &value.records, &value.bytes, &value.nextOrdinal, &value.evidenceAt); err != nil {
 			rows.Close()
 			return err
 		}
@@ -204,17 +205,17 @@ func (w *Writer) loadAccounting(ctx context.Context) error {
 		table := entityTables[source]
 		sources = append(sources, source)
 		if table.partitioned {
-			batch.Queue(`SELECT coalesce(sum(records),0)::bigint,coalesce(max(next_ordinal),0),max(evidence_at)
+			batch.Queue(`SELECT coalesce(sum(records),0)::bigint,coalesce(sum(bytes),0)::bigint,coalesce(max(next_ordinal),0),max(evidence_at)
 				FROM cao_run_accounting WHERE namespace=$1 AND collection=$2`, w.store.namespace, source)
 		} else {
-			batch.Queue("SELECT count(*),coalesce(max(ordinal)+1,0),max("+entityClockSQL(table, "")+
+			batch.Queue("SELECT count(*),0::bigint,coalesce(max(ordinal)+1,0),max("+entityClockSQL(table, "")+
 				") FROM "+query.SQLIdentifier(table.name)+" WHERE namespace=$1", w.store.namespace)
 		}
 	}
 	results := w.tx.SendBatch(ctx, batch)
 	for _, source := range sources {
 		value := w.accounting[source]
-		if err := results.QueryRow().Scan(&value.records, &value.nextOrdinal, &value.evidenceAt); err != nil {
+		if err := results.QueryRow().Scan(&value.records, &value.bytes, &value.nextOrdinal, &value.evidenceAt); err != nil {
 			_ = results.Close()
 			return err
 		}
