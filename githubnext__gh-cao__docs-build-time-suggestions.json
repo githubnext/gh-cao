@@ -1,35 +1,7 @@
 {
  "source_sha": "0206402a798c97c4af4b42dc566830c978186412",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T15:55:04Z",
-   "worker_run_id": "43251635548",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761,
-    43129836945,
-    43124416558
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T23:39:34Z to 2026-11-12T15:38:01Z; 0 in progress; 1 cancelled excluded: 43206161686 (no jobs); 0 failed). Comparable n=19 successful build+deploy publications (18 push, 1 schedule 43161224542; identical job/step shape; source 15db224 = HEAD; docs.yml last changed 063cbe9, path filter only). Medians (p90): execution build start to deploy end 85 s (123 s); build job 68 s (104 s); build-created to deploy-end 88 s (126 s); build queue 3 s (4 s); Checkout 24 s (47 s); Set up Node.js 3 s (8 s); Install dependencies 17 s (25 s); Build documentation 14 s (15 s); demo 4 s; Upload 2 s; deploy job 11 s (18 s). 15% gate = 12.75 s. Cache: 'Post Set up Node.js' 0 s in 17 of 19 runs and 1 s in 2 (a miss would save a 279-318 MB archive) = consistent with exact-key restore hits; inferred from step timing (job logs HTTP 403; cache list shows node-cache-Linux-x64-npm entries accessed by these runs; repo cache total 11.66 GB vs 10 GB cap, node entries accessed recently). Lead, not suggestion: Checkout fetch-depth 0 fetches all 1,256 branches, 63 tags, 3,731 main commits (repo size 1.45 GB, HEAD tree 3,365 files / 52 MB). Calibration: shallow checkout in same repo (csh.yml ShellCheck, n=6 jobs, same runner label) median 3 s, so ~21 s excess (~25% of median execution). Not actionable: fetch-depth 1 breaks resource.ts per-file git-log sourceCommittedAt (agent-docs-discovery test asserts finite); a main-line blobless history fetch would keep it but residual cost is unmeasured, so expected saving (24 - 3 - residual) cannot be shown >= 12.75 s. Open #20380 is a different topic (retired input path); no duplicate. next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T16:25:00Z",
    "worker_run_id": "43256789896",
@@ -840,20 +812,51 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:02:55Z to 2026-11-13T01:45:42Z; 0 in progress or queued; HEAD 0206402; docs.yml last changed 063cbe9). Excluded and disclosed: 1 cancelled 43206161686 (superseded pending run, no jobs) and 1 failed 43297524311 (Build documentation failed, deploy skipped, fixed by cd1e0ba). n=18 successful push publications; no schedule run in window; 5-run gate met. Concurrency (documentation-pages, cancel-in-progress false): run-created to build-created median 1 s, p90 43 s, max 81 s; 3 of 18 waited behind an in-progress publication (43341730805 81 s, 43228124764 43 s, 43206235849 27 s). Pending coalescing already active (43206161686 superseded by 43206235849). Execution build start to deploy end median 84.5 s (p90 123 s); wall median 88 s (p90 169 s); 15% gate 12.7 s and 60 s gate unmet. Waits move wall p90 only; median saving 0 s. Avoidable rebuilds: compare API over all 20 consecutive head ranges (chain from schedule head 9537899): every range has at least one non-test docs.yml trigger path, so 0 of 18 runs avoidable; narrowing filters saves 0. Schedule 05:23 UTC rebuild required for synthetic-date freshness. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy); deploy-only or split build concurrency (parallel builds risk out-of-order Pages deploys; saves only p90 queue); build-deploy merge (about 6 s, weakens environment and id-token isolation). Carry-forward, not re-measured this run: Checkout median 24 s (fetch-depth 0). Lookups: 20 job-list and 20 compare calls; run samples now cached in run_samples. No suggestion; no issue created; no open worker issue. next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T02:36:00Z",
+   "worker_run_id": "43352566073",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311,
+    43249903823,
+    43242792853,
+    43236057780,
+    43228124764,
+    43228046118,
+    43225202834,
+    43206235849,
+    43206161686,
+    43206080696,
+    43194788185,
+    43167568535,
+    43167070179,
+    43165397534
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:02:55Z to 2026-11-13T01:45:42Z; 0 in progress or queued; HEAD 0206402 unchanged; docs.yml last changed 063cbe9). Excluded and disclosed: 1 cancelled 43206161686 (no jobs) and 1 failed 43297524311 (Build documentation failed, deploy skipped; fixed by cd1e0ba). n=18 successful build+deploy publications; 5-run gate met; no schedule run in window. Job and step metadata only: Install dependencies median 15.5 s, p90 21 s, range 11-25 s = 18% of median execution 84.5 s (p90 123 s); 15% gate = 12.7 s, so only near-full removal qualifies. Set up Node.js (npm cache restore) median 3 s (p90 8 s); Post Set up Node.js 0 s in 18/18 runs, consistent with exact-key restore hits (no archive save). HEAD root-lock entry node-cache-Linux-x64-npm-e62f6006 (278.9 MB) on main, last accessed 02:33Z; listing 9.79 GB of 10 GB cap. Job logs re-read 02:34Z: HTTP 403 difc_forbidden, so root and dashboard-site installs cannot be timed separately. No candidate clears the gate: node_modules caching needs restore under about 3 s (unmeasured, adds 300+ MB cache pressure); flag-only changes (no-audit, no-fund) are estimated at a few seconds. Carry-forward lead outside this docs.yml-only scope: Checkout fetch-depth 0 median 24 s (p90 47 s); shallow checkout conflicts with sourceCommittedAt history needs (per prior evaluations); partial-clone saving unmeasured. Duplicate check: no open issue labelled self-care:docs-build-time-investigator; open #20440 and #20719 are workflow-failure reports, not this work. No suggestion; no issue created; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T01:33:13Z",
+  "verified_at": "2026-11-13T02:34:00Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 src/cache-restore.ts",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<glob.hashFiles(root package-lock.json)>",
   "hash_rule": "sha256 over per-file sha256 digests (not plain file sha256)",
   "restore": "exact key only (no restore-keys)",
   "head_root_lock_key_suffix": "e62f60064d02",
-  "logs": "HTTP 403 difc_forbidden re-verified 2026-11-13T01:32Z; hit/miss inferred only (cache list metadata consistent with exact-key restore hits)"
+  "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 278.9 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T02:33Z, refs/heads/main",
+  "cache_listing": "52 entries, 9.79 GB total at 02:33Z (below 10 GB cap); PR-ref Windows/macOS npm entries add pressure",
+  "logs": "HTTP 403 difc_forbidden re-verified 2026-11-13T02:34Z; hit/miss inferred from metadata (Post Set up Node.js 0 s in 18/18 successful runs)"
  },
  "run_samples": {
   "window_created": "2026-11-12T06:02:55Z..2026-11-13T01:45:42Z",
-  "evaluated_at": "2026-11-13T02:23:10Z",
+  "evaluated_at": "2026-11-13T02:36:00Z",
   "rows": [
    {
     "run": 43165397534,
@@ -862,7 +865,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 67,
-    "wall_s": 71
+    "wall_s": 71,
+    "steps": {
+     "checkout": 22,
+     "node": 2,
+     "install": 11,
+     "docs": 10,
+     "demo": 4,
+     "pages_cfg": 1,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 55,
+     "deploy_job": 8
+    }
    },
    {
     "run": 43167070179,
@@ -871,7 +886,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 119,
-    "wall_s": 123
+    "wall_s": 123,
+    "steps": {
+     "checkout": 49,
+     "node": 8,
+     "install": 21,
+     "docs": 14,
+     "demo": 4,
+     "pages_cfg": 1,
+     "upload": 3,
+     "post_node": 0,
+     "build_job": 105,
+     "deploy_job": 9
+    }
    },
    {
     "run": 43167568535,
@@ -880,7 +907,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 90,
-    "wall_s": 93
+    "wall_s": 93,
+    "steps": {
+     "checkout": 28,
+     "node": 3,
+     "install": 18,
+     "docs": 14,
+     "demo": 3,
+     "pages_cfg": 1,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 74,
+     "deploy_job": 11
+    }
    },
    {
     "run": 43194788185,
@@ -889,7 +928,19 @@
     "conc": "succ",
     "queue_s": 0,
     "exec_s": 78,
-    "wall_s": 81
+    "wall_s": 81,
+    "steps": {
+     "checkout": 24,
+     "node": 2,
+     "install": 15,
+     "docs": 12,
+     "demo": 3,
+     "pages_cfg": 0,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 61,
+     "deploy_job": 11
+    }
    },
    {
     "run": 43206080696,
@@ -898,7 +949,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 84,
-    "wall_s": 87
+    "wall_s": 87,
+    "steps": {
+     "checkout": 21,
+     "node": 3,
+     "install": 14,
+     "docs": 11,
+     "demo": 2,
+     "pages_cfg": 1,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 60,
+     "deploy_job": 19
+    }
    },
    {
     "run": 43206161686,
@@ -913,7 +976,19 @@
     "conc": "succ",
     "queue_s": 27,
     "exec_s": 127,
-    "wall_s": 157
+    "wall_s": 157,
+    "steps": {
+     "checkout": 47,
+     "node": 9,
+     "install": 19,
+     "docs": 15,
+     "demo": 4,
+     "pages_cfg": 0,
+     "upload": 3,
+     "post_node": 0,
+     "build_job": 103,
+     "deploy_job": 18
+    }
    },
    {
     "run": 43225202834,
@@ -922,7 +997,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 79,
-    "wall_s": 83
+    "wall_s": 83,
+    "steps": {
+     "checkout": 27,
+     "node": 3,
+     "install": 13,
+     "docs": 12,
+     "demo": 3,
+     "pages_cfg": 1,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 64,
+     "deploy_job": 8
+    }
    },
    {
     "run": 43228046118,
@@ -931,7 +1018,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 68,
-    "wall_s": 71
+    "wall_s": 71,
+    "steps": {
+     "checkout": 20,
+     "node": 3,
+     "install": 12,
+     "docs": 8,
+     "demo": 4,
+     "pages_cfg": 0,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 53,
+     "deploy_job": 9
+    }
    },
    {
     "run": 43228124764,
@@ -940,7 +1039,19 @@
     "conc": "succ",
     "queue_s": 43,
     "exec_s": 123,
-    "wall_s": 169
+    "wall_s": 169,
+    "steps": {
+     "checkout": 45,
+     "node": 5,
+     "install": 25,
+     "docs": 15,
+     "demo": 4,
+     "pages_cfg": 1,
+     "upload": 3,
+     "post_node": 0,
+     "build_job": 104,
+     "deploy_job": 12
+    }
    },
    {
     "run": 43236057780,
@@ -949,7 +1060,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 87,
-    "wall_s": 90
+    "wall_s": 90,
+    "steps": {
+     "checkout": 25,
+     "node": 3,
+     "install": 14,
+     "docs": 15,
+     "demo": 4,
+     "pages_cfg": 0,
+     "upload": 3,
+     "post_node": 0,
+     "build_job": 68,
+     "deploy_job": 13
+    }
    },
    {
     "run": 43242792853,
@@ -958,7 +1081,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 85,
-    "wall_s": 90
+    "wall_s": 90,
+    "steps": {
+     "checkout": 24,
+     "node": 2,
+     "install": 16,
+     "docs": 14,
+     "demo": 5,
+     "pages_cfg": 0,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 66,
+     "deploy_job": 13
+    }
    },
    {
     "run": 43249903823,
@@ -967,7 +1102,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 83,
-    "wall_s": 87
+    "wall_s": 87,
+    "steps": {
+     "checkout": 24,
+     "node": 7,
+     "install": 12,
+     "docs": 11,
+     "demo": 2,
+     "pages_cfg": 1,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 65,
+     "deploy_job": 12
+    }
    },
    {
     "run": 43297524311,
@@ -985,7 +1132,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 82,
-    "wall_s": 85
+    "wall_s": 85,
+    "steps": {
+     "checkout": 24,
+     "node": 3,
+     "install": 15,
+     "docs": 14,
+     "demo": 4,
+     "pages_cfg": 1,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 67,
+     "deploy_job": 10
+    }
    },
    {
     "run": 43339642321,
@@ -994,7 +1153,19 @@
     "conc": "succ",
     "queue_s": 0,
     "exec_s": 85,
-    "wall_s": 88
+    "wall_s": 88,
+    "steps": {
+     "checkout": 24,
+     "node": 3,
+     "install": 17,
+     "docs": 14,
+     "demo": 4,
+     "pages_cfg": 1,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 69,
+     "deploy_job": 11
+    }
    },
    {
     "run": 43341713733,
@@ -1003,7 +1174,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 83,
-    "wall_s": 88
+    "wall_s": 88,
+    "steps": {
+     "checkout": 24,
+     "node": 7,
+     "install": 15,
+     "docs": 12,
+     "demo": 3,
+     "pages_cfg": 0,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 68,
+     "deploy_job": 10
+    }
    },
    {
     "run": 43341730805,
@@ -1012,7 +1195,19 @@
     "conc": "succ",
     "queue_s": 81,
     "exec_s": 92,
-    "wall_s": 175
+    "wall_s": 175,
+    "steps": {
+     "checkout": 25,
+     "node": 5,
+     "install": 19,
+     "docs": 15,
+     "demo": 4,
+     "pages_cfg": 1,
+     "upload": 3,
+     "post_node": 0,
+     "build_job": 78,
+     "deploy_job": 9
+    }
    },
    {
     "run": 43345305064,
@@ -1021,7 +1216,19 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 97,
-    "wall_s": 101
+    "wall_s": 101,
+    "steps": {
+     "checkout": 31,
+     "node": 8,
+     "install": 17,
+     "docs": 14,
+     "demo": 4,
+     "pages_cfg": 1,
+     "upload": 3,
+     "post_node": 0,
+     "build_job": 84,
+     "deploy_job": 8
+    }
    },
    {
     "run": 43347280419,
@@ -1030,9 +1237,21 @@
     "conc": "succ",
     "queue_s": 1,
     "exec_s": 82,
-    "wall_s": 86
+    "wall_s": 86,
+    "steps": {
+     "checkout": 24,
+     "node": 5,
+     "install": 18,
+     "docs": 12,
+     "demo": 3,
+     "pages_cfg": 0,
+     "upload": 2,
+     "post_node": 0,
+     "build_job": 67,
+     "deploy_job": 9
+    }
    }
   ],
-  "note": "completed immutable runs; reuse for overlapping windows to skip job-list calls; queue_s=run created to build created, exec_s=build start to deploy end, wall_s=run created to deploy end"
+  "note": "completed immutable runs; reuse for overlapping windows to skip job-list calls; queue_s=run created to build created, exec_s=build start to deploy end, wall_s=run created to deploy end; steps = build-job step seconds for successful publications (skip job-list calls when reused)"
  }
 }
