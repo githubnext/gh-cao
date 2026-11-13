@@ -379,7 +379,7 @@ steps:
           ] },
           { id: 'distribution', claims: ['distribution.provenance', 'distribution.compatibility'], paths: [
             'cmd/gh-cao', 'internal/cli', 'internal/ghcli', 'runtime', 'install-gh-cao.sh',
-            '.github/workflows/shared/materialize-cao.mjs', '.github/actions',
+            'scripts/build-cao-runtime.mjs', '.github/actions',
             'tests/integration/install-script.test.mjs', 'tests/integration/cao-runtime-installation.test.mjs',
             'tests/unit/cao-runtime-*.test.mjs',
           ] },

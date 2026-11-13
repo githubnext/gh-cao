@@ -9,7 +9,6 @@ import { promisify } from "node:util";
 import test from "node:test";
 import vm from "node:vm";
 import { parse } from "yaml";
-import { materializeCaoFromSource } from "../../.github/workflows/shared/materialize-cao.mjs";
 import { buildCaoRuntime } from "../../scripts/build-cao-runtime.mjs";
 import { runTerminal } from "../helpers/terminal.mjs";
 
@@ -30,7 +29,6 @@ const revision = "1".repeat(40);
 // Keep a finite subprocess deadline without imposing that budget on other hosts.
 const timeout = process.platform === "win32" ? 120_000 : 30_000;
 const policyPath = path.join(".github", "workflows", "cao.json");
-const materializer = path.join(".github", "workflows", "shared", "materialize-cao.mjs");
 const curlCommand = "curl --fail --show-error --location";
 const manualUpgrade = (version) => new RegExp(`Run \`${curlCommand} \\S+/install-gh-aw\\.sh \\| bash -s -- ${version.replaceAll(".", "\\.")}\`, then rerun the CAO installer`);
 
@@ -96,7 +94,6 @@ const archiveResources = [
   ".github/skills/generate-dashboard-ir",
   ".github/skills/dashboard-authoring/SKILL.md",
   ".github/skills/author-dashboard-intent/SKILL.md",
-  ".github/actions/setup-cao-runtime",
   ".github/actions/setup-gh-aw",
   ".github/cao/instructions.md",
   ".github/workflows/shared/control.md",
@@ -212,8 +209,21 @@ if [[ "\${1:-} \${2:-}" == "repo create" ]]; then
   fi
   exit 0
 fi
+# gh cao setup acquires the exact attested runtime for the latest release.
+if [[ "$*" == "release view --repo github.com/githubnext/gh-cao --json tagName --jq .tagName" ]]; then
+  echo v1.2.3
+  exit 0
+fi
+if [[ "$*" == "api --hostname github.com repos/githubnext/gh-cao/commits/v1.2.3 --jq .sha" ]]; then
+  echo ${revision}
+  exit 0
+fi
+if [[ "\${1:-}" == api && "$*" == *"repos/githubnext/gh-cao/contents/aw.yml?ref=${revision}"* ]]; then
+  cat "$FAKE_CATALOG/aw.yml"
+  exit 0
+fi
 if [[ "\${1:-}" == api && "$*" == *"/actions/workflows/cao-runtime.yml/runs?"* ]]; then
-  printf '%s\\n' '[{"workflow_runs":[{"id":42,"head_sha":"${revision}","conclusion":"success","event":"push"}]}]'
+  printf '%s\\n' '[{"workflow_runs":[{"id":42,"head_sha":"${revision}","status":"completed","conclusion":"success","event":"push"}]}]'
   exit 0
 fi
 if [[ "\${1:-}" == api && "$*" == *"/actions/runs/42/artifacts?"* ]]; then
@@ -221,7 +231,6 @@ if [[ "\${1:-}" == api && "$*" == *"/actions/runs/42/artifacts?"* ]]; then
   exit 0
 fi
 if [[ "\${1:-} \${2:-}" == "run download" ]]; then
-  [[ "\${FAKE_CAO_ARCHIVE_STATUS:-200}" == 200 ]] || { echo "HTTP 503" >&2; exit 1; }
   while [[ $# -gt 0 ]]; do
     if [[ "$1" == --dir ]]; then destination="$2"; break; fi
     shift
@@ -230,7 +239,6 @@ if [[ "\${1:-} \${2:-}" == "run download" ]]; then
   exit 0
 fi
 if [[ "\${1:-} \${2:-}" == "attestation verify" ]]; then
-  [[ -z "\${FAKE_CAO_ATTESTATION_FAILURE:-}" ]] || { echo "attestation rejected" >&2; exit 1; }
   exit 0
 fi
 if [[ "$*" == "repo view --json nameWithOwner --jq .nameWithOwner" ]]; then
@@ -425,7 +433,8 @@ async function createConsumer(t, ghAwVersion, { repository = "alpha-org/control"
     ...inheritedEnv,
     PATH: `${bin}${path.delimiter}${systemPath}`,
     CI: "",
-    ...(process.platform === "win32" ? { PATHEXT: ".CMD;.COM;.EXE;.BAT" } : {}),
+    // Native callers must use gh.exe so cmd.exe cannot split API query strings at '&'.
+    ...(process.platform === "win32" ? { PATHEXT: ".COM;.EXE;.BAT;.CMD" } : {}),
     NODE_OPTIONS: [process.env.NODE_OPTIONS, `--import=${pathToFileURL(mockFetch).href}`].filter(Boolean).join(" "),
     FAKE_CATALOG: catalog,
     FAKE_GH_SCRIPT: path.join(bin, "gh"),
@@ -524,9 +533,8 @@ async function assertCompleteInstall(consumer, env, ghAwVersion, repository, { a
   assert.equal(await exists(path.join(consumer, "cao.sh")), false);
   await executeFile("gh", ["cao", "--help"], { cwd: consumer, env, timeout });
   assert.equal(await exists(path.join(consumer, "activity")), false);
-  for (const bundle of ["dashboard"]) {
-    await executeFile(process.execPath, [materializer, "verify", bundle], { cwd: consumer, env, timeout });
-  }
+  // The installer leaves the runtime to gh cao setup, which stages the attested artifact.
+  assert.equal(await exists(path.join(consumer, "dashboard", "site", "package.json")), activity);
   for (const file of [
     "plugin.json",
     "com.github.copilot/extensions/cao-dashboard/extension.mjs",
@@ -611,7 +619,7 @@ for (const [state, initialVersion, expectedVersion, expectedLog] of [
   [`gh-aw ${supportedGhAw}`, supportedGhAw, supportedGhAw, "add\n"],
   [`gh-aw ${newerGhAw}`, newerGhAw, newerGhAw, "add\n"],
 ]) {
-  test(`streamed install-gh-cao.sh with ${state} materializes the runtime and initializes policy`, async (t) => {
+  test(`streamed install-gh-cao.sh with ${state} installs the control plane and initializes policy`, async (t) => {
     const { consumer, repository, env, log } = await createConsumer(t, initialVersion);
     await streamInstaller(consumer, env);
     assert.equal(await log(), expectedLog);
@@ -681,11 +689,11 @@ for (const response of ['{"message":"API rate limit exceeded"}', "not JSON"]) {
   });
 }
 
-test("documented staging preserves the complete curated runtime in a fresh checkout", async (t) => {
+test("documented staging preserves the complete installation in a fresh checkout", async (t) => {
   const { root, consumer, repository, env } = await createConsumer(t, supportedGhAw);
   await streamInstaller(consumer, env);
   await executeFile("git", ["init", "--quiet"], { cwd: consumer });
-  await executeFile("git", ["add", ".github", "dashboard"], { cwd: consumer });
+  await executeFile("git", ["add", ".github"], { cwd: consumer });
   const { stdout: untracked } = await executeFile("git", ["ls-files", "--others", "--exclude-standard"], { cwd: consumer });
   assert.equal(untracked, "", "the documented commit must include every installed resource");
   await executeFile("git", [
@@ -693,7 +701,7 @@ test("documented staging preserves the complete curated runtime in a fresh check
     "-c", "user.email=cao-test@example.invalid",
     "-c", "commit.gpgsign=false",
     "-c", "core.hooksPath=/dev/null",
-    "commit", "--quiet", "-m", "Install curated CAO runtime",
+    "commit", "--quiet", "-m", "Install CAO control plane",
   ], { cwd: consumer });
   const checkout = path.join(root, "fresh-checkout");
   await executeFile("git", ["clone", "--quiet", "--no-local", consumer, checkout]);
@@ -712,8 +720,7 @@ test("install-gh-cao.sh reports useful progress and does not silence curl", asyn
   assert.match(result.stdout, new RegExp(`Installing gh-aw ${supportedGhAw.replaceAll(".", "\\.")}`));
   assert.match(result.stdout, /Installs 3 workflows, 5 shared control plane resources, and project settings\./);
   assert.match(result.stdout, /Installing control plane components/);
-  assert.match(result.stdout, /A newly published catalog revision may wait for its exact verified runtime build/);
-  assert.match(result.stdout, /Verifying exact CAO runtime/);
+  assert.doesNotMatch(result.stdout, /CAO runtime/);
   assert.doesNotMatch(result.stdout, /Making the CAO launcher executable/);
   assert.match(result.stdout, /Initializing the CAO policy/);
   assert.match(result.stdout, /CAO installed and verified/);
@@ -889,8 +896,6 @@ test("install-gh-cao.sh reruns restore missing policy without replacing consumer
 
 for (const [failure, environment, expectedLog] of [
   ["campaign add fails", { FAKE_ADD_FAILURE: "1" }, "add\n"],
-  ["the immutable archive download fails", { FAKE_CAO_ARCHIVE_STATUS: "503" }, "add\n"],
-  ["runtime provenance verification fails", { FAKE_CAO_ATTESTATION_FAILURE: "1" }, "add\n"],
 ]) {
   test(`install-gh-cao.sh exits nonzero without policy when ${failure}`, async (t) => {
     const { consumer, env, log } = await createConsumer(t, supportedGhAw);
@@ -1287,7 +1292,7 @@ for (const [name, environment, arguments_] of [
     const installEnv = { ...env, ...environment, FAKE_CONTROL_REPOSITORY: repository };
     const result = await streamInstaller(consumer, installEnv, arguments_);
     const setup = arguments_.includes("--setup");
-    assert.equal(await log(), `${creating ? "create-private\n" : ""}add\n`);
+    assert.equal(await log(), `${creating ? "create-private\n" : ""}add\n${setup ? "add\n" : ""}`);
     assert.match(result.stdout, /CAO installed and verified/);
     if (setup) {
       assert.match(result.stderr, /Non-interactive setup applied/);
@@ -1658,7 +1663,7 @@ test("install-gh-cao.sh in CI applies public defaults without prompting on an av
   });
   assert.equal(result.code, 0, result.stdout + result.stderr);
   assert.match(result.stdout, /Non-interactive setup applied/);
-  assert.equal(await log(), "add\n");
+  assert.equal(await log(), "add\nadd\n");
 });
 
 test("install-gh-cao.sh in CI fails an old gh-aw without reading the controlling terminal", { skip: process.platform === "win32" }, async (t) => {

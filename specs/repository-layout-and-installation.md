@@ -53,8 +53,6 @@ control repository, or more than one of those roles.
 | `specs/dashboard-data.md` | CAO catalog or Agent Plugin installer | Canonical data specification bundled with the separate Dashboard extension |
 | `.github/workflows/` | Control repository and gh-aw | Workflow sources, generated locks, and CAO policy |
 | `.github/workflows/cao.json` | Control repository | Persistent non-secret rollout policy |
-| `.github/workflows/shared/materialize-cao.mjs` | CAO bootstrap | Trusted canonical-runtime materializer |
-| `.github/actions/setup-cao-runtime/` | CAO bootstrap | Local runtime verification action |
 | `.github/actions/setup-gh-aw/` | CAO bootstrap | Local policy-pinned gh-aw setup action |
 | `.github/cao/instructions.md` | Control repository | Optional CAO operator guidance |
 | `.github/aw/` | gh-aw | Instructions, campaign records, ownership metadata, and gh-aw runtime data |
@@ -120,8 +118,9 @@ closed, without latest-release or install-time source/npm fallback.
 
 Operational campaigns retain source-archive acquisition by their immutable
 revision. Workflow execution MUST NOT fetch a branch, tag, or alternate runtime
-layout. Local developer source materialization is a separate, explicit path
-that may use npm packing.
+layout. Runtime artifacts are built from a catalog checkout by
+`scripts/build-cao-runtime.mjs`; there is no install-time source materialization
+path.
 
 When the root record and exact focused Activity or Dashboard records coexist,
 the focused record MUST own its corresponding canonical directory. The root
@@ -130,8 +129,7 @@ preflighted before the first replacement.
 
 ### 4.2 Replacement
 
-Root materialization owns `activity/`, `dashboard/`,
-`.github/actions/setup-cao-runtime/`, `.github/actions/setup-gh-aw/`, and
+Root materialization owns `activity/`, `dashboard/`, `.github/actions/setup-gh-aw/`, and
 `.github/cao/instructions.md`. Every repository-local action referenced by a
 workflow that the root campaign installs MUST be provided at its canonical path
 by the root installation; installed workflow files MUST NOT be rewritten to
@@ -255,14 +253,16 @@ from this runtime boundary.
 Control-plane validation MUST have
 one JavaScript implementation, without a Go or shell-wrapper command. Its workflow
 MUST execute the shipped JavaScript runtime directly with
-`node activity/cao.mjs validate --json` at its installed revision, using the
+`node .github/workflows/shared/control.mjs validate-policy` at its installed revision, using the
 production policy resolver. It MUST NOT build or download the Go extension or
 require consumer npm metadata. Runtime tests MUST preserve the structured report
 and exit-code contract. CI MUST keep its report under `RUNNER_TEMP`, not
 in the repository working tree.
 
-The supported root CAO installer MUST materialize the root runtime after gh-aw
-has resolved the root package record. For a main or SHA source, the
+Native `gh cao setup` MUST stage the root runtime from the exact attested
+artifact for the resolved root package record when the local runtime is
+incomplete; the root installer installs the control plane and leaves runtime
+materialization to `gh cao setup`. For a main or SHA source, the
 materializer MUST wait at most five minutes when the exact runtime build is
 queued or running, then fail closed if it does not complete successfully; it
 MUST NOT substitute another revision or build from source. `cao add` MUST materialize a selected
@@ -409,9 +409,8 @@ component installation as a complete CAO installation.
 ## 5. Workflow execution and verification
 
 Activity and Dashboard workflows MUST check out the control repository at
-`github.workflow_sha`. They MUST use the repository-local
-`$/.github/actions/setup-cao-runtime` action to verify their required canonical
-runtime bundle before executing it.
+`github.workflow_sha` and verify their required canonical runtime bundle
+before executing it.
 
 Runtime verification MUST be local and fail closed when a required canonical
 file is absent. A workflow MUST NOT download another CAO checkout, use a
