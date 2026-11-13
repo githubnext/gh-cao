@@ -37,6 +37,40 @@ bash server/kubernetes/local.sh build
 bash server/kubernetes/local.sh database
 ```
 
+### Optional: kind via Aspire instead of Docker Desktop Kubernetes
+
+If you would rather not enable Docker Desktop's Kubernetes, a small Aspire
+AppHost can create a standalone kind cluster named `cao-local` and run the
+same `prepare`, `build` and `database` steps against it. Nothing else changes:
+the same script, manifests, image checks, TLS, OAuth and readiness rules apply.
+
+You need Docker, [kind](https://kind.sigs.k8s.io/), kubectl, Bash, OpenSSL,
+Node.js with the root dependencies, the .NET 10 SDK and the
+[Aspire CLI](https://aspire.dev). NuGet restores use the Microsoft feed in
+`server/kubernetes/aspire/nuget.config`. From the repository root:
+
+```sh
+aspire start --apphost server/kubernetes/aspire/apphost.cs
+```
+
+Watch the `prepare`, `build` and `database` resources finish in the Aspire
+dashboard. For the remaining steps, point your kubeconfig at the cluster and
+tell the script to use it:
+
+```sh
+kind export kubeconfig --name cao-local
+export CAO_LOCAL_KIND_CLUSTER=cao-local
+bash server/kubernetes/local.sh ingest /private/path/to/artifact
+bash server/kubernetes/local.sh serve /private/path/to/oauth.env
+bash server/kubernetes/local.sh forward
+```
+
+With `CAO_LOCAL_KIND_CLUSTER` set, every command uses context
+`kind-cao-local` and node `cao-local-control-plane`, and images are imported
+only when that node runs in your current Docker daemon. The cluster is kept
+when Aspire stops so the database survives restarts; remove it explicitly with
+`kind delete cluster --name cao-local`, which also deletes its data.
+
 `prepare` generates independent administrator, owner, runtime, session and webhook
 secrets plus a 30-day development CA and two server certificates, in the ignored,
 owner-only `.tmp/cao-kubernetes-local/`. It refuses to overwrite existing state.

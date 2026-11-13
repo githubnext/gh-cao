@@ -168,6 +168,20 @@ test("local deployment refuses foreign namespaces without making cluster writes"
   }
 });
 
+test("an explicit kind cluster selects its own context and rejects unsafe names before cluster calls", (t) => {
+  const f = fixture(t);
+  const result = f.run("serve", { CAO_LOCAL_KIND_CLUSTER: "cao-local" });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Refusing foreign namespace: cao-local/);
+  for (const { args } of f.calls()) assert.match(args.join(" "), /^--context kind-cao-local get namespace /);
+
+  const rejected = fixture(t);
+  const invalid = rejected.run("serve", { CAO_LOCAL_KIND_CLUSTER: "--context=prod" });
+  assert.notEqual(invalid.status, 0);
+  assert.match(invalid.stderr, /Invalid CAO_LOCAL_KIND_CLUSTER/);
+  assert.equal(rejected.calls().length, 0);
+});
+
 test("database preflight checks the second namespace before creating a missing first namespace", (t) => {
   const f = fixture(t, { missing: "cao-local-system" });
   const result = f.run("database");
