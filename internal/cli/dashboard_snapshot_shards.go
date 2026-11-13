@@ -252,7 +252,7 @@ func writeDashboardIncrementalSnapshot(ctx context.Context, cache string, incomi
 	shared, owned := map[string][]map[string]any{}, map[string]map[string][]map[string]any{}
 	for collection, rows := range merged {
 		for _, row := range rows {
-			if collection == "transactions" && row["id"] == "local-dashboard-ingestion" {
+			if collection == "transactions" && row["id"] != "local-dashboard-ingestion" {
 				continue
 			}
 			id := nativeText(row["runId"])

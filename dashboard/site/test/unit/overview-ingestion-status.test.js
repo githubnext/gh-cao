@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import contract from '../fixtures/overview-ingestion-status-contract.json' with { type: 'json' };
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
-import { dashboardDataStatus } from '../../src/dashboard-data-status.js';
+import { dashboardDataStatus, localIngestionProgress } from '../../src/dashboard-data-status.js';
 import { renderDashboardCurrentStatus, renderDashboardIngestionStatus } from '../../src/components/refresh-error.js';
 import { updateRateLimitNotification } from '../../src/rate-limit-notification.js';
 import { DATABASE_NAME, recordTransaction } from '../../src/data/storage/indexeddb.js';
@@ -15,6 +15,8 @@ afterEach(() => {
   controller.abort();
   controller = new AbortController();
   dashboardDataStatus.set({ phase: 'unknown', snapshot: null });
+  localIngestionProgress.set(null);
+  document.head.replaceChildren();
   updateRateLimitNotification('/api/v1/query', 200);
   document.body.replaceChildren();
 });
@@ -77,6 +79,31 @@ describe('Local ingestion progress contract', () => {
       id: 'other', kind: 'ingest-jsonl', createdAt: contract.local.transaction.createdAt
     });
     expect((await query()).rows).toEqual([]);
+  });
+
+  it('updates received runs independently of the canonical progress receipt', async () => {
+      const meta = document.createElement('meta');
+      meta.name = 'dashboard-data-backend';
+      meta.content = 'server-http';
+      document.head.append(meta);
+      await recordTransaction(indexedDB, contract.local.transaction);
+      const source = await query();
+      const status = renderDashboardCurrentStatus(snapshot, {
+        configuration: authoritativeDashboard.dashboard['data-status'],
+        sources: { [contract.local.source]: source }
+      });
+      document.body.append(status);
+      const trigger = status.querySelector('button');
+      expect(status.textContent).not.toContain('Runs received this pass');
+      localIngestionProgress.set({
+        passId: 'pass-1', repository: 'octo/api', phase: 'receiving', receivedRuns: 7,
+        startedAt: '2026-11-13T18:00:00Z', updatedAt: '2026-11-13T18:00:01Z'
+      });
+      expect(status.textContent).toContain('Runs received this pass7');
+      expect(status.textContent).toContain('Runs ingestedUnknown');
+      expect(status.querySelector('button')).toBe(trigger);
+      localIngestionProgress.set(null);
+      expect(status.textContent).not.toContain('Runs received this pass');
   });
 });
 

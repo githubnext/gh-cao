@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -56,6 +56,7 @@ test.beforeAll(async () => {
     .filter(([name]) => !/^(?:CAO_|DASHBOARD_|GH_|GITHUB_|OTEL_)/.test(name)));
   child = spawn(resolve(".tmp/cao-dashboard"), [
     "serve", "--postgres-url", postgres.postgresURL, "--namespace", postgres.namespace, "--site", site,
+    "--source", directory,
     "--listen", "127.0.0.1:0", "--access-token", accessToken, "--exit-on-stdin-close",
     "--database-queries", join(site, "src/data/queries/database.json"),
     "--dashboard-queries", join(site, "src/agent/queries.generated.json"),
@@ -165,6 +166,56 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       await expect(tooltip).toHaveRole("tooltip");
       await expect(tooltip).not.toHaveAttribute("popover", "auto");
     }
+  });
+}
+
+for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
+  test(`received progress uses one local WebSocket without REST polling at ${viewport.width}px`, async ({ page }, testInfo) => {
+    await status("collecting", 72);
+    const progress = {
+      passId: `browser-pass-${viewport.width}`, repository: "octo/api", phase: "receiving",
+      receivedRuns: 0, startedAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    };
+    const publishProgress = async (count) => {
+      progress.receivedRuns = count;
+      progress.updatedAt = new Date().toISOString();
+      const staging = join(directory, "progress.tmp");
+      await writeFile(staging, JSON.stringify(progress));
+      await rename(staging, join(directory, "ingestion-progress.json"));
+    };
+    await publishProgress(0);
+    const sockets = [];
+    const requests = [];
+    page.on("websocket", (socket) => sockets.push(socket.url()));
+    page.on("request", (request) => {
+      if (/\/api\/v1\/(?:query|refresh|events)$/.test(new URL(request.url()).pathname)) requests.push(request.url());
+    });
+    await page.setViewportSize(viewport);
+    await page.goto(`${url}/?access_token=${accessToken}#page-overview`);
+    await expect(page.locator(".dashboard-current-status > button")).toHaveAttribute("aria-label", "Data ingestion: Collecting");
+    const tooltip = page.locator("#dashboard-current-status-tooltip");
+    if (viewport.width < 700) await page.locator(".mobile-ingestion-indicator").click();
+    else await page.locator(".dashboard-current-status > button").focus();
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText("Runs received this pass0");
+    await expect(tooltip).toContainText("Runs ingested1");
+    await page.waitForLoadState("networkidle");
+    const before = requests.length;
+    await publishProgress(3);
+    await expect(tooltip).toContainText("Runs received this pass3");
+    await publishProgress(7);
+    await expect(tooltip).toContainText("Runs received this pass7");
+    await expect(tooltip).toContainText("Runs ingested1");
+    expect(requests).toHaveLength(before);
+    expect(sockets).toHaveLength(1);
+    expect(new URL(sockets[0]).pathname).toBe("/api/v1/events/ws");
+    expect(sockets[0]).not.toContain(accessToken);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const screenshot = testInfo.outputPath(`local-receiving-${viewport.width}.png`);
+    await page.screenshot({ path: screenshot, fullPage: true });
+    await testInfo.attach("Populated dashboard receiving runs before ingestion", {
+      body: await readFile(screenshot), contentType: "image/png",
+    });
   });
 }
 

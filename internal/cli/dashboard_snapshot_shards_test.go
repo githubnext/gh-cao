@@ -31,6 +31,43 @@ func dashboardShardTestBatch(count int, now time.Time) map[string][]map[string]a
 	return batch
 }
 
+func TestDashboardIncrementalSnapshotPublishesOnlyIngestionReceipt(t *testing.T) {
+	for _, legacy := range []bool{false, true} {
+		t.Run(fmt.Sprintf("legacy=%t", legacy), func(t *testing.T) {
+			cache, now := t.TempDir(), time.Now().UTC()
+			batch := dashboardShardTestBatch(1, now)
+			receipt, err := dashboardIngestionRecord(dashboardIngestion{
+				ID: "local-dashboard-ingestion", Kind: "local-dashboard-ingestion", Status: "collecting",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			batch["transactions"] = append(batch["transactions"], receipt)
+			if legacy {
+				if err := publishDashboardSnapshot(t.Context(), cache, batch); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for publication := 0; publication < 2; publication++ {
+				if err := writeDashboardSnapshot(t.Context(), cache, batch, true); err != nil {
+					t.Fatal(err)
+				}
+				recovered, err := readDashboardArtifactBatch(t.Context(), cache)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if rows := recovered["transactions"]; len(rows) != 1 || !reflect.DeepEqual(rows[0], receipt) {
+					t.Fatalf("canonical shards must contain only the ingestion receipt: %v", rows)
+				}
+				metadata, err := readDashboardStatus(t.Context(), cache, []string{"octo/api"})
+				if err != nil || metadata["id"] != "local-dashboard" || metadata["windowEnd"] != batch["transactions"][0]["windowEnd"] {
+					t.Fatalf("observation metadata was not preserved in inventory: %v %v", metadata, err)
+				}
+			}
+		})
+	}
+}
+
 func TestDashboardIncrementalSnapshotReusesUntouchedShards(t *testing.T) {
 	cache, now := t.TempDir(), time.Now().UTC()
 	batch := dashboardShardTestBatch(160, now)

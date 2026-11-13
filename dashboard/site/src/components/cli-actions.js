@@ -194,9 +194,9 @@ function renderCliActionControl(action, options = {}) {
   const rowPresentation = options.presentation === 'row';
   const canExecute = options.canExecute !== false && cliQueueAvailable() && action['copy-only'] !== true;
   const confirmationLabel = presentation.label;
-  const templateValues = { ...options.templateValues };
-  const context = options.context ?? declaredCliActionContext;
   const fields = cliActionTemplateFields(action.command);
+  const templateValues = Object.fromEntries(Object.entries(options.templateValues ?? {}).filter(([field]) => fields.includes(field)));
+  const context = options.context ?? declaredCliActionContext;
   const missingContext = cliActionTemplateFields(action.command, { includeContext: true })
     .find((field) => !fields.includes(field) && !context[field]);
   const commandError = options.batch?.error ?? (missingContext

@@ -41,6 +41,7 @@ FROM golang:1.27.3-alpine@sha256:f2c872bcee949b7be9c490efd02b48a8a2fbf947cdf533f
 
 ARG VERSION=dev
 ARG REVISION=unknown
+ARG GOPROXY
 WORKDIR /workspace/server
 COPY server/go.mod server/go.sum ./
 COPY internal/dashboardquery/go.mod internal/dashboardquery/go.sum /workspace/internal/dashboardquery/
@@ -125,6 +126,8 @@ RUN addgroup -S -g 65532 cao && adduser -S -D -H -u 65532 -G cao cao
 COPY --from=server-build /out/cao-dashboard /app/cao-dashboard
 COPY server/postgres/*.sql /app/postgres/
 COPY server/azure/provision.sh server/azure/provision.sql /app/azure/
+# The provisioner runs in Linux even when the checkout uses Windows line endings.
+RUN sed -i 's/\r$//' /app/azure/provision.sh
 WORKDIR /app
 USER 65532:65532
 ENTRYPOINT ["/bin/sh", "/app/azure/provision.sh"]

@@ -1,0 +1,93 @@
+name: Aspire kind Kubernetes
+
+on:
+  pull_request:
+    paths: &paths
+      - .github/workflows/kubernetes-aspire.yml
+      - .github/workflows/cao.json
+      - .github/workflows/cao.azure.json
+      - .npmrc
+      - package.json
+      - package-lock.json
+      - server/Dockerfile
+      - server/kubernetes/**
+      - server/azure/**
+      - server/postgres/**
+      - server/go.mod
+      - server/go.sum
+      - internal/dashboardquery/**
+      - dashboard/site/**
+  push:
+    branches: [main]
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kubernetes-aspire-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  aspire-kind:
+    name: Aspire kind integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d # v5.0.0
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - uses: Azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+        with:
+          version: v1.37.2
+      - name: Install kind and Aspire CLI
+        run: |
+          go install sigs.k8s.io/kind@v0.33.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          dotnet tool install --global Aspire.Cli --version 13.6.5
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      - name: Install Node dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Start Aspire and wait for database provisioning
+        env:
+          ASPIRE_CLI_START_TIMEOUT: "300"
+        run: |
+          set -euo pipefail
+          aspire start --apphost server/kubernetes/aspire/apphost.cs
+          aspire wait database --status down --timeout 1800
+          logs="$(aspire logs database --tail 100 --apphost server/kubernetes/aspire/apphost.cs)"
+          printf '%s\n' "$logs"
+          grep -Fq 'CAO database provisioning and explicit grants complete' <<< "$logs"
+      - name: Run and verify canonical maintenance
+        run: |
+          set -euo pipefail
+          kind export kubeconfig --name cao-local
+          kubectl --context kind-cao-local -n cao-local-system create job \
+            --from=cronjob/cao-canonical-maintenance cao-maintenance-ci
+          kubectl --context kind-cao-local -n cao-local-system wait \
+            --for=condition=complete job/cao-maintenance-ci --timeout=10m
+          kubectl --context kind-cao-local -n cao-local-system logs job/cao-maintenance-ci
+      - name: Show Aspire diagnostics
+        if: failure()
+        run: |
+          aspire describe --apphost server/kubernetes/aspire/apphost.cs || true
+          for resource in prepare build database; do
+            aspire logs "$resource" --tail 100 --apphost server/kubernetes/aspire/apphost.cs || true
+          done
+          kubectl --context kind-cao-local get pods -A || true
+      - name: Stop Aspire and remove the CI cluster
+        if: always()
+        run: |
+          aspire stop --apphost server/kubernetes/aspire/apphost.cs || true
+          kind delete cluster --name cao-local || true

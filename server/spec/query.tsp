@@ -190,6 +190,17 @@ namespace Queries {
     @body body: string;
   } | Unauthorized | Unavailable;
 
+  /** Local-only WebSocket upgrade. Offer `cao-dashboard` and `cao-bearer.<base64url capability>` subprotocols; only `cao-dashboard` is selected, never the credential. Requires an exact same-origin Origin header. Hosted deployments return 404. Sends RevisionEvent JSON messages and LocalIngestionProgressEvent messages on change, with a heartbeat every 20 seconds. Progress is transient acquisition telemetry, not canonical evidence; it does not advance the query revision or trigger queries. No credential is accepted in the URL. */
+  @route("/api/v1/events/ws")
+  @useAuth(BearerAuth)
+  @get op websocket(
+    @header("Sec-WebSocket-Protocol") protocol: string
+  ): {
+    @statusCode statusCode: 101;
+    @header("Upgrade") upgrade: "websocket";
+    @header("Sec-WebSocket-Protocol") protocol: "cao-dashboard";
+  } | BadRequest | Unauthorized | Forbidden | NotFound | TooManyRequests | Unavailable;
+
   /** Read-only projection diagnostics. */
   @route("/api/v1/diagnostics")
   @get op diagnostics(): {
@@ -203,4 +214,25 @@ namespace Queries {
   @route("/api/v1/refresh")
   @post op refresh(@header("X-CSRF-Token") csrfToken?: string):
     { revision: int64; evaluatedAt: string; changed: false } | Unauthorized | Forbidden | Unavailable;
+}
+
+/** Counts unique validated rich run attempts received in the current local collection pass, before normalization or PostgreSQL commit. Does not count retained canonical runs or imply successful ingestion. */
+model LocalIngestionProgress {
+  passId: string;
+  repository: string;
+  phase: "discovering" | "receiving" | "ingesting" | "waiting" | "paused" | "failed";
+  @minValue(0)
+  @maxValue(1000)
+  receivedRuns: int32;
+  @format("date-time")
+  startedAt: string;
+  @format("date-time")
+  updatedAt: string;
+}
+
+@jsonSchema
+model LocalIngestionProgressEvent {
+  type: "ingestion-progress";
+  /** Null when no local progress receipt is available. Clients clear transient progress on disconnect. */
+  progress: LocalIngestionProgress | null;
 }

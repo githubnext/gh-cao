@@ -123,7 +123,7 @@ func TestResolveNativeCaoActionsPreservesTheHostedExecutionBoundary(t *testing.T
 		{"set-campaign-preview", "campaign", "security", "gh cao campaigns mode preview security"},
 		{"enable-campaign", "campaign", "security", "gh cao campaigns enable security"},
 		{"disable-campaign", "campaign", "security", "gh cao campaigns disable security"},
-		{"add-repository", "repository", "octo/app", "gh cao repos add octo/app"},
+		{"add-repository", "repository-pattern", "octo/app", "gh cao repos add octo/app"},
 	} {
 		t.Run(tc.id, func(t *testing.T) {
 			invocation, err := catalog.Resolve(Request{

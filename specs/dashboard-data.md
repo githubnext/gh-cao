@@ -954,7 +954,19 @@ attempts and a nonzero, microsecond-aligned local `observedAt` timestamp. The fi
 `run-bundles.json` sidecar MUST be at most 32 MiB and covered by the same verified
 payload manifest. Unknown envelope fields, trailing JSON, unsupported protocol
 modes, and snapshot force/supplement options MUST fail explicitly. All manifested
-snapshot shards MUST still be verified; the producer SHALL retain its complete
+snapshot shards MUST be verified on full ingestion. A delta MAY reuse the
+already-ingested snapshot only when its compacted-shard manifest identity and
+resolved source directory match a durable verified receipt published atomically
+with that snapshot in the same PostgreSQL namespace. Publication MUST recheck
+this identity under the namespace writer lock. This receipt identifies verified
+database content, not current mutable recovery-file bytes; a delta MUST NOT read
+or import unverified recovery shards on this path. Changed identities MUST
+undergo full shard hash verification before delta publication, without granting
+a new reusable receipt. Bundle bytes MUST be hash-verified on every request.
+Process-local path/mtime caches SHALL NOT substitute for verified content.
+Ordinary full writers SHALL clear the receipt unless publishing verified input.
+Full reconciliation MUST independently verify recovery files, even when the
+receipt matches. The producer SHALL retain its complete
 on-disk recovery snapshot. Initial and final reconciliations SHALL remain explicit
 full snapshots, and final publication SHALL remove the sidecar's manifest entry.
 
@@ -1009,8 +1021,8 @@ Ordinary publication SHALL mutate only accepted Run subtrees and supplied
 structural parents, except for necessary capacity eviction. Run-bundle publication
 SHALL mark cached statistical summaries stale without rebuilding them. Private
 typed per-Run footprints and per-source
-counts, ordinals and evidence clocks MAY accelerate writes only at the locked
-canonical revision; independent writers SHALL invalidate them, requiring
+counts, logical byte totals, ordinals and evidence clocks MAY accelerate writes
+only at the locked canonical revision; independent writers SHALL invalidate them, requiring
 reconstruction from authoritative native rows. They are not query sources or
 canonical entities. Delta coverage SHALL remain partial or unavailable rather
 than imply full-source completeness. Physical bookkeeping changes require the
@@ -1043,6 +1055,31 @@ The optional shell `ingestion-source` query SHALL project `status-name`, `status
 and `observed-at`. Dashboard Language SHALL own status classification. The shared
 tooltip MAY format supplied numbers and timestamps, but MUST NOT derive business
 state or query rows. Unknown quota and progress MUST NOT become zero or healthy.
+Local acquisition MAY additionally publish a bounded, atomic
+`ingestion-progress.json` telemetry receipt outside the canonical manifest.
+It SHALL identify the collection pass, repository, phase, unique validated
+rich run attempts received in that pass, and pass/update clocks. Receipt counts
+SHALL advance before normalization or PostgreSQL publication, deduplicate summary
+reconciliation and reset for each pass. A bounded publication queue MAY let
+receipt processing continue while an earlier batch commits; cancellation,
+publication failures and incomplete-stream failures MUST remain explicit.
+Received counts MUST NOT be presented as ingested counts, retained totals or
+complete coverage. The shared tooltip MAY present this supplied transport
+telemetry directly: it is an acquisition lifecycle, not a queryable evidence
+source. Retained run counts and all evidence shaping SHALL remain declarative
+queries over canonical data.
+
+The local Go host MAY expose `/api/v1/events/ws` using the existing dashboard
+capability and an exact same-origin WebSocket handshake. Capabilities SHALL
+travel in an offered credential subprotocol, never in the WebSocket URL or
+selected response subprotocol. One shared, abort-scoped browser connection
+SHALL carry revision notifications and lightweight acquisition progress.
+Progress-only messages MUST NOT advance canonical revisions or trigger
+dashboard queries. The host SHALL coalesce intermediate progress, bound writes,
+and close connections on disconnect or shutdown. Unavailable telemetry MUST
+remain unknown, including after a lost connection. Only an explicit local
+server bootstrap marker SHALL select this transport; hosted deployments MUST
+NOT expose or attempt WebSockets and SHALL retain authenticated SSE.
 The default card SHALL use the reported history bounds for an accessible progress
 bar, compact API headroom, and relative retry time. Verbose diagnostics SHALL be
 collapsed initially. Mobile SHALL expose a labeled tap-to-open popup button with
@@ -3893,6 +3930,15 @@ logical typed-row bytes. Byte accounting uses 64 bytes plus the column count
 per row and the UTF-8 text byte lengths of its typed column values; it is a
 logical resource envelope, not a physical disk, transaction-peak, or RSS limit.
 Query resource guards SHALL NOT be raised to accommodate larger history.
+
+Run-bundle publication MAY skip namespace-wide footprint aggregation and ranking
+when revision-fenced per-source row totals and combined logical byte totals prove
+every limit fits. Totals SHALL incorporate old and new receipts for all accepted
+Run subtrees, including removed collections and winning attempts, in the same
+transaction. Evidence-clock maxima SHALL remain exact after replacements,
+including removal of the previous maximum. Over-budget writes SHALL retain exact
+deterministic ranking and reconstruct totals after eviction; independent writers
+SHALL invalidate cached totals before another delta can use this fast path.
 
 After reconciling additive daily contributions, a write SHALL evict the oldest
 complete Run subtrees atomically until the newest retained prefix fits every

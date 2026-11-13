@@ -980,9 +980,14 @@ The slug is the last component of the installed package name (`root` for
 fail before updates or gh-aw upgrades. Campaign selection does not narrow a
 required gh-aw compiler upgrade, which may refresh shared workflow files.
 
-The canvas Updates page exposes **Add repository** beside Repositories. Its
-debounced GitHub search only selects a target; execution still requires fresh
-approval of the exact `gh cao repos add OWNER/REPO` command. Enrollment
+The canvas Repositories page exposes a **+ Add repository** control in both
+chart and table modes; Updates retains the same control. Search GitHub, enter
+an exact `OWNER/REPO`, or select a wildcard such as `owner/service-*` or `owner/*`.
+Execution still requires fresh approval of the command. Quote wildcards at the CLI:
+`gh cao repos add 'owner/service-*'`. Patterns resolve current accessible matches
+to exact policy entries, not future matches. Incomplete discovery, no matches,
+more than 100 matches, or any failed exact access check leaves policy unchanged.
+Enrollment
 requires existing exact owner and repository allowlists and does not rewrite a
 broad discovery policy. An already enrolled repository is unchanged. New targets
 stay in review mode even when a campaign defaults to live. The command neither

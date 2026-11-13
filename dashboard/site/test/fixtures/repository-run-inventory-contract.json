@@ -1,6 +1,7 @@
 {
   "page": "repositories",
   "view": "repositories-runs",
+  "actions": ["add-repository"],
   "source": "repository-run-inventory",
   "chart": "horizontal-bar",
   "limit": 100,

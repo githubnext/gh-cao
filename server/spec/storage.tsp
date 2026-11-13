@@ -1054,6 +1054,7 @@ namespace Storage {
     schemaVersion: int64;
     capacityRevision?: int64;
     bundleEpoch?: utcDateTime;
+    verifiedSnapshot?: string;
   }
 
   /** Revision-qualified publication bookkeeping, never a canonical source or authority. */
@@ -1062,6 +1063,7 @@ namespace Storage {
     collection: string;
     revision: int64;
     records: int64;
+    bytes: int64;
     nextOrdinal: int64;
     evidenceAt?: utcDateTime;
   }

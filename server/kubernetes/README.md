@@ -1,4 +1,4 @@
-# Local Docker Desktop Kubernetes
+# Local Kubernetes evaluation
 
 This is an operator-run, **single-node, non-HA local evaluation**, not a new
 `gh cao deploy` backend or a production Kubernetes platform. It runs the actual
@@ -8,12 +8,13 @@ There is no Redis, mock identity, executor, host socket, cloud deployment,
 public tunnel or automatic workflow dispatch. An explicitly selected native
 collector is an alternative to snapshot ingestion.
 
-All Kubernetes commands select `--context docker-desktop`. The helper owns only
-`cao-local` (web/ingestion) and `cao-local-system` (database/owner jobs); it refuses
-existing namespaces without its ownership label. Existing roles, policy and
-other local repositories are not deployment inputs. The checked-in `policy.json`
-is the build-time and mounted runtime policy: one container replica, PostgreSQL,
-only `githubnext/gh-cao` evidence and no enabled operations.
+By default, the helper selects `--context docker-desktop`; the optional Aspire
+workflow below selects a standalone kind context. It owns only `cao-local`
+(web/ingestion) and `cao-local-system` (database/owner jobs); it refuses existing
+namespaces without its ownership label. Existing roles, policy and other local
+repositories are not deployment inputs. The checked-in `policy.json` is the
+build-time and mounted runtime policy: one container replica, PostgreSQL, only
+`githubnext/gh-cao` evidence and no enabled operations.
 Set `CAO_LOCAL_POLICY` to an explicitly reviewed policy path for another authorized
 scope, using the same path for build, serve and native activation.
 
@@ -37,6 +38,56 @@ bash server/kubernetes/local.sh build
 bash server/kubernetes/local.sh database
 ```
 
+### Optional: kind via Aspire instead of Docker Desktop Kubernetes
+
+If you would rather not enable Docker Desktop's Kubernetes, a small Aspire
+AppHost can create a standalone kind cluster named `cao-local` and run the
+same `prepare`, `build` and `database` steps against it. Nothing else changes:
+the same script, manifests, image checks, TLS, OAuth and readiness rules apply.
+
+You need Docker, [kind](https://kind.sigs.k8s.io/), kubectl, Bash, OpenSSL,
+Node.js with the root dependencies, the .NET 10 SDK and the
+[Aspire CLI](https://aspire.dev). NuGet restores use the Microsoft feed in
+`server/kubernetes/aspire/nuget.config`.
+
+On a Microsoft-managed machine, start the Terrapin Go credential provider and
+set the proxy address before starting Aspire:
+
+```sh
+export CAO_LOCAL_GO_PROXY=http://host.docker.internal:5000
+```
+
+Docker Desktop resolves that address to the host. Use a proxy address reachable
+from the Docker builder on other hosts; do not put credentials in the URL.
+From the repository root:
+
+```sh
+aspire start --apphost server/kubernetes/aspire/apphost.cs
+```
+
+Watch `prepare` (on the first run), `build` and `database` in the Aspire
+dashboard. In the `database` logs, look for
+`CAO database provisioning and explicit grants complete` and a successful
+`cao-canonical-maintenance` update. A finished resource can also have failed.
+
+For the remaining steps, point your kubeconfig at the cluster and tell the
+script to use it. The export changes your current context; set `KUBECONFIG`
+to a separate file first if you want to keep it unchanged.
+
+```sh
+kind export kubeconfig --name cao-local
+export CAO_LOCAL_KIND_CLUSTER=cao-local
+bash server/kubernetes/local.sh ingest /private/path/to/artifact
+bash server/kubernetes/local.sh serve /private/path/to/oauth.env
+bash server/kubernetes/local.sh forward
+```
+
+With `CAO_LOCAL_KIND_CLUSTER` set, every command uses context
+`kind-cao-local` and node `cao-local-control-plane`, and images are imported
+only when that node runs in your current Docker daemon. The cluster is kept
+when Aspire stops so the database survives restarts; remove it explicitly with
+`kind delete cluster --name cao-local`, which also deletes its data.
+
 `prepare` generates independent administrator, owner, runtime, session and webhook
 secrets plus a 30-day development CA and two server certificates, in the ignored,
 owner-only `.tmp/cao-kubernetes-local/`. It refuses to overwrite existing state.
@@ -58,6 +109,8 @@ long cluster shutdown, before resuming the web:
 kubectl --context docker-desktop -n cao-local-system create job \
   --from=cronjob/cao-canonical-maintenance cao-maintenance-manual
 ```
+
+For the Aspire kind cluster, use `--context kind-cao-local` instead.
 
 Audit retention/deletion and external evidence delivery are **not enabled**.
 No independent audit archive, backup, disaster recovery or production capacity

@@ -1,0 +1,89 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "LocalIngestionProgressEvent.json",
+    "type": "object",
+    "properties": {
+        "type": {
+            "type": "string",
+            "const": "ingestion-progress"
+        },
+        "progress": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/LocalIngestionProgress"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "Null when no local progress receipt is available. Clients clear transient progress on disconnect."
+        }
+    },
+    "required": [
+        "type",
+        "progress"
+    ],
+    "$defs": {
+        "LocalIngestionProgress": {
+            "type": "object",
+            "properties": {
+                "passId": {
+                    "type": "string"
+                },
+                "repository": {
+                    "type": "string"
+                },
+                "phase": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "const": "discovering"
+                        },
+                        {
+                            "type": "string",
+                            "const": "receiving"
+                        },
+                        {
+                            "type": "string",
+                            "const": "ingesting"
+                        },
+                        {
+                            "type": "string",
+                            "const": "waiting"
+                        },
+                        {
+                            "type": "string",
+                            "const": "paused"
+                        },
+                        {
+                            "type": "string",
+                            "const": "failed"
+                        }
+                    ]
+                },
+                "receivedRuns": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000
+                },
+                "startedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                }
+            },
+            "required": [
+                "passId",
+                "repository",
+                "phase",
+                "receivedRuns",
+                "startedAt",
+                "updatedAt"
+            ],
+            "description": "Counts unique validated rich run attempts received in the current local collection pass, before normalization or PostgreSQL commit. Does not count retained canonical runs or imply successful ingestion."
+        }
+    }
+}
