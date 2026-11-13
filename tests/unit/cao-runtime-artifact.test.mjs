@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import childProcess, { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { syncBuiltinESMExports } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
@@ -86,8 +87,26 @@ test("the prebuilt archive loads the Governance CLI transport with dependency-fr
   assert.equal(result.stdout, yaml);
 });
 
-test("producer archives are reproducible across temporary build directories", () => {
+test("producer archives are reproducible with drive-safe relative tar archive paths", (t) => {
+  const spawnSync = childProcess.spawnSync;
+  let extractions = 0;
+  t.mock.method(childProcess, "spawnSync", (command, args, options) => {
+    if (command === "tar") {
+      extractions++;
+      assert.equal(args[0], "-xzf");
+      assert.equal(args[1], path.basename(args[1]));
+      assert.doesNotMatch(args[1], /:/);
+      assert.ok(existsSync(path.join(options.cwd, args[1])));
+    }
+    return spawnSync(command, args, options);
+  });
+  syncBuiltinESMExports();
+  t.after(() => {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  });
   const rebuilt = buildCaoRuntime(catalog, path.join(temporary, "rebuilt"), revision);
+  assert.equal(extractions, 1);
   assert.equal(rebuilt.digest, artifact.digest);
   assert.deepEqual(readFileSync(rebuilt.archive), readFileSync(artifact.archive));
 });

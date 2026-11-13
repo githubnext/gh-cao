@@ -152,7 +152,8 @@ export function buildCaoRuntime(sourceRoot, destination, revision) {
     for (const resource of runtimeResources) copyTrackedResource(sourceRoot, staging, resource);
     cpSync(manifestPath, path.join(staging, "package.json"));
     const selected = npmPack(staging, temporary);
-    run("tar", ["-xzf", path.join(temporary, selected.filename), "-C", unpacked]);
+    // GNU tar interprets a Windows drive-letter archive path as a remote host.
+    run("tar", ["-xzf", selected.filename, "-C", unpacked], { cwd: temporary });
     const root = path.join(unpacked, "package");
     requireResources(root, [...runtimeResources, ...manifest.files]);
     vendorYaml(sourceRoot, root);
