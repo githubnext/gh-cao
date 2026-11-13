@@ -1,36 +1,7 @@
 {
  "source_sha": "6e75d30afed4a4dcece79b9dae39d1d1ff1c684f",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T04:53:07Z",
-   "worker_run_id": "43367892040",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206161686,
-    43206080696,
-    43194788185,
-    43167568535
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:21:27Z to 2026-11-13T03:56:23Z; all within 14 days; none in progress; no docs.yml run since 43362224525 at 03:56Z, so the window equals the 04:35Z evaluation; source d0b4a18 = HEAD = source_sha). Excluded and disclosed: 1 cancelled 43206161686 (no jobs) and 1 failed push 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). Comparable n=18 successful push runs (5-run minimum met; no schedule run in window). Job and step metadata re-fetched; medians match the prior evaluation. Category step Build synthetic enterprise demo (node scripts/simulate-dashboard-pages.mjs: synthetic normalization plus dashboard site build, then cp to dist/cao): median 4 s, p90 4.3 s, range 2-5 s = 4.7% of median build-start-to-deploy-end 84.5 s (p90 111.1 s). 15% gate = 12.7 s; full removal saves at most 4 s, so the gate is unreachable. Caching or reusing generated demo output would stale synthetic dates and commit-specific output. A separate dashboard job adds checkout (median 24.5 s) plus handoff, so it is net negative. No duplicate dashboard build found: astro.config.mjs only links dashboard pages and docs:build is astro build plus validators. Build logs still HTTP 403 difc_forbidden (re-probed 04:52Z on build job 131678162945); cache state inferred from Post Set up Node.js 0 s. No suggestion; no issue created. next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T05:21:00Z",
    "worker_run_id": "43370949051",
@@ -864,6 +835,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43440055797 back to 43341713733; created 2026-11-13T01:01:41Z to 14:09:27Z; span 13 h so the 20-run cap, not the 14-day bound, binds; unchanged since the 14:21Z evaluation; none queued or in progress; source 6e75d30 = HEAD = source_sha). Excluded and disclosed: no cancelled runs in window; failed 43297524311 left the window. Comparable n=20 (19 push + schedule 43371878284; 5-run gate met). Job and step metadata only: build-job log read HTTP 403 difc_forbidden (probed once at 14:33Z, not retried), so the astro-build versus validator split is unmeasured. Category step Build documentation (npm run docs:build): median 14 s, p90 15 s, range 9-15 s = 16.0% of median build-start-to-deploy-end 87.5 s (p90 98.8 s). 15% gate = 13.1 s; clearing it requires removing 94% or more of the step, which removes the docs build itself. Astro-internal changes (caching, parallelism, validator split) are bounded by the 14 s step and cannot reach the gate. Carry-forward outside rotation: Checkout fetch-depth 0 median 25 s (p90 32, max 56), the largest step (28.6% of median exec); not evaluated, outside this worker evidence scope. No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T14:54:30Z",
+   "worker_run_id": "43446486267",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43341713733 created 2026-11-13T01:01:41Z to 43440055797 created 14:09:27Z; all 20 success, 19 push + 1 schedule 43371878284; none queued or in progress; source 6e75d30 = HEAD = source_sha; same window as the 14:34Z evaluation). Jobs API re-fetched for all 20 runs; medians match memory. Category step Build synthetic enterprise demo (npm run dashboard:pages:build + cp to dist/cao): median 4 s, p90 5 s, range 3-5 s = 4.6 percent of median build-start-to-deploy-end 87.5 s (p90 98 s). 15 percent gate = 13.1 s; full removal saves at most 4 s, so the gate is unreachable. No duplicate dashboard build: docs:build (astro build + validate-agent-docs + agent-docs-discovery test) has no reference to buildDashboardSite, dashboard/site or dashboard/report in docs/ or astro.config.mjs; callers are scripts/simulate-dashboard-pages.mjs and tests only; root has no workspaces. Cross-run reuse would stale output: scripts/dashboard-demo-data.mjs enterpriseSample(now) embeds ms-resolution generatedAt and observed_at (re-verified). Carry-forward outside rotation: Checkout fetch-depth 0 median 25 s (p90 31, max 56), largest step, not evaluated here. No suggestion; no issue created (no open self-care:docs-build-time-investigator issues). next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -881,56 +881,56 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T01:01:41Z..2026-11-13T14:09:27Z",
-  "evaluated_at": "2026-11-13T14:34:41Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size bytes = github-pages artifact from the Actions artifacts API (carried from prior verification). Jobs API timings (logs 403 DIFC). Re-verified at 2026-11-13T14:34:41Z (worker 43443264728).",
+  "evaluated_at": "2026-11-13T14:54:30Z",
+  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size bytes = github-pages artifact from the Actions artifacts API (carried from prior verification). Jobs API timings (logs 403 DIFC).  Re-verified at 2026-11-13T14:54:30Z (worker 43446486267) from the jobs API: same 20 runs, all success; step medians and p90 unchanged.",
   "step_stats_median_p90_s": {
    "Set up job": [
-    1.0,
-    2.0
+    1,
+    2
    ],
    "Checkout": [
-    25.0,
-    32.0
+    25,
+    32
    ],
    "Set up Node.js": [
-    4.0,
-    7.0
+    4,
+    7
    ],
    "Install dependencies": [
-    17.0,
+    17,
     22.1
    ],
    "Build documentation": [
-    14.0,
-    15.0
+    14,
+    15
    ],
    "Build synthetic enterprise demo": [
-    4.0,
-    5.0
+    4,
+    5
    ],
    "Configure Pages": [
-    0.0,
-    1.0
+    0,
+    1
    ],
    "Upload Pages artifact": [
-    2.0,
-    3.0
+    2,
+    3
    ],
    "Post Set up Node.js": [
-    0.0,
-    0.0
+    0,
+    0
    ],
    "Post Checkout": [
-    0.0,
-    1.0
+    0,
+    1
    ],
    "Complete job": [
-    0.0,
-    0.0
+    0,
+    0
    ],
    "Deploy Pages": [
-    7.0,
-    8.0
+    7,
+    8
    ]
   },
   "rows": [
@@ -1226,6 +1226,11 @@
    "observed_at": "2026-11-13T14:34:41Z",
    "source": "docs.yml Checkout step (carry-forward, outside rotation categories)",
    "note": "Checkout fetch-depth 0: median 25 s, p90 32 s, max 56 s over the 20-run window (28.6% of median exec 87.5 s); largest single step. Carried forward again because the rotation has no category for it. Repo-local git use in the docs path is HEAD-only so far (agent-docs-discovery test runs git rev-parse HEAD; astro.config.mjs has no git calls); the synthetic demo and other steps are unverified. Shallow clone was rejected at 11:20Z for per-resource sourceCommittedAt correctness; a partial-clone variant is unmeasured. Needs a maintainer rotation decision or a shallow-clone measurement before any suggestion."
+  },
+  {
+   "observed_at": "2026-11-13T14:54:30Z",
+   "source": "docs.yml reusable dashboard generation (worker 43446486267)",
+   "note": "Build synthetic enterprise demo median 4 s (p90 5 s) is the only dashboard generation cost; no duplicate build in docs:build. Re-evaluate only if the demo step grows beyond about 12 s median or a dashboard build is added to the Astro docs path."
   }
  ]
 }
