@@ -77,6 +77,16 @@
       "target_commit": "dda6e4ad3194da3253b9b944f447aa590aa4e377",
       "target_repo": "githubnext/gh-aw-cao",
       "reason": "Re-confirmed on HEAD dda6e4a: searched every *.test.ts/*.test.js/*.test.mjs file for a barrel index.mjs/index.ts re-export module paired with a shape-only smoke test; none exists. tests/unit/cao-cli.test.mjs and tests/unit/activity-index.test.mjs both assert real behavior, not shape-only re-export identity. Unchanged since refiner-37796381362-3."
+    },
+    {
+      "txn_id": "refiner-43380365286-2",
+      "readiness_for_target": "not-applicable",
+      "true_positive_count": 0,
+      "false_positive_count": 0,
+      "false_negative_count": 0,
+      "target_commit": "b999dc47a316473a0816bc91a696e3bfcfb06fc2",
+      "target_repo": "githubnext/gh-cao",
+      "reason": "Target has no *.test.ts files and no test file contains a re-export (export from or export * as) at HEAD b999dc4, confirmed by git ls-files and a recursive scan of all test files, so the barrel smoke-test pattern cannot occur. Lint delta not applicable because no file matches the rule shape."
     }
   ],
   "affected_paths": [
@@ -158,8 +168,8 @@
   ],
   "existing_plugin_coverage": "None found; this is a repository-specific, automated test-generation workflow pattern not covered by eslint-plugin-jest or other published rules, which generally do not model 'this file's documented testing scope' as a lint target.",
   "language": "typescript",
-  "last_seen_at": "2026-10-13T16:57:20Z",
-  "last_updated": "2026-11-13T01:40:00Z",
+  "last_seen_at": "2026-11-13T07:04:00Z",
+  "last_updated": "2026-11-13T07:04:00Z",
   "last_updated_by_run": "39067866988",
   "last_updated_target_repo": "github/gh-aw-firewall",
   "likely_false_positives": "A barrel test file without an explicit 'shape-only, no duplication' scope comment is not a violation; adding the first behavioral test for a function that has no dedicated module test file elsewhere is legitimate and should not be flagged.",
